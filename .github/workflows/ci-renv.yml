@@ -16,6 +16,10 @@ jobs:
       - name: Restore renv or install deps
         run: |
           Rscript -e 'if (file.exists("renv.lock")) { if(!requireNamespace("renv", quietly=TRUE)) install.packages("renv"); renv::restore() } else { if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes"); remotes::install_deps(dependencies = TRUE) }'
+      - name: Style check (styler)
+        run: |
+          Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler");'
+          Rscript scripts/check_style.R
       - name: Run R CMD check
         uses: r-lib/actions/check@v4
         with:
