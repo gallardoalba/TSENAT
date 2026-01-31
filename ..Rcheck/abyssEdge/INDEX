@@ -1,0 +1,28 @@
+calculate_difference    Calculate splicing diversity changes between
+                        two conditions.
+calculate_diversity     Calculate Tsallis diversity per gene across
+                        samples
+calculate_fc            Calculate splicing diversity changes between
+                        two conditions.
+calculate_lm_interaction
+                        Linear-model interaction test for Tsallis
+                        entropy
+calculate_method        Calculate Tsallis diversity values for
+                        transcripts grouped by gene
+calculate_tsallis_entropy
+                        Calculate Tsallis entropy for a vector of
+                        transcript-level expression values of one gene.
+infer_sample_group      Infer sample group from sample names
+label_shuffling         Calculate p-values using label shuffling.
+plot_diversity_density
+                        Plot diversity distributions (density) by
+                        sample type
+plot_ma                 Plot MA plot for difference results
+plot_mean_violin        Plot violin of per-gene mean diversity by
+                        sample type
+plot_tsallis_q_curve    Plot median +- IQR of Tsallis entropy across q
+                        values by group
+tcga_brca_luma_dataset
+                        TCGA Luminal A breast cancer dataset
+wilcoxon                Calculate p-values using Wilcoxon rank sum
+                        test.

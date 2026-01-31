@@ -14,8 +14,13 @@ LazyData: true
 RoxygenNote: 7.3.3
 Depends: R (>= 4.1)
 Imports: SummarizedExperiment, methods, stats, magrittr, ggplot2
-Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors, cowplot, ggrepel, patchwork
+Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors,
+        cowplot, ggrepel, patchwork
 VignetteBuilder: knitr
 URL: https://github.com/gallardoalba/TSENAT
 BugReports: https://github.com/gallardoalba/TSENAT/issues
-biocViews: Transcriptomics, RNASeq, DifferentialSplicing, AlternativeSplicing, TranscriptomeVariant
+biocViews: Transcriptomics, RNASeq, DifferentialSplicing,
+        AlternativeSplicing, TranscriptomeVariant
+NeedsCompilation: no
+Packaged: 2026-01-31 19:16:49 UTC; nouser
+Author: Gallardo Cristobal [aut, cre]

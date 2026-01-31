@@ -1,0 +1,29 @@
+Package: abyssEdge
+Type: Package
+Title: Tsallis Entropy & Differential Diversity (abyssEdge fork)
+biocViews: Transcriptomics, RNASeq, DifferentialSplicing,
+        AlternativeSplicing, TranscriptomeVariant
+Version: 1.3.1
+Authors@R: c(
+    person("Peter A.", "Szikora", role = c("aut"), email = "peter.andras.szikora@gmail.com"),
+    person("Tamas", "Por", role = c("aut"), email = "tomasz.por@gmail.com"),
+    person("Endre", "Sebestyen", role = c("aut", "cre"), email = "endre.sebestyen@gmail.com", comment = c(ORCID = "0000-0001-5470-2161")))
+Author: Peter A. Szikora [aut], Tamas Pór [aut], Endre Sebestyén [aut, cre]
+Maintainer: Endre Sebestyén <endre.sebestyen@gmail.com>
+Description: This trimmed package focuses on calculating Tsallis entropy for
+    transcript-level expression data and performing basic differential analyses
+    (mean/median differences and log2 fold changes) between two sample
+    conditions. Tsallis entropy generalizes Shannon entropy with a parameter
+    `q` that controls sensitivity to transcript abundance; the package returns
+    normalized Tsallis values and supports multiple `q` values per sample.
+RoxygenNote: 7.3.3
+Imports: SummarizedExperiment, methods, stats, magrittr, ggplot2
+Suggests: testthat, knitr, rmarkdown, tidyr, dplyr
+URL: https://github.com/your-org/abyssEdge
+BugReports: https://github.com/your-org/abyssEdge/issues
+Depends: R (>= 4.1)
+License: GPL-3 + file LICENSE
+Encoding: UTF-8
+LazyData: true
+VignetteBuilder: knitr
+Built: R 4.5.2; ; 2026-01-29 01:47:42 UTC; unix

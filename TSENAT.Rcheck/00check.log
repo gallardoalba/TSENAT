@@ -1,0 +1,108 @@
+* using log directory ‘/home/nouser/galaxy/tools_source/TSENAT/TSENAT.Rcheck’
+* using R version 4.5.2 (2025-10-31)
+* using platform: x86_64-conda-linux-gnu
+* R was compiled by
+    x86_64-conda-linux-gnu-cc (conda-forge gcc 10.4.0-19) 10.4.0
+    GNU Fortran (conda-forge gcc 10.4.0-19) 10.4.0
+* running under: Ubuntu 22.04.5 LTS
+* using session charset: UTF-8
+* using option ‘--as-cran’
+* checking for file ‘TSENAT/DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘TSENAT’ version ‘0.1’
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... [4s/91s] NOTE
+Maintainer: ‘Gallardo Cristóbal <gallardoalba@pm.me>’
+
+New submission
+
+Found the following (possibly) invalid URLs:
+  URL: https://github.com/gallardoalba/TSENAT
+    From: DESCRIPTION
+    Status: 404
+    Message: Not Found
+  URL: https://github.com/gallardoalba/TSENAT/issues
+    From: DESCRIPTION
+    Status: 404
+    Message: Not Found
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘TSENAT’ can be installed ... [17s/15s] OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking ‘build’ directory ... OK
+* checking DESCRIPTION meta-information ... NOTE
+Maintainer field differs from that derived from Authors@R
+  Maintainer: ‘Gallardo Cristóbal <gallardoalba@pm.me>’
+  Authors@R:  ‘Gallardo Cristobal <gallardoalba@pm.me>’
+
+* checking top-level files ... NOTE
+File
+  LICENSE
+is not mentioned in the DESCRIPTION file.
+Non-standard files/directories found at top level:
+  ‘CODE_OF_CONDUCT.md’ ‘CONTRIBUTING.md’ ‘README.de.md’ ‘README.en.md’
+  ‘README.es.md’ ‘scripts’
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... [29s/22s] OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... NOTE
+Rd file 'calculate_tsallis_entropy.Rd':
+  \usage lines wider than 90 characters:
+     calculate_tsallis_entropy(x, q = 2, norm = TRUE, what = c("S", "D", "both"), log_base = exp(1))
+
+These lines will be truncated in the PDF manual.
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking contents of ‘data’ directory ... OK
+* checking data for non-ASCII characters ... OK
+* checking LazyData ... OK
+* checking data for ASCII and uncompressed saves ... OK
+ WARNING
+‘qpdf’ is needed for checks on size reduction of PDFs
+* checking installed files from ‘inst/doc’ ... OK
+* checking files in ‘vignettes’ ... OK
+* checking examples ... OK
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... OK
+  Running ‘run_tsallis_diff.R’
+  Running ‘testthat.R’
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes ... OK
+* checking re-building of vignette outputs ... [16s/15s] OK
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... NOTE
+Skipping checking HTML validation: no command 'tidy' found.
+Please obtain a recent version of HTML Tidy by downloading a binary
+release or compiling the source code from <https://www.html-tidy.org/>.
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: 1 WARNING, 5 NOTEs

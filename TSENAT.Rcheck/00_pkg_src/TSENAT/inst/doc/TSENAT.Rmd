@@ -1,0 +1,543 @@
+---
+title: "TSENAT: Tsallis entropy workflow"
+author: "TSENAT developers"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    highlight: pygments
+    toc: true
+    fig_width: 10
+    fig_height: 7 
+vignette: >
+  %\VignetteIndexEntry{TSENAT}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 10,
+  fig.height = 6
+)
+```
+
+## Overview
+
+This vignette demonstrates how to compute and apply Tsallis entropy to
+transcript-level expression data using `TSENAT`. It focuses on three
+practical goals: (1) compute per-sample, per-gene diversity measures across a
+range of sensitivity parameters `q`; (2) compare those measures between sample
+groups; and (3) visualize and inspect transcript-level patterns that explain
+differences.
+
+### Motivation
+
+Many genes express multiple isoforms whose relative abundances can be multimodal or 
+heavy-tailed. Standard mean-based comparisons may miss changes in isoform dominance 
+or heterogeneity. Tsallis entropy provides a tunable way to weight rare versus dominant
+isoforms by varying `q`, producing a "q-curve" that reveals scale-dependent diversity 
+differences.
+
+### High-level workflow
+
+1. Preprocess counts and filter low-abundance transcripts.
+2. Compute relative transcript proportions within each gene and evaluate
+   Tsallis entropy across one or more `q` values.
+3. Summarize per-gene values across samples (mean/median) and test for
+   differences between groups (Wilcoxon or permutations).
+4. Visualize q-curves and inspect transcript-level counts for top genes.
+
+
+## What is Tsallis entropy?
+
+Tsallis entropy is a one-parameter family of diversity measures that
+generalizes Shannon entropy via a sensitivity parameter `q`. For a
+discrete probability vector $p=(p_1,\dots,p_n)$ it is defined as
+
+\[
+S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
+\]
+
+Why use Tsallis entropy for gene-expression data?
+
+Tsallis entropy provides a compact, flexible summary of
+isoform-level heterogeneity that is particularly useful when biological
+signals act at different abundance scales; combined with careful
+preprocessing and resampling-based uncertainty quantification it is a
+practical and interpretable tool for transcriptomics analyses. Key advantages:
+
+- Tunable sensitivity: changing `q` shifts emphasis between rare and
+  dominant isoforms. Use small `q` (\(<1\)) to probe rare-isoform
+  heterogeneity and larger `q` (\(>1\)) to focus on dominant-isoform
+  behaviour; plotting `S_q` across a compact `q` grid (a "q-curve")
+  reveals scale-dependent differences between conditions.
+- Interpretability: Tsallis maps to several familiar indices in limits
+  (Shannon at `q=1`, richness-like at `q=0`, Gini–Simpson at `q=2`), so
+  it unifies multiple perspectives on isoform diversity within one
+  framework.
+- Robust summary and diagnostics: combined with Hill numbers and
+  q-curves, `S_q` supports concise reporting (effective isoform counts,
+  slope/AUC summaries) and targeted follow-up (transcript-level plots).
+
+Essential limiting cases:
+
+- Limit $q\to 1$: Shannon entropy, \(\lim_{q\to1} S_q(p) = -\sum_i p_i\log p_i\).
+- $q=0$: richness-like (number of expressed isoforms minus one).
+- $q=2$: Gini–Simpson / collision index, \(S_2 = 1-\sum_i p_i^2\).
+- Uniform maximum: for $m$ expressed isoforms,
+  \(S_{q,\max}(m)=\frac{1-m^{1-q}}{q-1}\) and normalized
+  \(\tilde S_q = S_q / S_{q,\max}(m)\).
+
+Use cases and interpretation:
+
+- A gene with group separation only at low `q` suggests differences in
+  low-abundance (rare) isoforms; separation at high `q` indicates changes
+  in dominant isoforms. When both regimes differ, the q-curve will show
+  divergence across the entire `q` range.
+- Report both `S_q` (or `\tilde S_q`) and Hill numbers `D_q` for reader
+  clarity: `D_q` converts entropies into an "effective number of
+  isoforms" that is easy to interpret.
+
+## Example dataset
+
+An example dataset is included for demonstration. Load the package and data:
+
+```{r setup}
+# Load packages
+suppressPackageStartupMessages({
+  library(TSENAT)
+  library(ggplot2)
+  library(SummarizedExperiment)
+  library(mgcv)
+})
+
+# Load required files
+coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
+tx2gene_tsv <- system.file("extdata","tx2gene.tsv", package = "TSENAT")
+
+# Load dataset
+data(tcga_brca_luma_dataset)
+
+# Extract gene names and read count data (do not reference ts_se yet)
+genes <- tcga_brca_luma_dataset[, 1]
+readcounts <- tcga_brca_luma_dataset[, -1]
+
+# If a tx2gene mapping is available and matches the `genes` column, assign
+# transcript IDs as rownames of `readcounts` so downstream transcript-level
+# plotting functions can use them.
+if (nzchar(tx2gene_tsv) && file.exists(tx2gene_tsv)) {
+  txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
+  if (nrow(txmap) == nrow(readcounts) && all(as.character(txmap$Gen) == as.character(genes))) {
+    rownames(readcounts) <- as.character(txmap$Transcript)
+  }
+}
+
+# Check gene names
+head(genes)
+
+# Check read count dataset
+dim(readcounts)
+head(readcounts[, 1:5])
+
+```
+
+Read optional sample metadata from `coldata.tsv` and preview it if present.
+
+```{r read-coldata, echo=TRUE}
+# Read external coldata if available and show a preview
+coldata_df <- NULL
+if (nzchar(coldata_tsv) && file.exists(coldata_tsv)) {
+  coldata_df <- read.table(coldata_tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+  head(coldata_df)
+} else {
+  message("No external coldata.tsv found via system.file()")
+}
+```
+
+### Data filtering and preprocessing
+
+As a first step, before doing the diversity calculation, you might want to
+filter out genes with a low overall expression or limit the analysis to
+transcripts with a sufficient minimum expression level. Expression estimates of
+transcript isoforms with zero or low expression might be highly variable. For
+more details on the effect of transcript isoform prefiltering on differential
+transcript usage, see [this paper](https://doi.org/10.1186/s13059-015-0862-3).
+
+Filter transcripts with fewer than 5 reads in more than 5 samples and
+update the `genes` vector accordingly.
+
+```{r readfilter}
+tokeep <- rowSums(readcounts > 5) > 5
+
+readcounts <- readcounts[tokeep, ]
+genes      <- genes[tokeep]
+```
+
+We filter lowly-expressed transcripts to reduce noise and improve the
+stability of diversity estimates.
+
+If you prefer to add a small pseudocount instead of filtering transcripts,
+do so explicitly and document the choice. Example:
+
+```{r pseudocount-example, echo=TRUE}
+# Option A: add a small integer pseudocount (document this choice)
+readcounts_pc <- readcounts + 1L
+
+# Option B: keep original counts but filter lowly-observed transcripts (recommended)
+# readcounts <- readcounts[rowSums(readcounts > 5) > 5, ]
+```
+
+
+## Compute normalized Tsallis entropy for a single `q` value.
+
+```{r tsallis-calc-single}
+# compute Tsallis entropy for q = 0.1
+q <- 0.1
+ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = q, norm = TRUE)
+head(assay(ts_se)[1:5,1:5])
+
+```
+
+Map sample metadata (if available) into the `SummarizedExperiment` so
+plotting functions can use `sample_type` for grouping.
+
+```{r apply-coldata-to-se-single}
+# If we read an external coldata table, map its Condition values to the
+# SummarizedExperiment so plotting and downstream functions can use it.
+if (!is.null(coldata_df)) {
+  sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+  st_map <- setNames(coldata_df$Condition, coldata_df$Sample)
+  sample_types <- unname(st_map[sample_base_names])
+  missing_idx <- which(is.na(sample_types))
+  if (length(missing_idx) > 0) {
+    sample_types[missing_idx] <- infer_sample_group(sample_base_names[missing_idx])
+  }
+  SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
+}
+```
+ 
+## Differential analysis
+
+This section summarizes practical guidance for hypothesis testing and
+reporting when comparing diversity measures across sample groups.
+
+The package exposes pragmatic pairwise tests for comparing per-gene
+diversity summaries between two groups. Two common choices are
+Wilcoxon-based tests and label-shuffle tests. Guidance:
+
+- Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired):
+  - Use when you want a distribution-free test comparing central tendency
+    (ranks/median) and sample sizes are moderate (typically ≥10 per group
+    for stable asymptotic p-values).
+  - Assumptions: independent observations within groups (or matched
+    pairs for the signed-rank test); exchangeability under the null.
+  - Handle ties: software returns approximate p-values when many ties
+    exist; consider permutation p-values when ties or discreteness are
+    extreme (small counts, many zeros).
+  - Report effect sizes (median difference, Hodges–Lehmann estimator) and
+    confidence intervals where possible; do not rely on p-values alone.
+
+- Label-shuffle tests:
+  - Use when sample sizes are small, distributional assumptions are
+    questionable, or you prefer an exact/empirical null constructed from
+    the observed data. Randomly shuffle group labels many times and
+    recompute the test statistic (difference in medians or means).
+  - Exchangeability requirement: permutations are valid when labels are
+    exchangeable under the null (e.g., independent samples). For paired
+    designs use paired permutations that shuffle within pairs or use sign
+    flips for paired differences.
+  - Practical settings: set `randomizations` to ≥1000 for routine use and
+    5000+ when estimating small p-values or when applying FDR across many
+    genes. When possible, compute exact permutations (all labelings) for
+    very small datasets.
+
+
+Here we will use Wilcoxon, which is the adecuate option for speed and when 
+sample sizes support asymptotic approximations; use permutation when small-sample 
+accuracy or exact control of the null distribution is important.
+
+Before running differential tests we summarize per-gene diversity values across
+samples and explicitly define sample groups. The example below performs a
+pairwise comparison between two conditions (e.g., `Normal` vs `Tumor`) using a
+non-parametric Wilcoxon test on the per-gene diversity summaries. Adjust the
+`control` and `test` parameters in `calculate_difference()` to suit your
+experimental design.
+
+```{r difference}
+# create a sample grouping vector inferred from sample names
+# account for per-q column names like 'Sample_q=0.01' by stripping the '_q=...' suffix
+sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+if (exists("coldata_df") && !is.null(coldata_df) && "sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
+  samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+} else {
+  samples <- ifelse(grepl("_N$", sample_base_names), "Normal", "Tumor")
+}
+
+# prepare diversity table as data.frame with gene names in first column
+div_df <- as.data.frame(assay(ts_se))
+div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
+
+# run difference analysis (mean + wilcoxon)
+# run difference analysis (mean + paired wilcoxon)
+# samples in the example dataset are matched pairs (Normal/Tumor), so use a paired test
+res <- calculate_difference(div_df, samples, control = "Normal", method = "mean", test = "wilcoxon", paired = TRUE)
+# sort results by adjusted p-value
+if ("adjusted_p_values" %in% colnames(res)) {
+  res <- res[order(res$adjusted_p_values), , drop = FALSE]
+}
+head(res)
+
+```
+
+Generate diagnostic plots to summarize per-gene effect sizes:
+
+- The MA plot shows the relationship between mean expression and log-fold change,
+  helping to spot genes with large effect sizes across expression levels.
+- The volcano plot displays effect size versus significance, useful for
+  highlighting candidates by thresholding magnitude and adjusted p-value.
+
+```{r ma-and-volcano, fig.width=8, fig.height=4}
+# MA plot using helper
+p_ma <- plot_ma(res)
+print(p_ma)
+
+# Volcano plot: mean difference vs -log10(adjusted p-value)
+if (all(c("mean_difference", "adjusted_p_values") %in% colnames(res))) {
+  res$label <- apply(res[, c("mean_difference", "adjusted_p_values")], 1,
+                     function(x) ifelse(abs(as.numeric(x[1])) >= 0.1 & as.numeric(x[2]) < 0.05,
+                                        "significant", "non-significant"))
+  p_volcano <- plot_volcano(res)
+  print(p_volcano)
+}
+```
+
+### Plot top 3 genes from the single-q differential analysis
+
+Here we visualize transcript-level expression for the most significant genes
+identified in the previous step. The `plot_top_transcripts()` helper expects
+transcript-level counts (rows = transcripts) with rownames matching the
+`tx2gene` mapping. We plot the top three genes by significance to inspect
+isoform-level patterns that may explain the diversity differences.
+
+```{r top-transcripts-singleq, fig.width=10, fig.height=6}
+if (is.data.frame(res) && nrow(res) > 0) {
+  # select significant genes (adj p < 0.05 when available) and take top 3 by significance
+  if ("adjusted_p_values" %in% colnames(res)) {
+    sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
+  } else if ("p_values" %in% colnames(res)) {
+    sig_res <- res[res$p_values < 0.05, , drop = FALSE]
+  } else {
+    sig_res <- res
+  }
+  if (nrow(sig_res) == 0) {
+    message("No significant genes found; falling back to top genes by p-value.")
+    top_genes <- head(res$genes, 3)
+  } else {
+    top_genes <- head(as.character(sig_res$genes), 3)
+  }
+  # prepare sample grouping vector (from earlier in vignette)
+  sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+  samples_vec <- if (exists("coldata_df") && !is.null(coldata_df) && "sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
+    as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+  } else {
+    ifelse(grepl("_N$", sample_base_names), "Normal", "Tumor")
+  }
+  counts_for_plot <- readcounts
+  if (is.null(rownames(counts_for_plot))) {
+    message("Skipping transcript plots: `readcounts` does not have transcript rownames.",
+            " Provide transcript-level counts with rownames to use `plot_top_transcripts()`.")
+  } else {
+    p_comb <- plot_top_transcripts(counts_for_plot, gene = top_genes, samples = samples_vec, tx2gene = tx2gene_tsv, top_n = NULL)
+    print(p_comb)
+  }
+}
+```
+
+Inspect transcript-level counts for the top genes to understand isoform
+patterns that may drive diversity differences.
+
+## Compare between q values
+
+Compute normalized Tsallis entropy for two `q` values (0.1 and 2) to compare
+scale-dependent behavior.
+
+```{r tsallis-calc-doble}
+# compute Tsallis entropy for q = 1 (normalized)
+q <- c(0.1, 2)
+ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = q, norm = TRUE)
+head(assay(ts_se)[1:5,1:5])
+
+```
+
+It allows to compare values across `q` for the same gene to see whether diversity
+differences are scale-dependent (e.g., significant at `q=0.1` but not at
+`q=2` suggests rare-isoform-driven changes).
+
+Map optional sample metadata into the multi-q `SummarizedExperiment` so
+plotting helpers have access to `sample_type` for grouping.
+
+```{r apply-coldata-to-se-doble}
+# If we read an external coldata table, map its Condition values to the
+# SummarizedExperiment so plotting and downstream functions can use it.
+if (!is.null(coldata_df)) {
+  sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+  st_map <- setNames(coldata_df$Condition, coldata_df$Sample)
+  sample_types <- unname(st_map[sample_base_names])
+  missing_idx <- which(is.na(sample_types))
+  if (length(missing_idx) > 0) {
+    sample_types[missing_idx] <- infer_sample_group(sample_base_names[missing_idx])
+  }
+  SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
+}
+```
+
+Create violin and density plots summarizing diversity across multiple `q`
+values to show distributional differences between groups.
+
+```{r plots, fig.width=10, fig.height=6}
+## Use package plot helpers for multi-q violin and density
+p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
+print(p_violin)
+
+p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
+print(p_density)
+
+```
+
+## Linear-model interaction and shape tests for q-curves
+
+Now we will compute normalized Tsallis entropy across a sequence of `q` values.
+
+```{r tsallis-calc-sequence}
+# compute Tsallis entropy for a sequence of values (normalized)
+qvec <- seq(0.01, 2, by = 0.1)
+ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = qvec, norm = TRUE)
+head(assay(ts_se)[1:5,1:5])
+```
+
+Map the sample metadata into the multi-q `SummarizedExperiment` as before.
+
+```{r apply-coldata-to-se-sequence}
+# If we read an external coldata table, map its Condition values to the
+# SummarizedExperiment so plotting and downstream functions can use it.
+if (!is.null(coldata_df)) {
+  sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+  st_map <- setNames(coldata_df$Condition, coldata_df$Sample)
+  sample_types <- unname(st_map[sample_base_names])
+  missing_idx <- which(is.na(sample_types))
+  if (length(missing_idx) > 0) {
+    sample_types[missing_idx] <- infer_sample_group(sample_base_names[missing_idx])
+  }
+  SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
+}
+```
+
+With the q-sequence we can produces a q-curve per sample and gene. These curves show how diversity 
+emphasis shifts from rare to dominant isoforms as `q` increases and form the basis for interaction 
+tests. The q-curve shows entropy as a function of `q`. Diverging curves between groups 
+indicate scale-dependent diversity differences. Separation at low `q` implies differences 
+in rare isoforms; separation at high `q` signals differences in dominant isoforms.
+
+Plot the Tsallis q-curve (entropy vs q) to visualize how diversity changes
+with `q` across sample groups.
+
+```{r plot q-curve, fig.width=10, fig.height=6}
+
+# q-curve: median ± IQR across q values by group
+p3 <- plot_tsallis_q_curve(readcounts, genes, q_values = qvec)
+print(p3)
+```
+
+Comparing entire q-curves between groups asks whether the relationship
+between diversity and `q` differs by condition. The package implements
+three complementary approaches; below are practical notes to guide choice
+and parameter selection.
+
+- Linear interaction model (`entropy ~ q * group`):
+  - Interprets group differences as slope (q-by-group interaction)
+    differences across the evaluated q-grid. Use when the q-curve is
+    approximately linear over the chosen range and sample sizes are modest.
+  - Advantages: simple, interpretable interaction coefficient, fast.
+  - Caveats: will miss localized nonlinear differences (e.g., only at low
+    q values).
+
+- GAM-based comparison (`mgcv`):
+  - Fit smooth functions of `q` with group-specific terms (e.g., a common
+    smooth plus group-by-smooth deviations) and compare nested models with
+    an approximate F-type test (anova.gam).
+  - Choose spline basis dimension `k` relative to the number of distinct
+    `q` values (keep `k` small for sparse grids). Inspect diagnostic plots
+    and concur that fitted smooths reflect biological signal rather than
+    overfitting noise.
+  - Requires sufficient observations per gene across samples and q values
+    to estimate smooth terms reliably.
+
+- FPCA-based test (functional PCA on q-curves):
+  - Treat each sample's q-curve as a functional object, compute principal
+    components across q, and test group differences on leading PC scores.
+  - Fast and robust when dominant curve modes capture group differences,
+    but it reduces the curve to a few components and may miss localized
+    effects confined to a narrow q-range.
+  - Address missing q points by sensible imputation (column means or
+    spline interpolation) before PCA; require minimal q coverage across
+    samples to obtain stable PCs.
+
+
+This test fits a simple linear model per gene to assess whether the slope of
+the q-curve differs between sample groups. It can help identify genes whose
+response to the entropy scale parameter `q` is group-specific, indicating
+changes in isoform-dominance dynamics rather than only an overall shift in
+diversity.
+
+```{r lm-interaction}
+# ensure the SummarizedExperiment contains sample names with group suffixes
+# (the function infers group from sample name suffix _N -> Normal)
+lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", min_obs = 8)
+head(lm_res)
+```
+
+## Practical notes and recommendations
+
+Quick checklist (what to do and why):
+
+- Preprocess: filter transcripts never observed or add a small, documented
+  pseudocount (e.g., +1) — this stabilizes proportions and avoids
+  undefined powers when computing `p_i^q`.
+- Choose `q` grid: pick a compact set spanning rare → dominant regimes
+  (suggested: 0.1, 0.2, 0.5, 1, 1.5, 2). Plot q-curves to inspect where
+  groups diverge rather than relying on a single `q`.
+- Reporting scale: present Hill numbers `D_q` (intuitive "effective
+  isoforms") and/or normalized entropy \(\tilde S_q\); report both
+  effect size (median/mean difference) and variability (CI or bootstrap SE).
+- Hypothesis testing: use Wilcoxon for speed (asymptotic) and
+  label-shuffle (permutation) for small samples or exact inference.
+  For permutations use `randomizations` ≥1000 (≥5000 when estimating
+  very small p-values); use paired permutations for matched designs.
+- Multiple testing: apply FDR correction (Benjamini–Hochberg) and show
+  raw/adjusted p-values alongside effect sizes so readers can judge
+  practical relevance.
+- Interaction testing: explore slopes/AUC first; use linear interaction for
+  simple slope differences, GAMs for nonlinear shapes, and FPCA for fast
+  low-dimensional summaries — always report key parameters (`k`,
+  `randomizations`).
+- Design & technical tips: prefer paired/matched designs when available,
+  ensure adequate biological replication, use accurate quantifiers
+  (Salmon/kallisto or UMI-based methods), and correct for confounders or
+  include them in models.
+- Design examples: time-series or longitudinal sampling to capture dynamics;
+  perturbation gradients (dose–response) to reveal transitions; single-cell
+  or spatial (UMI-based) to study heterogeneity; paired/matched designs to
+  control subject-level variability.
+- Technical checklist: use accurate transcript quantifiers, aim for
+  sufficient sequencing depth for isoform inference, filter or pseudocount
+  low-abundance transcripts, and apply batch/confounder correction prior
+  to downstream testing. Test across a compact `q` grid and report the grid.
+
+
+## Session info
+
+```{r}
+sessionInfo()
+```
