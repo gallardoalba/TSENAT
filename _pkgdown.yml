@@ -1,6 +1,7 @@
+url: https://gallardoalba.github.io/TSENAT
+
 pkgdown:
   title: TSENAT
-  url: https://gallardoalba.github.io/TSENAT
 
 template:
   bootstrap: 5
@@ -13,17 +14,8 @@ navbar:
       - articles
       - news
     right:
-      - text: GitHub
-        href: https://github.com/gallardoalba/TSENAT
+      - github
 
 home:
   title: "TSENAT"
   contents: README.md
-
-reference:
-  title: "Reference"
-
-articles:
-  - title: "Vignette"
-    contents: articles/TSENAT.md
-

@@ -18,7 +18,7 @@ for samples.
 
 ## Source
 
-<https://portal.gdc.cancer.gov/>
+[TCGA Legacy](https://portal.gdc.cancer.gov/legacy-archive)
 
 ## References
 
