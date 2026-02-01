@@ -1,12 +1,10 @@
+[![R-CMD-check](https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/gallardoalba/TSENAT/actions) [![pkgdown](https://github.com/<OWNER>/<REPO>/actions/workflows/pkgdown.yaml/badge.svg)](https://<OWNER>.github.io/<REPO>/)  [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 TSENAT:  Tsallis Entropy Analysis Toolbox
 =========================================
 
 TSENAT analyze expression/transcript differences and compute diversity metrics.
 
-Badges
-------
-
-- GitHub Actions (CI): [![R-CMD-check](https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/gallardoalba/TSENAT/actions)
 
 Origin and attribution
 -----------------------
