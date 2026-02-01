@@ -21,6 +21,6 @@ jobs:
           Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler");'
           Rscript scripts/check_style.R
       - name: Run R CMD check
-        uses: r-lib/actions/check@v3
+        uses: r-lib/actions/check@v2
         with:
           args: --as-cran
