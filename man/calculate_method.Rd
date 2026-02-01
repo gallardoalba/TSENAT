@@ -28,7 +28,8 @@ transcript to a gene.}
 \item{verbose}{Logical; show diagnostic messages when TRUE.}
 
 \item{q}{Numeric scalar or vector of q values to evaluate.}
-\item{what}{Character; which quantity to compute: "S" (entropy), "D" (Hill numbers), or "both".}
+
+\item{what}{Which quantity to return from `calculate_tsallis_entropy`: "S", "D" or "both" (default: "S").}
 }
 \value{
 A data.frame with genes in the first column and per-sample (and

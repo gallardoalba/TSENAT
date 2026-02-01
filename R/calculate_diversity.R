@@ -11,6 +11,7 @@
 #' @param verbose Logical; print diagnostic messages when TRUE.
 #' @param q Numeric scalar or vector of Tsallis q values to evaluate (q > 0).
 #'   If length(q) > 1, the result will contain separate columns per sample and q.
+#' @param what Which quantity to return: "S" for Tsallis entropy, "D" for Hill numbers, or "both".
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 #'   `diversity` containing per-gene diversity values.
 #' @import methods

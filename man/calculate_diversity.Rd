@@ -36,7 +36,7 @@ Must have length equal to nrow(x) or the number of transcripts in `x`.}
 \item{q}{Numeric scalar or vector of Tsallis q values to evaluate (q > 0).
 If length(q) > 1, the result will contain separate columns per sample and q.}
 
-\item{what}{Character; which quantity to return: "S" for Tsallis entropy, "D" for Hill numbers.}
+\item{what}{Which quantity to return: "S" for Tsallis entropy, "D" for Hill numbers, or "both".}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assay

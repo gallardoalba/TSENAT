@@ -1,4 +1,4 @@
-TSENAT:  Tsallis entropy analysis toolbox
+TSENAT:  Tsallis Entropy Analysis Toolbox
 =========================================
 
 TSENAT analyze expression/transcript differences and compute diversity metrics.
@@ -17,9 +17,9 @@ Origin and attribution
 -----------------------
 
 TSENAT builds upon and adapts substantial portions of code from the
-SplicingFactory project (credit to the original authors). The codebase has
-been extended with additional utilities, bug fixes and plotting helpers
-focused on transcript-level diversity analysis.
+[SplicingFactory package](https://github.com/esebesty/SplicingFactory). The 
+codebase has been extended with additional utilities, bug fixes and plotting 
+helpers focused on Tsallis based transcript-level diversity analysis.
 
 Tsallis theory
 ----------------------
@@ -45,9 +45,6 @@ Integrated features
 - Method wrappers and utilities:
         - `calculate_method` provides a wrapper to run the chosen diversity method per gene, format outputs and evaluate multiple `q` values in one pass.
 
-- Sample group inference and metadata helpers:
-        - `infer_sample_group` attempts to infer sample classes (e.g. Normal/Tumor or TCGA barcodes) from column names or from provided metadata when explicit group labels are absent.
-
 - Plotting and visualization:
         - `plot_tsallis_q_curve`: median ± IQR of Tsallis entropy across q-values by group.
         - `plot_tsallis_violin_multq`: violin plots of Tsallis entropy for multiple q-values and groups.
@@ -68,24 +65,13 @@ if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("gallardoalba/TSENAT")
 
 ## Development / Reproducible setup
+## Recommended (reproducible): use `renv`.
 
-Recommended (reproducible): use `renv`.
-
-In R:
-
-        install.packages("renv")
-        renv::init()
-        # when dependencies are set, record lock
-        renv::snapshot()
-
-CI / quick setup (installs dependencies listed in DESCRIPTION):
-
-        Rscript scripts/install_deps.R
-
-If you commit `renv.lock`, CI will run `renv::restore()` automatically when present.
+install.packages("renv")
+renv::init()
+# when dependencies are set, record lock
+renv::snapshot()
 ```
-
-The complete documentation can be found at [inst/doc/TSENAT.html](inst/doc/TSENAT.html).
 
 Quick start
 -----------
@@ -99,7 +85,13 @@ res <- calculate_difference(tcga_brca_luma_dataset$counts,
 head(res)
 ```
 
+The complete documentation can be found at [inst/doc/TSENAT.html](inst/doc/TSENAT.html).
+
 Citation and license
 --------------------
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3).
+A copy of the full license text is included in the repository at `LICENSE`
+and is installed with the package under `inst/LICENSE`.
 
 See `citation("TSENAT")` or [inst/CITATION](inst/CITATION). License in [LICENSE](LICENSE).

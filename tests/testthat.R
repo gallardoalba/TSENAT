@@ -1,4 +1,4 @@
 library("testthat")
-library("abyssEdge")
+library("TSENAT")
 
-test_check("abyssEdge")
+test_check("TSENAT")

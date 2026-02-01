@@ -5,30 +5,32 @@
 \title{Calculate Tsallis entropy for a vector of transcript-level
 expression values of one gene.}
 \usage{
-calculate_tsallis_entropy(x, q = 2, norm = TRUE, what = c("S", "D", "both"), log_base = exp(1))
+calculate_tsallis_entropy(
+  x,
+  q = 2,
+  norm = TRUE,
+  what = c("S", "D", "both"),
+  log_base = exp(1)
+)
 }
 \arguments{
-\item{x}{Vector of expression values.}
+\item{x}{Vector of (non-negative) expression values.}
 
-\item{q}{Tsallis entropy parameter (q > 0). Can be a single value or a numeric vector. Default is 2. If q = 1, the function returns the Shannon entropy.}
+\item{q}{Tsallis entropy parameter (q > 0). Can be a single value or a numeric vector. Default is 2.}
 
-\item{norm}{If \code{TRUE}, the entropy values are normalized to the number
-of transcripts for each gene. The normalized entropy values are always
-between 0 and 1. If \code{FALSE}, genes cannot be compared to each other,
-due to possibly different maximum entropy values.}
+\item{norm}{If \code{TRUE}, the entropy values are normalized by their theoretical maximum for the number of transcripts (so values lie in [0,1]).}
 
-\item{what}{Which quantity to return: \code{"S"} for Tsallis entropy (S_q), \code{"D"} for Hill numbers (D_q), or \code{"both"}.}
+\item{what}{Which quantity to return: \code{"S"} for Tsallis entropy (S_q), \code{"D"} for Hill numbers (D_q), or \code{"both"} for a list with both.}
 
-\item{log_base}{Numeric; logarithm base used for the Shannon limit and normalization (default: e).}
+\item{log_base}{Base of the logarithm used for Shannon limits and normalization (default: \code{exp(1)}).}
 }
 \value{
-A single gene-level Tsallis entropy value (or a numeric vector when multiple q values provided).
+A numeric vector (named when length(q) > 1) for \code{what = "S"} or \code{"D"}, or a list with components \code{$S} and \code{$D} when \code{what = "both"}.
 }
 \description{
 Calculate Tsallis entropy for a vector of transcript-level
 expression values of one gene.
 }
 \details{
-The function calculates the Tsallis entropy, a generalization of Shannon entropy.
-For q -> 1, Tsallis entropy converges to Shannon entropy.
+Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
 }

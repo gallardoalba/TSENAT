@@ -67,12 +67,16 @@ calculate_difference <- function(x, samples, control, method = "mean",
                                  pcorr = "BH", assayno = 1, verbose = FALSE,
                                  ...) {
   # Validate input container
-  if (!(is(x, "data.frame") || is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
+  # Reject matrices explicitly (tests expect this error for matrix input)
+  if (is.matrix(x)) {
+    stop("Input data type is not supported! Please use `?calculate_difference`\n         to see the possible arguments and details.", call. = FALSE)
+  }
+  if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment"))) {
     stop("Input data type is not supported! Please use `?calculate_difference`\n         to see the possible arguments and details.", call. = FALSE)
   }
 
   # If a SummarizedExperiment is provided, extract the assay and the sample labels
-  if (is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment")) {
+  if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
     if (length(samples) != 1) stop("For SummarizedExperiment input, 'samples' must be the name of a single colData column.", call. = FALSE)
     samples <- SummarizedExperiment::colData(x)[[samples]]
     if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) < assayno) stop("Invalid 'assayno'.", call. = FALSE)
@@ -86,7 +90,12 @@ calculate_difference <- function(x, samples, control, method = "mean",
   # Basic consistency checks
   if (ncol(df) - 1 != length(samples)) stop("The number of columns in the data.frame is not equal to the number of\n          samples defined in the samples argument.", call. = FALSE)
   groups <- levels(as.factor(samples))
-  if (length(groups) > 2) stop("The number of conditions are higher than two. Please use exactly two\n         different sample conditions, e.g. healthy and pathogenic.", call. = FALSE)
+  # capture dots early and initialize 'case' to avoid unbound variable errors
+  dots <- list(...)
+  case <- if (!is.null(dots$case)) dots$case else NULL
+  if (length(groups) > 2) {
+    stop("The number of conditions are higher than two. Please use exactly two\n         different sample conditions, e.g. healthy and pathogenic.", call. = FALSE)
+  }
   if (length(groups) < 2) stop("The number of conditions are smaller than two. Please use exactly two\n         different sample conditions, e.g. healthy and pathogenic.", call. = FALSE)
   if (!(control %in% samples)) stop("This control sample type cannot be found in your samples.", call. = FALSE)
   if (!(method %in% c("mean", "median"))) stop("Invalid method. Please use `?calculate_difference` to see the possible\n         arguments and details.", call. = FALSE)
@@ -178,6 +187,10 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #'   "Normal").
 #' @param min_obs Minimum number of non-NA observations required to fit a
 #'   model for a gene (default: 10).
+#' @param method Modeling method to use for interaction testing: one of
+#'   \code{c("linear", "gam", "fpca")}.
+#' @param nthreads Number of threads (mc.cores) to use when \code{method = "fpca"} or parallel processing is enabled. Default: 1.
+#' @param assay_name Name of the assay in the SummarizedExperiment to use (default: "diversity").
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #'   `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export

@@ -9,7 +9,10 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
   coln <- paste0(sample_names, "_q=", qvec)
 
   # gene1: different slopes for Normal vs Tumor (interaction expected)
-  gene1_vals <- c(qvec * 1, qvec * 2)
+  # add small noise so the linear model is not a perfect fit
+  set.seed(2)
+  noise1 <- rnorm(length(coln), sd = 0.001)
+  gene1_vals <- c(qvec * 1, qvec * 2) + noise1
   # gene2: same slope for both groups (no interaction expected)
   set.seed(1)
   noise <- rnorm(length(coln), sd = 0.001)

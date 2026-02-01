@@ -125,15 +125,13 @@ data(tcga_brca_luma_dataset)
 genes <- tcga_brca_luma_dataset[, 1]
 readcounts <- tcga_brca_luma_dataset[, -1]
 
-# If a tx2gene mapping is available and matches the `genes` column, assign
-# transcript IDs as rownames of `readcounts` so downstream transcript-level
+# Assign transcript IDs as rownames of `readcounts` so downstream transcript-level
 # plotting functions can use them.
-if (nzchar(tx2gene_tsv) && file.exists(tx2gene_tsv)) {
-  txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
-  if (nrow(txmap) == nrow(readcounts) && all(as.character(txmap$Gen) == as.character(genes))) {
-    rownames(readcounts) <- as.character(txmap$Transcript)
-  }
-}
+txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
+rownames(readcounts) <- as.character(txmap$Transcript)
+
+# Read sample metadata
+coldata_df <- read.table(coldata_tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 # Check gene names
 head(genes)
@@ -141,19 +139,10 @@ head(genes)
 # Check read count dataset
 dim(readcounts)
 head(readcounts[, 1:5])
-```
 
-Read optional sample metadata from `coldata.tsv` and preview it if present.
+# Check the metadata
+head(coldata_df)
 
-```{r read-coldata, echo=TRUE}
-# Read external coldata if available and show a preview
-coldata_df <- NULL
-if (nzchar(coldata_tsv) && file.exists(coldata_tsv)) {
-  coldata_df <- read.table(coldata_tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-  head(coldata_df)
-} else {
-  message("No external coldata.tsv found via system.file()")
-}
 ```
 
 ### Data filtering and preprocessing

@@ -35,12 +35,9 @@
 ^\.Rcheck$
 
 # Ignore generated package tarballs, package-specific Rcheck dirs and debug artifacts
-^TSENAT_.*\\.tar\\.gz$
+^rcmd_check.*\.txt$  # Ignore temporary check output
 ^TSENAT\\.Rcheck$
 ^debug_.*\\.png$
-
-# Ignore temporary check output
-^rcmd_check.txt$
 
 # Ignore top-level auxiliary files and translated READMEs
 ^CODE_OF_CONDUCT\.md$

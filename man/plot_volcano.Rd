@@ -24,7 +24,8 @@ plot_volcano(
 \item{label_thresh}{Absolute x threshold to mark significance (default 0.1).}
 
 \item{padj_thresh}{Adjusted p-value cutoff (default 0.05).}
-\item{top_n}{Integer; number of top labeled genes to display (default 5).}
+
+\item{top_n}{Integer; number of top genes to annotate by smallest adjusted p-value (default: 5).}
 }
 \value{
 ggplot volcano plot.

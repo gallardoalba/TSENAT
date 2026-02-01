@@ -12,6 +12,7 @@
 #' @param norm Logical; if TRUE normalize Tsallis entropy values per gene.
 #' @param q Numeric scalar or vector of q values to evaluate.
 #' @param verbose Logical; show diagnostic messages when TRUE.
+#' @param what Which quantity to return from `calculate_tsallis_entropy`: "S", "D" or "both" (default: "S").
 #' @return A data.frame with genes in the first column and per-sample (and
 #'   per-q) Tsallis entropy values in subsequent columns.
 #' @import stats

@@ -4,8 +4,14 @@
 \alias{calculate_lm_interaction}
 \title{Linear-model interaction test for Tsallis entropy}
 \usage{
-calculate_lm_interaction(se, sample_type_col = NULL, min_obs = 10,
-  method = c("linear", "gam", "fpca"), nthreads = 1, assay_name = "diversity")
+calculate_lm_interaction(
+  se,
+  sample_type_col = NULL,
+  min_obs = 10,
+  method = c("linear", "gam", "fpca"),
+  nthreads = 1,
+  assay_name = "diversity"
+)
 }
 \arguments{
 \item{se}{A `SummarizedExperiment` containing a `diversity` assay produced
@@ -19,11 +25,12 @@ attempt to infer group from column names (suffix `_N` interpreted as
 \item{min_obs}{Minimum number of non-NA observations required to fit a
 model for a gene (default: 10).}
 
-\item{method}{Character; fitting method: "linear", "gam", or "fpca".}
+\item{method}{Modeling method to use for interaction testing: one of
+\code{c("linear", "gam", "fpca")}.}
 
-\item{nthreads}{Integer; number of threads to use for parallel processing (currently unused).}
+\item{nthreads}{Number of threads (mc.cores) to use when \code{method = "fpca"} or parallel processing is enabled. Default: 1.}
 
-\item{assay_name}{Character; name of the assay in `se` to use (default: "diversity").}
+\item{assay_name}{Name of the assay in the SummarizedExperiment to use (default: "diversity").}
 }
 \value{
 A data.frame with columns `gene`, `p_interaction`, and
