@@ -35,9 +35,6 @@
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
-<li class="nav-item"><form class="form-inline" role="search">
- <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
-</form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
@@ -46,22 +43,11 @@
   </div>
 </nav><div class="container template-home">
 <div class="row">
-  <main id="main" class="col-md-9"><div class="section level1">
+  <main id="main" class="col-md-9">
+<div class="section level1">
 <div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
 </h1></div>
 <p>TSENAT analyze expression/transcript differences and compute diversity metrics.</p>
-<div class="section level2">
-<h2 id="badges">Badges<a class="anchor" aria-label="anchor" href="#badges"></a>
-</h2>
-<ul>
-<li>
-<p>GitHub Actions (CI):</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>  [<span class="sc">!</span>[R<span class="sc">-</span>CMD<span class="sc">-</span>check](https<span class="sc">:</span><span class="er">//</span>github.com<span class="sc">/</span>gallardoalba<span class="sc">/</span>TSENAT<span class="sc">/</span>actions<span class="sc">/</span>workflows<span class="sc">/</span>check<span class="sc">-</span>standard.yaml<span class="sc">/</span>badge.svg)](https<span class="sc">:</span><span class="er">//</span>github.com<span class="sc">/</span>gallardoalba<span class="sc">/</span>TSENAT<span class="sc">/</span>actions)</span></code></pre></div>
-</li>
-<li><p>Español README: <a href="README.es.html">README.es.md</a></p></li>
-<li><p>Deutsch README: <a href="README.de.html">README.de.md</a></p></li>
-</ul>
-</div>
 <div class="section level2">
 <h2 id="origin-and-attribution">Origin and attribution<a class="anchor" aria-label="anchor" href="#origin-and-attribution"></a>
 </h2>
@@ -76,21 +62,36 @@
 <h2 id="integrated-features">Integrated features<a class="anchor" aria-label="anchor" href="#integrated-features"></a>
 </h2>
 <ul>
-<li><p>Tsallis entropy and diversity calculations: - <code>calculate_tsallis_entropy</code>: computes S_q and/or D_q for a numeric vector of expression values (supports normalization, multiple <code>q</code> values and the q→1 limit). Returns numeric vectors or a list depending on <code>what</code>. - <code>calculate_diversity</code>: applies the calculation across transcripts/genes for matrices, <code>tximport</code>-style lists or <code>SummarizedExperiment</code> objects and returns a <code>SummarizedExperiment</code> with assay <code>diversity</code> (S_q) or <code>hill</code> (D_q).</p></li>
-<li><p>Differential and statistical analyses: - <code>calculate_difference</code> and helpers in <code>difference_functions</code> compute group means, differences (or log2 fold-changes), p-values and adjusted p-values. These functions are designed to work with diversity summaries as well as expression matrices.</p></li>
-<li><p>Method wrappers and utilities: - <code>calculate_method</code> provides a wrapper to run the chosen diversity method per gene, format outputs and evaluate multiple <code>q</code> values in one pass.</p></li>
-<li><p>Plotting and visualization: - <code>plot_tsallis_q_curve</code>: median ± IQR of Tsallis entropy across q-values by group. - <code>plot_tsallis_violin_multq</code>: violin plots of Tsallis entropy for multiple q-values and groups. - <code>plot_diversity_density</code>: density plots of diversity by sample type. - <code>plot_mean_violin</code>: violin plot of per-gene mean diversity by sample type. - <code>plot_ma</code>: MA-plot for differential results. - <code>plot_volcano</code>: volcano plot with labeling of top genes. - <code>plot_top_transcripts</code>: summary/visualization for top transcripts.</p></li>
+<li>Tsallis entropy and diversity calculations:
+<ul>
+<li>
+<code>calculate_tsallis_entropy</code>: computes S_q and/or D_q for a numeric vector of expression values (supports normalization, multiple <code>q</code> values and the q→1 limit). Returns numeric vectors or a list depending on <code>what</code>.</li>
+<li>
+<code>calculate_diversity</code>: applies the calculation across transcripts/genes for matrices, <code>tximport</code>-style lists or <code>SummarizedExperiment</code> objects and returns a <code>SummarizedExperiment</code> with assay <code>diversity</code> (S_q) or <code>hill</code> (D_q).</li>
+</ul>
+</li>
+<li>Differential and statistical analyses:
+<ul>
+<li>
+<code>calculate_difference</code> and helpers in <code>difference_functions</code> compute group means, differences (or log2 fold-changes), p-values and adjusted p-values. These functions are designed to work with diversity summaries as well as expression matrices.</li>
+</ul>
+</li>
+<li>Plotting and visualization:
+<ul>
+<li>
+<code>plot_tsallis_q_curve</code>: median ± IQR of Tsallis entropy across q-values by group.</li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="installation-and-documentation">Installation and documentation<a class="anchor" aria-label="anchor" href="#installation-and-documentation"></a>
 </h2>
 <p>Install from GitHub during development:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"gallardoalba/TSENAT"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Development / Reproducible setup</span></span>
 <span><span class="co">## Recommended (reproducible): use `renv`.</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"renv"</span><span class="op">)</span></span>
@@ -101,13 +102,23 @@
 <div class="section level2">
 <h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/gallardoalba/TSENAT" class="external-link">TSENAT</a></span><span class="op">)</span></span>
+<p>Compute Tsallis diversity for a single <code>q</code> and plot a q-curve across multiple <code>q</code> values (small, focused example taken from the vignette):</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"tcga_brca_luma_dataset"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span><span class="va">tcga_brca_luma_dataset</span><span class="op">$</span><span class="va">counts</span>,</span>
-<span>                            group <span class="op">=</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">$</span><span class="va">group</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># compute for q = 0.1 and normalize</span></span>
+<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">$</span><span class="va">counts</span></span>
+<span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">$</span><span class="va">gene</span></span>
+<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, method <span class="op">=</span> <span class="st">"tsallis"</span>, q <span class="op">=</span> <span class="fl">0.1</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># compute for multiple q values and plot the q-curve</span></span>
+<span><span class="va">qs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">ts_multi</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, method <span class="op">=</span> <span class="st">"tsallis"</span>, q <span class="op">=</span> <span class="va">qs</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_multi</span>, group <span class="op">=</span> <span class="fu">colData</span><span class="op">(</span><span class="va">ts_multi</span><span class="op">)</span><span class="op">$</span><span class="va">sample_type</span><span class="op">)</span></span></code></pre></div>
+<div class="float">
+<img src="articles/TSENAT_files/figure-html/plot-q-curve-1.png" alt="q-curve example"><div class="figcaption">q-curve example</div>
+</div>
 <p>The complete documentation can be found at <a href="inst/doc/TSENAT.html">inst/doc/TSENAT.html</a>.</p>
 </div>
 <div class="section level2">
@@ -117,11 +128,12 @@
 <p>See <code>citation("TSENAT")</code> or <a href="inst/CITATION">inst/CITATION</a>. License in <a href="LICENSE">LICENSE</a>.</p>
 </div>
 </div>
+
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
 <li><a href="https://github.com/gallardoalba/TSENAT/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/gallardoalba/TSENAT/issues" class="external-link">Report a bug</a></li>
+<li><a href="https://github.com/gallardoalba/TSENAT" class="external-link">Report a bug</a></li>
 </ul>
 </div>
 
@@ -155,7 +167,14 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/gallardoalba/TSENAT/actions" class="external-link"><img src="https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://gallardoalba.github.io/TSENAT/"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="pkgdown"></a></li>
+<li><a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL-3"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

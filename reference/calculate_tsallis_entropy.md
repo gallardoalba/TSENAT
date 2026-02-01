@@ -36,6 +36,11 @@ calculate_tsallis_entropy(
   Which quantity to return: `"S"` for Tsallis entropy (S_q), `"D"` for
   Hill numbers (D_q), or `"both"` for a list with both.
 
+- log_base:
+
+  Base of the logarithm used for Shannon limits and normalization
+  (default: `exp(1)`).
+
 ## Value
 
 A numeric vector (named when length(q) \> 1) for `what = "S"` or `"D"`,
@@ -43,7 +48,7 @@ or a list with components `$S` and `$D` when `what = "both"`.
 
 ## Details
 
-Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^1/(1-q)
+Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q))
 with the q-\>1 limits given by Shannon entropy and the exponential of
 Shannon respectively. Natural logarithms are used for the q-\>1 limit
 and normalization.
