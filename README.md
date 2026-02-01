@@ -34,22 +34,9 @@ Integrated features
 - Differential and statistical analyses:
     - `calculate_difference` and helpers in `difference_functions` compute group means, differences (or log2 fold-changes), p-values and adjusted p-values. These functions are designed to work with diversity summaries as well as expression matrices.
 
-- Method wrappers and utilities:
-    - `calculate_method` provides a wrapper to run the chosen diversity method per gene, format outputs and evaluate multiple `q` values in one pass.
-
 - Plotting and visualization:
     - `plot_tsallis_q_curve`: median ± IQR of Tsallis entropy across q-values by group.
-    - `plot_tsallis_violin_multq`: violin plots of Tsallis entropy for multiple q-values and groups.
-    - `plot_diversity_density`: density plots of diversity by sample type.
-    - `plot_mean_violin`: violin plot of per-gene mean diversity by sample type.
-    - `plot_ma`: MA-plot for differential results.
-    - `plot_volcano`: volcano plot with labeling of top genes.
-    - `plot_top_transcripts`: summary/visualization for top transcripts.
 
-- Internal helpers:
-    - Utilities such as `prepare_tsallis_long` format results for `ggplot2` and work with `tidyr`/`dplyr` to produce ready-to-plot data frames.
-
-- Example dataset: `tcga_brca_luma_dataset`, included for vignette examples and tests.
 
 Installation and documentation
 ------------
@@ -60,7 +47,6 @@ Install from GitHub during development:
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("gallardoalba/TSENAT")
 
-## Development / Reproducible setup
 ## Recommended (reproducible): use `renv`.
 
 install.packages("renv")
@@ -72,16 +58,28 @@ renv::snapshot()
 Quick start
 -----------
 
+Compute Tsallis diversity for a single `q` and plot a q-curve across multiple `q` values (small, focused example taken from the vignette):
+
 ```r
 library(TSENAT)
 data("tcga_brca_luma_dataset", package = "TSENAT")
 
-res <- calculate_difference(tcga_brca_luma_dataset$counts,
-                            group = tcga_brca_luma_dataset$group)
-head(res)
+# compute for q = 0.1 and normalize
+readcounts <- tcga_brca_luma_dataset$counts
+genes <- tcga_brca_luma_dataset$gene
+ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = 0.1, norm = TRUE)
+
+# compute for multiple q values and plot the q-curve
+qs <- c(0.1, 0.5, 1, 2)
+ts_multi <- calculate_diversity(readcounts, genes, method = "tsallis", q = qs, norm = TRUE)
+plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ```
 
+![q-curve example](docs/articles/TSENAT_files/figure-html/plot-q-curve-1.png)
+
+
 The complete documentation can be found at [inst/doc/TSENAT.html](inst/doc/TSENAT.html).
+
 
 Citation and license
 --------------------
