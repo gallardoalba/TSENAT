@@ -1,4 +1,4 @@
-[![R-CMD-check](https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/gallardoalba/TSENAT/actions) [![pkgdown](https://github.com/gallardoalba/TSENAT/actions/workflows/pkgdown.yaml/badge.svg)](https://gallardoalba.github.io/TSENAT/)  [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![R-CMD-check](https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/gallardoalba/TSENAT/actions) [![pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://gallardoalba.github.io/TSENAT/)  [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 TSENAT:  Tsallis Entropy Analysis Toolbox
 =========================================
