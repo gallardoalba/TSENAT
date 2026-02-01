@@ -1,6 +1,6 @@
 ---
 title: "TSENAT: Tsallis entropy workflow"
-author: "TSENAT developers"
+author: "Cristóbal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
   rmarkdown::html_document:

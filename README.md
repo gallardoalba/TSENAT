@@ -90,16 +90,21 @@ plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 The complete documentation can be found at [inst/doc/TSENAT.html](inst/doc/TSENAT.html).
 
 
-Citation and license
---------------------
+Licence, citation and atribution
+--------------------------------
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3).
 A copy of the full license text is included in the repository at `LICENSE`
 and is installed with the package under `inst/LICENSE`.
 
+To cite TSENAT in publications, run the following in R:
 
-Attribution
-------------
+```r
+citation("TSENAT")
+```
+
+This command shows the recommended bibliographic entry; a machine-readable
+`inst/CITATION` file is included with the package for easy citation export.
 
 TSENAT builds upon and adapts substantial portions of code from the
 [SplicingFactory package](https://github.com/esebesty/SplicingFactory). The
