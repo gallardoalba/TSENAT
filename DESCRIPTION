@@ -18,5 +18,5 @@ Imports: SummarizedExperiment, methods, stats, magrittr, ggplot2
 Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors, cowplot, ggrepel, patchwork, pkgdown
 VignetteBuilder: knitr
 URL: https://gallardoalba.github.io/TSENAT
-BugReports: https://github.com/gallardoalba/TSENAT
+BugReports: https://github.com/gallardoalba/TSENAT/issues
 biocViews: Transcriptomics, RNASeq, DifferentialSplicing, AlternativeSplicing, TranscriptomeVariant

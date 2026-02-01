@@ -1,4 +1,13 @@
-^\.git$
+^(.*/)?\.git
+^(.*/)?docs
+^(.*/)?_pkgdown.yml
+^(.*/)?\.github
+^(.*/)?\.Rcheck
+^(.*/)?\.Rhistory
+^(.*/)?Meta
+^(.*/)?TSENAT_.*\.tar\.gz
+^(.*/)?inst/doc
+^(.*/)?vignettes/TSENAT_files/figure-html/plot q-curve-1.png^\.git$
 ^\.github$
 ^data-raw/
 ^\.Rproj.user$
