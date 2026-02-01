@@ -31,14 +31,15 @@ $$
 p_i = x_i / \sum_j x_j
 $$
 
-so that $p_i \ge 0$ and $\sum_i p_i = 1$. The parameter `q` tunes what
-aspect of isoform usage the entropy emphasizes: values $q<1$ increase the
-influence of low-abundance (rare) isoforms, while $q>1$ increases the
-influence of high-abundance (dominant) isoforms. Practical examples:
-`q = 0` corresponds to isoform richness (the number of expressed
-isoforms), `q \approx 1` recovers Shannon entropy (uncertainty of isoform
-usage), and `q = 2` is closely related to the inverse Simpson index (sensitive
-to dominance).
+so that $p_i \ge 0$ and $\sum_i p_i = 1$. 
+
+The parameter `q` tunes what aspect of isoform usage the entropy emphasizes: 
+values $q<1$ increase the influence of low-abundance (rare) isoforms, 
+while $q>1$ increases the influence of high-abundance (dominant) isoforms. 
+Practical examples: `q = 0` corresponds to isoform richness (the number 
+of expressed isoforms), `q \approx 1` recovers Shannon entropy (uncertainty 
+of isoform usage), and `q = 2` is closely related to the inverse Simpson 
+index (sensitive to dominance).
 
 Practical recommendations: compute `p_i` from gene-wise-normalized values
 (e.g. TPM, CPM or counts normalized per gene) before applying `S_q`; you may
