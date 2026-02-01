@@ -8,7 +8,7 @@ Calculate Tsallis diversity per gene across samples
 calculate_diversity(
   x,
   genes = NULL,
-  method = "tsallis",
+  
   norm = TRUE,
   tpm = FALSE,
   assayno = 1,
@@ -30,11 +30,6 @@ calculate_diversity(
 
   Character vector assigning each transcript (row) to a gene. Must have
   length equal to nrow(x) or the number of transcripts in \`x\`.
-
-- method:
-
-  Character; method to use for diversity calculation. Only 'tsallis' is
-  currently supported.
 
 - norm:
 
