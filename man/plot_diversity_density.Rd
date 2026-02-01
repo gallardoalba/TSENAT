@@ -19,3 +19,10 @@ A `ggplot` object with layered density plots.
 \description{
 Plot diversity distributions (density) by sample type
 }
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+gs <- tcga_brca_luma_dataset$gene[1:20]
+se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
+plot_diversity_density(se)
+}

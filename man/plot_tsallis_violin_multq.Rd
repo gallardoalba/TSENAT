@@ -17,3 +17,10 @@ A `ggplot` violin plot object faceted/colored by group and q.
 \description{
 Violin plot of Tsallis entropy for multiple q values
 }
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+gs <- tcga_brca_luma_dataset$gene[1:20]
+se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+plot_tsallis_violin_multq(se)
+}

@@ -34,3 +34,8 @@ expression values of one gene.
 \details{
 Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
 }
+\examples{
+Basic usage with a small numeric vector
+x <- c(10, 5, 0)
+calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
+}

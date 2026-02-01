@@ -26,3 +26,9 @@ For a given gene, find transcripts using a tx->gene mapping, compute per-transcr
 statistics between two sample groups, select the top N transcripts by p-value and
 plot their expression across groups.
 }
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- tcga_brca_luma_dataset$counts[1:30, , drop = FALSE]
+gs <- tcga_brca_luma_dataset$gene[1:30]
+plot_top_transcripts(rc, gs, samples = colnames(rc), top_n = 2)
+}

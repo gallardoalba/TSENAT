@@ -29,3 +29,8 @@ A `ggplot` MA-plot object.
 \description{
 Plot MA plot for difference results
 }
+\examples{
+# Minimal fake diff_df
+df <- data.frame(gene = paste0("g", seq_len(10)), mean1 = runif(10), mean2 = runif(10), log2_fold_change = rnorm(10), adjusted_p_values = runif(10))
+plot_ma(df)
+}

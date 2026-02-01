@@ -32,3 +32,10 @@ for each q value, compute per-gene Tsallis entropy per sample, then
 summarize across genes by group (median and IQR) and plot median with a
 ribbon spanning median +- IQR/2.
 }
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- tcga_brca_luma_dataset$counts[1:40, , drop = FALSE]
+gs <- tcga_brca_luma_dataset$gene[1:40]
+p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
+p
+}

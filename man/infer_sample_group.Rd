@@ -50,6 +50,5 @@ infer_sample_group(c("S1_N", "TCGA-XX-01A"))
 infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T = "Tumor"))
 
 # Provide a TCGA mapping and prefer TCGA codes over suffixes
-infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = c("01" = "Tumor"), 
-                   prefer_suffix = FALSE)
+infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = c("01" = "Tumor"), prefer_suffix = FALSE)
 }

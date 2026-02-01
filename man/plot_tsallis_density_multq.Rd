@@ -17,3 +17,10 @@ A `ggplot` density plot object faceted by q and colored by group.
 \description{
 Density plot of Tsallis entropy for multiple q values
 }
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+gs <- tcga_brca_luma_dataset$gene[1:20]
+se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+plot_tsallis_density_multq(se)
+}
