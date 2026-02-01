@@ -12,6 +12,10 @@
 #' @return A numeric vector (named when length(q) > 1) for \code{what = "S"} or \code{"D"}, or a list with components \code{$S} and \code{$D} when \code{what = "both"}.
 #' @details
 #' Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
+ #' @examples
+ #' Basic usage with a small numeric vector
+ #' x <- c(10, 5, 0)
+ #' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
 calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"), log_base = exp(1)) {
   what <- match.arg(what)
   if (!is.numeric(q)) stop("q must be numeric.")

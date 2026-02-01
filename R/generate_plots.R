@@ -104,6 +104,12 @@ if (getRversion() >= "2.15.1") {
 #' @return A `ggplot` object with layered density plots.
 #' @importFrom ggplot2 ggplot aes geom_density facet_grid scale_color_manual guides theme_minimal labs
 #' @export
+#' @examples
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+#' gs <- tcga_brca_luma_dataset$gene[1:20]
+#' se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
+#' plot_diversity_density(se)
 plot_diversity_density <- function(se, assay_name = "diversity", sample_type_col = NULL) {
   require_pkgs(c("ggplot2", "tidyr", "dplyr", "SummarizedExperiment"))
   long <- get_assay_long(se, assay_name = assay_name, value_name = "diversity", sample_type_col = sample_type_col)
@@ -126,6 +132,12 @@ plot_diversity_density <- function(se, assay_name = "diversity", sample_type_col
 #' @param sample_type_col Optional column name in `colData(se)` containing sample types.
 #' @return A `ggplot` violin plot object.
 #' @export
+#' @examples
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+#' gs <- tcga_brca_luma_dataset$gene[1:20]
+#' se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
+#' plot_mean_violin(se)
 plot_mean_violin <- function(se, assay_name = "diversity", sample_type_col = NULL) {
   require_pkgs(c("ggplot2", "dplyr", "SummarizedExperiment", "tidyr"))
   long <- get_assay_long(se, assay_name = assay_name, value_name = "diversity", sample_type_col = sample_type_col)
@@ -152,6 +164,10 @@ plot_mean_violin <- function(se, assay_name = "diversity", sample_type_col = NUL
 #' @param sig_alpha Threshold for significance (default: 0.05).
 #' @return A `ggplot` MA-plot object.
 #' @export
+#' @examples
+#' # Minimal fake diff_df
+#' df <- data.frame(gene = paste0("g", seq_len(10)), mean1 = runif(10), mean2 = runif(10), log2_fold_change = rnorm(10), adjusted_p_values = runif(10))
+#' plot_ma(df)
 plot_ma <- function(diff_df, mean_cols = NULL, fold_col = "log2_fold_change", padj_col = "adjusted_p_values", sig_alpha = 0.05) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
 
@@ -191,6 +207,12 @@ plot_ma <- function(diff_df, mean_cols = NULL, fold_col = "log2_fold_change", pa
 #' @param group_names Character vector of length 2 with names for groups (default `c("Normal","Tumor")`).
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
+#' @examples
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- tcga_brca_luma_dataset$counts[1:40, , drop = FALSE]
+#' gs <- tcga_brca_luma_dataset$gene[1:40]
+#' p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
+#' p
 plot_tsallis_q_curve <- function(readcounts, genes, q_values = seq(0.01, 2, by = 0.01),
                                  group_pattern = "_N$", group_names = c("Normal", "Tumor")) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
@@ -242,6 +264,12 @@ plot_tsallis_q_curve <- function(readcounts, genes, q_values = seq(0.01, 2, by =
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @return A `ggplot` violin plot object faceted/colored by group and q.
 #' @export
+#' @examples
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+#' gs <- tcga_brca_luma_dataset$gene[1:20]
+#' se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+#' plot_tsallis_violin_multq(se)
 plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
   if (!requireNamespace("tidyr", quietly = TRUE)) stop("tidyr required")
@@ -265,6 +293,12 @@ plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @return A `ggplot` density plot object faceted by q and colored by group.
 #' @export
+#' @examples
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+#' gs <- tcga_brca_luma_dataset$gene[1:20]
+#' se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+#' plot_tsallis_density_multq(se)
 plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
   if (!requireNamespace("tidyr", quietly = TRUE)) stop("tidyr required")
@@ -293,6 +327,10 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' @param top_n Integer; number of top genes to annotate by smallest adjusted p-value (default: 5).
 #' @return ggplot volcano plot.
 #' @export
+#' @examples
+#' # Minimal fake diff_df
+#' df <- data.frame(gene = paste0("g", seq_len(10)), mean_difference = runif(10), adjusted_p_values = runif(10))
+#' plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 plot_volcano <- function(diff_df, x_col = "mean_difference", padj_col = "adjusted_p_values", label_thresh = 0.1, padj_thresh = 0.05, top_n = 5) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
   df <- as.data.frame(diff_df)
@@ -360,6 +398,11 @@ plot_volcano <- function(diff_df, x_col = "mean_difference", padj_col = "adjuste
 #' @importFrom utils read.delim
 #' @export
 #' @name plot_top_transcripts
+ #' @examples
+ #' data("tcga_brca_luma_dataset", package = "TSENAT")
+ #' rc <- tcga_brca_luma_dataset$counts[1:30, , drop = FALSE]
+ #' gs <- tcga_brca_luma_dataset$gene[1:30]
+ #' plot_top_transcripts(rc, gs, samples = colnames(rc), top_n = 2)
 if (getRversion() >= "2.15.1") utils::globalVariables(c("tx", "expr", "group", "tx_cond", "sample", "log2expr"))
 plot_top_transcripts <- function(counts, gene, samples, tx2gene = NULL, top_n = 3, pseudocount = 1e-6, output_file = NULL) {
   if (!is.matrix(counts) && !is.data.frame(counts)) stop("`counts` must be a matrix or data.frame with transcripts as rownames")
