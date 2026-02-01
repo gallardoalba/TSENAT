@@ -194,6 +194,12 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #'   `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
+ #' @examples
+ #' data("tcga_brca_luma_dataset", package = "TSENAT")
+ #' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
+ #' gs <- tcga_brca_luma_dataset$gene[1:20]
+ #' se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+ #' calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                      method = c("linear", "gam", "fpca"), nthreads = 1,
                                      assay_name = "diversity") {
