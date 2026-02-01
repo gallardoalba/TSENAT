@@ -5,17 +5,11 @@ metrics.
 
 ## Badges
 
-- GitHub Actions (CI):
+- GitHub Actions (CI): [![R-CMD-check](https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/gallardoalba/TSENAT/actions)
+- Docs (pkgdown): [![pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://gallardoalba.github.io/TSENAT/)
+- License: [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-  ``` R
-    [![R-CMD-check](https://github.com/gallardoalba/TSENAT/actions/workflows/check-standard.yaml/badge.svg)](https://github.com/gallardoalba/TSENAT/actions)
-  ```
-
-- Español README:
-  [README.es.md](https://gallardoalba.github.io/TSENAT/README.es.md)
-
-- Deutsch README:
-  [README.de.md](https://gallardoalba.github.io/TSENAT/README.de.md)
+See the full site articles (vignette) here: [Articles](articles/index.html)
 
 ## Origin and attribution
 
