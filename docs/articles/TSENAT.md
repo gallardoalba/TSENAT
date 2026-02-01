@@ -265,9 +265,11 @@ div_df <- as.data.frame(assay(ts_se))
 div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
-res <- calculate_difference(div_df, samples, control = "Normal",
-                            method = "mean", test = "wilcoxon",
-                            paired = TRUE)
+res <- calculate_difference(div_df, samples,
+  control = "Normal",
+  method = "mean", test = "wilcoxon",
+  paired = TRUE
+)
 # sort results by adjusted p-value
 if ("adjusted_p_values" %in% colnames(res)) {
   res <- res[order(res$adjusted_p_values), , drop = FALSE]
@@ -333,17 +335,16 @@ diversity differences.
 
 ``` r
 
-if (is.data.frame(res) && nrow(res) > 0) {
-
-  sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
-  top_genes <- head(sig_res$genes, 3)
-  sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
-  samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
-  p_comb <- plot_top_transcripts(readcounts, gene = top_genes, 
-                                 samples = samples_vec, tx2gene = txmap, 
-                                 top_n = NULL)
-  print(p_comb)
-}
+sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
+top_genes <- head(sig_res$genes, 3)
+sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+p_comb <- plot_top_transcripts(readcounts,
+  gene = top_genes,
+  samples = samples_vec, tx2gene = txmap,
+  top_n = NULL
+)
+print(p_comb)
 ```
 
 ![](TSENAT_files/figure-html/top-transcripts-singleq-1.png)
@@ -360,8 +361,10 @@ compare scale-dependent behavior.
 
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", 
-                             q = q, norm = TRUE)
+ts_se <- calculate_diversity(readcounts, genes,
+  method = "tsallis",
+  q = q, norm = TRUE
+)
 head(assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_T_q=0.1 TCGA-A7-A0D9_N_q=0.1
 #> MXRA8              0.8616275            0.6063802            0.6609111
@@ -421,8 +424,10 @@ values.
 
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", 
-                             q = qvec, norm = TRUE)
+ts_se <- calculate_diversity(readcounts, genes,
+  method = "tsallis",
+  q = qvec, norm = TRUE
+)
 head(assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_T_q=0.01 TCGA-A7-A0D9_N_q=0.01
 #> MXRA8               0.9840684             0.8500785             0.7527194
@@ -466,7 +471,7 @@ p3 <- plot_tsallis_q_curve(readcounts, genes, q_values = qvec)
 print(p3)
 ```
 
-![](TSENAT_files/figure-html/plot-q-curve-1.png)
+![](TSENAT_files/figure-html/plot%20q-curve-1.png)
 
 Comparing entire q-curves between groups asks whether the relationship
 between diversity and `q` differs by condition. The package implements

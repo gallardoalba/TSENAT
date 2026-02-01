@@ -48,8 +48,9 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>TSENAT: Tsallis entropy workflow</h1>
-                        <h4 data-toc-skip class="author">TSENAT
-developers</h4>
+                        <h4 data-toc-skip class="author">Cristóbal
+Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
+</h4>
             
             <h4 data-toc-skip class="date">2026-02-01</h4>
       
@@ -341,9 +342,11 @@ design.</p>
 <span><span class="va">div_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>genes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">rowData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">genes</span>, <span class="va">div_df</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># samples are matched pairs (Normal/Tumor), so use a paired test</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span><span class="va">div_df</span>, <span class="va">samples</span>, control <span class="op">=</span> <span class="st">"Normal"</span>,</span>
-<span>                            method <span class="op">=</span> <span class="st">"mean"</span>, test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
-<span>                            paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span><span class="va">div_df</span>, <span class="va">samples</span>,</span>
+<span>  control <span class="op">=</span> <span class="st">"Normal"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"mean"</span>, test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
+<span>  paired <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
 <span><span class="co"># sort results by adjusted p-value</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="st">"adjusted_p_values"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span><span class="op">)</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
@@ -398,17 +401,16 @@ counts (rows = transcripts) with rownames matching the
 significance to inspect isoform-level patterns that may explain the
 diversity differences.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">is.data.frame</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="op">{</span></span>
-<span></span>
-<span>  <span class="va">sig_res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
-<span>  <span class="va">top_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sig_res</span><span class="op">$</span><span class="va">genes</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span>  <span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_q=.*"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">samples_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">sample_type</span><span class="op">)</span></span>
-<span>  <span class="va">p_comb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">readcounts</span>, gene <span class="op">=</span> <span class="va">top_genes</span>, </span>
-<span>                                 samples <span class="op">=</span> <span class="va">samples_vec</span>, tx2gene <span class="op">=</span> <span class="va">txmap</span>, </span>
-<span>                                 top_n <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_comb</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">sig_res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span><span class="va">top_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sig_res</span><span class="op">$</span><span class="va">genes</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_q=.*"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">samples_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">sample_type</span><span class="op">)</span></span>
+<span><span class="va">p_comb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">readcounts</span>,</span>
+<span>  gene <span class="op">=</span> <span class="va">top_genes</span>,</span>
+<span>  samples <span class="op">=</span> <span class="va">samples_vec</span>, tx2gene <span class="op">=</span> <span class="va">txmap</span>,</span>
+<span>  top_n <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_comb</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/top-transcripts-singleq-1.png" class="r-plt" alt="" width="960"></p>
 <p>Inspect transcript-level counts for the top genes to understand
 isoform patterns that may drive diversity differences.</p>
@@ -422,8 +424,10 @@ and 2) to compare scale-dependent behavior.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 1 (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, method <span class="op">=</span> <span class="st">"tsallis"</span>, </span>
-<span>                             q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"tsallis"</span>,</span>
+<span>  q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_T_q=0.1 TCGA-A7-A0D9_N_q=0.1</span></span>
 <span><span class="co">#&gt; MXRA8              0.8616275            0.6063802            0.6609111</span></span>
@@ -470,8 +474,10 @@ groups.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a sequence of values (normalized)</span></span>
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, method <span class="op">=</span> <span class="st">"tsallis"</span>, </span>
-<span>                             q <span class="op">=</span> <span class="va">qvec</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"tsallis"</span>,</span>
+<span>  q <span class="op">=</span> <span class="va">qvec</span>, norm <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_T_q=0.01 TCGA-A7-A0D9_N_q=0.01</span></span>
 <span><span class="co">#&gt; MXRA8               0.9840684             0.8500785             0.7527194</span></span>
@@ -505,7 +511,7 @@ changes with <code>q</code> across sample groups.</p>
 <code class="sourceCode R"><span><span class="co"># q-curve: median ± IQR across q values by group</span></span>
 <span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q_values <span class="op">=</span> <span class="va">qvec</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p3</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/plot-q-curve-1.png" class="r-plt" alt="" width="960"></p>
+<p><img src="TSENAT_files/figure-html/plot%20q-curve-1.png" class="r-plt" alt="" width="960"></p>
 <p>Comparing entire q-curves between groups asks whether the
 relationship between diversity and <code>q</code> differs by condition.
 The package implements three complementary approaches; below are
