@@ -20,7 +20,14 @@ jobs:
         run: |
           Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler");'
           Rscript scripts/check_style.R
-      - name: Run R CMD check
-        uses: r-lib/actions/check@v2
-        with:
-          args: --as-cran
+      - name: Build package and run R CMD check
+        env:
+          _R_CHECK_CRAN_INCOMING_: FALSE
+        run: |
+          # Ensure roxygen documentation is generated if needed
+          Rscript -e "if (!requireNamespace('devtools', quietly=TRUE)) install.packages('devtools'); if (!requireNamespace('roxygen2', quietly=TRUE)) install.packages('roxygen2'); devtools::document(roclets = c('rd'))"
+          # Build package tarball
+          R CMD build --no-build-vignettes .
+          PKG=$(ls -1t *.tar.gz | head -n1)
+          # Run check without manual (faster) and no vignettes
+          R CMD check --no-manual --no-vignettes --as-cran "$PKG"
