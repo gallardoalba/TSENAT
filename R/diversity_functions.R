@@ -4,10 +4,14 @@
 #' expression values of one gene.
 #'
 #' @param x Vector of (non-negative) expression values.
-#' @param q Tsallis entropy parameter (q > 0). Scalar or numeric vector (default: 2).
-#' @param norm Logical; if TRUE, normalize entropy by its theoretical maximum (values in [0,1]).
-#' @param what Which quantity to return: "S" (Tsallis entropy), "D" (Hill numbers), or "both".
-#' @param log_base Base of the logarithm used for Shannon limits and normalization
+#'#' @param q Tsallis entropy parameter (q > 0). Scalar or numeric vector
+#'#' (default: 2).
+#'#' @param norm Logical; if TRUE, normalize entropy by its theoretical maximum
+#'#' (values in [0,1]).
+#'#' @param what Which quantity to return: "S" (Tsallis entropy), "D" (Hill
+#'#' numbers), or "both".
+#'#' @param log_base Base of the logarithm used for Shannon limits and
+#'#' normalization
 #'   (default: \code{exp(1)}).
 #' @export
 #' @return For `what = "S"` or `what = "D"`: a numeric vector

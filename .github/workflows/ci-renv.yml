@@ -24,8 +24,10 @@ jobs:
         env:
           _R_CHECK_CRAN_INCOMING_: FALSE
         run: |
-          # Ensure roxygen documentation is generated if needed
-          Rscript -e "if (!requireNamespace('devtools', quietly=TRUE)) install.packages('devtools'); if (!requireNamespace('roxygen2', quietly=TRUE)) install.packages('roxygen2'); devtools::document(roclets = c('rd'))"
+          # Ensure devtools and roxygen are available and install common tooling
+          Rscript -e 'install.packages(c("devtools","roxygen2","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
+          # Generate documentation if needed
+          Rscript -e 'devtools::document(roclets = c("rd"))'
           # Build package tarball
           R CMD build --no-build-vignettes .
           PKG=$(ls -1t *.tar.gz | head -n1)
