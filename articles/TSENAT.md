@@ -466,7 +466,7 @@ p3 <- plot_tsallis_q_curve(readcounts, genes, q_values = qvec)
 print(p3)
 ```
 
-![](TSENAT_files/figure-html/plot%20q-curve-1.png)
+![](TSENAT_files/figure-html/plot-q-curve-1.png)
 
 Comparing entire q-curves between groups asks whether the relationship
 between diversity and `q` differs by condition. The package implements
