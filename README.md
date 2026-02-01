@@ -87,9 +87,6 @@ plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ![q-curve example](docs/articles/TSENAT_files/figure-html/plot-q-curve-1.png)
 
 
-The complete documentation can be found at [inst/doc/TSENAT.html](inst/doc/TSENAT.html).
-
-
 Licence, citation and atribution
 --------------------------------
 
