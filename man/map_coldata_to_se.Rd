@@ -31,3 +31,15 @@ condition/label column) into a `SummarizedExperiment` produced by
 `colData(ts_se)` and falls back to `infer_sample_group()` for
 unmapped samples.
 }
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
+sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
+coldata_df <- data.frame(
+  Sample = sample_names,
+  Condition = rep(c("A", "B"), length.out = ncol(se))
+)
+map_coldata_to_se(se, coldata_df)
+}

@@ -1,0 +1,120 @@
+* using log directory ‘/home/nouser/galaxy/tools_source/TSENAT/..Rcheck’
+* using R version 4.5.2 (2025-10-31)
+* using platform: x86_64-conda-linux-gnu
+* R was compiled by
+    x86_64-conda-linux-gnu-cc (conda-forge gcc 10.4.0-19) 10.4.0
+    GNU Fortran (conda-forge gcc 10.4.0-19) 10.4.0
+* running under: Ubuntu 22.04.5 LTS
+* using session charset: UTF-8
+* using options ‘--no-manual --no-vignettes --as-cran’
+* checking for file ‘./DESCRIPTION’ ... OK
+* checking extension type ... Package
+* this is package ‘TSENAT’ version ‘0.1.0’
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... [4s/75s] NOTE
+Maintainer: ‘Cristóbal Gallardo <gallardoalba@pm.me>’
+
+New submission
+
+Package has a VignetteBuilder field but no prebuilt vignette index.
+
+Found the following (possibly) invalid URLs:
+  URL: https://gallardoalba.github.io/TSENAT (moved to https://gallardoalba.github.io/TSENAT/)
+    From: DESCRIPTION
+    Status: 200
+    Message: OK
+
+The build time stamp is missing.
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... WARNING
+Found the following executable file:
+  .git/objects/fe/b8d5e29ca52cf0ab53030d1e9791ad51fb0365
+Source packages should not contain undeclared executable files.
+See section ‘Package structure’ in the ‘Writing R Extensions’ manual.
+* checking for hidden files and directories ... NOTE
+Found the following hidden files and directories:
+  .gitignore
+  vignettes/.Rhistory
+  ..Rcheck
+  .git
+  .github
+These were most likely included in error. See section ‘Package
+structure’ in the ‘Writing R Extensions’ manual.
+
+CRAN-pack does not know about
+  ..Rcheck
+  .git
+  .github
+* checking for portable file names ... OK
+* checking for sufficient/correct file permissions ... OK
+* checking whether package ‘TSENAT’ can be installed ... [16s/13s] OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking DESCRIPTION meta-information ... NOTE
+Checking should be performed on sources prepared by ‘R CMD build’.
+* checking top-level files ... NOTE
+Non-standard files/directories found at top level:
+  ‘CODE_OF_CONDUCT.md’ ‘Rplots.pdf’ ‘TSENAT_0.1.tar.gz’ ‘_pkgdown.yml’
+  ‘data-raw’ ‘docs’ ‘scripts’
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... WARNING
+Found the following directory with the name of a check directory:
+  ./..Rcheck
+Most likely, these were included erroneously.
+Found the following directory with the name of a version control directory:
+  ./.git
+These should not be in a package tarball.
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... [27s/18s] OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... NOTE
+Rd file 'plot_top_transcripts.Rd':
+  \examples lines wider than 100 characters:
+     plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
+
+These lines will be truncated in the PDF manual.
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking contents of ‘data’ directory ... OK
+* checking data for non-ASCII characters ... OK
+* checking data for ASCII and uncompressed saves ... OK
+* checking files in ‘vignettes’ ... WARNING
+Files in the 'vignettes' directory but no files in 'inst/doc':
+  ‘TSENAT.Rmd’ ‘TSENAT_files/figure-html/plot-q-curve-1.png’
+* checking examples ... [11s/11s] OK
+* checking for unstated dependencies in ‘tests’ ... OK
+* checking tests ... OK
+  Running ‘run_tsallis_diff.R’
+  Running ‘testthat.R’
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes ... WARNING
+Directory 'inst/doc' does not exist.
+Package vignette without corresponding single PDF/HTML:
+  ‘TSENAT.Rmd’
+* checking running R code from vignettes ... SKIPPED
+* checking re-building of vignette outputs ... SKIPPED
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+Status: 4 WARNINGs, 5 NOTEs

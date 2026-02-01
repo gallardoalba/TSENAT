@@ -1,0 +1,25 @@
+Package: TSENAT
+Type: Package
+Title: Tsallis Entropy Analysis Toolbox
+Version: 0.1.0
+Authors@R: person(given = "Cristóbal", family = "Gallardo", role = c("aut", "cre"), email = "gallardoalba@pm.me")
+Maintainer: Cristóbal Gallardo <gallardoalba@pm.me>
+Author: Cristóbal Gallardo [aut, cre]
+Description: Tsallis entropy generalizes Shannon entropy with a parameter
+    q that controls sensitivity to transcript abundance. This package allows the calculation 
+    of Tsallis entropy for transcript-level expression data and differential analyses 
+    between two sample conditions.
+License: GPL-3 | file LICENSE
+Encoding: UTF-8
+LazyData: false
+RoxygenNote: 7.3.3
+Depends: R (>= 4.5.0)
+Imports: SummarizedExperiment, methods, stats, magrittr, ggplot2
+Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors,
+        cowplot, ggrepel, patchwork, pkgdown
+VignetteBuilder: knitr
+URL: https://gallardoalba.github.io/TSENAT
+BugReports: https://github.com/gallardoalba/TSENAT/issues
+biocViews: Transcriptomics, RNASeq, DifferentialSplicing,
+        AlternativeSplicing, TranscriptomeVariant
+Built: R 4.5.2; ; 2026-02-01 21:03:52 UTC; unix

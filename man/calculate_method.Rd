@@ -7,7 +7,6 @@
 calculate_method(
   x,
   genes,
-  method = "tsallis",
   norm = TRUE,
   verbose = FALSE,
   q = 2,
@@ -21,22 +20,19 @@ values (rows = transcripts, columns = samples).}
 \item{genes}{Character vector with length equal to nrow(x) assigning each
 transcript to a gene.}
 
-\item{method}{Only "tsallis" is supported (default).}
-
 \item{norm}{Logical; if TRUE normalize Tsallis entropy values per gene.}
 
 \item{verbose}{Logical; show diagnostic messages when TRUE.}
 
 \item{q}{Numeric scalar or vector of q values to evaluate.}
 
-\item{what}{Which quantity to return from `calculate_tsallis_entropy`: "S", "D" or "both" (default: "S").}
+\item{what}{Which quantity to return from `calculate_tsallis_entropy`:
+"S" (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").}
 }
 \value{
 A data.frame with genes in the first column and per-sample (and
   per-q) Tsallis entropy values in subsequent columns.
 }
 \description{
-This helper computes per-gene Tsallis entropy across samples. The trimmed
-package only supports the Tsallis method; other diversity metrics were
-removed.
+Calculate Tsallis diversity values for transcripts grouped by gene
 }

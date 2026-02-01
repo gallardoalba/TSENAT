@@ -13,9 +13,11 @@ plot_ma(
 )
 }
 \arguments{
-\item{diff_df}{Data.frame returned by `calculate_difference` (or similar) containing mean columns and a `log2_fold_change` column, and `adjusted_p_values`.}
+\item{diff_df}{Data.frame from `calculate_difference()` containing mean
+columns, a `log2_fold_change` column, and `adjusted_p_values`.}
 
-\item{mean_cols}{Optional character vector of length 2 with the names of the mean columns (defaults to first two columns that end with `_mean`).}
+\item{mean_cols}{Optional character vector of length 2 naming the mean columns.
+Defaults to the first two columns that end with `_mean`.}
 
 \item{fold_col}{Name of the fold-change column (default: `log2_fold_change`).}
 
@@ -31,6 +33,12 @@ Plot MA plot for difference results
 }
 \examples{
 # Minimal fake diff_df
-df <- data.frame(gene = paste0("g", seq_len(10)), mean1 = runif(10), mean2 = runif(10), log2_fold_change = rnorm(10), adjusted_p_values = runif(10))
+df <- data.frame(
+  gene = paste0("g", seq_len(10)),
+  sampleA_mean = runif(10),
+  sampleB_mean = runif(10),
+  log2_fold_change = rnorm(10),
+  adjusted_p_values = runif(10)
+)
 plot_ma(df)
 }

@@ -19,9 +19,9 @@ plot_tsallis_q_curve(
 
 \item{q_values}{Numeric vector of q values to evaluate (default `seq(0.01,2,by=0.01)`).}
 
-\item{group_pattern}{Regular expression used to detect the first group in sample names (default `"_N$"`).}
+\item{group_pattern}{Regular expression to detect group suffixes (default "_N$").}
 
-\item{group_names}{Character vector of length 2 with names for groups (default `c("Normal","Tumor")`).}
+\item{group_names}{Character vector length 2 with group names (default c("Normal","Tumor")).}
 }
 \value{
 A `ggplot` object showing median +- IQR across q values by group.
@@ -34,8 +34,8 @@ ribbon spanning median +- IQR/2.
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- tcga_brca_luma_dataset$counts[1:40, , drop = FALSE]
-gs <- tcga_brca_luma_dataset$gene[1:40]
+rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:40]
 p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
 p
 }

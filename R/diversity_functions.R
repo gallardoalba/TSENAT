@@ -4,18 +4,23 @@
 #' expression values of one gene.
 #'
 #' @param x Vector of (non-negative) expression values.
-#' @param q Tsallis entropy parameter (q > 0). Can be a single value or a numeric vector. Default is 2.
-#' @param norm If \code{TRUE}, the entropy values are normalized by their theoretical maximum for the number of transcripts (so values lie in [0,1]).
-#' @param what Which quantity to return: \code{"S"} for Tsallis entropy (S_q), \code{"D"} for Hill numbers (D_q), or \code{"both"} for a list with both.
-#' @param log_base Base of the logarithm used for Shannon limits and normalization (default: \code{exp(1)}).
+#' @param q Tsallis entropy parameter (q > 0). Scalar or numeric vector (default: 2).
+#' @param norm Logical; if TRUE, normalize entropy by its theoretical maximum (values in [0,1]).
+#' @param what Which quantity to return: "S" (Tsallis entropy), "D" (Hill numbers), or "both".
+#' @param log_base Base of the logarithm used for Shannon limits and normalization
+#'   (default: \code{exp(1)}).
 #' @export
-#' @return A numeric vector (named when length(q) > 1) for \code{what = "S"} or \code{"D"}, or a list with components \code{$S} and \code{$D} when \code{what = "both"}.
+#' @return For `what = "S"` or `what = "D"`: a numeric vector
+#'   (named when length(q) > 1). For `what = "both"`: a list with
+#'   components `$S` and `$D`.
 #' @details
-#' Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
- #' @examples
- #' Basic usage with a small numeric vector
- #' x <- c(10, 5, 0)
- #' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
+#' Implements S_q = (1 - sum p^q)/(q - 1) and D_q = (sum p^q)^(1/(1-q)).
+#' Uses the q->1 limits (Shannon entropy and its exponential). Natural
+#' logarithms are used for the q->1 limit and for normalization.
+#' @examples
+#' # Basic usage with a small numeric vector
+#' x <- c(10, 5, 0)
+#' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
 calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"), log_base = exp(1)) {
   what <- match.arg(what)
   if (!is.numeric(q)) stop("q must be numeric.")

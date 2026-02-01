@@ -16,23 +16,28 @@ calculate_tsallis_entropy(
 \arguments{
 \item{x}{Vector of (non-negative) expression values.}
 
-\item{q}{Tsallis entropy parameter (q > 0). Can be a single value or a numeric vector. Default is 2.}
+\item{q}{Tsallis entropy parameter (q > 0). Scalar or numeric vector (default: 2).}
 
-\item{norm}{If \code{TRUE}, the entropy values are normalized by their theoretical maximum for the number of transcripts (so values lie in [0,1]).}
+\item{norm}{Logical; if TRUE, normalize entropy by its theoretical maximum (values in [0,1]).}
 
-\item{what}{Which quantity to return: \code{"S"} for Tsallis entropy (S_q), \code{"D"} for Hill numbers (D_q), or \code{"both"} for a list with both.}
+\item{what}{Which quantity to return: "S" (Tsallis entropy), "D" (Hill numbers), or "both".}
 
-\item{log_base}{Base of the logarithm used for Shannon limits and normalization (default: \code{exp(1)}).}
+\item{log_base}{Base of the logarithm used for Shannon limits and normalization
+(default: \code{exp(1)}).}
 }
 \value{
-A numeric vector (named when length(q) > 1) for \code{what = "S"} or \code{"D"}, or a list with components \code{$S} and \code{$D} when \code{what = "both"}.
+For `what = "S"` or `what = "D"`: a numeric vector
+  (named when length(q) > 1). For `what = "both"`: a list with
+  components `$S` and `$D`.
 }
 \description{
 Calculate Tsallis entropy for a vector of transcript-level
 expression values of one gene.
 }
 \details{
-Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
+Implements S_q = (1 - sum p^q)/(q - 1) and D_q = (sum p^q)^(1/(1-q)).
+Uses the q->1 limits (Shannon entropy and its exponential). Natural
+logarithms are used for the q->1 limit and for normalization.
 }
 \examples{
 # Basic usage with a small numeric vector

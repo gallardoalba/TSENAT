@@ -176,11 +176,11 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' For each gene, fit a linear model of the form `entropy ~ q * group` and
 #' extract the p-value for the interaction term (whether the effect of `q`
 #' differs between groups). The function expects a `SummarizedExperiment`
-#' produced by `calculate_diversity()` when `method = "tsallis"` and multiple
-#' `q` values have been computed (column names contain `_q=`).
+#' produced by `calculate_diversity()` when multiple `q` values have been
+#' computed (column names contain `_q=`).
 #'
 #' @param se A `SummarizedExperiment` containing a `diversity` assay produced
-#'   by `calculate_diversity(..., method = "tsallis", q = <vector>)`.
+#'   by `calculate_diversity(..., q = <vector>)`.
 #' @param sample_type_col Optional column name in `colData(se)` that contains
 #'   a grouping factor for samples (character). If `NULL`, the function will
 #'   attempt to infer group from column names (suffix `_N` interpreted as
@@ -189,17 +189,17 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #'   model for a gene (default: 10).
 #' @param method Modeling method to use for interaction testing: one of
 #'   \code{c("linear", "gam", "fpca")}.
-#' @param nthreads Number of threads (mc.cores) to use when \code{method = "fpca"} or parallel processing is enabled. Default: 1.
+#' @param nthreads Number of threads (mc.cores) to use for parallel processing (default: 1).
 #' @param assay_name Name of the assay in the SummarizedExperiment to use (default: "diversity").
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #'   `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
- #' @examples
- #' data("tcga_brca_luma_dataset", package = "TSENAT")
- #' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
- #' gs <- tcga_brca_luma_dataset$gene[1:20]
- #' se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
- #' calculate_lm_interaction(se)
+#' @examples
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
+#' calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                      method = c("linear", "gam", "fpca"), nthreads = 1,
                                      assay_name = "diversity") {
@@ -286,11 +286,11 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
       # Build per-sample curves across q: rows = samples, cols = unique q values
       uq <- sort(unique(q_vals))
       samples_u <- unique(sample_names)
-      message("[fpca] uq=", paste(uq, collapse = ","), " samples_u=", paste(samples_u, collapse = ","))
+      message(sprintf("[fpca] uq=%s samples_u=%s", paste(uq, collapse = ","), paste(samples_u, collapse = ",")))
       curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
       # assign rownames defensively; avoid assigning colnames to prevent dimname mismatch
       if (length(samples_u) > 0) rownames(curve_mat) <- samples_u
-      message("[fpca] created curve_mat with dims: ", paste(dim(curve_mat), collapse = ","))
+      message(sprintf("[fpca] created curve_mat with dims: %s", paste(dim(curve_mat), collapse = ",")))
       for (i in seq_along(sample_names)) {
         s <- sample_names[i]
         qv <- q_vals[i]

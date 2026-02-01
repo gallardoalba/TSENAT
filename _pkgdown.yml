@@ -61,14 +61,6 @@ home:
   title: "TSENAT"
   contents: README.md
 
-reference:
-- title: Plot functions
-  contents:
-  - contains("plot")
-- title: Function functions
-  contents:
-  - contains("function")
-
 news:
   releases:
   - text: "Version 1.0"

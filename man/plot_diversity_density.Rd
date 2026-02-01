@@ -11,7 +11,9 @@ plot_diversity_density(se, assay_name = "diversity", sample_type_col = NULL)
 
 \item{assay_name}{Name of the assay to use (default: "diversity").}
 
-\item{sample_type_col}{Optional column name in `colData(se)` that contains sample types. If missing, sample type will be inferred from column names (suffix after last underscore) or classified as 'Group'.}
+\item{sample_type_col}{Optional column name in `colData(se)` with sample types.
+If missing, sample types are inferred from column names (suffix after
+the last underscore) or set to 'Group'.}
 }
 \value{
 A `ggplot` object with layered density plots.
@@ -21,8 +23,8 @@ Plot diversity distributions (density) by sample type
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-gs <- tcga_brca_luma_dataset$gene[1:20]
-se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 plot_diversity_density(se)
 }

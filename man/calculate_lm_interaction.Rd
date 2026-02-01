@@ -15,7 +15,7 @@ calculate_lm_interaction(
 }
 \arguments{
 \item{se}{A `SummarizedExperiment` containing a `diversity` assay produced
-by `calculate_diversity(..., method = "tsallis", q = <vector>)`.}
+by `calculate_diversity(..., q = <vector>)`.}
 
 \item{sample_type_col}{Optional column name in `colData(se)` that contains
 a grouping factor for samples (character). If `NULL`, the function will
@@ -28,7 +28,7 @@ model for a gene (default: 10).}
 \item{method}{Modeling method to use for interaction testing: one of
 \code{c("linear", "gam", "fpca")}.}
 
-\item{nthreads}{Number of threads (mc.cores) to use when \code{method = "fpca"} or parallel processing is enabled. Default: 1.}
+\item{nthreads}{Number of threads (mc.cores) to use for parallel processing (default: 1).}
 
 \item{assay_name}{Name of the assay in the SummarizedExperiment to use (default: "diversity").}
 }
@@ -40,6 +40,13 @@ A data.frame with columns `gene`, `p_interaction`, and
 For each gene, fit a linear model of the form `entropy ~ q * group` and
 extract the p-value for the interaction term (whether the effect of `q`
 differs between groups). The function expects a `SummarizedExperiment`
-produced by `calculate_diversity()` when `method = "tsallis"` and multiple
-`q` values have been computed (column names contain `_q=`).
+produced by `calculate_diversity()` when multiple `q` values have been
+computed (column names contain `_q=`).
+}
+\examples{
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
+calculate_lm_interaction(se)
 }

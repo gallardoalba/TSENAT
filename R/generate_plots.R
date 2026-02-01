@@ -11,7 +11,7 @@ if (getRversion() >= "2.15.1") {
 
   require_pkgs <- function(pkgs) {
     missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
-    if (length(missing)) stop(paste0(paste(missing, collapse = ", "), " required"))
+    if (length(missing)) stop(sprintf("%s required", paste(missing, collapse = ", ")))
     invisible(TRUE)
   }
 
@@ -100,15 +100,17 @@ if (getRversion() >= "2.15.1") {
 #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
 #' @param assay_name Name of the assay to use (default: "diversity").
-#' @param sample_type_col Optional column name in `colData(se)` that contains sample types. If missing, sample type will be inferred from column names (suffix after last underscore) or classified as 'Group'.
+#' @param sample_type_col Optional column name in `colData(se)` with sample types.
+#'   If missing, sample types are inferred from column names (suffix after
+#'   the last underscore) or set to 'Group'.
 #' @return A `ggplot` object with layered density plots.
 #' @importFrom ggplot2 ggplot aes geom_density facet_grid scale_color_manual guides theme_minimal labs
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-#' gs <- tcga_brca_luma_dataset$gene[1:20]
-#' se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' plot_diversity_density(se)
 plot_diversity_density <- function(se, assay_name = "diversity", sample_type_col = NULL) {
   require_pkgs(c("ggplot2", "tidyr", "dplyr", "SummarizedExperiment"))
@@ -134,9 +136,9 @@ plot_diversity_density <- function(se, assay_name = "diversity", sample_type_col
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-#' gs <- tcga_brca_luma_dataset$gene[1:20]
-#' se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' plot_mean_violin(se)
 plot_mean_violin <- function(se, assay_name = "diversity", sample_type_col = NULL) {
   require_pkgs(c("ggplot2", "dplyr", "SummarizedExperiment", "tidyr"))
@@ -157,8 +159,10 @@ plot_mean_violin <- function(se, assay_name = "diversity", sample_type_col = NUL
 
 #' Plot MA plot for difference results
 #'
-#' @param diff_df Data.frame returned by `calculate_difference` (or similar) containing mean columns and a `log2_fold_change` column, and `adjusted_p_values`.
-#' @param mean_cols Optional character vector of length 2 with the names of the mean columns (defaults to first two columns that end with `_mean`).
+#' @param diff_df Data.frame from `calculate_difference()` containing mean
+#'   columns, a `log2_fold_change` column, and `adjusted_p_values`.
+#' @param mean_cols Optional character vector of length 2 naming the mean columns.
+#'   Defaults to the first two columns that end with `_mean`.
 #' @param fold_col Name of the fold-change column (default: `log2_fold_change`).
 #' @param padj_col Name of the adjusted p-value column (default: `adjusted_p_values`).
 #' @param sig_alpha Threshold for significance (default: 0.05).
@@ -166,7 +170,13 @@ plot_mean_violin <- function(se, assay_name = "diversity", sample_type_col = NUL
 #' @export
 #' @examples
 #' # Minimal fake diff_df
-#' df <- data.frame(gene = paste0("g", seq_len(10)), mean1 = runif(10), mean2 = runif(10), log2_fold_change = rnorm(10), adjusted_p_values = runif(10))
+#' df <- data.frame(
+#'   gene = paste0("g", seq_len(10)),
+#'   sampleA_mean = runif(10),
+#'   sampleB_mean = runif(10),
+#'   log2_fold_change = rnorm(10),
+#'   adjusted_p_values = runif(10)
+#' )
 #' plot_ma(df)
 plot_ma <- function(diff_df, mean_cols = NULL, fold_col = "log2_fold_change", padj_col = "adjusted_p_values", sig_alpha = 0.05) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
@@ -174,7 +184,7 @@ plot_ma <- function(diff_df, mean_cols = NULL, fold_col = "log2_fold_change", pa
   if (is.null(mean_cols)) {
     mean_cols <- grep("_mean$", colnames(diff_df), value = TRUE)
     if (length(mean_cols) < 2) stop("Could not find two mean columns")
-    mean_cols <- mean_cols[1:2]
+    mean_cols <- mean_cols[seq_len(min(2, length(mean_cols)))]
   }
 
   df <- diff_df
@@ -203,14 +213,14 @@ plot_ma <- function(diff_df, mean_cols = NULL, fold_col = "log2_fold_change", pa
 #' @param readcounts Numeric matrix or data.frame with transcripts as rows and samples as columns.
 #' @param genes Character vector assigning a gene id to each row of `readcounts`.
 #' @param q_values Numeric vector of q values to evaluate (default `seq(0.01,2,by=0.01)`).
-#' @param group_pattern Regular expression used to detect the first group in sample names (default `"_N$"`).
-#' @param group_names Character vector of length 2 with names for groups (default `c("Normal","Tumor")`).
+#' @param group_pattern Regular expression to detect group suffixes (default "_N$").
+#' @param group_names Character vector length 2 with group names (default c("Normal","Tumor")).
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- tcga_brca_luma_dataset$counts[1:40, , drop = FALSE]
-#' gs <- tcga_brca_luma_dataset$gene[1:40]
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:40]
 #' p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
 #' p
 plot_tsallis_q_curve <- function(readcounts, genes, q_values = seq(0.01, 2, by = 0.01),
@@ -225,9 +235,10 @@ plot_tsallis_q_curve <- function(readcounts, genes, q_values = seq(0.01, 2, by =
 
   get_group_stats_iqr <- function(q) {
     # compute per-gene Tsallis per sample for this q
-    tsallis_df <- as.data.frame(sapply(seq_len(ncol(readcounts)), function(ci) {
+    ts_list <- lapply(seq_len(ncol(readcounts)), function(ci) {
       tapply(readcounts[, ci], genes, calculate_tsallis_entropy, q = q, norm = TRUE)
-    }, simplify = TRUE))
+    })
+    tsallis_df <- as.data.frame(do.call(cbind, ts_list))
     colnames(tsallis_df) <- colnames(readcounts)
     tsallis_df$Gene <- rownames(tsallis_df)
 
@@ -260,15 +271,16 @@ plot_tsallis_q_curve <- function(readcounts, genes, q_values = seq(0.01, 2, by =
 
 ##' Violin plot of Tsallis entropy for multiple q values
 ##'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with multiple q values (colnames like 'Sample_q=0.01').
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
+#'   multiple q values (column names contain `_q=`).
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @return A `ggplot` violin plot object faceted/colored by group and q.
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-#' gs <- tcga_brca_luma_dataset$gene[1:20]
-#' se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' plot_tsallis_violin_multq(se)
 plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
@@ -289,15 +301,16 @@ plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
 
 ##' Density plot of Tsallis entropy for multiple q values
 ##'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with multiple q values (colnames like 'Sample_q=0.01').
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
+#'   multiple q values (column names contain `_q=`).
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @return A `ggplot` density plot object faceted by q and colored by group.
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-#' gs <- tcga_brca_luma_dataset$gene[1:20]
-#' se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' plot_tsallis_density_multq(se)
 plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
@@ -329,7 +342,11 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' @export
 #' @examples
 #' # Minimal fake diff_df
-#' df <- data.frame(gene = paste0("g", seq_len(10)), mean_difference = runif(10), adjusted_p_values = runif(10))
+#' df <- data.frame(
+#'   gene = paste0("g", seq_len(10)),
+#'   mean_difference = runif(10),
+#'   adjusted_p_values = runif(10)
+#' )
 #' plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 plot_volcano <- function(diff_df, x_col = "mean_difference", padj_col = "adjusted_p_values", label_thresh = 0.1, padj_thresh = 0.05, top_n = 5) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
@@ -387,22 +404,42 @@ plot_volcano <- function(diff_df, x_col = "mean_difference", padj_col = "adjuste
 #' statistics between two sample groups, select the top N transcripts by p-value and
 #' plot their expression across groups.
 #'
-#' @param counts A numeric matrix of transcript-level expression (rows = transcripts, columns = samples).
+#' @param counts Matrix or data.frame of transcript counts.
+#'   Rows are transcripts and columns are samples.
 #' @param gene Character; gene symbol to inspect.
 #' @param samples Character vector of sample group labels (length = ncol(counts)).
-#' @param tx2gene Path to a two-column tab-delimited file with columns `Transcript` and `Gen`, or a data.frame with those columns. Required.
-#' @param top_n Integer; number of transcripts to show (default = 3). If NULL, all transcripts for the gene are plotted.
-#' @param pseudocount Numeric value added when computing log2 fold-change to avoid division by zero (default = 1e-6).
-#' @param output_file Optional path to save the plot (ggsave will be used). If NULL the ggplot object is returned.
+#' @param tx2gene Path or data.frame mapping transcripts to genes.
+#'   Must contain columns `Transcript` and `Gen`.
+#' @param top_n Integer number of transcripts to show (default = 3).
+#'   Use NULL to plot all transcripts for the gene.
+#' @param pseudocount Numeric pseudocount added before log2
+#'   (default = 1e-6) to avoid division by zero.
+#' @param output_file Optional file path to save the plot.
+#'   If `NULL`, the `ggplot` object is returned.
 #' @return A `ggplot` object (or invisibly saved file if `output_file` provided).
 #' @importFrom utils read.delim
 #' @export
 #' @name plot_top_transcripts
- #' @examples
- #' data("tcga_brca_luma_dataset", package = "TSENAT")
- #' rc <- tcga_brca_luma_dataset$counts[1:30, , drop = FALSE]
- #' gs <- tcga_brca_luma_dataset$gene[1:30]
- #' plot_top_transcripts(rc, gs, samples = colnames(rc), top_n = 2)
+#' @examples
+#' # Toy transcript-level example: 6 transcripts across 4 samples
+#' tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+#' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+#' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+#' # Map transcripts to genes (3 genes, 2 transcripts each)
+#' tx2gene <- data.frame(
+#'   Transcript = rownames(tx_counts),
+#'   Gen = rep(paste0("G", seq_len(3)), each = 2),
+#'   stringsAsFactors = FALSE
+#' )
+#' # Sample group labels (length = ncol(tx_counts))
+#' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+#' plot_top_transcripts(
+#'   tx_counts,
+#'   gene = c("G1", "G2"),
+#'   samples = samples,
+#'   tx2gene = tx2gene,
+#'   top_n = 2
+#' )
 if (getRversion() >= "2.15.1") utils::globalVariables(c("tx", "expr", "group", "tx_cond", "sample", "log2expr"))
 plot_top_transcripts <- function(counts, gene, samples, tx2gene = NULL, top_n = 3, pseudocount = 1e-6, output_file = NULL) {
   if (!is.matrix(counts) && !is.data.frame(counts)) stop("`counts` must be a matrix or data.frame with transcripts as rownames")

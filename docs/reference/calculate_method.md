@@ -10,7 +10,7 @@ metrics were removed.
 calculate_method(
   x,
   genes,
-  method = "tsallis",
+  
   norm = TRUE,
   verbose = FALSE,
   q = 2,

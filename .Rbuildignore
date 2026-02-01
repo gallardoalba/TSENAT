@@ -1,15 +1,11 @@
-^(.*/)?\.git
-^(.*/)?docs
-^(.*/)?_pkgdown.yml
-^(.*/)?\.github
-^(.*/)?\.Rcheck
-^(.*/)?\.Rhistory
-^(.*/)?Meta
-^(.*/)?TSENAT_.*\.tar\.gz
-^(.*/)?inst/doc
-^(.*/)?TSENAT.BiocCheck
-^(.*/)?vignettes/TSENAT_files/figure-html/plot q-curve-1.png^\.git$
-^\.github$
+^\.git$
+^\.git/
+^\.Rcheck$
+^\.Rcheck/
+^docs$
+^inst/doc$
+^_pkgdown.yml$
+^TSENAT_.*\.tar\.gz$
 ^data-raw/
 ^\.Rproj.user$
 ^\.Rhistory$
@@ -17,47 +13,10 @@
 ^\.Ruserdata$
 ^\.vscode$
 ^\.DS_Store$
-^\.Rcheck$
-^tests/testthat/\w+\.(R|r)$
-^.*\.Rproj$
-^\.Rproj.user
-^\.Rhistory$
-^\.RData$
-^\.git$
-^\.vscode$
-^\.DS_Store$
-^\.Rcheck$
-^\.Rbuildignore$
-^\.Rprofile$^.*\.Rproj$
-^\.Rproj\.user$
-^.*\.Rhistory$
-^\.travis\.yml$
-^\.github$
-^\.git$
-^\.gitignore$
-^\.DS_Store$
-^doc$
+^tests/testthat/.*\.[rR]$
 ^Meta$
-
-# Exclude VCS and check directories explicitly
-^\.git$
-^\.gitignore$
-^\.Rcheck$
-
-# Ignore generated package tarballs, package-specific Rcheck dirs and debug artifacts
-^rcmd_check.*\.txt$  # Ignore temporary check output
-^TSENAT\\.Rcheck$
-^debug_.*\\.png$
-
-# Ignore top-level auxiliary files and translated READMEs
+^scripts/
 ^CODE_OF_CONDUCT\.md$
 ^CONTRIBUTING\.md$
-^README\.de\.md$
-^README\.en\.md$
-^README\.es\.md$
-^scripts/
-
-# Ignore pkgdown output and config
-^docs$
-^docs/
-^_pkgdown.yml$
+^\.gitignore$
+^.*\.Rproj$

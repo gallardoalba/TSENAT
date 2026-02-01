@@ -1,23 +1,18 @@
 #' Calculate Tsallis diversity values for transcripts grouped by gene
 #'
-#' This helper computes per-gene Tsallis entropy across samples. The trimmed
-#' package only supports the Tsallis method; other diversity metrics were
-#' removed.
-#'
 #' @param x Numeric matrix or data.frame of transcript-level expression
 #'   values (rows = transcripts, columns = samples).
 #' @param genes Character vector with length equal to nrow(x) assigning each
 #'   transcript to a gene.
-#' @param method Only "tsallis" is supported (default).
 #' @param norm Logical; if TRUE normalize Tsallis entropy values per gene.
 #' @param q Numeric scalar or vector of q values to evaluate.
 #' @param verbose Logical; show diagnostic messages when TRUE.
-#' @param what Which quantity to return from `calculate_tsallis_entropy`: "S", "D" or "both" (default: "S").
+#' @param what Which quantity to return from `calculate_tsallis_entropy`:
+#'   "S" (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").
 #' @return A data.frame with genes in the first column and per-sample (and
 #'   per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
-calculate_method <- function(x, genes, method = "tsallis", norm = TRUE, verbose = FALSE, q = 2, what = c("S", "D", "both")) {
-  # `method` argument accepted for compatibility; only Tsallis aggregation is performed.
+calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S", "D", "both")) {
   what <- match.arg(what)
   # cannot use aggregate because calculate_tsallis_entropy may return
   # multiple values when length(q) > 1

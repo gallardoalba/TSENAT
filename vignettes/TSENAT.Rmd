@@ -171,8 +171,8 @@ stability of diversity estimates.
 ```{r tsallis-calc-single}
 # compute Tsallis entropy for q = 0.1
 q <- 0.1
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = q, norm = TRUE)
-head(assay(ts_se)[1:5, 1:5])
+ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
+head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 ```
 
 Map sample metadata (if available) into the `SummarizedExperiment` so
@@ -234,11 +234,11 @@ experimental design.
 ```{r difference}
 # create a sample grouping vector inferred from sample names
 # account for per-q column names like 'Sample_q=0.01'
-sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
 samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 
 # prepare diversity table as data.frame with gene names in first column
-div_df <- as.data.frame(assay(ts_se))
+div_df <- as.data.frame(SummarizedExperiment::assay(ts_se))
 div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
@@ -284,7 +284,7 @@ isoform-level patterns that may explain the diversity differences.
 ```{r top-transcripts-singleq, fig.width=10, fig.height=6}
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
-sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
 samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 p_comb <- plot_top_transcripts(readcounts,
   gene = top_genes,
@@ -306,10 +306,9 @@ scale-dependent behavior.
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
-  method = "tsallis",
   q = q, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 ```
 
 It allows to compare values across `q` for the same gene to see whether diversity
@@ -345,10 +344,9 @@ Now we will compute normalized Tsallis entropy across a sequence of `q` values.
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
-  method = "tsallis",
   q = qvec, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 ```
 
 Map the sample metadata into the multi-q `SummarizedExperiment` as before.

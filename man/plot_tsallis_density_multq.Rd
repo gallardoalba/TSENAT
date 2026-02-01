@@ -7,7 +7,8 @@
 plot_tsallis_density_multq(se, assay_name = "diversity")
 }
 \arguments{
-\item{se}{A `SummarizedExperiment` returned by `calculate_diversity` with multiple q values (colnames like 'Sample_q=0.01').}
+\item{se}{A `SummarizedExperiment` returned by `calculate_diversity` with
+multiple q values (column names contain `_q=`).}
 
 \item{assay_name}{Name of the assay to use (default: "diversity").}
 }
@@ -19,8 +20,8 @@ Density plot of Tsallis entropy for multiple q values
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-gs <- tcga_brca_luma_dataset$gene[1:20]
-se <- calculate_diversity(rc, gs, method = "tsallis", q = c(0.1, 1), norm = TRUE)
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 plot_tsallis_density_multq(se)
 }

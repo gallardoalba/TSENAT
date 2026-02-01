@@ -10,7 +10,7 @@ gene names, all additional columns contain RNA-sequencing read counts for
 samples.
 }
 \source{
-\href{https://portal.gdc.cancer.gov/legacy-archive}{TCGA Legacy}
+\href{https://portal.gdc.cancer.gov/}{TCGA via GDC}
 }
 \usage{
 data(tcga_brca_luma_dataset)
@@ -22,6 +22,6 @@ breast cancer (primary tumor and solid normal samples).
 }
 \references{
 The Cancer Genome Atlas Network (2012) Nature 490, 61–70
-  (\href{https://doi.org/10.1038/nature11412}{doi:10.1038/nature11412})
+  \doi{10.1038/nature11412}
 }
 \keyword{datasets}

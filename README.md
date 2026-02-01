@@ -82,13 +82,13 @@ library(TSENAT)
 data("tcga_brca_luma_dataset", package = "TSENAT")
 
 # compute for q = 0.1 and normalize
-readcounts <- tcga_brca_luma_dataset$counts
-genes <- tcga_brca_luma_dataset$gene
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = 0.1, norm = TRUE)
+readcounts <- as.matrix(tcga_brca_luma_dataset[, -1, drop = FALSE])
+genes <- tcga_brca_luma_dataset$genes
+ts_se <- calculate_diversity(readcounts, genes, q = 0.1, norm = TRUE)
 
 # compute for multiple q values and plot the q-curve
 qvec <- seq(0.01, 2, by = 0.1)
-ts_multi <- calculate_diversity(readcounts, genes, method = "tsallis", q = qvec, norm = TRUE)
+ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
 plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ```
 

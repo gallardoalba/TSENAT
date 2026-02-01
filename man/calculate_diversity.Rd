@@ -7,7 +7,6 @@
 calculate_diversity(
   x,
   genes = NULL,
-  method = "tsallis",
   norm = TRUE,
   tpm = FALSE,
   assayno = 1,
@@ -23,11 +22,10 @@ values (rows = transcripts, columns = samples), or a SummarizedExperiment-like o
 \item{genes}{Character vector assigning each transcript (row) to a gene.
 Must have length equal to nrow(x) or the number of transcripts in `x`.}
 
-\item{method}{Character; method to use for diversity calculation. Only 'tsallis' is currently supported.}
-
 \item{norm}{Logical; if TRUE, normalize Tsallis entropy to [0,1] per gene.}
 
-\item{tpm}{Logical; if TRUE and `x` is a tximport-style list, use the `$abundance` matrix instead of `$counts`.}
+\item{tpm}{Logical. If TRUE and `x` is a tximport-style list, use the
+`$abundance` matrix instead of `$counts`.}
 
 \item{assayno}{Integer assay index to use when `x` is a SummarizedExperiment.}
 
@@ -47,8 +45,8 @@ Calculate Tsallis diversity per gene across samples
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- tcga_brca_luma_dataset$counts[1:20, , drop = FALSE]
-gs <- tcga_brca_luma_dataset$gene[1:20]
-se <- calculate_diversity(rc, gs, method = "tsallis", q = 0.1, norm = TRUE)
-assay(se)[1:3, 1:3]
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
+SummarizedExperiment::assay(se)[1:3, 1:3]
 }

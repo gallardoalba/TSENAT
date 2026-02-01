@@ -4,19 +4,24 @@
 \alias{plot_top_transcripts}
 \title{Plot top transcripts for a gene}
 \arguments{
-\item{counts}{A numeric matrix of transcript-level expression (rows = transcripts, columns = samples).}
+\item{counts}{Matrix or data.frame of transcript counts.
+Rows are transcripts and columns are samples.}
 
 \item{gene}{Character; gene symbol to inspect.}
 
 \item{samples}{Character vector of sample group labels (length = ncol(counts)).}
 
-\item{tx2gene}{Path to a two-column tab-delimited file with columns `Transcript` and `Gen`, or a data.frame with those columns. Required.}
+\item{tx2gene}{Path or data.frame mapping transcripts to genes.
+Must contain columns `Transcript` and `Gen`.}
 
-\item{top_n}{Integer; number of transcripts to show (default = 3). If NULL, all transcripts for the gene are plotted.}
+\item{top_n}{Integer number of transcripts to show (default = 3).
+Use NULL to plot all transcripts for the gene.}
 
-\item{pseudocount}{Numeric value added when computing log2 fold-change to avoid division by zero (default = 1e-6).}
+\item{pseudocount}{Numeric pseudocount added before log2
+(default = 1e-6) to avoid division by zero.}
 
-\item{output_file}{Optional path to save the plot (ggsave will be used). If NULL the ggplot object is returned.}
+\item{output_file}{Optional file path to save the plot.
+If `NULL`, the `ggplot` object is returned.}
 }
 \value{
 A `ggplot` object (or invisibly saved file if `output_file` provided).
@@ -27,8 +32,23 @@ statistics between two sample groups, select the top N transcripts by p-value an
 plot their expression across groups.
 }
 \examples{
-data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- tcga_brca_luma_dataset$counts[1:30, , drop = FALSE]
-gs <- tcga_brca_luma_dataset$gene[1:30]
-plot_top_transcripts(rc, gs, samples = colnames(rc), top_n = 2)
+# Toy transcript-level example: 6 transcripts across 4 samples
+tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+# Map transcripts to genes (3 genes, 2 transcripts each)
+tx2gene <- data.frame(
+  Transcript = rownames(tx_counts),
+  Gen = rep(paste0("G", seq_len(3)), each = 2),
+  stringsAsFactors = FALSE
+)
+# Sample group labels (length = ncol(tx_counts))
+samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+plot_top_transcripts(
+  tx_counts,
+  gene = c("G1", "G2"),
+  samples = samples,
+  tx2gene = tx2gene,
+  top_n = 2
+)
 }

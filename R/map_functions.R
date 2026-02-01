@@ -13,6 +13,17 @@
 ##' @param coldata_condition_col Name of the column in `coldata` with condition/labels.
 ##' @return The input `ts_se` with `colData(ts_se)$sample_type` set when possible.
 ##' @export
+##' @examples
+##' data("tcga_brca_luma_dataset", package = "TSENAT")
+##' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+##' gs <- tcga_brca_luma_dataset$genes[1:20]
+##' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
+##' sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
+##' coldata_df <- data.frame(
+##'   Sample = sample_names,
+##'   Condition = rep(c("A", "B"), length.out = ncol(se))
+##' )
+##' map_coldata_to_se(se, coldata_df)
 map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
   if (is.null(coldata)) {
     return(ts_se)
@@ -40,11 +51,16 @@ map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", col
 #'
 #' @param sample_names Character vector of sample names.
 #' @param suffix_sep Character separator to detect suffix groups (default "_").
-#' @param suffix_map Named character vector mapping suffix tokens (case-insensitive) to group labels. e.g. c(N="Normal", T="Tumor").
-#' @param tcga_map Named character vector mapping TCGA two-digit codes to group labels. e.g. c("01"="Tumor", "11"="Normal").
-#' @param coldata Optional data.frame or named vector providing mapping from sample names to conditions. If a data.frame, `coldata_sample_col` and `coldata_condition_col` specify column names.
+#' @param suffix_map Named character vector mapping suffix tokens (case-insensitive)
+#'   to group labels, e.g. c(N = "Normal", T = "Tumor").
+#' @param tcga_map Named character vector mapping TCGA two-digit codes to group
+#'   labels, e.g. c("01" = "Tumor", "11" = "Normal").
+#' @param coldata Optional data.frame or named vector providing mapping from
+#'   sample names to conditions. If a data.frame, specify `coldata_sample_col`
+#'   and `coldata_condition_col` for the relevant columns.
 #' @param coldata_sample_col Column name in `coldata` indicating sample IDs (default "Sample").
-#' @param coldata_condition_col Column name in `coldata` indicating condition/label (default "Condition").
+#' @param coldata_condition_col Column name in `coldata` for condition/label
+#'   (default "Condition").
 #' @param prefer_suffix Logical; if TRUE, prefer suffix-based inference when both patterns match.
 #' @param default Character scalar returned when no mapping applies (default NA_character_).
 #' @return Character vector of group labels (or the `default` value) with same length as `sample_names`.
@@ -57,7 +73,9 @@ map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", col
 #' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T = "Tumor"))
 #'
 #' # Provide a TCGA mapping and prefer TCGA codes over suffixes
-#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = c("01" = "Tumor"), prefer_suffix = FALSE)
+#' tcga_map <- c("01" = "Tumor")
+#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
+#'   prefer_suffix = FALSE)
 #' @export
 infer_sample_group <- function(sample_names,
                                suffix_sep = "_",

@@ -179,7 +179,7 @@ stability of diversity estimates.
 
 # compute Tsallis entropy for q = 0.1
 q <- 0.1
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = q, norm = TRUE)
+ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
 head(assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T
 #> MXRA8        0.8616275      0.6609111      0.8156972      0.6633580
@@ -362,7 +362,7 @@ compare scale-dependent behavior.
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
-  method = "tsallis",
+  
   q = q, norm = TRUE
 )
 head(assay(ts_se)[1:5, 1:5])
@@ -425,7 +425,7 @@ values.
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
-  method = "tsallis",
+  
   q = qvec, norm = TRUE
 )
 head(assay(ts_se)[1:5, 1:5])
