@@ -2,6 +2,8 @@
 ^\.git/
 ^\.Rcheck$
 ^\.Rcheck/
+^\.\.Rcheck$
+^\.\.Rcheck/
 ^docs$
 ^inst/doc$
 ^_pkgdown.yml$

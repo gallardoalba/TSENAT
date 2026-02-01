@@ -7,6 +7,9 @@
 .Ruserdata
 .DS_Store
 .Rcheck/
+.Rcheck
+..Rcheck/
+..Rcheck
 .vscode/
 data-raw/
 __pycache__/
