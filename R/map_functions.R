@@ -14,8 +14,12 @@
 ##' @return The input `ts_se` with `colData(ts_se)$sample_type` set when possible.
 ##' @export
 map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
-  if (is.null(coldata)) return(ts_se)
-  if (!is.data.frame(coldata) || !all(c(coldata_sample_col, coldata_condition_col) %in% colnames(coldata))) return(ts_se)
+  if (is.null(coldata)) {
+    return(ts_se)
+  }
+  if (!is.data.frame(coldata) || !all(c(coldata_sample_col, coldata_condition_col) %in% colnames(coldata))) {
+    return(ts_se)
+  }
   sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
   st_map <- setNames(as.character(coldata[[coldata_condition_col]]), as.character(coldata[[coldata_sample_col]]))
   sample_types <- unname(st_map[sample_base_names])
@@ -72,12 +76,18 @@ infer_sample_group <- function(sample_names,
 
   # Helper to map tokens using a named map (case-insensitive on names)
   map_token <- function(token, map) {
-    if (is.na(token) || token == "") return(NA_character_)
-    if (is.null(map) || length(map) == 0) return(NA_character_)
+    if (is.na(token) || token == "") {
+      return(NA_character_)
+    }
+    if (is.null(map) || length(map) == 0) {
+      return(NA_character_)
+    }
     nms <- toupper(names(map))
     toku <- toupper(token)
     ix <- match(toku, nms)
-    if (!is.na(ix)) return(unname(map[ix]))
+    if (!is.na(ix)) {
+      return(unname(map[ix]))
+    }
     return(NA_character_)
   }
 
@@ -102,7 +112,9 @@ infer_sample_group <- function(sample_names,
       if (grepl(suffix_sep, s, fixed = TRUE)) {
         tail <- sub(paste0(".*", suffix_sep), "", s)
         mapped <- map_token(tail, suffix_map)
-        if (!is.na(mapped)) return(mapped)
+        if (!is.na(mapped)) {
+          return(mapped)
+        }
         # if no mapping provided, return the raw suffix token
         return(tail)
       }
@@ -124,9 +136,13 @@ infer_sample_group <- function(sample_names,
     codes[has_tcga] <- sub(".*-(\\d{2})[A-Z]?.*", "\\1", sample_names[has_tcga])
     codes[!grepl("^\\d{2}$", codes)] <- NA_character_
     groups_tcga <- vapply(codes, function(c) {
-      if (is.na(c)) return(NA_character_)
+      if (is.na(c)) {
+        return(NA_character_)
+      }
       mapped <- map_token(c, tcga_map)
-      if (!is.na(mapped)) return(mapped)
+      if (!is.na(mapped)) {
+        return(mapped)
+      }
       # if no mapping, return raw TCGA code
       return(c)
     }, character(1), USE.NAMES = FALSE)

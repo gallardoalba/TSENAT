@@ -142,7 +142,6 @@ head(readcounts[, 1:5])
 
 # Check the metadata
 head(coldata_df)
-
 ```
 
 ### Data filtering and preprocessing
@@ -243,9 +242,11 @@ div_df <- as.data.frame(assay(ts_se))
 div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
-res <- calculate_difference(div_df, samples, control = "Normal",
-                            method = "mean", test = "wilcoxon",
-                            paired = TRUE)
+res <- calculate_difference(div_df, samples,
+  control = "Normal",
+  method = "mean", test = "wilcoxon",
+  paired = TRUE
+)
 # sort results by adjusted p-value
 if ("adjusted_p_values" %in% colnames(res)) {
   res <- res[order(res$adjusted_p_values), , drop = FALSE]
@@ -281,14 +282,15 @@ transcript-level counts (rows = transcripts) with rownames matching the
 isoform-level patterns that may explain the diversity differences.
 
 ```{r top-transcripts-singleq, fig.width=10, fig.height=6}
-
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
 sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
 samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
-p_comb <- plot_top_transcripts(readcounts, gene = top_genes, 
-                               samples = samples_vec, tx2gene = txmap, 
-                               top_n = NULL)
+p_comb <- plot_top_transcripts(readcounts,
+  gene = top_genes,
+  samples = samples_vec, tx2gene = txmap,
+  top_n = NULL
+)
 print(p_comb)
 ```
 
@@ -303,8 +305,10 @@ scale-dependent behavior.
 ```{r tsallis-calc-doble}
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", 
-                             q = q, norm = TRUE)
+ts_se <- calculate_diversity(readcounts, genes,
+  method = "tsallis",
+  q = q, norm = TRUE
+)
 head(assay(ts_se)[1:5, 1:5])
 ```
 
@@ -340,8 +344,10 @@ Now we will compute normalized Tsallis entropy across a sequence of `q` values.
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
-ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", 
-                             q = qvec, norm = TRUE)
+ts_se <- calculate_diversity(readcounts, genes,
+  method = "tsallis",
+  q = qvec, norm = TRUE
+)
 head(assay(ts_se)[1:5, 1:5])
 ```
 
