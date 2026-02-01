@@ -208,7 +208,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
   if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) stop("SummarizedExperiment required")
 
   mat <- SummarizedExperiment::assay(se, assay_name)
-  if (is.null(mat)) stop(paste0("`", assay_name, "` assay not found in provided SummarizedExperiment"))
+  if (is.null(mat)) stop(sprintf("`%s` assay not found in provided SummarizedExperiment", assay_name))
 
   sample_q <- colnames(mat)
   if (is.null(sample_q) || length(sample_q) == 0) stop("No column names found on diversity assay")

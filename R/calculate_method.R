@@ -41,7 +41,7 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
     x <- out_df
     y <- x[apply(x[2:ncol(x)], 1, function(X) all(is.finite(X))), ]
     if (nrow(x) - nrow(y) > 0 && verbose == TRUE) {
-      message(paste0("Note: There are ", nrow(x) - nrow(y), " genes with single isoforms, which will be exluded from the analysis."))
+      message(sprintf("Note: There are %d genes with single isoforms, which will be exluded from the analysis.", nrow(x) - nrow(y)))
     }
     colnames(y)[1] <- "Gene"
     return(y)

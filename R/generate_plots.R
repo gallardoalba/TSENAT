@@ -542,7 +542,7 @@ plot_top_transcripts <- function(counts, gene, samples, tx2gene = NULL, top_n = 
       grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
       # extract legend from original first plot
       g_full <- ggplot2::ggplotGrob(plots[[1]])
-      legend_idx <- which(sapply(g_full$grobs, function(x) x$name) == "guide-box")
+      legend_idx <- which(vapply(g_full$grobs, function(x) x$name, character(1)) == "guide-box")
       legend_grob <- if (length(legend_idx)) g_full$grobs[[legend_idx[1]]] else NULL
       n <- length(grobs)
       # layout: plots in row 1, legend spanning row 2
@@ -557,7 +557,7 @@ plot_top_transcripts <- function(counts, gene, samples, tx2gene = NULL, top_n = 
           grid::upViewport()
         }
         if (!is.null(legend_grob)) {
-          vp_leg <- grid::viewport(layout.pos.row = 2, layout.pos.col = 1:n)
+          vp_leg <- grid::viewport(layout.pos.row = 2, layout.pos.col = seq_len(n))
           grid::pushViewport(vp_leg)
           grid::grid.draw(legend_grob)
           grid::upViewport()
@@ -576,7 +576,7 @@ plot_top_transcripts <- function(counts, gene, samples, tx2gene = NULL, top_n = 
           grid::upViewport()
         }
         if (!is.null(legend_grob)) {
-          vp_leg <- grid::viewport(layout.pos.row = 2, layout.pos.col = 1:n)
+          vp_leg <- grid::viewport(layout.pos.row = 2, layout.pos.col = seq_len(n))
           grid::pushViewport(vp_leg)
           grid::grid.draw(legend_grob)
           grid::upViewport()
