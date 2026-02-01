@@ -27,23 +27,15 @@ expression values x_i, convert to proportions
 p_i = x_i / \sum_j x_j
 ```
 
-so that $`p_i \ge 0`$ and $`\sum_i p_i = 1`$. The parameter `q` tunes
-what aspect of isoform usage the entropy emphasizes: values $`q<1`$
-increase the influence of low-abundance (rare) isoforms, while $`q>1`$
-increases the influence of high-abundance (dominant) isoforms. Practical
-examples: `q = 0` corresponds to isoform richness (the number of
-expressed isoforms), `q \approx 1` recovers Shannon entropy (uncertainty
-of isoform usage), and `q = 2` is closely related to the inverse Simpson
-index (sensitive to dominance).
+so that $`p_i \ge 0`$ and $`\sum_i p_i = 1`$.
 
-Practical recommendations: compute `p_i` from gene-wise-normalized
-values (e.g. TPM, CPM or counts normalized per gene) before applying
-`S_q`; you may filter very low-count isoforms or add a small pseudocount
-if zeros cause instability. Always compare `S_q` values computed with
-the same `q` and the same normalization. Computing `S_q` over a range of
-`q` (a “q-curve”) is especially useful — it shows whether diversity
-differences between samples are driven by rare isoforms (differences at
-low `q`) or by changes in dominant isoforms (differences at high `q`).
+The parameter `q` tunes what aspect of isoform usage the entropy
+emphasizes: values $`q<1`$ increase the influence of low-abundance
+(rare) isoforms, while $`q>1`$ increases the influence of high-abundance
+(dominant) isoforms. Practical examples: `q = 0` corresponds to isoform
+richness (the number of expressed isoforms), `q \approx 1` recovers
+Shannon entropy (uncertainty of isoform usage), and `q = 2` is closely
+related to the inverse Simpson index (sensitive to dominance).
 
 ## Integrated features
 

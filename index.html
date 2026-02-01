@@ -31,8 +31,19 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
+<li class="active nav-item"><a class="nav-link" href="index.html"><span class="fa fas fa-home fa-lg"></span></a></li>
+<li class="nav-item"><a class="nav-link" href="reference/index.html"><span class="fa far fa-file-code fa-lg"></span> Functions</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT"><span class="fa fab fa-github fa-lg"></span> Source Code</a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/issues"><span class="fa fas fa-question-circle fa-lg"></span> Issues</a></li>
+<li class="nav-item"><a class="nav-link" href="articles/index.html"><span class="fa fas fa-file-contract fa-lg"></span> Vignettes</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-vignette-files" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true"><span class="fa fas fa-book fa-lg"></span> Vignette Files</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-vignette-files">
+<li><a class="dropdown-item" href="articles/TSENAT.pdf">PDF (vignette)</a></li>
+    <li><a class="dropdown-item" href="articles/TSENAT.html">HTML (vignette)</a></li>
+  </ul>
+</li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/gallardoalba/TSENAT/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -63,8 +74,8 @@ S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><msub><mi>x</mi><mi>i</mi></msub><mi>/</mi><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>x</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">
 p_i = x_i / \sum_j x_j
 </annotation></semantics></math></p>
-<p>so that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_i \ge 0</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i p_i = 1</annotation></semantics></math>. The parameter <code>q</code> tunes what aspect of isoform usage the entropy emphasizes: values <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q&lt;1</annotation></semantics></math> increase the influence of low-abundance (rare) isoforms, while <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q&gt;1</annotation></semantics></math> increases the influence of high-abundance (dominant) isoforms. Practical examples: <code>q = 0</code> corresponds to isoform richness (the number of expressed isoforms), <code>q \approx 1</code> recovers Shannon entropy (uncertainty of isoform usage), and <code>q = 2</code> is closely related to the inverse Simpson index (sensitive to dominance).</p>
-<p>Practical recommendations: compute <code>p_i</code> from gene-wise-normalized values (e.g. TPM, CPM or counts normalized per gene) before applying <code>S_q</code>; you may filter very low-count isoforms or add a small pseudocount if zeros cause instability. Always compare <code>S_q</code> values computed with the same <code>q</code> and the same normalization. Computing <code>S_q</code> over a range of <code>q</code> (a “q-curve”) is especially useful — it shows whether diversity differences between samples are driven by rare isoforms (differences at low <code>q</code>) or by changes in dominant isoforms (differences at high <code>q</code>).</p>
+<p>so that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_i \ge 0</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i p_i = 1</annotation></semantics></math>.</p>
+<p>The parameter <code>q</code> tunes what aspect of isoform usage the entropy emphasizes: values <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q&lt;1</annotation></semantics></math> increase the influence of low-abundance (rare) isoforms, while <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q&gt;1</annotation></semantics></math> increases the influence of high-abundance (dominant) isoforms. Practical examples: <code>q = 0</code> corresponds to isoform richness (the number of expressed isoforms), <code>q \approx 1</code> recovers Shannon entropy (uncertainty of isoform usage), and <code>q = 2</code> is closely related to the inverse Simpson index (sensitive to dominance).</p>
 </div>
 <div class="section level2">
 <h2 id="integrated-features">Integrated features<a class="anchor" aria-label="anchor" href="#integrated-features"></a>
