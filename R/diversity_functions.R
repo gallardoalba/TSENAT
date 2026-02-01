@@ -3,14 +3,15 @@
 #' Calculate Tsallis entropy for a vector of transcript-level
 #' expression values of one gene.
 #'
-#+ @param x Vector of (non-negative) expression values.
-#+ @param q Tsallis entropy parameter (q > 0). Can be a single value or a numeric vector. Default is 2.
-#+ @param norm If \code{TRUE}, the entropy values are normalized by their theoretical maximum for the number of transcripts (so values lie in [0,1]).
-#+ @param what Which quantity to return: \code{"S"} for Tsallis entropy (S_q), \code{"D"} for Hill numbers (D_q), or \code{"both"} for a list with both.
-#+ @export
-#+ @return A numeric vector (named when length(q) > 1) for \code{what = "S"} or \code{"D"}, or a list with components \code{$S} and \code{$D} when \code{what = "both"}.
-#+ @details
-#+ Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^{1/(1-q)} with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
+#' @param x Vector of (non-negative) expression values.
+#' @param q Tsallis entropy parameter (q > 0). Can be a single value or a numeric vector. Default is 2.
+#' @param norm If \code{TRUE}, the entropy values are normalized by their theoretical maximum for the number of transcripts (so values lie in [0,1]).
+#' @param what Which quantity to return: \code{"S"} for Tsallis entropy (S_q), \code{"D"} for Hill numbers (D_q), or \code{"both"} for a list with both.
+#' @param log_base Base of the logarithm used for Shannon limits and normalization (default: \code{exp(1)}).
+#' @export
+#' @return A numeric vector (named when length(q) > 1) for \code{what = "S"} or \code{"D"}, or a list with components \code{$S} and \code{$D} when \code{what = "both"}.
+#' @details
+#' Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q->1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q->1 limit and normalization.
 calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"), log_base = exp(1)) {
   what <- match.arg(what)
   if (!is.numeric(q)) stop("q must be numeric.")

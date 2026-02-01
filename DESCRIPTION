@@ -17,6 +17,6 @@ Depends: R (>= 4.1)
 Imports: SummarizedExperiment, methods, stats, magrittr, ggplot2
 Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors, cowplot, ggrepel, patchwork, pkgdown
 VignetteBuilder: knitr
-URL: https://github.com/gallardoalba/TSENAT, https://gallardoalba.github.io/TSENAT
-BugReports: https://github.com/gallardoalba/TSENAT/issues
+URL: https://gallardoalba.github.io/TSENAT
+BugReports: https://github.com/gallardoalba/TSENAT
 biocViews: Transcriptomics, RNASeq, DifferentialSplicing, AlternativeSplicing, TranscriptomeVariant

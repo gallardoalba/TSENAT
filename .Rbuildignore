@@ -33,3 +33,24 @@
 ^\.git$
 ^\.gitignore$
 ^\.Rcheck$
+
+# Ignore generated package tarballs, package-specific Rcheck dirs and debug artifacts
+^TSENAT_.*\\.tar\\.gz$
+^TSENAT\\.Rcheck$
+^debug_.*\\.png$
+
+# Ignore temporary check output
+^rcmd_check.txt$
+
+# Ignore top-level auxiliary files and translated READMEs
+^CODE_OF_CONDUCT\.md$
+^CONTRIBUTING\.md$
+^README\.de\.md$
+^README\.en\.md$
+^README\.es\.md$
+^scripts/
+
+# Ignore pkgdown output and config
+^docs$
+^docs/
+^_pkgdown.yml$

@@ -9,7 +9,9 @@ A data frame with 996 rows and 41 columns. The first column contains
 gene names, all additional columns contain RNA-sequencing read counts for
 samples.
 }
-\source{TCGA Legacy (archived)}
+\source{
+\href{https://portal.gdc.cancer.gov/legacy-archive}{TCGA Legacy}
+}
 \usage{
 data(tcga_brca_luma_dataset)
 }
