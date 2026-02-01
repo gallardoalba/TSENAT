@@ -6,23 +6,32 @@ TSENAT:  Tsallis Entropy Analysis Toolbox
 TSENAT analyze expression/transcript differences and compute diversity metrics.
 
 
-Origin and attribution
------------------------
-
-TSENAT builds upon and adapts substantial portions of code from the
-[SplicingFactory package](https://github.com/esebesty/SplicingFactory). The
-codebase has been extended with additional utilities, bug fixes and plotting
-helpers focused on Tsallis based transcript-level diversity analysis.
-
 Tsallis theory
 ---------------
 
-Tsallis entropy generalizes Shannon entropy and is defined as
-S_q = (1 - sum p^q) / (q - 1) for a probability vector p. In the limit
-q -> 1 it recovers Shannon entropy. In TSENAT we compute Tsallis entropy
-and the related Hill numbers (D_q) per gene to measure isoform diversity.
-The parameter `q` tunes sensitivity to rare vs abundant isoforms (q < 1
-emphasizes rare isoforms; q > 1 emphasizes abundant ones).
+Tsallis entropy generalizes Shannon entropy. For a probability vector
+$p = (p_1, \dots, p_n)$ (with $p_i \ge 0$ and $\sum_i p_i = 1$) the
+Tsallis entropy of order $q$ is defined for $q \ne 1$ as
+
+$$
+S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
+$$
+
+In the limit $q \to 1$ this recovers the Shannon entropy
+
+$$
+\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i.
+$$
+
+In the transcript-expression context, $p_i$ are the normalized abundances
+of isoforms for a gene (i.e. nonnegative and summing to 1). The parameter
+`q` controls sensitivity to isoform abundance: $q<1$ emphasizes rare
+isoforms, $q>1$ emphasizes dominant isoforms. Common interpretations are
+that $q=0$ corresponds to isoform richness (the count of nonzero isoforms),
+and $q=2$ relates to the inverse Simpson index. In TSENAT we compute
+the Tsallis entropy $S_q$ per gene to provide an interpretable diversity
+measure; users can compute $S_q$ for multiple $q$ values and choose whether
+to normalize raw counts to proportions before analysis.
 
 Integrated features
 -------------------
@@ -70,12 +79,12 @@ genes <- tcga_brca_luma_dataset$gene
 ts_se <- calculate_diversity(readcounts, genes, method = "tsallis", q = 0.1, norm = TRUE)
 
 # compute for multiple q values and plot the q-curve
-qs <- c(0.1, 0.5, 1, 2)
-ts_multi <- calculate_diversity(readcounts, genes, method = "tsallis", q = qs, norm = TRUE)
+qvec <- seq(0.01, 2, by = 0.1)
+ts_multi <- calculate_diversity(readcounts, genes, method = "tsallis", q = qvec, norm = TRUE)
 plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ```
 
-![q-curve example](vignettes/TSENAT_files/figure-html/plot-q-curve-1.png)
+![q-curve example](docs/articles/TSENAT_files/figure-html/plot-q-curve-1.png)
 
 
 The complete documentation can be found at [inst/doc/TSENAT.html](inst/doc/TSENAT.html).
@@ -88,4 +97,11 @@ This project is licensed under the GNU General Public License v3.0 (GPL-3).
 A copy of the full license text is included in the repository at `LICENSE`
 and is installed with the package under `inst/LICENSE`.
 
-See `citation("TSENAT")` or [inst/CITATION](inst/CITATION). License in [LICENSE](LICENSE).
+
+Attribution
+------------
+
+TSENAT builds upon and adapts substantial portions of code from the
+[SplicingFactory package](https://github.com/esebesty/SplicingFactory). The
+codebase has been extended with additional utilities, bug fixes and plotting
+helpers focused on Tsallis based transcript-level diversity analysis.

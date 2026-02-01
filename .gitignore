@@ -8,7 +8,6 @@
 .DS_Store
 .Rcheck/
 .vscode/
-inst/doc/
 data-raw/
 __pycache__/
 *.tar.gz
@@ -16,5 +15,4 @@ __pycache__/
 .Rhistory
 .RData
 .Ruserdata
-/doc/
 /Meta/

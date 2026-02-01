@@ -281,17 +281,15 @@ transcript-level counts (rows = transcripts) with rownames matching the
 isoform-level patterns that may explain the diversity differences.
 
 ```{r top-transcripts-singleq, fig.width=10, fig.height=6}
-if (is.data.frame(res) && nrow(res) > 0) {
 
-  sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
-  top_genes <- head(sig_res$genes, 3)
-  sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
-  samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
-  p_comb <- plot_top_transcripts(readcounts, gene = top_genes, 
-                                 samples = samples_vec, tx2gene = txmap, 
-                                 top_n = NULL)
-  print(p_comb)
-}
+sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
+top_genes <- head(sig_res$genes, 3)
+sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+p_comb <- plot_top_transcripts(readcounts, gene = top_genes, 
+                               samples = samples_vec, tx2gene = txmap, 
+                               top_n = NULL)
+print(p_comb)
 ```
 
 Inspect transcript-level counts for the top genes to understand isoform
