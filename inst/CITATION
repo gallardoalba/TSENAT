@@ -1,5 +1,3 @@
-citHeader("To cite TSENAT in publications use:")
-
 citation <- list(
   bibentry(
     bibtype = "Manual",
@@ -10,8 +8,6 @@ citation <- list(
     url = "https://github.com/gallardoalba/TSENAT"
   )
 )
-
-citHeader("Also cite the original SplicingFactory paper used as basis:")
 
 citation <- c(citation, list(
   bibentry(
@@ -34,5 +30,3 @@ citation <- c(citation, list(
     note = "Dankó et al., SplicingFactory – Splicing diversity analysis for transcriptome data. Bioinformatics, 2022, 38, 384-390"
   )
 ))
-
-citation

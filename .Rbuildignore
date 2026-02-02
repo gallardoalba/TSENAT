@@ -1,4 +1,6 @@
 ^docs/
+^inst/doc$
+^inst/doc/
 ^dist/
 ^data-raw/
 ^_pkgdown.yml$

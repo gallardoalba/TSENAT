@@ -19,3 +19,8 @@ __pycache__/
 .RData
 .Ruserdata
 /Meta/
+
+# Local R check directories and temporary package checks
+..Rcheck/
+TSENAT.Rcheck/
+TSENAT.Rcheck
