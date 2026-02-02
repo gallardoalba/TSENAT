@@ -7,7 +7,7 @@ dir.create("inst/extdata", recursive = TRUE, showWarnings = FALSE)
 set.seed(2026)
 
 n_genes <- 996
-n_pairs <- 20  # will create 40 sample columns (20 normal/tumor pairs)
+n_pairs <- 20 # will create 40 sample columns (20 normal/tumor pairs)
 
 genes <- paste0("G", seq_len(n_genes))
 
@@ -18,11 +18,11 @@ sample_names <- unlist(lapply(seq_len(n_pairs), function(i) c(paste0("P", i, "_N
 # higher lambda
 counts_mat <- matrix(nrow = n_genes, ncol = length(sample_names))
 for (i in seq_len(n_genes)) {
-  # baseline expression per gene
-  base <- round(runif(1, 5, 200))
-  # normal/tumor variation
-  lambdas <- ifelse(grepl("_N$", sample_names), base, pmax(1, round(base * runif(1, 1.05, 1.5))))
-  counts_mat[i, ] <- rpois(length(sample_names), lambda = lambdas)
+    # baseline expression per gene
+    base <- round(runif(1, 5, 200))
+    # normal/tumor variation
+    lambdas <- ifelse(grepl("_N$", sample_names), base, pmax(1, round(base * runif(1, 1.05, 1.5))))
+    counts_mat[i, ] <- rpois(length(sample_names), lambda = lambdas)
 }
 colnames(counts_mat) <- sample_names
 

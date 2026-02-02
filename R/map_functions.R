@@ -23,10 +23,10 @@
 #' ))
 #' map_coldata_to_se(se, coldata_df)
 map_coldata_to_se <- function(
-    ts_se,
-    coldata,
-    coldata_sample_col = "Sample",
-    coldata_condition_col = "Condition"
+  ts_se,
+  coldata,
+  coldata_sample_col = "Sample",
+  coldata_condition_col = "Condition"
 ) {
     if (is.null(coldata)) {
         return(ts_se)
@@ -96,14 +96,14 @@ map_coldata_to_se <- function(
 #' )
 #' @export
 infer_sample_group <- function(sample_names,
-                                suffix_sep = "_",
-                                suffix_map = NULL,
-                                tcga_map = NULL,
-                                coldata = NULL,
-                                coldata_sample_col = "Sample",
-                                coldata_condition_col = "Condition",
-                                prefer_suffix = TRUE,
-                                default = NA_character_) {
+                               suffix_sep = "_",
+                               suffix_map = NULL,
+                               tcga_map = NULL,
+                               coldata = NULL,
+                               coldata_sample_col = "Sample",
+                               coldata_condition_col = "Condition",
+                               prefer_suffix = TRUE,
+                               default = NA_character_) {
     if (is.null(sample_names)) {
         return(character(0))
     }

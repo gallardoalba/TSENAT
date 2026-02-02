@@ -3,7 +3,7 @@
 # messages
 options(warn = -1)
 if (!requireNamespace("pkgdown", quietly = TRUE)) {
-  install.packages("pkgdown", repos = "https://cloud.r-project.org")
+    install.packages("pkgdown", repos = "https://cloud.r-project.org")
 }
 pkgdown::build_site()
 invisible()
