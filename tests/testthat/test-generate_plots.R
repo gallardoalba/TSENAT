@@ -1,5 +1,8 @@
 context("Generate plots helpers")
 
+context("Generate plots helpers")
+testthat::skip_on_bioc()
+
 test_that("plot_diversity_density returns ggplot object", {
     skip_if_not_installed("SummarizedExperiment")
     skip_if_not_installed("ggplot2")

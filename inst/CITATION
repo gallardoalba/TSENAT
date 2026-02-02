@@ -5,7 +5,7 @@ citEntry(
     title = "TSENAT: Tsallis Entropy Analysis Toolbox",
     author = personList(as.person("Cristobal Gallardo")),
     year = 2026,
-    note = "R package version 1.0.0",
+    note = "R package version 0.99.0",
     url = "https://github.com/gallardoalba/TSENAT"
 )
 

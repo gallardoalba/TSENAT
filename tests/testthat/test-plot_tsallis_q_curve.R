@@ -1,5 +1,7 @@
 library(testthat)
 
+testthat::skip_on_bioc()
+
 context("plot_tsallis_q_curve")
 
 test_that("plot_tsallis_q_curve returns a ggplot object", {
