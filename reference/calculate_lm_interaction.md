@@ -68,7 +68,7 @@ gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 calculate_lm_interaction(se)
 #> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups; starting per-gene fits
+#> [calculate_lm_interaction] parsed samples and groups
 #>       gene p_interaction adj_p_interaction
 #> 1  C1orf86     0.2415774         0.6590893
 #> 2     PDPN     0.4229195         0.6590893

@@ -225,9 +225,9 @@ plotting and modeling.
 
 # Quick checks on mapped sample metadata
 cd <- SummarizedExperiment::colData(ts_se)
-colnames(cd)                    # list available metadata columns
+colnames(cd) # list available metadata columns
 #> [1] "samples"     "sample_type"
-head(cd)                        # preview metadata for first samples
+head(cd) # preview metadata for first samples
 #> DataFrame with 6 rows and 2 columns
 #>                       samples sample_type
 #>                   <character> <character>

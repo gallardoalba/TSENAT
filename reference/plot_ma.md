@@ -46,11 +46,11 @@ A \`ggplot\` MA-plot object.
 
 ``` r
 df <- data.frame(
-gene = paste0("g", seq_len(10)),
-sampleA_mean = runif(10),
-sampleB_mean = runif(10),
-log2_fold_change = rnorm(10),
-adjusted_p_values = runif(10)
+    gene = paste0("g", seq_len(10)),
+    sampleA_mean = runif(10),
+    sampleB_mean = runif(10),
+    log2_fold_change = rnorm(10),
+    adjusted_p_values = runif(10)
 )
 plot_ma(df)
 ```
