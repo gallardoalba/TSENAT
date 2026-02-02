@@ -2,5 +2,5 @@
 
 ### All vignettes
 
-- [TSENAT: Tsallis entropy
-  workflow](https://gallardoalba.github.io/TSENAT/articles/TSENAT.md):
+- [TSENAT: Tsallis Entropy Analysis
+  Toolkit](https://gallardoalba.github.io/TSENAT/articles/TSENAT.md):
