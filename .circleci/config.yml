@@ -1,4 +1,9 @@
 version: 2.1
+
+parameters:
+  deploy_only:
+    type: boolean
+    default: false
 jobs:
   build:
     docker:
@@ -78,3 +83,15 @@ workflows:
           filters:
             branches:
               only: stable
+
+  deploy_only:
+    jobs:
+      - deploy_docs:
+          filters:
+            branches:
+              only: deploy-gh-pages
+
+  parameterized_deploy:
+    when: << pipeline.parameters.deploy_only >>
+    jobs:
+      - deploy_docs
