@@ -12,6 +12,7 @@
 ^\.DS_Store$
 ^TSENAT_.*\.tar\.gz$
 ^\.Rcheck$
+^\.\.Rcheck$
 ^\.github$
 
 # Ignore vignette intermediate files
