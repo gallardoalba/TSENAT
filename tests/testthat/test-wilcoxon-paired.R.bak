@@ -14,11 +14,7 @@ test_that("wilcoxon paired matches per-row wilcox.test on ordered pairs", {
   # compute expected raw p-values by calling wilcox.test per row with
   # paired=TRUE
   expected_raw <- sapply(seq_len(nrow(x)), function(i) {
-    wilcox.test(x[i,
-      which(samples == "Normal")],
-      x[i,
-      which(samples == "Tumor")],
-      
+    wilcox.test(x[i, which(samples == "Normal")], x[i, which(samples == "Tumor")],
       paired = TRUE, exact = TRUE
     )$p.value
   })

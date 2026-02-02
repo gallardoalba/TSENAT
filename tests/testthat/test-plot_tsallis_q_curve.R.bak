@@ -3,8 +3,7 @@ library(testthat)
 context("plot_tsallis_q_curve")
 
 test_that("plot_tsallis_q_curve returns a ggplot object", {
-  if (!requireNamespace("SummarizedExperiment",
-    quietly = TRUE)) skip("SummarizedExperiment required")
+  if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) skip("SummarizedExperiment required")
   if (!requireNamespace("ggplot2", quietly = TRUE)) skip("ggplot2 required")
   if (!requireNamespace("tidyr", quietly = TRUE)) skip("tidyr required")
   if (!requireNamespace("dplyr", quietly = TRUE)) skip("dplyr required")

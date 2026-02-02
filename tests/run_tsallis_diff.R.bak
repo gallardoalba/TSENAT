@@ -30,11 +30,7 @@ div_df <- cbind(genes = rowData(se)$genes, div_df)
 samples <- c(rep("Healthy", 3), rep("Pathogenic", 3))
 
 # run difference analysis
-res <- calculate_difference(div_df,
-  samples,
-  control = "Healthy",
-  method = "mean",
-  test = "wilcoxon")
+res <- calculate_difference(div_df, samples, control = "Healthy", method = "mean", test = "wilcoxon")
 
 print(head(res))
 cat("Rows:", nrow(res), "\n")

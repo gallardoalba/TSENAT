@@ -18,10 +18,7 @@ test_that("TCGA code mapping works and unknown codes yield NA", {
 
 test_that("custom suffix_map and default behave as expected", {
   samples <- c("a_R", "b_C", "c_unknown")
-  res <- infer_sample_group(samples,
-    suffix_map = c(R = "Ref",
-    C = "Case"),
-    default = "Unknown")
+  res <- infer_sample_group(samples, suffix_map = c(R = "Ref", C = "Case"), default = "Unknown")
   # mapped tokens are translated; unmapped suffix returns raw token
   expect_equal(res, c("Ref", "Case", "unknown"))
 })

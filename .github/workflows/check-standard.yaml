@@ -28,13 +28,9 @@ jobs:
 
       - name: Install R package dependencies
         run: |
-          # Install only remotes (avoid preinstalling devtools which pulls many Suggests)
+          # Install only remotes and minimal Depends/Imports/LinkingTo from DESCRIPTION
           Rscript -e 'install.packages("remotes", repos = "https://cloud.r-project.org")'
-          # Install only Depends/Imports/LinkingTo from DESCRIPTION to avoid Suggests like pkgdown/usethis
           Rscript -e 'remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo"))'
-      - name: Install devtools and common tooling
-        run: |
-          Rscript -e 'install.packages(c("devtools","roxygen2","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
 
       - name: Check package
         run: |
@@ -72,10 +68,8 @@ jobs:
 
       - name: Install R package dependencies
         run: |
-          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = TRUE)"
-      - name: Install devtools and common tooling
-        run: |
-          Rscript -e 'install.packages(c("devtools","roxygen2","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
+          # Install only remotes and minimal Depends/Imports/LinkingTo from DESCRIPTION
+          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo'))"
 
       - name: Run R CMD check (no manual, no vignette to speed up)
         run: R CMD check --no-manual --no-vignettes --as-cran

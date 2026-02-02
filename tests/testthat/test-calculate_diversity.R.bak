@@ -1,7 +1,6 @@
 context("Main diversity calculation")
 
-test_that("calculate_diversity supports q as a vector and returns correct metadata",
-  {
+test_that("calculate_diversity supports q as a vector and returns correct metadata", {
   x <- matrix(c(0, 0, 5, 4, 1, 2, 2, 2, 2, 2), ncol = 2)
   colnames(x) <- c("Sample1", "Sample2")
   gene <- c("Gene1", "Gene1", "Gene1", "Gene1", "Gene1")
