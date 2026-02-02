@@ -1,36 +1,33 @@
 #' Calculate splicing diversity changes between two conditions.
-#'
 #' @param x A \code{SummarizedExperiment} with splicing diversity values for
-#'   each gene in each sample or a \code{data.frame} with gene names in the
-#'   first column and splicing diversity values for each sample in additional
-#'   columns.
+#' each gene in each sample or a \code{data.frame} with gene names in the  first
+#' column and splicing diversity values for each sample in additional  columns.
 #' @param samples A vector of length one, specifying the column name of the
-#'   \code{colData} annotation column from the \code{SummarizedExperiment}
-#'   object, that should be used as the category column or a character vector
-#'   with an equal length to the number of columns in the input dataset,
-#'   specifying the category of each sample in the case of a \code{data.frame}
-#'   input.
+#' \code{colData} annotation column from the \code{SummarizedExperiment}
+#' object, that should be used as the category column or a character vector
+#' with an equal length to the number of columns in the input dataset,
+#' specifying the category of each sample in the case of a \code{data.frame}
+#' input.
 #' @param control Name of the control sample category, defined in the
-#'   \code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
-#'   'WT'}.
+#' \code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
+#' 'WT'}.
 #' @param method Method to use for calculating the average splicing diversity
-#'   value in a condition. Can be \code{'mean'} or \code{'median'}.
+#' value in a condition. Can be \code{'mean'} or \code{'median'}.
 #' @param test Method to use for p-value calculation: use \code{'wilcoxon'} for
-#'   Wilcoxon rank sum test or \code{'shuffle'} for a label shuffling test.
+#' Wilcoxon rank sum test or \code{'shuffle'} for a label shuffling test.
 #' @param randomizations Number of random shuffles, used for the label shuffling
-#'   test (default = 100).
+#' test (default = 100).
 #' @param pcorr P-value correction method applied to the Wilcoxon rank sum test
-#'   or label shuffling test results, as defined in the \code{p.adjust}
-#'   function.
+#' or label shuffling test results, as defined in the \code{p.adjust}  function.
 #' @param assayno An integer value. In case of multiple assays in a
-#'    \code{SummarizedExperiment} input, the argument specifies the assay number
-#'    to use for difference calculations.
+#' \code{SummarizedExperiment} input, the argument specifies the assay number
+#' to use for difference calculations.
 #' @param verbose If \code{TRUE}, the function will print additional diagnostic
-#'    messages.
+#' messages.
 #' @param ... Further arguments to be passed on for other methods.
 #' @return A \code{data.frame} with the mean or median values of splicing
-#'   diversity across sample categories and all samples, log2(fold change) of
-#'   the two different conditions, raw and corrected p-values.
+#' diversity across sample categories and all samples, log2(fold change) of  the
+#' two different conditions, raw and corrected p-values.
 #' @import methods
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay colData
 #' @export
@@ -40,31 +37,22 @@
 #' Additionally, it can use a \code{data.frame} as input, where the first column
 #' contains gene names, and all additional columns contain splicing diversity
 #' values for each sample. A vector of sample conditions also serves as input,
-#' used for aggregating the samples by condition.
-#'
-#' It calculates the mean or median of the splicing diversity data per sample
-#' condition, the difference of these values and the log2 fold change of the two
-#' conditions. Furthermore, the user can select a statistical method to
-#' calculate the significance of the changes. The p-values and adjusted p-values
-#' are calculated using a Wilcoxon sum rank test or label shuffling test.
-#'
-#' The function will exclude genes of low sample size from the significance
-#' calculation, depending on which statistical test is applied.
-#'
+#' used for aggregating the samples by condition.   It calculates the mean or
+#' median of the splicing diversity data per sample  condition, the difference
+#' of these values and the log2 fold change of the two  conditions. Furthermore,
+#' the user can select a statistical method to  calculate the significance of
+#' the changes. The p-values and adjusted p-values  are calculated using a
+#' Wilcoxon sum rank test or label shuffling test.   The function will exclude
+#' genes of low sample size from the significance  calculation, depending on
+#' which statistical test is applied.
 #' @examples
-#' # data.frame with splicing diversity values
-#' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-#'
-#' # sample categories
-#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
-#'
-#' # To calculate the difference of splicing diversity changes between the
-#' # 'Healthy' and 'Pathogenic' condition together with the significance values,
-#' # using mean and Wilcoxon rank sum test, use:
-#' calculate_difference(x, samples,
-#'   control = "Healthy", method = "mean", test =
-#'     "wilcoxon"
-#' )
+#' # data.frame with splicing diversity values  x <- data.frame(Genes =
+#' letters[seq_len(10)], matrix(runif(80), ncol = 8))   # sample categories
+#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))   # To calculate the
+#' difference of splicing diversity changes between the  # 'Healthy' and
+#' 'Pathogenic' condition together with the significance values,  # using mean
+#' and Wilcoxon rank sum test, use:  calculate_difference(x, samples,  control =
+#' "Healthy", method = "mean", test =  "wilcoxon"  )
 calculate_difference <- function(x, samples, control, method = "mean",
                                  test = "wilcoxon", randomizations = 100,
                                  pcorr = "BH", assayno = 1, verbose = FALSE,
@@ -195,37 +183,34 @@ calculate_difference <- function(x, samples, control, method = "mean",
 }
 
 
-#' Linear-model interaction test for Tsallis entropy
-#'
-#' For each gene, fit a linear model of the form `entropy ~ q * group` and
-#' extract the p-value for the interaction term (whether the effect of `q`
-#' differs between groups). The function expects a `SummarizedExperiment`
-#' produced by `calculate_diversity()` when multiple `q` values have been
-#' computed (column names contain `_q=`).
-#'
+#' Linear-model interaction test for Tsallis entropy   For each gene, fit a
+#' linear model of the form `entropy ~ q * group` and  extract the p-value for
+#' the interaction term (whether the effect of `q`  differs between groups). The
+#' function expects a `SummarizedExperiment`  produced by
+#' `calculate_diversity()` when multiple `q` values have been  computed (column
+#' names contain `_q=`).
 #' @param se A `SummarizedExperiment` containing a `diversity` assay produced
-#'   by `calculate_diversity(..., q = <vector>)`.
+#' by `calculate_diversity(..., q = <vector>)`.
 #' @param sample_type_col Optional column name in `colData(se)` that contains
-#'   a grouping factor for samples (character). If `NULL`, the function will
-#'   attempt to infer group from column names (suffix `_N` interpreted as
-#'   "Normal").
+#' a grouping factor for samples (character). If `NULL`, the function will
+#' attempt to infer group from column names (suffix `_N` interpreted as
+#' "Normal").
 #' @param min_obs Minimum number of non-NA observations required to fit a
-#'   model for a gene (default: 10).
+#' model for a gene (default: 10).
 #' @param method Modeling method to use for interaction testing: one of
-#'   \code{c("linear", "gam", "fpca")}.
+#' \code{c("linear", "gam", "fpca")}.
 #' @param nthreads Number of threads (mc.cores) to use for parallel processing
 #' (default: 1).
 #' @param assay_name Name of the assay in the SummarizedExperiment to use
 #' (default: "diversity").
 #' @return A data.frame with columns `gene`, `p_interaction`, and
-#'   `adj_p_interaction`, ordered by ascending `p_interaction`.
+#' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
-#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
-#' calculate_lm_interaction(se)
+#' data("tcga_brca_luma_dataset", package = "TSENAT")  rc <-
+#' as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])  gs <-
+#' tcga_brca_luma_dataset$genes[1:20]  se <- calculate_diversity(rc, gs, q =
+#' c(0.1, 1), norm = TRUE)  calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                      method = c("linear", "gam", "fpca"), nthreads = 1,
                                      assay_name = "diversity") {

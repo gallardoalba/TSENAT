@@ -1,16 +1,15 @@
 #' Calculate Tsallis diversity values for transcripts grouped by gene
-#'
 #' @param x Numeric matrix or data.frame of transcript-level expression
-#'   values (rows = transcripts, columns = samples).
+#' values (rows = transcripts, columns = samples).
 #' @param genes Character vector with length equal to nrow(x) assigning each
-#'   transcript to a gene.
+#' transcript to a gene.
 #' @param norm Logical; if TRUE normalize Tsallis entropy values per gene.
 #' @param q Numeric scalar or vector of q values to evaluate.
 #' @param verbose Logical; show diagnostic messages when TRUE.
 #' @param what Which quantity to return from `calculate_tsallis_entropy`:
-#'   "S" (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").
+#' "S" (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").
 #' @return A data.frame with genes in the first column and per-sample (and
-#'   per-q) Tsallis entropy values in subsequent columns.
+#' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S", "D", "both")) {
   what <- match.arg(what)
