@@ -7,9 +7,9 @@
 \item{counts}{Matrix or data.frame of transcript counts.
 Rows are transcripts and columns are samples.}
 
-\item{gene}{Character; gene symbol to inspect.}
-
-\item{samples}{Character vector of sample group labels (length = ncol(counts)).}
+\item{gene}{Character; gene symbol to inspect.
+#' @param samples Character vector of sample group labels (length =
+#' ncol(counts)).}
 
 \item{tx2gene}{Path or data.frame mapping transcripts to genes.
 Must contain columns `Transcript` and `Gen`.}
@@ -21,14 +21,15 @@ Use NULL to plot all transcripts for the gene.}
 (default = 1e-6) to avoid division by zero.}
 
 \item{output_file}{Optional file path to save the plot.
-If `NULL`, the `ggplot` object is returned.}
-}
-\value{
-A `ggplot` object (or invisibly saved file if `output_file` provided).
+  If `NULL`, the `ggplot` object is returned.
+#' @return A `ggplot` object (or invisibly saved file if `output_file`
+#' provided).}
 }
 \description{
-For a given gene, find transcripts using a tx->gene mapping, compute per-transcript
-statistics between two sample groups, select the top N transcripts by p-value and
+#' For a given gene, find transcripts using a tx->gene mapping, compute per-
+#' transcript
+#' statistics between two sample groups, select the top N transcripts by p-value
+#' and
 plot their expression across groups.
 }
 \examples{

@@ -17,7 +17,8 @@ calculate_diversity(
 }
 \arguments{
 \item{x}{A numeric matrix or data.frame of transcript-level expression
-values (rows = transcripts, columns = samples), or a SummarizedExperiment-like object.}
+  values (rows = transcripts, columns = samples), or a SummarizedExperiment-
+like object.}
 
 \item{genes}{Character vector assigning each transcript (row) to a gene.
 Must have length equal to nrow(x) or the number of transcripts in `x`.}
@@ -32,9 +33,11 @@ Must have length equal to nrow(x) or the number of transcripts in `x`.}
 \item{verbose}{Logical; print diagnostic messages when TRUE.}
 
 \item{q}{Numeric scalar or vector of Tsallis q values to evaluate (q > 0).
-If length(q) > 1, the result will contain separate columns per sample and q.}
+  If length(q) > 1, the result will contain separate columns per sample and
+q.}
 
-\item{what}{Which quantity to return: "S" for Tsallis entropy, "D" for Hill numbers, or "both".}
+\item{what}{Which quantity to return: "S" for Tsallis entropy, "D" for Hill
+numbers, or "both".}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assay

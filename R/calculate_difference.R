@@ -15,17 +15,17 @@
 #'   'WT'}.
 #' @param method Method to use for calculating the average splicing diversity
 #'   value in a condition. Can be \code{'mean'} or \code{'median'}.
-#' #' @param test Method to use for p-value calculation: use \code{'wilcoxon'} for
+#' @param test Method to use for p-value calculation: use \code{'wilcoxon'} for
 #'   Wilcoxon rank sum test or \code{'shuffle'} for a label shuffling test.
-#' #' @param randomizations Number of random shuffles, used for the label shuffling
+#' @param randomizations Number of random shuffles, used for the label shuffling
 #'   test (default = 100).
-#' #' @param pcorr P-value correction method applied to the Wilcoxon rank sum test
+#' @param pcorr P-value correction method applied to the Wilcoxon rank sum test
 #'   or label shuffling test results, as defined in the \code{p.adjust}
 #'   function.
 #' @param assayno An integer value. In case of multiple assays in a
-#' #'    \code{SummarizedExperiment} input, the argument specifies the assay number
+#'    \code{SummarizedExperiment} input, the argument specifies the assay number
 #'    to use for difference calculations.
-#' #' @param verbose If \code{TRUE}, the function will print additional diagnostic
+#' @param verbose If \code{TRUE}, the function will print additional diagnostic
 #'    messages.
 #' @param ... Further arguments to be passed on for other methods.
 #' @return A \code{data.frame} with the mean or median values of splicing
@@ -37,15 +37,15 @@
 #' @details The function calculates diversity changes between two sample
 #' conditions. It uses the output of the diversity calculation function, which
 #' is a \code{SummarizedExperiment} object of splicing diversity values.
-#' #' Additionally, it can use a \code{data.frame} as input, where the first column
+#' Additionally, it can use a \code{data.frame} as input, where the first column
 #' contains gene names, and all additional columns contain splicing diversity
 #' values for each sample. A vector of sample conditions also serves as input,
 #' used for aggregating the samples by condition.
 #'
 #' It calculates the mean or median of the splicing diversity data per sample
-#' #' condition, the difference of these values and the log2 fold change of the two
+#' condition, the difference of these values and the log2 fold change of the two
 #' conditions. Furthermore, the user can select a statistical method to
-#' #' calculate the significance of the changes. The p-values and adjusted p-values
+#' calculate the significance of the changes. The p-values and adjusted p-values
 #' are calculated using a Wilcoxon sum rank test or label shuffling test.
 #'
 #' The function will exclude genes of low sample size from the significance
@@ -59,10 +59,10 @@
 #' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
 #'
 #' # To calculate the difference of splicing diversity changes between the
-#' #' # 'Healthy' and 'Pathogenic' condition together with the significance values,
+#' # 'Healthy' and 'Pathogenic' condition together with the significance values,
 #' # using mean and Wilcoxon rank sum test, use:
-#' #' calculate_difference(x, samples, control = "Healthy", method = "mean", test =
-#' #' "wilcoxon")
+#' calculate_difference(x, samples, control = "Healthy", method = "mean", test =
+#' "wilcoxon")
 calculate_difference <- function(x, samples, control, method = "mean",
                                  test = "wilcoxon", randomizations = 100,
                                  pcorr = "BH", assayno = 1, verbose = FALSE,
@@ -211,10 +211,10 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #'   model for a gene (default: 10).
 #' @param method Modeling method to use for interaction testing: one of
 #'   \code{c("linear", "gam", "fpca")}.
-#' #' @param nthreads Number of threads (mc.cores) to use for parallel processing
-#' #' (default: 1).
-#' #' @param assay_name Name of the assay in the SummarizedExperiment to use
-#' #' (default: "diversity").
+#' @param nthreads Number of threads (mc.cores) to use for parallel processing
+#' (default: 1).
+#' @param assay_name Name of the assay in the SummarizedExperiment to use
+#' (default: "diversity").
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #'   `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export

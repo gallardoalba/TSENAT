@@ -185,13 +185,13 @@ if (getRversion() >= "2.15.1") {
 #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
 #' @param assay_name Name of the assay to use (default: "diversity").
-#' #' @param sample_type_col Optional column name in `colData(se)` with sample
-#' #' types.
+#' @param sample_type_col Optional column name in `colData(se)` with sample
+#' types.
 #'   If missing, sample types are inferred from column names (suffix after
 #'   the last underscore) or set to 'Group'.
 #' @return A `ggplot` object with layered density plots.
-#' #' @importFrom ggplot2 ggplot aes geom_density facet_grid scale_color_manual
-#' #' guides theme_minimal labs
+#' @importFrom ggplot2 ggplot aes geom_density facet_grid scale_color_manual
+#' guides theme_minimal labs
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
@@ -230,8 +230,8 @@ plot_diversity_density <- function(
 #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
 #' @param assay_name Name of the assay to use (default: "diversity").
-#' #' @param sample_type_col Optional column name in `colData(se)` containing
-#' #' sample types.
+#' @param sample_type_col Optional column name in `colData(se)` containing
+#' sample types.
 #' @return A `ggplot` violin plot object.
 #' @export
 #' @examples
@@ -277,12 +277,12 @@ plot_mean_violin <- function(
 #'
 #' @param diff_df Data.frame from `calculate_difference()` containing mean
 #'   columns, a `log2_fold_change` column, and `adjusted_p_values`.
-#' #' @param mean_cols Optional character vector of length 2 naming the mean
-#' #' columns.
+#' @param mean_cols Optional character vector of length 2 naming the mean
+#' columns.
 #'   Defaults to the first two columns that end with `_mean`.
-#' #' @param fold_col Name of the fold-change column (default: `log2_fold_change`).
-#' #' @param padj_col Name of the adjusted p-value column (default:
-#' #' `adjusted_p_values`).
+#' @param fold_col Name of the fold-change column (default: `log2_fold_change`).
+#' @param padj_col Name of the adjusted p-value column (default:
+#' `adjusted_p_values`).
 #' @param sig_alpha Threshold for significance (default: 0.05).
 #' @return A `ggplot` MA-plot object.
 #' @export
@@ -342,16 +342,16 @@ plot_ma <- function(
 #' summarize across genes by group (median and IQR) and plot median with a
 #' ribbon spanning median +- IQR/2.
 #'
-#' #' @param readcounts Numeric matrix or data.frame with transcripts as rows and
-#' #' samples as columns.
-#' #' @param genes Character vector assigning a gene id to each row of
-#' #' `readcounts`.
-#' #' @param q_values Numeric vector of q values to evaluate (default
-#' #' `seq(0.01,2,by=0.01)`).
-#' #' @param group_pattern Regular expression to detect group suffixes (default
-#' #' "_N$").
-#' #' @param group_names Character vector length 2 with group names (default
-#' #' c("Normal","Tumor")).
+#' @param readcounts Numeric matrix or data.frame with transcripts as rows and
+#' samples as columns.
+#' @param genes Character vector assigning a gene id to each row of
+#' `readcounts`.
+#' @param q_values Numeric vector of q values to evaluate (default
+#' `seq(0.01,2,by=0.01)`).
+#' @param group_pattern Regular expression to detect group suffixes (default
+#' "_N$").
+#' @param group_names Character vector length 2 with group names (default
+#' c("Normal","Tumor")).
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
 #' @examples
@@ -524,15 +524,15 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' Volcano plot for differential results
 #'
 #' @param diff_df Data.frame from `calculate_difference()` containing at least
-#' #'   `mean_difference` and an adjusted p-value column (default
-#' #' `adjusted_p_values`).
+#'   `mean_difference` and an adjusted p-value column (default
+#' `adjusted_p_values`).
 #' @param x_col Column name for x-axis (default `mean_difference`).
-#' #' @param padj_col Column name for adjusted p-values (default
-#' #' `adjusted_p_values`).
-#' #' @param label_thresh Absolute x threshold to mark significance (default 0.1).
+#' @param padj_col Column name for adjusted p-values (default
+#' `adjusted_p_values`).
+#' @param label_thresh Absolute x threshold to mark significance (default 0.1).
 #' @param padj_thresh Adjusted p-value cutoff (default 0.05).
-#' #' @param top_n Integer; number of top genes to annotate by smallest adjusted
-#' #' p-value (default: 5).
+#' @param top_n Integer; number of top genes to annotate by smallest adjusted
+#' p-value (default: 5).
 #' @return ggplot volcano plot.
 #' @export
 #' @examples

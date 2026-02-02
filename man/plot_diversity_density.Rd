@@ -11,9 +11,10 @@ plot_diversity_density(se, assay_name = "diversity", sample_type_col = NULL)
 
 \item{assay_name}{Name of the assay to use (default: "diversity").}
 
-\item{sample_type_col}{Optional column name in `colData(se)` with sample types.
-If missing, sample types are inferred from column names (suffix after
-the last underscore) or set to 'Group'.}
+\item{sample_type_col}{Optional column name in `colData(se)` with sample
+types.
+  If missing, sample types are inferred from column names (suffix after
+  the last underscore) or set to 'Group'.}
 }
 \value{
 A `ggplot` object with layered density plots.

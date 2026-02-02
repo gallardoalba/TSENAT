@@ -28,9 +28,11 @@ model for a gene (default: 10).}
 \item{method}{Modeling method to use for interaction testing: one of
 \code{c("linear", "gam", "fpca")}.}
 
-\item{nthreads}{Number of threads (mc.cores) to use for parallel processing (default: 1).}
+\item{nthreads}{Number of threads (mc.cores) to use for parallel processing
+(default: 1).}
 
-\item{assay_name}{Name of the assay in the SummarizedExperiment to use (default: "diversity").}
+\item{assay_name}{Name of the assay in the SummarizedExperiment to use
+(default: "diversity").}
 }
 \value{
 A data.frame with columns `gene`, `p_interaction`, and

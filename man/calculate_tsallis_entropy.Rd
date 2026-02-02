@@ -16,14 +16,18 @@ calculate_tsallis_entropy(
 \arguments{
 \item{x}{Vector of (non-negative) expression values.}
 
-\item{q}{Tsallis entropy parameter (q > 0). Scalar or numeric vector (default: 2).}
+\item{q}{Tsallis entropy parameter (q > 0). Scalar or numeric vector
+(default: 2).}
 
-\item{norm}{Logical; if TRUE, normalize entropy by its theoretical maximum (values in [0,1]).}
+\item{norm}{Logical; if TRUE, normalize entropy by its theoretical maximum
+(values in [0,1]).}
 
-\item{what}{Which quantity to return: "S" (Tsallis entropy), "D" (Hill numbers), or "both".}
+\item{what}{Which quantity to return: "S" (Tsallis entropy), "D" (Hill
+numbers), or "both".}
 
-\item{log_base}{Base of the logarithm used for Shannon limits and normalization
-(default: \code{exp(1)}).}
+\item{log_base}{Base of the logarithm used for Shannon limits and
+normalization
+  (default: \code{exp(1)}).}
 }
 \value{
 For `what = "S"` or `what = "D"`: a numeric vector

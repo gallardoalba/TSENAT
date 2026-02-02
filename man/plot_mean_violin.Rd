@@ -11,7 +11,8 @@ plot_mean_violin(se, assay_name = "diversity", sample_type_col = NULL)
 
 \item{assay_name}{Name of the assay to use (default: "diversity").}
 
-\item{sample_type_col}{Optional column name in `colData(se)` containing sample types.}
+\item{sample_type_col}{Optional column name in `colData(se)` containing
+sample types.}
 }
 \value{
 A `ggplot` violin plot object.

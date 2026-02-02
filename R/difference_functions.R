@@ -1,7 +1,7 @@
 #' Calculate splicing diversity changes between two conditions.
 #'
 #' @param x A \code{matrix} with the splicing diversity values.
-#' #' @param samples Character vector with an equal length to the number of columns
+#' @param samples Character vector with an equal length to the number of columns
 #'   in the input dataset, specifying the category of each sample.
 #' @param control Name of the control sample category, defined in the
 #'   \code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
@@ -9,9 +9,9 @@
 #' @param method Method to use for calculating the average splicing diversity
 #'   value in a condition. Can be \code{'mean'} or \code{'median'}.
 #' @return A \code{data.frame} with mean or median value of splicing diversity
-#' #'   across sample categories, the difference between these values and the log2
+#'   across sample categories, the difference between these values and the log2
 #'   fold change values.
-#' #' @details The function uses a matrix of splicing diversity values in order to
+#' @details The function uses a matrix of splicing diversity values in order to
 #' calculate mean or median differences and log2 fold changes between two
 #' conditions.
 #' @import stats
@@ -46,9 +46,9 @@ calculate_fc <- function(x, samples, control, method = "mean") {
 #' Calculate p-values using Wilcoxon rank sum test.
 #'
 #' @param x A \code{matrix} with the splicing diversity values.
-#' #' @param samples Character vector with an equal length to the number of columns
+#' @param samples Character vector with an equal length to the number of columns
 #' in the input dataset, specifying the category of each sample.
-#' #' @param pcorr P-value correction method applied to the results, as defined in
+#' @param pcorr P-value correction method applied to the results, as defined in
 #' the \code{p.adjust} function.
 #' @param paired If \code{TRUE}, the Wilcox-test will be paired, and therefore
 #' it will be a signed rank test instead of the rank sum test.
@@ -71,15 +71,15 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 #' Calculate p-values using label shuffling.
 #'
 #' @param x A \code{matrix} with the splicing diversity values.
-#' #' @param samples Character vector with an equal length to the number of columns
+#' @param samples Character vector with an equal length to the number of columns
 #' in the input dataset, specifying the category of each sample.
 #' @param control Name of the control sample category, defined in the
-#' #' \code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
-#' #' 'WT'}.
+#' \code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
+#' 'WT'}.
 #' @param method Method to use for calculating the average splicing diversity
 #' value in a condition. Can be \code{'mean'} or \code{'median'}.
 #' @param randomizations The number of random shuffles.
-#' #' @param pcorr P-value correction method applied to the results, as defined in
+#' @param pcorr P-value correction method applied to the results, as defined in
 #' the \code{p.adjust} function.
 #' @return Raw and corrected p-values.
 #' @details The permutation p-values are computed two-sided as the proportion

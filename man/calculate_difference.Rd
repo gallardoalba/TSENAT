@@ -92,5 +92,6 @@ samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
 # To calculate the difference of splicing diversity changes between the
 # 'Healthy' and 'Pathogenic' condition together with the significance values,
 # using mean and Wilcoxon rank sum test, use:
-calculate_difference(x, samples, control = "Healthy", method = "mean", test = "wilcoxon")
+calculate_difference(x, samples, control = "Healthy", method = "mean", test =
+"wilcoxon")
 }

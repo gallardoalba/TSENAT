@@ -20,7 +20,8 @@ label_shuffling(
 in the input dataset, specifying the category of each sample.}
 
 \item{control}{Name of the control sample category, defined in the
-\code{samples} vector, e.g. \code{control = 'Normal'} or \code{control = 'WT'}.}
+\code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
+'WT'}.}
 
 \item{method}{Method to use for calculating the average splicing diversity
 value in a condition. Can be \code{'mean'} or \code{'median'}.}

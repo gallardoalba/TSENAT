@@ -15,17 +15,20 @@ plot_volcano(
 }
 \arguments{
 \item{diff_df}{Data.frame from `calculate_difference()` containing at least
-`mean_difference` and an adjusted p-value column (default `adjusted_p_values`).}
+  `mean_difference` and an adjusted p-value column (default
+`adjusted_p_values`).}
 
 \item{x_col}{Column name for x-axis (default `mean_difference`).}
 
-\item{padj_col}{Column name for adjusted p-values (default `adjusted_p_values`).}
+\item{padj_col}{Column name for adjusted p-values (default
+`adjusted_p_values`).}
 
 \item{label_thresh}{Absolute x threshold to mark significance (default 0.1).}
 
 \item{padj_thresh}{Adjusted p-value cutoff (default 0.05).}
 
-\item{top_n}{Integer; number of top genes to annotate by smallest adjusted p-value (default: 5).}
+\item{top_n}{Integer; number of top genes to annotate by smallest adjusted
+p-value (default: 5).}
 }
 \value{
 ggplot volcano plot.

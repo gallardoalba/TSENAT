@@ -16,12 +16,14 @@ plot_ma(
 \item{diff_df}{Data.frame from `calculate_difference()` containing mean
 columns, a `log2_fold_change` column, and `adjusted_p_values`.}
 
-\item{mean_cols}{Optional character vector of length 2 naming the mean columns.
-Defaults to the first two columns that end with `_mean`.}
+\item{mean_cols}{Optional character vector of length 2 naming the mean
+columns.
+  Defaults to the first two columns that end with `_mean`.}
 
 \item{fold_col}{Name of the fold-change column (default: `log2_fold_change`).}
 
-\item{padj_col}{Name of the adjusted p-value column (default: `adjusted_p_values`).}
+\item{padj_col}{Name of the adjusted p-value column (default:
+`adjusted_p_values`).}
 
 \item{sig_alpha}{Threshold for significance (default: 0.05).}
 }

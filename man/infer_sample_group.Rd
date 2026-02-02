@@ -21,8 +21,9 @@ infer_sample_group(
 
 \item{suffix_sep}{Character separator to detect suffix groups (default "_").}
 
-\item{suffix_map}{Named character vector mapping suffix tokens (case-insensitive)
-to group labels, e.g. c(N = "Normal", T = "Tumor").}
+\item{suffix_map}{Named character vector mapping suffix tokens (case-
+insensitive)
+  to group labels, e.g. c(N = "Normal", T = "Tumor").}
 
 \item{tcga_map}{Named character vector mapping TCGA two-digit codes to group
 labels, e.g. c("01" = "Tumor", "11" = "Normal").}
@@ -31,17 +32,21 @@ labels, e.g. c("01" = "Tumor", "11" = "Normal").}
 sample names to conditions. If a data.frame, specify `coldata_sample_col`
 and `coldata_condition_col` for the relevant columns.}
 
-\item{coldata_sample_col}{Column name in `coldata` indicating sample IDs (default "Sample").}
+\item{coldata_sample_col}{Column name in `coldata` indicating sample IDs
+(default "Sample").}
 
 \item{coldata_condition_col}{Column name in `coldata` for condition/label
 (default "Condition").}
 
-\item{prefer_suffix}{Logical; if TRUE, prefer suffix-based inference when both patterns match.}
+\item{prefer_suffix}{Logical; if TRUE, prefer suffix-based inference when
+both patterns match.}
 
-\item{default}{Character scalar returned when no mapping applies (default NA_character_).}
+\item{default}{Character scalar returned when no mapping applies (default
+NA_character_).}
 }
 \value{
-Character vector of group labels (or the `default` value) with same length as `sample_names`.
+Character vector of group labels (or the `default` value) with same
+length as `sample_names`.
 }
 \description{
 Infer sample group from sample names
@@ -52,10 +57,13 @@ Infer sample group from sample names
 infer_sample_group(c("S1_N", "TCGA-XX-01A"))
 
 # Provide a suffix_map to translate tokens
-infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T = "Tumor"))
+#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
+#' "Tumor"))
 
 # Provide a TCGA mapping and prefer TCGA codes over suffixes
 tcga_map <- c("01" = "Tumor")
-infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
-  prefer_suffix = FALSE)
+infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
+  tcga_map = tcga_map,
+  prefer_suffix = FALSE
+)
 }
