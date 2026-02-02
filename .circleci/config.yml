@@ -37,8 +37,8 @@ jobs:
           command: R -e 'install.packages(c("remotes","pkgdown"), repos="https://cloud.r-project.org")'
       - run:
           name: Build pkgdown site
-          command: Rscript -e 'pkgdown::build_site()
-'
+          command: |
+            Rscript -e 'pkgdown::build_site()'
       - run:
           name: Publish to gh-pages
           command: |
