@@ -88,30 +88,21 @@ It uses the output of the diversity calculation function, which is a
 Additionally, it can use a `data.frame` as input, where the first column
 contains gene names, and all additional columns contain splicing
 diversity values for each sample. A vector of sample conditions also
-serves as input, used for aggregating the samples by condition.
-
-It calculates the mean or median of the splicing diversity data per
-sample condition, the difference of these values and the log2 fold
-change of the two conditions. Furthermore, the user can select a
-statistical method to calculate the significance of the changes. The
-p-values and adjusted p-values are calculated using a Wilcoxon sum rank
-test or label shuffling test.
-
-The function will exclude genes of low sample size from the significance
-calculation, depending on which statistical test is applied.
+serves as input, used for aggregating the samples by condition. It
+calculates the mean or median of the splicing diversity data per sample
+condition, the difference of these values and the log2 fold change of
+the two conditions. Furthermore, the user can select a statistical
+method to calculate the significance of the changes. The p-values and
+adjusted p-values are calculated using a Wilcoxon sum rank test or label
+shuffling test. The function will exclude genes of low sample size from
+the significance calculation, depending on which statistical test is
+applied.
 
 ## Examples
 
 ``` r
-# data.frame with splicing diversity values
 x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-
-# sample categories
 samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
-
-# To calculate the difference of splicing diversity changes between the
-# 'Healthy' and 'Pathogenic' condition together with the significance values,
-# using mean and Wilcoxon rank sum test, use:
 calculate_difference(x, samples, control = "Healthy", method = "mean", test =
 "wilcoxon")
 #>    genes Pathogenic_mean Healthy_mean mean_difference log2_fold_change

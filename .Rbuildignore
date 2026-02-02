@@ -12,6 +12,7 @@
 ^\.\.Rcheck$
 ^\.git/objects/.*
 ^TSENAT_.*\.tar\.gz$
+^rcmd_out\.txt$
 ^data-raw/
 ^\.Rproj.user$
 ^\.Rhistory$
@@ -26,9 +27,20 @@
 ^CONTRIBUTING\.md$
 ^\.gitignore$
 ^.*\.Rproj$
-
 # Ignore vignette intermediate files
 ^vignettes/.*\.Rhistory$
 ^vignettes/.*\.utf8$
-
 ^inst/doc$
+
+# Exclude BiocCheck output, package checks and other hidden/git dirs
+^TSENAT\.BiocCheck$
+^\.Rcheck$
+^\.Rcheck/
+^\.git$
+^\.git/
+^\.github$
+^\.gitignore$
+
+# Ignore docs produced by pkgdown or other site generators
+^docs$
+^docs/

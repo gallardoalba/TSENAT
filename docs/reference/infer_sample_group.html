@@ -73,8 +73,7 @@
 
 <dt id="arg-suffix-map">suffix_map<a class="anchor" aria-label="anchor" href="#arg-suffix-map"></a></dt>
 <dd><p>Named character vector mapping suffix tokens (case-
-insensitive)
-  to group labels, e.g. c(N = "Normal", T = "Tumor").</p></dd>
+insensitive)  to group labels, e.g. c(N = "Normal", T = "Tumor").</p></dd>
 
 
 <dt id="arg-tcga-map">tcga_map<a class="anchor" aria-label="anchor" href="#arg-tcga-map"></a></dt>
@@ -116,21 +115,14 @@ length as `sample_names`.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Basic usage: returns raw suffix tokens or TCGA two-digit codes when</span></span></span>
-<span class="r-in"><span><span class="co"># no mapping is supplied</span></span></span>
-<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S1_N"</span>, <span class="st">"TCGA-XX-01A"</span><span class="op">)</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S1_N"</span>, <span class="st">"TCGA-XX-01A"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "N"  "01"</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Provide a suffix_map to translate tokens</span></span></span>
-<span class="r-in"><span><span class="co">#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =</span></span></span>
-<span class="r-in"><span><span class="co">#' "Tumor"))</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Provide a TCGA mapping and prefer TCGA codes over suffixes</span></span></span>
+<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S1_N"</span>, <span class="st">"S2_T"</span><span class="op">)</span>, suffix_map <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>N <span class="op">=</span> <span class="st">"Normal"</span>, T <span class="op">=</span></span></span>
+<span class="r-in"><span><span class="st">"Tumor"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Normal" "Tumor" </span>
 <span class="r-in"><span><span class="va">tcga_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"01"</span> <span class="op">=</span> <span class="st">"Tumor"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-XX-01A"</span>, <span class="st">"Sample_N"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  tcga_map <span class="op">=</span> <span class="va">tcga_map</span>,</span></span>
-<span class="r-in"><span>  prefer_suffix <span class="op">=</span> <span class="cn">FALSE</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-XX-01A"</span>, <span class="st">"Sample_N"</span><span class="op">)</span>, tcga_map <span class="op">=</span> <span class="va">tcga_map</span>,</span></span>
+<span class="r-in"><span>prefer_suffix <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tumor" "N"    </span>
 </code></pre></div>
     </div>

@@ -33,130 +33,130 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
                                 verbose = FALSE,
                                 q = 2,
                                 what = c(
-                                  "S",
-                                  "D"
+                                    "S",
+                                    "D"
                                 )) {
-  if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") ||
-    is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
-    stop("Input data type is not supported! Please use `?calculate_diversity`
+    if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") ||
+        is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
+        stop("Input data type is not supported! Please use `?calculate_diversity`
 \t to see the possible arguments and details.")
-  }
+    }
 
-  if (is(x, "data.frame")) {
-    x <- as.matrix(x)
-  }
+    if (is(x, "data.frame")) {
+        x <- as.matrix(x)
+    }
 
-  if (tpm == TRUE && !is.list(x) && verbose == TRUE) {
-    message("Note: tpm as a logical argument is only interpreted in case of
-            tximport lists.")
-  }
-
-  if (is.list(x)) {
-    if (length(x) == 4 && "counts" %in% names(x)) {
-      if (tpm == FALSE) {
-        x <- as.matrix(x$counts)
-      }
-      if (tpm == TRUE) {
-        x <- as.matrix(x$abundance)
-      }
-    } else if (is(x, "DGEList")) {
-      x <- as.matrix(x$counts)
-      if (verbose == TRUE) {
-        message("Note: calculate_diversity methods are only applicable if your
-                DGEList contains transcript-level expression data.")
-      }
-      if (tpm == TRUE && verbose == TRUE) {
+    if (tpm == TRUE && !is.list(x) && verbose == TRUE) {
         message("Note: tpm as a logical argument is only interpreted in case of
+            tximport lists.")
+    }
+
+    if (is.list(x)) {
+        if (length(x) == 4 && "counts" %in% names(x)) {
+            if (tpm == FALSE) {
+                x <- as.matrix(x$counts)
+            }
+            if (tpm == TRUE) {
+                x <- as.matrix(x$abundance)
+            }
+        } else if (is(x, "DGEList")) {
+            x <- as.matrix(x$counts)
+            if (verbose == TRUE) {
+                message("Note: calculate_diversity methods are only applicable if your
+                DGEList contains transcript-level expression data.")
+            }
+            if (tpm == TRUE && verbose == TRUE) {
+                message("Note: tpm as a logical argument is only interpreted in case of
               tximport lists.")
-      }
-    } else {
-      stop("The package cannot find any expression data in your input.",
-        call. = FALSE
-      )
+            }
+        } else {
+            stop("The package cannot find any expression data in your input.",
+                call. = FALSE
+            )
+        }
     }
-  }
 
-  if (is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment")) {
-    assays_len <- length(SummarizedExperiment::assays(x))
-    if (!is.numeric(assayno) || assays_len < assayno) {
-      stop("Please provide a valid assay number.", call. = FALSE)
-    } else if (is.numeric(assayno)) {
-      x <- as.matrix(SummarizedExperiment::assays(x)[[assayno]])
+    if (is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment")) {
+        assays_len <- length(SummarizedExperiment::assays(x))
+        if (!is.numeric(assayno) || assays_len < assayno) {
+            stop("Please provide a valid assay number.", call. = FALSE)
+        } else if (is.numeric(assayno)) {
+            x <- as.matrix(SummarizedExperiment::assays(x)[[assayno]])
+        }
+        if (is.null(genes)) {
+            genes <- rownames(x)
+            rownames(x) <- NULL
+            if (is.null(genes)) {
+                stop("Please construct a valid gene set for your SummarizedExperiment.",
+                    call. = FALSE
+                )
+            }
+        }
     }
-    if (is.null(genes)) {
-      genes <- rownames(x)
-      rownames(x) <- NULL
-      if (is.null(genes)) {
-        stop("Please construct a valid gene set for your SummarizedExperiment.",
-          call. = FALSE
-        )
-      }
+
+    if (!is.numeric(x)) {
+        stop("Input data  must be numeric!", call. = FALSE)
     }
-  }
 
-  if (!is.numeric(x)) {
-    stop("Input data  must be numeric!", call. = FALSE)
-  }
-
-  if (any(is.na(x))) {
-    stop("The data contains NA as expression values. NAs are not allowed in the
+    if (any(is.na(x))) {
+        stop("The data contains NA as expression values. NAs are not allowed in the
          input.", call. = FALSE)
-  }
+    }
 
-  if (nrow(x) != length(genes)) {
-    stop("The number of rows is not equal to the given gene set.",
-      call. = FALSE
+    if (nrow(x) != length(genes)) {
+        stop("The number of rows is not equal to the given gene set.",
+            call. = FALSE
+        )
+    }
+
+    what <- match.arg(what)
+    result <- calculate_method(x,
+        genes,
+        norm,
+        verbose = verbose,
+        q = q,
+        what = what
     )
-  }
 
-  what <- match.arg(what)
-  result <- calculate_method(x,
-    genes,
-    norm,
-    verbose = verbose,
-    q = q,
-    what = what
-  )
+    # Prepare assay and row/col data
+    result_assay <- result[, -1, drop = FALSE]
+    result_rowData <- data.frame(genes = result[, 1], row.names = result[, 1])
 
-  # Prepare assay and row/col data
-  result_assay <- result[, -1, drop = FALSE]
-  result_rowData <- data.frame(genes = result[, 1], row.names = result[, 1])
+    if (length(q) > 1) {
+        col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
+        col_ids <- paste(col_split[, 1], "_q=", col_split[, 2], sep = "")
+        row_ids <- as.character(result[, 1])
+        result_colData <- data.frame(
+            samples = as.character(col_split[, 1]),
+            q = as.numeric(col_split[, 2]),
+            row.names = col_ids,
+            stringsAsFactors = FALSE
+        )
+        colnames(result_assay) <- col_ids
+        rownames(result_assay) <- row_ids
+    } else {
+        col_ids <- colnames(x)
+        row_ids <- as.character(result[, 1])
+        result_colData <- data.frame(samples = col_ids, row.names = col_ids)
+        colnames(result_assay) <- col_ids
+        rownames(result_assay) <- row_ids
+    }
 
-  if (length(q) > 1) {
-    col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
-    col_ids <- paste(col_split[, 1], "_q=", col_split[, 2], sep = "")
-    row_ids <- as.character(result[, 1])
-    result_colData <- data.frame(
-      samples = as.character(col_split[, 1]),
-      q = as.numeric(col_split[, 2]),
-      row.names = col_ids,
-      stringsAsFactors = FALSE
+    result_metadata <- list(method = "tsallis", norm = norm, q = q, what = what)
+
+    assays_list <- list()
+    if (what == "S") {
+        assays_list$diversity <- result_assay
+    } else if (what == "D") {
+        assays_list$hill <- result_assay
+    }
+
+    result <- SummarizedExperiment::SummarizedExperiment(
+        assays = assays_list,
+        rowData = result_rowData,
+        colData = result_colData,
+        metadata = result_metadata
     )
-    colnames(result_assay) <- col_ids
-    rownames(result_assay) <- row_ids
-  } else {
-    col_ids <- colnames(x)
-    row_ids <- as.character(result[, 1])
-    result_colData <- data.frame(samples = col_ids, row.names = col_ids)
-    colnames(result_assay) <- col_ids
-    rownames(result_assay) <- row_ids
-  }
 
-  result_metadata <- list(method = "tsallis", norm = norm, q = q, what = what)
-
-  assays_list <- list()
-  if (what == "S") {
-    assays_list$diversity <- result_assay
-  } else if (what == "D") {
-    assays_list$hill <- result_assay
-  }
-
-  result <- SummarizedExperiment::SummarizedExperiment(
-    assays = assays_list,
-    rowData = result_rowData,
-    colData = result_colData,
-    metadata = result_metadata
-  )
-
-  return(result)
+    return(result)
 }

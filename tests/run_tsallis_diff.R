@@ -4,11 +4,11 @@ library(SummarizedExperiment)
 
 # # load package (R CMD check runs tests with package built/installed)
 if (interactive()) {
-  # during local interactive runs, source R files for quick testing
-  r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
-  for (f in r_files) source(f)
+    # during local interactive runs, source R files for quick testing
+    r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
+    for (f in r_files) source(f)
 } else {
-  library(abyssEdge)
+    library(abyssEdge)
 }
 
 # create synthetic transcript-level read counts
@@ -31,10 +31,10 @@ samples <- c(rep("Healthy", 3), rep("Pathogenic", 3))
 
 # run difference analysis
 res <- calculate_difference(div_df,
-  samples,
-  control = "Healthy",
-  method = "mean",
-  test = "wilcoxon"
+    samples,
+    control = "Healthy",
+    method = "mean",
+    test = "wilcoxon"
 )
 
 print(head(res))

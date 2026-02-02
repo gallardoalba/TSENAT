@@ -62,7 +62,8 @@ interpretable tool for transcriptomics analyses. Key advantages:
 Essential limiting cases:
 
 - Limit $`q\to 1`$: Shannon entropy,
-  $`\lim_{q\to1} S_q(p) = -\sum_i p_i\log p_i`$.
+  $`\lim_{q\to1} S_q(p) = -\sum_i p_i\log
+  p_i`$.
 - $`q=0`$: richness-like (number of expressed isoforms minus one).
 - $`q=2`$: Gini–Simpson / collision index, $`S_2 = 1-\sum_i p_i^2`$.
 - Uniform maximum: for $`m`$ expressed isoforms,
@@ -88,13 +89,12 @@ data:
 
 # Load packages
 suppressPackageStartupMessages({
-  library(TSENAT)
-  library(ggplot2)
-  library(SummarizedExperiment)
-  library(mgcv)
+    library(TSENAT)
+    library(ggplot2)
+    library(SummarizedExperiment)
+    library(mgcv)
 })
 
-## Note: `map_coldata_to_se()` is provided by the package and will be used below.
 
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
@@ -107,13 +107,17 @@ data(tcga_brca_luma_dataset)
 genes <- tcga_brca_luma_dataset[, 1]
 readcounts <- tcga_brca_luma_dataset[, -1]
 
-# Assign transcript IDs as rownames of `readcounts` so downstream transcript-level
-# plotting functions can use them.
+# Assign transcript IDs as rownames of `readcounts`
+# so downstream transcript-level plotting functions can use them.
 txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
 rownames(readcounts) <- as.character(txmap$Transcript)
 
 # Read sample metadata
-coldata_df <- read.table(coldata_tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+coldata_df <- read.table(coldata_tsv,
+    header = TRUE,
+    sep = "\t",
+    stringsAsFactors = FALSE
+)
 
 # Check gene names
 head(genes)
@@ -164,20 +168,30 @@ update the `genes` vector accordingly.
 
 ``` r
 
+## Filter lowly-expressed transcripts and report counts
+n_before <- nrow(readcounts)
 tokeep <- rowSums(readcounts > 5) > 5
-
 readcounts <- readcounts[tokeep, ]
 genes <- genes[tokeep]
+n_after <- nrow(readcounts)
+
+message(sprintf(
+    "Transcripts: before = %d, after = %d",
+    n_before, n_after
+))
+#> Transcripts: before = 1100, after = 833
 ```
 
 We filter lowly-expressed transcripts to reduce noise and improve the
 stability of diversity estimates.
 
-## Compute normalized Tsallis entropy for a single `q` value.
+## Compute normalized Tsallis entropy.
+
+Compute Tsallis entropy for a single q and inspect the resulting assay
 
 ``` r
 
-# compute Tsallis entropy for q = 0.1
+## The `norm = TRUE` option returns normalized entropies on a comparable scale.
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
 head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
@@ -200,9 +214,29 @@ plotting functions can use `sample_type` for grouping.
 
 ``` r
 
-if (!is.null(coldata_df)) {
-  ts_se <- map_coldata_to_se(ts_se, coldata_df)
-}
+ts_se <- map_coldata_to_se(ts_se, coldata_df)
+```
+
+After mapping the `coldata`, you can inspect `colData(ts_se)` to confirm
+that `sample_type` and any other covariates are available for downstream
+plotting and modeling.
+
+``` r
+
+# Quick checks on mapped sample metadata
+cd <- SummarizedExperiment::colData(ts_se)
+colnames(cd)                    # list available metadata columns
+#> [1] "samples"     "sample_type"
+head(cd)                        # preview metadata for first samples
+#> DataFrame with 6 rows and 2 columns
+#>                       samples sample_type
+#>                   <character> <character>
+#> TCGA-A7-A0CH_N TCGA-A7-A0CH_N      Normal
+#> TCGA-A7-A0CH_T TCGA-A7-A0CH_T       Tumor
+#> TCGA-A7-A0D9_N TCGA-A7-A0D9_N      Normal
+#> TCGA-A7-A0D9_T TCGA-A7-A0D9_T       Tumor
+#> TCGA-A7-A0DB_T TCGA-A7-A0DB_T       Tumor
+#> TCGA-A7-A0DB_N TCGA-A7-A0DB_N      Normal
 ```
 
 ## Differential analysis
@@ -215,35 +249,42 @@ diversity summaries between two groups. Two common choices are
 Wilcoxon-based tests and label-shuffle tests. Guidance:
 
 - Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired):
-  - Use when you want a distribution-free test comparing central
-    tendency (ranks/median) and sample sizes are moderate (typically ≥10
-    per group for stable asymptotic p-values).
-  - Assumptions: independent observations within groups (or matched
-    pairs for the signed-rank test); exchangeability under the null.
-  - Handle ties: software returns approximate p-values when many ties
-    exist; consider permutation p-values when ties or discreteness are
-    extreme (small counts, many zeros).
-  - Report effect sizes (median difference, Hodges–Lehmann estimator)
-    and confidence intervals where possible; do not rely on p-values
-    alone.
-- Label-shuffle tests:
-  - Use when sample sizes are small, distributional assumptions are
-    questionable, or you prefer an exact/empirical null constructed from
-    the observed data. Randomly shuffle group labels many times and
-    recompute the test statistic (difference in medians or means).
-  - Exchangeability requirement: permutations are valid when labels are
-    exchangeable under the null (e.g., independent samples). For paired
-    designs use paired permutations that shuffle within pairs or use
-    sign flips for paired differences.
-  - Practical settings: set `randomizations` to ≥1000 for routine use
-    and 5000+ when estimating small p-values or when applying FDR across
-    many genes. When possible, compute exact permutations (all
-    labelings) for very small datasets.
 
-Here we will use Wilcoxon, which is the adecuate option for speed and
-when sample sizes support asymptotic approximations; use permutation
-when small-sample accuracy or exact control of the null distribution is
-important.
+- Use when you want a distribution-free test comparing central tendency
+  (ranks/median) and sample sizes are moderate (typically ≥10 per group
+  for stable asymptotic p-values).
+
+- Assumptions: independent observations within groups (or matched pairs
+  for the signed-rank test); exchangeability under the null.
+
+- Handle ties: software returns approximate p-values when many ties
+  exist; consider permutation p-values when ties or discreteness are
+  extreme (small counts, many zeros).
+
+- Report effect sizes (median difference, Hodges–Lehmann estimator) and
+  confidence intervals where possible; do not rely on p-values alone.
+
+- Label-shuffle tests:
+
+- Use when sample sizes are small, distributional assumptions are
+  questionable, or you prefer an exact/empirical null constructed from
+  the observed data. Randomly shuffle group labels many times and
+  recompute the test statistic (difference in medians or means).
+
+- Exchangeability requirement: permutations are valid when labels are
+  exchangeable under the null (e.g., independent samples). For paired
+  designs use paired permutations that shuffle within pairs or use sign
+  flips for paired differences.
+
+- Practical settings: set `randomizations` to ≥1000 for routine use and
+  5000+ when estimating small p-values or when applying FDR across many
+  genes. When possible, compute exact permutations (all labelings) for
+  very small datasets.
+
+Here we will use the Wilcoxon test — it is the appropriate choice for
+speed when sample sizes support asymptotic approximations. Use
+permutation tests when small-sample accuracy or exact control of the
+null distribution is important.
 
 Before running differential tests we summarize per-gene diversity values
 across samples and explicitly define sample groups. The example below
@@ -257,7 +298,10 @@ to suit your experimental design.
 
 # create a sample grouping vector inferred from sample names
 # account for per-q column names like 'Sample_q=0.01'
-sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+sample_base_names <- sub(
+    "_q=.*", "",
+    colnames(SummarizedExperiment::assay(ts_se))
+)
 samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 
 # prepare diversity table as data.frame with gene names in first column
@@ -266,14 +310,12 @@ div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
 res <- calculate_difference(div_df, samples,
-  control = "Normal",
-  method = "mean", test = "wilcoxon",
-  paired = TRUE
+    control = "Normal",
+    method = "mean", test = "wilcoxon",
+    paired = TRUE
 )
 # sort results by adjusted p-value
-if ("adjusted_p_values" %in% colnames(res)) {
-  res <- res[order(res$adjusted_p_values), , drop = FALSE]
-}
+res <- res[order(res$adjusted_p_values), , drop = FALSE]
 head(res)
 #>        genes Tumor_mean Normal_mean mean_difference log2_fold_change
 #> 6   C1orf213  0.3783117   0.9639752     -0.58566342      -1.34942042
@@ -305,7 +347,7 @@ Generate diagnostic plots to summarize per-gene effect sizes:
 # MA plot using helper
 p_ma <- plot_ma(res)
 print(p_ma)
-#> Warning: Removed 1 row containing missing values or values outside the scale range
+#> Warning: Removed 4 rows containing missing values or values outside the scale range
 #> (`geom_point()`).
 ```
 
@@ -315,10 +357,8 @@ print(p_ma)
 
 
 # Volcano plot: mean difference vs -log10(adjusted p-value)
-if (all(c("mean_difference", "adjusted_p_values") %in% colnames(res))) {
-  p_volcano <- plot_volcano(res)
-  print(p_volcano)
-}
+p_volcano <- plot_volcano(res)
+print(p_volcano)
 ```
 
 ![](TSENAT_files/figure-html/ma-and-volcano-2.png)
@@ -337,12 +377,16 @@ diversity differences.
 
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
-sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+sample_base_names <- sub(
+    "_q=.*",
+    "",
+    colnames(SummarizedExperiment::assay(ts_se))
+)
 samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 p_comb <- plot_top_transcripts(readcounts,
-  gene = top_genes,
-  samples = samples_vec, tx2gene = txmap,
-  top_n = NULL
+    gene = top_genes,
+    samples = samples_vec, tx2gene = txmap,
+    top_n = NULL
 )
 print(p_comb)
 ```
@@ -362,7 +406,7 @@ compare scale-dependent behavior.
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
-  q = q, norm = TRUE
+    q = q, norm = TRUE
 )
 head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_T_q=0.1 TCGA-A7-A0D9_N_q=0.1
@@ -379,18 +423,16 @@ head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #> HNRNPR             0.6856195            0.7395887
 ```
 
-It allows to compare values across `q` for the same gene to see whether
-diversity differences are scale-dependent (e.g., significant at `q=0.1`
-but not at `q=2` suggests rare-isoform-driven changes).
+This allows comparison across `q` for the same gene to determine whether
+diversity differences are scale-dependent (for example, significance at
+`q = 0.1` but not at `q = 2` suggests rare-isoform-driven changes).
 
 Map optional sample metadata into the multi-q `SummarizedExperiment` so
 plotting helpers have access to `sample_type` for grouping.
 
 ``` r
 
-if (!is.null(coldata_df)) {
-  ts_se <- map_coldata_to_se(ts_se, coldata_df)
-}
+ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
 Create violin and density plots summarizing diversity across multiple
@@ -398,7 +440,6 @@ Create violin and density plots summarizing diversity across multiple
 
 ``` r
 
-## Use package plot helpers for multi-q violin and density
 p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
 print(p_violin)
 ```
@@ -406,7 +447,6 @@ print(p_violin)
 ![](TSENAT_files/figure-html/plots-1.png)
 
 ``` r
-
 
 p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
 print(p_density)
@@ -424,7 +464,7 @@ values.
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
-  q = qvec, norm = TRUE
+    q = qvec, norm = TRUE
 )
 head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_T_q=0.01 TCGA-A7-A0D9_N_q=0.01
@@ -446,9 +486,7 @@ before.
 
 ``` r
 
-if (!is.null(coldata_df)) {
-  ts_se <- map_coldata_to_se(ts_se, coldata_df)
-}
+ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
 With the q-sequence we can produces a q-curve per sample and gene. These
@@ -477,33 +515,43 @@ three complementary approaches; below are practical notes to guide
 choice and parameter selection.
 
 - Linear interaction model (`entropy ~ q * group`):
-  - Interprets group differences as slope (q-by-group interaction)
-    differences across the evaluated q-grid. Use when the q-curve is
-    approximately linear over the chosen range and sample sizes are
-    modest.
-  - Advantages: simple, interpretable interaction coefficient, fast.
-  - Caveats: will miss localized nonlinear differences (e.g., only at
-    low q values).
+
+- Interprets group differences as slope (q-by-group interaction)
+  differences across the evaluated q-grid. Use when the q-curve is
+  approximately linear over the chosen range and sample sizes are
+  modest.
+
+- Advantages: simple, interpretable interaction coefficient, fast.
+
+- Caveats: will miss localized nonlinear differences (e.g., only at low
+  q values).
+
 - GAM-based comparison (`mgcv`):
-  - Fit smooth functions of `q` with group-specific terms (e.g., a
-    common smooth plus group-by-smooth deviations) and compare nested
-    models with an approximate F-type test (anova.gam).
-  - Choose spline basis dimension `k` relative to the number of distinct
-    `q` values (keep `k` small for sparse grids). Inspect diagnostic
-    plots and concur that fitted smooths reflect biological signal
-    rather than overfitting noise.
-  - Requires sufficient observations per gene across samples and q
-    values to estimate smooth terms reliably.
+
+- Fit smooth functions of `q` with group-specific terms (e.g., a common
+  smooth plus group-by-smooth deviations) and compare nested models with
+  an approximate F-type test (anova.gam).
+
+- Choose spline basis dimension `k` relative to the number of distinct
+  `q` values (keep `k` small for sparse grids). Inspect diagnostic plots
+  and concur that fitted smooths reflect biological signal rather than
+  overfitting noise.
+
+- Requires sufficient observations per gene across samples and q values
+  to estimate smooth terms reliably.
+
 - FPCA-based test (functional PCA on q-curves):
-  - Treat each sample’s q-curve as a functional object, compute
-    principal components across q, and test group differences on leading
-    PC scores.
-  - Fast and robust when dominant curve modes capture group differences,
-    but it reduces the curve to a few components and may miss localized
-    effects confined to a narrow q-range.
-  - Address missing q points by sensible imputation (column means or
-    spline interpolation) before PCA; require minimal q coverage across
-    samples to obtain stable PCs.
+
+- Treat each sample’s q-curve as a functional object, compute principal
+  components across q, and test group differences on leading PC scores.
+
+- Fast and robust when dominant curve modes capture group differences,
+  but it reduces the curve to a few components and may miss localized
+  effects confined to a narrow q-range.
+
+- Address missing q points by sensible imputation (column means or
+  spline interpolation) before PCA; require minimal q coverage across
+  samples to obtain stable PCs.
 
 This test fits a simple linear model per gene to assess whether the
 slope of the q-curve differs between sample groups. It can help identify
@@ -515,9 +563,12 @@ than only an overall shift in diversity.
 
 # ensure the SummarizedExperiment contains sample names with group suffixes
 # (the function infers group from sample name suffix _N -> Normal)
-lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", min_obs = 8)
+lm_res <- calculate_lm_interaction(ts_se,
+    sample_type_col = "sample_type",
+    min_obs = 8
+)
 #> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups; starting per-gene fits
+#> [calculate_lm_interaction] parsed samples and groups
 head(lm_res)
 #>      gene p_interaction adj_p_interaction
 #> 1 PPP2R1A     0.7454960         0.9997906
