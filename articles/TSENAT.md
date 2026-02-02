@@ -347,7 +347,7 @@ Generate diagnostic plots to summarize per-gene effect sizes:
 # MA plot using helper
 p_ma <- plot_ma(res)
 print(p_ma)
-#> Warning: Removed 1 row containing missing values or values outside the scale range
+#> Warning: Removed 4 rows containing missing values or values outside the scale range
 #> (`geom_point()`).
 ```
 
@@ -568,7 +568,7 @@ lm_res <- calculate_lm_interaction(ts_se,
     min_obs = 8
 )
 #> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups; starting per-gene fits
+#> [calculate_lm_interaction] parsed samples and groups
 head(lm_res)
 #>      gene p_interaction adj_p_interaction
 #> 1 PPP2R1A     0.7454960         0.9997906
@@ -653,7 +653,7 @@ sessionInfo()
 #>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] ggplot2_4.0.1               TSENAT_0.1                 
+#> [13] ggplot2_4.0.1               TSENAT_0.99.0              
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       

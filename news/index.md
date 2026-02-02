@@ -1,5 +1,5 @@
 # Changelog
 
-## TSENAT 1.0.0
+## TSENAT 0.99.0
 
-Release of version 1.0.0
+Release of version 0.99.0
