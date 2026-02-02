@@ -52,9 +52,13 @@ Infer sample group from sample names
 }
 \examples{
 infer_sample_group(c("S1_N", "TCGA-XX-01A"))
-infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
-"Tumor"))
+infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(
+    N = "Normal", T =
+        "Tumor"
+))
 tcga_map <- c("01" = "Tumor")
-infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
-prefer_suffix = FALSE)
+infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
+    tcga_map = tcga_map,
+    prefer_suffix = FALSE
+)
 }

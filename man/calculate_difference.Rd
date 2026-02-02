@@ -81,6 +81,8 @@ which statistical test is applied.
 \examples{
 x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
 samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
-calculate_difference(x, samples, control = "Healthy", method = "mean", test =
-"wilcoxon")
+calculate_difference(x, samples,
+    control = "Healthy", method = "mean", test =
+        "wilcoxon"
+)
 }

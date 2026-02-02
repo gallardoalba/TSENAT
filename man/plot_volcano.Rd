@@ -38,9 +38,9 @@ Volcano plot for differential results
 }
 \examples{
 df <- data.frame(
-gene = paste0("g", seq_len(10)),
-mean_difference = runif(10),
-adjusted_p_values = runif(10)
+    gene = paste0("g", seq_len(10)),
+    mean_difference = runif(10),
+    adjusted_p_values = runif(10)
 )
 plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 }

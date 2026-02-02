@@ -41,25 +41,25 @@ by p-value and plot their expression across groups.
 }
 \examples{
 tx_counts <- matrix(
-sample(1:100, 24, replace = TRUE),
-nrow = 6
+    sample(1:100, 24, replace = TRUE),
+    nrow = 6
 )
 rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
 colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
 
 tx2gene <- data.frame(
-Transcript = rownames(tx_counts),
-Gen = rep(paste0("G", seq_len(3)), each = 2),
-stringsAsFactors = FALSE
+    Transcript = rownames(tx_counts),
+    Gen = rep(paste0("G", seq_len(3)), each = 2),
+    stringsAsFactors = FALSE
 )
 
 samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
 
 plot_top_transcripts(
-tx_counts,
-gene = c("G1", "G2"),
-samples = samples,
-tx2gene = tx2gene,
-top_n = 2
+    tx_counts,
+    gene = c("G1", "G2"),
+    samples = samples,
+    tx2gene = tx2gene,
+    top_n = 2
 )
 }
