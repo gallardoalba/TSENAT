@@ -92,8 +92,6 @@ ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
 plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ```
 
-![q-curve example](vignettes/TSENAT_files/figure-html/plot-q-curve-1.png)
-
 For a detailed, reproducible example see the package vignette (HTML and PDF): [HTML vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) | [PDF vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
 
 Licence, citation and atribution
