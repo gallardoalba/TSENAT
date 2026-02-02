@@ -1,0 +1,8 @@
+Fixed: /home/nouser/galaxy/tools_source/TSENAT/R/calculate_difference.R (10 lines changed) 
+Fixed: /home/nouser/galaxy/tools_source/TSENAT/R/calculate_diversity.R (2 lines changed) 
+Fixed: /home/nouser/galaxy/tools_source/TSENAT/R/calculate_method.R (10 lines changed) 
+No change: /home/nouser/galaxy/tools_source/TSENAT/R/difference_functions.R 
+Fixed: /home/nouser/galaxy/tools_source/TSENAT/R/diversity_functions.R (9 lines changed) 
+Fixed: /home/nouser/galaxy/tools_source/TSENAT/R/generate_plots.R (40 lines changed) 
+Fixed: /home/nouser/galaxy/tools_source/TSENAT/R/map_functions.R (12 lines changed) 
+No change: /home/nouser/galaxy/tools_source/TSENAT/vignettes/TSENAT.Rmd 
