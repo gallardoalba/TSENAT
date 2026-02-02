@@ -1,3 +1,3 @@
-# TSENAT 0.1
+# TSENAT 1.0.0
 
-Release of dev version 0.1
+Release of version 1.0.0
