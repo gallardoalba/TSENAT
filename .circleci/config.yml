@@ -20,3 +20,61 @@ jobs:
       - run:
           name: Run checks
           command: R CMD check --no-manual *.tar.gz
+
+  deploy_docs:
+    docker:
+      - image: rocker/r-ver:4.2.2
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Install OS deps
+          command: |
+            apt-get update && apt-get install -y --no-install-recommends \
+              libxml2-dev libssl-dev libcurl4-openssl-dev git
+      - run:
+          name: Install R packages for docs
+          command: R -e 'install.packages(c("remotes","pkgdown"), repos="https://cloud.r-project.org")'
+      - run:
+          name: Build pkgdown site
+          command: Rscript -e 'pkgdown::build_site()
+'
+      - run:
+          name: Publish to gh-pages
+          command: |
+            set -e
+            if [ -z "$GITHUB_TOKEN" ]; then
+              echo 'GITHUB_TOKEN not set; aborting deploy.'
+              exit 1
+            fi
+            git config user.name "circleci"
+            git config user.email "circleci@localhost"
+            REPO="https://x-access-token:${GITHUB_TOKEN}@github.com/gallardoalba/TSENAT.git"
+            # create a temp dir and push docs/ to gh-pages branch
+            TMPDIR=$(mktemp -d)
+            git clone --branch gh-pages --single-branch "$REPO" "$TMPDIR" || (
+              git clone "$REPO" "$TMPDIR" && cd "$TMPDIR" && git checkout --orphan gh-pages
+            )
+            rm -rf "$TMPDIR"/*
+            cp -R docs/* "$TMPDIR"/
+            cd "$TMPDIR"
+            git add --all
+            if git diff --cached --quiet; then
+              echo 'No changes to deploy.'
+            else
+              git commit -m "Update pkgdown site from CircleCI"
+              git push "$REPO" gh-pages
+            fi
+            cd -
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy_docs:
+          requires:
+            - build
+          filters:
+            branches:
+              only: stable
