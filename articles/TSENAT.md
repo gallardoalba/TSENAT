@@ -180,7 +180,7 @@ stability of diversity estimates.
 # compute Tsallis entropy for q = 0.1
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
-head(assay(ts_se)[1:5, 1:5])
+head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T
 #> MXRA8        0.8616275      0.6609111      0.8156972      0.6633580
 #> C1orf86      0.0000000      0.0000000      0.0000000      0.0000000
@@ -257,11 +257,11 @@ to suit your experimental design.
 
 # create a sample grouping vector inferred from sample names
 # account for per-q column names like 'Sample_q=0.01'
-sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
 samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 
 # prepare diversity table as data.frame with gene names in first column
-div_df <- as.data.frame(assay(ts_se))
+div_df <- as.data.frame(SummarizedExperiment::assay(ts_se))
 div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
@@ -337,7 +337,7 @@ diversity differences.
 
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
-sample_base_names <- sub("_q=.*", "", colnames(assay(ts_se)))
+sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
 samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 p_comb <- plot_top_transcripts(readcounts,
   gene = top_genes,
@@ -362,10 +362,9 @@ compare scale-dependent behavior.
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
-  
   q = q, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_T_q=0.1 TCGA-A7-A0D9_N_q=0.1
 #> MXRA8              0.8616275            0.6063802            0.6609111
 #> C1orf86            0.0000000            0.0000000            0.0000000
@@ -425,10 +424,9 @@ values.
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
-  
   q = qvec, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_T_q=0.01 TCGA-A7-A0D9_N_q=0.01
 #> MXRA8               0.9840684             0.8500785             0.7527194
 #> C1orf86             0.0000000             0.0000000             0.0000000
@@ -604,7 +602,7 @@ sessionInfo()
 #>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] ggplot2_4.0.1               TSENAT_0.1                 
+#> [13] ggplot2_4.0.1               TSENAT_0.1.0               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       

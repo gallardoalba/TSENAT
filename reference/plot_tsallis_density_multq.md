@@ -13,7 +13,7 @@ plot_tsallis_density_multq(se, assay_name = "diversity")
 - se:
 
   A \`SummarizedExperiment\` returned by \`calculate_diversity\` with
-  multiple q values (colnames like 'Sample_q=0.01').
+  multiple q values (column names contain \`\_q=\`).
 
 - assay_name:
 
@@ -22,3 +22,13 @@ plot_tsallis_density_multq(se, assay_name = "diversity")
 ## Value
 
 A \`ggplot\` density plot object faceted by q and colored by group.
+
+## Examples
+
+``` r
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
+plot_tsallis_density_multq(se)
+```

@@ -99,6 +99,12 @@ plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 
 q-curve example
 
+For a detailed, reproducible example see the package vignette (HTML and
+PDF): [HTML
+vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) \|
+[PDF
+vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
+
 ## Licence, citation and atribution
 
 This project is licensed under the GNU General Public License v3.0

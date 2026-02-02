@@ -2,7 +2,8 @@
 
 ## Authors
 
-- **Gallardo Cristóbal**. Author, maintainer.
+- **[Cristóbal Gallardo](https://github.com/gallardoalba)**. Author,
+  maintainer.
 
 ## Citation
 

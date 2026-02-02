@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,36 +72,46 @@
 
 
 <dt id="arg-suffix-map">suffix_map<a class="anchor" aria-label="anchor" href="#arg-suffix-map"></a></dt>
-<dd><p>Named character vector mapping suffix tokens (case-insensitive) to group labels. e.g. c(N="Normal", T="Tumor").</p></dd>
+<dd><p>Named character vector mapping suffix tokens (case-
+insensitive)
+  to group labels, e.g. c(N = "Normal", T = "Tumor").</p></dd>
 
 
 <dt id="arg-tcga-map">tcga_map<a class="anchor" aria-label="anchor" href="#arg-tcga-map"></a></dt>
-<dd><p>Named character vector mapping TCGA two-digit codes to group labels. e.g. c("01"="Tumor", "11"="Normal").</p></dd>
+<dd><p>Named character vector mapping TCGA two-digit codes to group
+labels, e.g. c("01" = "Tumor", "11" = "Normal").</p></dd>
 
 
 <dt id="arg-coldata">coldata<a class="anchor" aria-label="anchor" href="#arg-coldata"></a></dt>
-<dd><p>Optional data.frame or named vector providing mapping from sample names to conditions. If a data.frame, `coldata_sample_col` and `coldata_condition_col` specify column names.</p></dd>
+<dd><p>Optional data.frame or named vector providing mapping from
+sample names to conditions. If a data.frame, specify `coldata_sample_col`
+and `coldata_condition_col` for the relevant columns.</p></dd>
 
 
 <dt id="arg-coldata-sample-col">coldata_sample_col<a class="anchor" aria-label="anchor" href="#arg-coldata-sample-col"></a></dt>
-<dd><p>Column name in `coldata` indicating sample IDs (default "Sample").</p></dd>
+<dd><p>Column name in `coldata` indicating sample IDs
+(default "Sample").</p></dd>
 
 
 <dt id="arg-coldata-condition-col">coldata_condition_col<a class="anchor" aria-label="anchor" href="#arg-coldata-condition-col"></a></dt>
-<dd><p>Column name in `coldata` indicating condition/label (default "Condition").</p></dd>
+<dd><p>Column name in `coldata` for condition/label
+(default "Condition").</p></dd>
 
 
 <dt id="arg-prefer-suffix">prefer_suffix<a class="anchor" aria-label="anchor" href="#arg-prefer-suffix"></a></dt>
-<dd><p>Logical; if TRUE, prefer suffix-based inference when both patterns match.</p></dd>
+<dd><p>Logical; if TRUE, prefer suffix-based inference when
+both patterns match.</p></dd>
 
 
 <dt id="arg-default">default<a class="anchor" aria-label="anchor" href="#arg-default"></a></dt>
-<dd><p>Character scalar returned when no mapping applies (default NA_character_).</p></dd>
+<dd><p>Character scalar returned when no mapping applies (default
+NA_character_).</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Character vector of group labels (or the `default` value) with same length as `sample_names`.</p>
+    <p>Character vector of group labels (or the `default` value) with same
+length as `sample_names`.</p>
     </div>
 
     <div class="section level2">
@@ -112,12 +122,15 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "N"  "01"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Provide a suffix_map to translate tokens</span></span></span>
-<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"S1_N"</span>, <span class="st">"S2_T"</span><span class="op">)</span>, suffix_map <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>N <span class="op">=</span> <span class="st">"Normal"</span>, T <span class="op">=</span> <span class="st">"Tumor"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Normal" "Tumor" </span>
+<span class="r-in"><span><span class="co">#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =</span></span></span>
+<span class="r-in"><span><span class="co">#' "Tumor"))</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Provide a TCGA mapping and prefer TCGA codes over suffixes</span></span></span>
-<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-XX-01A"</span>, <span class="st">"Sample_N"</span><span class="op">)</span>, tcga_map <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"01"</span> <span class="op">=</span> <span class="st">"Tumor"</span><span class="op">)</span>, </span></span>
-<span class="r-in"><span>                   prefer_suffix <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">tcga_map</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"01"</span> <span class="op">=</span> <span class="st">"Tumor"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">infer_sample_group</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"TCGA-XX-01A"</span>, <span class="st">"Sample_N"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  tcga_map <span class="op">=</span> <span class="va">tcga_map</span>,</span></span>
+<span class="r-in"><span>  prefer_suffix <span class="op">=</span> <span class="cn">FALSE</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Tumor" "N"    </span>
 </code></pre></div>
     </div>
@@ -126,7 +139,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Gallardo Cristóbal.</p>
+  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

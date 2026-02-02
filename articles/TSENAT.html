@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,7 +63,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-02-01</h4>
+            <h4 data-toc-skip class="date">2026-02-02</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -267,8 +267,8 @@ value.<a class="anchor" aria-label="anchor" href="#compute-normalized-tsallis-en
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 0.1</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">0.1</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, method <span class="op">=</span> <span class="st">"tsallis"</span>, q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T</span></span>
 <span><span class="co">#&gt; MXRA8        0.8616275      0.6609111      0.8156972      0.6633580</span></span>
 <span><span class="co">#&gt; C1orf86      0.0000000      0.0000000      0.0000000      0.0000000</span></span>
@@ -345,11 +345,11 @@ design.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># create a sample grouping vector inferred from sample names</span></span>
 <span><span class="co"># account for per-q column names like 'Sample_q=0.01'</span></span>
-<span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_q=.*"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_q=.*"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">sample_type</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># prepare diversity table as data.frame with gene names in first column</span></span>
-<span><span class="va">div_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">div_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">div_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>genes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">rowData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">genes</span>, <span class="va">div_df</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># samples are matched pairs (Normal/Tumor), so use a paired test</span></span>
@@ -414,7 +414,7 @@ diversity differences.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sig_res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
 <span><span class="va">top_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sig_res</span><span class="op">$</span><span class="va">genes</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_q=.*"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_q=.*"</span>, <span class="st">""</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">samples_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">sample_type</span><span class="op">)</span></span>
 <span><span class="va">p_comb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">readcounts</span>,</span>
 <span>  gene <span class="op">=</span> <span class="va">top_genes</span>,</span>
@@ -436,10 +436,9 @@ and 2) to compare scale-dependent behavior.</p>
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 1 (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"tsallis"</span>,</span>
 <span>  q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_T_q=0.1 TCGA-A7-A0D9_N_q=0.1</span></span>
 <span><span class="co">#&gt; MXRA8              0.8616275            0.6063802            0.6609111</span></span>
 <span><span class="co">#&gt; C1orf86            0.0000000            0.0000000            0.0000000</span></span>
@@ -486,10 +485,9 @@ groups.</p>
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a sequence of values (normalized)</span></span>
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"tsallis"</span>,</span>
 <span>  q <span class="op">=</span> <span class="va">qvec</span>, norm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_T_q=0.01 TCGA-A7-A0D9_N_q=0.01</span></span>
 <span><span class="co">#&gt; MXRA8               0.9840684             0.8500785             0.7527194</span></span>
 <span><span class="co">#&gt; C1orf86             0.0000000             0.0000000             0.0000000</span></span>
@@ -665,7 +663,7 @@ report the grid.</li>
 <span><span class="co">#&gt;  [7] IRanges_2.44.0              S4Vectors_0.48.0           </span></span>
 <span><span class="co">#&gt;  [9] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
 <span><span class="co">#&gt; [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
-<span><span class="co">#&gt; [13] ggplot2_4.0.1               TSENAT_0.1                 </span></span>
+<span><span class="co">#&gt; [13] ggplot2_4.0.1               TSENAT_0.1.0               </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       </span></span>
@@ -695,7 +693,7 @@ report the grid.</li>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Gallardo Cristóbal.</p>
+  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

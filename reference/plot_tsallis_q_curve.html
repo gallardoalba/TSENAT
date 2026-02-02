@@ -13,7 +13,7 @@ ribbon spanning median +- IQR/2."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,23 +69,28 @@ ribbon spanning median +- IQR/2.</p>
 
 
 <dl><dt id="arg-readcounts">readcounts<a class="anchor" aria-label="anchor" href="#arg-readcounts"></a></dt>
-<dd><p>Numeric matrix or data.frame with transcripts as rows and samples as columns.</p></dd>
+<dd><p>Numeric matrix or data.frame with transcripts as rows and
+samples as columns.</p></dd>
 
 
 <dt id="arg-genes">genes<a class="anchor" aria-label="anchor" href="#arg-genes"></a></dt>
-<dd><p>Character vector assigning a gene id to each row of `readcounts`.</p></dd>
+<dd><p>Character vector assigning a gene id to each row of
+`readcounts`.</p></dd>
 
 
 <dt id="arg-q-values">q_values<a class="anchor" aria-label="anchor" href="#arg-q-values"></a></dt>
-<dd><p>Numeric vector of q values to evaluate (default `seq(0.01,2,by=0.01)`).</p></dd>
+<dd><p>Numeric vector of q values to evaluate (default
+`seq(0.01,2,by=0.01)`).</p></dd>
 
 
 <dt id="arg-group-pattern">group_pattern<a class="anchor" aria-label="anchor" href="#arg-group-pattern"></a></dt>
-<dd><p>Regular expression used to detect the first group in sample names (default `"_N$"`).</p></dd>
+<dd><p>Regular expression to detect group suffixes (default
+"_N$").</p></dd>
 
 
 <dt id="arg-group-names">group_names<a class="anchor" aria-label="anchor" href="#arg-group-names"></a></dt>
-<dd><p>Character vector of length 2 with names for groups (default `c("Normal","Tumor")`).</p></dd>
+<dd><p>Character vector length 2 with group names (default
+c("Normal","Tumor")).</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -93,12 +98,22 @@ ribbon spanning median +- IQR/2.</p>
     <p>A `ggplot` object showing median +- IQR across q values by group.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"tcga_brca_luma_dataset"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">rc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">tcga_brca_luma_dataset</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span>, <span class="op">-</span><span class="fl">1</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">$</span><span class="va">genes</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">plot_tsallis_q_curve</span><span class="op">(</span><span class="va">rc</span>, <span class="va">gs</span>, q_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">0.1</span>, by <span class="op">=</span> <span class="fl">0.03</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">p</span></span></span>
+<span class="r-plt img"><img src="plot_tsallis_q_curve-1.png" alt="" width="700" height="433"></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Gallardo Cristóbal.</p>
+  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

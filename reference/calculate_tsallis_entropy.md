@@ -23,18 +23,18 @@ calculate_tsallis_entropy(
 
 - q:
 
-  Tsallis entropy parameter (q \> 0). Can be a single value or a numeric
-  vector. Default is 2.
+  Tsallis entropy parameter (q \> 0). Scalar or numeric vector (default:
+  2).
 
 - norm:
 
-  If `TRUE`, the entropy values are normalized by their theoretical
-  maximum for the number of transcripts (so values lie in \[0,1\]).
+  Logical; if TRUE, normalize entropy by its theoretical maximum (values
+  in \[0,1\]).
 
 - what:
 
-  Which quantity to return: `"S"` for Tsallis entropy (S_q), `"D"` for
-  Hill numbers (D_q), or `"both"` for a list with both.
+  Which quantity to return: "S" (Tsallis entropy), "D" (Hill numbers),
+  or "both".
 
 - log_base:
 
@@ -43,12 +43,22 @@ calculate_tsallis_entropy(
 
 ## Value
 
-A numeric vector (named when length(q) \> 1) for `what = "S"` or `"D"`,
-or a list with components `$S` and `$D` when `what = "both"`.
+For \`what = "S"\` or \`what = "D"\`: a numeric vector (named when
+length(q) \> 1). For \`what = "both"\`: a list with components \`\$S\`
+and \`\$D\`.
 
 ## Details
 
-Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q))
-with the q-\>1 limits given by Shannon entropy and the exponential of
-Shannon respectively. Natural logarithms are used for the q-\>1 limit
-and normalization.
+Implements S_q = (1 - sum p^q)/(q - 1) and D_q = (sum p^q)^(1/(1-q)).
+Uses the q-\>1 limits (Shannon entropy and its exponential). Natural
+logarithms are used for the q-\>1 limit and for normalization.
+
+## Examples
+
+``` r
+# Basic usage with a small numeric vector
+x <- c(10, 5, 0)
+calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
+#>     q=0.5       q=1       q=2 
+#> 0.5380048 0.5793802 0.6666667 
+```

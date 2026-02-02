@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,11 +60,14 @@
 
 
 <dl><dt id="arg-diff-df">diff_df<a class="anchor" aria-label="anchor" href="#arg-diff-df"></a></dt>
-<dd><p>Data.frame returned by `calculate_difference` (or similar) containing mean columns and a `log2_fold_change` column, and `adjusted_p_values`.</p></dd>
+<dd><p>Data.frame from `calculate_difference()` containing mean
+columns, a `log2_fold_change` column, and `adjusted_p_values`.</p></dd>
 
 
 <dt id="arg-mean-cols">mean_cols<a class="anchor" aria-label="anchor" href="#arg-mean-cols"></a></dt>
-<dd><p>Optional character vector of length 2 with the names of the mean columns (defaults to first two columns that end with `_mean`).</p></dd>
+<dd><p>Optional character vector of length 2 naming the mean
+columns.
+  Defaults to the first two columns that end with `_mean`.</p></dd>
 
 
 <dt id="arg-fold-col">fold_col<a class="anchor" aria-label="anchor" href="#arg-fold-col"></a></dt>
@@ -72,7 +75,8 @@
 
 
 <dt id="arg-padj-col">padj_col<a class="anchor" aria-label="anchor" href="#arg-padj-col"></a></dt>
-<dd><p>Name of the adjusted p-value column (default: `adjusted_p_values`).</p></dd>
+<dd><p>Name of the adjusted p-value column (default:
+`adjusted_p_values`).</p></dd>
 
 
 <dt id="arg-sig-alpha">sig_alpha<a class="anchor" aria-label="anchor" href="#arg-sig-alpha"></a></dt>
@@ -84,12 +88,26 @@
     <p>A `ggplot` MA-plot object.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Minimal fake diff_df</span></span></span>
+<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  gene <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"g"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  sampleA_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  sampleB_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  log2_fold_change <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  adjusted_p_values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">plot_ma</span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="plot_ma-1.png" alt="" width="700" height="433"></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Gallardo Cristóbal.</p>
+  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

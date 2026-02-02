@@ -4,8 +4,8 @@ For each gene, fit a linear model of the form \`entropy ~ q \* group\`
 and extract the p-value for the interaction term (whether the effect of
 \`q\` differs between groups). The function expects a
 \`SummarizedExperiment\` produced by \`calculate_diversity()\` when
-\`method = "tsallis"\` and multiple \`q\` values have been computed
-(column names contain \`\_q=\`).
+multiple \`q\` values have been computed (column names contain
+\`\_q=\`).
 
 ## Usage
 
@@ -25,7 +25,7 @@ calculate_lm_interaction(
 - se:
 
   A \`SummarizedExperiment\` containing a \`diversity\` assay produced
-  by \`calculate_diversity(..., method = "tsallis", q = \<vector\>)\`.
+  by \`calculate_diversity(..., q = \<vector\>)\`.
 
 - sample_type_col:
 
@@ -46,8 +46,8 @@ calculate_lm_interaction(
 
 - nthreads:
 
-  Number of threads (mc.cores) to use when `method = "fpca"` or parallel
-  processing is enabled. Default: 1.
+  Number of threads (mc.cores) to use for parallel processing (default:
+  1).
 
 - assay_name:
 
@@ -58,3 +58,22 @@ calculate_lm_interaction(
 
 A data.frame with columns \`gene\`, \`p_interaction\`, and
 \`adj_p_interaction\`, ordered by ascending \`p_interaction\`.
+
+## Examples
+
+``` r
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:20]
+se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
+calculate_lm_interaction(se)
+#> [calculate_lm_interaction] method=linear
+#> [calculate_lm_interaction] parsed samples and groups; starting per-gene fits
+#>       gene p_interaction adj_p_interaction
+#> 1  C1orf86     0.2415774         0.6590893
+#> 2     PDPN     0.4229195         0.6590893
+#> 3   HNRNPR     0.4658805         0.6590893
+#> 4 C1orf213     0.5487154         0.6590893
+#> 5    MXRA8     0.5492411         0.6590893
+#> 6  ALDH4A1     0.6606980         0.6606980
+```
