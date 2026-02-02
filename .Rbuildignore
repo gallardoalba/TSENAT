@@ -1,5 +1,6 @@
 ^inst/doc$
 ^docs/
+^dist/
 ^data-raw/
 ^_pkgdown.yml$
 ^\.git$
