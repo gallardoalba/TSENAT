@@ -1,5 +1,3 @@
-^inst/doc$
-^inst/doc/
 ^docs/
 ^dist/
 ^data-raw/
