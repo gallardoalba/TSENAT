@@ -2,7 +2,11 @@
 % Please edit documentation in R/map_functions.R
 \name{map_coldata_to_se}
 \alias{map_coldata_to_se}
-\title{Map external coldata into a SummarizedExperiment}
+\title{Map external coldata into a SummarizedExperiment   This helper maps an
+external `coldata` table (with sample IDs and a  condition/label column) into
+a `SummarizedExperiment` produced by  `calculate_diversity()`. It assigns a
+`sample_type` column to  `colData(ts_se)` and falls back to
+`infer_sample_group()` for  unmapped samples.}
 \usage{
 map_coldata_to_se(
   ts_se,
@@ -19,17 +23,19 @@ possibly including `_q=` suffixes.}
 
 \item{coldata_sample_col}{Name of the column in `coldata` with sample IDs.}
 
-\item{coldata_condition_col}{Name of the column in `coldata` with condition/labels.}
+\item{coldata_condition_col}{Name of the column in `coldata` with
+condition/labels.}
 }
 \value{
-The input `ts_se` with `colData(ts_se)$sample_type` set when possible.
+The input `ts_se` with `colData(ts_se)$sample_type` set when
+possible.
 }
 \description{
-This helper maps an external `coldata` table (with sample IDs and a
-condition/label column) into a `SummarizedExperiment` produced by
-`calculate_diversity()`. It assigns a `sample_type` column to
-`colData(ts_se)` and falls back to `infer_sample_group()` for
-unmapped samples.
+Map external coldata into a SummarizedExperiment   This helper maps an
+external `coldata` table (with sample IDs and a  condition/label column) into
+a `SummarizedExperiment` produced by  `calculate_diversity()`. It assigns a
+`sample_type` column to  `colData(ts_se)` and falls back to
+`infer_sample_group()` for  unmapped samples.
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")
@@ -37,9 +43,7 @@ rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
-coldata_df <- data.frame(
-  Sample = sample_names,
-  Condition = rep(c("A", "B"), length.out = ncol(se))
-)
+coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
+length.out = ncol(se)))
 map_coldata_to_se(se, coldata_df)
 }

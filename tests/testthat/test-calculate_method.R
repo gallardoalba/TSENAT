@@ -1,14 +1,23 @@
 context("Aggregation of methods")
 
 test_that("Tsallis aggregation returns expected shape", {
-  read_count_matrix <- rbind(matrix(rpois(36,
-    6),
-    ncol = 6),
+  read_count_matrix <- rbind(
+    matrix(
+      rpois(
+        36,
+        6
+      ),
+      ncol = 6
+    ),
     matrix(0,
-    nrow = 2,
-    ncol = 6))
-  colnames(read_count_matrix) <- paste0("Sample",
-    seq_len(ncol(read_count_matrix)))
+      nrow = 2,
+      ncol = 6
+    )
+  )
+  colnames(read_count_matrix) <- paste0(
+    "Sample",
+    seq_len(ncol(read_count_matrix))
+  )
   genes <- c("A", "B", "B", "C", "C", "C", "D", "D")
   qvec <- c(1, 2)
 

@@ -19,29 +19,40 @@
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
 #' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
-#' length.out = ncol(se)))
+#'   length.out = ncol(se)
+#' ))
 #' map_coldata_to_se(se, coldata_df)
-map_coldata_to_se <- function(ts_se,
+map_coldata_to_se <- function(
+  ts_se,
   coldata,
   coldata_sample_col = "Sample",
-  coldata_condition_col = "Condition") {
+  coldata_condition_col = "Condition"
+) {
   if (is.null(coldata)) {
     return(ts_se)
   }
-  if (!is.data.frame(coldata) || !all(c(coldata_sample_col,
-    coldata_condition_col) %in% colnames(coldata))) {
+  if (!is.data.frame(coldata) || !all(c(
+    coldata_sample_col,
+    coldata_condition_col
+  ) %in% colnames(coldata))) {
     return(ts_se)
   }
-  sample_base_names <- sub("_q=.*",
+  sample_base_names <- sub(
+    "_q=.*",
     "",
-    colnames(SummarizedExperiment::assay(ts_se)))
-  st_map <- setNames(as.character(coldata[[coldata_condition_col]]),
-    as.character(coldata[[coldata_sample_col]]))
+    colnames(SummarizedExperiment::assay(ts_se))
+  )
+  st_map <- setNames(
+    as.character(coldata[[coldata_condition_col]]),
+    as.character(coldata[[coldata_sample_col]])
+  )
   sample_types <- unname(st_map[sample_base_names])
   missing_idx <- which(is.na(sample_types))
   if (length(missing_idx) > 0) {
-    sample_types[missing_idx] <- infer_sample_group(sample_base_names[missing_idx],
-      coldata = coldata)
+    sample_types[missing_idx] <- infer_sample_group(
+      sample_base_names[missing_idx],
+      coldata = coldata
+    )
   }
   SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
   return(ts_se)
@@ -73,16 +84,16 @@ map_coldata_to_se <- function(ts_se,
 #' @return Character vector of group labels (or the `default` value) with same
 #' length as `sample_names`.
 #' @examples
-#' # Basic usage: returns raw suffix tokens or TCGA two-digit codes when no
-#' mapping is supplied
 #' infer_sample_group(c("S1_N", "TCGA-XX-01A"))
-#' # Provide a suffix_map to translate tokens
-#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
-#' "Tumor"))
-#' # Provide a TCGA mapping and prefer TCGA codes over suffixes
+#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(
+#'   N = "Normal", T =
+#'     "Tumor"
+#' ))
 #' tcga_map <- c("01" = "Tumor")
-#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
-#' prefer_suffix = FALSE)
+#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
+#'   tcga_map = tcga_map,
+#'   prefer_suffix = FALSE
+#' )
 #' @export
 infer_sample_group <- function(sample_names,
                                suffix_sep = "_",
@@ -118,10 +129,14 @@ infer_sample_group <- function(sample_names,
 
   # If coldata mapping is supplied and is usable, prefer its mapping
   if (!is.null(coldata)) {
-    if (is.data.frame(coldata) && all(c(coldata_sample_col,
-      coldata_condition_col) %in% colnames(coldata))) {
-      map <- setNames(as.character(coldata[[coldata_condition_col]]),
-        as.character(coldata[[coldata_sample_col]]))
+    if (is.data.frame(coldata) && all(c(
+      coldata_sample_col,
+      coldata_condition_col
+    ) %in% colnames(coldata))) {
+      map <- setNames(
+        as.character(coldata[[coldata_condition_col]]),
+        as.character(coldata[[coldata_sample_col]])
+      )
       mapped <- unname(map[sample_names])
       # For entries that map successfully, fill results
       ok <- !is.na(mapped) & mapped != ""
@@ -134,11 +149,13 @@ infer_sample_group <- function(sample_names,
   }
 
   # Suffix-based detection
-  if (!is.null(suffix_sep) && nzchar(suffix_sep) && any(grepl(suffix_sep,
-    sample_names))) {
+  if (!is.null(suffix_sep) && nzchar(suffix_sep) && any(grepl(
+    suffix_sep,
+    sample_names
+  ))) {
     groups <- vapply(sample_names, function(s) {
       if (grepl(suffix_sep, s, fixed = TRUE)) {
-        tail <- sub(paste0(".*", suffix_sep), "", s)
+        tail <- sub(paste(".*", suffix_sep, sep = ""), "", s)
         mapped <- map_token(tail, suffix_map)
         if (!is.na(mapped)) {
           return(mapped)

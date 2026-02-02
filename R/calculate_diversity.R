@@ -29,11 +29,13 @@
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
 calculate_diversity <- function(x, genes = NULL, norm = TRUE,
                                 tpm = FALSE,
-                                  assayno = 1,
-                                  verbose = FALSE,
-                                  q = 2,
-                                  what = c("S",
-                                  "D")) {
+                                assayno = 1,
+                                verbose = FALSE,
+                                q = 2,
+                                what = c(
+                                  "S",
+                                  "D"
+                                )) {
   if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") ||
     is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
     stop("Input data type is not supported! Please use `?calculate_diversity`
@@ -69,14 +71,15 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
       }
     } else {
       stop("The package cannot find any expression data in your input.",
-        call. = FALSE)
+        call. = FALSE
+      )
     }
   }
 
   if (is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment")) {
-    if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) < assayno) {
-      stop("Please give a valid number to pick an assay from your data.",
-        call. = FALSE)
+    assays_len <- length(SummarizedExperiment::assays(x))
+    if (!is.numeric(assayno) || assays_len < assayno) {
+      stop("Please provide a valid assay number.", call. = FALSE)
     } else if (is.numeric(assayno)) {
       x <- as.matrix(SummarizedExperiment::assays(x)[[assayno]])
     }
@@ -102,7 +105,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
 
   if (nrow(x) != length(genes)) {
     stop("The number of rows is not equal to the given gene set.",
-      call. = FALSE)
+      call. = FALSE
+    )
   }
 
   what <- match.arg(what)
@@ -111,7 +115,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     norm,
     verbose = verbose,
     q = q,
-    what = what)
+    what = what
+  )
 
   # Prepare assay and row/col data
   result_assay <- result[, -1, drop = FALSE]
@@ -119,7 +124,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
 
   if (length(q) > 1) {
     col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
-    col_ids <- paste0(col_split[, 1], "_q=", col_split[, 2])
+    col_ids <- paste(col_split[, 1], "_q=", col_split[, 2], sep = "")
     row_ids <- as.character(result[, 1])
     result_colData <- data.frame(
       samples = as.character(col_split[, 1]),

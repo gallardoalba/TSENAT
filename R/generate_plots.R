@@ -101,7 +101,12 @@ if (getRversion() >= "2.15.1") {
     )
 
     # sample_type: prefer explicit colData mapping when available
-    if (!is.null(sample_type_col) && sample_type_col %in% colnames(SummarizedExperiment::colData(se))) {
+    colnames_se <- colnames(SummarizedExperiment::colData(se))
+    sample_type_in_coldata <- FALSE
+    if (!is.null(sample_type_col)) {
+      sample_type_in_coldata <- sample_type_col %in% colnames_se
+    }
+    if (sample_type_in_coldata) {
       st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
       names(st) <- colnames(mat)
       long$sample_type <- unname(st[long$sample])
@@ -147,7 +152,8 @@ if (getRversion() >= "2.15.1") {
     long <- tidyr::pivot_longer(df,
       -Gene,
       names_to = "sample_q",
-      values_to = "tsallis")
+      values_to = "tsallis"
+    )
     if (any(grepl("_q=", long$sample_q))) {
       long <- tidyr::separate(
         long,
@@ -287,13 +293,12 @@ plot_mean_violin <- function(
 #' @return A `ggplot` MA-plot object.
 #' @export
 #' @examples
-#' # Minimal fake diff_df
 #' df <- data.frame(
-#' gene = paste0("g", seq_len(10)),
-#' sampleA_mean = runif(10),
-#' sampleB_mean = runif(10),
-#' log2_fold_change = rnorm(10),
-#' adjusted_p_values = runif(10)
+#'   gene = paste0("g", seq_len(10)),
+#'   sampleA_mean = runif(10),
+#'   sampleB_mean = runif(10),
+#'   log2_fold_change = rnorm(10),
+#'   adjusted_p_values = runif(10)
 #' )
 #' plot_ma(df)
 plot_ma <- function(
@@ -325,13 +330,19 @@ plot_ma <- function(
     "non-significant"
   )
 
-  p <- ggplot2::ggplot(df,
-    ggplot2::aes(x = mean,
-    y = fold,
-    color = significant)) +
+  p <- ggplot2::ggplot(
+    df,
+    ggplot2::aes(
+      x = mean,
+      y = fold,
+      color = significant
+    )
+  ) +
     ggplot2::geom_point(alpha = 0.6) +
-    ggplot2::scale_color_manual(values = c("non-significant" = "black",
-      "significant" = "red")) +
+    ggplot2::scale_color_manual(values = c(
+      "non-significant" = "black",
+      "significant" = "red"
+    )) +
     ggplot2::theme_minimal() +
     ggplot2::labs(x = "Mean diversity", y = "Log2 fold change")
 
@@ -374,8 +385,12 @@ plot_tsallis_q_curve <- function(
   if (!requireNamespace("dplyr", quietly = TRUE)) stop("dplyr required")
 
   if (is.data.frame(readcounts)) readcounts <- as.matrix(readcounts)
-  if (!is.matrix(readcounts)) stop("`readcounts` must be a matrix or data.frame")
-  if (length(genes) != nrow(readcounts)) stop("Length of `genes` must match nrow(readcounts)")
+  if (!is.matrix(readcounts)) {
+    stop("`readcounts` must be a matrix or data.frame")
+  }
+  if (length(genes) != nrow(readcounts)) {
+    stop("Length of `genes` must match nrow(readcounts)")
+  }
 
   get_group_stats_iqr <- function(q) {
     # compute per-gene Tsallis per sample for this q
@@ -436,10 +451,8 @@ plot_tsallis_q_curve <- function(
 
   return(p)
 }
+#' Violin plot of Tsallis entropy for multiple q values
 
-
-# #' Violin plot of Tsallis entropy for multiple q values
-# #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
 #' multiple q values (column names contain `_q=`).
 #' @param assay_name Name of the assay to use (default: "diversity").
@@ -482,10 +495,8 @@ plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
 
   return(p)
 }
+#' Density plot of Tsallis entropy for multiple q values
 
-
-# #' Density plot of Tsallis entropy for multiple q values
-# #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
 #' multiple q values (column names contain `_q=`).
 #' @param assay_name Name of the assay to use (default: "diversity").
@@ -537,11 +548,10 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' @return ggplot volcano plot.
 #' @export
 #' @examples
-#' # Minimal fake diff_df
 #' df <- data.frame(
-#' gene = paste0("g", seq_len(10)),
-#' mean_difference = runif(10),
-#' adjusted_p_values = runif(10)
+#'   gene = paste0("g", seq_len(10)),
+#'   mean_difference = runif(10),
+#'   adjusted_p_values = runif(10)
 #' )
 #' plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 plot_volcano <- function(
@@ -593,12 +603,18 @@ plot_volcano <- function(
       values = c("non-significant" = "grey", "significant" = "red"),
       guide = "none"
     ) +
-    ggplot2::geom_hline(yintercept = -log10(padj_thresh),
+    ggplot2::geom_hline(
+      yintercept = -log10(padj_thresh),
       color = "red",
-      linetype = "dashed") +
-    ggplot2::geom_vline(xintercept = c(label_thresh,
-      -label_thresh),
-      linetype = "dashed") +
+      linetype = "dashed"
+    ) +
+    ggplot2::geom_vline(
+      xintercept = c(
+        label_thresh,
+        -label_thresh
+      ),
+      linetype = "dashed"
+    ) +
     ggplot2::theme_minimal() +
     ggplot2::labs(
       title = "Volcano: mean difference vs adjusted p-value",
@@ -607,21 +623,31 @@ plot_volcano <- function(
     )
 
   # annotate top N genes by smallest padj
-  genes_col <- if ("genes" %in% colnames(df)) "genes" else if (!is.null(rownames(df))) "rownames" else NULL
+  genes_col <- if ("genes" %in% colnames(df)) {
+    "genes"
+  } else if (!is.null(rownames(df))) {
+    "rownames"
+  } else {
+    NULL
+  }
   if (!is.null(genes_col) && top_n > 0) {
     if (genes_col == "rownames") df$genes <- rownames(df)
     ord <- order(df$padj_num, na.last = TRUE)
     top_idx <- head(ord[!is.na(df$padj_num[ord])], top_n)
     ann_df <- df[top_idx, , drop = FALSE]
     if (requireNamespace("ggrepel", quietly = TRUE)) {
-      p <- p + ggrepel::geom_text_repel(data = ann_df,
+      p <- p + ggrepel::geom_text_repel(
+        data = ann_df,
         ggplot2::aes(label = genes),
-        size = 3)
+        size = 3
+      )
     } else {
-      p <- p + ggplot2::geom_text(data = ann_df,
+      p <- p + ggplot2::geom_text(
+        data = ann_df,
         ggplot2::aes(label = genes),
         vjust = -0.5,
-        size = 3)
+        size = 3
+      )
     }
   }
 
@@ -652,39 +678,37 @@ plot_volcano <- function(
 #' @export
 #' @name plot_top_transcripts
 #' @examples
-#' # Toy transcript-level example: 6 transcripts across 4 samples
 #' tx_counts <- matrix(
-#' sample(1:100, 24, replace = TRUE),
-#' nrow = 6
+#'   sample(1:100, 24, replace = TRUE),
+#'   nrow = 6
 #' )
 #' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
 #' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
 #'
-#' # Map transcripts to genes (3 genes, 2 transcripts each)
 #' tx2gene <- data.frame(
-#' Transcript = rownames(tx_counts),
-#' Gen = rep(paste0("G", seq_len(3)), each = 2),
-#' stringsAsFactors = FALSE
+#'   Transcript = rownames(tx_counts),
+#'   Gen = rep(paste0("G", seq_len(3)), each = 2),
+#'   stringsAsFactors = FALSE
 #' )
 #'
-#' # Sample group labels (length = ncol(tx_counts))
 #' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
 #'
-#' # Plot top transcripts for genes G1 and G2
 #' plot_top_transcripts(
-#' tx_counts,
-#' gene = c("G1", "G2"),
-#' samples = samples,
-#' tx2gene = tx2gene,
-#' top_n = 2
+#'   tx_counts,
+#'   gene = c("G1", "G2"),
+#'   samples = samples,
+#'   tx2gene = tx2gene,
+#'   top_n = 2
 #' )
 if (getRversion() >= "2.15.1") {
-  utils::globalVariables(c("tx",
+  utils::globalVariables(c(
+    "tx",
     "expr",
     "group",
     "tx_cond",
     "sample",
-    "log2expr"))
+    "log2expr"
+  ))
 }
 plot_top_transcripts <- function(
   counts,
@@ -756,20 +780,27 @@ plot_top_transcripts <- function(
     df_long <- tidyr::pivot_longer(df_all,
       -tx,
       names_to = "sample",
-      values_to = "expr")
+      values_to = "expr"
+    )
     df_long$group <- rep(samples, times = length(txs))
 
     # summarize median per transcript x group and produce compact heatmap
-    df_summary <- aggregate(expr ~ tx + group, data = df_long, 
-                            FUN = function(x) stats::median(x, na.rm = TRUE))
+    df_summary <- aggregate(expr ~ tx + group,
+      data = df_long,
+      FUN = function(x) stats::median(x, na.rm = TRUE)
+    )
     df_summary$log2expr <- log2(df_summary$expr + pseudocount)
     df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
 
     # show transcripts on y (readable labels) and groups on x
-    p <- ggplot2::ggplot(df_summary,
-      ggplot2::aes(x = group,
-      y = tx,
-      fill = log2expr)) +
+    p <- ggplot2::ggplot(
+      df_summary,
+      ggplot2::aes(
+        x = group,
+        y = tx,
+        fill = log2expr
+      )
+    ) +
       ggplot2::geom_tile(color = "white", width = 0.95, height = 0.95) +
       ggplot2::scale_fill_viridis_c(
         option = "viridis",
@@ -822,12 +853,17 @@ plot_top_transcripts <- function(
       df_long <- tidyr::pivot_longer(df_all,
         -tx,
         names_to = "sample",
-        values_to = "expr")
+        values_to = "expr"
+      )
       df_long$group <- rep(samples, times = length(txs))
       df_summary <- aggregate(expr ~ tx + group,
         data = df_long,
-        FUN = function(x) stats::median(x,
-        na.rm = TRUE))
+        FUN = function(x) {
+          stats::median(x,
+            na.rm = TRUE
+          )
+        }
+      )
       df_summary$log2expr <- log2(df_summary$expr + pseudocount)
       mins <- c(mins, min(df_summary$log2expr, na.rm = TRUE))
       maxs <- c(maxs, max(df_summary$log2expr, na.rm = TRUE))
@@ -835,9 +871,14 @@ plot_top_transcripts <- function(
     if (length(mins) == 0) stop("No transcripts found for provided genes")
     fill_limits <- c(min(mins, na.rm = TRUE), max(maxs, na.rm = TRUE))
 
-    plots <- lapply(gene,
-      function(g) make_plot_for_gene(g,
-      fill_limits = fill_limits))
+    plots <- lapply(
+      gene,
+      function(g) {
+        make_plot_for_gene(g,
+          fill_limits = fill_limits
+        )
+      }
+    )
     # try patchwork first (collect guides), otherwise cowplot with shared legend
     if (requireNamespace("patchwork", quietly = TRUE)) {
       combined <- Reduce(`+`, plots) +
@@ -846,29 +887,45 @@ plot_top_transcripts <- function(
       result_plot <- combined
     } else if (requireNamespace("cowplot", quietly = TRUE)) {
       # extract legend from first plot
-      legend <- cowplot::get_legend(plots[[1]] + ggplot2::theme(legend.position = "bottom"))
-      plots_nolegend <- lapply(plots,
-        function(pp) pp + ggplot2::theme(legend.position = "none"))
-      grid <- cowplot::plot_grid(plotlist = plots_nolegend,
+      p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
+      legend <- cowplot::get_legend(p_for_legend)
+      plots_nolegend <- lapply(
+        plots,
+        function(pp) pp + ggplot2::theme(legend.position = "none")
+      )
+      grid <- cowplot::plot_grid(
+        plotlist = plots_nolegend,
         nrow = 1,
-        align = "hv")
+        align = "hv"
+      )
       result_plot <- cowplot::plot_grid(grid,
         legend,
         ncol = 1,
-        rel_heights = c(1,
-        0.08))
+        rel_heights = c(
+          1,
+          0.08
+        )
+      )
     } else {
       # fallback: arrange grobs horizontally using base grid (no extra packages)
       # remove legends from individual plots and extract a single legend grob
-      plots_nolegend <- lapply(plots,
-        function(pp) pp + ggplot2::theme(legend.position = "none"))
+      plots_nolegend <- lapply(
+        plots,
+        function(pp) pp + ggplot2::theme(legend.position = "none")
+      )
       grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
       # extract legend from original first plot
       g_full <- ggplot2::ggplotGrob(plots[[1]])
-      legend_idx <- which(vapply(g_full$grobs,
+      legend_idx <- which(vapply(
+        g_full$grobs,
         function(x) x$name,
-        character(1)) == "guide-box")
-      legend_grob <- if (length(legend_idx)) g_full$grobs[[legend_idx[1]]] else NULL
+        character(1)
+      ) == "guide-box")
+      if (length(legend_idx)) {
+        legend_grob <- g_full$grobs[[legend_idx[1]]]
+      } else {
+        legend_grob <- NULL
+      }
       n <- length(grobs)
       # layout: plots in row 1, legend spanning row 2
       if (!is.null(output_file)) {
@@ -892,8 +949,10 @@ plot_top_transcripts <- function(
           grid::upViewport()
         }
         if (!is.null(legend_grob)) {
-          vp_leg <- grid::viewport(layout.pos.row = 2,
-            layout.pos.col = seq_len(n))
+          vp_leg <- grid::viewport(
+            layout.pos.row = 2,
+            layout.pos.col = seq_len(n)
+          )
           grid::pushViewport(vp_leg)
           grid::grid.draw(legend_grob)
           grid::upViewport()
@@ -922,8 +981,10 @@ plot_top_transcripts <- function(
           grid::upViewport()
         }
         if (!is.null(legend_grob)) {
-          vp_leg <- grid::viewport(layout.pos.row = 2,
-            layout.pos.col = seq_len(n))
+          vp_leg <- grid::viewport(
+            layout.pos.row = 2,
+            layout.pos.col = seq_len(n)
+          )
           grid::pushViewport(vp_leg)
           grid::grid.draw(legend_grob)
           grid::upViewport()

@@ -11,7 +11,8 @@ testthat::test_that("plot_volcano returns a ggplot and annotates top genes", {
   p <- plot_volcano(df,
     x_col = "mean_difference",
     padj_col = "adjusted_p_values",
-    top_n = 3)
+    top_n = 3
+  )
   testthat::expect_s3_class(p, "ggplot")
   # building the plot should not error
   ggplot2::ggplot_build(p)

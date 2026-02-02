@@ -46,29 +46,33 @@
 #' genes of low sample size from the significance  calculation, depending on
 #' which statistical test is applied.
 #' @examples
-#' # data.frame with splicing diversity values
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-#' # sample categories
 #' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
-#' # To calculate the difference of splicing diversity changes between the
-#' # 'Healthy' and 'Pathogenic' condition together with the significance values,
-#' # using mean and Wilcoxon rank sum test, use:
-#' calculate_difference(x, samples, control = "Healthy", method = "mean", test =
-#' "wilcoxon")
+#' calculate_difference(x, samples,
+#'   control = "Healthy", method = "mean", test =
+#'     "wilcoxon"
+#' )
 calculate_difference <- function(x, samples, control, method = "mean",
                                  test = "wilcoxon", randomizations = 100,
                                  pcorr = "BH", assayno = 1, verbose = FALSE,
                                  ...) {
   # internal small helpers (kept here to avoid adding new files)
   .tsenat_prepare_df <- function(x, samples, assayno) {
-    if (inherits(x,
-      "RangedSummarizedExperiment") || inherits(x,
-      "SummarizedExperiment")) {
-      if (length(samples) != 1) stop("For SummarizedExperiment input, 'samples' must be the name of a single colData column.",
-        call. = FALSE)
+    if (inherits(
+      x,
+      "RangedSummarizedExperiment"
+    ) || inherits(
+      x,
+      "SummarizedExperiment"
+    )) {
+      if (length(samples) != 1) {
+        stop("'samples' must be a single colData column.", call. = FALSE)
+      }
       samples <- SummarizedExperiment::colData(x)[[samples]]
-      if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) < assayno) stop("Invalid 'assayno'.",
-        call. = FALSE)
+      if (!is.numeric(assayno) ||
+        length(SummarizedExperiment::assays(x)) < assayno) {
+        stop("Invalid 'assayno'.", call. = FALSE)
+      }
       df <- as.data.frame(SummarizedExperiment::assays(x)[[assayno]])
       genes <- rownames(df)
       df <- cbind(genes = genes, df)
@@ -78,23 +82,33 @@ calculate_difference <- function(x, samples, control, method = "mean",
     list(df = df, samples = samples)
   }
 
-  .tsenat_sample_matrix <- function(dfr) as.matrix(dfr[,
-    -c(1,
-    ncol(dfr) - 1,
-    ncol(dfr)),
-    drop = FALSE])
+  .tsenat_sample_matrix <- function(dfr) {
+    as.matrix(dfr[,
+      -c(
+        1,
+        ncol(dfr) - 1,
+        ncol(dfr)
+      ),
+      drop = FALSE
+    ])
+  }
 
   # Validate input container
   # Reject matrices explicitly (tests expect this error for matrix input)
   if (is.matrix(x)) {
-    stop("Input data type is not supported! Please use `?calculate_difference`
-             to see the possible arguments and details.", call. = FALSE)
+    stop("Input type unsupported; see ?calculate_difference.", call. = FALSE)
   }
-  if (!(is.data.frame(x) || inherits(x,
-    "RangedSummarizedExperiment") || inherits(x,
-    "SummarizedExperiment"))) {
-    stop("Input data type is not supported! Please use `?calculate_difference`
-             to see the possible arguments and details.", call. = FALSE)
+  if (!(is.data.frame(x) || inherits(
+    x,
+    "RangedSummarizedExperiment"
+  ) || inherits(
+    x,
+    "SummarizedExperiment"
+  ))) {
+    stop(
+      "Input data type not supported; see ?calculate_difference.",
+      call. = FALSE
+    )
   }
 
   # prepare data.frame and sample vector (handles SummarizedExperiment)
@@ -103,58 +117,66 @@ calculate_difference <- function(x, samples, control, method = "mean",
   samples <- pd$samples
 
   # Basic consistency checks
-  if (ncol(df) - 1 != length(samples)) stop("The number of columns in the data.frame is not equal to the number of          samples defined in the samples argument.",
-    call. = FALSE)
+  if (ncol(df) - 1 != length(samples)) {
+    stop("Column count doesn't match length(samples).", call. = FALSE)
+  }
   groups <- levels(as.factor(samples))
   # capture dots early and initialize 'case' to avoid unbound variable errors
-  dots <- list(...)
-  case <- if (!is.null(dots$case)) dots$case else NULL
+  # Note: any extra arguments are forwarded via `...` where used below.
   if (length(groups) > 2) {
-    stop("The number of conditions are higher than two. Please use exactly two
-             different sample conditions, e.g. healthy and pathogenic.", call. = FALSE)
+    stop("More than two conditions; provide exactly two.", call. = FALSE)
   }
-  if (length(groups) < 2) stop("The number of conditions are smaller than two. Please use exactly two
-           different sample conditions, e.g. healthy and pathogenic.", call. = FALSE)
-  if (!(control %in% samples)) stop("This control sample type cannot be found in your samples.",
-    call. = FALSE)
-  if (!(method %in% c("mean",
-    "median"))) stop("Invalid method. Please use `?calculate_difference` to see the possible
-           arguments and details.", call. = FALSE)
-  if (!(test %in% c("wilcoxon",
-    "shuffle"))) stop("Invalid test method. Please use `?calculate_difference` to see the
-           possible arguments and details.", call. = FALSE)
-  valid_pcorr <- c("holm",
+  if (length(groups) < 2) {
+    stop("Fewer than two conditions; provide exactly two.", call. = FALSE)
+  }
+  if (!(control %in% samples)) {
+    stop("Control sample type not found in samples.", call. = FALSE)
+  }
+  if (!(method %in% c(
+    "mean",
+    "median"
+  ))) {
+    stop("Invalid method; see ?calculate_difference.", call. = FALSE)
+  }
+  if (!(test %in% c(
+    "wilcoxon",
+    "shuffle"
+  ))) {
+    stop("Invalid test method; see ?calculate_difference.", call. = FALSE)
+  }
+  valid_pcorr <- c(
+    "holm",
     "hochberg",
     "hommel",
     "bonferroni",
     "BH",
     "BY",
     "fdr",
-    "none")
-  if (!(pcorr %in% valid_pcorr)) stop("Invalid p-value correction method. Please use `?calculate_difference` to see the
-           possible arguments and details.", call. = FALSE)
+    "none"
+  )
+  if (!(pcorr %in% valid_pcorr)) {
+    stop(
+      "Invalid p-value correction; see ?calculate_difference.",
+      call. = FALSE
+    )
+  }
 
   # Informational warnings about sample size
   tab <- table(samples)
   if (test == "wilcoxon") {
     if (randomizations != 100 && verbose) {
-      message("Note: The 'randomizations' argument is an option for label shuffling,
-                    it won't have any effect on the Wilcoxon rank sum test.")
+      message("'randomizations' ignored for wilcoxon.")
     }
     if (any(tab < 3) || sum(tab) < 8) {
-      warning("Low sample size. Wilcoxon rank sum test requires at least
-            three samples in a given category and at least 8 samples overall for a
-                          theoretical p-value smaller than 0.05.", call. = FALSE)
+      warning("Low sample size for wilcoxon.", call. = FALSE)
     }
   }
   if (test == "shuffle") {
     if (sum(tab) <= 5) {
-      warning("Low sample size, not enough samples for label shuffling!",
-        call. = FALSE)
+      warning("Low sample size for label shuffling.", call. = FALSE)
     }
     if (sum(tab) > 5 && sum(tab) < 10) {
-      warning("Low sample size, label shuffling might not give informative and
-                    correct results.", call. = FALSE)
+      warning("Label shuffling may be unreliable.", call. = FALSE)
     }
   }
 
@@ -166,7 +188,11 @@ calculate_difference <- function(x, samples, control, method = "mean",
 
   # Partition genes by sufficient observations for the chosen test
   if (test == "wilcoxon") {
-    keep_mask <- (df$cond_1 >= 3 & df$cond_2 >= 3 & (df$cond_1 + df$cond_2) >= 8)
+    keep_mask <- (
+      df$cond_1 >= 3 &
+        df$cond_2 >= 3 &
+        (df$cond_1 + df$cond_2) >= 8
+    )
   } else {
     keep_mask <- (df$cond_1 + df$cond_2) >= 5
   }
@@ -181,8 +207,12 @@ calculate_difference <- function(x, samples, control, method = "mean",
   sample_matrix <- .tsenat_sample_matrix
 
   if (nrow(df_keep) > 0) {
-    if (nrow(df_small) > 0 && verbose) message(sprintf("Note: %d genes excluded from testing due to low sample counts.",
-      nrow(df_small)))
+    if (nrow(df_small) > 0 && verbose) {
+      message(sprintf(
+        "Note: %d genes excluded due to low sample counts.",
+        nrow(df_small)
+      ))
+    }
     ymat <- sample_matrix(df_keep)
     # p-value calculation
     if (test == "wilcoxon") {
@@ -191,27 +221,39 @@ calculate_difference <- function(x, samples, control, method = "mean",
     } else {
       ptab <- label_shuffling(ymat, samples, control, method, randomizations)
     }
-    result_list$tested <- data.frame(genes = df_keep[,
-      1],
-      calculate_fc(ymat,
-      samples,
-      control,
-      method),
+    result_list$tested <- data.frame(
+      genes = df_keep[
+        ,
+        1
+      ],
+      calculate_fc(
+        ymat,
+        samples,
+        control,
+        method
+      ),
       ptab,
-      stringsAsFactors = FALSE)
+      stringsAsFactors = FALSE
+    )
   }
 
   if (nrow(df_small) > 0) {
     small_mat <- sample_matrix(df_small)
-    result_list$small <- data.frame(genes = df_small[,
-      1],
-      calculate_fc(small_mat,
-      samples,
-      control,
-      method),
+    result_list$small <- data.frame(
+      genes = df_small[
+        ,
+        1
+      ],
+      calculate_fc(
+        small_mat,
+        samples,
+        control,
+        method
+      ),
       raw_p_values = NA,
       adjusted_p_values = NA,
-      stringsAsFactors = FALSE)
+      stringsAsFactors = FALSE
+    )
   }
 
   # Combine results preserving tested rows first
@@ -254,31 +296,45 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
-                                     method = c("linear",
+                                     method = c(
+                                       "linear",
                                        "gam",
-                                       "fpca"),
-                                       nthreads = 1,
-                                       
+                                       "fpca"
+                                     ),
+                                     nthreads = 1,
                                      assay_name = "diversity") {
   method <- match.arg(method)
   message("[calculate_lm_interaction] method=", method)
   if (!requireNamespace("SummarizedExperiment",
-    quietly = TRUE)) stop("SummarizedExperiment required")
+    quietly = TRUE
+  )) {
+    stop("SummarizedExperiment required")
+  }
 
   mat <- SummarizedExperiment::assay(se, assay_name)
-  if (is.null(mat)) stop(sprintf("`%s` assay not found in provided SummarizedExperiment",
-    assay_name))
+  if (is.null(mat)) {
+    stop(sprintf(
+      "Assay '%s' not found in SummarizedExperiment",
+      assay_name
+    ))
+  }
 
   sample_q <- colnames(mat)
-  if (is.null(sample_q) || length(sample_q) == 0) stop("No column names found on diversity assay")
+  if (is.null(sample_q) || length(sample_q) == 0) {
+    stop("No column names found on diversity assay")
+  }
 
   # parse sample names and q values from column names like 'Sample_q=0.01'
   sample_names <- sub("_q=.*", "", sample_q)
   q_vals <- as.numeric(sub(".*_q=", "", sample_q))
-  if (all(is.na(q_vals))) stop("Could not parse q values from column names; expected pattern '_q=' in names")
+  if (all(is.na(q_vals))) {
+    stop("Could not parse q values; expected '_q=' in column names")
+  }
 
   # determine group for each sample
-  if (!is.null(sample_type_col) && sample_type_col %in% colnames(SummarizedExperiment::colData(se))) {
+  sample_type_in_coldata <- !is.null(sample_type_col) &&
+    sample_type_col %in% colnames(SummarizedExperiment::colData(se))
+  if (sample_type_in_coldata) {
     st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
     names(st) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
     # when user provides a sample_type_col, index by the sample names (strip q
@@ -290,7 +346,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
     group_vec <- infer_sample_group(sample_names)
   }
 
-  message("[calculate_lm_interaction] parsed samples and groups; starting per-gene fits")
+  message("[calculate_lm_interaction] parsed samples and groups")
   all_results <- list()
   fit_one <- function(g) {
     vals <- as.numeric(mat[g, ])
@@ -313,26 +369,41 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         return(NULL)
       }
       p_interaction <- coefs[ia_idx[1], "Pr(>|t|)"]
-      return(data.frame(gene = g,
+      return(data.frame(
+        gene = g,
         p_interaction = p_interaction,
-        stringsAsFactors = FALSE))
+        stringsAsFactors = FALSE
+      ))
     }
 
     if (method == "gam") {
       if (!requireNamespace("mgcv",
-        quietly = TRUE)) stop("Package 'mgcv' is required for method = 'gam'")
+        quietly = TRUE
+      )) {
+        stop("Package 'mgcv' is required for method = 'gam'")
+      }
       # choose smoothing basis dimension k based on number of unique q values
       uq_len <- length(unique(na.omit(q_vals)))
       k_q <- max(2, min(10, uq_len - 1))
-      fit_null <- try(mgcv::gam(entropy ~ group + s(q,
-        k = k_q),
-        data = df),
-        silent = TRUE)
-      fit_alt <- try(mgcv::gam(entropy ~ group + s(q,
-        by = group,
-        k = k_q),
-        data = df),
-        silent = TRUE)
+      fit_null <- try(
+        mgcv::gam(
+          entropy ~ group + s(q,
+            k = k_q
+          ),
+          data = df
+        ),
+        silent = TRUE
+      )
+      fit_alt <- try(
+        mgcv::gam(
+          entropy ~ group + s(q,
+            by = group,
+            k = k_q
+          ),
+          data = df
+        ),
+        silent = TRUE
+      )
       if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
         return(NULL)
       }
@@ -348,12 +419,18 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
           p_interaction <- an[2, "Pr(F)"]
         } else if ("Pr(>F)" %in% colnames(an)) {
           p_interaction <- an[2, "Pr(>F)"]
-        } else if ("p-value" %in% colnames(an)) p_interaction <- an[2,
-          "p-value"]
+        } else if ("p-value" %in% colnames(an)) {
+          p_interaction <- an[
+            2,
+            "p-value"
+          ]
+        }
       }
-      return(data.frame(gene = g,
+      return(data.frame(
+        gene = g,
         p_interaction = p_interaction,
-        stringsAsFactors = FALSE))
+        stringsAsFactors = FALSE
+      ))
     }
 
     if (method == "fpca") {
@@ -361,18 +438,25 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
       # Build per-sample curves across q: rows = samples, cols = unique q values
       uq <- sort(unique(q_vals))
       samples_u <- unique(sample_names)
-      message(sprintf("[fpca] uq=%s samples_u=%s",
+      message(sprintf(
+        "[fpca] uq=%s samples_u=%s",
         paste(uq,
-        collapse = ","),
+          collapse = ","
+        ),
         paste(samples_u,
-        collapse = ",")))
+          collapse = ","
+        )
+      ))
       curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
       # assign rownames defensively; avoid assigning colnames to prevent dimname
       # mismatch
       if (length(samples_u) > 0) rownames(curve_mat) <- samples_u
-      message(sprintf("[fpca] created curve_mat with dims: %s",
+      message(sprintf(
+        "[fpca] created curve_mat with dims: %s",
         paste(dim(curve_mat),
-        collapse = ",")))
+          collapse = ","
+        )
+      ))
       for (i in seq_along(sample_names)) {
         s <- sample_names[i]
         qv <- q_vals[i]
@@ -380,28 +464,41 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         message("[fpca] i=", i, " s=", s, " qv=", qv, " qi=", qi)
         if (is.na(qi)) next
         # protect in case sample name not present in rownames
-        if (s %in% rownames(curve_mat)) curve_mat[s,
-          qi] <- as.numeric(mat[g,
-          i])
+        if (s %in% rownames(curve_mat)) {
+          curve_mat[
+            s,
+            qi
+          ] <- as.numeric(mat[
+            g,
+            i
+          ])
+        }
       }
       # keep samples with at least half of q points present
-      good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2,
-        ceiling(ncol(curve_mat) / 2)))
+      good_rows <- which(rowSums(!is.na(curve_mat)) >= max(
+        2,
+        ceiling(ncol(curve_mat) / 2)
+      ))
       if (length(good_rows) < min_obs) {
         return(NULL)
       }
       mat_sub <- curve_mat[good_rows, , drop = FALSE]
       # simple imputation for remaining NAs using column means
       col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
-      for (r in seq_len(nrow(mat_sub))) mat_sub[r,
-        is.na(mat_sub[r,
-        ])] <- col_means[is.na(mat_sub[r,
-        ])]
+      for (r in seq_len(nrow(mat_sub))) {
+        mat_sub[
+          r,
+          is.na(mat_sub[r, ])
+        ] <- col_means[is.na(mat_sub[r, ])]
+      }
       # perform PCA across q (observations = samples)
-      pca <- try(stats::prcomp(mat_sub,
-        center = TRUE,
-        scale. = FALSE),
-        silent = TRUE)
+      pca <- try(
+        stats::prcomp(mat_sub,
+          center = TRUE,
+          scale. = FALSE
+        ),
+        silent = TRUE
+      )
       if (inherits(pca, "try-error")) {
         return(NULL)
       }
@@ -429,16 +526,21 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         return(NULL)
       }
       pval <- as.numeric(t_res$p.value)
-      return(data.frame(gene = g,
+      return(data.frame(
+        gene = g,
         p_interaction = pval,
-        stringsAsFactors = FALSE))
+        stringsAsFactors = FALSE
+      ))
     }
     return(NULL)
   }
 
   if (nthreads > 1 && .Platform$OS.type == "unix") {
     if (!requireNamespace("parallel",
-      quietly = TRUE)) stop("parallel package required for multi-threading")
+      quietly = TRUE
+    )) {
+      stop("parallel package required for multi-threading")
+    }
     res_list <- parallel::mclapply(rownames(mat), fit_one, mc.cores = nthreads)
   } else {
     res_list <- lapply(rownames(mat), fit_one)

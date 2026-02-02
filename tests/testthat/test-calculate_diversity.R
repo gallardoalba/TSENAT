@@ -1,20 +1,22 @@
 context("Main diversity calculation")
 
-test_that("calculate_diversity supports q as a vector and returns correct metadata",
+test_that(
+  "calculate_diversity supports q as a vector and returns correct metadata",
   {
-  x <- matrix(c(0, 0, 5, 4, 1, 2, 2, 2, 2, 2), ncol = 2)
-  colnames(x) <- c("Sample1", "Sample2")
-  gene <- c("Gene1", "Gene1", "Gene1", "Gene1", "Gene1")
-  qvec <- c(1.1, 1.5, 2)
-  result <- calculate_diversity(x, gene, norm = TRUE, q = qvec)
-  # Assay should have columns for each q and sample
-  assay_names <- colnames(SummarizedExperiment::assay(result))
-  for (qi in qvec) {
-    expect_true(any(grepl(paste0("q=", qi), assay_names)))
+    x <- matrix(c(0, 0, 5, 4, 1, 2, 2, 2, 2, 2), ncol = 2)
+    colnames(x) <- c("Sample1", "Sample2")
+    gene <- c("Gene1", "Gene1", "Gene1", "Gene1", "Gene1")
+    qvec <- c(1.1, 1.5, 2)
+    result <- calculate_diversity(x, gene, norm = TRUE, q = qvec)
+    # Assay should have columns for each q and sample
+    assay_names <- colnames(SummarizedExperiment::assay(result))
+    for (qi in qvec) {
+      expect_true(any(grepl(paste0("q=", qi), assay_names)))
+    }
+    # Metadata should contain the q vector
+    expect_equal(S4Vectors::metadata(result)$q, qvec)
   }
-  # Metadata should contain the q vector
-  expect_equal(S4Vectors::metadata(result)$q, qvec)
-})
+)
 test_that("calculate_diversity passes q parameter for Tsallis entropy", {
   x <- matrix(c(0, 0, 5, 4, 1, 2, 2, 2, 2, 2), ncol = 2)
   colnames(x) <- c("Sample1", "Sample2")
@@ -30,5 +32,5 @@ test_that("calculate_diversity passes q parameter for Tsallis entropy", {
   expect_true(is.numeric(val_q15))
   expect_false(is.na(val_q2))
   expect_false(is.na(val_q15))
-  expect_false(abs(val_q2 - val_q15) < 1e-8) # Should be different for different q
+  expect_false(abs(val_q2 - val_q15) < 1e-8)
 })

@@ -26,8 +26,12 @@ test_that("calculate_diversity returns correct Tsallis entropy for vector q", {
   expect_equal(nrow(result), length(unique(gene)))
   expect_equal(ncol(result), ncol(x) * length(q))
   expect_true(!is.null(SummarizedExperiment::rowData(result)$genes))
-  expect_true(all(c("samples",
-    "q") %in% colnames(SummarizedExperiment::colData(result))))
-  expect_equal(length(unique(SummarizedExperiment::colData(result)$q)),
-    length(q))
+  expect_true(all(c(
+    "samples",
+    "q"
+  ) %in% colnames(SummarizedExperiment::colData(result))))
+  expect_equal(
+    length(unique(SummarizedExperiment::colData(result)$q)),
+    length(q)
+  )
 })

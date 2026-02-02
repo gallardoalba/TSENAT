@@ -17,8 +17,7 @@ plot_ma(
 columns, a `log2_fold_change` column, and `adjusted_p_values`.}
 
 \item{mean_cols}{Optional character vector of length 2 naming the mean
-columns.
-  Defaults to the first two columns that end with `_mean`.}
+columns.  Defaults to the first two columns that end with `_mean`.}
 
 \item{fold_col}{Name of the fold-change column (default: `log2_fold_change`).}
 
@@ -34,13 +33,12 @@ A `ggplot` MA-plot object.
 Plot MA plot for difference results
 }
 \examples{
-# Minimal fake diff_df
 df <- data.frame(
-  gene = paste0("g", seq_len(10)),
-  sampleA_mean = runif(10),
-  sampleB_mean = runif(10),
-  log2_fold_change = rnorm(10),
-  adjusted_p_values = runif(10)
+gene = paste0("g", seq_len(10)),
+sampleA_mean = runif(10),
+sampleB_mean = runif(10),
+log2_fold_change = rnorm(10),
+adjusted_p_values = runif(10)
 )
 plot_ma(df)
 }

@@ -31,7 +31,7 @@ transcript to a gene.}
 }
 \value{
 A data.frame with genes in the first column and per-sample (and
-  per-q) Tsallis entropy values in subsequent columns.
+per-q) Tsallis entropy values in subsequent columns.
 }
 \description{
 Calculate Tsallis diversity values for transcripts grouped by gene

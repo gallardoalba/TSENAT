@@ -27,12 +27,12 @@ numbers), or "both".}
 
 \item{log_base}{Base of the logarithm used for Shannon limits and
 normalization
-  (default: \code{exp(1)}).}
+(default: \code{exp(1)}).}
 }
 \value{
 For `what = "S"` or `what = "D"`: a numeric vector
-  (named when length(q) > 1). For `what = "both"`: a list with
-  components `$S` and `$D`.
+(named when length(q) > 1). For `what = "both"`: a list with
+components `$S` and `$D`.
 }
 \description{
 Calculate Tsallis entropy for a vector of transcript-level
@@ -44,7 +44,6 @@ Uses the q->1 limits (Shannon entropy and its exponential). Natural
 logarithms are used for the q->1 limit and for normalization.
 }
 \examples{
-# Basic usage with a small numeric vector
 x <- c(10, 5, 0)
 calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
 }

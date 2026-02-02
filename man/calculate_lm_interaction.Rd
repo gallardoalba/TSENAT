@@ -2,7 +2,12 @@
 % Please edit documentation in R/calculate_difference.R
 \name{calculate_lm_interaction}
 \alias{calculate_lm_interaction}
-\title{Linear-model interaction test for Tsallis entropy}
+\title{Linear-model interaction test for Tsallis entropy   For each gene, fit a
+linear model of the form `entropy ~ q * group` and  extract the p-value for
+the interaction term (whether the effect of `q`  differs between groups). The
+function expects a `SummarizedExperiment`  produced by
+`calculate_diversity()` when multiple `q` values have been  computed (column
+names contain `_q=`).}
 \usage{
 calculate_lm_interaction(
   se,
@@ -36,14 +41,15 @@ model for a gene (default: 10).}
 }
 \value{
 A data.frame with columns `gene`, `p_interaction`, and
-  `adj_p_interaction`, ordered by ascending `p_interaction`.
+`adj_p_interaction`, ordered by ascending `p_interaction`.
 }
 \description{
-For each gene, fit a linear model of the form `entropy ~ q * group` and
-extract the p-value for the interaction term (whether the effect of `q`
-differs between groups). The function expects a `SummarizedExperiment`
-produced by `calculate_diversity()` when multiple `q` values have been
-computed (column names contain `_q=`).
+Linear-model interaction test for Tsallis entropy   For each gene, fit a
+linear model of the form `entropy ~ q * group` and  extract the p-value for
+the interaction term (whether the effect of `q`  differs between groups). The
+function expects a `SummarizedExperiment`  produced by
+`calculate_diversity()` when multiple `q` values have been  computed (column
+names contain `_q=`).
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")

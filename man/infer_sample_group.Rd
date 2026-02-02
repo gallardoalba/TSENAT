@@ -22,8 +22,7 @@ infer_sample_group(
 \item{suffix_sep}{Character separator to detect suffix groups (default "_").}
 
 \item{suffix_map}{Named character vector mapping suffix tokens (case-
-insensitive)
-  to group labels, e.g. c(N = "Normal", T = "Tumor").}
+insensitive)  to group labels, e.g. c(N = "Normal", T = "Tumor").}
 
 \item{tcga_map}{Named character vector mapping TCGA two-digit codes to group
 labels, e.g. c("01" = "Tumor", "11" = "Normal").}
@@ -52,18 +51,10 @@ length as `sample_names`.
 Infer sample group from sample names
 }
 \examples{
-# Basic usage: returns raw suffix tokens or TCGA two-digit codes when
-# no mapping is supplied
 infer_sample_group(c("S1_N", "TCGA-XX-01A"))
-
-# Provide a suffix_map to translate tokens
-#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
-#' "Tumor"))
-
-# Provide a TCGA mapping and prefer TCGA codes over suffixes
+infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
+"Tumor"))
 tcga_map <- c("01" = "Tumor")
-infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
-  tcga_map = tcga_map,
-  prefer_suffix = FALSE
-)
+infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
+prefer_suffix = FALSE)
 }

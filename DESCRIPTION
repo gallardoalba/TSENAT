@@ -3,8 +3,6 @@ Type: Package
 Title: Tsallis Entropy Analysis Toolbox
 Version: 1.0.0
 Authors@R: person(given = "Cristóbal", family = "Gallardo", role = c("aut", "cre"), email = "gallardoalba@pm.me", comment=c(ORCID="0000-0002-5752-2155"))
-Maintainer: Cristóbal Gallardo <gallardoalba@pm.me>
-Author: Cristóbal Gallardo [aut, cre]
 Description: Tsallis entropy generalizes Shannon entropy with a parameter
     q that controls sensitivity to transcript abundance. This package allows the calculation 
     of Tsallis entropy for transcript-level expression data and differential analyses 

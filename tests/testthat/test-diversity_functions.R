@@ -49,7 +49,8 @@ test_that("Tsallis entropy calculation is mathematically correct", {
   }, numeric(1))
   expect_equal(as.numeric(tsallis_vec),
     as.numeric(manual_vec),
-    tolerance = 1e-8)
+    tolerance = 1e-8
+  )
   expect_named(tsallis_vec, paste0("q=", qvec))
 
   # Edge cases

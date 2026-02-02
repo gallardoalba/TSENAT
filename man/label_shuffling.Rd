@@ -39,8 +39,8 @@ Calculate p-values using label shuffling.
 }
 \details{
 The permutation p-values are computed two-sided as the proportion
- of permuted log2 fold-changes at least as extreme as the observed value,
- with a pseudocount added: (count + 1) / (n_perm + 1).
+of permuted log2 fold-changes at least as extreme as the observed value,
+with a pseudocount added: (count + 1) / (n_perm + 1).
 }
 \note{
 The permutation test returns two-sided empirical p-values using a

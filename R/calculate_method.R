@@ -11,40 +11,59 @@
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
-calculate_method <- function(x,
+calculate_method <- function(
+  x,
   genes,
   norm = TRUE,
   verbose = FALSE,
   q = 2,
-  what = c("S",
-  "D",
-  "both")) {
+  what = c(
+    "S",
+    "D",
+    "both"
+  )
+) {
   what <- match.arg(what)
   # cannot use aggregate because calculate_tsallis_entropy may return
   # multiple values when length(q) > 1
   gene_levels <- unique(genes)
-  coln <- as.vector(outer(colnames(x), q, function(s, qq) paste0(s, "_q=", qq)))
+  coln <- as.vector(
+    outer(
+      colnames(x),
+      q,
+      function(s, qq) paste0(s, "_q=", qq)
+    )
+  )
   rown <- gene_levels
 
   if (what != "both") {
     tsallis_row <- function(gene) {
       idx <- which(genes == gene)
       unlist(lapply(seq_len(ncol(x)), function(j) {
-        v <- calculate_tsallis_entropy(x[idx,
-          j],
+        v <- calculate_tsallis_entropy(
+          x[
+            idx,
+            j
+          ],
           q = q,
           norm = norm,
-          what = what)
-        if (length(v) == length(q) && all(is.finite(v) | is.na(v))) v else setNames(rep(NA_real_,
-          length(q)),
-          paste0("q=",
-          q))
+          what = what
+        )
+        if (length(v) == length(q) && all(is.finite(v) | is.na(v))) {
+          v
+        } else {
+          names_vec <- paste0("q=", q)
+          setNames(rep(NA_real_, length(q)), names_vec)
+        }
       }))
     }
     result_mat <- t(vapply(gene_levels,
       tsallis_row,
-      FUN.VALUE = setNames(numeric(length(coln)),
-      coln)))
+      FUN.VALUE = setNames(
+        numeric(length(coln)),
+        coln
+      )
+    ))
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown
     out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)
@@ -57,8 +76,7 @@ calculate_method <- function(x,
     x <- out_df
     y <- x[apply(x[2:ncol(x)], 1, function(X) all(is.finite(X))), ]
     if (nrow(x) - nrow(y) > 0 && verbose == TRUE) {
-      message(sprintf("Note: There are %d genes with single isoforms, which will be exluded from the analysis.",
-        nrow(x) - nrow(y)))
+      message(sprintf("Note: %d genes excluded.", nrow(x) - nrow(y)))
     }
     colnames(y)[1] <- "Gene"
     return(y)
@@ -67,39 +85,57 @@ calculate_method <- function(x,
     S_row <- function(gene) {
       idx <- which(genes == gene)
       unlist(lapply(seq_len(ncol(x)), function(j) {
-        both <- calculate_tsallis_entropy(x[idx,
-          j],
+        both <- calculate_tsallis_entropy(
+          x[
+            idx,
+            j
+          ],
           q = q,
           norm = norm,
-          what = "both")
-        if (!is.null(both$S) && length(both$S) == length(q)) both$S else setNames(rep(NA_real_,
-          length(q)),
-          paste0("q=",
-          q))
+          what = "both"
+        )
+        if (!is.null(both$S) && length(both$S) == length(q)) {
+          both$S
+        } else {
+          names_vec <- paste0("q=", q)
+          setNames(rep(NA_real_, length(q)), names_vec)
+        }
       }))
     }
     D_row <- function(gene) {
       idx <- which(genes == gene)
       unlist(lapply(seq_len(ncol(x)), function(j) {
-        both <- calculate_tsallis_entropy(x[idx,
-          j],
+        both <- calculate_tsallis_entropy(
+          x[
+            idx,
+            j
+          ],
           q = q,
           norm = norm,
-          what = "both")
-        if (!is.null(both$D) && length(both$D) == length(q)) both$D else setNames(rep(NA_real_,
-          length(q)),
-          paste0("q=",
-          q))
+          what = "both"
+        )
+        if (!is.null(both$D) && length(both$D) == length(q)) {
+          both$D
+        } else {
+          names_vec <- paste0("q=", q)
+          setNames(rep(NA_real_, length(q)), names_vec)
+        }
       }))
     }
     S_mat <- t(vapply(gene_levels,
       S_row,
-      FUN.VALUE = setNames(numeric(length(coln)),
-      coln)))
+      FUN.VALUE = setNames(
+        numeric(length(coln)),
+        coln
+      )
+    ))
     D_mat <- t(vapply(gene_levels,
       D_row,
-      FUN.VALUE = setNames(numeric(length(coln)),
-      coln)))
+      FUN.VALUE = setNames(
+        numeric(length(coln)),
+        coln
+      )
+    ))
     colnames(S_mat) <- coln
     colnames(D_mat) <- coln
     rownames(S_mat) <- rown

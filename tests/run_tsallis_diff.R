@@ -34,7 +34,8 @@ res <- calculate_difference(div_df,
   samples,
   control = "Healthy",
   method = "mean",
-  test = "wilcoxon")
+  test = "wilcoxon"
+)
 
 print(head(res))
 cat("Rows:", nrow(res), "\n")

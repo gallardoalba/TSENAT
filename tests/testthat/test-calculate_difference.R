@@ -1,5 +1,13 @@
 context("Difference calculation")
 
+# Shared expected messages used across tests
+msg_input_type <- "Input type unsupported; see \\?calculate_difference\\."
+msg_randomizations <- "'randomizations' ignored for wilcoxon\\."
+
+# moved here so all test_that blocks can access them
+msg_ncol <- "Column count doesn't match length\\(samples\\)\\."
+msg_low_sample_wilcox <- "Low sample size for wilcoxon\\."
+
 test_that("Difference calculation methods are correct", {
   diversity <- data.frame(Genes = letters[1:10], matrix(runif(80), ncol = 8))
   samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
@@ -7,28 +15,44 @@ test_that("Difference calculation methods are correct", {
   test <- "wilcoxon"
   pcorr <- "BH"
 
-  expect_error(calculate_difference(diversity,
-    samples,
-    control,
-    "Unknown method",
-    test),
-    "Invalid method.*calculate_difference.*arguments and details\\.")
+  msg_invalid_method <- "Invalid method; see \\?calculate_difference\\."
+  msg_invalid_test <- "Invalid test method; see \\?calculate_difference\\."
+  msg_invalid_pcorr <- "Invalid p-value correction; see \\?calculate_difference\\."
 
-  expect_error(calculate_difference(diversity,
-    samples,
-    control,
-    "mean",
-    "bootstrap"),
-    "Invalid test method.*calculate_difference.*arguments and details\\.")
+  expect_error(
+    calculate_difference(
+      diversity,
+      samples,
+      control,
+      "Unknown method",
+      test
+    ),
+    msg_invalid_method
+  )
 
-  expect_error(calculate_difference(diversity,
-    samples,
-    control,
-    "mean",
-    test,
-    100,
-    "Unknown correction"),
-    "Invalid p-value correction method.*calculate_difference.*arguments and details\\.")
+  expect_error(
+    calculate_difference(
+      diversity,
+      samples,
+      control,
+      "mean",
+      "bootstrap"
+    ),
+    msg_invalid_test
+  )
+
+  expect_error(
+    calculate_difference(
+      diversity,
+      samples,
+      control,
+      "mean",
+      test,
+      100,
+      "Unknown correction"
+    ),
+    msg_invalid_pcorr
+  )
 })
 
 test_that("Difference calculation input handling is working.", {
@@ -38,54 +62,80 @@ test_that("Difference calculation input handling is working.", {
       samples <- c(rep("Healthy", 4), rep("Pathogenic", 5))
       control <- "Healthy"
 
-      expect_error(calculate_difference(diversity,
-        samples,
-        control,
-        method,
-        test),
-        "Input data type is not supported.*calculate_difference.*arguments and details\\.")
+      expect_error(
+        calculate_difference(
+          diversity,
+          samples,
+          control,
+          method,
+          test
+        ),
+        msg_input_type
+      )
 
-      diversity <- data.frame(Genes = letters[1:10],
+      diversity <- data.frame(
+        Genes = letters[1:10],
         matrix(runif(80),
-        ncol = 8))
+          ncol = 8
+        )
+      )
 
 
-      expect_error(calculate_difference(diversity,
-        samples,
-        control,
-        method,
-        test),
-        "The number of columns in the data.frame is not equal to the number of.*samples defined in the samples argument\\.")
+      expect_error(
+        calculate_difference(
+          diversity,
+          samples,
+          control,
+          method,
+          test
+        ),
+        msg_ncol
+      )
 
-      samples <- c(rep("Healthy", 4), rep("Pathogenic", 2), rep(
-        "Completely other type of biological condition.",
-        2
-      ))
+      samples <- c(
+        rep("Healthy", 4),
+        rep("Pathogenic", 2),
+        rep("OtherCondition", 2)
+      )
 
-      expect_error(calculate_difference(diversity,
-        samples,
-        control,
-        method,
-        test),
-        "The number of conditions are higher than two.*different sample conditions")
+      msg_high_conditions <- "More than two conditions; provide exactly two\\."
+      expect_error(
+        calculate_difference(
+          diversity,
+          samples,
+          control,
+          method,
+          test
+        ),
+        msg_high_conditions
+      )
 
       samples <- c(rep("Healthy", 8))
 
-      expect_error(calculate_difference(diversity,
-        samples,
-        control,
-        method,
-        test),
-        "The number of conditions are smaller than two.*different sample conditions")
+      msg_low_conditions <- "Fewer than two conditions; provide exactly two\\."
+      expect_error(
+        calculate_difference(
+          diversity,
+          samples,
+          control,
+          method,
+          test
+        ),
+        msg_low_conditions
+      )
 
       samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
 
-      expect_error(calculate_difference(diversity,
-        samples,
-        "Healthy control",
-        method,
-        test),
-        "This control sample type cannot be found in your samples\\.")
+      expect_error(
+        calculate_difference(
+          diversity,
+          samples,
+          "Healthy control",
+          method,
+          test
+        ),
+        "Control sample type not found in samples\\."
+      )
     }
   }
 })
@@ -97,39 +147,57 @@ test_that("Sample size warnings are working.", {
     control <- "Healthy"
     test <- "wilcoxon"
 
-    expect_message(calculate_difference(diversity,
-      samples,
-      control,
-      method,
-      test,
-      1000,
-      verbose = TRUE),
-      "Note: The 'randomizations' argument.*it won't have any effect on the Wilcoxon rank sum test\\.")
+    expect_message(
+      calculate_difference(diversity,
+        samples,
+        control,
+        method,
+        test,
+        1000,
+        verbose = TRUE
+      ),
+      msg_randomizations
+    )
 
     diversity <- data.frame(Genes = letters[1:10], matrix(runif(40), ncol = 4))
     samples <- c(rep("Healthy", 2), rep("Pathogenic", 2))
 
-    expect_warning(calculate_difference(diversity,
-      samples,
-      control,
-      method,
-      test),
-      "Low sample size.*Wilcoxon rank sum test requires at least.*theoretical p-value smaller than 0.05\\.")
+    expect_warning(
+      calculate_difference(
+        diversity,
+        samples,
+        control,
+        method,
+        test
+      ),
+      msg_low_sample_wilcox
+    )
 
     test <- "shuffle"
 
-    expect_warning(calculate_difference(diversity,
-      samples,
-      control,
-      method,
-      test),
-      "Low sample size, not enough samples for label shuffling\\!")
+    expect_warning(
+      calculate_difference(
+        diversity,
+        samples,
+        control,
+        method,
+        test
+      ),
+      "Low sample size for label shuffling\\."
+    )
   }
 })
 
 test_that("Calculate difference output is correct.", {
   diversity <- data.frame(
-    Genes = letters[1], S1 = 0.1, S2 = 0.2, S3 = 0.3, S4 = 0.4, S5 = 0.5, S6 = 0.6, S7 = 0.7,
+    Genes = letters[1],
+    S1 = 0.1,
+    S2 = 0.2,
+    S3 = 0.3,
+    S4 = 0.4,
+    S5 = 0.5,
+    S6 = 0.6,
+    S7 = 0.7,
     S8 = 0.8
   )
   samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))

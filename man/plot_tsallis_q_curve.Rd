@@ -2,7 +2,11 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_tsallis_q_curve}
 \alias{plot_tsallis_q_curve}
-\title{Plot median +- IQR of Tsallis entropy across q values by group}
+\title{Plot median +- IQR of Tsallis entropy across q values by group   This
+reproduces the `tsallis-q-curve-mean-sd` plot from the vignette:  for each q
+value, compute per-gene Tsallis entropy per sample, then  summarize across
+genes by group (median and IQR) and plot median with a  ribbon spanning
+median +- IQR/2.}
 \usage{
 plot_tsallis_q_curve(
   readcounts,
@@ -32,10 +36,11 @@ c("Normal","Tumor")).}
 A `ggplot` object showing median +- IQR across q values by group.
 }
 \description{
-This reproduces the `tsallis-q-curve-mean-sd` plot from the vignette:
-for each q value, compute per-gene Tsallis entropy per sample, then
-summarize across genes by group (median and IQR) and plot median with a
-ribbon spanning median +- IQR/2.
+Plot median +- IQR of Tsallis entropy across q values by group   This
+reproduces the `tsallis-q-curve-mean-sd` plot from the vignette:  for each q
+value, compute per-gene Tsallis entropy per sample, then  summarize across
+genes by group (median and IQR) and plot median with a  ribbon spanning
+median +- IQR/2.
 }
 \examples{
 data("tcga_brca_luma_dataset", package = "TSENAT")

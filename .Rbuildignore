@@ -30,3 +30,5 @@
 # Ignore vignette intermediate files
 ^vignettes/.*\.Rhistory$
 ^vignettes/.*\.utf8$
+
+^inst/doc$

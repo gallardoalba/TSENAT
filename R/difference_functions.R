@@ -30,38 +30,50 @@ calculate_fc <- function(x, samples, control, method = "mean") {
   value[is.na(value[, 1]), c(1)] <- NA
   value[is.na(value[, 2]), c(2)] <- NA
 
-  result <- data.frame(value,
-    ifelse(as.matrix(is.na(value[,
-    1]) | is.na(value[,
-    2])),
+  result <- data.frame(
+    value,
+    ifelse(as.matrix(is.na(value[
+      ,
+      1
+    ]) | is.na(value[
+      ,
+      2
+    ])),
     NA,
-    value[,
-    1] - value[
-    ,
-    2
-  ]),
-    ifelse(as.matrix(is.na(value[,
-    1]) | is.na(value[,
-    2])),
+    value[
+      ,
+      1
+    ] - value[
+      ,
+      2
+    ]
+    ),
+    ifelse(as.matrix(is.na(value[
+      ,
+      1
+    ]) | is.na(value[
+      ,
+      2
+    ])),
     NA,
-    as.matrix(log(value[,
-    1] / value[,
-    2],
-    
-    base = 2
-  ))))
-  colnames(result) <- c(paste0(sorted[1,
-    1],
-    "_",
-    method),
-    paste0(sorted[2,
-    1],
-    "_",
-    method),
-    paste0(
-    method,
-    "_difference"
-  ), "log2_fold_change")
+    as.matrix(log(
+      value[
+        ,
+        1
+      ] / value[
+        ,
+        2
+      ],
+      base = 2
+    ))
+    )
+  )
+  colnames(result) <- c(
+    paste(sorted[1, 1], "_", method, sep = ""),
+    paste(sorted[2, 1], "_", method, sep = ""),
+    paste(method, "_difference", sep = ""),
+    "log2_fold_change"
+  )
   return(result)
 }
 
@@ -81,20 +93,32 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
   p_values <- vector("list", nrow(x))
 
   for (i in seq_len(nrow(x))) {
-    p_values[i] <- wilcox.test(x[i,
-      as.numeric(which(samples %in% unique(sort(samples))[1]))],
-      x[i,
-      as.numeric(which(samples %in%
-      unique(sort(samples))[2]))], paired = paired, exact = exact)$p.value
+    p_values[i] <- wilcox.test(
+      x[
+        i,
+        as.numeric(which(samples %in% unique(sort(samples))[1]))
+      ],
+      x[
+        i,
+        as.numeric(which(samples %in%
+          unique(sort(samples))[2]))
+      ],
+      paired = paired, exact = exact
+    )$p.value
   }
 
-  raw_p_values <- ifelse(is.na(vapply(p_values,
+  raw_p_values <- ifelse(is.na(vapply(
+    p_values,
     c,
-    numeric(1))),
-    1,
-    vapply(p_values,
+    numeric(1)
+  )),
+  1,
+  vapply(
+    p_values,
     c,
-    numeric(1)))
+    numeric(1)
+  )
+  )
   adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
   return(cbind(raw_p_values, adjusted_p_values))
 }
@@ -127,11 +151,14 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100,
 
   # build permutation/null distribution of log2 fold changes
   permuted <- replicate(randomizations,
-    calculate_fc(x,
-    sample(samples),
-    control,
-    method),
-    simplify = FALSE)
+    calculate_fc(
+      x,
+      sample(samples),
+      control,
+      method
+    ),
+    simplify = FALSE
+  )
   # each element is a data.frame/matrix; extract log2_fold_change column (4th
   # column)
   perm_mat <- vapply(permuted, function(z) as.numeric(z[, 4]), numeric(nrow(x)))

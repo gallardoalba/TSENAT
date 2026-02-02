@@ -117,7 +117,8 @@ suppressPackageStartupMessages({
   library(mgcv)
 })
 
-## Note: `map_coldata_to_se()` is provided by the package and will be used below.
+## Note:
+## `map_coldata_to_se()` is provided by the package and will be used below.
 
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
@@ -130,8 +131,8 @@ data(tcga_brca_luma_dataset)
 genes <- tcga_brca_luma_dataset[, 1]
 readcounts <- tcga_brca_luma_dataset[, -1]
 
-# Assign transcript IDs as rownames of `readcounts` so downstream transcript-level
-# plotting functions can use them.
+# Assign transcript IDs as rownames of `readcounts`
+# so downstream transcript-level plotting functions can use them.
 txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
 rownames(readcounts) <- as.character(txmap$Transcript)
 
@@ -139,7 +140,8 @@ rownames(readcounts) <- as.character(txmap$Transcript)
 coldata_df <- read.table(coldata_tsv,
   header = TRUE,
   sep = "\t",
-  stringsAsFactors = FALSE)
+  stringsAsFactors = FALSE
+)
 
 # Check gene names
 head(genes)
@@ -243,9 +245,11 @@ experimental design.
 ```{r difference}
 # create a sample grouping vector inferred from sample names
 # account for per-q column names like 'Sample_q=0.01'
-sample_base_names <- sub("_q=.*",
+sample_base_names <- sub(
+  "_q=.*",
   "",
-  colnames(SummarizedExperiment::assay(ts_se)))
+  colnames(SummarizedExperiment::assay(ts_se))
+)
 samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 
 # prepare diversity table as data.frame with gene names in first column
@@ -296,9 +300,11 @@ isoform-level patterns that may explain the diversity differences.
 ```{r top-transcripts-singleq, fig.width=10, fig.height=6}
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
-sample_base_names <- sub("_q=.*",
+sample_base_names <- sub(
+  "_q=.*",
   "",
-  colnames(SummarizedExperiment::assay(ts_se)))
+  colnames(SummarizedExperiment::assay(ts_se))
+)
 samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
 p_comb <- plot_top_transcripts(readcounts,
   gene = top_genes,
@@ -438,7 +444,8 @@ diversity.
 # (the function infers group from sample name suffix _N -> Normal)
 lm_res <- calculate_lm_interaction(ts_se,
   sample_type_col = "sample_type",
-  min_obs = 8)
+  min_obs = 8
+)
 head(lm_res)
 ```
 

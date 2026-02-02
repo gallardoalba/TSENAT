@@ -15,7 +15,7 @@ plot_volcano(
 }
 \arguments{
 \item{diff_df}{Data.frame from `calculate_difference()` containing at least
-  `mean_difference` and an adjusted p-value column (default
+`mean_difference` and an adjusted p-value column (default
 `adjusted_p_values`).}
 
 \item{x_col}{Column name for x-axis (default `mean_difference`).}
@@ -37,11 +37,10 @@ ggplot volcano plot.
 Volcano plot for differential results
 }
 \examples{
-# Minimal fake diff_df
 df <- data.frame(
-  gene = paste0("g", seq_len(10)),
-  mean_difference = runif(10),
-  adjusted_p_values = runif(10)
+gene = paste0("g", seq_len(10)),
+mean_difference = runif(10),
+adjusted_p_values = runif(10)
 )
 plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 }

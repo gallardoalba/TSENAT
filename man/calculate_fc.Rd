@@ -21,8 +21,8 @@ value in a condition. Can be \code{'mean'} or \code{'median'}.}
 }
 \value{
 A \code{data.frame} with mean or median value of splicing diversity
-  across sample categories, the difference between these values and the log2
-  fold change values.
+across sample categories, the difference between these values and the log2
+fold change values.
 }
 \description{
 Calculate splicing diversity changes between two conditions.

@@ -2,14 +2,19 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_top_transcripts}
 \alias{plot_top_transcripts}
-\title{Plot top transcripts for a gene}
+\title{Plot top transcripts for a gene   #' For a given gene, find transcripts using
+a tx->gene mapping, compute per-  Plot top transcripts for a gene   For a
+given gene, find transcripts using a tx->gene mapping, compute per-
+transcript statistics between two sample groups, select the top N transcripts
+by p-value and plot their expression across groups.}
 \arguments{
 \item{counts}{Matrix or data.frame of transcript counts.
 Rows are transcripts and columns are samples.}
 
 \item{gene}{Character; gene symbol to inspect.}
 
-\item{samples}{Character vector of sample group labels (length = ncol(counts)).}
+\item{samples}{Character vector of sample group labels (length =
+ncol(counts)).}
 
 \item{tx2gene}{Path or data.frame mapping transcripts to genes.
 Must contain columns `Transcript` and `Gen`.}
@@ -24,35 +29,37 @@ Use NULL to plot all transcripts for the gene.}
 If `NULL`, the `ggplot` object is returned.}
 }
 \value{
-A `ggplot` object (or invisibly saved file if `output_file` provided).
+A `ggplot` object (or invisibly saved file if `output_file`
+provided).
 }
 \description{
-#' For a given gene, find transcripts using a tx->gene mapping, compute per-
-Plot top transcripts for a gene
-}
-\details{
-For a given gene, find transcripts using a tx->gene mapping, compute per-
+Plot top transcripts for a gene   #' For a given gene, find transcripts using
+a tx->gene mapping, compute per-  Plot top transcripts for a gene   For a
+given gene, find transcripts using a tx->gene mapping, compute per-
 transcript statistics between two sample groups, select the top N transcripts
 by p-value and plot their expression across groups.
 }
 \examples{
-# Toy transcript-level example: 6 transcripts across 4 samples
-tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+tx_counts <- matrix(
+sample(1:100, 24, replace = TRUE),
+nrow = 6
+)
 rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
 colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-# Map transcripts to genes (3 genes, 2 transcripts each)
+
 tx2gene <- data.frame(
-  Transcript = rownames(tx_counts),
-  Gen = rep(paste0("G", seq_len(3)), each = 2),
-  stringsAsFactors = FALSE
+Transcript = rownames(tx_counts),
+Gen = rep(paste0("G", seq_len(3)), each = 2),
+stringsAsFactors = FALSE
 )
-# Sample group labels (length = ncol(tx_counts))
+
 samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+
 plot_top_transcripts(
-  tx_counts,
-  gene = c("G1", "G2"),
-  samples = samples,
-  tx2gene = tx2gene,
-  top_n = 2
+tx_counts,
+gene = c("G1", "G2"),
+samples = samples,
+tx2gene = tx2gene,
+top_n = 2
 )
 }

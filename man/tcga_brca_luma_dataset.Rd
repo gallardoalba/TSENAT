@@ -22,6 +22,6 @@ breast cancer (primary tumor and solid normal samples).
 }
 \references{
 The Cancer Genome Atlas Network (2012) Nature 490, 61–70
-  \doi{10.1038/nature11412}
+\doi{10.1038/nature11412}
 }
 \keyword{datasets}

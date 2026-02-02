@@ -2,8 +2,7 @@ library(testthat)
 
 context("calculate_lm_interaction")
 
-test_that("calculate_lm_interaction returns expected columns and filters genes",
-  {
+test_that("calculate_lm_interaction returns expected columns and filters genes", {
   # construct synthetic data: 2 samples (Normal, Tumor) and multiple q values
   qvec <- seq(0.01, 0.1, by = 0.01)
   sample_names <- rep(c("S1_N", "S2_T"), each = length(qvec))
@@ -26,23 +25,31 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
   colnames(mat) <- coln
   rownames(mat) <- c("g1", "g2", "g3")
 
-  rd <- data.frame(genes = rownames(mat),
+  rd <- data.frame(
+    genes = rownames(mat),
     row.names = rownames(mat),
-    stringsAsFactors = FALSE)
-  cd <- data.frame(samples = sample_names,
+    stringsAsFactors = FALSE
+  )
+  cd <- data.frame(
+    samples = sample_names,
     row.names = coln,
-    stringsAsFactors = FALSE)
+    stringsAsFactors = FALSE
+  )
 
-  se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat),
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = mat),
     rowData = rd,
-    colData = cd)
+    colData = cd
+  )
 
   res <- calculate_lm_interaction(se, min_obs = 8)
 
   expect_s3_class(res, "data.frame")
-  expect_true(all(c("gene",
+  expect_true(all(c(
+    "gene",
     "p_interaction",
-    "adj_p_interaction") %in% colnames(res)))
+    "adj_p_interaction"
+  ) %in% colnames(res)))
   # g1 and g2 should be tested (g3 should be filtered out)
   expect_true("g1" %in% res$gene)
   expect_true("g2" %in% res$gene)
