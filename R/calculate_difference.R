@@ -46,13 +46,14 @@
 #' genes of low sample size from the significance  calculation, depending on
 #' which statistical test is applied.
 #' @examples
-#' # data.frame with splicing diversity values  x <- data.frame(Genes =
-#' letters[seq_len(10)], matrix(runif(80), ncol = 8))   # sample categories
-#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))   # To calculate the
-#' difference of splicing diversity changes between the  # 'Healthy' and
-#' 'Pathogenic' condition together with the significance values,  # using mean
-#' and Wilcoxon rank sum test, use:  calculate_difference(x, samples,  control =
-#' "Healthy", method = "mean", test =  "wilcoxon"  )
+#' # data.frame with splicing diversity values
+#' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
+#' # sample categories
+#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
+#' # To calculate the difference of splicing diversity changes between the
+#' # 'Healthy' and 'Pathogenic' condition together with the significance values,
+#' # using mean and Wilcoxon rank sum test, use:
+#' calculate_difference(x, samples, control = "Healthy", method = "mean", test = "wilcoxon")
 calculate_difference <- function(x, samples, control, method = "mean",
                                  test = "wilcoxon", randomizations = 100,
                                  pcorr = "BH", assayno = 1, verbose = FALSE,
@@ -207,10 +208,11 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")  rc <-
-#' as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])  gs <-
-#' tcga_brca_luma_dataset$genes[1:20]  se <- calculate_diversity(rc, gs, q =
-#' c(0.1, 1), norm = TRUE)  calculate_lm_interaction(se)
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
+#' calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                      method = c("linear", "gam", "fpca"), nthreads = 1,
                                      assay_name = "diversity") {

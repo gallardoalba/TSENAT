@@ -11,12 +11,12 @@
 #' @return The input `ts_se` with `colData(ts_se)$sample_type` set when possible.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")  rc <-
-#' as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])  gs <-
-#' tcga_brca_luma_dataset$genes[1:20]  se <- calculate_diversity(rc, gs, q =
-#' 0.1, norm = TRUE)  sample_names <- sub("_q=.*", "",
-#' colnames(SummarizedExperiment::assay(se)))  coldata_df <- data.frame(  Sample
-#' = sample_names,  Condition = rep(c("A", "B"), length.out = ncol(se))  )
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
+#' sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
+#' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"), length.out = ncol(se)))
 #' map_coldata_to_se(se, coldata_df)
 map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
   if (is.null(coldata)) {
@@ -62,13 +62,13 @@ map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", col
 #' @return Character vector of group labels (or the `default` value) with same
 #' length as `sample_names`.
 #' @examples
-#' # Basic usage: returns raw suffix tokens or TCGA two-digit codes when  # no
-#' mapping is supplied  infer_sample_group(c("S1_N", "TCGA-XX-01A"))   # Provide
-#' a suffix_map to translate tokens  #' infer_sample_group(c("S1_N", "S2_T"),
-#' suffix_map = c(N = "Normal", T =  #' "Tumor"))   # Provide a TCGA mapping and
-#' prefer TCGA codes over suffixes  tcga_map <- c("01" = "Tumor")
-#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"),  tcga_map = tcga_map,
-#' prefer_suffix = FALSE  )
+#' # Basic usage: returns raw suffix tokens or TCGA two-digit codes when no mapping is supplied
+#' infer_sample_group(c("S1_N", "TCGA-XX-01A"))
+#' # Provide a suffix_map to translate tokens
+#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T = "Tumor"))
+#' # Provide a TCGA mapping and prefer TCGA codes over suffixes
+#' tcga_map <- c("01" = "Tumor")
+#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map, prefer_suffix = FALSE)
 #' @export
 infer_sample_group <- function(sample_names,
                                suffix_sep = "_",
