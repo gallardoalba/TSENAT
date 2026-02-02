@@ -1,4 +1,4 @@
-# TSENAT: Tsallis entropy workflow
+# TSENAT: Tsallis Entropy Analysis Toolkit
 
 ## Overview
 
