@@ -67,7 +67,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
             }
             if (tpm == TRUE && verbose == TRUE) {
                 message("Note: tpm as a logical argument is only interpreted in case of
-              tximport lists.")
+                tximport lists.")
             }
         } else {
             stop("The package cannot find any expression data in your input.",
@@ -100,7 +100,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
 
     if (any(is.na(x))) {
         stop("The data contains NA as expression values. NAs are not allowed in the
-         input.", call. = FALSE)
+            input.", call. = FALSE)
     }
 
     if (nrow(x) != length(genes)) {

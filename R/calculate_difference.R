@@ -53,9 +53,9 @@
 #'         "wilcoxon"
 #' )
 calculate_difference <- function(x, samples, control, method = "mean",
-                                 test = "wilcoxon", randomizations = 100,
-                                 pcorr = "BH", assayno = 1, verbose = FALSE,
-                                 ...) {
+                                    test = "wilcoxon", randomizations = 100,
+                                    pcorr = "BH", assayno = 1, verbose = FALSE,
+                                    ...) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(
@@ -296,13 +296,13 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
-                                     method = c(
-                                         "linear",
-                                         "gam",
-                                         "fpca"
-                                     ),
-                                     nthreads = 1,
-                                     assay_name = "diversity") {
+                                        method = c(
+                                            "linear",
+                                            "gam",
+                                            "fpca"
+                                        ),
+                                        nthreads = 1,
+                                        assay_name = "diversity") {
     method <- match.arg(method)
     message("[calculate_lm_interaction] method=", method)
     if (!requireNamespace("SummarizedExperiment",

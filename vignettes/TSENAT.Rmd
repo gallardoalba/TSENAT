@@ -202,10 +202,10 @@ plotting and modeling.
 ```{r inspect-coldata}
 # Quick checks on mapped sample metadata
 cd <- SummarizedExperiment::colData(ts_se)
-colnames(cd)                    # list available metadata columns
-head(cd)                        # preview metadata for first samples
+colnames(cd) # list available metadata columns
+head(cd) # preview metadata for first samples
 ```
- 
+
 ## Differential analysis
 
 This section summarizes practical guidance for hypothesis testing and

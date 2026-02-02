@@ -12,16 +12,16 @@
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
 calculate_method <- function(
-  x,
-  genes,
-  norm = TRUE,
-  verbose = FALSE,
-  q = 2,
-  what = c(
-      "S",
-      "D",
-      "both"
-  )
+    x,
+    genes,
+    norm = TRUE,
+    verbose = FALSE,
+    q = 2,
+    what = c(
+        "S",
+        "D",
+        "both"
+    )
 ) {
     what <- match.arg(what)
     # cannot use aggregate because calculate_tsallis_entropy may return
