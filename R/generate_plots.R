@@ -621,16 +621,16 @@ plot_volcano <- function(
 #' Plot top transcripts for a gene
 #'
 #' #' For a given gene, find transcripts using a tx->gene mapping, compute per-
-#' #' transcript
-#' #' statistics between two sample groups, select the top N transcripts by p-value
-#' #' and
-#' plot their expression across groups.
+#' Plot top transcripts for a gene
+#'
+#' For a given gene, find transcripts using a tx->gene mapping, compute per-
+#' transcript statistics between two sample groups, select the top N transcripts
+#' by p-value and plot their expression across groups.
 #'
 #' @param counts Matrix or data.frame of transcript counts.
 #'   Rows are transcripts and columns are samples.
 #' @param gene Character; gene symbol to inspect.
-#' #' @param samples Character vector of sample group labels (length =
-#' #' ncol(counts)).
+#' @param samples Character vector of sample group labels (length = ncol(counts)).
 #' @param tx2gene Path or data.frame mapping transcripts to genes.
 #'   Must contain columns `Transcript` and `Gen`.
 #' @param top_n Integer number of transcripts to show (default = 3).
@@ -639,8 +639,7 @@ plot_volcano <- function(
 #'   (default = 1e-6) to avoid division by zero.
 #' @param output_file Optional file path to save the plot.
 #'   If `NULL`, the `ggplot` object is returned.
-#' #' @return A `ggplot` object (or invisibly saved file if `output_file`
-#' #' provided).
+#' @return A `ggplot` object (or invisibly saved file if `output_file` provided).
 #' @importFrom utils read.delim
 #' @export
 #' @name plot_top_transcripts

@@ -35,14 +35,23 @@ plot_tsallis_q_curve(
 
 - group_pattern:
 
-  Regular expression used to detect the first group in sample names
-  (default \`"\_N\$"\`).
+  Regular expression to detect group suffixes (default "\_N\$").
 
 - group_names:
 
-  Character vector of length 2 with names for groups (default
-  \`c("Normal","Tumor")\`).
+  Character vector length 2 with group names (default
+  c("Normal","Tumor")).
 
 ## Value
 
 A \`ggplot\` object showing median +- IQR across q values by group.
+
+## Examples
+
+``` r
+data("tcga_brca_luma_dataset", package = "TSENAT")
+rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
+gs <- tcga_brca_luma_dataset$genes[1:40]
+p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
+p
+```

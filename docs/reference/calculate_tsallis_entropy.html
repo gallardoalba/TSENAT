@@ -9,7 +9,7 @@ expression values of one gene."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,36 +67,54 @@ expression values of one gene.</p>
 
 
 <dt id="arg-q">q<a class="anchor" aria-label="anchor" href="#arg-q"></a></dt>
-<dd><p>Tsallis entropy parameter (q &gt; 0). Can be a single value or a numeric vector. Default is 2.</p></dd>
+<dd><p>Tsallis entropy parameter (q &gt; 0). Scalar or numeric vector
+(default: 2).</p></dd>
 
 
 <dt id="arg-norm">norm<a class="anchor" aria-label="anchor" href="#arg-norm"></a></dt>
-<dd><p>If <code>TRUE</code>, the entropy values are normalized by their theoretical maximum for the number of transcripts (so values lie in [0,1]).</p></dd>
+<dd><p>Logical; if TRUE, normalize entropy by its theoretical maximum
+(values in [0,1]).</p></dd>
 
 
 <dt id="arg-what">what<a class="anchor" aria-label="anchor" href="#arg-what"></a></dt>
-<dd><p>Which quantity to return: <code>"S"</code> for Tsallis entropy (S_q), <code>"D"</code> for Hill numbers (D_q), or <code>"both"</code> for a list with both.</p></dd>
+<dd><p>Which quantity to return: "S" (Tsallis entropy), "D" (Hill
+numbers), or "both".</p></dd>
 
 
 <dt id="arg-log-base">log_base<a class="anchor" aria-label="anchor" href="#arg-log-base"></a></dt>
-<dd><p>Base of the logarithm used for Shannon limits and normalization (default: <code>exp(1)</code>).</p></dd>
+<dd><p>Base of the logarithm used for Shannon limits and
+normalization
+  (default: <code>exp(1)</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A numeric vector (named when length(q) &gt; 1) for <code>what = "S"</code> or <code>"D"</code>, or a list with components <code>$S</code> and <code>$D</code> when <code>what = "both"</code>.</p>
+    <p>For `what = "S"` or `what = "D"`: a numeric vector
+  (named when length(q) &gt; 1). For `what = "both"`: a list with
+  components `$S` and `$D`.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Implements S_q = (1 - sum p^q) / (q - 1) and D_q = (sum p^q)^(1/(1-q)) with the q-&gt;1 limits given by Shannon entropy and the exponential of Shannon respectively. Natural logarithms are used for the q-&gt;1 limit and normalization.</p>
+    <p>Implements S_q = (1 - sum p^q)/(q - 1) and D_q = (sum p^q)^(1/(1-q)).
+Uses the q-&gt;1 limits (Shannon entropy and its exponential). Natural
+logarithms are used for the q-&gt;1 limit and for normalization.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Basic usage with a small numeric vector</span></span></span>
+<span class="r-in"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">5</span>, <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">calculate_tsallis_entropy</span><span class="op">(</span><span class="va">x</span>, q <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     q=0.5       q=1       q=2 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 0.5380048 0.5793802 0.6666667 </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Gallardo Cristóbal.</p>
+  <p>Developed by <a href="https://github.com/gallardoalba" class="external-link">Cristóbal Gallardo</a>.</p>
 </div>
 
 <div class="pkgdown-footer-right">

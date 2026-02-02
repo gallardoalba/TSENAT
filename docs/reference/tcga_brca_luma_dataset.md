@@ -18,9 +18,9 @@ for samples.
 
 ## Source
 
-[TCGA Legacy](https://portal.gdc.cancer.gov/legacy-archive)
+[TCGA via GDC](https://portal.gdc.cancer.gov/)
 
 ## References
 
 The Cancer Genome Atlas Network (2012) Nature 490, 61–70
-([doi:10.1038/nature11412](https://doi.org/10.1038/nature11412) )
+[doi:10.1038/nature11412](https://doi.org/10.1038/nature11412)

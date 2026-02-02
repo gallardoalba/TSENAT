@@ -30,19 +30,19 @@ infer_sample_group(
 
 - suffix_map:
 
-  Named character vector mapping suffix tokens (case-insensitive) to
-  group labels. e.g. c(N="Normal", T="Tumor").
+  Named character vector mapping suffix tokens (case- insensitive) to
+  group labels, e.g. c(N = "Normal", T = "Tumor").
 
 - tcga_map:
 
-  Named character vector mapping TCGA two-digit codes to group labels.
-  e.g. c("01"="Tumor", "11"="Normal").
+  Named character vector mapping TCGA two-digit codes to group labels,
+  e.g. c("01" = "Tumor", "11" = "Normal").
 
 - coldata:
 
   Optional data.frame or named vector providing mapping from sample
-  names to conditions. If a data.frame, \`coldata_sample_col\` and
-  \`coldata_condition_col\` specify column names.
+  names to conditions. If a data.frame, specify \`coldata_sample_col\`
+  and \`coldata_condition_col\` for the relevant columns.
 
 - coldata_sample_col:
 
@@ -50,8 +50,7 @@ infer_sample_group(
 
 - coldata_condition_col:
 
-  Column name in \`coldata\` indicating condition/label (default
-  "Condition").
+  Column name in \`coldata\` for condition/label (default "Condition").
 
 - prefer_suffix:
 
@@ -77,11 +76,14 @@ infer_sample_group(c("S1_N", "TCGA-XX-01A"))
 #> [1] "N"  "01"
 
 # Provide a suffix_map to translate tokens
-infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T = "Tumor"))
-#> [1] "Normal" "Tumor" 
+#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
+#' "Tumor"))
 
 # Provide a TCGA mapping and prefer TCGA codes over suffixes
-infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = c("01" = "Tumor"), 
-                   prefer_suffix = FALSE)
+tcga_map <- c("01" = "Tumor")
+infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
+  tcga_map = tcga_map,
+  prefer_suffix = FALSE
+)
 #> [1] "Tumor" "N"    
 ```

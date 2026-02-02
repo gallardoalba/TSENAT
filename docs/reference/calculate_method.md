@@ -1,8 +1,6 @@
 # Calculate Tsallis diversity values for transcripts grouped by gene
 
-This helper computes per-gene Tsallis entropy across samples. The
-trimmed package only supports the Tsallis method; other diversity
-metrics were removed.
+Calculate Tsallis diversity values for transcripts grouped by gene
 
 ## Usage
 
@@ -10,7 +8,6 @@ metrics were removed.
 calculate_method(
   x,
   genes,
-  
   norm = TRUE,
   verbose = FALSE,
   q = 2,
@@ -30,10 +27,6 @@ calculate_method(
   Character vector with length equal to nrow(x) assigning each
   transcript to a gene.
 
-- method:
-
-  Only "tsallis" is supported (default).
-
 - norm:
 
   Logical; if TRUE normalize Tsallis entropy values per gene.
@@ -48,8 +41,8 @@ calculate_method(
 
 - what:
 
-  Which quantity to return from \`calculate_tsallis_entropy\`: "S", "D"
-  or "both" (default: "S").
+  Which quantity to return from \`calculate_tsallis_entropy\`: "S"
+  (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").
 
 ## Value
 
