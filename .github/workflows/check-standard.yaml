@@ -23,7 +23,8 @@ jobs:
             build-essential pkg-config \
             libcurl4-openssl-dev libssl-dev libxml2-dev \
             libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
-            libpng-dev libjpeg-dev
+            libpng-dev libjpeg-dev \
+            libcairo2-dev libx11-dev libxrender-dev libxcb1-dev
 
       - name: Install R package dependencies
         run: |
@@ -66,7 +67,8 @@ jobs:
             build-essential pkg-config \
             libcurl4-openssl-dev libssl-dev libxml2-dev \
             libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
-            libpng-dev libjpeg-dev
+            libpng-dev libjpeg-dev \
+            libcairo2-dev libx11-dev libxrender-dev libxcb1-dev
 
       - name: Install R package dependencies
         run: |
