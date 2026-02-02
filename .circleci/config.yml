@@ -39,7 +39,8 @@ jobs:
               libxml2-dev libssl-dev libcurl4-openssl-dev git
       - run:
           name: Install R packages for docs
-          command: R -e 'install.packages(c("remotes","pkgdown"), repos="https://cloud.r-project.org")'
+          command: |
+            R -e 'install.packages(c("remotes","pkgdown","rmarkdown","xml2"), repos="https://cloud.r-project.org")'
       - run:
           name: Build pkgdown site
           command: |
