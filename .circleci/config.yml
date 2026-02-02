@@ -20,6 +20,11 @@ jobs:
           name: Install R tools
           command: R -e 'install.packages(c("remotes","devtools","rcmdcheck"), repos="https://cloud.r-project.org")'
       - run:
+          name: Install package dependencies
+          command: |
+            R -e 'install.packages(c("remotes","ggplot2"), repos="https://cloud.r-project.org")'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment"), ask=FALSE)'
+      - run:
           name: Build package
           command: R CMD build .
       - run:
