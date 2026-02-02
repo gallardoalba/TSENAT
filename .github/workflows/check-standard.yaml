@@ -15,44 +15,6 @@ jobs:
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            build-essential pkg-config \
-            libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev \
-            libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
-            libpng-dev libjpeg-dev \
-            libcairo2-dev libx11-dev libxrender-dev libxcb1-dev
-
-      - name: Install R package dependencies
-        run: |
-          # Install only remotes and minimal Depends/Imports/LinkingTo from DESCRIPTION
-          Rscript -e 'install.packages("remotes", repos = "https://cloud.r-project.org")'
-          Rscript -e 'remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo"))'
-
-      - name: Check package
-        run: |
-          R CMD build --no-build-vignettes .
-          PKG=$(ls -1t *.tar.gz | head -n1)
-          R CMD check --no-manual --as-cran "$PKG"
-name: R-CMD-check
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  R-CMD-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
         with:
           r-version: '4.2'
 
@@ -71,5 +33,5 @@ jobs:
           # Install only remotes and minimal Depends/Imports/LinkingTo from DESCRIPTION
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo'))"
 
-      - name: Run R CMD check (no manual, no vignette to speed up)
+      - name: Run R CMD check (no manual, no vignettes)
         run: R CMD check --no-manual --no-vignettes --as-cran
