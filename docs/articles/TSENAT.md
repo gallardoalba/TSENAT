@@ -602,7 +602,7 @@ sessionInfo()
 #>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] ggplot2_4.0.1               TSENAT_0.1.0               
+#> [13] ggplot2_4.0.1               TSENAT_1.0.0               
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       

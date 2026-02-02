@@ -1,7 +1,7 @@
 Package: TSENAT
 Type: Package
 Title: Tsallis Entropy Analysis Toolbox
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: person(given = "Cristóbal", family = "Gallardo", role = c("aut", "cre"), email = "gallardoalba@pm.me")
 Maintainer: Cristóbal Gallardo <gallardoalba@pm.me>
 Author: Cristóbal Gallardo [aut, cre]
