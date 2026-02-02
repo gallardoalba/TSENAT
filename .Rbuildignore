@@ -7,6 +7,10 @@
 ^docs$
 ^inst/doc$
 ^_pkgdown.yml$
+^\.github$
+^TSENAT\.Rcheck$
+^\.\.Rcheck$
+^\.git/objects/.*
 ^TSENAT_.*\.tar\.gz$
 ^data-raw/
 ^\.Rproj.user$
@@ -22,3 +26,7 @@
 ^CONTRIBUTING\.md$
 ^\.gitignore$
 ^.*\.Rproj$
+
+# Ignore vignette intermediate files
+^vignettes/.*\.Rhistory$
+^vignettes/.*\.utf8$

@@ -1,25 +1,25 @@
 #' Calculate Tsallis diversity per gene across samples
 #'
 #' @param x A numeric matrix or data.frame of transcript-level expression
-#'#'   values (rows = transcripts, columns = samples), or a SummarizedExperiment-
-#'#' like object.
+#' #'   values (rows = transcripts, columns = samples), or a SummarizedExperiment-
+#' #' like object.
 #' @param tpm Logical. If TRUE and `x` is a tximport-style list, use the
 #'   `$abundance` matrix instead of `$counts`.
 #' @param genes Character vector assigning each transcript (row) to a gene.
 #'   Must have length equal to nrow(x) or the number of transcripts in `x`.
 #' @param norm Logical; if TRUE, normalize Tsallis entropy to [0,1] per gene.
-#'#' @param assayno Integer assay index to use when `x` is a SummarizedExperiment.
+#' #' @param assayno Integer assay index to use when `x` is a SummarizedExperiment.
 #' @param verbose Logical; print diagnostic messages when TRUE.
 #' @param q Numeric scalar or vector of Tsallis q values to evaluate (q > 0).
-#'#'   If length(q) > 1, the result will contain separate columns per sample and
-#'#' q.
-#'#' @param what Which quantity to return: "S" for Tsallis entropy, "D" for Hill
-#'#' numbers, or "both".
+#' #'   If length(q) > 1, the result will contain separate columns per sample and
+#' #' q.
+#' #' @param what Which quantity to return: "S" for Tsallis entropy, "D" for Hill
+#' #' numbers, or "both".
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 #'   `diversity` containing per-gene diversity values.
 #' @import methods
-#'#' @importFrom SummarizedExperiment SummarizedExperiment assays assay rowData
-#'#' colData
+#' #' @importFrom SummarizedExperiment SummarizedExperiment assays assay rowData
+#' #' colData
 #' @export
 #' @examples
 #' data("tcga_brca_luma_dataset", package = "TSENAT")

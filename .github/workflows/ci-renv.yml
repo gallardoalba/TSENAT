@@ -18,7 +18,8 @@ jobs:
           Rscript -e 'if (file.exists("renv.lock")) { if(!requireNamespace("renv", quietly=TRUE)) install.packages("renv"); renv::restore() } else { if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes"); remotes::install_deps(dependencies = TRUE) }'
       - name: Style check (styler)
         run: |
-          Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler");'
+          # Ensure styler and roxygen2 are available so styling of roxygen blocks succeeds
+          Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler"); if (!requireNamespace("roxygen2", quietly=TRUE)) install.packages("roxygen2")'
           Rscript scripts/check_style.R
       - name: Build package and run R CMD check
         env:

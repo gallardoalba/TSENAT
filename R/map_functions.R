@@ -50,38 +50,40 @@ map_coldata_to_se <- function(ts_se, coldata, coldata_sample_col = "Sample", col
 #' Infer sample group from sample names
 #'
 #' @param sample_names Character vector of sample names.
-#'#' @param suffix_sep Character separator to detect suffix groups (default "_").
-#'#' @param suffix_map Named character vector mapping suffix tokens (case-
-#'#' insensitive)
+#' #' @param suffix_sep Character separator to detect suffix groups (default "_").
+#' #' @param suffix_map Named character vector mapping suffix tokens (case-
+#' #' insensitive)
 #'   to group labels, e.g. c(N = "Normal", T = "Tumor").
-#'#' @param tcga_map Named character vector mapping TCGA two-digit codes to group
+#' #' @param tcga_map Named character vector mapping TCGA two-digit codes to group
 #'   labels, e.g. c("01" = "Tumor", "11" = "Normal").
 #' @param coldata Optional data.frame or named vector providing mapping from
 #'   sample names to conditions. If a data.frame, specify `coldata_sample_col`
 #'   and `coldata_condition_col` for the relevant columns.
-#'#' @param coldata_sample_col Column name in `coldata` indicating sample IDs
-#'#' (default "Sample").
+#' #' @param coldata_sample_col Column name in `coldata` indicating sample IDs
+#' #' (default "Sample").
 #' @param coldata_condition_col Column name in `coldata` for condition/label
 #'   (default "Condition").
-#'#' @param prefer_suffix Logical; if TRUE, prefer suffix-based inference when
-#'#' both patterns match.
-#'#' @param default Character scalar returned when no mapping applies (default
-#'#' NA_character_).
-#'#' @return Character vector of group labels (or the `default` value) with same
-#'#' length as `sample_names`.
+#' #' @param prefer_suffix Logical; if TRUE, prefer suffix-based inference when
+#' #' both patterns match.
+#' #' @param default Character scalar returned when no mapping applies (default
+#' #' NA_character_).
+#' #' @return Character vector of group labels (or the `default` value) with same
+#' #' length as `sample_names`.
 #' @examples
 #' # Basic usage: returns raw suffix tokens or TCGA two-digit codes when
 #' # no mapping is supplied
 #' infer_sample_group(c("S1_N", "TCGA-XX-01A"))
 #'
 #' # Provide a suffix_map to translate tokens
-#'#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
-#'#' "Tumor"))
+#' #' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
+#' #' "Tumor"))
 #'
 #' # Provide a TCGA mapping and prefer TCGA codes over suffixes
 #' tcga_map <- c("01" = "Tumor")
-#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
-#'   prefer_suffix = FALSE)
+#' infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
+#'   tcga_map = tcga_map,
+#'   prefer_suffix = FALSE
+#' )
 #' @export
 infer_sample_group <- function(sample_names,
                                suffix_sep = "_",

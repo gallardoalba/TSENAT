@@ -1,0 +1,155 @@
+
+R version 4.5.2 (2025-10-31) -- "[Not] Part in a Rumble"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # Minimal runner to validate Tsallis differential analysis
+> 
+> library(SummarizedExperiment)
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: 'MatrixGenerics'
+
+The following objects are masked from 'package:matrixStats':
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: stats4
+Loading required package: BiocGenerics
+Loading required package: generics
+
+Attaching package: 'generics'
+
+The following objects are masked from 'package:base':
+
+    as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+    setequal, union
+
+
+Attaching package: 'BiocGenerics'
+
+The following objects are masked from 'package:stats':
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from 'package:base':
+
+    Filter, Find, Map, Position, Reduce, anyDuplicated, aperm, append,
+    as.data.frame, basename, cbind, colnames, dirname, do.call,
+    duplicated, eval, evalq, get, grep, grepl, is.unsorted, lapply,
+    mapply, match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    rank, rbind, rownames, sapply, saveRDS, table, tapply, unique,
+    unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+
+Attaching package: 'S4Vectors'
+
+The following object is masked from 'package:utils':
+
+    findMatches
+
+The following objects are masked from 'package:base':
+
+    I, expand.grid, unname
+
+Loading required package: IRanges
+Loading required package: Seqinfo
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: 'Biobase'
+
+The following object is masked from 'package:MatrixGenerics':
+
+    rowMedians
+
+The following objects are masked from 'package:matrixStats':
+
+    anyMissing, rowMedians
+
+> 
+> ## load package (R CMD check runs tests with package built/installed)
+> if (interactive()) {
++   # during local interactive runs, source R files for quick testing
++   r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
++   for (f in r_files) source(f)
++ } else {
++   library(abyssEdge)
++ }
+> 
+> # create synthetic transcript-level read counts
+> set.seed(42)
+> mat <- matrix(rpois(60, lambda = 10), ncol = 6)
+> colnames(mat) <- paste0("S", 1:6)
+> # gene assignment must match nrow(mat) == length(genes)
+> genes <- c(rep("G1", 3), rep("G2", 3), rep("G3", 2), rep("G4", 2))
+> 
+> # calculate Tsallis diversity (q = 2)
+> se <- calculate_diversity(mat, genes, q = 2)
+> 
+> # convert to data.frame expected by calculate_difference
+> library(SummarizedExperiment)
+> div_df <- as.data.frame(SummarizedExperiment::assay(se))
+> div_df <- cbind(genes = rowData(se)$genes, div_df)
+> 
+> # sample categories for difference
+> samples <- c(rep("Healthy", 3), rep("Pathogenic", 3))
+> 
+> # run difference analysis
+> res <- calculate_difference(div_df, samples, control = "Healthy", method = "mean", test = "wilcoxon")
+Warning message:
+Low sample size. Wilcoxon rank sum test requires at least
+      three samples in a given category and at least 8 samples overall for a
+              theoretical p-value smaller than 0.05. 
+> 
+> print(head(res))
+  genes Pathogenic_mean Healthy_mean mean_difference log2_fold_change
+1    G1       0.9720424    0.9271985     0.044843881      0.068140984
+2    G2       0.9886272    0.9926194    -0.003992279     -0.005814167
+3    G3       0.9749304    0.9448952     0.030035209      0.045144918
+4    G4       0.9426844    0.9680282    -0.025343794     -0.038274212
+  raw_p_values adjusted_p_values
+1           NA                NA
+2           NA                NA
+3           NA                NA
+4           NA                NA
+> cat("Rows:", nrow(res), "\n")
+Rows: 4 
+> 
+> proc.time()
+   user  system elapsed 
+  4.367   0.174   3.801 
