@@ -29,7 +29,7 @@ jobs:
           Rscript -e 'remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo"))'
       - name: Install devtools and common tooling
         run: |
-          Rscript -e 'install.packages(c("devtools","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
+          Rscript -e 'install.packages(c("devtools","roxygen2","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
 
       - name: Check package
         run: |
@@ -65,7 +65,7 @@ jobs:
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = TRUE)"
       - name: Install devtools and common tooling
         run: |
-          Rscript -e 'install.packages(c("devtools","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
+          Rscript -e 'install.packages(c("devtools","roxygen2","usethis","pkgdown","rcmdcheck","rversions","urlchecker"), repos = "https://cloud.r-project.org")'
 
       - name: Run R CMD check (no manual, no vignette to speed up)
         run: R CMD check --no-manual --no-vignettes --as-cran
