@@ -70,20 +70,13 @@ length as \`sample_names\`.
 ## Examples
 
 ``` r
-# Basic usage: returns raw suffix tokens or TCGA two-digit codes when
-# no mapping is supplied
 infer_sample_group(c("S1_N", "TCGA-XX-01A"))
 #> [1] "N"  "01"
-
-# Provide a suffix_map to translate tokens
-#' infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
-#' "Tumor"))
-
-# Provide a TCGA mapping and prefer TCGA codes over suffixes
+infer_sample_group(c("S1_N", "S2_T"), suffix_map = c(N = "Normal", T =
+"Tumor"))
+#> [1] "Normal" "Tumor" 
 tcga_map <- c("01" = "Tumor")
-infer_sample_group(c("TCGA-XX-01A", "Sample_N"),
-  tcga_map = tcga_map,
-  prefer_suffix = FALSE
-)
+infer_sample_group(c("TCGA-XX-01A", "Sample_N"), tcga_map = tcga_map,
+prefer_suffix = FALSE)
 #> [1] "Tumor" "N"    
 ```

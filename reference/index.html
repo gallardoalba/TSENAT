@@ -74,7 +74,7 @@
           <code><a href="calculate_lm_interaction.html">calculate_lm_interaction()</a></code>
 
         </dt>
-        <dd>Linear-model interaction test for Tsallis entropy</dd>
+        <dd>Linear-model interaction test for Tsallis entropy For each gene, fit a linear model of the form `entropy ~ q * group` and extract the p-value for the interaction term (whether the effect of `q` differs between groups). The function expects a `SummarizedExperiment` produced by `calculate_diversity()` when multiple `q` values have been computed (column names contain `_q=`).</dd>
 
         <dt>
 
@@ -109,7 +109,7 @@
           <code><a href="map_coldata_to_se.html">map_coldata_to_se()</a></code>
 
         </dt>
-        <dd>Map external coldata into a SummarizedExperiment</dd>
+        <dd>Map external coldata into a SummarizedExperiment This helper maps an external `coldata` table (with sample IDs and a condition/label column) into a `SummarizedExperiment` produced by `calculate_diversity()`. It assigns a `sample_type` column to `colData(ts_se)` and falls back to `infer_sample_group()` for unmapped samples.</dd>
 
         <dt>
 
@@ -137,7 +137,7 @@
           <code><a href="plot_top_transcripts.html">plot_top_transcripts</a></code>
 
         </dt>
-        <dd>Plot top transcripts for a gene</dd>
+        <dd>Plot top transcripts for a gene #' For a given gene, find transcripts using a tx-&gt;gene mapping, compute per- Plot top transcripts for a gene For a given gene, find transcripts using a tx-&gt;gene mapping, compute per- transcript statistics between two sample groups, select the top N transcripts by p-value and plot their expression across groups.</dd>
 
         <dt>
 
@@ -151,7 +151,7 @@
           <code><a href="plot_tsallis_q_curve.html">plot_tsallis_q_curve()</a></code>
 
         </dt>
-        <dd>Plot median +- IQR of Tsallis entropy across q values by group</dd>
+        <dd>Plot median +- IQR of Tsallis entropy across q values by group This reproduces the `tsallis-q-curve-mean-sd` plot from the vignette: for each q value, compute per-gene Tsallis entropy per sample, then summarize across genes by group (median and IQR) and plot median with a ribbon spanning median +- IQR/2.</dd>
 
         <dt>
 

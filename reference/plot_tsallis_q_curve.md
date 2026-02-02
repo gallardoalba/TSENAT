@@ -1,7 +1,8 @@
-# Plot median +- IQR of Tsallis entropy across q values by group
+# Plot median +- IQR of Tsallis entropy across q values by group This reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette: for each q value, compute per-gene Tsallis entropy per sample, then summarize across genes by group (median and IQR) and plot median with a ribbon spanning median +- IQR/2.
 
-This reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette:
-for each q value, compute per-gene Tsallis entropy per sample, then
+Plot median +- IQR of Tsallis entropy across q values by group This
+reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette: for
+each q value, compute per-gene Tsallis entropy per sample, then
 summarize across genes by group (median and IQR) and plot median with a
 ribbon spanning median +- IQR/2.
 

@@ -1,11 +1,11 @@
-# Linear-model interaction test for Tsallis entropy
+# Linear-model interaction test for Tsallis entropy For each gene, fit a linear model of the form \`entropy ~ q \* group\` and extract the p-value for the interaction term (whether the effect of \`q\` differs between groups). The function expects a \`SummarizedExperiment\` produced by \`calculate_diversity()\` when multiple \`q\` values have been computed (column names contain \`\_q=\`).
 
-For each gene, fit a linear model of the form \`entropy ~ q \* group\`
-and extract the p-value for the interaction term (whether the effect of
-\`q\` differs between groups). The function expects a
-\`SummarizedExperiment\` produced by \`calculate_diversity()\` when
-multiple \`q\` values have been computed (column names contain
-\`\_q=\`).
+Linear-model interaction test for Tsallis entropy For each gene, fit a
+linear model of the form \`entropy ~ q \* group\` and extract the
+p-value for the interaction term (whether the effect of \`q\` differs
+between groups). The function expects a \`SummarizedExperiment\`
+produced by \`calculate_diversity()\` when multiple \`q\` values have
+been computed (column names contain \`\_q=\`).
 
 ## Usage
 

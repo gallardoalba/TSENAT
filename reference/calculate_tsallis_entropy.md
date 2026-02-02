@@ -56,7 +56,6 @@ logarithms are used for the q-\>1 limit and for normalization.
 ## Examples
 
 ``` r
-# Basic usage with a small numeric vector
 x <- c(10, 5, 0)
 calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
 #>     q=0.5       q=1       q=2 
