@@ -125,21 +125,22 @@ workflows:
   build_and_deploy:
     jobs:
       - build
-      - deploy_docs:
-          requires:
-            - build
-          filters:
-            branches:
-              only: stable
 
   deploy_only:
     jobs:
       - deploy_docs:
           filters:
             branches:
-              only: deploy-gh-pages
+              only: gh-pages
 
   parameterized_deploy:
     when: << pipeline.parameters.deploy_only >>
     jobs:
       - deploy_docs
+
+  deploy_on_gh_pages:
+    jobs:
+      - deploy_docs:
+          filters:
+            branches:
+              only: gh-pages
