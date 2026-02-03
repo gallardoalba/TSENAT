@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>TSENAT: Tsallis Entropy Analysis Toolkit • TSENAT</title>
+<title>TSENAT: Tsallis Entropy Analysis Toolbox • TSENAT</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolkit">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="TSENAT: Tsallis Entropy Analysis Toolbox">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -58,7 +58,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>TSENAT: Tsallis Entropy Analysis Toolkit</h1>
+      <h1>TSENAT: Tsallis Entropy Analysis Toolbox</h1>
                         <h4 data-toc-skip class="author">Cristóbal
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
@@ -680,7 +680,6 @@ report the grid.</li>
 <span><span class="co">#&gt;  [9] BiocGenerics_0.56.0         generics_0.1.4             </span></span>
 <span><span class="co">#&gt; [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          </span></span>
 <span><span class="co">#&gt; [13] ggplot2_4.0.1               TSENAT_0.99.0              </span></span>
-<span><span class="co">#&gt; [15] testthat_3.3.2             </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       </span></span>
@@ -689,21 +688,19 @@ report the grid.</li>
 <span><span class="co">#&gt; [10] pkgconfig_2.0.3     Matrix_1.7-4        RColorBrewer_1.1-3 </span></span>
 <span><span class="co">#&gt; [13] S7_0.2.1            desc_1.4.3          lifecycle_1.0.5    </span></span>
 <span><span class="co">#&gt; [16] compiler_4.5.2      farver_2.1.2        textshaping_1.0.4  </span></span>
-<span><span class="co">#&gt; [19] brio_1.1.5          htmltools_0.5.9     sass_0.4.10        </span></span>
-<span><span class="co">#&gt; [22] yaml_2.3.12         tidyr_1.3.2         pkgdown_2.2.0      </span></span>
-<span><span class="co">#&gt; [25] pillar_1.11.1       jquerylib_0.1.4     DelayedArray_0.36.0</span></span>
-<span><span class="co">#&gt; [28] cachem_1.1.0        abind_1.4-8         tidyselect_1.2.1   </span></span>
-<span><span class="co">#&gt; [31] digest_0.6.39       purrr_1.2.1         dplyr_1.1.4        </span></span>
-<span><span class="co">#&gt; [34] labeling_0.4.3      splines_4.5.2       rprojroot_2.1.1    </span></span>
-<span><span class="co">#&gt; [37] fastmap_1.2.0       grid_4.5.2          cli_3.6.5          </span></span>
-<span><span class="co">#&gt; [40] SparseArray_1.10.8  magrittr_2.0.4      patchwork_1.3.2    </span></span>
-<span><span class="co">#&gt; [43] S4Arrays_1.10.1     pkgbuild_1.4.8      withr_3.0.2        </span></span>
-<span><span class="co">#&gt; [46] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     </span></span>
-<span><span class="co">#&gt; [49] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     </span></span>
-<span><span class="co">#&gt; [52] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        </span></span>
-<span><span class="co">#&gt; [55] Rcpp_1.1.1          glue_1.8.0          pkgload_1.4.1      </span></span>
-<span><span class="co">#&gt; [58] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  </span></span>
-<span><span class="co">#&gt; [61] fs_1.6.6</span></span></code></pre></div>
+<span><span class="co">#&gt; [19] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        </span></span>
+<span><span class="co">#&gt; [22] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    </span></span>
+<span><span class="co">#&gt; [25] tidyr_1.3.2         DelayedArray_0.36.0 cachem_1.1.0       </span></span>
+<span><span class="co">#&gt; [28] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      </span></span>
+<span><span class="co">#&gt; [31] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     </span></span>
+<span><span class="co">#&gt; [34] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         </span></span>
+<span><span class="co">#&gt; [37] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     </span></span>
+<span><span class="co">#&gt; [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        </span></span>
+<span><span class="co">#&gt; [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     </span></span>
+<span><span class="co">#&gt; [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     </span></span>
+<span><span class="co">#&gt; [49] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        </span></span>
+<span><span class="co">#&gt; [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     </span></span>
+<span><span class="co">#&gt; [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

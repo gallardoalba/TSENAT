@@ -1,4 +1,4 @@
-# TSENAT: Tsallis Entropy Analysis Toolkit
+# TSENAT: Tsallis Entropy Analysis Toolbox
 
 ## Overview
 
@@ -656,7 +656,6 @@ sessionInfo()
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
 #> [13] ggplot2_4.0.1               TSENAT_0.99.0              
-#> [15] testthat_3.3.2             
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
@@ -665,19 +664,17 @@ sessionInfo()
 #> [10] pkgconfig_2.0.3     Matrix_1.7-4        RColorBrewer_1.1-3 
 #> [13] S7_0.2.1            desc_1.4.3          lifecycle_1.0.5    
 #> [16] compiler_4.5.2      farver_2.1.2        textshaping_1.0.4  
-#> [19] brio_1.1.5          htmltools_0.5.9     sass_0.4.10        
-#> [22] yaml_2.3.12         tidyr_1.3.2         pkgdown_2.2.0      
-#> [25] pillar_1.11.1       jquerylib_0.1.4     DelayedArray_0.36.0
-#> [28] cachem_1.1.0        abind_1.4-8         tidyselect_1.2.1   
-#> [31] digest_0.6.39       purrr_1.2.1         dplyr_1.1.4        
-#> [34] labeling_0.4.3      splines_4.5.2       rprojroot_2.1.1    
-#> [37] fastmap_1.2.0       grid_4.5.2          cli_3.6.5          
-#> [40] SparseArray_1.10.8  magrittr_2.0.4      patchwork_1.3.2    
-#> [43] S4Arrays_1.10.1     pkgbuild_1.4.8      withr_3.0.2        
-#> [46] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
-#> [49] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
-#> [52] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        
-#> [55] Rcpp_1.1.1          glue_1.8.0          pkgload_1.4.1      
-#> [58] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  
-#> [61] fs_1.6.6
+#> [19] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
+#> [22] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
+#> [25] tidyr_1.3.2         DelayedArray_0.36.0 cachem_1.1.0       
+#> [28] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
+#> [31] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     
+#> [34] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
+#> [37] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
+#> [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
+#> [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
+#> [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
+#> [49] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        
+#> [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     
+#> [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
 ```
