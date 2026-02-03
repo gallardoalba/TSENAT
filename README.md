@@ -33,13 +33,17 @@ $$
 
 so that $p_i \ge 0$ and $\sum_i p_i = 1$. 
 
-The parameter `q` tunes what aspect of isoform usage the entropy emphasizes: 
-values $q<1$ increase the influence of low-abundance (rare) isoforms, 
-while $q>1$ increases the influence of high-abundance (dominant) isoforms. 
-Practical examples: `q = 0` corresponds to isoform richness (the number 
-of expressed isoforms), `q \approx 1` recovers Shannon entropy (uncertainty 
-of isoform usage), and `q = 2` is closely related to the inverse Simpson 
-index (sensitive to dominance).
+The parameter `q` controls how the entropy weights isoforms by abundance: 
+values $q < 1$ emphasize low-abundance (rare) isoforms and therefore capture 
+richness, while values $q > 1$ emphasize high-abundance (dominant) isoforms 
+and therefore capture dominance. 
+
+Practical choices: `q = 0` counts expressed isoforms (richness), `q = 1` 
+recovers Shannon entropy (overall uncertainty of isoform usage), and 
+`q = 2` is closely related to the inverse Simpson index (sensitive to 
+dominance). In practice, choose smaller `q` to highlight rare isoforms, 
+`q` near 1 for general diversity, and larger `q` to focus on dominant 
+isoforms.
 
 Integrated features
 -------------------
@@ -65,7 +69,6 @@ if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("gallardoalba/TSENAT")
 
 ## Recommended (reproducible): use `renv`.
-
 install.packages("renv")
 renv::init()
 # when dependencies are set, record lock
@@ -92,7 +95,7 @@ ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
 plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ```
 
-For a detailed, reproducible example see the package vignette (HTML and PDF): [HTML vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) | [PDF vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
+For a detailed, reproducible example see the package vignette: [HTML](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) | [PDF](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
 
 Licence, citation and atribution
 --------------------------------

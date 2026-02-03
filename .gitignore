@@ -1,4 +1,4 @@
-.Rproj.user/
+docs/
 *.Rhistory
 *.RData
 *.Ruserdata
@@ -21,6 +21,5 @@ __pycache__/
 /Meta/
 
 # Local R check directories and temporary package checks
-..Rcheck/
 TSENAT.Rcheck/
 TSENAT.Rcheck
