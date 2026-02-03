@@ -124,7 +124,10 @@ workflows:
   version: 2
   build_and_deploy:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: stable
 
   deploy_only:
     jobs:
