@@ -32,11 +32,10 @@ differences.
 
 Tsallis entropy is a one-parameter family of diversity measures that
 generalizes Shannon entropy via a sensitivity parameter `q`. For a
-discrete probability vector $`p=(p_1,\dots,p_n)`$ it is defined as
+discrete probability vector $p = \left( p_{1},\ldots,p_{n} \right)$ it
+is defined as
 
-``` math
-S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
-```
+$$S_{q}(p) = \frac{1 - \sum\limits_{i = 1}^{n}p_{i}^{q}}{q - 1}.$$
 
 Why use Tsallis entropy for gene-expression data?
 
@@ -47,8 +46,8 @@ resampling-based uncertainty quantification it is a practical and
 interpretable tool for transcriptomics analyses. Key advantages:
 
 - Tunable sensitivity: changing `q` shifts emphasis between rare and
-  dominant isoforms. Use small `q` ($`<1`$) to probe rare-isoform
-  heterogeneity and larger `q` ($`>1`$) to focus on dominant-isoform
+  dominant isoforms. Use small `q` ($< 1$) to probe rare-isoform
+  heterogeneity and larger `q` ($> 1$) to focus on dominant-isoform
   behaviour; plotting `S_q` across a compact `q` grid (a “q-curve”)
   reveals scale-dependent differences between conditions.
 - Interpretability: Tsallis maps to several familiar indices in limits
@@ -61,14 +60,14 @@ interpretable tool for transcriptomics analyses. Key advantages:
 
 Essential limiting cases:
 
-- Limit $`q\to 1`$: Shannon entropy,
-  $`\lim_{q\to1} S_q(p) = -\sum_i p_i\log
-  p_i`$.
-- $`q=0`$: richness-like (number of expressed isoforms minus one).
-- $`q=2`$: Gini–Simpson / collision index, $`S_2 = 1-\sum_i p_i^2`$.
-- Uniform maximum: for $`m`$ expressed isoforms,
-  $`S_{q,\max}(m)=\frac{1-m^{1-q}}{q-1}`$ and normalized
-  $`\tilde S_q = S_q / S_{q,\max}(m)`$.
+- Limit $\left. q\rightarrow 1 \right.$: Shannon entropy,
+  $\lim_{q\rightarrow 1}S_{q}(p) = - \sum_{i}p_{i}\log p_{i}$.
+- $q = 0$: richness-like (number of expressed isoforms minus one).
+- $q = 2$: Gini–Simpson / collision index,
+  $S_{2} = 1 - \sum_{i}p_{i}^{2}$.
+- Uniform maximum: for $m$ expressed isoforms,
+  $S_{q,\max}(m) = \frac{1 - m^{1 - q}}{q - 1}$ and normalized
+  ${\widetilde{S}}_{q} = S_{q}/S_{q,\max}(m)$.
 
 Use cases and interpretation:
 
@@ -86,7 +85,6 @@ An example dataset is included for demonstration. Load the package and
 data:
 
 ``` r
-
 # Load packages
 suppressPackageStartupMessages({
     library(TSENAT)
@@ -99,7 +97,6 @@ suppressPackageStartupMessages({
 Now we load the example dataset and associated metadata:
 
 ``` r
-
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
@@ -169,7 +166,6 @@ Filter transcripts with fewer than 5 reads in more than 5 samples and
 update the `genes` vector accordingly.
 
 ``` r
-
 ## Filter lowly-expressed transcripts and report counts
 n_before <- nrow(readcounts)
 tokeep <- rowSums(readcounts > 5) > 5
@@ -192,7 +188,6 @@ stability of diversity estimates.
 Compute Tsallis entropy for a single q and inspect the resulting assay
 
 ``` r
-
 ## The `norm = TRUE` option returns normalized entropies on a comparable scale.
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
@@ -215,7 +210,6 @@ Map sample metadata (if available) into the `SummarizedExperiment` so
 plotting functions can use `sample_type` for grouping.
 
 ``` r
-
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
@@ -224,7 +218,6 @@ that `sample_type` and any other covariates are available for downstream
 plotting and modeling.
 
 ``` r
-
 # Quick checks on mapped sample metadata
 cd <- SummarizedExperiment::colData(ts_se)
 colnames(cd) # list available metadata columns
@@ -297,7 +290,6 @@ summaries. Adjust the `control` and `test` parameters in
 to suit your experimental design.
 
 ``` r
-
 # create a sample grouping vector inferred from sample names
 # account for per-q column names like 'Sample_q=0.01'
 sample_base_names <- sub(
@@ -345,7 +337,6 @@ Generate diagnostic plots to summarize per-gene effect sizes:
   p-value.
 
 ``` r
-
 # MA plot using helper
 p_ma <- plot_ma(res)
 print(p_ma)
@@ -356,7 +347,6 @@ print(p_ma)
 ![](TSENAT_files/figure-html/ma-and-volcano-1.png)
 
 ``` r
-
 
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
@@ -376,7 +366,6 @@ significance to inspect isoform-level patterns that may explain the
 diversity differences.
 
 ``` r
-
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
 sample_base_names <- sub(
@@ -404,7 +393,6 @@ Compute normalized Tsallis entropy for two `q` values (0.1 and 2) to
 compare scale-dependent behavior.
 
 ``` r
-
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
@@ -433,7 +421,6 @@ Map optional sample metadata into the multi-q `SummarizedExperiment` so
 plotting helpers have access to `sample_type` for grouping.
 
 ``` r
-
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
@@ -441,7 +428,6 @@ Create violin and density plots summarizing diversity across multiple
 `q` values to show distributional differences between groups.
 
 ``` r
-
 p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
 print(p_violin)
 ```
@@ -449,7 +435,6 @@ print(p_violin)
 ![](TSENAT_files/figure-html/plots-1.png)
 
 ``` r
-
 p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
 print(p_density)
 ```
@@ -462,7 +447,6 @@ Now we will compute normalized Tsallis entropy across a sequence of `q`
 values.
 
 ``` r
-
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
@@ -487,7 +471,6 @@ Map the sample metadata into the multi-q `SummarizedExperiment` as
 before.
 
 ``` r
-
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
@@ -503,7 +486,6 @@ Plot the Tsallis q-curve (entropy vs q) to visualize how diversity
 changes with `q` across sample groups.
 
 ``` r
-
 # q-curve: median ± IQR across q values by group
 p3 <- plot_tsallis_q_curve(readcounts, genes, q_values = qvec)
 print(p3)
@@ -562,7 +544,6 @@ group-specific, indicating changes in isoform-dominance dynamics rather
 than only an overall shift in diversity.
 
 ``` r
-
 # ensure the SummarizedExperiment contains sample names with group suffixes
 # (the function infers group from sample name suffix _N -> Normal)
 lm_res <- calculate_lm_interaction(ts_se,
@@ -592,9 +573,9 @@ Quick checklist (what to do and why):
   (suggested: 0.1, 0.2, 0.5, 1, 1.5, 2). Plot q-curves to inspect where
   groups diverge rather than relying on a single `q`.
 - Reporting scale: present Hill numbers `D_q` (intuitive “effective
-  isoforms”) and/or normalized entropy $`\tilde S_q`$; report both
-  effect size (median/mean difference) and variability (CI or bootstrap
-  SE).
+  isoforms”) and/or normalized entropy ${\widetilde{S}}_{q}$; report
+  both effect size (median/mean difference) and variability (CI or
+  bootstrap SE).
 - Hypothesis testing: use Wilcoxon for speed (asymptotic) and
   label-shuffle (permutation) for small samples or exact inference. For
   permutations use `randomizations` ≥1000 (≥5000 when estimating very
@@ -624,24 +605,24 @@ Quick checklist (what to do and why):
 ## Session info
 
 ``` r
-
 sessionInfo()
-#> R version 4.5.2 (2025-10-31)
-#> Platform: x86_64-conda-linux-gnu
-#> Running under: Ubuntu 22.04.5 LTS
+#> R version 4.5.0 (2025-04-11)
+#> Platform: x86_64-pc-linux-gnu
+#> Running under: Ubuntu 24.04.2 LTS
 #> 
 #> Matrix products: default
-#> BLAS/LAPACK: /home/nouser/miniconda3/lib/libopenblasp-r0.3.30.so;  LAPACK version 3.12.0
+#> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
 #> 
 #> locale:
-#>  [1] LC_CTYPE=es_ES.UTF-8       LC_NUMERIC=C              
-#>  [3] LC_TIME=de_DE.UTF-8        LC_COLLATE=es_ES.UTF-8    
-#>  [5] LC_MONETARY=de_DE.UTF-8    LC_MESSAGES=es_ES.UTF-8   
-#>  [7] LC_PAPER=de_DE.UTF-8       LC_NAME=C                 
+#>  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+#>  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+#>  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+#>  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
 #>  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-#> [11] LC_MEASUREMENT=de_DE.UTF-8 LC_IDENTIFICATION=C       
+#> [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
 #> 
-#> time zone: Europe/Berlin
+#> time zone: Etc/UTC
 #> tzcode source: system (glibc)
 #> 
 #> attached base packages:
@@ -649,32 +630,32 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] mgcv_1.9-4                  nlme_3.1-168               
+#>  [1] mgcv_1.9-3                  nlme_3.1-168               
 #>  [3] SummarizedExperiment_1.40.0 Biobase_2.70.0             
 #>  [5] GenomicRanges_1.62.1        Seqinfo_1.0.0              
 #>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
 #>  [9] BiocGenerics_0.56.0         generics_0.1.4             
 #> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] ggplot2_4.0.1               TSENAT_0.99.0              
+#> [13] ggplot2_4.0.2               TSENAT_0.99.0              
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
-#>  [4] htmlwidgets_1.6.4   ggrepel_0.9.6       lattice_0.22-7     
-#>  [7] vctrs_0.7.1         tools_4.5.2         tibble_3.3.1       
-#> [10] pkgconfig_2.0.3     Matrix_1.7-4        RColorBrewer_1.1-3 
-#> [13] S7_0.2.1            desc_1.4.3          lifecycle_1.0.5    
-#> [16] compiler_4.5.2      farver_2.1.2        textshaping_1.0.4  
-#> [19] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
-#> [22] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
-#> [25] tidyr_1.3.2         DelayedArray_0.36.0 cachem_1.1.0       
-#> [28] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
-#> [31] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     
-#> [34] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
-#> [37] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
-#> [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
-#> [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
-#> [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
-#> [49] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        
-#> [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     
-#> [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
+#>  [1] tidyr_1.3.2         sass_0.4.10         SparseArray_1.10.8 
+#>  [4] lattice_0.22-7      digest_0.6.39       magrittr_2.0.4     
+#>  [7] evaluate_1.0.5      grid_4.5.0          RColorBrewer_1.1-3 
+#> [10] fastmap_1.2.0       jsonlite_2.0.0      Matrix_1.7-3       
+#> [13] ggrepel_0.9.6       purrr_1.2.1         viridisLite_0.4.2  
+#> [16] scales_1.4.0        textshaping_1.0.4   jquerylib_0.1.4    
+#> [19] abind_1.4-8         cli_3.6.5           rlang_1.1.7        
+#> [22] XVector_0.50.0      splines_4.5.0       withr_3.0.2        
+#> [25] cachem_1.1.0        DelayedArray_0.36.0 yaml_2.3.12        
+#> [28] S4Arrays_1.10.1     tools_4.5.0         dplyr_1.2.0        
+#> [31] vctrs_0.7.1         R6_2.6.1            lifecycle_1.0.5    
+#> [34] fs_1.6.6            ragg_1.5.0          pkgconfig_2.0.3    
+#> [37] desc_1.4.3          pkgdown_2.2.0       bslib_0.10.0       
+#> [40] pillar_1.11.1       gtable_0.3.6        Rcpp_1.1.1         
+#> [43] glue_1.8.0          systemfonts_1.3.1   tidyselect_1.2.1   
+#> [46] xfun_0.56           tibble_3.3.1        knitr_1.51         
+#> [49] farver_2.1.2        patchwork_1.3.2     htmltools_0.5.9    
+#> [52] labeling_0.4.3      rmarkdown_2.30      compiler_4.5.0     
+#> [55] S7_0.2.1
 ```

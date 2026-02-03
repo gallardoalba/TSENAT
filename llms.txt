@@ -6,32 +6,28 @@ metrics.
 ## Tsallis theory
 
 Tsallis entropy generalizes Shannon entropy. For a probability vector
-$`p = (p_1, \dots, p_n)`$ (with $`p_i \ge 0`$ and $`\sum_i p_i = 1`$)
-the Tsallis entropy of order $`q`$ is defined for $`q \ne 1`$ as
+$p = \left( p_{1},\ldots,p_{n} \right)$ (with $p_{i} \geq 0$ and
+$\sum_{i}p_{i} = 1$) the Tsallis entropy of order $q$ is defined for
+$q \neq 1$ as
 
-``` math
-S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
-```
+$$S_{q}(p) = \frac{1 - \sum\limits_{i}p_{i}^{q}}{q - 1}.$$
 
-In the limit $`q \to 1`$ this recovers the Shannon entropy
+In the limit $\left. q\rightarrow 1 \right.$ this recovers the Shannon
+entropy
 
-``` math
-\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i.
-```
+$$\lim\limits_{q\rightarrow 1}S_{q}(p) = - \sum\limits_{i}p_{i}\log p_{i}.$$
 
 In transcript-expression data we compute Tsallis entropy per gene from
 the isoform-level relative abundances. For a gene with isoform counts or
 expression values x_i, convert to proportions
 
-``` math
-p_i = x_i / \sum_j x_j
-```
+$$p_{i} = x_{i}/\sum\limits_{j}x_{j}$$
 
-so that $`p_i \ge 0`$ and $`\sum_i p_i = 1`$.
+so that $p_{i} \geq 0$ and $\sum_{i}p_{i} = 1$.
 
 The parameter `q` controls how the entropy weights isoforms by
-abundance: values $`q < 1`$ emphasize low-abundance (rare) isoforms and
-therefore capture richness, while values $`q > 1`$ emphasize
+abundance: values $q < 1$ emphasize low-abundance (rare) isoforms and
+therefore capture richness, while values $q > 1$ emphasize
 high-abundance (dominant) isoforms and therefore capture dominance.
 
 Practical choices: `q = 0` counts expressed isoforms (richness), `q = 1`
@@ -66,7 +62,6 @@ isoforms.
 Install from GitHub during development:
 
 ``` r
-
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("gallardoalba/TSENAT")
 
@@ -83,7 +78,6 @@ Compute Tsallis diversity for a single `q` and plot a q-curve across
 multiple `q` values (small, focused example taken from the vignette):
 
 ``` r
-
 library(TSENAT)
 data("tcga_brca_luma_dataset", package = "TSENAT")
 
@@ -111,7 +105,6 @@ at `LICENSE` and is installed with the package under `inst/LICENSE`.
 To cite TSENAT in publications, run the following in R:
 
 ``` r
-
 citation("TSENAT")
 ```
 
