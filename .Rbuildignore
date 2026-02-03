@@ -1,6 +1,4 @@
 ^docs/
-^inst/doc$
-^inst/doc/
 ^dist/
 ^data-raw/
 ^_pkgdown.yml$
@@ -14,6 +12,7 @@
 ^TSENAT_.*\.tar\.gz$
 ^\.\.Rcheck$
 ^\.github$
+^\.circleci$
 
 # Ignore vignette intermediate files
 ^vignettes/.*\.Rhistory$
