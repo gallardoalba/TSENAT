@@ -119,7 +119,7 @@ coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
 
 # Load dataset
-data(tcga_brca_luma_dataset)
+data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
 
 # Extract gene names and read count data (do not reference ts_se yet)
 genes <- tcga_brca_luma_dataset[, 1]
