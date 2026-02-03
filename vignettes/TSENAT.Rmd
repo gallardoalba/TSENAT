@@ -22,9 +22,9 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r pkgload-dev, include=FALSE}
-## dev: load package from source if available
-if (requireNamespace("pkgload", quietly = TRUE)) pkgload::load_all()
+```{r devtoos-load, include=FALSE}
+## dev: load package from source
+devtools::load_all()
 ```
 
 ## Overview
