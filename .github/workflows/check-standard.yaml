@@ -1,10 +1,8 @@
 name: R-CMD-check (standard)
 
 on:
-  push:
-    branches: [ stable ]
-  pull_request:
-    branches: [ stable ]
+  workflow_dispatch:
+    # Disabled automatic runs; manual dispatch only to rely on CircleCI
 
 jobs:
   R-CMD-check:
