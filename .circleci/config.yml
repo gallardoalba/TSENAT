@@ -23,8 +23,8 @@ jobs:
       - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("remotes","ggplot2"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment"), ask=FALSE)'
+            R -e 'install.packages(c("remotes","ggplot2","magrittr","tidyr","dplyr","knitr","rmarkdown","xml2","ggrepel","cowplot","patchwork","mgcv"), repos="https://cloud.r-project.org")'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE)'
       - run:
           name: Build package
           command: R CMD build .
@@ -47,7 +47,8 @@ jobs:
       - run:
           name: Install R packages for docs
           command: |
-            R -e 'install.packages(c("remotes","pkgdown","rmarkdown","xml2"), repos="https://cloud.r-project.org")'
+            R -e 'install.packages(c("remotes","pkgdown","rmarkdown","knitr","xml2","tidyr","dplyr","ggplot2","ggrepel","cowplot","patchwork"), repos="https://cloud.r-project.org")'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE)'
       - run:
           name: Build pkgdown site
           command: |
