@@ -251,32 +251,36 @@ The package exposes pragmatic pairwise tests for comparing per-gene
 diversity summaries between two groups. Two common choices are
 Wilcoxon-based tests and label-shuffle tests. Guidance:
 
-**Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired)**: - Use
-when you want a distribution-free test comparing central tendency
-(ranks/median) and sample sizes are moderate (typically ≥10 per group
-for stable asymptotic p-values). - Assumptions: independent observations
-within groups (or matched pairs for the signed-rank test);
-exchangeability under the null. - Handle ties: software returns
-approximate p-values when many ties exist; consider permutation p-values
-when ties or discreteness are extreme (small counts, many zeros). -
-Report effect sizes (median difference, Hodges–Lehmann estimator) and
-confidence intervals where possible; do not rely on p-values alone.
+**Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired)**:
 
-**Label-shuffle tests**: - Use when sample sizes are small,
-distributional assumptions are questionable, or you prefer an
-exact/empirical null constructed from the observed data. Randomly
-shuffle group labels many times and recompute the test statistic
-(difference in medians or means). - Exchangeability requirement:
-permutations are valid when labels are exchangeable under the null
-(e.g., independent samples). For paired designs use paired permutations
-that shuffle within pairs or use sign flips for paired differences. -
-Practical settings: set `randomizations` to ≥1000 for routine use and
-5000+ when estimating small p-values or when applying FDR across many
-genes. When possible, compute exact permutations (all labelings) for
-very small datasets.
+- Use when you want a distribution-free test comparing central tendency
+  (ranks/median) and sample sizes are moderate (typically ≥10 per group
+  for stable asymptotic p-values).
+- Assumptions: independent observations within groups (or matched pairs
+  for the signed-rank test); exchangeability under the null.
+- Handle ties: software returns approximate p-values when many ties
+  exist; consider permutation p-values when ties or discreteness are
+  extreme (small counts, many zeros).
+- Report effect sizes (median difference, Hodges–Lehmann estimator) and
+  confidence intervals where possible; do not rely on p-values alone.
 
-Here we will use the **Wilcoxon test** — it is the appropriate choice
-for speed when sample sizes support asymptotic approximations. Use
+**Label-shuffle tests**:
+
+- Use when sample sizes are small, distributional assumptions are
+  questionable, or you prefer an exact/empirical null constructed from
+  the observed data. Randomly shuffle group labels many times and
+  recompute the test statistic (difference in medians or means).
+- Exchangeability requirement: permutations are valid when labels are
+  exchangeable under the null (e.g., independent samples). For paired
+  designs use paired permutations that shuffle within pairs or use sign
+  flips for paired differences.
+- Practical settings: set `randomizations` to ≥1000 for routine use and
+  5000+ when estimating small p-values or when applying FDR across many
+  genes. When possible, compute exact permutations (all labelings) for
+  very small datasets.
+
+Here we will use the **Wilcoxon test**; it is the appropriate choice for
+speed when sample sizes support asymptotic approximations. Use
 permutation tests when small-sample accuracy or exact control of the
 null distribution is important.
 
@@ -508,30 +512,38 @@ between diversity and `q` differs by condition. The package implements
 three complementary approaches; below are practical notes to guide
 choice and parameter selection.
 
-**Linear interaction model (`entropy ~ q * group`)**: - Interprets group
-differences as slope (q-by-group interaction) differences across the
-evaluated q-grid. Use when the q-curve is approximately linear over the
-chosen range and sample sizes are modest. - Advantages: simple,
-interpretable interaction coefficient, fast. - Caveats: will miss
-localized nonlinear differences (e.g., only at low q values).
+**Linear interaction model (`entropy ~ q * group`)**:
 
-**GAM-based comparison (`mgcv`)**: - Fit smooth functions of `q` with
-group-specific terms (e.g., a common smooth plus group-by-smooth
-deviations) and compare nested models with an approximate F-type test
-(anova.gam). - Choose spline basis dimension `k` relative to the number
-of distinct `q` values (keep `k` small for sparse grids). Inspect
-diagnostic plots and concur that fitted smooths reflect biological
-signal rather than overfitting noise. - Requires sufficient observations
-per gene across samples and q values to estimate smooth terms reliably.
+- Interprets group differences as slope (q-by-group interaction)
+  differences across the evaluated q-grid. Use when the q-curve is
+  approximately linear over the chosen range and sample sizes are
+  modest.
+- Advantages: simple, interpretable interaction coefficient, fast.
+- Caveats: will miss localized nonlinear differences (e.g., only at low
+  q values).
 
-**FPCA-based test (functional PCA on q-curves)**: - Treat each sample’s
-q-curve as a functional object, compute principal components across q,
-and test group differences on leading PC scores. - Fast and robust when
-dominant curve modes capture group differences, but it reduces the curve
-to a few components and may miss localized effects confined to a narrow
-q-range. - Address missing q points by sensible imputation (column means
-or spline interpolation) before PCA; require minimal q coverage across
-samples to obtain stable PCs.
+**GAM-based comparison (`mgcv`)**:
+
+- Fit smooth functions of `q` with group-specific terms (e.g., a common
+  smooth plus group-by-smooth deviations) and compare nested models with
+  an approximate F-type test (anova.gam).
+- Choose spline basis dimension `k` relative to the number of distinct
+  `q` values (keep `k` small for sparse grids). Inspect diagnostic plots
+  and concur that fitted smooths reflect biological signal rather than
+  overfitting noise.
+- Requires sufficient observations per gene across samples and q values
+  to estimate smooth terms reliably.
+
+**FPCA-based test (functional PCA on q-curves)**:
+
+- Treat each sample’s q-curve as a functional object, compute principal
+  components across q, and test group differences on leading PC scores.
+- Fast and robust when dominant curve modes capture group differences,
+  but it reduces the curve to a few components and may miss localized
+  effects confined to a narrow q-range.
+- Address missing q points by sensible imputation (column means or
+  spline interpolation) before PCA; require minimal q coverage across
+  samples to obtain stable PCs.
 
 This test fits a simple linear model per gene to assess whether the
 slope of the q-curve differs between sample groups. It can help identify
