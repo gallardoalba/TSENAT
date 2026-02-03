@@ -293,7 +293,6 @@ highlighting candidates by thresholding magnitude and adjusted p-value.
 # MA plot using helper
 p_ma <- plot_ma(res)
 print(p_ma)
-
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
 print(p_volcano)
