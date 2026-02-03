@@ -43,11 +43,9 @@ diversity differences.
 
 1. Preprocess counts and filter low-abundance transcripts.
 2. Compute relative transcript proportions within each gene and evaluate
-## Load required files with fallbacks so vignette builds under CI and locally
-coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
-tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-
-# fallback to package source `inst/extdata/` when system.file fails
+Tsallis entropy across one or more `q` values.
+3. Summarize per-gene values across samples (mean/median) and test for
+differences between groups (Wilcoxon or permutations).
 4. Visualize q-curves and inspect transcript-level counts for top genes.
 
 
@@ -57,7 +55,6 @@ Tsallis entropy is a one-parameter family of diversity measures that
 generalizes Shannon entropy via a sensitivity parameter `q`. For a
 discrete probability vector $p=(p_1,\dots,p_n)$ it is defined as
 
-# Ensure example dataset is available in the vignette environment
 \[
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 \]
