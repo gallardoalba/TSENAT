@@ -13,7 +13,7 @@ LazyData: false
 RoxygenNote: 7.3.3
 Depends: R (>= 4.5.0)
 Imports: SummarizedExperiment, methods, stats, magrittr, ggplot2
-Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors, cowplot, ggrepel, patchwork
+Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors, cowplot, ggrepel, patchwork, pkgdown
 VignetteBuilder: knitr
 URL: https://gallardoalba.github.io/TSENAT
 BugReports: https://github.com/gallardoalba/TSENAT/issues
