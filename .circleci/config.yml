@@ -11,6 +11,16 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}
+            - v1-r-packages-
+      - run:
+          name: Prepare R library dir
+          command: |
+            mkdir -p ~/R/library
+            echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
+            source $BASH_ENV
       - run:
           name: Install OS deps
           command: |
@@ -25,6 +35,10 @@ jobs:
           command: |
             R -e 'install.packages(c("remotes","ggplot2","magrittr","tidyr","dplyr","knitr","rmarkdown","xml2","ggrepel","cowplot","patchwork","mgcv","pkgdown"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE)'
+      - save_cache:
+          paths:
+            - ~/R/library
+          key: v1-r-packages-{{ checksum "DESCRIPTION" }}
       - run:
           name: Build package
           command: R CMD build .
@@ -40,6 +54,16 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}
+            - v1-r-packages-
+      - run:
+          name: Prepare R library dir
+          command: |
+            mkdir -p ~/R/library
+            echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
+            source $BASH_ENV
       - run:
           name: Install OS deps
           command: |
@@ -49,11 +73,22 @@ jobs:
       - run:
           name: Install R packages for docs
           command: |
-            R -e 'install.packages(c("remotes","pkgdown","rmarkdown","knitr","xml2","tidyr","dplyr","ggplot2","ggrepel","cowplot","patchwork"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE)'
+            set -euo pipefail
+            # Install CRAN packages and fail early if any are missing; print sessionInfo() for debugging
+            R -e 'options(repos="https://cloud.r-project.org"); pkgs <- c("remotes","pkgdown","rmarkdown","knitr","xml2","tidyr","dplyr","ggplot2","ggrepel","cowplot","patchwork"); install.packages(pkgs); missing <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if (length(missing)) { message("Missing CRAN packages: ", paste(missing, collapse=", ")); sessionInfo(); q(status=1) }'
+            # Install Bioconductor packages and check
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE); bpkgs <- c("SummarizedExperiment","S4Vectors"); missingb <- bpkgs[!sapply(bpkgs, requireNamespace, quietly=TRUE)]; if (length(missingb)) { message("Missing Bioconductor packages: ", paste(missingb, collapse=", ")); sessionInfo(); q(status=1) }'
+            # Print session info for CI diagnostics
+            R -e 'sessionInfo()'
+      - save_cache:
+          paths:
+            - ~/R/library
+          key: v1-r-packages-{{ checksum "DESCRIPTION" }}
       - run:
           name: Build pkgdown site
           command: |
+            # Ensure pkgdown is installed (robust check) then build
+            R -e 'if (!requireNamespace("pkgdown", quietly=TRUE)) install.packages("pkgdown", repos="https://cloud.r-project.org")'
             Rscript -e 'pkgdown::build_site()'
       - run:
           name: Publish to gh-pages
