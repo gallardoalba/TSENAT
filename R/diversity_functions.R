@@ -8,8 +8,8 @@
 #' (default: 2).
 #' @param norm Logical; if TRUE, normalize entropy by its theoretical maximum
 #' (values in [0,1]).
-#' @param what Which quantity to return: "S" (Tsallis entropy), "D" (Hill
-#' numbers), or "both".
+#' @param what Which quantity to return: "S" (Tsallis entropy) or "D" (Hill
+#' numbers).
 #' @param log_base Base of the logarithm used for Shannon limits and
 #' normalization
 #' (default: \code{exp(1)}).
@@ -30,8 +30,7 @@ calculate_tsallis_entropy <- function(
   norm = TRUE,
   what = c(
       "S",
-      "D",
-      "both"
+      "D"
   ),
   log_base = exp(1)
 ) {
@@ -44,9 +43,6 @@ calculate_tsallis_entropy <- function(
     # If all counts sum to zero, return NA; allow single-element vectors to
     # proceed
     if (sum(x, na.rm = TRUE) <= 0) {
-        if (what == "both") {
-            return(list(S = rep(NA_real_, length(q)), D = rep(NA_real_, length(q))))
-        }
         return(rep(NA_real_, length(q)))
     }
 
@@ -96,8 +92,21 @@ calculate_tsallis_entropy <- function(
         }
         return(out)
     }
-    # both
-    names(S_vec) <- paste0("q=", q)
-    names(D_vec) <- paste0("q=", q)
-    return(list(S = S_vec, D = D_vec))
+    # return requested quantity
+    if (what == "S") {
+        out <- S_vec
+        if (length(q) > 1) names(out) <- paste0("q=", q)
+        if (length(q) == 1) {
+            return(unname(out))
+        }
+        return(out)
+    }
+    if (what == "D") {
+        out <- D_vec
+        if (length(q) > 1) names(out) <- paste0("q=", q)
+        if (length(q) == 1) {
+            return(unname(out))
+        }
+        return(out)
+    }
 }

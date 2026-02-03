@@ -9,7 +9,7 @@ calculate_tsallis_entropy(
   x,
   q = 2,
   norm = TRUE,
-  what = c("S", "D", "both"),
+  what = c("S", "D"),
   log_base = exp(1)
 )
 }
@@ -22,8 +22,8 @@ calculate_tsallis_entropy(
 \item{norm}{Logical; if TRUE, normalize entropy by its theoretical maximum
 (values in [0,1]).}
 
-\item{what}{Which quantity to return: "S" (Tsallis entropy), "D" (Hill
-numbers), or "both".}
+\item{what}{Which quantity to return: "S" (Tsallis entropy) or "D" (Hill
+numbers).}
 
 \item{log_base}{Base of the logarithm used for Shannon limits and
 normalization

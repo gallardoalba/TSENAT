@@ -96,8 +96,8 @@ Use cases and interpretation:
 low-abundance (rare) isoforms; separation at high `q` indicates changes
 in dominant isoforms. When both regimes differ, the q-curve will show
 divergence across the entire `q` range.
-- Report both `S_q` (or `\tilde S_q`) and Hill numbers `D_q` for reader
-clarity: `D_q` converts entropies into an "effective number of
+Report `S_q` or Hill numbers `D_q` as appropriate
+for clarity: `D_q` converts entropies into an "effective number of
 isoforms" that is easy to interpret.
 
 ## Example dataset
