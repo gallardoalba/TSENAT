@@ -353,7 +353,6 @@ print(p_ma)
 
 ``` r
 
-
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
 print(p_volcano)
