@@ -30,8 +30,10 @@ jobs:
           command: R CMD build .
       - run:
           name: Run checks
-          command: R CMD check --no-manual *.tar.gz
-
+          command: |
+            # Allow checking to proceed when Suggests are not available
+            export _R_CHECK_FORCE_SUGGESTS_=false
+            R CMD check --no-manual *.tar.gz
   deploy_docs:
     docker:
       - image: rocker/r-ver:4.5.0
