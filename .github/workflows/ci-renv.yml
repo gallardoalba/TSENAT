@@ -1,8 +1,10 @@
 name: R-CMD-check with renv
 
 on:
-  workflow_dispatch:
-    # Disabled automatic runs; manual dispatch only to rely on CircleCI
+  push:
+    branches: [ stable ]
+  pull_request:
+    branches: [ stable ]
 
 jobs:
   check:
