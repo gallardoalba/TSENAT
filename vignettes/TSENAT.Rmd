@@ -67,20 +67,20 @@ signals act at different abundance scales; combined with careful
 preprocessing and resampling-based uncertainty quantification it is a
 practical and interpretable tool for transcriptomics analyses. Key advantages:
 
-- Tunable sensitivity: changing `q` shifts emphasis between rare and
+- **Tunable sensitivity**: changing `q` shifts emphasis between rare and
 dominant isoforms. Use small `q` (\(<1\)) to probe rare-isoform
 heterogeneity and larger `q` (\(>1\)) to focus on dominant-isoform
 behaviour; plotting `S_q` across a compact `q` grid (a "q-curve")
 reveals scale-dependent differences between conditions.
-- Interpretability: Tsallis maps to several familiar indices in limits
+- **Interpretability**: Tsallis maps to several familiar indices in limits
 (Shannon at `q=1`, richness-like at `q=0`, Gini–Simpson at `q=2`), so
 it unifies multiple perspectives on isoform diversity within one
 framework.
-- Robust summary and diagnostics: combined with Hill numbers and
+- **Robust summary and diagnostics**: combined with Hill numbers and
 q-curves, `S_q` supports concise reporting (effective isoform counts,
 slope/AUC summaries) and targeted follow-up (transcript-level plots).
 
-Essential limiting cases:
+**Essential limiting cases**:
 
 - Limit $q\to 1$: Shannon entropy, \(\lim_{q\to1} S_q(p) = -\sum_i p_i\log
 p_i\).
@@ -90,14 +90,14 @@ p_i\).
 \(S_{q,\max}(m)=\frac{1-m^{1-q}}{q-1}\) and normalized
 \(\tilde S_q = S_q / S_{q,\max}(m)\).
 
-Use cases and interpretation:
+**Use cases and interpretation**:
 
 - A gene with group separation only at low `q` suggests differences in
 low-abundance (rare) isoforms; separation at high `q` indicates changes
 in dominant isoforms. When both regimes differ, the q-curve will show
 divergence across the entire `q` range.
-- Report both `S_q` (or `\tilde S_q`) and Hill numbers `D_q` for reader
-clarity: `D_q` converts entropies into an "effective number of
+Report `S_q` or Hill numbers `D_q` as appropriate
+for clarity: `D_q` converts entropies into an "effective number of
 isoforms" that is easy to interpret.
 
 ## Example dataset
@@ -216,7 +216,7 @@ The package exposes pragmatic pairwise tests for comparing per-gene
 diversity summaries between two groups. Two common choices are
 Wilcoxon-based tests and label-shuffle tests. Guidance:
 
-- Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired):
+**Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired)**:
 - Use when you want a distribution-free test comparing central tendency
 (ranks/median) and sample sizes are moderate (typically ≥10 per group
 for stable asymptotic p-values).
@@ -228,7 +228,7 @@ extreme (small counts, many zeros).
 - Report effect sizes (median difference, Hodges–Lehmann estimator) and
 confidence intervals where possible; do not rely on p-values alone.
 
-- Label-shuffle tests:
+**Label-shuffle tests**:
 - Use when sample sizes are small, distributional assumptions are
 questionable, or you prefer an exact/empirical null constructed from
 the observed data. Randomly shuffle group labels many times and
@@ -243,7 +243,7 @@ genes. When possible, compute exact permutations (all labelings) for
 very small datasets.
 
 
-Here we will use the Wilcoxon test — it is the appropriate choice for speed
+Here we will use the **Wilcoxon test** — it is the appropriate choice for speed
 when sample sizes support asymptotic approximations. Use permutation tests
 when small-sample accuracy or exact control of the null distribution is
 important.
@@ -281,10 +281,10 @@ head(res)
 
 Generate diagnostic plots to summarize per-gene effect sizes:
 
-- The MA plot shows the relationship between mean expression and log-fold
+- The **MA plot** shows the relationship between mean expression and log-fold
 change,
 helping to spot genes with large effect sizes across expression levels.
-- The volcano plot displays effect size versus significance, useful for
+- The **volcano plot** displays effect size versus significance, useful for
 highlighting candidates by thresholding magnitude and adjusted p-value.
 
 ```{r ma-and-volcano, fig.width=8, fig.height=4}
@@ -350,7 +350,7 @@ plotting helpers have access to `sample_type` for grouping.
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
-Create violin and density plots summarizing diversity across multiple `q`
+Create **violin and density plots** summarizing diversity across multiple `q`
 values to show distributional differences between groups.
 
 ```{r plots, fig.width=10, fig.height=6}
@@ -380,17 +380,13 @@ ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
 With the q-sequence we can produces a q-curve per sample and gene. These curves
-show how diversity
-emphasis shifts from rare to dominant isoforms as `q` increases and form the
-basis for interaction
-tests. The q-curve shows entropy as a function of `q`. Diverging curves between
-groups
-indicate scale-dependent diversity differences. Separation at low `q` implies
-differences
-in rare isoforms; separation at high `q` signals differences in dominant
-isoforms.
+show how diversity emphasis shifts from rare to dominant isoforms as `q` increases 
+and form the basis for interaction tests. The q-curve shows entropy as a function 
+of `q`. Diverging curves between groups indicate scale-dependent diversity 
+differences. Separation at low `q` implies differences in rare isoforms; 
+separation at high `q` signals differences in dominant isoforms.
 
-Plot the Tsallis q-curve (entropy vs q) to visualize how diversity changes
+Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity changes
 with `q` across sample groups.
 
 ```{r plot-q-curve, fig.width=10, fig.height=6}
@@ -404,7 +400,7 @@ between diversity and `q` differs by condition. The package implements
 three complementary approaches; below are practical notes to guide choice
 and parameter selection.
 
-- Linear interaction model (`entropy ~ q * group`):
+**Linear interaction model (`entropy ~ q * group`)**:
 - Interprets group differences as slope (q-by-group interaction)
 differences across the evaluated q-grid. Use when the q-curve is
 approximately linear over the chosen range and sample sizes are modest.
@@ -412,7 +408,7 @@ approximately linear over the chosen range and sample sizes are modest.
 - Caveats: will miss localized nonlinear differences (e.g., only at low
 q values).
 
-- GAM-based comparison (`mgcv`):
+**GAM-based comparison (`mgcv`)**:
 - Fit smooth functions of `q` with group-specific terms (e.g., a common
 smooth plus group-by-smooth deviations) and compare nested models with
 an approximate F-type test (anova.gam).
@@ -423,7 +419,7 @@ overfitting noise.
 - Requires sufficient observations per gene across samples and q values
 to estimate smooth terms reliably.
 
-- FPCA-based test (functional PCA on q-curves):
+**FPCA-based test (functional PCA on q-curves)**:
 - Treat each sample's q-curve as a functional object, compute principal
 components across q, and test group differences on leading PC scores.
 - Fast and robust when dominant curve modes capture group differences,
@@ -454,35 +450,35 @@ head(lm_res)
 
 Quick checklist (what to do and why):
 
-- Preprocess: filter transcripts never observed or add a small, documented
+- **Preprocess**: filter transcripts never observed or add a small, documented
 pseudocount (e.g., +1) — this stabilizes proportions and avoids
 undefined powers when computing `p_i^q`.
-- Choose `q` grid: pick a compact set spanning rare → dominant regimes
+- **Choose `q` grid**: pick a compact set spanning rare → dominant regimes
 (suggested: 0.1, 0.2, 0.5, 1, 1.5, 2). Plot q-curves to inspect where
 groups diverge rather than relying on a single `q`.
-- Reporting scale: present Hill numbers `D_q` (intuitive "effective
+- **Reporting scale**: present Hill numbers `D_q` (intuitive "effective
 isoforms") and/or normalized entropy \(\tilde S_q\); report both
 effect size (median/mean difference) and variability (CI or bootstrap SE).
-- Hypothesis testing: use Wilcoxon for speed (asymptotic) and
+- **Hypothesis testing**: use Wilcoxon for speed (asymptotic) and
 label-shuffle (permutation) for small samples or exact inference.
 For permutations use `randomizations` ≥1000 (≥5000 when estimating
 very small p-values); use paired permutations for matched designs.
-- Multiple testing: apply FDR correction (Benjamini–Hochberg) and show
+- **Multiple testing**: apply FDR correction (Benjamini–Hochberg) and show
 raw/adjusted p-values alongside effect sizes so readers can judge
 practical relevance.
-- Interaction testing: explore slopes/AUC first; use linear interaction for
+- **Interaction testing**: explore slopes/AUC first; use linear interaction for
 simple slope differences, GAMs for nonlinear shapes, and FPCA for fast
 low-dimensional summaries — always report key parameters (`k`,
 `randomizations`).
-- Design & technical tips: prefer paired/matched designs when available,
+- **Design & technical tips**: prefer paired/matched designs when available,
 ensure adequate biological replication, use accurate quantifiers
 (Salmon/kallisto or UMI-based methods), and correct for confounders or
 include them in models.
-- Design examples: time-series or longitudinal sampling to capture dynamics;
+- **Design examples**: time-series or longitudinal sampling to capture dynamics;
 perturbation gradients (dose–response) to reveal transitions; single-cell
 or spatial (UMI-based) to study heterogeneity; paired/matched designs to
 control subject-level variability.
-- Technical checklist: use accurate transcript quantifiers, aim for
+- **Technical checklist**: use accurate transcript quantifiers, aim for
 sufficient sequencing depth for isoform inference, filter or pseudocount
 low-abundance transcripts, and apply batch/confounder correction prior
 to downstream testing. Test across a compact `q` grid and report the grid.
