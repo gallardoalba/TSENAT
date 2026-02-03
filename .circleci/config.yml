@@ -26,8 +26,6 @@ jobs:
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-              pkg-config libpng-dev libjpeg-dev libtiff5-dev \
-              libfreetype6-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libcairo2-dev \
               pandoc
       - run:
           name: Install R tools
