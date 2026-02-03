@@ -1,10 +1,9 @@
 name: R-CMD-check (standard)
 
 on:
-  push:
-    branches: [ stable ]
-  pull_request:
-    branches: [ stable ]
+  # Disabled automatic push/PR triggers because CircleCI is the canonical CI for `stable`.
+  # Keep this workflow available for manual runs if needed.
+  workflow_dispatch: {}
 
 jobs:
   R-CMD-check:
@@ -31,7 +30,7 @@ jobs:
       - name: Install R package dependencies
         run: |
           # Install only remotes and minimal Depends/Imports/LinkingTo from DESCRIPTION
-          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo'))"
+          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo'))"                                                                                                
 
       - name: Run R CMD check (no manual, no vignettes)
         run: R CMD check --no-manual --no-vignettes --as-cran .
