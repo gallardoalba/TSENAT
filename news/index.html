@@ -41,7 +41,12 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.99.0" id="tsenat-0990">TSENAT 0.99.0<a class="anchor" aria-label="anchor" href="#tsenat-0990"></a></h2>
-<p>Release of version 0.99.0</p>
+<p>TSENAT computes Tsallis entropy (S_q) and related Hill numbers (D_q) to quantify isoform/transcript-level diversity per gene. The package accepts matrices, tximport-style lists, and SummarizedExperiment objects, returns per-gene diversity assays, and provides plotting and simple differential-analysis helpers. A vignette demonstrates a full workflow on a TCGA Luminal A example.</p>
+<p>Highlights:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>Core<span class="sc">:</span> <span class="fu">calculate_tsallis_entropy</span>() — compute S_q and <span class="fu">D_q</span> (supports multiple q values and the q<span class="ot">-&gt;</span><span class="dv">1</span> Shannon limit).</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>Batch processing<span class="sc">:</span> <span class="fu">calculate_diversity</span>() applies the calculation across transcripts<span class="sc">/</span>genes and returns a SummarizedExperiment with a <span class="st">"diversity"</span> assay.</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>Differential helpers<span class="sc">:</span> group comparisons, fold changes and simple tests.</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>Visualizations<span class="sc">:</span> density, violin, q<span class="sc">-</span>curve, MA, volcano, and top<span class="sc">-</span>transcripts <span class="fu">plots</span> (return ggplot objects).</span></code></pre></div>
 </div>
   </main></div>
 
