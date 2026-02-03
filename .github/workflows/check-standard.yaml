@@ -34,4 +34,4 @@ jobs:
           Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo'))"
 
       - name: Run R CMD check (no manual, no vignettes)
-        run: R CMD check --no-manual --no-vignettes --as-cran
+        run: R CMD check --no-manual --no-vignettes --as-cran .
