@@ -2,47 +2,40 @@
 title: "TSENAT: Tsallis Entropy Analysis Toolkit"
 author: "Cristóbal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
-```{r setup}
-# Load packages
-suppressPackageStartupMessages({
-    library(TSENAT)
-    library(ggplot2)
-    library(SummarizedExperiment)
-    library(mgcv)
-})
+output:
+    rmarkdown::html_document:
+        toc: true
+        fig_width: 10
+        fig_height: 7
+vignette: |
+    %\VignetteIndexEntry{TSENAT}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+---
 
-
-# Load required files
-coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
-tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-```
-
-```{r pkgload, include=FALSE}
-# Load package from source on CI (so data() can find the dataset) when possible
-if (requireNamespace("pkgload", quietly = TRUE)) {
-    pkgload::load_all(export_all = FALSE, helpers = FALSE, attach_testthat = FALSE)
-}
-# Ensure the example dataset is available in the vignette environment
-data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
-```
-
-```{r setup-continue}
-# Extract gene names and read count data (do not reference ts_se yet)
-genes <- tcga_brca_luma_dataset[, 1]
-readcounts <- tcga_brca_luma_dataset[, -1]
-
-# Assign transcript IDs as rownames of `readcounts`
-# so downstream transcript-level plotting functions can use them.
-txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
-rownames(readcounts) <- as.character(txmap$Transcript)
-
-# Read sample metadata
-coldata_df <- read.table(coldata_tsv,
-    header = TRUE,
-    sep = "\t",
-    stringsAsFactors = FALSE
+```{r setup-global, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>",
+    fig.width = 10,
+    fig.height = 6
 )
 ```
+
+## Overview
+
+This vignette demonstrates how to compute and apply Tsallis entropy to
+transcript-level expression data using `TSENAT`. It focuses on three
+practical goals: (1) compute per-sample, per-gene diversity measures across a
+range of sensitivity parameters `q`; (2) compare those measures between sample
+groups; and (3) visualize and inspect transcript-level patterns that explain
+differences.
+
+### Motivation
+
+Many genes express multiple isoforms whose relative abundances can be multimodal
+or heavy-tailed. Standard mean-based comparisons may miss changes in isoform
+dominance or heterogeneity. Tsallis entropy provides a tunable way to weight rare versus
 dominant isoforms by varying `q`, producing a "q-curve" that reveals scale-dependent
 diversity differences.
 
@@ -109,7 +102,7 @@ isoforms" that is easy to interpret.
 
 ## Example dataset
 
-An example dataset is included for demonstration. Load the required libraries:
+An example dataset is included for demonstration. Load the package and data:
 
 ```{r setup}
 # Load packages
@@ -119,20 +112,14 @@ suppressPackageStartupMessages({
     library(SummarizedExperiment)
     library(mgcv)
 })
-```
 
-```{r pkgload-data, include=FALSE}
-# Load package from source on CI
-pkgload::load_all(export_all = FALSE, helpers = FALSE, attach_testthat = FALSE)
-```
 
-Now we load the example dataset and associated metadata:
-
-```{r data}
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-data("tcga_brca_luma_dataset", package = "TSENAT")
+
+# Load dataset
+data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
 
 # Extract gene names and read count data (do not reference ts_se yet)
 genes <- tcga_brca_luma_dataset[, 1]
@@ -196,6 +183,7 @@ Compute Tsallis entropy for a single q and inspect the resulting assay
 
 ```{r tsallis-calc-single}
 ## The `norm = TRUE` option returns normalized entropies on a comparable scale.
+q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
 head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 ```
