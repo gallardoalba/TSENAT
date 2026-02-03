@@ -72,12 +72,14 @@ interpretable tool for transcriptomics analyses. Key advantages:
 
 **Use cases and interpretation**:
 
-- A gene with group separation only at low `q` suggests differences in
-  low-abundance (rare) isoforms; separation at high `q` indicates
-  changes in dominant isoforms. When both regimes differ, the q-curve
-  will show divergence across the entire `q` range. Report `S_q` or Hill
-  numbers `D_q` as appropriate for clarity: `D_q` converts entropies
-  into an “effective number of isoforms” that is easy to interpret.
+A gene with group separation only at low `q` suggests differences in
+low-abundance (rare) isoforms; separation at high `q` indicates changes
+in dominant isoforms. When both regimes differ, the q-curve will show
+divergence across the entire `q` range.
+
+Report `S_q` or Hill numbers `D_q` as appropriate for clarity: `D_q`
+converts entropies into an “effective number of isoforms” that is easy
+to interpret.
 
 ## Example dataset
 
