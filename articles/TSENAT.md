@@ -103,7 +103,7 @@ Now we load the example dataset and associated metadata:
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
 
 # Extract gene names and read count data (do not reference ts_se yet)
 genes <- tcga_brca_luma_dataset[, 1]
@@ -649,13 +649,14 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] TSENAT_0.99.0               mgcv_1.9-4                 
-#>  [3] nlme_3.1-168                SummarizedExperiment_1.40.0
-#>  [5] Biobase_2.70.0              GenomicRanges_1.62.1       
-#>  [7] Seqinfo_1.0.0               IRanges_2.44.0             
-#>  [9] S4Vectors_0.48.0            BiocGenerics_0.56.0        
-#> [11] generics_0.1.4              MatrixGenerics_1.22.0      
-#> [13] matrixStats_1.5.0           ggplot2_4.0.1              
+#>  [1] mgcv_1.9-4                  nlme_3.1-168               
+#>  [3] SummarizedExperiment_1.40.0 Biobase_2.70.0             
+#>  [5] GenomicRanges_1.62.1        Seqinfo_1.0.0              
+#>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
+#>  [9] BiocGenerics_0.56.0         generics_0.1.4             
+#> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
+#> [13] ggplot2_4.0.1               TSENAT_0.99.0              
+#> [15] testthat_3.3.2             
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
@@ -675,8 +676,8 @@ sessionInfo()
 #> [43] S4Arrays_1.10.1     pkgbuild_1.4.8      withr_3.0.2        
 #> [46] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
 #> [49] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
-#> [52] knitr_1.51          testthat_3.3.2      viridisLite_0.4.2  
-#> [55] rlang_1.1.7         Rcpp_1.1.1          glue_1.8.0         
-#> [58] pkgload_1.4.1       jsonlite_2.0.0      R6_2.6.1           
-#> [61] systemfonts_1.3.1   fs_1.6.6
+#> [52] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        
+#> [55] Rcpp_1.1.1          glue_1.8.0          pkgload_1.4.1      
+#> [58] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  
+#> [61] fs_1.6.6
 ```
