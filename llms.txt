@@ -67,7 +67,6 @@ if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("gallardoalba/TSENAT")
 
 ## Recommended (reproducible): use `renv`.
-
 install.packages("renv")
 renv::init()
 # when dependencies are set, record lock
@@ -95,11 +94,9 @@ ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
 plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
 ```
 
-For a detailed, reproducible example see the package vignette (HTML and
-PDF): [HTML
-vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) \|
-[PDF
-vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
+For a detailed, reproducible example see the package vignette:
+[HTML](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) \|
+[PDF](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
 
 ## Licence, citation and atribution
 

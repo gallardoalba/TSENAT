@@ -112,7 +112,6 @@ p_i = x_i / \sum_j x_j
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"gallardoalba/TSENAT"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## Recommended (reproducible): use `renv`.</span></span>
-<span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"renv"</span><span class="op">)</span></span>
 <span><span class="fu">renv</span><span class="fu">::</span><span class="fu">init</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co"># when dependencies are set, record lock</span></span>
@@ -135,7 +134,7 @@ p_i = x_i / \sum_j x_j
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
 <span><span class="va">ts_multi</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q <span class="op">=</span> <span class="va">qvec</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_multi</span>, group <span class="op">=</span> <span class="fu">colData</span><span class="op">(</span><span class="va">ts_multi</span><span class="op">)</span><span class="op">$</span><span class="va">sample_type</span><span class="op">)</span></span></code></pre></div>
-<p>For a detailed, reproducible example see the package vignette (HTML and PDF): <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">HTML vignette</a> | <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf">PDF vignette</a>.</p>
+<p>For a detailed, reproducible example see the package vignette: <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">HTML</a> | <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf">PDF</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="licence-citation-and-atribution">Licence, citation and atribution<a class="anchor" aria-label="anchor" href="#licence-citation-and-atribution"></a>
