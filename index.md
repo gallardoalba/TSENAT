@@ -95,7 +95,7 @@ ts_se <- calculate_diversity(readcounts, genes, q = 0.1, norm = TRUE)
 # compute for multiple q values and plot the q-curve
 qvec <- seq(0.01, 2, by = 0.1)
 ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
-plot_tsallis_q_curve(ts_multi, group = colData(ts_multi)$sample_type)
+plot_tsallis_q_curve(readcounts, genes, qvec)
 ```
 
 For a detailed, reproducible example see the package vignette:
