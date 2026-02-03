@@ -2,9 +2,9 @@ name: R-CMD-check (standard)
 
 on:
   push:
-    branches: [ stable ]
+    branches: [ master ]
   pull_request:
-    branches: [ stable ]
+    branches: [ master ]
 
 jobs:
   R-CMD-check:

@@ -2,9 +2,9 @@ name: R-CMD-check with renv
 
 on:
   push:
-    branches: [ stable ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ stable ]
+    branches: [ main, master ]
 
 jobs:
   check:
