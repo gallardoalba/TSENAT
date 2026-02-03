@@ -100,8 +100,8 @@ jobs:
               echo 'GITHUB_TOKEN not set; aborting deploy.'
               exit 1
             fi
-            git config user.name "circleci"
-            git config user.email "circleci@localhost"
+            git config --global user.name "${CIRCLE_USERNAME:-circleci}"
+            git config --global user.email "${CIRCLE_USERNAME:-circleci}@users.noreply.github.com"
             REPO="https://x-access-token:${GITHUB_TOKEN}@github.com/gallardoalba/TSENAT.git"
             # create a temp dir and push docs/ to gh-pages branch
             TMPDIR=$(mktemp -d)
