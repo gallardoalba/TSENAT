@@ -273,8 +273,8 @@ stability of diversity estimates.</p>
 <div class="section level2">
 <h2 id="compute-normalized-tsallis-entropy-">Compute normalized Tsallis entropy.<a class="anchor" aria-label="anchor" href="#compute-normalized-tsallis-entropy-"></a>
 </h2>
-<p>Compute Tsallis entropy for a single q and inspect the resulting
-assay</p>
+<p>Compute Tsallis entropy for a single<code>q</code>and inspect the
+resulting assay</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## The `norm = TRUE` option returns normalized entropies on a comparable scale.</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">0.1</span></span>
@@ -564,12 +564,8 @@ low q values).</li>
 <li>Fit smooth functions of <code>q</code> with group-specific terms
 (e.g., a common smooth plus group-by-smooth deviations) and compare
 nested models with an approximate F-type test (anova.gam).</li>
-<li>Choose spline basis dimension <code>k</code> relative to the number
-of distinct <code>q</code> values (keep <code>k</code> small for sparse
-grids). Inspect diagnostic plots and concur that fitted smooths reflect
-biological signal rather than overfitting noise.</li>
-<li>Requires sufficient observations per gene across samples and q
-values to estimate smooth terms reliably.</li>
+<li>Requires sufficient observations per gene across samples and
+<code>q</code> values to estimate smooth terms reliably.</li>
 </ul>
 <p><strong>FPCA-based test (functional PCA on q-curves)</strong>:</p>
 <ul>
@@ -579,9 +575,9 @@ scores.</li>
 <li>Fast and robust when dominant curve modes capture group differences,
 but it reduces the curve to a few components and may miss localized
 effects confined to a narrow q-range.</li>
-<li>Address missing q points by sensible imputation (column means or
-spline interpolation) before PCA; require minimal q coverage across
-samples to obtain stable PCs.</li>
+<li>Address missing<code>q</code>points by sensible imputation (column
+means or spline interpolation) before PCA; require
+minimal<code>q</code>coverage across samples to obtain stable PCs.</li>
 </ul>
 <p>This test fits a simple linear model per gene to assess whether the
 slope of the q-curve differs between sample groups. It can help identify

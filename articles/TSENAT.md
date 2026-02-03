@@ -190,7 +190,7 @@ stability of diversity estimates.
 
 ## Compute normalized Tsallis entropy.
 
-Compute Tsallis entropy for a single q and inspect the resulting assay
+Compute Tsallis entropy for a single`q`and inspect the resulting assay
 
 ``` r
 
@@ -527,12 +527,8 @@ choice and parameter selection.
 - Fit smooth functions of `q` with group-specific terms (e.g., a common
   smooth plus group-by-smooth deviations) and compare nested models with
   an approximate F-type test (anova.gam).
-- Choose spline basis dimension `k` relative to the number of distinct
-  `q` values (keep `k` small for sparse grids). Inspect diagnostic plots
-  and concur that fitted smooths reflect biological signal rather than
-  overfitting noise.
-- Requires sufficient observations per gene across samples and q values
-  to estimate smooth terms reliably.
+- Requires sufficient observations per gene across samples and `q`
+  values to estimate smooth terms reliably.
 
 **FPCA-based test (functional PCA on q-curves)**:
 
@@ -541,8 +537,8 @@ choice and parameter selection.
 - Fast and robust when dominant curve modes capture group differences,
   but it reduces the curve to a few components and may miss localized
   effects confined to a narrow q-range.
-- Address missing q points by sensible imputation (column means or
-  spline interpolation) before PCA; require minimal q coverage across
+- Address missing`q`points by sensible imputation (column means or
+  spline interpolation) before PCA; require minimal`q`coverage across
   samples to obtain stable PCs.
 
 This test fits a simple linear model per gene to assess whether the
