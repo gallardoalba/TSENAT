@@ -217,6 +217,7 @@ diversity summaries between two groups. Two common choices are
 Wilcoxon-based tests and label-shuffle tests. Guidance:
 
 **Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired)**:
+
 - Use when you want a distribution-free test comparing central tendency
 (ranks/median) and sample sizes are moderate (typically ≥10 per group
 for stable asymptotic p-values).
@@ -229,6 +230,7 @@ extreme (small counts, many zeros).
 confidence intervals where possible; do not rely on p-values alone.
 
 **Label-shuffle tests**:
+
 - Use when sample sizes are small, distributional assumptions are
 questionable, or you prefer an exact/empirical null constructed from
 the observed data. Randomly shuffle group labels many times and
@@ -243,7 +245,7 @@ genes. When possible, compute exact permutations (all labelings) for
 very small datasets.
 
 
-Here we will use the **Wilcoxon test** — it is the appropriate choice for speed
+Here we will use the **Wilcoxon test**; it is the appropriate choice for speed
 when sample sizes support asymptotic approximations. Use permutation tests
 when small-sample accuracy or exact control of the null distribution is
 important.
@@ -401,6 +403,7 @@ three complementary approaches; below are practical notes to guide choice
 and parameter selection.
 
 **Linear interaction model (`entropy ~ q * group`)**:
+
 - Interprets group differences as slope (q-by-group interaction)
 differences across the evaluated q-grid. Use when the q-curve is
 approximately linear over the chosen range and sample sizes are modest.
@@ -409,6 +412,7 @@ approximately linear over the chosen range and sample sizes are modest.
 q values).
 
 **GAM-based comparison (`mgcv`)**:
+
 - Fit smooth functions of `q` with group-specific terms (e.g., a common
 smooth plus group-by-smooth deviations) and compare nested models with
 an approximate F-type test (anova.gam).
@@ -420,6 +424,7 @@ overfitting noise.
 to estimate smooth terms reliably.
 
 **FPCA-based test (functional PCA on q-curves)**:
+
 - Treat each sample's q-curve as a functional object, compute principal
 components across q, and test group differences on leading PC scores.
 - Fast and robust when dominant curve modes capture group differences,
