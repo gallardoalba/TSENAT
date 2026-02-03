@@ -22,11 +22,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r devtoos-load, include=FALSE}
-## dev: load package from source
-devtools::load_all()
-```
-
 ## Overview
 
 This vignette demonstrates how to compute and apply Tsallis entropy to
