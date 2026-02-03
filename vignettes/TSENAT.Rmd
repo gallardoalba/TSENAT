@@ -22,6 +22,11 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r pkgload-dev, include=FALSE}
+## dev: load package from source if available
+if (requireNamespace("pkgload", quietly = TRUE)) pkgload::load_all()
+```
+
 ## Overview
 
 This vignette demonstrates how to compute and apply Tsallis entropy to
@@ -120,7 +125,7 @@ Now we load the example dataset and associated metadata:
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-load("data/tcga_brca_luma_dataset.RData", envir = globalenv())
+data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
 
 # Extract gene names and read count data (do not reference ts_se yet)
 genes <- tcga_brca_luma_dataset[, 1]
