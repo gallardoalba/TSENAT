@@ -1,9 +1,7 @@
 docs/
 *.Rhistory
-*.RData
 *.Ruserdata
 .Rhistory
-.RData
 .Ruserdata
 .DS_Store
 .Rcheck/
@@ -16,7 +14,6 @@ __pycache__/
 *.tar.gz
 .Rproj.user
 .Rhistory
-.RData
 .Ruserdata
 /Meta/
 
