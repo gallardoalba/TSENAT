@@ -1,7 +1,6 @@
 ^docs/
 ^dist/
 ^build/
-^data-raw/
 ^_pkgdown.yml$
 ^\.git$
 ^\.git/

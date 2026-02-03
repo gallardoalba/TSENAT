@@ -9,7 +9,6 @@ docs/
 ..Rcheck/
 ..Rcheck
 .vscode/
-data-raw/
 __pycache__/
 *.tar.gz
 .Rproj.user
