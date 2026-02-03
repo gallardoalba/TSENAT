@@ -94,14 +94,16 @@ suppressPackageStartupMessages({
     library(SummarizedExperiment)
     library(mgcv)
 })
+```
 
+Now we load the example dataset and associated metadata:
+
+``` r
 
 # Load required files
 coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-
-# Load dataset
-data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
+data("tcga_brca_luma_dataset", package = "TSENAT")
 
 # Extract gene names and read count data (do not reference ts_se yet)
 genes <- tcga_brca_luma_dataset[, 1]
@@ -647,13 +649,13 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] mgcv_1.9-4                  nlme_3.1-168               
-#>  [3] SummarizedExperiment_1.40.0 Biobase_2.70.0             
-#>  [5] GenomicRanges_1.62.1        Seqinfo_1.0.0              
-#>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
-#>  [9] BiocGenerics_0.56.0         generics_0.1.4             
-#> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] ggplot2_4.0.1               TSENAT_0.99.0              
+#>  [1] TSENAT_0.99.0               mgcv_1.9-4                 
+#>  [3] nlme_3.1-168                SummarizedExperiment_1.40.0
+#>  [5] Biobase_2.70.0              GenomicRanges_1.62.1       
+#>  [7] Seqinfo_1.0.0               IRanges_2.44.0             
+#>  [9] S4Vectors_0.48.0            BiocGenerics_0.56.0        
+#> [11] generics_0.1.4              MatrixGenerics_1.22.0      
+#> [13] matrixStats_1.5.0           ggplot2_4.0.1              
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
@@ -662,17 +664,19 @@ sessionInfo()
 #> [10] pkgconfig_2.0.3     Matrix_1.7-4        RColorBrewer_1.1-3 
 #> [13] S7_0.2.1            desc_1.4.3          lifecycle_1.0.5    
 #> [16] compiler_4.5.2      farver_2.1.2        textshaping_1.0.4  
-#> [19] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
-#> [22] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
-#> [25] tidyr_1.3.2         DelayedArray_0.36.0 cachem_1.1.0       
-#> [28] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
-#> [31] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     
-#> [34] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
-#> [37] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
-#> [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
-#> [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
-#> [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
-#> [49] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        
-#> [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     
-#> [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
+#> [19] brio_1.1.5          htmltools_0.5.9     sass_0.4.10        
+#> [22] yaml_2.3.12         tidyr_1.3.2         pkgdown_2.2.0      
+#> [25] pillar_1.11.1       jquerylib_0.1.4     DelayedArray_0.36.0
+#> [28] cachem_1.1.0        abind_1.4-8         tidyselect_1.2.1   
+#> [31] digest_0.6.39       purrr_1.2.1         dplyr_1.1.4        
+#> [34] labeling_0.4.3      splines_4.5.2       rprojroot_2.1.1    
+#> [37] fastmap_1.2.0       grid_4.5.2          cli_3.6.5          
+#> [40] SparseArray_1.10.8  magrittr_2.0.4      patchwork_1.3.2    
+#> [43] S4Arrays_1.10.1     pkgbuild_1.4.8      withr_3.0.2        
+#> [46] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
+#> [49] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
+#> [52] knitr_1.51          testthat_3.3.2      viridisLite_0.4.2  
+#> [55] rlang_1.1.7         Rcpp_1.1.1          glue_1.8.0         
+#> [58] pkgload_1.4.1       jsonlite_2.0.0      R6_2.6.1           
+#> [61] systemfonts_1.3.1   fs_1.6.6
 ```
