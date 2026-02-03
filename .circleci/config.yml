@@ -15,7 +15,8 @@ jobs:
           name: Install OS deps
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
-              libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev
+              libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
+              pandoc pandoc-citeproc
       - run:
           name: Install R tools
           command: R -e 'install.packages(c("remotes","devtools","rcmdcheck"), repos="https://cloud.r-project.org")'
@@ -41,7 +42,8 @@ jobs:
           name: Install OS deps
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
-              libxml2-dev libssl-dev libcurl4-openssl-dev git
+              libxml2-dev libssl-dev libcurl4-openssl-dev git \
+              pandoc pandoc-citeproc
       - run:
           name: Install R packages for docs
           command: |
