@@ -125,7 +125,7 @@ make mapping reliable and avoid surprises when running paired analyses.
     `SAMPLE_Tumor`. The helper `infer_sample_group()` recognizes common
     underscore suffixes (like `_N` / `_T`) and common TCGA-style tokens.
 - Validation and metadata: to perform paired analyses call
-    `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
+    `map_coldata_to_se(ts_se, coldata_df, paired = TRUE)`. When `paired = TRUE` the
     function will reorder columns to follow `coldata`, add `sample_type`
     and `sample_base` to `colData(ts_se)`, and check that each `sample_base`
     has entries for all groups, returning an informative error if not.

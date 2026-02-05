@@ -13,8 +13,7 @@
 ^\.\.Rcheck$
 ^\.github$
 ^\.circleci$
-^inst/doc/*html$
-inst/doc
+
 # Ignore vignette intermediate files
 ^vignettes/.*\.Rhistory$
 ^vignettes/.*\.utf8$

@@ -306,7 +306,12 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
-#' calculate_lm_interaction(se)
+#' # Provide a minimal sample-type mapping so the example runs during checks
+#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+#'   row.names = colnames(se)
+#' )
+#' calculate_lm_interaction(se, sample_type_col = "sample_type")
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                         method = c(
                                             "linear",

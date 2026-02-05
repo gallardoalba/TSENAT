@@ -5,6 +5,7 @@ if (getRversion() >= "2.15.1") {
         "xval",
         "padj_num",
         "label_flag",
-        "sample_q"
+        "sample_q",
+        "qnum"
     ))
 }
