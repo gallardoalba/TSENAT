@@ -443,11 +443,11 @@ separation at high `q` signals differences in dominant isoforms.
 Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity changes
 with `q` across sample groups.
 
-#```{r tsallis-top-lm-genes, fig.width=12, fig.height=6, echo=FALSE}
-# Plot top linear-model genes using the exported helper
-#p_top_lm <- plot_tsallis_top_lm_genes(ts_se, lm_res = lm_res, top_n = 6, assay_name = "diversity", sample_type_col = "sample_type")
-#print(p_top_lm)
-#```
+```{r tsallis-q-curve, fig.width=12, fig.height=6, echo=FALSE}
+# Plot top tsallis q curve
+p_qcurve <- plot_tsallis_q_curve(ts_se)#print(p_top_lm)
+print(p_qcurve)
+```
 
 
 ## Practical notes and recommendations
