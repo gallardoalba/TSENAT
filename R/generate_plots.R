@@ -292,9 +292,18 @@ plot_ma <- function(
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
 
     if (is.null(mean_cols)) {
-        mean_cols <- grep("_mean$", colnames(diff_df), value = TRUE)
-        if (length(mean_cols) < 2) stop("Could not find two mean columns")
-        mean_cols <- mean_cols[seq_len(min(2, length(mean_cols)))]
+        # Prefer mean-based summary columns when available; if not present,
+        # fall back to median-based columns. Do NOT accept mixed mean+median
+        # column pairs — require two columns of the same type.
+        mean_only <- grep("_mean$", colnames(diff_df), value = TRUE)
+        med_only <- grep("_median$", colnames(diff_df), value = TRUE)
+        if (length(mean_only) >= 2) {
+            mean_cols <- mean_only[1:2]
+        } else if (length(med_only) >= 2) {
+            mean_cols <- med_only[1:2]
+        } else {
+            stop("Could not find two mean or two median columns in 'diff_df'")
+        }
     }
 
     df <- diff_df
@@ -347,7 +356,8 @@ plot_ma <- function(
 #' data("tcga_brca_luma_dataset", package = "TSENAT")
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:40]
-#' se <- calculate_diversity(rc, gs, q = seq(0.01, 0.1, by = 0.03), norm = TRUE)
+#' se <- calculate_diversity(rc, gs,
+#'    q = seq(0.01, 0.1, by = 0.03), norm = TRUE)
 #' p <- plot_tsallis_q_curve(se)
 #' p
 plot_tsallis_q_curve <- function(

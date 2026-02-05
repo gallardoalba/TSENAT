@@ -93,7 +93,8 @@ ts_se <- calculate_diversity(readcounts, genes, q = 0.1, norm = TRUE)
 qvec <- seq(0.01, 2, by = 0.1)
 ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
-p3 <- plot_tsallis_q_curve(ts_se)```
+p3 <- plot_tsallis_q_curve(ts_se)
+```
 
 For a detailed, reproducible example see the package vignette: [HTML](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) | [PDF](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
 

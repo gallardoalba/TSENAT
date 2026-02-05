@@ -125,7 +125,7 @@ make mapping reliable and avoid surprises when running paired analyses.
     `SAMPLE_Tumor`. The helper `infer_sample_group()` recognizes common
     underscore suffixes (like `_N` / `_T`) and common TCGA-style tokens.
 - Validation and metadata: to perform paired analyses call
-    `map_coldata_to_se(ts_se, coldata_df, paired = TRUE)`. When `paired = TRUE` the
+    `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
     function will reorder columns to follow `coldata`, add `sample_type`
     and `sample_base` to `colData(ts_se)`, and check that each `sample_base`
     has entries for all groups, returning an informative error if not.
@@ -282,12 +282,17 @@ when sample sizes support asymptotic approximations. Use permutation tests
 when small-sample accuracy or exact control of the null distribution is
 important.
 
+**Recommendation: summary & test choice**:
+
+For the analyses shown in this vignette we recommend using the **median**
+in the **Wilcoxon** rank-sum test for comparisons. Tsallis entropy values 
+are often skewed and sensitive to outliers; the median is robust and the 
+Wilcoxon test does not assume normality, so  this combination is well 
+suited for our analysis.
+
 Before running differential tests we summarize per-gene diversity values across
-samples and explicitly define sample groups. The example below performs a
-pairwise comparison between two conditions (e.g., `Normal` vs `Tumor`) using a
-non-parametric Wilcoxon test on the per-gene diversity summaries. Adjust the
-`control` and `test` parameters in `calculate_difference()` to suit your
-experimental design.
+samples and explicitly define sample groups.
+
 
 ```{r difference}
 # create a sample grouping vector inferred from sample names
@@ -305,7 +310,7 @@ div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 # samples are matched pairs (Normal/Tumor), so use a paired test
 res <- calculate_difference(div_df, samples,
     control = "Normal",
-    method = "mean", test = "wilcoxon",
+    method = "median", test = "wilcoxon",
     paired = TRUE
 )
 # sort results by adjusted p-value
@@ -322,8 +327,14 @@ helping to spot genes with large effect sizes across expression levels.
 highlighting candidates by thresholding magnitude and adjusted p-value.
 
 ```{r ma-and-volcano, fig.width=8, fig.height=4}
-# MA plot using helper
-p_ma <- plot_ma(res)
+# MA plot using helper: prefer median columns if present
+mean_cols <- grep("_median$|_mean$", colnames(res), value = TRUE)
+if (length(mean_cols) >= 2) {
+    mean_cols <- mean_cols[1:2]
+} else {
+    stop("No mean/median columns found for MA plot in 'res'")
+}
+p_ma <- plot_ma(res, mean_cols = mean_cols)
 print(p_ma)
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
