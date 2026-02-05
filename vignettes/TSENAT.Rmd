@@ -423,9 +423,8 @@ Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity changes
 with `q` across sample groups.
 
 ```{r plot-q-curve, fig.width=10, fig.height=6}
-# q-curve: median ± IQR across q values by group (use mapped `ts_se`)
-# ensure `ts_se` has been computed and `map_coldata_to_se()` applied above
-p3 <- plot_tsallis_q_curve(ts_se, SummarizedExperiment::rowData(ts_se)$genes, q_values = qvec)
+# q-curve: median ± IQR across q v
+p3 <- plot_tsallis_q_curve(ts_se)
 print(p3)
 ```
 

@@ -386,6 +386,11 @@ plot_tsallis_q_curve <- function(
                 color = "Group",
                 fill = "Group"
             )
+        # If there is only a single group present, hide the legend/Group label
+        if (length(unique(stats_df$group)) == 1) {
+            p <- p + ggplot2::theme(legend.position = "none")
+        }
+
         return(p)
     }
 
