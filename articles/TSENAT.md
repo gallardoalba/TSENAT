@@ -542,6 +542,21 @@ before.
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
+Once we have the q-sequence computed, we can test for interactions
+between `q` and sample groups using a linear model. This tests whether
+the shape of the q-curve differs between groups, which would indicate
+scale-dependent diversity differences.
+
+    #> [calculate_lm_interaction] method=linear
+    #> [calculate_lm_interaction] parsed samples and groups
+    #>      gene p_interaction adj_p_interaction
+    #> 1   GFPT1  9.617169e-20      1.894582e-17
+    #> 2    MBD2  3.559027e-16      3.505641e-14
+    #> 3   EEF2K  1.354202e-15      8.892593e-14
+    #> 4 C1orf86  3.946993e-14      1.589046e-12
+    #> 5  CAPZA2  4.033112e-14      1.589046e-12
+    #> 6   AFAP1  1.133706e-13      3.722334e-12
+
 With the q-sequence we can produces a q-curve per sample and gene. These
 curves show how diversity emphasis shifts from rare to dominant isoforms
 as `q` increases and form the basis for interaction tests. The q-curve

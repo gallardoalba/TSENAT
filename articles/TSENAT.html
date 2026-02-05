@@ -574,6 +574,19 @@ differences between groups.</p>
 <code>SummarizedExperiment</code> as before.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
+<p>Once we have the q-sequence computed, we can test for interactions
+between <code>q</code> and sample groups using a linear model. This
+tests whether the shape of the q-curve differs between groups, which
+would indicate scale-dependent diversity differences.</p>
+<pre><code><span><span class="co">#&gt; [calculate_lm_interaction] method=linear</span></span>
+<span><span class="co">#&gt; [calculate_lm_interaction] parsed samples and groups</span></span>
+<span><span class="co">#&gt;      gene p_interaction adj_p_interaction</span></span>
+<span><span class="co">#&gt; 1   GFPT1  9.617169e-20      1.894582e-17</span></span>
+<span><span class="co">#&gt; 2    MBD2  3.559027e-16      3.505641e-14</span></span>
+<span><span class="co">#&gt; 3   EEF2K  1.354202e-15      8.892593e-14</span></span>
+<span><span class="co">#&gt; 4 C1orf86  3.946993e-14      1.589046e-12</span></span>
+<span><span class="co">#&gt; 5  CAPZA2  4.033112e-14      1.589046e-12</span></span>
+<span><span class="co">#&gt; 6   AFAP1  1.133706e-13      3.722334e-12</span></span></code></pre>
 <p>With the q-sequence we can produces a q-curve per sample and gene.
 These curves show how diversity emphasis shifts from rare to dominant
 isoforms as <code>q</code> increases and form the basis for interaction
@@ -645,7 +658,7 @@ compact <code>q</code> grid and report the grid.</li>
 <div class="section level2">
 <h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-conda-linux-gnu</span></span>

@@ -87,7 +87,15 @@ value in a condition. Can be <code>'mean'</code> or <code>'median'</code>.</p></
 
 <dt id="arg-pcorr">pcorr<a class="anchor" aria-label="anchor" href="#arg-pcorr"></a></dt>
 <dd><p>P-value correction method applied to the results, as defined in
-the <code>p.adjust</code> function.</p></dd>
+the \codep.adjust function.</p></dd>
+
+
+<dt id="arg-paired">paired<a class="anchor" aria-label="anchor" href="#arg-paired"></a></dt>
+<dd><p>Logical; if <code>TRUE</code> perform a paired permutation scheme
+(default: <code>FALSE</code>). When paired is <code>TRUE</code>, permutations
+should preserve pairing between samples; the function currently permutes
+sample labels and therefore paired analyses are only meaningful when the
+caller has arranged <code>samples</code> accordingly.</p></dd>
 
 </dl></div>
     <div class="section level2">

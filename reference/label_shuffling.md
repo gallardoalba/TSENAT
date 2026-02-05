@@ -44,7 +44,15 @@ label_shuffling(
 - pcorr:
 
   P-value correction method applied to the results, as defined in the
-  `p.adjust` function.
+  \codep.adjust function.
+
+- paired:
+
+  Logical; if `TRUE` perform a paired permutation scheme (default:
+  `FALSE`). When paired is `TRUE`, permutations should preserve pairing
+  between samples; the function currently permutes sample labels and
+  therefore paired analyses are only meaningful when the caller has
+  arranged `samples` accordingly.
 
 ## Value
 
