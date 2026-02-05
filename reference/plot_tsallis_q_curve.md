@@ -11,7 +11,8 @@ spanning median +- IQR/2.
 plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type"
+  sample_type_col = "sample_type",
+  y = c("S", "D")
 )
 ```
 

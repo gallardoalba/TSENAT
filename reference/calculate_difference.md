@@ -15,7 +15,9 @@ calculate_difference(
   pcorr = "BH",
   assayno = 1,
   verbose = FALSE,
-  ...
+  paired = FALSE,
+  exact = FALSE,
+  pseudocount = 0
 )
 ```
 
@@ -70,9 +72,22 @@ calculate_difference(
 
   If `TRUE`, the function will print additional diagnostic messages.
 
-- ...:
+- paired:
 
-  Further arguments to be passed on for other methods.
+  Logical; if \`TRUE\`, run paired versions of tests when supported
+  (default: \`FALSE\`).
+
+- exact:
+
+  Logical; passed to the Wilcoxon test to request exact p-values when
+  supported (default: \`FALSE\`).
+
+- pseudocount:
+
+  Numeric scalar. Passed to `calculate_fc` and used to add a small value
+  to non-positive group summaries before computing differences and log2
+  fold-changes. Default `1e-6`. Rows excluded for low sample counts
+  remain `NA`.
 
 ## Value
 

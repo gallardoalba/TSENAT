@@ -225,11 +225,12 @@ stability of diversity estimates.
 
 ## Compute normalized Tsallis entropy.
 
-Compute Tsallis entropy for a single`q`and inspect the resulting assay
+Compute Tsallis entropy for a single `q` and inspect the resulting
+assay.
 
 ``` r
 
-## The `norm = TRUE` option returns normalized entropies on a comparable scale.
+# compute Tsallis entropy for a single q value (normalized)
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
 head(assay(ts_se)[1:5, 1:5])
@@ -354,11 +355,11 @@ res <- calculate_difference(div_df, samples,
 res <- res[order(res$adjusted_p_values), , drop = FALSE]
 head(res)
 #>        genes Tumor_median Normal_median median_difference log2_fold_change
-#> 6   C1orf213           NA     0.9870253                NA               NA
+#> 6   C1orf213    0.0000010     0.9870253       -0.98702427    -19.912727492
 #> 17     S1PR1    0.9931595     0.9993087       -0.00614921     -0.008904999
-#> 87      MBD2    0.5592953            NA                NA               NA
+#> 87      MBD2    0.5592953     0.0000010        0.55929434     19.093250788
 #> 98      OSR1    0.7933920     0.6636451        0.12974692      0.257621943
-#> 101    GFPT1           NA     0.5834509                NA               NA
+#> 101    GFPT1    0.0000010     0.5834509       -0.58344994    -19.154251821
 #> 126     KIF9    0.5814162     0.3710543        0.21036198      0.647941169
 #>     raw_p_values adjusted_p_values
 #> 6   0.0002357454         0.0269389
@@ -380,17 +381,9 @@ Generate diagnostic plots to summarize per-gene effect sizes:
 
 ``` r
 
-# MA plot using helper: prefer median columns if present
-mean_cols <- grep("_median$|_mean$", colnames(res), value = TRUE)
-if (length(mean_cols) >= 2) {
-    mean_cols <- mean_cols[1:2]
-} else {
-    stop("No mean/median columns found for MA plot in 'res'")
-}
-p_ma <- plot_ma(res, mean_cols = mean_cols)
+# MA plot using helper
+p_ma <- plot_ma(res)
 print(p_ma)
-#> Warning: Removed 50 rows containing missing values or values outside the scale range
-#> (`geom_point()`).
 ```
 
 ![](TSENAT_files/figure-html/ma-and-volcano-1.png)
@@ -400,8 +393,6 @@ print(p_ma)
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
 print(p_volcano)
-#> Warning: Removed 3 rows containing missing values or values outside the scale range
-#> (`geom_text_repel()`).
 ```
 
 ![](TSENAT_files/figure-html/ma-and-volcano-2.png)
@@ -426,18 +417,37 @@ sample_base_names <- sub(
     colnames(assay(ts_se))
 )
 samples_vec <- as.character(colData(ts_se)$sample_type)
-p_comb <- plot_top_transcripts(readcounts,
+# Plot using median aggregation
+p_median <- plot_top_transcripts(readcounts,
     gene = top_genes,
     samples = samples_vec, tx2gene = txmap,
-    top_n = NULL
+    top_n = NULL, metric = "median"
 )
-print(p_comb)
+print(p_median)
 ```
 
 ![](TSENAT_files/figure-html/top-transcripts-singleq-1.png)
 
-Inspect transcript-level counts for the top genes to understand isoform
-patterns that may drive diversity differences.
+Now, we will plot the same top genes but using variance aggregation
+instead of median. This allows us to see how transcript-level expression
+variability differs between groups for these genes.
+
+``` r
+
+# Plot using variance aggregation
+p_var <- plot_top_transcripts(readcounts,
+    gene = top_genes,
+    samples = samples_vec, tx2gene = txmap,
+    top_n = NULL, metric = "variance"
+)
+print(p_var)
+```
+
+![](TSENAT_files/figure-html/top-transcripts-singleq-variance-1.png)
+
+Using these concrete comparisons will help you distinguish consistent
+isoform-level regulation, outlier-driven artifacts, reciprocal isoform
+switching, and subgroup heterogeneity.
 
 ## Compare between q values
 
@@ -543,74 +553,7 @@ differences in dominant isoforms.
 Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity
 changes with `q` across sample groups.
 
-``` r
-
-# q-curve: median ± IQR across q v
-p3 <- plot_tsallis_q_curve(ts_se)
-print(p3)
-```
-
-![](TSENAT_files/figure-html/plot-q-curve-1.png)
-
-Comparing entire q-curves between groups asks whether the relationship
-between diversity and `q` differs by condition. The package implements
-three complementary approaches; below are practical notes to guide
-choice and parameter selection.
-
-**Linear interaction model (`entropy ~ q * group`)**:
-
-- Interprets group differences as slope (q-by-group interaction)
-  differences across the evaluated q-grid. Use when the q-curve is
-  approximately linear over the chosen range and sample sizes are
-  modest.
-- Advantages: simple, interpretable interaction coefficient, fast.
-- Caveats: will miss localized nonlinear differences (e.g., only at low
-  q values).
-
-**GAM-based comparison (`mgcv`)**:
-
-- Fit smooth functions of `q` with group-specific terms (e.g., a common
-  smooth plus group-by-smooth deviations) and compare nested models with
-  an approximate F-type test (anova.gam).
-- Requires sufficient observations per gene across samples and `q`
-  values to estimate smooth terms reliably.
-
-**FPCA-based test (functional PCA on q-curves)**:
-
-- Treat each sample’s q-curve as a functional object, compute principal
-  components across q, and test group differences on leading PC scores.
-- Fast and robust when dominant curve modes capture group differences,
-  but it reduces the curve to a few components and may miss localized
-  effects confined to a narrow q-range.
-- Address missing`q`points by sensible imputation (column means or
-  spline interpolation) before PCA; require minimal`q`coverage across
-  samples to obtain stable PCs.
-
-This test fits a simple linear model per gene to assess whether the
-slope of the q-curve differs between sample groups. It can help identify
-genes whose response to the entropy scale parameter `q` is
-group-specific, indicating changes in isoform-dominance dynamics rather
-than only an overall shift in diversity.
-
-``` r
-
-# ensure the SummarizedExperiment contains sample names with group suffixes
-# (the function infers group from sample name suffix _N -> Normal)
-lm_res <- calculate_lm_interaction(ts_se,
-    sample_type_col = "sample_type",
-    min_obs = 8
-)
-#> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups
-head(lm_res)
-#>      gene p_interaction adj_p_interaction
-#> 1   GFPT1  9.617169e-20      1.894582e-17
-#> 2    MBD2  3.559027e-16      3.505641e-14
-#> 3   EEF2K  1.354202e-15      8.892593e-14
-#> 4 C1orf86  3.946993e-14      1.589046e-12
-#> 5  CAPZA2  4.033112e-14      1.589046e-12
-#> 6   AFAP1  1.133706e-13      3.722334e-12
-```
+\#`{r tsallis-top-lm-genes, fig.width=12, fig.height=6, echo=FALSE} # Plot top linear-model genes using the exported helper #p_top_lm <- plot_tsallis_top_lm_genes(ts_se, lm_res = lm_res, top_n = 6, assay_name = "diversity", sample_type_col = "sample_type") #print(p_top_lm) #`
 
 ## Practical notes and recommendations
 
@@ -620,8 +563,8 @@ Quick checklist (what to do and why):
   documented pseudocount (e.g., +1) — this stabilizes proportions and
   avoids undefined powers when computing `p_i^q`.
 - **Choose `q` grid**: pick a compact set spanning rare → dominant
-  regimes (suggested: 0.1, 0.2, 0.5, 1, 1.5, 2). Plot q-curves to
-  inspect where groups diverge rather than relying on a single `q`.
+  regimes (suggested: 0.1, 0.5, 1, 1.5, 2). Plot q-curves to inspect
+  where groups diverge rather than relying on a single `q`.
 - **Reporting scale**: present Hill numbers `D_q` (intuitive “effective
   isoforms”) and/or normalized entropy $`\tilde S_q`$; report both
   effect size (median/mean difference) and variability (CI or bootstrap

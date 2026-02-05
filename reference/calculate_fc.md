@@ -5,7 +5,7 @@ Calculate splicing diversity changes between two conditions.
 ## Usage
 
 ``` r
-calculate_fc(x, samples, control, method = "mean")
+calculate_fc(x, samples, control, method = "mean", pseudocount = 1e-06)
 ```
 
 ## Arguments
@@ -28,6 +28,15 @@ calculate_fc(x, samples, control, method = "mean")
 
   Method to use for calculating the average splicing diversity value in
   a condition. Can be `'mean'` or `'median'`.
+
+- pseudocount:
+
+  Numeric scalar. Small value added to non-positive observed group
+  summaries to avoid zeros when computing differences and log2
+  fold-changes. If `pseudocount = 0` (default) the function will choose
+  a small value equal to half the smallest positive observed value, or
+  `1e-6` if no positive values are present. Rows with insufficient
+  observations remain `NA` and are not imputed.
 
 ## Value
 

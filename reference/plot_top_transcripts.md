@@ -41,6 +41,12 @@ transcripts by p-value and plot their expression across groups.
   Optional file path to save the plot. If \`NULL\`, the \`ggplot\`
   object is returned.
 
+- metric:
+
+  Aggregation metric used to summarize transcript expression per group
+  when plotting. One of c("median", "mean", "variance"). Defaults to
+  "median" to preserve previous behavior.
+
 ## Value
 
 A \`ggplot\` object (or invisibly saved file if \`output_file\`
