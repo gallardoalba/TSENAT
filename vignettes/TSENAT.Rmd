@@ -186,7 +186,7 @@ Compute Tsallis entropy for a single`q`and inspect the resulting assay
 ## The `norm = TRUE` option returns normalized entropies on a comparable scale.
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
-head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:5, 1:5])
 ```
 
 Now we should map the sample metadata (if available) into the 
@@ -229,7 +229,7 @@ After mapping, inspect `colData(ts_se)` to confirm `sample_type` and
 
 ```{r inspect-coldata}
 # Quick checks on mapped sample metadata
-cd <- SummarizedExperiment::colData(ts_se)
+cd <- colData(ts_se)
 colnames(cd) # list available metadata columns
 head(cd) # preview metadata for first samples
 ```
@@ -288,12 +288,12 @@ experimental design.
 # account for per-q column names like 'Sample_q=0.01'
 sample_base_names <- sub(
     "_q=.*", "",
-    colnames(SummarizedExperiment::assay(ts_se))
+    colnames(assay(ts_se))
 )
-samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+samples <- as.character(colData(ts_se)$sample_type)
 
 # prepare diversity table as data.frame with gene names in first column
-div_df <- as.data.frame(SummarizedExperiment::assay(ts_se))
+div_df <- as.data.frame(assay(ts_se))
 div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
@@ -338,9 +338,9 @@ top_genes <- head(sig_res$genes, 3)
 sample_base_names <- sub(
     "_q=.*",
     "",
-    colnames(SummarizedExperiment::assay(ts_se))
+    colnames(assay(ts_se))
 )
-samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+samples_vec <- as.character(colData(ts_se)$sample_type)
 p_comb <- plot_top_transcripts(readcounts,
     gene = top_genes,
     samples = samples_vec, tx2gene = txmap,
@@ -363,7 +363,7 @@ q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
     q = q, norm = TRUE
 )
-head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:5, 1:5])
 ```
 
 This allows comparison across `q` for the same gene to determine whether
@@ -397,7 +397,7 @@ qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
     q = qvec, norm = TRUE
 )
-head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:5, 1:5])
 ```
 
 Map the sample metadata into the multi-q `SummarizedExperiment` as before.
@@ -417,8 +417,9 @@ Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity changes
 with `q` across sample groups.
 
 ```{r plot-q-curve, fig.width=10, fig.height=6}
-# q-curve: median ± IQR across q values by group
-p3 <- plot_tsallis_q_curve(readcounts, genes, q_values = qvec)
+# q-curve: median ± IQR across q values by group (use mapped `ts_se`)
+# ensure `ts_se` has been computed and `map_coldata_to_se()` applied above
+p3 <- plot_tsallis_q_curve(ts_se, SummarizedExperiment::rowData(ts_se)$genes, q_values = qvec)
 print(p3)
 ```
 
