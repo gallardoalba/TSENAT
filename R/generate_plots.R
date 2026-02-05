@@ -173,139 +173,6 @@ if (getRversion() >= "2.15.1") {
     }
 }
 
-#' Plot q-curves for top linear-model genes
-#'
-#' Select the top genes from an lm interaction result (`lm_res`) by adjusted
-#' p-value (robust to common column names). Compute median ± IQR across
-#' samples per gene and plot the q-curve for each selected gene. Returns a
-#' `ggplot` object.
-#'
-#' @param se A `SummarizedExperiment` produced by `calculate_diversity()`.
-#' @param lm_res Optional data.frame with linear-model results. If provided,
-#'   the function will try to find a p-value column and select top genes by
-#'   smallest adjusted p-value.
-#' @param top_n Number of top genes to plot when `lm_res` is used (default: 6).
-#' @param assay_name Assay name in `se` to use if `hill` is not available
-#'   (default: "diversity").
-#' @param sample_type_col Column name in `colData(se)` containing group labels
-#'   (default: "sample_type").
-#' @return A `ggplot` object plotting median ± IQR q-curves for selected genes.
-#' @export
-plot_tsallis_top_lm_genes <- function(
-    se,
-    lm_res = NULL,
-    lm_res2 = NULL,
-    top_n = 6,
-    assay_name = "diversity",
-    sample_type_col = "sample_type"
-) {
-    if (!inherits(se, "SummarizedExperiment")) stop("`se` must be a SummarizedExperiment")
-
-    # If a second lm_res is provided, create two individual plots and
-    # arrange them side-by-side as a combined ('bitter') plot.
-    if (!is.null(lm_res2)) {
-        p1 <- plot_tsallis_top_lm_genes(se = se, lm_res = lm_res, lm_res2 = NULL, top_n = top_n, assay_name = assay_name, sample_type_col = sample_type_col)
-        p2 <- plot_tsallis_top_lm_genes(se = se, lm_res = lm_res2, lm_res2 = NULL, top_n = top_n, assay_name = assay_name, sample_type_col = sample_type_col)
-
-        # Try patchwork, then cowplot, then fallback to grid.arrange
-        if (requireNamespace("patchwork", quietly = TRUE)) {
-            combined <- p1 + p2 + patchwork::plot_layout(ncol = 2, guides = "collect") & ggplot2::theme(legend.position = "bottom")
-            combined <- combined + patchwork::plot_annotation(title = "Tsallis q-curves (paired)", theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)))
-            return(combined)
-        } else if (requireNamespace("cowplot", quietly = TRUE)) {
-            # remove legends from individual plots and extract one legend
-            p_for_legend <- p1 + ggplot2::theme(legend.position = "bottom")
-            legend <- cowplot::get_legend(p_for_legend)
-            p1_noleg <- p1 + ggplot2::theme(legend.position = "none")
-            p2_noleg <- p2 + ggplot2::theme(legend.position = "none")
-            grid <- cowplot::plot_grid(p1_noleg, p2_noleg, ncol = 2, align = "hv")
-            title_grob <- cowplot::ggdraw() + cowplot::draw_label("Tsallis q-curves (paired)", fontface = 'bold', x = 0.5, hjust = 0.5)
-            combined <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.06, 1, 0.08))
-            return(combined)
-        } else if (requireNamespace("gridExtra", quietly = TRUE)) {
-            gridExtra::grid.arrange(p1, p2, ncol = 2, top = "Tsallis q-curves (paired)")
-            return(invisible(NULL))
-        } else {
-            stop("Please install 'patchwork' or 'cowplot' (or 'gridExtra') to arrange paired plots.")
-        }
-    }
-
-    # Use the expected 'gene' column; if not present and lm_res provided,
-    # fall back to rownames when available.
-    gene_col <- "gene"
-    if (!is.null(lm_res) && !("gene" %in% colnames(lm_res)) && !is.null(rownames(lm_res))) {
-        gene_col <- "rownames"
-    }
-
-    # Determine top genes
-    top_genes <- character(0)
-    padj_map <- character(0)
-    if (!is.null(lm_res)) {
-        padj_col <- if ("adj_p_interaction" %in% colnames(lm_res)) "adj_p_interaction" else NULL
-        if (!is.null(padj_col)) {
-            # robust extraction of gene names vector
-            if (!is.null(gene_col) && gene_col != "rownames") {
-                genes_vec <- as.character(lm_res[[gene_col]])
-            } else {
-                genes_vec <- rownames(lm_res)
-            }
-            ord <- order(as.numeric(lm_res[[padj_col]]), na.last = TRUE)
-            sel <- head(genes_vec[ord], top_n)
-            top_genes <- unique(as.character(sel))
-            padj_vals <- as.numeric(lm_res[[padj_col]][match(top_genes, genes_vec)])
-            padj_map <- setNames(formatC(padj_vals, format = "e", digits = 2), top_genes)
-        }
-    }
-
-    # If lm_res selection failed or not provided, fallback to first genes
-    long_all <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
-    all_genes <- unique(as.character(long_all$Gene))
-    if (length(top_genes) == 0) {
-        # fallback to first genes in data
-        top_genes <- head(all_genes, top_n)
-        padj_map <- setNames(rep(NA, length(top_genes)), top_genes)
-    } else {
-        # ensure selected genes exist in the data; try case-insensitive matching
-        present <- intersect(top_genes, all_genes)
-        if (length(present) < length(top_genes)) {
-            gi <- tolower(all_genes)
-            matched <- sapply(tolower(top_genes), function(x) {
-                idx <- which(gi == x)
-                if (length(idx)) all_genes[idx[1]] else NA_character_
-            })
-            present <- unique(na.omit(matched))
-        }
-        if (length(present) == 0) {
-            present <- head(all_genes, top_n)
-            padj_map <- setNames(rep(NA, length(present)), present)
-        } else {
-            # keep order from provided top_genes
-            present <- intersect(top_genes, all_genes)
-        }
-        top_genes <- present
-        padj_map <- padj_map[names(padj_map) %in% top_genes]
-    }
-
-    # Prepare stats for plotting
-    long_sel <- subset(long_all, Gene %in% top_genes)
-    long_sel$qnum <- as.numeric(as.character(long_sel$q))
-    stats_df <- dplyr::group_by(long_sel, Gene, qnum) %>%
-        dplyr::summarise(median = stats::median(tsallis, na.rm = TRUE), IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop")
-
-    # label (include padj where available)
-    stats_df$GeneLabel <- paste0(stats_df$Gene, " (padj=", padj_map[as.character(stats_df$Gene)], ")")
-
-    p <- ggplot2::ggplot(stats_df, ggplot2::aes(x = qnum, y = median, color = GeneLabel, fill = GeneLabel)) +
-        ggplot2::geom_line(linewidth = 1) +
-        ggplot2::geom_ribbon(ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2), alpha = 0.2, color = NA) +
-        ggplot2::theme_minimal() +
-        ggplot2::labs(title = "Tsallis q-curves for selected genes (top LM or preferred)", x = "q value", y = "Tsallis entropy", color = "Gene (padj)", fill = "Gene (padj)") +
-        ggplot2::scale_color_discrete() +
-        ggplot2::scale_fill_discrete()
-
-    return(p)
-}
-
 #' Plot diversity distributions (density) by sample type
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
 #' @param assay_name Name of the assay to use (default: "diversity").
@@ -495,6 +362,10 @@ plot_ma <- function(
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @param sample_type_col Column name in `colData(se)` containing sample
 #'   type labels (default: "sample_type").
+#' @param y Character; which statistic to plot on the y-axis. One of
+#'   `"S"` (Tsallis entropy, default) or `"D"` (Hill numbers). When
+#'   `"D"` is requested and a `hill` assay is not present, the function
+#'   will attempt to convert from un-normalized Tsallis `S_q` to `D_q`.
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
 #' @examples

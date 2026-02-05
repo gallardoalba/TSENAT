@@ -151,7 +151,12 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 #' value in a condition. Can be \code{'mean'} or \code{'median'}.
 #' @param randomizations The number of random shuffles.
 #' @param pcorr P-value correction method applied to the results, as defined in
-#' the \code{p.adjust} function.
+#' the \\code{p.adjust} function.
+#' @param paired Logical; if \code{TRUE} perform a paired permutation scheme
+#'   (default: \code{FALSE}). When paired is \code{TRUE}, permutations
+#'   should preserve pairing between samples; the function currently permutes
+#'   sample labels and therefore paired analyses are only meaningful when the
+#'   caller has arranged \code{samples} accordingly.
 #' @return Raw and corrected p-values.
 #' @details The permutation p-values are computed two-sided as the proportion
 #' of permuted log2 fold-changes at least as extreme as the observed value,
