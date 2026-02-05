@@ -441,22 +441,67 @@ between groups, which would indicate
 scale-dependent diversity differences.
 
 
-```{r lm-interaction-before-qcurve, echo=FALSE}
-# Linear-model interaction test across q values: detect q x group interaction
+```{r lm-interaction-before-qcurve}
+# Linear-model interaction test across q values: 
+# detect q x group interaction
 # Compute and show top hits (by adjusted p-value)
-lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", method = "linear", nthreads = 1)
+lm_res <- calculate_lm_interaction(ts_se, 
+    sample_type_col = "sample_type", method = "linear",
+    nthreads = 1)
 print(head(lm_res, 6))
 ```
 
-With the q-sequence we can produces a q-curve per sample and gene. These curves
+### Tsallis q-sequence plot
+
+With the Tsallis q-sequence we can produces a q-curve per sample and gene. These curves
 show how diversity emphasis shifts from rare to dominant isoforms as `q` increases 
 and form the basis for interaction tests. The q-curve shows entropy as a function 
 of `q`. Diverging curves between groups indicate scale-dependent diversity 
 differences. Separation at low `q` implies differences in rare isoforms; 
 separation at high `q` signals differences in dominant isoforms.
 
-Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity changes
-with `q` across sample groups.
+Now we will plot the q-curve profile for the top gene identified 
+by the linear-model interaction test. We will start with `GFPT1`.
+
+```{r gfpt1-gene-qprofile, fig.width=8, fig.height=5}
+# Plot q-curve profile for top linear-model gene
+    # Prefer GFPT1 if present; otherwise use top LM hit
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "GFPT1",
+    sample_type_col = "sample_type", show_samples = FALSE)
+print(plot_target)
+```
+
+Now let's have a look at the `MBD2` gene, which encondes
+a methyl-CpG binding domain [protein involved  in immune
+cell development, function, and autoimmune
+diseases9](https://www.nature.com/articles/s41420-025-02563-0).
+
+```{r mbd2-gene-qprofile, fig.width=8, fig.height=5}
+# Plot q-curve profile for top linear-model gene
+    # Prefer GFPT1 if present; otherwise use top LM hit
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "MBD2",
+    sample_type_col = "sample_type", show_samples = FALSE)
+print(plot_target)
+```
+
+We could also generate the q-sequence profile for `EEF2K`.
+This gene codifies an [protein kinase associated with 
+cancer survival and 
+prognosis](https://www.nature.com/articles/s41598-024-78652-4).
+
+```{r eef2k-gene-qprofile, fig.width=8, fig.height=5}
+# Plot q-curve profile for top linear-model gene
+    # Prefer GFPT1 if present; otherwise use top LM hit
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "EEF2K",
+    sample_type_col = "sample_type", show_samples = FALSE)
+print(plot_target)
+```
+
+We can plot also the **overall Tsallis q-curve for all
+genes**. This kind of plot provides a global view of how 
+diversity changes across the `q` spectrum for the
+entire dataset, and can reveal general trends in 
+isoform diversity.
 
 ```{r tsallis-q-curve, fig.width=12, fig.height=6, echo=FALSE}
 # Plot top tsallis q curve

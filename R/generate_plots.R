@@ -174,6 +174,61 @@ if (getRversion() >= "2.15.1") {
     }
 }
 
+#' Plot q-curve profile for a single gene comparing groups
+#'
+#' For a selected gene, plot per-sample Tsallis entropy across q values and
+#' overlay per-group median +/- IQR ribbons so group-level differences are
+#' easy to compare. Expects a `SummarizedExperiment` produced by
+#' `calculate_diversity()` with `_q=` suffixes in column names.
+#'
+#' @param se A `SummarizedExperiment` from `calculate_diversity()`.
+#' @param gene Character scalar; gene symbol to plot.
+#' @param assay_name Name of the assay to use (default: "diversity").
+#' @param sample_type_col Column name in `colData(se)` with sample type labels
+#'   (default: "sample_type"). If missing, a single-group fallback is used.
+#' @param show_samples Logical; if TRUE, draw per-sample lines in the
+#'   background (default: FALSE).
+#' @return A `ggplot` object showing the gene q-curve profile by group.
+#' @export
+plot_tsallis_gene_profile <- function(se,
+                                     gene,
+                                     assay_name = "diversity",
+                                     sample_type_col = "sample_type",
+                                     show_samples = FALSE) {
+    if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
+    require_pkgs(c("dplyr", "tidyr", "SummarizedExperiment"))
+
+    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+    if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
+    # filter for requested gene
+    sel <- as.character(gene)
+    long_g <- long[as.character(long$Gene) == sel, , drop = FALSE]
+    if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
+
+    # numeric q for plotting
+    long_g$qnum <- as.numeric(as.character(long_g$q))
+
+    # per-group statistics
+    stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
+                                 median = median(tsallis, na.rm = TRUE),
+                                 IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop")
+
+    p <- ggplot2::ggplot() + ggplot2::theme_minimal()
+
+    if (isTRUE(show_samples)) {
+        p <- p + ggplot2::geom_line(data = long_g, ggplot2::aes(x = qnum, y = tsallis, group = sample, color = group), alpha = 0.25)
+    }
+
+    p <- p +
+        ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = median - IQR/2, ymax = median + IQR/2, fill = group), alpha = 0.2, inherit.aes = FALSE) +
+        ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = median, color = group), linewidth = 1.1) +
+        ggplot2::labs(title = paste0("Tsallis q profile of the gen ", sel), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
+        ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
+
+    return(p)
+}
+
 #' Plot diversity distributions (density) by sample type
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
 #' @param assay_name Name of the assay to use (default: "diversity").

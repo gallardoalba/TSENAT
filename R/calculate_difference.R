@@ -326,6 +326,7 @@ calculate_difference <- function(x, samples, control, method = "mean",
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                         method = c(
                                             "linear",
+                                            "lmm",
                                             "gam",
                                             "fpca"
                                         ),
@@ -399,6 +400,40 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                 return(NULL)
             }
             p_interaction <- coefs[ia_idx[1], "Pr(>|t|)"]
+            return(data.frame(
+                gene = g,
+                p_interaction = p_interaction,
+                stringsAsFactors = FALSE
+            ))
+        }
+
+        if (method == "lmm") {
+            if (!requireNamespace("lme4", quietly = TRUE)) {
+                stop("Package 'lme4' is required for method = 'lmm'")
+            }
+            # subject identifier (base sample names without _q=...)
+            subject <- sample_names
+            df$subject <- factor(subject)
+            # require at least two subjects and at least two groups represented
+            if (length(unique(na.omit(df$subject))) < 2) return(NULL)
+            if (length(unique(na.omit(df$group))) < 2) return(NULL)
+            # fit null (no interaction) and alternative (with q:group interaction)
+            fit0 <- try(lme4::lmer(entropy ~ q + group + (1 | subject), data = df, REML = FALSE), silent = TRUE)
+            fit1 <- try(lme4::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE)
+            if (inherits(fit0, "try-error") || inherits(fit1, "try-error")) return(NULL)
+            an <- try(stats::anova(fit0, fit1), silent = TRUE)
+            if (inherits(an, "try-error")) return(NULL)
+            # p-value typically in column 'Pr(>Chisq)' in the second row
+            p_interaction <- NA_real_
+            if (nrow(an) >= 2) {
+                pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
+                if (length(pcol) == 0) {
+                    # fallback to second column if available
+                    p_interaction <- as.numeric(an[2, ncol(an)])
+                } else {
+                    p_interaction <- as.numeric(an[2, pcol[1]])
+                }
+            }
             return(data.frame(
                 gene = g,
                 p_interaction = p_interaction,
