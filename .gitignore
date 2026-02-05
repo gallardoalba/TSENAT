@@ -15,6 +15,10 @@ __pycache__/
 .Rhistory
 .Ruserdata
 /Meta/
+vignette/*pdf
+vignette/*html
+inst/doc/
+*.bak
 
 # Local R check directories and temporary package checks
 TSENAT.Rcheck/

@@ -189,16 +189,43 @@ ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
 head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 ```
 
-Map sample metadata (if available) into the `SummarizedExperiment` so
-plotting functions can use `sample_type` for grouping.
+Now we should map the sample metadata (if available) into the 
+`SummarizedExperiment` so plotting functions can use `sample_type` 
+for grouping.
 
-```{r apply-coldata-to-se-single}
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
+### Sample naming and pairing requirements
+
+TSENAT requires a consistent, exact mapping between the assay column names
+and the values in `coldata$Sample`. The following rules and recommendations
+make mapping reliable and avoid surprises when running paired analyses.
+
+- Naming convention: for paired comparisons use a shared base identifier and
+    a role suffix, e.g. `SAMPLE_N` / `SAMPLE_T` or `SAMPLE_Normal` /
+    `SAMPLE_Tumor`. The helper `infer_sample_group()` recognizes common
+    underscore suffixes (like `_N` / `_T`) and common TCGA-style tokens.
+- Validation and metadata: to perform paired analyses call
+    `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
+    function will reorder columns to follow `coldata`, add `sample_type`
+    and `sample_base` to `colData(ts_se)`, and check that each `sample_base`
+    has entries for all groups, returning an informative error if not.
+
+
+The following example from `coldata_df` illustrates a correct format:
+
+```text
+Sample	Condition
+TCGA-A7-A0CH_N	Normal
+TCGA-A7-A0D9_N	Normal
+TCGA-A7-A0CH_T	Tumor
+TCGA-A7-A0D9_T	Tumor
 ```
 
-After mapping the `coldata`, you can inspect `colData(ts_se)` to confirm
-that `sample_type` and any other covariates are available for downstream
-plotting and modeling.
+```{r apply-coldata-to-se-single}
+ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
+```
+
+After mapping, inspect `colData(ts_se)` to confirm `sample_type` and
+`sample_base` are present and correctly populated.
 
 ```{r inspect-coldata}
 # Quick checks on mapped sample metadata
@@ -243,7 +270,6 @@ flips for paired differences.
 5000+ when estimating small p-values or when applying FDR across many
 genes. When possible, compute exact permutations (all labelings) for
 very small datasets.
-
 
 Here we will use the **Wilcoxon test**; it is the appropriate choice for speed
 when sample sizes support asymptotic approximations. Use permutation tests

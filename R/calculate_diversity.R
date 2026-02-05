@@ -13,8 +13,8 @@
 #' @param q Numeric scalar or vector of Tsallis q values to evaluate (q > 0).
 #' If length(q) > 1, the result will contain separate columns per sample and
 #' q.
-#' @param what Which quantity to return: "S" for Tsallis entropy, "D" for Hill
-#' numbers, or "both".
+#' @param what Which quantity to return: "S" for Tsallis entropy or "D" for Hill
+#' numbers.
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 #' `diversity` containing per-gene diversity values.
 #' @import methods
@@ -32,14 +32,16 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
                                 assayno = 1,
                                 verbose = FALSE,
                                 q = 2,
-                                what = c(
-                                    "S",
-                                    "D"
+                                what = c("S", "D"
                                 )) {
     if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") ||
         is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
-        stop("Input data type is not supported! Please use `?calculate_diversity`
-\t to see the possible arguments and details.")
+        stop(
+            paste0(
+                "Input data type is not supported! Please use `?calculate_diversity`",
+                " to see the possible arguments and details."
+            )
+        )
     }
 
     if (is(x, "data.frame")) {
@@ -47,8 +49,10 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     }
 
     if (tpm == TRUE && !is.list(x) && verbose == TRUE) {
-        message("Note: tpm as a logical argument is only interpreted in case of
-            tximport lists.")
+        message(
+            "Note: tpm as a logical argument is only interpreted in case of",
+            " tximport lists."
+        )
     }
 
     if (is.list(x)) {
@@ -62,12 +66,17 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         } else if (is(x, "DGEList")) {
             x <- as.matrix(x$counts)
             if (verbose == TRUE) {
-                message("Note: calculate_diversity methods are only applicable if your
-                DGEList contains transcript-level expression data.")
+                message(
+                    "Note: calculate_diversity methods are only applicable",
+                    " if your DGEList contains transcript-level expression",
+                    " data."
+                )
             }
             if (tpm == TRUE && verbose == TRUE) {
-                message("Note: tpm as a logical argument is only interpreted in case of
-                tximport lists.")
+                message(
+                    "Note: tpm as a logical argument is only interpreted",
+                    " in case of tximport lists."
+                )
             }
         } else {
             stop("The package cannot find any expression data in your input.",
@@ -87,7 +96,9 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
             genes <- rownames(x)
             rownames(x) <- NULL
             if (is.null(genes)) {
-                stop("Please construct a valid gene set for your SummarizedExperiment.",
+                stop(
+                    "Please construct a valid gene set for your ",
+                    "SummarizedExperiment.",
                     call. = FALSE
                 )
             }
@@ -99,8 +110,11 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     }
 
     if (any(is.na(x))) {
-        stop("The data contains NA as expression values. NAs are not allowed in the
-            input.", call. = FALSE)
+        stop(
+            "The data contains NA as expression values. NAs are not allowed",
+            " in the input.",
+            call. = FALSE
+        )
     }
 
     if (nrow(x) != length(genes)) {

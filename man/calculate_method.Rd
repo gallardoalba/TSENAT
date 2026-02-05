@@ -10,7 +10,7 @@ calculate_method(
   norm = TRUE,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D", "both")
+  what = c("S", "D")
 )
 }
 \arguments{
@@ -27,7 +27,7 @@ transcript to a gene.}
 \item{q}{Numeric scalar or vector of q values to evaluate.}
 
 \item{what}{Which quantity to return from `calculate_tsallis_entropy`:
-"S" (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").}
+"S" (Tsallis entropy) or "D" (Hill numbers) (default: "S").}
 }
 \value{
 A data.frame with genes in the first column and per-sample (and

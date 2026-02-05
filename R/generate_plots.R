@@ -29,7 +29,9 @@ if (getRversion() >= "2.15.1") {
     )
 
     require_pkgs <- function(pkgs) {
-        missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+        missing <- pkgs[!
+            vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)
+        ]
         if (length(missing)) {
             stop(
                 sprintf(
@@ -45,18 +47,20 @@ if (getRversion() >= "2.15.1") {
     # available,
     # otherwise fall back to `infer_sample_group()` and a suffix fallback.
     map_samples_to_group <- function(sample_names,
-                                     se = NULL,
-                                     sample_type_col = NULL,
-                                     mat = NULL) {
+                                        se = NULL,
+                                        sample_type_col = NULL,
+                                        mat = NULL) {
         if (!is.null(se) && !is.null(sample_type_col) &&
             sample_type_col %in% colnames(SummarizedExperiment::colData(se))) {
+            st_df <- SummarizedExperiment::colData(se)
             st_vec <- as.character(
-                SummarizedExperiment::colData(se)[, sample_type_col]
+                st_df[, sample_type_col]
             )
+            assay_from <- if (!is.null(mat)) mat else SummarizedExperiment::assay(se)
             base_names <- sub(
                 "_q=.*",
                 "",
-                colnames(if (!is.null(mat)) mat else SummarizedExperiment::assay(se))
+                colnames(assay_from)
             )
             names(st_vec) <- base_names
             st_map <- st_vec[!duplicated(names(st_vec))]
@@ -76,9 +80,9 @@ if (getRversion() >= "2.15.1") {
 
     # Prepare a long-format data.frame for a simple assay (one value per sample)
     get_assay_long <- function(se,
-                               assay_name = "diversity",
-                               value_name = "diversity",
-                               sample_type_col = NULL) {
+                                assay_name = "diversity",
+                                value_name = "diversity",
+                                sample_type_col = NULL) {
         require_pkgs(c("tidyr", "dplyr", "SummarizedExperiment"))
         mat <- SummarizedExperiment::assay(se, assay_name)
         if (is.null(mat)) stop("Assay not found: ", assay_name)
@@ -130,8 +134,8 @@ if (getRversion() >= "2.15.1") {
     # Internal small helper: prepare long-format tsallis data from a
     # SummarizedExperiment
     prepare_tsallis_long <- function(se,
-                                     assay_name = "diversity",
-                                     sample_type_col = "sample_type") {
+                                        assay_name = "diversity",
+                                        sample_type_col = "sample_type") {
         require_pkgs(c("tidyr", "dplyr", "SummarizedExperiment"))
         mat <- SummarizedExperiment::assay(se, assay_name)
         if (is.null(mat)) stop("Assay not found: ", assay_name)
@@ -203,9 +207,9 @@ if (getRversion() >= "2.15.1") {
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' plot_diversity_density(se)
 plot_diversity_density <- function(
-  se,
-  assay_name = "diversity",
-  sample_type_col = NULL
+    se,
+    assay_name = "diversity",
+    sample_type_col = NULL
 ) {
     require_pkgs(c("ggplot2", "tidyr", "dplyr", "SummarizedExperiment"))
     long <- get_assay_long(
@@ -243,9 +247,9 @@ plot_diversity_density <- function(
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' plot_mean_violin(se)
 plot_mean_violin <- function(
-  se,
-  assay_name = "diversity",
-  sample_type_col = NULL
+    se,
+    assay_name = "diversity",
+    sample_type_col = NULL
 ) {
     require_pkgs(c("ggplot2", "dplyr", "SummarizedExperiment", "tidyr"))
     long <- get_assay_long(
@@ -296,11 +300,11 @@ plot_mean_violin <- function(
 #' )
 #' plot_ma(df)
 plot_ma <- function(
-  diff_df,
-  mean_cols = NULL,
-  fold_col = "log2_fold_change",
-  padj_col = "adjusted_p_values",
-  sig_alpha = 0.05
+    diff_df,
+    mean_cols = NULL,
+    fold_col = "log2_fold_change",
+    padj_col = "adjusted_p_values",
+    sig_alpha = 0.05
 ) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
 
@@ -368,11 +372,11 @@ plot_ma <- function(
 #' p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
 #' p
 plot_tsallis_q_curve <- function(
-  readcounts,
-  genes,
-  q_values = seq(0.01, 2, by = 0.01),
-  group_pattern = "_N$",
-  group_names = c("Normal", "Tumor")
+    readcounts,
+    genes,
+    q_values = seq(0.01, 2, by = 0.01),
+    group_pattern = "_N$",
+    group_names = c("Normal", "Tumor")
 ) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
     if (!requireNamespace("tidyr", quietly = TRUE)) stop("tidyr required")
@@ -549,12 +553,12 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' )
 #' plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 plot_volcano <- function(
-  diff_df,
-  x_col = "mean_difference",
-  padj_col = "adjusted_p_values",
-  label_thresh = 0.1,
-  padj_thresh = 0.05,
-  top_n = 5
+    diff_df,
+    x_col = "mean_difference",
+    padj_col = "adjusted_p_values",
+    label_thresh = 0.1,
+    padj_thresh = 0.05,
+    top_n = 5
 ) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
     df <- as.data.frame(diff_df)
@@ -705,13 +709,13 @@ if (getRversion() >= "2.15.1") {
     ))
 }
 plot_top_transcripts <- function(
-  counts,
-  gene,
-  samples,
-  tx2gene = NULL,
-  top_n = 3,
-  pseudocount = 1e-6,
-  output_file = NULL
+    counts,
+    gene,
+    samples,
+    tx2gene = NULL,
+    top_n = 3,
+    pseudocount = 1e-6,
+    output_file = NULL
 ) {
     if (!is.matrix(counts) && !is.data.frame(counts)) {
         stop(

@@ -53,9 +53,9 @@
 #'         "wilcoxon"
 #' )
 calculate_difference <- function(x, samples, control, method = "mean",
-                                 test = "wilcoxon", randomizations = 100,
-                                 pcorr = "BH", assayno = 1, verbose = FALSE,
-                                 ...) {
+                                    test = "wilcoxon", randomizations = 100,
+                                    pcorr = "BH", assayno = 1, verbose = FALSE,
+                                    ...) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(
@@ -66,7 +66,10 @@ calculate_difference <- function(x, samples, control, method = "mean",
             "SummarizedExperiment"
         )) {
             if (length(samples) != 1) {
-                stop("'samples' must be a single colData column.", call. = FALSE)
+                stop(
+                    "'samples' must be a single colData column.",
+                    call. = FALSE
+                )
             }
             samples <- SummarizedExperiment::colData(x)[[samples]]
             if (!is.numeric(assayno) ||
@@ -96,7 +99,10 @@ calculate_difference <- function(x, samples, control, method = "mean",
     # Validate input container
     # Reject matrices explicitly (tests expect this error for matrix input)
     if (is.matrix(x)) {
-        stop("Input type unsupported; see ?calculate_difference.", call. = FALSE)
+        stop(
+            "Input type unsupported; see ?calculate_difference.",
+            call. = FALSE
+        )
     }
     if (!(is.data.frame(x) || inherits(
         x,
@@ -219,7 +225,13 @@ calculate_difference <- function(x, samples, control, method = "mean",
             ptab <- wilcoxon(ymat, samples, ...)
             # wilcoxon should return a data.frame of p-values named appropriately
         } else {
-            ptab <- label_shuffling(ymat, samples, control, method, randomizations)
+            ptab <- label_shuffling(
+                ymat,
+                samples,
+                control,
+                method,
+                randomizations
+            )
         }
         result_list$tested <- data.frame(
             genes = df_keep[
@@ -296,13 +308,13 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' calculate_lm_interaction(se)
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
-                                     method = c(
-                                         "linear",
-                                         "gam",
-                                         "fpca"
-                                     ),
-                                     nthreads = 1,
-                                     assay_name = "diversity") {
+                                        method = c(
+                                            "linear",
+                                            "gam",
+                                            "fpca"
+                                        ),
+                                        nthreads = 1,
+                                        assay_name = "diversity") {
     method <- match.arg(method)
     message("[calculate_lm_interaction] method=", method)
     if (!requireNamespace("SummarizedExperiment",

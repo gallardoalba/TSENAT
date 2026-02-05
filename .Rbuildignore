@@ -17,6 +17,8 @@
 # Ignore vignette intermediate files
 ^vignettes/.*\.Rhistory$
 ^vignettes/.*\.utf8$
+^vignette/*pdf
+^vignette/*html
 
 # Do not include development helper scripts in built package
 ^scripts/

@@ -36,8 +36,8 @@ Must have length equal to nrow(x) or the number of transcripts in `x`.}
 If length(q) > 1, the result will contain separate columns per sample and
 q.}
 
-\item{what}{Which quantity to return: "S" for Tsallis entropy, "D" for Hill
-numbers, or "both".}
+\item{what}{Which quantity to return: "S" for Tsallis entropy or "D" for Hill
+numbers.}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assay

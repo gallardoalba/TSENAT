@@ -7,21 +7,20 @@
 #' @param q Numeric scalar or vector of q values to evaluate.
 #' @param verbose Logical; show diagnostic messages when TRUE.
 #' @param what Which quantity to return from `calculate_tsallis_entropy`:
-#' "S" (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").
+#' "S" (Tsallis entropy) or "D" (Hill numbers) (default: "S").
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
 calculate_method <- function(
-  x,
-  genes,
-  norm = TRUE,
-  verbose = FALSE,
-  q = 2,
-  what = c(
-      "S",
-      "D",
-      "both"
-  )
+    x,
+    genes,
+    norm = TRUE,
+    verbose = FALSE,
+    q = 2,
+    what = c(
+        "S",
+        "D"
+    )
 ) {
     what <- match.arg(what)
     # cannot use aggregate because calculate_tsallis_entropy may return
@@ -36,114 +35,49 @@ calculate_method <- function(
     )
     rown <- gene_levels
 
-    if (what != "both") {
-        tsallis_row <- function(gene) {
-            idx <- which(genes == gene)
-            unlist(lapply(seq_len(ncol(x)), function(j) {
-                v <- calculate_tsallis_entropy(
-                    x[
-                        idx,
-                        j
-                    ],
-                    q = q,
-                    norm = norm,
-                    what = what
-                )
-                if (length(v) == length(q) && all(is.finite(v) | is.na(v))) {
-                    v
-                } else {
-                    names_vec <- paste0("q=", q)
-                    setNames(rep(NA_real_, length(q)), names_vec)
-                }
-            }))
-        }
-        result_mat <- t(vapply(gene_levels,
-            tsallis_row,
-            FUN.VALUE = setNames(
-                numeric(length(coln)),
-                coln
+    # compute requested quantity ("S" or "D")
+    tsallis_row <- function(gene) {
+        idx <- which(genes == gene)
+        unlist(lapply(seq_len(ncol(x)), function(j) {
+            v <- calculate_tsallis_entropy(
+                x[
+                    idx,
+                    j
+                ],
+                q = q,
+                norm = norm,
+                what = what
             )
-        ))
-        colnames(result_mat) <- coln
-        rownames(result_mat) <- rown
-        out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)
-        if (all(rowSums(!is.na(result_mat)) == 0)) {
-            out_df <- data.frame(Gene = character(0))
-            for (nm in coln) out_df[[nm]] <- numeric(0)
-            x <- out_df
-            return(x)
-        }
-        x <- out_df
-        y <- x[apply(x[2:ncol(x)], 1, function(X) all(is.finite(X))), ]
-        if (nrow(x) - nrow(y) > 0 && verbose == TRUE) {
-            message(sprintf("Note: %d genes excluded.", nrow(x) - nrow(y)))
-        }
-        colnames(y)[1] <- "Gene"
-        return(y)
-    } else {
-        # compute both S and D matrices
-        S_row <- function(gene) {
-            idx <- which(genes == gene)
-            unlist(lapply(seq_len(ncol(x)), function(j) {
-                both <- calculate_tsallis_entropy(
-                    x[
-                        idx,
-                        j
-                    ],
-                    q = q,
-                    norm = norm,
-                    what = "both"
-                )
-                if (!is.null(both$S) && length(both$S) == length(q)) {
-                    both$S
-                } else {
-                    names_vec <- paste0("q=", q)
-                    setNames(rep(NA_real_, length(q)), names_vec)
-                }
-            }))
-        }
-        D_row <- function(gene) {
-            idx <- which(genes == gene)
-            unlist(lapply(seq_len(ncol(x)), function(j) {
-                both <- calculate_tsallis_entropy(
-                    x[
-                        idx,
-                        j
-                    ],
-                    q = q,
-                    norm = norm,
-                    what = "both"
-                )
-                if (!is.null(both$D) && length(both$D) == length(q)) {
-                    both$D
-                } else {
-                    names_vec <- paste0("q=", q)
-                    setNames(rep(NA_real_, length(q)), names_vec)
-                }
-            }))
-        }
-        S_mat <- t(vapply(gene_levels,
-            S_row,
-            FUN.VALUE = setNames(
-                numeric(length(coln)),
-                coln
-            )
-        ))
-        D_mat <- t(vapply(gene_levels,
-            D_row,
-            FUN.VALUE = setNames(
-                numeric(length(coln)),
-                coln
-            )
-        ))
-        colnames(S_mat) <- coln
-        colnames(D_mat) <- coln
-        rownames(S_mat) <- rown
-        rownames(D_mat) <- rown
-        out_S <- data.frame(Gene = rown, S_mat, check.names = FALSE)
-        out_D <- data.frame(Gene = rown, D_mat, check.names = FALSE)
-        colnames(out_S)[1] <- "Gene"
-        colnames(out_D)[1] <- "Gene"
-        return(list(S = out_S, D = out_D))
+            if (length(v) == length(q) && all(is.finite(v) | is.na(v))) {
+                v
+            } else {
+                names_vec <- paste0("q=", q)
+                setNames(rep(NA_real_, length(q)), names_vec)
+            }
+        }))
     }
+
+    result_mat <- t(vapply(gene_levels,
+        tsallis_row,
+        FUN.VALUE = setNames(
+            numeric(length(coln)),
+            coln
+        )
+    ))
+    colnames(result_mat) <- coln
+    rownames(result_mat) <- rown
+    out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)
+    if (all(rowSums(!is.na(result_mat)) == 0)) {
+        out_df <- data.frame(Gene = character(0))
+        for (nm in coln) out_df[[nm]] <- numeric(0)
+        x <- out_df
+        return(x)
+    }
+    x <- out_df
+    y <- x[apply(x[2:ncol(x)], 1, function(X) all(is.finite(X))), ]
+    if (nrow(x) - nrow(y) > 0 && verbose == TRUE) {
+        message(sprintf("Note: %d genes excluded.", nrow(x) - nrow(y)))
+    }
+    colnames(y)[1] <- "Gene"
+    return(y)
 }

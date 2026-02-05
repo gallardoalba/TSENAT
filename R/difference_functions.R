@@ -33,48 +33,30 @@ calculate_fc <- function(x, samples, control, method = "mean") {
     # Defensive numeric coercion: ensure group means are numeric and mark any
     # non-finite or non-positive values as NA. This prevents Inf/NaN when
     # computing log2 fold changes downstream.
-    value <- matrix(as.numeric(value), nrow = nrow(value), ncol = ncol(value), dimnames = dimnames(value))
+    value <- matrix(
+        as.numeric(value),
+        nrow = nrow(value),
+        ncol = ncol(value),
+        dimnames = dimnames(value)
+    )
     value[!is.finite(value)] <- NA
     # log2 undefined for non-positive values; mark them as NA conservatively
     value[value <= 0] <- NA
 
+    # compute difference and log2 fold-change with NA-safe handling
+    diff_vec <- value[, 1] - value[, 2]
+    na_mask <- is.na(value[, 1]) | is.na(value[, 2])
+    diff_vec[na_mask] <- NA
+
+    log2fc_vec <- log2(value[, 1] / value[, 2])
+    log2fc_vec[na_mask] <- NA
+
     result <- data.frame(
         value,
-        ifelse(as.matrix(is.na(value[
-            ,
-            1
-        ]) | is.na(value[
-            ,
-            2
-        ])),
-        NA,
-        value[
-            ,
-            1
-        ] - value[
-            ,
-            2
-        ]
-        ),
-        ifelse(as.matrix(is.na(value[
-            ,
-            1
-        ]) | is.na(value[
-            ,
-            2
-        ])),
-        NA,
-        as.matrix(log(
-            value[
-                ,
-                1
-            ] / value[
-                ,
-                2
-            ],
-            base = 2
-        ))
-        )
+        difference = diff_vec,
+        log2_fold_change = log2fc_vec,
+        check.names = FALSE,
+        stringsAsFactors = FALSE
     )
     colnames(result) <- c(
         paste(sorted[1, 1], "_", method, sep = ""),
@@ -98,19 +80,30 @@ calculate_fc <- function(x, samples, control, method = "mean") {
 #' @return Raw and corrected p-values in a matrix.
 #' @import stats
 wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
-    p_values <- vector("list", nrow(x))
+    # Determine group indices (two groups expected)
+    groups <- unique(sort(samples))
+    if (length(groups) != 2) {
+        stop("`samples` must contain exactly two groups for Wilcoxon tests.")
+    }
+    g1_idx <- as.numeric(which(samples %in% groups[1]))
+    g2_idx <- as.numeric(which(samples %in% groups[2]))
 
+    if (isTRUE(paired)) {
+        if (length(g1_idx) != length(g2_idx)) {
+            stop(
+                "Paired Wilcoxon requires equal numbers of samples in each ",
+                "group."
+            )
+        }
+        # Paired tests assume columns are already ordered/aligned by the caller
+        # (e.g., via `map_coldata_to_se()`); do not attempt to infer pairing here.
+    }
+
+    p_values <- vector("list", nrow(x))
     for (i in seq_len(nrow(x))) {
         p_values[i] <- wilcox.test(
-            x[
-                i,
-                as.numeric(which(samples %in% unique(sort(samples))[1]))
-            ],
-            x[
-                i,
-                as.numeric(which(samples %in%
-                    unique(sort(samples))[2]))
-            ],
+            x[i, g1_idx],
+            x[i, g2_idx],
             paired = paired, exact = exact
         )$p.value
     }
@@ -169,7 +162,11 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100,
     )
     # each element is a data.frame/matrix; extract log2_fold_change column (4th
     # column)
-    perm_mat <- vapply(permuted, function(z) as.numeric(z[, 4]), numeric(nrow(x)))
+    perm_mat <- vapply(
+        permuted,
+        function(z) as.numeric(z[, 4]),
+        numeric(nrow(x))
+    )
 
     # compute two-sided permutation p-value with pseudocount: (count >= |obs| + 1)
     # / (n_perm + 1)
@@ -195,4 +192,55 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100,
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     return(cbind(raw_p_values, adjusted_p_values))
+}
+
+
+#' Run a differential test by name: Wilcoxon or label-shuffle
+#'
+#' Thin wrapper that selects between `wilcoxon()` and `label_shuffling()`.
+#'
+#' @param x A matrix with splicing diversity values (rows = features).
+#' @param samples Character vector of sample group labels (length = ncol(x)).
+#' @param control Name of the control group (required for label-shuffle).
+#' @param method Character; one of `"wilcoxon"` or `"shuffle"`.
+#' @param fc_method Character; aggregation method used by the permutation
+#'   test when `method = "shuffle"` ("mean" or "median").
+#' @param paired Logical passed to `wilcoxon()` when using the Wilcoxon test.
+#' @param exact Logical passed to `wilcoxon()` to request exact p-values.
+#' @param randomizations Integer number of permutations for `label_shuffling()`.
+#' @param pcorr P-value adjustment method (passed to `p.adjust`).
+#' @param seed Integer seed used to make permutations reproducible (default
+#'   123). The function calls `set.seed(seed)` before running
+#'   `label_shuffling()` when `method = "shuffle"`.
+#' @return A two-column matrix with raw and adjusted p-values (as returned by
+#'   the underlying functions).
+#' @export
+test_differential <- function(x,
+                                samples,
+                                control = NULL,
+                                method = c("wilcoxon", "shuffle"),
+                                fc_method = "mean",
+                                paired = FALSE,
+                                exact = FALSE,
+                                randomizations = 100,
+                                pcorr = "BH",
+                                seed = 123L) {
+    method <- match.arg(method)
+    if (method == "wilcoxon") {
+        return(wilcoxon(x, samples, pcorr = pcorr, paired = paired, 
+                        exact = exact))
+    }
+
+    # shuffle / permutation-based test
+    if (is.null(control) || !nzchar(control)) {
+        stop("`control` must be provided when method = 'shuffle'", 
+            call. = FALSE)
+    }
+    if (!is.null(seed)) {
+        if (!is.numeric(seed) || length(seed) != 1)
+            stop("`seed` must be a single numeric value", call. = FALSE)
+        set.seed(as.integer(seed))
+    }
+    return(label_shuffling(x, samples, control, fc_method, 
+        randomizations = randomizations, pcorr = pcorr))
 }
