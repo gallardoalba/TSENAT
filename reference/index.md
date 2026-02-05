@@ -40,11 +40,7 @@
 - [`plot_tsallis_density_multq()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_density_multq.md)
   : Density plot of Tsallis entropy for multiple q values
 - [`plot_tsallis_q_curve()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_q_curve.md)
-  : Plot median +- IQR of Tsallis entropy across q values by group This
-  reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette: for
-  each q value, compute per-gene Tsallis entropy per sample, then
-  summarize across genes by group (median and IQR) and plot median with
-  a ribbon spanning median +- IQR/2.
+  : Plot median +- IQR of Tsallis entropy across q values by group
 - [`plot_tsallis_violin_multq()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_violin_multq.md)
   : Violin plot of Tsallis entropy for multiple q values
 - [`plot_volcano()`](https://gallardoalba.github.io/TSENAT/reference/plot_volcano.md)

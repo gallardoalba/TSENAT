@@ -1,47 +1,34 @@
-# Plot median +- IQR of Tsallis entropy across q values by group This reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette: for each q value, compute per-gene Tsallis entropy per sample, then summarize across genes by group (median and IQR) and plot median with a ribbon spanning median +- IQR/2.
+# Plot median +- IQR of Tsallis entropy across q values by group
 
-Plot median +- IQR of Tsallis entropy across q values by group This
-reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette: for
-each q value, compute per-gene Tsallis entropy per sample, then
-summarize across genes by group (median and IQR) and plot median with a
-ribbon spanning median +- IQR/2.
+This reproduces the \`tsallis-q-curve-mean-sd\` plot from the vignette:
+for each q value, compute per-gene Tsallis entropy per sample, summarize
+across genes by group (median and IQR) and plot median with a ribbon
+spanning median +- IQR/2.
 
 ## Usage
 
 ``` r
 plot_tsallis_q_curve(
-  readcounts,
-  genes,
-  q_values = seq(0.01, 2, by = 0.01),
-  group_pattern = "_N$",
-  group_names = c("Normal", "Tumor")
+  se,
+  assay_name = "diversity",
+  sample_type_col = "sample_type"
 )
 ```
 
 ## Arguments
 
-- readcounts:
+- se:
 
-  Numeric matrix or data.frame with transcripts as rows and samples as
-  columns.
+  A \`SummarizedExperiment\` returned by \`calculate_diversity\`.
 
-- genes:
+- assay_name:
 
-  Character vector assigning a gene id to each row of \`readcounts\`.
+  Name of the assay to use (default: "diversity").
 
-- q_values:
+- sample_type_col:
 
-  Numeric vector of q values to evaluate (default
-  \`seq(0.01,2,by=0.01)\`).
-
-- group_pattern:
-
-  Regular expression to detect group suffixes (default "\_N\$").
-
-- group_names:
-
-  Character vector length 2 with group names (default
-  c("Normal","Tumor")).
+  Column name in \`colData(se)\` containing sample type labels (default:
+  "sample_type").
 
 ## Value
 
@@ -54,7 +41,7 @@ data("tcga_brca_luma_dataset", package = "TSENAT")
 rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:40]
 p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
-#> Error in plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03)): Matrix or data.frame input is no longer supported for `plot_tsallis_q_curve()`. Please provide a SummarizedExperiment returned by `calculate_diversity()`.
+#> Error in plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03)): unused argument (q_values = seq(0.01, 0.1, by = 0.03))
 p
 #> Error: object 'p' not found
 ```

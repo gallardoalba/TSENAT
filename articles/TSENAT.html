@@ -187,8 +187,41 @@ and data:</p>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">mgcv</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="sample-naming-and-pairing-requirements">Sample naming and pairing requirements<a class="anchor" aria-label="anchor" href="#sample-naming-and-pairing-requirements"></a>
+</h3>
+<p>TSENAT requires a consistent, exact mapping between the assay column
+names and the values in <code>coldata$Sample</code>. The following rules
+and recommendations make mapping reliable and avoid surprises when
+running paired analyses.</p>
+<ul>
+<li>Naming convention: for paired comparisons use a shared base
+identifier and a role suffix, e.g. <code>SAMPLE_N</code> /
+<code>SAMPLE_T</code> or <code>SAMPLE_Normal</code> /
+<code>SAMPLE_Tumor</code>. The helper <code>infer_sample_group()</code>
+recognizes common underscore suffixes (like <code>_N</code> /
+<code>_T</code>) and common TCGA-style tokens.</li>
+<li>Validation and metadata: to perform paired analyses call
+<code>map_coldata_to_se(..., paired = TRUE)</code>. When
+<code>paired = TRUE</code> the function will reorder columns to follow
+<code>coldata</code>, add <code>sample_type</code> and
+<code>sample_base</code> to <code>colData(ts_se)</code>, and check that
+each <code>sample_base</code> has entries for all groups, returning an
+informative error if not.</li>
+</ul>
+<p>The following example from <code>coldata_df</code> illustrates a
+correct format:</p>
+<pre class="text"><code>Sample  Condition
+TCGA-A7-A0CH_N  Normal
+TCGA-A7-A0D9_N  Normal
+TCGA-A7-A0CH_T  Tumor
+TCGA-A7-A0D9_T  Tumor</code></pre>
+</div>
+<div class="section level3">
+<h3 id="load-data-and-metadata">Load data and metadata<a class="anchor" aria-label="anchor" href="#load-data-and-metadata"></a>
+</h3>
 <p>Now we load the example dataset and associated metadata:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load required files</span></span>
 <span><span class="va">coldata_tsv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"coldata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span><span class="va">tx2gene_tsv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"tx2gene.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
@@ -208,9 +241,11 @@ and data:</p>
 <span>    header <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>    sep <span class="op">=</span> <span class="st">"\t"</span>,</span>
 <span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Check gene names</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The next step is to inspect the loaded data to ensure it looks
+correct.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Check gene names</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">genes</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "MXRA8"   "MXRA8"   "MXRA8"   "MXRA8"   "MXRA8"   "C1orf86"</span></span>
 <span></span>
@@ -242,6 +277,7 @@ and data:</p>
 <span><span class="co">#&gt; 4 TCGA-A7-A0DC_N    Normal</span></span>
 <span><span class="co">#&gt; 5 TCGA-A7-A13G_N    Normal</span></span>
 <span><span class="co">#&gt; 6 TCGA-AC-A2FB_N    Normal</span></span></code></pre></div>
+</div>
 <div class="section level3">
 <h3 id="data-filtering-and-preprocessing">Data filtering and preprocessing<a class="anchor" aria-label="anchor" href="#data-filtering-and-preprocessing"></a>
 </h3>
@@ -253,7 +289,7 @@ might be highly variable. For more details on the effect of transcript
 isoform prefiltering on differential transcript usage, see <a href="https://doi.org/10.1186/s13059-015-0862-3" class="external-link">this paper</a>.</p>
 <p>Filter transcripts with fewer than 5 reads in more than 5 samples and
 update the <code>genes</code> vector accordingly.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Filter lowly-expressed transcripts and report counts</span></span>
 <span><span class="va">n_before</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
 <span><span class="va">tokeep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/MatrixGenerics/man/rowSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="va">readcounts</span> <span class="op">&gt;</span> <span class="fl">5</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">5</span></span>
@@ -275,7 +311,7 @@ stability of diversity estimates.</p>
 </h2>
 <p>Compute Tsallis entropy for a single<code>q</code>and inspect the
 resulting assay</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## The `norm = TRUE` option returns normalized entropies on a comparable scale.</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">0.1</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -295,41 +331,12 @@ resulting assay</p>
 <p>Now we should map the sample metadata (if available) into the
 <code>SummarizedExperiment</code> so plotting functions can use
 <code>sample_type</code> for grouping.</p>
-<div class="section level3">
-<h3 id="sample-naming-and-pairing-requirements">Sample naming and pairing requirements<a class="anchor" aria-label="anchor" href="#sample-naming-and-pairing-requirements"></a>
-</h3>
-<p>TSENAT requires a consistent, exact mapping between the assay column
-names and the values in <code>coldata$Sample</code>. The following rules
-and recommendations make mapping reliable and avoid surprises when
-running paired analyses.</p>
-<ul>
-<li>Naming convention: for paired comparisons use a shared base
-identifier and a role suffix, e.g. <code>SAMPLE_N</code> /
-<code>SAMPLE_T</code> or <code>SAMPLE_Normal</code> /
-<code>SAMPLE_Tumor</code>. The helper <code>infer_sample_group()</code>
-recognizes common underscore suffixes (like <code>_N</code> /
-<code>_T</code>) and common TCGA-style tokens.</li>
-<li>Validation and metadata: to perform paired analyses call
-<code>map_coldata_to_se(..., paired = TRUE)</code>. When
-<code>paired = TRUE</code> the function will reorder columns to follow
-<code>coldata</code>, add <code>sample_type</code> and
-<code>sample_base</code> to <code>colData(ts_se)</code>, and check that
-each <code>sample_base</code> has entries for all groups, returning an
-informative error if not.</li>
-</ul>
-<p>The following example from <code>coldata_df</code> illustrates a
-correct format:</p>
-<pre class="text"><code>Sample  Condition
-TCGA-A7-A0CH_N  Normal
-TCGA-A7-A0D9_N  Normal
-TCGA-A7-A0CH_T  Tumor
-TCGA-A7-A0D9_T  Tumor</code></pre>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>After mapping, inspect <code>colData(ts_se)</code> to confirm
 <code>sample_type</code> and <code>sample_base</code> are present and
 correctly populated.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Quick checks on mapped sample metadata</span></span>
 <span><span class="va">cd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">colData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">cd</span><span class="op">)</span> <span class="co"># list available metadata columns</span></span>
@@ -344,7 +351,6 @@ correctly populated.</p>
 <span><span class="co">#&gt; TCGA-A7-A0D9_T TCGA-A7-A0D9_T       Tumor TCGA-A7-A0D9_T</span></span>
 <span><span class="co">#&gt; TCGA-A7-A0DB_N TCGA-A7-A0DB_N      Normal TCGA-A7-A0DB_N</span></span>
 <span><span class="co">#&gt; TCGA-A7-A0DB_T TCGA-A7-A0DB_T       Tumor TCGA-A7-A0DB_T</span></span></code></pre></div>
-</div>
 </div>
 <div class="section level2">
 <h2 id="differential-analysis">Differential analysis<a class="anchor" aria-label="anchor" href="#differential-analysis"></a>
@@ -396,7 +402,7 @@ Wilcoxon test on the per-gene diversity summaries. Adjust the
 <code>control</code> and <code>test</code> parameters in
 <code><a href="../reference/calculate_difference.html">calculate_difference()</a></code> to suit your experimental
 design.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># create a sample grouping vector inferred from sample names</span></span>
 <span><span class="co"># account for per-q column names like 'Sample_q=0.01'</span></span>
 <span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span></span>
@@ -441,14 +447,14 @@ sizes across expression levels.</li>
 significance, useful for highlighting candidates by thresholding
 magnitude and adjusted p-value.</li>
 </ul>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># MA plot using helper</span></span>
 <span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma.html">plot_ma</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: Removed 4 rows containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`geom_point()`).</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/ma-and-volcano-1.png" class="r-plt" alt="" width="768"></p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Volcano plot: mean difference vs -log10(adjusted p-value)</span></span>
 <span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span></code></pre></div>
@@ -463,7 +469,7 @@ counts (rows = transcripts) with rownames matching the
 <code>tx2gene</code> mapping. We plot the top three genes by
 significance to inspect isoform-level patterns that may explain the
 diversity differences.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sig_res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span> <span class="op">&lt;</span> <span class="fl">0.05</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
 <span><span class="va">top_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sig_res</span><span class="op">$</span><span class="va">genes</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">sample_base_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span></span>
@@ -488,7 +494,7 @@ isoform patterns that may drive diversity differences.</p>
 </h2>
 <p>Compute normalized Tsallis entropy for two <code>q</code> values (0.1
 and 2) to compare scale-dependent behavior.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 1 (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>,</span>
@@ -514,16 +520,16 @@ example, significance at <code>q = 0.1</code> but not at
 <p>Map optional sample metadata into the multi-q
 <code>SummarizedExperiment</code> so plotting helpers have access to
 <code>sample_type</code> for grouping.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
 <p>Create <strong>violin and density plots</strong> summarizing
 diversity across multiple <code>q</code> values to show distributional
 differences between groups.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_violin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_violin_multq.html">plot_tsallis_violin_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_violin</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plots-1.png" class="r-plt" alt="" width="960"></p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_density</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_density_multq.html">plot_tsallis_density_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_density</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plots-2.png" class="r-plt" alt="" width="960"></p>
@@ -533,7 +539,7 @@ differences between groups.</p>
 </h2>
 <p>Now we will compute normalized Tsallis entropy across a sequence of
 <code>q</code> values.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a sequence of values (normalized)</span></span>
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>,</span>
@@ -554,7 +560,7 @@ differences between groups.</p>
 <span><span class="co">#&gt; HNRNPR              0.4655343             0.4548022</span></span></code></pre></div>
 <p>Map the sample metadata into the multi-q
 <code>SummarizedExperiment</code> as before.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
 <p>With the q-sequence we can produces a q-curve per sample and gene.
 These curves show how diversity emphasis shifts from rare to dominant
@@ -566,10 +572,9 @@ rare isoforms; separation at high <code>q</code> signals differences in
 dominant isoforms.</p>
 <p>Plot the <strong>Tsallis q-curve</strong> (entropy vs q) to visualize
 how diversity changes with <code>q</code> across sample groups.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># q-curve: median ± IQR across q values by group (use mapped `ts_se`)</span></span>
-<span><span class="co"># ensure `ts_se` has been computed and `map_coldata_to_se()` applied above</span></span>
-<span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="fu">SummarizedExperiment</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">rowData</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">$</span><span class="va">genes</span>, q_values <span class="op">=</span> <span class="va">qvec</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># q-curve: median ± IQR across q v</span></span>
+<span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p3</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plot-q-curve-1.png" class="r-plt" alt="" width="960"></p>
 <p>Comparing entire q-curves between groups asks whether the
@@ -613,7 +618,7 @@ slope of the q-curve differs between sample groups. It can help identify
 genes whose response to the entropy scale parameter <code>q</code> is
 group-specific, indicating changes in isoform-dominance dynamics rather
 than only an overall shift in diversity.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># ensure the SummarizedExperiment contains sample names with group suffixes</span></span>
 <span><span class="co"># (the function infers group from sample name suffix _N -&gt; Normal)</span></span>
 <span><span class="va">lm_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
@@ -690,7 +695,7 @@ compact <code>q</code> grid and report the grid.</li>
 <div class="section level2">
 <h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-conda-linux-gnu</span></span>

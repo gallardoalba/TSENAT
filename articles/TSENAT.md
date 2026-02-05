@@ -97,6 +97,36 @@ suppressPackageStartupMessages({
 })
 ```
 
+### Sample naming and pairing requirements
+
+TSENAT requires a consistent, exact mapping between the assay column
+names and the values in `coldata$Sample`. The following rules and
+recommendations make mapping reliable and avoid surprises when running
+paired analyses.
+
+- Naming convention: for paired comparisons use a shared base identifier
+  and a role suffix, e.g. `SAMPLE_N` / `SAMPLE_T` or `SAMPLE_Normal` /
+  `SAMPLE_Tumor`. The helper `infer_sample_group()` recognizes common
+  underscore suffixes (like `_N` / `_T`) and common TCGA-style tokens.
+- Validation and metadata: to perform paired analyses call
+  `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
+  function will reorder columns to follow `coldata`, add `sample_type`
+  and `sample_base` to `colData(ts_se)`, and check that each
+  `sample_base` has entries for all groups, returning an informative
+  error if not.
+
+The following example from `coldata_df` illustrates a correct format:
+
+``` text
+Sample  Condition
+TCGA-A7-A0CH_N  Normal
+TCGA-A7-A0D9_N  Normal
+TCGA-A7-A0CH_T  Tumor
+TCGA-A7-A0D9_T  Tumor
+```
+
+### Load data and metadata
+
 Now we load the example dataset and associated metadata:
 
 ``` r
@@ -121,6 +151,11 @@ coldata_df <- read.table(coldata_tsv,
     sep = "\t",
     stringsAsFactors = FALSE
 )
+```
+
+The next step is to inspect the loaded data to ensure it looks correct.
+
+``` r
 
 # Check gene names
 head(genes)
@@ -215,34 +250,6 @@ head(assay(ts_se)[1:5, 1:5])
 Now we should map the sample metadata (if available) into the
 `SummarizedExperiment` so plotting functions can use `sample_type` for
 grouping.
-
-### Sample naming and pairing requirements
-
-TSENAT requires a consistent, exact mapping between the assay column
-names and the values in `coldata$Sample`. The following rules and
-recommendations make mapping reliable and avoid surprises when running
-paired analyses.
-
-- Naming convention: for paired comparisons use a shared base identifier
-  and a role suffix, e.g. `SAMPLE_N` / `SAMPLE_T` or `SAMPLE_Normal` /
-  `SAMPLE_Tumor`. The helper `infer_sample_group()` recognizes common
-  underscore suffixes (like `_N` / `_T`) and common TCGA-style tokens.
-- Validation and metadata: to perform paired analyses call
-  `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
-  function will reorder columns to follow `coldata`, add `sample_type`
-  and `sample_base` to `colData(ts_se)`, and check that each
-  `sample_base` has entries for all groups, returning an informative
-  error if not.
-
-The following example from `coldata_df` illustrates a correct format:
-
-``` text
-Sample  Condition
-TCGA-A7-A0CH_N  Normal
-TCGA-A7-A0D9_N  Normal
-TCGA-A7-A0CH_T  Tumor
-TCGA-A7-A0D9_T  Tumor
-```
 
 ``` r
 
@@ -527,9 +534,8 @@ changes with `q` across sample groups.
 
 ``` r
 
-# q-curve: median ± IQR across q values by group (use mapped `ts_se`)
-# ensure `ts_se` has been computed and `map_coldata_to_se()` applied above
-p3 <- plot_tsallis_q_curve(ts_se, SummarizedExperiment::rowData(ts_se)$genes, q_values = qvec)
+# q-curve: median ± IQR across q v
+p3 <- plot_tsallis_q_curve(ts_se)
 print(p3)
 ```
 
