@@ -433,6 +433,21 @@ Map the sample metadata into the multi-q `SummarizedExperiment` as before.
 ts_se <- map_coldata_to_se(ts_se, coldata_df)
 ```
 
+Once we have the q-sequence computed, we 
+can test for interactions between `q` and sample 
+groups using a linear model. This tests 
+whether the shape of the q-curve differs 
+between groups, which would indicate 
+scale-dependent diversity differences.
+
+
+```{r lm-interaction-before-qcurve, echo=FALSE}
+# Linear-model interaction test across q values: detect q x group interaction
+# Compute and show top hits (by adjusted p-value)
+lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", method = "linear", nthreads = 1)
+print(head(lm_res, 6))
+```
+
 With the q-sequence we can produces a q-curve per sample and gene. These curves
 show how diversity emphasis shifts from rare to dominant isoforms as `q` increases 
 and form the basis for interaction tests. The q-curve shows entropy as a function 
@@ -448,6 +463,7 @@ with `q` across sample groups.
 p_qcurve <- plot_tsallis_q_curve(ts_se)#print(p_top_lm)
 print(p_qcurve)
 ```
+
 
 
 ## Practical notes and recommendations

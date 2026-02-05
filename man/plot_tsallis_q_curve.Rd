@@ -7,8 +7,7 @@
 plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type",
-  y = c("S", "D")
+  sample_type_col = "sample_type"
 )
 }
 \arguments{

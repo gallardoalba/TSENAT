@@ -138,7 +138,8 @@ if (getRversion() >= "2.15.1") {
         }
         df <- cbind(df, Gene = genes_col)
 
-        long <- tidyr::pivot_longer(df,
+        long <- tidyr::pivot_longer(
+            df,
             -Gene,
             names_to = "sample_q",
             values_to = "tsallis"
@@ -362,10 +363,6 @@ plot_ma <- function(
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @param sample_type_col Column name in `colData(se)` containing sample
 #'   type labels (default: "sample_type").
-#' @param y Character; which statistic to plot on the y-axis. One of
-#'   `"S"` (Tsallis entropy, default) or `"D"` (Hill numbers). When
-#'   `"D"` is requested and a `hill` assay is not present, the function
-#'   will attempt to convert from un-normalized Tsallis `S_q` to `D_q`.
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
 #' @examples
@@ -379,23 +376,15 @@ plot_ma <- function(
 plot_tsallis_q_curve <- function(
     se,
     assay_name = "diversity",
-    sample_type_col = "sample_type",
-    y = c("S", "D")
+    sample_type_col = "sample_type"
 ) {
-    y <- match.arg(y)
         # SE-first API: require a SummarizedExperiment with per-column sample
         # type mapping in `colData(se)[, sample_type_col]` (or allow a single
         # group dataset where `sample_type` is omitted).
         if (inherits(se, "SummarizedExperiment")) {
         require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
-                # If user requests Hill numbers (D), prefer an existing 'hill' assay; otherwise use requested assay and convert if possible.
-                if (y == "D" && ("hill" %in% SummarizedExperiment::assayNames(se))) {
-                    long <- prepare_tsallis_long(se, assay_name = "hill", sample_type_col = sample_type_col)
-                    y_label <- "Hill number (D_q)"
-                } else {
-                    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
-                    y_label <- if (y == "S") "Tsallis entropy (S_q)" else "Hill number (D_q)"
-                }
+                long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+                y_label <- "Tsallis entropy (S_q)"
         if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
         # long$q may be a factor; convert to numeric for plotting
         long$qnum <- as.numeric(as.character(long$q))
@@ -403,65 +392,6 @@ plot_tsallis_q_curve <- function(
             median = median(tsallis, na.rm = TRUE),
             IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
         )
-        # If the user requested Hill numbers but the long-format contains Tsallis S_q,
-        # attempt conversion when safe (requires un-normalized S_q). Otherwise, advise the user to compute `what = 'D'`.
-        if (y == "D" && !("hill" %in% SummarizedExperiment::assayNames(se))) {
-            meta <- SummarizedExperiment::metadata(se)
-            norm_flag <- if (!is.null(meta$norm)) meta$norm else FALSE
-            if (isTRUE(norm_flag)) {
-                stop("Cannot convert normalized Tsallis S_q to Hill numbers. Recompute with calculate_diversity(..., what = 'D', norm = FALSE) or supply a SummarizedExperiment containing a 'hill' assay.")
-            }
-            # perform element-wise conversion: sum_pq = 1 - (q - 1) * S_q ; D_q = sum_pq^(1/(1 - q)) ; handle q==1 by D = exp(-S)
-            stats_df$D_median <- NA_real_
-            stats_df$D_low <- NA_real_
-            stats_df$D_high <- NA_real_
-            for (i in seq_len(nrow(stats_df))) {
-                qv <- stats_df$qnum[i]
-                Sq <- stats_df$median[i]
-                IQRv <- stats_df$IQR[i]
-                if (is.na(qv) || is.na(Sq)) next
-                if (abs(qv - 1) < .Machine$double.eps^0.5) {
-                    # q ~ 1 : Shannon entropy H = -sum p log p ; D = exp(H) ; here S approximates H
-                    stats_df$D_median[i] <- exp(-Sq)
-                    stats_df$D_low[i] <- exp(-(Sq + IQRv / 2))
-                    stats_df$D_high[i] <- exp(-(Sq - IQRv / 2))
-                } else {
-                    sum_pq <- 1 - (qv - 1) * Sq
-                    if (sum_pq <= 0) {
-                        stats_df$D_median[i] <- NA_real_
-                        stats_df$D_low[i] <- NA_real_
-                        stats_df$D_high[i] <- NA_real_
-                    } else {
-                        stats_df$D_median[i] <- sum_pq^(1 / (1 - qv))
-                        # approximate extremes using median +/- IQR/2 on S
-                        sum_pq_low <- 1 - (qv - 1) * (Sq + IQRv / 2)
-                        sum_pq_high <- 1 - (qv - 1) * (Sq - IQRv / 2)
-                        stats_df$D_low[i] <- ifelse(sum_pq_low > 0, sum_pq_low^(1 / (1 - qv)), NA_real_)
-                        stats_df$D_high[i] <- ifelse(sum_pq_high > 0, sum_pq_high^(1 / (1 - qv)), NA_real_)
-                    }
-                }
-            }
-            # use D_median and ribbon from D_low/D_high
-            p <- ggplot2::ggplot(
-                stats_df,
-                ggplot2::aes(x = qnum, y = D_median, color = group, fill = group)
-            ) +
-                ggplot2::geom_line(linewidth = 1) +
-                ggplot2::geom_ribbon(
-                    ggplot2::aes(ymin = D_low, ymax = D_high),
-                    alpha = 0.2,
-                    color = NA
-                ) +
-                ggplot2::theme_minimal() +
-                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
-                ggplot2::labs(
-                    title = "Median +- IQR of Tsallis entropy by group",
-                    x = "q value",
-                    y = y_label,
-                    color = "Group",
-                    fill = "Group"
-                )
-        } else {
             p <- ggplot2::ggplot(
                 stats_df,
                 ggplot2::aes(x = qnum, y = median, color = group, fill = group)
@@ -481,7 +411,6 @@ plot_tsallis_q_curve <- function(
                     color = "Group",
                     fill = "Group"
                 )
-        }
         # use default discrete ggplot2 colours (not viridis)
         p <- p + ggplot2::scale_color_discrete(name = "Group") +
             ggplot2::scale_fill_discrete(name = "Group")
