@@ -2,44 +2,29 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_tsallis_q_curve}
 \alias{plot_tsallis_q_curve}
-\title{Plot median +- IQR of Tsallis entropy across q values by group   This
-reproduces the `tsallis-q-curve-mean-sd` plot from the vignette:  for each q
-value, compute per-gene Tsallis entropy per sample, then  summarize across
-genes by group (median and IQR) and plot median with a  ribbon spanning
-median +- IQR/2.}
+\title{Plot median +- IQR of Tsallis entropy across q values by group}
 \usage{
 plot_tsallis_q_curve(
-  readcounts,
-  genes,
-  q_values = seq(0.01, 2, by = 0.01),
-  group_pattern = "_N$",
-  group_names = c("Normal", "Tumor")
+  se,
+  assay_name = "diversity",
+  sample_type_col = "sample_type"
 )
 }
 \arguments{
-\item{readcounts}{Numeric matrix or data.frame with transcripts as rows and
-samples as columns.}
+\item{se}{A `SummarizedExperiment` returned by `calculate_diversity`.}
 
-\item{genes}{Character vector assigning a gene id to each row of
-`readcounts`.}
+\item{assay_name}{Name of the assay to use (default: "diversity").}
 
-\item{q_values}{Numeric vector of q values to evaluate (default
-`seq(0.01,2,by=0.01)`).}
-
-\item{group_pattern}{Regular expression to detect group suffixes (default
-"_N$").}
-
-\item{group_names}{Character vector length 2 with group names (default
-c("Normal","Tumor")).}
+\item{sample_type_col}{Column name in `colData(se)` containing sample
+type labels (default: "sample_type").}
 }
 \value{
 A `ggplot` object showing median +- IQR across q values by group.
 }
 \description{
-Plot median +- IQR of Tsallis entropy across q values by group   This
-reproduces the `tsallis-q-curve-mean-sd` plot from the vignette:  for each q
-value, compute per-gene Tsallis entropy per sample, then  summarize across
-genes by group (median and IQR) and plot median with a  ribbon spanning
+This reproduces the `tsallis-q-curve-mean-sd` plot from the vignette: for
+each q value, compute per-gene Tsallis entropy per sample, summarize across
+genes by group (median and IQR) and plot median with a ribbon spanning
 median +- IQR/2.
 }
 \examples{
