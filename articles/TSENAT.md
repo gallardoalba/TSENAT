@@ -553,7 +553,7 @@ differences in dominant isoforms.
 Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity
 changes with `q` across sample groups.
 
-\#`{r tsallis-top-lm-genes, fig.width=12, fig.height=6, echo=FALSE} # Plot top linear-model genes using the exported helper #p_top_lm <- plot_tsallis_top_lm_genes(ts_se, lm_res = lm_res, top_n = 6, assay_name = "diversity", sample_type_col = "sample_type") #print(p_top_lm) #`
+![](TSENAT_files/figure-html/tsallis-q-curve-1.png)
 
 ## Practical notes and recommendations
 
