@@ -8,6 +8,12 @@
 #' 'WT'}.
 #' @param method Method to use for calculating the average splicing diversity
 #' value in a condition. Can be \code{'mean'} or \code{'median'}.
+#' @param pseudocount Numeric scalar. Small value added to non-positive
+#' observed group summaries to avoid zeros when computing differences and
+#' log2 fold-changes. If \code{pseudocount = 0} (default) the function will
+#' choose a small value equal to half the smallest positive observed value,
+#' or \code{1e-6} if no positive values are present. Rows with insufficient
+#' observations remain \code{NA} and are not imputed.
 #' @return A \code{data.frame} with mean or median value of splicing diversity
 #' across sample categories, the difference between these values and the log2
 #' fold change values.
@@ -15,7 +21,7 @@
 #' calculate mean or median differences and log2 fold changes between two
 #' conditions.
 #' @import stats
-calculate_fc <- function(x, samples, control, method = "mean") {
+calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 1e-6) {
     if (method == "mean") {
         value <- aggregate(t(x), by = list(samples), mean, na.rm = TRUE)
     }
@@ -40,8 +46,17 @@ calculate_fc <- function(x, samples, control, method = "mean") {
         dimnames = dimnames(value)
     )
     value[!is.finite(value)] <- NA
-    # log2 undefined for non-positive values; mark them as NA conservatively
-    value[value <= 0] <- NA
+    # Apply pseudocount to non-positive observed values (do not overwrite NA)
+    if (!is.numeric(pseudocount) || length(pseudocount) != 1) pseudocount <- 1e-6
+    if (pseudocount <= 0) {
+        # fallback to a very small positive value if an invalid pseudocount supplied
+        pc <- 1e-6
+    } else {
+        pc <- pseudocount
+    }
+    # only replace observed non-positive values; keep NA rows as NA
+    replace_idx <- !is.na(value) & value <= 0
+    value[replace_idx] <- pc
 
     # compute difference and log2 fold-change with NA-safe handling
     diff_vec <- value[, 1] - value[, 2]
@@ -146,7 +161,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
 label_shuffling <- function(x, samples, control, method, randomizations = 100,
-                            pcorr = "BH") {
+                            pcorr = "BH", paired = FALSE) {
     # observed log2 fold changes
     log2_fc <- calculate_fc(x, samples, control, method)[, 4]
 

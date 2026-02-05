@@ -173,6 +173,139 @@ if (getRversion() >= "2.15.1") {
     }
 }
 
+#' Plot q-curves for top linear-model genes
+#'
+#' Select the top genes from an lm interaction result (`lm_res`) by adjusted
+#' p-value (robust to common column names). Compute median ± IQR across
+#' samples per gene and plot the q-curve for each selected gene. Returns a
+#' `ggplot` object.
+#'
+#' @param se A `SummarizedExperiment` produced by `calculate_diversity()`.
+#' @param lm_res Optional data.frame with linear-model results. If provided,
+#'   the function will try to find a p-value column and select top genes by
+#'   smallest adjusted p-value.
+#' @param top_n Number of top genes to plot when `lm_res` is used (default: 6).
+#' @param assay_name Assay name in `se` to use if `hill` is not available
+#'   (default: "diversity").
+#' @param sample_type_col Column name in `colData(se)` containing group labels
+#'   (default: "sample_type").
+#' @return A `ggplot` object plotting median ± IQR q-curves for selected genes.
+#' @export
+plot_tsallis_top_lm_genes <- function(
+    se,
+    lm_res = NULL,
+    lm_res2 = NULL,
+    top_n = 6,
+    assay_name = "diversity",
+    sample_type_col = "sample_type"
+) {
+    if (!inherits(se, "SummarizedExperiment")) stop("`se` must be a SummarizedExperiment")
+
+    # If a second lm_res is provided, create two individual plots and
+    # arrange them side-by-side as a combined ('bitter') plot.
+    if (!is.null(lm_res2)) {
+        p1 <- plot_tsallis_top_lm_genes(se = se, lm_res = lm_res, lm_res2 = NULL, top_n = top_n, assay_name = assay_name, sample_type_col = sample_type_col)
+        p2 <- plot_tsallis_top_lm_genes(se = se, lm_res = lm_res2, lm_res2 = NULL, top_n = top_n, assay_name = assay_name, sample_type_col = sample_type_col)
+
+        # Try patchwork, then cowplot, then fallback to grid.arrange
+        if (requireNamespace("patchwork", quietly = TRUE)) {
+            combined <- p1 + p2 + patchwork::plot_layout(ncol = 2, guides = "collect") & ggplot2::theme(legend.position = "bottom")
+            combined <- combined + patchwork::plot_annotation(title = "Tsallis q-curves (paired)", theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)))
+            return(combined)
+        } else if (requireNamespace("cowplot", quietly = TRUE)) {
+            # remove legends from individual plots and extract one legend
+            p_for_legend <- p1 + ggplot2::theme(legend.position = "bottom")
+            legend <- cowplot::get_legend(p_for_legend)
+            p1_noleg <- p1 + ggplot2::theme(legend.position = "none")
+            p2_noleg <- p2 + ggplot2::theme(legend.position = "none")
+            grid <- cowplot::plot_grid(p1_noleg, p2_noleg, ncol = 2, align = "hv")
+            title_grob <- cowplot::ggdraw() + cowplot::draw_label("Tsallis q-curves (paired)", fontface = 'bold', x = 0.5, hjust = 0.5)
+            combined <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.06, 1, 0.08))
+            return(combined)
+        } else if (requireNamespace("gridExtra", quietly = TRUE)) {
+            gridExtra::grid.arrange(p1, p2, ncol = 2, top = "Tsallis q-curves (paired)")
+            return(invisible(NULL))
+        } else {
+            stop("Please install 'patchwork' or 'cowplot' (or 'gridExtra') to arrange paired plots.")
+        }
+    }
+
+    # Use the expected 'gene' column; if not present and lm_res provided,
+    # fall back to rownames when available.
+    gene_col <- "gene"
+    if (!is.null(lm_res) && !("gene" %in% colnames(lm_res)) && !is.null(rownames(lm_res))) {
+        gene_col <- "rownames"
+    }
+
+    # Determine top genes
+    top_genes <- character(0)
+    padj_map <- character(0)
+    if (!is.null(lm_res)) {
+        padj_col <- if ("adj_p_interaction" %in% colnames(lm_res)) "adj_p_interaction" else NULL
+        if (!is.null(padj_col)) {
+            # robust extraction of gene names vector
+            if (!is.null(gene_col) && gene_col != "rownames") {
+                genes_vec <- as.character(lm_res[[gene_col]])
+            } else {
+                genes_vec <- rownames(lm_res)
+            }
+            ord <- order(as.numeric(lm_res[[padj_col]]), na.last = TRUE)
+            sel <- head(genes_vec[ord], top_n)
+            top_genes <- unique(as.character(sel))
+            padj_vals <- as.numeric(lm_res[[padj_col]][match(top_genes, genes_vec)])
+            padj_map <- setNames(formatC(padj_vals, format = "e", digits = 2), top_genes)
+        }
+    }
+
+    # If lm_res selection failed or not provided, fallback to first genes
+    long_all <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+    all_genes <- unique(as.character(long_all$Gene))
+    if (length(top_genes) == 0) {
+        # fallback to first genes in data
+        top_genes <- head(all_genes, top_n)
+        padj_map <- setNames(rep(NA, length(top_genes)), top_genes)
+    } else {
+        # ensure selected genes exist in the data; try case-insensitive matching
+        present <- intersect(top_genes, all_genes)
+        if (length(present) < length(top_genes)) {
+            gi <- tolower(all_genes)
+            matched <- sapply(tolower(top_genes), function(x) {
+                idx <- which(gi == x)
+                if (length(idx)) all_genes[idx[1]] else NA_character_
+            })
+            present <- unique(na.omit(matched))
+        }
+        if (length(present) == 0) {
+            present <- head(all_genes, top_n)
+            padj_map <- setNames(rep(NA, length(present)), present)
+        } else {
+            # keep order from provided top_genes
+            present <- intersect(top_genes, all_genes)
+        }
+        top_genes <- present
+        padj_map <- padj_map[names(padj_map) %in% top_genes]
+    }
+
+    # Prepare stats for plotting
+    long_sel <- subset(long_all, Gene %in% top_genes)
+    long_sel$qnum <- as.numeric(as.character(long_sel$q))
+    stats_df <- dplyr::group_by(long_sel, Gene, qnum) %>%
+        dplyr::summarise(median = stats::median(tsallis, na.rm = TRUE), IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop")
+
+    # label (include padj where available)
+    stats_df$GeneLabel <- paste0(stats_df$Gene, " (padj=", padj_map[as.character(stats_df$Gene)], ")")
+
+    p <- ggplot2::ggplot(stats_df, ggplot2::aes(x = qnum, y = median, color = GeneLabel, fill = GeneLabel)) +
+        ggplot2::geom_line(linewidth = 1) +
+        ggplot2::geom_ribbon(ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2), alpha = 0.2, color = NA) +
+        ggplot2::theme_minimal() +
+        ggplot2::labs(title = "Tsallis q-curves for selected genes (top LM or preferred)", x = "q value", y = "Tsallis entropy", color = "Gene (padj)", fill = "Gene (padj)") +
+        ggplot2::scale_color_discrete() +
+        ggplot2::scale_fill_discrete()
+
+    return(p)
+}
+
 #' Plot diversity distributions (density) by sample type
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
 #' @param assay_name Name of the assay to use (default: "diversity").
@@ -309,6 +442,14 @@ plot_ma <- function(
         1,
         function(x) mean(as.numeric(x), na.rm = TRUE)
     )
+    # Determine metric label (mean vs median) based on selected columns
+    metric_label <- if (all(grepl("_mean$", mean_cols))) {
+        "Mean"
+    } else if (all(grepl("_median$", mean_cols))) {
+        "Median"
+    } else {
+        "Value"
+    }
     df$padj <- if (padj_col %in% colnames(df)) df[[padj_col]] else NA
     df$fold <- if (fold_col %in% colnames(df)) df[[fold_col]] else NA
     df$significant <- ifelse(
@@ -316,6 +457,12 @@ plot_ma <- function(
         "significant",
         "non-significant"
     )
+
+    # Convert fold-change to log10 if input is log2-based (common output
+    # from calculate_difference/calculate_fc)
+    if (any(!is.na(df$fold)) && grepl("log2", fold_col, ignore.case = TRUE)) {
+        df$fold <- df$fold / log2(10)
+    }
 
     p <- ggplot2::ggplot(
         df,
@@ -331,7 +478,8 @@ plot_ma <- function(
             "significant" = "red"
         )) +
         ggplot2::theme_minimal() +
-        ggplot2::labs(x = "Mean diversity", y = "Log2 fold change")
+        ggplot2::labs(x = paste0(metric_label, " diversity"),
+            y = "Log10 fold change")
 
     return(p)
 }
@@ -360,14 +508,23 @@ plot_ma <- function(
 plot_tsallis_q_curve <- function(
     se,
     assay_name = "diversity",
-    sample_type_col = "sample_type"
+    sample_type_col = "sample_type",
+    y = c("S", "D")
 ) {
+    y <- match.arg(y)
         # SE-first API: require a SummarizedExperiment with per-column sample
         # type mapping in `colData(se)[, sample_type_col]` (or allow a single
         # group dataset where `sample_type` is omitted).
         if (inherits(se, "SummarizedExperiment")) {
         require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
-                long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+                # If user requests Hill numbers (D), prefer an existing 'hill' assay; otherwise use requested assay and convert if possible.
+                if (y == "D" && ("hill" %in% SummarizedExperiment::assayNames(se))) {
+                    long <- prepare_tsallis_long(se, assay_name = "hill", sample_type_col = sample_type_col)
+                    y_label <- "Hill number (D_q)"
+                } else {
+                    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+                    y_label <- if (y == "S") "Tsallis entropy (S_q)" else "Hill number (D_q)"
+                }
         if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
         # long$q may be a factor; convert to numeric for plotting
         long$qnum <- as.numeric(as.character(long$q))
@@ -375,25 +532,88 @@ plot_tsallis_q_curve <- function(
             median = median(tsallis, na.rm = TRUE),
             IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
         )
-        p <- ggplot2::ggplot(
-            stats_df,
-            ggplot2::aes(x = qnum, y = median, color = group, fill = group)
-        ) +
-            ggplot2::geom_line(linewidth = 1) +
-            ggplot2::geom_ribbon(
-                ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
-                alpha = 0.2,
-                color = NA
+        # If the user requested Hill numbers but the long-format contains Tsallis S_q,
+        # attempt conversion when safe (requires un-normalized S_q). Otherwise, advise the user to compute `what = 'D'`.
+        if (y == "D" && !("hill" %in% SummarizedExperiment::assayNames(se))) {
+            meta <- SummarizedExperiment::metadata(se)
+            norm_flag <- if (!is.null(meta$norm)) meta$norm else FALSE
+            if (isTRUE(norm_flag)) {
+                stop("Cannot convert normalized Tsallis S_q to Hill numbers. Recompute with calculate_diversity(..., what = 'D', norm = FALSE) or supply a SummarizedExperiment containing a 'hill' assay.")
+            }
+            # perform element-wise conversion: sum_pq = 1 - (q - 1) * S_q ; D_q = sum_pq^(1/(1 - q)) ; handle q==1 by D = exp(-S)
+            stats_df$D_median <- NA_real_
+            stats_df$D_low <- NA_real_
+            stats_df$D_high <- NA_real_
+            for (i in seq_len(nrow(stats_df))) {
+                qv <- stats_df$qnum[i]
+                Sq <- stats_df$median[i]
+                IQRv <- stats_df$IQR[i]
+                if (is.na(qv) || is.na(Sq)) next
+                if (abs(qv - 1) < .Machine$double.eps^0.5) {
+                    # q ~ 1 : Shannon entropy H = -sum p log p ; D = exp(H) ; here S approximates H
+                    stats_df$D_median[i] <- exp(-Sq)
+                    stats_df$D_low[i] <- exp(-(Sq + IQRv / 2))
+                    stats_df$D_high[i] <- exp(-(Sq - IQRv / 2))
+                } else {
+                    sum_pq <- 1 - (qv - 1) * Sq
+                    if (sum_pq <= 0) {
+                        stats_df$D_median[i] <- NA_real_
+                        stats_df$D_low[i] <- NA_real_
+                        stats_df$D_high[i] <- NA_real_
+                    } else {
+                        stats_df$D_median[i] <- sum_pq^(1 / (1 - qv))
+                        # approximate extremes using median +/- IQR/2 on S
+                        sum_pq_low <- 1 - (qv - 1) * (Sq + IQRv / 2)
+                        sum_pq_high <- 1 - (qv - 1) * (Sq - IQRv / 2)
+                        stats_df$D_low[i] <- ifelse(sum_pq_low > 0, sum_pq_low^(1 / (1 - qv)), NA_real_)
+                        stats_df$D_high[i] <- ifelse(sum_pq_high > 0, sum_pq_high^(1 / (1 - qv)), NA_real_)
+                    }
+                }
+            }
+            # use D_median and ribbon from D_low/D_high
+            p <- ggplot2::ggplot(
+                stats_df,
+                ggplot2::aes(x = qnum, y = D_median, color = group, fill = group)
             ) +
-            ggplot2::theme_minimal() +
-            ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
-            ggplot2::labs(
-                title = "Median +- IQR of Tsallis entropy by group",
-                x = "q value",
-                y = "Tsallis entropy",
-                color = "Group",
-                fill = "Group"
-            )
+                ggplot2::geom_line(linewidth = 1) +
+                ggplot2::geom_ribbon(
+                    ggplot2::aes(ymin = D_low, ymax = D_high),
+                    alpha = 0.2,
+                    color = NA
+                ) +
+                ggplot2::theme_minimal() +
+                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
+                ggplot2::labs(
+                    title = "Median +- IQR of Tsallis entropy by group",
+                    x = "q value",
+                    y = y_label,
+                    color = "Group",
+                    fill = "Group"
+                )
+        } else {
+            p <- ggplot2::ggplot(
+                stats_df,
+                ggplot2::aes(x = qnum, y = median, color = group, fill = group)
+            ) +
+                ggplot2::geom_line(linewidth = 1) +
+                ggplot2::geom_ribbon(
+                    ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
+                    alpha = 0.2,
+                    color = NA
+                ) +
+                ggplot2::theme_minimal() +
+                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
+                ggplot2::labs(
+                    title = "Median +- IQR of Tsallis entropy by group",
+                    x = "q value",
+                    y = y_label,
+                    color = "Group",
+                    fill = "Group"
+                )
+        }
+        # use default discrete ggplot2 colours (not viridis)
+        p <- p + ggplot2::scale_color_discrete(name = "Group") +
+            ggplot2::scale_fill_discrete(name = "Group")
         # If there is only a single group present, hide the legend/Group label
         if (length(unique(stats_df$group)) == 1) {
             p <- p + ggplot2::theme(legend.position = "none")
@@ -449,6 +669,9 @@ plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
             fill = "Group"
         )
 
+    # use default discrete ggplot2 colours (not viridis)
+    p <- p + ggplot2::scale_fill_discrete(name = "Group")
+
     return(p)
 }
 #' Density plot of Tsallis entropy for multiple q values
@@ -485,6 +708,10 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
             color = "Group",
             fill = "Group"
         )
+
+    # use default discrete ggplot2 colours (not viridis)
+    p <- p + ggplot2::scale_color_discrete(name = "Group") +
+        ggplot2::scale_fill_discrete(name = "Group")
 
     return(p)
 }
@@ -543,6 +770,14 @@ plot_volcano <- function(
 
     df$padj_num <- as.numeric(df[[padj_col]])
     df$xval <- as.numeric(df[[x_col]])
+    # Determine metric label for title/x-axis based on selected x_col
+    metric_label_x <- if (grepl("median", x_col, ignore.case = TRUE)) {
+        "Median"
+    } else if (grepl("mean", x_col, ignore.case = TRUE)) {
+        "Mean"
+    } else {
+        "Value"
+    }
 
     # sanitize padj: NA -> 1, zeros -> tiny positive to avoid -Inf on log scale
     padj_clean <- df$padj_num
@@ -588,8 +823,9 @@ plot_volcano <- function(
         ) +
         ggplot2::theme_minimal() +
         ggplot2::labs(
-            title = "Volcano: mean difference vs adjusted p-value",
-            x = x_col,
+            title = sprintf("Volcano: %s difference vs adjusted p-value",
+                metric_label_x),
+            x = gsub("_", " ", tools::toTitleCase(x_col)),
             y = sprintf("-Log10(%s)", padj_col)
         )
 
@@ -643,6 +879,9 @@ plot_volcano <- function(
 #' (default = 1e-6) to avoid division by zero.
 #' @param output_file Optional file path to save the plot.
 #' If `NULL`, the `ggplot` object is returned.
+#' @param metric Aggregation metric used to summarize transcript expression
+#'   per group when plotting. One of c("median", "mean", "variance").
+#'   Defaults to "median" to preserve previous behavior.
 #' @return A `ggplot` object (or invisibly saved file if `output_file`
 #' provided).
 #' @importFrom utils read.delim
@@ -682,13 +921,14 @@ if (getRversion() >= "2.15.1") {
     ))
 }
 plot_top_transcripts <- function(
-  counts,
-  gene,
-  samples,
-  tx2gene = NULL,
-  top_n = 3,
-  pseudocount = 1e-6,
-  output_file = NULL
+    counts,
+    gene,
+    samples,
+    tx2gene = NULL,
+    top_n = 3,
+    pseudocount = 1e-6,
+    output_file = NULL,
+    metric = c("median", "mean", "variance")
 ) {
     if (!is.matrix(counts) && !is.data.frame(counts)) {
         stop(
@@ -739,6 +979,24 @@ plot_top_transcripts <- function(
         )
     }
 
+    # normalize and validate aggregation argument; define aggregation function
+    metric_choice <- match.arg(metric)
+    agg_fun <- switch(metric_choice,
+                      median = function(x) stats::median(x, na.rm = TRUE),
+                      mean = function(x) base::mean(x, na.rm = TRUE),
+                      variance = function(x) stats::var(x, na.rm = TRUE)
+    )
+    # Title label: use exact phrasing requested by user. Note: use
+    # user's preferred spelling 'varience' for variance.
+    agg_label <- switch(metric_choice,
+                        median = "Metric: median",
+                        mean = "Metric: mean",
+                        variance = "Metric: varience")
+    # increment call counter (kept for internal tracking) but do not show it in title
+    .cnt <- as.integer(getOption("TSENAT.plot_top_counter", 0)) + 1L
+    options(TSENAT.plot_top_counter = .cnt)
+    agg_label_unique <- agg_label
+
     make_plot_for_gene <- function(gene_single, fill_limits = NULL) {
         txs <- mapping$Transcript[mapping$Gen == gene_single]
         txs <- intersect(txs, rownames(counts))
@@ -755,10 +1013,10 @@ plot_top_transcripts <- function(
         )
         df_long$group <- rep(samples, times = length(txs))
 
-        # summarize median per transcript x group and produce compact heatmap
+        # summarize per transcript x group using selected agg function
         df_summary <- aggregate(expr ~ tx + group,
             data = df_long,
-            FUN = function(x) stats::median(x, na.rm = TRUE)
+            FUN = agg_fun
         )
         df_summary$log2expr <- log2(df_summary$expr + pseudocount)
         df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
@@ -781,7 +1039,7 @@ plot_top_transcripts <- function(
             ) +
             ggplot2::theme_minimal(base_size = 10) +
             ggplot2::labs(
-                title = paste0(gene_single),
+                title = agg_label_unique,
                 x = NULL,
                 y = NULL,
                 fill = "log2(expr)"
@@ -791,7 +1049,7 @@ plot_top_transcripts <- function(
                 axis.text.x = ggplot2::element_text(size = 8),
                 axis.ticks = ggplot2::element_blank(),
                 panel.grid = ggplot2::element_blank(),
-                plot.title = ggplot2::element_text(size = 10, hjust = 0.5),
+                plot.title = ggplot2::element_text(size = 10, hjust = 0.53),
                 legend.position = "bottom",
                 legend.key.width = ggplot2::unit(1.2, "cm"),
                 plot.margin = ggplot2::margin(4, 4, 4, 4)
@@ -829,11 +1087,7 @@ plot_top_transcripts <- function(
             df_long$group <- rep(samples, times = length(txs))
             df_summary <- aggregate(expr ~ tx + group,
                 data = df_long,
-                FUN = function(x) {
-                    stats::median(x,
-                        na.rm = TRUE
-                    )
-                }
+                FUN = agg_fun
             )
             df_summary$log2expr <- log2(df_summary$expr + pseudocount)
             mins <- c(mins, min(df_summary$log2expr, na.rm = TRUE))
@@ -842,19 +1096,26 @@ plot_top_transcripts <- function(
         if (length(mins) == 0) stop("No transcripts found for provided genes")
         fill_limits <- c(min(mins, na.rm = TRUE), max(maxs, na.rm = TRUE))
 
-        plots <- lapply(
-            gene,
-            function(g) {
-                make_plot_for_gene(g,
-                    fill_limits = fill_limits
-                )
-            }
-        )
+        plots <- lapply(seq_along(gene), function(i) {
+            gname <- gene[i]
+            pp <- make_plot_for_gene(gname,
+                fill_limits = fill_limits
+            )
+            # set per-gene title while keeping a combined title below
+            pp <- pp + ggplot2::labs(title = gname) +
+                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 12))
+            pp
+        })
+
         # try patchwork first (collect guides), otherwise cowplot with shared legend
         if (requireNamespace("patchwork", quietly = TRUE)) {
             combined <- Reduce(`+`, plots) +
                 patchwork::plot_layout(nrow = 1, guides = "collect") &
                 ggplot2::theme(legend.position = "bottom")
+            # add a single centered title
+            combined <- combined + patchwork::plot_annotation(title = agg_label_unique,
+                theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.53, size = 16))
+            )
             result_plot <- combined
         } else if (requireNamespace("cowplot", quietly = TRUE)) {
             # extract legend from first plot
@@ -869,17 +1130,11 @@ plot_top_transcripts <- function(
                 nrow = 1,
                 align = "hv"
             )
-            result_plot <- cowplot::plot_grid(grid,
-                legend,
-                ncol = 1,
-                rel_heights = c(
-                    1,
-                    0.08
-                )
-            )
+            # title as a separate grob on top
+            title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = 'bold', x = 0.53, hjust = 0.5, size = 14)
+            result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08, 1, 0.08))
         } else {
             # fallback: arrange grobs horizontally using base grid (no extra packages)
-            # remove legends from individual plots and extract a single legend grob
             plots_nolegend <- lapply(
                 plots,
                 function(pp) pp + ggplot2::theme(legend.position = "none")
@@ -898,37 +1153,42 @@ plot_top_transcripts <- function(
                 legend_grob <- NULL
             }
             n <- length(grobs)
-            # layout: plots in row 1, legend spanning row 2
+            # layout: title row, plots row, legend row
             if (!is.null(output_file)) {
-                png(filename = output_file, width = 800 * n, height = 420, res = 150)
+                png(filename = output_file, width = 800 * n, height = 480, res = 150)
                 grid::grid.newpage()
                 grid::pushViewport(
                     grid::viewport(
                         layout = grid::grid.layout(
-                            2, n,
+                            3, n,
                             heights = grid::unit.c(
+                                grid::unit(0.6, "cm"),
                                 grid::unit(1, "null"),
                                 grid::unit(0.7, "cm")
                             )
                         )
                     )
                 )
+                # draw title centered across columns
+                vp_title <- grid::viewport(layout.pos.row = 1, layout.pos.col = seq_len(n))
+                grid::pushViewport(vp_title)
+                grid::grid.text(agg_label_unique, x = 0.53, gp = grid::gpar(fontface = "bold", fontsize = 14))
+                grid::upViewport()
                 for (i in seq_along(grobs)) {
-                    vp <- grid::viewport(layout.pos.row = 1, layout.pos.col = i)
+                    vp <- grid::viewport(layout.pos.row = 2, layout.pos.col = i)
                     grid::pushViewport(vp)
                     grid::grid.draw(grobs[[i]])
                     grid::upViewport()
                 }
                 if (!is.null(legend_grob)) {
                     vp_leg <- grid::viewport(
-                        layout.pos.row = 2,
+                        layout.pos.row = 3,
                         layout.pos.col = seq_len(n)
                     )
                     grid::pushViewport(vp_leg)
                     grid::grid.draw(legend_grob)
                     grid::upViewport()
                 }
-                # pop the layout viewport we pushed above
                 grid::upViewport()
                 dev.off()
                 return(invisible(NULL))
@@ -937,30 +1197,34 @@ plot_top_transcripts <- function(
                 grid::pushViewport(
                     grid::viewport(
                         layout = grid::grid.layout(
-                            2, n,
+                            3, n,
                             heights = grid::unit.c(
+                                grid::unit(0.6, "cm"),
                                 grid::unit(1, "null"),
                                 grid::unit(0.7, "cm")
                             )
                         )
                     )
                 )
+                vp_title <- grid::viewport(layout.pos.row = 1, layout.pos.col = seq_len(n))
+                grid::pushViewport(vp_title)
+                grid::grid.text(agg_label_unique, x = 0.53, gp = grid::gpar(fontface = "bold", fontsize = 14))
+                grid::upViewport()
                 for (i in seq_along(grobs)) {
-                    vp <- grid::viewport(layout.pos.row = 1, layout.pos.col = i)
+                    vp <- grid::viewport(layout.pos.row = 2, layout.pos.col = i)
                     grid::pushViewport(vp)
                     grid::grid.draw(grobs[[i]])
                     grid::upViewport()
                 }
                 if (!is.null(legend_grob)) {
                     vp_leg <- grid::viewport(
-                        layout.pos.row = 2,
+                        layout.pos.row = 3,
                         layout.pos.col = seq_len(n)
                     )
                     grid::pushViewport(vp_leg)
                     grid::grid.draw(legend_grob)
                     grid::upViewport()
                 }
-                # pop the layout viewport we pushed above
                 grid::upViewport()
                 return(invisible(NULL))
             }

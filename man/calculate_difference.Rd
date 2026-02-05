@@ -14,7 +14,9 @@ calculate_difference(
   pcorr = "BH",
   assayno = 1,
   verbose = FALSE,
-  ...
+  paired = FALSE,
+  exact = FALSE,
+  pseudocount = 0
 )
 }
 \arguments{
@@ -52,7 +54,16 @@ to use for difference calculations.}
 \item{verbose}{If \code{TRUE}, the function will print additional diagnostic
 messages.}
 
-\item{...}{Further arguments to be passed on for other methods.}
+\item{paired}{Logical; if `TRUE`, run paired versions of tests when
+supported (default: `FALSE`).}
+
+\item{exact}{Logical; passed to the Wilcoxon test to request exact p-values
+when supported (default: `FALSE`).}
+
+\item{pseudocount}{Numeric scalar. Passed to \code{calculate_fc} and used to
+add a small value to non-positive group summaries before computing
+differences and log2 fold-changes. Default \code{1e-6}. Rows excluded for
+low sample counts remain \code{NA}.}
 }
 \value{
 A \code{data.frame} with the mean or median values of splicing

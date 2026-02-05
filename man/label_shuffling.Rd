@@ -10,7 +10,8 @@ label_shuffling(
   control,
   method,
   randomizations = 100,
-  pcorr = "BH"
+  pcorr = "BH",
+  paired = FALSE
 )
 }
 \arguments{

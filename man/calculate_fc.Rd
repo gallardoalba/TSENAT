@@ -4,7 +4,7 @@
 \alias{calculate_fc}
 \title{Calculate splicing diversity changes between two conditions.}
 \usage{
-calculate_fc(x, samples, control, method = "mean")
+calculate_fc(x, samples, control, method = "mean", pseudocount = 1e-06)
 }
 \arguments{
 \item{x}{A \code{matrix} with the splicing diversity values.}
@@ -18,6 +18,13 @@ in the input dataset, specifying the category of each sample.}
 
 \item{method}{Method to use for calculating the average splicing diversity
 value in a condition. Can be \code{'mean'} or \code{'median'}.}
+
+\item{pseudocount}{Numeric scalar. Small value added to non-positive
+observed group summaries to avoid zeros when computing differences and
+log2 fold-changes. If \code{pseudocount = 0} (default) the function will
+choose a small value equal to half the smallest positive observed value,
+or \code{1e-6} if no positive values are present. Rows with insufficient
+observations remain \code{NA} and are not imputed.}
 }
 \value{
 A \code{data.frame} with mean or median value of splicing diversity

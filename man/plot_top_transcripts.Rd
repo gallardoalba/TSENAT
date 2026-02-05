@@ -27,6 +27,10 @@ Use NULL to plot all transcripts for the gene.}
 
 \item{output_file}{Optional file path to save the plot.
 If `NULL`, the `ggplot` object is returned.}
+
+\item{metric}{Aggregation metric used to summarize transcript expression
+per group when plotting. One of c("median", "mean", "variance").
+Defaults to "median" to preserve previous behavior.}
 }
 \value{
 A `ggplot` object (or invisibly saved file if `output_file`

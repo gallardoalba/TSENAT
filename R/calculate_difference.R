@@ -24,7 +24,14 @@
 #' to use for difference calculations.
 #' @param verbose If \code{TRUE}, the function will print additional diagnostic
 #' messages.
-#' @param ... Further arguments to be passed on for other methods.
+#' @param pseudocount Numeric scalar. Passed to \code{calculate_fc} and used to
+#' add a small value to non-positive group summaries before computing
+#' differences and log2 fold-changes. Default \code{1e-6}. Rows excluded for
+#' low sample counts remain \code{NA}.
+#' @param paired Logical; if `TRUE`, run paired versions of tests when
+#'   supported (default: `FALSE`).
+#' @param exact Logical; passed to the Wilcoxon test to request exact p-values
+#'   when supported (default: `FALSE`).
 #' @return A \code{data.frame} with the mean or median values of splicing
 #' diversity across sample categories and all samples, log2(fold change) of  the
 #' two different conditions, raw and corrected p-values.
@@ -55,7 +62,7 @@
 calculate_difference <- function(x, samples, control, method = "mean",
                                     test = "wilcoxon", randomizations = 100,
                                     pcorr = "BH", assayno = 1, verbose = FALSE,
-                                    ...) {
+                                    paired = FALSE, exact = FALSE, pseudocount = 0) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(
@@ -222,7 +229,7 @@ calculate_difference <- function(x, samples, control, method = "mean",
         ymat <- sample_matrix(df_keep)
         # p-value calculation
         if (test == "wilcoxon") {
-            ptab <- wilcoxon(ymat, samples, ...)
+            ptab <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact)
             # wilcoxon should return a data.frame of p-values named appropriately
         } else {
             ptab <- label_shuffling(
@@ -230,7 +237,9 @@ calculate_difference <- function(x, samples, control, method = "mean",
                 samples,
                 control,
                 method,
-                randomizations
+                randomizations = randomizations,
+                pcorr = pcorr,
+                paired = paired
             )
         }
         result_list$tested <- data.frame(
@@ -242,7 +251,8 @@ calculate_difference <- function(x, samples, control, method = "mean",
                 ymat,
                 samples,
                 control,
-                method
+                method,
+                pseudocount = pseudocount
             ),
             ptab,
             stringsAsFactors = FALSE
@@ -260,7 +270,8 @@ calculate_difference <- function(x, samples, control, method = "mean",
                 small_mat,
                 samples,
                 control,
-                method
+                method,
+                pseudocount = pseudocount
             ),
             raw_p_values = NA,
             adjusted_p_values = NA,
@@ -571,7 +582,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
     }
     res <- do.call(rbind, all_results)
     res$adj_p_interaction <- stats::p.adjust(res$p_interaction, method = "BH")
-    res <- res[order(res$p_interaction), , drop = FALSE]
+    # Sort first by adjusted p-values, then by raw p-values for stable ordering
+    res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
     rownames(res) <- NULL
     return(res)
 }

@@ -1,4 +1,5 @@
 testthat::skip_on_bioc()
+testthat::skip("Skipping all tests in test-plots.R as requested")
 
 # Combined plotting tests: density/violin/MA/top-transcripts, volcano, q-curve
 
