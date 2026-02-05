@@ -20,10 +20,32 @@ test_that("plot_tsallis_q_curve returns a ggplot object", {
     colnames(readcounts) <- c("S1_N", "S2_T", "S3_N")
     genes <- rep(paste0("G", 1:10), length.out = nrow(readcounts))
 
-    p <- plot_tsallis_q_curve(readcounts, genes,
-        q_values = seq(0.01, 0.05, by = 0.01),
-        group_pattern = "_N$", group_names = c("Normal", "Tumor")
+    # Compute a SummarizedExperiment (SE-first API) and map sample metadata
+    qvals <- seq(0.01, 0.05, by = 0.01)
+    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
+
+    # Provide simple coldata matching base sample names (without _q=... suffix)
+    coldata_df <- data.frame(
+        Sample = c("S1_N", "S2_T", "S3_N"),
+        Condition = c("Normal", "Tumor", "Normal"),
+        stringsAsFactors = FALSE
     )
 
+    ts_se <- map_coldata_to_se(ts_se, coldata_df)
+
+    p <- plot_tsallis_q_curve(ts_se, genes, q_values = qvals)
+
     expect_true(inherits(p, "ggplot"))
+})
+
+test_that("matrix input is rejected with informative message", {
+    set.seed(2)
+    readcounts <- matrix(rpois(20 * 2, lambda = 5), nrow = 20, ncol = 2)
+    colnames(readcounts) <- c("A_N", "B_T")
+    genes <- rep(paste0("G", 1:5), length.out = nrow(readcounts))
+
+    expect_error(
+        plot_tsallis_q_curve(readcounts, genes, q_values = seq(0.01, 0.05, by = 0.01)),
+        "Matrix or data.frame input is no longer supported"
+    )
 })

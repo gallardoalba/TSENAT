@@ -29,9 +29,7 @@ if (getRversion() >= "2.15.1") {
     )
 
     require_pkgs <- function(pkgs) {
-        missing <- pkgs[!
-            vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)
-        ]
+        missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
         if (length(missing)) {
             stop(
                 sprintf(
@@ -43,46 +41,50 @@ if (getRversion() >= "2.15.1") {
         invisible(TRUE)
     }
 
-    # Map sample names (without '_q=...') to group labels using `colData(se)` when
-    # available,
-    # otherwise fall back to `infer_sample_group()` and a suffix fallback.
+    # Map sample names (without '_q=...') to group labels using `colData(se)`.
+    # Mapping must be provided via `colData(se)`; no inference fallback is used.
     map_samples_to_group <- function(sample_names,
-                                        se = NULL,
-                                        sample_type_col = NULL,
-                                        mat = NULL) {
+                                     se = NULL,
+                                     sample_type_col = NULL,
+                                     mat = NULL) {
+        # Prefer explicit mapping from colData(se)[, sample_type_col] when
+        # provided. If `sample_type_col` is not provided, allow a single-
+        # condition dataset by assigning a single default group "Group" to
+        # all samples (this permits plotting single-condition q-curves).
+        base_names <- sub(
+            "_q=.*",
+            "",
+            colnames(if (!is.null(mat)) mat else SummarizedExperiment::assay(se))
+        )
+
         if (!is.null(se) && !is.null(sample_type_col) &&
-            sample_type_col %in% colnames(SummarizedExperiment::colData(se))) {
-            st_df <- SummarizedExperiment::colData(se)
-            st_vec <- as.character(
-                st_df[, sample_type_col]
-            )
-            assay_from <- if (!is.null(mat)) mat else SummarizedExperiment::assay(se)
-            base_names <- sub(
-                "_q=.*",
-                "",
-                colnames(assay_from)
-            )
+            (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+            st_vec <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
             names(st_vec) <- base_names
             st_map <- st_vec[!duplicated(names(st_vec))]
-            return(unname(st_map[sample_names]))
+        } else {
+            # No explicit mapping: assume single-group dataset
+            st_map <- setNames(rep("Group", length(base_names)), base_names)
         }
-        res <- infer_sample_group(sample_names)
-        missing_idx <- which(is.na(res))
+
+        mapped <- unname(st_map[sample_names])
+        missing_idx <- which(is.na(mapped))
         if (length(missing_idx) > 0) {
-            res[missing_idx] <- vapply(
-                sample_names[missing_idx],
-                function(s) if (grepl("_", s)) sub(".*_", "", s) else s,
-                character(1)
+            stop(
+                sprintf(
+                    "Missing sample_type mapping for samples: %s",
+                    paste(unique(sample_names[missing_idx]), collapse = ", ")
+                )
             )
         }
-        res
+        mapped
     }
 
     # Prepare a long-format data.frame for a simple assay (one value per sample)
     get_assay_long <- function(se,
-                                assay_name = "diversity",
-                                value_name = "diversity",
-                                sample_type_col = NULL) {
+                               assay_name = "diversity",
+                               value_name = "diversity",
+                               sample_type_col = NULL) {
         require_pkgs(c("tidyr", "dplyr", "SummarizedExperiment"))
         mat <- SummarizedExperiment::assay(se, assay_name)
         if (is.null(mat)) stop("Assay not found: ", assay_name)
@@ -100,32 +102,21 @@ if (getRversion() >= "2.15.1") {
             values_to = value_name
         )
 
-        # sample_type: prefer explicit colData mapping when available
-        colnames_se <- colnames(SummarizedExperiment::colData(se))
-        sample_type_in_coldata <- FALSE
-        if (!is.null(sample_type_col)) {
-            sample_type_in_coldata <- sample_type_col %in% colnames_se
-        }
-        if (sample_type_in_coldata) {
+        # sample_type: prefer explicit colData mapping when available. If not
+        # provided, assume a single-group dataset and set `sample_type` to
+        # "Group" for all samples.
+        if (!is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
             st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
             names(st) <- colnames(mat)
-            long$sample_type <- unname(st[long$sample])
-        } else {
+            st_map <- st[!duplicated(names(st))]
             sample_base <- sub("_q=.*", "", long$sample)
-            long$sample_type <- map_samples_to_group(
-                sample_base,
-                se = se,
-                sample_type_col = sample_type_col,
-                mat = mat
-            )
+            long$sample_type <- unname(st_map[sample_base])
             missing_idx <- which(is.na(long$sample_type))
             if (length(missing_idx) > 0) {
-                long$sample_type[missing_idx] <- vapply(
-                    sample_base[missing_idx],
-                    function(s) if (grepl("_", s)) sub(".*_", "", s) else s,
-                    character(1)
-                )
+                stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_base[missing_idx]), collapse = ", ")))
             }
+        } else {
+            long$sample_type <- rep("Group", nrow(long))
         }
 
         long[!is.na(long[[value_name]]), , drop = FALSE]
@@ -134,8 +125,8 @@ if (getRversion() >= "2.15.1") {
     # Internal small helper: prepare long-format tsallis data from a
     # SummarizedExperiment
     prepare_tsallis_long <- function(se,
-                                        assay_name = "diversity",
-                                        sample_type_col = "sample_type") {
+                                     assay_name = "diversity",
+                                     sample_type_col = "sample_type") {
         require_pkgs(c("tidyr", "dplyr", "SummarizedExperiment"))
         mat <- SummarizedExperiment::assay(se, assay_name)
         if (is.null(mat)) stop("Assay not found: ", assay_name)
@@ -165,25 +156,17 @@ if (getRversion() >= "2.15.1") {
             long$q <- NA
         }
 
-        if (!is.null(sample_type_col) &&
-            sample_type_col %in% colnames(SummarizedExperiment::colData(se))) {
-            st_vec <- as.character(
-                SummarizedExperiment::colData(se)[, sample_type_col]
-            )
+        if (!is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+            st_vec <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
             names(st_vec) <- sub("_q=.*", "", colnames(mat))
             st_map <- st_vec[!duplicated(names(st_vec))]
             long$group <- unname(st_map[as.character(long$sample)])
-        } else {
-            sample_base <- as.character(long$sample)
-            long$group <- infer_sample_group(sample_base)
             missing_idx <- which(is.na(long$group))
             if (length(missing_idx) > 0) {
-                long$group[missing_idx] <- vapply(
-                    sample_base[missing_idx],
-                    function(s) if (grepl("_", s)) sub(".*_", "", s) else s,
-                    character(1)
-                )
+                stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(as.character(long$sample)[missing_idx]), collapse = ", ")))
             }
+        } else {
+            long$group <- rep("Group", nrow(long))
         }
 
         as.data.frame(long[!is.na(long$tsallis), , drop = FALSE])
@@ -207,9 +190,9 @@ if (getRversion() >= "2.15.1") {
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' plot_diversity_density(se)
 plot_diversity_density <- function(
-    se,
-    assay_name = "diversity",
-    sample_type_col = NULL
+  se,
+  assay_name = "diversity",
+  sample_type_col = NULL
 ) {
     require_pkgs(c("ggplot2", "tidyr", "dplyr", "SummarizedExperiment"))
     long <- get_assay_long(
@@ -247,9 +230,9 @@ plot_diversity_density <- function(
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' plot_mean_violin(se)
 plot_mean_violin <- function(
-    se,
-    assay_name = "diversity",
-    sample_type_col = NULL
+  se,
+  assay_name = "diversity",
+  sample_type_col = NULL
 ) {
     require_pkgs(c("ggplot2", "dplyr", "SummarizedExperiment", "tidyr"))
     long <- get_assay_long(
@@ -300,11 +283,11 @@ plot_mean_violin <- function(
 #' )
 #' plot_ma(df)
 plot_ma <- function(
-    diff_df,
-    mean_cols = NULL,
-    fold_col = "log2_fold_change",
-    padj_col = "adjusted_p_values",
-    sig_alpha = 0.05
+  diff_df,
+  mean_cols = NULL,
+  fold_col = "log2_fold_change",
+  padj_col = "adjusted_p_values",
+  sig_alpha = 0.05
 ) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
 
@@ -372,82 +355,51 @@ plot_ma <- function(
 #' p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
 #' p
 plot_tsallis_q_curve <- function(
-    readcounts,
-    genes,
-    q_values = seq(0.01, 2, by = 0.01),
-    group_pattern = "_N$",
-    group_names = c("Normal", "Tumor")
+  readcounts,
+  genes,
+  q_values = seq(0.01, 2, by = 0.01),
+  group_pattern = "_N$",
+  group_names = c("Normal", "Tumor")
 ) {
-    if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
-    if (!requireNamespace("tidyr", quietly = TRUE)) stop("tidyr required")
-    if (!requireNamespace("dplyr", quietly = TRUE)) stop("dplyr required")
-
-    if (is.data.frame(readcounts)) readcounts <- as.matrix(readcounts)
-    if (!is.matrix(readcounts)) {
-        stop("`readcounts` must be a matrix or data.frame")
-    }
-    if (length(genes) != nrow(readcounts)) {
-        stop("Length of `genes` must match nrow(readcounts)")
-    }
-
-    get_group_stats_iqr <- function(q) {
-        # compute per-gene Tsallis per sample for this q
-        ts_list <- lapply(seq_len(ncol(readcounts)), function(ci) {
-            tapply(
-                readcounts[, ci],
-                genes,
-                calculate_tsallis_entropy,
-                q = q,
-                norm = TRUE
-            )
-        })
-        tsallis_df <- as.data.frame(do.call(cbind, ts_list))
-        colnames(tsallis_df) <- colnames(readcounts)
-        tsallis_df$Gene <- rownames(tsallis_df)
-
-        long <- tidyr::pivot_longer(
-            tsallis_df,
-            -Gene,
-            names_to = "sample",
-            values_to = "tsallis"
-        )
-        long$group <- ifelse(
-            grepl(group_pattern, long$sample),
-            group_names[1],
-            group_names[2]
-        )
-
-        stats <- dplyr::summarise(dplyr::group_by(long, group),
+    # If a SummarizedExperiment is supplied, use the SE-first path which
+    # respects mapped `colData(se)$sample_type` via `prepare_tsallis_long()`.
+    if (inherits(readcounts, "SummarizedExperiment")) {
+        se <- readcounts
+        require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
+        long <- prepare_tsallis_long(se, assay_name = "diversity", sample_type_col = "sample_type")
+        if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
+        # long$q may be a factor; convert to numeric for plotting
+        long$qnum <- as.numeric(as.character(long$q))
+        stats_df <- dplyr::summarise(dplyr::group_by(long, group, qnum),
             median = median(tsallis, na.rm = TRUE),
             IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
         )
-        stats <- dplyr::mutate(stats, q = q)
-        return(stats)
+        p <- ggplot2::ggplot(
+            stats_df,
+            ggplot2::aes(x = qnum, y = median, color = group, fill = group)
+        ) +
+            ggplot2::geom_line(linewidth = 1) +
+            ggplot2::geom_ribbon(
+                ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
+                alpha = 0.2,
+                color = NA
+            ) +
+            ggplot2::theme_minimal() +
+            ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
+            ggplot2::labs(
+                title = "Median +- IQR of Tsallis entropy by group",
+                x = "q value",
+                y = "Tsallis entropy",
+                color = "Group",
+                fill = "Group"
+            )
+        return(p)
     }
 
-    stats_df <- do.call(rbind, lapply(q_values, get_group_stats_iqr))
-
-    p <- ggplot2::ggplot(
-        stats_df,
-        ggplot2::aes(x = q, y = median, color = group, fill = group)
-    ) +
-        ggplot2::geom_line(linewidth = 1) +
-        ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
-            alpha = 0.2,
-            color = NA
-        ) +
-        ggplot2::theme_minimal() +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
-        ggplot2::labs(
-            title = "Median +- IQR of Tsallis entropy by group",
-            x = "q value",
-            y = "Tsallis entropy",
-            color = "Group",
-            fill = "Group"
-        )
-
-    return(p)
+    # Matrix/data.frame input is no longer supported for this plot function.
+    stop(
+        "Matrix or data.frame input is no longer supported for `plot_tsallis_q_curve()`. Please provide a SummarizedExperiment returned by `calculate_diversity()`."
+    )
 }
 #' Violin plot of Tsallis entropy for multiple q values
 
@@ -553,12 +505,12 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' )
 #' plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 plot_volcano <- function(
-    diff_df,
-    x_col = "mean_difference",
-    padj_col = "adjusted_p_values",
-    label_thresh = 0.1,
-    padj_thresh = 0.05,
-    top_n = 5
+  diff_df,
+  x_col = "mean_difference",
+  padj_col = "adjusted_p_values",
+  label_thresh = 0.1,
+  padj_thresh = 0.05,
+  top_n = 5
 ) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
     df <- as.data.frame(diff_df)
@@ -709,13 +661,13 @@ if (getRversion() >= "2.15.1") {
     ))
 }
 plot_top_transcripts <- function(
-    counts,
-    gene,
-    samples,
-    tx2gene = NULL,
-    top_n = 3,
-    pseudocount = 1e-6,
-    output_file = NULL
+  counts,
+  gene,
+  samples,
+  tx2gene = NULL,
+  top_n = 3,
+  pseudocount = 1e-6,
+  output_file = NULL
 ) {
     if (!is.matrix(counts) && !is.data.frame(counts)) {
         stop(

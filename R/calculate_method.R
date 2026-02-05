@@ -26,13 +26,13 @@ calculate_method <- function(
     # cannot use aggregate because calculate_tsallis_entropy may return
     # multiple values when length(q) > 1
     gene_levels <- unique(genes)
-    coln <- as.vector(
-        outer(
-            colnames(x),
-            q,
-            function(s, qq) paste0(s, "_q=", qq)
-        )
-    )
+    # ensure column names order matches the order used when constructing
+    # the result matrix (samples vary outer, q varies inner)
+    coln <- as.vector(t(outer(
+        colnames(x),
+        q,
+        function(s, qq) paste0(s, "_q=", qq)
+    )))
     rown <- gene_levels
 
     # compute requested quantity ("S" or "D")
