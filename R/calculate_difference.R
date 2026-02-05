@@ -354,7 +354,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         group_vec <- unname(st[sample_names])
     } else {
         stop(
-            "No sample grouping found: please supply `sample_type_col` or map sample types into `colData(se)` before calling calculate_lm_interaction().",
+            "No sample grouping found: please supply `sample_type_col` or map sample", 
+            "types into `colData(se)` before calling calculate_lm_interaction().",
             call. = FALSE
         )
     }

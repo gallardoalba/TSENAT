@@ -137,8 +137,14 @@ map_coldata_to_se <- function(
     sample_types <- unname(st_map[sample_base_names])
     missing_idx <- which(is.na(sample_types))
     if (length(missing_idx) > 0) {
-        # Leave unmatched sample types as NA; do not attempt inference.
-        sample_types[missing_idx] <- NA_character_
+        missing_samples <- sample_base_names[missing_idx]
+        msg <- paste0(
+            "map_coldata_to_se: unmatched samples in 'coldata': ",
+            paste(missing_samples, collapse = ", "),
+            ". Provide matching entries in 'coldata' or populate ",
+            "colData(ts_se)$sample_type beforehand."
+        )
+        stop(msg, call. = FALSE)
     }
     SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
     # Also record the base sample names (without q suffix) per column so
@@ -149,6 +155,3 @@ map_coldata_to_se <- function(
     rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
     return(ts_se)
 }
-## Note: `infer_sample_group()` removed; prefer explicit `coldata` mapping
-## or supply `sample_type` via `colData(se)`.
-# Supports underscore-suffixed labels (e.g. Sample_N, Sample_T) and
