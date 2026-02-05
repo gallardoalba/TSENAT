@@ -151,6 +151,6 @@ testthat::test_that("plot_tsallis_q_curve returns a ggplot object (SE-first)", {
 
     ts_se <- map_coldata_to_se(ts_se, coldata_df)
 
-    p <- plot_tsallis_q_curve(ts_se, genes, q_values = qvals)
+    p <- plot_tsallis_q_curve(ts_se)
     expect_true(inherits(p, "ggplot"))
 })

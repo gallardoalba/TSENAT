@@ -65,7 +65,7 @@ test_that("Missing sample in coldata triggers error (unpaired)", {
     )
 })
 
-test_that("Missing sample in coldata does not error when paired is FALSE", {
+test_that("Missing sample in coldata errors when paired is FALSE", {
   coldata <- utils::read.delim(
     system.file("extdata/coldata.tsv", 
                  package = "TSENAT"),
@@ -80,9 +80,10 @@ test_that("Missing sample in coldata does not error when paired is FALSE", {
     assays = list(diversity = mat)
   )
 
-  # With no inference attempted, missing samples should leave sample_type as NA
-  se2 <- map_coldata_to_se(se, coldata_missing)
-  expect_true(any(is.na(SummarizedExperiment::colData(se2)$sample_type)))
+  expect_error(
+    map_coldata_to_se(se, coldata_missing),
+    "unmatched samples in 'coldata'"
+  )
 })
 test_that("Extra sample in coldata triggers error (unpaired)", {
   coldata <- utils::read.delim(
@@ -136,7 +137,7 @@ test_that("Extra sample in coldata does not error when paired is FALSE", {
     length(cols)
   )
 })
-test_that("Case mismatch in coldata avoids name-based mapping (case-sensitive)", {
+test_that("Case mismatch in coldata errors (case-sensitive)", {
   coldata <- utils::read.delim(
     system.file("extdata/coldata.tsv", 
                  package = "TSENAT"),
@@ -152,12 +153,13 @@ test_that("Case mismatch in coldata avoids name-based mapping (case-sensitive)",
       assays = list(diversity = mat)
     )
 
-  # Case mismatch should not throw; unmatched entries remain NA
-  se2 <- map_coldata_to_se(se, coldata_case)
-  expect_true(any(is.na(SummarizedExperiment::colData(se2)$sample_type)))
+  expect_error(
+    map_coldata_to_se(se, coldata_case),
+    "unmatched samples in 'coldata'"
+  )
 })
 
-test_that("SE with extra sample keeps extra and marks it as unmatched in coldata", {
+test_that("SE with extra sample errors due to unmatched sample", {
   coldata <- utils::read.delim(
     system.file("extdata/coldata.tsv", 
                  package = "TSENAT"),
@@ -171,9 +173,10 @@ test_that("SE with extra sample keeps extra and marks it as unmatched in coldata
     assays = list(diversity = mat)
   )
 
-  # Extra SE sample should be preserved; unmatched samples have NA sample_type
-  se2 <- map_coldata_to_se(se, coldata)
-  expect_true(any(is.na(SummarizedExperiment::colData(se2)$sample_type)))
+  expect_error(
+    map_coldata_to_se(se, coldata),
+    "unmatched samples in 'coldata'"
+  )
 })
 
 test_that("Multiple q columns are handled and mapped per-sample", {

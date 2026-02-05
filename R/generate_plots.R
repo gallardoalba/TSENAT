@@ -331,21 +331,16 @@ plot_ma <- function(
 }
 
 
-#' Plot median +- IQR of Tsallis entropy across q values by group   This
-#' reproduces the `tsallis-q-curve-mean-sd` plot from the vignette:  for each q
-#' value, compute per-gene Tsallis entropy per sample, then  summarize across
-#' genes by group (median and IQR) and plot median with a  ribbon spanning
+#' Plot median +- IQR of Tsallis entropy across q values by group
+#'
+#' This reproduces the `tsallis-q-curve-mean-sd` plot from the vignette: for
+#' each q value, compute per-gene Tsallis entropy per sample, summarize across
+#' genes by group (median and IQR) and plot median with a ribbon spanning
 #' median +- IQR/2.
-#' @param readcounts Numeric matrix or data.frame with transcripts as rows and
-#' samples as columns.
-#' @param genes Character vector assigning a gene id to each row of
-#' `readcounts`.
-#' @param q_values Numeric vector of q values to evaluate (default
-#' `seq(0.01,2,by=0.01)`).
-#' @param group_pattern Regular expression to detect group suffixes (default
-#' "_N$").
-#' @param group_names Character vector length 2 with group names (default
-#' c("Normal","Tumor")).
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
+#' @param assay_name Name of the assay to use (default: "diversity").
+#' @param sample_type_col Column name in `colData(se)` containing sample
+#'   type labels (default: "sample_type").
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
 #' @examples
@@ -355,18 +350,16 @@ plot_ma <- function(
 #' p <- plot_tsallis_q_curve(rc, gs, q_values = seq(0.01, 0.1, by = 0.03))
 #' p
 plot_tsallis_q_curve <- function(
-  readcounts,
-  genes,
-  q_values = seq(0.01, 2, by = 0.01),
-  group_pattern = "_N$",
-  group_names = c("Normal", "Tumor")
+    se,
+    assay_name = "diversity",
+    sample_type_col = "sample_type"
 ) {
-    # If a SummarizedExperiment is supplied, use the SE-first path which
-    # respects mapped `colData(se)$sample_type` via `prepare_tsallis_long()`.
-    if (inherits(readcounts, "SummarizedExperiment")) {
-        se <- readcounts
+        # SE-first API: require a SummarizedExperiment with per-column sample
+        # type mapping in `colData(se)[, sample_type_col]` (or allow a single
+        # group dataset where `sample_type` is omitted).
+        if (inherits(se, "SummarizedExperiment")) {
         require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
-        long <- prepare_tsallis_long(se, assay_name = "diversity", sample_type_col = "sample_type")
+                long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
         if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
         # long$q may be a factor; convert to numeric for plotting
         long$qnum <- as.numeric(as.character(long$q))
@@ -398,7 +391,7 @@ plot_tsallis_q_curve <- function(
 
     # Matrix/data.frame input is no longer supported for this plot function.
     stop(
-        "Matrix or data.frame input is no longer supported for `plot_tsallis_q_curve()`. Please provide a SummarizedExperiment returned by `calculate_diversity()`."
+        "plot_tsallis_q_curve requires a SummarizedExperiment from calculate_diversity."
     )
 }
 #' Violin plot of Tsallis entropy for multiple q values
