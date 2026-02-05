@@ -63,7 +63,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-02-05</h4>
+            <h4 data-toc-skip class="date">2026-02-06</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -389,6 +389,11 @@ flips for paired differences.</li>
 routine use and 5000+ when estimating small p-values or when applying
 FDR across many genes. When possible, compute exact permutations (all
 labelings) for very small datasets.</li>
+<li>For paired designs an exact sign-flip test enumerates all possible
+combinations of within-pair label flips. Use <code>paired = TRUE</code>
+and <code>paired_method = "signflip"</code> and set
+<code>randomizations = 0</code> to trigger exact enumeration for small
+numbers of pairs.</li>
 </ul>
 <p>Here we will use the <strong>Wilcoxon test</strong>; it is the
 appropriate choice for speed when sample sizes support asymptotic
@@ -573,74 +578,83 @@ differences between groups.</p>
 <p>Map the sample metadata into the multi-q
 <code>SummarizedExperiment</code> as before.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># For paired designs ensure sample_base is created so LMMs can use it</span></span>
+<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>Once we have the q-sequence computed, we can test for interactions
-between <code>q</code> and sample groups using a linear model. This
-tests whether the shape of the q-curve differs between groups, which
-would indicate scale-dependent diversity differences.</p>
+between <code>q</code> and sample groups using mixed models that include
+a random intercept per subject to account for paired samples. One
+practical approach is the <strong>Satterthwaite method</strong>.</p>
+<p>This method is preferable for small or moderately sized paired
+RNA‑seq studies when per-term inference is required (for example, the
+<code>q:group</code> interaction).</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Linear-model interaction test across q values: </span></span>
 <span><span class="co"># detect q x group interaction</span></span>
 <span><span class="co"># Compute and show top hits (by adjusted p-value)</span></span>
-<span><span class="va">lm_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction</a></span><span class="op">(</span><span class="va">ts_se</span>, </span>
-<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, method <span class="op">=</span> <span class="st">"linear"</span>,</span>
-<span>    nthreads <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [calculate_lm_interaction] method=linear</span></span>
-<span><span class="co">#&gt; [calculate_lm_interaction] parsed samples and groups</span></span>
+<span><span class="va">lm_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
+<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, method <span class="op">=</span> <span class="st">"lmm"</span>,</span>
+<span>    pvalue <span class="op">=</span> <span class="st">"satterthwaite"</span>,</span>
+<span>    subject_col <span class="op">=</span> <span class="st">"sample_base"</span>,</span>
+<span>    nthreads <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>    verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lm_res</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      gene p_interaction adj_p_interaction</span></span>
-<span><span class="co">#&gt; 1   GFPT1  9.617169e-20      1.894582e-17</span></span>
-<span><span class="co">#&gt; 2    MBD2  3.559027e-16      3.505641e-14</span></span>
-<span><span class="co">#&gt; 3   EEF2K  1.354202e-15      8.892593e-14</span></span>
-<span><span class="co">#&gt; 4 C1orf86  3.946993e-14      1.589046e-12</span></span>
-<span><span class="co">#&gt; 5  CAPZA2  4.033112e-14      1.589046e-12</span></span>
-<span><span class="co">#&gt; 6   AFAP1  1.133706e-13      3.722334e-12</span></span></code></pre></div>
+<span><span class="co">#&gt;      gene p_interaction        p_lrt p_satterthwaite adj_p_interaction</span></span>
+<span><span class="co">#&gt; 1  HAPLN3  1.858060e-50 1.729070e-50    1.858060e-50      3.660378e-48</span></span>
+<span><span class="co">#&gt; 2  COL1A2  6.454700e-47 6.037249e-47    6.454700e-47      6.357879e-45</span></span>
+<span><span class="co">#&gt; 3    PI16  2.694297e-42 2.536901e-42    2.694297e-42      1.769255e-40</span></span>
+<span><span class="co">#&gt; 4  LRRC15  1.853900e-39 1.752784e-39    1.853900e-39      9.130457e-38</span></span>
+<span><span class="co">#&gt; 5 C1orf86  7.293099e-39 6.901271e-39    7.293099e-39      2.873481e-37</span></span>
+<span><span class="co">#&gt; 6   EEF2K  5.959578e-38 5.646863e-38    5.959578e-38      1.956728e-36</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="tsallis-q-sequence-plot">Tsallis q-sequence plot<a class="anchor" aria-label="anchor" href="#tsallis-q-sequence-plot"></a>
 </h3>
-<p>With the Tsallis q-sequence we can produces a q-curve per sample and
+<p>With the Tsallis q-sequence we can produce a q-curve per sample and
 gene. These curves show how diversity emphasis shifts from rare to
 dominant isoforms as <code>q</code> increases and form the basis for
 interaction tests. The q-curve shows entropy as a function of
 <code>q</code>. Diverging curves between groups indicate scale-dependent
-diversity differences. Separation at low <code>q</code> implies
-differences in rare isoforms; separation at high <code>q</code> signals
-differences in dominant isoforms.</p>
+diversity differences: separation at low <code>q</code> implies
+differences in rare isoforms, while separation at high <code>q</code>
+signals differences in dominant isoforms.</p>
 <p>Now we will plot the q-curve profile for the top gene identified by
 the linear-model interaction test. We will start with
-<code>GFPT1</code>.</p>
+<code>HAPLN3</code>.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span>    <span class="co"># Prefer GFPT1 if present; otherwise use top LM hit</span></span>
-<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"GFPT1"</span>,</span>
+<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"HAPLN3"</span>,</span>
 <span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/gfpt1-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
-<p>Now let’s have a look at the <code>MBD2</code> gene, which encondes a
-methyl-CpG binding domain <a href="https://www.nature.com/articles/s41420-025-02563-0" class="external-link">protein
-involved in immune cell development, function, and autoimmune
-diseases9</a>.</p>
+<p><img src="TSENAT_files/figure-html/hapln3-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
+<p>Now let’s look at <code>COL1A2</code>, which encodes a protein
+involved in immune cell biology and has been reported as differentially
+regulated in some cancer studies.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span>    <span class="co"># Prefer GFPT1 if present; otherwise use top LM hit</span></span>
-<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"MBD2"</span>,</span>
+<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"COL1A2"</span>,</span>
 <span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/mbd2-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
-<p>We could also generate the q-sequence profile for <code>EEF2K</code>.
-This gene codifies an <a href="https://www.nature.com/articles/s41598-024-78652-4" class="external-link">protein kinase
-associated with cancer survival and prognosis</a>.</p>
+<p><img src="TSENAT_files/figure-html/colia2-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
+<p>From the plot we might infer that, in this dataset, rare transcripts
+appear more prevalent in cancer samples.</p>
+<p>Finally, we can visualize the gene PI16, which is emerging as an
+important regulator in the vascular system.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span>    <span class="co"># Prefer GFPT1 if present; otherwise use top LM hit</span></span>
-<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"EEF2K"</span>,</span>
+<span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"PI16"</span>,</span>
 <span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/eef2k-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
-<p>We can plot also the <strong>overall Tsallis q-curve for all
-genes</strong>. This kind of plot provides a global view of how
-diversity changes across the <code>q</code> spectrum for the entire
-dataset, and can reveal general trends in isoform diversity.</p>
+<p><img src="TSENAT_files/figure-html/pi16-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
+<p>We can also plot the <strong>overall Tsallis q-curve for all
+genes</strong>. This plot provides a global view of how diversity
+changes across the <code>q</code> spectrum for the entire dataset and
+can reveal general trends in isoform diversity.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Plot top tsallis q curve</span></span>
+<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/tsallis-q-curve-1.png" class="r-plt" alt="" width="1152"></p>
 </div>
 </div>
@@ -703,7 +717,7 @@ compact <code>q</code> grid and report the grid.</li>
 <div class="section level2">
 <h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-conda-linux-gnu</span></span>
@@ -739,23 +753,27 @@ compact <code>q</code> grid and report the grid.</li>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       </span></span>
 <span><span class="co">#&gt;  [4] htmlwidgets_1.6.4   ggrepel_0.9.6       lattice_0.22-7     </span></span>
-<span><span class="co">#&gt;  [7] vctrs_0.7.1         tools_4.5.2         tibble_3.3.1       </span></span>
-<span><span class="co">#&gt; [10] pkgconfig_2.0.3     Matrix_1.7-4        RColorBrewer_1.1-3 </span></span>
-<span><span class="co">#&gt; [13] S7_0.2.1            desc_1.4.3          lifecycle_1.0.5    </span></span>
-<span><span class="co">#&gt; [16] compiler_4.5.2      farver_2.1.2        textshaping_1.0.4  </span></span>
-<span><span class="co">#&gt; [19] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        </span></span>
-<span><span class="co">#&gt; [22] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    </span></span>
-<span><span class="co">#&gt; [25] tidyr_1.3.2         DelayedArray_0.36.0 cachem_1.1.0       </span></span>
-<span><span class="co">#&gt; [28] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      </span></span>
-<span><span class="co">#&gt; [31] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     </span></span>
-<span><span class="co">#&gt; [34] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         </span></span>
-<span><span class="co">#&gt; [37] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     </span></span>
-<span><span class="co">#&gt; [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        </span></span>
-<span><span class="co">#&gt; [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     </span></span>
-<span><span class="co">#&gt; [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     </span></span>
-<span><span class="co">#&gt; [49] knitr_1.51          viridisLite_0.4.3   rlang_1.1.7        </span></span>
-<span><span class="co">#&gt; [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     </span></span>
-<span><span class="co">#&gt; [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6</span></span></code></pre></div>
+<span><span class="co">#&gt;  [7] numDeriv_2016.8-1.1 Rdpack_2.6.5        vctrs_0.7.1        </span></span>
+<span><span class="co">#&gt; [10] tools_4.5.2         tibble_3.3.1        pkgconfig_2.0.3    </span></span>
+<span><span class="co">#&gt; [13] Matrix_1.7-4        RColorBrewer_1.1-3  S7_0.2.1           </span></span>
+<span><span class="co">#&gt; [16] desc_1.4.3          lifecycle_1.0.5     compiler_4.5.2     </span></span>
+<span><span class="co">#&gt; [19] farver_2.1.2        textshaping_1.0.4   lmerTest_3.2-0     </span></span>
+<span><span class="co">#&gt; [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        </span></span>
+<span><span class="co">#&gt; [25] nloptr_2.2.1        pkgdown_2.2.0       pillar_1.11.1      </span></span>
+<span><span class="co">#&gt; [28] jquerylib_0.1.4     tidyr_1.3.2         MASS_7.3-65        </span></span>
+<span><span class="co">#&gt; [31] DelayedArray_0.36.0 cachem_1.1.0        reformulas_0.4.4   </span></span>
+<span><span class="co">#&gt; [34] boot_1.3-32         abind_1.4-8         tidyselect_1.2.1   </span></span>
+<span><span class="co">#&gt; [37] digest_0.6.39       dplyr_1.1.4         purrr_1.2.1        </span></span>
+<span><span class="co">#&gt; [40] labeling_0.4.3      splines_4.5.2       fastmap_1.2.0      </span></span>
+<span><span class="co">#&gt; [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.8 </span></span>
+<span><span class="co">#&gt; [46] magrittr_2.0.4      patchwork_1.3.2     S4Arrays_1.10.1    </span></span>
+<span><span class="co">#&gt; [49] withr_3.0.2         scales_1.4.0        rmarkdown_2.30     </span></span>
+<span><span class="co">#&gt; [52] XVector_0.50.0      lme4_1.1-38         otel_0.2.0         </span></span>
+<span><span class="co">#&gt; [55] ragg_1.5.0          evaluate_1.0.5      knitr_1.51         </span></span>
+<span><span class="co">#&gt; [58] rbibutils_2.4.1     viridisLite_0.4.3   rlang_1.1.7        </span></span>
+<span><span class="co">#&gt; [61] Rcpp_1.1.1          glue_1.8.0          minqa_1.2.8        </span></span>
+<span><span class="co">#&gt; [64] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  </span></span>
+<span><span class="co">#&gt; [67] fs_1.6.6</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -314,6 +314,10 @@ Wilcoxon-based tests and label-shuffle tests. Guidance:
   5000+ when estimating small p-values or when applying FDR across many
   genes. When possible, compute exact permutations (all labelings) for
   very small datasets.
+- For paired designs an exact sign-flip test enumerates all possible
+  combinations of within-pair label flips. Use `paired = TRUE` and
+  `paired_method = "signflip"` and set `randomizations = 0` to trigger
+  exact enumeration for small numbers of pairs.
 
 Here we will use the **Wilcoxon test**; it is the appropriate choice for
 speed when sample sizes support asymptotic approximations. Use
@@ -539,93 +543,107 @@ before.
 
 ``` r
 
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
+# For paired designs ensure sample_base is created so LMMs can use it
+ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
 ```
 
 Once we have the q-sequence computed, we can test for interactions
-between `q` and sample groups using a linear model. This tests whether
-the shape of the q-curve differs between groups, which would indicate
-scale-dependent diversity differences.
+between `q` and sample groups using mixed models that include a random
+intercept per subject to account for paired samples. One practical
+approach is the **Satterthwaite method**.
+
+This method is preferable for small or moderately sized paired RNA‑seq
+studies when per-term inference is required (for example, the `q:group`
+interaction).
 
 ``` r
 
 # Linear-model interaction test across q values: 
 # detect q x group interaction
 # Compute and show top hits (by adjusted p-value)
-lm_res <- calculate_lm_interaction(ts_se, 
-    sample_type_col = "sample_type", method = "linear",
-    nthreads = 1)
-#> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups
+lm_res <- calculate_lm_interaction(ts_se,
+    sample_type_col = "sample_type", method = "lmm",
+    pvalue = "satterthwaite",
+    subject_col = "sample_base",
+    nthreads = 1,
+    verbose = FALSE)
 print(head(lm_res, 6))
-#>      gene p_interaction adj_p_interaction
-#> 1   GFPT1  9.617169e-20      1.894582e-17
-#> 2    MBD2  3.559027e-16      3.505641e-14
-#> 3   EEF2K  1.354202e-15      8.892593e-14
-#> 4 C1orf86  3.946993e-14      1.589046e-12
-#> 5  CAPZA2  4.033112e-14      1.589046e-12
-#> 6   AFAP1  1.133706e-13      3.722334e-12
+#>      gene p_interaction        p_lrt p_satterthwaite adj_p_interaction
+#> 1  HAPLN3  1.858060e-50 1.729070e-50    1.858060e-50      3.660378e-48
+#> 2  COL1A2  6.454700e-47 6.037249e-47    6.454700e-47      6.357879e-45
+#> 3    PI16  2.694297e-42 2.536901e-42    2.694297e-42      1.769255e-40
+#> 4  LRRC15  1.853900e-39 1.752784e-39    1.853900e-39      9.130457e-38
+#> 5 C1orf86  7.293099e-39 6.901271e-39    7.293099e-39      2.873481e-37
+#> 6   EEF2K  5.959578e-38 5.646863e-38    5.959578e-38      1.956728e-36
 ```
 
 ### Tsallis q-sequence plot
 
-With the Tsallis q-sequence we can produces a q-curve per sample and
+With the Tsallis q-sequence we can produce a q-curve per sample and
 gene. These curves show how diversity emphasis shifts from rare to
 dominant isoforms as `q` increases and form the basis for interaction
 tests. The q-curve shows entropy as a function of `q`. Diverging curves
-between groups indicate scale-dependent diversity differences.
-Separation at low `q` implies differences in rare isoforms; separation
-at high `q` signals differences in dominant isoforms.
+between groups indicate scale-dependent diversity differences:
+separation at low `q` implies differences in rare isoforms, while
+separation at high `q` signals differences in dominant isoforms.
 
 Now we will plot the q-curve profile for the top gene identified by the
-linear-model interaction test. We will start with `GFPT1`.
+linear-model interaction test. We will start with `HAPLN3`.
 
 ``` r
 
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "GFPT1",
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3",
     sample_type_col = "sample_type", show_samples = FALSE)
 print(plot_target)
 ```
 
-![](TSENAT_files/figure-html/gfpt1-gene-qprofile-1.png)
+![](TSENAT_files/figure-html/hapln3-gene-qprofile-1.png)
 
-Now let’s have a look at the `MBD2` gene, which encondes a methyl-CpG
-binding domain [protein involved in immune cell development, function,
-and autoimmune
-diseases9](https://www.nature.com/articles/s41420-025-02563-0).
+Now let’s look at `COL1A2`, which encodes a protein involved in immune
+cell biology and has been reported as differentially regulated in some
+cancer studies.
 
 ``` r
 
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "MBD2",
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2",
     sample_type_col = "sample_type", show_samples = FALSE)
 print(plot_target)
 ```
 
-![](TSENAT_files/figure-html/mbd2-gene-qprofile-1.png)
+![](TSENAT_files/figure-html/colia2-gene-qprofile-1.png)
 
-We could also generate the q-sequence profile for `EEF2K`. This gene
-codifies an [protein kinase associated with cancer survival and
-prognosis](https://www.nature.com/articles/s41598-024-78652-4).
+From the plot we might infer that, in this dataset, rare transcripts
+appear more prevalent in cancer samples.
+
+Finally, we can visualize the gene PI16, which is emerging as an
+important regulator in the vascular system.
 
 ``` r
 
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "EEF2K",
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16",
     sample_type_col = "sample_type", show_samples = FALSE)
 print(plot_target)
 ```
 
-![](TSENAT_files/figure-html/eef2k-gene-qprofile-1.png)
+![](TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
 
-We can plot also the **overall Tsallis q-curve for all genes**. This
-kind of plot provides a global view of how diversity changes across the
-`q` spectrum for the entire dataset, and can reveal general trends in
-isoform diversity.
+We can also plot the **overall Tsallis q-curve for all genes**. This
+plot provides a global view of how diversity changes across the `q`
+spectrum for the entire dataset and can reveal general trends in isoform
+diversity.
+
+``` r
+
+# Plot top tsallis q curve
+p_qcurve <- plot_tsallis_q_curve(ts_se)
+print(p_qcurve)
+```
 
 ![](TSENAT_files/figure-html/tsallis-q-curve-1.png)
 
@@ -708,21 +726,25 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
 #>  [4] htmlwidgets_1.6.4   ggrepel_0.9.6       lattice_0.22-7     
-#>  [7] vctrs_0.7.1         tools_4.5.2         tibble_3.3.1       
-#> [10] pkgconfig_2.0.3     Matrix_1.7-4        RColorBrewer_1.1-3 
-#> [13] S7_0.2.1            desc_1.4.3          lifecycle_1.0.5    
-#> [16] compiler_4.5.2      farver_2.1.2        textshaping_1.0.4  
-#> [19] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
-#> [22] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
-#> [25] tidyr_1.3.2         DelayedArray_0.36.0 cachem_1.1.0       
-#> [28] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
-#> [31] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     
-#> [34] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
-#> [37] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
-#> [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
-#> [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
-#> [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
-#> [49] knitr_1.51          viridisLite_0.4.3   rlang_1.1.7        
-#> [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     
-#> [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
+#>  [7] numDeriv_2016.8-1.1 Rdpack_2.6.5        vctrs_0.7.1        
+#> [10] tools_4.5.2         tibble_3.3.1        pkgconfig_2.0.3    
+#> [13] Matrix_1.7-4        RColorBrewer_1.1-3  S7_0.2.1           
+#> [16] desc_1.4.3          lifecycle_1.0.5     compiler_4.5.2     
+#> [19] farver_2.1.2        textshaping_1.0.4   lmerTest_3.2-0     
+#> [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
+#> [25] nloptr_2.2.1        pkgdown_2.2.0       pillar_1.11.1      
+#> [28] jquerylib_0.1.4     tidyr_1.3.2         MASS_7.3-65        
+#> [31] DelayedArray_0.36.0 cachem_1.1.0        reformulas_0.4.4   
+#> [34] boot_1.3-32         abind_1.4-8         tidyselect_1.2.1   
+#> [37] digest_0.6.39       dplyr_1.1.4         purrr_1.2.1        
+#> [40] labeling_0.4.3      splines_4.5.2       fastmap_1.2.0      
+#> [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.8 
+#> [46] magrittr_2.0.4      patchwork_1.3.2     S4Arrays_1.10.1    
+#> [49] withr_3.0.2         scales_1.4.0        rmarkdown_2.30     
+#> [52] XVector_0.50.0      lme4_1.1-38         otel_0.2.0         
+#> [55] ragg_1.5.0          evaluate_1.0.5      knitr_1.51         
+#> [58] rbibutils_2.4.1     viridisLite_0.4.3   rlang_1.1.7        
+#> [61] Rcpp_1.1.1          glue_1.8.0          minqa_1.2.8        
+#> [64] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  
+#> [67] fs_1.6.6
 ```

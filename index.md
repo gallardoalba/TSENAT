@@ -1,7 +1,7 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-TSENAT analyze expression/transcript differences and compute diversity
-metrics.
+TSENAT analyzes expression and transcript differences and computes
+diversity metrics.
 
 ## Tsallis theory
 
@@ -103,7 +103,29 @@ For a detailed, reproducible example see the package vignette:
 [HTML](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) \|
 [PDF](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
 
-## Licence, citation and atribution
+## CI and local checks
+
+Continuous integration for this repository is configured to install
+packages listed in `Suggests` (for example `lme4` and `lmerTest`) so
+vignette builds and example code using mixed models run on the CI
+builders. To reproduce a CI-like local environment, install suggested
+packages before running `R CMD check`:
+
+``` r
+
+# install all suggested packages from DESCRIPTION
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+remotes::install_deps(dependencies = c("Suggests"))
+```
+
+Or install just the mixed-model packages used by the vignette:
+
+``` r
+
+install.packages(c("lme4", "lmerTest"))
+```
+
+## License, citation and attribution
 
 This project is licensed under the GNU General Public License v3.0
 (GPL-3). A copy of the full license text is included in the repository

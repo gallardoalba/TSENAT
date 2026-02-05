@@ -12,7 +12,8 @@ label_shuffling(
   method,
   randomizations = 100,
   pcorr = "BH",
-  paired = FALSE
+  paired = FALSE,
+  paired_method = c("swap", "signflip")
 )
 ```
 
@@ -53,6 +54,13 @@ label_shuffling(
   between samples; the function currently permutes sample labels and
   therefore paired analyses are only meaningful when the caller has
   arranged `samples` accordingly.
+
+- paired_method:
+
+  Character; method for paired permutations. One of `"swap"` (randomly
+  swap labels within pairs) or `"signflip"` (perform sign-flip
+  permutations; can enumerate all 2^n_pairs combinations for an exact
+  test when `randomizations = 0` or `randomizations >= 2^n_pairs`).
 
 ## Value
 

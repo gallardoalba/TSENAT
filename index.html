@@ -58,7 +58,7 @@
 <div class="section level1">
 <div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
 </h1></div>
-<p>TSENAT analyze expression/transcript differences and compute diversity metrics.</p>
+<p>TSENAT analyzes expression and transcript differences and computes diversity metrics.</p>
 <div class="section level2">
 <h2 id="tsallis-theory">Tsallis theory<a class="anchor" aria-label="anchor" href="#tsallis-theory"></a>
 </h2>
@@ -139,11 +139,23 @@ p_i = x_i / \sum_j x_j
 <p>For a detailed, reproducible example see the package vignette: <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">HTML</a> | <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf">PDF</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="licence-citation-and-atribution">Licence, citation and atribution<a class="anchor" aria-label="anchor" href="#licence-citation-and-atribution"></a>
+<h2 id="ci-and-local-checks">CI and local checks<a class="anchor" aria-label="anchor" href="#ci-and-local-checks"></a>
+</h2>
+<p>Continuous integration for this repository is configured to install packages listed in <code>Suggests</code> (for example <code>lme4</code> and <code>lmerTest</code>) so vignette builds and example code using mixed models run on the CI builders. To reproduce a CI-like local environment, install suggested packages before running <code>R CMD check</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install all suggested packages from DESCRIPTION</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_deps.html" class="external-link">install_deps</a></span><span class="op">(</span>dependencies <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Suggests"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Or install just the mixed-model packages used by the vignette:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lme4"</span>, <span class="st">"lmerTest"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="license-citation-and-attribution">License, citation and attribution<a class="anchor" aria-label="anchor" href="#license-citation-and-attribution"></a>
 </h2>
 <p>This project is licensed under the GNU General Public License v3.0 (GPL-3). A copy of the full license text is included in the repository at <code>LICENSE</code> and is installed with the package under <code>inst/LICENSE</code>.</p>
 <p>To cite TSENAT in publications, run the following in R:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 <p>This command shows the recommended bibliographic entry; a machine-readable <code>inst/CITATION</code> file is included with the package for easy citation export.</p>
 <p>TSENAT builds upon and adapts substantial portions of code from the <a href="https://github.com/esebesty/SplicingFactory" class="external-link">SplicingFactory package</a>. The codebase has been extended with additional utilities, bug fixes and plotting helpers focused on Tsallis based transcript-level diversity analysis.</p>

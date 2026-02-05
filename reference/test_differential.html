@@ -56,7 +56,8 @@
 <span>  exact <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  randomizations <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">123L</span></span>
+<span>  seed <span class="op">=</span> <span class="fl">123L</span>,</span>
+<span>  paired_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"swap"</span>, <span class="st">"signflip"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -105,6 +106,11 @@ test when `method = "shuffle"` ("mean" or "median").</p></dd>
 <dd><p>Integer seed used to make permutations reproducible (default
 123). The function calls `set.seed(seed)` before running
 `label_shuffling()` when `method = "shuffle"`.</p></dd>
+
+
+<dt id="arg-paired-method">paired_method<a class="anchor" aria-label="anchor" href="#arg-paired-method"></a></dt>
+<dd><p>Character; forwarded to `label_shuffling()` when
+`method = "shuffle"`. See `label_shuffling()` for details.</p></dd>
 
 </dl></div>
     <div class="section level2">

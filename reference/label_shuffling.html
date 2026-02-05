@@ -53,7 +53,8 @@
 <span>  <span class="va">method</span>,</span>
 <span>  randomizations <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  pcorr <span class="op">=</span> <span class="st">"BH"</span>,</span>
-<span>  paired <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  paired <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  paired_method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"swap"</span>, <span class="st">"signflip"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -96,6 +97,13 @@ the \codep.adjust function.</p></dd>
 should preserve pairing between samples; the function currently permutes
 sample labels and therefore paired analyses are only meaningful when the
 caller has arranged <code>samples</code> accordingly.</p></dd>
+
+
+<dt id="arg-paired-method">paired_method<a class="anchor" aria-label="anchor" href="#arg-paired-method"></a></dt>
+<dd><p>Character; method for paired permutations. One of
+<code>"swap"</code> (randomly swap labels within pairs) or <code>"signflip"</code>
+(perform sign-flip permutations; can enumerate all 2^n_pairs combinations
+for an exact test when <code>randomizations = 0</code> or <code>randomizations &gt;= 2^n_pairs</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">
