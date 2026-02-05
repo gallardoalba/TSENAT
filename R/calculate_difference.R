@@ -353,9 +353,10 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         # suffix)
         group_vec <- unname(st[sample_names])
     } else {
-        # infer group from sample names using helper (supports TCGA barcodes and
-        # _N/_T suffixes)
-        group_vec <- infer_sample_group(sample_names)
+        stop(
+            "No sample grouping found: please supply `sample_type_col` or map sample types into `colData(se)` before calling calculate_lm_interaction().",
+            call. = FALSE
+        )
     }
 
     message("[calculate_lm_interaction] parsed samples and groups")

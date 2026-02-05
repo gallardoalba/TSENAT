@@ -3,8 +3,8 @@
 #' Map an external `coldata` table (sample IDs and a condition/label column)
 #' into a `SummarizedExperiment` produced by `calculate_diversity()`. The
 #' helper sets `colData(ts_se)$sample_type` when possible and records a
-#' `sample_base` identifier for each column. For unmatched samples the
-#' function falls back to `infer_sample_group()`.
+#' `sample_base` identifier for each column. Unmatched entries remain NA and
+#' no automatic inference is attempted.
 #' @param ts_se A `SummarizedExperiment` whose assay columns are named with
 #'   sample identifiers. Names may include per-sample annotations; mapping is
 #'   exact and case-sensitive unless you normalize identifiers beforehand.
@@ -137,10 +137,8 @@ map_coldata_to_se <- function(
     sample_types <- unname(st_map[sample_base_names])
     missing_idx <- which(is.na(sample_types))
     if (length(missing_idx) > 0) {
-        sample_types[missing_idx] <- infer_sample_group(
-            sample_base_names[missing_idx],
-            coldata = coldata
-        )
+        # Leave unmatched sample types as NA; do not attempt inference.
+        sample_types[missing_idx] <- NA_character_
     }
     SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
     # Also record the base sample names (without q suffix) per column so
@@ -151,3 +149,6 @@ map_coldata_to_se <- function(
     rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
     return(ts_se)
 }
+## Note: `infer_sample_group()` removed; prefer explicit `coldata` mapping
+## or supply `sample_type` via `colData(se)`.
+# Supports underscore-suffixed labels (e.g. Sample_N, Sample_T) and

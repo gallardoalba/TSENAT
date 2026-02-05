@@ -42,7 +42,8 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
         colData = cd
     )
 
-    res <- calculate_lm_interaction(se, min_obs = 8)
+    res <- calculate_lm_interaction(se, sample_type_col = "samples", 
+        min_obs = 8)
 
     expect_s3_class(res, "data.frame")
     expect_true(all(c(
