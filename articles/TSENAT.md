@@ -197,7 +197,7 @@ Compute Tsallis entropy for a single`q`and inspect the resulting assay
 ## The `norm = TRUE` option returns normalized entropies on a comparable scale.
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
-head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:5, 1:5])
 #>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T
 #> MXRA8        0.8616275      0.6609111      0.8156972      0.6633580
 #> C1orf86      0.0000000      0.0000000      0.0000000      0.0000000
@@ -225,10 +225,8 @@ paired analyses.
 
 - Naming convention: for paired comparisons use a shared base identifier
   and a role suffix, e.g. `SAMPLE_N` / `SAMPLE_T` or `SAMPLE_Normal` /
-  `SAMPLE_Tumor`. The helper
-  [`infer_sample_group()`](https://gallardoalba.github.io/TSENAT/reference/infer_sample_group.md)
-  recognizes common underscore suffixes (like `_N` / `_T`) and common
-  TCGA-style tokens.
+  `SAMPLE_Tumor`. The helper `infer_sample_group()` recognizes common
+  underscore suffixes (like `_N` / `_T`) and common TCGA-style tokens.
 - Validation and metadata: to perform paired analyses call
   `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
   function will reorder columns to follow `coldata`, add `sample_type`
@@ -257,7 +255,7 @@ After mapping, inspect `colData(ts_se)` to confirm `sample_type` and
 ``` r
 
 # Quick checks on mapped sample metadata
-cd <- SummarizedExperiment::colData(ts_se)
+cd <- colData(ts_se)
 colnames(cd) # list available metadata columns
 #> [1] "samples"     "sample_type" "sample_base"
 head(cd) # preview metadata for first samples
@@ -328,12 +326,12 @@ to suit your experimental design.
 # account for per-q column names like 'Sample_q=0.01'
 sample_base_names <- sub(
     "_q=.*", "",
-    colnames(SummarizedExperiment::assay(ts_se))
+    colnames(assay(ts_se))
 )
-samples <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+samples <- as.character(colData(ts_se)$sample_type)
 
 # prepare diversity table as data.frame with gene names in first column
-div_df <- as.data.frame(SummarizedExperiment::assay(ts_se))
+div_df <- as.data.frame(assay(ts_se))
 div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 
 # samples are matched pairs (Normal/Tumor), so use a paired test
@@ -407,9 +405,9 @@ top_genes <- head(sig_res$genes, 3)
 sample_base_names <- sub(
     "_q=.*",
     "",
-    colnames(SummarizedExperiment::assay(ts_se))
+    colnames(assay(ts_se))
 )
-samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+samples_vec <- as.character(colData(ts_se)$sample_type)
 p_comb <- plot_top_transcripts(readcounts,
     gene = top_genes,
     samples = samples_vec, tx2gene = txmap,
@@ -435,19 +433,19 @@ q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
     q = q, norm = TRUE
 )
-head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
-#>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_T_q=0.1 TCGA-A7-A0D9_N_q=0.1
-#> MXRA8              0.8616275            0.6063802            0.6609111
-#> C1orf86            0.0000000            0.0000000            0.0000000
-#> PDPN               0.3486679            0.6619058            0.3395884
-#> ALDH4A1            0.8111864            0.7478309            0.4667361
-#> HNRNPR             0.5204909            0.6176153            0.6683829
-#>         TCGA-A7-A0D9_T_q=0.1 TCGA-A7-A0DB_T_q=0.1
-#> MXRA8              0.3925463            0.8156972
-#> C1orf86            0.0000000            0.0000000
-#> PDPN               0.5044987            0.0000000
-#> ALDH4A1            0.2841620            0.8621495
-#> HNRNPR             0.6856195            0.7395887
+head(assay(ts_se)[1:5, 1:5])
+#>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=2 TCGA-A7-A0CH_T_q=0.1
+#> MXRA8              0.8616275          0.6063802            0.6609111
+#> C1orf86            0.0000000          0.0000000            0.0000000
+#> PDPN               0.3486679          0.6619058            0.3395884
+#> ALDH4A1            0.8111864          0.7478309            0.4667361
+#> HNRNPR             0.5204909          0.6176153            0.6683829
+#>         TCGA-A7-A0CH_T_q=2 TCGA-A7-A0D9_N_q=0.1
+#> MXRA8            0.3925463            0.8156972
+#> C1orf86          0.0000000            0.0000000
+#> PDPN             0.5044987            0.0000000
+#> ALDH4A1          0.2841620            0.8621495
+#> HNRNPR           0.6856195            0.7395887
 ```
 
 This allows comparison across `q` for the same gene to determine whether
@@ -493,14 +491,14 @@ qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
     q = qvec, norm = TRUE
 )
-head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
-#>         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_T_q=0.01 TCGA-A7-A0D9_N_q=0.01
+head(assay(ts_se)[1:5, 1:5])
+#>         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_N_q=0.11 TCGA-A7-A0CH_N_q=0.21
 #> MXRA8               0.9840684             0.8500785             0.7527194
 #> C1orf86             0.0000000             0.0000000             0.0000000
 #> PDPN                0.3348515             0.3502196             0.3659083
 #> ALDH4A1             0.9759153             0.7976183             0.6982381
 #> HNRNPR              0.5653272             0.5164881             0.4849368
-#>         TCGA-A7-A0D9_T_q=0.01 TCGA-A7-A0DB_T_q=0.01
+#>         TCGA-A7-A0CH_N_q=0.31 TCGA-A7-A0CH_N_q=0.41
 #> MXRA8               0.6818220             0.6303117
 #> C1orf86             0.0000000             0.0000000
 #> PDPN                0.3818895             0.3981326
@@ -529,8 +527,9 @@ changes with `q` across sample groups.
 
 ``` r
 
-# q-curve: median ± IQR across q values by group
-p3 <- plot_tsallis_q_curve(readcounts, genes, q_values = qvec)
+# q-curve: median ± IQR across q values by group (use mapped `ts_se`)
+# ensure `ts_se` has been computed and `map_coldata_to_se()` applied above
+p3 <- plot_tsallis_q_curve(ts_se, SummarizedExperiment::rowData(ts_se)$genes, q_values = qvec)
 print(p3)
 ```
 
@@ -588,12 +587,12 @@ lm_res <- calculate_lm_interaction(ts_se,
 #> [calculate_lm_interaction] parsed samples and groups
 head(lm_res)
 #>      gene p_interaction adj_p_interaction
-#> 1 PPP2R1A     0.7454960         0.9997906
-#> 2    MDH1     0.7721388         0.9997906
-#> 3    ZZZ3     0.7844040         0.9997906
-#> 4   ACACB     0.7869660         0.9997906
-#> 5  CAPZA2     0.7916957         0.9997906
-#> 6  EFTUD2     0.7948379         0.9997906
+#> 1   GFPT1  9.617169e-20      1.894582e-17
+#> 2    MBD2  3.559027e-16      3.505641e-14
+#> 3   EEF2K  1.354202e-15      8.892593e-14
+#> 4 C1orf86  3.946993e-14      1.589046e-12
+#> 5  CAPZA2  4.033112e-14      1.589046e-12
+#> 6   AFAP1  1.133706e-13      3.722334e-12
 ```
 
 ## Practical notes and recommendations

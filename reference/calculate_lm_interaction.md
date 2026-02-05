@@ -68,12 +68,5 @@ gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 calculate_lm_interaction(se)
 #> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups
-#>       gene p_interaction adj_p_interaction
-#> 1  C1orf86     0.2415774         0.6590893
-#> 2     PDPN     0.4229195         0.6590893
-#> 3   HNRNPR     0.4658805         0.6590893
-#> 4 C1orf213     0.5487154         0.6590893
-#> 5    MXRA8     0.5492411         0.6590893
-#> 6  ALDH4A1     0.6606980         0.6606980
+#> Error: No sample grouping found: please supply `sample_type_col` or map sampletypes into `colData(se)` before calling calculate_lm_interaction().
 ```

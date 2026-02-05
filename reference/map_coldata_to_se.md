@@ -4,8 +4,8 @@ Map an external \`coldata\` table (sample IDs and a condition/label
 column) into a \`SummarizedExperiment\` produced by
 \`calculate_diversity()\`. The helper sets
 \`colData(ts_se)\$sample_type\` when possible and records a
-\`sample_base\` identifier for each column. For unmatched samples the
-function falls back to \`infer_sample_group()\`.
+\`sample_base\` identifier for each column. Unmatched entries remain NA
+and no automatic inference is attempted.
 
 ## Usage
 
