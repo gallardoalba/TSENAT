@@ -292,14 +292,11 @@ plot_ma <- function(
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
 
     if (is.null(mean_cols)) {
-        # Prefer mean-based summary columns when available; if not present,
-        # fall back to median-based columns. Do NOT accept mixed mean+median
-        # column pairs — require two columns of the same type.
         mean_only <- grep("_mean$", colnames(diff_df), value = TRUE)
         med_only <- grep("_median$", colnames(diff_df), value = TRUE)
-        if (length(mean_only) >= 2) {
+        if (length(mean_only) == 2) {
             mean_cols <- mean_only[1:2]
-        } else if (length(med_only) >= 2) {
+        } else if (length(med_only) == 2) {
             mean_cols <- med_only[1:2]
         } else {
             stop("Could not find two mean or two median columns in 'diff_df'")
@@ -523,6 +520,21 @@ plot_volcano <- function(
 ) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
     df <- as.data.frame(diff_df)
+
+    # Auto-detect a suitable x column if the default `mean_difference` is
+    # not present. Prefer `mean_difference`, then `median_difference`, then
+    # any column ending with `_difference`.
+    if (!(x_col %in% colnames(df))) {
+        if ("mean_difference" %in% colnames(df)) {
+            x_col <- "mean_difference"
+        } else if ("median_difference" %in% colnames(df)) {
+            x_col <- "median_difference"
+        } else {
+            diffs <- grep("_difference$", colnames(df), value = TRUE)
+            if (length(diffs) >= 1) x_col <- diffs[1]
+        }
+    }
+
     if (!(x_col %in% colnames(df)) || !(padj_col %in% colnames(df))) {
         stop(
             "Required columns not found in diff_df"
