@@ -547,26 +547,85 @@ between `q` and sample groups using a linear model. This tests whether
 the shape of the q-curve differs between groups, which would indicate
 scale-dependent diversity differences.
 
-    #> [calculate_lm_interaction] method=linear
-    #> [calculate_lm_interaction] parsed samples and groups
-    #>      gene p_interaction adj_p_interaction
-    #> 1   GFPT1  9.617169e-20      1.894582e-17
-    #> 2    MBD2  3.559027e-16      3.505641e-14
-    #> 3   EEF2K  1.354202e-15      8.892593e-14
-    #> 4 C1orf86  3.946993e-14      1.589046e-12
-    #> 5  CAPZA2  4.033112e-14      1.589046e-12
-    #> 6   AFAP1  1.133706e-13      3.722334e-12
+``` r
 
-With the q-sequence we can produces a q-curve per sample and gene. These
-curves show how diversity emphasis shifts from rare to dominant isoforms
-as `q` increases and form the basis for interaction tests. The q-curve
-shows entropy as a function of `q`. Diverging curves between groups
-indicate scale-dependent diversity differences. Separation at low `q`
-implies differences in rare isoforms; separation at high `q` signals
-differences in dominant isoforms.
+# Linear-model interaction test across q values: 
+# detect q x group interaction
+# Compute and show top hits (by adjusted p-value)
+lm_res <- calculate_lm_interaction(ts_se, 
+    sample_type_col = "sample_type", method = "linear",
+    nthreads = 1)
+#> [calculate_lm_interaction] method=linear
+#> [calculate_lm_interaction] parsed samples and groups
+print(head(lm_res, 6))
+#>      gene p_interaction adj_p_interaction
+#> 1   GFPT1  9.617169e-20      1.894582e-17
+#> 2    MBD2  3.559027e-16      3.505641e-14
+#> 3   EEF2K  1.354202e-15      8.892593e-14
+#> 4 C1orf86  3.946993e-14      1.589046e-12
+#> 5  CAPZA2  4.033112e-14      1.589046e-12
+#> 6   AFAP1  1.133706e-13      3.722334e-12
+```
 
-Plot the **Tsallis q-curve** (entropy vs q) to visualize how diversity
-changes with `q` across sample groups.
+### Tsallis q-sequence plot
+
+With the Tsallis q-sequence we can produces a q-curve per sample and
+gene. These curves show how diversity emphasis shifts from rare to
+dominant isoforms as `q` increases and form the basis for interaction
+tests. The q-curve shows entropy as a function of `q`. Diverging curves
+between groups indicate scale-dependent diversity differences.
+Separation at low `q` implies differences in rare isoforms; separation
+at high `q` signals differences in dominant isoforms.
+
+Now we will plot the q-curve profile for the top gene identified by the
+linear-model interaction test. We will start with `GFPT1`.
+
+``` r
+
+# Plot q-curve profile for top linear-model gene
+    # Prefer GFPT1 if present; otherwise use top LM hit
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "GFPT1",
+    sample_type_col = "sample_type", show_samples = FALSE)
+print(plot_target)
+```
+
+![](TSENAT_files/figure-html/gfpt1-gene-qprofile-1.png)
+
+Now let’s have a look at the `MBD2` gene, which encondes a methyl-CpG
+binding domain [protein involved in immune cell development, function,
+and autoimmune
+diseases9](https://www.nature.com/articles/s41420-025-02563-0).
+
+``` r
+
+# Plot q-curve profile for top linear-model gene
+    # Prefer GFPT1 if present; otherwise use top LM hit
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "MBD2",
+    sample_type_col = "sample_type", show_samples = FALSE)
+print(plot_target)
+```
+
+![](TSENAT_files/figure-html/mbd2-gene-qprofile-1.png)
+
+We could also generate the q-sequence profile for `EEF2K`. This gene
+codifies an [protein kinase associated with cancer survival and
+prognosis](https://www.nature.com/articles/s41598-024-78652-4).
+
+``` r
+
+# Plot q-curve profile for top linear-model gene
+    # Prefer GFPT1 if present; otherwise use top LM hit
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "EEF2K",
+    sample_type_col = "sample_type", show_samples = FALSE)
+print(plot_target)
+```
+
+![](TSENAT_files/figure-html/eef2k-gene-qprofile-1.png)
+
+We can plot also the **overall Tsallis q-curve for all genes**. This
+kind of plot provides a global view of how diversity changes across the
+`q` spectrum for the entire dataset, and can reveal general trends in
+isoform diversity.
 
 ![](TSENAT_files/figure-html/tsallis-q-curve-1.png)
 
@@ -663,7 +722,7 @@ sessionInfo()
 #> [40] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
 #> [43] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
 #> [46] otel_0.2.0          ragg_1.5.0          evaluate_1.0.5     
-#> [49] knitr_1.51          viridisLite_0.4.2   rlang_1.1.7        
+#> [49] knitr_1.51          viridisLite_0.4.3   rlang_1.1.7        
 #> [52] Rcpp_1.1.1          glue_1.8.0          jsonlite_2.0.0     
 #> [55] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
 ```

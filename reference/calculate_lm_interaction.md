@@ -14,7 +14,7 @@ calculate_lm_interaction(
   se,
   sample_type_col = NULL,
   min_obs = 10,
-  method = c("linear", "gam", "fpca"),
+  method = c("linear", "lmm", "gam", "fpca"),
   nthreads = 1,
   assay_name = "diversity"
 )
