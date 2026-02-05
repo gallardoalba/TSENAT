@@ -55,8 +55,8 @@ calculate_diversity(
 
 - what:
 
-  Which quantity to return: "S" for Tsallis entropy, "D" for Hill
-  numbers, or "both".
+  Which quantity to return: "S" for Tsallis entropy or "D" for Hill
+  numbers.
 
 ## Value
 

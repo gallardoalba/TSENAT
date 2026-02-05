@@ -11,7 +11,7 @@ calculate_method(
   norm = TRUE,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D", "both")
+  what = c("S", "D")
 )
 ```
 
@@ -42,7 +42,7 @@ calculate_method(
 - what:
 
   Which quantity to return from \`calculate_tsallis_entropy\`: "S"
-  (Tsallis entropy), "D" (Hill numbers), or "both" (default: "S").
+  (Tsallis entropy) or "D" (Hill numbers) (default: "S").
 
 ## Value
 

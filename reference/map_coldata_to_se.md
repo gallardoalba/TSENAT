@@ -1,11 +1,11 @@
-# Map external coldata into a SummarizedExperiment This helper maps an external \`coldata\` table (with sample IDs and a condition/label column) into a \`SummarizedExperiment\` produced by \`calculate_diversity()\`. It assigns a \`sample_type\` column to \`colData(ts_se)\` and falls back to \`infer_sample_group()\` for unmapped samples.
+# Map external coldata into a SummarizedExperiment
 
-Map external coldata into a SummarizedExperiment This helper maps an
-external \`coldata\` table (with sample IDs and a condition/label
+Map an external \`coldata\` table (sample IDs and a condition/label
 column) into a \`SummarizedExperiment\` produced by
-\`calculate_diversity()\`. It assigns a \`sample_type\` column to
-\`colData(ts_se)\` and falls back to \`infer_sample_group()\` for
-unmapped samples.
+\`calculate_diversity()\`. The helper sets
+\`colData(ts_se)\$sample_type\` when possible and records a
+\`sample_base\` identifier for each column. For unmatched samples the
+function falls back to \`infer_sample_group()\`.
 
 ## Usage
 
@@ -14,7 +14,8 @@ map_coldata_to_se(
   ts_se,
   coldata,
   coldata_sample_col = "Sample",
-  coldata_condition_col = "Condition"
+  coldata_condition_col = "Condition",
+  paired = FALSE
 )
 ```
 
@@ -22,25 +23,37 @@ map_coldata_to_se(
 
 - ts_se:
 
-  A \`SummarizedExperiment\` object with assay columns named possibly
-  including \`\_q=\` suffixes.
+  A \`SummarizedExperiment\` whose assay columns are named with sample
+  identifiers. Names may include per-sample annotations; mapping is
+  exact and case-sensitive unless you normalize identifiers beforehand.
 
 - coldata:
 
-  A data.frame with sample metadata or \`NULL\`.
+  A data.frame with sample metadata (or \`NULL\`).
 
 - coldata_sample_col:
 
-  Name of the column in \`coldata\` with sample IDs.
+  Name of the column in \`coldata\` containing sample identifiers
+  (default: "Sample").
 
 - coldata_condition_col:
 
-  Name of the column in \`coldata\` with condition/labels.
+  Name of the column in \`coldata\` with condition/labels (default:
+  "Condition").
+
+- paired:
+
+  Logical; if \`TRUE\`, validate pairing and reorder columns so that
+  matched samples for each base are adjacent (default: \`FALSE\`). Use
+  \`paired = TRUE\` for paired analyses so downstream paired tests see
+  aligned samples regardless of the original \`coldata\` order.
 
 ## Value
 
-The input \`ts_se\` with \`colData(ts_se)\$sample_type\` set when
-possible.
+The input \`ts_se\` with \`colData(ts_se)\$sample_type\` populated when
+possible. \`colData(ts_se)\$sample_base\` is also added containing the
+base sample identifier; rownames of \`colData(ts_se)\` are aligned to
+the assay column names.
 
 ## Examples
 
@@ -62,5 +75,16 @@ map_coldata_to_se(se, coldata_df)
 #> rowData names(1): genes
 #> colnames(40): TCGA-A7-A0CH_N TCGA-A7-A0CH_T ... TCGA-BH-A0BV_T
 #>   TCGA-BH-A0BV_N
-#> colData names(2): samples sample_type
+#> colData names(3): samples sample_type sample_base
+# Optionally validate pairs when appropriate
+map_coldata_to_se(se, coldata_df, paired = TRUE)
+#> class: SummarizedExperiment 
+#> dim: 6 40 
+#> metadata(4): method norm q what
+#> assays(1): diversity
+#> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
+#> rowData names(1): genes
+#> colnames(40): TCGA-A7-A0CH_N TCGA-A7-A0CH_T ... TCGA-BH-A0BV_T
+#>   TCGA-BH-A0BV_N
+#> colData names(3): samples sample_type sample_base
 ```

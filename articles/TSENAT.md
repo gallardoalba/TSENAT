@@ -149,11 +149,11 @@ head(readcounts[, 1:5])
 head(coldata_df)
 #>           Sample Condition
 #> 1 TCGA-A7-A0CH_N    Normal
-#> 2 TCGA-A7-A0CH_T     Tumor
-#> 3 TCGA-A7-A0D9_N    Normal
-#> 4 TCGA-A7-A0D9_T     Tumor
-#> 5 TCGA-A7-A0DB_N    Normal
-#> 6 TCGA-A7-A0DB_T     Tumor
+#> 2 TCGA-A7-A0D9_N    Normal
+#> 3 TCGA-A7-A0DB_N    Normal
+#> 4 TCGA-A7-A0DC_N    Normal
+#> 5 TCGA-A7-A13G_N    Normal
+#> 6 TCGA-AC-A2FB_N    Normal
 ```
 
 ### Data filtering and preprocessing
@@ -212,34 +212,64 @@ head(SummarizedExperiment::assay(ts_se)[1:5, 1:5])
 #> HNRNPR       0.8287792
 ```
 
-Map sample metadata (if available) into the `SummarizedExperiment` so
-plotting functions can use `sample_type` for grouping.
+Now we should map the sample metadata (if available) into the
+`SummarizedExperiment` so plotting functions can use `sample_type` for
+grouping.
+
+### Sample naming and pairing requirements
+
+TSENAT requires a consistent, exact mapping between the assay column
+names and the values in `coldata$Sample`. The following rules and
+recommendations make mapping reliable and avoid surprises when running
+paired analyses.
+
+- Naming convention: for paired comparisons use a shared base identifier
+  and a role suffix, e.g. `SAMPLE_N` / `SAMPLE_T` or `SAMPLE_Normal` /
+  `SAMPLE_Tumor`. The helper
+  [`infer_sample_group()`](https://gallardoalba.github.io/TSENAT/reference/infer_sample_group.md)
+  recognizes common underscore suffixes (like `_N` / `_T`) and common
+  TCGA-style tokens.
+- Validation and metadata: to perform paired analyses call
+  `map_coldata_to_se(..., paired = TRUE)`. When `paired = TRUE` the
+  function will reorder columns to follow `coldata`, add `sample_type`
+  and `sample_base` to `colData(ts_se)`, and check that each
+  `sample_base` has entries for all groups, returning an informative
+  error if not.
+
+The following example from `coldata_df` illustrates a correct format:
+
+``` text
+Sample  Condition
+TCGA-A7-A0CH_N  Normal
+TCGA-A7-A0D9_N  Normal
+TCGA-A7-A0CH_T  Tumor
+TCGA-A7-A0D9_T  Tumor
+```
 
 ``` r
 
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
+ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
 ```
 
-After mapping the `coldata`, you can inspect `colData(ts_se)` to confirm
-that `sample_type` and any other covariates are available for downstream
-plotting and modeling.
+After mapping, inspect `colData(ts_se)` to confirm `sample_type` and
+`sample_base` are present and correctly populated.
 
 ``` r
 
 # Quick checks on mapped sample metadata
 cd <- SummarizedExperiment::colData(ts_se)
 colnames(cd) # list available metadata columns
-#> [1] "samples"     "sample_type"
+#> [1] "samples"     "sample_type" "sample_base"
 head(cd) # preview metadata for first samples
-#> DataFrame with 6 rows and 2 columns
-#>                       samples sample_type
-#>                   <character> <character>
-#> TCGA-A7-A0CH_N TCGA-A7-A0CH_N      Normal
-#> TCGA-A7-A0CH_T TCGA-A7-A0CH_T       Tumor
-#> TCGA-A7-A0D9_N TCGA-A7-A0D9_N      Normal
-#> TCGA-A7-A0D9_T TCGA-A7-A0D9_T       Tumor
-#> TCGA-A7-A0DB_T TCGA-A7-A0DB_T       Tumor
-#> TCGA-A7-A0DB_N TCGA-A7-A0DB_N      Normal
+#> DataFrame with 6 rows and 3 columns
+#>                       samples sample_type    sample_base
+#>                   <character> <character>    <character>
+#> TCGA-A7-A0CH_N TCGA-A7-A0CH_N      Normal TCGA-A7-A0CH_N
+#> TCGA-A7-A0CH_T TCGA-A7-A0CH_T       Tumor TCGA-A7-A0CH_T
+#> TCGA-A7-A0D9_N TCGA-A7-A0D9_N      Normal TCGA-A7-A0D9_N
+#> TCGA-A7-A0D9_T TCGA-A7-A0D9_T       Tumor TCGA-A7-A0D9_T
+#> TCGA-A7-A0DB_N TCGA-A7-A0DB_N      Normal TCGA-A7-A0DB_N
+#> TCGA-A7-A0DB_T TCGA-A7-A0DB_T       Tumor TCGA-A7-A0DB_T
 ```
 
 ## Differential analysis
