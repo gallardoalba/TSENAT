@@ -66,7 +66,13 @@ data("tcga_brca_luma_dataset", package = "TSENAT")
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
-calculate_lm_interaction(se)
+# Provide a minimal sample-type mapping so the example runs during checks
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+  row.names = colnames(se)
+)
+calculate_lm_interaction(se, sample_type_col = "sample_type")
 #> [calculate_lm_interaction] method=linear
-#> Error: No sample grouping found: please supply `sample_type_col` or map sampletypes into `colData(se)` before calling calculate_lm_interaction().
+#> [calculate_lm_interaction] parsed samples and groups
+#> data frame with 0 columns and 0 rows
 ```

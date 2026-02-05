@@ -319,13 +319,16 @@ speed when sample sizes support asymptotic approximations. Use
 permutation tests when small-sample accuracy or exact control of the
 null distribution is important.
 
+**Recommendation: summary & test choice**:
+
+For the analyses shown in this vignette we recommend using the
+**median** in the **Wilcoxon** rank-sum test for comparisons. Tsallis
+entropy values are often skewed and sensitive to outliers; the median is
+robust and the Wilcoxon test does not assume normality, so this
+combination is well suited for our analysis.
+
 Before running differential tests we summarize per-gene diversity values
-across samples and explicitly define sample groups. The example below
-performs a pairwise comparison between two conditions (e.g., `Normal` vs
-`Tumor`) using a non-parametric Wilcoxon test on the per-gene diversity
-summaries. Adjust the `control` and `test` parameters in
-[`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md)
-to suit your experimental design.
+across samples and explicitly define sample groups.
 
 ``` r
 
@@ -344,19 +347,19 @@ div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 # samples are matched pairs (Normal/Tumor), so use a paired test
 res <- calculate_difference(div_df, samples,
     control = "Normal",
-    method = "mean", test = "wilcoxon",
+    method = "median", test = "wilcoxon",
     paired = TRUE
 )
 # sort results by adjusted p-value
 res <- res[order(res$adjusted_p_values), , drop = FALSE]
 head(res)
-#>        genes Tumor_mean Normal_mean mean_difference log2_fold_change
-#> 6   C1orf213  0.3783117   0.9639752     -0.58566342      -1.34942042
-#> 17     S1PR1  0.9836170   0.9976878     -0.01407073      -0.02049165
-#> 87      MBD2  0.5199277   0.1655574      0.35437027       1.65097918
-#> 98      OSR1  0.7722536   0.5440455      0.22820806       0.50534727
-#> 101    GFPT1  0.1156779   0.4675860     -0.35190810      -2.01511871
-#> 126     KIF9  0.5729707   0.3685433      0.20442740       0.63662729
+#>        genes Tumor_median Normal_median median_difference log2_fold_change
+#> 6   C1orf213           NA     0.9870253                NA               NA
+#> 17     S1PR1    0.9931595     0.9993087       -0.00614921     -0.008904999
+#> 87      MBD2    0.5592953            NA                NA               NA
+#> 98      OSR1    0.7933920     0.6636451        0.12974692      0.257621943
+#> 101    GFPT1           NA     0.5834509                NA               NA
+#> 126     KIF9    0.5814162     0.3710543        0.21036198      0.647941169
 #>     raw_p_values adjusted_p_values
 #> 6   0.0002357454         0.0269389
 #> 17  0.0007285418         0.0269389
@@ -377,10 +380,16 @@ Generate diagnostic plots to summarize per-gene effect sizes:
 
 ``` r
 
-# MA plot using helper
-p_ma <- plot_ma(res)
+# MA plot using helper: prefer median columns if present
+mean_cols <- grep("_median$|_mean$", colnames(res), value = TRUE)
+if (length(mean_cols) >= 2) {
+    mean_cols <- mean_cols[1:2]
+} else {
+    stop("No mean/median columns found for MA plot in 'res'")
+}
+p_ma <- plot_ma(res, mean_cols = mean_cols)
 print(p_ma)
-#> Warning: Removed 4 rows containing missing values or values outside the scale range
+#> Warning: Removed 50 rows containing missing values or values outside the scale range
 #> (`geom_point()`).
 ```
 
@@ -391,6 +400,8 @@ print(p_ma)
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
 print(p_volcano)
+#> Warning: Removed 3 rows containing missing values or values outside the scale range
+#> (`geom_text_repel()`).
 ```
 
 ![](TSENAT_files/figure-html/ma-and-volcano-2.png)

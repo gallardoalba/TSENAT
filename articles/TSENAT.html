@@ -394,14 +394,14 @@ labelings) for very small datasets.</li>
 appropriate choice for speed when sample sizes support asymptotic
 approximations. Use permutation tests when small-sample accuracy or
 exact control of the null distribution is important.</p>
+<p><strong>Recommendation: summary &amp; test choice</strong>:</p>
+<p>For the analyses shown in this vignette we recommend using the
+<strong>median</strong> in the <strong>Wilcoxon</strong> rank-sum test
+for comparisons. Tsallis entropy values are often skewed and sensitive
+to outliers; the median is robust and the Wilcoxon test does not assume
+normality, so this combination is well suited for our analysis.</p>
 <p>Before running differential tests we summarize per-gene diversity
-values across samples and explicitly define sample groups. The example
-below performs a pairwise comparison between two conditions (e.g.,
-<code>Normal</code> vs <code>Tumor</code>) using a non-parametric
-Wilcoxon test on the per-gene diversity summaries. Adjust the
-<code>control</code> and <code>test</code> parameters in
-<code><a href="../reference/calculate_difference.html">calculate_difference()</a></code> to suit your experimental
-design.</p>
+values across samples and explicitly define sample groups.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># create a sample grouping vector inferred from sample names</span></span>
 <span><span class="co"># account for per-q column names like 'Sample_q=0.01'</span></span>
@@ -418,19 +418,19 @@ design.</p>
 <span><span class="co"># samples are matched pairs (Normal/Tumor), so use a paired test</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span><span class="va">div_df</span>, <span class="va">samples</span>,</span>
 <span>    control <span class="op">=</span> <span class="st">"Normal"</span>,</span>
-<span>    method <span class="op">=</span> <span class="st">"mean"</span>, test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
+<span>    method <span class="op">=</span> <span class="st">"median"</span>, test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
 <span>    paired <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># sort results by adjusted p-value</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span><span class="op">)</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        genes Tumor_mean Normal_mean mean_difference log2_fold_change</span></span>
-<span><span class="co">#&gt; 6   C1orf213  0.3783117   0.9639752     -0.58566342      -1.34942042</span></span>
-<span><span class="co">#&gt; 17     S1PR1  0.9836170   0.9976878     -0.01407073      -0.02049165</span></span>
-<span><span class="co">#&gt; 87      MBD2  0.5199277   0.1655574      0.35437027       1.65097918</span></span>
-<span><span class="co">#&gt; 98      OSR1  0.7722536   0.5440455      0.22820806       0.50534727</span></span>
-<span><span class="co">#&gt; 101    GFPT1  0.1156779   0.4675860     -0.35190810      -2.01511871</span></span>
-<span><span class="co">#&gt; 126     KIF9  0.5729707   0.3685433      0.20442740       0.63662729</span></span>
+<span><span class="co">#&gt;        genes Tumor_median Normal_median median_difference log2_fold_change</span></span>
+<span><span class="co">#&gt; 6   C1orf213           NA     0.9870253                NA               NA</span></span>
+<span><span class="co">#&gt; 17     S1PR1    0.9931595     0.9993087       -0.00614921     -0.008904999</span></span>
+<span><span class="co">#&gt; 87      MBD2    0.5592953            NA                NA               NA</span></span>
+<span><span class="co">#&gt; 98      OSR1    0.7933920     0.6636451        0.12974692      0.257621943</span></span>
+<span><span class="co">#&gt; 101    GFPT1           NA     0.5834509                NA               NA</span></span>
+<span><span class="co">#&gt; 126     KIF9    0.5814162     0.3710543        0.21036198      0.647941169</span></span>
 <span><span class="co">#&gt;     raw_p_values adjusted_p_values</span></span>
 <span><span class="co">#&gt; 6   0.0002357454         0.0269389</span></span>
 <span><span class="co">#&gt; 17  0.0007285418         0.0269389</span></span>
@@ -448,16 +448,24 @@ significance, useful for highlighting candidates by thresholding
 magnitude and adjusted p-value.</li>
 </ul>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># MA plot using helper</span></span>
-<span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma.html">plot_ma</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># MA plot using helper: prefer median columns if present</span></span>
+<span><span class="va">mean_cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"_median$|_mean$"</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">mean_cols</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">mean_cols</span> <span class="op">&lt;-</span> <span class="va">mean_cols</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">]</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"No mean/median columns found for MA plot in 'res'"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma.html">plot_ma</a></span><span class="op">(</span><span class="va">res</span>, mean_cols <span class="op">=</span> <span class="va">mean_cols</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Removed 4 rows containing missing values or values outside the scale range</span></span>
+<span><span class="co">#&gt; Warning: Removed 50 rows containing missing values or values outside the scale range</span></span>
 <span><span class="co">#&gt; (`geom_point()`).</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/ma-and-volcano-1.png" class="r-plt" alt="" width="768"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Volcano plot: mean difference vs -log10(adjusted p-value)</span></span>
 <span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Removed 3 rows containing missing values or values outside the scale range</span></span>
+<span><span class="co">#&gt; (`geom_text_repel()`).</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/ma-and-volcano-2.png" class="r-plt" alt="" width="768"></p>
 <div class="section level3">
 <h3 id="plot-top-3-genes-from-the-single-q-differential-analysis">Plot top 3 genes from the single-q differential analysis<a class="anchor" aria-label="anchor" href="#plot-top-3-genes-from-the-single-q-differential-analysis"></a>
