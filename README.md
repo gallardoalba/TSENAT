@@ -8,9 +8,9 @@
 
 TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:
 
-- **Scale-dependent diversity analysis**: Evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`
-- **Statistical testing**: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches
-- **Reproducible workflows**: From raw counts to publication-ready visualizations with paired sample support
+- **Scale-dependent diversity analysis**: Evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
+- **Statistical testing**: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.
+- **Reproducible workflows**: From raw counts to publication-ready visualizations with paired sample support.
 
 ## Tsallis Theory
 
@@ -80,7 +80,7 @@ renv::init()
 renv::snapshot()
 ```
 
-**Documentation**: [TSENAT site](https://gallardoalba.github.io/TSENAT/)
+**Documentation**: [TSENAT site](https://gallardoalba.github.io/TSENAT/).
 
 ## Quick Start
 
