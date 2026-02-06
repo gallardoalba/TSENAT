@@ -1,16 +1,26 @@
 #!/usr/bin/env Rscript
+# Run BiocCheck validation against Bioconductor standards
+#
+# Usage: Rscript scripts/run_bioccheck.R
+
 tryCatch(
     {
         options(repos = c(CRAN = "https://cloud.r-project.org"))
-        if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-        if (!requireNamespace("BiocCheck", quietly = TRUE)) BiocManager::install("BiocCheck")
-        library(BiocCheck)
+        
+        if (!requireNamespace("BiocManager", quietly = TRUE)) {
+            install.packages("BiocManager", repos = "https://cloud.r-project.org")
+        }
+        if (!requireNamespace("BiocCheck", quietly = TRUE)) {
+            BiocManager::install("BiocCheck")
+        }
+        
         cat("Running BiocCheck...\n")
+        library(BiocCheck)
         BiocCheck::BiocCheck(".")
-        cat("BiocCheck finished.\n")
+        cat("✓ BiocCheck completed\n")
     },
     error = function(e) {
-        cat("ERROR:", conditionMessage(e), "\n")
+        cat("✗ ERROR:", conditionMessage(e), "\n")
         quit(status = 1)
     }
 )

@@ -21,13 +21,9 @@ jobs:
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
       - run:
-          name: Install R build tools
-          command: |
-            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck"), repos="https://cloud.r-project.org")'
-      - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
       - restore_cache:
           keys:
@@ -76,13 +72,9 @@ jobs:
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
       - run:
-          name: Install R build tools
-          command: |
-            R -e 'install.packages(c("remotes", "devtools"), repos="https://cloud.r-project.org")'
-      - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+            R -e 'install.packages(c("remotes", "devtools", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
       - restore_cache:
           keys:

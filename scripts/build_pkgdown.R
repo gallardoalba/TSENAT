@@ -1,9 +1,22 @@
-# !/usr/bin/env Rscript
-# Build pkgdown site with warnings suppressed to avoid spurious stack imbalance
-# messages
-options(warn = -1)
-if (!requireNamespace("pkgdown", quietly = TRUE)) {
-    install.packages("pkgdown", repos = "https://cloud.r-project.org")
-}
-pkgdown::build_site()
-invisible()
+#!/usr/bin/env Rscript
+# Build pkgdown documentation site
+#
+# Usage: Rscript scripts/build_pkgdown.R
+
+tryCatch(
+    {
+        if (!requireNamespace("pkgdown", quietly = TRUE)) {
+            install.packages("pkgdown", repos = "https://cloud.r-project.org")
+        }
+        
+        cat("Building pkgdown site...\n")
+        options(warn = -1)  # Suppress spurious stack imbalance warnings
+        pkgdown::build_site()
+        cat("✓ pkgdown site built successfully in docs/\n")
+        invisible()
+    },
+    error = function(e) {
+        cat("✗ ERROR:", conditionMessage(e), "\n")
+        quit(status = 1)
+    }
+)
