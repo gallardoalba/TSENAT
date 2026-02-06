@@ -160,41 +160,6 @@ devtools::check()
 devtools::test()
 ```
 
-## Troubleshooting
-
-### Issue: "paired = TRUE not recognized"
-**Solution**: Ensure you're using the development version:
-```r
-remotes::install_github("gallardoalba/TSENAT")
-devtools::load_all()
-```
-
-### Issue: Missing BiocManager packages
-**Solution**: Install Bioconductor dependencies:
-```r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install(c("SummarizedExperiment", "S4Vectors"))
-```
-
-### Issue: Vignette build fails
-**Solution**: Install suggested packages:
-```r
-remotes::install_deps(dependencies = TRUE)
-```
-
-### Issue: Mixed model tests fail
-**Solution**: Install required model packages:
-```r
-install.packages(c("lme4", "lmerTest"))
-```
-
-For additional help, please [open an issue](https://github.com/gallardoalba/TSENAT/issues) on GitHub.
-
-## Code of Conduct
-
-Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
-
 ## CI and Local Checks
 
 Continuous integration is configured with CircleCI to install all suggested packages for comprehensive testing. To reproduce a CI-like environment locally:
