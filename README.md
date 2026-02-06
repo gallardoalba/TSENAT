@@ -107,6 +107,15 @@ print(p_qcurve)
 
 For a detailed, reproducible workflow see the [package vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
 
+## Example Output
+
+Below is an example q-curve profile from the vignette showing how Tsallis entropy changes across the sensitivity parameter `q` for the gene PI16, a key regulator in the vascular system:
+
+![PI16 q-Curve Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
+
+This visualization demonstrates how rare and dominant isoforms separate at different `q` values, revealing scale-dependent diversity differences between Normal and Tumor samples.
+
+
 ## Citation
 
 If you use TSENAT in your research, please cite:
