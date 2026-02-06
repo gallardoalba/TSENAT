@@ -1,9 +1,5 @@
 version: 2.1
 
-parameters:
-  deploy_only:
-    type: boolean
-    default: false
 jobs:
   build:
     docker:
@@ -11,63 +7,30 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}
-            - v1-r-packages-
       - run:
-          name: Prepare R library dir
+          name: Setup R library paths
           command: |
             mkdir -p ~/R/library
             echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
             source $BASH_ENV
       - run:
-          name: Install Miniconda and mamba (conda-forge)
-          command: |
-            set -euxo pipefail
-            curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh
-            bash miniconda.sh -b -p $HOME/miniconda
-            export PATH="$HOME/miniconda/bin:$PATH"
-            source $HOME/miniconda/etc/profile.d/conda.sh
-            conda config --add channels conda-forge
-            conda config --add channels bioconda
-            conda config --set channel_priority strict
-            conda install -y -n base -c conda-forge mamba
-            mamba create -y -n r-env r-base=4.5 r-pkgdown r-remotes r-xml2 r-rmarkdown r-knitr r-ggplot2 r-dplyr r-tidyr r-cowplot r-ggrepel r-patchwork r-lme4 r-lmertest
-            echo 'export PATH="$HOME/miniconda/envs/r-env/bin:$PATH"' >> $BASH_ENV
-            echo 'source $HOME/miniconda/etc/profile.d/conda.sh' >> $BASH_ENV
-            source $BASH_ENV
-      - run:
-          name: Install Miniconda and mamba (conda-forge)
-          command: |
-            set -euxo pipefail
-            curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh
-            bash miniconda.sh -b -p $HOME/miniconda
-            export PATH="$HOME/miniconda/bin:$PATH"
-            source $HOME/miniconda/etc/profile.d/conda.sh
-            conda config --add channels conda-forge
-            conda config --add channels bioconda
-            conda config --set channel_priority strict
-            conda install -y -n base -c conda-forge mamba
-            # Create a small R env with lme4/lmerTest to satisfy vignette
-            mamba create -y -n r-env r-base=4.5 r-lme4 r-lmertest
-            echo 'export PATH="$HOME/miniconda/envs/r-env/bin:$PATH"' >> $BASH_ENV
-            echo 'source $HOME/miniconda/etc/profile.d/conda.sh' >> $BASH_ENV
-            source $BASH_ENV
-      - run:
-          name: Install OS deps
+          name: Install OS dependencies
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-              pandoc
+              pandoc git
       - run:
-          name: Install R tools
-          command: R -e 'install.packages(c("remotes","devtools","rcmdcheck"), repos="https://cloud.r-project.org")'
+          name: Install R build tools
+          command: |
+            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck"), repos="https://cloud.r-project.org")'
       - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("remotes","ggplot2","magrittr","tidyr","dplyr","knitr","rmarkdown","xml2","ggrepel","cowplot","patchwork","mgcv","pkgdown","lme4","lmerTest"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE)'
+            R -e 'install.packages(c("ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}
       - save_cache:
           paths:
             - ~/R/library
@@ -75,59 +38,53 @@ jobs:
       - run:
           name: Build package
           command: |
-            source $HOME/miniconda/etc/profile.d/conda.sh && conda activate r-env
             R CMD build .
       - run:
           name: Run checks
           command: |
-            source $HOME/miniconda/etc/profile.d/conda.sh && conda activate r-env
-            # Allow checking to proceed when Suggests are not available
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
       - run:
           name: Install codecov
           command: |
-            apt-get update && apt-get install -y --no-install-recommends curl git
+            apt-get update && apt-get install -y --no-install-recommends curl
             curl -Os https://uploader.codecov.io/latest/linux/codecov
             chmod +x codecov
       - run:
           name: Upload coverage to Codecov
           command: |
             bash <(curl -s https://codecov.io/bash) || echo "Codecov upload failed (non-critical)"
+
   deploy_docs:
     docker:
       - image: rocker/r-ver:4.5.0
     working_directory: ~/repo
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}
-            - v1-r-packages-
       - run:
-          name: Prepare R library dir
+          name: Setup R library paths
           command: |
             mkdir -p ~/R/library
             echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
             source $BASH_ENV
       - run:
-          name: Install OS deps
+          name: Install OS dependencies
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
-              libxml2-dev libssl-dev libcurl4-openssl-dev git \
-              pkg-config libpng-dev libjpeg-dev libtiff5-dev \
-              libfreetype6-dev libfontconfig1-dev libharfbuzz-dev libfribidi-dev libcairo2-dev \
-              pandoc
+              libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
+              pandoc git
       - run:
-          name: Install R packages for docs
+          name: Install R build tools
           command: |
-            set -euo pipefail
-            # Install CRAN packages and fail early if any are missing; print sessionInfo() for debugging
-              R -e 'options(repos="https://cloud.r-project.org"); pkgs <- c("remotes","pkgdown","rmarkdown","knitr","xml2","tidyr","dplyr","ggplot2","ggrepel","cowplot","patchwork","lme4","lmerTest"); install.packages(pkgs); missing <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if (length(missing)) { message("Missing CRAN packages: ", paste(missing, collapse=", ")); sessionInfo(); q(status=1) }'
-            # Install Bioconductor packages and check
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE); bpkgs <- c("SummarizedExperiment","S4Vectors"); missingb <- bpkgs[!sapply(bpkgs, requireNamespace, quietly=TRUE)]; if (length(missingb)) { message("Missing Bioconductor packages: ", paste(missingb, collapse=", ")); sessionInfo(); q(status=1) }'
-            # Print session info for CI diagnostics
-            R -e 'sessionInfo()'
+            R -e 'install.packages(c("remotes", "devtools"), repos="https://cloud.r-project.org")'
+      - run:
+          name: Install package dependencies
+          command: |
+            R -e 'install.packages(c("ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}
       - save_cache:
           paths:
             - ~/R/library
@@ -135,37 +92,13 @@ jobs:
       - run:
           name: Build pkgdown site
           command: |
-            source $HOME/miniconda/etc/profile.d/conda.sh && conda activate r-env
-            # Ensure pkgdown is installed then build
-            R -e "if (!requireNamespace("pkgdown", quietly=TRUE)) install.packages("pkgdown", repos="https://cloud.r-project.org")"
-            Rscript -e "pkgdown::build_site()"
+            Rscript -e 'pkgdown::build_site()'
       - run:
-          name: Publish to gh-pages
+          name: Deploy to GitHub Pages
           command: |
-            set -e
-            if [ -z "$GITHUB_TOKEN" ]; then
-              echo 'GITHUB_TOKEN not set; aborting deploy.'
-              exit 1
-            fi
-            git config --global user.name "${CIRCLE_USERNAME:-circleci}"
-            git config --global user.email "${CIRCLE_USERNAME:-circleci}@users.noreply.github.com"
-            REPO="https://x-access-token:${GITHUB_TOKEN}@github.com/gallardoalba/TSENAT.git"
-            # create a temp dir and push docs/ to gh-pages branch
-            TMPDIR=$(mktemp -d)
-            git clone --branch gh-pages --single-branch "$REPO" "$TMPDIR" || (
-              git clone "$REPO" "$TMPDIR" && cd "$TMPDIR" && git checkout --orphan gh-pages
-            )
-            rm -rf "$TMPDIR"/*
-            cp -R docs/* "$TMPDIR"/
-            cd "$TMPDIR"
-            git add --all
-            if git diff --cached --quiet; then
-              echo 'No changes to deploy.'
-            else
-              git commit -m "Update pkgdown site from CircleCI"
-              git push "$REPO" gh-pages
-            fi
-            cd -
+            git config user.email "ci@example.com"
+            git config user.name "CircleCI"
+            Rscript -e 'pkgdown::deploy_to_branch(install = FALSE)'
 
 workflows:
   version: 2
@@ -174,23 +107,10 @@ workflows:
       - build:
           filters:
             branches:
-                only: stable
-
-  deploy_only:
-    jobs:
+              only: stable
       - deploy_docs:
+          requires:
+            - build
           filters:
             branches:
-              only: gh-pages
-
-  parameterized_deploy:
-    when: << pipeline.parameters.deploy_only >>
-    jobs:
-      - deploy_docs
-
-  deploy_on_gh_pages:
-    jobs:
-      - deploy_docs:
-          filters:
-            branches:
-              only: gh-pages
+              only: stable
