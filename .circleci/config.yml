@@ -48,6 +48,16 @@ jobs:
             # Allow checking to proceed when Suggests are not available
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
+      - run:
+          name: Install codecov
+          command: |
+            apt-get update && apt-get install -y --no-install-recommends curl git
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            chmod +x codecov
+      - run:
+          name: Upload coverage to Codecov
+          command: |
+            bash <(curl -s https://codecov.io/bash) || echo "Codecov upload failed (non-critical)"
   deploy_docs:
     docker:
       - image: rocker/r-ver:4.5.0
