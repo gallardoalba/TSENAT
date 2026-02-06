@@ -74,10 +74,13 @@ jobs:
           key: v1-r-packages-{{ checksum "DESCRIPTION" }}
       - run:
           name: Build package
-          command: R CMD build .
+          command: |
+            source $HOME/miniconda/etc/profile.d/conda.sh && conda activate r-env
+            R CMD build .
       - run:
           name: Run checks
           command: |
+            source $HOME/miniconda/etc/profile.d/conda.sh && conda activate r-env
             # Allow checking to proceed when Suggests are not available
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
@@ -132,9 +135,10 @@ jobs:
       - run:
           name: Build pkgdown site
           command: |
-            # Ensure pkgdown is installed (robust check) then build
-            R -e 'if (!requireNamespace("pkgdown", quietly=TRUE)) install.packages("pkgdown", repos="https://cloud.r-project.org")'
-            Rscript -e 'pkgdown::build_site()'
+            source $HOME/miniconda/etc/profile.d/conda.sh && conda activate r-env
+            # Ensure pkgdown is installed then build
+            R -e "if (!requireNamespace("pkgdown", quietly=TRUE)) install.packages("pkgdown", repos="https://cloud.r-project.org")"
+            Rscript -e "pkgdown::build_site()"
       - run:
           name: Publish to gh-pages
           command: |
