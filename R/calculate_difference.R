@@ -304,11 +304,19 @@ calculate_difference <- function(x, samples, control, method = "mean",
 #' @param min_obs Minimum number of non-NA observations required to fit a
 #' model for a gene (default: 10).
 #' @param method Modeling method to use for interaction testing: one of
-#' \code{c("linear", "gam", "fpca")}.
+#' \code{c("linear", "lmm", "gam", "fpca")} (default: "linear").
+#' @param pvalue Type of p-value to compute for linear mixed models: one of
+#' \code{c("satterthwaite", "lrt", "both")} (default: "satterthwaite").
+#' @param subject_col Optional column name in `colData(se)` that contains
+#' subject/individual identifiers for paired or repeated-measures designs
+#' (character). If provided with `method = "lmm"`, used as random effect.
+#' @param paired Logical; whether samples are paired (default: FALSE).
 #' @param nthreads Number of threads (mc.cores) to use for parallel processing
 #' (default: 1).
 #' @param assay_name Name of the assay in the SummarizedExperiment to use
 #' (default: "diversity").
+#' @param verbose Logical; whether to print progress messages during execution
+#' (default: TRUE).
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export

@@ -35,13 +35,25 @@ attempt to infer group from column names (suffix `_N` interpreted as
 model for a gene (default: 10).}
 
 \item{method}{Modeling method to use for interaction testing: one of
-\code{c("linear", "gam", "fpca")}.}
+\code{c("linear", "lmm", "gam", "fpca")} (default: "linear").}
+
+\item{pvalue}{Type of p-value to compute for linear mixed models: one of
+\code{c("satterthwaite", "lrt", "both")} (default: "satterthwaite").}
+
+\item{subject_col}{Optional column name in `colData(se)` that contains
+subject/individual identifiers for paired or repeated-measures designs
+(character). If provided with `method = "lmm"`, used as random effect.}
+
+\item{paired}{Logical; whether samples are paired (default: FALSE).}
 
 \item{nthreads}{Number of threads (mc.cores) to use for parallel processing
 (default: 1).}
 
 \item{assay_name}{Name of the assay in the SummarizedExperiment to use
 (default: "diversity").}
+
+\item{verbose}{Logical; whether to print progress messages during execution
+(default: TRUE).}
 }
 \value{
 A data.frame with columns `gene`, `p_interaction`, and

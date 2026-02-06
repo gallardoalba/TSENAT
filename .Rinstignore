@@ -1,0 +1,4 @@
+^\.git$
+^\.github$
+^vignettes/.*\.(log|aux)$
+\.tex$

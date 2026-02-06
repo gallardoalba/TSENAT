@@ -21,10 +21,11 @@ value in a condition. Can be \code{'mean'} or \code{'median'}.}
 
 \item{pseudocount}{Numeric scalar. Small value added to non-positive
 observed group summaries to avoid zeros when computing differences and
-log2 fold-changes. If \code{pseudocount = 0} (default) the function will
-choose a small value equal to half the smallest positive observed value,
-or \code{1e-6} if no positive values are present. Rows with insufficient
-observations remain \code{NA} and are not imputed.}
+log2 fold-changes. If \code{pseudocount <= 0} the function will automatically
+choose a scale-aware value equal to half the smallest positive observed
+group summary (i.e. half the smallest observed mean/median across groups);
+if no positive values are present the fallback is \code{1e-6}. Rows with
+insufficient observations remain \code{NA} and are not imputed.}
 }
 \value{
 A \code{data.frame} with mean or median value of splicing diversity

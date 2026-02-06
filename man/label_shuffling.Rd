@@ -31,7 +31,7 @@ value in a condition. Can be \code{'mean'} or \code{'median'}.}
 \item{randomizations}{The number of random shuffles.}
 
 \item{pcorr}{P-value correction method applied to the results, as defined in
-the \\code{p.adjust} function.}
+the \code{p.adjust()} function.}
 
 \item{paired}{Logical; if \code{TRUE} perform a paired permutation scheme
 (default: \code{FALSE}). When paired is \code{TRUE}, permutations
