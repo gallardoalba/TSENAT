@@ -1,5 +1,12 @@
 # Build vignettes into inst/doc/
 if (!requireNamespace("rmarkdown", quietly = TRUE)) install.packages("rmarkdown", repos = "https://cloud.r-project.org")
+# If available, load the package source so vignette examples use the current
+# development code rather than an installed version. This avoids "unused
+# argument" errors caused by API drift between the installed package and the
+# working tree.
+if (requireNamespace("pkgload", quietly = TRUE)) {
+    try(pkgload::load_all("."), silent = TRUE)
+}
 if (!dir.exists("inst")) dir.create("inst")
 if (!dir.exists("inst/doc")) dir.create("inst/doc", recursive = TRUE)
 vfiles <- list.files("vignettes", pattern = "\\.Rmd$", full.names = TRUE)
