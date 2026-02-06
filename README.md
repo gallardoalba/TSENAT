@@ -4,19 +4,6 @@
 
 Comprehensive R package for analyzing isoform diversity in transcript-level expression data using Tsallis entropy. TSENAT provides a unified framework for computing, testing, and visualizing scale-dependent isoform heterogeneity across biological samples.
 
-## Contents
-
-- [Overview](#overview)
-- [Tsallis Theory](#tsallis-theory)
-- [Features](#features)
-- [Installation](#installation-and-documentation)
-- [Quick Start](#quick-start)
-- [Citation](#citation)
-- [Contributing](#contributing)
-- [Troubleshooting](#troubleshooting)
-- [Code of Conduct](#code-of-conduct)
-- [License](#license)
-
 ## Overview
 
 TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:
