@@ -1,9 +1,13 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-Comprehensive R package for analyzing isoform diversity in
-transcript-level expression data using Tsallis entropy. TSENAT provides
-a unified framework for computing, testing, and visualizing
-scale-dependent isoform heterogeneity across biological samples.
+**TSENAT** is a comprehensive R package for measuring **isoform
+diversity**. Instead of just counting total gene expression, TSENAT
+captures the **pattern of isoform usage**; that is, which variants are
+abundant, which are rare, and how this pattern differs between
+conditions. It does this using **Tsallis entropy**, a mathematical
+framework that measures diversity at different sensitivity levels. The
+package includes statistical tests to find genes with significant
+diversity changes, and visualizations to reveal isoform patterns.
 
 ## Overview
 
@@ -11,11 +15,11 @@ TSENAT analyzes expression and transcript differences to compute
 diversity metrics. Key capabilities:
 
 - **Scale-dependent diversity analysis**: Evaluate isoform heterogeneity
-  at different sensitivity levels using the parameter `q`
+  at different sensitivity levels using the parameter `q`.
 - **Statistical testing**: Compare diversity measures between sample
-  groups using Wilcoxon tests or permutation-based approaches
+  groups using Wilcoxon tests or permutation-based approaches.
 - **Reproducible workflows**: From raw counts to publication-ready
-  visualizations with paired sample support
+  visualizations with paired sample support.
 
 ## Tsallis Theory
 
@@ -27,65 +31,93 @@ the Tsallis entropy of order $`q`$ is defined for $`q \ne 1`$ as
 S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
 ```
 
-In the limit $`q \to 1`$ this recovers the Shannon entropy
-
-``` math
-\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i.
-```
+When $`q = 1`$, this becomes Shannon entropy:
+$`\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i`$ (a standard diversity
+measure).
 
 ### Application to Transcript Expression
 
-In transcript-expression data we compute Tsallis entropy per gene from
-the isoform-level relative abundances. For a gene with isoform counts or
-expression values $`x_i`$, convert to proportions
+Most genes produce multiple protein isoforms through alternative
+splicing. Rather than treating gene expression as a single number,
+TSENAT captures the **pattern of isoform usage**—which isoforms are
+abundant vs. rare—by computing Tsallis entropy at the transcript level.
 
-``` math
-p_i = x_i / \sum_j x_j
-```
-
-so that $`p_i \ge 0`$ and $`\sum_i p_i = 1`$.
-
-The parameter `q` controls how the entropy weights isoforms by
-abundance: - **$`q < 1`$**: emphasizes low-abundance (rare) isoforms;
-captures richness - **$`q \approx 1`$**: Shannon entropy; overall
-uncertainty of isoform usage - **$`q > 1`$**: emphasizes high-abundance
-(dominant) isoforms; captures dominance
+**The parameter `q` acts as a sensitivity dial** for isoform
+weighting: - **$`q < 1`$** (e.g., 0.1, 0.5): Emphasizes **rare
+isoforms**—useful for detecting whether a gene maintains diverse
+isoforms or loses minor variants in disease. - **$`q \approx 1`$**
+(Shannon entropy): Balanced view of **overall isoform diversity**. -
+**$`q > 1`$** (e.g., 1.5, 2): Emphasizes **dominant isoforms**—useful
+for detecting when one isoform abnormally dominates (common in cancer).
 
 ## Features
 
 ### Tsallis Entropy and Diversity Calculations
 
 - [`calculate_tsallis_entropy()`](https://gallardoalba.github.io/TSENAT/reference/calculate_tsallis_entropy.md):
-  Computes $`S_q`$ and/or $`D_q`$ (Hill numbers) for numeric vectors
-  - Supports normalization, multiple `q` values, and the $`q \to 1`$
-    limit
-  - Returns numeric vectors or structured lists
+  Calculate Tsallis entropy for a single isoform distribution.
+
 - [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md):
-  Applies calculations across transcripts/genes
-  - Works with matrices, `tximport`-style lists, or
-    `SummarizedExperiment` objects
-  - Returns `SummarizedExperiment` with assay `diversity` ($`S_q`$) or
-    `hill` ($`D_q`$)
+  Calculate diversity for every gene in your dataset. Works with count
+  matrices, tximport lists, or standard Bioconductor objects.
+
+- [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md):
+  Test whether diversity changes between groups (e.g., tumor
+  vs. normal). Supports paired samples and multiple statistical tests.
+
+- [`calculate_lm_interaction()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm_interaction.md):
+  Fit linear models to test interactions between factors (e.g., does
+  treatment effect on diversity depend on genotype?). Useful for complex
+  experimental designs.
 
 ### Differential and Statistical Analyses
 
-- [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md):
-  Computes group means, differences, log₂-fold-changes, and p-values
-- Support for paired and unpaired designs
-- Wilcoxon rank-sum or permutation-based hypothesis tests
-- Adjusted p-values and effect size reporting
+Beyond computing diversity values, TSENAT enables **group comparisons**
+to identify biological effects:
+
+- **Paired and unpaired designs**: Test whether isoform diversity
+  differs between groups (e.g., tumor vs. normal samples). Account for
+  **paired designs** when comparing same patients before/after
+  treatment, or use **unpaired designs** for independent cohorts.
+- **Robust statistical testing**: Choose between **Wilcoxon rank-sum
+  tests** (ideal for small sample sizes and non-normal distributions
+  common in omics data) or **permutation-based tests** (no
+  distributional assumptions required).
+- **Linear model framework**: Fit linear mixed-effects models to account
+  for random effects and covariates, which are particularly useful when
+  controlling for confounding variables while testing group effects on
+  diversity.
 
 ### Plotting and Visualization
 
-- [`plot_tsallis_q_curve()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_q_curve.md):
-  q-curves showing median ± IQR across sample groups
-- [`plot_ma()`](https://gallardoalba.github.io/TSENAT/reference/plot_ma.md),
-  [`plot_volcano()`](https://gallardoalba.github.io/TSENAT/reference/plot_volcano.md):
-  Effect size and significance summaries
-- [`plot_top_transcripts()`](https://gallardoalba.github.io/TSENAT/reference/plot_top_transcripts.md):
-  Transcript-level patterns for candidate genes
-- [`plot_tsallis_gene_profile()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_gene_profile.md):
-  Per-gene q-curve profiles
+- **Per-gene q-curve profiles**: Visualize how a single gene’s isoform
+  diversity changes across the sensitivity parameter `q`. This reveals
+  **scale-dependent patterns**: rare isoforms may disappear at high `q`,
+  while dominant isoforms emerge.
+
+![PI16 q-Curve
+Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
+
+PI16 q-Curve Profile
+
+- **Group comparisons and significance**: Summarize diversity
+  differences between biological groups (e.g., tumor vs. normal) across
+  all genes simultaneously to identify candidate genes.
+
+![MA and Volcano
+Plots](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-and-volcano-1.png)
+
+MA and Volcano Plots
+
+- **Isoform-level details**: Drill down to individual transcripts to
+  understand which specific isoforms are driving diversity changes.
+  TSENAT enables the visualization of transcript composition across
+  samples for candidate genes.
+
+![Isoform
+Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
+
+Isoform Composition
 
 ## Installation and Documentation
 
@@ -102,9 +134,8 @@ renv::init()
 renv::snapshot()
 ```
 
-**Documentation**: [pkgdown
-site](https://gallardoalba.github.io/TSENAT/) \|
-[Vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html)
+**Documentation**: [TSENAT
+site](https://gallardoalba.github.io/TSENAT/).
 
 ## Quick Start
 
@@ -132,21 +163,6 @@ print(p_qcurve)
 
 For a detailed, reproducible workflow see the [package
 vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
-
-## Example Output
-
-Below is an example q-curve profile from the vignette showing how
-Tsallis entropy changes across the sensitivity parameter `q` for the
-gene PI16, a key regulator in the vascular system:
-
-![PI16 q-Curve
-Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
-
-PI16 q-Curve Profile
-
-This visualization demonstrates how rare and dominant isoforms separate
-at different `q` values, revealing scale-dependent diversity differences
-between Normal and Tumor samples.
 
 ## Citation
 
@@ -215,10 +231,9 @@ This project is licensed under the GNU General Public License v3.0
 (GPL-3). See [LICENSE](https://gallardoalba.github.io/TSENAT/LICENSE)
 for details.
 
-**Attribution**: TSENAT builds upon and adapts code from the
-[SplicingFactory package](https://github.com/esebesty/SplicingFactory),
-extended with additional functionality, bug fixes, and visualization
-tools.
+**Attribution**: TSENAT builds upon the [SplicingFactory
+package](https://github.com/esebesty/SplicingFactory), extending it with
+specialized focus on **Tsallis entropy analysis**.
 
 ------------------------------------------------------------------------
 

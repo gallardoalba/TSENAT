@@ -58,19 +58,18 @@
 <div class="section level1">
 <div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
 </h1></div>
-<p>Comprehensive R package for analyzing isoform diversity in transcript-level expression data using Tsallis entropy. TSENAT provides a unified framework for computing, testing, and visualizing scale-dependent isoform heterogeneity across biological samples.</p>
+<p><strong>TSENAT</strong> is a comprehensive R package for measuring <strong>isoform diversity</strong>. Instead of just counting total gene expression, TSENAT captures the <strong>pattern of isoform usage</strong>; that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using <strong>Tsallis entropy</strong>, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <p>TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:</p>
 <ul>
 <li>
-<strong>Scale-dependent diversity analysis</strong>: Evaluate isoform heterogeneity at different sensitivity levels using the parameter <code>q</code>
-</li>
+<strong>Scale-dependent diversity analysis</strong>: Evaluate isoform heterogeneity at different sensitivity levels using the parameter <code>q</code>.</li>
 <li>
-<strong>Statistical testing</strong>: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches</li>
+<strong>Statistical testing</strong>: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.</li>
 <li>
-<strong>Reproducible workflows</strong>: From raw counts to publication-ready visualizations with paired sample support</li>
+<strong>Reproducible workflows</strong>: From raw counts to publication-ready visualizations with paired sample support.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -80,19 +79,12 @@
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
 S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
 </annotation></semantics></math></p>
-<p>In the limit <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \to 1</annotation></semantics></math> this recovers the Shannon entropy</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mi mathvariant="normal">lim</mi><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow></munder><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>p</mi><mi>i</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i.
-</annotation></semantics></math></p>
+<p>When <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q = 1</annotation></semantics></math>, this becomes Shannon entropy: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">lim</mi><mo>⁡</mo></mrow><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow></msub><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>p</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i</annotation></semantics></math> (a standard diversity measure).</p>
 <div class="section level3">
 <h3 id="application-to-transcript-expression">Application to Transcript Expression<a class="anchor" aria-label="anchor" href="#application-to-transcript-expression"></a>
 </h3>
-<p>In transcript-expression data we compute Tsallis entropy per gene from the isoform-level relative abundances. For a gene with isoform counts or expression values <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>i</mi></msub><annotation encoding="application/x-tex">x_i</annotation></semantics></math>, convert to proportions</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><msub><mi>x</mi><mi>i</mi></msub><mi>/</mi><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>x</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">
-p_i = x_i / \sum_j x_j
-</annotation></semantics></math></p>
-<p>so that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_i \ge 0</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i p_i = 1</annotation></semantics></math>.</p>
-<p>The parameter <code>q</code> controls how the entropy weights isoforms by abundance: - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &lt; 1</annotation></semantics></math></strong>: emphasizes low-abundance (rare) isoforms; captures richness - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>≈</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \approx 1</annotation></semantics></math></strong>: Shannon entropy; overall uncertainty of isoform usage - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &gt; 1</annotation></semantics></math></strong>: emphasizes high-abundance (dominant) isoforms; captures dominance</p>
+<p>Most genes produce multiple protein isoforms through alternative splicing. Rather than treating gene expression as a single number, TSENAT captures the <strong>pattern of isoform usage</strong>—which isoforms are abundant vs. rare—by computing Tsallis entropy at the transcript level.</p>
+<p><strong>The parameter <code>q</code> acts as a sensitivity dial</strong> for isoform weighting: - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &lt; 1</annotation></semantics></math></strong> (e.g., 0.1, 0.5): Emphasizes <strong>rare isoforms</strong>—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease. - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>≈</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \approx 1</annotation></semantics></math></strong> (Shannon entropy): Balanced view of <strong>overall isoform diversity</strong>. - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &gt; 1</annotation></semantics></math></strong> (e.g., 1.5, 2): Emphasizes <strong>dominant isoforms</strong>—useful for detecting when one isoform abnormally dominates (common in cancer).</p>
 </div>
 </div>
 <div class="section level2">
@@ -102,31 +94,23 @@ p_i = x_i / \sum_j x_j
 <h3 id="tsallis-entropy-and-diversity-calculations">Tsallis Entropy and Diversity Calculations<a class="anchor" aria-label="anchor" href="#tsallis-entropy-and-diversity-calculations"></a>
 </h3>
 <ul>
-<li>
-<code><a href="reference/calculate_tsallis_entropy.html">calculate_tsallis_entropy()</a></code>: Computes <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>q</mi></msub><annotation encoding="application/x-tex">S_q</annotation></semantics></math> and/or <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math> (Hill numbers) for numeric vectors
-<ul>
-<li>Supports normalization, multiple <code>q</code> values, and the <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \to 1</annotation></semantics></math> limit</li>
-<li>Returns numeric vectors or structured lists</li>
-</ul>
-</li>
-<li>
-<code><a href="reference/calculate_diversity.html">calculate_diversity()</a></code>: Applies calculations across transcripts/genes
-<ul>
-<li>Works with matrices, <code>tximport</code>-style lists, or <code>SummarizedExperiment</code> objects</li>
-<li>Returns <code>SummarizedExperiment</code> with assay <code>diversity</code> (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>q</mi></msub><annotation encoding="application/x-tex">S_q</annotation></semantics></math>) or <code>hill</code> (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>)</li>
-</ul>
-</li>
+<li><p><code><a href="reference/calculate_tsallis_entropy.html">calculate_tsallis_entropy()</a></code>: Calculate Tsallis entropy for a single isoform distribution.</p></li>
+<li><p><code><a href="reference/calculate_diversity.html">calculate_diversity()</a></code>: Calculate diversity for every gene in your dataset. Works with count matrices, tximport lists, or standard Bioconductor objects.</p></li>
+<li><p><code><a href="reference/calculate_difference.html">calculate_difference()</a></code>: Test whether diversity changes between groups (e.g., tumor vs. normal). Supports paired samples and multiple statistical tests.</p></li>
+<li><p><code><a href="reference/calculate_lm_interaction.html">calculate_lm_interaction()</a></code>: Fit linear models to test interactions between factors (e.g., does treatment effect on diversity depend on genotype?). Useful for complex experimental designs.</p></li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="differential-and-statistical-analyses">Differential and Statistical Analyses<a class="anchor" aria-label="anchor" href="#differential-and-statistical-analyses"></a>
 </h3>
+<p>Beyond computing diversity values, TSENAT enables <strong>group comparisons</strong> to identify biological effects:</p>
 <ul>
 <li>
-<code><a href="reference/calculate_difference.html">calculate_difference()</a></code>: Computes group means, differences, log₂-fold-changes, and p-values</li>
-<li>Support for paired and unpaired designs</li>
-<li>Wilcoxon rank-sum or permutation-based hypothesis tests</li>
-<li>Adjusted p-values and effect size reporting</li>
+<strong>Paired and unpaired designs</strong>: Test whether isoform diversity differs between groups (e.g., tumor vs. normal samples). Account for <strong>paired designs</strong> when comparing same patients before/after treatment, or use <strong>unpaired designs</strong> for independent cohorts.</li>
+<li>
+<strong>Robust statistical testing</strong>: Choose between <strong>Wilcoxon rank-sum tests</strong> (ideal for small sample sizes and non-normal distributions common in omics data) or <strong>permutation-based tests</strong> (no distributional assumptions required).</li>
+<li>
+<strong>Linear model framework</strong>: Fit linear mixed-effects models to account for random effects and covariates, which are particularly useful when controlling for confounding variables while testing group effects on diversity.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -134,14 +118,25 @@ p_i = x_i / \sum_j x_j
 </h3>
 <ul>
 <li>
-<code><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve()</a></code>: q-curves showing median ± IQR across sample groups</li>
-<li>
-<code><a href="reference/plot_ma.html">plot_ma()</a></code>, <code><a href="reference/plot_volcano.html">plot_volcano()</a></code>: Effect size and significance summaries</li>
-<li>
-<code><a href="reference/plot_top_transcripts.html">plot_top_transcripts()</a></code>: Transcript-level patterns for candidate genes</li>
-<li>
-<code><a href="reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile()</a></code>: Per-gene q-curve profiles</li>
+<strong>Per-gene q-curve profiles</strong>: Visualize how a single gene’s isoform diversity changes across the sensitivity parameter <code>q</code>. This reveals <strong>scale-dependent patterns</strong>: rare isoforms may disappear at high <code>q</code>, while dominant isoforms emerge.</li>
 </ul>
+<div class="float">
+<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png" alt="PI16 q-Curve Profile"><div class="figcaption">PI16 q-Curve Profile</div>
+</div>
+<ul>
+<li>
+<strong>Group comparisons and significance</strong>: Summarize diversity differences between biological groups (e.g., tumor vs. normal) across all genes simultaneously to identify candidate genes.</li>
+</ul>
+<div class="float">
+<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-and-volcano-1.png" alt="MA and Volcano Plots"><div class="figcaption">MA and Volcano Plots</div>
+</div>
+<ul>
+<li>
+<strong>Isoform-level details</strong>: Drill down to individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.</li>
+</ul>
+<div class="float">
+<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png" alt="Isoform Composition"><div class="figcaption">Isoform Composition</div>
+</div>
 </div>
 </div>
 <div class="section level2">
@@ -154,9 +149,9 @@ p_i = x_i / \sum_j x_j
 <span></span>
 <span><span class="co">## Recommended (reproducible environment): use renv</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"renv"</span><span class="op">)</span></span>
-<span><span class="fu">renv</span><span class="fu">::</span><span class="fu">init</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">renv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Documentation</strong>: <a href="https://gallardoalba.github.io/TSENAT/">pkgdown site</a> | <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">Vignette</a></p>
+<span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/init.html" class="external-link">init</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/snapshot.html" class="external-link">snapshot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Documentation</strong>: <a href="https://gallardoalba.github.io/TSENAT/">TSENAT site</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -179,15 +174,6 @@ p_i = x_i / \sum_j x_j
 <span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_multi</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
 <p>For a detailed, reproducible workflow see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">package vignette</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="example-output">Example Output<a class="anchor" aria-label="anchor" href="#example-output"></a>
-</h2>
-<p>Below is an example q-curve profile from the vignette showing how Tsallis entropy changes across the sensitivity parameter <code>q</code> for the gene PI16, a key regulator in the vascular system:</p>
-<div class="float">
-<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png" alt="PI16 q-Curve Profile"><div class="figcaption">PI16 q-Curve Profile</div>
-</div>
-<p>This visualization demonstrates how rare and dominant isoforms separate at different <code>q</code> values, revealing scale-dependent diversity differences between Normal and Tumor samples.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
@@ -246,7 +232,7 @@ p_i = x_i / \sum_j x_j
 <h2 id="license-and-attribution">License and Attribution<a class="anchor" aria-label="anchor" href="#license-and-attribution"></a>
 </h2>
 <p>This project is licensed under the GNU General Public License v3.0 (GPL-3). See <a href="LICENSE">LICENSE</a> for details.</p>
-<p><strong>Attribution</strong>: TSENAT builds upon and adapts code from the <a href="https://github.com/esebesty/SplicingFactory" class="external-link">SplicingFactory package</a>, extended with additional functionality, bug fixes, and visualization tools.</p>
+<p><strong>Attribution</strong>: TSENAT builds upon the <a href="https://github.com/esebesty/SplicingFactory" class="external-link">SplicingFactory package</a>, extending it with specialized focus on <strong>Tsallis entropy analysis</strong>.</p>
 <hr>
 <p><strong>Maintainer</strong>: Cristóbal Gallardo (<a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>)<br><strong>Repository</strong>: <a href="https://github.com/gallardoalba/TSENAT" class="external-link">github.com/gallardoalba/TSENAT</a></p>
 </div>
