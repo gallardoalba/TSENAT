@@ -22,6 +22,39 @@ jobs:
             echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
             source $BASH_ENV
       - run:
+          name: Install Miniconda and mamba (conda-forge)
+          command: |
+            set -euxo pipefail
+            wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+            bash miniconda.sh -b -p $HOME/miniconda
+            export PATH="$HOME/miniconda/bin:$PATH"
+            source $HOME/miniconda/etc/profile.d/conda.sh
+            conda config --add channels conda-forge
+            conda config --add channels bioconda
+            conda config --set channel_priority strict
+            conda install -y -n base -c conda-forge mamba
+            mamba create -y -n r-env r-base=4.5 r-pkgdown r-remotes r-xml2 r-rmarkdown r-knitr r-ggplot2 r-dplyr r-tidyr r-cowplot r-ggrepel r-patchwork r-lme4 r-lmertest
+            echo 'export PATH="$HOME/miniconda/envs/r-env/bin:$PATH"' >> $BASH_ENV
+            echo 'source $HOME/miniconda/etc/profile.d/conda.sh' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Install Miniconda and mamba (conda-forge)
+          command: |
+            set -euxo pipefail
+            wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+            bash miniconda.sh -b -p $HOME/miniconda
+            export PATH="$HOME/miniconda/bin:$PATH"
+            source $HOME/miniconda/etc/profile.d/conda.sh
+            conda config --add channels conda-forge
+            conda config --add channels bioconda
+            conda config --set channel_priority strict
+            conda install -y -n base -c conda-forge mamba
+            # Create a small R env with lme4/lmerTest to satisfy vignette
+            mamba create -y -n r-env r-base=4.5 r-lme4 r-lmertest
+            echo 'export PATH="$HOME/miniconda/envs/r-env/bin:$PATH"' >> $BASH_ENV
+            echo 'source $HOME/miniconda/etc/profile.d/conda.sh' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
           name: Install OS deps
           command: |
             apt-get update && apt-get install -y --no-install-recommends \

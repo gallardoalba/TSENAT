@@ -482,16 +482,21 @@ paired RNA‑seq studies when per-term inference is required
 (for example, the `q:group` interaction).
 
 ```{r lm-interaction-before-qcurve}
-# Linear-model interaction test across q values: 
-# detect q x group interaction
-# Compute and show top hits (by adjusted p-value)
-lm_res <- calculate_lm_interaction(ts_se,
-    sample_type_col = "sample_type", method = "lmm",
-    pvalue = "satterthwaite",
-    subject_col = "sample_base",
-    nthreads = 1,
-    verbose = FALSE)
-print(head(lm_res, 6))
+## Linear-model interaction test across q values: detect q x group interaction
+## Guard the LMM-based analysis so the vignette renders even when 'lme4' is
+## not available in the environment (CI may skip Suggests).
+if (requireNamespace("lme4", quietly = TRUE)) {
+    # Compute and show top hits (by adjusted p-value)
+    lm_res <- calculate_lm_interaction(ts_se,
+            sample_type_col = "sample_type", method = "lmm",
+            pvalue = "satterthwaite",
+            subject_col = "sample_base",
+            nthreads = 1,
+            verbose = FALSE)
+    print(head(lm_res, 6))
+} else {
+    message("Skipping linear-model LMM interaction test: package 'lme4' not installed in this environment.")
+}
 ```
 
 ### Tsallis q-sequence plot
