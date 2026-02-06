@@ -2,7 +2,7 @@
 
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-**TSENAT** is a comprehensive R package for measuring **isoform diversity**. Instead of just counting total gene expression, TSENAT captures the **pattern of isoform usage**, that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using **Tsallis entropy**, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.
+**TSENAT** is a comprehensive R package for measuring **isoform diversity**. Instead of just counting total gene expression, TSENAT captures the **pattern of isoform usage**; that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using **Tsallis entropy**, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.
 
 ## Overview
 
@@ -26,18 +26,10 @@ When $q = 1$, this becomes Shannon entropy: $\lim_{q \to 1} S_q(p) = -\sum_i p_i
 
 Most genes produce multiple protein isoforms through alternative splicing. Rather than treating gene expression as a single number, TSENAT captures the **pattern of isoform usage**—which isoforms are abundant vs. rare—by computing Tsallis entropy at the transcript level.
 
-For each gene, we start with **isoform counts or expression values** $x_i$ (where $i$ indexes each isoform). These raw values may have very different magnitudes, so we **normalize them into proportions** to ask: "What fraction of this gene's transcripts does each isoform represent?"
-
-$$
-p_i = \frac{x_i}{\sum_j x_j}
-$$
-
-This normalization ensures $p_i \ge 0$ and $\sum_i p_i = 1$, converting raw counts into a probability distribution over isoforms. We then compute Tsallis entropy $S_q(p)$ using this distribution.
-
 **The parameter `q` acts as a sensitivity dial** for isoform weighting:
-- **$q < 1$** (e.g., 0.1, 0.5): Emphasizes **rare isoforms**—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease
-- **$q \approx 1$** (Shannon entropy): Balanced view of **overall isoform diversity**—how uncertain you are about which isoform you'll see
-- **$q > 1$** (e.g., 1.5, 2): Emphasizes **dominant isoforms**—useful for detecting when one isoform abnormally dominates (common in cancer)
+- **$q < 1$** (e.g., 0.1, 0.5): Emphasizes **rare isoforms**—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease.
+- **$q \approx 1$** (Shannon entropy): Balanced view of **overall isoform diversity**.
+- **$q > 1$** (e.g., 1.5, 2): Emphasizes **dominant isoforms**—useful for detecting when one isoform abnormally dominates (common in cancer).
 
 ## Features
 
@@ -57,7 +49,7 @@ Beyond computing diversity values, TSENAT enables **group comparisons** to ident
 
 - **Paired and unpaired designs**: Test whether isoform diversity differs between groups (e.g., tumor vs. normal samples). Account for **paired designs** when comparing same patients before/after treatment, or use **unpaired designs** for independent cohorts.
 - **Robust statistical testing**: Choose between **Wilcoxon rank-sum tests** (ideal for small sample sizes and non-normal distributions common in omics data) or **permutation-based tests** (no distributional assumptions required).
-- **Linear model framework**: Fit linear mixed-effects models , which are particularly useful when you need to control for confounding variables while testing group effects on diversity.
+- **Linear model framework**: Fit linear mixed-effects models to account for random effects and covariates, which are particularly useful when controlling for confounding variables while testing group effects on diversity.
 
 
 ### Plotting and Visualization
@@ -66,11 +58,11 @@ Beyond computing diversity values, TSENAT enables **group comparisons** to ident
 
 ![PI16 q-Curve Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
 
-- **Group comparisons and significance**: Summarize diversity differences between biological groups (e.g., tumor vs. normal) across all genes simultaneously. **Manhattan plots** display fold-changes in diversity for each gene, highlighting candidates with the largest shifts. **Volcano plots** combine effect size and statistical significance on the same plot.
+- **Group comparisons and significance**: Summarize diversity differences between biological groups (e.g., tumor vs. normal) across all genes simultaneously to identify candidate genes.
 
 ![MA and Volcano Plots](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-and-volcano-1.png)
 
-- **Isoform-level details**: Drill down to individual transcripts to understand *which specific isoforms* are driving diversity changes. TSENAT allows to visualize the transcript composition (abundance of each isoform as a stacked bar or pie chart) for a candidate gene.
+- **Isoform-level details**: Drill down to individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
 
 ![Isoform Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
 
