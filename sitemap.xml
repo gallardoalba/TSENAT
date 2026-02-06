@@ -1,6 +1,5 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://gallardoalba.github.io/TSENAT/404.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/CI_README.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/LICENSE-text.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/PULL_REQUEST_TEMPLATE.html</loc></url>
@@ -16,7 +15,6 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_method.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_tsallis_entropy.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/index.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/infer_sample_group.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/label_shuffling.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/map_coldata_to_se.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_diversity_density.html</loc></url>
@@ -26,7 +24,6 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_density_multq.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_gene_profile.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_q_curve.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_top_lm_genes.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_violin_multq.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_volcano.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/tcga_brca_luma_dataset.html</loc></url>

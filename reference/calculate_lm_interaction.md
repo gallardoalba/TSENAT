@@ -46,7 +46,23 @@ calculate_lm_interaction(
 - method:
 
   Modeling method to use for interaction testing: one of
-  `c("linear", "gam", "fpca")`.
+  `c("linear", "lmm", "gam", "fpca")` (default: "linear").
+
+- pvalue:
+
+  Type of p-value to compute for linear mixed models: one of
+  `c("satterthwaite", "lrt", "both")` (default: "satterthwaite").
+
+- subject_col:
+
+  Optional column name in \`colData(se)\` that contains
+  subject/individual identifiers for paired or repeated-measures designs
+  (character). If provided with \`method = "lmm"\`, used as random
+  effect.
+
+- paired:
+
+  Logical; whether samples are paired (default: FALSE).
 
 - nthreads:
 
@@ -57,6 +73,11 @@ calculate_lm_interaction(
 
   Name of the assay in the SummarizedExperiment to use (default:
   "diversity").
+
+- verbose:
+
+  Logical; whether to print progress messages during execution (default:
+  TRUE).
 
 ## Value
 

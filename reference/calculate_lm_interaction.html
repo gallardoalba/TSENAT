@@ -98,7 +98,22 @@ model for a gene (default: 10).</p></dd>
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p>Modeling method to use for interaction testing: one of
-<code>c("linear", "gam", "fpca")</code>.</p></dd>
+<code>c("linear", "lmm", "gam", "fpca")</code> (default: "linear").</p></dd>
+
+
+<dt id="arg-pvalue">pvalue<a class="anchor" aria-label="anchor" href="#arg-pvalue"></a></dt>
+<dd><p>Type of p-value to compute for linear mixed models: one of
+<code>c("satterthwaite", "lrt", "both")</code> (default: "satterthwaite").</p></dd>
+
+
+<dt id="arg-subject-col">subject_col<a class="anchor" aria-label="anchor" href="#arg-subject-col"></a></dt>
+<dd><p>Optional column name in `colData(se)` that contains
+subject/individual identifiers for paired or repeated-measures designs
+(character). If provided with `method = "lmm"`, used as random effect.</p></dd>
+
+
+<dt id="arg-paired">paired<a class="anchor" aria-label="anchor" href="#arg-paired"></a></dt>
+<dd><p>Logical; whether samples are paired (default: FALSE).</p></dd>
 
 
 <dt id="arg-nthreads">nthreads<a class="anchor" aria-label="anchor" href="#arg-nthreads"></a></dt>
@@ -109,6 +124,11 @@ model for a gene (default: 10).</p></dd>
 <dt id="arg-assay-name">assay_name<a class="anchor" aria-label="anchor" href="#arg-assay-name"></a></dt>
 <dd><p>Name of the assay in the SummarizedExperiment to use
 (default: "diversity").</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>Logical; whether to print progress messages during execution
+(default: TRUE).</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -84,12 +84,15 @@ differences.</p>
 <div class="section level3">
 <h3 id="motivation">Motivation<a class="anchor" aria-label="anchor" href="#motivation"></a>
 </h3>
-<p>Many genes express multiple isoforms whose relative abundances can be
-multimodal or heavy-tailed. Standard mean-based comparisons may miss
-changes in isoform dominance or heterogeneity. Tsallis entropy provides
-a tunable way to weight rare versus dominant isoforms by varying
-<code>q</code>, producing a “q-curve” that reveals scale-dependent
-diversity differences.</p>
+<p>Common RNA-seq tools, such as DESEQ2 o SALMON, focus on changes in
+total gene abundance. While powerful, that view can obscure an important
+biological phenomenon: genes often change <em>which</em> isoforms they
+express without large changes in overall expression. Tsallis entropy
+gives you a single, coherent framework to describe those changes. By
+tuning the parameter <code>q</code> you slide a lens across abundance
+scales—zooming in on rare variants or zooming out to the dominant
+isoforms—so you can capture scale-dependent isoform switching that
+ordinary summaries overlook.</p>
 </div>
 <div class="section level3">
 <h3 id="high-level-workflow">High-level workflow<a class="anchor" aria-label="anchor" href="#high-level-workflow"></a>
@@ -116,12 +119,14 @@ it is defined as</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 </annotation></semantics></math></p>
-<p>Why use Tsallis entropy for gene-expression data?</p>
-<p>Tsallis entropy provides a compact, flexible summary of isoform-level
-heterogeneity that is particularly useful when biological signals act at
-different abundance scales; combined with careful preprocessing and
-resampling-based uncertainty quantification it is a practical and
-interpretable tool for transcriptomics analyses. Key advantages:</p>
+<p>Changing <code>q</code> shifts emphasis between rare and abundant
+isoforms: small values of <code>q</code> make the measure sensitive to
+low-abundance variants, while larger <code>q</code> focus on the
+dominant species. In practice, computing <code>S_q</code> across a short
+grid of <code>q</code> values (a “q-curve”) and combining this with
+resampling or paired designs yields a concise, interpretable summary of
+isoform heterogeneity.</p>
+<p>Key advantages:</p>
 <ul>
 <li>
 <strong>Tunable sensitivity</strong>: changing <code>q</code> shifts
@@ -164,21 +169,20 @@ expressed isoforms,
 and normalized
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>S</mi><mo accent="true">̃</mo></mover><mi>q</mi></msub><mo>=</mo><msub><mi>S</mi><mi>q</mi></msub><mi>/</mi><msub><mi>S</mi><mrow><mi>q</mi><mo>,</mo><mi mathvariant="normal">max</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\tilde S_q = S_q / S_{q,\max}(m)</annotation></semantics></math>.</li>
 </ul>
-<p><strong>Use cases and interpretation</strong>:</p>
-<p>A gene with group separation only at low <code>q</code> suggests
-differences in low-abundance (rare) isoforms; separation at high
-<code>q</code> indicates changes in dominant isoforms. When both regimes
-differ, the q-curve will show divergence across the entire
-<code>q</code> range.</p>
-<p>Report <code>S_q</code> or Hill numbers <code>D_q</code> as
-appropriate for clarity: <code>D_q</code> converts entropies into an
-“effective number of isoforms” that is easy to interpret.</p>
+<p><strong>Use cases and interpretation</strong></p>
+<p>Read q-curves as a diagnostic: if groups separate at <strong>low
+q</strong> the biological signal is in the rare isoforms; separation at
+<strong>high q</strong> points to changes in the dominant isoform. When
+separation occurs across the curve, the whole isoform composition has
+shifted. For reporting, consider transforming entropies to Hill numbers
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>
+(“effective isoform counts”) which are often more intuitive for
+readers.</p>
 </div>
 <div class="section level2">
 <h2 id="example-dataset">Example dataset<a class="anchor" aria-label="anchor" href="#example-dataset"></a>
 </h2>
-<p>An example dataset is included for demonstration. Load the package
-and data:</p>
+<p>An example dataset is included for demonstration.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load packages</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
@@ -193,22 +197,9 @@ and data:</p>
 <p>TSENAT requires a consistent, exact mapping between the assay column
 names and the values in <code>coldata$Sample</code>. The following rules
 and recommendations make mapping reliable and avoid surprises when
-running paired analyses.</p>
-<ul>
-<li>Naming convention: for paired comparisons use a shared base
-identifier and a role suffix, e.g. <code>SAMPLE_N</code> /
-<code>SAMPLE_T</code> or <code>SAMPLE_Normal</code> /
-<code>SAMPLE_Tumor</code>. The helper <code>infer_sample_group()</code>
-recognizes common underscore suffixes (like <code>_N</code> /
-<code>_T</code>) and common TCGA-style tokens.</li>
-<li>Validation and metadata: to perform paired analyses call
-<code>map_coldata_to_se(..., paired = TRUE)</code>. When
-<code>paired = TRUE</code> the function will reorder columns to follow
-<code>coldata</code>, add <code>sample_type</code> and
-<code>sample_base</code> to <code>colData(ts_se)</code>, and check that
-each <code>sample_base</code> has entries for all groups, returning an
-informative error if not.</li>
-</ul>
+running paired analyses. The ordenation of the samples is not important,
+as long as the names of the paired samples in the metadata match
+exactly.</p>
 <p>The following example from <code>coldata_df</code> illustrates a
 correct format:</p>
 <pre class="text"><code>Sample  Condition
@@ -220,7 +211,7 @@ TCGA-A7-A0D9_T  Tumor</code></pre>
 <div class="section level3">
 <h3 id="load-data-and-metadata">Load data and metadata<a class="anchor" aria-label="anchor" href="#load-data-and-metadata"></a>
 </h3>
-<p>Now we load the example dataset and associated metadata:</p>
+<p>Now we will load the example dataset and associated metadata:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load required files</span></span>
 <span><span class="va">coldata_tsv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"coldata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
@@ -233,7 +224,8 @@ TCGA-A7-A0D9_T  Tumor</code></pre>
 <span></span>
 <span><span class="co"># Assign transcript IDs as rownames of `readcounts`</span></span>
 <span><span class="co"># so downstream transcript-level plotting functions can use them.</span></span>
-<span><span class="va">txmap</span> <span class="op">&lt;-</span> <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="va">tx2gene_tsv</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">txmap</span> <span class="op">&lt;-</span> <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.delim</a></span><span class="op">(</span><span class="va">tx2gene_tsv</span>, header <span class="op">=</span> <span class="cn">TRUE</span>, </span>
+<span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">txmap</span><span class="op">$</span><span class="va">Transcript</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Read sample metadata</span></span>
@@ -252,21 +244,15 @@ correct.</p>
 <span><span class="co"># Check read count dataset</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1100   40</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T</span></span>
-<span><span class="co">#&gt; MXRA8.1          2858.04         743.56         812.59           0.00</span></span>
-<span><span class="co">#&gt; MXRA8.2           127.82          21.28          50.87          38.21</span></span>
-<span><span class="co">#&gt; MXRA8.3           370.22          94.38         368.76          98.12</span></span>
-<span><span class="co">#&gt; MXRA8.4          7472.00        3564.87        7647.76        3236.28</span></span>
-<span><span class="co">#&gt; MXRA8.5            25.44          16.91           4.07           7.55</span></span>
-<span><span class="co">#&gt; C1orf86.1           0.00           0.00           0.00           0.00</span></span>
-<span><span class="co">#&gt;           TCGA-A7-A0DB_T</span></span>
-<span><span class="co">#&gt; MXRA8.1          1508.90</span></span>
-<span><span class="co">#&gt; MXRA8.2            30.10</span></span>
-<span><span class="co">#&gt; MXRA8.3           167.89</span></span>
-<span><span class="co">#&gt; MXRA8.4          6360.80</span></span>
-<span><span class="co">#&gt; MXRA8.5            34.74</span></span>
-<span><span class="co">#&gt; C1orf86.1           0.00</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T</span></span>
+<span><span class="co">#&gt; MXRA8.1        2858.04         743.56         812.59           0.00</span></span>
+<span><span class="co">#&gt; MXRA8.2         127.82          21.28          50.87          38.21</span></span>
+<span><span class="co">#&gt; MXRA8.3         370.22          94.38         368.76          98.12</span></span>
+<span><span class="co">#&gt;         TCGA-A7-A0DB_T</span></span>
+<span><span class="co">#&gt; MXRA8.1        1508.90</span></span>
+<span><span class="co">#&gt; MXRA8.2          30.10</span></span>
+<span><span class="co">#&gt; MXRA8.3         167.89</span></span>
 <span></span>
 <span><span class="co"># Check the metadata</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">coldata_df</span><span class="op">)</span></span>
@@ -311,23 +297,25 @@ stability of diversity estimates.</p>
 </h2>
 <p>Compute Tsallis entropy for a single <code>q</code> and inspect the
 resulting assay.</p>
+<p>Note: si su estudio es unimodal (es decir, sólo dispone de una
+condición), puede igualmente calcular y explorar la entropía de Tsallis
+como análisis descriptivo.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a single q value (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">0.1</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T</span></span>
 <span><span class="co">#&gt; MXRA8        0.8616275      0.6609111      0.8156972      0.6633580</span></span>
 <span><span class="co">#&gt; C1orf86      0.0000000      0.0000000      0.0000000      0.0000000</span></span>
 <span><span class="co">#&gt; PDPN         0.3486679      0.3395884      0.0000000      0.3481643</span></span>
-<span><span class="co">#&gt; ALDH4A1      0.8111864      0.4667361      0.8621495      0.5069312</span></span>
-<span><span class="co">#&gt; HNRNPR       0.5204909      0.6683829      0.7395887      0.6537834</span></span>
 <span><span class="co">#&gt;         TCGA-A7-A0DB_T</span></span>
 <span><span class="co">#&gt; MXRA8        0.8036333</span></span>
 <span><span class="co">#&gt; C1orf86      0.0000000</span></span>
-<span><span class="co">#&gt; PDPN         0.3467400</span></span>
-<span><span class="co">#&gt; ALDH4A1      0.5046596</span></span>
-<span><span class="co">#&gt; HNRNPR       0.8287792</span></span></code></pre></div>
+<span><span class="co">#&gt; PDPN         0.3467400</span></span></code></pre></div>
+<p>An additional important technical factor is the data normalization,
+which makes values comparable across genes with different numbers of
+isoforms.</p>
 <p>Now we should map the sample metadata (if available) into the
 <code>SummarizedExperiment</code> so plotting functions can use
 <code>sample_type</code> for grouping.</p>
@@ -405,8 +393,8 @@ exact control of the null distribution is important.</p>
 for comparisons. Tsallis entropy values are often skewed and sensitive
 to outliers; the median is robust and the Wilcoxon test does not assume
 normality, so this combination is well suited for our analysis.</p>
-<p>Before running differential tests we summarize per-gene diversity
-values across samples and explicitly define sample groups.</p>
+<p>Before running differential tests we need to summarize per-gene
+diversity values across samples and explicitly define sample groups.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># create a sample grouping vector inferred from sample names</span></span>
 <span><span class="co"># account for per-q column names like 'Sample_q=0.01'</span></span>
@@ -424,34 +412,15 @@ values across samples and explicitly define sample groups.</p>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span><span class="va">div_df</span>, <span class="va">samples</span>,</span>
 <span>    control <span class="op">=</span> <span class="st">"Normal"</span>,</span>
 <span>    method <span class="op">=</span> <span class="st">"median"</span>, test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
-<span>    paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    pseudocount <span class="op">=</span> <span class="fl">1e-6</span> <span class="co"># small pseudocount to stabilize zeros if needed</span></span>
+<span>    paired <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># sort results by adjusted p-value</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span><span class="op">)</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        genes Tumor_median Normal_median median_difference log2_fold_change</span></span>
-<span><span class="co">#&gt; 6   C1orf213    0.0000010     0.9870253       -0.98702427    -19.912727492</span></span>
-<span><span class="co">#&gt; 17     S1PR1    0.9931595     0.9993087       -0.00614921     -0.008904999</span></span>
-<span><span class="co">#&gt; 87      MBD2    0.5592953     0.0000010        0.55929434     19.093250788</span></span>
-<span><span class="co">#&gt; 98      OSR1    0.7933920     0.6636451        0.12974692      0.257621943</span></span>
-<span><span class="co">#&gt; 101    GFPT1    0.0000010     0.5834509       -0.58344994    -19.154251821</span></span>
-<span><span class="co">#&gt; 126     KIF9    0.5814162     0.3710543        0.21036198      0.647941169</span></span>
-<span><span class="co">#&gt;     raw_p_values adjusted_p_values</span></span>
-<span><span class="co">#&gt; 6   0.0002357454         0.0269389</span></span>
-<span><span class="co">#&gt; 17  0.0007285418         0.0269389</span></span>
-<span><span class="co">#&gt; 87  0.0006535852         0.0269389</span></span>
-<span><span class="co">#&gt; 98  0.0005801974         0.0269389</span></span>
-<span><span class="co">#&gt; 101 0.0008919014         0.0269389</span></span>
-<span><span class="co">#&gt; 126 0.0006356242         0.0269389</span></span></code></pre></div>
-<p>In the previos code-block a <strong>pseudocount</strong> was used to
-address zero values in gene expression datasets. By adding a
-pseudocount,zeros can be treated as very low values, enabling more
-meaningful analyses. This approach helps clarify biological variations
-that might otherwise be overlooked, ensuring more reliable insights into
-gene expression and abundance. Using a small pseudocount, such as 1e-6,
-maintains data integrity while providing necessary stability in
-calculations.</p>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span> <span class="op">)</span></span>
+<span><span class="co">#&gt;       genes Tumor_median Normal_median median_difference log2_fold_change</span></span>
+<span><span class="co">#&gt; 6  C1orf213   0.07256896    0.98702527       -0.91445631     -3.765662496</span></span>
+<span><span class="co">#&gt; 17    S1PR1   0.99315946    0.99930867       -0.00614921     -0.008904999</span></span>
+<span><span class="co">#&gt; 87     MBD2   0.55929534    0.07256896        0.48672638      2.946185792</span></span></code></pre></div>
 <p>Now we will generate diagnostic plots to summarize per-gene effect
 sizes:</p>
 <ul>
@@ -464,22 +433,24 @@ magnitude and adjusted p-value.</li>
 </ul>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># MA plot using helper</span></span>
-<span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma.html">plot_ma</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
+<span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma.html">plot_ma</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"MA Plot: Mean Expression vs Log-Fold Change"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/ma-and-volcano-1.png" class="r-plt" alt="" width="768"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Volcano plot: mean difference vs -log10(adjusted p-value)</span></span>
-<span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
+<span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Volcano Plot: Effect Size vs Significance"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/ma-and-volcano-2.png" class="r-plt" alt="" width="768"></p>
 <div class="section level3">
 <h3 id="plot-top-3-genes-from-the-single-q-differential-analysis">Plot top 3 genes from the single-q differential analysis<a class="anchor" aria-label="anchor" href="#plot-top-3-genes-from-the-single-q-differential-analysis"></a>
 </h3>
-<p>Here we visualize transcript-level expression for the most
+<p>Here we will visualize the transcript-level expression for the most
 significant genes identified in the previous step. The
-<code><a href="../reference/plot_top_transcripts.html">plot_top_transcripts()</a></code> helper expects transcript-level
+<code><a href="../reference/plot_top_transcripts.html">plot_top_transcripts()</a></code> function expects transcript-level
 counts (rows = transcripts) with rownames matching the
-<code>tx2gene</code> mapping. We plot the top three genes by
+<code>tx2gene</code> mapping. Now will plot the top three genes by
 significance to inspect isoform-level patterns that may explain the
 diversity differences.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
@@ -519,8 +490,11 @@ switching, and subgroup heterogeneity.</p>
 <div class="section level2">
 <h2 id="compare-between-q-values">Compare between q values<a class="anchor" aria-label="anchor" href="#compare-between-q-values"></a>
 </h2>
-<p>Compute normalized Tsallis entropy for two <code>q</code> values (0.1
-and 2) to compare scale-dependent behavior.</p>
+<p>Now we are going to try a different approach. In instead of evaluate
+the sificant estatistical differences by using single Thassi
+<code>q</code> values, we will compute the normalized Tsallis entropy
+for two <code>q</code> values (0.1 and 2) to studiy potential
+scale-dependent patterns.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 1 (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span><span class="op">)</span></span>
@@ -544,20 +518,23 @@ and 2) to compare scale-dependent behavior.</p>
 determine whether diversity differences are scale-dependent (for
 example, significance at <code>q = 0.1</code> but not at
 <code>q = 2</code> suggests rare-isoform-driven changes).</p>
-<p>Map optional sample metadata into the multi-q
-<code>SummarizedExperiment</code> so plotting helpers have access to
-<code>sample_type</code> for grouping.</p>
+<p>Once again, we should map the sample metadata into the multi-q
+<code>SummarizedExperiment</code> so, plotting helpers can have access
+to <code>sample_type</code> for grouping.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
-<p>Create <strong>violin and density plots</strong> summarizing
-diversity across multiple <code>q</code> values to show distributional
-differences between groups.</p>
+<p>In order to show the distributional differences between groups, we
+are going to create <strong>violin and density plots</strong>.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p_violin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_violin_multq.html">plot_tsallis_violin_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">p_violin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_violin_multq.html">plot_tsallis_violin_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Violin Plot: Tsallis Entropy Distribution Across Multiple q Values"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_violin</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plots-1.png" class="r-plt" alt="" width="960"></p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p_density</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_density_multq.html">plot_tsallis_density_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">p_density</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_density_multq.html">plot_tsallis_density_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Density Plot: Tsallis Entropy Distribution Across Multiple q Values"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_density</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plots-2.png" class="r-plt" alt="" width="960"></p>
 </div>
@@ -566,6 +543,16 @@ differences between groups.</p>
 </h2>
 <p>Now we will compute normalized Tsallis entropy across a sequence of
 <code>q</code> values.</p>
+<p>Computing Tsallis entropy across a sequence of q values is important
+because q acts as a sensitivity lens that shifts emphasis between rare
+and dominant isoforms, so the resulting <strong>q-curve</strong> reveals
+the scale at which biological differences occur.</p>
+<p>The Tsallis q-sequence can help us with QC and the detection of
+outlier datasets; aside from that, throught the implementation of
+different inference approaches (whether to use multivariate approaches
+such as <code>q:group</code> interaction models, GAMs, or FPCA), is it
+possible to obtain a level o diagnostic power and robustness das is not
+possible to optain on a single arbitrary <code>q</code> values.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a sequence of values (normalized)</span></span>
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
@@ -585,15 +572,16 @@ differences between groups.</p>
 <span><span class="co">#&gt; PDPN                0.3818895             0.3981326</span></span>
 <span><span class="co">#&gt; ALDH4A1             0.6447807             0.6181672</span></span>
 <span><span class="co">#&gt; HNRNPR              0.4655343             0.4548022</span></span></code></pre></div>
-<p>Map the sample metadata into the multi-q
+<p>Map once again the sample metadata into the multi-q
 <code>SummarizedExperiment</code> as before.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For paired designs ensure sample_base is created so LMMs can use it</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>Once we have the q-sequence computed, we can test for interactions
-between <code>q</code> and sample groups using mixed models that include
-a random intercept per subject to account for paired samples. One
-practical approach is the <strong>Satterthwaite method</strong>.</p>
+<p>Once we have the <code>q-sequence</code> computed, we can test for
+interactions between <code>q</code> and sample groups using
+<strong>mixed models</strong> that include a random intercept per
+subject to account for paired samples. One practical approach is the
+<strong>Satterthwaite method</strong>.</p>
 <p>This method is preferable for small or moderately sized paired
 RNA‑seq studies when per-term inference is required (for example, the
 <code>q:group</code> interaction).</p>
@@ -618,14 +606,15 @@ RNA‑seq studies when per-term inference is required (for example, the
 <div class="section level3">
 <h3 id="tsallis-q-sequence-plot">Tsallis q-sequence plot<a class="anchor" aria-label="anchor" href="#tsallis-q-sequence-plot"></a>
 </h3>
-<p>With the Tsallis q-sequence we can produce a q-curve per sample and
-gene. These curves show how diversity emphasis shifts from rare to
-dominant isoforms as <code>q</code> increases and form the basis for
-interaction tests. The q-curve shows entropy as a function of
-<code>q</code>. Diverging curves between groups indicate scale-dependent
-diversity differences: separation at low <code>q</code> implies
-differences in rare isoforms, while separation at high <code>q</code>
-signals differences in dominant isoforms.</p>
+<p>With the <strong>Tsallis q-sequence</strong> we can produce a q-curve
+per sample and gene. These curves show how diversity emphasis shifts
+from rare to dominant isoforms as <code>q</code> increases and form the
+basis for interaction tests. The q-curve shows entropy as a function of
+<code>q</code>. Diverging curves between groups indicate
+<strong>scale-dependent diversity differences</strong>: separation at
+low <code>q</code> implies differences in rare isoforms, while
+separation at high <code>q</code> signals differences in dominant
+isoforms.</p>
 <p>Now we will plot the q-curve profile for the top gene identified by
 the linear-model interaction test. We will start with
 <code>HAPLN3</code>.</p>
@@ -633,7 +622,9 @@ the linear-model interaction test. We will start with
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span>    <span class="co"># Prefer GFPT1 if present; otherwise use top LM hit</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"HAPLN3"</span>,</span>
-<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"HAPLN3: Tsallis Entropy q-Curve Profile"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/hapln3-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
 <p>Now let’s look at <code>COL1A2</code>, which encodes a protein
@@ -643,18 +634,22 @@ regulated in some cancer studies.</p>
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span>    <span class="co"># Prefer GFPT1 if present; otherwise use top LM hit</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"COL1A2"</span>,</span>
-<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"COL1A2: Tsallis Entropy q-Curve Profile"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/colia2-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
 <p>From the plot we might infer that, in this dataset, rare transcripts
 appear more prevalent in cancer samples.</p>
-<p>Finally, we can visualize the gene PI16, which is emerging as an
-important regulator in the vascular system.</p>
+<p>Finally, we can visualize the gene <code>PI16</code>, which is
+emerging as an important regulator in the vascular system.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span>    <span class="co"># Prefer GFPT1 if present; otherwise use top LM hit</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"PI16"</span>,</span>
-<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, show_samples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"PI16: Tsallis Entropy q-Curve Profile"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/pi16-gene-qprofile-1.png" class="r-plt" alt="" width="768"></p>
 <p>We can also plot the <strong>overall Tsallis q-curve for all
@@ -663,7 +658,9 @@ changes across the <code>q</code> spectrum for the entire dataset and
 can reveal general trends in isoform diversity.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot top tsallis q curve</span></span>
-<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
+<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ggtitle</a></span><span class="op">(</span><span class="st">"Global Tsallis q-Curve: Entropy Across All Genes"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>plot.title <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>hjust <span class="op">=</span> <span class="fl">0.5</span>, face <span class="op">=</span> <span class="st">"bold"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/tsallis-q-curve-1.png" class="r-plt" alt="" width="1152"></p>
 </div>
@@ -671,62 +668,23 @@ can reveal general trends in isoform diversity.</p>
 <div class="section level2">
 <h2 id="practical-notes-and-recommendations">Practical notes and recommendations<a class="anchor" aria-label="anchor" href="#practical-notes-and-recommendations"></a>
 </h2>
-<p>Quick checklist (what to do and why):</p>
+<p>Accurate isoform quantification is the foundation of reliable entropy
+analysis. Small counts introduce noise; missing data distorts
+proportions. Some important elements to keep in mind:</p>
 <ul>
 <li>
-<strong>Preprocess</strong>: filter transcripts never observed or
-add a small, documented pseudocount (e.g., +1) — this stabilizes
-proportions and avoids undefined powers when computing
-<code>p_i^q</code>.</li>
+<strong>Transcript abundance filtering</strong>: Remove very
+low-count transcripts to reduce technical noise (typical rule: drop
+transcripts with &lt;5 reads in &gt;5 samples, but adjust to sequencing
+depth).</li>
 <li>
-<strong>Choose <code>q</code> grid</strong>: pick a compact set
-spanning rare → dominant regimes (suggested: 0.1, 0.5, 1, 1.5, 2). Plot
-q-curves to inspect where groups diverge rather than relying on a single
-<code>q</code>.</li>
+<strong>Pseudocounts</strong>: If zeros create numerical issues, you
+coud add a small pseudocount (e.g. 1e-10). You can find more information
+about pseudocoints in this <a href="https://doi.org/10.1093/bioinformatics/bty471" class="external-link">paper</a>.</li>
 <li>
-<strong>Reporting scale</strong>: present Hill numbers
-<code>D_q</code> (intuitive “effective isoforms”) and/or normalized
-entropy
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>S</mi><mo accent="true">̃</mo></mover><mi>q</mi></msub><annotation encoding="application/x-tex">\tilde S_q</annotation></semantics></math>;
-report both effect size (median/mean difference) and variability (CI or
-bootstrap SE).</li>
-<li>
-<strong>Hypothesis testing</strong>: use Wilcoxon for speed
-(asymptotic) and label-shuffle (permutation) for small samples or exact
-inference. For permutations use <code>randomizations</code> ≥1000 (≥5000
-when estimating very small p-values); use paired permutations for
-matched designs.</li>
-<li>
-<strong>Multiple testing</strong>: apply FDR correction
-(Benjamini–Hochberg) and show raw/adjusted p-values alongside effect
-sizes so readers can judge practical relevance.</li>
-<li>
-<strong>Interaction testing</strong>: explore slopes/AUC first; use
-linear interaction for simple slope differences, GAMs for nonlinear
-shapes, and FPCA for fast low-dimensional summaries — always report key
-parameters (<code>k</code>, <code>randomizations</code>).</li>
-<li>
-<strong>Design &amp; technical tips</strong>: prefer paired/matched
-designs when available, ensure adequate biological replication, use
-accurate quantifiers (Salmon/kallisto or UMI-based methods), and correct
-for confounders or include them in models.</li>
-<li>
-<strong>Design examples</strong>: time-series or longitudinal
-sampling to capture dynamics; perturbation gradients (dose–response) to
-reveal transitions; single-cell or spatial (UMI-based) to study
-heterogeneity; paired/matched designs to control subject-level
-variability.</li>
-<li>
-<strong>Technical checklist</strong>: use accurate transcript
-quantifiers, aim for sufficient sequencing depth for isoform inference,
-filter or pseudocount low-abundance transcripts, and apply
-batch/confounder correction prior to downstream testing. Test across a
-compact <code>q</code> grid and report the grid.</li>
+<strong>Quantification &amp; normalization</strong>: use bias-aware
+quantifiers, such Salmon or kallisto.</li>
 </ul>
-</div>
-<div class="section level2">
-<h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
-</h2>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>

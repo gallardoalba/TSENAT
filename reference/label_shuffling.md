@@ -45,7 +45,7 @@ label_shuffling(
 - pcorr:
 
   P-value correction method applied to the results, as defined in the
-  \codep.adjust function.
+  [`p.adjust()`](https://rdrr.io/r/stats/p.adjust.html) function.
 
 - paired:
 

@@ -76,10 +76,11 @@ value in a condition. Can be <code>'mean'</code> or <code>'median'</code>.</p></
 <dt id="arg-pseudocount">pseudocount<a class="anchor" aria-label="anchor" href="#arg-pseudocount"></a></dt>
 <dd><p>Numeric scalar. Small value added to non-positive
 observed group summaries to avoid zeros when computing differences and
-log2 fold-changes. If <code>pseudocount = 0</code> (default) the function will
-choose a small value equal to half the smallest positive observed value,
-or <code>1e-6</code> if no positive values are present. Rows with insufficient
-observations remain <code>NA</code> and are not imputed.</p></dd>
+log2 fold-changes. If <code>pseudocount &lt;= 0</code> the function will automatically
+choose a scale-aware value equal to half the smallest positive observed
+group summary (i.e. half the smallest observed mean/median across groups);
+if no positive values are present the fallback is <code>1e-6</code>. Rows with
+insufficient observations remain <code>NA</code> and are not imputed.</p></dd>
 
 </dl></div>
     <div class="section level2">
