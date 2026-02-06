@@ -5,7 +5,7 @@ Calculate splicing diversity changes between two conditions.
 ## Usage
 
 ``` r
-calculate_fc(x, samples, control, method = "mean", pseudocount = 1e-06)
+calculate_fc(x, samples, control, method = "mean", pseudocount = 0)
 ```
 
 ## Arguments

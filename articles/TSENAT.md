@@ -353,7 +353,8 @@ div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 res <- calculate_difference(div_df, samples,
     control = "Normal",
     method = "median", test = "wilcoxon",
-    paired = TRUE
+    paired = TRUE,
+    pseudocount = 1e-6 # small pseudocount to stabilize zeros if needed
 )
 # sort results by adjusted p-value
 res <- res[order(res$adjusted_p_values), , drop = FALSE]
@@ -374,7 +375,16 @@ head(res)
 #> 126 0.0006356242         0.0269389
 ```
 
-Generate diagnostic plots to summarize per-gene effect sizes:
+In the previos code-block a **pseudocount** was used to address zero
+values in gene expression datasets. By adding a pseudocount,zeros can be
+treated as very low values, enabling more meaningful analyses. This
+approach helps clarify biological variations that might otherwise be
+overlooked, ensuring more reliable insights into gene expression and
+abundance. Using a small pseudocount, such as 1e-6, maintains data
+integrity while providing necessary stability in calculations.
+
+Now we will generate diagnostic plots to summarize per-gene effect
+sizes:
 
 - The **MA plot** shows the relationship between mean expression and
   log-fold change, helping to spot genes with large effect sizes across

@@ -424,7 +424,8 @@ values across samples and explicitly define sample groups.</p>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span><span class="va">div_df</span>, <span class="va">samples</span>,</span>
 <span>    control <span class="op">=</span> <span class="st">"Normal"</span>,</span>
 <span>    method <span class="op">=</span> <span class="st">"median"</span>, test <span class="op">=</span> <span class="st">"wilcoxon"</span>,</span>
-<span>    paired <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>    paired <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>    pseudocount <span class="op">=</span> <span class="fl">1e-6</span> <span class="co"># small pseudocount to stabilize zeros if needed</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co"># sort results by adjusted p-value</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">adjusted_p_values</span><span class="op">)</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
@@ -443,7 +444,16 @@ values across samples and explicitly define sample groups.</p>
 <span><span class="co">#&gt; 98  0.0005801974         0.0269389</span></span>
 <span><span class="co">#&gt; 101 0.0008919014         0.0269389</span></span>
 <span><span class="co">#&gt; 126 0.0006356242         0.0269389</span></span></code></pre></div>
-<p>Generate diagnostic plots to summarize per-gene effect sizes:</p>
+<p>In the previos code-block a <strong>pseudocount</strong> was used to
+address zero values in gene expression datasets. By adding a
+pseudocount,zeros can be treated as very low values, enabling more
+meaningful analyses. This approach helps clarify biological variations
+that might otherwise be overlooked, ensuring more reliable insights into
+gene expression and abundance. Using a small pseudocount, such as 1e-6,
+maintains data integrity while providing necessary stability in
+calculations.</p>
+<p>Now we will generate diagnostic plots to summarize per-gene effect
+sizes:</p>
 <ul>
 <li>The <strong>MA plot</strong> shows the relationship between mean
 expression and log-fold change, helping to spot genes with large effect
