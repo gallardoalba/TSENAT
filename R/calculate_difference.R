@@ -330,10 +330,15 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                             "gam",
                                             "fpca"
                                         ),
+                                        pvalue = c("satterthwaite", "lrt", "both"),
+                                        subject_col = NULL,
+                                        paired = FALSE,
                                         nthreads = 1,
-                                        assay_name = "diversity") {
+                                        assay_name = "diversity",
+                                        verbose = TRUE) {
     method <- match.arg(method)
-    message("[calculate_lm_interaction] method=", method)
+    pvalue <- match.arg(pvalue)
+    if (verbose) message("[calculate_lm_interaction] method=", method)
     if (!requireNamespace("SummarizedExperiment",
         quietly = TRUE
     )) {
@@ -377,7 +382,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         )
     }
 
-    message("[calculate_lm_interaction] parsed samples and groups")
+    if (verbose) message("[calculate_lm_interaction] parsed samples and groups")
     all_results <- list()
     fit_one <- function(g) {
         vals <- as.numeric(mat[g, ])
@@ -411,32 +416,112 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             if (!requireNamespace("lme4", quietly = TRUE)) {
                 stop("Package 'lme4' is required for method = 'lmm'")
             }
-            # subject identifier (base sample names without _q=...)
-            subject <- sample_names
+            # determine subject IDs for random effect
+            subject <- NULL
+            if (!is.null(subject_col)) {
+                if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
+                    stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
+                }
+                subj_full <- as.character(SummarizedExperiment::colData(se)[, subject_col])
+                names(subj_full) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+                subject <- unname(subj_full[sample_names])
+            } else if (paired) {
+                # require a paired identifier (sample_base) in colData
+                if ("sample_base" %in% colnames(SummarizedExperiment::colData(se))) {
+                    sb <- as.character(SummarizedExperiment::colData(se)[, "sample_base"])
+                    names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+                    subject <- unname(sb[sample_names])
+                } else {
+                    stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_coldata_to_se(..., paired = TRUE) or supply subject_col")
+                }
+            } else {
+                # fallback to sample base derived from column names
+                subject <- sample_names
+            }
             df$subject <- factor(subject)
             # require at least two subjects and at least two groups represented
             if (length(unique(na.omit(df$subject))) < 2) return(NULL)
             if (length(unique(na.omit(df$group))) < 2) return(NULL)
             # fit null (no interaction) and alternative (with q:group interaction)
-            fit0 <- try(lme4::lmer(entropy ~ q + group + (1 | subject), data = df, REML = FALSE), silent = TRUE)
-            fit1 <- try(lme4::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE)
+            mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
+            fit0 <- withCallingHandlers(
+                try(lme4::lmer(entropy ~ q + group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
+                warning = function(w) {
+                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
+                },
+                message = function(m) {
+                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                }
+            )
+            fit1 <- withCallingHandlers(
+                try(lme4::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
+                warning = function(w) {
+                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
+                },
+                message = function(m) {
+                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                }
+            )
             if (inherits(fit0, "try-error") || inherits(fit1, "try-error")) return(NULL)
-            an <- try(stats::anova(fit0, fit1), silent = TRUE)
-            if (inherits(an, "try-error")) return(NULL)
-            # p-value typically in column 'Pr(>Chisq)' in the second row
-            p_interaction <- NA_real_
-            if (nrow(an) >= 2) {
+            # compute LRT (nested models) first
+            lrt_p <- NA_real_
+            an <- withCallingHandlers(
+                try(stats::anova(fit0, fit1), silent = TRUE),
+                warning = function(w) {
+                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
+                },
+                message = function(m) {
+                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                }
+            )
+            if (!inherits(an, "try-error") && nrow(an) >= 2) {
                 pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
                 if (length(pcol) == 0) {
-                    # fallback to second column if available
-                    p_interaction <- as.numeric(an[2, ncol(an)])
+                    lrt_p <- as.numeric(an[2, ncol(an)])
                 } else {
-                    p_interaction <- as.numeric(an[2, pcol[1]])
+                    lrt_p <- as.numeric(an[2, pcol[1]])
                 }
             }
+
+            # Satterthwaite (lmerTest) per-coefficient p-values
+            satter_p <- NA_real_
+            if (pvalue %in% c("satterthwaite", "both")) {
+                if (requireNamespace("lmerTest", quietly = TRUE)) {
+                        fit_lt <- withCallingHandlers(
+                            try(lmerTest::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
+                            warning = function(w) {
+                                if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
+                            },
+                            message = function(m) {
+                                if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                            }
+                        )
+                        if (!inherits(fit_lt, "try-error")) {
+                            coefs <- summary(fit_lt)$coefficients
+                            ia_idx <- grep("^q:group", rownames(coefs))
+                            if (length(ia_idx) > 0) {
+                                satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
+                            }
+                        }
+                }
+            }
+
+            # choose primary p_interaction according to user preference
+            p_interaction <- NA_real_
+            if (pvalue == "satterthwaite") {
+                p_interaction <- satter_p
+            } else if (pvalue == "lrt") {
+                p_interaction <- lrt_p
+            } else if (pvalue == "both") {
+                # prefer Satterthwaite when available, otherwise fall back to LRT
+                if (!is.na(satter_p)) p_interaction <- satter_p else p_interaction <- lrt_p
+            }
+
             return(data.frame(
                 gene = g,
                 p_interaction = p_interaction,
+                p_lrt = lrt_p,
+                p_satterthwaite = satter_p,
                 stringsAsFactors = FALSE
             ))
         }

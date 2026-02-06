@@ -20,9 +20,9 @@ jobs:
           path: renv/library
           key: ${{ runner.os }}-renv-R4.5-${{ hashFiles('renv.lock') }}
           restore-keys: ${{ runner.os }}-renv-R4.5-
-      - name: Restore renv or install deps
+      - name: Restore renv or install deps (including Suggests)
         run: |
-          Rscript -e 'if (file.exists("renv.lock")) { if(!requireNamespace("renv", quietly=TRUE)) install.packages("renv", repos="https://cloud.r-project.org"); renv::restore() } else { if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo")) }'
+          Rscript -e 'if (file.exists("renv.lock")) { if(!requireNamespace("renv", quietly=TRUE)) install.packages("renv", repos="https://cloud.r-project.org"); renv::restore() } else { if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = c("Depends","Imports","LinkingTo","Suggests")) }'
       - name: Style check (styler)
         run: |
           Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'

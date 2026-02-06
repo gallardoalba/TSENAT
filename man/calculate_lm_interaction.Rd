@@ -14,8 +14,12 @@ calculate_lm_interaction(
   sample_type_col = NULL,
   min_obs = 10,
   method = c("linear", "lmm", "gam", "fpca"),
+  pvalue = c("satterthwaite", "lrt", "both"),
+  subject_col = NULL,
+  paired = FALSE,
   nthreads = 1,
-  assay_name = "diversity"
+  assay_name = "diversity",
+  verbose = TRUE
 )
 }
 \arguments{

@@ -157,7 +157,8 @@ readcounts <- tcga_brca_luma_dataset[, -1]
 
 # Assign transcript IDs as rownames of `readcounts`
 # so downstream transcript-level plotting functions can use them.
-txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, stringsAsFactors = FALSE)
+txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, 
+    stringsAsFactors = FALSE)
 rownames(readcounts) <- as.character(txmap$Transcript)
 
 # Read sample metadata
@@ -168,7 +169,8 @@ coldata_df <- read.table(coldata_tsv,
 )
 ```
 
-The next step is to inspect the loaded data to ensure it looks correct.
+The next step is to inspect the loaded data to 
+ensure it looks correct.
 
 ```{r data-check}
 # Check gene names
@@ -186,10 +188,11 @@ head(coldata_df)
 
 As a first step, before doing the diversity calculation, you might want to
 filter out genes with a low overall expression or limit the analysis to
-transcripts with a sufficient minimum expression level. Expression estimates of
-transcript isoforms with zero or low expression might be highly variable. For
-more details on the effect of transcript isoform prefiltering on differential
-transcript usage, see [this paper](https://doi.org/10.1186/s13059-015-0862-3).
+transcripts with a sufficient minimum expression level. Expression 
+estimates of transcript isoforms with zero or low expression might 
+be highly variable. For more details on the effect of transcript 
+isoform prefiltering on differential transcript usage, see 
+[this paper](https://doi.org/10.1186/s13059-015-0862-3).
 
 Filter transcripts with fewer than 5 reads in more than 5 samples and
 update the `genes` vector accordingly.
@@ -276,6 +279,10 @@ flips for paired differences.
 5000+ when estimating small p-values or when applying FDR across many
 genes. When possible, compute exact permutations (all labelings) for
 very small datasets.
+- For paired designs an exact sign-flip test enumerates all possible
+combinations of within-pair label flips. Use `paired = TRUE` and
+`paired_method = "signflip"` and set `randomizations = 0` to trigger 
+exact enumeration for small numbers of pairs. 
 
 Here we will use the **Wilcoxon test**; it is the appropriate choice for speed
 when sample sizes support asymptotic approximations. Use permutation tests
@@ -311,14 +318,25 @@ div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
 res <- calculate_difference(div_df, samples,
     control = "Normal",
     method = "median", test = "wilcoxon",
-    paired = TRUE
+    paired = TRUE,
+    pseudocount = 1e-6 # small pseudocount to stabilize zeros if needed
 )
 # sort results by adjusted p-value
 res <- res[order(res$adjusted_p_values), , drop = FALSE]
 head(res)
 ```
 
-Generate diagnostic plots to summarize per-gene effect sizes:
+In the previos code-block a **pseudocount** was used to address
+zero values in gene expression datasets. By adding a 
+pseudocount,zeros can be treated as very low values, enabling
+more meaningful analyses. This approach prevents undefined 
+`\(\log (0)\)` values, stabilizes variance for low-abundance 
+features, and ensures robust differential expression analysis.
+Using a small pseudocount, such as 1e-6, maintains data 
+integrity while providing necessary stability in calculations.
+
+Now we will generate diagnostic plots to summarize per-gene 
+effect sizes:
 
 - The **MA plot** shows the relationship between mean expression and log-fold
 change,
@@ -430,86 +448,89 @@ head(assay(ts_se)[1:5, 1:5])
 Map the sample metadata into the multi-q `SummarizedExperiment` as before.
 
 ```{r apply-coldata-to-se-sequence}
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
+# For paired designs ensure sample_base is created so LMMs can use it
+ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
 ```
 
-Once we have the q-sequence computed, we 
-can test for interactions between `q` and sample 
-groups using a linear model. This tests 
-whether the shape of the q-curve differs 
-between groups, which would indicate 
-scale-dependent diversity differences.
+Once we have the q-sequence computed, we can test for interactions
+between `q` and sample groups using mixed models that include a random
+intercept per subject to account for paired samples. One practical
+approach is the **Satterthwaite method**.
 
+This method is preferable for small or moderately sized paired RNA‑seq
+studies when per-term inference is required (for example, the
+`q:group` interaction).
 
 ```{r lm-interaction-before-qcurve}
 # Linear-model interaction test across q values: 
 # detect q x group interaction
 # Compute and show top hits (by adjusted p-value)
-lm_res <- calculate_lm_interaction(ts_se, 
-    sample_type_col = "sample_type", method = "linear",
-    nthreads = 1)
+lm_res <- calculate_lm_interaction(ts_se,
+    sample_type_col = "sample_type", method = "lmm",
+    pvalue = "satterthwaite",
+    subject_col = "sample_base",
+    nthreads = 1,
+    verbose = FALSE)
 print(head(lm_res, 6))
 ```
 
 ### Tsallis q-sequence plot
 
-With the Tsallis q-sequence we can produces a q-curve per sample and gene. These curves
-show how diversity emphasis shifts from rare to dominant isoforms as `q` increases 
-and form the basis for interaction tests. The q-curve shows entropy as a function 
-of `q`. Diverging curves between groups indicate scale-dependent diversity 
-differences. Separation at low `q` implies differences in rare isoforms; 
-separation at high `q` signals differences in dominant isoforms.
+With the Tsallis q-sequence we can produce a q-curve per sample and gene.
+These curves show how diversity emphasis shifts from rare to dominant
+isoforms as `q` increases and form the basis for interaction tests. The
+q-curve shows entropy as a function of `q`. Diverging curves between
+groups indicate scale-dependent diversity differences: separation at low
+`q` implies differences in rare isoforms, while separation at high `q`
+signals differences in dominant isoforms.
 
 Now we will plot the q-curve profile for the top gene identified 
-by the linear-model interaction test. We will start with `GFPT1`.
+by the linear-model interaction test. We will start with `HAPLN3`.
 
-```{r gfpt1-gene-qprofile, fig.width=8, fig.height=5}
+```{r hapln3-gene-qprofile, fig.width=8, fig.height=5}
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "GFPT1",
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3",
     sample_type_col = "sample_type", show_samples = FALSE)
 print(plot_target)
 ```
 
-Now let's have a look at the `MBD2` gene, which encondes
-a methyl-CpG binding domain [protein involved  in immune
-cell development, function, and autoimmune
-diseases9](https://www.nature.com/articles/s41420-025-02563-0).
+Now let's look at `COL1A2`, which encodes a protein involved in immune
+cell biology and has been reported as differentially regulated in some
+cancer studies.
 
-```{r mbd2-gene-qprofile, fig.width=8, fig.height=5}
+```{r colia2-gene-qprofile, fig.width=8, fig.height=5}
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "MBD2",
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2",
     sample_type_col = "sample_type", show_samples = FALSE)
 print(plot_target)
 ```
 
-We could also generate the q-sequence profile for `EEF2K`.
-This gene codifies an [protein kinase associated with 
-cancer survival and 
-prognosis](https://www.nature.com/articles/s41598-024-78652-4).
+From the plot we might infer that, in this dataset, rare transcripts
+appear more prevalent in cancer samples.
 
-```{r eef2k-gene-qprofile, fig.width=8, fig.height=5}
+Finally, we can visualize the gene PI16, which is emerging
+as an important regulator in the vascular system.
+
+```{r pi16-gene-qprofile, fig.width=8, fig.height=5}
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "EEF2K",
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16",
     sample_type_col = "sample_type", show_samples = FALSE)
 print(plot_target)
 ```
 
-We can plot also the **overall Tsallis q-curve for all
-genes**. This kind of plot provides a global view of how 
-diversity changes across the `q` spectrum for the
-entire dataset, and can reveal general trends in 
+We can also plot the **overall Tsallis q-curve for all genes**. This
+plot provides a global view of how diversity changes across the `q`
+spectrum for the entire dataset and can reveal general trends in
 isoform diversity.
 
-```{r tsallis-q-curve, fig.width=12, fig.height=6, echo=FALSE}
+```{r tsallis-q-curve, fig.width=12, fig.height=6}
 # Plot top tsallis q curve
-p_qcurve <- plot_tsallis_q_curve(ts_se)#print(p_top_lm)
+p_qcurve <- plot_tsallis_q_curve(ts_se)
 print(p_qcurve)
 ```
-
-
 
 ## Practical notes and recommendations
 

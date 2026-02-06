@@ -27,10 +27,10 @@ jobs:
             libpng-dev libjpeg-dev \
             libcairo2-dev libx11-dev libxrender-dev libxcb1-dev
 
-      - name: Install R package dependencies
+      - name: Install R package dependencies (including Suggests)
         run: |
-          # Install only remotes and minimal Depends/Imports/LinkingTo from DESCRIPTION
-          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo'))"                                                                                                
+          # Install remotes and all package dependencies including Suggests
+          Rscript -e "install.packages('remotes', repos='https://cloud.r-project.org'); remotes::install_deps(dependencies = c('Depends','Imports','LinkingTo','Suggests'))"
 
       - name: Run R CMD check (no manual, no vignettes)
         run: R CMD check --no-manual --no-vignettes --as-cran .

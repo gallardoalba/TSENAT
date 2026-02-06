@@ -4,7 +4,7 @@
 \alias{calculate_fc}
 \title{Calculate splicing diversity changes between two conditions.}
 \usage{
-calculate_fc(x, samples, control, method = "mean", pseudocount = 1e-06)
+calculate_fc(x, samples, control, method = "mean", pseudocount = 0)
 }
 \arguments{
 \item{x}{A \code{matrix} with the splicing diversity values.}

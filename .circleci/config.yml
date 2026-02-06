@@ -33,7 +33,7 @@ jobs:
       - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("remotes","ggplot2","magrittr","tidyr","dplyr","knitr","rmarkdown","xml2","ggrepel","cowplot","patchwork","mgcv","pkgdown"), repos="https://cloud.r-project.org")'
+            R -e 'install.packages(c("remotes","ggplot2","magrittr","tidyr","dplyr","knitr","rmarkdown","xml2","ggrepel","cowplot","patchwork","mgcv","pkgdown","lme4","lmerTest"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE)'
       - save_cache:
           paths:
@@ -77,7 +77,7 @@ jobs:
           command: |
             set -euo pipefail
             # Install CRAN packages and fail early if any are missing; print sessionInfo() for debugging
-            R -e 'options(repos="https://cloud.r-project.org"); pkgs <- c("remotes","pkgdown","rmarkdown","knitr","xml2","tidyr","dplyr","ggplot2","ggrepel","cowplot","patchwork"); install.packages(pkgs); missing <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if (length(missing)) { message("Missing CRAN packages: ", paste(missing, collapse=", ")); sessionInfo(); q(status=1) }'
+              R -e 'options(repos="https://cloud.r-project.org"); pkgs <- c("remotes","pkgdown","rmarkdown","knitr","xml2","tidyr","dplyr","ggplot2","ggrepel","cowplot","patchwork","lme4","lmerTest"); install.packages(pkgs); missing <- pkgs[!sapply(pkgs, requireNamespace, quietly=TRUE)]; if (length(missing)) { message("Missing CRAN packages: ", paste(missing, collapse=", ")); sessionInfo(); q(status=1) }'
             # Install Bioconductor packages and check
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment","S4Vectors"), ask=FALSE); bpkgs <- c("SummarizedExperiment","S4Vectors"); missingb <- bpkgs[!sapply(bpkgs, requireNamespace, quietly=TRUE)]; if (length(missingb)) { message("Missing Bioconductor packages: ", paste(missingb, collapse=", ")); sessionInfo(); q(status=1) }'
             # Print session info for CI diagnostics

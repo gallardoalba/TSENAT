@@ -14,7 +14,8 @@ test_differential(
   exact = FALSE,
   randomizations = 100,
   pcorr = "BH",
-  seed = 123L
+  seed = 123L,
+  paired_method = c("swap", "signflip")
 )
 }
 \arguments{
@@ -40,6 +41,9 @@ test when `method = "shuffle"` ("mean" or "median").}
 \item{seed}{Integer seed used to make permutations reproducible (default
 123). The function calls `set.seed(seed)` before running
 `label_shuffling()` when `method = "shuffle"`.}
+
+\item{paired_method}{Character; forwarded to `label_shuffling()` when
+`method = "shuffle"`. See `label_shuffling()` for details.}
 }
 \value{
 A two-column matrix with raw and adjusted p-values (as returned by
