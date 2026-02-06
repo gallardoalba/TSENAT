@@ -132,11 +132,11 @@ This command displays the recommended bibliographic entry. A machine-readable `C
 
 **BibTeX entry:**
 ```bibtex
-@software{gallardo2024tsenat,
+@software{gallardo2026tsenat,
   title={TSENAT: Tsallis Entropy Analysis Toolbox},
-  author={Gallardo, Cristóbal},
+  author={Gallardo Alba, Cristóbal},
   url={https://github.com/gallardoalba/TSENAT},
-  year={2024}
+  year={2026}
 }
 ```
 
