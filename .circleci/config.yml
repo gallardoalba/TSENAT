@@ -17,6 +17,7 @@ jobs:
           name: Install OS dependencies
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
+              build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
       - run:
@@ -71,6 +72,7 @@ jobs:
           name: Install OS dependencies
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
+              build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
       - run:
