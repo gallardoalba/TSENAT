@@ -58,9 +58,23 @@
 <div class="section level1">
 <div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
 </h1></div>
-<p>TSENAT analyzes expression and transcript differences and computes diversity metrics.</p>
+<p>Comprehensive R package for analyzing isoform diversity in transcript-level expression data using Tsallis entropy. TSENAT provides a unified framework for computing, testing, and visualizing scale-dependent isoform heterogeneity across biological samples.</p>
 <div class="section level2">
-<h2 id="tsallis-theory">Tsallis theory<a class="anchor" aria-label="anchor" href="#tsallis-theory"></a>
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<p>TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:</p>
+<ul>
+<li>
+<strong>Scale-dependent diversity analysis</strong>: Evaluate isoform heterogeneity at different sensitivity levels using the parameter <code>q</code>
+</li>
+<li>
+<strong>Statistical testing</strong>: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches</li>
+<li>
+<strong>Reproducible workflows</strong>: From raw counts to publication-ready visualizations with paired sample support</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="tsallis-theory">Tsallis Theory<a class="anchor" aria-label="anchor" href="#tsallis-theory"></a>
 </h2>
 <p>Tsallis entropy generalizes Shannon entropy. For a probability vector <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>p</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">p = (p_1, \dots, p_n)</annotation></semantics></math> (with <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_i \ge 0</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i p_i = 1</annotation></semantics></math>) the Tsallis entropy of order <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>q</mi><annotation encoding="application/x-tex">q</annotation></semantics></math> is defined for <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>≠</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \ne 1</annotation></semantics></math> as</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mn>1</mn><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msubsup><mi>p</mi><mi>i</mi><mi>q</mi></msubsup></mrow><mrow><mi>q</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
@@ -70,95 +84,171 @@ S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munder><mi mathvariant="normal">lim</mi><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow></munder><msub><mi>S</mi><mi>q</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>p</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>p</mi><mi>i</mi></msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>p</mi><mi>i</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
 \lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i.
 </annotation></semantics></math></p>
-<p>In transcript-expression data we compute Tsallis entropy per gene from the isoform-level relative abundances. For a gene with isoform counts or expression values x_i, convert to proportions</p>
+<div class="section level3">
+<h3 id="application-to-transcript-expression">Application to Transcript Expression<a class="anchor" aria-label="anchor" href="#application-to-transcript-expression"></a>
+</h3>
+<p>In transcript-expression data we compute Tsallis entropy per gene from the isoform-level relative abundances. For a gene with isoform counts or expression values <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mi>i</mi></msub><annotation encoding="application/x-tex">x_i</annotation></semantics></math>, convert to proportions</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><msub><mi>x</mi><mi>i</mi></msub><mi>/</mi><munder><mo>∑</mo><mi>j</mi></munder><msub><mi>x</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">
 p_i = x_i / \sum_j x_j
 </annotation></semantics></math></p>
 <p>so that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_i \ge 0</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mo>∑</mo><mi>i</mi></msub><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\sum_i p_i = 1</annotation></semantics></math>.</p>
-<p>The parameter <code>q</code> controls how the entropy weights isoforms by abundance: values <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &lt; 1</annotation></semantics></math> emphasize low-abundance (rare) isoforms and therefore capture richness, while values <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &gt; 1</annotation></semantics></math> emphasize high-abundance (dominant) isoforms and therefore capture dominance.</p>
-<p>Practical choices: <code>q = 0</code> counts expressed isoforms (richness), <code>q = 1</code> recovers Shannon entropy (overall uncertainty of isoform usage), and <code>q = 2</code> is closely related to the inverse Simpson index (sensitive to dominance). In practice, choose smaller <code>q</code> to highlight rare isoforms, <code>q</code> near 1 for general diversity, and larger <code>q</code> to focus on dominant isoforms.</p>
+<p>The parameter <code>q</code> controls how the entropy weights isoforms by abundance: - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&lt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &lt; 1</annotation></semantics></math></strong>: emphasizes low-abundance (rare) isoforms; captures richness - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>≈</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \approx 1</annotation></semantics></math></strong>: Shannon entropy; overall uncertainty of isoform usage - <strong><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &gt; 1</annotation></semantics></math></strong>: emphasizes high-abundance (dominant) isoforms; captures dominance</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="integrated-features">Integrated features<a class="anchor" aria-label="anchor" href="#integrated-features"></a>
+<h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
 </h2>
-<ul>
-<li>Tsallis entropy and diversity calculations:
+<div class="section level3">
+<h3 id="tsallis-entropy-and-diversity-calculations">Tsallis Entropy and Diversity Calculations<a class="anchor" aria-label="anchor" href="#tsallis-entropy-and-diversity-calculations"></a>
+</h3>
 <ul>
 <li>
-<code>calculate_tsallis_entropy</code>: computes S_q and/or D_q for a numeric vector of expression values (supports normalization, multiple <code>q</code> values and the q→1 limit). Returns numeric vectors or a list depending on <code>what</code>.</li>
-<li>
-<code>calculate_diversity</code>: applies the calculation across transcripts/genes for matrices, <code>tximport</code>-style lists or <code>SummarizedExperiment</code> objects and returns a <code>SummarizedExperiment</code> with assay <code>diversity</code> (S_q) or <code>hill</code> (D_q).</li>
+<code><a href="reference/calculate_tsallis_entropy.html">calculate_tsallis_entropy()</a></code>: Computes <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>q</mi></msub><annotation encoding="application/x-tex">S_q</annotation></semantics></math> and/or <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math> (Hill numbers) for numeric vectors
+<ul>
+<li>Supports normalization, multiple <code>q</code> values, and the <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>→</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q \to 1</annotation></semantics></math> limit</li>
+<li>Returns numeric vectors or structured lists</li>
 </ul>
 </li>
-<li>Differential and statistical analyses:
-<ul>
 <li>
-<code>calculate_difference</code> and helpers in <code>difference_functions</code> compute group means, differences (or log2 fold-changes), p-values and adjusted p-values. These functions are designed to work with diversity summaries as well as expression matrices.</li>
-</ul>
-</li>
-<li>Plotting and visualization:
+<code><a href="reference/calculate_diversity.html">calculate_diversity()</a></code>: Applies calculations across transcripts/genes
 <ul>
-<li>
-<code>plot_tsallis_q_curve</code>: median ± IQR of Tsallis entropy across q-values by group.</li>
+<li>Works with matrices, <code>tximport</code>-style lists, or <code>SummarizedExperiment</code> objects</li>
+<li>Returns <code>SummarizedExperiment</code> with assay <code>diversity</code> (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>q</mi></msub><annotation encoding="application/x-tex">S_q</annotation></semantics></math>) or <code>hill</code> (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>D</mi><mi>q</mi></msub><annotation encoding="application/x-tex">D_q</annotation></semantics></math>)</li>
 </ul>
 </li>
 </ul>
 </div>
+<div class="section level3">
+<h3 id="differential-and-statistical-analyses">Differential and Statistical Analyses<a class="anchor" aria-label="anchor" href="#differential-and-statistical-analyses"></a>
+</h3>
+<ul>
+<li>
+<code><a href="reference/calculate_difference.html">calculate_difference()</a></code>: Computes group means, differences, log₂-fold-changes, and p-values</li>
+<li>Support for paired and unpaired designs</li>
+<li>Wilcoxon rank-sum or permutation-based hypothesis tests</li>
+<li>Adjusted p-values and effect size reporting</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="plotting-and-visualization">Plotting and Visualization<a class="anchor" aria-label="anchor" href="#plotting-and-visualization"></a>
+</h3>
+<ul>
+<li>
+<code><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve()</a></code>: q-curves showing median ± IQR across sample groups</li>
+<li>
+<code><a href="reference/plot_ma.html">plot_ma()</a></code>, <code><a href="reference/plot_volcano.html">plot_volcano()</a></code>: Effect size and significance summaries</li>
+<li>
+<code><a href="reference/plot_top_transcripts.html">plot_top_transcripts()</a></code>: Transcript-level patterns for candidate genes</li>
+<li>
+<code><a href="reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile()</a></code>: Per-gene q-curve profiles</li>
+</ul>
+</div>
+</div>
 <div class="section level2">
-<h2 id="installation-and-documentation">Installation and documentation<a class="anchor" aria-label="anchor" href="#installation-and-documentation"></a>
+<h2 id="installation-and-documentation">Installation and Documentation<a class="anchor" aria-label="anchor" href="#installation-and-documentation"></a>
 </h2>
 <p>Install from GitHub during development:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"gallardoalba/TSENAT"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co">## Recommended (reproducible): use `renv`.</span></span>
+<span><span class="co">## Recommended (reproducible environment): use renv</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"renv"</span><span class="op">)</span></span>
 <span><span class="fu">renv</span><span class="fu">::</span><span class="fu">init</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co"># when dependencies are set, record lock</span></span>
 <span><span class="fu">renv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Documentation</strong>: <a href="https://gallardoalba.github.io/TSENAT/">pkgdown site</a> | <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">Vignette</a></p>
 </div>
 <div class="section level2">
-<h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<p>Compute Tsallis diversity for a single <code>q</code> and plot a q-curve across multiple <code>q</code> values (small, focused example taken from the vignette):</p>
+<p>Compute Tsallis diversity for a single <code>q</code> and plot a q-curve across multiple <code>q</code> values:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gallardoalba.github.io/TSENAT">TSENAT</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"tcga_brca_luma_dataset"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># compute for q = 0.1 and normalize</span></span>
+<span><span class="co"># Compute normalized diversity for q = 0.1</span></span>
 <span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">tcga_brca_luma_dataset</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">$</span><span class="va">genes</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q <span class="op">=</span> <span class="fl">0.1</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># compute for multiple q values and plot the q-curve</span></span>
+<span><span class="co"># Compute across multiple q values</span></span>
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
 <span><span class="va">ts_multi</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">genes</span>, q <span class="op">=</span> <span class="va">qvec</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/map_coldata_to_se.html">map_coldata_to_se</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span>
-<span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span></code></pre></div>
-<p>For a detailed, reproducible example see the package vignette: <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">HTML</a> | <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf">PDF</a>.</p>
+<span></span>
+<span><span class="co"># Visualize</span></span>
+<span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_multi</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
+<p>For a detailed, reproducible workflow see the <a href="https://gallardoalba.github.io/TSENAT/articles/TSENAT.html">package vignette</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="ci-and-local-checks">CI and local checks<a class="anchor" aria-label="anchor" href="#ci-and-local-checks"></a>
+<h2 id="example-output">Example Output<a class="anchor" aria-label="anchor" href="#example-output"></a>
 </h2>
-<p>Continuous integration for this repository is configured to install packages listed in <code>Suggests</code> (for example <code>lme4</code> and <code>lmerTest</code>) so vignette builds and example code using mixed models run on the CI builders. To reproduce a CI-like local environment, install suggested packages before running <code>R CMD check</code>:</p>
+<p>Below is an example q-curve profile from the vignette showing how Tsallis entropy changes across the sensitivity parameter <code>q</code> for the gene PI16, a key regulator in the vascular system:</p>
+<div class="float">
+<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png" alt="PI16 q-Curve Profile"><div class="figcaption">PI16 q-Curve Profile</div>
+</div>
+<p>This visualization demonstrates how rare and dominant isoforms separate at different <code>q</code> values, revealing scale-dependent diversity differences between Normal and Tumor samples.</p>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>If you use TSENAT in your research, please cite:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install all suggested packages from DESCRIPTION</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_deps.html" class="external-link">install_deps</a></span><span class="op">(</span>dependencies <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Suggests"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Or install just the mixed-model packages used by the vignette:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lme4"</span>, <span class="st">"lmerTest"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
+<p>This command displays the recommended bibliographic entry. A machine-readable <code>CITATION</code> file is included with the package for easy export to reference managers.</p>
+<p><strong>BibTeX entry:</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co">@software{gallardo2026tsenat,</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">  title={TSENAT: Tsallis Entropy Analysis Toolbox},</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">  author={Gallardo Alba, Cristóbal},</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">  url={https://github.com/gallardoalba/TSENAT},</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">  year={2026}</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="license-citation-and-attribution">License, citation and attribution<a class="anchor" aria-label="anchor" href="#license-citation-and-attribution"></a>
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
 </h2>
-<p>This project is licensed under the GNU General Public License v3.0 (GPL-3). A copy of the full license text is included in the repository at <code>LICENSE</code> and is installed with the package under <code>inst/LICENSE</code>.</p>
-<p>To cite TSENAT in publications, run the following in R:</p>
+<p>We welcome contributions! Please follow these guidelines:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Fork</strong> the repository</li>
+<li>
+<strong>Create a feature branch</strong> (<code>git checkout -b feature/your-feature-name</code>)</li>
+<li>
+<strong>Make your changes</strong> and test locally with <code>R CMD check</code>
+</li>
+<li>
+<strong>Commit with clear messages</strong> (<code>git commit -m 'Add feature: description'</code>)</li>
+<li>
+<strong>Push to your fork</strong> (<code>git push origin feature/your-feature-name</code>)</li>
+<li>
+<strong>Open a Pull Request</strong> describing your changes</li>
+</ol>
+<div class="section level3">
+<h3 id="local-testing">Local Testing<a class="anchor" aria-label="anchor" href="#local-testing"></a>
+</h3>
+<p>Ensure all checks pass before submitting:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
-<p>This command shows the recommended bibliographic entry; a machine-readable <code>inst/CITATION</code> file is included with the package for easy citation export.</p>
-<p>TSENAT builds upon and adapts substantial portions of code from the <a href="https://github.com/esebesty/SplicingFactory" class="external-link">SplicingFactory package</a>. The codebase has been extended with additional utilities, bug fixes and plotting helpers focused on Tsallis based transcript-level diversity analysis.</p>
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">check</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="ci-and-local-checks">CI and Local Checks<a class="anchor" aria-label="anchor" href="#ci-and-local-checks"></a>
+</h2>
+<p>Continuous integration is configured with CircleCI to install all suggested packages for comprehensive testing. To reproduce a CI-like environment locally:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Install all suggested dependencies</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_deps</span>(<span class="at">dependencies =</span> <span class="fu">c</span>(<span class="st">"Suggests"</span>))</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co"># Run checks</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>R CMD check <span class="sc">--</span>as<span class="sc">-</span>cran</span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="license-and-attribution">License and Attribution<a class="anchor" aria-label="anchor" href="#license-and-attribution"></a>
+</h2>
+<p>This project is licensed under the GNU General Public License v3.0 (GPL-3). See <a href="LICENSE">LICENSE</a> for details.</p>
+<p><strong>Attribution</strong>: TSENAT builds upon and adapts code from the <a href="https://github.com/esebesty/SplicingFactory" class="external-link">SplicingFactory package</a>, extended with additional functionality, bug fixes, and visualization tools.</p>
+<hr>
+<p><strong>Maintainer</strong>: Cristóbal Gallardo (<a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>)<br><strong>Repository</strong>: <a href="https://github.com/gallardoalba/TSENAT" class="external-link">github.com/gallardoalba/TSENAT</a></p>
 </div>
 </div>
 

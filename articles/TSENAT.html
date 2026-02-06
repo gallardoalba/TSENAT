@@ -586,16 +586,21 @@ subject to account for paired samples. One practical approach is the
 RNA‑seq studies when per-term inference is required (for example, the
 <code>q:group</code> interaction).</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Linear-model interaction test across q values: </span></span>
-<span><span class="co"># detect q x group interaction</span></span>
-<span><span class="co"># Compute and show top hits (by adjusted p-value)</span></span>
-<span><span class="va">lm_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
-<span>    sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, method <span class="op">=</span> <span class="st">"lmm"</span>,</span>
-<span>    pvalue <span class="op">=</span> <span class="st">"satterthwaite"</span>,</span>
-<span>    subject_col <span class="op">=</span> <span class="st">"sample_base"</span>,</span>
-<span>    nthreads <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>    verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lm_res</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co">## Linear-model interaction test across q values: detect q x group interaction</span></span>
+<span><span class="co">## Guard the LMM-based analysis so the vignette renders even when 'lme4' is</span></span>
+<span><span class="co">## not available in the environment (CI may skip Suggests).</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"lme4"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># Compute and show top hits (by adjusted p-value)</span></span>
+<span>    <span class="va">lm_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_lm_interaction.html">calculate_lm_interaction</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
+<span>            sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, method <span class="op">=</span> <span class="st">"lmm"</span>,</span>
+<span>            pvalue <span class="op">=</span> <span class="st">"satterthwaite"</span>,</span>
+<span>            subject_col <span class="op">=</span> <span class="st">"sample_base"</span>,</span>
+<span>            nthreads <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>            verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lm_res</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Skipping linear-model LMM interaction test: package 'lme4' not installed in this environment."</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span><span class="co">#&gt;      gene p_interaction        p_lrt p_satterthwaite adj_p_interaction</span></span>
 <span><span class="co">#&gt; 1  HAPLN3  1.858060e-50 1.729070e-50    1.858060e-50      3.660378e-48</span></span>
 <span><span class="co">#&gt; 2  COL1A2  6.454700e-47 6.037249e-47    6.454700e-47      6.357879e-45</span></span>

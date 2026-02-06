@@ -1,9 +1,23 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-TSENAT analyzes expression and transcript differences and computes
-diversity metrics.
+Comprehensive R package for analyzing isoform diversity in
+transcript-level expression data using Tsallis entropy. TSENAT provides
+a unified framework for computing, testing, and visualizing
+scale-dependent isoform heterogeneity across biological samples.
 
-## Tsallis theory
+## Overview
+
+TSENAT analyzes expression and transcript differences to compute
+diversity metrics. Key capabilities:
+
+- **Scale-dependent diversity analysis**: Evaluate isoform heterogeneity
+  at different sensitivity levels using the parameter `q`
+- **Statistical testing**: Compare diversity measures between sample
+  groups using Wilcoxon tests or permutation-based approaches
+- **Reproducible workflows**: From raw counts to publication-ready
+  visualizations with paired sample support
+
+## Tsallis Theory
 
 Tsallis entropy generalizes Shannon entropy. For a probability vector
 $`p = (p_1, \dots, p_n)`$ (with $`p_i \ge 0`$ and $`\sum_i p_i = 1`$)
@@ -19,9 +33,11 @@ In the limit $`q \to 1`$ this recovers the Shannon entropy
 \lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i.
 ```
 
+### Application to Transcript Expression
+
 In transcript-expression data we compute Tsallis entropy per gene from
 the isoform-level relative abundances. For a gene with isoform counts or
-expression values x_i, convert to proportions
+expression values $`x_i`$, convert to proportions
 
 ``` math
 p_i = x_i / \sum_j x_j
@@ -30,38 +46,48 @@ p_i = x_i / \sum_j x_j
 so that $`p_i \ge 0`$ and $`\sum_i p_i = 1`$.
 
 The parameter `q` controls how the entropy weights isoforms by
-abundance: values $`q < 1`$ emphasize low-abundance (rare) isoforms and
-therefore capture richness, while values $`q > 1`$ emphasize
-high-abundance (dominant) isoforms and therefore capture dominance.
+abundance: - **$`q < 1`$**: emphasizes low-abundance (rare) isoforms;
+captures richness - **$`q \approx 1`$**: Shannon entropy; overall
+uncertainty of isoform usage - **$`q > 1`$**: emphasizes high-abundance
+(dominant) isoforms; captures dominance
 
-Practical choices: `q = 0` counts expressed isoforms (richness), `q = 1`
-recovers Shannon entropy (overall uncertainty of isoform usage), and
-`q = 2` is closely related to the inverse Simpson index (sensitive to
-dominance). In practice, choose smaller `q` to highlight rare isoforms,
-`q` near 1 for general diversity, and larger `q` to focus on dominant
-isoforms.
+## Features
 
-## Integrated features
+### Tsallis Entropy and Diversity Calculations
 
-- Tsallis entropy and diversity calculations:
-  - `calculate_tsallis_entropy`: computes S_q and/or D_q for a numeric
-    vector of expression values (supports normalization, multiple `q`
-    values and the q→1 limit). Returns numeric vectors or a list
-    depending on `what`.
-  - `calculate_diversity`: applies the calculation across
-    transcripts/genes for matrices, `tximport`-style lists or
-    `SummarizedExperiment` objects and returns a `SummarizedExperiment`
-    with assay `diversity` (S_q) or `hill` (D_q).
-- Differential and statistical analyses:
-  - `calculate_difference` and helpers in `difference_functions` compute
-    group means, differences (or log2 fold-changes), p-values and
-    adjusted p-values. These functions are designed to work with
-    diversity summaries as well as expression matrices.
-- Plotting and visualization:
-  - `plot_tsallis_q_curve`: median ± IQR of Tsallis entropy across
-    q-values by group.
+- [`calculate_tsallis_entropy()`](https://gallardoalba.github.io/TSENAT/reference/calculate_tsallis_entropy.md):
+  Computes $`S_q`$ and/or $`D_q`$ (Hill numbers) for numeric vectors
+  - Supports normalization, multiple `q` values, and the $`q \to 1`$
+    limit
+  - Returns numeric vectors or structured lists
+- [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md):
+  Applies calculations across transcripts/genes
+  - Works with matrices, `tximport`-style lists, or
+    `SummarizedExperiment` objects
+  - Returns `SummarizedExperiment` with assay `diversity` ($`S_q`$) or
+    `hill` ($`D_q`$)
 
-## Installation and documentation
+### Differential and Statistical Analyses
+
+- [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md):
+  Computes group means, differences, log₂-fold-changes, and p-values
+- Support for paired and unpaired designs
+- Wilcoxon rank-sum or permutation-based hypothesis tests
+- Adjusted p-values and effect size reporting
+
+### Plotting and Visualization
+
+- [`plot_tsallis_q_curve()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_q_curve.md):
+  q-curves showing median ± IQR across sample groups
+- [`plot_ma()`](https://gallardoalba.github.io/TSENAT/reference/plot_ma.md),
+  [`plot_volcano()`](https://gallardoalba.github.io/TSENAT/reference/plot_volcano.md):
+  Effect size and significance summaries
+- [`plot_top_transcripts()`](https://gallardoalba.github.io/TSENAT/reference/plot_top_transcripts.md):
+  Transcript-level patterns for candidate genes
+- [`plot_tsallis_gene_profile()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_gene_profile.md):
+  Per-gene q-curve profiles
+
+## Installation and Documentation
 
 Install from GitHub during development:
 
@@ -70,80 +96,132 @@ Install from GitHub during development:
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("gallardoalba/TSENAT")
 
-## Recommended (reproducible): use `renv`.
+## Recommended (reproducible environment): use renv
 install.packages("renv")
 renv::init()
-# when dependencies are set, record lock
 renv::snapshot()
 ```
 
-## Quick start
+**Documentation**: [pkgdown
+site](https://gallardoalba.github.io/TSENAT/) \|
+[Vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html)
+
+## Quick Start
 
 Compute Tsallis diversity for a single `q` and plot a q-curve across
-multiple `q` values (small, focused example taken from the vignette):
+multiple `q` values:
 
 ``` r
 
 library(TSENAT)
 data("tcga_brca_luma_dataset", package = "TSENAT")
 
-# compute for q = 0.1 and normalize
+# Compute normalized diversity for q = 0.1
 readcounts <- as.matrix(tcga_brca_luma_dataset[, -1, drop = FALSE])
 genes <- tcga_brca_luma_dataset$genes
 ts_se <- calculate_diversity(readcounts, genes, q = 0.1, norm = TRUE)
 
-# compute for multiple q values and plot the q-curve
+# Compute across multiple q values
 qvec <- seq(0.01, 2, by = 0.1)
 ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
-p3 <- plot_tsallis_q_curve(ts_se)
+
+# Visualize
+p_qcurve <- plot_tsallis_q_curve(ts_multi)
+print(p_qcurve)
 ```
 
-For a detailed, reproducible example see the package vignette:
-[HTML](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html) \|
-[PDF](https://gallardoalba.github.io/TSENAT/articles/TSENAT.pdf).
+For a detailed, reproducible workflow see the [package
+vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
 
-## CI and local checks
+## Example Output
 
-Continuous integration for this repository is configured to install
-packages listed in `Suggests` (for example `lme4` and `lmerTest`) so
-vignette builds and example code using mixed models run on the CI
-builders. To reproduce a CI-like local environment, install suggested
-packages before running `R CMD check`:
+Below is an example q-curve profile from the vignette showing how
+Tsallis entropy changes across the sensitivity parameter `q` for the
+gene PI16, a key regulator in the vascular system:
 
-``` r
+![PI16 q-Curve
+Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
 
-# install all suggested packages from DESCRIPTION
-if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_deps(dependencies = c("Suggests"))
-```
+PI16 q-Curve Profile
 
-Or install just the mixed-model packages used by the vignette:
+This visualization demonstrates how rare and dominant isoforms separate
+at different `q` values, revealing scale-dependent diversity differences
+between Normal and Tumor samples.
 
-``` r
+## Citation
 
-install.packages(c("lme4", "lmerTest"))
-```
-
-## License, citation and attribution
-
-This project is licensed under the GNU General Public License v3.0
-(GPL-3). A copy of the full license text is included in the repository
-at `LICENSE` and is installed with the package under `inst/LICENSE`.
-
-To cite TSENAT in publications, run the following in R:
+If you use TSENAT in your research, please cite:
 
 ``` r
 
 citation("TSENAT")
 ```
 
-This command shows the recommended bibliographic entry; a
-machine-readable `inst/CITATION` file is included with the package for
-easy citation export.
+This command displays the recommended bibliographic entry. A
+machine-readable `CITATION` file is included with the package for easy
+export to reference managers.
 
-TSENAT builds upon and adapts substantial portions of code from the
-[SplicingFactory package](https://github.com/esebesty/SplicingFactory).
-The codebase has been extended with additional utilities, bug fixes and
-plotting helpers focused on Tsallis based transcript-level diversity
-analysis.
+**BibTeX entry:**
+
+``` bibtex
+@software{gallardo2026tsenat,
+  title={TSENAT: Tsallis Entropy Analysis Toolbox},
+  author={Gallardo Alba, Cristóbal},
+  url={https://github.com/gallardoalba/TSENAT},
+  year={2026}
+}
+```
+
+## Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1.  **Fork** the repository
+2.  **Create a feature branch**
+    (`git checkout -b feature/your-feature-name`)
+3.  **Make your changes** and test locally with `R CMD check`
+4.  **Commit with clear messages**
+    (`git commit -m 'Add feature: description'`)
+5.  **Push to your fork** (`git push origin feature/your-feature-name`)
+6.  **Open a Pull Request** describing your changes
+
+### Local Testing
+
+Ensure all checks pass before submitting:
+
+``` r
+
+devtools::check()
+devtools::test()
+```
+
+## CI and Local Checks
+
+Continuous integration is configured with CircleCI to install all
+suggested packages for comprehensive testing. To reproduce a CI-like
+environment locally:
+
+``` r
+# Install all suggested dependencies
+remotes::install_deps(dependencies = c("Suggests"))
+
+# Run checks
+R CMD check --as-cran
+```
+
+## License and Attribution
+
+This project is licensed under the GNU General Public License v3.0
+(GPL-3). See [LICENSE](https://gallardoalba.github.io/TSENAT/LICENSE)
+for details.
+
+**Attribution**: TSENAT builds upon and adapts code from the
+[SplicingFactory package](https://github.com/esebesty/SplicingFactory),
+extended with additional functionality, bug fixes, and visualization
+tools.
+
+------------------------------------------------------------------------
+
+**Maintainer**: Cristóbal Gallardo (<gallardoalba@pm.me>)  
+**Repository**:
+[github.com/gallardoalba/TSENAT](https://github.com/gallardoalba/TSENAT)
