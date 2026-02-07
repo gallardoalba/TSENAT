@@ -2,15 +2,15 @@
 
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-**TSENAT** is a comprehensive R package for measuring **isoform diversity**. Instead of just counting total gene expression, TSENAT captures the **pattern of isoform usage**; that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using **Tsallis entropy**, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.
+TSENAT is a comprehensive R package for measuring isoform diversity. Instead of just counting total gene expression, TSENAT captures the pattern of isoform usage; that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using Tsallis entropy, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.
 
 ## Overview
 
 TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:
 
-- **Scale-dependent diversity analysis**: Evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
-- **Statistical testing**: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.
-- **Reproducible workflows**: From raw counts to publication-ready visualizations with paired sample support.
+- Scale-dependent diversity analysis: Evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
+- Statistical testing: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.
+- Reproducible workflows: From raw counts to publication-ready visualizations with paired sample support.
 
 ## Tsallis Theory
 
@@ -24,12 +24,12 @@ When $q = 1$, this becomes Shannon entropy: $\lim_{q \to 1} S_q(p) = -\sum_i p_i
 
 ### Application to Transcript Expression
 
-Most genes produce multiple protein isoforms through alternative splicing. Rather than treating gene expression as a single number, TSENAT captures the **pattern of isoform usage**—which isoforms are abundant vs. rare—by computing Tsallis entropy at the transcript level.
+Most genes produce multiple protein isoforms through alternative splicing. Rather than treating gene expression as a single number, TSENAT captures the pattern of isoform usage—which isoforms are abundant vs. rare—by computing Tsallis entropy at the transcript level.
 
-**The parameter `q` acts as a sensitivity dial** for isoform weighting:
-- **$q < 1$** (e.g., 0.1, 0.5): emphasizes **rare isoforms**—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease.
-- **$q \approx 1$** (Shannon entropy): balanced view of **overall isoform diversity**.
-- **$q > 1$** (e.g., 1.5, 2): emphasizes **dominant isoforms**—useful for detecting when one isoform abnormally dominates (common in cancer).
+The parameter `q` acts as a sensitivity dial for isoform weighting:
+- $q < 1$ (e.g., 0.1, 0.5): emphasizes rare isoforms—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease.
+- $q \approx 1$ (Shannon entropy): balanced view of overall isoform diversity.
+- $q > 1$ (e.g., 1.5, 2): emphasizes dominant isoforms—useful for detecting when one isoform abnormally dominates (common in cancer).
 
 ## Features
 
@@ -45,24 +45,24 @@ Most genes produce multiple protein isoforms through alternative splicing. Rathe
 
 ### Differential and Statistical Analyses
 
-Beyond computing diversity values, TSENAT enables **group comparisons** to identify biological effects:
+Beyond computing diversity values, TSENAT enables group comparisons to identify biological effects:
 
-- **Paired and unpaired designs**: test whether isoform diversity differs between groups (e.g., tumor vs. normal samples). Account for **paired designs** when comparing same patients before/after treatment, or use **unpaired designs** for independent cohorts.
-- **Robust statistical testing**: choose between **Wilcoxon rank-sum tests** (ideal for small sample sizes and non-normal distributions common in omics data) or **permutation-based tests** (no distributional assumptions required).
-- **Linear model framework**: fit linear mixed-effects models to account for random effects and covariates, which are particularly useful when controlling for confounding variables while testing group effects on diversity.
+- Paired and unpaired designs: test whether isoform diversity differs between groups (e.g., tumor vs. normal samples). Account for paired designs when comparing same patients before/after treatment, or use unpaired designs for independent cohorts.
+- Robust statistical testing: choose between Wilcoxon rank-sum tests (ideal for small sample sizes and non-normal distributions common in omics data) or permutation-based tests (no distributional assumptions required).
+- Linear model framework: fit linear mixed-effects models to account for random effects and covariates, which are particularly useful when controlling for confounding variables while testing group effects on diversity.
 
 
 ### Plotting and Visualization
 
-- **Per-gene q-curve profiles**: visualize how a single gene's isoform diversity changes across the sensitivity parameter `q`. This reveals **scale-dependent patterns**: rare isoforms may disappear at high `q`, while dominant isoforms emerge.
+- Per-gene q-curve profiles: visualize how a single gene's isoform diversity changes across the sensitivity parameter `q`. This reveals scale-dependent patterns: rare isoforms may disappear at high `q`, while dominant isoforms emerge.
 
 ![PI16 q-Curve Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
 
-- **Group comparisons and significance**: summarize diversity differences between biological groups (e.g., tumor vs. normal) across all genes simultaneously to identify candidate genes.
+- Group comparisons and significance: summarize diversity differences between biological groups (e.g., tumor vs. normal) across all genes simultaneously to identify candidate genes.
 
 ![MA and Volcano Plots](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-and-volcano-1.png)
 
-- **Isoform-level details**: drill down to individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
+- Isoform-level details: drill down to individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
 
 ![Isoform Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
 
@@ -80,7 +80,7 @@ renv::init()
 renv::snapshot()
 ```
 
-**Documentation**: [TSENAT site](https://gallardoalba.github.io/TSENAT/).
+Documentation: [TSENAT site](https://gallardoalba.github.io/TSENAT/).
 
 ## Quick Start
 
@@ -130,12 +130,12 @@ This command displays the recommended bibliographic entry. A machine-readable `C
 
 We welcome contributions! Please follow these guidelines:
 
-1. **Fork** the repository
-2. **Create a feature branch** (`git checkout -b feature/your-feature-name`)
-3. **Make your changes** and test locally with `R CMD check`
-4. **Commit with clear messages** (`git commit -m 'Add feature: description'`)
-5. **Push to your fork** (`git push origin feature/your-feature-name`)
-6. **Open a Pull Request** describing your changes
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature-name`)
+3. Make your changes and test locally with `R CMD check`
+4. Commit with clear messages (`git commit -m 'Add feature: description'`)
+5. Push to your fork (`git push origin feature/your-feature-name`)
+6. Open a Pull Request describing your changes
 
 ### Local Testing
 
@@ -162,4 +162,4 @@ R CMD check --as-cran
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3). See [LICENSE](LICENSE) for details.
 
-**Attribution**: TSENAT builds upon the [SplicingFactory package](https://github.com/esebesty/SplicingFactory), extending it with specialized focus on **Tsallis entropy analysis**.
+Attribution: TSENAT builds upon the [SplicingFactory package](https://github.com/esebesty/SplicingFactory), extending it with specialized focus on Tsallis entropy analysis.
