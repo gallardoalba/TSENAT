@@ -5,8 +5,8 @@ date: "`r Sys.Date()`"
 output:
     rmarkdown::html_document:
         toc: true
-        fig_width: 10
-        fig_height: 7
+        fig_width: 7
+        fig_height: 4.5
 vignette: |
     %\VignetteIndexEntry{TSENAT}
     %\VignetteEngine{knitr::rmarkdown}
@@ -17,8 +17,8 @@ vignette: |
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
-    fig.width = 10,
-    fig.height = 6
+    fig.width = 7,
+    fig.height = 4.5
 )
 ```
 
@@ -116,24 +116,6 @@ suppressPackageStartupMessages({
 })
 ```
 
-### Sample naming and pairing requirements
-
-TSENAT requires a consistent, exact mapping between the assay column names
-and the values in `coldata$Sample`. The following rules and recommendations
-make mapping reliable and avoid surprises when running paired analyses.
-The ordenation of the samples is not important, as long as the names of
-the paired samples in the metadata match exactly.
-
-The following example from `coldata_df` illustrates a correct format:
-
-```text
-Sample	Condition
-TCGA-A7-A0CH_N	Normal
-TCGA-A7-A0D9_N	Normal
-TCGA-A7-A0CH_T	Tumor
-TCGA-A7-A0D9_T	Tumor
-```
-
 ### Load data and metadata
 
 Now we will load the example dataset and associated metadata:
@@ -171,7 +153,7 @@ head(genes)
 
 # Check read count dataset
 dim(readcounts)
-head(readcounts[1:3, 1:5])
+head(readcounts[1:4, 1:3])
 
 # Check the metadata
 head(coldata_df)
@@ -219,7 +201,7 @@ igualmente calcular y explorar la entropía de Tsallis como análisis descriptiv
 # compute Tsallis entropy for a single q value (normalized)
 q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
-head(assay(ts_se)[1:3, 1:5])
+head(assay(ts_se)[1:4, 1:3])
 ```
 An additional important technical factor is the data 
 normalization, which makes values comparable across 
@@ -323,7 +305,7 @@ res <- calculate_difference(div_df, samples,
 )
 # sort results by adjusted p-value
 res <- res[order(res$adjusted_p_values), , drop = FALSE]
-head(res[1:3, 1:5] )
+head(res)
 ```
 
 Now we will generate diagnostic plots to summarize per-gene 
@@ -336,14 +318,31 @@ across expression levels.
 useful for highlighting candidates by thresholding magnitude and
 adjusted p-value.
 
-```{r ma-and-volcano, fig.width=8, fig.height=4}
+```{r ma-tsallis, fig.width=7, fig.height=4.5}
 # MA plot using helper
-p_ma <- plot_ma(res) + ggtitle("MA Plot: Mean Expression vs Log-Fold Change") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_ma <- plot_ma(res) + ggtitle("Ma plot: mean expression vs log-fold change") +
+    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
 print(p_ma)
+
+```{r ma-readcounts, fig.width=7, fig.height=4.5}
+# Additional MA plot using gene-level read-count log2 fold changes
+# Aggregate transcript-level read counts to gene-level by summing transcripts
+gene_counts <- rowsum(as.matrix(readcounts), genes)
+
+# Compute median-based fold changes on gene-level read counts
+read_fc <- calculate_fc(gene_counts, samples, control = "Normal", method = "median")
+fc_df <- data.frame(genes = rownames(read_fc), log2_fold_change = read_fc$log2_fold_change, stringsAsFactors = FALSE)
+
+# Plot MA using read-count fold changes on the y axis
+p_ma_read <- plot_ma(res, fc_df = fc_df) + ggtitle("Ma plot: read-count log2 fold change") +
+    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+print(p_ma_read)
+```
+
+```{r ,volcanoplot, fig.width=7, fig.height=4.5}
 # Volcano plot: mean difference vs -log10(adjusted p-value)
-p_volcano <- plot_volcano(res) + ggtitle("Volcano Plot: Effect Size vs Significance") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_volcano <- plot_volcano(res) + ggtitle("Volcano plot: effect size vs significance") +
+    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
 print(p_volcano)
 ```
 
@@ -357,7 +356,7 @@ mapping. Now will plot the top three genes by significance
 to inspect isoform-level patterns that may explain the 
 diversity differences.
 
-```{r top-transcripts-singleq, fig.width=10, fig.height=6}
+```{r top-transcripts-singleq, fig.width=7, fig.height=4.5}
 sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
 top_genes <- head(sig_res$genes, 3)
 sample_base_names <- sub(
@@ -379,7 +378,7 @@ Now, we will plot the same top genes but using variance aggregation
 instead of median. This allows us to see how transcript-level
 expression variability differs between groups for these genes.
 
-```{r top-transcripts-singleq-variance, fig.width=10, fig.height=6}
+```{r top-transcripts-singleq-variance, fig.width=7, fig.height=4.5}
 # Plot using variance aggregation
 p_var <- plot_top_transcripts(readcounts,
     gene = top_genes,
@@ -407,7 +406,7 @@ q <- c(0.1, 2)
 ts_se <- calculate_diversity(readcounts, genes,
     q = q, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:4,1:3])
 ```
 
 This allows comparison across `q` for the same gene to determine whether
@@ -425,14 +424,13 @@ ts_se <- map_coldata_to_se(ts_se, coldata_df)
 In order to show the distributional differences
 between groups, we are going to create **violin and density plots**.
 
-```{r plots, fig.width=10, fig.height=6}
-p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity") +
-    ggtitle("Violin Plot: Tsallis Entropy Distribution Across Multiple q Values") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```{r plots-violin, fig.width=7, fig.height=4.5}
+p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
 print(p_violin)
-p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity") +
-    ggtitle("Density Plot: Tsallis Entropy Distribution Across Multiple q Values") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+```{r plots-density, fig.width=7, fig.height=4.5}
+p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
 print(p_density)
 ```
 
@@ -460,7 +458,7 @@ qvec <- seq(0.01, 2, by = 0.1)
 ts_se <- calculate_diversity(readcounts, genes,
     q = qvec, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:4,1:3])
 ```
 
 Map once again the sample metadata into the multi-q 
@@ -512,13 +510,13 @@ signals differences in dominant isoforms.
 Now we will plot the q-curve profile for the top gene identified 
 by the linear-model interaction test. We will start with `HAPLN3`.
 
-```{r hapln3-gene-qprofile, fig.width=8, fig.height=5}
+```{r hapln3-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3",
     sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("HAPLN3: Tsallis Entropy q-Curve Profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+    ggtitle("HAPLN3: Tsallis entropy q-curve profile") +
+    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
 print(plot_target)
 ```
 
@@ -526,13 +524,13 @@ Now let's look at `COL1A2`, which encodes a protein involved in immune
 cell biology and has been reported as differentially regulated in some
 cancer studies.
 
-```{r colia2-gene-qprofile, fig.width=8, fig.height=5}
+```{r colia2-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2",
     sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("COL1A2: Tsallis Entropy q-Curve Profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+    ggtitle("COL1A2: Tsallis entropy q-curve profile") +
+    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
 print(plot_target)
 ```
 
@@ -542,13 +540,12 @@ appear more prevalent in cancer samples.
 Finally, we can visualize the gene `PI16`, which is emerging
 as an important regulator in the vascular system.
 
-```{r pi16-gene-qprofile, fig.width=8, fig.height=5}
+```{r pi16-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
-    # Prefer GFPT1 if present; otherwise use top LM hit
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16",
     sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("PI16: Tsallis Entropy q-Curve Profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+    ggtitle("PI16: Tsallis entropy q-curve profile") +
+    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
 print(plot_target)
 ```
 
@@ -557,11 +554,9 @@ plot provides a global view of how diversity changes across the `q`
 spectrum for the entire dataset and can reveal general trends in
 isoform diversity.
 
-```{r tsallis-q-curve, fig.width=12, fig.height=6}
+```{r tsallis-q-curve, fig.width=7, fig.height=4.5}
 # Plot top tsallis q curve
-p_qcurve <- plot_tsallis_q_curve(ts_se) +
-    ggtitle("Global Tsallis q-Curve: Entropy Across All Genes") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_qcurve <- plot_tsallis_q_curve(ts_se)
 print(p_qcurve)
 ```
 

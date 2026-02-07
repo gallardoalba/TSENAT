@@ -155,3 +155,141 @@ map_coldata_to_se <- function(
     rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
     return(ts_se)
 }
+
+# Map sample names (without '_q=...') to group labels using `colData(se)`.
+# Mapping must be provided via `colData(se)`; no inference fallback is used.
+map_samples_to_group <- function(sample_names,
+                                 se = NULL,
+                                 sample_type_col = NULL,
+                                 mat = NULL) {
+    # Prefer explicit mapping from colData(se)[, sample_type_col] when
+    # provided. If `sample_type_col` is not provided, allow a single-
+    # condition dataset by assigning a single default group "Group" to
+    # all samples (this permits plotting single-condition q-curves).
+    base_names <- sub(
+        "_q=.*",
+        "",
+        colnames(if (!is.null(mat)) mat else SummarizedExperiment::assay(se))
+    )
+
+    if (!is.null(se) && !is.null(sample_type_col) &&
+        (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+        st_vec <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
+        names(st_vec) <- base_names
+        st_map <- st_vec[!duplicated(names(st_vec))]
+    } else {
+        # No explicit mapping: assume single-group dataset
+        st_map <- setNames(rep("Group", length(base_names)), base_names)
+    }
+
+    mapped <- unname(st_map[sample_names])
+    missing_idx <- which(is.na(mapped))
+    if (length(missing_idx) > 0) {
+        stop(
+            sprintf(
+                "Missing sample_type mapping for samples: %s",
+                paste(unique(sample_names[missing_idx]), collapse = ", ")
+            )
+        )
+    }
+    mapped
+}
+
+# Prepare a long-format data.frame for a simple assay (one value per sample)
+get_assay_long <- function(se,
+                           assay_name = "diversity",
+                           value_name = "diversity",
+                           sample_type_col = NULL) {
+    if (!requireNamespace("tidyr", quietly = TRUE)) stop("tidyr required")
+    if (!requireNamespace("dplyr", quietly = TRUE)) stop("dplyr required")
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) stop("SummarizedExperiment required")
+    
+    mat <- SummarizedExperiment::assay(se, assay_name)
+    if (is.null(mat)) stop("Assay not found: ", assay_name)
+    df <- as.data.frame(mat)
+    genes_col <- if (!is.null(SummarizedExperiment::rowData(se)$genes)) {
+        SummarizedExperiment::rowData(se)$genes
+    } else {
+        rownames(df)
+    }
+    df <- cbind(df, Gene = genes_col)
+    long <- tidyr::pivot_longer(
+        df,
+        -Gene,
+        names_to = "sample",
+        values_to = value_name
+    )
+
+    # sample_type: prefer explicit colData mapping when available. If not
+    # provided, assume a single-group dataset and set `sample_type` to
+    # "Group" for all samples.
+    if (!is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+        st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
+        names(st) <- colnames(mat)
+        st_map <- st[!duplicated(names(st))]
+        sample_base <- sub("_q=.*", "", long$sample)
+        long$sample_type <- unname(st_map[sample_base])
+        missing_idx <- which(is.na(long$sample_type))
+        if (length(missing_idx) > 0) {
+            stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_base[missing_idx]), collapse = ", ")))
+        }
+    } else {
+        long$sample_type <- rep("Group", nrow(long))
+    }
+
+    long[!is.na(long[[value_name]]), , drop = FALSE]
+}
+
+# Internal small helper: prepare long-format tsallis data from a
+# SummarizedExperiment
+prepare_tsallis_long <- function(se,
+                                 assay_name = "diversity",
+                                 sample_type_col = "sample_type") {
+    if (!requireNamespace("tidyr", quietly = TRUE)) stop("tidyr required")
+    if (!requireNamespace("dplyr", quietly = TRUE)) stop("dplyr required")
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) stop("SummarizedExperiment required")
+    
+    mat <- SummarizedExperiment::assay(se, assay_name)
+    if (is.null(mat)) stop("Assay not found: ", assay_name)
+    df <- as.data.frame(mat)
+    genes_col <- if (!is.null(SummarizedExperiment::rowData(se)$genes)) {
+        SummarizedExperiment::rowData(se)$genes
+    } else {
+        rownames(df)
+    }
+    df <- cbind(df, Gene = genes_col)
+
+    long <- tidyr::pivot_longer(
+        df,
+        -Gene,
+        names_to = "sample_q",
+        values_to = "tsallis"
+    )
+    if (any(grepl("_q=", long$sample_q))) {
+        long <- tidyr::separate(
+            long,
+            sample_q,
+            into = c("sample", "q"),
+            sep = "_q="
+        )
+        long$q <- as.factor(as.numeric(long$q))
+    } else {
+        long$sample <- long$sample_q
+        long$q <- NA
+    }
+
+    if (!is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+        st_vec <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
+        names(st_vec) <- sub("_q=.*", "", colnames(mat))
+        st_map <- st_vec[!duplicated(names(st_vec))]
+        long$group <- unname(st_map[as.character(long$sample)])
+        missing_idx <- which(is.na(long$group))
+        if (length(missing_idx) > 0) {
+            stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(as.character(long$sample)[missing_idx]), collapse = ", ")))
+        }
+    } else {
+        long$group <- rep("Group", nrow(long))
+    }
+
+    as.data.frame(long[!is.na(long$tsallis), , drop = FALSE])
+}
