@@ -64,7 +64,7 @@ test_that("wilcoxon paired is invariant to shuffled SE when mapped with paired=T
         stringsAsFactors = FALSE
     )
 
-    se_mapped_base <- map_coldata_to_se(se, coldata_base, paired = TRUE)
+    se_mapped_base <- map_metadata(se, coldata_base, paired = TRUE)
     res_base <- wilcoxon(
         SummarizedExperiment::assay(se_mapped_base),
         SummarizedExperiment::colData(se_mapped_base)$sample_type,
@@ -77,7 +77,7 @@ test_that("wilcoxon paired is invariant to shuffled SE when mapped with paired=T
     se_shuffled <- se[, perm]
     coldata_shuffled <- coldata_base[perm, , drop = FALSE]
 
-    se_mapped_shuffled <- map_coldata_to_se(se_shuffled,
+    se_mapped_shuffled <- map_metadata(se_shuffled,
         coldata_shuffled, paired = TRUE)
     res_shuffled <- wilcoxon(
         SummarizedExperiment::assay(se_mapped_shuffled),

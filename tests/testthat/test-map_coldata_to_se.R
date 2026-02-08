@@ -1,4 +1,4 @@
-context("map_coldata_to_se behavior")
+context("map_metadata behavior")
 
 test_that("Exact match maps all samples and preserves order", {
   coldata <- utils::read.delim(
@@ -14,7 +14,7 @@ test_that("Exact match maps all samples and preserves order", {
     assays = list(diversity = mat)
   )
 
-  se2 <- map_coldata_to_se(se, coldata)
+  se2 <- map_metadata(se, coldata)
   mapped_base <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
   expect_equal(length(mapped_base), length(sample_names))
   expect_equal(mapped_base, sample_names)
@@ -36,7 +36,7 @@ test_that("Reversed coldata reorders SE to follow coldata", {
     assays = list(diversity = mat)
   )
 
-  se2 <- map_coldata_to_se(se, coldata_rev)
+  se2 <- map_metadata(se, coldata_rev)
   mapped_base <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
     expect_equal(
       mapped_base[seq_len(nrow(coldata_rev))],
@@ -60,7 +60,7 @@ test_that("Missing sample in coldata triggers error (unpaired)", {
   )
 
     expect_error(
-      map_coldata_to_se(se, coldata_missing, paired = TRUE),
+      map_metadata(se, coldata_missing, paired = TRUE),
       "Unpaired samples found in coldata"
     )
 })
@@ -81,7 +81,7 @@ test_that("Missing sample in coldata errors when paired is FALSE", {
   )
 
   expect_error(
-    map_coldata_to_se(se, coldata_missing),
+    map_metadata(se, coldata_missing),
     "unmatched samples in 'coldata'"
   )
 })
@@ -106,7 +106,7 @@ test_that("Extra sample in coldata triggers error (unpaired)", {
   )
 
   expect_error(
-    map_coldata_to_se(se, coldata_extra, paired = TRUE),
+    map_metadata(se, coldata_extra, paired = TRUE),
     "Unpaired samples found in coldata"
   )
 })
@@ -131,7 +131,7 @@ test_that("Extra sample in coldata does not error when paired is FALSE", {
     assays = list(diversity = mat)
   )
 
-  se2 <- map_coldata_to_se(se, coldata_extra)
+  se2 <- map_metadata(se, coldata_extra)
   expect_equal(
     ncol(SummarizedExperiment::assay(se2)),
     length(cols)
@@ -154,7 +154,7 @@ test_that("Case mismatch in coldata errors (case-sensitive)", {
     )
 
   expect_error(
-    map_coldata_to_se(se, coldata_case),
+    map_metadata(se, coldata_case),
     "unmatched samples in 'coldata'"
   )
 })
@@ -174,7 +174,7 @@ test_that("SE with extra sample errors due to unmatched sample", {
   )
 
   expect_error(
-    map_coldata_to_se(se, coldata),
+    map_metadata(se, coldata),
     "unmatched samples in 'coldata'"
   )
 })
@@ -193,7 +193,7 @@ test_that("Multiple q columns are handled and mapped per-sample", {
     assays = list(diversity = mat)
   )
 
-  se2 <- map_coldata_to_se(se, coldata)
+  se2 <- map_metadata(se, coldata)
   mapped_base <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
   # each base sample appears twice
   tbl <- table(mapped_base)
@@ -219,7 +219,7 @@ test_that("Non-data.frame coldata is ignored and SE remains unchanged", {
       assays = list(diversity = mat)
     )
 
-  se2 <- map_coldata_to_se(se, named_vec)
+  se2 <- map_metadata(se, named_vec)
   # mapping should be a no-op because map_coldata_to_se expects a data.frame
     expect_equal(
       colnames(SummarizedExperiment::assay(se2)),
@@ -241,7 +241,7 @@ test_that("colData rownames and sample_base are aligned to assay columns", {
       assays = list(diversity = mat)
     )
 
-  se2 <- map_coldata_to_se(se, coldata)
+  se2 <- map_metadata(se, coldata)
   cd <- SummarizedExperiment::colData(se2)
   expect_equal(rownames(cd), colnames(SummarizedExperiment::assay(se2)))
   expect_true("sample_base" %in% colnames(cd))
@@ -265,5 +265,5 @@ test_that("paired = TRUE accepts complete pairs", {
     expect_error(force(expr), NA)
   }
 
-  expect_error_free(map_coldata_to_se(se, coldata_small, paired = TRUE))
+  expect_error_free(map_metadata(se, coldata_small, paired = TRUE))
 })

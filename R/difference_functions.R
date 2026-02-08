@@ -129,7 +129,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
             )
         }
         # Paired tests assume columns are already ordered/aligned by the caller
-        # (e.g., via `map_coldata_to_se()`); do not attempt to infer pairing here.
+        # (e.g., via `map_metadata()`); do not attempt to infer pairing here.
     }
 
     p_values <- vector("list", nrow(x))

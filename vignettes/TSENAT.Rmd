@@ -14,6 +14,7 @@ vignette: |
 ---
 
 ```{r setup-global, include = FALSE}
+set.seed(1)
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
@@ -163,23 +164,18 @@ but in this case we need to assign them.
 ```{r map-transcripts-ids}
 # Assign transcript IDs as rownames of `readcounts`
 readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
-# ensure `genes` is name-indexable by transcript id so we can subset by
-# filtered rownames; if `genes` has no names, assign the original
-# readcount rownames (which correspond to transcripts)
-if (is.null(names(genes))) {
-    names(genes) <- rownames(readcounts)
-}
 ```
+
+The last pre-processing step is the creation of a `SummarizedExperiment`
+data container. A `SummarizedExperiment` is a standard Bioconductor class
+for storing high-throughput assay data along with associated metadata.
 
 ```{r build-se}
 ## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
-# Uses helper `build_se_from_readcounts()` added to the package
 se <- build_se(tx2gene_tsv, readcounts, genes)
 ```
 
-
-
-Before doing the diversity calculation, you might want to
+Before computing the Tsallis diversity, you might want to
 filter out genes with a low overall expression or limit 
 the analysis to transcripts with a sufficient minimum 
 expression level. Expression estimates of transcript isoforms 
@@ -187,9 +183,6 @@ with zero or low expression might be highly variable.
 For more details on the effect of transcript isoform
 prefiltering on differential transcript usage, see 
 [this paper](https://doi.org/10.1186/s13059-015-0862-3).
-
-Filter transcripts with fewer than 5 reads in more than 5 samples and
-update the `genes` vector accordingly.
 
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
@@ -200,15 +193,12 @@ se <- filter_se(se, min_count = 5, min_samples = 5)
 We filter lowly-expressed transcripts to reduce noise and improve the
 stability of diversity estimates.
 
-
-
 ## Compute normalized Tsallis entropy.
 
 Compute Tsallis entropy for a single `q` and inspect the resulting assay.
 
 Note: si su estudio es unimodal (es decir, sólo dispone de una condición), puede
 igualmente calcular y explorar la entropía de Tsallis como análisis descriptivo.
-
 
 ```{r tsallis-calc-single}
 # compute Tsallis entropy for a single q value (normalized)
@@ -221,12 +211,12 @@ An additional important technical factor is the data
 normalization, which makes values comparable across 
 genes with different numbers of isoforms.
 
-Now we should map the sample metadata (if available) into the
-`SummarizedExperiment` so plotting functions can use `sample_type`
-for grouping.
+Now we should map the sample metadata  into the
+`SummarizedExperiment` object (ts_se), so plotting 
+functions and downstream helpers can rely on it.
 
 ```{r apply-coldata-to-se-single}
-ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
+ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 ```
 
 ## Differential analysis
@@ -289,22 +279,13 @@ values across samples and explicitly define sample groups.
 
 
 ```{r difference}
-# create a sample grouping vector inferred from sample names
-# account for per-q column names like 'Sample_q=0.01'
-sample_base_names <- sub(
-    "_q=.*", "",
-    colnames(assay(ts_se))
-)
-samples <- as.character(colData(ts_se)$sample_type)
-
-# prepare diversity table as data.frame with gene names in first column
-div_df <- as.data.frame(assay(ts_se))
-div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
-
-# samples are matched pairs (Normal/Tumor), so use a paired test
-res <- calculate_difference(div_df, samples,
+# Compute differences between groups using the Wilcoxon test
+# with median aggregation
+res <- calculate_difference(
+    ts_se,
     control = "Normal",
-    method = "median", test = "wilcoxon",
+    method = "median",
+    test = "wilcoxon",
     paired = TRUE
 )
 # sort results by adjusted p-value
@@ -324,7 +305,7 @@ how diversity differences relate to overall expression levels.
 
 ```{r ma-tsallis, fig.width=7, fig.height=4.5}
 # MA plot (Tsallis-based)
-p_ma <- plot_ma(res, type = "tsallis")
+p_ma <- plot_ma_tsallis(res)
 print(p_ma)
 ```
 
@@ -335,9 +316,8 @@ differences in terms of overall gene expression levels.
 
 ```{r ma-readcounts, fig.width=7, fig.height=4.5}
 # MA plot (expression/readcount-based)
-p_ma_read <- plot_ma(
+p_ma_read <- plot_ma_expression(
     res,
-    type = "expression",
     se = ts_se,
     control = "Normal"
 )
@@ -413,7 +393,7 @@ Once again, we should map the sample metadata into the multi-q
 `sample_type` for grouping.
 
 ```{r apply-coldata-to-se-doble}
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
+ts_se <- map_metadata(ts_se, coldata_df)
 ```
 
 In order to show the distributional differences
@@ -461,7 +441,7 @@ Map once again the sample metadata into the multi-q
 
 ```{r apply-coldata-to-se-sequence}
 # For paired designs ensure sample_base is created so LMMs can use it
-ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
+ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 ```
 
 Once we have the `q-sequence` computed, we can test for 
@@ -476,8 +456,6 @@ paired RNA‑seq studies when per-term inference is required
 
 ```{r lm-interaction-before-qcurve}
 ## Linear-model interaction test across q values: detect q x group interaction
-## Guard the LMM-based analysis so the vignette renders even when 'lme4' is
-## not available in the environment (CI may skip Suggests).
 if (requireNamespace("lme4", quietly = TRUE)) {
     # Compute and show top hits (by adjusted p-value)
     lm_res <- calculate_lm_interaction(ts_se,
@@ -485,8 +463,6 @@ if (requireNamespace("lme4", quietly = TRUE)) {
             pvalue = "satterthwaite",
             subject_col = "sample_base")
     print(head(lm_res, 6))
-} else {
-    message("Skipping linear-model LMM interaction test: package 'lme4' not installed in this environment.")
 }
 ```
 

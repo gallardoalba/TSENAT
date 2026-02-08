@@ -6,14 +6,14 @@
 \usage{
 calculate_difference(
   x,
-  samples,
+  samples = NULL,
   control,
   method = "mean",
   test = "wilcoxon",
   randomizations = 100,
   pcorr = "BH",
   assayno = 1,
-  verbose = FALSE,
+  verbose = TRUE,
   paired = FALSE,
   exact = FALSE,
   pseudocount = 0

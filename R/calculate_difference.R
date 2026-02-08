@@ -59,37 +59,39 @@
 #'     control = "Healthy", method = "mean", test =
 #'         "wilcoxon"
 #' )
-calculate_difference <- function(x, samples, control, method = "mean",
-                                    test = "wilcoxon", randomizations = 100,
-                                    pcorr = "BH", assayno = 1, verbose = TRUE,
-                                    paired = FALSE, exact = FALSE, pseudocount = 0) {
+calculate_difference <- function(x, samples = NULL, control, method = "mean",
+                                 test = "wilcoxon", randomizations = 100,
+                                 pcorr = "BH", assayno = 1, verbose = TRUE,
+                                 paired = FALSE, exact = FALSE, pseudocount = 0) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
-        if (inherits(
-            x,
-            "RangedSummarizedExperiment"
-        ) || inherits(
-            x,
-            "SummarizedExperiment"
-        )) {
-            if (length(samples) != 1) {
-                stop(
-                    "'samples' must be a single colData column.",
-                    call. = FALSE
-                )
+        if (inherits(x, "RangedSummarizedExperiment") ||
+            inherits(x, "SummarizedExperiment")) {
+            # allow samples to be NULL (use default 'sample_type' col)
+            if (is.null(samples)) {
+                if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
+                    samples_col <- "sample_type"
+                } else {
+                    stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'", call. = FALSE)
+                }
+            } else {
+                if (length(samples) != 1) {
+                    stop("'samples' must be a single colData column.", call. = FALSE)
+                }
+                samples_col <- samples
             }
-            samples <- SummarizedExperiment::colData(x)[[samples]]
-            if (!is.numeric(assayno) ||
-                length(SummarizedExperiment::assays(x)) < assayno) {
+            samples_vec <- SummarizedExperiment::colData(x)[[samples_col]]
+            if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) < assayno) {
                 stop("Invalid 'assayno'.", call. = FALSE)
             }
             df <- as.data.frame(SummarizedExperiment::assays(x)[[assayno]])
             genes <- rownames(df)
             df <- cbind(genes = genes, df)
+            list(df = df, samples = samples_vec)
         } else {
             df <- as.data.frame(x)
+            list(df = df, samples = samples)
         }
-        list(df = df, samples = samples)
     }
 
     .tsenat_sample_matrix <- function(dfr) {
@@ -447,7 +449,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                     names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
                     subject <- unname(sb[sample_names])
                 } else {
-                    stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_coldata_to_se(..., paired = TRUE) or supply subject_col")
+                    stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_metadata(..., paired = TRUE) or supply subject_col")
                 }
             } else {
                 # fallback to sample base derived from column names

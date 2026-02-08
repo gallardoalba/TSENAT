@@ -31,10 +31,10 @@
 #' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
 #'     length.out = ncol(se)
 #' ))
-#' map_coldata_to_se(se, coldata_df)
+#' map_metadata(se, coldata_df)
 #' # Optionally validate pairs when appropriate
-#' map_coldata_to_se(se, coldata_df, paired = TRUE)
-map_coldata_to_se <- function(
+#' map_metadata(se, coldata_df, paired = TRUE)
+map_metadata <- function(
     ts_se,
     coldata,
     coldata_sample_col = "Sample",
@@ -139,7 +139,7 @@ map_coldata_to_se <- function(
     if (length(missing_idx) > 0) {
         missing_samples <- sample_base_names[missing_idx]
         msg <- paste0(
-            "map_coldata_to_se: unmatched samples in 'coldata': ",
+            "map_metadata: unmatched samples in 'coldata': ",
             paste(missing_samples, collapse = ", "),
             ". Provide matching entries in 'coldata' or populate ",
             "colData(ts_se)$sample_type beforehand."
@@ -180,6 +180,31 @@ map_coldata_to_se <- function(
             }
         }
         S4Vectors::metadata(ts_se) <- md
+    }
+    # If a diversity assay is present, prepare a simple diversity data.frame
+    # (genes + per-sample diversity values) and store it in metadata so the
+    # vignette and plotting helpers can use a ready-made table.
+    if ("diversity" %in% SummarizedExperiment::assayNames(ts_se)) {
+        div_mat <- as.matrix(SummarizedExperiment::assay(ts_se, "diversity"))
+        # sample base names without per-q suffixes
+        sample_base_names <- sub("_q=.*", "", colnames(div_mat))
+        # prefer explicit sample_type in colData when present
+        samples_vec <- NULL
+        if ("sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
+            samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
+        }
+        div_df <- as.data.frame(div_mat)
+        genes_col <- if (!is.null(SummarizedExperiment::rowData(ts_se)$genes)) {
+            SummarizedExperiment::rowData(ts_se)$genes
+        } else {
+            rownames(div_df)
+        }
+        div_df <- cbind(genes = genes_col, div_df)
+        md2 <- S4Vectors::metadata(ts_se)
+        md2$diversity_df <- div_df
+        md2$sample_base_names <- sample_base_names
+        if (!is.null(samples_vec)) md2$samples <- samples_vec
+        S4Vectors::metadata(ts_se) <- md2
     }
     return(ts_se)
 }

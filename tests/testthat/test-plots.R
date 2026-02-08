@@ -66,7 +66,7 @@ test_that("plot_ma returns ggplot object with mean columns", {
         log2_fold_change = rnorm(10),
         adjusted_p_values = runif(10)
     )
-    p <- plot_ma(df)
+    p <- plot_ma_tsallis(df)
     expect_s3_class(p, "gg")
     expect_s3_class(p, "ggplot")
 })
@@ -82,7 +82,7 @@ test_that("plot_ma returns ggplot object with median columns", {
         log2_fold_change = rnorm(10),
         adjusted_p_values = runif(10)
     )
-    p <- plot_ma(df)
+    p <- plot_ma_tsallis(df)
     expect_s3_class(p, "gg")
 })
 
@@ -97,7 +97,7 @@ test_that("plot_ma errors on mixed mean/median columns", {
         log2_fold_change = rnorm(10),
         adjusted_p_values = runif(10)
     )
-    expect_error(plot_ma(df), "Could not find two mean or two median columns")
+    expect_error(plot_ma_tsallis(df), "Could not find two mean or two median columns")
 })
 
 test_that("plot_top_transcripts returns ggplot for synthetic data", {
@@ -190,7 +190,7 @@ test_that("plot_tsallis_q_curve returns ggplot with valid SE", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_coldata_to_se(ts_se, coldata_df)
+    ts_se <- map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_q_curve(ts_se)
     expect_true(inherits(p, "ggplot"))
@@ -219,7 +219,7 @@ test_that("plot_tsallis_gene_profile returns ggplot for single gene", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_coldata_to_se(ts_se, coldata_df)
+    ts_se <- map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_gene_profile(ts_se, gene = "G1")
     expect_s3_class(p, "ggplot")
@@ -248,7 +248,7 @@ test_that("plot_tsallis_density_multq returns ggplot", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_coldata_to_se(ts_se, coldata_df)
+    ts_se <- map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_density_multq(ts_se)
     expect_s3_class(p, "ggplot")
@@ -277,7 +277,7 @@ test_that("plot_tsallis_violin_multq returns ggplot", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_coldata_to_se(ts_se, coldata_df)
+    ts_se <- map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_violin_multq(ts_se)
     expect_s3_class(p, "ggplot")

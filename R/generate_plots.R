@@ -308,323 +308,288 @@ plot_mean_violin <- function(
 
 #' Plot MA plot for difference or linear model results
 #'
-#' Creates an MA plot (Mean vs log-fold-change) that works for both differential
-#' analysis and linear model interaction results.
+#' Create an MA plot (mean vs log2 fold change) compatible with both
+#' differential results and linear-model interaction outputs. The function
+#' auto-detects suitable mean/average columns for the x-axis and locates a
+#' fold-change column for the y-axis. Optionally, fold-changes may be supplied
+#' from an external `fc_df` (e.g., read-count based fold changes) and merged
+#' with the provided differential results for plotting.
 #'
-#' @param x Data.frame from `calculate_difference()`, `calculate_fc()`, or
-#' `calculate_lm_interaction()`. For differential analysis, should contain mean
-#' columns, a fold-change column, and optionally adjusted p-values. For linear
-#' model results, should contain estimate/interaction columns.
+#' @param x Data.frame produced by `calculate_difference()`, `calculate_fc()`,
+#'   or `calculate_lm_interaction()`. For differential analysis this should
+#'   include group means and a fold-change column; for linear models supply
+#'   the model output and optionally `diff_res` to provide fold-change values.
+#' @param fc_df Optional data.frame of precomputed fold-changes (genes as
+#'   rownames or a `genes` column). Must contain `log2_fold_change` if
+#'   provided and will override fold values in `x` where available.
+#' @param diff_res Optional data.frame from `calculate_difference()` used to
+#'   supply mean or fold-change information when plotting linear-model results.
+#' @param sig_alpha Numeric significance threshold for adjusted p-values
+#'   (default: 0.05).
+#' @param x_label,y_label Optional axis labels (override automatic detection).
+#' @param title Optional plot title; if `NULL` a default title is used.
+#' @param se Optional `SummarizedExperiment` or data.frame of expression/read
+#'   counts required when computing fold-changes from expression data.
+#' @param type Character; either `"tsallis"` or `"expression"`. Use
+#'   `"tsallis"` to plot fold changes already present in `x`, or
+#'   `"expression"` to compute gene-level fold changes from `se`.
+#' @param samples Optional character vector of sample group labels (length =
+#'   ncol(se)). If `NULL` groups are inferred from `colData(se)` when possible.
+#' @param control Character naming the control level used when computing
+#'   expression-based fold-changes. If `NULL`, prefers "Normal" or uses the
+#'   first observed level and messages the user.
+#' @param fc_method Aggregation method for building gene-level fold-changes
+#'   from transcript/read counts (passed to `calculate_fc()`, default:
+#'   `"median"`).
+#' @param pseudocount Numeric pseudocount added before log transforms when
+#'   computing expression fold-changes (default: 0).
 #'
-#' @param mean_cols Optional character vector of length 2 naming the mean
-#' columns. Defaults to the first two columns that end with `_mean` or `_median`.
-#' Ignored for linear model input if x-axis mapping is not applicable.
-#'
-#' @param fold_col Name of the fold-change column (default: `log2_fold_change`).
-#' Also searches for `logFC`, `estimate_interaction`, etc.
-#'
-#' @param padj_col Name of the adjusted p-value column (default:
-#' `adjusted_p_values`). Also searches for `adj_p_interaction`, etc.
-#'
-#' @param sig_alpha Threshold for significance (default: 0.05).
-#'
-#' @param fc_df Optional data.frame from `calculate_fc()` containing pre-computed
-#' fold changes from a different data source. If provided for differential analysis,
-#' fold changes are extracted from this frame instead of `x`. The first column should
-#' contain gene identifiers. Use this to plot fold changes from read counts with
-#' p-values from diversity analysis, or vice versa.
-#'
-#' @param diff_res Optional data.frame from `calculate_difference()`. Used with
-#' linear model results (`x`) to obtain fold changes and mean values for plotting.
-#' Allows plotting linear model p-values with differential fold changes.
-#'
-#' @param x_label Optional label for x-axis (overrides automatic detection).
-#'
-#' @param y_label Optional label for y-axis (overrides automatic detection).
-#'
-#' @return A `ggplot` MA-plot object.
-#'
+#' @return A `ggplot2` object representing the MA plot.
 #' @export
-#'
-#' @details Automatically detects the type of input data (differential vs linear model)
-#' and creates appropriate MA plot. Can also combine results from different workflows,
-#' e.g., plotting linear model p-values with differential fold changes, or read count
-#' fold changes with diversity-based p-values.
-#'
 #' @examples
 #' # Differential analysis MA plot using diversity fold changes
 #' df <- data.frame(
-#'     gene = paste0("g", seq_len(10)),
-#'     sampleA_mean = runif(10),
-#'     sampleB_mean = runif(10),
-#'     log2_fold_change = rnorm(10),
-#'     adjusted_p_values = runif(10)
+#'   gene = paste0("g", seq_len(10)),
+#'   sampleA_mean = runif(10),
+#'   sampleB_mean = runif(10),
+#'   log2_fold_change = rnorm(10),
+#'   adjusted_p_values = runif(10)
 #' )
+#' # plot_ma_tsallis(df)
+
+
+# Helper for default values
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+
+#' Plot MA using Tsallis-based fold changes
 #'
-#' Create an MA (mean-average) plot showing log fold change vs mean diversity.
-#' This function is designed for single-q differential analysis results only.
+#' Wrapper around `plot_ma(..., type = "tsallis")` for convenience and
+#' clearer API separation.
 #'
-#' @param x Data.frame from `test_differential()` containing adjusted p-values
-#'   and fold changes.
-#' @param fc_df Optional data.frame with fold changes from alternative methods
-#'   (e.g., read count fold changes). Should have 'genes' and 'log2_fold_change'
-#'   columns. If provided, will override fold changes in `x`.
-#' @param sig_alpha Significance threshold for p-values (default: 0.05).
-#' @param x_label Custom x-axis label (optional).
-#' @param y_label Custom y-axis label (optional).
-#' @param title Custom plot title (optional). If NULL, generates default title.
-#'
-#' @return A `ggplot2` object.
+#' @param x Data.frame from `calculate_difference()`.
+#' @param ... Additional arguments passed to `plot_ma()`.
 #' @export
-#' @examples
-#' # Example with test_differential results
-#' # res <- test_differential(ts_se, sample_type_col = "sample_type")
-#' # plot_ma(res)
+plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL, title = NULL, ...) {
+    do_plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title)
+}
+
+
+#' Plot MA using expression/readcount-based fold changes
 #'
-#' @param se Optional `SummarizedExperiment` or data.frame providing
-#'   expression/read-count data required when `type = "expression"`.
+#' Wrapper around `plot_ma(..., type = "expression")` that accepts a
+#' `SummarizedExperiment` or precomputed fold-change `data.frame`.
 #'
-#' @param type Character; one of `c("tsallis", "expression")`. Use
-#'   `"tsallis"` to plot fold changes already present in `diff_df`, or
-#'   `"expression"` to compute gene-level fold changes from `se`.
-#'
-#' @param samples Optional character vector of sample group labels (length = ncol(se)).
-#'   If `NULL`, `plot_ma()` attempts to infer groups from `colData(se)`.
-#'
-#' @param control Character scalar naming the control level for fold-change
-#'   calculation when `type = "expression"`. If `NULL` the function prefers
-#'   `"Normal"` when present, otherwise uses the first level and issues a message.
-#'
-#' @param fc_method Method for aggregating fold-changes from transcript/read
-#'   counts (default: `"median"`). Passed to `calculate_fc()`.
-#'
-#' @param pseudocount Numeric pseudocount added before log transformations when
-#'   computing expression-based fold changes (default: `0`).
-#'
-#' @examples
-#' # Tsallis-based MA plot (uses fold-change column in `res`)
-#' # plot_ma(res, type = "tsallis")
-#'
-#' # Expression-based MA plot (computes fold changes from a SummarizedExperiment)
-#' # plot_ma(res, se = ts_se, type = "expression", control = "Normal", fc_method = "median")
-plot_ma <- function(
-    x,
-    se = NULL,
-    type = c("tsallis", "expression"),
-    sig_alpha = 0.05,
-    x_label = NULL,
-    y_label = NULL,
-    title = NULL,
-    # Optional parameters used when `se` is a SummarizedExperiment or
-    # when computing expression-based fold changes
-    samples = NULL,
-    control = NULL,
-    fc_method = "median",
-    pseudocount = 0
+#' @param x Data.frame from `calculate_difference()`.
+#' @param se A `SummarizedExperiment` or data.frame supplying readcounts or precomputed fold changes.
+#' @param samples Optional sample grouping vector (passed to `plot_ma`).
+#' @param control Control level name (passed to `plot_ma`).
+#' @param fc_method Aggregation method for fold-change calculation (passed to `plot_ma`).
+#' @param pseudocount Pseudocount added when computing log ratios (passed to `plot_ma`).
+#' @param ... Additional arguments passed to `plot_ma()`.
+#' @export
+plot_ma_expression <- function(
+  x,
+  se,
+  samples = NULL,
+  control = NULL,
+  fc_method = "median",
+  pseudocount = 0,
+  sig_alpha = 0.05,
+  x_label = NULL,
+  y_label = NULL,
+  title = NULL,
+  ...
 ) {
-    type <- match.arg(type)
-    if (!requireNamespace("ggplot2", quietly = TRUE)) {
-        stop("ggplot2 required")
-    }
-
-    df <- as.data.frame(x)
-
-    # Handle fold-change source depending on requested `type`.
-    if (type == "expression") {
-        # expression-based fold changes must be provided via `se` argument,
-        # which may be a SummarizedExperiment or a data.frame like previous
-        # `fc_df` behavior.
-        if (is.null(se)) stop("`se` must be provided when type = 'expression'")
-
-        if (inherits(se, "SummarizedExperiment")) {
-            require_pkgs(c("SummarizedExperiment", "S4Vectors"))
-
-            # infer samples from SummarizedExperiment if not given
-            samples <- infer_samples_from_se(se, samples)
-            if (is.null(samples)) {
-                stop(
-                    "When providing a SummarizedExperiment as `se`, could not",
-                    " infer sample grouping; please supply `samples` and",
-                    " `control`"
-                )
-            }
-
-            # choose control sensibly
-            control <- validate_control_in_samples(control, samples)
-
-            # get transcript-level readcounts
-            readcounts_mat <- get_readcounts_from_se(se)
-
-            # build transcript -> gene mapping
-            txres <- get_tx2gene_from_se(se, readcounts_mat)
-            if (is.null(txres) || is.null(txres$mapping)) {
-                stop(
-                    "Could not construct transcript->gene mapping compatible",
-                    " with the provided SummarizedExperiment `se`"
-                )
-            }
-            genes_vec <- txres$mapping
-
-            if (length(genes_vec) != nrow(readcounts_mat)) {
-                stop(
-                    "Could not construct transcript->gene mapping compatible",
-                    " with the provided SummarizedExperiment `se`"
-                )
-            }
-
-            # aggregate transcript counts to gene-level
-            gene_counts <- rowsum(as.matrix(readcounts_mat), genes_vec)
-
-            # compute fold changes using calculate_fc
-            fc_df_calc <- calculate_fc(
-                gene_counts,
-                samples = samples,
-                control = control,
-                method = fc_method,
-                pseudocount = pseudocount
-            )
-            fc_df <- data.frame(
-                genes = rownames(fc_df_calc),
-                log2_fold_change = fc_df_calc$log2_fold_change,
-                stringsAsFactors = FALSE
-            )
-        } else {
-            # assume se is a precomputed data.frame of fold changes (legacy)
-            fc_df <- as.data.frame(se)
-            if (!("genes" %in% colnames(fc_df)) && ncol(fc_df) > 0) colnames(fc_df)[1] <- "genes"
-        }
-    } else {
-        # type == 'tsallis': no expression-based fc needed; keep fc_df NULL
-        fc_df <- NULL
-    }
-
-    # Merge with alternative fold changes if provided (data.frame behavior)
-    if (!is.null(fc_df)) {
-        fc_df <- as.data.frame(fc_df)
-
-        # Ensure gene column exists in both dataframes
-        if (!("genes" %in% colnames(df)) && !is.null(rownames(df))) {
-            df$genes <- rownames(df)
-        }
-        if (!("genes" %in% colnames(fc_df)) && ncol(fc_df) > 0) {
-            colnames(fc_df)[1] <- "genes"
-        }
-
-        # Merge on genes column
-        if ("genes" %in% colnames(df) && "genes" %in% colnames(fc_df)) {
-            df <- merge(df, fc_df[, c("genes", "log2_fold_change")],
-                       by = "genes", all.x = TRUE, suffixes = c("", ".fc"))
-            if ("log2_fold_change.fc" %in% colnames(df)) {
-                df$log2_fold_change <- df$log2_fold_change.fc
-                df$log2_fold_change.fc <- NULL
-            }
-        }
-    }
-
-    # Extract required columns
-    cn <- colnames(df)
-
-    # Find mean/median columns (for x-axis)
-    mean_cols <- grep("_mean$|_median$", cn, value = TRUE)
-    if (length(mean_cols) < 2) {
-        stop("Input must have at least 2 mean or median columns (e.g., Normal_mean, Tumor_mean)")
-    }
-    
-    # Check that we have either two _mean columns or two _median columns (not mixed)
-    mean_type_cols <- grep("_mean$", cn, value = TRUE)
-    median_type_cols <- grep("_median$", cn, value = TRUE)
-    has_means <- length(mean_type_cols) >= 2
-    has_medians <- length(median_type_cols) >= 2
-    
-    if (!has_means && !has_medians) {
-        stop("Could not find two mean or two median columns")
-    }
-    
-    # Use mean columns if available, otherwise use median columns
-    if (has_means) {
-        mean_cols <- mean_type_cols
-    } else {
-        mean_cols <- median_type_cols
-    }
-    
-    df$mean <- rowMeans(df[, mean_cols[1:2], drop = FALSE], na.rm = TRUE)
-
-    # Find p-value column
-    padj_col <- grep("adjusted_p_values|adj_p_value|adj_p", cn, value = TRUE)[1]
-    if (is.na(padj_col)) {
-        stop("Could not find adjusted p-value column")
-    }
-    df$padj <- df[[padj_col]]
-
-    # Find fold change column
-    fold_col <- grep("log2_fold_change|log_fold_change|fold_change", cn, value = TRUE)[1]
-    if (is.na(fold_col)) {
-        stop("Could not find fold change column")
-    }
-    df$fold <- df[[fold_col]]
-
-    # Convert log2 to log10 if necessary
-    if (grepl("log2", fold_col, ignore.case = TRUE)) {
-        df$fold <- df$fold / log2(10)
-    }
-
-    # Mark significant genes
-    df$significant <- ifelse(
-        !is.na(df$padj) & df$padj < sig_alpha,
-        "significant", "non-significant"
+    plot_ma_expression_impl(
+        x,
+        se = se,
+        samples = samples,
+        control = control,
+        fc_method = fc_method,
+        pseudocount = pseudocount,
+        sig_alpha = sig_alpha,
+        x_label = x_label,
+        y_label = y_label,
+        title = title,
+        ...
     )
+}
 
-    # Remove rows with missing values
-    df <- df[is.finite(df$mean) & is.finite(df$fold), ]
 
-    if (nrow(df) == 0) {
-        stop("No valid points to plot")
+# Core MA plotting implementation used by wrappers above. Accepts a
+# differential results `x` (data.frame) and an optional `fc_df` with
+# fold-changes (genes as rownames or a `genes` column). Returns a
+# `ggplot` MA-plot.
+do_plot_ma_core <- function(x,
+                            fc_df = NULL,
+                            diff_res = NULL,
+                            sig_alpha = 0.05,
+                            x_label = NULL,
+                            y_label = NULL,
+                            title = NULL,
+                            ...) {
+    require_pkgs(c("ggplot2"))
+
+    df <- as.data.frame(x, stringsAsFactors = FALSE)
+    # ensure a gene identifier column exists
+    if (!("genes" %in% colnames(df))) {
+        if (!is.null(rownames(df))) df$genes <- rownames(df)
     }
 
-    # Set labels
-    x_label_use <- x_label %||% "Mean diversity"
-    
-    # Auto-detect y-label based on whether fc_df was provided
-    if (is.null(y_label)) {
-        if (!is.null(fc_df)) {
-            y_label_use <- "Log10 fold change (read counts)"
-        } else {
-            y_label_use <- "Log10 fold change (Tsallis entropy)"
+    # If an external fc_df is provided, merge fold values into df
+    if (!is.null(fc_df)) {
+        fdf <- as.data.frame(fc_df, stringsAsFactors = FALSE)
+        if (!("genes" %in% colnames(fdf)) && !is.null(rownames(fdf))) fdf$genes <- rownames(fdf)
+        if (!("log2_fold_change" %in% colnames(fdf))) {
+            stop("Provided `fc_df` must contain 'log2_fold_change' column")
         }
-    } else {
-        y_label_use <- y_label
-    }
-    
-    # Auto-detect title based on whether fc_df was provided
-    if (is.null(title)) {
-        if (!is.null(fc_df)) {
-            title_use <- "Ma plot: read count fold change"
-        } else {
-            title_use <- "Ma plot: tsallis entropy fold change"
-        }
-    } else {
-        title_use <- title
+        df <- merge(df, fdf[, c("genes", "log2_fold_change")], by = "genes", all.x = TRUE, suffixes = c("", ".fc"))
+        # prefer fc_df fold values when present
+        if ("log2_fold_change.fc" %in% colnames(df)) df$log2_fold_change <- ifelse(!is.na(df$log2_fold_change.fc), df$log2_fold_change.fc, df$log2_fold_change)
     }
 
-    # Create plot with title and theme
-    ggplot2::ggplot(df, ggplot2::aes(x = mean, y = fold, color = significant)) +
-        ggplot2::geom_point(alpha = 0.6, size = 2) +
+    # Detect fold-change column
+    fold_candidates <- c("log2_fold_change", "logFC", "fold", "estimate_interaction", "fold_change")
+    fold_col <- intersect(fold_candidates, colnames(df))
+    if (length(fold_col) == 0) stop("Could not find a fold-change column in input")
+    fold_col <- fold_col[1]
+
+    # Detect mean/average columns for x-axis
+    mean_cols <- grep("_mean$|_median$", colnames(df), value = TRUE)
+    if (length(mean_cols) >= 2) {
+        # ensure the two chosen columns are consistent (both _mean or both _median)
+        c1 <- mean_cols[1]
+        c2 <- mean_cols[2]
+        is_mean1 <- grepl("_mean$", c1)
+        is_mean2 <- grepl("_mean$", c2)
+        is_med1 <- grepl("_median$", c1)
+        is_med2 <- grepl("_median$", c2)
+        if (!((is_mean1 && is_mean2) || (is_med1 && is_med2))) {
+            stop("Could not find two mean or two median columns")
+        }
+        xvals <- rowMeans(df[, mean_cols[1:2], drop = FALSE], na.rm = TRUE)
+        x_label <- x_label %||% paste0(mean_cols[1], " vs ", mean_cols[2])
+    } else if (length(mean_cols) == 1) {
+        xvals <- as.numeric(df[[mean_cols[1]]])
+        x_label <- x_label %||% mean_cols[1]
+    } else if ("mean" %in% colnames(df)) {
+        xvals <- as.numeric(df$mean)
+        x_label <- x_label %||% "Mean"
+    } else {
+        # fallback: use rank or index
+        xvals <- seq_len(nrow(df))
+        x_label <- x_label %||% "Index"
+    }
+
+    yvals <- as.numeric(df[[fold_col]])
+
+    # p-value / adjusted p-value detection
+    padj_candidates <- c("adjusted_p_values", "adj_p_value", "adj_p", "padj", "p.adjust")
+    padj_col <- intersect(padj_candidates, colnames(df))
+    padj_col <- if (length(padj_col)) padj_col[1] else NULL
+
+    padj <- if (!is.null(padj_col)) as.numeric(df[[padj_col]]) else rep(1, length(yvals))
+    padj[is.na(padj)] <- 1
+
+    sig_flag <- ifelse(abs(yvals) > 0 & padj < sig_alpha, "significant", "non-significant")
+
+    plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag, stringsAsFactors = FALSE)
+
+    p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
+        ggplot2::geom_point(alpha = 0.6) +
         ggplot2::scale_color_manual(
             values = c("non-significant" = "black", "significant" = "red"),
             guide = "none"
         ) +
         ggplot2::theme_minimal() +
-            ggplot2::labs(
-                title = title_use,
-                x = x_label_use,
-                y = y_label_use
-            ) +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain",
-                                                          margin = ggplot2::margin(b = 10)))
+        ggplot2::labs(
+            title = title %||% "MA plot",
+            x = x_label,
+            y = y_label %||% fold_col
+        )
+
+    return(p)
 }
 
-# Helper for default values
-`%||%` <- function(x, y) if (is.null(x)) y else x
+
+# Implementation that computes fold-changes from expression/readcounts
+# stored in a `SummarizedExperiment` (or matrix) and forwards to core plotter.
+plot_ma_expression_impl <- function(
+    x,
+    se,
+    samples = NULL,
+    control = NULL,
+    fc_method = "median",
+    pseudocount = 0,
+    sig_alpha = 0.05,
+    x_label = NULL,
+    y_label = NULL,
+    title = NULL,
+    ...
+) {
+    require_pkgs(c("SummarizedExperiment"))
+
+    # extract/readcounts
+    if (inherits(se, "SummarizedExperiment")) {
+        counts <- get_readcounts_from_se(se)
+        samples <- infer_samples_from_se(se, samples)
+        if (is.null(samples)) stop("Could not infer 'samples' from SummarizedExperiment; provide `samples`")
+        control <- validate_control_in_samples(control, samples)
+
+        # attempt to map transcripts -> genes and aggregate counts per gene
+        tx2g <- get_tx2gene_from_se(se, readcounts_mat = counts)
+        if (!is.null(tx2g) && tx2g$type == "vector") {
+            mapping <- tx2g$mapping
+            # ensure mapping length matches rows
+            if (length(mapping) == nrow(counts)) {
+                # aggregate transcript-level counts to gene-level using rowsum
+                agg <- rowsum(counts, group = mapping)
+                counts_gene <- as.matrix(agg)
+            } else {
+                counts_gene <- counts
+            }
+        } else {
+            counts_gene <- counts
+        }
+
+        # compute fold-changes using calculate_fc (aggregates per-group)
+        fc_res <- calculate_fc(
+            counts_gene,
+            samples,
+            control,
+            method = fc_method,
+            pseudocount = pseudocount
+        )
+        # ensure genes column exists
+        if (is.null(rownames(fc_res))) {
+            fc_res$genes <- seq_len(nrow(fc_res))
+        } else {
+            fc_res$genes <- rownames(fc_res)
+        }
+        return(
+            do_plot_ma_core(
+                x,
+                fc_df = fc_res,
+                sig_alpha = sig_alpha,
+                x_label = x_label,
+                y_label = y_label,
+                title = title,
+                ...
+            )
+        )
+    }
+
+    # If se is provided as a matrix/data.frame of precomputed fold changes
+    if (is.matrix(se) || is.data.frame(se)) {
+        fc_res <- as.data.frame(se, stringsAsFactors = FALSE)
+        if (!("log2_fold_change" %in% colnames(fc_res))) stop("`se` data.frame must contain 'log2_fold_change' column when providing precomputed fold changes")
+        if (!("genes" %in% colnames(fc_res)) && !is.null(rownames(fc_res))) fc_res$genes <- rownames(fc_res)
+        return(do_plot_ma_core(x, fc_df = fc_res, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title, ...))
+    }
+
+    stop("Unsupported 'se' argument for plot_ma_expression_impl")
+}
 
 
 #' Plot median +- IQR of Tsallis entropy across q values by group
@@ -781,46 +746,31 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 
 
 #' Volcano plot for differential results
-#' @param diff_df Data.frame from `calculate_difference()` containing at least
-#' `mean_difference` and an adjusted p-value column (default
-#' `adjusted_p_values`).
-#' @param x_col Column name for x-axis (default `mean_difference`).
-#' @param padj_col Column name for adjusted p-values (default
-#' `adjusted_p_values`).
-#' @param label_thresh Absolute x threshold to mark significance (default 0.1).
-#' @param padj_thresh Adjusted p-value cutoff (default 0.05).
-#' @param top_n Integer; number of top genes to annotate by smallest adjusted
-#' p-value (default: 5).
-#' @return ggplot volcano plot.
-#' @export
-#' @examples
-#' df <- data.frame(
-#'     gene = paste0("g", seq_len(10)),
-#'     mean_difference = runif(10),
-#'     adjusted_p_values = runif(10)
-#' )
-#' plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
-#' Volcano plot for single-q differential analysis
 #'
-#' Create a volcano plot showing fold change vs adjusted p-value significance.
-#' This function is designed for single-q differential analysis results only.
-#' Works with output from `test_differential()` or `calculate_difference()`.
+#' Create a volcano plot showing fold-change (x-axis) versus adjusted
+#' p-value significance (y-axis). The function auto-detects a suitable x-axis
+#' column if one is not provided and expects an adjusted p-value column for
+#' significance coloring.
 #'
-#' @param diff_df Data.frame from `test_differential()` or similar differential
-#'   analysis results. Should contain p-value and optionally fold-change columns.
-#' @param x_col Column name for x-axis values. If not specified, will auto-detect
-#'   from available columns (e.g., "mean_difference", "median_difference").
-#' @param padj_col Column name for adjusted p-values (default: "adjusted_p_values").
-#' @param label_thresh Threshold for fold-change labeling (default: 0.1).
-#' @param padj_thresh P-value threshold for significance (default: 0.05).
+#' @param diff_df Data.frame from `test_differential()` or similar results.
+#'   Should contain p-values and optionally fold-change columns.
+#' @param x_col Optional column name for the x-axis. If `NULL`, the function
+#'   will try to auto-detect a suitable numeric column (excluding p-values).
+#' @param padj_col Adjusted p-value column name (default: "adjusted_p_values").
+#' @param label_thresh Fold-change threshold used to annotate points (default: 0.1).
+#' @param padj_thresh Adjusted p-value cutoff for significance (default: 0.05).
 #' @param top_n Number of top significant genes to label (default: 5).
-#' @param title Custom plot title (optional). If NULL, generates default title.
+#' @param title Optional plot title; if `NULL` a default title is used.
 #'
 #' @return A `ggplot2` object.
 #' @export
 #' @examples
-#' # res <- test_differential(ts_se, sample_type_col = "sample_type")
-#' # plot_volcano(res)
+#' df <- data.frame(
+#'   gene = paste0("g", seq_len(10)),
+#'   mean_difference = runif(10),
+#'   adjusted_p_values = runif(10)
+#' )
+#' # plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
 plot_volcano <- function(
     diff_df,
     x_col = NULL,
@@ -943,11 +893,11 @@ plot_volcano <- function(
     return(p)
 }
 
-#' Plot top transcripts for a gene   #' For a given gene, find transcripts using
-#' a tx->gene mapping, compute per-  Plot top transcripts for a gene   For a
-#' given gene, find transcripts using a tx->gene mapping, compute per-
-#' transcript statistics between two sample groups, select the top N transcripts
-#' by p-value and plot their expression across groups.
+#' Plot top transcripts for a gene
+#'
+#' For a given gene, find transcripts using a tx->gene mapping, compute
+#' per-transcript statistics between two sample groups, select the top N
+#' transcripts by p-value, and plot their expression across groups.
 #' @param counts Matrix or data.frame of transcript counts.
 #' Rows are transcripts and columns are samples.
 #' @param gene Character; gene symbol to inspect.
@@ -962,8 +912,8 @@ plot_volcano <- function(
 #' @param output_file Optional file path to save the plot.
 #' If `NULL`, the `ggplot` object is returned.
 #' @param metric Aggregation metric used to summarize transcript expression
-#'   per group when plotting. One of c("median", "mean", "variance").
-#'   Defaults to "median" to preserve previous behavior.
+#'   per group when plotting. One of c("median", "mean", "variance", "iqr").
+#'   Use "iqr" to compute the interquartile range. Defaults to "median".
 #' @return A `ggplot` object (or invisibly saved file if `output_file`
 #' provided).
 #' @importFrom utils read.delim
@@ -1066,7 +1016,7 @@ plot_top_transcripts <- function(
     top_n = 3,
     pseudocount = 1e-6,
     output_file = NULL,
-    metric = c("median", "mean", "variance")
+    metric = c("median", "mean", "variance", "iqr")
 ) {
     # If gene not provided but a differential result `res` is supplied,
     # pick top genes by adjusted p-value.
@@ -1240,12 +1190,14 @@ plot_top_transcripts <- function(
     # normalize and validate aggregation argument; define aggregation function
     metric_choice <- match.arg(metric)
     agg_fun <- switch(metric_choice,
-                      median = function(x) stats::median(x, na.rm = TRUE),
-                      mean = function(x) base::mean(x, na.rm = TRUE),
-                      variance = function(x) stats::var(x, na.rm = TRUE)
+        median = function(x) stats::median(x, na.rm = TRUE),
+        mean = function(x) base::mean(x, na.rm = TRUE),
+        variance = function(x) stats::var(x, na.rm = TRUE),
+        iqr = function(x) stats::IQR(x, na.rm = TRUE)
     )
-    # Title label: descriptive title including the chosen metric
-    agg_label <- sprintf("Transcript-level expression with metric %s", metric_choice)
+    # Title label: descriptive title including the chosen metric (present IQR nicely)
+    agg_label_metric <- if (metric_choice == "iqr") "IQR" else metric_choice
+    agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
     # increment call counter (kept for internal tracking) but do not show it in title
     .cnt <- as.integer(getOption("TSENAT.plot_top_counter", 0)) + 1L
     options(TSENAT.plot_top_counter = .cnt)

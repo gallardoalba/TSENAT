@@ -2,11 +2,7 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_top_transcripts}
 \alias{plot_top_transcripts}
-\title{Plot top transcripts for a gene   #' For a given gene, find transcripts using
-a tx->gene mapping, compute per-  Plot top transcripts for a gene   For a
-given gene, find transcripts using a tx->gene mapping, compute per-
-transcript statistics between two sample groups, select the top N transcripts
-by p-value and plot their expression across groups.}
+\title{Plot top transcripts for a gene}
 \arguments{
 \item{counts}{Matrix or data.frame of transcript counts.
 Rows are transcripts and columns are samples.}
@@ -29,19 +25,17 @@ Use NULL to plot all transcripts for the gene.}
 If `NULL`, the `ggplot` object is returned.}
 
 \item{metric}{Aggregation metric used to summarize transcript expression
-per group when plotting. One of c("median", "mean", "variance").
-Defaults to "median" to preserve previous behavior.}
+per group when plotting. One of c("median", "mean", "variance", "iqr").
+Use "iqr" to compute the interquartile range. Defaults to "median".}
 }
 \value{
 A `ggplot` object (or invisibly saved file if `output_file`
 provided).
 }
 \description{
-Plot top transcripts for a gene   #' For a given gene, find transcripts using
-a tx->gene mapping, compute per-  Plot top transcripts for a gene   For a
-given gene, find transcripts using a tx->gene mapping, compute per-
-transcript statistics between two sample groups, select the top N transcripts
-by p-value and plot their expression across groups.
+For a given gene, find transcripts using a tx->gene mapping, compute
+per-transcript statistics between two sample groups, select the top N
+transcripts by p-value, and plot their expression across groups.
 }
 \examples{
 tx_counts <- matrix(
