@@ -86,19 +86,40 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     }
 
     if (is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment")) {
-        assays_len <- length(SummarizedExperiment::assays(x))
-        if (!is.numeric(assayno) || assays_len < assayno) {
-            stop("Please provide a valid assay number.", call. = FALSE)
-        } else if (is.numeric(assayno)) {
+        # allow passing a SummarizedExperiment that carries transcript-level
+        # readcounts and a tx->gene mapping in its metadata; prefer those if
+        # present so users can pass an SE prepared upstream.
+        md <- NULL
+        try(md <- S4Vectors::metadata(x), silent = TRUE)
+        # If the SE carries transcript-level readcounts in metadata, prefer
+        # those; otherwise extract the requested assay from the SE.
+        if (!is.null(md) && !is.null(md$readcounts)) {
+            se_assay_mat <- as.matrix(md$readcounts)
+            x <- se_assay_mat
+        } else {
+            assays_len <- length(SummarizedExperiment::assays(x))
+            if (!is.numeric(assayno) || assays_len < assayno) {
+                stop("Please provide a valid assay number.", call. = FALSE)
+            }
             # extract the chosen assay as matrix; keep a copy with rownames
             se_assay_mat <- as.matrix(SummarizedExperiment::assays(x)[[assayno]])
             x <- se_assay_mat
         }
         if (is.null(genes)) {
-            genes <- rownames(x)
-            # keep transcript rownames available for downstream metadata
-            # (we will store original transcript-level counts separately)
-            rownames(x) <- NULL
+            # try to derive genes from supplied metadata mapping if available
+            if (exists("se_assay_mat") && !is.null(md) && !is.null(md$tx2gene) && is.data.frame(md$tx2gene)) {
+                txmap <- md$tx2gene
+                tx_col <- if ("Transcript" %in% colnames(txmap)) "Transcript" else colnames(txmap)[1]
+                gene_col <- if ("Gen" %in% colnames(txmap)) "Gen" else colnames(txmap)[2]
+                genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat), txmap[[tx_col]])])
+                rownames(x) <- NULL
+            } else {
+                genes <- rownames(x)
+                # keep transcript rownames available for downstream metadata
+                # (we will store original transcript-level counts separately)
+                rownames(x) <- NULL
+            }
+
             if (is.null(genes)) {
                 stop(
                     "Please construct a valid gene set for your ",

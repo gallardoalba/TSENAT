@@ -163,7 +163,21 @@ but in this case we need to assign them.
 ```{r map-transcripts-ids}
 # Assign transcript IDs as rownames of `readcounts`
 readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
+# ensure `genes` is name-indexable by transcript id so we can subset by
+# filtered rownames; if `genes` has no names, assign the original
+# readcount rownames (which correspond to transcripts)
+if (is.null(names(genes))) {
+    names(genes) <- rownames(readcounts)
+}
 ```
+
+```{r build-se}
+## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
+# Uses helper `build_se_from_readcounts()` added to the package
+se <- build_se(tx2gene_tsv, readcounts, genes)
+```
+
+
 
 Before doing the diversity calculation, you might want to
 filter out genes with a low overall expression or limit 
@@ -179,20 +193,14 @@ update the `genes` vector accordingly.
 
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
-n_before <- nrow(readcounts)
-tokeep <- rowSums(readcounts > 5) > 5
-readcounts <- readcounts[tokeep, ]
-genes <- genes[tokeep]
-n_after <- nrow(readcounts)
-
-message(sprintf(
-    "Transcripts: before = %d, after = %d",
-    n_before, n_after
-))
+# Keep transcripts with >5 reads in more than 5 samples using `filter_se()`
+se <- filter_se(se, min_count = 5L, min_samples = 5L, verbose = TRUE)
 ```
 
 We filter lowly-expressed transcripts to reduce noise and improve the
 stability of diversity estimates.
+
+
 
 ## Compute normalized Tsallis entropy.
 
@@ -205,7 +213,7 @@ igualmente calcular y explorar la entropía de Tsallis como análisis descriptiv
 ```{r tsallis-calc-single}
 # compute Tsallis entropy for a single q value (normalized)
 q <- 0.1
-ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
+ts_se <- calculate_diversity(se, q = q, norm = TRUE)
 head(assay(ts_se)[1:4, 1:3])
 ```
 
@@ -332,8 +340,11 @@ print(p_ma)
 
 ```{r ma-readcounts, fig.width=7, fig.height=4.5}
 # Additional MA plot using gene-level read-count log10 fold changes
-# Aggregate transcript-level read counts to gene-level by summing transcripts
-gene_counts <- rowsum(as.matrix(readcounts), genes)
+# Aggregate transcript-level read counts stored in `se` to gene-level by summing transcripts
+# Use the assay from the `SummarizedExperiment` and gene mapping in `rowData`
+readcounts_mat <- SummarizedExperiment::assay(se)
+genes_vec <- SummarizedExperiment::rowData(se)$genes
+gene_counts <- rowsum(as.matrix(readcounts_mat), genes_vec)
 
 # Compute median-based fold changes on gene-level read counts
 read_fc <- calculate_fc(gene_counts, samples, control = "Normal", method = "median")
@@ -395,7 +406,7 @@ scale-dependent patterns.
 ```{r tsallis-calc-doble}
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
-ts_se <- calculate_diversity(readcounts, genes,
+ts_se <- calculate_diversity(se,
     q = q, norm = TRUE
 )
 head(assay(ts_se)[1:4,1:3])
@@ -447,7 +458,7 @@ das is not possible to optain on a single arbitrary `q` values.
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.1, 2, by = 0.05)
-ts_se <- calculate_diversity(readcounts, genes,
+ts_se <- calculate_diversity(se,
     q = qvec, norm = TRUE
 )
 head(assay(ts_se)[1:4,1:3])
