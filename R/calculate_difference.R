@@ -133,18 +133,21 @@ calculate_difference <- function(x, samples, control, method = "mean",
     if (ncol(df) - 1 != length(samples)) {
         stop("Column count doesn't match length(samples).", call. = FALSE)
     }
-    groups <- levels(as.factor(samples))
+    uniq_groups <- unique(as.character(samples))
     # capture dots early and initialize 'case' to avoid unbound variable errors
     # Note: any extra arguments are forwarded via `...` where used below.
-    if (length(groups) > 2) {
+    if (length(uniq_groups) > 2) {
         stop("More than two conditions; provide exactly two.", call. = FALSE)
     }
-    if (length(groups) < 2) {
+    if (length(uniq_groups) < 2) {
         stop("Fewer than two conditions; provide exactly two.", call. = FALSE)
     }
-    if (!(control %in% samples)) {
+    if (!(control %in% uniq_groups)) {
         stop("Control sample type not found in samples.", call. = FALSE)
     }
+    # Define a consistent ordering: case (non-control) first, control second
+    case_label <- setdiff(uniq_groups, control)
+    groups <- c(case_label, control)
     if (!(method %in% c(
         "mean",
         "median"
@@ -194,8 +197,10 @@ calculate_difference <- function(x, samples, control, method = "mean",
     }
 
     # Count non-NA observations per gene per group
-    idx1 <- which(samples == groups[1])
-    idx2 <- which(samples == groups[2])
+    idx_case <- which(samples == groups[1])
+    idx_control <- which(samples == groups[2])
+    idx1 <- idx_case
+    idx2 <- idx_control
     df$cond_1 <- rowSums(!is.na(df[, idx1 + 1, drop = FALSE]))
     df$cond_2 <- rowSums(!is.na(df[, idx2 + 1, drop = FALSE]))
 

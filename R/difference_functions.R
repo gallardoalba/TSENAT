@@ -161,7 +161,9 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
     )
     )
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
-    return(cbind(raw_p_values, adjusted_p_values))
+    out <- cbind(raw_p_values, adjusted_p_values)
+    colnames(out) <- c("raw_p_values", "adjusted_p_values")
+    return(out)
 }
 
 #' Calculate p-values using label shuffling.
@@ -227,10 +229,9 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100,
                 perm_mat[, r] <- as.numeric(df_perm[, 4])
             }
         } else if (paired_method == "signflip") {
-            # determine whether to enumerate all combinations
-            max_exact <- 12 # 2^12 = 4096
+            # determine whether to enumerate all combinations (exact test)
             total_comb <- 2^npairs
-            if (randomizations >= total_comb || npairs <= max_exact && randomizations <= 0) {
+            if (randomizations <= 0 || randomizations >= total_comb) {
                 # enumerate all sign combinations exactly
                 combos <- expand.grid(rep(list(c(0, 1)), npairs))
                 nrep <- nrow(combos)
@@ -298,17 +299,15 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100,
         if (n_non_na == 0) {
             return(1)
         }
-        # if all permuted values are identical, fallback to p = 1 (no evidence)
-        if (length(unique(nulls_non_na)) == 1) {
-            return(1)
-        }
         cnt <- sum(abs(nulls_non_na) >= abs(obs))
         pval <- (cnt + 1) / (n_non_na + 1)
         return(pval)
     }, numeric(1))
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
-    return(cbind(raw_p_values, adjusted_p_values))
+    out <- cbind(raw_p_values, adjusted_p_values)
+    colnames(out) <- c("raw_p_values", "adjusted_p_values")
+    return(out)
 }
 
 
