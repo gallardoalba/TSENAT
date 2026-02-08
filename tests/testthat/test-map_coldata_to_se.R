@@ -1,11 +1,22 @@
 context("map_metadata behavior")
 
+# Resolve the path to the packaged example coldata robustly.
+# When tests are run during `R CMD check` the file may not be found
+# via `system.file()` in some environments; fall back to the source
+# copy at `inst/extdata/coldata.tsv` when present.
+coldata_path <- system.file("extdata/coldata.tsv", package = "TSENAT")
+if (is.null(coldata_path) || identical(coldata_path, "") || !file.exists(coldata_path)) {
+  fallback <- file.path(getwd(), "inst", "extdata", "coldata.tsv")
+  if (file.exists(fallback)) {
+    coldata_path <- fallback
+  }
+}
+if (!file.exists(coldata_path)) {
+  stop("Required test data not found: inst/extdata/coldata.tsv")
+}
+
 test_that("Exact match maps all samples and preserves order", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   sample_names <- as.character(coldata$Sample)
   cols <- paste0(sample_names, "_q=0.1")
   mat <- matrix(seq_along(cols), nrow = 1)
@@ -22,11 +33,7 @@ test_that("Exact match maps all samples and preserves order", {
 })
 
 test_that("Reversed coldata reorders SE to follow coldata", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   coldata_rev <- coldata[rev(seq_len(nrow(coldata))), , drop = FALSE]
   sample_names <- as.character(coldata$Sample)
   cols <- paste0(sample_names, "_q=0.1")
@@ -45,11 +52,7 @@ test_that("Reversed coldata reorders SE to follow coldata", {
 })
 
 test_that("Missing sample in coldata triggers error (unpaired)", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   coldata_missing <- coldata[-3, , drop = FALSE]
   sample_names <- as.character(coldata$Sample)
   cols <- paste0(sample_names, "_q=0.1")
@@ -66,11 +69,7 @@ test_that("Missing sample in coldata triggers error (unpaired)", {
 })
 
 test_that("Missing sample in coldata errors when paired is FALSE", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   coldata_missing <- coldata[-3, , drop = FALSE]
   sample_names <- as.character(coldata$Sample)
   cols <- paste0(sample_names, "_q=0.1")
@@ -86,11 +85,7 @@ test_that("Missing sample in coldata errors when paired is FALSE", {
   )
 })
 test_that("Extra sample in coldata triggers error (unpaired)", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
     extra <- data.frame(
       Sample = "FAKE_SAMPLE_N",
       Condition = "Normal",
@@ -112,11 +107,7 @@ test_that("Extra sample in coldata triggers error (unpaired)", {
 })
 
 test_that("Extra sample in coldata does not error when paired is FALSE", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   extra <- data.frame(
     Sample = "FAKE_SAMPLE_N",
     Condition = "Normal",
@@ -138,11 +129,7 @@ test_that("Extra sample in coldata does not error when paired is FALSE", {
   )
 })
 test_that("Case mismatch in coldata errors (case-sensitive)", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", 
-                 package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   coldata_case <- coldata
   coldata_case$Sample <- tolower(coldata_case$Sample)
   sample_names <- as.character(coldata$Sample)
@@ -229,10 +216,7 @@ test_that("Non-data.frame coldata is ignored and SE remains unchanged", {
 })
 
 test_that("colData rownames and sample_base are aligned to assay columns", {
-  coldata <- utils::read.delim(
-    system.file("extdata/coldata.tsv", package = "TSENAT"),
-    stringsAsFactors = FALSE
-  )
+  coldata <- utils::read.delim(coldata_path, stringsAsFactors = FALSE)
   sample_names <- as.character(coldata$Sample)
   cols <- paste0(sample_names, "_q=0.1")
   mat <- matrix(runif(length(cols)), nrow = 1)

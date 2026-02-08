@@ -19,9 +19,7 @@ calculate_lm_interaction(
   paired = FALSE,
   nthreads = 1,
   assay_name = "diversity",
-  verbose = TRUE,
-  suppress_lme4_warnings = TRUE,
-  progress = FALSE
+  verbose = TRUE
 )
 }
 \arguments{

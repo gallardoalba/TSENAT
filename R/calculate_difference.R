@@ -350,12 +350,13 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                         paired = FALSE,
                                         nthreads = 1,
                                         assay_name = "diversity",
-                                        verbose = TRUE,
-                                        suppress_lme4_warnings = TRUE,
-                                        progress = FALSE) {
+                                        verbose = TRUE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) message("[calculate_lm_interaction] method=", method)
+    # internal flags: keep these internal to avoid documenting them in Rd
+    suppress_lme4_warnings <- TRUE
+    progress <- FALSE
     if (!requireNamespace("SummarizedExperiment",
         quietly = TRUE
     )) {

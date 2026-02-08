@@ -31,6 +31,14 @@ plot_ma_expression(
 
 \item{pseudocount}{Pseudocount added when computing log ratios (passed to `plot_ma`).}
 
+\item{sig_alpha}{Numeric significance threshold for adjusted p-values (default: 0.05).}
+
+\item{x_label}{Optional x-axis label passed to `plot_ma`.}
+
+\item{y_label}{Optional y-axis label passed to `plot_ma`.}
+
+\item{title}{Optional plot title passed to `plot_ma`.}
+
 \item{...}{Additional arguments passed to `plot_ma()`.}
 }
 \description{

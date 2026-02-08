@@ -358,8 +358,6 @@ plot_mean_violin <- function(
 #' # plot_ma_tsallis(df)
 
 
-# Helper for default values
-`%||%` <- function(x, y) if (is.null(x)) y else x
 
 
 #' Plot MA using Tsallis-based fold changes
@@ -368,6 +366,10 @@ plot_mean_violin <- function(
 #' clearer API separation.
 #'
 #' @param x Data.frame from `calculate_difference()`.
+#' @param sig_alpha Numeric significance threshold for adjusted p-values (default: 0.05).
+#' @param x_label Optional x-axis label passed to `plot_ma`.
+#' @param y_label Optional y-axis label passed to `plot_ma`.
+#' @param title Optional plot title passed to `plot_ma`.
 #' @param ... Additional arguments passed to `plot_ma()`.
 #' @export
 plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL, title = NULL, ...) {
@@ -386,6 +388,10 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @param control Control level name (passed to `plot_ma`).
 #' @param fc_method Aggregation method for fold-change calculation (passed to `plot_ma`).
 #' @param pseudocount Pseudocount added when computing log ratios (passed to `plot_ma`).
+#' @param sig_alpha Numeric significance threshold for adjusted p-values (default: 0.05).
+#' @param x_label Optional x-axis label passed to `plot_ma`.
+#' @param y_label Optional y-axis label passed to `plot_ma`.
+#' @param title Optional plot title passed to `plot_ma`.
 #' @param ... Additional arguments passed to `plot_ma()`.
 #' @export
 plot_ma_expression <- function(
@@ -953,7 +959,8 @@ if (getRversion() >= "2.15.1") {
     ))
 }
 
-#' Helper to compute fill limits across multiple genes
+#' Internal helper to compute fill limits across multiple genes (not exported)
+#' @noRd
 .compute_transcript_fill_limits <- function(genes, mapping, counts, samples, top_n, agg_fun, pseudocount) {
     mins <- maxs <- c()
     for (g in genes) {
@@ -975,7 +982,8 @@ if (getRversion() >= "2.15.1") {
     c(min(mins, na.rm = TRUE), max(maxs, na.rm = TRUE))
 }
 
-#' Helper to draw grid layout with title, plots, and legend using base grid
+#' Internal helper to draw grid layout with title, plots, and legend using base grid
+#' @noRd
 .draw_transcript_grid <- function(grobs, title, legend_grob, n, heights, to_file = NULL) {
     grid::grid.newpage()
     grid::pushViewport(
