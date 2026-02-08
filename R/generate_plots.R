@@ -42,6 +42,125 @@ if (getRversion() >= "2.15.1") {
     }
 }
 
+# Small utility helpers to reduce repeated code paths when extracting
+# samples, readcounts and tx->gene mappings from a
+# SummarizedExperiment. Keeping these as focused helpers improves
+# readability of the longer plotting functions below.
+infer_samples_from_se <- function(se, samples = NULL, sample_type_col = "sample_type") {
+    if (!is.null(samples)) return(as.character(samples))
+    cd <- NULL
+    try(cd <- SummarizedExperiment::colData(se), silent = TRUE)
+    if (is.null(cd)) return(NULL)
+
+    # Common column names to try
+    candidates <- c(
+        sample_type_col,
+        "condition",
+        "group",
+        "sample_group",
+        "sampleType",
+        "class",
+        "status",
+        "phenotype"
+    )
+    for (nm in candidates) {
+        if (nm %in% colnames(cd)) return(as.character(cd[[nm]]))
+    }
+
+    # Fallback: choose column with smallest >1 unique values
+    uniq_counts <- vapply(cd, function(col) length(unique(na.omit(col))), integer(1))
+    valid_cols <- names(uniq_counts[uniq_counts > 1])
+    if (length(valid_cols) > 0) {
+        bin_cols <- valid_cols[uniq_counts[valid_cols] == 2]
+        pick <- if (length(bin_cols) > 0) bin_cols[1] else valid_cols[which.min(uniq_counts[valid_cols])]
+        return(as.character(cd[[pick]]))
+    }
+
+    NULL
+}
+
+get_readcounts_from_se <- function(se, readcounts_arg = NULL) {
+    # If user provided a readcounts object/path, accept it first
+    if (!is.null(readcounts_arg)) {
+        if (is.character(readcounts_arg) && length(readcounts_arg) == 1) {
+            if (!file.exists(readcounts_arg)) stop("readcounts file not found: ", readcounts_arg)
+            rc_df <- utils::read.delim(readcounts_arg, header = TRUE, stringsAsFactors = FALSE)
+            if (!is.null(colnames(rc_df)) && ncol(rc_df) > 1) {
+                counts <- as.matrix(rc_df[, -1, drop = FALSE])
+                rownames(counts) <- rc_df[[1]]
+            } else {
+                counts <- as.matrix(rc_df)
+            }
+            return(counts)
+        } else if (is.matrix(readcounts_arg) || is.data.frame(readcounts_arg)) {
+            return(as.matrix(readcounts_arg))
+        } else {
+            stop("`readcounts` must be a matrix/data.frame or path to a file")
+        }
+    }
+
+    md <- NULL
+    try(md <- S4Vectors::metadata(se), silent = TRUE)
+    if (!is.null(md) && !is.null(md$readcounts)) {
+        return(as.matrix(md$readcounts))
+    }
+
+    assay_names <- SummarizedExperiment::assayNames(se)
+    preferred_assays <- c("readcounts", "counts", "tx_counts", "counts_tx")
+    chosen <- intersect(preferred_assays, assay_names)
+    if (length(chosen) > 0) {
+        return(as.matrix(SummarizedExperiment::assay(se, chosen[1])))
+    }
+
+    # fallback to first assay with a warning
+    warning(
+        "Using first assay from SummarizedExperiment to compute",
+        " expression-based fold changes; ensure it contains",
+        " transcript-level readcounts or provide metadata$readcounts"
+    )
+    return(as.matrix(SummarizedExperiment::assay(se)))
+}
+
+get_tx2gene_from_se <- function(se, readcounts_mat = NULL) {
+    md <- NULL
+    try(md <- S4Vectors::metadata(se), silent = TRUE)
+    # prefer explicit tx2gene in metadata
+    if (!is.null(md) && !is.null(md$tx2gene) && is.data.frame(md$tx2gene)) {
+        txmap <- md$tx2gene
+        # attempt to find sensible columns
+        tx_col <- if ("Transcript" %in% colnames(txmap)) "Transcript" else colnames(txmap)[1]
+        gene_col <- if ("Gen" %in% colnames(txmap)) "Gen" else colnames(txmap)[2]
+        return(list(type = "vector",
+                    mapping = as.character(txmap[[gene_col]][match(rownames(readcounts_mat), txmap[[tx_col]])])))
+    }
+
+    # fallback: try rowData mapping
+    rdata <- SummarizedExperiment::rowData(se)
+    if (!is.null(rdata) && "genes" %in% colnames(rdata)) {
+        genes_vec <- as.character(rdata$genes)
+        if (!is.null(readcounts_mat) && length(genes_vec) == nrow(readcounts_mat)) {
+            return(list(type = "vector", mapping = genes_vec))
+        }
+    }
+
+    # last resort: use rownames of readcounts as gene identifiers
+    if (!is.null(readcounts_mat)) {
+        return(list(type = "vector", mapping = rownames(readcounts_mat)))
+    }
+
+    NULL
+}
+
+validate_control_in_samples <- function(control, samples) {
+    uniq <- unique(samples)
+    if (!is.null(control) && control %in% uniq) return(control)
+    if ("Normal" %in% uniq) return("Normal")
+    # fallback to first level and message
+    chosen <- uniq[1]
+    message(sprintf("`control` not found; using '%s' instead", chosen))
+    chosen
+}
+
 #' Plot q-curve profile for a single gene comparing groups
 #'
 #' For a selected gene, plot per-sample Tsallis entropy across q values and
@@ -261,24 +380,128 @@ plot_mean_violin <- function(
 #' # Example with test_differential results
 #' # res <- test_differential(ts_se, sample_type_col = "sample_type")
 #' # plot_ma(res)
+#'
+#' @param se Optional `SummarizedExperiment` or data.frame providing
+#'   expression/read-count data required when `type = "expression"`.
+#'
+#' @param type Character; one of `c("tsallis", "expression")`. Use
+#'   `"tsallis"` to plot fold changes already present in `diff_df`, or
+#'   `"expression"` to compute gene-level fold changes from `se`.
+#'
+#' @param samples Optional character vector of sample group labels (length = ncol(se)).
+#'   If `NULL`, `plot_ma()` attempts to infer groups from `colData(se)`.
+#'
+#' @param control Character scalar naming the control level for fold-change
+#'   calculation when `type = "expression"`. If `NULL` the function prefers
+#'   `"Normal"` when present, otherwise uses the first level and issues a message.
+#'
+#' @param fc_method Method for aggregating fold-changes from transcript/read
+#'   counts (default: `"median"`). Passed to `calculate_fc()`.
+#'
+#' @param pseudocount Numeric pseudocount added before log transformations when
+#'   computing expression-based fold changes (default: `0`).
+#'
+#' @examples
+#' # Tsallis-based MA plot (uses fold-change column in `res`)
+#' # plot_ma(res, type = "tsallis")
+#'
+#' # Expression-based MA plot (computes fold changes from a SummarizedExperiment)
+#' # plot_ma(res, se = ts_se, type = "expression", control = "Normal", fc_method = "median")
 plot_ma <- function(
     x,
-    fc_df = NULL,
+    se = NULL,
+    type = c("tsallis", "expression"),
     sig_alpha = 0.05,
     x_label = NULL,
     y_label = NULL,
-    title = NULL
+    title = NULL,
+    # Optional parameters used when `se` is a SummarizedExperiment or
+    # when computing expression-based fold changes
+    samples = NULL,
+    control = NULL,
+    fc_method = "median",
+    pseudocount = 0
 ) {
+    type <- match.arg(type)
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
         stop("ggplot2 required")
     }
 
     df <- as.data.frame(x)
 
-    # Merge with alternative fold changes if provided
+    # Handle fold-change source depending on requested `type`.
+    if (type == "expression") {
+        # expression-based fold changes must be provided via `se` argument,
+        # which may be a SummarizedExperiment or a data.frame like previous
+        # `fc_df` behavior.
+        if (is.null(se)) stop("`se` must be provided when type = 'expression'")
+
+        if (inherits(se, "SummarizedExperiment")) {
+            require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+
+            # infer samples from SummarizedExperiment if not given
+            samples <- infer_samples_from_se(se, samples)
+            if (is.null(samples)) {
+                stop(
+                    "When providing a SummarizedExperiment as `se`, could not",
+                    " infer sample grouping; please supply `samples` and",
+                    " `control`"
+                )
+            }
+
+            # choose control sensibly
+            control <- validate_control_in_samples(control, samples)
+
+            # get transcript-level readcounts
+            readcounts_mat <- get_readcounts_from_se(se)
+
+            # build transcript -> gene mapping
+            txres <- get_tx2gene_from_se(se, readcounts_mat)
+            if (is.null(txres) || is.null(txres$mapping)) {
+                stop(
+                    "Could not construct transcript->gene mapping compatible",
+                    " with the provided SummarizedExperiment `se`"
+                )
+            }
+            genes_vec <- txres$mapping
+
+            if (length(genes_vec) != nrow(readcounts_mat)) {
+                stop(
+                    "Could not construct transcript->gene mapping compatible",
+                    " with the provided SummarizedExperiment `se`"
+                )
+            }
+
+            # aggregate transcript counts to gene-level
+            gene_counts <- rowsum(as.matrix(readcounts_mat), genes_vec)
+
+            # compute fold changes using calculate_fc
+            fc_df_calc <- calculate_fc(
+                gene_counts,
+                samples = samples,
+                control = control,
+                method = fc_method,
+                pseudocount = pseudocount
+            )
+            fc_df <- data.frame(
+                genes = rownames(fc_df_calc),
+                log2_fold_change = fc_df_calc$log2_fold_change,
+                stringsAsFactors = FALSE
+            )
+        } else {
+            # assume se is a precomputed data.frame of fold changes (legacy)
+            fc_df <- as.data.frame(se)
+            if (!("genes" %in% colnames(fc_df)) && ncol(fc_df) > 0) colnames(fc_df)[1] <- "genes"
+        }
+    } else {
+        # type == 'tsallis': no expression-based fc needed; keep fc_df NULL
+        fc_df <- NULL
+    }
+
+    # Merge with alternative fold changes if provided (data.frame behavior)
     if (!is.null(fc_df)) {
         fc_df <- as.data.frame(fc_df)
-        
+
         # Ensure gene column exists in both dataframes
         if (!("genes" %in% colnames(df)) && !is.null(rownames(df))) {
             df$genes <- rownames(df)
@@ -286,7 +509,7 @@ plot_ma <- function(
         if (!("genes" %in% colnames(fc_df)) && ncol(fc_df) > 0) {
             colnames(fc_df)[1] <- "genes"
         }
-        
+
         # Merge on genes column
         if ("genes" %in% colnames(df) && "genes" %in% colnames(fc_df)) {
             df <- merge(df, fc_df[, c("genes", "log2_fold_change")],
@@ -874,83 +1097,29 @@ plot_top_transcripts <- function(
     }
     
     # If a SummarizedExperiment is provided, extract counts (if available),
-    # otherwise fall back to the explicit `readcounts` argument; also extract
-    # samples from `colData` and tx->gene mapping from `rowData` when
-    # possible. This makes the function flexible when users pass the
-    # `ts_se` produced by `calculate_diversity()`.
+    # otherwise fall back to the explicit `readcounts` argument; also try
+    # to obtain `samples` and `tx2gene` mapping from `se` metadata.
     if (inherits(counts, "SummarizedExperiment")) {
         require_pkgs(c("SummarizedExperiment", "S4Vectors"))
         se <- counts
-        # prefer a readcounts copy stored in metadata (added by
-        # `calculate_diversity()`), otherwise try assays or the explicit
-        # `readcounts` argument
-        md <- S4Vectors::metadata(se)
-        if (!is.null(md) && !is.null(md$readcounts)) {
-            counts_mat <- md$readcounts
-            counts <- as.matrix(counts_mat)
-        } else {
-            # try to get an assay named 'counts' otherwise take the first assay
-            assay_names <- SummarizedExperiment::assayNames(se)
-            # Prefer assays likely to contain transcript-level read counts
-            preferred_assays <- c("counts", "readcounts", "tx_counts", "counts_tx")
-            chosen_assay <- intersect(preferred_assays, assay_names)
-            if (length(chosen_assay)) {
-                counts_mat <- SummarizedExperiment::assay(se, chosen_assay[1])
-                counts <- as.matrix(counts_mat)
-            } else if (!is.null(readcounts)) {
-            # allow user to provide original readcounts separately
-            if (is.character(readcounts) && length(readcounts) == 1) {
-                if (!file.exists(readcounts)) stop("readcounts file not found: ", readcounts)
-                rc_df <- utils::read.delim(readcounts, header = TRUE, stringsAsFactors = FALSE)
-                # assume first column may be transcript IDs; if so, set rownames
-                if (!is.null(colnames(rc_df)) && ncol(rc_df) > 1 && !("X" %in% colnames(rc_df))) {
-                    # If first column is not samples, try to detect rownames column
-                    counts <- as.matrix(rc_df[, -1, drop = FALSE])
-                    rownames(counts) <- rc_df[[1]]
-                } else {
-                    counts <- as.matrix(rc_df)
-                }
-            } else if (is.matrix(readcounts) || is.data.frame(readcounts)) {
-                counts <- as.matrix(readcounts)
-            } else {
-                stop("`readcounts` must be a matrix/data.frame or path to a tab-delimited file")
-            }
-            } else {
-                # No transcript-level counts available
-                stop("SummarizedExperiment does not contain a transcript-level counts assay; provide `readcounts` argument with the original transcript counts")
-            }
-        }
 
-        # If samples not provided, try to get sample type column from colData
-        if (is.null(samples)) {
-            cdata <- SummarizedExperiment::colData(se)
-            if (!is.null(cdata) && sample_type_col %in% colnames(cdata)) {
-                samples <- as.character(cdata[[sample_type_col]])
-            } else if (!is.null(cdata) && ncol(cdata) > 0) {
-                # fallback: if a 'sample_type' column exists with different name
-                guess_cols <- intersect(c("sample_type", "group", "condition", "Condition"), colnames(cdata))
-                if (length(guess_cols)) samples <- as.character(cdata[[guess_cols[1]]])
-            }
-        }
+        # Try to get readcounts either from metadata, assays or user arg
+        counts_mat <- get_readcounts_from_se(se, readcounts)
+        counts <- as.matrix(counts_mat)
 
-        # If tx2gene not provided, prefer a mapping stored in metadata
-        if (is.null(tx2gene) && !is.null(md) && !is.null(md$tx2gene)) {
-            tx2gene <- md$tx2gene
-        }
+        # infer samples if not provided
+        samples <- infer_samples_from_se(se, samples, sample_type_col = sample_type_col)
 
-        # Fallback: try to build mapping from rowData if tx2gene still NULL
+        # if tx2gene not provided, try helper to build a mapping
         if (is.null(tx2gene)) {
-            rdata <- SummarizedExperiment::rowData(se)
-            if (!is.null(rdata) && nrow(rdata) == nrow(counts)) {
-                guess_cols <- intersect(c("Gen", "gene", "genes", "symbol", "gene_name"), colnames(rdata))
-                if (length(guess_cols)) {
-                    mapping <- data.frame(
-                        Transcript = rownames(counts),
-                        Gen = as.character(rdata[[guess_cols[1]]]),
-                        stringsAsFactors = FALSE
-                    )
-                    tx2gene <- mapping
-                }
+            txres <- get_tx2gene_from_se(se, counts)
+            if (!is.null(txres) && !is.null(txres$mapping)) {
+                mapping <- data.frame(
+                    Transcript = rownames(counts),
+                    Gen = as.character(txres$mapping),
+                    stringsAsFactors = FALSE
+                )
+                tx2gene <- mapping
             }
         }
     }

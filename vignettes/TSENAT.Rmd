@@ -194,7 +194,7 @@ update the `genes` vector accordingly.
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
 # Keep transcripts with >5 reads in more than 5 samples using `filter_se()`
-se <- filter_se(se, min_count = 5L, min_samples = 5L, verbose = TRUE)
+se <- filter_se(se, min_count = 5, min_samples = 5)
 ```
 
 We filter lowly-expressed transcripts to reduce noise and improve the
@@ -227,16 +227,6 @@ for grouping.
 
 ```{r apply-coldata-to-se-single}
 ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
-```
-
-After mapping, inspect `colData(ts_se)` to confirm `sample_type` and
-`sample_base` are present and correctly populated.
-
-```{r inspect-coldata}
-# Quick checks on mapped sample metadata
-cd <- colData(ts_se)
-colnames(cd) # list available metadata columns
-head(cd) # preview metadata for first samples
 ```
 
 ## Differential analysis
@@ -322,38 +312,40 @@ res <- res[order(res$adjusted_p_values), , drop = FALSE]
 head(res)
 ```
 
-Now we will generate diagnostic plots to summarize per-gene 
-effect sizes:
+After the statistical test we can generate two kind of
+diagnostic plots to summarize per-gene effect sizes: MA plots
+and volcano plots.
 
-- The **MA plot** shows the relationship between mean expression 
-and log-fold change, helping to spot genes with large effect sizes
-across expression levels.
-- The **volcano plot** displays effect size versus significance,
-useful for highlighting candidates by thresholding magnitude and
-adjusted p-value.
+
+First we will plot a **Tsallis-based MA**, 
+which uses the Tsallis entropy values directly to compute fold 
+changes and mean expression. This plot provides a direct view of 
+how diversity differences relate to overall expression levels.
 
 ```{r ma-tsallis, fig.width=7, fig.height=4.5}
-# MA plot using helper
-p_ma <- plot_ma(res)
+# MA plot (Tsallis-based)
+p_ma <- plot_ma(res, type = "tsallis")
 print(p_ma)
 ```
 
+Second, we will plot an **expression/readcount-based MA**, which
+uses the original read counts to compute fold changes and mean
+expression. This plot helps to contextualize diversity
+differences in terms of overall gene expression levels.
+
 ```{r ma-readcounts, fig.width=7, fig.height=4.5}
-# Additional MA plot using gene-level read-count log10 fold changes
-# Aggregate transcript-level read counts stored in `se` to gene-level by summing transcripts
-# Use the assay from the `SummarizedExperiment` and gene mapping in `rowData`
-readcounts_mat <- SummarizedExperiment::assay(se)
-genes_vec <- SummarizedExperiment::rowData(se)$genes
-gene_counts <- rowsum(as.matrix(readcounts_mat), genes_vec)
-
-# Compute median-based fold changes on gene-level read counts
-read_fc <- calculate_fc(gene_counts, samples, control = "Normal", method = "median")
-fc_df <- data.frame(genes = rownames(read_fc), log2_fold_change = read_fc$log2_fold_change, stringsAsFactors = FALSE)
-
-# Plot MA using read-count fold changes on the y axis
-p_ma_read <- plot_ma(res, fc_df = fc_df)
+# MA plot (expression/readcount-based)
+p_ma_read <- plot_ma(
+    res,
+    type = "expression",
+    se = ts_se,
+    control = "Normal"
+)
 print(p_ma_read)
 ```
+
+The **volcano plot** displays effect size versus significance,
+useful for highlighting genes with large, significant differences. 
 
 ```{r ,volcanoplot, fig.width=7, fig.height=4.5}
 # Volcano plot: mean difference vs -log10(adjusted p-value)
