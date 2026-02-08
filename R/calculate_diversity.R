@@ -90,10 +90,14 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         if (!is.numeric(assayno) || assays_len < assayno) {
             stop("Please provide a valid assay number.", call. = FALSE)
         } else if (is.numeric(assayno)) {
-            x <- as.matrix(SummarizedExperiment::assays(x)[[assayno]])
+            # extract the chosen assay as matrix; keep a copy with rownames
+            se_assay_mat <- as.matrix(SummarizedExperiment::assays(x)[[assayno]])
+            x <- se_assay_mat
         }
         if (is.null(genes)) {
             genes <- rownames(x)
+            # keep transcript rownames available for downstream metadata
+            # (we will store original transcript-level counts separately)
             rownames(x) <- NULL
             if (is.null(genes)) {
                 stop(
@@ -124,6 +128,13 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     }
 
     what <- match.arg(what)
+    # validate q values (Tsallis parameter must be > 0)
+    if (!is.numeric(q) || any(q <= 0)) {
+        stop("Argument 'q' must be numeric and greater than 0.", call. = FALSE)
+    }
+    # keep a copy of transcript-level counts when available (non-null)
+    if (!exists("se_assay_mat")) se_assay_mat <- x
+
     result <- calculate_method(x,
         genes,
         norm,
@@ -158,6 +169,18 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
 
     result_metadata <- list(method = "tsallis", norm = norm, q = q, what = what)
 
+    # if we have preserved the original transcript-level matrix, build
+    # a tx->gene mapping and make both available in metadata so downstream
+    # plotting helpers can find transcript IDs and their parent genes
+    tx2gene_map <- NULL
+    if (exists("se_assay_mat") && !is.null(rownames(se_assay_mat)) && length(genes) == nrow(se_assay_mat)) {
+        tx2gene_map <- data.frame(
+            Transcript = rownames(se_assay_mat),
+            Gen = as.character(genes),
+            stringsAsFactors = FALSE
+        )
+    }
+
     assays_list <- list()
     if (what == "S") {
         assays_list$diversity <- result_assay
@@ -169,7 +192,10 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         assays = assays_list,
         rowData = result_rowData,
         colData = result_colData,
-        metadata = result_metadata
+        metadata = c(result_metadata, list(
+            readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
+            tx2gene = tx2gene_map
+        ))
     )
 
     return(result)

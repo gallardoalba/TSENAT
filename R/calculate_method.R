@@ -23,13 +23,21 @@ calculate_method <- function(
     )
 ) {
     what <- match.arg(what)
+    # validate q
+    if (!is.numeric(q) || any(q <= 0)) {
+        stop("Argument 'q' must be numeric and greater than 0.", call. = FALSE)
+    }
     # cannot use aggregate because calculate_tsallis_entropy may return
     # multiple values when length(q) > 1
     gene_levels <- unique(genes)
     # ensure column names order matches the order used when constructing
-    # the result matrix (samples vary outer, q varies inner)
+    # the result matrix (samples vary outer, q varies inner). If sample
+    # names are missing, synthesize deterministic names so column creation
+    # still works.
+    sample_names <- colnames(x)
+    if (is.null(sample_names)) sample_names <- paste0("Sample", seq_len(ncol(x)))
     coln <- as.vector(t(outer(
-        colnames(x),
+        sample_names,
         q,
         function(s, qq) paste0(s, "_q=", qq)
     )))

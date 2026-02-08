@@ -153,6 +153,34 @@ map_coldata_to_se <- function(
     # Ensure rownames of colData match assay column names
     assay_cols <- colnames(SummarizedExperiment::assay(ts_se))
     rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
+    # Attach transcript-level readcounts and tx->gene mapping to metadata
+    # if they are available in the calling environment or globalenv and
+    # not already present in the SummarizedExperiment metadata. This
+    # simplifies downstream plotting helpers that expect these objects.
+    if (requireNamespace("S4Vectors", quietly = TRUE)) {
+        md <- S4Vectors::metadata(ts_se)
+        # prefer existing metadata values; otherwise try common names
+        if (is.null(md$readcounts)) {
+            if (exists("readcounts", envir = parent.frame())) {
+                md$readcounts <- get("readcounts", envir = parent.frame())
+            } else if (exists("readcounts", envir = globalenv())) {
+                md$readcounts <- get("readcounts", envir = globalenv())
+            }
+        }
+        if (is.null(md$tx2gene)) {
+            # vignette uses 'txmap' variable name; also accept 'tx2gene'
+            if (exists("txmap", envir = parent.frame())) {
+                md$tx2gene <- get("txmap", envir = parent.frame())
+            } else if (exists("tx2gene", envir = parent.frame())) {
+                md$tx2gene <- get("tx2gene", envir = parent.frame())
+            } else if (exists("txmap", envir = globalenv())) {
+                md$tx2gene <- get("txmap", envir = globalenv())
+            } else if (exists("tx2gene", envir = globalenv())) {
+                md$tx2gene <- get("tx2gene", envir = globalenv())
+            }
+        }
+        S4Vectors::metadata(ts_se) <- md
+    }
     return(ts_se)
 }
 
@@ -292,4 +320,56 @@ prepare_tsallis_long <- function(se,
     }
 
     as.data.frame(long[!is.na(long$tsallis), , drop = FALSE])
+}
+
+
+#' Map transcript IDs from a tx2gene table to a readcounts matrix
+#'
+#' Assign transcript identifiers as row names of a transcript-level read
+#' counts matrix so downstream plotting functions can identify transcripts.
+#' The tx2gene mapping can be provided as a file path (TSV) or a
+#' data.frame with a `Transcript` column.
+#'
+#' @param readcounts A numeric matrix or data.frame of read counts (rows = transcripts).
+#' @param tx2gene Either a path to a tab-delimited file or a data.frame with at least a `Transcript` column.
+#' @param tx_col Name of the transcript ID column in `tx2gene` (default: "Transcript").
+#' @param verbose Logical; print informative messages (default: FALSE).
+#' @return The input `readcounts` with rownames set to the transcript IDs.
+#' @export
+map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", verbose = FALSE) {
+    if (is.character(tx2gene) && length(tx2gene) == 1) {
+        if (!file.exists(tx2gene)) stop("tx2gene file not found: ", tx2gene, call. = FALSE)
+        txmap <- utils::read.delim(tx2gene, header = TRUE, stringsAsFactors = FALSE)
+    } else if (is.data.frame(tx2gene)) {
+        txmap <- tx2gene
+    } else {
+        stop("'tx2gene' must be a file path or a data.frame.", call. = FALSE)
+    }
+
+    if (!(tx_col %in% colnames(txmap))) stop(sprintf("tx2gene mapping must contain column '%s'", tx_col), call. = FALSE)
+
+    # Ensure readcounts is a matrix-like object
+    if (is.data.frame(readcounts)) readcounts <- as.matrix(readcounts)
+    if (!is.matrix(readcounts)) stop("'readcounts' must be a matrix or data.frame", call. = FALSE)
+
+    n_rc <- nrow(readcounts)
+    n_tx <- nrow(txmap)
+
+    if (n_tx == n_rc) {
+        rownames(readcounts) <- as.character(txmap[[tx_col]])
+        if (verbose) message(sprintf("Assigned %d transcript rownames from tx2gene.", n_rc))
+        return(readcounts)
+    }
+
+    # If counts differ, attempt to match by transcript identifiers if present
+    tx_ids <- as.character(txmap[[tx_col]])
+    if (!is.null(rownames(readcounts)) && all(rownames(readcounts) %in% tx_ids)) {
+        # reorder txmap to match readcounts row order and set rownames
+        matched_idx <- match(rownames(readcounts), tx_ids)
+        rownames(readcounts) <- tx_ids[matched_idx]
+        if (verbose) message("Matched and assigned transcript IDs by existing readcounts rownames.")
+        return(readcounts)
+    }
+
+    stop(sprintf("Number of transcripts in tx2gene (%d) does not match readcounts rows (%d), and automatic matching failed.", n_tx, n_rc), call. = FALSE)
 }

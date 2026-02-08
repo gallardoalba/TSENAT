@@ -833,20 +833,128 @@ if (getRversion() >= "2.15.1") {
 
 plot_top_transcripts <- function(
     counts,
-    gene,
-    samples,
+    readcounts = NULL,
+    gene = NULL,
+    samples = NULL,
+    coldata = NULL,
+    sample_type_col = "sample_type",
     tx2gene = NULL,
+    res = NULL,
     top_n = 3,
     pseudocount = 1e-6,
     output_file = NULL,
     metric = c("median", "mean", "variance")
 ) {
+    # If gene not provided but a differential result `res` is supplied,
+    # pick top genes by adjusted p-value.
+    if ((is.null(gene) || length(gene) == 0 || all(is.na(gene))) && !is.null(res)) {
+        rdf <- as.data.frame(res)
+        if (!("genes" %in% colnames(rdf))) {
+            if (!is.null(rownames(rdf))) {
+                rdf$genes <- rownames(rdf)
+            } else {
+                stop("Result 'res' must contain a 'genes' column or rownames")
+            }
+        }
+        padj_col <- grep("adjusted_p_values|adj_p_value|adj_p", colnames(rdf), value = TRUE)[1]
+        if (is.na(padj_col)) stop("Result 'res' must contain an adjusted p-value column (e.g. 'adjusted_p_values')")
+        ord <- order(rdf[[padj_col]], na.last = TRUE)
+        genes_ordered <- as.character(rdf$genes[ord])
+        if (is.null(top_n)) {
+            gene <- genes_ordered
+        } else {
+            gene <- head(genes_ordered, top_n)
+        }
+    }
+
     # Early return if no genes provided
     if (is.null(gene) || length(gene) == 0 || all(is.na(gene))) {
         message("No genes provided; skipping plot.")
         return(invisible(NULL))
     }
     
+    # If a SummarizedExperiment is provided, extract counts (if available),
+    # otherwise fall back to the explicit `readcounts` argument; also extract
+    # samples from `colData` and tx->gene mapping from `rowData` when
+    # possible. This makes the function flexible when users pass the
+    # `ts_se` produced by `calculate_diversity()`.
+    if (inherits(counts, "SummarizedExperiment")) {
+        require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+        se <- counts
+        # prefer a readcounts copy stored in metadata (added by
+        # `calculate_diversity()`), otherwise try assays or the explicit
+        # `readcounts` argument
+        md <- S4Vectors::metadata(se)
+        if (!is.null(md) && !is.null(md$readcounts)) {
+            counts_mat <- md$readcounts
+            counts <- as.matrix(counts_mat)
+        } else {
+            # try to get an assay named 'counts' otherwise take the first assay
+            assay_names <- SummarizedExperiment::assayNames(se)
+            # Prefer assays likely to contain transcript-level read counts
+            preferred_assays <- c("counts", "readcounts", "tx_counts", "counts_tx")
+            chosen_assay <- intersect(preferred_assays, assay_names)
+            if (length(chosen_assay)) {
+                counts_mat <- SummarizedExperiment::assay(se, chosen_assay[1])
+                counts <- as.matrix(counts_mat)
+            } else if (!is.null(readcounts)) {
+            # allow user to provide original readcounts separately
+            if (is.character(readcounts) && length(readcounts) == 1) {
+                if (!file.exists(readcounts)) stop("readcounts file not found: ", readcounts)
+                rc_df <- utils::read.delim(readcounts, header = TRUE, stringsAsFactors = FALSE)
+                # assume first column may be transcript IDs; if so, set rownames
+                if (!is.null(colnames(rc_df)) && ncol(rc_df) > 1 && !("X" %in% colnames(rc_df))) {
+                    # If first column is not samples, try to detect rownames column
+                    counts <- as.matrix(rc_df[, -1, drop = FALSE])
+                    rownames(counts) <- rc_df[[1]]
+                } else {
+                    counts <- as.matrix(rc_df)
+                }
+            } else if (is.matrix(readcounts) || is.data.frame(readcounts)) {
+                counts <- as.matrix(readcounts)
+            } else {
+                stop("`readcounts` must be a matrix/data.frame or path to a tab-delimited file")
+            }
+            } else {
+                # No transcript-level counts available
+                stop("SummarizedExperiment does not contain a transcript-level counts assay; provide `readcounts` argument with the original transcript counts")
+            }
+        }
+
+        # If samples not provided, try to get sample type column from colData
+        if (is.null(samples)) {
+            cdata <- SummarizedExperiment::colData(se)
+            if (!is.null(cdata) && sample_type_col %in% colnames(cdata)) {
+                samples <- as.character(cdata[[sample_type_col]])
+            } else if (!is.null(cdata) && ncol(cdata) > 0) {
+                # fallback: if a 'sample_type' column exists with different name
+                guess_cols <- intersect(c("sample_type", "group", "condition", "Condition"), colnames(cdata))
+                if (length(guess_cols)) samples <- as.character(cdata[[guess_cols[1]]])
+            }
+        }
+
+        # If tx2gene not provided, prefer a mapping stored in metadata
+        if (is.null(tx2gene) && !is.null(md) && !is.null(md$tx2gene)) {
+            tx2gene <- md$tx2gene
+        }
+
+        # Fallback: try to build mapping from rowData if tx2gene still NULL
+        if (is.null(tx2gene)) {
+            rdata <- SummarizedExperiment::rowData(se)
+            if (!is.null(rdata) && nrow(rdata) == nrow(counts)) {
+                guess_cols <- intersect(c("Gen", "gene", "genes", "symbol", "gene_name"), colnames(rdata))
+                if (length(guess_cols)) {
+                    mapping <- data.frame(
+                        Transcript = rownames(counts),
+                        Gen = as.character(rdata[[guess_cols[1]]]),
+                        stringsAsFactors = FALSE
+                    )
+                    tx2gene <- mapping
+                }
+            }
+        }
+    }
+
     if (!is.matrix(counts) && !is.data.frame(counts)) {
         stop(
             "`counts` must be a matrix or data.frame with transcripts as rownames"
@@ -858,13 +966,77 @@ plot_top_transcripts <- function(
             "`counts` must have rownames corresponding to transcript identifiers"
         )
     }
-    if (length(samples) != ncol(counts)) {
+    if (!is.null(samples) && length(samples) != ncol(counts)) {
         stop(
             "Length of `samples` must equal number of columns in `counts`"
         )
     }
 
+    # If samples not provided, try to derive from `coldata` (data.frame or path)
+    if (is.null(samples)) {
+        if (!is.null(coldata)) {
+            if (is.character(coldata) && length(coldata) == 1) {
+                if (!file.exists(coldata)) stop("coldata file not found: ", coldata)
+                cdf <- utils::read.delim(coldata, header = TRUE, stringsAsFactors = FALSE)
+            } else if (is.data.frame(coldata)) {
+                cdf <- coldata
+            } else {
+                stop("`coldata` must be a data.frame or path to a tab-delimited file")
+            }
+
+            # Prefer rownames matching sample column names
+            if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
+                samples <- as.character(cdf[colnames(counts), sample_type_col])
+            } else {
+                # Try to locate a sample id column in coldata
+                sample_id_cols <- c("sample", "Sample", "sample_id", "id")
+                sid <- intersect(sample_id_cols, colnames(cdf))
+                if (length(sid) > 0) {
+                    sid <- sid[1]
+                    if (!all(colnames(counts) %in% as.character(cdf[[sid]]))) stop("coldata sample id column does not match column names of counts")
+                    row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
+                    samples <- as.character(cdf[[sample_type_col]][row_ix])
+                } else {
+                    stop("Could not match `coldata` rows to `counts` columns. Provide `samples` or a row-named `coldata`.")
+                }
+            }
+        } else {
+            stop("Either 'samples' or 'coldata' must be provided to determine sample groups")
+        }
+    }
+
     # tx2gene must be supplied as a path or data.frame
+    # If tx2gene is still NULL but a SummarizedExperiment was provided,
+    # try extra inference paths (metadata$tx2gene, metadata$readcounts + rowData,
+    # or rowData directly). This lets users call plot_top_transcripts(ts_se, res=...)
+    # without passing readcounts/tx2gene explicitly.
+    if (is.null(tx2gene) && inherits(counts, "SummarizedExperiment")) {
+        if (requireNamespace("S4Vectors", quietly = TRUE)) {
+            md2 <- S4Vectors::metadata(counts)
+            if (!is.null(md2$tx2gene)) tx2gene <- md2$tx2gene
+            # build mapping from saved readcounts + rowData if available
+            if (is.null(tx2gene) && !is.null(md2$readcounts)) {
+                rc <- md2$readcounts
+                if (!is.null(SummarizedExperiment::rowData(counts)$genes) && !is.null(rownames(rc))) {
+                    genes_vec <- as.character(SummarizedExperiment::rowData(counts)$genes)
+                    if (length(genes_vec) == nrow(rc)) {
+                        tx2gene <- data.frame(Transcript = rownames(rc), Gen = genes_vec, stringsAsFactors = FALSE)
+                    }
+                }
+            }
+            # fallback: try rowData directly
+            if (is.null(tx2gene)) {
+                rdata2 <- SummarizedExperiment::rowData(counts)
+                if (!is.null(rdata2) && nrow(rdata2) == nrow(SummarizedExperiment::assay(counts))) {
+                    guess_cols2 <- intersect(c("Gen", "gene", "genes", "symbol", "gene_name"), colnames(rdata2))
+                    if (length(guess_cols2)) {
+                        tx2gene <- data.frame(Transcript = rownames(SummarizedExperiment::assay(counts)), Gen = as.character(rdata2[[guess_cols2[1]]]), stringsAsFactors = FALSE)
+                    }
+                }
+            }
+        }
+    }
+
     if (is.character(tx2gene) && length(tx2gene) == 1) {
         if (!file.exists(tx2gene)) stop("tx2gene file not found: ", tx2gene)
         mapping <- utils::read.delim(
@@ -875,7 +1047,7 @@ plot_top_transcripts <- function(
     } else if (is.data.frame(tx2gene)) {
         mapping <- tx2gene
     } else {
-        stop("`tx2gene` must be provided as a file path or data.frame")
+        stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
     }
 
     if (!all(c("Transcript", "Gen") %in% colnames(mapping))) {
@@ -890,9 +1062,9 @@ plot_top_transcripts <- function(
         )
     }
 
-    if (length(samples) != ncol(counts)) {
+    if (!is.null(samples) && length(samples) != ncol(counts)) {
         stop(
-            "Length of `samples` must equal number of columns in `counts'"
+            "Length of `samples` must equal number of columns in `counts`"
         )
     }
 
