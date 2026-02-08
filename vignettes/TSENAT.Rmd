@@ -508,9 +508,7 @@ by the linear-model interaction test. We will start with `HAPLN3`.
 
 ```{r hapln3-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
-    # Prefer GFPT1 if present; otherwise use top LM hit
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3")
-
 print(plot_target)
 ```
 

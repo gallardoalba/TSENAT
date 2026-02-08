@@ -23,6 +23,16 @@
 #' conditions.
 #' @import stats
 calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) {
+    # validate control and samples inputs
+    if (is.null(control) || !nzchar(control)) {
+        stop("`control` must be provided to calculate_fc", call. = FALSE)
+    }
+    if (length(samples) != ncol(x)) {
+        stop("Length of 'samples' must equal number of columns in 'x'", call. = FALSE)
+    }
+    if (!(control %in% samples)) {
+        stop("Control sample type not found in samples.", call. = FALSE)
+    }
     if (method == "mean") {
         value <- aggregate(t(x), by = list(samples), mean, na.rm = TRUE)
     }
@@ -124,11 +134,18 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 
     p_values <- vector("list", nrow(x))
     for (i in seq_len(nrow(x))) {
-        p_values[i] <- wilcox.test(
-            x[i, g1_idx],
-            x[i, g2_idx],
-            paired = paired, exact = exact
-        )$p.value
+        p_values[i] <- tryCatch({
+            wilcox.test(
+                x[i, g1_idx],
+                x[i, g2_idx],
+                paired = paired, exact = exact
+            )$p.value
+        }, error = function(e) {
+            NA_real_
+        }, warning = function(w) {
+            # swallow specific warnings but return NA on unusual states
+            NA_real_
+        })
     }
 
     raw_p_values <- ifelse(is.na(vapply(
