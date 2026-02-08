@@ -126,7 +126,7 @@ coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
 data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
 
-# Extract gene names and read count data (do not reference ts_se yet)
+# Extract gene names and read count data
 genes <- tcga_brca_luma_dataset[, 1]
 readcounts <- tcga_brca_luma_dataset[, -1]
 
@@ -203,6 +203,7 @@ q <- 0.1
 ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
 head(assay(ts_se)[1:4, 1:3])
 ```
+
 An additional important technical factor is the data 
 normalization, which makes values comparable across 
 genes with different numbers of isoforms.
@@ -320,12 +321,11 @@ adjusted p-value.
 
 ```{r ma-tsallis, fig.width=7, fig.height=4.5}
 # MA plot using helper
-p_ma <- plot_ma(res) + ggtitle("Ma plot: mean expression vs log-fold change") +
-    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+p_ma <- plot_ma(res)
 print(p_ma)
 
 ```{r ma-readcounts, fig.width=7, fig.height=4.5}
-# Additional MA plot using gene-level read-count log2 fold changes
+# Additional MA plot using gene-level read-count log10 fold changes
 # Aggregate transcript-level read counts to gene-level by summing transcripts
 gene_counts <- rowsum(as.matrix(readcounts), genes)
 
@@ -334,15 +334,13 @@ read_fc <- calculate_fc(gene_counts, samples, control = "Normal", method = "medi
 fc_df <- data.frame(genes = rownames(read_fc), log2_fold_change = read_fc$log2_fold_change, stringsAsFactors = FALSE)
 
 # Plot MA using read-count fold changes on the y axis
-p_ma_read <- plot_ma(res, fc_df = fc_df) + ggtitle("Ma plot: read-count log2 fold change") +
-    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+p_ma_read <- plot_ma(res, fc_df = fc_df)
 print(p_ma_read)
 ```
 
 ```{r ,volcanoplot, fig.width=7, fig.height=4.5}
 # Volcano plot: mean difference vs -log10(adjusted p-value)
-p_volcano <- plot_volcano(res) + ggtitle("Volcano plot: effect size vs significance") +
-    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+p_volcano <- plot_volcano(res)
 print(p_volcano)
 ```
 
@@ -454,7 +452,7 @@ das is not possible to optain on a single arbitrary `q` values.
 
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
-qvec <- seq(0.01, 2, by = 0.1)
+qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(readcounts, genes,
     q = qvec, norm = TRUE
 )
@@ -488,9 +486,7 @@ if (requireNamespace("lme4", quietly = TRUE)) {
     lm_res <- calculate_lm_interaction(ts_se,
             sample_type_col = "sample_type", method = "lmm",
             pvalue = "satterthwaite",
-            subject_col = "sample_base",
-            nthreads = 1,
-            verbose = FALSE)
+            subject_col = "sample_base")
     print(head(lm_res, 6))
 } else {
     message("Skipping linear-model LMM interaction test: package 'lme4' not installed in this environment.")
@@ -513,10 +509,8 @@ by the linear-model interaction test. We will start with `HAPLN3`.
 ```{r hapln3-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
     # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3",
-    sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("HAPLN3: Tsallis entropy q-curve profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3")
+
 print(plot_target)
 ```
 
@@ -526,11 +520,7 @@ cancer studies.
 
 ```{r colia2-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
-    # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2",
-    sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("COL1A2: Tsallis entropy q-curve profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2")
 print(plot_target)
 ```
 
@@ -542,10 +532,7 @@ as an important regulator in the vascular system.
 
 ```{r pi16-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16",
-    sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("PI16: Tsallis entropy q-curve profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "plain"))
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16")
 print(plot_target)
 ```
 

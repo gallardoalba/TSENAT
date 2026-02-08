@@ -61,7 +61,7 @@
 #' )
 calculate_difference <- function(x, samples, control, method = "mean",
                                     test = "wilcoxon", randomizations = 100,
-                                    pcorr = "BH", assayno = 1, verbose = FALSE,
+                                    pcorr = "BH", assayno = 1, verbose = TRUE,
                                     paired = FALSE, exact = FALSE, pseudocount = 0) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
@@ -343,7 +343,9 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                                         paired = FALSE,
                                         nthreads = 1,
                                         assay_name = "diversity",
-                                        verbose = TRUE) {
+                                        verbose = TRUE,
+                                        suppress_lme4_warnings = TRUE,
+                                        progress = FALSE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) message("[calculate_lm_interaction] method=", method)
@@ -390,7 +392,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         )
     }
 
-    if (verbose) message("[calculate_lm_interaction] parsed samples and groups")
+    if (verbose && progress) message("[calculate_lm_interaction] parsed samples and groups")
     all_results <- list()
     fit_one <- function(g) {
         vals <- as.numeric(mat[g, ])
@@ -452,65 +454,138 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             if (length(unique(na.omit(df$group))) < 2) return(NULL)
             # fit null (no interaction) and alternative (with q:group interaction)
             mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
-            fit0 <- withCallingHandlers(
-                try(lme4::lmer(entropy ~ q + group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
-                warning = function(w) {
-                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                },
-                message = function(m) {
-                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+
+            # helper: try lmer with multiple optimizers and larger maxfun
+            try_lmer <- function(formula, data, verbose = FALSE) {
+                opts <- list(
+                    list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)),
+                    list(optimizer = "nloptwrap", optCtrl = list(maxfun = 5e5))
+                )
+                for (o in opts) {
+                    ctrl <- lme4::lmerControl(optimizer = o$optimizer, optCtrl = o$optCtrl)
+                    muffle_cond <- suppress_lme4_warnings || (!verbose)
+                    fit_try <- withCallingHandlers(
+                        try(lme4::lmer(formula, data = data, REML = FALSE, control = ctrl), silent = TRUE),
+                        warning = function(w) {
+                            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
+                        },
+                        message = function(m) {
+                            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                        }
+                    )
+                    if (!inherits(fit_try, "try-error")) {
+                        # check singularity if function available
+                        is_sing <- FALSE
+                        if (exists("isSingular", where = asNamespace("lme4"), inherits = FALSE)) {
+                            is_sing <- tryCatch(lme4::isSingular(fit_try, tol = 1e-4), error = function(e) FALSE)
+                        }
+                        attr(fit_try, "singular") <- is_sing
+                        return(fit_try)
+                    }
                 }
-            )
-            fit1 <- withCallingHandlers(
-                try(lme4::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
-                warning = function(w) {
-                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                },
-                message = function(m) {
-                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
-                }
-            )
-            if (inherits(fit0, "try-error") || inherits(fit1, "try-error")) return(NULL)
-            # compute LRT (nested models) first
-            lrt_p <- NA_real_
-            an <- withCallingHandlers(
-                try(stats::anova(fit0, fit1), silent = TRUE),
-                warning = function(w) {
-                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                },
-                message = function(m) {
-                    if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
-                }
-            )
-            if (!inherits(an, "try-error") && nrow(an) >= 2) {
-                pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-                if (length(pcol) == 0) {
-                    lrt_p <- as.numeric(an[2, ncol(an)])
+                # all attempts failed
+                return(structure("error", class = "try-error"))
+            }
+
+            # attempt to fit mixed models (null and alternative)
+            fit0 <- try_lmer(entropy ~ q + group + (1 | subject), df, verbose = verbose)
+            fit1 <- try_lmer(entropy ~ q * group + (1 | subject), df, verbose = verbose)
+
+            # If either fit failed, try falling back to simpler approaches
+            fallback_lm <- NULL
+            used_fit_method <- "lmer"
+            used_singular <- FALSE
+            if (inherits(fit0, "try-error") || inherits(fit1, "try-error") || (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)) {
+                used_fit_method <- "fallback"
+                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)
+                if ((verbose && progress) || (!verbose && progress)) message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
+                # try lm with subject as fixed effect
+                fit0_lm <- try(stats::lm(entropy ~ q + group + subject, data = df), silent = TRUE)
+                fit1_lm <- try(stats::lm(entropy ~ q * group + subject, data = df), silent = TRUE)
+                if (!inherits(fit0_lm, "try-error") && !inherits(fit1_lm, "try-error")) {
+                    fallback_lm <- list(fit0 = fit0_lm, fit1 = fit1_lm)
+                    used_fit_method <- "lm_subject"
                 } else {
-                    lrt_p <- as.numeric(an[2, pcol[1]])
+                    # last resort: drop subject, plain lm
+                    fit0_lm2 <- try(stats::lm(entropy ~ q + group, data = df), silent = TRUE)
+                    fit1_lm2 <- try(stats::lm(entropy ~ q * group, data = df), silent = TRUE)
+                    if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
+                        fallback_lm <- list(fit0 = fit0_lm2, fit1 = fit1_lm2)
+                        used_fit_method <- "lm_nosubject"
+                    }
+                }
+            } else {
+                # both lmer fits succeeded; determine if singular
+                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)
+                if (used_singular) used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
+            }
+
+            # compute LRT if we have two lmer objects (preferred)
+            lrt_p <- NA_real_
+            if (!(is.null(fallback_lm))) {
+                an <- try(stats::anova(fallback_lm$fit0, fallback_lm$fit1), silent = TRUE)
+                if (!inherits(an, "try-error") && nrow(an) >= 2) {
+                    pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
+                    if (length(pcol) == 0) {
+                        lrt_p <- as.numeric(an[2, ncol(an)])
+                    } else {
+                        lrt_p <- as.numeric(an[2, pcol[1]])
+                    }
+                }
+            } else {
+                an <- withCallingHandlers(
+                    try(stats::anova(fit0, fit1), silent = TRUE),
+                    warning = function(w) {
+                        if (suppress_lme4_warnings || !verbose) {
+                            if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
+                        }
+                    },
+                    message = function(m) {
+                        if (suppress_lme4_warnings || !verbose) {
+                            if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                        }
+                    }
+                )
+                if (!inherits(an, "try-error") && nrow(an) >= 2) {
+                    pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
+                    if (length(pcol) == 0) {
+                        lrt_p <- as.numeric(an[2, ncol(an)])
+                    } else {
+                        lrt_p <- as.numeric(an[2, pcol[1]])
+                    }
                 }
             }
 
-            # Satterthwaite (lmerTest) per-coefficient p-values
+            # Satterthwaite (lmerTest) per-coefficient p-values (or fallback using lm coef)
             satter_p <- NA_real_
             if (pvalue %in% c("satterthwaite", "both")) {
-                if (requireNamespace("lmerTest", quietly = TRUE)) {
-                        fit_lt <- withCallingHandlers(
-                            try(lmerTest::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
-                            warning = function(w) {
-                                if (!verbose && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                            },
-                            message = function(m) {
-                                if (!verbose && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
+                if (requireNamespace("lmerTest", quietly = TRUE) && is.null(fallback_lm) && !(inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)) {
+                    fit_lt <- withCallingHandlers(
+                        try(lmerTest::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
+                        warning = function(w) {
+                            if (suppress_lme4_warnings || !verbose) {
+                                if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
                             }
-                        )
-                        if (!inherits(fit_lt, "try-error")) {
-                            coefs <- summary(fit_lt)$coefficients
-                            ia_idx <- grep("^q:group", rownames(coefs))
-                            if (length(ia_idx) > 0) {
-                                satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
+                        },
+                        message = function(m) {
+                            if (suppress_lme4_warnings || !verbose) {
+                                if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
                             }
                         }
+                    )
+                    if (!inherits(fit_lt, "try-error")) {
+                        coefs <- summary(fit_lt)$coefficients
+                        ia_idx <- grep("^q:group", rownames(coefs))
+                        if (length(ia_idx) > 0) {
+                            satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
+                        }
+                    }
+                } else if (!is.null(fallback_lm)) {
+                    coefs <- summary(fallback_lm$fit1)$coefficients
+                    ia_idx <- grep("^q:group", rownames(coefs))
+                    if (length(ia_idx) > 0) {
+                        satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
+                    }
                 }
             }
 
@@ -521,7 +596,6 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             } else if (pvalue == "lrt") {
                 p_interaction <- lrt_p
             } else if (pvalue == "both") {
-                # prefer Satterthwaite when available, otherwise fall back to LRT
                 if (!is.na(satter_p)) p_interaction <- satter_p else p_interaction <- lrt_p
             }
 
@@ -530,6 +604,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                 p_interaction = p_interaction,
                 p_lrt = lrt_p,
                 p_satterthwaite = satter_p,
+                fit_method = used_fit_method,
+                singular = used_singular,
                 stringsAsFactors = FALSE
             ))
         }
@@ -713,6 +789,25 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
     # Sort first by adjusted p-values, then by raw p-values for stable ordering
     res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
     rownames(res) <- NULL
+
+    # Report summary of fallback usage and singular fits when requested
+    if (verbose && "fit_method" %in% colnames(res)) {
+        total_genes <- nrow(res)
+        # count all non-lmer methods as fallbacks
+        fallback_mask <- !is.na(res$fit_method) & res$fit_method != "lmer"
+        n_fallback <- sum(fallback_mask)
+        if (n_fallback > 0) {
+            tab <- table(res$fit_method[fallback_mask])
+            tab_str <- paste(sprintf("%s=%d", names(tab), as.integer(tab)), collapse = ", ")
+            message(sprintf("[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)", n_fallback, total_genes, tab_str))
+        }
+        # report singular fits if present
+        if ("singular" %in% colnames(res)) {
+            n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
+            if (n_sing > 0) message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes", n_sing, total_genes))
+        }
+    }
+
     return(res)
 }
 
