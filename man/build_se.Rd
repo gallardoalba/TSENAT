@@ -17,7 +17,7 @@ at least two columns (transcript, gene).}
 \item{genes}{Character vector of gene IDs assigning each transcript to a
 gene; length must equal nrow(readcounts).}
 
-\item{assay_name}{Name for the assay to store readcounts (default: "counts").}
+\item{assay_name}{Name for the assay to store readcounts (default: 'counts').}
 }
 \value{
 A `SummarizedExperiment` with assay, `metadata()$tx2gene`,
@@ -29,9 +29,9 @@ This helper creates a `SummarizedExperiment` with an assay named
 `metadata()`, and places the provided `genes` vector into `rowData(se)$genes`.
 }
 \examples{
-tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
-readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))
-genes <- c("g1", "g2")
+tx2gene <- data.frame(Transcript = c('tx1', 'tx2'), Gene = c('g1', 'g2'), stringsAsFactors = FALSE)
+readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c('tx1', 'tx2'), c('s1', 's2')))
+genes <- c('g1', 'g2')
 se <- build_se(tx2gene, readcounts, genes)
-SummarizedExperiment::assay(se, "counts")
+SummarizedExperiment::assay(se, 'counts')
 }

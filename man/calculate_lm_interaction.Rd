@@ -29,20 +29,20 @@ by `calculate_diversity(..., q = <vector>)`.}
 \item{sample_type_col}{Optional column name in `colData(se)` that contains
 a grouping factor for samples (character). If `NULL`, the function will
 attempt to infer group from column names (suffix `_N` interpreted as
-"Normal").}
+'Normal').}
 
 \item{min_obs}{Minimum number of non-NA observations required to fit a
 model for a gene (default: 10).}
 
 \item{method}{Modeling method to use for interaction testing: one of
-\code{c("linear", "lmm", "gam", "fpca")} (default: "linear").}
+\code{c('linear', 'lmm', 'gam', 'fpca')} (default: 'linear').}
 
 \item{pvalue}{Type of p-value to compute for linear mixed models: one of
-\code{c("satterthwaite", "lrt", "both")} (default: "satterthwaite").}
+\code{c('satterthwaite', 'lrt', 'both')} (default: 'satterthwaite').}
 
 \item{subject_col}{Optional column name in `colData(se)` that contains
 subject/individual identifiers for paired or repeated-measures designs
-(character). If provided with `method = "lmm"`, used as random effect.}
+(character). If provided with `method = 'lmm'`, used as random effect.}
 
 \item{paired}{Logical; whether samples are paired (default: FALSE).}
 
@@ -50,7 +50,7 @@ subject/individual identifiers for paired or repeated-measures designs
 (default: 1).}
 
 \item{assay_name}{Name of the assay in the SummarizedExperiment to use
-(default: "diversity").}
+(default: 'diversity').}
 
 \item{verbose}{Logical; whether to print progress messages during execution
 (default: TRUE).}
@@ -68,14 +68,14 @@ function expects a `SummarizedExperiment`  produced by
 names contain `_q=`).
 }
 \examples{
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data('tcga_brca_luma_dataset', package = 'TSENAT')
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 # Provide a minimal sample-type mapping so the example runs during checks
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+  sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
   row.names = colnames(se)
 )
-calculate_lm_interaction(se, sample_type_col = "sample_type")
+calculate_lm_interaction(se, sample_type_col = 'sample_type')
 }

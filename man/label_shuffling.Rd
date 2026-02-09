@@ -40,7 +40,7 @@ sample labels and therefore paired analyses are only meaningful when the
 caller has arranged \code{samples} accordingly.}
 
 \item{paired_method}{Character; method for paired permutations. One of
-\code{"swap"} (randomly swap labels within pairs) or \code{"signflip"}
+\code{'swap'} (randomly swap labels within pairs) or \code{'signflip'}
 (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
 for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).}
 }

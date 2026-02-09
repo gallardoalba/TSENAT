@@ -25,10 +25,10 @@ test_differential(
 
 \item{control}{Name of the control group (required for label-shuffle).}
 
-\item{method}{Character; one of `"wilcoxon"` or `"shuffle"`.}
+\item{method}{Character; one of `'wilcoxon'` or `'shuffle'`.}
 
 \item{fc_method}{Character; aggregation method used by the permutation
-test when `method = "shuffle"` ("mean" or "median").}
+test when `method = 'shuffle'` ('mean' or 'median').}
 
 \item{paired}{Logical passed to `wilcoxon()` when using the Wilcoxon test.}
 
@@ -39,11 +39,11 @@ test when `method = "shuffle"` ("mean" or "median").}
 \item{pcorr}{P-value adjustment method (passed to `p.adjust`).}
 
 \item{seed}{Integer seed used to make permutations reproducible (default
-123). The function calls `set.seed(seed)` before running
-`label_shuffling()` when `method = "shuffle"`.}
+123). The function sets a temporary RNG seed via `withr::local_seed(seed)`
+before running `label_shuffling()` when `method = 'shuffle'`.}
 
 \item{paired_method}{Character; forwarded to `label_shuffling()` when
-`method = "shuffle"`. See `label_shuffling()` for details.}
+`method = 'shuffle'`. See `label_shuffling()` for details.}
 }
 \value{
 A two-column matrix with raw and adjusted p-values (as returned by

@@ -22,7 +22,7 @@ assays (rows = transcripts, columns = samples).}
 `min_count` required to keep a transcript (default 5L).}
 
 \item{assay_name}{Name or index of the assay to use for filtering
-(default: "counts"). If not present, the first assay is used.}
+(default: 'counts'). If not present, the first assay is used.}
 
 \item{verbose}{Logical; print before/after counts when TRUE.}
 }

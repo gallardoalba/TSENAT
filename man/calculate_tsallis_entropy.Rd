@@ -22,16 +22,16 @@ calculate_tsallis_entropy(
 \item{norm}{Logical; if TRUE, normalize entropy by its theoretical maximum
 (values in [0,1]).}
 
-\item{what}{Which quantity to return: "S" (Tsallis entropy), "D" (Hill
-numbers), or "both".}
+\item{what}{Which quantity to return: 'S' (Tsallis entropy), 'D' (Hill
+numbers), or 'both'.}
 
 \item{log_base}{Base of the logarithm used for Shannon limits and
 normalization
 (default: \code{exp(1)}).}
 }
 \value{
-For `what = "S"` or `what = "D"`: a numeric vector
-(named when length(q) > 1). For `what = "both"`: a list with
+For `what = 'S'` or `what = 'D'`: a numeric vector
+(named when length(q) > 1). For `what = 'both'`: a list with
 components `$S` and `$D`.
 }
 \description{

@@ -20,10 +20,10 @@ exact and case-sensitive unless you normalize identifiers beforehand.}
 \item{coldata}{A data.frame with sample metadata (or `NULL`).}
 
 \item{coldata_sample_col}{Name of the column in `coldata` containing sample
-identifiers (default: "Sample").}
+identifiers (default: 'Sample').}
 
 \item{coldata_condition_col}{Name of the column in `coldata` with
-condition/labels (default: "Condition").}
+condition/labels (default: 'Condition').}
 
 \item{paired}{Logical; if `TRUE`, validate pairing and reorder columns so
 that matched samples for each base are adjacent (default: `FALSE`). Use
@@ -44,12 +44,12 @@ helper sets `colData(ts_se)$sample_type` when possible and records a
 no automatic inference is attempted.
 }
 \examples{
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data('tcga_brca_luma_dataset', package = 'TSENAT')
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
-coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
+sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
+coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
     length.out = ncol(se)
 ))
 map_metadata(se, coldata_df)
