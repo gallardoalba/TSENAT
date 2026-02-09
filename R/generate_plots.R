@@ -204,7 +204,7 @@ plot_tsallis_gene_profile <- function(se,
                                  median = median(tsallis, na.rm = TRUE),
                                  IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop")
 
-    p <- ggplot2::ggplot() + ggplot2::theme_minimal()
+    p <- ggplot2::ggplot() + ggplot2::theme_minimal(base_size = 14)
 
     if (isTRUE(show_samples)) {
         p <- p + ggplot2::geom_line(data = long_g, ggplot2::aes(x = qnum, y = tsallis, group = sample, color = group), alpha = 0.25)
@@ -212,11 +212,11 @@ plot_tsallis_gene_profile <- function(se,
 
     p <- p +
         ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = median - IQR/2, ymax = median + IQR/2, fill = group), alpha = 0.2, inherit.aes = FALSE) +
-        ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = median, color = group), linewidth = 1.1) +
+        ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = median, color = group), linewidth = 1.3) +
         ggplot2::labs(title = paste0(sel, ": Tsallis entropy q-curve profile"), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
         ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, 
-                                                          margin = ggplot2::margin(b = 10)))
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16, 
+                                  margin = ggplot2::margin(b = 10)))
 
     return(p)
 }
@@ -258,7 +258,7 @@ plot_diversity_density <- function(
         ggplot2::facet_grid(. ~ sample_type) +
         ggplot2::scale_color_manual(values = c("black", "darkorchid4")) +
         ggplot2::guides(color = "none") +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::labs(x = "Diversity values", y = "Density")
 }
 
@@ -304,7 +304,7 @@ plot_mean_violin <- function(
     ) +
         ggplot2::geom_violin(alpha = 0.6) +
         ggplot2::coord_flip() +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::labs(x = "Samples", y = "Diversity") +
         ggplot2::scale_fill_viridis_d(name = "Group")
 }
@@ -328,7 +328,10 @@ plot_mean_violin <- function(
 #' plot_ma_tsallis(x)
 #' @export
 plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL, title = NULL, ...) {
-    .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title)
+    title_use <- title %||% "Tsallis-based MA plot"
+    x_label_use <- x_label %||% "mean_difference"
+    y_label_use <- y_label %||% "Log10 fold-change of entropy"
+    .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label_use, y_label = y_label_use, title = title_use)
 }
 
 
@@ -367,6 +370,9 @@ plot_ma_expression <- function(
   title = NULL,
   ...
 ) {
+    title_use <- title %||% "Readcounts-based MA plot"
+    x_label_use <- x_label %||% "Mean difference"
+    y_label_use <- y_label %||% "Log10 fold-change of counts"
     plot_ma_expression_impl(
         x,
         se = se,
@@ -375,9 +381,9 @@ plot_ma_expression <- function(
         fc_method = fc_method,
         pseudocount = pseudocount,
         sig_alpha = sig_alpha,
-        x_label = x_label,
-        y_label = y_label,
-        title = title,
+        x_label = x_label_use,
+        y_label = y_label_use,
+        title = title_use,
         ...
     )
 }
@@ -469,18 +475,41 @@ plot_ma_expression <- function(
 
     plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag, stringsAsFactors = FALSE)
 
+    # format axis labels: remove underscores, collapse spaces, only first letter capitalized
+    format_label <- function(lbl) {
+        if (is.null(lbl)) return(NULL)
+        s <- gsub("_", " ", lbl)
+        s <- gsub("\\s+", " ", s)
+        s <- trimws(s)
+        s <- tolower(s)
+        if (nchar(s) == 0) return(s)
+        if (nchar(s) == 1) return(toupper(s))
+        paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
+    }
+
+    x_label_formatted <- format_label(x_label)
+    # prepare y label (use provided or fallback to fold_col) and replace 'log2' token with 'log10'
+    y_label_raw <- y_label %||% fold_col
+    y_label_formatted <- format_label(y_label_raw)
+    if (!is.null(y_label_formatted)) {
+        y_label_formatted <- sub("\\blog2\\b", "log10", y_label_formatted, ignore.case = TRUE)
+    }
+
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
-        ggplot2::geom_point(alpha = 0.6) +
+        ggplot2::geom_point(alpha = 0.75, size = 3.2) +
         ggplot2::scale_color_manual(
-            values = c("non-significant" = "black", "significant" = "red"),
+            values = c("non-significant" = "grey40", "significant" = "firebrick3"),
             guide = "none"
         ) +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::labs(
-            title = title %||% "MA plot",
-            x = x_label,
-            y = y_label %||% fold_col
-        )
+            title = title %||% "MA plot: mean vs log10 fold-change",
+            x = x_label_formatted,
+            y = y_label_formatted
+        ) +
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain"),
+                       axis.title = ggplot2::element_text(size = 14),
+                       axis.text = ggplot2::element_text(size = 12))
 
     return(p)
 }
@@ -608,13 +637,13 @@ plot_tsallis_q_curve <- function(
                 stats_df,
                 ggplot2::aes(x = qnum, y = median, color = group, fill = group)
             ) +
-                ggplot2::geom_line(linewidth = 1) +
+                ggplot2::geom_line(linewidth = 1.3) +
                 ggplot2::geom_ribbon(
                     ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
                     alpha = 0.2,
                     color = NA
                 ) +
-                ggplot2::theme_minimal() +
+                ggplot2::theme_minimal(base_size = 14) +
                 ggplot2::labs(
                     title = "Global Tsallis q-curve: entropy across all genes",
                     x = "q value",
@@ -622,7 +651,7 @@ plot_tsallis_q_curve <- function(
                     color = "Group",
                     fill = "Group"
                 ) +
-                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 14))
+                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 16))
         # use default discrete ggplot2 colours (not viridis)
         p <- p + ggplot2::scale_color_discrete(name = "Group") +
             ggplot2::scale_fill_discrete(name = "Group")
@@ -669,15 +698,15 @@ plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
             position = ggplot2::position_dodge(width = 0.8),
             outlier.shape = NA
         ) +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::scale_fill_discrete(name = "Group") +
         ggplot2::labs(
-            title = "Violin Plot: Tsallis Entropy Distribution Across Multiple q Values",
+            title = "Violin plot: Tsallis entropy distribution across multiple q values",
             x = "q value",
             y = "Tsallis entropy",
             fill = "Group"
         ) +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain",
+                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain",
                                                           margin = ggplot2::margin(b = 10)))
 }
 #' Density plot of Tsallis entropy for multiple q values
@@ -703,17 +732,17 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
     ) +
         ggplot2::geom_density(alpha = 0.3) +
         ggplot2::facet_wrap(~q, scales = "free_y") +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::scale_color_discrete(name = "Group") +
         ggplot2::scale_fill_discrete(name = "Group") +
         ggplot2::labs(
-            title = "Density Plot: Tsallis Entropy Distribution Across Multiple q Values",
+            title = "Density plot: Tsallis entropy distribution across multiple q values",
             x = "Tsallis entropy",
             y = "Density",
             color = "Group",
             fill = "Group"
         ) +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain",
+        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain",
                                                           margin = ggplot2::margin(b = 10)))
 }
 
@@ -820,8 +849,8 @@ plot_volcano <- function(
         "Value"
     }
 
-    # Generate default title if not provided (sentence-case)
-    title_use <- title %||% "Volcano plot"
+    # Generate default title if not provided
+    title_use <- title %||% "Volcano plot — Fold-change vs significance"
 
     # Format x-axis label: remove underscores and capitalize first letter
     x_label_formatted <- gsub("_", " ", x_col)
@@ -833,7 +862,7 @@ plot_volcano <- function(
         df,
         ggplot2::aes(x = xval, y = -log10(padj), color = significant)
     ) +
-        ggplot2::geom_point(alpha = 0.6, size = 2) +
+        ggplot2::geom_point(alpha = 0.75, size = 3.4) +
         ggplot2::scale_color_manual(
             values = c("non-significant" = "black", "significant" = "red"),
             guide = "none"
@@ -848,7 +877,7 @@ plot_volcano <- function(
             linetype = "dashed",
             color = "gray50"
         ) +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 14) +
         # Format padj label: remove underscores and capitalize first letter
         {
             padj_label_formatted <- gsub("_", " ", padj_col)
@@ -860,8 +889,11 @@ plot_volcano <- function(
                 y = paste0("-Log10(", padj_label_formatted, ")")
             )
         } +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain",
-                                                          margin = ggplot2::margin(b = 10)))
+        ggplot2::theme(
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain", margin = ggplot2::margin(b = 4)),
+            axis.title = ggplot2::element_text(size = 14),
+            axis.text = ggplot2::element_text(size = 12)
+        )
 
     return(p)
 }
@@ -1015,7 +1047,7 @@ if (getRversion() >= "2.15.1") {
             na.value = "grey80",
             limits = fill_limits
         ) +
-        ggplot2::theme_minimal(base_size = 10) +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::labs(
             title = agg_label_unique,
             x = NULL,
@@ -1023,11 +1055,9 @@ if (getRversion() >= "2.15.1") {
             fill = "log2(expr)"
         ) +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 8),
-            axis.text.x = ggplot2::element_text(size = 8),
-            axis.ticks = ggplot2::element_blank(),
-            panel.grid = ggplot2::element_blank(),
-            plot.title = ggplot2::element_text(size = 14, hjust = 0.6),
+            axis.text.y = ggplot2::element_text(size = 12),
+            axis.text.x = ggplot2::element_text(size = 12),
+            plot.title = ggplot2::element_text(size = 16, hjust = 0.6),
             legend.position = "bottom",
             legend.key.width = ggplot2::unit(1.2, "cm"),
             plot.margin = ggplot2::margin(4, 4, 4, 4)
@@ -1050,7 +1080,7 @@ if (getRversion() >= "2.15.1") {
             patchwork::plot_layout(nrow = 1, guides = "collect") &
             ggplot2::theme(legend.position = "bottom")
         combined <- combined + patchwork::plot_annotation(title = agg_label_unique,
-            theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.7, size = 14,
+            theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.6, size = 16,
                                                                         margin = ggplot2::margin(b = 10)))
         )
         return(combined)
@@ -1059,7 +1089,7 @@ if (getRversion() >= "2.15.1") {
         legend <- cowplot::get_legend(p_for_legend)
         plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
         grid <- cowplot::plot_grid(plotlist = plots_nolegend, nrow = 1, align = "hv")
-        title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = 'plain', x = 0.7, hjust = 0.5, size = 14)
+        title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = 'plain', x = 0.6, hjust = 0.5, size = 16)
         result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08, 1, 0.08))
         if (!is.null(output_file)) {
             ggplot2::ggsave(output_file, result_plot)
@@ -1259,7 +1289,7 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.55, size = 14))
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16))
             pp
         })
 

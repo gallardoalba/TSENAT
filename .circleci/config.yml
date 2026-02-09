@@ -108,9 +108,12 @@ workflows:
           filters:
             branches:
               only: stable
+
+# Separate deploy workflow: only run deploy_docs for tagged commits
+# This prevents docs deployment from running on every build trigger.
+  deploy_on_tag:
+    jobs:
       - deploy_docs:
-          requires:
-            - build
           filters:
-            branches:
-              only: stable
+            tags:
+              only: /.*/
