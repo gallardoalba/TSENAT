@@ -107,6 +107,14 @@ print(p_qcurve)
 
 For a detailed, reproducible workflow see the [package vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
 
+## Tests coverage
+
+Testing is vital in research as it ensures the validity and reliability 
+of results, which is essential for accurately interpreting findings. 
+The current testing coverage of the package is displayed in the graph below:
+
+[codecov](https://codecov.io/gh/gallardoalba/TSENAT/graphs/sunburst.svg?token=OWIQVE2PZF)
+
 ## Citation
 
 If you use TSENAT in your research, please cite:
