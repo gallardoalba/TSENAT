@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_ma_tsallis}
 \alias{plot_ma_tsallis}
-\title{Plot MA plot for difference or linear model results}
+\title{Plot MA using Tsallis-based fold changes}
 \usage{
 plot_ma_tsallis(
   x,
@@ -18,68 +18,22 @@ plot_ma_tsallis(
 
 \item{sig_alpha}{Numeric significance threshold for adjusted p-values (default: 0.05).}
 
-\item{x_label, y_label}{Optional axis labels (override automatic detection).}
+\item{x_label}{Optional x-axis label passed to `plot_ma`.}
 
 \item{y_label}{Optional y-axis label passed to `plot_ma`.}
 
 \item{title}{Optional plot title passed to `plot_ma`.}
 
 \item{...}{Additional arguments passed to `plot_ma()`.}
-
-\item{fc_df}{Optional data.frame of precomputed fold-changes (genes as
-rownames or a `genes` column). Must contain `log2_fold_change` if
-provided and will override fold values in `x` where available.}
-
-\item{diff_res}{Optional data.frame from `calculate_difference()` used to
-supply mean or fold-change information when plotting linear-model results.}
-
-\item{se}{Optional `SummarizedExperiment` or data.frame of expression/read
-counts required when computing fold-changes from expression data.}
-
-\item{type}{Character; either `"tsallis"` or `"expression"`. Use
-`"tsallis"` to plot fold changes already present in `x`, or
-`"expression"` to compute gene-level fold changes from `se`.}
-
-\item{samples}{Optional character vector of sample group labels (length =
-ncol(se)). If `NULL` groups are inferred from `colData(se)` when possible.}
-
-\item{control}{Character naming the control level used when computing
-expression-based fold-changes. If `NULL`, prefers "Normal" or uses the
-first observed level and messages the user.}
-
-\item{fc_method}{Aggregation method for building gene-level fold-changes
-from transcript/read counts (passed to `calculate_fc()`, default:
-`"median"`).}
-
-\item{pseudocount}{Numeric pseudocount added before log transforms when
-computing expression fold-changes (default: 0).}
-
-\item{x_label}{Optional x-axis label passed to `plot_ma`.}
 }
 \value{
 A `ggplot2` object representing the MA plot.
 }
 \description{
-Create an MA plot (mean vs log2 fold change) compatible with both
-differential results and linear-model interaction outputs. The function
-auto-detects suitable mean/average columns for the x-axis and locates a
-fold-change column for the y-axis. Optionally, fold-changes may be supplied
-from an external `fc_df` (e.g., read-count based fold changes) and merged
-with the provided differential results for plotting.
-}
-\examples{
-# Differential analysis MA plot using diversity fold changes
-df <- data.frame(
-  gene = paste0("g", seq_len(10)),
-  sampleA_mean = runif(10),
-  sampleB_mean = runif(10),
-  log2_fold_change = rnorm(10),
-  adjusted_p_values = runif(10)
-)
-# plot_ma_tsallis(df)
-Plot MA using Tsallis-based fold changes
-
 Wrapper around `plot_ma(..., type = "tsallis")` for convenience and
 clearer API separation.
-
+}
+\examples{
+x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5), log2_fold_change = rnorm(5))
+plot_ma_tsallis(x)
 }

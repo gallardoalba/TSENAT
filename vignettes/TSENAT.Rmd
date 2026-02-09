@@ -14,7 +14,6 @@ vignette: |
 ---
 
 ```{r setup-global, include = FALSE}
-set.seed(1)
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
@@ -327,7 +326,7 @@ print(p_ma_read)
 The **volcano plot** displays effect size versus significance,
 useful for highlighting genes with large, significant differences. 
 
-```{r ,volcanoplot, fig.width=7, fig.height=4.5}
+```{r volcanoplot, fig.width=7, fig.height=4.5}
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
 print(p_volcano)

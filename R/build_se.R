@@ -16,6 +16,12 @@
 #' @return A `SummarizedExperiment` with assay, `metadata()$tx2gene`,
 #'   `metadata()$readcounts` and `rowData(se)$genes` populated.
 #' @export
+#' @examples
+#' tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
+#' readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))
+#' genes <- c("g1", "g2")
+#' se <- build_se(tx2gene, readcounts, genes)
+#' SummarizedExperiment::assay(se, "counts")
 build_se <- function(tx2gene_tsv, readcounts, genes, assay_name = "counts") {
     if (is.character(tx2gene_tsv) && length(tx2gene_tsv) == 1) {
         if (!file.exists(tx2gene_tsv)) stop("tx2gene file not found: ", tx2gene_tsv, call. = FALSE)

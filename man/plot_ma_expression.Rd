@@ -41,7 +41,15 @@ plot_ma_expression(
 
 \item{...}{Additional arguments passed to `plot_ma()`.}
 }
+\value{
+A `ggplot2` object representing the MA plot.
+}
 \description{
 Wrapper around `plot_ma(..., type = "expression")` that accepts a
 `SummarizedExperiment` or precomputed fold-change `data.frame`.
+}
+\examples{
+x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5))
+fc <- data.frame(genes = paste0("g", seq_len(5)), log2_fold_change = rnorm(5))
+plot_ma_expression(x, se = fc)
 }

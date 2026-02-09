@@ -176,6 +176,10 @@ validate_control_in_samples <- function(control, samples) {
 #' @param show_samples Logical; if TRUE, draw per-sample lines in the
 #'   background (default: FALSE).
 #' @return A `ggplot` object showing the gene q-curve profile by group.
+#' @examples
+#' mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1","g2"), c("s1_q=0.1","s1_q=1","s2_q=0.1","s2_q=1")))
+#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+#' plot_tsallis_gene_profile(se, gene = "g1")
 #' @export
 plot_tsallis_gene_profile <- function(se,
                                      gene,
@@ -306,60 +310,7 @@ plot_mean_violin <- function(
 }
 
 
-#' Plot MA plot for difference or linear model results
-#'
-#' Create an MA plot (mean vs log2 fold change) compatible with both
-#' differential results and linear-model interaction outputs. The function
-#' auto-detects suitable mean/average columns for the x-axis and locates a
-#' fold-change column for the y-axis. Optionally, fold-changes may be supplied
-#' from an external `fc_df` (e.g., read-count based fold changes) and merged
-#' with the provided differential results for plotting.
-#'
-#' @param x Data.frame produced by `calculate_difference()`, `calculate_fc()`,
-#'   or `calculate_lm_interaction()`. For differential analysis this should
-#'   include group means and a fold-change column; for linear models supply
-#'   the model output and optionally `diff_res` to provide fold-change values.
-#' @param fc_df Optional data.frame of precomputed fold-changes (genes as
-#'   rownames or a `genes` column). Must contain `log2_fold_change` if
-#'   provided and will override fold values in `x` where available.
-#' @param diff_res Optional data.frame from `calculate_difference()` used to
-#'   supply mean or fold-change information when plotting linear-model results.
-#' @param sig_alpha Numeric significance threshold for adjusted p-values
-#'   (default: 0.05).
-#' @param x_label,y_label Optional axis labels (override automatic detection).
-#' @param title Optional plot title; if `NULL` a default title is used.
-#' @param se Optional `SummarizedExperiment` or data.frame of expression/read
-#'   counts required when computing fold-changes from expression data.
-#' @param type Character; either `"tsallis"` or `"expression"`. Use
-#'   `"tsallis"` to plot fold changes already present in `x`, or
-#'   `"expression"` to compute gene-level fold changes from `se`.
-#' @param samples Optional character vector of sample group labels (length =
-#'   ncol(se)). If `NULL` groups are inferred from `colData(se)` when possible.
-#' @param control Character naming the control level used when computing
-#'   expression-based fold-changes. If `NULL`, prefers "Normal" or uses the
-#'   first observed level and messages the user.
-#' @param fc_method Aggregation method for building gene-level fold-changes
-#'   from transcript/read counts (passed to `calculate_fc()`, default:
-#'   `"median"`).
-#' @param pseudocount Numeric pseudocount added before log transforms when
-#'   computing expression fold-changes (default: 0).
-#'
-#' @return A `ggplot2` object representing the MA plot.
-#' @export
-#' @examples
-#' # Differential analysis MA plot using diversity fold changes
-#' df <- data.frame(
-#'   gene = paste0("g", seq_len(10)),
-#'   sampleA_mean = runif(10),
-#'   sampleB_mean = runif(10),
-#'   log2_fold_change = rnorm(10),
-#'   adjusted_p_values = runif(10)
-#' )
-#' # plot_ma_tsallis(df)
-
-
-
-
+# Core MA plotting implementation documentation moved to internal block
 #' Plot MA using Tsallis-based fold changes
 #'
 #' Wrapper around `plot_ma(..., type = "tsallis")` for convenience and
@@ -371,6 +322,10 @@ plot_mean_violin <- function(
 #' @param y_label Optional y-axis label passed to `plot_ma`.
 #' @param title Optional plot title passed to `plot_ma`.
 #' @param ... Additional arguments passed to `plot_ma()`.
+#' @return A `ggplot2` object representing the MA plot.
+#' @examples
+#' x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5), log2_fold_change = rnorm(5))
+#' plot_ma_tsallis(x)
 #' @export
 plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL, title = NULL, ...) {
     .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title)
@@ -393,6 +348,11 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @param y_label Optional y-axis label passed to `plot_ma`.
 #' @param title Optional plot title passed to `plot_ma`.
 #' @param ... Additional arguments passed to `plot_ma()`.
+#' @return A `ggplot2` object representing the MA plot.
+#' @examples
+#' x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5))
+#' fc <- data.frame(genes = paste0("g", seq_len(5)), log2_fold_change = rnorm(5))
+#' plot_ma_expression(x, se = fc)
 #' @export
 plot_ma_expression <- function(
   x,
@@ -427,6 +387,12 @@ plot_ma_expression <- function(
 # differential results `x` (data.frame) and an optional `fc_df` with
 # fold-changes (genes as rownames or a `genes` column). Returns a
 # `ggplot` MA-plot.
+#' Core MA plotting implementation (internal)
+#'
+#' This is an internal helper used by `plot_ma_tsallis()` and
+#' `plot_ma_expression()`. It is documented here for developers but
+#' is not exported.
+#' @noRd
 .plot_ma_core <- function(x,
                             fc_df = NULL,
                             diff_res = NULL,
@@ -474,7 +440,7 @@ plot_ma_expression <- function(
         if (!((is_mean1 && is_mean2) || (is_med1 && is_med2))) {
             stop("Could not find two mean or two median columns")
         }
-        xvals <- rowMeans(df[, mean_cols[1:2], drop = FALSE], na.rm = TRUE)
+        xvals <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
         x_label <- x_label %||% paste0(mean_cols[1], " vs ", mean_cols[2])
     } else if (length(mean_cols) == 1) {
         xvals <- as.numeric(df[[mean_cols[1]]])
@@ -801,7 +767,7 @@ plot_volcano <- function(
             x_col <- diff_cols[1]
         } else {
             # If no difference column found, use the first numeric column (excluding p-values)
-            numeric_cols <- sapply(df, is.numeric)
+            numeric_cols <- vapply(df, is.numeric, logical(1))
             p_cols <- grep("p_value|p.value", cn, ignore.case = TRUE)
             numeric_cols[p_cols] <- FALSE
             if (any(numeric_cols)) {

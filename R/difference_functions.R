@@ -326,8 +326,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100,
 #' @param randomizations Integer number of permutations for `label_shuffling()`.
 #' @param pcorr P-value adjustment method (passed to `p.adjust`).
 #' @param seed Integer seed used to make permutations reproducible (default
-#'   123). The function calls `set.seed(seed)` before running
-#'   `label_shuffling()` when `method = "shuffle"`.
+#'   123). The function sets a temporary RNG seed via `withr::local_seed(seed)`
+#'   before running `label_shuffling()` when `method = "shuffle"`.
 #' @return A two-column matrix with raw and adjusted p-values (as returned by
 #'   the underlying functions).
 #' @export
@@ -359,7 +359,9 @@ test_differential <- function(x,
     if (!is.null(seed)) {
         if (!is.numeric(seed) || length(seed) != 1)
             stop("`seed` must be a single numeric value", call. = FALSE)
-        set.seed(as.integer(seed))
+        # Use withr::local_seed to temporarily set RNG state for reproducible
+        # permutation tests without permanently modifying the global RNG.
+        withr::local_seed(as.integer(seed))
     }
     return(label_shuffling(x, samples, control, fc_method,
         randomizations = randomizations, pcorr = pcorr, paired = paired,

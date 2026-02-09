@@ -360,6 +360,11 @@ prepare_tsallis_long <- function(se,
 #' @param tx_col Name of the transcript ID column in `tx2gene` (default: "Transcript").
 #' @param verbose Logical; print informative messages (default: FALSE).
 #' @return The input `readcounts` with rownames set to the transcript IDs.
+#' @examples
+#' readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c("s1", "s2")))
+#' tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
+#' rc <- map_tx_to_readcounts(readcounts, tx2gene)
+#' rownames(rc)
 #' @export
 map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", verbose = FALSE) {
     if (is.character(tx2gene) && length(tx2gene) == 1) {

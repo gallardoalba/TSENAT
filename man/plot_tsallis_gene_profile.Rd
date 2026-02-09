@@ -34,3 +34,8 @@ overlay per-group median +/- IQR ribbons so group-level differences are
 easy to compare. Expects a `SummarizedExperiment` produced by
 `calculate_diversity()` with `_q=` suffixes in column names.
 }
+\examples{
+mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1","g2"), c("s1_q=0.1","s1_q=1","s2_q=0.1","s2_q=1")))
+se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+plot_tsallis_gene_profile(se, gene = "g1")
+}
