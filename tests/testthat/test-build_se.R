@@ -1,12 +1,15 @@
-testthat::test_that("build_se constructs SummarizedExperiment from path", {
-  pkgload::load_all()
-  tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-  data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
-  genes <- tcga_brca_luma_dataset[, 1]
-  readcounts <- as.matrix(tcga_brca_luma_dataset[, -1])
-  readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
+testthat::test_that("build_se constructs SummarizedExperiment from tx2gene data.frame", {
+  # small toy dataset
+  set.seed(2)
+  n_tx <- 10L
+  n_samps <- 3L
+  genes <- paste0("G", seq_len(n_tx))
+  readcounts <- matrix(sample(0:50, n_tx * n_samps, replace = TRUE), nrow = n_tx, ncol = n_samps)
+  colnames(readcounts) <- paste0("S", seq_len(n_samps))
+  tx2gene_df <- data.frame(Transcript = paste0("tx", seq_len(n_tx)), Gene = genes, stringsAsFactors = FALSE)
+  readcounts <- map_tx_to_readcounts(readcounts, tx2gene_df)
 
-  se <- build_se(tx2gene_tsv, readcounts, genes)
+  se <- build_se(tx2gene_df, readcounts, genes)
 
   testthat::expect_s4_class(se, "SummarizedExperiment")
   testthat::expect_true("tx2gene" %in% names(S4Vectors::metadata(se)))
@@ -17,13 +20,15 @@ testthat::test_that("build_se constructs SummarizedExperiment from path", {
 })
 
 testthat::test_that("build_se accepts tx2gene as data.frame and custom assay_name", {
-  pkgload::load_all()
-  tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-  tx2gene_df <- utils::read.table(tx2gene_tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-  data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
-  genes <- tcga_brca_luma_dataset[, 1]
-  readcounts <- as.matrix(tcga_brca_luma_dataset[, -1])
-  readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
+  # toy dataset
+  set.seed(3)
+  n_tx <- 8L
+  n_samps <- 2L
+  genes <- paste0("G", seq_len(n_tx))
+  readcounts <- matrix(sample(0:30, n_tx * n_samps, replace = TRUE), nrow = n_tx, ncol = n_samps)
+  colnames(readcounts) <- paste0("S", seq_len(n_samps))
+  tx2gene_df <- data.frame(Transcript = paste0("tx", seq_len(n_tx)), Gene = genes, stringsAsFactors = FALSE)
+  readcounts <- map_tx_to_readcounts(readcounts, tx2gene_df)
 
   se2 <- build_se(tx2gene_df, readcounts, genes, assay_name = "mycounts")
   testthat::expect_s4_class(se2, "SummarizedExperiment")
@@ -33,13 +38,15 @@ testthat::test_that("build_se accepts tx2gene as data.frame and custom assay_nam
 })
 
 testthat::test_that("build_se errors on missing tx2gene path and mismatched genes length", {
-  pkgload::load_all()
-  tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-  data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
-  genes <- tcga_brca_luma_dataset[, 1]
-  readcounts <- as.matrix(tcga_brca_luma_dataset[, -1])
-  readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
+  # toy dataset for mismatch test
+  set.seed(4)
+  n_tx <- 6L
+  n_samps <- 2L
+  genes <- paste0("G", seq_len(n_tx))
+  readcounts <- matrix(sample(0:20, n_tx * n_samps, replace = TRUE), nrow = n_tx, ncol = n_samps)
+  tx2gene_df <- data.frame(Transcript = paste0("tx", seq_len(n_tx)), Gene = genes, stringsAsFactors = FALSE)
+  readcounts <- map_tx_to_readcounts(readcounts, tx2gene_df)
 
   testthat::expect_error(build_se("this_file_does_not_exist.tsv", readcounts, genes))
-  testthat::expect_error(build_se(tx2gene_tsv, readcounts, genes[-1]))
+  testthat::expect_error(build_se(tx2gene_df, readcounts, genes[-1]))
 })

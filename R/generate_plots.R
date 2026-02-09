@@ -373,7 +373,7 @@ plot_mean_violin <- function(
 #' @param ... Additional arguments passed to `plot_ma()`.
 #' @export
 plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL, title = NULL, ...) {
-    do_plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title)
+    .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title)
 }
 
 
@@ -427,7 +427,7 @@ plot_ma_expression <- function(
 # differential results `x` (data.frame) and an optional `fc_df` with
 # fold-changes (genes as rownames or a `genes` column). Returns a
 # `ggplot` MA-plot.
-do_plot_ma_core <- function(x,
+.plot_ma_core <- function(x,
                             fc_df = NULL,
                             diff_res = NULL,
                             sig_alpha = 0.05,
@@ -574,7 +574,7 @@ plot_ma_expression_impl <- function(
             fc_res$genes <- rownames(fc_res)
         }
         return(
-            do_plot_ma_core(
+            .plot_ma_core(
                 x,
                 fc_df = fc_res,
                 sig_alpha = sig_alpha,
@@ -591,7 +591,7 @@ plot_ma_expression_impl <- function(
         fc_res <- as.data.frame(se, stringsAsFactors = FALSE)
         if (!("log2_fold_change" %in% colnames(fc_res))) stop("`se` data.frame must contain 'log2_fold_change' column when providing precomputed fold changes")
         if (!("genes" %in% colnames(fc_res)) && !is.null(rownames(fc_res))) fc_res$genes <- rownames(fc_res)
-        return(do_plot_ma_core(x, fc_df = fc_res, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title, ...))
+        return(.plot_ma_core(x, fc_df = fc_res, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title, ...))
     }
 
     stop("Unsupported 'se' argument for plot_ma_expression_impl")
@@ -955,7 +955,12 @@ if (getRversion() >= "2.15.1") {
         "group",
         "tx_cond",
         "sample",
-        "log2expr"
+        "log2expr",
+        # variables used in do_plot_ma_core
+        "x",
+        "y",
+        "padj",
+        "significant"
     ))
 }
 
