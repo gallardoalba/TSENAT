@@ -22,13 +22,13 @@
 #' colData
 #' @export
 #' @examples
-#' data('tcga_brca_luma_dataset', package = 'TSENAT')
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-    verbose = FALSE, q = 2, what = c("S", "D")) {
+  verbose = FALSE, q = 2, what = c("S", "D")) {
     if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") || is(x,
         "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
         stop("Input data type is not supported! Please use ?calculate_diversity to see the possible arguments and details.",
@@ -56,7 +56,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             x <- as.matrix(x$counts)
             if (verbose == TRUE) {
                 message("Note: calculate_diversity methods are only applicable",
-                  " if your DGEList contains transcript-level expression", " data.")
+                    " if your DGEList contains transcript-level expression", " data.")
             }
             if (tpm == TRUE && verbose == TRUE) {
                 message("Note: tpm as a logical argument is only interpreted", " in case of tximport lists.")
@@ -92,17 +92,17 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
                 is.data.frame(md$tx2gene)) {
                 txmap <- md$tx2gene
                 tx_col <- if ("Transcript" %in% colnames(txmap)) {
-                  "Transcript"
+                    "Transcript"
                 } else {
-                  colnames(txmap)[1]
+                    colnames(txmap)[1]
                 }
                 gene_col <- if ("Gen" %in% colnames(txmap)) {
-                  "Gen"
+                    "Gen"
                 } else {
-                  colnames(txmap)[2]
+                    colnames(txmap)[2]
                 }
                 genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat),
-                  txmap[[tx_col]])])
+                    txmap[[tx_col]])])
                 rownames(x) <- NULL
             } else {
                 genes <- rownames(x)
@@ -113,7 +113,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
             if (is.null(genes)) {
                 stop("Please construct a valid gene set for your ", "SummarizedExperiment.",
-                  call. = FALSE)
+                    call. = FALSE)
             }
         }
     }

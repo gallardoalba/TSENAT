@@ -62,7 +62,7 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
         # are present, fall back to a small constant.
         pos_vals <- value[!is.na(value) & value > 0]
         if (length(pos_vals) > 0) {
-            pc <- min(pos_vals, na.rm = TRUE)/2
+            pc <- min(pos_vals, na.rm = TRUE) / 2
         } else {
             pc <- 1e-06
         }
@@ -78,7 +78,7 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
     na_mask <- is.na(value[, 1]) | is.na(value[, 2])
     diff_vec[na_mask] <- NA
 
-    log2fc_vec <- log2(value[, 1]/value[, 2])
+    log2fc_vec <- log2(value[, 1] / value[, 2])
     log2fc_vec[na_mask] <- NA
 
     result <- data.frame(value, difference = diff_vec, log2_fold_change = log2fc_vec,
@@ -119,14 +119,17 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 
     p_values <- vector("list", nrow(x))
     for (i in seq_len(nrow(x))) {
-        p_values[i] <- tryCatch({
-            wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = paired, exact = exact)$p.value
-        }, error = function(e) {
-            NA_real_
-        }, warning = function(w) {
-            # swallow specific warnings but return NA on unusual states
-            NA_real_
-        })
+        p_values[i] <- tryCatch(
+            {
+                wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = paired, exact = exact)$p.value
+            },
+            error = function(e) {
+                NA_real_
+            },
+            warning = function(w) {
+                # swallow specific warnings but return NA on unusual states
+                NA_real_
+            })
     }
 
     raw_p_values <- ifelse(is.na(vapply(p_values, c, numeric(1))), 1, vapply(p_values,
@@ -168,7 +171,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
 label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
-    paired = FALSE, paired_method = c("swap", "signflip")) {
+  paired = FALSE, paired_method = c("swap", "signflip")) {
     paired_method <- match.arg(paired_method)
     # observed log2 fold changes
     log2_fc <- calculate_fc(x, samples, control, method)[, 4]
@@ -178,11 +181,11 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         # Paired permutation: assume columns are ordered as paired samples
         # (i.e., pair 1 = columns 1 and 2, pair 2 = columns 3 and 4, ...).
         ncols <- ncol(x)
-        if (ncols%%2 != 0) {
+        if (ncols %% 2 != 0) {
             stop("Paired permutation requires an even number of samples and paired column ordering",
                 call. = FALSE)
         }
-        npairs <- ncols/2
+        npairs <- ncols / 2
         # Paired methods: 'swap' randomly swaps labels within pairs (as
         # before).  'signflip' performs sign-flip permutations; when
         # randomizations >= 2^npairs we enumerate all sign combinations (exact
@@ -193,11 +196,11 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                 swap <- sample(c(TRUE, FALSE), size = npairs, replace = TRUE)
                 perm_samples <- samples
                 for (p in seq_len(npairs)) {
-                  if (swap[p]) {
-                    i1 <- (p - 1) * 2 + 1
-                    i2 <- i1 + 1
-                    perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
-                  }
+                    if (swap[p]) {
+                        i1 <- (p - 1) * 2 + 1
+                        i2 <- i1 + 1
+                        perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
+                    }
                 }
                 df_perm <- calculate_fc(x, perm_samples, control, method)
                 perm_mat[, r] <- as.numeric(df_perm[, 4])
@@ -211,33 +214,33 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                 nrep <- nrow(combos)
                 perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = nrep)
                 for (r in seq_len(nrep)) {
-                  swap <- as.logical(as.integer(combos[r, ]))
-                  perm_samples <- samples
-                  for (p in seq_len(npairs)) {
-                    if (swap[p]) {
-                      i1 <- (p - 1) * 2 + 1
-                      i2 <- i1 + 1
-                      perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
+                    swap <- as.logical(as.integer(combos[r, ]))
+                    perm_samples <- samples
+                    for (p in seq_len(npairs)) {
+                        if (swap[p]) {
+                            i1 <- (p - 1) * 2 + 1
+                            i2 <- i1 + 1
+                            perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
+                        }
                     }
-                  }
-                  df_perm <- calculate_fc(x, perm_samples, control, method)
-                  perm_mat[, r] <- as.numeric(df_perm[, 4])
+                    df_perm <- calculate_fc(x, perm_samples, control, method)
+                    perm_mat[, r] <- as.numeric(df_perm[, 4])
                 }
             } else {
                 # randomized sign-flip sampling
                 perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
                 for (r in seq_len(randomizations)) {
-                  swap <- sample(c(TRUE, FALSE), size = npairs, replace = TRUE)
-                  perm_samples <- samples
-                  for (p in seq_len(npairs)) {
-                    if (swap[p]) {
-                      i1 <- (p - 1) * 2 + 1
-                      i2 <- i1 + 1
-                      perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
+                    swap <- sample(c(TRUE, FALSE), size = npairs, replace = TRUE)
+                    perm_samples <- samples
+                    for (p in seq_len(npairs)) {
+                        if (swap[p]) {
+                            i1 <- (p - 1) * 2 + 1
+                            i2 <- i1 + 1
+                            perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
+                        }
                     }
-                  }
-                  df_perm <- calculate_fc(x, perm_samples, control, method)
-                  perm_mat[, r] <- as.numeric(df_perm[, 4])
+                    df_perm <- calculate_fc(x, perm_samples, control, method)
+                    perm_mat[, r] <- as.numeric(df_perm[, 4])
                 }
             }
         }
@@ -263,7 +266,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             return(1)
         }
         cnt <- sum(abs(nulls_non_na) >= abs(obs))
-        pval <- (cnt + 1)/(n_non_na + 1)
+        pval <- (cnt + 1) / (n_non_na + 1)
         return(pval)
     }, numeric(1))
 
@@ -296,14 +299,14 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #' @export
 #' @examples
 #' mat <- matrix(rnorm(20), nrow = 5)
-#' samples <- rep(c('A', 'B'), length.out = ncol(mat))
-#' test_differential(mat, samples, control = 'A', method = 'wilcoxon')
+#' samples <- rep(c("A", "B"), length.out = ncol(mat))
+#' test_differential(mat, samples, control = "A", method = "wilcoxon")
 #'
 #' @param paired_method Character; forwarded to `label_shuffling()` when
 #'   `method = 'shuffle'`. See `label_shuffling()` for details.
 test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
-    "shuffle"), fc_method = "mean", paired = FALSE, exact = FALSE, randomizations = 100,
-    pcorr = "BH", seed = 123L, paired_method = c("swap", "signflip")) {
+      "shuffle"), fc_method = "mean", paired = FALSE, exact = FALSE, randomizations = 100,
+  pcorr = "BH", seed = 123L, paired_method = c("swap", "signflip")) {
     paired_method <- match.arg(paired_method)
     method <- match.arg(method)
     if (method == "wilcoxon") {

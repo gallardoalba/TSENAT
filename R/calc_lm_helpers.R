@@ -14,7 +14,7 @@
             n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
             if (n_sing > 0) {
                 message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes",
-                  n_sing, total_genes))
+                    n_sing, total_genes))
             }
         }
     }
@@ -68,14 +68,14 @@
             curve_mat[s, qi] <- as.numeric(mat[g, i])
         }
     }
-    good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
+    good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat) / 2)))
     if (length(good_rows) < min_obs) {
         return(NULL)
     }
     mat_sub <- curve_mat[good_rows, , drop = FALSE]
     col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
     for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r,
-        ])]
+    ])]
     pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
     if (inherits(pca, "try-error")) {
         return(NULL)
@@ -107,7 +107,7 @@
 
 # Try lme4::lmer with multiple optimizers and controlled warnings.
 .tsenat_try_lmer <- function(formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
-    mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
+  mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
     if (!requireNamespace("lme4", quietly = TRUE)) {
         stop("Package 'lme4' is required for mixed-model fitting")
     }
@@ -365,13 +365,13 @@
         }
     }
     # keep samples with at least half of q points present
-    good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
+    good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat) / 2)))
     if (length(good_rows) < min_obs) {
         return(NULL)
     }
     mat_sub <- curve_mat[good_rows, , drop = FALSE]
     col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
     for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r,
-        ])]
+    ])]
     list(mat_sub = mat_sub, used_samples = rownames(mat_sub))
 }

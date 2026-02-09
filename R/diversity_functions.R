@@ -25,7 +25,7 @@
 #' x <- c(10, 5, 0)
 #' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
 calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"),
-    log_base = exp(1)) {
+  log_base = exp(1)) {
     what <- match.arg(what)
     if (!is.numeric(q)) {
         stop("q must be numeric.")
@@ -47,21 +47,21 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
         return(rep(NA_real_, length(q)))
     }
 
-    p <- x/sum(x)
+    p <- x / sum(x)
 
     tol <- sqrt(.Machine$double.eps)
     S_vec <- vapply(q, function(qi) {
         if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
             if (norm) {
-                sh <- sh/log(n, base = log_base)
+                sh <- sh / log(n, base = log_base)
             }
             return(sh)
         } else {
-            ts <- (1 - sum(p^qi))/(qi - 1)
+            ts <- (1 - sum(p^qi)) / (qi - 1)
             if (norm) {
-                max_ts <- (1 - n^(1 - qi))/(qi - 1)
-                ts <- ts/max_ts
+                max_ts <- (1 - n^(1 - qi)) / (qi - 1)
+                ts <- ts / max_ts
             }
             return(ts)
         }
@@ -74,7 +74,7 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
             return(D1)
         } else {
             spq <- sum(p^qi)
-            Dq <- spq^(1/(1 - qi))
+            Dq <- spq^(1 / (1 - qi))
             return(Dq)
         }
     }, numeric(1))

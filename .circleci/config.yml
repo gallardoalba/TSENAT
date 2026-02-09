@@ -42,11 +42,12 @@ jobs:
           command: |
             R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
       - run:
+          name: Check code style with styler
+          command: |
+            R -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
+            Rscript scripts/apply_style.R
+      - run:
           name: Run checks
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
-      - run:
-          name: Upload coverage to Codecov
-          command: |
-            Rscript -e 'if (requireNamespace("covr", quietly=TRUE)) covr::codecov() else stop("covr not installed")'

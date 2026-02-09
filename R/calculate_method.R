@@ -12,7 +12,7 @@
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
-    "D")) {
+                                 "D")) {
     what <- match.arg(what)
     # validate q
     if (!is.numeric(q) || any(q <= 0)) {

@@ -323,7 +323,7 @@ q <- c(0.1, 2)
 ts_se <- calculate_diversity(se,
     q = q, norm = TRUE
 )
-head(assay(ts_se)[1:4,1:3])
+head(assay(ts_se)[1:4, 1:3])
 ```
 
 Once again, we should map the sample metadata into the multi-q 
@@ -386,7 +386,7 @@ qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
     q = qvec, norm = TRUE
 )
-head(assay(ts_se)[1:4,1:3])
+head(assay(ts_se)[1:4, 1:3])
 ```
 
 Map once again the sample metadata into the multi-q 
@@ -423,9 +423,9 @@ required (for example, the q:group interaction).
 if (requireNamespace("lme4", quietly = TRUE)) {
     # Compute and show top hits (by adjusted p-value)
     lm_res <- calculate_lm_interaction(ts_se,
-            sample_type_col = "sample_type", method = "lmm",
-            pvalue = "satterthwaite",
-            subject_col = "sample_base")
+        sample_type_col = "sample_type", method = "lmm",
+        pvalue = "satterthwaite",
+        subject_col = "sample_base")
     print(head(lm_res, 6))
 }
 ```

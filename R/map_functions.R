@@ -23,19 +23,19 @@
 #' column names.
 #' @export
 #' @examples
-#' data('tcga_brca_luma_dataset', package = 'TSENAT')
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-#' sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
-#' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
-#'   length.out = ncol(se)
+#' sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
+#' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
+#'     length.out = ncol(se)
 #' ))
 #' map_metadata(se, coldata_df)
 #' # Optionally validate pairs when appropriate
 #' map_metadata(se, coldata_df, paired = TRUE)
 map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition",
-    paired = FALSE) {
+  paired = FALSE) {
     if (is.null(coldata)) {
         return(ts_se)
     }
@@ -79,17 +79,17 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
             for (c in conds) {
                 # find sample names in coldata for this base+condition
                 samples_for_pair <- as.character(coldata[[coldata_sample_col]])[coldata_base ==
-                  b & as.character(coldata[[coldata_condition_col]]) == c]
+                    b & as.character(coldata[[coldata_condition_col]]) == c]
                 if (length(samples_for_pair) == 0) {
-                  next
+                    next
                 }
                 # for each sample name, find matching assay columns (after
                 # q-stripping)
                 for (s in samples_for_pair) {
-                  matches <- which(base_names == s)
-                  if (length(matches) > 0) {
-                    idx_list <- c(idx_list, matches)
-                  }
+                    matches <- which(base_names == s)
+                    if (length(matches) > 0) {
+                        idx_list <- c(idx_list, matches)
+                    }
                 }
             }
         }
@@ -119,7 +119,7 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
         missing_samples <- sample_base_names[missing_idx]
         msg <- paste0("map_metadata: unmatched samples in 'coldata': ", paste(missing_samples,
             collapse = ", "), ". Provide matching entries in 'coldata' or populate ",
-            "colData(ts_se)$sample_type beforehand.")
+        "colData(ts_se)$sample_type beforehand.")
         stop(msg, call. = FALSE)
     }
     SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
@@ -190,7 +190,7 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
 # Map sample names (without '_q=...') to group labels using `colData(se)`.
 # Mapping must be provided via `colData(se)`; no inference fallback is used.
 map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL,
-    mat = NULL) {
+  mat = NULL) {
     # Prefer explicit mapping from colData(se)[, sample_type_col] when
     # provided. If `sample_type_col` is not provided, allow a single- condition
     # dataset by assigning a single default group 'Group' to all samples (this
@@ -221,7 +221,7 @@ map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL
 
 # Prepare a long-format data.frame for a simple assay (one value per sample)
 get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
-    sample_type_col = NULL) {
+  sample_type_col = NULL) {
     if (!requireNamespace("tidyr", quietly = TRUE)) {
         stop("tidyr required")
     }
@@ -331,8 +331,8 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", sample_type_col =
 #' @param verbose Logical; print informative messages (default: FALSE).
 #' @return The input `readcounts` with rownames set to the transcript IDs.
 #' @examples
-#' readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c('s1', 's2')))
-#' tx2gene <- data.frame(Transcript = c('tx1', 'tx2'), Gene = c('g1', 'g2'), stringsAsFactors = FALSE)
+#' readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c("s1", "s2")))
+#' tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
 #' rc <- map_tx_to_readcounts(readcounts, tx2gene)
 #' rownames(rc)
 #' @export

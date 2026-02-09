@@ -114,8 +114,8 @@ test_that("lmm fallback used when lmer fails (stubbed)", {
     ns <- asNamespace("TSENAT")
     orig <- get(".tsenat_try_lmer", envir = ns)
     stub <- function(...) structure("error", class = "try-error")
-    assignInNamespace('.tsenat_try_lmer', stub, ns = 'TSENAT')
-    on.exit(assignInNamespace('.tsenat_try_lmer', orig, ns = 'TSENAT'), add = TRUE)
+    assignInNamespace(".tsenat_try_lmer", stub, ns = "TSENAT")
+    on.exit(assignInNamespace(".tsenat_try_lmer", orig, ns = "TSENAT"), add = TRUE)
 
     res_se <- calculate_lm_interaction(se, sample_type_col = "samples", method = "lmm", subject_col = "sample_base", min_obs = 3)
     # function may return a SummarizedExperiment (writing into rowData) or a data.frame fallback

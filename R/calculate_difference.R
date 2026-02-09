@@ -54,28 +54,28 @@
 #' which statistical test is applied.
 #' @examples
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-#' samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
+#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
 #' calculate_difference(x, samples,
-#'   control = 'Healthy', method = 'mean', test =
-#'     'wilcoxon'
+#'     control = "Healthy", method = "mean", test =
+#'         "wilcoxon"
 #' )
 calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
-    randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
-    exact = FALSE, pseudocount = 0) {
+  randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
+  exact = FALSE, pseudocount = 0) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
             # allow samples to be NULL (use default 'sample_type' col)
             if (is.null(samples)) {
                 if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
-                  samples_col <- "sample_type"
+                    samples_col <- "sample_type"
                 } else {
-                  stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
-                    call. = FALSE)
+                    stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
+                        call. = FALSE)
                 }
             } else {
                 if (length(samples) != 1) {
-                  stop("'samples' must be a single colData column.", call. = FALSE)
+                    stop("'samples' must be a single colData column.", call. = FALSE)
                 }
                 samples_col <- samples
             }
@@ -211,7 +211,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
         small_mat <- sample_matrix(df_small)
         result_list$small <- data.frame(genes = df_small[, 1], calculate_fc(small_mat,
             samples, control, method, pseudocount = pseudocount), raw_p_values = NA,
-            adjusted_p_values = NA, stringsAsFactors = FALSE)
+        adjusted_p_values = NA, stringsAsFactors = FALSE)
     }
 
     # Combine results preserving tested rows first
@@ -259,19 +259,19 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
 #' @examples
-#' data('tcga_brca_luma_dataset', package = 'TSENAT')
+#' data("tcga_brca_luma_dataset", package = "TSENAT")
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' # Provide a minimal sample-type mapping so the example runs during checks
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
-#'   row.names = colnames(se)
+#'     sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+#'     row.names = colnames(se)
 #' )
-#' calculate_lm_interaction(se, sample_type_col = 'sample_type')
+#' calculate_lm_interaction(se, sample_type_col = "sample_type")
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, method = c("linear",
-    "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-    paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = TRUE) {
+      "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+  paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = TRUE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) {
@@ -356,20 +356,20 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
             subject <- NULL
             if (!is.null(subject_col)) {
                 if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
-                  stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
+                    stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
                 }
                 subj_full <- as.character(SummarizedExperiment::colData(se)[, subject_col])
                 names(subj_full) <- SummarizedExperiment::colData(se)$samples %||%
-                  colnames(mat)
+                    colnames(mat)
                 subject <- unname(subj_full[sample_names])
             } else if (paired) {
                 # require a paired identifier (sample_base) in colData
                 if ("sample_base" %in% colnames(SummarizedExperiment::colData(se))) {
-                  sb <- as.character(SummarizedExperiment::colData(se)[, "sample_base"])
-                  names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
-                  subject <- unname(sb[sample_names])
+                    sb <- as.character(SummarizedExperiment::colData(se)[, "sample_base"])
+                    names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+                    subject <- unname(sb[sample_names])
                 } else {
-                  stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_metadata(..., paired = TRUE) or supply subject_col")
+                    stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_metadata(..., paired = TRUE) or supply subject_col")
                 }
             } else {
                 # fallback to sample base derived from column names
@@ -402,24 +402,24 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
                 "lmerMod") && attr(fit1, "singular") == TRUE)) {
                 used_fit_method <- "fallback"
                 used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
-                  TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
-                  TRUE)
+                    TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                    TRUE)
                 if ((verbose && progress) || (!verbose && progress)) {
-                  message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
+                    message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
                 }
                 fb <- .tsenat_try_lm_fallbacks(df, verbose = verbose)
                 if (!is.null(fb)) {
-                  fallback_lm <- fb
-                  used_fit_method <- fb$method
+                    fallback_lm <- fb
+                    used_fit_method <- fb$method
                 }
             } else {
                 used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
-                  TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
-                  TRUE)
+                    TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                    TRUE)
                 if (used_singular) {
-                  used_fit_method <- "lmer_singular"
+                    used_fit_method <- "lmer_singular"
                 } else {
-                  used_fit_method <- "lmer"
+                    used_fit_method <- "lmer"
                 }
             }
 
@@ -443,9 +443,9 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
                 p_interaction <- lrt_p
             } else if (pvalue == "both") {
                 if (!is.na(satter_p)) {
-                  p_interaction <- satter_p
+                    p_interaction <- satter_p
                 } else {
-                  p_interaction <- lrt_p
+                    p_interaction <- lrt_p
                 }
             }
 
