@@ -13,7 +13,7 @@
 #' @param q Numeric scalar or vector of Tsallis q values to evaluate (q > 0).
 #' If length(q) > 1, the result will contain separate columns per sample and
 #' q.
-#' @param what Which quantity to return: "S" for Tsallis entropy or "D" for Hill
+#' @param what Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
 #' numbers.
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 #' `diversity` containing per-gene diversity values.
@@ -22,26 +22,17 @@
 #' colData
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' data('tcga_brca_luma_dataset', package = 'TSENAT')
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
-calculate_diversity <- function(x, genes = NULL, norm = TRUE,
-                                tpm = FALSE,
-                                assayno = 1,
-                                verbose = FALSE,
-                                q = 2,
-                                what = c("S", "D"
-                                )) {
-    if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") ||
-        is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
-        stop(
-            paste0(
-                "Input data type is not supported! Please use `?calculate_diversity`",
-                " to see the possible arguments and details."
-            )
-        )
+calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
+    verbose = FALSE, q = 2, what = c("S", "D")) {
+    if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") || is(x,
+        "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
+        stop(paste0("Input data type is not supported! Please use `?calculate_diversity`",
+            " to see the possible arguments and details."))
     }
 
     if (is(x, "data.frame")) {
@@ -49,10 +40,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     }
 
     if (tpm == TRUE && !is.list(x) && verbose == TRUE) {
-        message(
-            "Note: tpm as a logical argument is only interpreted in case of",
-            " tximport lists."
-        )
+        message("Note: tpm as a logical argument is only interpreted in case of",
+            " tximport lists.")
     }
 
     if (is.list(x)) {
@@ -66,22 +55,14 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         } else if (is(x, "DGEList")) {
             x <- as.matrix(x$counts)
             if (verbose == TRUE) {
-                message(
-                    "Note: calculate_diversity methods are only applicable",
-                    " if your DGEList contains transcript-level expression",
-                    " data."
-                )
+                message("Note: calculate_diversity methods are only applicable",
+                  " if your DGEList contains transcript-level expression", " data.")
             }
             if (tpm == TRUE && verbose == TRUE) {
-                message(
-                    "Note: tpm as a logical argument is only interpreted",
-                    " in case of tximport lists."
-                )
+                message("Note: tpm as a logical argument is only interpreted", " in case of tximport lists.")
             }
         } else {
-            stop("The package cannot find any expression data in your input.",
-                call. = FALSE
-            )
+            stop("The package cannot find any expression data in your input.", call. = FALSE)
         }
     }
 
@@ -107,11 +88,15 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         }
         if (is.null(genes)) {
             # try to derive genes from supplied metadata mapping if available
-            if (exists("se_assay_mat") && !is.null(md) && !is.null(md$tx2gene) && is.data.frame(md$tx2gene)) {
+            if (exists("se_assay_mat") && !is.null(md) && !is.null(md$tx2gene) &&
+                is.data.frame(md$tx2gene)) {
                 txmap <- md$tx2gene
-                tx_col <- if ("Transcript" %in% colnames(txmap)) "Transcript" else colnames(txmap)[1]
-                gene_col <- if ("Gen" %in% colnames(txmap)) "Gen" else colnames(txmap)[2]
-                genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat), txmap[[tx_col]])])
+                tx_col <- if ("Transcript" %in% colnames(txmap))
+                  "Transcript" else colnames(txmap)[1]
+                gene_col <- if ("Gen" %in% colnames(txmap))
+                  "Gen" else colnames(txmap)[2]
+                genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat),
+                  txmap[[tx_col]])])
                 rownames(x) <- NULL
             } else {
                 genes <- rownames(x)
@@ -121,11 +106,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
             }
 
             if (is.null(genes)) {
-                stop(
-                    "Please construct a valid gene set for your ",
-                    "SummarizedExperiment.",
-                    call. = FALSE
-                )
+                stop("Please construct a valid gene set for your ", "SummarizedExperiment.",
+                  call. = FALSE)
             }
         }
     }
@@ -135,17 +117,12 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
     }
 
     if (any(is.na(x))) {
-        stop(
-            "The data contains NA as expression values. NAs are not allowed",
-            " in the input.",
-            call. = FALSE
-        )
+        stop("The data contains NA as expression values. NAs are not allowed", " in the input.",
+            call. = FALSE)
     }
 
     if (nrow(x) != length(genes)) {
-        stop("The number of rows is not equal to the given gene set.",
-            call. = FALSE
-        )
+        stop("The number of rows is not equal to the given gene set.", call. = FALSE)
     }
 
     what <- match.arg(what)
@@ -154,15 +131,10 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         stop("Argument 'q' must be numeric and greater than 0.", call. = FALSE)
     }
     # keep a copy of transcript-level counts when available (non-null)
-    if (!exists("se_assay_mat")) se_assay_mat <- x
+    if (!exists("se_assay_mat"))
+        se_assay_mat <- x
 
-    result <- calculate_method(x,
-        genes,
-        norm,
-        verbose = verbose,
-        q = q,
-        what = what
-    )
+    result <- calculate_method(x, genes, norm, verbose = verbose, q = q, what = what)
 
     # Prepare assay and row/col data
     result_assay <- result[, -1, drop = FALSE]
@@ -172,12 +144,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
         col_ids <- paste(col_split[, 1], "_q=", col_split[, 2], sep = "")
         row_ids <- as.character(result[, 1])
-        result_colData <- data.frame(
-            samples = as.character(col_split[, 1]),
-            q = as.numeric(col_split[, 2]),
-            row.names = col_ids,
-            stringsAsFactors = FALSE
-        )
+        result_colData <- data.frame(samples = as.character(col_split[, 1]), q = as.numeric(col_split[,
+            2]), row.names = col_ids, stringsAsFactors = FALSE)
         colnames(result_assay) <- col_ids
         rownames(result_assay) <- row_ids
     } else {
@@ -190,16 +158,14 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
 
     result_metadata <- list(method = "tsallis", norm = norm, q = q, what = what)
 
-    # if we have preserved the original transcript-level matrix, build
-    # a tx->gene mapping and make both available in metadata so downstream
+    # if we have preserved the original transcript-level matrix, build a
+    # tx->gene mapping and make both available in metadata so downstream
     # plotting helpers can find transcript IDs and their parent genes
     tx2gene_map <- NULL
-    if (exists("se_assay_mat") && !is.null(rownames(se_assay_mat)) && length(genes) == nrow(se_assay_mat)) {
-        tx2gene_map <- data.frame(
-            Transcript = rownames(se_assay_mat),
-            Gen = as.character(genes),
-            stringsAsFactors = FALSE
-        )
+    if (exists("se_assay_mat") && !is.null(rownames(se_assay_mat)) && length(genes) ==
+        nrow(se_assay_mat)) {
+        tx2gene_map <- data.frame(Transcript = rownames(se_assay_mat), Gen = as.character(genes),
+            stringsAsFactors = FALSE)
     }
 
     assays_list <- list()
@@ -209,15 +175,9 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE,
         assays_list$hill <- result_assay
     }
 
-    result <- SummarizedExperiment::SummarizedExperiment(
-        assays = assays_list,
-        rowData = result_rowData,
-        colData = result_colData,
-        metadata = c(result_metadata, list(
-            readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
-            tx2gene = tx2gene_map
-        ))
-    )
+    result <- SummarizedExperiment::SummarizedExperiment(assays = assays_list, rowData = result_rowData,
+        colData = result_colData, metadata = c(result_metadata, list(readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
+            tx2gene = tx2gene_map)))
 
     return(result)
 }

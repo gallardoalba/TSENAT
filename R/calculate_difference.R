@@ -54,34 +54,34 @@
 #' which statistical test is applied.
 #' @examples
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
+#' samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
 #' calculate_difference(x, samples,
-#'     control = "Healthy", method = "mean", test =
-#'         "wilcoxon"
+#'     control = 'Healthy', method = 'mean', test =
+#'         'wilcoxon'
 #' )
-calculate_difference <- function(x, samples = NULL, control, method = "mean",
-                                 test = "wilcoxon", randomizations = 100,
-                                 pcorr = "BH", assayno = 1, verbose = TRUE,
-                                 paired = FALSE, exact = FALSE, pseudocount = 0) {
+calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
+    randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
+    exact = FALSE, pseudocount = 0) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
-        if (inherits(x, "RangedSummarizedExperiment") ||
-            inherits(x, "SummarizedExperiment")) {
+        if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
             # allow samples to be NULL (use default 'sample_type' col)
             if (is.null(samples)) {
                 if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
-                    samples_col <- "sample_type"
+                  samples_col <- "sample_type"
                 } else {
-                    stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'", call. = FALSE)
+                  stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
+                    call. = FALSE)
                 }
             } else {
                 if (length(samples) != 1) {
-                    stop("'samples' must be a single colData column.", call. = FALSE)
+                  stop("'samples' must be a single colData column.", call. = FALSE)
                 }
                 samples_col <- samples
             }
             samples_vec <- SummarizedExperiment::colData(x)[[samples_col]]
-            if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) < assayno) {
+            if (!is.numeric(assayno) || length(SummarizedExperiment::assays(x)) <
+                assayno) {
                 stop("Invalid 'assayno'.", call. = FALSE)
             }
             df <- as.data.frame(SummarizedExperiment::assays(x)[[assayno]])
@@ -95,35 +95,17 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean",
     }
 
     .tsenat_sample_matrix <- function(dfr) {
-        as.matrix(dfr[,
-            -c(
-                1,
-                ncol(dfr) - 1,
-                ncol(dfr)
-            ),
-            drop = FALSE
-        ])
+        as.matrix(dfr[, -c(1, ncol(dfr) - 1, ncol(dfr)), drop = FALSE])
     }
 
-    # Validate input container
-    # Reject matrices explicitly (tests expect this error for matrix input)
+    # Validate input container Reject matrices explicitly (tests expect this
+    # error for matrix input)
     if (is.matrix(x)) {
-        stop(
-            "Input type unsupported; see ?calculate_difference.",
-            call. = FALSE
-        )
+        stop("Input type unsupported; see ?calculate_difference.", call. = FALSE)
     }
-    if (!(is.data.frame(x) || inherits(
-        x,
-        "RangedSummarizedExperiment"
-    ) || inherits(
-        x,
-        "SummarizedExperiment"
-    ))) {
-        stop(
-            "Input data type not supported; see ?calculate_difference.",
-            call. = FALSE
-        )
+    if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || inherits(x,
+        "SummarizedExperiment"))) {
+        stop("Input data type not supported; see ?calculate_difference.", call. = FALSE)
     }
 
     # prepare data.frame and sample vector (handles SummarizedExperiment)
@@ -150,33 +132,16 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean",
     # Define a consistent ordering: case (non-control) first, control second
     case_label <- setdiff(uniq_groups, control)
     groups <- c(case_label, control)
-    if (!(method %in% c(
-        "mean",
-        "median"
-    ))) {
+    if (!(method %in% c("mean", "median"))) {
         stop("Invalid method; see ?calculate_difference.", call. = FALSE)
     }
-    if (!(test %in% c(
-        "wilcoxon",
-        "shuffle"
-    ))) {
+    if (!(test %in% c("wilcoxon", "shuffle"))) {
         stop("Invalid test method; see ?calculate_difference.", call. = FALSE)
     }
-    valid_pcorr <- c(
-        "holm",
-        "hochberg",
-        "hommel",
-        "bonferroni",
-        "BH",
-        "BY",
-        "fdr",
-        "none"
-    )
+    valid_pcorr <- c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr",
+        "none")
     if (!(pcorr %in% valid_pcorr)) {
-        stop(
-            "Invalid p-value correction; see ?calculate_difference.",
-            call. = FALSE
-        )
+        stop("Invalid p-value correction; see ?calculate_difference.", call. = FALSE)
     }
 
     # Informational warnings about sample size
@@ -208,11 +173,8 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean",
 
     # Partition genes by sufficient observations for the chosen test
     if (test == "wilcoxon") {
-        keep_mask <- (
-            df$cond_1 >= 3 &
-                df$cond_2 >= 3 &
-                (df$cond_1 + df$cond_2) >= 8
-        )
+        keep_mask <- (df$cond_1 >= 3 & df$cond_2 >= 3 & (df$cond_1 + df$cond_2) >=
+            8)
     } else {
         keep_mask <- (df$cond_1 + df$cond_2) >= 5
     }
@@ -228,62 +190,28 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean",
 
     if (nrow(df_keep) > 0) {
         if (nrow(df_small) > 0 && verbose) {
-            message(sprintf(
-                "Note: %d genes excluded due to low sample counts.",
-                nrow(df_small)
-            ))
+            message(sprintf("Note: %d genes excluded due to low sample counts.",
+                nrow(df_small)))
         }
         ymat <- sample_matrix(df_keep)
         # p-value calculation
         if (test == "wilcoxon") {
             ptab <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact)
-            # wilcoxon should return a data.frame of p-values named appropriately
+            # wilcoxon should return a data.frame of p-values named
+            # appropriately
         } else {
-            ptab <- label_shuffling(
-                ymat,
-                samples,
-                control,
-                method,
-                randomizations = randomizations,
-                pcorr = pcorr,
-                paired = paired
-            )
+            ptab <- label_shuffling(ymat, samples, control, method, randomizations = randomizations,
+                pcorr = pcorr, paired = paired)
         }
-        result_list$tested <- data.frame(
-            genes = df_keep[
-                ,
-                1
-            ],
-            calculate_fc(
-                ymat,
-                samples,
-                control,
-                method,
-                pseudocount = pseudocount
-            ),
-            ptab,
-            stringsAsFactors = FALSE
-        )
+        result_list$tested <- data.frame(genes = df_keep[, 1], calculate_fc(ymat,
+            samples, control, method, pseudocount = pseudocount), ptab, stringsAsFactors = FALSE)
     }
 
     if (nrow(df_small) > 0) {
         small_mat <- sample_matrix(df_small)
-        result_list$small <- data.frame(
-            genes = df_small[
-                ,
-                1
-            ],
-            calculate_fc(
-                small_mat,
-                samples,
-                control,
-                method,
-                pseudocount = pseudocount
-            ),
-            raw_p_values = NA,
-            adjusted_p_values = NA,
-            stringsAsFactors = FALSE
-        )
+        result_list$small <- data.frame(genes = df_small[, 1], calculate_fc(small_mat,
+            samples, control, method, pseudocount = pseudocount), raw_p_values = NA,
+            adjusted_p_values = NA, stringsAsFactors = FALSE)
     }
 
     # Combine results preserving tested rows first
@@ -307,68 +235,54 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean",
 #' @param sample_type_col Optional column name in `colData(se)` that contains
 #' a grouping factor for samples (character). If `NULL`, the function will
 #' attempt to infer group from column names (suffix `_N` interpreted as
-#' "Normal").
+#' 'Normal').
 #' @param min_obs Minimum number of non-NA observations required to fit a
 #' model for a gene (default: 10).
 #' @param method Modeling method to use for interaction testing: one of
-#' \code{c("linear", "lmm", "gam", "fpca")} (default: "linear").
+#' \code{c('linear', 'lmm', 'gam', 'fpca')} (default: 'linear').
 #' @param pvalue Type of p-value to compute for linear mixed models: one of
-#' \code{c("satterthwaite", "lrt", "both")} (default: "satterthwaite").
+#' \code{c('satterthwaite', 'lrt', 'both')} (default: 'satterthwaite').
 #' @param subject_col Optional column name in `colData(se)` that contains
 #' subject/individual identifiers for paired or repeated-measures designs
-#' (character). If provided with `method = "lmm"`, used as random effect.
+#' (character). If provided with `method = 'lmm'`, used as random effect.
 #' @param paired Logical; whether samples are paired (default: FALSE).
 #' @param nthreads Number of threads (mc.cores) to use for parallel processing
 #' (default: 1).
 #' @param assay_name Name of the assay in the SummarizedExperiment to use
-#' (default: "diversity").
+#' (default: 'diversity').
 #' @param verbose Logical; whether to print progress messages during execution
 #' (default: TRUE).
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' data('tcga_brca_luma_dataset', package = 'TSENAT')
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' # Provide a minimal sample-type mapping so the example runs during checks
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+#'   sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
 #'   row.names = colnames(se)
 #' )
-#' calculate_lm_interaction(se, sample_type_col = "sample_type")
-calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
-                                        method = c(
-                                            "linear",
-                                            "lmm",
-                                            "gam",
-                                            "fpca"
-                                        ),
-                                        pvalue = c("satterthwaite", "lrt", "both"),
-                                        subject_col = NULL,
-                                        paired = FALSE,
-                                        nthreads = 1,
-                                        assay_name = "diversity",
-                                        verbose = TRUE) {
+#' calculate_lm_interaction(se, sample_type_col = 'sample_type')
+calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, method = c("linear",
+    "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+    paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = TRUE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
-    if (verbose) message("[calculate_lm_interaction] method=", method)
+    if (verbose)
+        message("[calculate_lm_interaction] method=", method)
     # internal flags: keep these internal to avoid documenting them in Rd
     suppress_lme4_warnings <- TRUE
     progress <- FALSE
-    if (!requireNamespace("SummarizedExperiment",
-        quietly = TRUE
-    )) {
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
         stop("SummarizedExperiment required")
     }
 
     mat <- SummarizedExperiment::assay(se, assay_name)
     if (is.null(mat)) {
-        stop(sprintf(
-            "Assay '%s' not found in SummarizedExperiment",
-            assay_name
-        ))
+        stop(sprintf("Assay '%s' not found in SummarizedExperiment", assay_name))
     }
 
     sample_q <- colnames(mat)
@@ -384,23 +298,21 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
     }
 
     # determine group for each sample
-    sample_type_in_coldata <- !is.null(sample_type_col) &&
-        sample_type_col %in% colnames(SummarizedExperiment::colData(se))
+    sample_type_in_coldata <- !is.null(sample_type_col) && sample_type_col %in% colnames(SummarizedExperiment::colData(se))
     if (sample_type_in_coldata) {
         st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
         names(st) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
-        # when user provides a sample_type_col, index by the sample names (strip q
-        # suffix)
+        # when user provides a sample_type_col, index by the sample names
+        # (strip q suffix)
         group_vec <- unname(st[sample_names])
     } else {
-        stop(
-            "No sample grouping found: please supply `sample_type_col` or map sample", 
+        stop("No sample grouping found: please supply `sample_type_col` or map sample",
             "types into `colData(se)` before calling calculate_lm_interaction().",
-            call. = FALSE
-        )
+            call. = FALSE)
     }
 
-    if (verbose && progress) message("[calculate_lm_interaction] parsed samples and groups")
+    if (verbose && progress)
+        message("[calculate_lm_interaction] parsed samples and groups")
     all_results <- list()
     fit_one <- function(g) {
         vals <- as.numeric(mat[g, ])
@@ -423,11 +335,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                 return(NULL)
             }
             p_interaction <- coefs[ia_idx[1], "Pr(>|t|)"]
-            return(data.frame(
-                gene = g,
-                p_interaction = p_interaction,
-                stringsAsFactors = FALSE
-            ))
+            return(data.frame(gene = g, p_interaction = p_interaction, stringsAsFactors = FALSE))
         }
 
         if (method == "lmm") {
@@ -438,19 +346,20 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             subject <- NULL
             if (!is.null(subject_col)) {
                 if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
-                    stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
+                  stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
                 }
                 subj_full <- as.character(SummarizedExperiment::colData(se)[, subject_col])
-                names(subj_full) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+                names(subj_full) <- SummarizedExperiment::colData(se)$samples %||%
+                  colnames(mat)
                 subject <- unname(subj_full[sample_names])
             } else if (paired) {
                 # require a paired identifier (sample_base) in colData
                 if ("sample_base" %in% colnames(SummarizedExperiment::colData(se))) {
-                    sb <- as.character(SummarizedExperiment::colData(se)[, "sample_base"])
-                    names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
-                    subject <- unname(sb[sample_names])
+                  sb <- as.character(SummarizedExperiment::colData(se)[, "sample_base"])
+                  names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+                  subject <- unname(sb[sample_names])
                 } else {
-                    stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_metadata(..., paired = TRUE) or supply subject_col")
+                  stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_metadata(..., paired = TRUE) or supply subject_col")
                 }
             } else {
                 # fallback to sample base derived from column names
@@ -458,38 +367,41 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             }
             df$subject <- factor(subject)
             # require at least two subjects and at least two groups represented
-            if (length(unique(na.omit(df$subject))) < 2) return(NULL)
-            if (length(unique(na.omit(df$group))) < 2) return(NULL)
-            # fit null (no interaction) and alternative (with q:group interaction)
+            if (length(unique(na.omit(df$subject))) < 2)
+                return(NULL)
+            if (length(unique(na.omit(df$group))) < 2)
+                return(NULL)
+            # fit null (no interaction) and alternative (with q:group
+            # interaction)
             mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
 
             # helper: try lmer with multiple optimizers and larger maxfun
             try_lmer <- function(formula, data, verbose = FALSE) {
-                opts <- list(
-                    list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5)),
-                    list(optimizer = "nloptwrap", optCtrl = list(maxfun = 5e5))
-                )
+                opts <- list(list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e+05)),
+                  list(optimizer = "nloptwrap", optCtrl = list(maxfun = 5e+05)))
                 for (o in opts) {
-                    ctrl <- lme4::lmerControl(optimizer = o$optimizer, optCtrl = o$optCtrl)
-                    muffle_cond <- suppress_lme4_warnings || (!verbose)
-                    fit_try <- withCallingHandlers(
-                        try(lme4::lmer(formula, data = data, REML = FALSE, control = ctrl), silent = TRUE),
-                        warning = function(w) {
-                            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                        },
-                        message = function(m) {
-                            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
-                        }
-                    )
-                    if (!inherits(fit_try, "try-error")) {
-                        # check singularity if function available
-                        is_sing <- FALSE
-                        if (exists("isSingular", where = asNamespace("lme4"), inherits = FALSE)) {
-                            is_sing <- tryCatch(lme4::isSingular(fit_try, tol = 1e-4), error = function(e) FALSE)
-                        }
-                        attr(fit_try, "singular") <- is_sing
-                        return(fit_try)
+                  ctrl <- lme4::lmerControl(optimizer = o$optimizer, optCtrl = o$optCtrl)
+                  muffle_cond <- suppress_lme4_warnings || (!verbose)
+                  fit_try <- withCallingHandlers(try(lme4::lmer(formula, data = data,
+                    REML = FALSE, control = ctrl), silent = TRUE), warning = function(w) {
+                    if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w),
+                      ignore.case = TRUE))
+                      invokeRestart("muffleWarning")
+                  }, message = function(m) {
+                    if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m),
+                      ignore.case = TRUE))
+                      invokeRestart("muffleMessage")
+                  })
+                  if (!inherits(fit_try, "try-error")) {
+                    # check singularity if function available
+                    is_sing <- FALSE
+                    if (exists("isSingular", where = asNamespace("lme4"), inherits = FALSE)) {
+                      is_sing <- tryCatch(lme4::isSingular(fit_try, tol = 1e-04),
+                        error = function(e) FALSE)
                     }
+                    attr(fit_try, "singular") <- is_sing
+                    return(fit_try)
+                  }
                 }
                 # all attempts failed
                 return(structure("error", class = "try-error"))
@@ -503,29 +415,39 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             fallback_lm <- NULL
             used_fit_method <- "lmer"
             used_singular <- FALSE
-            if (inherits(fit0, "try-error") || inherits(fit1, "try-error") || (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)) {
+            if (inherits(fit0, "try-error") || inherits(fit1, "try-error") || (inherits(fit0,
+                "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1,
+                "lmerMod") && attr(fit1, "singular") == TRUE)) {
                 used_fit_method <- "fallback"
-                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)
-                if ((verbose && progress) || (!verbose && progress)) message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
+                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
+                  TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                  TRUE)
+                if ((verbose && progress) || (!verbose && progress))
+                  message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
                 # try lm with subject as fixed effect
-                fit0_lm <- try(stats::lm(entropy ~ q + group + subject, data = df), silent = TRUE)
-                fit1_lm <- try(stats::lm(entropy ~ q * group + subject, data = df), silent = TRUE)
+                fit0_lm <- try(stats::lm(entropy ~ q + group + subject, data = df),
+                  silent = TRUE)
+                fit1_lm <- try(stats::lm(entropy ~ q * group + subject, data = df),
+                  silent = TRUE)
                 if (!inherits(fit0_lm, "try-error") && !inherits(fit1_lm, "try-error")) {
-                    fallback_lm <- list(fit0 = fit0_lm, fit1 = fit1_lm)
-                    used_fit_method <- "lm_subject"
+                  fallback_lm <- list(fit0 = fit0_lm, fit1 = fit1_lm)
+                  used_fit_method <- "lm_subject"
                 } else {
-                    # last resort: drop subject, plain lm
-                    fit0_lm2 <- try(stats::lm(entropy ~ q + group, data = df), silent = TRUE)
-                    fit1_lm2 <- try(stats::lm(entropy ~ q * group, data = df), silent = TRUE)
-                    if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
-                        fallback_lm <- list(fit0 = fit0_lm2, fit1 = fit1_lm2)
-                        used_fit_method <- "lm_nosubject"
-                    }
+                  # last resort: drop subject, plain lm
+                  fit0_lm2 <- try(stats::lm(entropy ~ q + group, data = df), silent = TRUE)
+                  fit1_lm2 <- try(stats::lm(entropy ~ q * group, data = df), silent = TRUE)
+                  if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
+                    fallback_lm <- list(fit0 = fit0_lm2, fit1 = fit1_lm2)
+                    used_fit_method <- "lm_nosubject"
+                  }
                 }
             } else {
                 # both lmer fits succeeded; determine if singular
-                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)
-                if (used_singular) used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
+                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
+                  TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                  TRUE)
+                if (used_singular)
+                  used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
             }
 
             # compute LRT if we have two lmer objects (preferred)
@@ -533,67 +455,70 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             if (!(is.null(fallback_lm))) {
                 an <- try(stats::anova(fallback_lm$fit0, fallback_lm$fit1), silent = TRUE)
                 if (!inherits(an, "try-error") && nrow(an) >= 2) {
-                    pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-                    if (length(pcol) == 0) {
-                        lrt_p <- as.numeric(an[2, ncol(an)])
-                    } else {
-                        lrt_p <- as.numeric(an[2, pcol[1]])
-                    }
+                  pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an),
+                    value = TRUE)
+                  if (length(pcol) == 0) {
+                    lrt_p <- as.numeric(an[2, ncol(an)])
+                  } else {
+                    lrt_p <- as.numeric(an[2, pcol[1]])
+                  }
                 }
             } else {
-                an <- withCallingHandlers(
-                    try(stats::anova(fit0, fit1), silent = TRUE),
-                    warning = function(w) {
-                        if (suppress_lme4_warnings || !verbose) {
-                            if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                        }
-                    },
-                    message = function(m) {
-                        if (suppress_lme4_warnings || !verbose) {
-                            if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
-                        }
+                an <- withCallingHandlers(try(stats::anova(fit0, fit1), silent = TRUE),
+                  warning = function(w) {
+                    if (suppress_lme4_warnings || !verbose) {
+                      if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE))
+                        invokeRestart("muffleWarning")
                     }
-                )
+                  }, message = function(m) {
+                    if (suppress_lme4_warnings || !verbose) {
+                      if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE))
+                        invokeRestart("muffleMessage")
+                    }
+                  })
                 if (!inherits(an, "try-error") && nrow(an) >= 2) {
-                    pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-                    if (length(pcol) == 0) {
-                        lrt_p <- as.numeric(an[2, ncol(an)])
-                    } else {
-                        lrt_p <- as.numeric(an[2, pcol[1]])
-                    }
+                  pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an),
+                    value = TRUE)
+                  if (length(pcol) == 0) {
+                    lrt_p <- as.numeric(an[2, ncol(an)])
+                  } else {
+                    lrt_p <- as.numeric(an[2, pcol[1]])
+                  }
                 }
             }
 
-            # Satterthwaite (lmerTest) per-coefficient p-values (or fallback using lm coef)
+            # Satterthwaite (lmerTest) per-coefficient p-values (or fallback
+            # using lm coef)
             satter_p <- NA_real_
             if (pvalue %in% c("satterthwaite", "both")) {
-                if (requireNamespace("lmerTest", quietly = TRUE) && is.null(fallback_lm) && !(inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)) {
-                    fit_lt <- withCallingHandlers(
-                        try(lmerTest::lmer(entropy ~ q * group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
-                        warning = function(w) {
-                            if (suppress_lme4_warnings || !verbose) {
-                                if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) invokeRestart("muffleWarning")
-                            }
-                        },
-                        message = function(m) {
-                            if (suppress_lme4_warnings || !verbose) {
-                                if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) invokeRestart("muffleMessage")
-                            }
-                        }
-                    )
-                    if (!inherits(fit_lt, "try-error")) {
-                        coefs <- summary(fit_lt)$coefficients
-                        ia_idx <- grep("^q:group", rownames(coefs))
-                        if (length(ia_idx) > 0) {
-                            satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
-                        }
-                    }
-                } else if (!is.null(fallback_lm)) {
-                    coefs <- summary(fallback_lm$fit1)$coefficients
+                if (requireNamespace("lmerTest", quietly = TRUE) && is.null(fallback_lm) &&
+                  !(inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)) {
+                  fit_lt <- withCallingHandlers(try(lmerTest::lmer(entropy ~ q *
+                    group + (1 | subject), data = df, REML = FALSE), silent = TRUE),
+                    warning = function(w) {
+                      if (suppress_lme4_warnings || !verbose) {
+                        if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE))
+                          invokeRestart("muffleWarning")
+                      }
+                    }, message = function(m) {
+                      if (suppress_lme4_warnings || !verbose) {
+                        if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE))
+                          invokeRestart("muffleMessage")
+                      }
+                    })
+                  if (!inherits(fit_lt, "try-error")) {
+                    coefs <- summary(fit_lt)$coefficients
                     ia_idx <- grep("^q:group", rownames(coefs))
                     if (length(ia_idx) > 0) {
-                        satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
+                      satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
                     }
+                  }
+                } else if (!is.null(fallback_lm)) {
+                  coefs <- summary(fallback_lm$fit1)$coefficients
+                  ia_idx <- grep("^q:group", rownames(coefs))
+                  if (length(ia_idx) > 0) {
+                    satter_p <- coefs[ia_idx[1], "Pr(>|t|)"]
+                  }
                 }
             }
 
@@ -604,48 +529,27 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             } else if (pvalue == "lrt") {
                 p_interaction <- lrt_p
             } else if (pvalue == "both") {
-                if (!is.na(satter_p)) p_interaction <- satter_p else p_interaction <- lrt_p
+                if (!is.na(satter_p))
+                  p_interaction <- satter_p else p_interaction <- lrt_p
             }
 
-            return(data.frame(
-                gene = g,
-                p_interaction = p_interaction,
-                p_lrt = lrt_p,
-                p_satterthwaite = satter_p,
-                fit_method = used_fit_method,
-                singular = used_singular,
-                stringsAsFactors = FALSE
-            ))
+            return(data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
+                p_satterthwaite = satter_p, fit_method = used_fit_method, singular = used_singular,
+                stringsAsFactors = FALSE))
         }
 
         if (method == "gam") {
-            if (!requireNamespace("mgcv",
-                quietly = TRUE
-            )) {
+            if (!requireNamespace("mgcv", quietly = TRUE)) {
                 stop("Package 'mgcv' is required for method = 'gam'")
             }
-            # choose smoothing basis dimension k based on number of unique q values
+            # choose smoothing basis dimension k based on number of unique q
+            # values
             uq_len <- length(unique(na.omit(q_vals)))
             k_q <- max(2, min(10, uq_len - 1))
-            fit_null <- try(
-                mgcv::gam(
-                    entropy ~ group + s(q,
-                        k = k_q
-                    ),
-                    data = df
-                ),
-                silent = TRUE
-            )
-            fit_alt <- try(
-                mgcv::gam(
-                    entropy ~ group + s(q,
-                        by = group,
-                        k = k_q
-                    ),
-                    data = df
-                ),
-                silent = TRUE
-            )
+            fit_null <- try(mgcv::gam(entropy ~ group + s(q, k = k_q), data = df),
+                silent = TRUE)
+            fit_alt <- try(mgcv::gam(entropy ~ group + s(q, by = group, k = k_q),
+                data = df), silent = TRUE)
             if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
                 return(NULL)
             }
@@ -653,74 +557,50 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             if (inherits(an, "try-error")) {
                 return(NULL)
             }
-            # anova.gam returns a table; p-value typically in second row, column
-            # 'Pr(F)'
+            # anova.gam returns a table; p-value typically in second row,
+            # column 'Pr(F)'
             p_interaction <- NA_real_
             if (nrow(an) >= 2) {
                 if ("Pr(F)" %in% colnames(an)) {
-                    p_interaction <- an[2, "Pr(F)"]
+                  p_interaction <- an[2, "Pr(F)"]
                 } else if ("Pr(>F)" %in% colnames(an)) {
-                    p_interaction <- an[2, "Pr(>F)"]
+                  p_interaction <- an[2, "Pr(>F)"]
                 } else if ("p-value" %in% colnames(an)) {
-                    p_interaction <- an[
-                        2,
-                        "p-value"
-                    ]
+                  p_interaction <- an[2, "p-value"]
                 }
             }
-            return(data.frame(
-                gene = g,
-                p_interaction = p_interaction,
-                stringsAsFactors = FALSE
-            ))
+            return(data.frame(gene = g, p_interaction = p_interaction, stringsAsFactors = FALSE))
         }
 
         if (method == "fpca") {
             message("[fpca] processing gene: ", g)
-            # Build per-sample curves across q: rows = samples, cols = unique q values
+            # Build per-sample curves across q: rows = samples, cols = unique q
+            # values
             uq <- sort(unique(q_vals))
             samples_u <- unique(sample_names)
-            message(sprintf(
-                "[fpca] uq=%s samples_u=%s",
-                paste(uq,
-                    collapse = ","
-                ),
-                paste(samples_u,
-                    collapse = ","
-                )
-            ))
+            message(sprintf("[fpca] uq=%s samples_u=%s", paste(uq, collapse = ","),
+                paste(samples_u, collapse = ",")))
             curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
-            # assign rownames defensively; avoid assigning colnames to prevent dimname
-            # mismatch
-            if (length(samples_u) > 0) rownames(curve_mat) <- samples_u
-            message(sprintf(
-                "[fpca] created curve_mat with dims: %s",
-                paste(dim(curve_mat),
-                    collapse = ","
-                )
-            ))
+            # assign rownames defensively; avoid assigning colnames to prevent
+            # dimname mismatch
+            if (length(samples_u) > 0)
+                rownames(curve_mat) <- samples_u
+            message(sprintf("[fpca] created curve_mat with dims: %s", paste(dim(curve_mat),
+                collapse = ",")))
             for (i in seq_along(sample_names)) {
                 s <- sample_names[i]
                 qv <- q_vals[i]
                 qi <- match(qv, uq)
                 message("[fpca] i=", i, " s=", s, " qv=", qv, " qi=", qi)
-                if (is.na(qi)) next
+                if (is.na(qi))
+                  next
                 # protect in case sample name not present in rownames
                 if (s %in% rownames(curve_mat)) {
-                    curve_mat[
-                        s,
-                        qi
-                    ] <- as.numeric(mat[
-                        g,
-                        i
-                    ])
+                  curve_mat[s, qi] <- as.numeric(mat[g, i])
                 }
             }
             # keep samples with at least half of q points present
-            good_rows <- which(rowSums(!is.na(curve_mat)) >= max(
-                2,
-                ceiling(ncol(curve_mat) / 2)
-            ))
+            good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
             if (length(good_rows) < min_obs) {
                 return(NULL)
             }
@@ -728,19 +608,10 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
             # simple imputation for remaining NAs using column means
             col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
             for (r in seq_len(nrow(mat_sub))) {
-                mat_sub[
-                    r,
-                    is.na(mat_sub[r, ])
-                ] <- col_means[is.na(mat_sub[r, ])]
+                mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r, ])]
             }
             # perform PCA across q (observations = samples)
-            pca <- try(
-                stats::prcomp(mat_sub,
-                    center = TRUE,
-                    scale. = FALSE
-                ),
-                silent = TRUE
-            )
+            pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
             if (inherits(pca, "try-error")) {
                 return(NULL)
             }
@@ -768,19 +639,13 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
                 return(NULL)
             }
             pval <- as.numeric(t_res$p.value)
-            return(data.frame(
-                gene = g,
-                p_interaction = pval,
-                stringsAsFactors = FALSE
-            ))
+            return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
         }
         return(NULL)
     }
 
     if (nthreads > 1 && .Platform$OS.type == "unix") {
-        if (!requireNamespace("parallel",
-            quietly = TRUE
-        )) {
+        if (!requireNamespace("parallel", quietly = TRUE)) {
             stop("parallel package required for multi-threading")
         }
         res_list <- parallel::mclapply(rownames(mat), fit_one, mc.cores = nthreads)
@@ -807,12 +672,15 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10,
         if (n_fallback > 0) {
             tab <- table(res$fit_method[fallback_mask])
             tab_str <- paste(sprintf("%s=%d", names(tab), as.integer(tab)), collapse = ", ")
-            message(sprintf("[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)", n_fallback, total_genes, tab_str))
+            message(sprintf("[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)",
+                n_fallback, total_genes, tab_str))
         }
         # report singular fits if present
         if ("singular" %in% colnames(res)) {
             n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
-            if (n_sing > 0) message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes", n_sing, total_genes))
+            if (n_sing > 0)
+                message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes",
+                  n_sing, total_genes))
         }
     }
 

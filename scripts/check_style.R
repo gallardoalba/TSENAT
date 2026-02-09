@@ -14,14 +14,26 @@ if (length(r_files) == 0) {
 }
 
 for (f in r_files) {
-  tryCatch(
-    {
-      styler::style_file(f, style = styler::tidyverse_style(indent_by = 4))
-    },
-    error = function(e) {
-      message("styler failed for file: ", f, " — ", conditionMessage(e))
+  tryCatch({
+    txt <- readLines(f, warn = FALSE)
+    styled <- styler::style_text(paste(txt, collapse = "\n"), style = styler::tidyverse_style(indent_by = 4))
+    # style_text returns a character vector; join and split to preserve line endings
+    new_txt <- unlist(strsplit(styled, "\n", fixed = TRUE))
+    if (!identical(txt, new_txt)) {
+      writeLines(new_txt, con = f)
     }
-  )
+  }, error = function(e) {
+    message("styler failed for file: ", f, " — ", conditionMessage(e))
+    # Fallback: try formatR::tidy_file to at least format the file
+    tryCatch({
+      if (requireNamespace("formatR", quietly = TRUE)) {
+        formatR::tidy_file(f, indent = 4, arrow = TRUE)
+        message("formatR::tidy_file applied to: ", f)
+      }
+    }, error = function(e2) {
+      message("formatR fallback also failed for file: ", f, " — ", conditionMessage(e2))
+    })
+  })
 }
 
 # If git is available, fail if there are unstaged/uncommitted changes introduced by styler

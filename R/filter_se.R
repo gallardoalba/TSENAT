@@ -13,12 +13,14 @@
 #' @param min_samples Integer minimum number of samples exceeding
 #'   `min_count` required to keep a transcript (default 5L).
 #' @param assay_name Name or index of the assay to use for filtering
-#'   (default: "counts"). If not present, the first assay is used.
+#'   (default: 'counts'). If not present, the first assay is used.
 #' @param verbose Logical; print before/after counts when TRUE.
 #' @return A filtered `SummarizedExperiment`.
 #' @export
-filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts", verbose = TRUE) {
-    if (!is(se, "SummarizedExperiment")) stop("'se' must be a SummarizedExperiment", call. = FALSE)
+filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts",
+    verbose = TRUE) {
+    if (!is(se, "SummarizedExperiment"))
+        stop("'se' must be a SummarizedExperiment", call. = FALSE)
 
     assays_list <- SummarizedExperiment::assays(se)
     if (is.character(assay_name) && assay_name %in% names(assays_list)) {
@@ -31,21 +33,25 @@ filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts
         warning("Requested assay not found; using first assay.", call. = FALSE)
     }
 
-    if (!is.numeric(assay_mat)) stop("Assay data must be numeric.", call. = FALSE)
+    if (!is.numeric(assay_mat))
+        stop("Assay data must be numeric.", call. = FALSE)
 
     before <- nrow(assay_mat)
     tokeep <- rowSums(assay_mat > min_count) > min_samples
     after <- sum(tokeep)
 
-    if (verbose) message(sprintf("Transcripts: before = %d, after = %d", before, after))
+    if (verbose)
+        message(sprintf("Transcripts: before = %d, after = %d", before, after))
 
     if (after == 0L) {
-        warning("Filtering removed all transcripts; returning empty SummarizedExperiment.", call. = FALSE)
+        warning("Filtering removed all transcripts; returning empty SummarizedExperiment.",
+            call. = FALSE)
     }
 
     # subset all assays
     new_assays <- S4Vectors::SimpleList(lapply(assays_list, function(a) {
-        if (is.matrix(a) || is.data.frame(a)) as.matrix(a)[tokeep, , drop = FALSE] else a
+        if (is.matrix(a) || is.data.frame(a))
+            as.matrix(a)[tokeep, , drop = FALSE] else a
     }))
     names(new_assays) <- names(assays_list)
 
@@ -67,16 +73,15 @@ filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts
     }
 
     # construct new SE with same colData
-    new_se <- SummarizedExperiment::SummarizedExperiment(
-        assays = new_assays,
-        rowData = if (!is.null(rd)) rd else S4Vectors::DataFrame(),
-        colData = SummarizedExperiment::colData(se),
-        metadata = c(S4Vectors::metadata(se), list(filtered = list(min_count = min_count, min_samples = min_samples)))
-    )
+    new_se <- SummarizedExperiment::SummarizedExperiment(assays = new_assays, rowData = if (!is.null(rd))
+        rd else S4Vectors::DataFrame(), colData = SummarizedExperiment::colData(se), metadata = c(S4Vectors::metadata(se),
+        list(filtered = list(min_count = min_count, min_samples = min_samples))))
 
     # attach updated metadata pieces
-    S4Vectors::metadata(new_se)$readcounts <- if (!is.null(md$readcounts)) md$readcounts else NULL
-    S4Vectors::metadata(new_se)$tx2gene <- if (!is.null(md$tx2gene)) md$tx2gene else NULL
+    S4Vectors::metadata(new_se)$readcounts <- if (!is.null(md$readcounts))
+        md$readcounts else NULL
+    S4Vectors::metadata(new_se)$tx2gene <- if (!is.null(md$tx2gene))
+        md$tx2gene else NULL
 
     return(new_se)
 }
