@@ -24,12 +24,12 @@ knitr::opts_chunk$set(
 
 ## Overview
 
-This vignette demonstrates how to compute and apply Tsallis entropy to
-transcript-level expression data using `TSENAT`. It focuses on three
-practical goals: (1) compute per-sample, per-gene diversity measures across a
-range of sensitivity parameters `q`; (2) compare those measures between sample
-groups; and (3) visualize and inspect transcript-level patterns that explain
-differences.
+This vignette shows how to compute and apply Tsallis entropy to
+transcript-level expression data with `TSENAT`. It focuses on three
+practical goals: (1) computing per-sample, per-gene diversity measures across a
+range of sensitivity parameters `q`; (2) comparing those measures between sample
+groups; and (3) visualizing and inspecting transcript-level patterns that explain
+observed differences.
 
 ### Motivation
 
@@ -61,27 +61,19 @@ discrete probability vector $p=(p_1,\dots,p_n)$ it is defined as
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 \]
 
-Changing `q` shifts emphasis between rare and abundant isoforms: small 
-values of `q` make the measure sensitive to low-abundance variants,
-while larger `q` focus on the dominant species. In practice, computing 
-`S_q` across a short grid of `q` values (a "q-curve") and combining
-this with resampling or paired designs yields a concise, interpretable
+In information theory terms, entropy measures the uncertainty when 
+drawing a single transcript from the gene's isoform frequency 
+distribution: higher entropy means the choice is less predictable 
+(many similarly abundant isoforms), while lower entropy means the 
+distribution is dominated by one or a few transcripts. 
+
+Tsallis entropy allows, throught the `q` parameter, shifts emphasis 
+between rare and abundant isoforms: small values of `q` make the 
+measure sensitive to low-abundance variants, while larger `q` focus 
+on the dominant species. In practice, computing `S_q` across a 
+short grid of `q` values (a "q-curve") and combining this with 
+resampling or paired designs yields a concise, interpretable
 summary of isoform heterogeneity.
-
-Key advantages:
-
-- **Tunable sensitivity**: changing `q` shifts emphasis between rare and
-dominant isoforms. Use small `q` (\(<1\)) to probe rare-isoform
-heterogeneity and larger `q` (\(>1\)) to focus on dominant-isoform
-behaviour; plotting `S_q` across a compact `q` grid (a "q-curve")
-reveals scale-dependent differences between conditions.
-- **Interpretability**: Tsallis maps to several familiar indices in limits
-(Shannon at `q=1`, richness-like at `q=0`, Gini–Simpson at `q=2`), so
-it unifies multiple perspectives on isoform diversity within one
-framework.
-- **Robust summary and diagnostics**: combined with Hill numbers and
-q-curves, `S_q` supports concise reporting (effective isoform counts,
-slope/AUC summaries) and targeted follow-up (transcript-level plots).
 
 **Essential limiting cases**:
 
@@ -92,15 +84,6 @@ p_i\).
 - Uniform maximum: for $m$ expressed isoforms,
 \(S_{q,\max}(m)=\frac{1-m^{1-q}}{q-1}\) and normalized
 \(\tilde S_q = S_q / S_{q,\max}(m)\).
-
-**Use cases and interpretation**
-
-Read q-curves as a diagnostic: if groups separate at **low q** the biological
-signal is in the rare isoforms; separation at **high q** points to changes in the
-dominant isoform. When separation occurs across the curve, the whole isoform
-composition has shifted. For reporting, consider transforming entropies to
-Hill numbers $D_q$ ("effective isoform counts") which are often more intuitive
-for readers.
 
 ## Example dataset
 
@@ -165,9 +148,10 @@ but in this case we need to assign them.
 readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
 ```
 
-The last pre-processing step is the creation of a `SummarizedExperiment`
-data container. A `SummarizedExperiment` is a standard Bioconductor class
-for storing high-throughput assay data along with associated metadata.
+Next, we will create a a `SummarizedExperiment` data container,
+a standard Bioconductor class for storing high-throughput assay 
+data along with associated metadata. You can read more about it
+in the [Bioconductor documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
 
 ```{r build-se}
 ## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
@@ -189,15 +173,17 @@ prefiltering on differential transcript usage, see
 se <- filter_se(se, min_count = 5, min_samples = 5)
 ```
 
-We filter lowly-expressed transcripts to reduce noise and improve the
+We filtered lowly-expressed transcripts to reduce noise and improve the
 stability of diversity estimates.
 
 ## Compute normalized Tsallis entropy.
 
-Compute Tsallis entropy for a single `q` and inspect the resulting assay.
+Now we will compute Tsallis entropy for a single `q`, and inspect the 
+resulting assay.
 
-Note: si su estudio es unimodal (es decir, sólo dispone de una condición), puede
-igualmente calcular y explorar la entropía de Tsallis como análisis descriptivo.
+Note: For single‑condition studies (no comparison groups), Tsallis entropy
+can still be computed and used for descriptive analyses and quality control;
+formal group‑comparison tests are not applicable in this setting.
 
 ```{r tsallis-calc-single}
 # compute Tsallis entropy for a single q value (normalized)
@@ -225,56 +211,21 @@ reporting when comparing diversity measures across sample groups.
 
 The package exposes pragmatic pairwise tests for comparing per-gene
 diversity summaries between two groups. Two common choices are
-Wilcoxon-based tests and label-shuffle tests. Guidance:
+Wilcoxon-based tests and label-shuffle tests. 
 
-**Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired)**:
-
-- Use when you want a distribution-free test comparing central 
-tendency (ranks/median) and sample sizes are moderate (typically 
-≥10 per group for stable asymptotic p-values).
-- Assumptions: independent observations within groups (or matched
-pairs for the signed-rank test); exchangeability under the null.
-- Handle ties: software returns approximate p-values when many ties
-exist; consider permutation p-values when ties or discreteness are
-extreme (small counts, many zeros).
-- Report effect sizes (median difference, Hodges–Lehmann estimator) 
-and confidence intervals where possible; do not rely on 
-p-values alone.
-
-**Label-shuffle tests**:
-
-- Use when sample sizes are small, distributional assumptions are
-questionable, or you prefer an exact/empirical null constructed from
-the observed data. Randomly shuffle group labels many times and
-recompute the test statistic (difference in medians or means).
-- Exchangeability requirement: permutations are valid when labels are
-exchangeable under the null (e.g., independent samples). For paired
-designs use paired permutations that shuffle within pairs or use sign
-flips for paired differences.
-- Practical settings: set `randomizations` to ≥1000 for routine use and
-5000+ when estimating small p-values or when applying FDR across many
-genes. When possible, compute exact permutations (all labelings) for
-very small datasets.
-- For paired designs an exact sign-flip test enumerates all possible
-combinations of within-pair label flips. Use `paired = TRUE` and
-`paired_method = "signflip"` and set `randomizations = 0` to trigger 
-exact enumeration for small numbers of pairs. 
-
-Here we will use the **Wilcoxon test**; it is the appropriate choice for speed
-when sample sizes support asymptotic approximations. Use permutation tests
-when small-sample accuracy or exact control of the null distribution is
-important.
+Here we will use the **Wilcoxon test**; it is the appropriate choice 
+for speed when sample sizes support asymptotic approximations, and 
+it is robust to non-normality. The **label-shuffling test** is a 
+non-parametric alternative that does not rely on distributional 
+assumptions and can be more accurate for small sample sizes, but 
+it is computationally intensive.
 
 **Recommendation: summary & test choice**:
 
 For the analyses shown in this vignette we recommend using the **median**
 in the **Wilcoxon** rank-sum test for comparisons. Tsallis entropy values 
-are often skewed and sensitive to outliers; the median is robust and the 
-Wilcoxon test does not assume normality, so  this combination is well 
-suited for our analysis.
-
-Before running differential tests we need to summarize per-gene diversity
-values across samples and explicitly define sample groups.
+are often skewed and sensitive to outliers, and the median provides in
+this condition a more robust summary of central tendency than the mean.
 
 
 ```{r difference}
@@ -288,14 +239,13 @@ res <- calculate_difference(
     paired = TRUE
 )
 # sort results by adjusted p-value
-res <- res[order(res$adjusted_p_values), , drop = FALSE]
+res <- res[order(res$adjusted_p_values)]
 head(res)
 ```
 
-After the statistical test we can generate two kind of
-diagnostic plots to summarize per-gene effect sizes: MA plots
-and volcano plots.
-
+After the statistical test, in order to visualize the results 
+and inspect the most significant genes, we can generate two 
+kind of diagnostic plots: MA and volcano plots.
 
 First we will plot a **Tsallis-based MA**, 
 which uses the Tsallis entropy values directly to compute fold 
@@ -323,8 +273,11 @@ p_ma_read <- plot_ma_expression(
 print(p_ma_read)
 ```
 
-The **volcano plot** displays effect size versus significance,
-useful for highlighting genes with large, significant differences. 
+On the other hands, the **volcano plot** displays the relationship
+between the magnitude of diversity differences (mean difference) 
+and their statistical significance (adjusted p-value). This plot
+helps to identify genes with both large effect sizes and
+strong statistical support.
 
 ```{r volcanoplot, fig.width=7, fig.height=4.5}
 # Volcano plot: mean difference vs -log10(adjusted p-value)
@@ -335,12 +288,9 @@ print(p_volcano)
 ### Plot top 3 genes from the single-q differential analysis
 
 Here we will visualize the transcript-level expression for the 
-most significant genes identified in the previous step. The 
-`plot_top_transcripts()` function expects transcript-level 
-counts (rows = transcripts) with rownames matching the `tx2gene` 
-mapping. Now will plot the top three genes by significance 
-to inspect isoform-level patterns that may explain the 
-diversity differences.
+most significant genes identified in the previous step. In that
+case we will use the median as the aggregation metric, which 
+will allow us to see the most consistent isoform-expression 
 
 ```{r top-transcripts-singleq, fig.width=7, fig.height=4.5}
 # Plot using median aggregation; let the function pick top genes from `res`

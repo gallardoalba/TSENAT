@@ -984,105 +984,140 @@ if (getRversion() >= "2.15.1") {
     if (!is.null(to_file)) grDevices::dev.off()
 }
 
- #' Plot top transcripts for a gene
- #'
- #' Simple example to demonstrate `plot_top_transcripts` with toy
- #' transcript counts and a `tx2gene` mapping.
- #' @examples
- #' tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
- #' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
- #' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
- #' tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
- #' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
- #' plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
-plot_top_transcripts <- function(
-    counts,
-    readcounts = NULL,
-    gene = NULL,
-    samples = NULL,
-    coldata = NULL,
-    sample_type_col = "sample_type",
-    tx2gene = NULL,
-    res = NULL,
-    top_n = 3,
-    pseudocount = 1e-6,
-    output_file = NULL,
-    metric = c("median", "mean", "variance", "iqr")
-) {
-    # If gene not provided but a differential result `res` is supplied,
-    # pick top genes by adjusted p-value.
-    if ((is.null(gene) || length(gene) == 0 || all(is.na(gene))) && !is.null(res)) {
-        rdf <- as.data.frame(res)
-        if (!("genes" %in% colnames(rdf))) {
-            if (!is.null(rownames(rdf))) {
-                rdf$genes <- rownames(rdf)
-            } else {
-                stop("Result 'res' must contain a 'genes' column or rownames")
-            }
-        }
-        padj_col <- grep("adjusted_p_values|adj_p_value|adj_p", colnames(rdf), value = TRUE)[1]
-        if (is.na(padj_col)) stop("Result 'res' must contain an adjusted p-value column (e.g. 'adjusted_p_values')")
-        ord <- order(rdf[[padj_col]], na.last = TRUE)
-        genes_ordered <- as.character(rdf$genes[ord])
-        if (is.null(top_n)) {
-            gene <- genes_ordered
-        } else {
-            gene <- head(genes_ordered, top_n)
-        }
-    }
+## Internal helpers for `plot_top_transcripts` refactor
+## Create per-gene plot and combine multiple gene plots into final output
+.ptt_make_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL) {
+    require_pkgs(c("ggplot2", "tidyr"))
 
-    # Early return if no genes provided
-    if (is.null(gene) || length(gene) == 0 || all(is.na(gene))) {
-        message("No genes provided; skipping plot.")
-        return(invisible(NULL))
+    txs <- mapping$Transcript[mapping$Gen == gene_single]
+    txs <- intersect(txs, rownames(counts))
+    if (length(txs) == 0) stop("No transcripts found for gene: ", gene_single)
+    if (!is.null(top_n)) txs <- head(txs, top_n)
+
+    mat <- counts[txs, , drop = FALSE]
+    df_all <- as.data.frame(mat)
+    df_all$tx <- rownames(mat)
+    df_long <- tidyr::pivot_longer(df_all, -tx, names_to = "sample", values_to = "expr")
+    df_long$group <- rep(samples, times = length(txs))
+
+    df_summary <- aggregate(expr ~ tx + group, data = df_long, FUN = agg_fun)
+    df_summary$log2expr <- log2(df_summary$expr + pseudocount)
+    df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
+
+    p <- ggplot2::ggplot(
+        df_summary,
+        ggplot2::aes(x = group, y = tx, fill = log2expr)
+    ) +
+        ggplot2::geom_tile(color = "white", width = 0.95, height = 0.95) +
+        ggplot2::scale_fill_viridis_c(
+            option = "viridis",
+            direction = -1,
+            na.value = "grey80",
+            limits = fill_limits
+        ) +
+        ggplot2::theme_minimal(base_size = 10) +
+        ggplot2::labs(
+            title = agg_label_unique,
+            x = NULL,
+            y = NULL,
+            fill = "log2(expr)"
+        ) +
+        ggplot2::theme(
+            axis.text.y = ggplot2::element_text(size = 8),
+            axis.text.x = ggplot2::element_text(size = 8),
+            axis.ticks = ggplot2::element_blank(),
+            panel.grid = ggplot2::element_blank(),
+            plot.title = ggplot2::element_text(size = 14, hjust = 0.6),
+            legend.position = "bottom",
+            legend.key.width = ggplot2::unit(1.2, "cm"),
+            plot.margin = ggplot2::margin(4, 4, 4, 4)
+        ) +
+        ggplot2::guides(
+            fill = ggplot2::guide_colorbar(
+                title.position = "top",
+                barwidth = 6,
+                barheight = 0.35
+            )
+        )
+
+    return(p)
+}
+
+.ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique) {
+    require_pkgs(c("ggplot2"))
+    if (requireNamespace("patchwork", quietly = TRUE)) {
+        combined <- Reduce(`+`, plots) +
+            patchwork::plot_layout(nrow = 1, guides = "collect") &
+            ggplot2::theme(legend.position = "bottom")
+        combined <- combined + patchwork::plot_annotation(title = agg_label_unique,
+            theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.7, size = 14,
+                                                                        margin = ggplot2::margin(b = 10)))
+        )
+        return(combined)
+    } else if (requireNamespace("cowplot", quietly = TRUE)) {
+        p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
+        legend <- cowplot::get_legend(p_for_legend)
+        plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
+        grid <- cowplot::plot_grid(plotlist = plots_nolegend, nrow = 1, align = "hv")
+        title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = 'plain', x = 0.7, hjust = 0.5, size = 14)
+        result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08, 1, 0.08))
+        if (!is.null(output_file)) {
+            ggplot2::ggsave(output_file, result_plot)
+            return(invisible(NULL))
+        }
+        return(result_plot)
+    } else {
+        plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
+        grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
+        g_full <- ggplot2::ggplotGrob(plots[[1]])
+        legend_idx <- which(vapply(g_full$grobs, function(x) x$name, character(1)) == "guide-box")
+        if (length(legend_idx)) {
+            legend_grob <- g_full$grobs[[legend_idx[1]]]
+        } else {
+            legend_grob <- NULL
+        }
+        n <- length(grobs)
+        heights <- grid::unit.c(
+            grid::unit(0.6, "cm"),
+            grid::unit(1, "null"),
+            grid::unit(0.7, "cm")
+        )
+        if (!is.null(output_file)) {
+            png(filename = output_file, width = 800 * n, height = 480, res = 150)
+            .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights, to_file = output_file)
+            return(invisible(NULL))
+        } else {
+            .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights)
+            return(invisible(NULL))
+        }
     }
-    
-    # If a SummarizedExperiment is provided, extract counts (if available),
-    # otherwise fall back to the explicit `readcounts` argument; also try
-    # to obtain `samples` and `tx2gene` mapping from `se` metadata.
+}
+
+## Prepare and validate inputs for `plot_top_transcripts`
+.ptt_prepare_inputs <- function(counts, readcounts, samples, coldata, sample_type_col, tx2gene, res, top_n, pseudocount, output_file, metric = c("median", "mean", "variance", "iqr")) {
+    # handle selecting genes from `res` is left to caller; this function focuses
+    # on normalizing counts, samples and tx2gene mapping and preparing agg functions
     if (inherits(counts, "SummarizedExperiment")) {
         require_pkgs(c("SummarizedExperiment", "S4Vectors"))
         se <- counts
-
-        # Try to get readcounts either from metadata, assays or user arg
         counts_mat <- get_readcounts_from_se(se, readcounts)
         counts <- as.matrix(counts_mat)
-
-        # infer samples if not provided
         samples <- infer_samples_from_se(se, samples, sample_type_col = sample_type_col)
 
-        # if tx2gene not provided, try helper to build a mapping
         if (is.null(tx2gene)) {
             txres <- get_tx2gene_from_se(se, counts)
             if (!is.null(txres) && !is.null(txres$mapping)) {
-                mapping <- data.frame(
-                    Transcript = rownames(counts),
-                    Gen = as.character(txres$mapping),
-                    stringsAsFactors = FALSE
-                )
+                mapping <- data.frame(Transcript = rownames(counts), Gen = as.character(txres$mapping), stringsAsFactors = FALSE)
                 tx2gene <- mapping
             }
         }
     }
 
-    if (!is.matrix(counts) && !is.data.frame(counts)) {
-        stop(
-            "`counts` must be a matrix or data.frame with transcripts as rownames"
-        )
-    }
+    if (!is.matrix(counts) && !is.data.frame(counts)) stop("`counts` must be a matrix or data.frame with transcripts as rownames")
     counts <- as.matrix(counts)
-    if (is.null(rownames(counts))) {
-        stop(
-            "`counts` must have rownames corresponding to transcript identifiers"
-        )
-    }
-    if (!is.null(samples) && length(samples) != ncol(counts)) {
-        stop(
-            "Length of `samples` must equal number of columns in `counts`"
-        )
-    }
+    if (is.null(rownames(counts))) stop("`counts` must have rownames corresponding to transcript identifiers")
 
-    # If samples not provided, try to derive from `coldata` (data.frame or path)
+    # derive samples from coldata if needed
     if (is.null(samples)) {
         if (!is.null(coldata)) {
             if (is.character(coldata) && length(coldata) == 1) {
@@ -1094,11 +1129,9 @@ plot_top_transcripts <- function(
                 stop("`coldata` must be a data.frame or path to a tab-delimited file")
             }
 
-            # Prefer rownames matching sample column names
             if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
                 samples <- as.character(cdf[colnames(counts), sample_type_col])
             } else {
-                # Try to locate a sample id column in coldata
                 sample_id_cols <- c("sample", "Sample", "sample_id", "id")
                 sid <- intersect(sample_id_cols, colnames(cdf))
                 if (length(sid) > 0) {
@@ -1115,70 +1148,21 @@ plot_top_transcripts <- function(
         }
     }
 
-    # tx2gene must be supplied as a path or data.frame
-    # If tx2gene is still NULL but a SummarizedExperiment was provided,
-    # try extra inference paths (metadata$tx2gene, metadata$readcounts + rowData,
-    # or rowData directly). This lets users call plot_top_transcripts(ts_se, res=...)
-    # without passing readcounts/tx2gene explicitly.
-    if (is.null(tx2gene) && inherits(counts, "SummarizedExperiment")) {
-        if (requireNamespace("S4Vectors", quietly = TRUE)) {
-            md2 <- S4Vectors::metadata(counts)
-            if (!is.null(md2$tx2gene)) tx2gene <- md2$tx2gene
-            # build mapping from saved readcounts + rowData if available
-            if (is.null(tx2gene) && !is.null(md2$readcounts)) {
-                rc <- md2$readcounts
-                if (!is.null(SummarizedExperiment::rowData(counts)$genes) && !is.null(rownames(rc))) {
-                    genes_vec <- as.character(SummarizedExperiment::rowData(counts)$genes)
-                    if (length(genes_vec) == nrow(rc)) {
-                        tx2gene <- data.frame(Transcript = rownames(rc), Gen = genes_vec, stringsAsFactors = FALSE)
-                    }
-                }
-            }
-            # fallback: try rowData directly
-            if (is.null(tx2gene)) {
-                rdata2 <- SummarizedExperiment::rowData(counts)
-                if (!is.null(rdata2) && nrow(rdata2) == nrow(SummarizedExperiment::assay(counts))) {
-                    guess_cols2 <- intersect(c("Gen", "gene", "genes", "symbol", "gene_name"), colnames(rdata2))
-                    if (length(guess_cols2)) {
-                        tx2gene <- data.frame(Transcript = rownames(SummarizedExperiment::assay(counts)), Gen = as.character(rdata2[[guess_cols2[1]]]), stringsAsFactors = FALSE)
-                    }
-                }
-            }
-        }
-    }
-
+    # normalize tx2gene mapping
+    if (is.null(tx2gene)) stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
     if (is.character(tx2gene) && length(tx2gene) == 1) {
         if (!file.exists(tx2gene)) stop("tx2gene file not found: ", tx2gene)
-        mapping <- utils::read.delim(
-            tx2gene,
-            stringsAsFactors = FALSE,
-            header = TRUE
-        )
+        mapping <- utils::read.delim(tx2gene, stringsAsFactors = FALSE, header = TRUE)
     } else if (is.data.frame(tx2gene)) {
         mapping <- tx2gene
-    } else {
-        stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
-    }
+    } else stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
 
-    if (!all(c("Transcript", "Gen") %in% colnames(mapping))) {
-        stop(
-            "tx2gene must have columns 'Transcript' and 'Gen'"
-        )
-    }
+    if (!all(c("Transcript", "Gen") %in% colnames(mapping))) stop("tx2gene must have columns 'Transcript' and 'Gen'")
 
-    if (!requireNamespace("ggplot2", quietly = TRUE)) {
-        stop(
-            "ggplot2 required for plotting"
-        )
-    }
+    if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required for plotting")
 
-    if (!is.null(samples) && length(samples) != ncol(counts)) {
-        stop(
-            "Length of `samples` must equal number of columns in `counts`"
-        )
-    }
+    if (!is.null(samples) && length(samples) != ncol(counts)) stop("Length of `samples` must equal number of columns in `counts`")
 
-    # normalize and validate aggregation argument; define aggregation function
     metric_choice <- match.arg(metric)
     agg_fun <- switch(metric_choice,
         median = function(x) stats::median(x, na.rm = TRUE),
@@ -1186,80 +1170,84 @@ plot_top_transcripts <- function(
         variance = function(x) stats::var(x, na.rm = TRUE),
         iqr = function(x) stats::IQR(x, na.rm = TRUE)
     )
-    # Title label: descriptive title including the chosen metric (present IQR nicely)
     agg_label_metric <- if (metric_choice == "iqr") "IQR" else metric_choice
     agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
-    # increment call counter (kept for internal tracking) but do not show it in title
     .cnt <- as.integer(getOption("TSENAT.plot_top_counter", 0)) + 1L
     options(TSENAT.plot_top_counter = .cnt)
     agg_label_unique <- agg_label
 
+    list(counts = counts, samples = samples, mapping = mapping, metric_choice = metric_choice, agg_fun = agg_fun, agg_label_unique = agg_label_unique, top_n = top_n, pseudocount = pseudocount, output_file = output_file)
+}
+
+ #' Plot top transcripts for a gene
+ #' @param counts Matrix or data.frame of transcript counts. Rows are transcripts and columns are samples.
+ #' @param readcounts Optional matrix or data.frame of raw read counts. Used for transcript-level quantification if provided.
+ #' @param gene Character; gene symbol to inspect.
+ #' @param samples Character vector of sample group labels (length = ncol(counts)).
+ #' @param coldata Optional data.frame or file path containing sample metadata. Used to infer sample groups if `samples` is not provided.
+ #' @param sample_type_col Character; column name in `coldata` or `SummarizedExperiment` colData to use for sample grouping. Default is "sample_type".
+ #' @param tx2gene Path or data.frame mapping transcripts to genes. Must contain columns `Transcript` and `Gen`.
+ #' @param res Optional result data.frame from a differential analysis. If provided and `gene` is NULL, top genes are selected by adjusted p-value.
+ #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
+ #' @param pseudocount Numeric pseudocount added before log2 (default = 1e-6) to avoid division by zero.
+ #' @param output_file Optional file path to save the plot. If `NULL`, the `ggplot` object is returned.
+ #' @param metric Aggregation metric used to summarize transcript expression per group when plotting. One of c("median", "mean", "variance", "iqr"). Use "iqr" to compute the interquartile range. Defaults to "median".
+ #' @examples
+ #' tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+ #' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+ #' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+ #' tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
+ #' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+ #' plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
+ #' 
+ 
+plot_top_transcripts <- function(
+    counts,
+    readcounts = NULL, # Optional matrix or data.frame of raw read counts. Used for transcript-level quantification if provided.
+    gene = NULL,
+    samples = NULL,
+    coldata = NULL, # Optional data.frame or file path containing sample metadata. Used to infer sample groups if `samples` is not provided.
+    sample_type_col = "sample_type", # Column name in `coldata` or `SummarizedExperiment` colData to use for sample grouping. Default is "sample_type".
+    tx2gene = NULL,
+    res = NULL, # Optional result data.frame from a differential analysis. If provided and `gene` is NULL, top genes are selected by adjusted p-value.
+    top_n = 3,
+    pseudocount = 1e-6,
+    output_file = NULL,
+    metric = c("median", "mean", "variance", "iqr")
+) {
+    # If `gene` is not provided, select top genes from `res` using `top_n`.
+    if (is.null(gene)) {
+        if (is.null(res)) stop("Either 'gene' or 'res' must be provided")
+        if (!("genes" %in% colnames(res))) stop("Provided 'res' must contain a 'genes' column")
+        if ("adjusted_p_values" %in% colnames(res)) {
+            ord <- order(res$adjusted_p_values, na.last = NA)
+        } else if ("raw_p_values" %in% colnames(res)) {
+            ord <- order(res$raw_p_values, na.last = NA)
+        } else {
+            ord <- seq_len(nrow(res))
+        }
+        genes_sel <- as.character(res$genes[ord])
+        genes_sel <- unique(genes_sel)
+        gene <- head(genes_sel, top_n)
+    }
+    per_gene_top_n <- top_n
+
+    ## Prepare inputs and normalization via helper
+    prep <- .ptt_prepare_inputs(counts = counts, readcounts = readcounts, samples = samples, coldata = coldata, sample_type_col = sample_type_col, tx2gene = tx2gene, res = res, top_n = per_gene_top_n, pseudocount = pseudocount, output_file = output_file, metric = metric)
+
+    # if prep returned without gene selection, caller will check `gene`
+    counts <- prep$counts
+    samples <- prep$samples
+    mapping <- prep$mapping
+    metric_choice <- prep$metric_choice
+    agg_fun <- prep$agg_fun
+    agg_label_unique <- prep$agg_label_unique
+    top_n <- prep$top_n
+    pseudocount <- prep$pseudocount
+    output_file <- prep$output_file
+
     make_plot_for_gene <- function(gene_single, fill_limits = NULL) {
-        txs <- mapping$Transcript[mapping$Gen == gene_single]
-        txs <- intersect(txs, rownames(counts))
-        if (length(txs) == 0) stop("No transcripts found for gene: ", gene_single)
-        if (!is.null(top_n)) txs <- head(txs, top_n)
-
-        mat <- counts[txs, , drop = FALSE]
-        df_all <- as.data.frame(mat)
-        df_all$tx <- rownames(mat)
-        df_long <- tidyr::pivot_longer(df_all,
-            -tx,
-            names_to = "sample",
-            values_to = "expr"
-        )
-        df_long$group <- rep(samples, times = length(txs))
-
-        # summarize per transcript x group using selected agg function
-        df_summary <- aggregate(expr ~ tx + group,
-            data = df_long,
-            FUN = agg_fun
-        )
-        df_summary$log2expr <- log2(df_summary$expr + pseudocount)
-        df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
-
-        # show transcripts on y (readable labels) and groups on x
-        p <- ggplot2::ggplot(
-            df_summary,
-            ggplot2::aes(
-                x = group,
-                y = tx,
-                fill = log2expr
-            )
-        ) +
-            ggplot2::geom_tile(color = "white", width = 0.95, height = 0.95) +
-            ggplot2::scale_fill_viridis_c(
-                option = "viridis",
-                direction = -1,
-                na.value = "grey80",
-                limits = fill_limits
-            ) +
-            ggplot2::theme_minimal(base_size = 10) +
-            ggplot2::labs(
-                title = agg_label_unique,
-                x = NULL,
-                y = NULL,
-                fill = "log2(expr)"
-            ) +
-            ggplot2::theme(
-                axis.text.y = ggplot2::element_text(size = 8),
-                axis.text.x = ggplot2::element_text(size = 8),
-                axis.ticks = ggplot2::element_blank(),
-                panel.grid = ggplot2::element_blank(),
-                plot.title = ggplot2::element_text(size = 14, hjust = 0.6),
-                legend.position = "bottom",
-                legend.key.width = ggplot2::unit(1.2, "cm"),
-                plot.margin = ggplot2::margin(4, 4, 4, 4)
-            ) +
-            ggplot2::guides(
-                fill = ggplot2::guide_colorbar(
-                    title.position = "top",
-                    barwidth = 6,
-                    barheight = 0.35
-                )
-            )
-
-        return(p)
+        .ptt_make_plot_for_gene(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits)
     }
 
     # Produce plots (single or multiple). Do not save inside helper - save once
@@ -1269,82 +1257,13 @@ plot_top_transcripts <- function(
 
         plots <- lapply(seq_along(gene), function(i) {
             gname <- gene[i]
-            pp <- make_plot_for_gene(gname,
-                fill_limits = fill_limits
-            )
-            # set per-gene title with only gene name
-            per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) {
-                as.character(gname)
-            } else {
-                ""
-            }
-            pp <- pp + ggplot2::labs(title = per_gene_title) +
-                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.55, size = 14))
+            pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
+            per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.55, size = 14))
             pp
         })
 
-        # try patchwork first (collect guides), otherwise cowplot with shared legend
-        if (requireNamespace("patchwork", quietly = TRUE)) {
-            combined <- Reduce(`+`, plots) +
-                patchwork::plot_layout(nrow = 1, guides = "collect") &
-                ggplot2::theme(legend.position = "bottom")
-            # add a single centered title (sentence case)
-            combined <- combined + patchwork::plot_annotation(title = agg_label_unique,
-                theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.7, size = 14, 
-                                                                            margin = ggplot2::margin(b = 10)))
-            )
-            result_plot <- combined
-        } else if (requireNamespace("cowplot", quietly = TRUE)) {
-            # extract legend from first plot
-            p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
-            legend <- cowplot::get_legend(p_for_legend)
-            plots_nolegend <- lapply(
-                plots,
-                function(pp) pp + ggplot2::theme(legend.position = "none")
-            )
-            grid <- cowplot::plot_grid(
-                plotlist = plots_nolegend,
-                nrow = 1,
-                align = "hv"
-            )
-            # title as a separate grob on top
-            title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = 'plain', x = 0.7, hjust = 0.5, size = 14)
-            result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08, 1, 0.08))
-        } else {
-            # fallback: arrange grobs horizontally using base grid (no extra packages)
-            plots_nolegend <- lapply(
-                plots,
-                function(pp) pp + ggplot2::theme(legend.position = "none")
-            )
-            grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
-            # extract legend from original first plot
-            g_full <- ggplot2::ggplotGrob(plots[[1]])
-            legend_idx <- which(vapply(
-                g_full$grobs,
-                function(x) x$name,
-                character(1)
-            ) == "guide-box")
-            if (length(legend_idx)) {
-                legend_grob <- g_full$grobs[[legend_idx[1]]]
-            } else {
-                legend_grob <- NULL
-            }
-            n <- length(grobs)
-            heights <- grid::unit.c(
-                grid::unit(0.6, "cm"),
-                grid::unit(1, "null"),
-                grid::unit(0.7, "cm")
-            )
-
-            if (!is.null(output_file)) {
-                png(filename = output_file, width = 800 * n, height = 480, res = 150)
-                .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights, to_file = output_file)
-                return(invisible(NULL))
-            } else {
-                .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights)
-                return(invisible(NULL))
-            }
-        }
+        result_plot <- .ptt_combine_plots(plots, output_file = output_file, agg_label_unique = agg_label_unique)
     } else {
         result_plot <- make_plot_for_gene(gene)
     }

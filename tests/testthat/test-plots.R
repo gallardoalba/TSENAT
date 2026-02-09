@@ -125,6 +125,28 @@ test_that("plot_top_transcripts returns ggplot for synthetic data", {
     expect_s3_class(p, "ggplot")
 })
 
+test_that("plot_top_transcripts selects genes from res when gene is NULL", {
+    skip_if_not_installed("ggplot2")
+    library(ggplot2)
+
+    set.seed(42)
+    counts <- matrix(rpois(9 * 4, lambda = 20), nrow = 9)
+    rownames(counts) <- paste0("tx", 1:9)
+    colnames(counts) <- paste0("S", 1:4)
+    samples <- c(rep("Normal", 2), rep("Tumor", 2))
+
+    tx2 <- data.frame(
+        Transcript = rownames(counts),
+        Gen = rep(paste0("G", 1:3), each = 3),
+        stringsAsFactors = FALSE
+    )
+
+    res <- data.frame(genes = paste0("G", 1:3), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
+
+    p <- plot_top_transcripts(counts, res = res, tx2gene = tx2, samples = samples, top_n = 2)
+    expect_s3_class(p, "ggplot")
+})
+
 test_that("plot_volcano returns a ggplot and annotates top genes", {
     skip_if_not_installed("ggplot2")
     library(ggplot2)
