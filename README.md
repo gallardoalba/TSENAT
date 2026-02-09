@@ -56,16 +56,16 @@ Beyond computing diversity values, TSENAT enables group comparisons to identify 
 
 - Per-gene q-curve profiles: visualize how a single gene's isoform diversity changes across the sensitivity parameter `q`. This reveals scale-dependent patterns: rare isoforms may disappear at high `q`, while dominant isoforms emerge.
 
-![PI16 q-Curve Profile](docs/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
+![PI16 q-Curve Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
 
 - Group comparisons and significance: summarize diversity differences between biological groups across all genes simultaneously to identify candidate genes.
 
-![MA plot (Tsallis)](docs/articles/TSENAT_files/figure-html/ma-tsallis-1.png)
+![MA plot (Tsallis)](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-tsallis-1.png)
 
 
-- Isoform-level details: drill down to individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
+- Isoform-level details: explore individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
 
-![Isoform Composition](docs/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
+![Isoform Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
 
 ## Installation and Documentation
 
