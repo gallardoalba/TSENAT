@@ -37,12 +37,12 @@ test_differential(
 
 - method:
 
-  Character; one of \`"wilcoxon"\` or \`"shuffle"\`.
+  Character; one of \`'wilcoxon'\` or \`'shuffle'\`.
 
 - fc_method:
 
   Character; aggregation method used by the permutation test when
-  \`method = "shuffle"\` ("mean" or "median").
+  \`method = 'shuffle'\` ('mean' or 'median').
 
 - paired:
 
@@ -63,15 +63,29 @@ test_differential(
 - seed:
 
   Integer seed used to make permutations reproducible (default 123). The
-  function calls \`set.seed(seed)\` before running \`label_shuffling()\`
-  when \`method = "shuffle"\`.
+  function sets a temporary RNG seed via \`withr::local_seed(seed)\`
+  before running \`label_shuffling()\` when \`method = 'shuffle'\`.
 
 - paired_method:
 
   Character; forwarded to \`label_shuffling()\` when \`method =
-  "shuffle"\`. See \`label_shuffling()\` for details.
+  'shuffle'\`. See \`label_shuffling()\` for details.
 
 ## Value
 
 A two-column matrix with raw and adjusted p-values (as returned by the
 underlying functions).
+
+## Examples
+
+``` r
+mat <- matrix(rnorm(20), nrow = 5)
+samples <- rep(c('A','B'), length.out = ncol(mat))
+test_differential(mat, samples, control = 'A', method = 'wilcoxon')
+#>      raw_p_values adjusted_p_values
+#> [1,]    0.2452781         0.6131953
+#> [2,]    1.0000000         1.0000000
+#> [3,]    0.6985354         0.8731692
+#> [4,]    0.2452781         0.6131953
+#> [5,]    0.6985354         0.8731692
+```

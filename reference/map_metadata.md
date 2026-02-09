@@ -10,7 +10,7 @@ and no automatic inference is attempted.
 ## Usage
 
 ``` r
-map_coldata_to_se(
+map_metadata(
   ts_se,
   coldata,
   coldata_sample_col = "Sample",
@@ -34,12 +34,12 @@ map_coldata_to_se(
 - coldata_sample_col:
 
   Name of the column in \`coldata\` containing sample identifiers
-  (default: "Sample").
+  (default: 'Sample').
 
 - coldata_condition_col:
 
   Name of the column in \`coldata\` with condition/labels (default:
-  "Condition").
+  'Condition').
 
 - paired:
 
@@ -58,18 +58,18 @@ the assay column names.
 ## Examples
 
 ``` r
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data('tcga_brca_luma_dataset', package = 'TSENAT')
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
-coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
+sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
+coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
     length.out = ncol(se)
 ))
-map_coldata_to_se(se, coldata_df)
+map_metadata(se, coldata_df)
 #> class: SummarizedExperiment 
 #> dim: 6 40 
-#> metadata(4): method norm q what
+#> metadata(9): method norm ... sample_base_names samples
 #> assays(1): diversity
 #> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
 #> rowData names(1): genes
@@ -77,10 +77,10 @@ map_coldata_to_se(se, coldata_df)
 #>   TCGA-BH-A0BV_N
 #> colData names(3): samples sample_type sample_base
 # Optionally validate pairs when appropriate
-map_coldata_to_se(se, coldata_df, paired = TRUE)
+map_metadata(se, coldata_df, paired = TRUE)
 #> class: SummarizedExperiment 
 #> dim: 6 40 
-#> metadata(4): method norm q what
+#> metadata(9): method norm ... sample_base_names samples
 #> assays(1): diversity
 #> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
 #> rowData names(1): genes

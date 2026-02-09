@@ -55,7 +55,7 @@ calculate_diversity(
 
 - what:
 
-  Which quantity to return: "S" for Tsallis entropy or "D" for Hill
+  Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
   numbers.
 
 ## Value
@@ -67,7 +67,7 @@ with assay \`diversity\` containing per-gene diversity values.
 ## Examples
 
 ``` r
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data('tcga_brca_luma_dataset', package = 'TSENAT')
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)

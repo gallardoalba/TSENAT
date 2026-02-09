@@ -2,12 +2,12 @@
 
 ## Overview
 
-This vignette demonstrates how to compute and apply Tsallis entropy to
-transcript-level expression data using `TSENAT`. It focuses on three
-practical goals: (1) compute per-sample, per-gene diversity measures
-across a range of sensitivity parameters `q`; (2) compare those measures
-between sample groups; and (3) visualize and inspect transcript-level
-patterns that explain differences.
+This vignette shows how to compute and apply Tsallis entropy to
+transcript-level expression data with `TSENAT`. It focuses on three
+practical goals: (1) computing per-sample, per-gene diversity measures
+across a range of sensitivity parameters `q`; (2) comparing those
+measures between sample groups; and (3) visualizing and inspecting
+transcript-level patterns that explain observed differences.
 
 ### Motivation
 
@@ -40,27 +40,19 @@ discrete probability vector $`p=(p_1,\dots,p_n)`$ it is defined as
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 ```
 
-Changing `q` shifts emphasis between rare and abundant isoforms: small
-values of `q` make the measure sensitive to low-abundance variants,
-while larger `q` focus on the dominant species. In practice, computing
-`S_q` across a short grid of `q` values (a “q-curve”) and combining this
-with resampling or paired designs yields a concise, interpretable
-summary of isoform heterogeneity.
+In information theory terms, entropy measures the uncertainty when
+drawing a single transcript from the gene’s isoform frequency
+distribution: higher entropy means the choice is less predictable (many
+similarly abundant isoforms), while lower entropy means the distribution
+is dominated by one or a few transcripts.
 
-Key advantages:
-
-- **Tunable sensitivity**: changing `q` shifts emphasis between rare and
-  dominant isoforms. Use small `q` ($`<1`$) to probe rare-isoform
-  heterogeneity and larger `q` ($`>1`$) to focus on dominant-isoform
-  behaviour; plotting `S_q` across a compact `q` grid (a “q-curve”)
-  reveals scale-dependent differences between conditions.
-- **Interpretability**: Tsallis maps to several familiar indices in
-  limits (Shannon at `q=1`, richness-like at `q=0`, Gini–Simpson at
-  `q=2`), so it unifies multiple perspectives on isoform diversity
-  within one framework.
-- **Robust summary and diagnostics**: combined with Hill numbers and
-  q-curves, `S_q` supports concise reporting (effective isoform counts,
-  slope/AUC summaries) and targeted follow-up (transcript-level plots).
+Tsallis entropy allows, throught the `q` parameter, shifts emphasis
+between rare and abundant isoforms: small values of `q` make the measure
+sensitive to low-abundance variants, while larger `q` focus on the
+dominant species. In practice, computing `S_q` across a short grid of
+`q` values (a “q-curve”) and combining this with resampling or paired
+designs yields a concise, interpretable summary of isoform
+heterogeneity.
 
 **Essential limiting cases**:
 
@@ -72,15 +64,6 @@ Key advantages:
 - Uniform maximum: for $`m`$ expressed isoforms,
   $`S_{q,\max}(m)=\frac{1-m^{1-q}}{q-1}`$ and normalized
   $`\tilde S_q = S_q / S_{q,\max}(m)`$.
-
-**Use cases and interpretation**
-
-Read q-curves as a diagnostic: if groups separate at **low q** the
-biological signal is in the rare isoforms; separation at **high q**
-points to changes in the dominant isoform. When separation occurs across
-the curve, the whole isoform composition has shifted. For reporting,
-consider transforming entropies to Hill numbers $`D_q`$ (“effective
-isoform counts”) which are often more intuitive for readers.
 
 ## Example dataset
 
@@ -97,24 +80,6 @@ suppressPackageStartupMessages({
 })
 ```
 
-### Sample naming and pairing requirements
-
-TSENAT requires a consistent, exact mapping between the assay column
-names and the values in `coldata$Sample`. The following rules and
-recommendations make mapping reliable and avoid surprises when running
-paired analyses. The ordenation of the samples is not important, as long
-as the names of the paired samples in the metadata match exactly.
-
-The following example from `coldata_df` illustrates a correct format:
-
-``` text
-Sample  Condition
-TCGA-A7-A0CH_N  Normal
-TCGA-A7-A0D9_N  Normal
-TCGA-A7-A0CH_T  Tumor
-TCGA-A7-A0D9_T  Tumor
-```
-
 ### Load data and metadata
 
 Now we will load the example dataset and associated metadata:
@@ -126,15 +91,9 @@ coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
 tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
 data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
 
-# Extract gene names and read count data (do not reference ts_se yet)
+# Extract gene names and read count data
 genes <- tcga_brca_luma_dataset[, 1]
 readcounts <- tcga_brca_luma_dataset[, -1]
-
-# Assign transcript IDs as rownames of `readcounts`
-# so downstream transcript-level plotting functions can use them.
-txmap <- utils::read.delim(tx2gene_tsv, header = TRUE, 
-    stringsAsFactors = FALSE)
-rownames(readcounts) <- as.character(txmap$Transcript)
 
 # Read sample metadata
 coldata_df <- read.table(coldata_tsv,
@@ -155,15 +114,12 @@ head(genes)
 # Check read count dataset
 dim(readcounts)
 #> [1] 1100   40
-head(readcounts[1:3, 1:5])
-#>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T
-#> MXRA8.1        2858.04         743.56         812.59           0.00
-#> MXRA8.2         127.82          21.28          50.87          38.21
-#> MXRA8.3         370.22          94.38         368.76          98.12
-#>         TCGA-A7-A0DB_T
-#> MXRA8.1        1508.90
-#> MXRA8.2          30.10
-#> MXRA8.3         167.89
+head(readcounts[1:4, 1:3])
+#>   TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N
+#> 1        2858.04         743.56         812.59
+#> 2         127.82          21.28          50.87
+#> 3         370.22          94.38         368.76
+#> 4        7472.00        3564.87        7647.76
 
 # Check the metadata
 head(coldata_df)
@@ -176,95 +132,83 @@ head(coldata_df)
 #> 6 TCGA-AC-A2FB_N    Normal
 ```
 
-### Data filtering and preprocessing
+### Data preprocessing and filtering
 
-As a first step, before doing the diversity calculation, you might want
-to filter out genes with a low overall expression or limit the analysis
-to transcripts with a sufficient minimum expression level. Expression
-estimates of transcript isoforms with zero or low expression might be
-highly variable. For more details on the effect of transcript isoform
+If the transcript IDs in `readcounts` are not already set as rownames,
+we need to map them. This step could be skipped if the dataset already
+has transcript IDs as rownames, but in this case we need to assign them.
+
+``` r
+
+# Assign transcript IDs as rownames of `readcounts`
+readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
+```
+
+Next, we will create a a `SummarizedExperiment` data container, a
+standard Bioconductor class for storing high-throughput assay data along
+with associated metadata. You can read more about it in the
+[Bioconductor
+documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
+
+``` r
+
+## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
+se <- build_se(tx2gene_tsv, readcounts, genes)
+```
+
+Before computing the Tsallis diversity, you might want to filter out
+genes with a low overall expression or limit the analysis to transcripts
+with a sufficient minimum expression level. Expression estimates of
+transcript isoforms with zero or low expression might be highly
+variable. For more details on the effect of transcript isoform
 prefiltering on differential transcript usage, see [this
 paper](https://doi.org/10.1186/s13059-015-0862-3).
-
-Filter transcripts with fewer than 5 reads in more than 5 samples and
-update the `genes` vector accordingly.
 
 ``` r
 
 ## Filter lowly-expressed transcripts and report counts
-n_before <- nrow(readcounts)
-tokeep <- rowSums(readcounts > 5) > 5
-readcounts <- readcounts[tokeep, ]
-genes <- genes[tokeep]
-n_after <- nrow(readcounts)
-
-message(sprintf(
-    "Transcripts: before = %d, after = %d",
-    n_before, n_after
-))
-#> Transcripts: before = 1100, after = 833
+# Keep transcripts with >5 reads in more than 5 samples using `filter_se()`
+se <- filter_se(se, min_count = 5, min_samples = 5)
+#> Transcripts: before = 1100, after = 848
 ```
 
-We filter lowly-expressed transcripts to reduce noise and improve the
+We filtered lowly-expressed transcripts to reduce noise and improve the
 stability of diversity estimates.
 
 ## Compute normalized Tsallis entropy.
 
-Compute Tsallis entropy for a single `q` and inspect the resulting
-assay.
+Now we will compute Tsallis entropy for a single `q`, and inspect the
+resulting assay.
 
-Note: si su estudio es unimodal (es decir, sólo dispone de una
-condición), puede igualmente calcular y explorar la entropía de Tsallis
-como análisis descriptivo.
+Note: For single‑condition studies (no comparison groups), Tsallis
+entropy can still be computed and used for descriptive analyses and
+quality control; formal group‑comparison tests are not applicable in
+this setting.
 
 ``` r
 
 # compute Tsallis entropy for a single q value (normalized)
 q <- 0.1
-ts_se <- calculate_diversity(readcounts, genes, q = q, norm = TRUE)
-head(assay(ts_se)[1:3, 1:5])
-#>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N TCGA-A7-A0D9_T
-#> MXRA8        0.8616275      0.6609111      0.8156972      0.6633580
-#> C1orf86      0.0000000      0.0000000      0.0000000      0.0000000
-#> PDPN         0.3486679      0.3395884      0.0000000      0.3481643
-#>         TCGA-A7-A0DB_T
-#> MXRA8        0.8036333
-#> C1orf86      0.0000000
-#> PDPN         0.3467400
+ts_se <- calculate_diversity(se, q = q, norm = TRUE)
+head(assay(ts_se)[1:4, 1:3])
+#>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N
+#> MXRA8        0.8616275      0.6609111      0.8156972
+#> C1orf86      0.0000000      0.0000000      0.0000000
+#> PDPN         0.2657489      0.2588286      0.0000000
+#> ALDH4A1      0.8111864      0.4667361      0.8621495
 ```
 
 An additional important technical factor is the data normalization,
 which makes values comparable across genes with different numbers of
 isoforms.
 
-Now we should map the sample metadata (if available) into the
-`SummarizedExperiment` so plotting functions can use `sample_type` for
-grouping.
+Now we should map the sample metadata into the `SummarizedExperiment`
+object (ts_se), so plotting functions and downstream helpers can rely on
+it.
 
 ``` r
 
-ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
-```
-
-After mapping, inspect `colData(ts_se)` to confirm `sample_type` and
-`sample_base` are present and correctly populated.
-
-``` r
-
-# Quick checks on mapped sample metadata
-cd <- colData(ts_se)
-colnames(cd) # list available metadata columns
-#> [1] "samples"     "sample_type" "sample_base"
-head(cd) # preview metadata for first samples
-#> DataFrame with 6 rows and 3 columns
-#>                       samples sample_type    sample_base
-#>                   <character> <character>    <character>
-#> TCGA-A7-A0CH_N TCGA-A7-A0CH_N      Normal TCGA-A7-A0CH_N
-#> TCGA-A7-A0CH_T TCGA-A7-A0CH_T       Tumor TCGA-A7-A0CH_T
-#> TCGA-A7-A0D9_N TCGA-A7-A0D9_N      Normal TCGA-A7-A0D9_N
-#> TCGA-A7-A0D9_T TCGA-A7-A0D9_T       Tumor TCGA-A7-A0D9_T
-#> TCGA-A7-A0DB_N TCGA-A7-A0DB_N      Normal TCGA-A7-A0DB_N
-#> TCGA-A7-A0DB_T TCGA-A7-A0DB_T       Tumor TCGA-A7-A0DB_T
+ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 ```
 
 ## Differential analysis
@@ -274,171 +218,139 @@ reporting when comparing diversity measures across sample groups.
 
 The package exposes pragmatic pairwise tests for comparing per-gene
 diversity summaries between two groups. Two common choices are
-Wilcoxon-based tests and label-shuffle tests. Guidance:
-
-**Wilcoxon rank-sum (unpaired) / Wilcoxon signed-rank (paired)**:
-
-- Use when you want a distribution-free test comparing central tendency
-  (ranks/median) and sample sizes are moderate (typically ≥10 per group
-  for stable asymptotic p-values).
-- Assumptions: independent observations within groups (or matched pairs
-  for the signed-rank test); exchangeability under the null.
-- Handle ties: software returns approximate p-values when many ties
-  exist; consider permutation p-values when ties or discreteness are
-  extreme (small counts, many zeros).
-- Report effect sizes (median difference, Hodges–Lehmann estimator) and
-  confidence intervals where possible; do not rely on p-values alone.
-
-**Label-shuffle tests**:
-
-- Use when sample sizes are small, distributional assumptions are
-  questionable, or you prefer an exact/empirical null constructed from
-  the observed data. Randomly shuffle group labels many times and
-  recompute the test statistic (difference in medians or means).
-- Exchangeability requirement: permutations are valid when labels are
-  exchangeable under the null (e.g., independent samples). For paired
-  designs use paired permutations that shuffle within pairs or use sign
-  flips for paired differences.
-- Practical settings: set `randomizations` to ≥1000 for routine use and
-  5000+ when estimating small p-values or when applying FDR across many
-  genes. When possible, compute exact permutations (all labelings) for
-  very small datasets.
-- For paired designs an exact sign-flip test enumerates all possible
-  combinations of within-pair label flips. Use `paired = TRUE` and
-  `paired_method = "signflip"` and set `randomizations = 0` to trigger
-  exact enumeration for small numbers of pairs.
+Wilcoxon-based tests and label-shuffle tests.
 
 Here we will use the **Wilcoxon test**; it is the appropriate choice for
-speed when sample sizes support asymptotic approximations. Use
-permutation tests when small-sample accuracy or exact control of the
-null distribution is important.
+speed when sample sizes support asymptotic approximations, and it is
+robust to non-normality. The **label-shuffling test** is a
+non-parametric alternative that does not rely on distributional
+assumptions and can be more accurate for small sample sizes, but it is
+computationally intensive.
 
 **Recommendation: summary & test choice**:
 
 For the analyses shown in this vignette we recommend using the
 **median** in the **Wilcoxon** rank-sum test for comparisons. Tsallis
-entropy values are often skewed and sensitive to outliers; the median is
-robust and the Wilcoxon test does not assume normality, so this
-combination is well suited for our analysis.
-
-Before running differential tests we need to summarize per-gene
-diversity values across samples and explicitly define sample groups.
+entropy values are often skewed and sensitive to outliers, and the
+median provides in this condition a more robust summary of central
+tendency than the mean.
 
 ``` r
 
-# create a sample grouping vector inferred from sample names
-# account for per-q column names like 'Sample_q=0.01'
-sample_base_names <- sub(
-    "_q=.*", "",
-    colnames(assay(ts_se))
-)
-samples <- as.character(colData(ts_se)$sample_type)
-
-# prepare diversity table as data.frame with gene names in first column
-div_df <- as.data.frame(assay(ts_se))
-div_df <- cbind(genes = rowData(ts_se)$genes, div_df)
-
-# samples are matched pairs (Normal/Tumor), so use a paired test
-res <- calculate_difference(div_df, samples,
+# Compute differences between groups using the Wilcoxon test
+# with median aggregation
+res <- calculate_difference(
+    ts_se,
     control = "Normal",
-    method = "median", test = "wilcoxon",
+    method = "median",
+    test = "wilcoxon",
     paired = TRUE
 )
 # sort results by adjusted p-value
-res <- res[order(res$adjusted_p_values), , drop = FALSE]
-head(res[1:3, 1:5] )
-#>       genes Tumor_median Normal_median median_difference log2_fold_change
-#> 6  C1orf213   0.07256896    0.98702527       -0.91445631     -3.765662496
-#> 17    S1PR1   0.99315946    0.99930867       -0.00614921     -0.008904999
-#> 87     MBD2   0.55929534    0.07256896        0.48672638      2.946185792
+res <- res[order(res$adjusted_p_values), ]
+head(res)
+#>        genes Tumor_median Normal_median median_difference log2_fold_change
+#> 6   C1orf213   0.07256896    0.98702527       -0.91445631     -3.765662496
+#> 17     S1PR1   0.99315946    0.99930867       -0.00614921     -0.008904999
+#> 88      MBD2   0.55929534    0.07256896        0.48672638      2.946185792
+#> 99      OSR1   0.79339202    0.66364511        0.12974692      0.257621943
+#> 102    GFPT1   0.07256896    0.58345094       -0.51088198     -3.007186825
+#> 128     KIF9   0.58141625    0.37105427        0.21036198      0.647941169
+#>     raw_p_values adjusted_p_values
+#> 6   0.0002357454        0.02721101
+#> 17  0.0007285418        0.02721101
+#> 88  0.0006535852        0.02721101
+#> 99  0.0005801974        0.02721101
+#> 102 0.0008919014        0.02721101
+#> 128 0.0006356242        0.02721101
 ```
 
-Now we will generate diagnostic plots to summarize per-gene effect
-sizes:
+After the statistical test, in order to visualize the results and
+inspect the most significant genes, we can generate two kind of
+diagnostic plots: MA and volcano plots.
 
-- The **MA plot** shows the relationship between mean expression and
-  log-fold change, helping to spot genes with large effect sizes across
-  expression levels.
-- The **volcano plot** displays effect size versus significance, useful
-  for highlighting candidates by thresholding magnitude and adjusted
-  p-value.
+First we will plot a **Tsallis-based MA**, which uses the Tsallis
+entropy values directly to compute fold changes and mean expression.
+This plot provides a direct view of how diversity differences relate to
+overall expression levels.
 
 ``` r
 
-# MA plot using helper
-p_ma <- plot_ma(res) + ggtitle("MA Plot: Mean Expression vs Log-Fold Change") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+# MA plot (Tsallis-based)
+p_ma <- plot_ma_tsallis(res)
 print(p_ma)
 ```
 
-![](TSENAT_files/figure-html/ma-and-volcano-1.png)
+![](TSENAT_files/figure-html/ma-tsallis-1.png)
+
+Second, we will plot an **expression/readcount-based MA**, which uses
+the original read counts to compute fold changes and mean expression.
+This plot helps to contextualize diversity differences in terms of
+overall gene expression levels.
+
+``` r
+
+# MA plot (expression/readcount-based)
+p_ma_read <- plot_ma_expression(
+    res,
+    se = ts_se,
+    control = "Normal"
+)
+print(p_ma_read)
+```
+
+![](TSENAT_files/figure-html/ma-readcounts-1.png)
+
+On the other hands, the **volcano plot** displays the relationship
+between the magnitude of diversity differences (mean difference) and
+their statistical significance (adjusted p-value). This plot helps to
+identify genes with both large effect sizes and strong statistical
+support.
 
 ``` r
 
 # Volcano plot: mean difference vs -log10(adjusted p-value)
-p_volcano <- plot_volcano(res) + ggtitle("Volcano Plot: Effect Size vs Significance") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_volcano <- plot_volcano(res)
 print(p_volcano)
 ```
 
-![](TSENAT_files/figure-html/ma-and-volcano-2.png)
+![](TSENAT_files/figure-html/volcanoplot-1.png)
 
 ### Plot top 3 genes from the single-q differential analysis
 
 Here we will visualize the transcript-level expression for the most
-significant genes identified in the previous step. The
-[`plot_top_transcripts()`](https://gallardoalba.github.io/TSENAT/reference/plot_top_transcripts.md)
-function expects transcript-level counts (rows = transcripts) with
-rownames matching the `tx2gene` mapping. Now will plot the top three
-genes by significance to inspect isoform-level patterns that may explain
-the diversity differences.
+significant genes identified in the previous step.
 
 ``` r
 
-sig_res <- res[res$adjusted_p_values < 0.05, , drop = FALSE]
-top_genes <- head(sig_res$genes, 3)
-sample_base_names <- sub(
-    "_q=.*",
-    "",
-    colnames(assay(ts_se))
-)
-samples_vec <- as.character(colData(ts_se)$sample_type)
-# Plot using median aggregation
-p_median <- plot_top_transcripts(readcounts,
-    gene = top_genes,
-    samples = samples_vec, tx2gene = txmap,
-    top_n = NULL, metric = "median"
+# Plot using median aggregation; let the function pick top genes from `res`
+p_median <- plot_top_transcripts(ts_se,
+    res = res, top_n = 3, metric = "median"
 )
 print(p_median)
 ```
 
 ![](TSENAT_files/figure-html/top-transcripts-singleq-1.png)
 
-Now, we will plot the same top genes but using variance aggregation
+We can also plot the same top genes but using variance aggregation
 instead of median. This allows us to see how transcript-level expression
 variability differs between groups for these genes.
 
 ``` r
 
 # Plot using variance aggregation
-p_var <- plot_top_transcripts(readcounts,
-    gene = top_genes,
-    samples = samples_vec, tx2gene = txmap,
-    top_n = NULL, metric = "variance"
+p_var <- plot_top_transcripts(ts_se,
+    res = res, top_n = 3, metric = "variance"
 )
 print(p_var)
 ```
 
 ![](TSENAT_files/figure-html/top-transcripts-singleq-variance-1.png)
 
-Using these concrete comparisons will help you distinguish consistent
-isoform-level regulation, outlier-driven artifacts, reciprocal isoform
-switching, and subgroup heterogeneity.
-
 ## Compare between q values
 
 Now we are going to try a different approach. In instead of evaluate the
-sificant estatistical differences by using single Thassi `q` values, we
+sificant estatistical differences by using single Tsalis `q` values, we
 will compute the normalized Tsallis entropy for two `q` values (0.1 and
 2) to studiy potential scale-dependent patterns.
 
@@ -446,97 +358,86 @@ will compute the normalized Tsallis entropy for two `q` values (0.1 and
 
 # compute Tsallis entropy for q = 1 (normalized)
 q <- c(0.1, 2)
-ts_se <- calculate_diversity(readcounts, genes,
+ts_se <- calculate_diversity(se,
     q = q, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
+head(assay(ts_se)[1:4,1:3])
 #>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=2 TCGA-A7-A0CH_T_q=0.1
 #> MXRA8              0.8616275          0.6063802            0.6609111
 #> C1orf86            0.0000000          0.0000000            0.0000000
-#> PDPN               0.3486679          0.6619058            0.3395884
+#> PDPN               0.2657489          0.6205367            0.2588286
 #> ALDH4A1            0.8111864          0.7478309            0.4667361
-#> HNRNPR             0.5204909          0.6176153            0.6683829
-#>         TCGA-A7-A0CH_T_q=2 TCGA-A7-A0D9_N_q=0.1
-#> MXRA8            0.3925463            0.8156972
-#> C1orf86          0.0000000            0.0000000
-#> PDPN             0.5044987            0.0000000
-#> ALDH4A1          0.2841620            0.8621495
-#> HNRNPR           0.6856195            0.7395887
 ```
 
-This allows comparison across `q` for the same gene to determine whether
-diversity differences are scale-dependent (for example, significance at
-`q = 0.1` but not at `q = 2` suggests rare-isoform-driven changes).
-
 Once again, we should map the sample metadata into the multi-q
-`SummarizedExperiment` so, plotting helpers can have access to
-`sample_type` for grouping.
+`SummarizedExperiment`. This step is important to ensure that functions
+located downstream in the workflow can access the sample metadata
+correctly.
 
 ``` r
 
-ts_se <- map_coldata_to_se(ts_se, coldata_df)
+ts_se <- map_metadata(ts_se, coldata_df)
 ```
 
 In order to show the distributional differences between groups, we are
 going to create **violin and density plots**.
 
+The violin plot shows the distribution of Tsallis entropy values for
+each group and q value, allowing us to visually assess differences in
+diversity patterns between groups at different sensitivity levels.
+
 ``` r
 
-p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity") +
-    ggtitle("Violin Plot: Tsallis Entropy Distribution Across Multiple q Values") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
 print(p_violin)
 ```
 
-![](TSENAT_files/figure-html/plots-1.png)
+![](TSENAT_files/figure-html/plots-violin-1.png)
+
+The density plot provides a equivalent view of the distribution of
+Tsallis entropy values, showing the density of samples across the range
+of diversity values for each group and q value.
 
 ``` r
 
-p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity") +
-    ggtitle("Density Plot: Tsallis Entropy Distribution Across Multiple q Values") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
 print(p_density)
 ```
 
-![](TSENAT_files/figure-html/plots-2.png)
+![](TSENAT_files/figure-html/plots-density-1.png)
 
-## Linear-model interaction and shape tests for q-curves
+## Tsallis q-sequence and linear-model interaction tests
 
-Now we will compute normalized Tsallis entropy across a sequence of `q`
-values.
+FInally, we can test for interactions between `q` and sample groups
+across a sequence of `q` values (`q-sequence`), that is, whether the
+shape of the q-curve differs between groups. This approach is a powerful
+way to detect scale-dependent diversity differences that may not be
+apparent at a single `q` value.
 
-Computing Tsallis entropy across a sequence of q values is important
-because q acts as a sensitivity lens that shifts emphasis between rare
-and dominant isoforms, so the resulting **q-curve** reveals the scale at
-which biological differences occur.
+Computing Tsallis entropy across a sequence of `q` values is important
+because `q` acts as a sensitivity lens that shifts emphasis between rare
+and dominant isoforms. Thus, the resulting **q-curve** can help us
+identify at which scales (i.e. for which `q` values) the diversity
+differences between groups are most pronounced.
 
-The Tsallis q-sequence can help us with QC and the detection of outlier
-datasets; aside from that, throught the implementation of different
-inference approaches (whether to use multivariate approaches such as
-`q:group` interaction models, GAMs, or FPCA), is it possible to obtain a
-level o diagnostic power and robustness das is not possible to optain on
-a single arbitrary `q` values.
+The Tsallis q-sequence can also be help with quality control and outlier
+detection. By examining the q-curves of individual samples, we can
+identify samples that deviate from expected patterns, which may indicate
+technical issues or biological outliers.
 
 ``` r
 
 # compute Tsallis entropy for a sequence of values (normalized)
-qvec <- seq(0.01, 2, by = 0.1)
-ts_se <- calculate_diversity(readcounts, genes,
+qvec <- seq(0.1, 2, by = 0.05)
+ts_se <- calculate_diversity(se,
     q = qvec, norm = TRUE
 )
-head(assay(ts_se)[1:5, 1:5])
-#>         TCGA-A7-A0CH_N_q=0.01 TCGA-A7-A0CH_N_q=0.11 TCGA-A7-A0CH_N_q=0.21
-#> MXRA8               0.9840684             0.8500785             0.7527194
-#> C1orf86             0.0000000             0.0000000             0.0000000
-#> PDPN                0.3348515             0.3502196             0.3659083
-#> ALDH4A1             0.9759153             0.7976183             0.6982381
-#> HNRNPR              0.5653272             0.5164881             0.4849368
-#>         TCGA-A7-A0CH_N_q=0.31 TCGA-A7-A0CH_N_q=0.41
-#> MXRA8               0.6818220             0.6303117
-#> C1orf86             0.0000000             0.0000000
-#> PDPN                0.3818895             0.3981326
-#> ALDH4A1             0.6447807             0.6181672
-#> HNRNPR              0.4655343             0.4548022
+head(assay(ts_se)[1:4,1:3])
+#>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=0.15 TCGA-A7-A0CH_N_q=0.2
+#> MXRA8              0.8616275             0.8073925            0.7611249
+#> C1orf86            0.0000000             0.0000000            0.0000000
+#> PDPN               0.2657489             0.2738368            0.2820625
+#> ALDH4A1            0.8111864             0.7506492            0.7056995
 ```
 
 Map once again the sample metadata into the multi-q
@@ -545,42 +446,58 @@ Map once again the sample metadata into the multi-q
 ``` r
 
 # For paired designs ensure sample_base is created so LMMs can use it
-ts_se <- map_coldata_to_se(ts_se, coldata_df, paired = TRUE)
+ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 ```
 
 Once we have the `q-sequence` computed, we can test for interactions
-between `q` and sample groups using **mixed models** that include a
-random intercept per subject to account for paired samples. One
-practical approach is the **Satterthwaite method**.
+between `q` and sample groups using one of four methods implemented in
+[`calculate_lm_interaction()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm_interaction.md):
 
-This method is preferable for small or moderately sized paired RNA‑seq
-studies when per-term inference is required (for example, the `q:group`
-interaction).
+- **linear**: fits a simple linear model. This is fast and interpretable
+  and is appropriate when the q–response is approximately linear and
+  samples are independent.
+- **lmm**: fits a linear mixed model which accounts for subject-level
+  random effects (paired or repeated measures).
+- **gam**: fits a generalized additive model. This method allows to
+  capture nonlinear q–response shapes.
+- **fpca**: uses a functional-data approach to reduce each gene’s
+  q-curve to principal component scores. This is recommended when q is
+  densely sampled or when q-curves exhibit complex, high-dimensional
+  variation.
+
+Below we demonstrate a practical `lmm` example using the
+**Satterthwaite** approximation for per-term inference. This method is
+preferable for small or moderately sized paired RNA‑seq studies when
+per-term inference is required (for example, the q:group interaction).
 
 ``` r
 
 ## Linear-model interaction test across q values: detect q x group interaction
-## Guard the LMM-based analysis so the vignette renders even when 'lme4' is
-## not available in the environment (CI may skip Suggests).
 if (requireNamespace("lme4", quietly = TRUE)) {
     # Compute and show top hits (by adjusted p-value)
     lm_res <- calculate_lm_interaction(ts_se,
             sample_type_col = "sample_type", method = "lmm",
             pvalue = "satterthwaite",
-            subject_col = "sample_base",
-            nthreads = 1,
-            verbose = FALSE)
+            subject_col = "sample_base")
     print(head(lm_res, 6))
-} else {
-    message("Skipping linear-model LMM interaction test: package 'lme4' not installed in this environment.")
 }
-#>      gene p_interaction        p_lrt p_satterthwaite adj_p_interaction
-#> 1  HAPLN3  1.858060e-50 1.729070e-50    1.858060e-50      3.660378e-48
-#> 2  COL1A2  6.454700e-47 6.037249e-47    6.454700e-47      6.357879e-45
-#> 3    PI16  2.694297e-42 2.536901e-42    2.694297e-42      1.769255e-40
-#> 4  LRRC15  1.853900e-39 1.752784e-39    1.853900e-39      9.130457e-38
-#> 5 C1orf86  7.293099e-39 6.901271e-39    7.293099e-39      2.873481e-37
-#> 6   EEF2K  5.959578e-38 5.646863e-38    5.959578e-38      1.956728e-36
+#> [calculate_lm_interaction] method=lmm
+#> Warning in vcov.merMod(model): Computed variance-covariance matrix problem: not a positive definite matrix (and positive semidefiniteness is not checked);
+#> returning NA matrix
+#>      gene p_interaction         p_lrt p_satterthwaite fit_method singular
+#> 1  HAPLN3 2.319271e-111 2.139688e-111   2.319271e-111       lmer    FALSE
+#> 2  COL1A2  8.713853e-97  8.123588e-97    8.713853e-97       lmer    FALSE
+#> 3   EEF2K  3.093021e-87  2.903439e-87    3.093021e-87       lmer    FALSE
+#> 4 C1orf86  8.733394e-83  8.224552e-83    8.733394e-83       lmer    FALSE
+#> 5  LRRC15  7.474347e-79  7.058969e-79    7.474347e-79       lmer    FALSE
+#> 6    PI16  5.493773e-73  5.210643e-73    5.493773e-73       lmer    FALSE
+#>   adj_p_interaction
+#> 1     4.615350e-109
+#> 2      8.670284e-95
+#> 3      2.051704e-85
+#> 4      4.344863e-81
+#> 5      2.974790e-77
+#> 6      1.822101e-71
 ```
 
 ### Tsallis q-sequence plot
@@ -594,40 +511,32 @@ separation at low `q` implies differences in rare isoforms, while
 separation at high `q` signals differences in dominant isoforms.
 
 Now we will plot the q-curve profile for the top gene identified by the
-linear-model interaction test. We will start with `HAPLN3`.
+linear-model interaction test. We will start with `HAPLN3`, which
+codifies member of the hyaluronan and proteoglycan link protein family
+expressed in the extracellular matrix, and closely associated with the
+development and occurrence of various malignant tumors
+([source](https://doi.org/10.1007/s00432-022-04421-3)).
 
 ``` r
 
 # Plot q-curve profile for top linear-model gene
-    # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3",
-    sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("HAPLN3: Tsallis Entropy q-Curve Profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3")
 print(plot_target)
 ```
 
 ![](TSENAT_files/figure-html/hapln3-gene-qprofile-1.png)
 
-Now let’s look at `COL1A2`, which encodes a protein involved in immune
-cell biology and has been reported as differentially regulated in some
-cancer studies.
+Now let’s look at `COL1A2`, encodes the pro-alpha2 chain of type I
+collagen, a fibril-forming collagen found in most connective tissues.
 
 ``` r
 
 # Plot q-curve profile for top linear-model gene
-    # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2",
-    sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("COL1A2: Tsallis Entropy q-Curve Profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2")
 print(plot_target)
 ```
 
 ![](TSENAT_files/figure-html/colia2-gene-qprofile-1.png)
-
-From the plot we might infer that, in this dataset, rare transcripts
-appear more prevalent in cancer samples.
 
 Finally, we can visualize the gene `PI16`, which is emerging as an
 important regulator in the vascular system.
@@ -635,11 +544,7 @@ important regulator in the vascular system.
 ``` r
 
 # Plot q-curve profile for top linear-model gene
-    # Prefer GFPT1 if present; otherwise use top LM hit
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16",
-    sample_type_col = "sample_type", show_samples = FALSE) +
-    ggtitle("PI16: Tsallis Entropy q-Curve Profile") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16")
 print(plot_target)
 ```
 
@@ -653,9 +558,7 @@ diversity.
 ``` r
 
 # Plot top tsallis q curve
-p_qcurve <- plot_tsallis_q_curve(ts_se) +
-    ggtitle("Global Tsallis q-Curve: Entropy Across All Genes") +
-    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+p_qcurve <- plot_tsallis_q_curve(ts_se)
 print(p_qcurve)
 ```
 
@@ -713,26 +616,25 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
-#>  [4] htmlwidgets_1.6.4   ggrepel_0.9.6       lattice_0.22-7     
-#>  [7] numDeriv_2016.8-1.1 Rdpack_2.6.5        vctrs_0.7.1        
-#> [10] tools_4.5.2         tibble_3.3.1        pkgconfig_2.0.3    
-#> [13] Matrix_1.7-4        RColorBrewer_1.1-3  S7_0.2.1           
-#> [16] desc_1.4.3          lifecycle_1.0.5     compiler_4.5.2     
-#> [19] farver_2.1.2        textshaping_1.0.4   lmerTest_3.2-0     
-#> [22] htmltools_0.5.9     sass_0.4.10         yaml_2.3.12        
-#> [25] nloptr_2.2.1        pkgdown_2.2.0       pillar_1.11.1      
-#> [28] jquerylib_0.1.4     tidyr_1.3.2         MASS_7.3-65        
-#> [31] DelayedArray_0.36.0 cachem_1.1.0        reformulas_0.4.4   
-#> [34] boot_1.3-32         abind_1.4-8         tidyselect_1.2.1   
-#> [37] digest_0.6.39       dplyr_1.1.4         purrr_1.2.1        
-#> [40] labeling_0.4.3      splines_4.5.2       fastmap_1.2.0      
-#> [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.8 
-#> [46] magrittr_2.0.4      patchwork_1.3.2     S4Arrays_1.10.1    
-#> [49] withr_3.0.2         scales_1.4.0        rmarkdown_2.30     
-#> [52] XVector_0.50.0      lme4_1.1-38         otel_0.2.0         
-#> [55] ragg_1.5.0          evaluate_1.0.5      knitr_1.51         
-#> [58] rbibutils_2.4.1     viridisLite_0.4.3   rlang_1.1.7        
-#> [61] Rcpp_1.1.1          glue_1.8.0          minqa_1.2.8        
-#> [64] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  
-#> [67] fs_1.6.6
+#>  [4] htmlwidgets_1.6.4   lattice_0.22-7      numDeriv_2016.8-1.1
+#>  [7] Rdpack_2.6.5        vctrs_0.7.1         tools_4.5.2        
+#> [10] tibble_3.3.1        pkgconfig_2.0.3     Matrix_1.7-4       
+#> [13] RColorBrewer_1.1-3  S7_0.2.1            desc_1.4.3         
+#> [16] lifecycle_1.0.5     compiler_4.5.2      farver_2.1.2       
+#> [19] textshaping_1.0.4   lmerTest_3.2-0      htmltools_0.5.9    
+#> [22] sass_0.4.10         yaml_2.3.12         nloptr_2.2.1       
+#> [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
+#> [28] tidyr_1.3.2         MASS_7.3-65         DelayedArray_0.36.0
+#> [31] cachem_1.1.0        reformulas_0.4.4    boot_1.3-32        
+#> [34] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
+#> [37] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     
+#> [40] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
+#> [43] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
+#> [46] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
+#> [49] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
+#> [52] lme4_1.1-38         otel_0.2.0          ragg_1.5.0         
+#> [55] evaluate_1.0.5      knitr_1.51          rbibutils_2.4.1    
+#> [58] viridisLite_0.4.3   rlang_1.1.7         Rcpp_1.1.1         
+#> [61] glue_1.8.0          minqa_1.2.8         jsonlite_2.0.0     
+#> [64] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
 ```

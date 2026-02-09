@@ -41,8 +41,8 @@ calculate_method(
 
 - what:
 
-  Which quantity to return from \`calculate_tsallis_entropy\`: "S"
-  (Tsallis entropy) or "D" (Hill numbers) (default: "S").
+  Which quantity to return from \`calculate_tsallis_entropy\`: 'S'
+  (Tsallis entropy) or 'D' (Hill numbers) (default: 'S').
 
 ## Value
 

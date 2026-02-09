@@ -57,8 +57,8 @@ label_shuffling(
 
 - paired_method:
 
-  Character; method for paired permutations. One of `"swap"` (randomly
-  swap labels within pairs) or `"signflip"` (perform sign-flip
+  Character; method for paired permutations. One of `'swap'` (randomly
+  swap labels within pairs) or `'signflip'` (perform sign-flip
   permutations; can enumerate all 2^n_pairs combinations for an exact
   test when `randomizations = 0` or `randomizations >= 2^n_pairs`).
 

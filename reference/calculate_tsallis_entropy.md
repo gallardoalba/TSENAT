@@ -33,8 +33,8 @@ calculate_tsallis_entropy(
 
 - what:
 
-  Which quantity to return: "S" (Tsallis entropy), "D" (Hill numbers),
-  or "both".
+  Which quantity to return: 'S' (Tsallis entropy), 'D' (Hill numbers),
+  or 'both'.
 
 - log_base:
 
@@ -43,8 +43,8 @@ calculate_tsallis_entropy(
 
 ## Value
 
-For \`what = "S"\` or \`what = "D"\`: a numeric vector (named when
-length(q) \> 1). For \`what = "both"\`: a list with components \`\$S\`
+For \`what = 'S'\` or \`what = 'D'\`: a numeric vector (named when
+length(q) \> 1). For \`what = 'both'\`: a list with components \`\$S\`
 and \`\$D\`.
 
 ## Details

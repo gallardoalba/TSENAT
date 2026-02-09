@@ -36,7 +36,7 @@ calculate_lm_interaction(
   Optional column name in \`colData(se)\` that contains a grouping
   factor for samples (character). If \`NULL\`, the function will attempt
   to infer group from column names (suffix \`\_N\` interpreted as
-  "Normal").
+  'Normal').
 
 - min_obs:
 
@@ -46,18 +46,18 @@ calculate_lm_interaction(
 - method:
 
   Modeling method to use for interaction testing: one of
-  `c("linear", "lmm", "gam", "fpca")` (default: "linear").
+  `c('linear', 'lmm', 'gam', 'fpca')` (default: 'linear').
 
 - pvalue:
 
   Type of p-value to compute for linear mixed models: one of
-  `c("satterthwaite", "lrt", "both")` (default: "satterthwaite").
+  `c('satterthwaite', 'lrt', 'both')` (default: 'satterthwaite').
 
 - subject_col:
 
   Optional column name in \`colData(se)\` that contains
   subject/individual identifiers for paired or repeated-measures designs
-  (character). If provided with \`method = "lmm"\`, used as random
+  (character). If provided with \`method = 'lmm'\`, used as random
   effect.
 
 - paired:
@@ -72,7 +72,7 @@ calculate_lm_interaction(
 - assay_name:
 
   Name of the assay in the SummarizedExperiment to use (default:
-  "diversity").
+  'diversity').
 
 - verbose:
 
@@ -87,17 +87,16 @@ A data.frame with columns \`gene\`, \`p_interaction\`, and
 ## Examples
 
 ``` r
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data('tcga_brca_luma_dataset', package = 'TSENAT')
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 # Provide a minimal sample-type mapping so the example runs during checks
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+  sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
   row.names = colnames(se)
 )
-calculate_lm_interaction(se, sample_type_col = "sample_type")
+calculate_lm_interaction(se, sample_type_col = 'sample_type')
 #> [calculate_lm_interaction] method=linear
-#> [calculate_lm_interaction] parsed samples and groups
 #> data frame with 0 columns and 0 rows
 ```

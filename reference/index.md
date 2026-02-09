@@ -2,6 +2,9 @@
 
 ## All functions
 
+- [`build_se()`](https://gallardoalba.github.io/TSENAT/reference/build_se.md)
+  : Build a SummarizedExperiment from transcript readcounts and
+  tx-\>gene map
 - [`calculate_difference()`](https://gallardoalba.github.io/TSENAT/reference/calculate_difference.md)
   : Calculate splicing diversity changes between two conditions.
 - [`calculate_diversity()`](https://gallardoalba.github.io/TSENAT/reference/calculate_diversity.md)
@@ -20,23 +23,25 @@
 - [`calculate_tsallis_entropy()`](https://gallardoalba.github.io/TSENAT/reference/calculate_tsallis_entropy.md)
   : Calculate Tsallis entropy for a vector of transcript-level
   expression values of one gene.
+- [`filter_se()`](https://gallardoalba.github.io/TSENAT/reference/filter_se.md)
+  : Filter transcripts in a \`SummarizedExperiment\` by minimum
+  count/sample
 - [`label_shuffling()`](https://gallardoalba.github.io/TSENAT/reference/label_shuffling.md)
   : Calculate p-values using label shuffling.
-- [`map_coldata_to_se()`](https://gallardoalba.github.io/TSENAT/reference/map_coldata_to_se.md)
+- [`map_metadata()`](https://gallardoalba.github.io/TSENAT/reference/map_metadata.md)
   : Map external coldata into a SummarizedExperiment
+- [`map_tx_to_readcounts()`](https://gallardoalba.github.io/TSENAT/reference/map_tx_to_readcounts.md)
+  : Map transcript IDs from a tx2gene table to a readcounts matrix
 - [`plot_diversity_density()`](https://gallardoalba.github.io/TSENAT/reference/plot_diversity_density.md)
   : Plot diversity distributions (density) by sample type
-- [`plot_ma()`](https://gallardoalba.github.io/TSENAT/reference/plot_ma.md)
-  : Plot MA plot for difference results
+- [`plot_ma_expression()`](https://gallardoalba.github.io/TSENAT/reference/plot_ma_expression.md)
+  : Plot MA using expression/readcount-based fold changes
+- [`plot_ma_tsallis()`](https://gallardoalba.github.io/TSENAT/reference/plot_ma_tsallis.md)
+  : Plot MA using Tsallis-based fold changes
 - [`plot_mean_violin()`](https://gallardoalba.github.io/TSENAT/reference/plot_mean_violin.md)
   : Plot violin of per-gene mean diversity by sample type
-- [`plot_top_transcripts`](https://gallardoalba.github.io/TSENAT/reference/plot_top_transcripts.md)
-  : Plot top transcripts for a gene \#' For a given gene, find
-  transcripts using a tx-\>gene mapping, compute per- Plot top
-  transcripts for a gene For a given gene, find transcripts using a
-  tx-\>gene mapping, compute per- transcript statistics between two
-  sample groups, select the top N transcripts by p-value and plot their
-  expression across groups.
+- [`plot_top_transcripts()`](https://gallardoalba.github.io/TSENAT/reference/plot_top_transcripts.md)
+  : Plot top transcripts for a gene
 - [`plot_tsallis_density_multq()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_density_multq.md)
   : Density plot of Tsallis entropy for multiple q values
 - [`plot_tsallis_gene_profile()`](https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_gene_profile.md)

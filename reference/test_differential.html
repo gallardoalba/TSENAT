@@ -78,12 +78,12 @@
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Character; one of `"wilcoxon"` or `"shuffle"`.</p></dd>
+<dd><p>Character; one of `'wilcoxon'` or `'shuffle'`.</p></dd>
 
 
 <dt id="arg-fc-method">fc_method<a class="anchor" aria-label="anchor" href="#arg-fc-method"></a></dt>
 <dd><p>Character; aggregation method used by the permutation
-test when `method = "shuffle"` ("mean" or "median").</p></dd>
+test when `method = 'shuffle'` ('mean' or 'median').</p></dd>
 
 
 <dt id="arg-paired">paired<a class="anchor" aria-label="anchor" href="#arg-paired"></a></dt>
@@ -104,13 +104,13 @@ test when `method = "shuffle"` ("mean" or "median").</p></dd>
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>Integer seed used to make permutations reproducible (default
-123). The function calls `set.seed(seed)` before running
-`label_shuffling()` when `method = "shuffle"`.</p></dd>
+123). The function sets a temporary RNG seed via `withr::local_seed(seed)`
+before running `label_shuffling()` when `method = 'shuffle'`.</p></dd>
 
 
 <dt id="arg-paired-method">paired_method<a class="anchor" aria-label="anchor" href="#arg-paired-method"></a></dt>
 <dd><p>Character; forwarded to `label_shuffling()` when
-`method = "shuffle"`. See `label_shuffling()` for details.</p></dd>
+`method = 'shuffle'`. See `label_shuffling()` for details.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -119,6 +119,20 @@ test when `method = "shuffle"` ("mean" or "median").</p></dd>
   the underlying functions).</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">20</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">samples</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'A'</span>,<span class="st">'B'</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">mat</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">test_differential</span><span class="op">(</span><span class="va">mat</span>, <span class="va">samples</span>, control <span class="op">=</span> <span class="st">'A'</span>, method <span class="op">=</span> <span class="st">'wilcoxon'</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      raw_p_values adjusted_p_values</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]    0.2452781         0.6131953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]    1.0000000         1.0000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]    0.6985354         0.8731692</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]    0.2452781         0.6131953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]    0.6985354         0.8731692</span>
+<span class="r-in"><span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
