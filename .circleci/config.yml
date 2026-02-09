@@ -38,6 +38,10 @@ jobs:
           command: |
             R CMD build .
       - run:
+          name: Install R package dependencies (including Suggests)
+          command: |
+            R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
+      - run:
           name: Run checks
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
