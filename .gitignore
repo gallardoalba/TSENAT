@@ -11,6 +11,8 @@ __pycache__/
 .Rcheck
 .Rcheck/
 *.Rhistory
+.TSENAT.Bioccheck
+.TSENAT.Bioccheck/
 .Rhistory
 .Rproj.user
 *.Ruserdata
