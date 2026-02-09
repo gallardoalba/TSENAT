@@ -220,6 +220,11 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     }
     res <- do.call(rbind, result_list)
     rownames(res) <- NULL
+    # Backwards-compatibility: ensure the canonical name
+    # 'log2_fold_change' exists when possible (older code used 'log2FC').
+    if (!("log2_fold_change" %in% colnames(res)) && ("log2FC" %in% colnames(res))) {
+      res$log2_fold_change <- res$log2FC
+    }
     return(res)
 }
 
