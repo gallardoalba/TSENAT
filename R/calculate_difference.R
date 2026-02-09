@@ -401,48 +401,17 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
                   used_fit_method <- fb$method
                 }
             } else {
-                # both lmer fits succeeded; determine if singular
-                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
-                  TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
-                  TRUE)
-                if (used_singular)
-                  used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
+                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)
+                if (used_singular) used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
             }
 
-            # compute LRT if possible (prefer fallback lm when present)
             lrt_p <- NA_real_
             if (!is.null(fallback_lm)) {
                 lrt_p <- .tsenat_extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1)
             } else {
-                lrt_p <- tryCatch({
-                    withCallingHandlers(try(stats::anova(fit0, fit1), silent = TRUE),
-                        warning = function(w) {
-                            if (suppress_lme4_warnings || !verbose) {
-                                if (grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE))
-                                    invokeRestart("muffleWarning")
-                            }
-                        }, message = function(m) {
-                            if (suppress_lme4_warnings || !verbose) {
-                                if (grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE))
-                                    invokeRestart("muffleMessage")
-                            }
-                        })
-                }, error = function(e) NULL)
-                if (!is.null(lrt_p) && inherits(lrt_p, "try-error")) lrt_p <- NA_real_
-                if (is.null(lrt_p)) {
-                    # if we successfully got anova result use helper to extract p
-                    an <- try(stats::anova(fit0, fit1), silent = TRUE)
-                    if (!inherits(an, "try-error") && nrow(an) >= 2) {
-                        pcol <- grep("Pr\\(>Chisq\\)|Pr\\(>F\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-                        if (length(pcol) == 0) lrt_p <- as.numeric(an[2, ncol(an)]) else lrt_p <- as.numeric(an[2, pcol[1]])
-                    } else {
-                        lrt_p <- NA_real_
-                    }
-                }
+                lrt_p <- .tsenat_extract_lrt_p(fit0, fit1)
             }
 
-            # Satterthwaite (lmerTest) per-coefficient p-values (or fallback
-            # using lm coef)
             satter_p <- NA_real_
             if (pvalue %in% c("satterthwaite", "both")) {
                 satter_p <- .tsenat_extract_satterthwaite_p(fit1, fallback_lm)
@@ -465,107 +434,11 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
         }
 
         if (method == "gam") {
-            if (!requireNamespace("mgcv", quietly = TRUE)) {
-                stop("Package 'mgcv' is required for method = 'gam'")
-            }
-            # choose smoothing basis dimension k based on number of unique q
-            # values
-            uq_len <- length(unique(na.omit(q_vals)))
-            k_q <- max(2, min(10, uq_len - 1))
-            fit_null <- try(mgcv::gam(entropy ~ group + s(q, k = k_q), data = df),
-                silent = TRUE)
-            fit_alt <- try(mgcv::gam(entropy ~ group + s(q, by = group, k = k_q),
-                data = df), silent = TRUE)
-            if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
-                return(NULL)
-            }
-            an <- try(mgcv::anova.gam(fit_null, fit_alt, test = "F"), silent = TRUE)
-            if (inherits(an, "try-error")) {
-                return(NULL)
-            }
-            # anova.gam returns a table; p-value typically in second row,
-            # column 'Pr(F)'
-            p_interaction <- NA_real_
-            if (nrow(an) >= 2) {
-                if ("Pr(F)" %in% colnames(an)) {
-                  p_interaction <- an[2, "Pr(F)"]
-                } else if ("Pr(>F)" %in% colnames(an)) {
-                  p_interaction <- an[2, "Pr(>F)"]
-                } else if ("p-value" %in% colnames(an)) {
-                  p_interaction <- an[2, "p-value"]
-                }
-            }
-            return(data.frame(gene = g, p_interaction = p_interaction, stringsAsFactors = FALSE))
+            return(.tsenat_gam_interaction(df, q_vals, g, min_obs = min_obs))
         }
 
         if (method == "fpca") {
-            message("[fpca] processing gene: ", g)
-            # Build per-sample curves across q: rows = samples, cols = unique q
-            # values
-            uq <- sort(unique(q_vals))
-            samples_u <- unique(sample_names)
-            message(sprintf("[fpca] uq=%s samples_u=%s", paste(uq, collapse = ","),
-                paste(samples_u, collapse = ",")))
-            curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
-            # assign rownames defensively; avoid assigning colnames to prevent
-            # dimname mismatch
-            if (length(samples_u) > 0)
-                rownames(curve_mat) <- samples_u
-            message(sprintf("[fpca] created curve_mat with dims: %s", paste(dim(curve_mat),
-                collapse = ",")))
-            for (i in seq_along(sample_names)) {
-                s <- sample_names[i]
-                qv <- q_vals[i]
-                qi <- match(qv, uq)
-                message("[fpca] i=", i, " s=", s, " qv=", qv, " qi=", qi)
-                if (is.na(qi))
-                  next
-                # protect in case sample name not present in rownames
-                if (s %in% rownames(curve_mat)) {
-                  curve_mat[s, qi] <- as.numeric(mat[g, i])
-                }
-            }
-            # keep samples with at least half of q points present
-            good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
-            if (length(good_rows) < min_obs) {
-                return(NULL)
-            }
-            mat_sub <- curve_mat[good_rows, , drop = FALSE]
-            # simple imputation for remaining NAs using column means
-            col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
-            for (r in seq_len(nrow(mat_sub))) {
-                mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r, ])]
-            }
-            # perform PCA across q (observations = samples)
-            pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
-            if (inherits(pca, "try-error")) {
-                return(NULL)
-            }
-            if (ncol(pca$x) < 1) {
-                return(NULL)
-            }
-            pc1 <- pca$x[, 1]
-            # map groups to the rows used
-            used_samples <- rownames(mat_sub)
-            grp_vals <- group_vec[match(used_samples, sample_names)]
-            # require two groups
-            if (length(unique(na.omit(grp_vals))) < 2) {
-                return(NULL)
-            }
-            # simple t-test between two groups
-            g1 <- unique(na.omit(grp_vals))[1]
-            g2 <- unique(na.omit(grp_vals))[2]
-            x1 <- pc1[grp_vals == g1]
-            x2 <- pc1[grp_vals == g2]
-            if (length(x1) < 2 || length(x2) < 2) {
-                return(NULL)
-            }
-            t_res <- try(stats::t.test(x1, x2), silent = TRUE)
-            if (inherits(t_res, "try-error")) {
-                return(NULL)
-            }
-            pval <- as.numeric(t_res$p.value)
-            return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
+            return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, g, min_obs = min_obs))
         }
         return(NULL)
     }
@@ -589,26 +462,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
     res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
     rownames(res) <- NULL
 
-    # Report summary of fallback usage and singular fits when requested
-    if (verbose && "fit_method" %in% colnames(res)) {
-        total_genes <- nrow(res)
-        # count all non-lmer methods as fallbacks
-        fallback_mask <- !is.na(res$fit_method) & res$fit_method != "lmer"
-        n_fallback <- sum(fallback_mask)
-        if (n_fallback > 0) {
-            tab <- table(res$fit_method[fallback_mask])
-            tab_str <- paste(sprintf("%s=%d", names(tab), as.integer(tab)), collapse = ", ")
-            message(sprintf("[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)",
-                n_fallback, total_genes, tab_str))
-        }
-        # report singular fits if present
-        if ("singular" %in% colnames(res)) {
-            n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
-            if (n_sing > 0)
-                message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes",
-                  n_sing, total_genes))
-        }
-    }
+    .tsenat_report_fit_summary(res, verbose = verbose)
 
     return(res)
 }
