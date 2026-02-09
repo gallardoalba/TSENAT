@@ -36,3 +36,9 @@ function updates assays, `rowData`, and relevant entries in
 `metadata()` (for example `readcounts` and `tx2gene`) so downstream
 helpers receive a consistent object.
 }
+\examples{
+mat <- matrix(c(0,6,7,2,8,9), nrow = 3, dimnames = list(paste0('tx',1:3), paste0('S',1:2)))
+se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
+filt <- filter_se(se, min_count = 5, min_samples = 1)
+class(filt)
+}

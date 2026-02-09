@@ -440,7 +440,8 @@ plot_ma_expression <- function(
         if (!((is_mean1 && is_mean2) || (is_med1 && is_med2))) {
             stop("Could not find two mean or two median columns")
         }
-        xvals <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
+        xvals <- rowMeans(df[, mean_cols[seq_len(2)], 
+            drop = FALSE], na.rm = TRUE)
         x_label <- x_label %||% paste0(mean_cols[1], " vs ", mean_cols[2])
     } else if (length(mean_cols) == 1) {
         xvals <- as.numeric(df[[mean_cols[1]]])
@@ -983,6 +984,17 @@ if (getRversion() >= "2.15.1") {
     if (!is.null(to_file)) grDevices::dev.off()
 }
 
+ #' Plot top transcripts for a gene
+ #'
+ #' Simple example to demonstrate `plot_top_transcripts` with toy
+ #' transcript counts and a `tx2gene` mapping.
+ #' @examples
+ #' tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+ #' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+ #' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+ #' tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
+ #' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+ #' plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
 plot_top_transcripts <- function(
     counts,
     readcounts = NULL,

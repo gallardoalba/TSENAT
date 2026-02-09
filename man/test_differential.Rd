@@ -52,3 +52,9 @@ A two-column matrix with raw and adjusted p-values (as returned by
 \description{
 Thin wrapper that selects between `wilcoxon()` and `label_shuffling()`.
 }
+\examples{
+mat <- matrix(rnorm(20), nrow = 5)
+samples <- rep(c('A','B'), length.out = ncol(mat))
+test_differential(mat, samples, control = 'A', method = 'wilcoxon')
+
+}

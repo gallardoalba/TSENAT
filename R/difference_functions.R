@@ -292,6 +292,11 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #' @return A two-column matrix with raw and adjusted p-values (as returned by
 #'   the underlying functions).
 #' @export
+#' @examples
+#' mat <- matrix(rnorm(20), nrow = 5)
+#' samples <- rep(c('A','B'), length.out = ncol(mat))
+#' test_differential(mat, samples, control = 'A', method = 'wilcoxon')
+#' 
 #' @param paired_method Character; forwarded to `label_shuffling()` when
 #'   `method = 'shuffle'`. See `label_shuffling()` for details.
 test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",

@@ -3,6 +3,22 @@
 \name{plot_top_transcripts}
 \alias{plot_top_transcripts}
 \title{Plot top transcripts for a gene}
+\usage{
+plot_top_transcripts(
+  counts,
+  readcounts = NULL,
+  gene = NULL,
+  samples = NULL,
+  coldata = NULL,
+  sample_type_col = "sample_type",
+  tx2gene = NULL,
+  res = NULL,
+  top_n = 3,
+  pseudocount = 1e-06,
+  output_file = NULL,
+  metric = c("median", "mean", "variance", "iqr")
+)
+}
 \arguments{
 \item{counts}{Matrix or data.frame of transcript counts.
 Rows are transcripts and columns are samples.}
@@ -36,6 +52,9 @@ provided).
 For a given gene, find transcripts using a tx->gene mapping, compute
 per-transcript statistics between two sample groups, select the top N
 transcripts by p-value, and plot their expression across groups.
+
+Simple example to demonstrate `plot_top_transcripts` with toy
+transcript counts and a `tx2gene` mapping.
 }
 \examples{
 tx_counts <- matrix(
@@ -60,4 +79,10 @@ plot_top_transcripts(
     tx2gene = tx2gene,
     top_n = 2
 )
+tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
+samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
 }
