@@ -2,11 +2,11 @@
 
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-TSENAT is a comprehensive R package for measuring isoform diversity. Instead of just counting total gene expression, TSENAT captures the pattern of isoform usage; that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using Tsallis entropy, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.
+TSENAT is an R package for quantifying and modelling the relative isoform-usage diversity across samples. It provides a complementary, "orthogonal" analytical method to standard differential-expression tools (for example, DESeq2), allowing the identification isoform switching and splicing-driven regulatory changes that may occur without pronounced changes in overall gene expression, enabling the detection of regulatory events which cannot be captured by count-based differential expression methods.
 
 ## Overview
 
-TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:
+Key capabilities:
 
 - Scale-dependent diversity analysis: Evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
 - Statistical testing: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.
