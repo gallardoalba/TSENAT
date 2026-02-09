@@ -20,100 +20,61 @@ jobs:
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
-            rm -rf /var/lib/apt/lists/*
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
-      - run:
-          name: Install package dependencies
-          command: |
-            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
-      - save_cache:
-          paths:
+            version: 2.1
+
+            jobs:
+              build:
+                docker:
+                  - image: rocker/r-ver:4.5.0
+                working_directory: ~/repo
+                steps:
+                  - checkout
+                  - run:
+                      name: Setup R library paths
+                      command: |
+                        mkdir -p ~/R/library
+                        echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
+                        source $BASH_ENV
+                  - run:
+                      name: Install OS dependencies
+                      command: |
+                        apt-get update && apt-get install -y --no-install-recommends \
+                          build-essential gfortran liblapack-dev libblas-dev \
+                          libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
+                          pandoc git
+                        rm -rf /var/lib/apt/lists/*
+                  - restore_cache:
+                      keys:
+                        - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
+                  - run:
+                      name: Install package dependencies
+                      command: |
+                        R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+                        R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
+                  - save_cache:
+                      paths:
+                        - ~/R/library
+                      key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
+                  - run:
+                      name: Build package
+                      command: |
+                        R CMD build .
+                  - run:
+                      name: Install R package dependencies (including Suggests)
+                      command: |
+                        R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
+                  - run:
+                      name: Run checks
+                      command: |
+                        export _R_CHECK_FORCE_SUGGESTS_=false
+                        R CMD check --no-manual *.tar.gz
+
+            workflows:
+              version: 2
+              build_and_deploy:
+                jobs:
+                  - build:
+                      filters:
+                        branches:
+                          only: stable
             - ~/R/library
-          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
-      - run:
-          name: Build package
-          command: |
-            R CMD build .
-      - run:
-          name: Install R package dependencies (including Suggests)
-          command: |
-            R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
-      - run:
-          name: Run checks
-          command: |
-            export _R_CHECK_FORCE_SUGGESTS_=false
-            R CMD check --no-manual *.tar.gz
-      - run:
-          name: Install codecov
-          command: |
-            apt-get update && apt-get install -y --no-install-recommends curl
-            curl -Os https://uploader.codecov.io/latest/linux/codecov
-            chmod +x codecov
-      - run:
-          name: Upload coverage to Codecov
-          command: |
-            bash <(curl -s https://codecov.io/bash) || echo "Codecov upload failed (non-critical)"
-
-  deploy_docs:
-    docker:
-      - image: rocker/r-ver:4.5.0
-    working_directory: ~/repo
-    steps:
-      - checkout
-      - run:
-          name: Setup R library paths
-          command: |
-            mkdir -p ~/R/library
-            echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
-            source $BASH_ENV
-      - run:
-          name: Install OS dependencies
-          command: |
-            apt-get update && apt-get install -y --no-install-recommends \
-              build-essential gfortran liblapack-dev libblas-dev \
-              libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-              pandoc git
-            rm -rf /var/lib/apt/lists/*
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
-      - run:
-          name: Install package dependencies
-          command: |
-            R -e 'install.packages(c("remotes", "devtools", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
-      - save_cache:
-          paths:
-            - ~/R/library
-          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
-      - run:
-          name: Build pkgdown site
-          command: |
-            Rscript -e 'pkgdown::build_site()'
-      - run:
-          name: Deploy to GitHub Pages
-          command: |
-            git config user.email "ci@example.com"
-            git config user.name "CircleCI"
-            Rscript -e 'pkgdown::deploy_to_branch(install = FALSE)'
-
-workflows:
-  version: 2
-  build_and_deploy:
-    jobs:
-      - build:
-          filters:
-            branches:
-              only: stable
-
-# Separate deploy workflow: only run deploy_docs for tagged commits
-# This prevents docs deployment from running on every build trigger.
-  deploy_on_tag:
-    jobs:
-      - deploy_docs:
-          filters:
-            tags:
-              only: /.*/
