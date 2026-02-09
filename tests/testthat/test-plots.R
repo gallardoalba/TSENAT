@@ -328,3 +328,99 @@ test_that("All plot functions produce buildable ggplot objects", {
     expect_no_error(ggplot_build(plot_diversity_density(se)))
     expect_no_error(ggplot_build(plot_mean_violin(se)))
 })
+
+library(SummarizedExperiment)
+
+test_that("infer_samples_from_se finds sample_type column and falls back", {
+  mat <- matrix(runif(6), nrow = 3, ncol = 2)
+  colnames(mat) <- c("a","b")
+  se <- SummarizedExperiment(assays = list(diversity = mat), colData = S4Vectors::DataFrame(sample_type = c("X","Y")))
+  samples <- infer_samples_from_se(se)
+  expect_equal(samples, c("X","Y"))
+
+  # If no sample_type, but a binary column exists
+  se2 <- SummarizedExperiment(assays = list(diversity = mat), colData = S4Vectors::DataFrame(cond = c("A","B")))
+  samples2 <- infer_samples_from_se(se2)
+  expect_equal(samples2, c("A","B"))
+})
+
+test_that("get_readcounts_from_se accepts readcounts in metadata, assays and file", {
+  mat <- matrix(1:6, nrow = 3)
+  rownames(mat) <- paste0("tx", 1:3)
+  se <- SummarizedExperiment(assays = list(dummy = matrix(0, nrow = 3, ncol = 2)))
+  S4Vectors::metadata(se)$readcounts <- mat
+  rc <- get_readcounts_from_se(se)
+  expect_true(is.matrix(rc))
+  expect_equal(rownames(rc), rownames(mat))
+
+  # if first assay used
+  se2 <- SummarizedExperiment(assays = list(readcounts = mat))
+  rc2 <- get_readcounts_from_se(se2)
+  expect_true(is.matrix(rc2))
+
+  # file input: write temporary table
+  tmpf <- tempfile(fileext = ".tsv")
+  df <- data.frame(tx = rownames(mat), mat, stringsAsFactors = FALSE)
+  write.table(df, file = tmpf, sep = "\t", row.names = FALSE, quote = FALSE)
+  rcf <- get_readcounts_from_se(se, readcounts_arg = tmpf)
+  expect_true(is.matrix(rcf))
+})
+
+test_that("get_tx2gene_from_se returns mapping from metadata, rowData or rownames", {
+  mat <- matrix(1:6, nrow = 3)
+  rownames(mat) <- paste0("tx", 1:3)
+  se <- SummarizedExperiment(assays = list(diversity = mat))
+  md <- list(tx2gene = data.frame(Transcript = rownames(mat), Gen = c("g1","g1","g2"), stringsAsFactors = FALSE))
+  S4Vectors::metadata(se) <- md
+  out <- get_tx2gene_from_se(se, readcounts_mat = mat)
+  expect_equal(out$type, "vector")
+  expect_equal(length(out$mapping), nrow(mat))
+
+  # rowData case
+  se2 <- SummarizedExperiment(assays = list(diversity = mat), rowData = S4Vectors::DataFrame(genes = c("g1","g1","g2")))
+  out2 <- get_tx2gene_from_se(se2, readcounts_mat = mat)
+  expect_equal(out2$type, "vector")
+  expect_equal(length(out2$mapping), nrow(mat))
+
+  # fallback to rownames
+  se3 <- SummarizedExperiment(assays = list(diversity = mat))
+  out3 <- get_tx2gene_from_se(se3, readcounts_mat = mat)
+  expect_equal(out3$type, "vector")
+})
+
+test_that("validate_control_in_samples picks 'Normal' when present or first level", {
+  samples <- c("Tumor","Normal","Tumor")
+  expect_equal(validate_control_in_samples(NULL, samples), "Normal")
+  samples2 <- c("A","B")
+  expect_message(chosen <- validate_control_in_samples(NULL, samples2))
+  expect_true(chosen %in% samples2)
+  expect_equal(validate_control_in_samples("B", samples2), "B")
+})
+
+test_that("plot_ma_expression_impl works with precomputed fc df and SummarizedExperiment counts", {
+  skip_if_not_installed("ggplot2")
+  # Prepare x (diff results)
+  x <- data.frame(genes = paste0("g", 1:5), mean = runif(5), log2_fold_change = rnorm(5), adjusted_p_values = runif(5))
+  # precomputed fc as matrix/data.frame
+  fc <- data.frame(genes = paste0("g", 1:5), log2_fold_change = rnorm(5), stringsAsFactors = FALSE)
+  p1 <- plot_ma_expression_impl(x, se = fc)
+  expect_s3_class(p1, "ggplot")
+
+  # Now using SummarizedExperiment counts
+  counts <- matrix(rpois(15, 10), nrow = 5)
+  rownames(counts) <- paste0("g", 1:5)
+  colnames(counts) <- paste0("S", 1:3)
+  colData_df <- S4Vectors::DataFrame(sample = colnames(counts), sample_type = c("Normal","Tumor","Normal"))
+  se <- SummarizedExperiment(assays = list(readcounts = counts), rowData = S4Vectors::DataFrame(genes = rownames(counts)), colData = colData_df)
+  x2 <- data.frame(genes = rownames(counts), mean = runif(5), adjusted_p_values = runif(5))
+  p2 <- plot_ma_expression_impl(x2, se = se, samples = c("Normal","Tumor","Normal"))
+  expect_s3_class(p2, "ggplot")
+})
+
+test_that(".plot_ma_core errors when fold-change column missing or x axis missing", {
+  skip_if_not_installed("ggplot2")
+  df <- data.frame(genes = paste0("g", 1:4), val = runif(4))
+  expect_error(.plot_ma_core(df), "Could not find a fold-change column")
+  df2 <- data.frame(genes = paste0("g", 1:4), log2_fold_change = rnorm(4))
+  expect_s3_class(.plot_ma_core(df2), "ggplot")
+})
