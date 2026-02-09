@@ -24,7 +24,16 @@ if (getRversion() >= "2.15.1") {
       "xval",
       "label_flag",
       "genes",
-      "mean"
+      "mean",
+      # transcript plotting globals
+      "tx",
+      "expr",
+      "tx_cond",
+      "log2expr",
+      # generic plotting helpers
+      "x",
+      "y",
+      "padj"
     )
   )
 
@@ -124,7 +133,7 @@ get_readcounts_from_se <- function(se, readcounts_arg = NULL) {
     " expression-based fold changes; ensure it contains",
     " transcript-level readcounts or provide metadata$readcounts"
   )
-  return(as.matrix(SummarizedExperiment::assay(se)))
+  as.matrix(SummarizedExperiment::assay(se))
 }
 
 get_tx2gene_from_se <- function(se, readcounts_mat = NULL) {
@@ -234,7 +243,7 @@ plot_tsallis_gene_profile <- function(se,
       margin = ggplot2::margin(b = 10)
     ))
 
-  return(p)
+  p
 }
 
 #' Plot diversity distributions (density) by sample type
@@ -536,7 +545,7 @@ plot_ma_expression <- function(
       axis.text = ggplot2::element_text(size = 12)
     )
 
-  return(p)
+  p
 }
 
 
@@ -594,17 +603,15 @@ plot_ma_expression_impl <- function(
     } else {
       fc_res$genes <- rownames(fc_res)
     }
-    return(
-      .plot_ma_core(
-        x,
-        fc_df = fc_res,
-        sig_alpha = sig_alpha,
-        x_label = x_label,
-        y_label = y_label,
-        title = title,
-        ...
-      )
-    )
+    return(.plot_ma_core(
+      x,
+      fc_df = fc_res,
+      sig_alpha = sig_alpha,
+      x_label = x_label,
+      y_label = y_label,
+      title = title,
+      ...
+    ))
   }
 
   # If se is provided as a matrix/data.frame of precomputed fold changes
@@ -890,6 +897,13 @@ plot_volcano <- function(
   )
 
   # Create base plot with title and theme
+  # Format padj label: remove underscores and capitalize first letter
+  padj_label_formatted <- gsub("_", " ", padj_col)
+  padj_label_formatted <- paste0(
+    toupper(substr(padj_label_formatted, 1, 1)),
+    substr(padj_label_formatted, 2, nchar(padj_label_formatted))
+  )
+
   p <- ggplot2::ggplot(
     df,
     ggplot2::aes(x = xval, y = -log10(padj), color = significant)
@@ -910,92 +924,20 @@ plot_volcano <- function(
       color = "gray50"
     ) +
     ggplot2::theme_minimal(base_size = 14) +
-    # Format padj label: remove underscores and capitalize first letter
-    {
-      padj_label_formatted <- gsub("_", " ", padj_col)
-      padj_label_formatted <- paste0(
-        toupper(substr(padj_label_formatted, 1, 1)),
-        substr(padj_label_formatted, 2, nchar(padj_label_formatted))
-      )
-      ggplot2::labs(
-        title = title_use,
-        x = x_label_formatted,
-        y = paste0("-Log10(", padj_label_formatted, ")")
-      )
-    } +
+    ggplot2::labs(
+      title = title_use,
+      x = x_label_formatted,
+      y = paste0("-Log10(", padj_label_formatted, ")")
+    ) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain", margin = ggplot2::margin(b = 4)),
       axis.title = ggplot2::element_text(size = 14),
       axis.text = ggplot2::element_text(size = 12)
     )
 
-  return(p)
+  p
 }
 
-#' Plot top transcripts for a gene
-#'
-#' For a given gene, find transcripts using a tx->gene mapping, compute
-#' per-transcript statistics between two sample groups, select the top N
-#' transcripts by p-value, and plot their expression across groups.
-#' @param counts Matrix or data.frame of transcript counts.
-#' Rows are transcripts and columns are samples.
-#' @param gene Character; gene symbol to inspect.
-#' @param samples Character vector of sample group labels (length =
-#' ncol(counts)).
-#' @param tx2gene Path or data.frame mapping transcripts to genes.
-#' Must contain columns `Transcript` and `Gen`.
-#' @param top_n Integer number of transcripts to show (default = 3).
-#' Use NULL to plot all transcripts for the gene.
-#' @param pseudocount Numeric pseudocount added before log2
-#' (default = 1e-6) to avoid division by zero.
-#' @param output_file Optional file path to save the plot.
-#' If `NULL`, the `ggplot` object is returned.
-#' @param metric Aggregation metric used to summarize transcript expression
-#'   per group when plotting. One of c("median", "mean", "variance", "iqr").
-#'   Use "iqr" to compute the interquartile range. Defaults to "median".
-#' @return A `ggplot` object (or invisibly saved file if `output_file`
-#' provided).
-#' @importFrom utils read.delim
-#' @export
-#' @name plot_top_transcripts
-#' @examples
-#' tx_counts <- matrix(
-#'   sample(1:100, 24, replace = TRUE),
-#'   nrow = 6
-#' )
-#' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-#' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-#'
-#' tx2gene <- data.frame(
-#'   Transcript = rownames(tx_counts),
-#'   Gen = rep(paste0("G", seq_len(3)), each = 2),
-#'   stringsAsFactors = FALSE
-#' )
-#'
-#' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-#'
-#' plot_top_transcripts(
-#'   tx_counts,
-#'   gene = c("G1", "G2"),
-#'   samples = samples,
-#'   tx2gene = tx2gene,
-#'   top_n = 2
-#' )
-if (getRversion() >= "2.15.1") {
-  utils::globalVariables(c(
-    "tx",
-    "expr",
-    "group",
-    "tx_cond",
-    "sample",
-    "log2expr",
-    # variables used in do_plot_ma_core
-    "x",
-    "y",
-    "padj",
-    "significant"
-  ))
-}
 
 #' Internal helper to compute fill limits across multiple genes (not exported)
 #' @noRd
@@ -1104,7 +1046,7 @@ if (getRversion() >= "2.15.1") {
       )
     )
 
-  return(p)
+  p
 }
 
 .ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique) {
@@ -1120,7 +1062,7 @@ if (getRversion() >= "2.15.1") {
         margin = ggplot2::margin(b = 10)
       ))
     )
-    return(combined)
+    combined
   } else if (requireNamespace("cowplot", quietly = TRUE)) {
     p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
     legend <- cowplot::get_legend(p_for_legend)
@@ -1130,9 +1072,9 @@ if (getRversion() >= "2.15.1") {
     result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08, 1, 0.08))
     if (!is.null(output_file)) {
       ggplot2::ggsave(output_file, result_plot)
-      return(invisible(NULL))
+      invisible(NULL)
     }
-    return(result_plot)
+    result_plot
   } else {
     plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
     grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
@@ -1152,10 +1094,10 @@ if (getRversion() >= "2.15.1") {
     if (!is.null(output_file)) {
       png(filename = output_file, width = 800 * n, height = 480, res = 150)
       .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights, to_file = output_file)
-      return(invisible(NULL))
+      invisible(NULL)
     } else {
       .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights)
-      return(invisible(NULL))
+      invisible(NULL)
     }
   }
 }
@@ -1340,6 +1282,6 @@ plot_top_transcripts <- function(
     ggplot2::ggsave(output_file, result_plot)
     invisible(NULL)
   } else {
-    return(result_plot)
+    result_plot
   }
 }
