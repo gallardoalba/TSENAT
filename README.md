@@ -113,7 +113,8 @@ Testing is vital in research as it ensures the validity and reliability
 of results, which is essential for accurately interpreting findings. 
 The current testing coverage of the package is displayed in the graph below:
 
-[codecov](https://codecov.io/gh/gallardoalba/TSENAT/graphs/sunburst.svg?token=OWIQVE2PZF)
+![codecov](https://codecov.io/gh/gallardoalba/TSENAT/graphs/sunburst.svg?token=OWIQVE2PZF)
+<img src="https://codecov.io/gh/gallardoalba/TSENAT/graphs/sunburst.svg?token=OWIQVE2PZF">
 
 ## Citation
 
