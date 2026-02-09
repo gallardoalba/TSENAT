@@ -44,13 +44,13 @@ helper sets `colData(ts_se)$sample_type` when possible and records a
 no automatic inference is attempted.
 }
 \examples{
-data('tcga_brca_luma_dataset', package = 'TSENAT')
+data("tcga_brca_luma_dataset", package = "TSENAT")
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
-coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
-  length.out = ncol(se)
+sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
+coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
+    length.out = ncol(se)
 ))
 map_metadata(se, coldata_df)
 # Optionally validate pairs when appropriate

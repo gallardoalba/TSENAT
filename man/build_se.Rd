@@ -29,9 +29,9 @@ This helper creates a `SummarizedExperiment` with an assay named
 `metadata()`, and places the provided `genes` vector into `rowData(se)$genes`.
 }
 \examples{
-tx2gene <- data.frame(Transcript = c('tx1', 'tx2'), Gene = c('g1', 'g2'), stringsAsFactors = FALSE)
-readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c('tx1', 'tx2'), c('s1', 's2')))
-genes <- c('g1', 'g2')
+tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
+readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))
+genes <- c("g1", "g2")
 se <- build_se(tx2gene, readcounts, genes)
-SummarizedExperiment::assay(se, 'counts')
+SummarizedExperiment::assay(se, "counts")
 }
