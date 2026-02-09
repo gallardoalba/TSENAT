@@ -1,4 +1,5 @@
 version: 2.1
+version: 2.1
 
 jobs:
   build:
@@ -20,61 +21,39 @@ jobs:
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
-            version: 2.1
-
-            jobs:
-              build:
-                docker:
-                  - image: rocker/r-ver:4.5.0
-                working_directory: ~/repo
-                steps:
-                  - checkout
-                  - run:
-                      name: Setup R library paths
-                      command: |
-                        mkdir -p ~/R/library
-                        echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
-                        source $BASH_ENV
-                  - run:
-                      name: Install OS dependencies
-                      command: |
-                        apt-get update && apt-get install -y --no-install-recommends \
-                          build-essential gfortran liblapack-dev libblas-dev \
-                          libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-                          pandoc git
-                        rm -rf /var/lib/apt/lists/*
-                  - restore_cache:
-                      keys:
-                        - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
-                  - run:
-                      name: Install package dependencies
-                      command: |
-                        R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
-                        R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
-                  - save_cache:
-                      paths:
-                        - ~/R/library
-                      key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
-                  - run:
-                      name: Build package
-                      command: |
-                        R CMD build .
-                  - run:
-                      name: Install R package dependencies (including Suggests)
-                      command: |
-                        R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
-                  - run:
-                      name: Run checks
-                      command: |
-                        export _R_CHECK_FORCE_SUGGESTS_=false
-                        R CMD check --no-manual *.tar.gz
-
-            workflows:
-              version: 2
-              build_and_deploy:
-                jobs:
-                  - build:
-                      filters:
-                        branches:
-                          only: stable
+            rm -rf /var/lib/apt/lists/*
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
+      - run:
+          name: Install package dependencies
+          command: |
+            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
+      - save_cache:
+          paths:
             - ~/R/library
+          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
+      - run:
+          name: Build package
+          command: |
+            R CMD build .
+      - run:
+          name: Install R package dependencies (including Suggests)
+          command: |
+            R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
+      - run:
+          name: Run checks
+          command: |
+            export _R_CHECK_FORCE_SUGGESTS_=false
+            R CMD check --no-manual *.tar.gz
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: stable
+                      name: Build package
