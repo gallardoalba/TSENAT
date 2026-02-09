@@ -463,3 +463,148 @@ test_that("plot_top_transcripts errors when counts lack rownames", {
   mat <- matrix(1:6, nrow = 2)
   expect_error(plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a","b"), Gen = c("G1","G1"))), "counts.*rownames")
 })
+
+context("generate_plots more tests")
+
+library(SummarizedExperiment)
+
+skip_on_bioc()
+
+test_that(".ptt_prepare_inputs errors when tx2gene missing", {
+  skip_if_not_installed("ggplot2")
+  counts <- matrix(1:6, nrow = 3)
+  rownames(counts) <- paste0("tx", seq_len(nrow(counts)))
+  colnames(counts) <- c("S1","S2")
+  expect_error(TSENAT:::.ptt_prepare_inputs(counts = counts, readcounts = NULL, samples = c("S1","S2"), coldata = NULL, sample_type_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 2, pseudocount = 1e-6, output_file = NULL), "tx2gene")
+})
+
+test_that(".ptt_prepare_inputs returns list with mapping when provided", {
+  skip_if_not_installed("ggplot2")
+  counts <- matrix(1:6, nrow = 3)
+  rownames(counts) <- paste0("tx",1:3)
+  colnames(counts) <- c("S1","S2")
+  tx2 <- data.frame(Transcript = rownames(counts), Gen = c("G1","G1","G2"), stringsAsFactors = FALSE)
+  prep <- TSENAT:::.ptt_prepare_inputs(counts = counts, readcounts = NULL, samples = c("S1","S2"), coldata = NULL, sample_type_col = "sample_type", tx2gene = tx2, res = NULL, top_n = 2, pseudocount = 1e-6, output_file = NULL)
+  expect_type(prep, "list")
+  expect_true(all(c("counts","samples","mapping","agg_fun") %in% names(prep)))
+})
+
+test_that(".ptt_make_plot_for_gene returns ggplot object", {
+  skip_if_not_installed("ggplot2")
+  counts <- matrix(rpois(6,10), nrow = 3)
+  rownames(counts) <- paste0("tx",1:3)
+  colnames(counts) <- c("S1","S2")
+  mapping <- data.frame(Transcript = rownames(counts), Gen = c("G1","G1","G2"), stringsAsFactors = FALSE)
+  agg_fun <- function(x) median(x, na.rm = TRUE)
+  p <- TSENAT:::.ptt_make_plot_for_gene("G1", mapping = mapping, counts = counts, samples = c("Normal","Tumor"), top_n = 2, agg_fun = agg_fun, pseudocount = 1e-6, agg_label_unique = "label")
+  expect_s3_class(p, "ggplot")
+})
+
+test_that(".ptt_combine_plots returns a plot-like object", {
+  skip_if_not_installed("ggplot2")
+  p1 <- ggplot2::ggplot() + ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = 3:1))
+  p2 <- ggplot2::ggplot() + ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = c(1,2,3)))
+  out <- TSENAT:::.ptt_combine_plots(list(p1,p2), output_file = NULL, agg_label_unique = "agg")
+  expect_true(!is.null(out))
+})
+
+context("generate_plots extra tests")
+
+library(SummarizedExperiment)
+
+skip_on_bioc()
+
+test_that("plot_top_transcripts works on simple matrix input", {
+  skip_if_not_installed("ggplot2")
+  tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+  rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+  colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+  tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
+  samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+  p <- TSENAT:::plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
+  expect_true(!is.null(p))
+  expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
+})
+
+test_that("plot_top_transcripts selects genes from res when gene is NULL", {
+  skip_if_not_installed("ggplot2")
+  tx_counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 9)
+  rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
+  colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
+  tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 3), stringsAsFactors = FALSE)
+  samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
+  res <- data.frame(genes = paste0("G", 1:3), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
+  p <- TSENAT:::plot_top_transcripts(tx_counts, res = res, tx2gene = tx2gene, samples = samples, top_n = 2)
+  expect_true(!is.null(p))
+})
+
+test_that("plot_top_transcripts errors when counts lack rownames", {
+  skip_if_not_installed("ggplot2")
+  mat <- matrix(1:6, nrow = 2)
+  expect_error(TSENAT:::plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a","b"), Gen = c("G1","G1"))), "counts.*rownames")
+})
+
+test_that("plot_tsallis_gene_profile returns ggplot for simple SE", {
+  skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
+  mat <- matrix(runif(6), nrow = 2)
+  rownames(mat) <- c("g1", "g2")
+  colnames(mat) <- c("S1_q=0.1", "S1_q=1", "S2_q=0.1")
+  se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+  # align colData to assay columns (length must match)
+  cd <- S4Vectors::DataFrame(sample_type = c("A", "A", "B"))
+  rownames(cd) <- colnames(mat)
+  SummarizedExperiment::colData(se) <- cd
+  p <- TSENAT::plot_tsallis_gene_profile(se, gene = "g1")
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("plot_diversity_density and plot_mean_violin return ggplot", {
+  skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
+  mat <- matrix(rnorm(20), nrow = 5)
+  rownames(mat) <- paste0("g", 1:5)
+  colnames(mat) <- paste0("S", 1:4)
+  se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+  cd <- S4Vectors::DataFrame(sample_type = c("A", "A", "B", "B"))
+  rownames(cd) <- colnames(mat)
+  SummarizedExperiment::colData(se) <- cd
+  d1 <- TSENAT::plot_diversity_density(se)
+  d2 <- TSENAT::plot_mean_violin(se)
+  expect_s3_class(d1, "ggplot")
+  expect_s3_class(d2, "ggplot")
+})
+
+test_that("plot_ma_tsallis and plot_ma_expression_impl handle simple inputs", {
+  skip_if_not_installed("ggplot2")
+  x <- data.frame(genes = paste0("g", 1:6), mean = runif(6), log2_fold_change = rnorm(6))
+  p1 <- TSENAT::plot_ma_tsallis(x)
+  expect_s3_class(p1, "ggplot")
+
+  # precomputed fold-change data.frame
+  fc <- data.frame(genes = paste0("g", 1:6), log2_fold_change = rnorm(6), stringsAsFactors = FALSE)
+  p2 <- TSENAT:::plot_ma_expression_impl(x = x, se = fc)
+  expect_s3_class(p2, "ggplot")
+})
+
+test_that("plot_tsallis_q_curve and multq plots return ggplot", {
+  skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
+  mat <- matrix(runif(12), nrow = 3)
+  rownames(mat) <- paste0("g", 1:3)
+  colnames(mat) <- c("S1_q=0.1", "S1_q=1", "S2_q=0.1", "S2_q=1")
+  se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+  cd <- S4Vectors::DataFrame(sample_type = c("A", "A", "B", "B"))
+  rownames(cd) <- colnames(mat)
+  SummarizedExperiment::colData(se) <- cd
+  pq <- TSENAT:::plot_tsallis_q_curve(se)
+  expect_s3_class(pq, "ggplot")
+  pv <- TSENAT::plot_tsallis_violin_multq(se)
+  pd <- TSENAT::plot_tsallis_density_multq(se)
+  expect_s3_class(pv, "ggplot")
+  expect_s3_class(pd, "ggplot")
+})
+
+test_that("plot_volcano auto-detects x_col and returns ggplot", {
+  skip_if_not_installed("ggplot2")
+  df <- data.frame(gene = paste0("g", 1:10), mean_difference = rnorm(10), adjusted_p_values = runif(10))
+  p <- TSENAT::plot_volcano(df)
+  expect_s3_class(p, "ggplot")
+})
