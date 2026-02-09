@@ -216,9 +216,9 @@ ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 This section summarizes practical guidance for hypothesis testing and
 reporting when comparing diversity measures across sample groups.
 
-The package exposes pragmatic pairwise tests for comparing per-gene
-diversity summaries between two groups. Two common choices are
-Wilcoxon-based tests and label-shuffle tests.
+The package integrate diverse tests for comparing per-gene diversity
+summaries between two groups. Two common choices are Wilcoxon-based
+tests and label-shuffle tests.
 
 Here we will use the **Wilcoxon test**; it is the appropriate choice for
 speed when sample sizes support asymptotic approximations, and it is
@@ -227,13 +227,11 @@ non-parametric alternative that does not rely on distributional
 assumptions and can be more accurate for small sample sizes, but it is
 computationally intensive.
 
-**Recommendation: summary & test choice**:
-
 For the analyses shown in this vignette we recommend using the
-**median** in the **Wilcoxon** rank-sum test for comparisons. Tsallis
-entropy values are often skewed and sensitive to outliers, and the
-median provides in this condition a more robust summary of central
-tendency than the mean.
+**median** in the **Wilcoxon** rank-sum test for comparisons. The reason
+is that Tsallis entropy values are often skewed and sensitive to
+outliers, and the median provides in this condition a more robust
+summary of central tendency than the mean.
 
 ``` r
 

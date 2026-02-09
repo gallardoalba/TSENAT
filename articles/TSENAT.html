@@ -278,9 +278,9 @@ and downstream helpers can rely on it.</p>
 </h2>
 <p>This section summarizes practical guidance for hypothesis testing and
 reporting when comparing diversity measures across sample groups.</p>
-<p>The package exposes pragmatic pairwise tests for comparing per-gene
-diversity summaries between two groups. Two common choices are
-Wilcoxon-based tests and label-shuffle tests.</p>
+<p>The package integrate diverse tests for comparing per-gene diversity
+summaries between two groups. Two common choices are Wilcoxon-based
+tests and label-shuffle tests.</p>
 <p>Here we will use the <strong>Wilcoxon test</strong>; it is the
 appropriate choice for speed when sample sizes support asymptotic
 approximations, and it is robust to non-normality. The
@@ -288,12 +288,11 @@ approximations, and it is robust to non-normality. The
 that does not rely on distributional assumptions and can be more
 accurate for small sample sizes, but it is computationally
 intensive.</p>
-<p><strong>Recommendation: summary &amp; test choice</strong>:</p>
 <p>For the analyses shown in this vignette we recommend using the
 <strong>median</strong> in the <strong>Wilcoxon</strong> rank-sum test
-for comparisons. Tsallis entropy values are often skewed and sensitive
-to outliers, and the median provides in this condition a more robust
-summary of central tendency than the mean.</p>
+for comparisons. The reason is that Tsallis entropy values are often
+skewed and sensitive to outliers, and the median provides in this
+condition a more robust summary of central tendency than the mean.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute differences between groups using the Wilcoxon test</span></span>
 <span><span class="co"># with median aggregation</span></span>
@@ -332,7 +331,7 @@ differences relate to overall expression levels.</p>
 <code class="sourceCode R"><span><span class="co"># MA plot (Tsallis-based)</span></span>
 <span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma_tsallis.html">plot_ma_tsallis</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/ma-tsallis-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/ma-tsallis-1.png" class="r-plt" alt="" width="960"></p>
 <p>Second, we will plot an <strong>expression/readcount-based
 MA</strong>, which uses the original read counts to compute fold changes
 and mean expression. This plot helps to contextualize diversity
@@ -345,7 +344,7 @@ differences in terms of overall gene expression levels.</p>
 <span>    control <span class="op">=</span> <span class="st">"Normal"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma_read</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/ma-readcounts-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/ma-readcounts-1.png" class="r-plt" alt="" width="960"></p>
 <p>On the other hands, the <strong>volcano plot</strong> displays the
 relationship between the magnitude of diversity differences (mean
 difference) and their statistical significance (adjusted p-value). This
@@ -355,7 +354,7 @@ statistical support.</p>
 <code class="sourceCode R"><span><span class="co"># Volcano plot: mean difference vs -log10(adjusted p-value)</span></span>
 <span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/volcanoplot-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/volcanoplot-1.png" class="r-plt" alt="" width="960"></p>
 <div class="section level3">
 <h3 id="plot-top-3-genes-from-the-single-q-differential-analysis">Plot top 3 genes from the single-q differential analysis<a class="anchor" aria-label="anchor" href="#plot-top-3-genes-from-the-single-q-differential-analysis"></a>
 </h3>
@@ -367,7 +366,7 @@ significant genes identified in the previous step.</p>
 <span>    res <span class="op">=</span> <span class="va">res</span>, top_n <span class="op">=</span> <span class="fl">3</span>, metric <span class="op">=</span> <span class="st">"median"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_median</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/top-transcripts-singleq-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/top-transcripts-singleq-1.png" class="r-plt" alt="" width="960"></p>
 <p>We can also plot the same top genes but using variance aggregation
 instead of median. This allows us to see how transcript-level expression
 variability differs between groups for these genes.</p>
@@ -377,7 +376,7 @@ variability differs between groups for these genes.</p>
 <span>    res <span class="op">=</span> <span class="va">res</span>, top_n <span class="op">=</span> <span class="fl">3</span>, metric <span class="op">=</span> <span class="st">"variance"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_var</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/top-transcripts-singleq-variance-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/top-transcripts-singleq-variance-1.png" class="r-plt" alt="" width="960"></p>
 </div>
 </div>
 <div class="section level2">
@@ -414,14 +413,14 @@ diversity patterns between groups at different sensitivity levels.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_violin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_violin_multq.html">plot_tsallis_violin_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_violin</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/plots-violin-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/plots-violin-1.png" class="r-plt" alt="" width="960"></p>
 <p>The density plot provides a equivalent view of the distribution of
 Tsallis entropy values, showing the density of samples across the range
 of diversity values for each group and q value.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_density</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_density_multq.html">plot_tsallis_density_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_density</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/plots-density-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/plots-density-1.png" class="r-plt" alt="" width="960"></p>
 </div>
 <div class="section level2">
 <h2 id="tsallis-q-sequence-and-linear-model-interaction-tests">Tsallis q-sequence and linear-model interaction tests<a class="anchor" aria-label="anchor" href="#tsallis-q-sequence-and-linear-model-interaction-tests"></a>
@@ -533,7 +532,7 @@ malignant tumors (<a href="https://doi.org/10.1007/s00432-022-04421-3" class="ex
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"HAPLN3"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/hapln3-gene-qprofile-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/hapln3-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
 <p>Now let’s look at <code>COL1A2</code>, encodes the pro-alpha2 chain
 of type I collagen, a fibril-forming collagen found in most connective
 tissues.</p>
@@ -541,14 +540,14 @@ tissues.</p>
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"COL1A2"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/colia2-gene-qprofile-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/colia2-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
 <p>Finally, we can visualize the gene <code>PI16</code>, which is
 emerging as an important regulator in the vascular system.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"PI16"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/pi16-gene-qprofile-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/pi16-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
 <p>We can also plot the <strong>overall Tsallis q-curve for all
 genes</strong>. This plot provides a global view of how diversity
 changes across the <code>q</code> spectrum for the entire dataset and
@@ -557,7 +556,7 @@ can reveal general trends in isoform diversity.</p>
 <code class="sourceCode R"><span><span class="co"># Plot top tsallis q curve</span></span>
 <span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
-<p><img src="TSENAT_files/figure-html/tsallis-q-curve-1.png" class="r-plt" alt="" width="672"></p>
+<p><img src="TSENAT_files/figure-html/tsallis-q-curve-1.png" class="r-plt" alt="" width="960"></p>
 </div>
 </div>
 <div class="section level2">

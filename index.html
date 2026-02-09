@@ -58,11 +58,11 @@
 <div class="section level1">
 <div class="page-header"><h1 id="tsenat-tsallis-entropy-analysis-toolbox">TSENAT: Tsallis Entropy Analysis Toolbox<a class="anchor" aria-label="anchor" href="#tsenat-tsallis-entropy-analysis-toolbox"></a>
 </h1></div>
-<p>TSENAT is a comprehensive R package for measuring isoform diversity. Instead of just counting total gene expression, TSENAT captures the pattern of isoform usage; that is, which variants are abundant, which are rare, and how this pattern differs between conditions. It does this using Tsallis entropy, a mathematical framework that measures diversity at different sensitivity levels. The package includes statistical tests to find genes with significant diversity changes, and visualizations to reveal isoform patterns.</p>
+<p>TSENAT is an R package for quantifying and modelling the relative isoform-usage diversity across samples. It provides a complementary, “orthogonal” analytical method to standard differential-expression tools (for example, DESeq2), allowing the identification isoform switching and splicing-driven regulatory changes that may occur without pronounced changes in overall gene expression, enabling the detection of regulatory events which cannot be captured by count-based differential expression methods.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>TSENAT analyzes expression and transcript differences to compute diversity metrics. Key capabilities:</p>
+<p>Key capabilities:</p>
 <ul>
 <li>Scale-dependent diversity analysis: Evaluate isoform heterogeneity at different sensitivity levels using the parameter <code>q</code>.</li>
 <li>Statistical testing: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.</li>
@@ -117,13 +117,13 @@ S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
 <img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png" alt="PI16 q-Curve Profile"><div class="figcaption">PI16 q-Curve Profile</div>
 </div>
 <ul>
-<li>Group comparisons and significance: summarize diversity differences between biological groups (e.g., tumor vs. normal) across all genes simultaneously to identify candidate genes.</li>
+<li>Group comparisons and significance: summarize diversity differences between biological groups across all genes simultaneously to identify candidate genes.</li>
 </ul>
 <div class="float">
-<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-and-volcano-1.png" alt="MA and Volcano Plots"><div class="figcaption">MA and Volcano Plots</div>
+<img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-tsallis-1.png" alt="MA plot (Tsallis)"><div class="figcaption">MA plot (Tsallis)</div>
 </div>
 <ul>
-<li>Isoform-level details: drill down to individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.</li>
+<li>Isoform-level details: explore individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.</li>
 </ul>
 <div class="float">
 <img src="https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png" alt="Isoform Composition"><div class="figcaption">Isoform Composition</div>

@@ -1,18 +1,17 @@
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-TSENAT is a comprehensive R package for measuring isoform diversity.
-Instead of just counting total gene expression, TSENAT captures the
-pattern of isoform usage; that is, which variants are abundant, which
-are rare, and how this pattern differs between conditions. It does this
-using Tsallis entropy, a mathematical framework that measures diversity
-at different sensitivity levels. The package includes statistical tests
-to find genes with significant diversity changes, and visualizations to
-reveal isoform patterns.
+TSENAT is an R package for quantifying and modelling the relative
+isoform-usage diversity across samples. It provides a complementary,
+“orthogonal” analytical method to standard differential-expression tools
+(for example, DESeq2), allowing the identification isoform switching and
+splicing-driven regulatory changes that may occur without pronounced
+changes in overall gene expression, enabling the detection of regulatory
+events which cannot be captured by count-based differential expression
+methods.
 
 ## Overview
 
-TSENAT analyzes expression and transcript differences to compute
-diversity metrics. Key capabilities:
+Key capabilities:
 
 - Scale-dependent diversity analysis: Evaluate isoform heterogeneity at
   different sensitivity levels using the parameter `q`.
@@ -101,18 +100,18 @@ Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html
 PI16 q-Curve Profile
 
 - Group comparisons and significance: summarize diversity differences
-  between biological groups (e.g., tumor vs. normal) across all genes
-  simultaneously to identify candidate genes.
+  between biological groups across all genes simultaneously to identify
+  candidate genes.
 
-![MA and Volcano
-Plots](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-and-volcano-1.png)
+![MA plot
+(Tsallis)](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-tsallis-1.png)
 
-MA and Volcano Plots
+MA plot (Tsallis)
 
-- Isoform-level details: drill down to individual transcripts to
-  understand which specific isoforms are driving diversity changes.
-  TSENAT enables the visualization of transcript composition across
-  samples for candidate genes.
+- Isoform-level details: explore individual transcripts to understand
+  which specific isoforms are driving diversity changes. TSENAT enables
+  the visualization of transcript composition across samples for
+  candidate genes.
 
 ![Isoform
 Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
