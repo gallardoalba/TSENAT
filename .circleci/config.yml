@@ -1,5 +1,4 @@
 version: 2.1
-version: 2.1
 
 jobs:
   build:
@@ -47,13 +46,3 @@ jobs:
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
-
-workflows:
-  version: 2
-  build_and_deploy:
-    jobs:
-      - build:
-          filters:
-            branches:
-              only: stable
-                      name: Build package
