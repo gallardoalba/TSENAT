@@ -27,12 +27,15 @@
 calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"),
     log_base = exp(1)) {
     what <- match.arg(what)
-    if (!is.numeric(q))
+    if (!is.numeric(q)) {
         stop("q must be numeric.")
-    if (any(q <= 0))
+    }
+    if (any(q <= 0)) {
         stop("q must be greater than 0.")
-    if (!is.numeric(x))
+    }
+    if (!is.numeric(x)) {
         stop("x must be numeric")
+    }
 
     n <- length(x)
     # If all counts sum to zero, return NA; allow single-element vectors to
@@ -50,8 +53,9 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
     S_vec <- vapply(q, function(qi) {
         if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
-            if (norm)
+            if (norm) {
                 sh <- sh/log(n, base = log_base)
+            }
             return(sh)
         } else {
             ts <- (1 - sum(p^qi))/(qi - 1)
@@ -77,8 +81,9 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 
     if (what == "S") {
         out <- S_vec
-        if (length(q) > 1)
+        if (length(q) > 1) {
             names(out) <- paste0("q=", q)
+        }
         if (length(q) == 1) {
             return(unname(out))
         }
@@ -86,8 +91,9 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
     }
     if (what == "D") {
         out <- D_vec
-        if (length(q) > 1)
+        if (length(q) > 1) {
             names(out) <- paste0("q=", q)
+        }
         if (length(q) == 1) {
             return(unname(out))
         }

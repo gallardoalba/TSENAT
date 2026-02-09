@@ -42,17 +42,14 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
         colData = cd
     )
 
-    res <- calculate_lm_interaction(se, sample_type_col = "samples", 
+    res_se <- calculate_lm_interaction(se, sample_type_col = "samples",
         min_obs = 8)
 
-    expect_s3_class(res, "data.frame")
-    expect_true(all(c(
-        "gene",
-        "p_interaction",
-        "adj_p_interaction"
-    ) %in% colnames(res)))
-    # g1 and g2 should be tested (g3 should be filtered out)
-    expect_true("g1" %in% res$gene)
-    expect_true("g2" %in% res$gene)
-    expect_false("g3" %in% res$gene)
+    expect_s4_class(res_se, "SummarizedExperiment")
+    rd <- SummarizedExperiment::rowData(res_se)
+    expect_true(all(c("p_interaction", "adj_p_interaction") %in% colnames(rd)))
+    # g1 and g2 should have non-NA entries in rowData (g3 filtered -> NA)
+    expect_true(!is.na(rd["g1", "p_interaction"]))
+    expect_true(!is.na(rd["g2", "p_interaction"]))
+    expect_true(is.na(rd["g3", "p_interaction"]))
 })

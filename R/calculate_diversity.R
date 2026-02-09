@@ -91,10 +91,16 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             if (exists("se_assay_mat") && !is.null(md) && !is.null(md$tx2gene) &&
                 is.data.frame(md$tx2gene)) {
                 txmap <- md$tx2gene
-                tx_col <- if ("Transcript" %in% colnames(txmap))
-                  "Transcript" else colnames(txmap)[1]
-                gene_col <- if ("Gen" %in% colnames(txmap))
-                  "Gen" else colnames(txmap)[2]
+                tx_col <- if ("Transcript" %in% colnames(txmap)) {
+                  "Transcript"
+                } else {
+                  colnames(txmap)[1]
+                }
+                gene_col <- if ("Gen" %in% colnames(txmap)) {
+                  "Gen"
+                } else {
+                  colnames(txmap)[2]
+                }
                 genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat),
                   txmap[[tx_col]])])
                 rownames(x) <- NULL
@@ -131,8 +137,9 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         stop("Argument 'q' must be numeric and greater than 0.", call. = FALSE)
     }
     # keep a copy of transcript-level counts when available (non-null)
-    if (!exists("se_assay_mat"))
+    if (!exists("se_assay_mat")) {
         se_assay_mat <- x
+    }
 
     result <- calculate_method(x, genes, norm, verbose = verbose, q = q, what = what)
 

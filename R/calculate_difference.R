@@ -56,8 +56,8 @@
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
 #' samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
 #' calculate_difference(x, samples,
-#'     control = 'Healthy', method = 'mean', test =
-#'         'wilcoxon'
+#'   control = 'Healthy', method = 'mean', test =
+#'     'wilcoxon'
 #' )
 calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
@@ -274,8 +274,9 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
     paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = TRUE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
-    if (verbose)
+    if (verbose) {
         message("[calculate_lm_interaction] method=", method)
+    }
     # internal flags: keep these internal to avoid documenting them in Rd
     suppress_lme4_warnings <- TRUE
     progress <- FALSE
@@ -295,10 +296,15 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
 
     # parse sample names and q values from column names like 'Sample_q=0.01'
     sample_names <- sub("_q=.*", "", sample_q)
-    q_vals <- as.numeric(sub(".*_q=", "", sample_q))
-    if (all(is.na(q_vals))) {
-        stop("Could not parse q values; expected '_q=' in column names")
+    has_q <- grepl("_q=", sample_q)
+    if (!any(has_q)) {
+        stop("Could not parse q values; expected '_q=' in column names", call. = FALSE)
     }
+    if (!all(has_q)) {
+        stop("Some column names are missing '_q='; ensure all diversity columns include a q value",
+            call. = FALSE)
+    }
+    q_vals <- as.numeric(sub(".*_q=", "", sample_q))
 
     # determine group for each sample
     sample_type_in_coldata <- !is.null(sample_type_col) && sample_type_col %in% colnames(SummarizedExperiment::colData(se))
@@ -314,8 +320,9 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
             call. = FALSE)
     }
 
-    if (verbose && progress)
+    if (verbose && progress) {
         message("[calculate_lm_interaction] parsed samples and groups")
+    }
     all_results <- list()
     fit_one <- function(g) {
         vals <- as.numeric(mat[g, ])
@@ -370,10 +377,12 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
             }
             df$subject <- factor(subject)
             # require at least two subjects and at least two groups represented
-            if (length(unique(na.omit(df$subject))) < 2)
+            if (length(unique(na.omit(df$subject))) < 2) {
                 return(NULL)
-            if (length(unique(na.omit(df$group))) < 2)
+            }
+            if (length(unique(na.omit(df$group))) < 2) {
                 return(NULL)
+            }
             # fit null (no interaction) and alternative (with q:group
             # interaction)
             mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
@@ -395,8 +404,9 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
                 used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
                   TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
                   TRUE)
-                if ((verbose && progress) || (!verbose && progress))
+                if ((verbose && progress) || (!verbose && progress)) {
                   message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
+                }
                 fb <- .tsenat_try_lm_fallbacks(df, verbose = verbose)
                 if (!is.null(fb)) {
                   fallback_lm <- fb
@@ -406,8 +416,11 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
                 used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
                   TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
                   TRUE)
-                if (used_singular)
-                  used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
+                if (used_singular) {
+                  used_fit_method <- "lmer_singular"
+                } else {
+                  used_fit_method <- "lmer"
+                }
             }
 
             lrt_p <- NA_real_
@@ -429,8 +442,11 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
             } else if (pvalue == "lrt") {
                 p_interaction <- lrt_p
             } else if (pvalue == "both") {
-                if (!is.na(satter_p))
-                  p_interaction <- satter_p else p_interaction <- lrt_p
+                if (!is.na(satter_p)) {
+                  p_interaction <- satter_p
+                } else {
+                  p_interaction <- lrt_p
+                }
             }
 
             return(data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
@@ -469,6 +485,29 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
     rownames(res) <- NULL
 
     .tsenat_report_fit_summary(res, verbose = verbose)
+
+    # If the input was a SummarizedExperiment, attach results into rowData
+    if (inherits(se, "RangedSummarizedExperiment") || inherits(se, "SummarizedExperiment")) {
+        # ensure rowData is a DataFrame and has genes as rownames
+        rd <- S4Vectors::DataFrame(SummarizedExperiment::rowData(se))
+        # create result columns with NA defaults
+        cols <- setdiff(colnames(res), "gene")
+        for (cname in cols) {
+            if (!(cname %in% colnames(rd))) {
+                rd[[cname]] <- NA_real_
+            }
+        }
+        # match by gene name
+        gene_idx <- match(as.character(res$gene), rownames(rd))
+        valid <- !is.na(gene_idx)
+        if (any(valid)) {
+            for (cname in cols) {
+                rd[[cname]][gene_idx[valid]] <- res[[cname]][valid]
+            }
+        }
+        SummarizedExperiment::rowData(se) <- rd
+        return(se)
+    }
 
     return(res)
 }

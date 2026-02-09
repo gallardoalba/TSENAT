@@ -25,8 +25,9 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
     # result matrix (samples vary outer, q varies inner). If sample names are
     # missing, synthesize deterministic names so column creation still works.
     sample_names <- colnames(x)
-    if (is.null(sample_names))
+    if (is.null(sample_names)) {
         sample_names <- paste0("Sample", seq_len(ncol(x)))
+    }
     coln <- as.vector(t(outer(sample_names, q, function(s, qq) paste0(s, "_q=", qq))))
     rown <- gene_levels
 

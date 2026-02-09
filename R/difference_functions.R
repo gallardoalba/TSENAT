@@ -53,8 +53,9 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
     value <- matrix(as.numeric(value), nrow = nrow(value), ncol = ncol(value), dimnames = dimnames(value))
     value[!is.finite(value)] <- NA
     # Apply pseudocount to non-positive observed values (do not overwrite NA)
-    if (!is.numeric(pseudocount) || length(pseudocount) != 1)
+    if (!is.numeric(pseudocount) || length(pseudocount) != 1) {
         pseudocount <- 0
+    }
     if (pseudocount <= 0) {
         # scale-aware pseudocount: half the smallest positive observed group
         # summary (mean/median) across the two groups. If no positive values
@@ -177,9 +178,10 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         # Paired permutation: assume columns are ordered as paired samples
         # (i.e., pair 1 = columns 1 and 2, pair 2 = columns 3 and 4, ...).
         ncols <- ncol(x)
-        if (ncols%%2 != 0)
+        if (ncols%%2 != 0) {
             stop("Paired permutation requires an even number of samples and paired column ordering",
                 call. = FALSE)
+        }
         npairs <- ncols/2
         # Paired methods: 'swap' randomly swaps labels within pairs (as
         # before).  'signflip' performs sign-flip permutations; when
@@ -294,9 +296,9 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #' @export
 #' @examples
 #' mat <- matrix(rnorm(20), nrow = 5)
-#' samples <- rep(c('A','B'), length.out = ncol(mat))
+#' samples <- rep(c('A', 'B'), length.out = ncol(mat))
 #' test_differential(mat, samples, control = 'A', method = 'wilcoxon')
-#' 
+#'
 #' @param paired_method Character; forwarded to `label_shuffling()` when
 #'   `method = 'shuffle'`. See `label_shuffling()` for details.
 test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
@@ -313,8 +315,9 @@ test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
         stop("`control` must be provided when method = 'shuffle'", call. = FALSE)
     }
     if (!is.null(seed)) {
-        if (!is.numeric(seed) || length(seed) != 1)
+        if (!is.numeric(seed) || length(seed) != 1) {
             stop("`seed` must be a single numeric value", call. = FALSE)
+        }
         # Use withr::local_seed to temporarily set RNG state for reproducible
         # permutation tests without permanently modifying the global RNG.
         withr::local_seed(as.integer(seed))

@@ -29,7 +29,7 @@
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
 #' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
-#'     length.out = ncol(se)
+#'   length.out = ncol(se)
 #' ))
 #' map_metadata(se, coldata_df)
 #' # Optionally validate pairs when appropriate
@@ -80,14 +80,16 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
                 # find sample names in coldata for this base+condition
                 samples_for_pair <- as.character(coldata[[coldata_sample_col]])[coldata_base ==
                   b & as.character(coldata[[coldata_condition_col]]) == c]
-                if (length(samples_for_pair) == 0)
+                if (length(samples_for_pair) == 0) {
                   next
+                }
                 # for each sample name, find matching assay columns (after
                 # q-stripping)
                 for (s in samples_for_pair) {
                   matches <- which(base_names == s)
-                  if (length(matches) > 0)
+                  if (length(matches) > 0) {
                     idx_list <- c(idx_list, matches)
+                  }
                 }
             }
         }
@@ -99,8 +101,9 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
         ordered_samples <- as.character(coldata[[coldata_sample_col]])
         for (s in ordered_samples) {
             matches <- which(base_names == s)
-            if (length(matches) > 0)
+            if (length(matches) > 0) {
                 idx_list <- c(idx_list, matches)
+            }
         }
         remaining <- setdiff(seq_along(base_names), idx_list)
         new_order <- c(idx_list, remaining)
@@ -176,8 +179,9 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
         md2 <- S4Vectors::metadata(ts_se)
         md2$diversity_df <- div_df
         md2$sample_base_names <- sample_base_names
-        if (!is.null(samples_vec))
+        if (!is.null(samples_vec)) {
             md2$samples <- samples_vec
+        }
         S4Vectors::metadata(ts_se) <- md2
     }
     return(ts_se)
@@ -191,8 +195,11 @@ map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL
     # provided. If `sample_type_col` is not provided, allow a single- condition
     # dataset by assigning a single default group 'Group' to all samples (this
     # permits plotting single-condition q-curves).
-    base_names <- sub("_q=.*", "", colnames(if (!is.null(mat))
-        mat else SummarizedExperiment::assay(se)))
+    base_names <- sub("_q=.*", "", colnames(if (!is.null(mat)) {
+        mat
+    } else {
+        SummarizedExperiment::assay(se)
+    }))
 
     if (!is.null(se) && !is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
         st_vec <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
@@ -215,16 +222,20 @@ map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL
 # Prepare a long-format data.frame for a simple assay (one value per sample)
 get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
     sample_type_col = NULL) {
-    if (!requireNamespace("tidyr", quietly = TRUE))
+    if (!requireNamespace("tidyr", quietly = TRUE)) {
         stop("tidyr required")
-    if (!requireNamespace("dplyr", quietly = TRUE))
+    }
+    if (!requireNamespace("dplyr", quietly = TRUE)) {
         stop("dplyr required")
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE))
+    }
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
         stop("SummarizedExperiment required")
+    }
 
     mat <- SummarizedExperiment::assay(se, assay_name)
-    if (is.null(mat))
+    if (is.null(mat)) {
         stop("Assay not found: ", assay_name)
+    }
     df <- as.data.frame(mat)
     genes_col <- if (!is.null(SummarizedExperiment::rowData(se)$genes)) {
         SummarizedExperiment::rowData(se)$genes
@@ -258,16 +269,20 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
 # Internal small helper: prepare long-format tsallis data from a
 # SummarizedExperiment
 prepare_tsallis_long <- function(se, assay_name = "diversity", sample_type_col = "sample_type") {
-    if (!requireNamespace("tidyr", quietly = TRUE))
+    if (!requireNamespace("tidyr", quietly = TRUE)) {
         stop("tidyr required")
-    if (!requireNamespace("dplyr", quietly = TRUE))
+    }
+    if (!requireNamespace("dplyr", quietly = TRUE)) {
         stop("dplyr required")
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE))
+    }
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
         stop("SummarizedExperiment required")
+    }
 
     mat <- SummarizedExperiment::assay(se, assay_name)
-    if (is.null(mat))
+    if (is.null(mat)) {
         stop("Assay not found: ", assay_name)
+    }
     df <- as.data.frame(mat)
     genes_col <- if (!is.null(SummarizedExperiment::rowData(se)$genes)) {
         SummarizedExperiment::rowData(se)$genes
@@ -323,8 +338,9 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", sample_type_col =
 #' @export
 map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", verbose = FALSE) {
     if (is.character(tx2gene) && length(tx2gene) == 1) {
-        if (!file.exists(tx2gene))
+        if (!file.exists(tx2gene)) {
             stop("tx2gene file not found: ", tx2gene, call. = FALSE)
+        }
         txmap <- utils::read.delim(tx2gene, header = TRUE, stringsAsFactors = FALSE)
     } else if (is.data.frame(tx2gene)) {
         txmap <- tx2gene
@@ -332,22 +348,26 @@ map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", ver
         stop("'tx2gene' must be a file path or a data.frame.", call. = FALSE)
     }
 
-    if (!(tx_col %in% colnames(txmap)))
+    if (!(tx_col %in% colnames(txmap))) {
         stop(sprintf("tx2gene mapping must contain column '%s'", tx_col), call. = FALSE)
+    }
 
     # Ensure readcounts is a matrix-like object
-    if (is.data.frame(readcounts))
+    if (is.data.frame(readcounts)) {
         readcounts <- as.matrix(readcounts)
-    if (!is.matrix(readcounts))
+    }
+    if (!is.matrix(readcounts)) {
         stop("'readcounts' must be a matrix or data.frame", call. = FALSE)
+    }
 
     n_rc <- nrow(readcounts)
     n_tx <- nrow(txmap)
 
     if (n_tx == n_rc) {
         rownames(readcounts) <- as.character(txmap[[tx_col]])
-        if (verbose)
+        if (verbose) {
             message(sprintf("Assigned %d transcript rownames from tx2gene.", n_rc))
+        }
         return(readcounts)
     }
 
@@ -357,8 +377,9 @@ map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", ver
         # reorder txmap to match readcounts row order and set rownames
         matched_idx <- match(rownames(readcounts), tx_ids)
         rownames(readcounts) <- tx_ids[matched_idx]
-        if (verbose)
+        if (verbose) {
             message("Matched and assigned transcript IDs by existing readcounts rownames.")
+        }
         return(readcounts)
     }
 

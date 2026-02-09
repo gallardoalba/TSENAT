@@ -12,9 +12,10 @@
         }
         if ("singular" %in% colnames(res)) {
             n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
-            if (n_sing > 0)
+            if (n_sing > 0) {
                 message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes",
                   n_sing, total_genes))
+            }
         }
     }
 }
@@ -28,17 +29,22 @@
     fit_null <- try(mgcv::gam(entropy ~ group + s(q, k = k_q), data = df), silent = TRUE)
     fit_alt <- try(mgcv::gam(entropy ~ group + s(q, by = group, k = k_q), data = df),
         silent = TRUE)
-    if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error"))
+    if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
         return(NULL)
+    }
     an <- try(mgcv::anova.gam(fit_null, fit_alt, test = "F"), silent = TRUE)
-    if (inherits(an, "try-error"))
+    if (inherits(an, "try-error")) {
         return(NULL)
+    }
     p_interaction <- NA_real_
     if (nrow(an) >= 2) {
-        if ("Pr(F)" %in% colnames(an))
-            p_interaction <- an[2, "Pr(F)"] else if ("Pr(>F)" %in% colnames(an))
-            p_interaction <- an[2, "Pr(>F)"] else if ("p-value" %in% colnames(an))
+        if ("Pr(F)" %in% colnames(an)) {
+            p_interaction <- an[2, "Pr(F)"]
+        } else if ("Pr(>F)" %in% colnames(an)) {
+            p_interaction <- an[2, "Pr(>F)"]
+        } else if ("p-value" %in% colnames(an)) {
             p_interaction <- an[2, "p-value"]
+        }
     }
     return(data.frame(gene = g, p_interaction = p_interaction, stringsAsFactors = FALSE))
 }
@@ -48,43 +54,52 @@
     uq <- sort(unique(q_vals))
     samples_u <- unique(sample_names)
     curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
-    if (length(samples_u) > 0)
+    if (length(samples_u) > 0) {
         rownames(curve_mat) <- samples_u
+    }
     for (i in seq_along(sample_names)) {
         s <- sample_names[i]
         qv <- q_vals[i]
         qi <- match(qv, uq)
-        if (is.na(qi))
+        if (is.na(qi)) {
             next
-        if (s %in% rownames(curve_mat))
+        }
+        if (s %in% rownames(curve_mat)) {
             curve_mat[s, qi] <- as.numeric(mat[g, i])
+        }
     }
     good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
-    if (length(good_rows) < min_obs)
+    if (length(good_rows) < min_obs) {
         return(NULL)
+    }
     mat_sub <- curve_mat[good_rows, , drop = FALSE]
     col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
     for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r,
         ])]
     pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
-    if (inherits(pca, "try-error"))
+    if (inherits(pca, "try-error")) {
         return(NULL)
-    if (ncol(pca$x) < 1)
+    }
+    if (ncol(pca$x) < 1) {
         return(NULL)
+    }
     pc1 <- pca$x[, 1]
     used_samples <- rownames(mat_sub)
     grp_vals <- group_vec[match(used_samples, sample_names)]
-    if (length(unique(na.omit(grp_vals))) < 2)
+    if (length(unique(na.omit(grp_vals))) < 2) {
         return(NULL)
+    }
     g1 <- unique(na.omit(grp_vals))[1]
     g2 <- unique(na.omit(grp_vals))[2]
     x1 <- pc1[grp_vals == g1]
     x2 <- pc1[grp_vals == g2]
-    if (length(x1) < 2 || length(x2) < 2)
+    if (length(x1) < 2 || length(x2) < 2) {
         return(NULL)
+    }
     t_res <- try(stats::t.test(x1, x2), silent = TRUE)
-    if (inherits(t_res, "try-error"))
+    if (inherits(t_res, "try-error")) {
         return(NULL)
+    }
     pval <- as.numeric(t_res$p.value)
     return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
 }
@@ -103,11 +118,13 @@
         muffle_cond <- suppress_lme4_warnings || (!verbose)
         fit_try <- withCallingHandlers(try(lme4::lmer(formula, data = data, REML = FALSE,
             control = ctrl), silent = TRUE), warning = function(w) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE))
+            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
                 invokeRestart("muffleWarning")
+            }
         }, message = function(m) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE))
+            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
                 invokeRestart("muffleMessage")
+            }
         })
         if (!inherits(fit_try, "try-error")) {
             # check singularity if function available
@@ -143,8 +160,11 @@
     an <- try(stats::anova(fit0, fit1), silent = TRUE)
     if (!inherits(an, "try-error") && nrow(an) >= 2) {
         pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-        if (length(pcol) == 0)
-            return(as.numeric(an[2, ncol(an)])) else return(as.numeric(an[2, pcol[1]]))
+        if (length(pcol) == 0) {
+            return(as.numeric(an[2, ncol(an)]))
+        } else {
+            return(as.numeric(an[2, pcol[1]]))
+        }
     }
     return(NA_real_)
 }
@@ -155,8 +175,9 @@
         coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
         if (!inherits(coefs, "try-error")) {
             ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0)
+            if (length(ia_idx) > 0) {
                 return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
         }
         return(NA_real_)
     }
@@ -167,8 +188,9 @@
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0)
+            if (length(ia_idx) > 0) {
                 return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
         }
     }
     return(NA_real_)
@@ -176,12 +198,14 @@
 
 # FPCA matrix preparation
 .tsenat_prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
-    if (!is.matrix(mat))
+    if (!is.matrix(mat)) {
         mat <- as.matrix(mat)
+    }
     row_vars <- apply(mat, 1, stats::var, na.rm = TRUE)
     keep <- row_vars > (min_frac * max(row_vars, na.rm = TRUE))
-    if (sum(keep) == 0)
+    if (sum(keep) == 0) {
         keep <- rep(TRUE, nrow(mat))
+    }
     m2 <- mat[keep, , drop = FALSE]
     m2 <- t(scale(t(m2)))
     return(list(mat = m2, keep = keep))
@@ -209,8 +233,11 @@
     an <- try(stats::anova(fit0, fit1), silent = TRUE)
     if (!inherits(an, "try-error") && nrow(an) >= 2) {
         pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-        if (length(pcol) == 0)
-            return(as.numeric(an[2, ncol(an)])) else return(as.numeric(an[2, pcol[1]]))
+        if (length(pcol) == 0) {
+            return(as.numeric(an[2, ncol(an)]))
+        } else {
+            return(as.numeric(an[2, pcol[1]]))
+        }
     }
     return(NA_real_)
 }
@@ -221,8 +248,9 @@
         coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
         if (!inherits(coefs, "try-error")) {
             ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0)
+            if (length(ia_idx) > 0) {
                 return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
         }
         return(NA_real_)
     }
@@ -233,8 +261,9 @@
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0)
+            if (length(ia_idx) > 0) {
                 return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
         }
     }
     return(NA_real_)
@@ -242,12 +271,14 @@
 
 .tsenat_prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
     # prepare matrix for FPCA: center, scale, and drop near-constant rows
-    if (!is.matrix(mat))
+    if (!is.matrix(mat)) {
         mat <- as.matrix(mat)
+    }
     row_vars <- apply(mat, 1, stats::var, na.rm = TRUE)
     keep <- row_vars > (min_frac * max(row_vars, na.rm = TRUE))
-    if (sum(keep) == 0)
+    if (sum(keep) == 0) {
         keep <- rep(TRUE, nrow(mat))
+    }
     m2 <- mat[keep, , drop = FALSE]
     m2 <- t(scale(t(m2)))
     return(list(mat = m2, keep = keep))
@@ -276,8 +307,9 @@
 # failure.
 .tsenat_extract_lrt_p <- function(fit0, fit1) {
     an <- try(stats::anova(fit0, fit1), silent = TRUE)
-    if (inherits(an, "try-error") || nrow(an) < 2)
+    if (inherits(an, "try-error") || nrow(an) < 2) {
         return(NA_real_)
+    }
     pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
     if (length(pcol) == 0) {
         return(as.numeric(an[2, ncol(an)]))
@@ -292,8 +324,9 @@
     if (!is.null(fallback_lm)) {
         coefs <- summary(fallback_lm$fit1)$coefficients
         ia_idx <- grep("^q:group", rownames(coefs))
-        if (length(ia_idx) > 0)
+        if (length(ia_idx) > 0) {
             return(coefs[ia_idx[1], "Pr(>|t|)"])
+        }
         return(NA_real_)
     }
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod")) {
@@ -302,8 +335,9 @@
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0)
+            if (length(ia_idx) > 0) {
                 return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
         }
     }
     return(NA_real_)
@@ -316,21 +350,25 @@
     uq <- sort(unique(q_vals))
     samples_u <- unique(sample_names)
     curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
-    if (length(samples_u) > 0)
+    if (length(samples_u) > 0) {
         rownames(curve_mat) <- samples_u
+    }
     for (i in seq_along(sample_names)) {
         s <- sample_names[i]
         qv <- q_vals[i]
         qi <- match(qv, uq)
-        if (is.na(qi))
+        if (is.na(qi)) {
             next
-        if (s %in% rownames(curve_mat))
+        }
+        if (s %in% rownames(curve_mat)) {
             curve_mat[s, qi] <- as.numeric(mat[, i])
+        }
     }
     # keep samples with at least half of q points present
     good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
-    if (length(good_rows) < min_obs)
+    if (length(good_rows) < min_obs) {
         return(NULL)
+    }
     mat_sub <- curve_mat[good_rows, , drop = FALSE]
     col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
     for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r,

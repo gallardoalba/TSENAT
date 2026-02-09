@@ -24,8 +24,9 @@
 #' SummarizedExperiment::assay(se, 'counts')
 build_se <- function(tx2gene_tsv, readcounts, genes, assay_name = "counts") {
     if (is.character(tx2gene_tsv) && length(tx2gene_tsv) == 1) {
-        if (!file.exists(tx2gene_tsv))
+        if (!file.exists(tx2gene_tsv)) {
             stop("tx2gene file not found: ", tx2gene_tsv, call. = FALSE)
+        }
         tx2gene_df <- utils::read.table(tx2gene_tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
     } else if (is.data.frame(tx2gene_tsv)) {
         tx2gene_df <- tx2gene_tsv
@@ -33,13 +34,16 @@ build_se <- function(tx2gene_tsv, readcounts, genes, assay_name = "counts") {
         stop("'tx2gene_tsv' must be a path or a data.frame.", call. = FALSE)
     }
 
-    if (is.data.frame(readcounts))
+    if (is.data.frame(readcounts)) {
         readcounts <- as.matrix(readcounts)
-    if (!is.matrix(readcounts) || !is.numeric(readcounts))
+    }
+    if (!is.matrix(readcounts) || !is.numeric(readcounts)) {
         stop("'readcounts' must be a numeric matrix or numeric data.frame.", call. = FALSE)
+    }
 
-    if (length(genes) != nrow(readcounts))
+    if (length(genes) != nrow(readcounts)) {
         stop("Length of 'genes' must equal nrow(readcounts).", call. = FALSE)
+    }
 
     assays_list <- S4Vectors::SimpleList()
     assays_list[[assay_name]] <- readcounts

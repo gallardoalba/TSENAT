@@ -2,7 +2,7 @@
 ^dist/
 ^build/
 ^_pkgdown.yml$
-^.\codecov.yml$
+^\.codecov.yml$
 ^\.git$
 ^\.git/
 ^\.Rproj.user$

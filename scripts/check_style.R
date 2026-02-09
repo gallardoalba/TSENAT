@@ -15,13 +15,9 @@ if (length(r_files) == 0) {
 
 for (f in r_files) {
   tryCatch({
-    txt <- readLines(f, warn = FALSE)
-    styled <- styler::style_text(paste(txt, collapse = "\n"), style = styler::tidyverse_style(indent_by = 4))
-    # style_text returns a character vector; join and split to preserve line endings
-    new_txt <- unlist(strsplit(styled, "\n", fixed = TRUE))
-    if (!identical(txt, new_txt)) {
-      writeLines(new_txt, con = f)
-    }
+    # Style the file in-place using styler with 4-space indentation; prefer
+    # per-file styling to avoid token/roxygen issues in style_text pipelines.
+    styler::style_file(f, style = styler::tidyverse_style(indent_by = 4))
   }, error = function(e) {
     message("styler failed for file: ", f, " — ", conditionMessage(e))
     # Fallback: try formatR::tidy_file to at least format the file
@@ -55,13 +51,13 @@ library(styler)
 # Use a safe wrapper: try default styling, and on error retry using token-level
 # styling which avoids processing roxygen/knitr examples.
 style_safe <- function(path) {
-  style_call <- function(scope = NULL) {
-    if (is.null(scope)) {
-      styler::style_dir(path = path, style = styler::tidyverse_style(indent_by = 4))
-    } else {
-      styler::style_dir(path = path, scope = scope, style = styler::tidyverse_style(indent_by = 4))
+    style_call <- function(scope = NULL) {
+      if (is.null(scope)) {
+        styler::style_dir(path = path, style = styler::tidyverse_style(indent_by = 4))
+      } else {
+        styler::style_dir(path = path, scope = scope, style = styler::tidyverse_style(indent_by = 4))
+      }
     }
-  }
 
   tryCatch(
     style_call(NULL),
@@ -100,20 +96,13 @@ library(styler)
 # Use a safe wrapper: try default styling, and on error retry using token-level
 # styling which avoids processing roxygen/knitr examples.
 style_safe <- function(path) {
-    style_call <- function(scope = NULL) {
-        if (is.null(scope)) {
-            styler::style_dir(
-                path = path,
-                style = function(...) styler::tidyverse_style(..., indent_by = 4)
-            )
-        } else {
-            styler::style_dir(
-                path = path,
-                scope = scope,
-                style = function(...) styler::tidyverse_style(..., indent_by = 4)
-            )
-        }
+  style_call <- function(scope = NULL) {
+    if (is.null(scope)) {
+      styler::style_dir(path = path, style = styler::tidyverse_style(indent_by = 4))
+    } else {
+      styler::style_dir(path = path, scope = scope, style = styler::tidyverse_style(indent_by = 4))
     }
+  }
     tryCatch(
         style_call(NULL),
         error = function(e) {
