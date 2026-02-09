@@ -239,7 +239,7 @@ res <- calculate_difference(
     paired = TRUE
 )
 # sort results by adjusted p-value
-res <- res[order(res$adjusted_p_values)]
+res <- res[order(res$adjusted_p_values), ]
 head(res)
 ```
 
@@ -288,9 +288,7 @@ print(p_volcano)
 ### Plot top 3 genes from the single-q differential analysis
 
 Here we will visualize the transcript-level expression for the 
-most significant genes identified in the previous step. In that
-case we will use the median as the aggregation metric, which 
-will allow us to see the most consistent isoform-expression 
+most significant genes identified in the previous step. 
 
 ```{r top-transcripts-singleq, fig.width=7, fig.height=4.5}
 # Plot using median aggregation; let the function pick top genes from `res`
@@ -300,7 +298,7 @@ p_median <- plot_top_transcripts(ts_se,
 print(p_median)
 ```
 
-Now, we will plot the same top genes but using variance aggregation 
+We can also plot the same top genes but using variance aggregation 
 instead of median. This allows us to see how transcript-level
 expression variability differs between groups for these genes.
 
@@ -312,15 +310,11 @@ p_var <- plot_top_transcripts(ts_se,
 print(p_var)
 ```
 
-Using these concrete comparisons will help you distinguish 
-consistent isoform-level regulation, outlier-driven artifacts,
-reciprocal isoform switching, and subgroup heterogeneity.
-
 ## Compare between q values
 
 Now we are going to try a different approach. In instead of
 evaluate the sificant estatistical differences by using single
-Thassi `q` values, we will compute  the normalized Tsallis 
+Tsalis `q` values, we will compute  the normalized Tsallis 
 entropy for two `q` values (0.1 and 2) to studiy  potential
 scale-dependent patterns.
 
@@ -333,13 +327,10 @@ ts_se <- calculate_diversity(se,
 head(assay(ts_se)[1:4,1:3])
 ```
 
-This allows comparison across `q` for the same gene to determine whether
-diversity differences are scale-dependent (for example, significance at
-`q = 0.1` but not at `q = 2` suggests rare-isoform-driven changes).
-
 Once again, we should map the sample metadata into the multi-q 
-`SummarizedExperiment` so, plotting helpers can have access to 
-`sample_type` for grouping.
+`SummarizedExperiment`. This step is important to ensure that
+functions located downstream in the workflow can access the sample
+metadata correctly.
 
 ```{r apply-coldata-to-se-doble}
 ts_se <- map_metadata(ts_se, coldata_df)
@@ -348,33 +339,47 @@ ts_se <- map_metadata(ts_se, coldata_df)
 In order to show the distributional differences
 between groups, we are going to create **violin and density plots**.
 
+The violin plot shows the distribution of Tsallis
+entropy values for each group and q value, allowing
+us to visually assess differences in diversity patterns
+between groups at different sensitivity levels.
+
 ```{r plots-violin, fig.width=7, fig.height=4.5}
 p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
 print(p_violin)
 ```
+
+The density plot provides a equivalent view of the
+distribution of Tsallis entropy values, showing the
+density of samples across the range of diversity
+values for each group and q value. 
 
 ```{r plots-density, fig.width=7, fig.height=4.5}
 p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
 print(p_density)
 ```
 
-## Linear-model interaction and shape tests for q-curves
+## Tsallis q-sequence and linear-model interaction tests
 
-Now we will compute normalized Tsallis entropy across a 
-sequence of `q` values.
+FInally, we can test for interactions between `q` and
+sample groups across a sequence of `q` values (`q-sequence`), that is,
+whether the shape of the q-curve differs between groups.
+This approach is a powerful way to detect scale-dependent
+diversity differences that may not be apparent at a
+single `q` value.
 
-Computing Tsallis entropy across a sequence of q values 
-is important because q acts as a sensitivity lens that 
-shifts emphasis between rare and dominant isoforms, 
-so the resulting **q-curve** reveals the scale at which 
-biological differences occur.
+Computing Tsallis entropy across a sequence of `q` values 
+is important because `q` acts as a sensitivity lens that 
+shifts emphasis between rare and dominant isoforms. Thus, 
+the resulting **q-curve** can help us identify at which 
+scales (i.e. for which `q` values) the diversity differences
+between groups are most pronounced.
 
-The Tsallis q-sequence can help us with QC and the detection
-of outlier datasets; aside from that, throught the implementation
-of different inference  approaches (whether to use multivariate 
-approaches such as `q:group` interaction models, GAMs, or FPCA),
-is it possible to obtain a level o diagnostic power and robustness
-das is not possible to optain on a single arbitrary `q` values.
+The Tsallis q-sequence can also be help with quality control
+and outlier detection. By examining the q-curves of
+individual samples, we can identify samples that deviate
+from expected patterns, which may indicate technical
+issues or biological outliers.
 
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
@@ -393,15 +398,26 @@ Map once again the sample metadata into the multi-q
 ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 ```
 
-Once we have the `q-sequence` computed, we can test for 
-interactions between `q` and sample groups using 
-**mixed models** that include a random intercept per 
-subject to account for paired samples. One practical
-approach is the **Satterthwaite method**.
+Once we have the `q-sequence` computed, we can test for interactions
+between `q` and sample groups using one of four methods implemented
+in `calculate_lm_interaction()`:
 
-This method is preferable for small or moderately sized 
-paired RNA‑seq studies when per-term inference is required 
-(for example, the `q:group` interaction).
+- **linear**: fits a simple linear model. This is
+fast and interpretable and is appropriate when the q–response is
+approximately linear and samples are independent.
+- **lmm**: fits a linear mixed model which accounts
+for subject-level random effects (paired or repeated measures).
+- **gam**: fits a generalized additive model. This method allows
+to capture nonlinear q–response shapes.
+- **fpca**: uses a functional-data approach to reduce each gene's
+q-curve to principal component scores. This is recommended when q
+is densely sampled or when q-curves exhibit complex, high-dimensional
+variation.
+
+Below we demonstrate a practical `lmm` example using the **Satterthwaite**
+approximation for per-term inference. This method is preferable for small
+or moderately sized paired RNA‑seq studies when per-term inference is
+required (for example, the q:group interaction).
 
 ```{r lm-interaction-before-qcurve}
 ## Linear-model interaction test across q values: detect q x group interaction
@@ -426,7 +442,11 @@ groups indicate **scale-dependent diversity differences**: separation at low
 signals differences in dominant isoforms.
 
 Now we will plot the q-curve profile for the top gene identified 
-by the linear-model interaction test. We will start with `HAPLN3`.
+by the linear-model interaction test. We will start with `HAPLN3`,
+which codifies member of the hyaluronan and proteoglycan link
+protein family expressed in the extracellular matrix, and closely
+associated with the development and occurrence of various 
+malignant tumors ([source](https://doi.org/10.1007/s00432-022-04421-3)).   
 
 ```{r hapln3-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
@@ -434,18 +454,15 @@ plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3")
 print(plot_target)
 ```
 
-Now let's look at `COL1A2`, which encodes a protein involved in immune
-cell biology and has been reported as differentially regulated in some
-cancer studies.
+Now let's look at `COL1A2`, encodes the pro-alpha2 chain of type
+I collagen, a fibril-forming collagen found in most connective
+tissues.
 
 ```{r colia2-gene-qprofile, fig.width=7, fig.height=4.5}
 # Plot q-curve profile for top linear-model gene
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2")
 print(plot_target)
 ```
-
-From the plot we might infer that, in this dataset, rare transcripts
-appear more prevalent in cancer samples.
 
 Finally, we can visualize the gene `PI16`, which is emerging
 as an important regulator in the vascular system.
