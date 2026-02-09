@@ -2,7 +2,8 @@
 
 # TSENAT: Tsallis Entropy Analysis Toolbox
 
-TSENAT is an R package for quantifying and modelling the relative isoform-usage diversity across samples. It provides a complementary, "orthogonal" analytical method to standard differential-expression tools (for example, DESeq2), allowing the identification isoform switching and splicing-driven regulatory changes that may occur without pronounced changes in overall gene expression, enabling the detection of regulatory events which cannot be captured by count-based differential expression methods.
+
+TSENAT is an R package for quantifying and modelling the relative isoform-usage diversity across samples. It provides a complementary, _orthogonal_ analytical method to standard differential-expression tools (for example, DESeq2), allowing the identification of isoform switching and splicing-driven regulatory changes that may occur without pronounced changes in overall gene expression, enabling thus the detection of regulatory events which cannot be captured by count-based differential expression methods.
 
 ## Overview
 

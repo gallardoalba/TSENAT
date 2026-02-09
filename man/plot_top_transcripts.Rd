@@ -54,5 +54,4 @@ colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
 tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
 samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
 plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
-
 }

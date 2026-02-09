@@ -1210,7 +1210,7 @@ plot_volcano <- function(
 #' tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
 #' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
 #' plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
-#'
+#' @export
 plot_top_transcripts <- function(
   counts,
   readcounts = NULL, # Optional matrix or data.frame of raw read counts. Used for transcript-level quantification if provided.
