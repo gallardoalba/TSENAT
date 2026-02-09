@@ -44,38 +44,10 @@ plot_top_transcripts(
 
 \item{metric}{Aggregation metric used to summarize transcript expression per group when plotting. One of c("median", "mean", "variance", "iqr"). Use "iqr" to compute the interquartile range. Defaults to "median".}
 }
-\value{
-A `ggplot` object (or invisibly saved file if `output_file`
-provided).
-}
 \description{
-For a given gene, find transcripts using a tx->gene mapping, compute
-per-transcript statistics between two sample groups, select the top N
-transcripts by p-value, and plot their expression across groups.
+Plot top transcripts for a gene
 }
 \examples{
-tx_counts <- matrix(
-    sample(1:100, 24, replace = TRUE),
-    nrow = 6
-)
-rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-
-tx2gene <- data.frame(
-    Transcript = rownames(tx_counts),
-    Gen = rep(paste0("G", seq_len(3)), each = 2),
-    stringsAsFactors = FALSE
-)
-
-samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-
-plot_top_transcripts(
-    tx_counts,
-    gene = c("G1", "G2"),
-    samples = samples,
-    tx2gene = tx2gene,
-    top_n = 2
-)
 tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
 rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
 colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
