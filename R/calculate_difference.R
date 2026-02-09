@@ -221,7 +221,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     res <- do.call(rbind, result_list)
     rownames(res) <- NULL
     if (!("log2_fold_change" %in% colnames(res)) && ("log2FC" %in% colnames(res))) {
-      res$log2_fold_change <- res$log2FC
+        res$log2_fold_change <- res$log2FC
     }
     return(res)
 }
@@ -379,8 +379,10 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
             mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
 
             # attempt to fit mixed models (null and alternative) using helper
-            fit0 <- .tsenat_try_lmer(entropy ~ q + group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings, verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
-            fit1 <- .tsenat_try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings, verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
+            fit0 <- .tsenat_try_lmer(entropy ~ q + group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings,
+                verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
+            fit1 <- .tsenat_try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings,
+                verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
 
             # If either fit failed, try falling back to simpler approaches
             fallback_lm <- NULL
@@ -401,8 +403,11 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
                   used_fit_method <- fb$method
                 }
             } else {
-                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") == TRUE)
-                if (used_singular) used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
+                used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
+                  TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                  TRUE)
+                if (used_singular)
+                  used_fit_method <- "lmer_singular" else used_fit_method <- "lmer"
             }
 
             lrt_p <- NA_real_
@@ -438,7 +443,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
         }
 
         if (method == "fpca") {
-            return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, g, min_obs = min_obs))
+            return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec,
+                g, min_obs = min_obs))
         }
         return(NULL)
     }

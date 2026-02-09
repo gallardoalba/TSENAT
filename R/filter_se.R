@@ -44,7 +44,7 @@ filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts
     before <- nrow(assay_mat)
     # Cap min_samples to the number of available samples to avoid impossible
     # thresholds on small datasets and use an inclusive threshold so callers
-    # requesting e.g. "min_samples = ncol" keep rows present in all samples.
+    # requesting e.g. 'min_samples = ncol' keep rows present in all samples.
     eff_min_samples <- min(as.integer(min_samples), ncol(assay_mat))
     tokeep <- rowSums(assay_mat > min_count) >= eff_min_samples
     after <- sum(tokeep)

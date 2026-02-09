@@ -31,7 +31,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     verbose = FALSE, q = 2, what = c("S", "D")) {
     if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") || is(x,
         "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
-        stop("Input data type is not supported! Please use ?calculate_diversity to see the possible arguments and details.", call. = FALSE)
+        stop("Input data type is not supported! Please use ?calculate_diversity to see the possible arguments and details.",
+            call. = FALSE)
     }
 
     if (is(x, "data.frame")) {
