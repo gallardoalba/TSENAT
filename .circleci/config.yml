@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
+            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest", "covr"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
       - save_cache:
           paths:
@@ -46,3 +46,7 @@ jobs:
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
+      - run:
+          name: Upload coverage to Codecov
+          command: |
+            Rscript -e 'if (requireNamespace("covr", quietly=TRUE)) covr::codecov() else stop("covr not installed")'
