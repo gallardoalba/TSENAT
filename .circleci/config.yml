@@ -20,18 +20,19 @@ jobs:
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
+            rm -rf /var/lib/apt/lists/*
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
       - run:
           name: Install package dependencies
           command: |
             R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}
       - save_cache:
           paths:
             - ~/R/library
-          key: v1-r-packages-{{ checksum "DESCRIPTION" }}
+          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
       - run:
           name: Build package
           command: |
@@ -71,18 +72,19 @@ jobs:
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
               pandoc git
+            rm -rf /var/lib/apt/lists/*
+      - restore_cache:
+          keys:
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
       - run:
           name: Install package dependencies
           command: |
             R -e 'install.packages(c("remotes", "devtools", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest"), repos="https://cloud.r-project.org")'
             R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
-      - restore_cache:
-          keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}
       - save_cache:
           paths:
             - ~/R/library
-          key: v1-r-packages-{{ checksum "DESCRIPTION" }}
+          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
       - run:
           name: Build pkgdown site
           command: |

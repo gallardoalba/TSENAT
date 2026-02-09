@@ -5,8 +5,8 @@ date: "`r Sys.Date()`"
 output:
     rmarkdown::html_document:
         toc: true
-        fig_width: 7
-        fig_height: 4.5
+        fig_width: 10
+        fig_height: 6.5
 vignette: |
     %\VignetteIndexEntry{TSENAT}
     %\VignetteEngine{knitr::rmarkdown}
@@ -17,8 +17,8 @@ vignette: |
 knitr::opts_chunk$set(
     collapse = TRUE,
     comment = "#>",
-    fig.width = 7,
-    fig.height = 4.5
+    fig.width = 10,
+    fig.height = 6.5
 )
 ```
 
@@ -209,7 +209,7 @@ ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 This section summarizes practical guidance for hypothesis testing and
 reporting when comparing diversity measures across sample groups.
 
-The package exposes pragmatic pairwise tests for comparing per-gene
+The package integrate diverse tests for comparing per-gene
 diversity summaries between two groups. Two common choices are
 Wilcoxon-based tests and label-shuffle tests. 
 
@@ -220,12 +220,11 @@ non-parametric alternative that does not rely on distributional
 assumptions and can be more accurate for small sample sizes, but 
 it is computationally intensive.
 
-**Recommendation: summary & test choice**:
-
 For the analyses shown in this vignette we recommend using the **median**
-in the **Wilcoxon** rank-sum test for comparisons. Tsallis entropy values 
-are often skewed and sensitive to outliers, and the median provides in
-this condition a more robust summary of central tendency than the mean.
+in the **Wilcoxon** rank-sum test for comparisons. The reason is that
+Tsallis entropy values are often skewed and sensitive to outliers, 
+and the median provides in this condition a more robust summary of
+central tendency than the mean.
 
 
 ```{r difference}
@@ -252,7 +251,7 @@ which uses the Tsallis entropy values directly to compute fold
 changes and mean expression. This plot provides a direct view of 
 how diversity differences relate to overall expression levels.
 
-```{r ma-tsallis, fig.width=7, fig.height=4.5}
+```{r ma-tsallis, fig.width=10, fig.height=6.5}
 # MA plot (Tsallis-based)
 p_ma <- plot_ma_tsallis(res)
 print(p_ma)
@@ -263,7 +262,7 @@ uses the original read counts to compute fold changes and mean
 expression. This plot helps to contextualize diversity
 differences in terms of overall gene expression levels.
 
-```{r ma-readcounts, fig.width=7, fig.height=4.5}
+```{r ma-readcounts, fig.width=10, fig.height=6.5}
 # MA plot (expression/readcount-based)
 p_ma_read <- plot_ma_expression(
     res,
@@ -279,7 +278,7 @@ and their statistical significance (adjusted p-value). This plot
 helps to identify genes with both large effect sizes and
 strong statistical support.
 
-```{r volcanoplot, fig.width=7, fig.height=4.5}
+```{r volcanoplot, fig.width=10, fig.height=6.5}
 # Volcano plot: mean difference vs -log10(adjusted p-value)
 p_volcano <- plot_volcano(res)
 print(p_volcano)
@@ -290,7 +289,7 @@ print(p_volcano)
 Here we will visualize the transcript-level expression for the 
 most significant genes identified in the previous step. 
 
-```{r top-transcripts-singleq, fig.width=7, fig.height=4.5}
+```{r top-transcripts-singleq, fig.width=10, fig.height=6.5}
 # Plot using median aggregation; let the function pick top genes from `res`
 p_median <- plot_top_transcripts(ts_se,
     res = res, top_n = 3, metric = "median"
@@ -302,7 +301,7 @@ We can also plot the same top genes but using variance aggregation
 instead of median. This allows us to see how transcript-level
 expression variability differs between groups for these genes.
 
-```{r top-transcripts-singleq-variance, fig.width=7, fig.height=4.5}
+```{r top-transcripts-singleq-variance, fig.width=10, fig.height=6.5}
 # Plot using variance aggregation
 p_var <- plot_top_transcripts(ts_se,
     res = res, top_n = 3, metric = "variance"
@@ -344,7 +343,7 @@ entropy values for each group and q value, allowing
 us to visually assess differences in diversity patterns
 between groups at different sensitivity levels.
 
-```{r plots-violin, fig.width=7, fig.height=4.5}
+```{r plots-violin, fig.width=10, fig.height=6.5}
 p_violin <- plot_tsallis_violin_multq(ts_se, assay_name = "diversity")
 print(p_violin)
 ```
@@ -354,7 +353,7 @@ distribution of Tsallis entropy values, showing the
 density of samples across the range of diversity
 values for each group and q value. 
 
-```{r plots-density, fig.width=7, fig.height=4.5}
+```{r plots-density, fig.width=10, fig.height=6.5}
 p_density <- plot_tsallis_density_multq(ts_se, assay_name = "diversity")
 print(p_density)
 ```
@@ -448,7 +447,7 @@ protein family expressed in the extracellular matrix, and closely
 associated with the development and occurrence of various 
 malignant tumors ([source](https://doi.org/10.1007/s00432-022-04421-3)).   
 
-```{r hapln3-gene-qprofile, fig.width=7, fig.height=4.5}
+```{r hapln3-gene-qprofile, fig.width=10, fig.height=6.5}
 # Plot q-curve profile for top linear-model gene
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "HAPLN3")
 print(plot_target)
@@ -458,7 +457,7 @@ Now let's look at `COL1A2`, encodes the pro-alpha2 chain of type
 I collagen, a fibril-forming collagen found in most connective
 tissues.
 
-```{r colia2-gene-qprofile, fig.width=7, fig.height=4.5}
+```{r colia2-gene-qprofile, fig.width=10, fig.height=6.5}
 # Plot q-curve profile for top linear-model gene
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "COL1A2")
 print(plot_target)
@@ -467,7 +466,7 @@ print(plot_target)
 Finally, we can visualize the gene `PI16`, which is emerging
 as an important regulator in the vascular system.
 
-```{r pi16-gene-qprofile, fig.width=7, fig.height=4.5}
+```{r pi16-gene-qprofile, fig.width=10, fig.height=6.5}
 # Plot q-curve profile for top linear-model gene
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PI16")
 print(plot_target)
@@ -478,7 +477,7 @@ plot provides a global view of how diversity changes across the `q`
 spectrum for the entire dataset and can reveal general trends in
 isoform diversity.
 
-```{r tsallis-q-curve, fig.width=7, fig.height=4.5}
+```{r tsallis-q-curve, fig.width=10, fig.height=6.5}
 # Plot top tsallis q curve
 p_qcurve <- plot_tsallis_q_curve(ts_se)
 print(p_qcurve)
