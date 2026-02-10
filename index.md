@@ -2,12 +2,12 @@
 
 TSENAT is an R package for quantifying and modelling the relative
 isoform-usage diversity across samples. It provides a complementary,
-“orthogonal” analytical method to standard differential-expression tools
-(for example, DESeq2), allowing the identification isoform switching and
-splicing-driven regulatory changes that may occur without pronounced
-changes in overall gene expression, enabling the detection of regulatory
-events which cannot be captured by count-based differential expression
-methods.
+*orthogonal* analytical method to standard differential-expression tools
+(for example, DESeq2), allowing the identification of isoform switching
+and splicing-driven regulatory changes that may occur without pronounced
+changes in overall gene expression, enabling thus the detection of
+regulatory events which cannot be captured by count-based differential
+expression methods.
 
 ## Overview
 
@@ -161,6 +161,12 @@ print(p_qcurve)
 
 For a detailed, reproducible workflow see the [package
 vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
+
+## Tests coverage
+
+Testing is vital in research as it ensures the validity and reliability
+of results, which is essential for accurately interpreting findings. The
+current testing coverage of the package is displayed Codecov badge.
 
 ## Citation
 

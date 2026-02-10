@@ -43,8 +43,8 @@ The input \`readcounts\` with rownames set to the transcript IDs.
 ## Examples
 
 ``` r
-readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c('s1', 's2')))
-tx2gene <- data.frame(Transcript = c('tx1', 'tx2'), Gene = c('g1', 'g2'), stringsAsFactors = FALSE)
+readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c("s1", "s2")))
+tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
 rc <- map_tx_to_readcounts(readcounts, tx2gene)
 rownames(rc)
 #> [1] "tx1" "tx2"

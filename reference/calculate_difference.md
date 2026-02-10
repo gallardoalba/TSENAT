@@ -117,10 +117,10 @@ applied.
 
 ``` r
 x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
+samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
 calculate_difference(x, samples,
-    control = 'Healthy', method = 'mean', test =
-        'wilcoxon'
+    control = "Healthy", method = "mean", test =
+        "wilcoxon"
 )
 #>    genes Pathogenic_mean Healthy_mean mean_difference log2_fold_change
 #> 1      a       0.3939888    0.4673230    -0.073334138      -0.24626521

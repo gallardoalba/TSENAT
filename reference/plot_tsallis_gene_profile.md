@@ -48,7 +48,7 @@ A \`ggplot\` object showing the gene q-curve profile by group.
 ## Examples
 
 ``` r
-mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1","g2"), c("s1_q=0.1","s1_q=1","s2_q=0.1","s2_q=1")))
+mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1", "g2"), c("s1_q=0.1", "s1_q=1", "s2_q=0.1", "s2_q=1")))
 se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
 plot_tsallis_gene_profile(se, gene = "g1")
 ```

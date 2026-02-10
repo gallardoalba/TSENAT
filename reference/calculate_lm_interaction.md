@@ -87,16 +87,16 @@ A data.frame with columns \`gene\`, \`p_interaction\`, and
 ## Examples
 
 ``` r
-data('tcga_brca_luma_dataset', package = 'TSENAT')
+data("tcga_brca_luma_dataset", package = "TSENAT")
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 # Provide a minimal sample-type mapping so the example runs during checks
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
-  row.names = colnames(se)
+    sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+    row.names = colnames(se)
 )
-calculate_lm_interaction(se, sample_type_col = 'sample_type')
+calculate_lm_interaction(se, sample_type_col = "sample_type")
 #> [calculate_lm_interaction] method=linear
 #> data frame with 0 columns and 0 rows
 ```

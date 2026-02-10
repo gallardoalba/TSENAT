@@ -80,12 +80,12 @@ underlying functions).
 
 ``` r
 mat <- matrix(rnorm(20), nrow = 5)
-samples <- rep(c('A','B'), length.out = ncol(mat))
-test_differential(mat, samples, control = 'A', method = 'wilcoxon')
+samples <- rep(c("A", "B"), length.out = ncol(mat))
+test_differential(mat, samples, control = "A", method = "wilcoxon")
 #>      raw_p_values adjusted_p_values
-#> [1,]    0.2452781         0.6131953
-#> [2,]    1.0000000         1.0000000
-#> [3,]    0.6985354         0.8731692
-#> [4,]    0.2452781         0.6131953
-#> [5,]    0.6985354         0.8731692
+#> [1,]    0.2452781         0.4087969
+#> [2,]    0.2452781         0.4087969
+#> [3,]    1.0000000         1.0000000
+#> [4,]    1.0000000         1.0000000
+#> [5,]    0.2452781         0.4087969
 ```

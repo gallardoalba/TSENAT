@@ -359,7 +359,7 @@ q <- c(0.1, 2)
 ts_se <- calculate_diversity(se,
     q = q, norm = TRUE
 )
-head(assay(ts_se)[1:4,1:3])
+head(assay(ts_se)[1:4, 1:3])
 #>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=2 TCGA-A7-A0CH_T_q=0.1
 #> MXRA8              0.8616275          0.6063802            0.6609111
 #> C1orf86            0.0000000          0.0000000            0.0000000
@@ -430,7 +430,7 @@ qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
     q = qvec, norm = TRUE
 )
-head(assay(ts_se)[1:4,1:3])
+head(assay(ts_se)[1:4, 1:3])
 #>         TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=0.15 TCGA-A7-A0CH_N_q=0.2
 #> MXRA8              0.8616275             0.8073925            0.7611249
 #> C1orf86            0.0000000             0.0000000            0.0000000
@@ -474,28 +474,23 @@ per-term inference is required (for example, the q:group interaction).
 if (requireNamespace("lme4", quietly = TRUE)) {
     # Compute and show top hits (by adjusted p-value)
     lm_res <- calculate_lm_interaction(ts_se,
-            sample_type_col = "sample_type", method = "lmm",
-            pvalue = "satterthwaite",
-            subject_col = "sample_base")
+        sample_type_col = "sample_type", method = "lmm",
+        pvalue = "satterthwaite",
+        subject_col = "sample_base")
     print(head(lm_res, 6))
 }
 #> [calculate_lm_interaction] method=lmm
 #> Warning in vcov.merMod(model): Computed variance-covariance matrix problem: not a positive definite matrix (and positive semidefiniteness is not checked);
 #> returning NA matrix
-#>      gene p_interaction         p_lrt p_satterthwaite fit_method singular
-#> 1  HAPLN3 2.319271e-111 2.139688e-111   2.319271e-111       lmer    FALSE
-#> 2  COL1A2  8.713853e-97  8.123588e-97    8.713853e-97       lmer    FALSE
-#> 3   EEF2K  3.093021e-87  2.903439e-87    3.093021e-87       lmer    FALSE
-#> 4 C1orf86  8.733394e-83  8.224552e-83    8.733394e-83       lmer    FALSE
-#> 5  LRRC15  7.474347e-79  7.058969e-79    7.474347e-79       lmer    FALSE
-#> 6    PI16  5.493773e-73  5.210643e-73    5.493773e-73       lmer    FALSE
-#>   adj_p_interaction
-#> 1     4.615350e-109
-#> 2      8.670284e-95
-#> 3      2.051704e-85
-#> 4      4.344863e-81
-#> 5      2.974790e-77
-#> 6      1.822101e-71
+#> class: SummarizedExperiment 
+#> dim: 6 1560 
+#> metadata(9): method norm ... sample_base_names samples
+#> assays(1): diversity
+#> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
+#> rowData names(7): genes p_interaction ... singular adj_p_interaction
+#> colnames(1560): TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=0.15 ...
+#>   TCGA-BH-A0BV_T_q=1.95 TCGA-BH-A0BV_T_q=2
+#> colData names(4): samples q sample_type sample_base
 ```
 
 ### Tsallis q-sequence plot
@@ -615,7 +610,7 @@ sessionInfo()
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
 #>  [4] htmlwidgets_1.6.4   lattice_0.22-7      numDeriv_2016.8-1.1
-#>  [7] Rdpack_2.6.5        vctrs_0.7.1         tools_4.5.2        
+#>  [7] Rdpack_2.6.6        vctrs_0.7.1         tools_4.5.2        
 #> [10] tibble_3.3.1        pkgconfig_2.0.3     Matrix_1.7-4       
 #> [13] RColorBrewer_1.1-3  S7_0.2.1            desc_1.4.3         
 #> [16] lifecycle_1.0.5     compiler_4.5.2      farver_2.1.2       
@@ -625,7 +620,7 @@ sessionInfo()
 #> [28] tidyr_1.3.2         MASS_7.3-65         DelayedArray_0.36.0
 #> [31] cachem_1.1.0        reformulas_0.4.4    boot_1.3-32        
 #> [34] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
-#> [37] dplyr_1.1.4         purrr_1.2.1         labeling_0.4.3     
+#> [37] dplyr_1.2.0         purrr_1.2.1         labeling_0.4.3     
 #> [40] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
 #> [43] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
 #> [46] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
