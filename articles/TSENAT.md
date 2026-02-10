@@ -477,20 +477,23 @@ if (requireNamespace("lme4", quietly = TRUE)) {
         sample_type_col = "sample_type", method = "lmm",
         pvalue = "satterthwaite",
         subject_col = "sample_base")
+    # show the top entries
     print(head(lm_res, 6))
 }
-#> [calculate_lm_interaction] method=lmm
-#> Warning in vcov.merMod(model): Computed variance-covariance matrix problem: not a positive definite matrix (and positive semidefiniteness is not checked);
-#> returning NA matrix
-#> class: SummarizedExperiment 
-#> dim: 6 1560 
-#> metadata(9): method norm ... sample_base_names samples
-#> assays(1): diversity
-#> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
-#> rowData names(7): genes p_interaction ... singular adj_p_interaction
-#> colnames(1560): TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=0.15 ...
-#>   TCGA-BH-A0BV_T_q=1.95 TCGA-BH-A0BV_T_q=2
-#> colData names(4): samples q sample_type sample_base
+#>      gene p_interaction         p_lrt p_satterthwaite fit_method singular
+#> 1  HAPLN3 2.319271e-111 2.139688e-111   2.319271e-111       lmer    FALSE
+#> 2  COL1A2  8.713853e-97  8.123588e-97    8.713853e-97       lmer    FALSE
+#> 3   EEF2K  3.093021e-87  2.903439e-87    3.093021e-87       lmer    FALSE
+#> 4 C1orf86  8.733394e-83  8.224552e-83    8.733394e-83       lmer    FALSE
+#> 5  LRRC15  7.474347e-79  7.058969e-79    7.474347e-79       lmer    FALSE
+#> 6    PI16  5.493773e-73  5.210643e-73    5.493773e-73       lmer    FALSE
+#>   adj_p_interaction
+#> 1     4.615350e-109
+#> 2      8.670284e-95
+#> 3      2.051704e-85
+#> 4      4.344863e-81
+#> 5      2.974790e-77
+#> 6      1.822101e-71
 ```
 
 ### Tsallis q-sequence plot

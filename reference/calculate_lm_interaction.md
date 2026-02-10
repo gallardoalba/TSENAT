@@ -20,7 +20,7 @@ calculate_lm_interaction(
   paired = FALSE,
   nthreads = 1,
   assay_name = "diversity",
-  verbose = TRUE
+  verbose = FALSE
 )
 ```
 
@@ -77,7 +77,7 @@ calculate_lm_interaction(
 - verbose:
 
   Logical; whether to print progress messages during execution (default:
-  TRUE).
+  FALSE).
 
 ## Value
 
@@ -97,6 +97,5 @@ SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
     row.names = colnames(se)
 )
 calculate_lm_interaction(se, sample_type_col = "sample_type")
-#> [calculate_lm_interaction] method=linear
 #> data frame with 0 columns and 0 rows
 ```

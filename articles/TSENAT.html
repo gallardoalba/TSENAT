@@ -491,20 +491,23 @@ interaction).</p>
 <span>        sample_type_col <span class="op">=</span> <span class="st">"sample_type"</span>, method <span class="op">=</span> <span class="st">"lmm"</span>,</span>
 <span>        pvalue <span class="op">=</span> <span class="st">"satterthwaite"</span>,</span>
 <span>        subject_col <span class="op">=</span> <span class="st">"sample_base"</span><span class="op">)</span></span>
+<span>    <span class="co"># show the top entries</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">lm_res</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; [calculate_lm_interaction] method=lmm</span></span>
-<span><span class="co">#&gt; Warning in vcov.merMod(model): Computed variance-covariance matrix problem: not a positive definite matrix (and positive semidefiniteness is not checked);</span></span>
-<span><span class="co">#&gt; returning NA matrix</span></span>
-<span><span class="co">#&gt; class: SummarizedExperiment </span></span>
-<span><span class="co">#&gt; dim: 6 1560 </span></span>
-<span><span class="co">#&gt; metadata(9): method norm ... sample_base_names samples</span></span>
-<span><span class="co">#&gt; assays(1): diversity</span></span>
-<span><span class="co">#&gt; rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213</span></span>
-<span><span class="co">#&gt; rowData names(7): genes p_interaction ... singular adj_p_interaction</span></span>
-<span><span class="co">#&gt; colnames(1560): TCGA-A7-A0CH_N_q=0.1 TCGA-A7-A0CH_N_q=0.15 ...</span></span>
-<span><span class="co">#&gt;   TCGA-BH-A0BV_T_q=1.95 TCGA-BH-A0BV_T_q=2</span></span>
-<span><span class="co">#&gt; colData names(4): samples q sample_type sample_base</span></span></code></pre></div>
+<span><span class="co">#&gt;      gene p_interaction         p_lrt p_satterthwaite fit_method singular</span></span>
+<span><span class="co">#&gt; 1  HAPLN3 2.319271e-111 2.139688e-111   2.319271e-111       lmer    FALSE</span></span>
+<span><span class="co">#&gt; 2  COL1A2  8.713853e-97  8.123588e-97    8.713853e-97       lmer    FALSE</span></span>
+<span><span class="co">#&gt; 3   EEF2K  3.093021e-87  2.903439e-87    3.093021e-87       lmer    FALSE</span></span>
+<span><span class="co">#&gt; 4 C1orf86  8.733394e-83  8.224552e-83    8.733394e-83       lmer    FALSE</span></span>
+<span><span class="co">#&gt; 5  LRRC15  7.474347e-79  7.058969e-79    7.474347e-79       lmer    FALSE</span></span>
+<span><span class="co">#&gt; 6    PI16  5.493773e-73  5.210643e-73    5.493773e-73       lmer    FALSE</span></span>
+<span><span class="co">#&gt;   adj_p_interaction</span></span>
+<span><span class="co">#&gt; 1     4.615350e-109</span></span>
+<span><span class="co">#&gt; 2      8.670284e-95</span></span>
+<span><span class="co">#&gt; 3      2.051704e-85</span></span>
+<span><span class="co">#&gt; 4      4.344863e-81</span></span>
+<span><span class="co">#&gt; 5      2.974790e-77</span></span>
+<span><span class="co">#&gt; 6      1.822101e-71</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="tsallis-q-sequence-plot">Tsallis q-sequence plot<a class="anchor" aria-label="anchor" href="#tsallis-q-sequence-plot"></a>
 </h3>
