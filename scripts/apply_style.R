@@ -21,19 +21,28 @@ result <- style_pkg(
     dry = "on"
 )
 
-# Debug: print result structure
-cat("Debug - Result class:", class(result), "\n")
-cat("Debug - Result structure:\n")
-str(result)
-cat("\n")
+# (No debug printing)
 
 # Check if any files needed styling
-# style_pkg returns TRUE if changes were needed, FALSE otherwise
+# Handle different return types from styler::style_pkg():
+# - older versions may return a single logical TRUE/FALSE
+# - with dry = "on" it returns a data.frame with a `changed` column
 if (isTRUE(result)) {
     cat("ERROR: Code style violations found!\n")
     cat("Please run 'Rscript scripts/apply_style.R' locally to fix styling.\n")
     quit(status = 1)
+} else if (is.data.frame(result)) {
+    # result is a data.frame with files and a logical `changed` column
+    if (any(result$changed, na.rm = TRUE)) {
+        cat("ERROR: Code style violations found!\n")
+        cat("Please run 'Rscript scripts/apply_style.R' locally to fix styling.\n")
+        quit(status = 1)
+    } else {
+        cat("All files are properly styled!\n")
+        quit(status = 0)
+    }
 } else if (is.list(result) && length(result) > 0) {
+    # Fallback: treat non-empty lists as potential violations
     cat("ERROR: Code style violations found!\n")
     cat("Please run 'Rscript scripts/apply_style.R' locally to fix styling.\n")
     quit(status = 1)
