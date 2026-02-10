@@ -70,7 +70,7 @@ Beyond computing diversity values, TSENAT enables group comparisons to identify 
 
 ## Installation
 
-Install from GitHub during development:
+Install from GitHub:
 
 ```r
 if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
