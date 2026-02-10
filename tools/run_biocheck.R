@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Run BiocCheck validation against Bioconductor standards
 #
-# Usage: Rscript scripts/run_bioccheck.R
+# Usage: Rscript tools/run_bioccheck.R
 
 tryCatch(
     {

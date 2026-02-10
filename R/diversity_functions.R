@@ -24,8 +24,10 @@
 #' @examples
 #' x <- c(10, 5, 0)
 #' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
-calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"),
-  log_base = exp(1)) {
+calculate_tsallis_entropy <- function(
+  x, q = 2, norm = TRUE, what = c("S", "D", "both"),
+  log_base = exp(1)
+) {
     what <- match.arg(what)
     if (!is.numeric(q)) {
         stop("q must be numeric.")

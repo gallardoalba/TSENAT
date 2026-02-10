@@ -1,13 +1,19 @@
 # Internal plot helpers
 
 .tsenat_format_label <- function(lbl) {
-    if (is.null(lbl)) return(NULL)
+    if (is.null(lbl)) {
+        return(NULL)
+    }
     s <- gsub("_", " ", lbl)
     s <- gsub("\\s+", " ", s)
     s <- trimws(s)
     s <- tolower(s)
-    if (nchar(s) == 0) return(s)
-    if (nchar(s) == 1) return(toupper(s))
+    if (nchar(s) == 0) {
+        return(s)
+    }
+    if (nchar(s) == 1) {
+        return(toupper(s))
+    }
     paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
 }
 

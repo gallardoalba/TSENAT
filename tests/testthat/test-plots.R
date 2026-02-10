@@ -511,8 +511,10 @@ test_that(".ptt_make_plot_for_gene returns ggplot object", {
 
 test_that(".ptt_combine_plots returns a plot-like object", {
     skip_if_not_installed("ggplot2")
-    p1 <- ggplot2::ggplot() + ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = 3:1))
-    p2 <- ggplot2::ggplot() + ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = c(1, 2, 3)))
+    p1 <- ggplot2::ggplot() +
+        ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = 3:1))
+    p2 <- ggplot2::ggplot() +
+        ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = c(1, 2, 3)))
     out <- TSENAT:::.ptt_combine_plots(list(p1, p2), output_file = NULL, agg_label_unique = "agg")
     expect_true(!is.null(out))
 })
@@ -722,36 +724,36 @@ test_that(".ptt_select_genes_from_res errors on NULL or missing genes", {
 })
 
 test_that(".ptt_select_genes_from_res sorts by adjusted or raw p-values and returns unique genes", {
-    res <- data.frame(genes = c('g1', 'g2', 'g1', 'g3'), adjusted_p_values = c(0.2, 0.01, 0.05, NA))
+    res <- data.frame(genes = c("g1", "g2", "g1", "g3"), adjusted_p_values = c(0.2, 0.01, 0.05, NA))
     sel <- .ptt_select_genes_from_res(res, top_n = 3)
-    expect_true(all(c('g2', 'g1') %in% sel))
+    expect_true(all(c("g2", "g1") %in% sel))
     expect_length(unique(sel), length(sel))
 
     # raw p-values fallback
-    res2 <- data.frame(genes = c('a','b','c'), raw_p_values = c(0.5, 0.1, 0.3))
+    res2 <- data.frame(genes = c("a", "b", "c"), raw_p_values = c(0.5, 0.1, 0.3))
     sel2 <- .ptt_select_genes_from_res(res2, top_n = 2)
-    expect_equal(sel2, c('b','c'))
+    expect_equal(sel2, c("b", "c"))
 })
 
 # .ptt_infer_samples_from_coldata
 test_that(".ptt_infer_samples_from_coldata handles row-named coldata and Sample id column", {
     counts <- matrix(1:6, nrow = 2)
-    colnames(counts) <- c('S1','S2','S3')[1:ncol(counts)]
+    colnames(counts) <- c("S1", "S2", "S3")[1:ncol(counts)]
 
-    cdf <- data.frame(sample_type = c('A','B','A'), stringsAsFactors = FALSE)
-    rownames(cdf) <- c('S1','S2','S3')
-    out <- .ptt_infer_samples_from_coldata(cdf, counts, 'sample_type')
-    expect_equal(out, c('A','B','A')[1:ncol(counts)])
+    cdf <- data.frame(sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
+    rownames(cdf) <- c("S1", "S2", "S3")
+    out <- .ptt_infer_samples_from_coldata(cdf, counts, "sample_type")
+    expect_equal(out, c("A", "B", "A")[1:ncol(counts)])
 
     # use Sample id column
-    cdf2 <- data.frame(Sample = c('S1','S2','S3'), sample_type = c('A','B','A'), stringsAsFactors = FALSE)
-    out2 <- .ptt_infer_samples_from_coldata(cdf2, counts, 'sample_type')
-    expect_equal(out2, c('A','B','A')[1:ncol(counts)])
+    cdf2 <- data.frame(Sample = c("S1", "S2", "S3"), sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
+    out2 <- .ptt_infer_samples_from_coldata(cdf2, counts, "sample_type")
+    expect_equal(out2, c("A", "B", "A")[1:ncol(counts)])
 
     # mismatched sample ids should error
-    cdf_bad <- data.frame(Sample = c('X','Y','Z'), sample_type = c('A','B','A'), stringsAsFactors = FALSE)
-    expect_error(.ptt_infer_samples_from_coldata(cdf_bad, counts, 'sample_type'), "coldata sample id column does not match")
-    expect_error(.ptt_infer_samples_from_coldata(123, counts, 'sample_type'), "must be a data.frame or path")
+    cdf_bad <- data.frame(Sample = c("X", "Y", "Z"), sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
+    expect_error(.ptt_infer_samples_from_coldata(cdf_bad, counts, "sample_type"), "coldata sample id column does not match")
+    expect_error(.ptt_infer_samples_from_coldata(123, counts, "sample_type"), "must be a data.frame or path")
 })
 
 # .ptt_read_tx2gene
@@ -761,77 +763,77 @@ test_that(".ptt_read_tx2gene validates inputs and reads mapping", {
     bad <- data.frame(X = 1:2)
     expect_error(.ptt_read_tx2gene(bad), "tx2gene must have columns 'Transcript' and 'Gen'")
 
-    good <- data.frame(Transcript = c('t1','t2'), Gen = c('g1','g1'), stringsAsFactors = FALSE)
+    good <- data.frame(Transcript = c("t1", "t2"), Gen = c("g1", "g1"), stringsAsFactors = FALSE)
     out <- .ptt_read_tx2gene(good)
     expect_equal(out, good)
 
-    tf <- tempfile(fileext = '.tsv')
-    write.table(good, file = tf, sep = '\t', row.names = FALSE, quote = FALSE)
+    tf <- tempfile(fileext = ".tsv")
+    write.table(good, file = tf, sep = "\t", row.names = FALSE, quote = FALSE)
     outf <- .ptt_read_tx2gene(tf)
     expect_true(is.data.frame(outf))
     unlink(tf)
-    expect_error(.ptt_read_tx2gene('no_such_file.tsv'), "tx2gene file not found")
+    expect_error(.ptt_read_tx2gene("no_such_file.tsv"), "tx2gene file not found")
 })
 
 # .ptt_make_agg
 test_that(".ptt_make_agg returns an aggregation function and label", {
-    maj <- .ptt_make_agg('median')
-    expect_equal(maj$metric_choice, 'median')
+    maj <- .ptt_make_agg("median")
+    expect_equal(maj$metric_choice, "median")
     expect_true(is.function(maj$agg_fun))
-    expect_true(grepl('median', maj$agg_label_unique, ignore.case = TRUE))
+    expect_true(grepl("median", maj$agg_label_unique, ignore.case = TRUE))
 
-    m2 <- .ptt_make_agg('iqr')
-    expect_equal(m2$metric_choice, 'iqr')
-    expect_true(grepl('IQR', m2$agg_label_unique))
+    m2 <- .ptt_make_agg("iqr")
+    expect_equal(m2$metric_choice, "iqr")
+    expect_true(grepl("IQR", m2$agg_label_unique))
 })
 
 # .ptt_build_tx_long and .ptt_aggregate_df_long
 test_that(".ptt_build_tx_long and aggregation pipeline works and errors appropriately", {
     counts <- matrix(1:12, nrow = 4)
-    rownames(counts) <- paste0('tx',1:4)
-    colnames(counts) <- paste0('S',1:3)
-    mapping <- data.frame(Transcript = paste0('tx',1:4), Gen = c('G1','G1','G2','G2'), stringsAsFactors = FALSE)
-    samples <- c('A','B','A')
+    rownames(counts) <- paste0("tx", 1:4)
+    colnames(counts) <- paste0("S", 1:3)
+    mapping <- data.frame(Transcript = paste0("tx", 1:4), Gen = c("G1", "G1", "G2", "G2"), stringsAsFactors = FALSE)
+    samples <- c("A", "B", "A")
 
-    expect_error(.ptt_build_tx_long('NOPE', mapping, counts, samples, top_n = NULL), 'No transcripts found')
+    expect_error(.ptt_build_tx_long("NOPE", mapping, counts, samples, top_n = NULL), "No transcripts found")
 
-    res <- .ptt_build_tx_long('G1', mapping, counts, samples, top_n = 1)
+    res <- .ptt_build_tx_long("G1", mapping, counts, samples, top_n = 1)
     expect_true(is.list(res))
-    expect_true(all(c('df_long','txs') %in% names(res)))
+    expect_true(all(c("df_long", "txs") %in% names(res)))
     expect_equal(length(unique(res$df_long$tx)), length(res$txs))
 
     summ <- .ptt_aggregate_df_long(res$df_long, agg_fun = function(x) mean(x, na.rm = TRUE), pseudocount = 0.1)
-    expect_true('log2expr' %in% colnames(summ))
+    expect_true("log2expr" %in% colnames(summ))
     expect_true(is.factor(summ$tx))
 })
 
 # .ptt_build_plot_from_summary and combine functions
 test_that(".ptt_build_plot_from_summary generates ggplot and combine functions operate", {
-    skip_if_not_installed('ggplot2')
-    p <- .ptt_build_plot_from_summary(data.frame(tx = factor(c('a','b')), group = c('A','B'), log2expr = c(1,2)), 'Label')
-    expect_s3_class(p, 'gg')
+    skip_if_not_installed("ggplot2")
+    p <- .ptt_build_plot_from_summary(data.frame(tx = factor(c("a", "b")), group = c("A", "B"), log2expr = c(1, 2)), "Label")
+    expect_s3_class(p, "gg")
 
     # patchwork combine
-    if (rlang::is_installed('patchwork')) {
-        skip_if_not_installed('patchwork')
+    if (rlang::is_installed("patchwork")) {
+        skip_if_not_installed("patchwork")
         p2 <- p + p
-        combined <- .ptt_combine_patchwork(list(p, p), 'Label')
-        expect_true(inherits(combined, 'patchwork'))
+        combined <- .ptt_combine_patchwork(list(p, p), "Label")
+        expect_true(inherits(combined, "patchwork"))
     }
 
-    if (rlang::is_installed('cowplot')) {
-        skip_if_not_installed('cowplot')
-        outp <- .ptt_combine_cowplot(list(p, p), output_file = NULL, agg_label_unique = 'Label')
-        expect_true(inherits(outp, 'gtable') || inherits(outp, 'ggplot') || inherits(outp, 'grob'))
+    if (rlang::is_installed("cowplot")) {
+        skip_if_not_installed("cowplot")
+        outp <- .ptt_combine_cowplot(list(p, p), output_file = NULL, agg_label_unique = "Label")
+        expect_true(inherits(outp, "gtable") || inherits(outp, "ggplot") || inherits(outp, "grob"))
     }
 
-    if (rlang::is_installed('grid')) {
-        skip_if_not_installed('grid')
+    if (rlang::is_installed("grid")) {
+        skip_if_not_installed("grid")
         # .ptt_combine_grid returns invisibly NULL when not writing file and should not
         # create an Rplots.pdf in the working directory
-        rpf <- 'Rplots.pdf'
+        rpf <- "Rplots.pdf"
         if (file.exists(rpf)) unlink(rpf)
-        res_grid <- .ptt_combine_grid(list(p, p), output_file = NULL, agg_label_unique = 'Label')
+        res_grid <- .ptt_combine_grid(list(p, p), output_file = NULL, agg_label_unique = "Label")
         expect_null(res_grid)
         expect_false(file.exists(rpf))
     }
@@ -842,73 +844,73 @@ context("plot_helpers extras")
 library(testthat)
 
 test_that(".tsenat_format_label handles various inputs", {
-  expect_null(.tsenat_format_label(NULL))
-  expect_equal(.tsenat_format_label("__FOO_bar  "), "Foo bar")
-  expect_equal(.tsenat_format_label(" a "), "A")
-  expect_equal(.tsenat_format_label("   "), "")
-  expect_equal(.tsenat_format_label("SINGLE"), "Single")
+    expect_null(.tsenat_format_label(NULL))
+    expect_equal(.tsenat_format_label("__FOO_bar  "), "Foo bar")
+    expect_equal(.tsenat_format_label(" a "), "A")
+    expect_equal(.tsenat_format_label("   "), "")
+    expect_equal(.tsenat_format_label("SINGLE"), "Single")
 })
 
 test_that(".tsenat_prepare_ma_plot_df handles mean_cols length >=2 and significance detection", {
-  df <- data.frame(genes = c('g1', 'g2', 'g3'), meanA = c(1,2,3), meanB = c(1.5, 1.5, 1.5), log2fc = c(0, 1.2, -0.5), padj = c(0.2, 0.01, NA), stringsAsFactors = FALSE)
-  res <- .tsenat_prepare_ma_plot_df(df, fold_col = 'log2fc', mean_cols = c('meanA', 'meanB'), x_label = NULL, y_label = 'Log2FC')
-  expect_is(res, 'list')
-  # when mean_cols length>=2 and x_label is NULL, default to 'meanA vs meanB'
-  expect_equal(res$x_label, 'meanA vs meanB')
-  expect_true('plot_df' %in% names(res))
-  expect_equal(nrow(res$plot_df), 3)
-  # gene 2 should be significant (abs(y)>0 and padj<0.05)
-  sig <- res$plot_df$significant
-  expect_equal(sig, c('non-significant', 'significant', 'non-significant'))
+    df <- data.frame(genes = c("g1", "g2", "g3"), meanA = c(1, 2, 3), meanB = c(1.5, 1.5, 1.5), log2fc = c(0, 1.2, -0.5), padj = c(0.2, 0.01, NA), stringsAsFactors = FALSE)
+    res <- .tsenat_prepare_ma_plot_df(df, fold_col = "log2fc", mean_cols = c("meanA", "meanB"), x_label = NULL, y_label = "Log2FC")
+    expect_is(res, "list")
+    # when mean_cols length>=2 and x_label is NULL, default to 'meanA vs meanB'
+    expect_equal(res$x_label, "meanA vs meanB")
+    expect_true("plot_df" %in% names(res))
+    expect_equal(nrow(res$plot_df), 3)
+    # gene 2 should be significant (abs(y)>0 and padj<0.05)
+    sig <- res$plot_df$significant
+    expect_equal(sig, c("non-significant", "significant", "non-significant"))
 })
 
 test_that(".tsenat_prepare_ma_plot_df handles single mean col and fallback mean/index", {
-  df1 <- data.frame(genes = c('g1','g2'), m = c(5,6), fc = c(0,2), stringsAsFactors = FALSE)
-  r1 <- .tsenat_prepare_ma_plot_df(df1, fold_col = 'fc', mean_cols = c('m'), x_label = NULL, y_label = NULL)
-  expect_equal(r1$x_label, 'm')
-  expect_equal(r1$plot_df$x, as.numeric(c(5,6)))
+    df1 <- data.frame(genes = c("g1", "g2"), m = c(5, 6), fc = c(0, 2), stringsAsFactors = FALSE)
+    r1 <- .tsenat_prepare_ma_plot_df(df1, fold_col = "fc", mean_cols = c("m"), x_label = NULL, y_label = NULL)
+    expect_equal(r1$x_label, "m")
+    expect_equal(r1$plot_df$x, as.numeric(c(5, 6)))
 
-  df2 <- data.frame(genes = c('g1','g2'), mean = c(3,4), fc = c(1, 0), stringsAsFactors = FALSE)
-  r2 <- .tsenat_prepare_ma_plot_df(df2, fold_col = 'fc', mean_cols = character(0), x_label = NULL, y_label = NULL)
-  expect_equal(r2$x_label, 'Mean')
+    df2 <- data.frame(genes = c("g1", "g2"), mean = c(3, 4), fc = c(1, 0), stringsAsFactors = FALSE)
+    r2 <- .tsenat_prepare_ma_plot_df(df2, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
+    expect_equal(r2$x_label, "Mean")
 
-  df3 <- data.frame(genes = c('g1','g2'), fc = c(1, 2), stringsAsFactors = FALSE)
-  r3 <- .tsenat_prepare_ma_plot_df(df3, fold_col = 'fc', mean_cols = character(0), x_label = NULL, y_label = NULL)
-  expect_equal(r3$x_label, 'Index')
-  expect_equal(r3$plot_df$x, c(1,2))
+    df3 <- data.frame(genes = c("g1", "g2"), fc = c(1, 2), stringsAsFactors = FALSE)
+    r3 <- .tsenat_prepare_ma_plot_df(df3, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
+    expect_equal(r3$x_label, "Index")
+    expect_equal(r3$plot_df$x, c(1, 2))
 })
 
 
 test_that(".tsenat_prepare_volcano_df detects _difference column and formats labels", {
-  df <- data.frame(gene = c('a','b','c'), median_difference = c(0.2, -0.5, 0.6), adjusted_p_values = c(0.2, 0.01, 0.001), stringsAsFactors = FALSE)
-  res <- .tsenat_prepare_volcano_df(df)
-  expect_equal(res$x_col, 'median_difference')
-  expect_equal(res$padj_col, 'adjusted_p_values')
-  expect_true('df' %in% names(res))
-  expect_match(res$x_label_formatted, 'Median')
-  expect_match(res$padj_label_formatted, 'Adjusted p values|Adjusted p values')
+    df <- data.frame(gene = c("a", "b", "c"), median_difference = c(0.2, -0.5, 0.6), adjusted_p_values = c(0.2, 0.01, 0.001), stringsAsFactors = FALSE)
+    res <- .tsenat_prepare_volcano_df(df)
+    expect_equal(res$x_col, "median_difference")
+    expect_equal(res$padj_col, "adjusted_p_values")
+    expect_true("df" %in% names(res))
+    expect_match(res$x_label_formatted, "Median")
+    expect_match(res$padj_label_formatted, "Adjusted p values|Adjusted p values")
 })
 
 test_that(".tsenat_prepare_volcano_df errors for missing columns and empty data", {
-  df <- data.frame(g = 1:3, something = letters[1:3], stringsAsFactors = FALSE)
-  # Because 'g' is numeric it will be chosen as x_col but the default padj
-  # column 'adjusted_p_values' is missing and an informative error is raised
-  expect_error(.tsenat_prepare_volcano_df(df), "Column 'adjusted_p_values' not found")
+    df <- data.frame(g = 1:3, something = letters[1:3], stringsAsFactors = FALSE)
+    # Because 'g' is numeric it will be chosen as x_col but the default padj
+    # column 'adjusted_p_values' is missing and an informative error is raised
+    expect_error(.tsenat_prepare_volcano_df(df), "Column 'adjusted_p_values' not found")
 
-  df2 <- data.frame(x = c(NA, Inf), adjusted_p_values = c(NA, NA), stringsAsFactors = FALSE)
-  expect_error(.tsenat_prepare_volcano_df(df2, x_col = 'x'), "No valid points to plot")
+    df2 <- data.frame(x = c(NA, Inf), adjusted_p_values = c(NA, NA), stringsAsFactors = FALSE)
+    expect_error(.tsenat_prepare_volcano_df(df2, x_col = "x"), "No valid points to plot")
 
-  df3 <- data.frame(x = c(1,2), adj = c(0.01, 0.02), stringsAsFactors = FALSE)
-  expect_error(.tsenat_prepare_volcano_df(df3, x_col = 'x', padj_col = 'nope'), "Column 'nope' not found")
+    df3 <- data.frame(x = c(1, 2), adj = c(0.01, 0.02), stringsAsFactors = FALSE)
+    expect_error(.tsenat_prepare_volcano_df(df3, x_col = "x", padj_col = "nope"), "Column 'nope' not found")
 })
 
 test_that(".tsenat_prepare_volcano_df handles padj <=0 and signficance logic", {
-  df <- data.frame(g = 1:4, value = c(0.2, 0.5, -0.2, 1), adjusted_p_values = c(0, 1e-10, 0.5, 0.001), stringsAsFactors = FALSE)
-  res <- .tsenat_prepare_volcano_df(df, x_col = 'value')
-  expect_true(all(res$df$padj > 0))
-  # label_thresh default 0.1: check significance assignment
-  sig <- res$df$significant
-  expect_equal(sig, ifelse(abs(res$df$xval) >= 0.1 & res$df$padj < 0.05, 'significant', 'non-significant'))
+    df <- data.frame(g = 1:4, value = c(0.2, 0.5, -0.2, 1), adjusted_p_values = c(0, 1e-10, 0.5, 0.001), stringsAsFactors = FALSE)
+    res <- .tsenat_prepare_volcano_df(df, x_col = "value")
+    expect_true(all(res$df$padj > 0))
+    # label_thresh default 0.1: check significance assignment
+    sig <- res$df$significant
+    expect_equal(sig, ifelse(abs(res$df$xval) >= 0.1 & res$df$padj < 0.05, "significant", "non-significant"))
 })
 
 skip_on_bioc()
@@ -1023,8 +1025,10 @@ test_that(".ptt_combine_grid writes a PNG file when output_file is given", {
     library(ggplot2)
 
     df <- data.frame(x = 1:3, y = rnorm(3))
-    p1 <- ggplot(df, ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
-    p2 <- ggplot(df, ggplot2::aes(x = x, y = -y)) + ggplot2::geom_point()
+    p1 <- ggplot(df, ggplot2::aes(x = x, y = y)) +
+        ggplot2::geom_point()
+    p2 <- ggplot(df, ggplot2::aes(x = x, y = -y)) +
+        ggplot2::geom_point()
 
     tf <- tempfile(fileext = ".png")
     # call grid combiner directly

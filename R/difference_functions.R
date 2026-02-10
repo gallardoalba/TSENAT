@@ -54,10 +54,14 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
     log2fc_vec <- log2(value[, 1] / value[, 2])
     log2fc_vec[na_mask] <- NA
 
-    result <- data.frame(value, difference = diff_vec, log2_fold_change = log2fc_vec,
-        check.names = FALSE, stringsAsFactors = FALSE)
-    colnames(result) <- c(paste(sorted[1, 1], "_", method, sep = ""), paste(sorted[2,
-        1], "_", method, sep = ""), paste(method, "_difference", sep = ""), "log2_fold_change")
+    result <- data.frame(value,
+        difference = diff_vec, log2_fold_change = log2fc_vec,
+        check.names = FALSE, stringsAsFactors = FALSE
+    )
+    colnames(result) <- c(paste(sorted[1, 1], "_", method, sep = ""), paste(sorted[
+        2,
+        1
+    ], "_", method, sep = ""), paste(method, "_difference", sep = ""), "log2_fold_change")
     return(result)
 }
 
@@ -102,11 +106,14 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
             warning = function(w) {
                 # swallow specific warnings but return NA on unusual states
                 NA_real_
-            })
+            }
+        )
     }
 
-    raw_p_values <- ifelse(is.na(vapply(p_values, c, numeric(1))), 1, vapply(p_values,
-        c, numeric(1)))
+    raw_p_values <- ifelse(is.na(vapply(p_values, c, numeric(1))), 1, vapply(
+        p_values,
+        c, numeric(1)
+    ))
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     out <- cbind(raw_p_values, adjusted_p_values)
     colnames(out) <- c("raw_p_values", "adjusted_p_values")
@@ -143,8 +150,10 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 #' @note The permutation test returns two-sided empirical p-values using a
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
-label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
-  paired = FALSE, paired_method = c("swap", "signflip")) {
+label_shuffling <- function(
+  x, samples, control, method, randomizations = 100, pcorr = "BH",
+  paired = FALSE, paired_method = c("swap", "signflip")
+) {
     paired_method <- match.arg(paired_method)
     # observed log2 fold changes
     log2_fc <- calculate_fc(x, samples, control, method)[, 4]
@@ -153,8 +162,10 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     if (isTRUE(paired)) {
         perm_mat <- .tsenat_permute_paired(x = x, samples = samples, control = control, method = method, randomizations = randomizations, paired_method = paired_method)
     } else {
-        permuted <- replicate(randomizations, calculate_fc(x, sample(samples), control,
-            method), simplify = FALSE)
+        permuted <- replicate(randomizations, calculate_fc(
+            x, sample(samples), control,
+            method
+        ), simplify = FALSE)
         # each element is a data.frame/matrix; extract log2_fold_change column
         # (4th column)
         perm_mat <- vapply(permuted, function(z) as.numeric(z[, 4]), numeric(nrow(x)))
@@ -212,9 +223,13 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #'
 #' @param paired_method Character; forwarded to `label_shuffling()` when
 #'   `method = 'shuffle'`. See `label_shuffling()` for details.
-test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
-      "shuffle"), fc_method = "mean", paired = FALSE, exact = FALSE, randomizations = 100,
-  pcorr = "BH", seed = 123L, paired_method = c("swap", "signflip")) {
+test_differential <- function(
+  x, samples, control = NULL, method = c(
+      "wilcoxon",
+      "shuffle"
+  ), fc_method = "mean", paired = FALSE, exact = FALSE, randomizations = 100,
+  pcorr = "BH", seed = 123L, paired_method = c("swap", "signflip")
+) {
     paired_method <- match.arg(paired_method)
     method <- match.arg(method)
     if (method == "wilcoxon") {
@@ -233,6 +248,8 @@ test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
         # permutation tests without permanently modifying the global RNG.
         withr::local_seed(as.integer(seed))
     }
-    return(label_shuffling(x, samples, control, fc_method, randomizations = randomizations,
-        pcorr = pcorr, paired = paired, paired_method = paired_method))
+    return(label_shuffling(x, samples, control, fc_method,
+        randomizations = randomizations,
+        pcorr = pcorr, paired = paired, paired_method = paired_method
+    ))
 }

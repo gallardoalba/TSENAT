@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Run package test suite using testthat
 #
-# Usage: Rscript scripts/run_tests.R
+# Usage: Rscript tools/run_tests.R
 
 tryCatch(
     {

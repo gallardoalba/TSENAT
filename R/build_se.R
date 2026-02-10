@@ -57,8 +57,10 @@ build_se <- function(tx2gene_tsv, readcounts, genes, assay_name = "counts") {
     if (is.null(rn)) {
         SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(genes = genes)
     } else {
-        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(genes = genes,
-            row.names = rn)
+        SummarizedExperiment::rowData(se) <- S4Vectors::DataFrame(
+            genes = genes,
+            row.names = rn
+        )
     }
 
     return(se)

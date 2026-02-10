@@ -43,8 +43,10 @@
     }
 
     if (tpm == TRUE && !is.list(x) && verbose == TRUE) {
-        message("Note: tpm as a logical argument is only interpreted in case of",
-            " tximport lists.")
+        message(
+            "Note: tpm as a logical argument is only interpreted in case of",
+            " tximport lists."
+        )
     }
 
     se_assay_mat <- NULL
@@ -59,8 +61,10 @@
         } else if (is(x, "DGEList")) {
             x <- as.matrix(x$counts)
             if (verbose == TRUE) {
-                message("Note: calculate_diversity methods are only applicable",
-                    " if your DGEList contains transcript-level expression", " data.")
+                message(
+                    "Note: calculate_diversity methods are only applicable",
+                    " if your DGEList contains transcript-level expression", " data."
+                )
             }
             if (tpm == TRUE && verbose == TRUE) {
                 message("Note: tpm as a logical argument is only interpreted", " in case of tximport lists.")
@@ -98,8 +102,10 @@
                 } else {
                     colnames(txmap)[2]
                 }
-                genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat),
-                    txmap[[tx_col]])])
+                genes <- as.character(txmap[[gene_col]][match(
+                    rownames(se_assay_mat),
+                    txmap[[tx_col]]
+                )])
                 rownames(x) <- NULL
             } else {
                 genes <- rownames(x)
@@ -110,7 +116,8 @@
 
             if (is.null(genes)) {
                 stop("Please construct a valid gene set for your ", "SummarizedExperiment.",
-                    call. = FALSE)
+                    call. = FALSE
+                )
             }
         }
     }

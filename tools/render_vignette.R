@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Render a specific vignette to HTML and PDF formats
 #
-# Usage: Rscript scripts/render_vignette.R [vignette_file]
+# Usage: Rscript tools/render_vignette.R [vignette_file]
 #        (defaults to vignettes/TSENAT.Rmd)
 
 tryCatch(

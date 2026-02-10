@@ -59,9 +59,11 @@
 #'     control = "Healthy", method = "mean", test =
 #'         "wilcoxon"
 #' )
-calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
+calculate_difference <- function(
+  x, samples = NULL, control, method = "mean", test = "wilcoxon",
   randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
-  exact = FALSE, pseudocount = 0) {
+  exact = FALSE, pseudocount = 0
+) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
@@ -71,7 +73,8 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
                     samples_col <- "sample_type"
                 } else {
                     stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
-                        call. = FALSE)
+                        call. = FALSE
+                    )
                 }
             } else {
                 if (length(samples) != 1) {
@@ -103,8 +106,10 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     if (is.matrix(x)) {
         stop("Input type unsupported; see ?calculate_difference.", call. = FALSE)
     }
-    if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || inherits(x,
-        "SummarizedExperiment"))) {
+    if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || inherits(
+        x,
+        "SummarizedExperiment"
+    ))) {
         stop("Input data type not supported; see ?calculate_difference.", call. = FALSE)
     }
 
@@ -131,8 +136,10 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 
     if (nrow(df_keep) > 0) {
         if (nrow(df_small) > 0 && verbose) {
-            message(sprintf("Note: %d genes excluded due to low sample counts.",
-                nrow(df_small)))
+            message(sprintf(
+                "Note: %d genes excluded due to low sample counts.",
+                nrow(df_small)
+            ))
         }
         ymat <- sample_matrix(df_keep)
         # p-value calculation
@@ -141,18 +148,26 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
             # wilcoxon should return a data.frame of p-values named
             # appropriately
         } else {
-            ptab <- label_shuffling(ymat, samples, control, method, randomizations = randomizations,
-                pcorr = pcorr, paired = paired)
+            ptab <- label_shuffling(ymat, samples, control, method,
+                randomizations = randomizations,
+                pcorr = pcorr, paired = paired
+            )
         }
         result_list$tested <- data.frame(genes = df_keep[, 1], calculate_fc(ymat,
-            samples, control, method, pseudocount = pseudocount), ptab, stringsAsFactors = FALSE)
+            samples, control, method,
+            pseudocount = pseudocount
+        ), ptab, stringsAsFactors = FALSE)
     }
 
     if (nrow(df_small) > 0) {
         small_mat <- sample_matrix(df_small)
-        result_list$small <- data.frame(genes = df_small[, 1], calculate_fc(small_mat,
-            samples, control, method, pseudocount = pseudocount), raw_p_values = NA,
-        adjusted_p_values = NA, stringsAsFactors = FALSE)
+        result_list$small <- data.frame(
+            genes = df_small[, 1], calculate_fc(small_mat,
+                samples, control, method,
+                pseudocount = pseudocount
+            ), raw_p_values = NA,
+            adjusted_p_values = NA, stringsAsFactors = FALSE
+        )
     }
 
     # Combine results preserving tested rows first
@@ -210,9 +225,13 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #'     row.names = colnames(se)
 #' )
 #' calculate_lm_interaction(se, sample_type_col = "sample_type")
-calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, method = c("linear",
-      "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-  paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE) {
+calculate_lm_interaction <- function(
+  se, sample_type_col = NULL, min_obs = 10, method = c(
+      "linear",
+      "lmm", "gam", "fpca"
+  ), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+  paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE
+) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) {
@@ -243,7 +262,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
     }
     if (!all(has_q)) {
         stop("Some column names are missing '_q='; ensure all diversity columns include a q value",
-            call. = FALSE)
+            call. = FALSE
+        )
     }
     q_vals <- as.numeric(sub(".*_q=", "", sample_q))
 
@@ -258,7 +278,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
     } else {
         stop("No sample grouping found: please supply `sample_type_col` or map sample",
             "types into `colData(se)` before calling calculate_lm_interaction().",
-            call. = FALSE)
+            call. = FALSE
+        )
     }
 
     if (verbose && progress) {

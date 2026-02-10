@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Bump package version in DESCRIPTION, NEWS.md, and _pkgdown.yml
 #
-# Usage: Rscript scripts/bump_version.R [major|minor|patch]
+# Usage: Rscript tools/bump_version.R [major|minor|patch]
 #        Default: patch
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -9,7 +9,7 @@ bump_type <- if (length(args) > 0) args[1] else "patch"
 
 if (!(bump_type %in% c("major", "minor", "patch"))) {
     cat("✗ Invalid bump type:", bump_type, "\n")
-    cat("  Usage: Rscript scripts/bump_version.R [major|minor|patch]\n")
+    cat("  Usage: Rscript tools/bump_version.R [major|minor|patch]\n")
     quit(status = 1)
 }
 

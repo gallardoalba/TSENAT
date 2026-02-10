@@ -22,8 +22,8 @@ test_that("scale-aware pseudocount replaces non-positive group summaries", {
     # gene1: Normal means = 0, Tumor means = 4
     # gene2: Normal means = 2, Tumor means = 4
     mat <- matrix(c(
-        0, 0, 4, 4,  # gene1
-        2, 2, 4, 4   # gene2
+        0, 0, 4, 4, # gene1
+        2, 2, 4, 4 # gene2
     ), byrow = TRUE, nrow = 2)
     rownames(mat) <- c("gene1", "gene2")
 

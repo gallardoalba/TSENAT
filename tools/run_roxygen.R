@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Regenerate documentation from roxygen2 comments
 #
-# Usage: Rscript scripts/run_roxygen.R
+# Usage: Rscript tools/run_roxygen.R
 
 tryCatch(
     {

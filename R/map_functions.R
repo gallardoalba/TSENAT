@@ -34,8 +34,10 @@
 #' map_metadata(se, coldata_df)
 #' # Optionally validate pairs when appropriate
 #' map_metadata(se, coldata_df, paired = TRUE)
-map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition",
-  paired = FALSE) {
+map_metadata <- function(
+  ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition",
+  paired = FALSE
+) {
     if (is.null(coldata)) {
         return(ts_se)
     }
@@ -62,8 +64,10 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
         if (length(bad) > 0) {
             bad_list <- paste(bad, collapse = ", ")
             cond_list <- paste(conds, collapse = ", ")
-            msg <- paste0("Unpaired samples found in coldata for bases: ", bad_list,
-                ". Ensure each base has all conditions: ", cond_list)
+            msg <- paste0(
+                "Unpaired samples found in coldata for bases: ", bad_list,
+                ". Ensure each base has all conditions: ", cond_list
+            )
             stop(msg, call. = FALSE)
         }
     }
@@ -117,9 +121,12 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
     missing_idx <- which(is.na(sample_types))
     if (length(missing_idx) > 0) {
         missing_samples <- sample_base_names[missing_idx]
-        msg <- paste0("map_metadata: unmatched samples in 'coldata': ", paste(missing_samples,
-            collapse = ", "), ". Provide matching entries in 'coldata' or populate ",
-        "colData(ts_se)$sample_type beforehand.")
+        msg <- paste0(
+            "map_metadata: unmatched samples in 'coldata': ", paste(missing_samples,
+                collapse = ", "
+            ), ". Provide matching entries in 'coldata' or populate ",
+            "colData(ts_se)$sample_type beforehand."
+        )
         stop(msg, call. = FALSE)
     }
     SummarizedExperiment::colData(ts_se)$sample_type <- sample_types
@@ -189,8 +196,10 @@ map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_
 
 # Map sample names (without '_q=...') to group labels using `colData(se)`.
 # Mapping must be provided via `colData(se)`; no inference fallback is used.
-map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL,
-  mat = NULL) {
+map_samples_to_group <- function(
+  sample_names, se = NULL, sample_type_col = NULL,
+  mat = NULL
+) {
     # Prefer explicit mapping from colData(se)[, sample_type_col] when
     # provided. If `sample_type_col` is not provided, allow a single- condition
     # dataset by assigning a single default group 'Group' to all samples (this
@@ -214,14 +223,17 @@ map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL
     missing_idx <- which(is.na(mapped))
     if (length(missing_idx) > 0) {
         stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_names[missing_idx]),
-            collapse = ", ")))
+            collapse = ", "
+        )))
     }
     mapped
 }
 
 # Prepare a long-format data.frame for a simple assay (one value per sample)
-get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
-  sample_type_col = NULL) {
+get_assay_long <- function(
+  se, assay_name = "diversity", value_name = "diversity",
+  sample_type_col = NULL
+) {
     if (!requireNamespace("tidyr", quietly = TRUE)) {
         stop("tidyr required")
     }
@@ -257,7 +269,8 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
         missing_idx <- which(is.na(long$sample_type))
         if (length(missing_idx) > 0) {
             stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_base[missing_idx]),
-                collapse = ", ")))
+                collapse = ", "
+            )))
         }
     } else {
         long$sample_type <- rep("Group", nrow(long))
@@ -308,7 +321,8 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", sample_type_col =
         missing_idx <- which(is.na(long$group))
         if (length(missing_idx) > 0) {
             stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(as.character(long$sample)[missing_idx]),
-                collapse = ", ")))
+                collapse = ", "
+            )))
         }
     } else {
         long$group <- rep("Group", nrow(long))
@@ -383,6 +397,8 @@ map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", ver
         return(readcounts)
     }
 
-    stop(sprintf("Number of transcripts in tx2gene (%d) does not match readcounts rows (%d), and automatic matching failed.",
-        n_tx, n_rc), call. = FALSE)
+    stop(sprintf(
+        "Number of transcripts in tx2gene (%d) does not match readcounts rows (%d), and automatic matching failed.",
+        n_tx, n_rc
+    ), call. = FALSE)
 }

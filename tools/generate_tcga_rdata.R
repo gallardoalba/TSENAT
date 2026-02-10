@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Generate synthetic TCGA BRCA dataset for vignette examples
 #
-# Usage: Rscript scripts/generate_tcga_rdata.R
+# Usage: Rscript tools/generate_tcga_rdata.R
 
 tryCatch(
     {

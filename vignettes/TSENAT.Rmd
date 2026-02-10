@@ -135,6 +135,38 @@ head(readcounts[1:4, 1:3])
 head(coldata_df)
 ```
 
+### Reproducibility: downloading raw TCGA files and verifying the built dataset
+
+The script `data-raw/tcga_brca_luma_dataset.R` implements the download and processing steps used to create the packaged example dataset. To reproduce the raw-file download step you can run the following code:
+
+```{r repro-raw, eval = FALSE}
+# Query and download isoform quantification files for TCGA-BRCA
+library(TCGAbiolinks)
+query <- GDCquery(
+  project = "TCGA-BRCA",
+  legacy = TRUE,
+  data.category = "Gene expression",
+  data.type = "Isoform expression quantification",
+  experimental.strategy = "RNA-Seq",
+  sample.type = c("Primary Tumor", "Solid Tissue Normal")
+)
+GDCdownload(query, directory = "path/to/download_dir")
+
+# Or run the packaged script which automates the workflow
+# system("Rscript data-raw/tcga_brca_luma_dataset.R")
+```
+
+After running the script you can compute an MD5 checksum for the produced `RData` and compare it to the released package checksum to confirm reproducibility:
+
+```{r check-md5, eval = FALSE}
+# Compute md5 of produced file
+tools::md5sum("data/tcga_brca_luma_dataset.RData")
+# Or use the helper script to write a checksum file to inst/extdata:
+# system("Rscript data-raw/checksum_tcga_brca_luma_dataset.R")
+```
+
+Expected MD5 for the packaged dataset: `7583a6392568f2274b33b1cc4ab3b542`.
+
 ### Data preprocessing and filtering
 
 If the transcript IDs in `readcounts` are not already set
@@ -422,7 +454,8 @@ if (requireNamespace("lme4", quietly = TRUE)) {
     lm_res <- calculate_lm_interaction(ts_se,
         sample_type_col = "sample_type", method = "lmm",
         pvalue = "satterthwaite",
-        subject_col = "sample_base")
+        subject_col = "sample_base"
+    )
     # show the top entries
     print(head(lm_res, 6))
 }

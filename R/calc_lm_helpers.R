@@ -7,14 +7,18 @@
         if (n_fallback > 0) {
             tab <- table(res$fit_method[fallback_mask])
             tab_str <- paste(sprintf("%s=%d", names(tab), as.integer(tab)), collapse = ", ")
-            message(sprintf("[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)",
-                n_fallback, total_genes, tab_str))
+            message(sprintf(
+                "[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)",
+                n_fallback, total_genes, tab_str
+            ))
         }
         if ("singular" %in% colnames(res)) {
             n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
             if (n_sing > 0) {
-                message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes",
-                    n_sing, total_genes))
+                message(sprintf(
+                    "[calculate_lm_interaction] singular fits detected: %d/%d genes",
+                    n_sing, total_genes
+                ))
             }
         }
     }
@@ -28,7 +32,8 @@
     k_q <- max(2, min(10, uq_len - 1))
     fit_null <- try(mgcv::gam(entropy ~ group + s(q, k = k_q), data = df), silent = TRUE)
     fit_alt <- try(mgcv::gam(entropy ~ group + s(q, by = group, k = k_q), data = df),
-        silent = TRUE)
+        silent = TRUE
+    )
     if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
         return(NULL)
     }
@@ -74,8 +79,7 @@
     }
     mat_sub <- curve_mat[good_rows, , drop = FALSE]
     col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
-    for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r,
-    ])]
+    for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r, ])]
     pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
     if (inherits(pca, "try-error")) {
         return(NULL)
@@ -168,18 +172,26 @@
         mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
 
         # attempt to fit mixed models (null and alternative) using helper
-        fit0 <- .tsenat_try_lmer(entropy ~ q + group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings,
-            verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
-        fit1 <- .tsenat_try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings,
-            verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
+        fit0 <- .tsenat_try_lmer(entropy ~ q + group + (1 | subject), df,
+            suppress_lme4_warnings = suppress_lme4_warnings,
+            verbose = verbose, mm_suppress_pattern = mm_suppress_pattern
+        )
+        fit1 <- .tsenat_try_lmer(entropy ~ q * group + (1 | subject), df,
+            suppress_lme4_warnings = suppress_lme4_warnings,
+            verbose = verbose, mm_suppress_pattern = mm_suppress_pattern
+        )
 
         # If either fit failed, try falling back to simpler approaches
         fallback_lm <- NULL
         used_fit_method <- "lmer"
         used_singular <- FALSE
-        if (inherits(fit0, "try-error") || inherits(fit1, "try-error") || (inherits(fit0,
-            "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1,
-            "lmerMod") && attr(fit1, "singular") == TRUE)) {
+        if (inherits(fit0, "try-error") || inherits(fit1, "try-error") || (inherits(
+            fit0,
+            "lmerMod"
+        ) && attr(fit0, "singular") == TRUE) || (inherits(
+            fit1,
+            "lmerMod"
+        ) && attr(fit1, "singular") == TRUE)) {
             used_fit_method <- "fallback"
             used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
                 TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
@@ -243,9 +255,11 @@
             }
         }
 
-        return(data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
+        return(data.frame(
+            gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
             p_satterthwaite = satter_p, fit_method = used_fit_method, singular = used_singular,
-            stringsAsFactors = FALSE))
+            stringsAsFactors = FALSE
+        ))
     }
 
     if (method == "gam") {
@@ -254,25 +268,33 @@
 
     if (method == "fpca") {
         return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec,
-            g, min_obs = min_obs))
+            g,
+            min_obs = min_obs
+        ))
     }
     return(NULL)
 }
 ## All helpers for calculate_lm_interaction
 
 # Try lme4::lmer with multiple optimizers and controlled warnings.
-.tsenat_try_lmer <- function(formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
-  mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
+.tsenat_try_lmer <- function(
+  formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
+  mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
+) {
     if (!requireNamespace("lme4", quietly = TRUE)) {
         stop("Package 'lme4' is required for mixed-model fitting")
     }
-    opts <- list(list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e+05)), list(optimizer = "nloptwrap",
-        optCtrl = list(maxfun = 5e+05)))
+    opts <- list(list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e+05)), list(
+        optimizer = "nloptwrap",
+        optCtrl = list(maxfun = 5e+05)
+    ))
     for (o in opts) {
         ctrl <- lme4::lmerControl(optimizer = o$optimizer, optCtrl = o$optCtrl)
         muffle_cond <- suppress_lme4_warnings || (!verbose)
-        fit_try <- withCallingHandlers(try(lme4::lmer(formula, data = data, REML = FALSE,
-            control = ctrl), silent = TRUE), warning = function(w) {
+        fit_try <- withCallingHandlers(try(lme4::lmer(formula,
+            data = data, REML = FALSE,
+            control = ctrl
+        ), silent = TRUE), warning = function(w) {
             if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
                 invokeRestart("muffleWarning")
             }
@@ -338,8 +360,10 @@
     }
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod") &&
         !isTRUE(attr(fit1, "singular"))) {
-        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
-            REML = FALSE), silent = TRUE)
+        fit_lt <- try(lmerTest::lmer(stats::formula(fit1),
+            data = stats::model.frame(fit1),
+            REML = FALSE
+        ), silent = TRUE)
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
@@ -350,8 +374,10 @@
     }
     return(NA_real_)
 }
-.tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL, suppress_lme4_warnings = TRUE, verbose = FALSE,
-  mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
+.tsenat_extract_satterthwaite_p <- function(
+  fit1, fallback_lm = NULL, suppress_lme4_warnings = TRUE, verbose = FALSE,
+  mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
+) {
     # If we have a fallback lm, extract from its coefficients
     if (!is.null(fallback_lm)) {
         coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
@@ -366,8 +392,10 @@
     # Prefer lmerTest when available; suppress known lme4/lmerTest warnings
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod")) {
         muffle_cond <- suppress_lme4_warnings || (!verbose)
-        fit_lt <- withCallingHandlers(try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
-            REML = FALSE), silent = TRUE), warning = function(w) {
+        fit_lt <- withCallingHandlers(try(lmerTest::lmer(stats::formula(fit1),
+            data = stats::model.frame(fit1),
+            REML = FALSE
+        ), silent = TRUE), warning = function(w) {
             if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
                 invokeRestart("muffleWarning")
             }
@@ -447,8 +475,10 @@
     }
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod") &&
         !isTRUE(attr(fit1, "singular"))) {
-        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
-            REML = FALSE), silent = TRUE)
+        fit_lt <- try(lmerTest::lmer(stats::formula(fit1),
+            data = stats::model.frame(fit1),
+            REML = FALSE
+        ), silent = TRUE)
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
@@ -521,8 +551,10 @@
         return(NA_real_)
     }
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod")) {
-        fit_lt <- try(lmerTest::lmer(as.formula(formula(fit1)), data = model.frame(fit1),
-            REML = FALSE), silent = TRUE)
+        fit_lt <- try(lmerTest::lmer(as.formula(formula(fit1)),
+            data = model.frame(fit1),
+            REML = FALSE
+        ), silent = TRUE)
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
@@ -562,7 +594,6 @@
     }
     mat_sub <- curve_mat[good_rows, , drop = FALSE]
     col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
-    for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r,
-    ])]
+    for (r in seq_len(nrow(mat_sub))) mat_sub[r, is.na(mat_sub[r, ])] <- col_means[is.na(mat_sub[r, ])]
     list(mat_sub = mat_sub, used_samples = rownames(mat_sub))
 }

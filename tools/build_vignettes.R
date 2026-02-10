@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Build vignettes (HTML and PDF) into inst/doc/
 #
-# Usage: Rscript scripts/build_vignettes.R [--pdf]
+# Usage: Rscript tools/build_vignettes.R [--pdf]
 # If `--pdf` is provided, a PDF version of each vignette will also be
 # rendered (requires a working LaTeX installation). Without `--pdf` only
 # HTML vignettes are built.
@@ -23,7 +23,7 @@ if (!dir.exists("inst/doc")) dir.create("inst/doc", recursive = TRUE)
 args <- commandArgs(trailingOnly = TRUE)
 pdf_flag <- any(args %in% c("--pdf", "-p"))
 if (any(args %in% c("--help", "-h"))) {
-    cat("Usage: Rscript scripts/build_vignettes.R [--pdf]\n")
+    cat("Usage: Rscript tools/build_vignettes.R [--pdf]\n")
     cat("  --pdf / -p: also render PDF versions (requires LaTeX)\n")
     quit(status = 0)
 }

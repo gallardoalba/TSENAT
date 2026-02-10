@@ -42,8 +42,10 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
         colData = cd
     )
 
-    res <- calculate_lm_interaction(se, sample_type_col = "samples",
-        min_obs = 8)
+    res <- calculate_lm_interaction(se,
+        sample_type_col = "samples",
+        min_obs = 8
+    )
 
     # Accept either a data.frame of results or a SummarizedExperiment
     if (is.data.frame(res)) {
@@ -166,8 +168,10 @@ test_that("lmm returns LRT and Satterthwaite p-values and respects pvalue arg", 
         colData = cd
     )
 
-    res_both <- calculate_lm_interaction(se, sample_type_col = "samples",
-        method = "lmm", pvalue = "both", min_obs = 8)
+    res_both <- calculate_lm_interaction(se,
+        sample_type_col = "samples",
+        method = "lmm", pvalue = "both", min_obs = 8
+    )
 
     if (is.data.frame(res_both)) {
         rd_both <- as.data.frame(res_both)
@@ -176,8 +180,10 @@ test_that("lmm returns LRT and Satterthwaite p-values and respects pvalue arg", 
     }
     expect_true(all(c("p_interaction", "p_lrt", "p_satterthwaite", "adj_p_interaction") %in% colnames(rd_both)))
 
-    res_satt <- calculate_lm_interaction(se, sample_type_col = "samples",
-        method = "lmm", pvalue = "satterthwaite", min_obs = 8)
+    res_satt <- calculate_lm_interaction(se,
+        sample_type_col = "samples",
+        method = "lmm", pvalue = "satterthwaite", min_obs = 8
+    )
 
     if (is.data.frame(res_satt)) {
         rd_satt <- as.data.frame(res_satt)
@@ -189,8 +195,10 @@ test_that("lmm returns LRT and Satterthwaite p-values and respects pvalue arg", 
     mask <- !is.na(rd_satt$p_satterthwaite)
     expect_true(all(is.na(rd_satt$p_satterthwaite) | abs(rd_satt$p_interaction[mask] - rd_satt$p_satterthwaite[mask]) < 1e-8))
 
-    res_lrt <- calculate_lm_interaction(se, sample_type_col = "samples",
-        method = "lmm", pvalue = "lrt", min_obs = 8)
+    res_lrt <- calculate_lm_interaction(se,
+        sample_type_col = "samples",
+        method = "lmm", pvalue = "lrt", min_obs = 8
+    )
 
     if (is.data.frame(res_lrt)) {
         rd_lrt <- as.data.frame(res_lrt)

@@ -2,7 +2,7 @@
 # Comprehensive package integrity check
 #
 # Runs multiple checks: roxygen sync, style, tests, dependencies, documentation
-# Usage: Rscript scripts/check_package.R
+# Usage: Rscript tools/check_package.R
 
 cat("========================================\n")
 cat("TSENAT Package Integrity Check\n")

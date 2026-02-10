@@ -26,3 +26,8 @@ vignette/*html
 vignette/*pdf
 vignettes/ts_debug.R
 .vscode/
+
+# Allow committed rendered vignettes in inst/doc (needed for R CMD check)
+!inst/doc/
+!inst/doc/*.html
+!inst/doc/*.pdf

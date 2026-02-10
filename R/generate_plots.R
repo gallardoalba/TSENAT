@@ -274,7 +274,6 @@ plot_tsallis_gene_profile <- function(se,
     plots <- lapply(genes, make_plot_for_gene)
     names(plots) <- genes
     plots
-
 }
 
 #' Plot diversity distributions (density) by sample type
@@ -919,10 +918,13 @@ plot_volcano <- function(
         grDevices::pdf(tmp)
         temp_dev <- TRUE
         # Ensure device is closed and temporary file removed on exit
-        on.exit({
-            try(grDevices::dev.off(), silent = TRUE)
-            if (file.exists(tmp)) unlink(tmp)
-        }, add = TRUE)
+        on.exit(
+            {
+                try(grDevices::dev.off(), silent = TRUE)
+                if (file.exists(tmp)) unlink(tmp)
+            },
+            add = TRUE
+        )
     }
 
     grid::grid.newpage()

@@ -76,8 +76,8 @@ test_that("wilcoxon paired is invariant to shuffled SE when mapped with paired=T
     sample_names <- c("S1_N", "S1_T", "S2_N", "S2_T")
     # create values so paired differences are non-tied
     mat_vals <- matrix(c(
-        1, 2, 3, 6,  # gene1
-        5, 6, 7, 9   # gene2
+        1, 2, 3, 6, # gene1
+        5, 6, 7, 9 # gene2
     ), nrow = 2, byrow = TRUE)
 
     cols <- paste0(sample_names, "_q=0.1")
@@ -108,7 +108,9 @@ test_that("wilcoxon paired is invariant to shuffled SE when mapped with paired=T
     coldata_shuffled <- coldata_base[perm, , drop = FALSE]
 
     se_mapped_shuffled <- map_metadata(se_shuffled,
-        coldata_shuffled, paired = TRUE)
+        coldata_shuffled,
+        paired = TRUE
+    )
     res_shuffled <- wilcoxon(
         SummarizedExperiment::assay(se_mapped_shuffled),
         SummarizedExperiment::colData(se_mapped_shuffled)$sample_type,

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Prepare package for release: run full checks and documentation build
 #
-# Usage: Rscript scripts/prepare_release.R
+# Usage: Rscript tools/prepare_release.R
 
 cat("==========================================\n")
 cat("TSENAT Release Preparation\n")
@@ -12,7 +12,7 @@ steps_total <- 7
 
 # Step 1: Check package integrity
 cat("[1/", steps_total, "] Running full package checks...\n", sep = "")
-result <- system("Rscript scripts/check_package.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+result <- system("Rscript tools/check_package.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Package checks passed\n")
     steps_completed <- steps_completed + 1
@@ -22,7 +22,7 @@ if (result == 0) {
 
 # Step 2: Run linters and style checks
 cat("\n[2/", steps_total, "] Running linters and style checks...\n", sep = "")
-result <- system("Rscript scripts/run_linters.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+result <- system("Rscript tools/run_linters.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Linters completed\n")
     steps_completed <- steps_completed + 1
@@ -32,7 +32,7 @@ if (result == 0) {
 
 # Step 3: Run coverage (generates coverage report)
 cat("\n[3/", steps_total, "] Running coverage...\n", sep = "")
-result <- system("Rscript scripts/run_coverage.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+result <- system("Rscript tools/run_coverage.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Coverage report generated\n")
     steps_completed <- steps_completed + 1
@@ -42,7 +42,7 @@ if (result == 0) {
 
 # Step 4: Build vignettes
 cat("\n[4/", steps_total, "] Building vignettes...\n", sep = "")
-result <- system("Rscript scripts/build_vignettes.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+result <- system("Rscript tools/build_vignettes.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Vignettes built\n")
     steps_completed <- steps_completed + 1
@@ -52,7 +52,7 @@ if (result == 0) {
 
 # Step 5: Build pkgdown site
 cat("\n[5/", steps_total, "] Building documentation site...\n", sep = "")
-result <- system("Rscript scripts/build_pkgdown.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+result <- system("Rscript tools/build_pkgdown.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Documentation site built\n")
     steps_completed <- steps_completed + 1
@@ -71,9 +71,9 @@ tryCatch(
         } else {
             cat("⚠ Uncommitted changes detected:\n")
             for (line in status_output) {
-                cat("   ", line, "\n")
+                cat("    ", line, "\n")
             }
-            cat("  (Consider committing before release)\n")
+            cat("    (Consider committing before release)\n")
             steps_completed <- steps_completed + 1
         }
 
@@ -82,12 +82,12 @@ tryCatch(
         if (upstream_ok) {
             unpushed <- tryCatch(system("git rev-list --count @{u}..HEAD", intern = TRUE), error = function(e) NA)
             if (!is.na(unpushed) && as.integer(unpushed) > 0) {
-                cat(sprintf("⚠ You have %s unpushed commit(s). Consider pushing before tagging/releasing.\n", unpushed))
+                cat(sprintf("    ⚠ You have %s unpushed commit(s). Consider pushing before tagging/releasing.\n", unpushed))
             } else {
-                cat("✓ No unpushed commits\n")
+                cat("    ✓ No unpushed commits\n")
             }
         } else {
-            cat("⚠ No upstream branch configured; cannot check for unpushed commits\n")
+            cat("    ⚠ No upstream branch configured; cannot check for unpushed commits\n")
         }
     },
     error = function(e) {
@@ -103,16 +103,16 @@ tryCatch(
         version <- desc[1, "Version"]
         title <- desc[1, "Title"]
         
-        cat("  Package: TSENAT\n")
-        cat("  Version: ", version, "\n", sep = "")
-        cat("  Title: ", title, "\n", sep = "")
+        cat("    Package: TSENAT\n")
+        cat("    Version: ", version, "\n", sep = "")
+        cat("    Title: ", title, "\n", sep = "")
         
         if (file.exists("NEWS.md")) {
             news_lines <- readLines("NEWS.md", n = 5)
             if (grepl(version, news_lines[1])) {
-                cat("  ✓ NEWS.md is up-to-date with version\n")
+                cat("    ✓ NEWS.md is up-to-date with version\n")
             } else {
-                cat("  ⚠ NEWS.md may not be updated for this version\n")
+                cat("    ⚠ NEWS.md may not be updated for this version\n")
             }
         }
         

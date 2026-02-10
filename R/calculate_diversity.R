@@ -27,8 +27,10 @@
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
-calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-  verbose = FALSE, q = 2, what = c("S", "D")) {
+calculate_diversity <- function(
+  x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
+  verbose = FALSE, q = 2, what = c("S", "D")
+) {
     # Normalize and validate input data, extract matrix and gene mapping
     inp <- .tsenat_prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno, verbose = verbose)
     x <- inp$x
@@ -41,7 +43,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
     if (any(is.na(x))) {
         stop("The data contains NA as expression values. NAs are not allowed", " in the input.",
-            call. = FALSE)
+            call. = FALSE
+        )
     }
 
     if (nrow(x) != length(genes)) {
@@ -68,8 +71,10 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
         col_ids <- paste(col_split[, 1], "_q=", col_split[, 2], sep = "")
         row_ids <- as.character(result[, 1])
-        result_colData <- data.frame(samples = as.character(col_split[, 1]), q = as.numeric(col_split[,
-            2]), row.names = col_ids, stringsAsFactors = FALSE)
+        result_colData <- data.frame(samples = as.character(col_split[, 1]), q = as.numeric(col_split[
+            ,
+            2
+        ]), row.names = col_ids, stringsAsFactors = FALSE)
         colnames(result_assay) <- col_ids
         rownames(result_assay) <- row_ids
     } else {
@@ -88,8 +93,10 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     tx2gene_map <- NULL
     if (exists("se_assay_mat") && !is.null(rownames(se_assay_mat)) && length(genes) ==
         nrow(se_assay_mat)) {
-        tx2gene_map <- data.frame(Transcript = rownames(se_assay_mat), Gen = as.character(genes),
-            stringsAsFactors = FALSE)
+        tx2gene_map <- data.frame(
+            Transcript = rownames(se_assay_mat), Gen = as.character(genes),
+            stringsAsFactors = FALSE
+        )
     }
 
     assays_list <- list()
@@ -99,9 +106,13 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         assays_list$hill <- result_assay
     }
 
-    result <- SummarizedExperiment::SummarizedExperiment(assays = assays_list, rowData = result_rowData,
-        colData = result_colData, metadata = c(result_metadata, list(readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
-            tx2gene = tx2gene_map)))
+    result <- SummarizedExperiment::SummarizedExperiment(
+        assays = assays_list, rowData = result_rowData,
+        colData = result_colData, metadata = c(result_metadata, list(
+            readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
+            tx2gene = tx2gene_map
+        ))
+    )
 
     return(result)
 }

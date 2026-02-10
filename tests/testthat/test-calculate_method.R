@@ -57,9 +57,9 @@ context("calculate_method helpers and edge cases")
 
 test_that("single-transcript genes produce zeros (and NAs for zero counts) via helper", {
     mat <- matrix(c(
-        5, 0,    # gene A, single transcript
-        2, 3,    # gene B, transcript 1
-        4, 4     # gene B, transcript 2
+        5, 0, # gene A, single transcript
+        2, 3, # gene B, transcript 1
+        4, 4 # gene B, transcript 2
     ), nrow = 3, byrow = TRUE)
     colnames(mat) <- c("S1", "S2")
     genes <- c("A", "B", "B")
@@ -81,8 +81,8 @@ test_that("single-transcript genes produce zeros (and NAs for zero counts) via h
 test_that("genes with all NA counts in a sample produce NA in the helper output and are excluded from results", {
     # use NA_real_ to ensure numeric NA values (not logical)
     mat <- matrix(c(
-        NA_real_, NA_real_,  # transcript 1 (gene A)
-        NA_real_, NA_real_   # transcript 2 (gene A)
+        NA_real_, NA_real_, # transcript 1 (gene A)
+        NA_real_, NA_real_ # transcript 2 (gene A)
     ), nrow = 2, byrow = TRUE)
     colnames(mat) <- c("S1", "S2")
     genes <- c("A", "A")
@@ -141,7 +141,9 @@ test_that("helper falls back to NA when calculate_tsallis_entropy returns wrong-
     orig <- get("calculate_tsallis_entropy", envir = ns)
     stub <- function(x, q, norm, what) {
         # if the sample value is 1 return a scalar (wrong length) to trigger fallback
-        if (length(x) == 1 && x == 1) return(42)
+        if (length(x) == 1 && x == 1) {
+            return(42)
+        }
         orig(x, q = q, norm = norm, what = what)
     }
     assignInNamespace("calculate_tsallis_entropy", stub, ns = "TSENAT")
@@ -164,7 +166,9 @@ test_that("helper falls back to NA when calculate_tsallis_entropy returns non-fi
     orig <- get("calculate_tsallis_entropy", envir = ns)
     stub <- function(x, q, norm, what) {
         # if the sample value is 2 return non-finite values to trigger fallback
-        if (length(x) == 1 && x == 2) return(c(Inf, Inf))
+        if (length(x) == 1 && x == 2) {
+            return(c(Inf, Inf))
+        }
         orig(x, q = q, norm = norm, what = what)
     }
     assignInNamespace("calculate_tsallis_entropy", stub, ns = "TSENAT")

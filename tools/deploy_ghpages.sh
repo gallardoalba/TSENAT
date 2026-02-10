@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Build pkgdown site and deploy the contents of docs/ to the gh-pages branch.
-# Usage: bash scripts/deploy_ghpages.sh
+# Usage: bash tools/deploy_ghpages.sh
 
 ROOT="$(git rev-parse --show-toplevel)"
 echo "Root: $ROOT"
@@ -18,7 +18,7 @@ if [ -z "$(ls -A "$ROOT/docs" 2>/dev/null)" ]; then
 fi
 
 echo "1) Building pkgdown site..."
-Rscript "$ROOT/scripts/build_pkgdown.R"
+Rscript "$ROOT/tools/build_pkgdown.R"
 
 echo "2) Preparing temporary clone..."
 TMPDIR=$(mktemp -d)

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Build pkgdown documentation site
 #
-# Usage: Rscript scripts/build_pkgdown.R
+# Usage: Rscript tools/build_pkgdown.R
 
 tryCatch(
     {

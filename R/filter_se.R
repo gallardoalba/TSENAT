@@ -22,8 +22,10 @@
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
 #' filt <- filter_se(se, min_count = 5, min_samples = 1)
 #' class(filt)
-filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts",
-  verbose = TRUE) {
+filter_se <- function(
+  se, min_count = 5L, min_samples = 5L, assay_name = "counts",
+  verbose = TRUE
+) {
     if (!is(se, "SummarizedExperiment")) {
         stop("'se' must be a SummarizedExperiment", call. = FALSE)
     }
@@ -57,7 +59,8 @@ filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts
 
     if (after == 0L) {
         warning("Filtering removed all transcripts; returning empty SummarizedExperiment.",
-            call. = FALSE)
+            call. = FALSE
+        )
     }
 
     # subset all assays
@@ -92,8 +95,10 @@ filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts
         rd
     } else {
         S4Vectors::DataFrame()
-    }, colData = SummarizedExperiment::colData(se), metadata = c(S4Vectors::metadata(se),
-        list(filtered = list(min_count = min_count, min_samples = min_samples))))
+    }, colData = SummarizedExperiment::colData(se), metadata = c(
+        S4Vectors::metadata(se),
+        list(filtered = list(min_count = min_count, min_samples = min_samples))
+    ))
 
     # attach updated metadata pieces
     S4Vectors::metadata(new_se)$readcounts <- if (!is.null(md$readcounts)) {

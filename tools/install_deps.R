@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Install all package dependencies (Imports, Depends, LinkingTo, Suggests)
 #
-# Usage: Rscript scripts/install_deps.R
+# Usage: Rscript tools/install_deps.R
 
 tryCatch(
     {

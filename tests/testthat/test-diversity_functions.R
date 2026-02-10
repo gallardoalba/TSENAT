@@ -66,82 +66,82 @@ library(testthat)
 
 # .tsenat_calc_S: q ~= 1 and q != 1, normalized and not
 test_that(".tsenat_calc_S computes Shannon and Tsallis correctly", {
-  p <- c(0.5, 0.5)
-  # Shannon with base 2: entropy = 1; normalized dividing by log2(2)=1 -> still 1
-  s1 <- .tsenat_calc_S(p = p, q = 1, tol = 1e-8, n = 2, log_base = 2, norm = TRUE)
-  expect_equal(s1, 1)
-  # Tsallis q=2: S_2 = (1 - sum(p^2)) / (2-1) = 1 - (0.25 + 0.25) = 0.5
-  s2 <- .tsenat_calc_S(p = p, q = 2, tol = 1e-8, n = 2, log_base = 2, norm = FALSE)
-  expect_equal(s2, 0.5)
+    p <- c(0.5, 0.5)
+    # Shannon with base 2: entropy = 1; normalized dividing by log2(2)=1 -> still 1
+    s1 <- .tsenat_calc_S(p = p, q = 1, tol = 1e-8, n = 2, log_base = 2, norm = TRUE)
+    expect_equal(s1, 1)
+    # Tsallis q=2: S_2 = (1 - sum(p^2)) / (2-1) = 1 - (0.25 + 0.25) = 0.5
+    s2 <- .tsenat_calc_S(p = p, q = 2, tol = 1e-8, n = 2, log_base = 2, norm = FALSE)
+    expect_equal(s2, 0.5)
 })
 
 # .tsenat_calc_D: q close to 1 and other q
 test_that(".tsenat_calc_D computes Hill numbers for q=1 and q!=1", {
-  p <- c(0.5, 0.5)
-  d1 <- .tsenat_calc_D(p = p, q = 1, tol = 1e-8, log_base = 2)
-  # For q=1, sh = 1 (base 2), D1 = (log_base)^sh = 2^1 = 2
-  expect_equal(d1, 2)
-  d2 <- .tsenat_calc_D(p = p, q = 2, tol = 1e-8, log_base = 2)
-  # For q=2, spq = sum(p^2)=0.5, Dq = spq^(1/(1-2)) = 0.5^( -1) = 2
-  expect_equal(d2, 2)
+    p <- c(0.5, 0.5)
+    d1 <- .tsenat_calc_D(p = p, q = 1, tol = 1e-8, log_base = 2)
+    # For q=1, sh = 1 (base 2), D1 = (log_base)^sh = 2^1 = 2
+    expect_equal(d1, 2)
+    d2 <- .tsenat_calc_D(p = p, q = 2, tol = 1e-8, log_base = 2)
+    # For q=2, spq = sum(p^2)=0.5, Dq = spq^(1/(1-2)) = 0.5^( -1) = 2
+    expect_equal(d2, 2)
 })
 
 # Input preparation errors and conversion
 test_that(".tsenat_prepare_diversity_input rejects unsupported input types", {
-  expect_error(.tsenat_prepare_diversity_input(1:5), "Input data type is not supported")
+    expect_error(.tsenat_prepare_diversity_input(1:5), "Input data type is not supported")
 })
 
 test_that(".tsenat_prepare_diversity_input handles data.frame conversion and provided genes", {
-  df <- data.frame(a = 1:3, b = 2:4)
-  res <- .tsenat_prepare_diversity_input(df, genes = c('g1','g2','g3'))
-  expect_true(is.matrix(res$x))
-  expect_equal(res$genes, c('g1','g2','g3'))
+    df <- data.frame(a = 1:3, b = 2:4)
+    res <- .tsenat_prepare_diversity_input(df, genes = c("g1", "g2", "g3"))
+    expect_true(is.matrix(res$x))
+    expect_equal(res$genes, c("g1", "g2", "g3"))
 })
 
 test_that(".tsenat_prepare_diversity_input handles tximport-like lists and tpm flag", {
-  counts <- matrix(1:6, nrow = 3)
-  abundance <- matrix(7:12, nrow = 3)
-  # tximport-like lists are typically length 4 and contain named elements
-  xlist <- list(counts = counts, abundance = abundance, txOut = TRUE, other = NULL)
-  # default tpm = FALSE uses counts
-  r1 <- .tsenat_prepare_diversity_input(xlist, genes = c('g1','g2','g3'))
-  expect_true(is.matrix(r1$x))
-  expect_equal(r1$x[1,1], counts[1,1])
+    counts <- matrix(1:6, nrow = 3)
+    abundance <- matrix(7:12, nrow = 3)
+    # tximport-like lists are typically length 4 and contain named elements
+    xlist <- list(counts = counts, abundance = abundance, txOut = TRUE, other = NULL)
+    # default tpm = FALSE uses counts
+    r1 <- .tsenat_prepare_diversity_input(xlist, genes = c("g1", "g2", "g3"))
+    expect_true(is.matrix(r1$x))
+    expect_equal(r1$x[1, 1], counts[1, 1])
 
-  # tpm = TRUE uses abundance
-  r2 <- .tsenat_prepare_diversity_input(xlist, genes = c('g1','g2','g3'), tpm = TRUE)
-  expect_equal(r2$x[1,1], abundance[1,1])
+    # tpm = TRUE uses abundance
+    r2 <- .tsenat_prepare_diversity_input(xlist, genes = c("g1", "g2", "g3"), tpm = TRUE)
+    expect_equal(r2$x[1, 1], abundance[1, 1])
 
-  # improper list should error
-  expect_error(.tsenat_prepare_diversity_input(list(foo = 1)), "cannot find any expression data")
+    # improper list should error
+    expect_error(.tsenat_prepare_diversity_input(list(foo = 1)), "cannot find any expression data")
 })
 
 test_that(".tsenat_prepare_diversity_input handles DGEList-like objects and messages when verbose", {
-  counts <- matrix(rpois(6, lambda = 10), nrow = 3)
-  dge <- list(counts = counts)
-  class(dge) <- "DGEList"
-  expect_message(.tsenat_prepare_diversity_input(dge, genes = c('g1','g2','g3'), verbose = TRUE), "DGEList contains transcript-level")
-  expect_message(.tsenat_prepare_diversity_input(dge, genes = c('g1','g2','g3'), verbose = TRUE, tpm = TRUE), "tpm as a logical argument")
+    counts <- matrix(rpois(6, lambda = 10), nrow = 3)
+    dge <- list(counts = counts)
+    class(dge) <- "DGEList"
+    expect_message(.tsenat_prepare_diversity_input(dge, genes = c("g1", "g2", "g3"), verbose = TRUE), "DGEList contains transcript-level")
+    expect_message(.tsenat_prepare_diversity_input(dge, genes = c("g1", "g2", "g3"), verbose = TRUE, tpm = TRUE), "tpm as a logical argument")
 })
 
 test_that(".tsenat_prepare_diversity_input handles SummarizedExperiment variants and tx2gene mapping", {
-  mat <- matrix(1:6, nrow = 3)
-  rownames(mat) <- paste0('tx', 1:3)
-  se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
-  # when genes not provided, should use rownames
-  res <- .tsenat_prepare_diversity_input(se, genes = NULL)
-  expect_true(is.matrix(res$x))
-  expect_equal(res$genes, rownames(mat))
+    mat <- matrix(1:6, nrow = 3)
+    rownames(mat) <- paste0("tx", 1:3)
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
+    # when genes not provided, should use rownames
+    res <- .tsenat_prepare_diversity_input(se, genes = NULL)
+    expect_true(is.matrix(res$x))
+    expect_equal(res$genes, rownames(mat))
 
-  # when metadata contains readcounts and tx2gene, prefer metadata mapping
-  md <- list(readcounts = mat, tx2gene = data.frame(Transcript = paste0('tx', 1:3), Gen = c('gA','gA','gB'), stringsAsFactors = FALSE))
-  se2 <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), metadata = md)
-  res2 <- .tsenat_prepare_diversity_input(se2, genes = NULL)
-  expect_true(is.matrix(res2$x))
-  expect_equal(res2$genes, c('gA','gA','gB'))
+    # when metadata contains readcounts and tx2gene, prefer metadata mapping
+    md <- list(readcounts = mat, tx2gene = data.frame(Transcript = paste0("tx", 1:3), Gen = c("gA", "gA", "gB"), stringsAsFactors = FALSE))
+    se2 <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), metadata = md)
+    res2 <- .tsenat_prepare_diversity_input(se2, genes = NULL)
+    expect_true(is.matrix(res2$x))
+    expect_equal(res2$genes, c("gA", "gA", "gB"))
 
-  # invalid assay number should error
-  expect_error(.tsenat_prepare_diversity_input(se, genes = NULL, assayno = 10), "provide a valid assay number")
+    # invalid assay number should error
+    expect_error(.tsenat_prepare_diversity_input(se, genes = NULL, assayno = 10), "provide a valid assay number")
 })
 
 skip_on_bioc()

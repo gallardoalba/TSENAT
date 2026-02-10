@@ -20,10 +20,36 @@ cat("Checking code style with 4-space indentation...\n\n")
 
 # Use style_pkg: dry run by default, or apply fixes when requested
 if (apply_fixes) {
-    cat("Applying style fixes (dry = off)...\n")
-    result <- style_pkg(indent_by = 4, strict = FALSE, dry = "off")
+    cat("Applying style fixes (styler; dry = off)...\n")
+    result <- style_pkg(indent_by = 4, strict = TRUE, dry = "off")
+    # After styler runs, also run formatR to enforce line width wrapping to 80 cols
+    if (!requireNamespace("formatR", quietly = TRUE)) {
+        cat("Installing formatR package to reformat long lines...\n")
+        install.packages("formatR")
+    }
+    library(formatR)
+    r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
+    for (f in r_files) {
+        # tidy_source will overwrite file with wrapped lines when necessary
+        tryCatch({
+            tidy_source(file = f, width.cutoff = 80, indent = 4, output = TRUE)
+        }, error = function(e) {
+            message(sprintf("formatR failed on %s: %s", f, conditionMessage(e)))
+        })
+    }
 } else {
-    result <- style_pkg(indent_by = 4, strict = FALSE, dry = "on")
+    result <- style_pkg(indent_by = 4, strict = TRUE, dry = "on")
+    # Additionally, detect files with lines longer than 80 chars
+    r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
+    long_line_files <- character(0)
+    for (f in r_files) {
+        lines <- readLines(f, warn = FALSE)
+        if (any(nchar(lines, type = "width") > 80)) long_line_files <- c(long_line_files, f)
+    }
+    if (length(long_line_files) > 0) {
+        cat("The following files contain lines longer than 80 characters (consider running with --apply to reformat):\n")
+        cat(paste0(" - ", long_line_files, "\n"), sep = "")
+    }
 }
 
 # (No debug printing)
@@ -34,7 +60,7 @@ if (apply_fixes) {
 # - with dry = "on" it returns a data.frame with a `changed` column
 if (isTRUE(result)) {
     cat("ERROR: Code style violations found!\n")
-    cat("Please run 'Rscript scripts/apply_style.R' locally to fix styling.\n")
+    cat("Please run 'Rscript tools/apply_style.R' locally to fix styling.\n")
     quit(status = 1)
 } else if (is.data.frame(result)) {
     # result is a data.frame with files and a logical `changed` column
@@ -44,7 +70,7 @@ if (isTRUE(result)) {
         cat(paste0(" - ", changed_files, "\n"), sep = "")
         if (!apply_fixes) {
             cat("ERROR: Code style violations found!\n")
-            cat("Run 'Rscript scripts/apply_style.R --apply' to apply fixes.\n")
+            cat("Run 'Rscript tools/apply_style.R --apply' to apply fixes.\n")
             quit(status = 1)
         } else {
             cat("Applied style fixes to the above files.\n")
@@ -57,7 +83,7 @@ if (isTRUE(result)) {
 } else if (is.list(result) && length(result) > 0) {
     # Fallback: treat non-empty lists as potential violations
     cat("ERROR: Code style violations found!\n")
-    cat("Please run 'Rscript scripts/apply_style.R' locally to fix styling.\n")
+    cat("Please run 'Rscript tools/apply_style.R' locally to fix styling.\n")
     quit(status = 1)
 } else {
     cat("All files are properly styled!\n")
