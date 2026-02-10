@@ -19,7 +19,7 @@ calculate_lm_interaction(
   paired = FALSE,
   nthreads = 1,
   assay_name = "diversity",
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{
@@ -53,7 +53,7 @@ subject/individual identifiers for paired or repeated-measures designs
 (default: 'diversity').}
 
 \item{verbose}{Logical; whether to print progress messages during execution
-(default: TRUE).}
+(default: FALSE).}
 }
 \value{
 A data.frame with columns `gene`, `p_interaction`, and
