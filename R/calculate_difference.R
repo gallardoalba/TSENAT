@@ -254,7 +254,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' @param assay_name Name of the assay in the SummarizedExperiment to use
 #' (default: 'diversity').
 #' @param verbose Logical; whether to print progress messages during execution
-#' (default: TRUE).
+#' (default: FALSE).
 #' @return A data.frame with columns `gene`, `p_interaction`, and
 #' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
@@ -270,8 +270,8 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' )
 #' calculate_lm_interaction(se, sample_type_col = "sample_type")
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, method = c("linear",
-      "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-  paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = TRUE) {
+            "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+    paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) {
@@ -432,7 +432,21 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
 
             satter_p <- NA_real_
             if (pvalue %in% c("satterthwaite", "both")) {
-                satter_p <- .tsenat_extract_satterthwaite_p(fit1, fallback_lm)
+                mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
+                muffle_cond <- suppress_lme4_warnings || (!verbose)
+                satter_p <- withCallingHandlers(
+                    .tsenat_extract_satterthwaite_p(fit1, fallback_lm),
+                    warning = function(w) {
+                        if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
+                            invokeRestart("muffleWarning")
+                        }
+                    },
+                    message = function(m) {
+                        if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
+                            invokeRestart("muffleMessage")
+                        }
+                    }
+                )
             }
 
             # choose primary p_interaction according to user preference

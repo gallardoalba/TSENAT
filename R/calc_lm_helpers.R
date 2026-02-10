@@ -173,7 +173,7 @@
 .tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL) {
     if (!is.null(fallback_lm)) {
         coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
-        if (!inherits(coefs, "try-error")) {
+        if (!is.null(coefs) && !inherits(coefs, "try-error")) {
             ia_idx <- grep("^q:group", rownames(coefs))
             if (length(ia_idx) > 0) {
                 return(coefs[ia_idx[1], "Pr(>|t|)"])
@@ -183,8 +183,44 @@
     }
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod") &&
         !isTRUE(attr(fit1, "singular"))) {
-        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
+        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1), 
             REML = FALSE), silent = TRUE)
+        if (!inherits(fit_lt, "try-error")) {
+            coefs <- summary(fit_lt)$coefficients
+            ia_idx <- grep("^q:group", rownames(coefs))
+            if (length(ia_idx) > 0) {
+                return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
+        }
+    }
+    return(NA_real_)
+}
+.tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL, suppress_lme4_warnings = TRUE, verbose = FALSE,
+  mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
+    # If we have a fallback lm, extract from its coefficients
+    if (!is.null(fallback_lm)) {
+        coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
+        if (!inherits(coefs, "try-error")) {
+            ia_idx <- grep("^q:group", rownames(coefs))
+            if (length(ia_idx) > 0) {
+                return(coefs[ia_idx[1], "Pr(>|t|)"])
+            }
+        }
+        return(NA_real_)
+    }
+    # Prefer lmerTest when available; suppress known lme4/lmerTest warnings
+    if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod")) {
+        muffle_cond <- suppress_lme4_warnings || (!verbose)
+        fit_lt <- withCallingHandlers(try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
+            REML = FALSE), silent = TRUE), warning = function(w) {
+            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
+                invokeRestart("muffleWarning")
+            }
+        }, message = function(m) {
+            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
+                invokeRestart("muffleMessage")
+            }
+        })
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients
             ia_idx <- grep("^q:group", rownames(coefs))
