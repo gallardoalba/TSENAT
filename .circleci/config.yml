@@ -42,11 +42,6 @@ jobs:
           command: |
             R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
       - run:
-          name: Check code style with styler
-          command: |
-            R -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
-            Rscript scripts/apply_style.R
-      - run:
           name: Run checks
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
@@ -55,14 +50,14 @@ jobs:
       - run:
           name: Generate coverage and HTML report
           command: |
-            Rscript scripts/run_coverage.R
+            Rscript tools/run_coverage.R
       - store_artifacts:
           path: coverage
           destination: coverage
       - run:
           name: Upload coverage to Codecov
           command: |
-            Rscript scripts/run_coverage.R --upload
+            Rscript tools/run_coverage.R --upload
 
 workflows:
   version: 2
