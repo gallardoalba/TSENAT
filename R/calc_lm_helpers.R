@@ -103,6 +103,161 @@
     pval <- as.numeric(t_res$p.value)
     return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
 }
+
+# Fit function extracted from calculate_lm_interaction
+.tsenat_fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec, method, pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings, progress) {
+    vals <- as.numeric(mat[g, ])
+    df <- data.frame(entropy = vals, q = q_vals, group = factor(group_vec))
+    if (sum(!is.na(df$entropy)) < min_obs) {
+        return(NULL)
+    }
+    if (length(unique(na.omit(df$group))) < 2) {
+        return(NULL)
+    }
+
+    if (method == "linear") {
+        fit <- try(stats::lm(entropy ~ q * group, data = df), silent = TRUE)
+        if (inherits(fit, "try-error")) {
+            return(NULL)
+        }
+        coefs <- summary(fit)$coefficients
+        ia_idx <- grep("^q:group", rownames(coefs))
+        if (length(ia_idx) == 0) {
+            return(NULL)
+        }
+        p_interaction <- coefs[ia_idx[1], "Pr(>|t|)"]
+        return(data.frame(gene = g, p_interaction = p_interaction, stringsAsFactors = FALSE))
+    }
+
+    if (method == "lmm") {
+        if (!requireNamespace("lme4", quietly = TRUE)) {
+            stop("Package 'lme4' is required for method = 'lmm'")
+        }
+        # determine subject IDs for random effect
+        subject <- NULL
+        if (!is.null(subject_col)) {
+            if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
+                stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
+            }
+            subj_full <- as.character(SummarizedExperiment::colData(se)[, subject_col])
+            names(subj_full) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+            subject <- unname(subj_full[sample_names])
+        } else if (paired) {
+            # require a paired identifier (sample_base) in colData
+            if ("sample_base" %in% colnames(SummarizedExperiment::colData(se))) {
+                sb <- as.character(SummarizedExperiment::colData(se)[, "sample_base"])
+                names(sb) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
+                subject <- unname(sb[sample_names])
+            } else {
+                stop("paired = TRUE but no 'sample_base' column found in colData(se); call map_metadata(..., paired = TRUE) or supply subject_col")
+            }
+        } else {
+            # fallback to sample base derived from column names
+            subject <- sample_names
+        }
+        df$subject <- factor(subject)
+        # require at least two subjects and at least two groups represented
+        if (length(unique(na.omit(df$subject))) < 2) {
+            return(NULL)
+        }
+        if (length(unique(na.omit(df$group))) < 2) {
+            return(NULL)
+        }
+        # fit null (no interaction) and alternative (with q:group
+        # interaction)
+        mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
+
+        # attempt to fit mixed models (null and alternative) using helper
+        fit0 <- .tsenat_try_lmer(entropy ~ q + group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings,
+            verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
+        fit1 <- .tsenat_try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = suppress_lme4_warnings,
+            verbose = verbose, mm_suppress_pattern = mm_suppress_pattern)
+
+        # If either fit failed, try falling back to simpler approaches
+        fallback_lm <- NULL
+        used_fit_method <- "lmer"
+        used_singular <- FALSE
+        if (inherits(fit0, "try-error") || inherits(fit1, "try-error") || (inherits(fit0,
+            "lmerMod") && attr(fit0, "singular") == TRUE) || (inherits(fit1,
+            "lmerMod") && attr(fit1, "singular") == TRUE)) {
+            used_fit_method <- "fallback"
+            used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
+                TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                TRUE)
+            if ((verbose && progress) || (!verbose && progress)) {
+                message("[calculate_lm_interaction] mixed model singular or failed; trying simpler fixed-effects fallback")
+            }
+            fb <- .tsenat_try_lm_fallbacks(df, verbose = verbose)
+            if (!is.null(fb)) {
+                fallback_lm <- fb
+                used_fit_method <- fb$method
+            }
+        } else {
+            used_singular <- (inherits(fit0, "lmerMod") && attr(fit0, "singular") ==
+                TRUE) || (inherits(fit1, "lmerMod") && attr(fit1, "singular") ==
+                TRUE)
+            if (used_singular) {
+                used_fit_method <- "lmer_singular"
+            } else {
+                used_fit_method <- "lmer"
+            }
+        }
+
+        lrt_p <- NA_real_
+        if (!is.null(fallback_lm)) {
+            lrt_p <- .tsenat_extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1)
+        } else {
+            lrt_p <- .tsenat_extract_lrt_p(fit0, fit1)
+        }
+
+        satter_p <- NA_real_
+        if (pvalue %in% c("satterthwaite", "both")) {
+            mm_suppress_pattern <- "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix"
+            muffle_cond <- suppress_lme4_warnings || (!verbose)
+            satter_p <- withCallingHandlers(
+                .tsenat_extract_satterthwaite_p(fit1, fallback_lm),
+                warning = function(w) {
+                    if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
+                        invokeRestart("muffleWarning")
+                    }
+                },
+                message = function(m) {
+                    if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
+                        invokeRestart("muffleMessage")
+                    }
+                }
+            )
+        }
+
+        # choose primary p_interaction according to user preference
+        p_interaction <- NA_real_
+        if (pvalue == "satterthwaite") {
+            p_interaction <- satter_p
+        } else if (pvalue == "lrt") {
+            p_interaction <- lrt_p
+        } else if (pvalue == "both") {
+            if (!is.na(satter_p)) {
+                p_interaction <- satter_p
+            } else {
+                p_interaction <- lrt_p
+            }
+        }
+
+        return(data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
+            p_satterthwaite = satter_p, fit_method = used_fit_method, singular = used_singular,
+            stringsAsFactors = FALSE))
+    }
+
+    if (method == "gam") {
+        return(.tsenat_gam_interaction(df, q_vals, g, min_obs = min_obs))
+    }
+
+    if (method == "fpca") {
+        return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec,
+            g, min_obs = min_obs))
+    }
+    return(NULL)
+}
 ## All helpers for calculate_lm_interaction
 
 # Try lme4::lmer with multiple optimizers and controlled warnings.

@@ -33,45 +33,18 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
     if (!(control %in% samples)) {
         stop("Control sample type not found in samples.", call. = FALSE)
     }
-    if (method == "mean") {
-        value <- aggregate(t(x), by = list(samples), mean, na.rm = TRUE)
-    }
-
-    if (method == "median") {
-        value <- aggregate(t(x), by = list(samples), median, na.rm = TRUE)
-    }
-
-    sorted <- value[value$Group.1 != control, ]
-    sorted[2, ] <- value[value$Group.1 == control, ]
-    value <- t(sorted[, -1])
-    value[is.na(value[, 1]), c(1)] <- NA
-    value[is.na(value[, 2]), c(2)] <- NA
+    agg <- .tsenat_aggregate_fc_values(x = x, samples = samples, method = method, control = control)
+    value <- agg$value
+    sorted <- agg$sorted
 
     # Defensive numeric coercion: ensure group means are numeric and mark any
     # non-finite or non-positive values as NA. This prevents Inf/NaN when
     # computing log2 fold changes downstream.
     value <- matrix(as.numeric(value), nrow = nrow(value), ncol = ncol(value), dimnames = dimnames(value))
     value[!is.finite(value)] <- NA
-    # Apply pseudocount to non-positive observed values (do not overwrite NA)
-    if (!is.numeric(pseudocount) || length(pseudocount) != 1) {
-        pseudocount <- 0
-    }
-    if (pseudocount <= 0) {
-        # scale-aware pseudocount: half the smallest positive observed group
-        # summary (mean/median) across the two groups. If no positive values
-        # are present, fall back to a small constant.
-        pos_vals <- value[!is.na(value) & value > 0]
-        if (length(pos_vals) > 0) {
-            pc <- min(pos_vals, na.rm = TRUE) / 2
-        } else {
-            pc <- 1e-06
-        }
-    } else {
-        pc <- pseudocount
-    }
-    # only replace observed non-positive values; keep NA rows as NA
-    replace_idx <- !is.na(value) & value <= 0
-    value[replace_idx] <- pc
+
+    # compute and apply pseudocount based on observed group summaries
+    value <- .tsenat_apply_pseudocount(value, pseudocount)
 
     # compute difference and log2 fold-change with NA-safe handling
     diff_vec <- value[, 1] - value[, 2]
@@ -178,72 +151,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 
     # build permutation/null distribution of log2 fold changes
     if (isTRUE(paired)) {
-        # Paired permutation: assume columns are ordered as paired samples
-        # (i.e., pair 1 = columns 1 and 2, pair 2 = columns 3 and 4, ...).
-        ncols <- ncol(x)
-        if (ncols %% 2 != 0) {
-            stop("Paired permutation requires an even number of samples and paired column ordering",
-                call. = FALSE)
-        }
-        npairs <- ncols / 2
-        # Paired methods: 'swap' randomly swaps labels within pairs (as
-        # before).  'signflip' performs sign-flip permutations; when
-        # randomizations >= 2^npairs we enumerate all sign combinations (exact
-        # test), otherwise sample random flips.
-        if (paired_method == "swap") {
-            perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
-            for (r in seq_len(randomizations)) {
-                swap <- sample(c(TRUE, FALSE), size = npairs, replace = TRUE)
-                perm_samples <- samples
-                for (p in seq_len(npairs)) {
-                    if (swap[p]) {
-                        i1 <- (p - 1) * 2 + 1
-                        i2 <- i1 + 1
-                        perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
-                    }
-                }
-                df_perm <- calculate_fc(x, perm_samples, control, method)
-                perm_mat[, r] <- as.numeric(df_perm[, 4])
-            }
-        } else if (paired_method == "signflip") {
-            # determine whether to enumerate all combinations (exact test)
-            total_comb <- 2^npairs
-            if (randomizations <= 0 || randomizations >= total_comb) {
-                # enumerate all sign combinations exactly
-                combos <- expand.grid(rep(list(c(0, 1)), npairs))
-                nrep <- nrow(combos)
-                perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = nrep)
-                for (r in seq_len(nrep)) {
-                    swap <- as.logical(as.integer(combos[r, ]))
-                    perm_samples <- samples
-                    for (p in seq_len(npairs)) {
-                        if (swap[p]) {
-                            i1 <- (p - 1) * 2 + 1
-                            i2 <- i1 + 1
-                            perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
-                        }
-                    }
-                    df_perm <- calculate_fc(x, perm_samples, control, method)
-                    perm_mat[, r] <- as.numeric(df_perm[, 4])
-                }
-            } else {
-                # randomized sign-flip sampling
-                perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
-                for (r in seq_len(randomizations)) {
-                    swap <- sample(c(TRUE, FALSE), size = npairs, replace = TRUE)
-                    perm_samples <- samples
-                    for (p in seq_len(npairs)) {
-                        if (swap[p]) {
-                            i1 <- (p - 1) * 2 + 1
-                            i2 <- i1 + 1
-                            perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
-                        }
-                    }
-                    df_perm <- calculate_fc(x, perm_samples, control, method)
-                    perm_mat[, r] <- as.numeric(df_perm[, 4])
-                }
-            }
-        }
+        perm_mat <- .tsenat_permute_paired(x = x, samples = samples, control = control, method = method, randomizations = randomizations, paired_method = paired_method)
     } else {
         permuted <- replicate(randomizations, calculate_fc(x, sample(samples), control,
             method), simplify = FALSE)

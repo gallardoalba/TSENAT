@@ -50,34 +50,8 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
     p <- x / sum(x)
 
     tol <- sqrt(.Machine$double.eps)
-    S_vec <- vapply(q, function(qi) {
-        if (abs(qi - 1) < tol) {
-            sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
-            if (norm) {
-                sh <- sh / log(n, base = log_base)
-            }
-            return(sh)
-        } else {
-            ts <- (1 - sum(p^qi)) / (qi - 1)
-            if (norm) {
-                max_ts <- (1 - n^(1 - qi)) / (qi - 1)
-                ts <- ts / max_ts
-            }
-            return(ts)
-        }
-    }, numeric(1))
-
-    D_vec <- vapply(q, function(qi) {
-        if (abs(qi - 1) < tol) {
-            sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
-            D1 <- (log_base)^(sh)
-            return(D1)
-        } else {
-            spq <- sum(p^qi)
-            Dq <- spq^(1 / (1 - qi))
-            return(Dq)
-        }
-    }, numeric(1))
+    S_vec <- .tsenat_calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base, norm = norm)
+    D_vec <- .tsenat_calc_D(p = p, q = q, tol = tol, log_base = log_base)
 
     if (what == "S") {
         out <- S_vec

@@ -501,28 +501,11 @@ plot_ma_expression <- function(
 
     plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag, stringsAsFactors = FALSE)
 
-    # format axis labels: remove underscores, collapse spaces, only first letter capitalized
-    format_label <- function(lbl) {
-        if (is.null(lbl)) {
-            return(NULL)
-        }
-        s <- gsub("_", " ", lbl)
-        s <- gsub("\\s+", " ", s)
-        s <- trimws(s)
-        s <- tolower(s)
-        if (nchar(s) == 0) {
-            return(s)
-        }
-        if (nchar(s) == 1) {
-            return(toupper(s))
-        }
-        paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
-    }
-
-    x_label_formatted <- format_label(x_label)
-    # prepare y label (use provided or fallback to fold_col) and replace 'log2' token with 'log10'
-    y_label_raw <- y_label %||% fold_col
-    y_label_formatted <- format_label(y_label_raw)
+    prep <- .tsenat_prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols, x_label = x_label, y_label = y_label)
+    plot_df <- prep$plot_df
+    x_label_formatted <- .tsenat_format_label(prep$x_label)
+    y_label_raw <- prep$y_label %||% fold_col
+    y_label_formatted <- .tsenat_format_label(y_label_raw)
     if (!is.null(y_label_formatted)) {
         y_label_formatted <- sub("\\blog2\\b", "log10", y_label_formatted, ignore.case = TRUE)
     }
@@ -823,86 +806,13 @@ plot_volcano <- function(
         stop("ggplot2 required")
     }
 
-    df <- as.data.frame(diff_df)
-    cn <- colnames(df)
-
-    # Auto-detect x-axis column if not specified
-    if (is.null(x_col)) {
-        # Look for difference columns
-        diff_cols <- grep("_difference$", cn, value = TRUE, ignore.case = TRUE)
-        if (length(diff_cols) > 0) {
-            x_col <- diff_cols[1]
-        } else {
-            # If no difference column found, use the first numeric column (excluding p-values)
-            numeric_cols <- vapply(df, is.numeric, logical(1))
-            p_cols <- grep("p_value|p.value", cn, ignore.case = TRUE)
-            numeric_cols[p_cols] <- FALSE
-            if (any(numeric_cols)) {
-                x_col <- cn[which(numeric_cols)[1]]
-            } else {
-                stop("Could not find suitable column for x-axis. Specify 'x_col' explicitly.")
-            }
-        }
-    }
-
-    # Verify x-axis column exists
-    if (!(x_col %in% cn)) {
-        stop("Column '", x_col, "' not found in diff_df")
-    }
-
-    # Verify p-value column exists
-    if (!(padj_col %in% cn)) {
-        stop("Column '", padj_col, "' not found in diff_df")
-    }
-
-    # Extract and convert values
-    df$xval <- as.numeric(df[[x_col]])
-    df$padj <- as.numeric(df[[padj_col]])
-
-    # Replace invalid p-values with 1 (no significance)
-    df$padj[is.na(df$padj)] <- 1
-    df$padj[df$padj <= 0] <- .Machine$double.xmin
-
-    # Mark significant points
-    df$significant <- ifelse(
-        abs(df$xval) >= label_thresh & df$padj < padj_thresh,
-        "significant",
-        "non-significant"
-    )
-
-    # Remove rows with missing values
-    df <- df[is.finite(df$xval) & is.finite(df$padj), ]
-
-    if (nrow(df) == 0) {
-        stop("No valid points to plot")
-    }
-
-    # Determine metric label
-    metric_label <- if (grepl("median", x_col, ignore.case = TRUE)) {
-        "Median"
-    } else if (grepl("mean", x_col, ignore.case = TRUE)) {
-        "Mean"
-    } else {
-        "Value"
-    }
-
-    # Generate default title if not provided
-    title_use <- title %||% "Volcano plot: fold-change vs significance"
-
-    # Format x-axis label: remove underscores and capitalize first letter
-    x_label_formatted <- gsub("_", " ", x_col)
-    x_label_formatted <- paste0(
-        toupper(substr(x_label_formatted, 1, 1)),
-        substr(x_label_formatted, 2, nchar(x_label_formatted))
-    )
-
-    # Create base plot with title and theme
-    # Format padj label: remove underscores and capitalize first letter
-    padj_label_formatted <- gsub("_", " ", padj_col)
-    padj_label_formatted <- paste0(
-        toupper(substr(padj_label_formatted, 1, 1)),
-        substr(padj_label_formatted, 2, nchar(padj_label_formatted))
-    )
+    prep_volcano <- .tsenat_prepare_volcano_df(diff_df = diff_df, x_col = x_col, padj_col = padj_col, label_thresh = label_thresh, padj_thresh = padj_thresh, title = title)
+    df <- prep_volcano$df
+    x_col <- prep_volcano$x_col
+    padj_col <- prep_volcano$padj_col
+    x_label_formatted <- prep_volcano$x_label_formatted
+    padj_label_formatted <- prep_volcano$padj_label_formatted
+    title_use <- prep_volcano$title_use
 
     p <- ggplot2::ggplot(
         df,
@@ -996,109 +906,19 @@ plot_volcano <- function(
 ## Create per-gene plot and combine multiple gene plots into final output
 .ptt_make_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL) {
     require_pkgs(c("ggplot2", "tidyr"))
-
-    txs <- mapping$Transcript[mapping$Gen == gene_single]
-    txs <- intersect(txs, rownames(counts))
-    if (length(txs) == 0) stop("No transcripts found for gene: ", gene_single)
-    if (!is.null(top_n)) txs <- head(txs, top_n)
-
-    mat <- counts[txs, , drop = FALSE]
-    df_all <- as.data.frame(mat)
-    df_all$tx <- rownames(mat)
-    df_long <- tidyr::pivot_longer(df_all, -tx, names_to = "sample", values_to = "expr")
-    df_long$group <- rep(samples, times = length(txs))
-
-    df_summary <- aggregate(expr ~ tx + group, data = df_long, FUN = agg_fun)
-    df_summary$log2expr <- log2(df_summary$expr + pseudocount)
-    df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
-
-    p <- ggplot2::ggplot(
-        df_summary,
-        ggplot2::aes(x = group, y = tx, fill = log2expr)
-    ) +
-        ggplot2::geom_tile(color = "white", width = 0.95, height = 0.95) +
-        ggplot2::scale_fill_viridis_c(
-            option = "viridis",
-            direction = -1,
-            na.value = "grey80",
-            limits = fill_limits
-        ) +
-        ggplot2::theme_minimal(base_size = 14) +
-        ggplot2::labs(
-            title = agg_label_unique,
-            x = NULL,
-            y = NULL,
-            fill = "log2(expr)"
-        ) +
-        ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 12),
-            axis.text.x = ggplot2::element_text(size = 12),
-            plot.title = ggplot2::element_text(size = 16, hjust = 0.6),
-            legend.position = "bottom",
-            legend.key.width = ggplot2::unit(1.2, "cm"),
-            plot.margin = ggplot2::margin(4, 4, 4, 4)
-        ) +
-        ggplot2::guides(
-            fill = ggplot2::guide_colorbar(
-                title.position = "top",
-                barwidth = 6,
-                barheight = 0.35
-            )
-        )
-
-    p
+    built <- .ptt_build_tx_long(gene_single, mapping, counts, samples, top_n)
+    df_summary <- .ptt_aggregate_df_long(built$df_long, agg_fun, pseudocount)
+    .ptt_build_plot_from_summary(df_summary, agg_label_unique, fill_limits)
 }
 
 .ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique) {
     require_pkgs(c("ggplot2"))
     if (requireNamespace("patchwork", quietly = TRUE)) {
-        combined <- Reduce(`+`, plots) +
-            patchwork::plot_layout(nrow = 1, guides = "collect") &
-            ggplot2::theme(legend.position = "bottom")
-        combined <- combined + patchwork::plot_annotation(
-            title = agg_label_unique,
-            theme = ggplot2::theme(plot.title = ggplot2::element_text(
-                hjust = 0.6, size = 16,
-                margin = ggplot2::margin(b = 10)
-            ))
-        )
-        combined
+        .ptt_combine_patchwork(plots, agg_label_unique)
     } else if (requireNamespace("cowplot", quietly = TRUE)) {
-        p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
-        legend <- cowplot::get_legend(p_for_legend)
-        plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
-        grid <- cowplot::plot_grid(plotlist = plots_nolegend, nrow = 1, align = "hv")
-        title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = "plain", x = 0.6, hjust = 0.5, size = 16)
-        result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08, 1, 0.08))
-        if (!is.null(output_file)) {
-            ggplot2::ggsave(output_file, result_plot)
-            invisible(NULL)
-        }
-        result_plot
+        .ptt_combine_cowplot(plots, output_file = output_file, agg_label_unique = agg_label_unique)
     } else {
-        plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
-        grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
-        g_full <- ggplot2::ggplotGrob(plots[[1]])
-        legend_idx <- which(vapply(g_full$grobs, function(x) x$name, character(1)) == "guide-box")
-        if (length(legend_idx)) {
-            legend_grob <- g_full$grobs[[legend_idx[1]]]
-        } else {
-            legend_grob <- NULL
-        }
-        n <- length(grobs)
-        heights <- grid::unit.c(
-            grid::unit(0.6, "cm"),
-            grid::unit(1, "null"),
-            grid::unit(0.7, "cm")
-        )
-        if (!is.null(output_file)) {
-            png(filename = output_file, width = 800 * n, height = 480, res = 150)
-            .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights, to_file = output_file)
-            invisible(NULL)
-        } else {
-            .draw_transcript_grid(grobs, agg_label_unique, legend_grob, n, heights)
-            invisible(NULL)
-        }
+        .ptt_combine_grid(plots, output_file = output_file, agg_label_unique = agg_label_unique)
     }
 }
 
@@ -1227,18 +1047,7 @@ plot_top_transcripts <- function(
 ) {
     # If `gene` is not provided, select top genes from `res` using `top_n`.
     if (is.null(gene)) {
-        if (is.null(res)) stop("Either 'gene' or 'res' must be provided")
-        if (!("genes" %in% colnames(res))) stop("Provided 'res' must contain a 'genes' column")
-        if ("adjusted_p_values" %in% colnames(res)) {
-            ord <- order(res$adjusted_p_values, na.last = NA)
-        } else if ("raw_p_values" %in% colnames(res)) {
-            ord <- order(res$raw_p_values, na.last = NA)
-        } else {
-            ord <- seq_len(nrow(res))
-        }
-        genes_sel <- as.character(res$genes[ord])
-        genes_sel <- unique(genes_sel)
-        gene <- head(genes_sel, top_n)
+        gene <- .ptt_select_genes_from_res(res, top_n)
     }
     per_gene_top_n <- top_n
 

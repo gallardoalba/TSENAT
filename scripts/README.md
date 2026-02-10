@@ -44,6 +44,33 @@ Rscript scripts/prepare_release.R
 
 ## Usage guidelines (recommended workflows)
 
+### Recently added maintenance helpers
+
+- `run_linters.R` — Format and lint package source using `styler` and `lintr`.
+```bash
+Rscript scripts/run_linters.R
+```
+
+- `audit_deps.R` — Audit dependencies and print packages that are out-of-date
+  (uses `remotes::package_deps()`).
+```bash
+Rscript scripts/audit_deps.R
+```
+
+- `run_rhub_checks.R` — Submit the package to R-hub for platform checks.
+  Set `R_HUB_EMAIL` in your environment to receive notifications.
+```bash
+R_HUB_EMAIL=you@example.org Rscript scripts/run_rhub_checks.R
+```
+
+- `generate_citation.R` — Print the package citation or write a `CITATION`
+  file if none exists (requires the package to be installed to generate a
+  full citation automatically).
+```bash
+Rscript scripts/generate_citation.R
+```
+
+
 ### Quick development loop
 
 ```bash

@@ -32,21 +32,9 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
     rown <- gene_levels
 
     # compute requested quantity ('S' or 'D')
-    tsallis_row <- function(gene) {
-        idx <- which(genes == gene)
-        unlist(lapply(seq_len(ncol(x)), function(j) {
-            v <- calculate_tsallis_entropy(x[idx, j], q = q, norm = norm, what = what)
-            if (length(v) == length(q) && all(is.finite(v) | is.na(v))) {
-                v
-            } else {
-                names_vec <- paste0("q=", q)
-                setNames(rep(NA_real_, length(q)), names_vec)
-            }
-        }))
-    }
-
-    result_mat <- t(vapply(gene_levels, tsallis_row, FUN.VALUE = setNames(numeric(length(coln)),
-        coln)))
+    result_mat <- t(vapply(gene_levels, function(gene) {
+        .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm, what = what)
+    }, FUN.VALUE = setNames(numeric(length(coln)), coln)))
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown
     out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)
