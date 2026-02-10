@@ -906,6 +906,25 @@ plot_volcano <- function(
 #' Internal helper to draw grid layout with title, plots, and legend using base grid
 #' @noRd
 .draw_transcript_grid <- function(grobs, title, legend_grob, n, heights, to_file = NULL) {
+    # If no output file is provided and no graphics device is open, render to a
+    # temporary pdf device so that plotting in non-interactive sessions does not
+    # create `Rplots.pdf` in the working directory.
+    temp_dev <- FALSE
+    # Only open a temporary PDF device when:
+    #  - caller did not supply an output file (`to_file` is NULL),
+    #  - the session is non-interactive, and
+    #  - no graphics device is currently open (dev.cur() == 1)
+    if (is.null(to_file) && !interactive() && grDevices::dev.cur() == 1L) {
+        tmp <- tempfile("TSENAT_plot_", fileext = ".pdf")
+        grDevices::pdf(tmp)
+        temp_dev <- TRUE
+        # Ensure device is closed and temporary file removed on exit
+        on.exit({
+            try(grDevices::dev.off(), silent = TRUE)
+            if (file.exists(tmp)) unlink(tmp)
+        }, add = TRUE)
+    }
+
     grid::grid.newpage()
     grid::pushViewport(
         grid::viewport(layout = grid::grid.layout(3, n, heights = heights))
@@ -930,7 +949,9 @@ plot_volcano <- function(
         grid::upViewport()
     }
     grid::upViewport()
+    # If caller supplied a file (caller likely opened a device), close it here.
     if (!is.null(to_file)) grDevices::dev.off()
+    invisible(NULL)
 }
 
 ## Internal helpers for `plot_top_transcripts` refactor
