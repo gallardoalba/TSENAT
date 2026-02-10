@@ -42,6 +42,18 @@ jobs:
           command: |
             R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
       - run:
+          name: Fetch tools from maintenance branch
+          command: |
+            git fetch origin maintenance
+            git checkout origin/maintenance -- tools || true
+            chmod +x tools/*.sh || true
+            find tools -type f -name '*.R' -exec chmod +x {} \;
+      - run:
+          name: Check code style with styler
+          command: |
+            R -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
+            Rscript tools/apply_style.R || true
+      - run:
           name: Run checks
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false

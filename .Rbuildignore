@@ -21,5 +21,5 @@
 ^vignette/*pdf
 ^vignette/*html
 
-# Do not include development helper scripts in built package
-^scripts/
+# Do not include development helper tools in built package
+^tools/

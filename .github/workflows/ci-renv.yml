@@ -26,7 +26,7 @@ jobs:
       - name: Style check (styler)
         run: |
           Rscript -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
-          Rscript scripts/check_style.R
+          Rscript tools/apply_style.R
       - name: Build package and run R CMD check
         env:
           _R_CHECK_CRAN_INCOMING_: FALSE
