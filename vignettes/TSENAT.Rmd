@@ -426,7 +426,7 @@ if (requireNamespace("lme4", quietly = TRUE)) {
         sample_type_col = "sample_type", method = "lmm",
         pvalue = "satterthwaite",
         subject_col = "sample_base")
-    print(head(lm_res, 6))
+    print(head(lm_res$stat_tests, 6))
 }
 ```
 

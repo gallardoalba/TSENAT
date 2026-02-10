@@ -486,29 +486,7 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
 
     .tsenat_report_fit_summary(res, verbose = verbose)
 
-    # If the input was a SummarizedExperiment, attach results into rowData
-    if (inherits(se, "RangedSummarizedExperiment") || inherits(se, "SummarizedExperiment")) {
-        # ensure rowData is a DataFrame and has genes as rownames
-        rd <- S4Vectors::DataFrame(SummarizedExperiment::rowData(se))
-        # create result columns with NA defaults
-        cols <- setdiff(colnames(res), "gene")
-        for (cname in cols) {
-            if (!(cname %in% colnames(rd))) {
-                rd[[cname]] <- NA_real_
-            }
-        }
-        # match by gene name
-        gene_idx <- match(as.character(res$gene), rownames(rd))
-        valid <- !is.na(gene_idx)
-        if (any(valid)) {
-            for (cname in cols) {
-                rd[[cname]][gene_idx[valid]] <- res[[cname]][valid]
-            }
-        }
-        SummarizedExperiment::rowData(se) <- rd
-        return(se)
-    }
-
+    # Return the result data.frame (do not attach to or return a SummarizedExperiment)
     return(res)
 }
 
