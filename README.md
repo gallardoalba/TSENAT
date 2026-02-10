@@ -68,7 +68,7 @@ Beyond computing diversity values, TSENAT enables group comparisons to identify 
 
 ![Isoform Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
 
-## Installation and Documentation
+## Installation
 
 Install from GitHub during development:
 
@@ -81,8 +81,6 @@ install.packages("renv")
 renv::init()
 renv::snapshot()
 ```
-
-Documentation: [TSENAT site](https://gallardoalba.github.io/TSENAT/).
 
 ## Quick Start
 
