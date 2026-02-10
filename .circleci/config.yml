@@ -55,16 +55,14 @@ jobs:
       - run:
           name: Generate coverage and HTML report
           command: |
-            R -e 'if (!requireNamespace("covr", quietly=TRUE)) install.packages("covr", repos="https://cloud.r-project.org")'
-            R -e 'cov <- covr::package_coverage(); covr::report(cov, file="coverage/coverage.html"); print(covr::percent_coverage(cov))'
+            Rscript scripts/run_coverage.R
       - store_artifacts:
           path: coverage
           destination: coverage
       - run:
           name: Upload coverage to Codecov
           command: |
-            R -e 'if (!requireNamespace("covr", quietly=TRUE)) install.packages("covr", repos="https://cloud.r-project.org")'
-            R -e 'cov <- covr::package_coverage(); covr::codecov(coverage = cov)'
+            Rscript scripts/run_coverage.R --upload
 
 workflows:
   version: 2

@@ -14,8 +14,12 @@ cat(sprintf("Coverage: %.4f%%\n", pc))
 # write report to coverage/coverage.html
 dir.create('coverage', showWarnings = FALSE)
 report_file <- file.path('coverage', 'coverage.html')
-covr::report(cov, file = report_file)
-cat("Wrote report:", report_file, "\n")
+if (requireNamespace("DT", quietly = TRUE) && requireNamespace("htmltools", quietly = TRUE)) {
+  covr::report(cov, file = report_file)
+  cat("Wrote report:", report_file, "\n")
+} else {
+  message("Skipping HTML coverage report: 'DT' and/or 'htmltools' not available.")
+}
 if(upload){
   if(identical(Sys.getenv('CODECOV_TOKEN', unset = ''), '')){
     message('No CODECOV_TOKEN set; attempting upload may fail for private repos')
