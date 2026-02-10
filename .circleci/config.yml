@@ -42,10 +42,11 @@ jobs:
           command: |
             R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
       - run:
-          name: Fetch tools from maintenance branch
+          name: Fetch tools and CI config from maintenance branch
           command: |
             git fetch origin maintenance
             git checkout origin/maintenance -- tools || true
+            git checkout origin/maintenance -- .codecov.yml || true
             chmod +x tools/*.sh || true
             find tools -type f -name '*.R' -exec chmod +x {} \;
       - run:
