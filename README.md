@@ -112,7 +112,7 @@ For a detailed, reproducible workflow see the [package vignette](https://gallard
 
 Testing is vital in research as it ensures the validity and reliability 
 of results, which is essential for accurately interpreting findings. 
-The current testing coverage of the package is displayed Codecov badge.
+The report about the current testing coverage can be found in [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
 
 ## Citation
 

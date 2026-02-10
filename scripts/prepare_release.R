@@ -8,7 +8,7 @@ cat("TSENAT Release Preparation\n")
 cat("==========================================\n\n")
 
 steps_completed <- 0
-steps_total <- 5
+steps_total <- 7
 
 # Step 1: Check package integrity
 cat("[1/", steps_total, "] Running full package checks...\n", sep = "")
@@ -20,8 +20,28 @@ if (result == 0) {
     cat("✗ Package checks failed\n")
 }
 
-# Step 2: Build vignettes
-cat("\n[2/", steps_total, "] Building vignettes...\n", sep = "")
+# Step 2: Run linters and style checks
+cat("\n[2/", steps_total, "] Running linters and style checks...\n", sep = "")
+result <- system("Rscript scripts/run_linters.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+if (result == 0) {
+    cat("✓ Linters completed\n")
+    steps_completed <- steps_completed + 1
+} else {
+    cat("⚠ Linters reported issues or failed\n")
+}
+
+# Step 3: Run coverage (generates coverage report)
+cat("\n[3/", steps_total, "] Running coverage...\n", sep = "")
+result <- system("Rscript scripts/run_coverage.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
+if (result == 0) {
+    cat("✓ Coverage report generated\n")
+    steps_completed <- steps_completed + 1
+} else {
+    cat("⚠ Coverage generation failed or skipped\n")
+}
+
+# Step 4: Build vignettes
+cat("\n[4/", steps_total, "] Building vignettes...\n", sep = "")
 result <- system("Rscript scripts/build_vignettes.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Vignettes built\n")
@@ -30,8 +50,8 @@ if (result == 0) {
     cat("✗ Vignette build failed\n")
 }
 
-# Step 3: Build pkgdown site
-cat("\n[3/", steps_total, "] Building documentation site...\n", sep = "")
+# Step 5: Build pkgdown site
+cat("\n[5/", steps_total, "] Building documentation site...\n", sep = "")
 result <- system("Rscript scripts/build_pkgdown.R", ignore.stdout = FALSE, ignore.stderr = FALSE)
 if (result == 0) {
     cat("✓ Documentation site built\n")
@@ -40,8 +60,8 @@ if (result == 0) {
     cat("✗ Documentation build failed\n")
 }
 
-# Step 4: Check for uncommitted changes
-cat("\n[4/", steps_total, "] Checking git status...\n", sep = "")
+# Step 6: Check for uncommitted changes
+cat("\n[6/", steps_total, "] Checking git status...\n", sep = "")
 tryCatch(
     {
         status_output <- system("git status --porcelain", intern = TRUE)
@@ -56,14 +76,27 @@ tryCatch(
             cat("  (Consider committing before release)\n")
             steps_completed <- steps_completed + 1
         }
+
+        # Check for unpushed commits (requires an upstream branch)
+        upstream_ok <- system("git rev-parse --abbrev-ref --symbolic-full-name @{u} > /dev/null 2>&1", ignore.stdout = TRUE, ignore.stderr = TRUE) == 0
+        if (upstream_ok) {
+            unpushed <- tryCatch(system("git rev-list --count @{u}..HEAD", intern = TRUE), error = function(e) NA)
+            if (!is.na(unpushed) && as.integer(unpushed) > 0) {
+                cat(sprintf("⚠ You have %s unpushed commit(s). Consider pushing before tagging/releasing.\n", unpushed))
+            } else {
+                cat("✓ No unpushed commits\n")
+            }
+        } else {
+            cat("⚠ No upstream branch configured; cannot check for unpushed commits\n")
+        }
     },
     error = function(e) {
         cat("⚠ Could not check git status\n")
     }
 )
 
-# Step 5: Verify DESCRIPTION and NEWS
-cat("\n[5/", steps_total, "] Verifying metadata files...\n", sep = "")
+# Step 7: Verify DESCRIPTION and NEWS
+cat("\n[7/", steps_total, "] Verifying metadata files...\n", sep = "")
 tryCatch(
     {
         desc <- read.dcf("DESCRIPTION")

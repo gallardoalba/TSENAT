@@ -18,7 +18,7 @@ if (requireNamespace("DT", quietly = TRUE) && requireNamespace("htmltools", quie
   covr::report(cov, file = report_file)
   cat("Wrote report:", report_file, "\n")
 } else {
-  message("Skipping HTML coverage report: 'DT' and/or 'htmltools' not available.")
+  cat("CI: Skipping HTML coverage report: 'DT' and/or 'htmltools' not available.\n")
 }
 if(upload){
   if(identical(Sys.getenv('CODECOV_TOKEN', unset = ''), '')){
