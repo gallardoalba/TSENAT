@@ -270,8 +270,8 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' )
 #' calculate_lm_interaction(se, sample_type_col = "sample_type")
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, method = c("linear",
-            "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-    paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE) {
+      "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+  paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) {

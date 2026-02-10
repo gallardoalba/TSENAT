@@ -183,7 +183,7 @@
     }
     if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod") &&
         !isTRUE(attr(fit1, "singular"))) {
-        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1), 
+        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
             REML = FALSE), silent = TRUE)
         if (!inherits(fit_lt, "try-error")) {
             coefs <- summary(fit_lt)$coefficients

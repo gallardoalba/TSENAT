@@ -11,15 +11,20 @@ if (!requireNamespace("styler", quietly = TRUE)) {
 
 library(styler)
 
+# Command-line: use '--apply' to write style changes (dry = "off").
+args <- commandArgs(trailingOnly = TRUE)
+apply_fixes <- any(args %in% c("--apply", "-a"))
+
 # Check styler compliance for R package directory
 cat("Checking code style with 4-space indentation...\n\n")
 
-# Use style_pkg with dry.run to check without modifying files
-result <- style_pkg(
-    indent_by = 4,
-    strict = FALSE,
-    dry = "on"
-)
+# Use style_pkg: dry run by default, or apply fixes when requested
+if (apply_fixes) {
+    cat("Applying style fixes (dry = off)...\n")
+    result <- style_pkg(indent_by = 4, strict = FALSE, dry = "off")
+} else {
+    result <- style_pkg(indent_by = 4, strict = FALSE, dry = "on")
+}
 
 # (No debug printing)
 
@@ -34,9 +39,17 @@ if (isTRUE(result)) {
 } else if (is.data.frame(result)) {
     # result is a data.frame with files and a logical `changed` column
     if (any(result$changed, na.rm = TRUE)) {
-        cat("ERROR: Code style violations found!\n")
-        cat("Please run 'Rscript scripts/apply_style.R' locally to fix styling.\n")
-        quit(status = 1)
+        changed_files <- result$file[which(result$changed)]
+        cat("The following files would be changed by styler:\n")
+        cat(paste0(" - ", changed_files, "\n"), sep = "")
+        if (!apply_fixes) {
+            cat("ERROR: Code style violations found!\n")
+            cat("Run 'Rscript scripts/apply_style.R --apply' to apply fixes.\n")
+            quit(status = 1)
+        } else {
+            cat("Applied style fixes to the above files.\n")
+            quit(status = 0)
+        }
     } else {
         cat("All files are properly styled!\n")
         quit(status = 0)
