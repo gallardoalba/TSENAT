@@ -76,7 +76,6 @@ suppressPackageStartupMessages({
     library(TSENAT)
     library(ggplot2)
     library(SummarizedExperiment)
-    library(mgcv)
 })
 ```
 
@@ -601,13 +600,12 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] mgcv_1.9-4                  nlme_3.1-168               
-#>  [3] SummarizedExperiment_1.40.0 Biobase_2.70.0             
-#>  [5] GenomicRanges_1.62.1        Seqinfo_1.0.0              
-#>  [7] IRanges_2.44.0              S4Vectors_0.48.0           
-#>  [9] BiocGenerics_0.56.0         generics_0.1.4             
-#> [11] MatrixGenerics_1.22.0       matrixStats_1.5.0          
-#> [13] ggplot2_4.0.2               TSENAT_0.99.0              
+#>  [1] SummarizedExperiment_1.40.0 Biobase_2.70.0             
+#>  [3] GenomicRanges_1.62.1        Seqinfo_1.0.0              
+#>  [5] IRanges_2.44.0              S4Vectors_0.48.0           
+#>  [7] BiocGenerics_0.56.0         generics_0.1.4             
+#>  [9] MatrixGenerics_1.22.0       matrixStats_1.5.0          
+#> [11] ggplot2_4.0.2               TSENAT_0.99.0              
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
@@ -621,15 +619,16 @@ sessionInfo()
 #> [25] pkgdown_2.2.0       pillar_1.11.1       jquerylib_0.1.4    
 #> [28] tidyr_1.3.2         MASS_7.3-65         DelayedArray_0.36.0
 #> [31] cachem_1.1.0        reformulas_0.4.4    boot_1.3-32        
-#> [34] abind_1.4-8         tidyselect_1.2.1    digest_0.6.39      
-#> [37] dplyr_1.2.0         purrr_1.2.1         labeling_0.4.3     
-#> [40] splines_4.5.2       fastmap_1.2.0       grid_4.5.2         
-#> [43] cli_3.6.5           SparseArray_1.10.8  magrittr_2.0.4     
-#> [46] patchwork_1.3.2     S4Arrays_1.10.1     withr_3.0.2        
-#> [49] scales_1.4.0        rmarkdown_2.30      XVector_0.50.0     
-#> [52] lme4_1.1-38         otel_0.2.0          ragg_1.5.0         
-#> [55] evaluate_1.0.5      knitr_1.51          rbibutils_2.4.1    
-#> [58] viridisLite_0.4.3   rlang_1.1.7         Rcpp_1.1.1         
-#> [61] glue_1.8.0          minqa_1.2.8         jsonlite_2.0.0     
-#> [64] R6_2.6.1            systemfonts_1.3.1   fs_1.6.6
+#> [34] abind_1.4-8         nlme_3.1-168        tidyselect_1.2.1   
+#> [37] digest_0.6.39       dplyr_1.2.0         purrr_1.2.1        
+#> [40] labeling_0.4.3      splines_4.5.2       fastmap_1.2.0      
+#> [43] grid_4.5.2          cli_3.6.5           SparseArray_1.10.8 
+#> [46] magrittr_2.0.4      patchwork_1.3.2     S4Arrays_1.10.1    
+#> [49] withr_3.0.2         scales_1.4.0        rmarkdown_2.30     
+#> [52] XVector_0.50.0      otel_0.2.0          lme4_1.1-38        
+#> [55] ragg_1.5.0          evaluate_1.0.5      knitr_1.51         
+#> [58] rbibutils_2.4.1     viridisLite_0.4.3   rlang_1.1.7        
+#> [61] Rcpp_1.1.1          glue_1.8.0          minqa_1.2.8        
+#> [64] jsonlite_2.0.0      R6_2.6.1            systemfonts_1.3.1  
+#> [67] fs_1.6.6
 ```
