@@ -18,20 +18,18 @@ one thing well.
 | `run_bioccheck.R` | Run BiocCheck (Bioconductor) | `Rscript scripts/run_bioccheck.R` |
 | `check_style.R` | Check / (optionally) fix code style (styler) | `Rscript scripts/check_style.R` |
 | `fix_indent_multiple_of_4.R` | Normalize indentation in files | `Rscript scripts/fix_indent_multiple_of_4.R <file>` |
-| `generate_tcga_rdata.R` | Generate synthetic example dataset (inst/extdata) | `Rscript scripts/generate_tcga_rdata.R` |
+| `apply_style.R` | Check or apply code style fixes (styler) | `Rscript scripts/apply_style.R` or `Rscript scripts/apply_style.R --apply` |
 
 ## New maintenance helpers
 
 - `check_package.R` — Run a quick integrity suite (roxygen sync, style,
   tests, dependency checks, doc completeness):
-
 ```bash
 Rscript scripts/check_package.R
 ```
 
 - `bump_version.R` — Bump package `Version` (DESCRIPTION), update
   `_pkgdown.yml` (if present) and prepend a NEWS entry. Usage:
-
 ```bash
 Rscript scripts/bump_version.R [major|minor|patch]
 # default: patch
@@ -39,7 +37,6 @@ Rscript scripts/bump_version.R [major|minor|patch]
 
 - `prepare_release.R` — Orchestrates pre-release tasks:
   checks → build vignettes → build docs → verify metadata. It prints a
-  short release checklist on success.
 
 ```bash
 Rscript scripts/prepare_release.R
@@ -59,26 +56,29 @@ Rscript scripts/run_tests.R
 # check code style and fix (if desired)
 Rscript scripts/check_style.R
 ```
-
+Rscript scripts/apply_style.R
+# to apply fixes in-place:
+Rscript scripts/apply_style.R --apply
 ### Prepare documentation & website
 
 ```bash
 # build vignettes and pkgdown site locally
 Rscript scripts/build_vignettes.R
 Rscript scripts/build_pkgdown.R
-# preview docs in ./docs/
+Rscript scripts/build_vignettes.R
+Rscript scripts/build_vignettes.R --pdf
 ```
 
 ### Before tagging a release
 
 ```bash
+Rscript scripts/deploy_ghpages.R
 # run full package checks
 Rscript scripts/check_package.R
 
 # bump version (patch, minor or major), update NEWS.md
 Rscript scripts/bump_version.R patch
 
-# run the prepare-release workflow
 Rscript scripts/prepare_release.R
 ```
 
