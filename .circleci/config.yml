@@ -51,3 +51,9 @@ jobs:
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual *.tar.gz
+
+      - run:
+          name: Upload coverage to Codecov
+          command: |
+            R -e 'if (!requireNamespace("covr", quietly=TRUE)) install.packages("covr", repos="https://cloud.r-project.org")'
+            R -e 'cov <- covr::package_coverage(); covr::codecov(coverage = cov)'
