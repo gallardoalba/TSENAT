@@ -245,6 +245,15 @@ test_that("plot_tsallis_gene_profile returns ggplot for single gene", {
 
     p <- plot_tsallis_gene_profile(ts_se, gene = "G1")
     expect_s3_class(p, "ggplot")
+
+    # exercise gene = NULL + lm_res selection path
+    lm_res <- data.frame(gene = c("G1", "G2"), adj_p_interaction = c(0.01, 0.2), stringsAsFactors = FALSE)
+    p2 <- plot_tsallis_gene_profile(ts_se, gene = NULL, lm_res = lm_res, n_top = 1)
+    expect_s3_class(p2, "ggplot")
+
+    # show_samples = TRUE branch
+    p3 <- plot_tsallis_gene_profile(ts_se, gene = "G1", show_samples = TRUE)
+    expect_s3_class(p3, "ggplot")
 })
 
 test_that("plot_tsallis_density_multq returns ggplot", {

@@ -75,3 +75,68 @@ test_that("calculate_method returns correct 'D' (Hill numbers) values for multip
         }
     }
 })
+
+
+test_that("helper falls back to NA when calculate_tsallis_entropy returns wrong-length vector", {
+    mat <- matrix(c(1, 10), nrow = 1, byrow = TRUE)
+    colnames(mat) <- c("S1", "S2")
+    genes <- c("A")
+
+    ns <- asNamespace("TSENAT")
+    orig <- get("calculate_tsallis_entropy", envir = ns)
+    stub <- function(x, q, norm, what) {
+        # if the sample value is 1 return a scalar (wrong length) to trigger fallback
+        if (length(x) == 1 && x == 1) return(42)
+        orig(x, q = q, norm = norm, what = what)
+    }
+    assignInNamespace("calculate_tsallis_entropy", stub, ns = "TSENAT")
+    on.exit(assignInNamespace("calculate_tsallis_entropy", orig, ns = "TSENAT"), add = TRUE)
+
+    out_vec <- .tsenat_tsallis_row(x = mat, genes = genes, gene = "A", q = c(1, 2), norm = TRUE, what = "S")
+    # S1 (first two entries) should be NA due to wrong-length return; S2 should match orig
+    expect_true(all(is.na(out_vec[1:2])))
+    expected2 <- orig(mat[1, 2], q = c(1, 2), norm = TRUE, what = "S")
+    expect_equal(unname(out_vec[3:4]), unname(expected2))
+})
+
+
+test_that("helper falls back to NA when calculate_tsallis_entropy returns non-finite values", {
+    mat <- matrix(c(2, 3), nrow = 1, byrow = TRUE)
+    colnames(mat) <- c("S1", "S2")
+    genes <- c("A")
+
+    ns <- asNamespace("TSENAT")
+    orig <- get("calculate_tsallis_entropy", envir = ns)
+    stub <- function(x, q, norm, what) {
+        # if the sample value is 2 return non-finite values to trigger fallback
+        if (length(x) == 1 && x == 2) return(c(Inf, Inf))
+        orig(x, q = q, norm = norm, what = what)
+    }
+    assignInNamespace("calculate_tsallis_entropy", stub, ns = "TSENAT")
+    on.exit(assignInNamespace("calculate_tsallis_entropy", orig, ns = "TSENAT"), add = TRUE)
+
+    out_vec <- .tsenat_tsallis_row(x = mat, genes = genes, gene = "A", q = c(1, 2), norm = TRUE, what = "S")
+    expect_true(all(is.na(out_vec[1:2])))
+    expected2 <- orig(mat[1, 2], q = c(1, 2), norm = TRUE, what = "S")
+    expect_equal(unname(out_vec[3:4]), unname(expected2))
+})
+
+
+test_that("helper returns NA vector when gene has no matching transcripts", {
+    mat <- matrix(c(5, 10), nrow = 1, byrow = TRUE)
+    colnames(mat) <- c("S1", "S2")
+    genes <- c("A")
+
+    out_vec <- .tsenat_tsallis_row(x = mat, genes = genes, gene = "Z", q = c(1, 2), norm = TRUE, what = "S")
+    expect_true(all(is.na(out_vec)))
+})
+
+
+test_that("helper returns empty numeric vector when there are no samples (ncol == 0)", {
+    mat <- matrix(nrow = 1, ncol = 0)
+    genes <- c("A")
+
+    out_vec <- .tsenat_tsallis_row(x = mat, genes = genes, gene = "A", q = c(1, 2), norm = TRUE, what = "S")
+    # accept any empty return (length 0) as the correct behavior
+    expect_true(length(out_vec) == 0)
+})

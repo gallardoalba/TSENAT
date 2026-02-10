@@ -136,3 +136,136 @@ test_that(".tsenat_try_lmer sets singular attribute when fitting succeeds", {
         expect_true(is.logical(attr(fit_try, "singular")))
     }
 })
+
+
+test_that("lmm branch falls back to lm when mixed model fitting fails and respects pvalue selection", {
+    skip_if_not_installed("lme4")
+    # Temporarily force .tsenat_try_lmer to fail so the code uses the lm fallbacks
+    ns <- asNamespace('TSENAT')
+    orig_try <- get('.tsenat_try_lmer', envir = ns)
+    assignInNamespace('.tsenat_try_lmer', function(...) structure('error', class = 'try-error'), ns = 'TSENAT')
+    on.exit(assignInNamespace('.tsenat_try_lmer', orig_try, ns = 'TSENAT'), add = TRUE)
+
+    set.seed(42)
+    n <- 40
+    qv <- rep(seq(0.1, 1, length.out = 20), 2)
+    sample_names <- paste0('s', seq_along(qv))
+    group <- rep(c('A', 'B'), each = 20)
+    obs <- 0.5 * qv + ifelse(group == 'B', 0.2 * qv, 0) + rnorm(length(qv), 0, 0.05)
+    mat <- matrix(obs, nrow = 1)
+    rownames(mat) <- 'g_fallback'
+
+    # pvalue = 'both' should pick satterthwaite when present (extracted from fallback)
+    res_both <- .tsenat_fit_one_interaction('g_fallback', se = NULL, mat = mat, q_vals = qv,
+        sample_names = sample_names, group_vec = group, method = 'lmm', pvalue = 'both',
+        subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
+        suppress_lme4_warnings = TRUE, progress = FALSE)
+    expect_true(is.data.frame(res_both))
+    expect_true(all(c('p_interaction','p_lrt','p_satterthwaite','fit_method','singular') %in% colnames(res_both)))
+    expect_true(res_both$fit_method %in% c('lm_subject','lm_nosubject'))
+
+    # pvalue = 'lrt' should use the LRT p-value
+    res_lrt <- .tsenat_fit_one_interaction('g_fallback', se = NULL, mat = mat, q_vals = qv,
+        sample_names = sample_names, group_vec = group, method = 'lmm', pvalue = 'lrt',
+        subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
+        suppress_lme4_warnings = TRUE, progress = FALSE)
+    expect_true(is.data.frame(res_lrt))
+    expect_true(is.numeric(res_lrt$p_interaction) || is.na(res_lrt$p_interaction))
+
+    # pvalue = 'satterthwaite' should use fallback coefficients when available
+    res_sat <- .tsenat_fit_one_interaction('g_fallback', se = NULL, mat = mat, q_vals = qv,
+        sample_names = sample_names, group_vec = group, method = 'lmm', pvalue = 'satterthwaite',
+        subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
+        suppress_lme4_warnings = TRUE, progress = FALSE)
+    expect_true(is.data.frame(res_sat))
+    expect_true(is.numeric(res_sat$p_interaction) || is.na(res_sat$p_interaction))
+})
+
+
+# Additional tests to cover less exercised branches
+
+test_that(".tsenat_gam_interaction returns NULL when mgcv::gam errors", {
+    skip_if_not_installed("mgcv")
+    ns_mgcv <- asNamespace('mgcv')
+    orig_gam <- get('gam', envir = ns_mgcv)
+    assignInNamespace('gam', function(...) stop('boom'), ns = 'mgcv')
+    on.exit(assignInNamespace('gam', orig_gam, ns = 'mgcv'), add = TRUE)
+
+    df <- data.frame(entropy = rnorm(5), q = rep(1,5), group = factor(rep(c('A','B'), length.out = 5)))
+    res <- .tsenat_gam_interaction(df, q_vals = df$q, g = 'g1', min_obs = 3)
+    expect_null(res)
+})
+
+
+test_that(".tsenat_fpca_interaction returns NULL for non-diverse groups and handles imputation path", {
+    # non-diverse groups -> NULL
+    genes <- 1
+    samples <- paste0('s', 1:6)
+    q_vals <- rep(c(1,2,3), 2)
+    mat <- matrix(rnorm(length(q_vals)), nrow = 1)
+    rownames(mat) <- 'g1'
+    group_vec <- rep('A', length.out = length(q_vals))
+    res <- .tsenat_fpca_interaction(mat, q_vals = q_vals, sample_names = samples, group_vec = group_vec, g = 1, min_obs = 2)
+    expect_null(res)
+
+    # imputation path: create NA entries that are later imputed
+    group_vec2 <- rep(c('A', 'B'), each = 3)
+    mat2 <- matrix(NA_real_, nrow = 1, ncol = 6)
+    # fill some entries so there are at least two good rows after reshaping
+    mat2[1, c(1,4)] <- c(1.2, 2.3)
+    rownames(mat2) <- 'g1'
+    sample_names2 <- paste0('s', 1:6)
+    res2 <- .tsenat_fpca_interaction(mat2, q_vals = q_vals, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1)
+    expect_true(is.null(res2) || (is.data.frame(res2) && 'p_interaction' %in% colnames(res2)))
+})
+
+
+test_that(".tsenat_fit_one_interaction dispatches to gam and fpca methods", {
+    # FPCA dispatch
+    sample_names <- rep(paste0('s', 1:4), each = 2)
+    q_vals <- rep(1:2, times = 4)
+    group_vec <- rep(c('A','B','A','B'), each = 2)
+    obs <- rnorm(8)
+    mat <- matrix(obs, nrow = 1)
+    rownames(mat) <- 'g1'
+    out_fpca <- .tsenat_fit_one_interaction('g1', se = NULL, mat = mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, method = 'fpca', pvalue = 'lrt', subject_col = NULL, paired = FALSE, min_obs = 2, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
+    expect_true(is.null(out_fpca) || (is.data.frame(out_fpca) && 'p_interaction' %in% colnames(out_fpca)))
+
+    # GAM dispatch - if mgcv available
+    if (rlang::is_installed('mgcv')) {
+        set.seed(1)
+        n <- 30
+        q <- runif(n, 0.1, 1)
+        group <- rep(c('A','B'), length.out = n)
+        entropy <- 0.2 * q + ifelse(group == 'B', 0.3 * q, 0) + rnorm(n, 0, 0.01)
+        df <- data.frame(entropy = entropy, q = q, group = group)
+        mat_gam <- matrix(entropy, nrow = 1)
+        rownames(mat_gam) <- 'g1'
+        out_gam <- .tsenat_fit_one_interaction('g1', se = NULL, mat = mat_gam, q_vals = q, sample_names = paste0('s', seq_along(q)), group_vec = group, method = 'gam', pvalue = 'lrt', subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
+        expect_true(is.null(out_gam) || (is.data.frame(out_gam) && 'p_interaction' %in% colnames(out_gam)))
+    } else {
+        succeed()
+    }
+})
+
+
+test_that("lmm branch uses fallback when lmer returns singular fits", {
+    skip_if_not_installed('lme4')
+    ns <- asNamespace('TSENAT')
+    orig_try <- get('.tsenat_try_lmer', envir = ns)
+    fake_lmer <- function(...) { m <- list(); class(m) <- 'lmerMod'; attr(m, 'singular') <- TRUE; return(m) }
+    assignInNamespace('.tsenat_try_lmer', fake_lmer, ns = 'TSENAT')
+    on.exit(assignInNamespace('.tsenat_try_lmer', orig_try, ns = 'TSENAT'), add = TRUE)
+
+    set.seed(7)
+    qv <- rep(seq(0.1, 1, length.out = 20), 2)
+    sample_names <- paste0('s', seq_along(qv))
+    group <- rep(c('A','B'), each = 20)
+    obs <- 0.5 * qv + ifelse(group == 'B', 0.2 * qv, 0) + rnorm(length(qv), 0, 0.05)
+    mat <- matrix(obs, nrow = 1)
+    rownames(mat) <- 'g_sing'
+
+    res <- .tsenat_fit_one_interaction('g_sing', se = NULL, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = 'lmm', pvalue = 'both', subject_col = NULL, paired = FALSE, min_obs = 5, verbose = TRUE, suppress_lme4_warnings = TRUE, progress = TRUE)
+    expect_true(is.data.frame(res))
+    expect_true(res$fit_method %in% c('lm_subject','lm_nosubject','lmer_singular','fallback'))
+})

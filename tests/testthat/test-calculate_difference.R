@@ -255,3 +255,33 @@ test_that("Genes with insufficient observations are reported with NA p-values (s
     expect_true(nrow(row_g2) == 1)
     expect_true(is.na(row_g2$raw_p_values) || is.na(row_g2$adjusted_p_values))
 })
+
+
+test_that("calculate_fc input validation and pseudocount behavior", {
+    mat <- matrix(c(1, 0, -1), nrow = 1)
+    samples <- c("A", "A", "B")
+    expect_error(calculate_fc(mat, samples = samples[-1], control = "A"), "Length of 'samples' must equal")
+    expect_error(calculate_fc(mat, samples = samples, control = "C"), "Control sample type not found")
+
+    # zero and negative values trigger pseudocount replacement when pseudocount <= 0
+    mat2 <- matrix(c(0, 0, 0, 0), nrow = 1)
+    samples2 <- c("A", "A")
+    # control must be present; expand to two samples per group
+    mat2 <- matrix(c(0, 0, 0, 0), nrow = 1)
+    samples2 <- c("A", "B", "A", "B")
+    val <- calculate_fc(mat2, samples = samples2, control = "A", method = "mean", pseudocount = 0)
+    # pseudocount applied to non-positive entries; ensure finite values
+    expect_true(all(is.finite(as.numeric(val[1, 1:2])) | is.na(as.numeric(val[1, 1:2]))))
+})
+
+
+test_that("paired signflip permutations enumerate all combos when randomizations = 0", {
+    # build simple matrix with one feature and 4 samples (2 pairs)
+    mat <- matrix(c(1, 2, 3, 4), nrow = 1)
+    samples <- c("A", "B", "A", "B")
+    # call label_shuffling with paired signflip and randomizations=0 to force enumeration
+    res <- label_shuffling(mat, samples = samples, control = "A", method = "mean", randomizations = 0, pcorr = "none", paired = TRUE, paired_method = "signflip")
+    expect_true(is.matrix(res))
+    # result should be 1 row and 2 columns (raw and adjusted)
+    expect_equal(dim(res), c(1, 2))
+})
