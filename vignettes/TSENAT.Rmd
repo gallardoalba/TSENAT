@@ -95,7 +95,6 @@ suppressPackageStartupMessages({
     library(TSENAT)
     library(ggplot2)
     library(SummarizedExperiment)
-    library(mgcv)
 })
 ```
 
