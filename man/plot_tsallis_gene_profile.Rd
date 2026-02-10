@@ -6,7 +6,9 @@
 \usage{
 plot_tsallis_gene_profile(
   se,
-  gene,
+  gene = NULL,
+  lm_res = NULL,
+  n_top = 10,
   assay_name = "diversity",
   sample_type_col = "sample_type",
   show_samples = FALSE
@@ -15,7 +17,15 @@ plot_tsallis_gene_profile(
 \arguments{
 \item{se}{A `SummarizedExperiment` from `calculate_diversity()`.}
 
-\item{gene}{Character scalar; gene symbol to plot.}
+\item{gene}{Character scalar or vector; gene symbol(s) to plot. If NULL and
+`lm_res` is supplied, the top `n_top` genes from `lm_res` (by
+`adj_p_interaction` or `p_interaction`) are used.}
+
+\item{lm_res}{Optional data.frame result from `calculate_lm_interaction()`.
+When supplied and `gene` is NULL, the top `n_top` significant genes will
+be plotted.}
+
+\item{n_top}{Number of top genes to plot when `lm_res` is provided (default: 10).}
 
 \item{assay_name}{Name of the assay to use (default: "diversity").}
 
@@ -26,7 +36,8 @@ plot_tsallis_gene_profile(
 background (default: FALSE).}
 }
 \value{
-A `ggplot` object showing the gene q-curve profile by group.
+A `ggplot` object when a single gene is requested, or a named list
+  of `ggplot` objects when multiple genes are requested.
 }
 \description{
 For a selected gene, plot per-sample Tsallis entropy across q values and

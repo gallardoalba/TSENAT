@@ -190,20 +190,29 @@ validate_control_in_samples <- function(control, samples) {
 #' `calculate_diversity()` with `_q=` suffixes in column names.
 #'
 #' @param se A `SummarizedExperiment` from `calculate_diversity()`.
-#' @param gene Character scalar; gene symbol to plot.
+#' @param gene Character scalar or vector; gene symbol(s) to plot. If NULL and
+#'   `lm_res` is supplied, the top `n_top` genes from `lm_res` (by
+#'   `adj_p_interaction` or `p_interaction`) are used.
+#' @param lm_res Optional data.frame result from `calculate_lm_interaction()`.
+#'   When supplied and `gene` is NULL, the top `n_top` significant genes will
+#'   be plotted.
+#' @param n_top Number of top genes to plot when `lm_res` is provided (default: 10).
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @param sample_type_col Column name in `colData(se)` with sample type labels
 #'   (default: "sample_type"). If missing, a single-group fallback is used.
 #' @param show_samples Logical; if TRUE, draw per-sample lines in the
 #'   background (default: FALSE).
-#' @return A `ggplot` object showing the gene q-curve profile by group.
+#' @return A `ggplot` object when a single gene is requested, or a named list
+#'   of `ggplot` objects when multiple genes are requested.
 #' @examples
 #' mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1", "g2"), c("s1_q=0.1", "s1_q=1", "s2_q=0.1", "s2_q=1")))
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
 #' plot_tsallis_gene_profile(se, gene = "g1")
 #' @export
 plot_tsallis_gene_profile <- function(se,
-                                      gene,
+                                      gene = NULL,
+                                      lm_res = NULL,
+                                      n_top = 10,
                                       assay_name = "diversity",
                                       sample_type_col = "sample_type",
                                       show_samples = FALSE) {
@@ -212,38 +221,60 @@ plot_tsallis_gene_profile <- function(se,
 
     long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
     if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
-    # filter for requested gene
-    sel <- as.character(gene)
-    long_g <- long[as.character(long$Gene) == sel, , drop = FALSE]
-    if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
 
-    # numeric q for plotting
-    long_g$qnum <- as.numeric(as.character(long_g$q))
-
-    # per-group statistics
-    stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
-        median = median(tsallis, na.rm = TRUE),
-        IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
-    )
-
-    p <- ggplot2::ggplot() +
-        ggplot2::theme_minimal(base_size = 14)
-
-    if (isTRUE(show_samples)) {
-        p <- p + ggplot2::geom_line(data = long_g, ggplot2::aes(x = qnum, y = tsallis, group = sample, color = group), alpha = 0.25)
+    # Resolve genes to plot: accept NULL (use lm_res), a single name, or a vector/list
+    if (is.null(gene)) {
+        if (is.null(lm_res)) stop("Either 'gene' or 'lm_res' must be provided")
+        if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) stop("'lm_res' must be a data.frame with a 'gene' column")
+        # prefer adj_p_interaction if present
+        pcol <- if ("adj_p_interaction" %in% colnames(lm_res)) "adj_p_interaction" else if ("p_interaction" %in% colnames(lm_res)) "p_interaction" else NULL
+        if (is.null(pcol)) stop("'lm_res' must contain 'adj_p_interaction' or 'p_interaction' columns")
+        genes_ordered <- unique(as.character(lm_res$gene[order(lm_res[[pcol]])]))
+        genes <- head(genes_ordered, n_top)
+    } else {
+        genes <- as.character(unlist(gene))
     }
 
-    p <- p +
-        ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = median - IQR / 2, ymax = median + IQR / 2, fill = group), alpha = 0.2, inherit.aes = FALSE) +
-        ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = median, color = group), linewidth = 1.3) +
-        ggplot2::labs(title = paste0(sel, ": Tsallis entropy q-curve profile"), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
-        ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
-        ggplot2::theme(plot.title = ggplot2::element_text(
-            hjust = 0.5, size = 16,
-            margin = ggplot2::margin(b = 10)
-        ))
+    if (length(genes) == 0) stop("No genes selected for plotting")
 
-    p
+    # helper to build single plot for a gene
+    make_plot_for_gene <- function(sel) {
+        long_g <- long[as.character(long$Gene) == sel, , drop = FALSE]
+        if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
+        long_g$qnum <- as.numeric(as.character(long_g$q))
+        stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
+            median = median(tsallis, na.rm = TRUE),
+            IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
+        )
+
+        p <- ggplot2::ggplot() +
+            ggplot2::theme_minimal(base_size = 14)
+
+        if (isTRUE(show_samples)) {
+            p <- p + ggplot2::geom_line(data = long_g, ggplot2::aes(x = qnum, y = tsallis, group = sample, color = group), alpha = 0.25)
+        }
+
+        p <- p +
+            ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = median - IQR / 2, ymax = median + IQR / 2, fill = group), alpha = 0.2, inherit.aes = FALSE) +
+            ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = median, color = group), linewidth = 1.3) +
+            ggplot2::labs(title = paste0(sel, ": Tsallis entropy q-curve profile"), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
+            ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
+            ggplot2::theme(plot.title = ggplot2::element_text(
+                hjust = 0.5, size = 16,
+                margin = ggplot2::margin(b = 10)
+            ))
+        p
+    }
+
+    # Return single ggplot for single gene, or a named list of ggplots for multiple genes
+    if (length(genes) == 1) {
+        return(make_plot_for_gene(genes))
+    }
+
+    plots <- lapply(genes, make_plot_for_gene)
+    names(plots) <- genes
+    plots
+
 }
 
 #' Plot diversity distributions (density) by sample type
