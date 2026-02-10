@@ -9,9 +9,9 @@ TSENAT is an R package for quantifying and modelling the relative isoform-usage 
 
 Key capabilities:
 
-- Scale-dependent diversity analysis: Evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
-- Statistical testing: Compare diversity measures between sample groups using Wilcoxon tests or permutation-based approaches.
-- Reproducible workflows: From raw counts to publication-ready visualizations with paired sample support.
+- Scale-dependent diversity analysis: evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
+- Statistical testing: compare diversity measures between sample groups using Wilcoxon tests, permutation-based and limear-model approaches.
+- Reproducible workflows: from raw counts to publication-ready visualizations with paired sample support.
 
 ## Tsallis Theory
 
