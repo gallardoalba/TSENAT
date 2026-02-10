@@ -171,3 +171,7 @@ R CMD check --as-cran
 This project is licensed under the GNU General Public License v3.0 (GPL-3). See [LICENSE](LICENSE) for details.
 
 Attribution: TSENAT builds upon the [SplicingFactory package](https://github.com/esebesty/SplicingFactory), extending it with specialized focus on Tsallis entropy analysis.
+
+> **“If I ever come back from the past, it's to create a cyclone.”**
+>
+> — Juan José Lozano
