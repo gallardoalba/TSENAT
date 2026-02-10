@@ -13,11 +13,11 @@ expression methods.
 
 Key capabilities:
 
-- Scale-dependent diversity analysis: Evaluate isoform heterogeneity at
+- Scale-dependent diversity analysis: evaluate isoform heterogeneity at
   different sensitivity levels using the parameter `q`.
-- Statistical testing: Compare diversity measures between sample groups
-  using Wilcoxon tests or permutation-based approaches.
-- Reproducible workflows: From raw counts to publication-ready
+- Statistical testing: compare diversity measures between sample groups
+  using Wilcoxon tests, permutation-based and linear-model approaches.
+- Reproducible workflows: from raw counts to publication-ready
   visualizations with paired sample support.
 
 ## Tsallis Theory
@@ -120,7 +120,7 @@ Isoform Composition
 
 ## Installation
 
-Install from GitHub during development:
+Install from GitHub:
 
 ``` r
 

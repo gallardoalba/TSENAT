@@ -414,14 +414,13 @@ apparent at a single `q` value.
 
 Computing Tsallis entropy across a sequence of `q` values is important
 because `q` acts as a sensitivity lens that shifts emphasis between rare
-and dominant isoforms. Thus, the resulting **q-curve** can help us
+and dominant events in data. Thus, the resulting **q-curve** can help us
 identify at which scales (i.e. for which `q` values) the diversity
-differences between groups are most pronounced.
-
-The Tsallis q-sequence can also be help with quality control and outlier
-detection. By examining the q-curves of individual samples, we can
-identify samples that deviate from expected patterns, which may indicate
-technical issues or biological outliers.
+differences between groups are most pronounced. The Tsallis `q-sequence`
+can also help with quality control and outlier detection. By examining
+the q-curves of individual samples, we can identify samples that deviate
+from expected patterns, which may indicate technical issues or
+biological outliers.
 
 ``` r
 
@@ -447,7 +446,7 @@ Map once again the sample metadata into the multi-q
 ts_se <- map_metadata(ts_se, coldata_df, paired = TRUE)
 ```
 
-Once we have the `q-sequence` computed, we can test for interactions
+Once we have the **q-sequence** computed, we can test for interactions
 between `q` and sample groups using one of four methods implemented in
 [`calculate_lm_interaction()`](https://gallardoalba.github.io/TSENAT/reference/calculate_lm_interaction.md):
 
