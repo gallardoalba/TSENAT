@@ -118,7 +118,7 @@ Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-
 
 Isoform Composition
 
-## Installation and Documentation
+## Installation
 
 Install from GitHub during development:
 
@@ -132,8 +132,6 @@ install.packages("renv")
 renv::init()
 renv::snapshot()
 ```
-
-Documentation: [TSENAT site](https://gallardoalba.github.io/TSENAT/).
 
 ## Quick Start
 
@@ -166,7 +164,8 @@ vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
 
 Testing is vital in research as it ensures the validity and reliability
 of results, which is essential for accurately interpreting findings. The
-current testing coverage of the package is displayed Codecov badge.
+report about the current testing coverage can be found in
+[here](https://app.codecov.io/gh/gallardoalba/TSENAT).
 
 ## Citation
 
@@ -238,6 +237,10 @@ for details.
 Attribution: TSENAT builds upon the [SplicingFactory
 package](https://github.com/esebesty/SplicingFactory), extending it with
 specialized focus on Tsallis entropy analysis.
+
+> **“If I ever come back from the past, it’s to create a cyclone.”**
+>
+> — Juan José Lozano
 
 # Package index
 
