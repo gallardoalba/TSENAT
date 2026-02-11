@@ -37,7 +37,7 @@ else
 fi
 
 echo "4) Copy pdf manual..."
-cp inst/doc/TSENAT.pdf "$ROOT/docs/TSENAT.pdf" 2>/dev/null || true
+cp inst/doc/TSENAT.pdf "$ROOT/docs/articles/TSENAT.pdf" 2>/dev/null || true
 
 echo "5) Preparing temporary clone..."
 TMPDIR=$(mktemp -d)
