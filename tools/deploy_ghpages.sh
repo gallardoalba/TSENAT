@@ -17,10 +17,29 @@ if [ -z "$(ls -A "$ROOT/docs" 2>/dev/null)" ]; then
   exit 1
 fi
 
-echo "1) Building pkgdown site..."
-Rscript "$ROOT/tools/build_pkgdown.R"
+echo "1) Generate coverage report..."
+if [ -d "$ROOT/coverage" ]; then
+  echo "Coverage report already exists, skipping generation."
+else
+  echo "Coverage report not found, generating..."
+  Rscript "$ROOT/tools/run_coverage.R"
+fi
 
-echo "2) Preparing temporary clone..."
+echo "2) Copy coverage folder..."
+cp -r "$ROOT/coverage" "$ROOT/docs/coverage" 2>/dev/null || true
+
+echo "3) Generate pdf manual..."
+if [ -f "$ROOT/inst/doc/TSENAT.pdf" ]; then
+  echo "PDF manual already exists, skipping generation."
+else
+  echo "PDF manual not found, generating..."
+  Rscript "$ROOT/tools/build_vignettes.R --pdf"
+fi
+
+echo "4) Copy pdf manual..."
+cp inst/doc/TSENAT.pdf "$ROOT/docs/TSENAT.pdf" 2>/dev/null || true
+
+echo "5) Preparing temporary clone..."
 TMPDIR=$(mktemp -d)
 repo_dir="$TMPDIR/repo"
 
