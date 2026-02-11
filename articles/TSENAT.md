@@ -474,7 +474,8 @@ if (requireNamespace("lme4", quietly = TRUE)) {
     lm_res <- calculate_lm_interaction(ts_se,
         sample_type_col = "sample_type", method = "lmm",
         pvalue = "satterthwaite",
-        subject_col = "sample_base")
+        subject_col = "sample_base"
+    )
     # show the top entries
     print(head(lm_res, 6))
 }
@@ -609,7 +610,7 @@ sessionInfo()
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        xfun_0.56           bslib_0.10.0       
-#>  [4] htmlwidgets_1.6.4   lattice_0.22-7      numDeriv_2016.8-1.1
+#>  [4] htmlwidgets_1.6.4   lattice_0.22-9      numDeriv_2016.8-1.1
 #>  [7] Rdpack_2.6.6        vctrs_0.7.1         tools_4.5.2        
 #> [10] tibble_3.3.1        pkgconfig_2.0.3     Matrix_1.7-4       
 #> [13] RColorBrewer_1.1-3  S7_0.2.1            desc_1.4.3         
