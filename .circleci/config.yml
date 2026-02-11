@@ -19,7 +19,7 @@ jobs:
             apt-get update && apt-get install -y --no-install-recommends \
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-              pandoc git
+              pandoc openssh-client git
             rm -rf /var/lib/apt/lists/*
       - restore_cache:
           keys:
@@ -44,11 +44,26 @@ jobs:
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
-            git fetch origin maintenance
-            git checkout origin/maintenance -- tools || true
-            git checkout origin/maintenance -- .codecov.yml || true
+            set -euxo pipefail
+            ORIG_URL=$(git remote get-url origin)
+            if command -v ssh >/dev/null 2>&1; then
+              git fetch origin maintenance || true
+              git checkout origin/maintenance -- tools || true
+              git checkout origin/maintenance -- .codecov.yml || true
+            else
+              # Convert SSH-style remote URL to HTTPS if needed
+              if echo "$ORIG_URL" | grep -qE '^(git@|ssh://)'; then
+                HTTPS_URL=$(echo "$ORIG_URL" | sed -E 's#^(git@|ssh://)([^:/]+)[:/](.+)$#https://\2/\3#')
+              else
+                HTTPS_URL="$ORIG_URL"
+              fi
+              # Fetch the maintenance branch from the HTTPS URL into origin/maintenance
+              git fetch "$HTTPS_URL" maintenance:refs/remotes/origin/maintenance || true
+              git checkout origin/maintenance -- tools || true
+              git checkout origin/maintenance -- .codecov.yml || true
+            fi
             chmod +x tools/*.sh || true
-            find tools -type f -name '*.R' -exec chmod +x {} \;
+            find tools -type f -name '*.R' -exec chmod +x {} \; || true
       - run:
           name: Check code style with styler
           command: |
