@@ -1,0 +1,61 @@
+# Filter transcripts in a \`SummarizedExperiment\` by minimum count/sample
+
+Subset a \`SummarizedExperiment\` to keep transcripts with more than
+\`min_count\` reads in strictly more than \`min_samples\` samples. The
+function updates assays, \`rowData\`, and relevant entries in
+\`metadata()\` (for example \`readcounts\` and \`tx2gene\`) so
+downstream helpers receive a consistent object.
+
+## Usage
+
+``` r
+filter_se(
+  se,
+  min_count = 5L,
+  min_samples = 5L,
+  assay_name = "counts",
+  verbose = TRUE
+)
+```
+
+## Arguments
+
+- se:
+
+  A \`SummarizedExperiment\` object containing transcript-level assays
+  (rows = transcripts, columns = samples).
+
+- min_count:
+
+  Integer threshold for per-sample counts (default 5L).
+
+- min_samples:
+
+  Integer minimum number of samples exceeding \`min_count\` required to
+  keep a transcript (default 5L).
+
+- assay_name:
+
+  Name or index of the assay to use for filtering (default: 'counts').
+  If not present, the first assay is used.
+
+- verbose:
+
+  Logical; print before/after counts when TRUE.
+
+## Value
+
+A filtered \`SummarizedExperiment\`.
+
+## Examples
+
+``` r
+mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0("tx", 1:3), paste0("S", 1:2)))
+se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
+filt <- filter_se(se, min_count = 5, min_samples = 1)
+#> Transcripts: before = 3, after = 2
+class(filt)
+#> [1] "SummarizedExperiment"
+#> attr(,"package")
+#> [1] "SummarizedExperiment"
+```
