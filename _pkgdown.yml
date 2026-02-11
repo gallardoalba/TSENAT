@@ -1,0 +1,30 @@
+url: https://gallardoalba.github.io/TSENAT
+
+pkgdown:
+  title: TSENAT
+
+template:
+  bootstrap: 5
+  params:
+    bootswatch: "lux"
+  assets:
+    css:
+      - "pkgdown-extra.css"
+
+navbar:
+  structure:
+    left:
+      - home
+      - reference
+      - coverage
+      - sourcecode
+      - issue
+      - articles
+      - documents
+      - news
+    right:
+      - github
+
+home:
+  title: "TSENAT"
+  contents: README.md
