@@ -44,6 +44,8 @@ jobs:
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
+            git config --global url."https://github.com/".insteadOf git@github.com:
+            git config --global url."https://".insteadOf git://
             git fetch origin maintenance
             git checkout origin/maintenance -- tools || true
             git checkout origin/maintenance -- .codecov.yml || true
