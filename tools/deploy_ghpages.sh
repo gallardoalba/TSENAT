@@ -28,18 +28,22 @@ fi
 echo "2) Copy coverage folder..."
 cp -r "$ROOT/coverage" "$ROOT/docs/coverage" 2>/dev/null || true
 
-echo "3) Generate pdf manual..."
+# Ensure the PDF manual (if present) is copied into docs/articles so it is
+# available on the published site at /articles/TSENAT.pdf
+echo "3) Ensure PDF vignette is present in docs/articles..."
 if [ -f "$ROOT/inst/doc/TSENAT.pdf" ]; then
-  echo "PDF manual already exists, skipping generation."
+  mkdir -p "$ROOT/docs/articles"
+  echo "Copying PDF manual to docs/articles/TSENAT.pdf..."
+  cp -f "$ROOT/inst/doc/TSENAT.pdf" "$ROOT/docs/articles/TSENAT.pdf"
+elif [ -f "$ROOT/inst/ext/TSENAT.pdf" ]; then
+  mkdir -p "$ROOT/docs/articles"
+  echo "Copying PDF manual from inst/ext to docs/articles/TSENAT.pdf..."
+  cp -f "$ROOT/inst/ext/TSENAT.pdf" "$ROOT/docs/articles/TSENAT.pdf"
 else
-  echo "PDF manual not found, generating..."
-  Rscript "$ROOT/tools/build_vignettes.R --pdf"
+  echo "No PDF manual found in inst/doc/ or inst/ext/; proceeding without PDF."
 fi
 
-echo "4) Copy pdf manual..."
-cp inst/doc/TSENAT.pdf "$ROOT/docs/articles/TSENAT.pdf" 2>/dev/null || true
-
-echo "5) Preparing temporary clone..."
+echo "4) Preparing temporary clone..."
 TMPDIR=$(mktemp -d)
 repo_dir="$TMPDIR/repo"
 
@@ -64,7 +68,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "3) Checking gh-pages branch on origin..."
+echo "5) Checking gh-pages branch on origin..."
 if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
   echo "Found origin/gh-pages, fetching into local branch 'gh-pages'"
   git fetch origin gh-pages:gh-pages
@@ -75,7 +79,7 @@ else
   git rm -rf . >/dev/null 2>&1 || true
 fi
 
-echo "4) Copying docs/ into temporary repo"
+echo "6) Copying docs/ into temporary repo"
 # Use rsync to copy and mirror docs/ content into the worktree root
 rsync -a --delete --exclude=.git "$ROOT/docs/" "$repo_dir/"
 
