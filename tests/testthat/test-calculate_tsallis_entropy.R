@@ -26,7 +26,7 @@ test_that("calculate_tsallis_entropy requires q > 0", {
 
 test_that("calculate_tsallis_entropy handles uniform distribution", {
     # For uniform distribution, entropy should be consistent
-    counts <- c(25, 25, 25, 25)  # Uniform
+    counts <- c(25, 25, 25, 25) # Uniform
     result_q05 <- calculate_tsallis_entropy(counts, q = 0.5)
     expect_true(is.numeric(result_q05))
     expect_true(!is.na(result_q05))

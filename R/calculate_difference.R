@@ -54,28 +54,28 @@
 #' which statistical test is applied.
 #' @examples
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-#' samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
+#' samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
 #' calculate_difference(x, samples,
-#'     control = "Healthy", method = "mean", test =
-#'         "wilcoxon"
+#'     control = 'Healthy', method = 'mean', test =
+#'         'wilcoxon'
 #' )
 calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
-  randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
-  exact = FALSE, pseudocount = 0) {
+    randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
+    exact = FALSE, pseudocount = 0) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
             # allow samples to be NULL (use default 'sample_type' col)
             if (is.null(samples)) {
                 if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
-                    samples_col <- "sample_type"
+                  samples_col <- "sample_type"
                 } else {
-                    stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
-                        call. = FALSE)
+                  stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
+                    call. = FALSE)
                 }
             } else {
                 if (length(samples) != 1) {
-                    stop("'samples' must be a single colData column.", call. = FALSE)
+                  stop("'samples' must be a single colData column.", call. = FALSE)
                 }
                 samples_col <- samples
             }
@@ -114,7 +114,9 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     samples <- pd$samples
 
     # Partition and validate inputs
-    part <- .tsenat_calculate_difference_partition(df = df, samples = samples, control = control, method = method, test = test, pcorr = pcorr, randomizations = randomizations, verbose = verbose)
+    part <- .tsenat_calculate_difference_partition(df = df, samples = samples, control = control,
+        method = method, test = test, pcorr = pcorr, randomizations = randomizations,
+        verbose = verbose)
     df <- part$df
     samples <- part$samples
     groups <- part$groups
@@ -152,7 +154,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
         small_mat <- sample_matrix(df_small)
         result_list$small <- data.frame(genes = df_small[, 1], calculate_fc(small_mat,
             samples, control, method, pseudocount = pseudocount), raw_p_values = NA,
-        adjusted_p_values = NA, stringsAsFactors = FALSE)
+            adjusted_p_values = NA, stringsAsFactors = FALSE)
     }
 
     # Combine results preserving tested rows first
@@ -200,19 +202,19 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' `adj_p_interaction`, ordered by ascending `p_interaction`.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
+#' data('tcga_brca_luma_dataset', package = 'TSENAT')
 #' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 #' gs <- tcga_brca_luma_dataset$genes[1:20]
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' # Provide a minimal sample-type mapping so the example runs during checks
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'     sample_type = rep(c("Normal", "Tumor"), length.out = ncol(se)),
+#'     sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
 #'     row.names = colnames(se)
 #' )
-#' calculate_lm_interaction(se, sample_type_col = "sample_type")
+#' calculate_lm_interaction(se, sample_type_col = 'sample_type')
 calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, method = c("linear",
-      "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-  paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE) {
+    "lmm", "gam", "fpca"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
+    paired = FALSE, nthreads = 1, assay_name = "diversity", verbose = FALSE) {
     method <- match.arg(method)
     pvalue <- match.arg(pvalue)
     if (verbose) {
@@ -266,7 +268,10 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
     }
     all_results <- list()
     fit_one <- function(g) {
-        .tsenat_fit_one_interaction(g = g, se = se, mat = mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, method = method, pvalue = pvalue, subject_col = subject_col, paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings, progress = progress)
+        .tsenat_fit_one_interaction(g = g, se = se, mat = mat, q_vals = q_vals, sample_names = sample_names,
+            group_vec = group_vec, method = method, pvalue = pvalue, subject_col = subject_col,
+            paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings,
+            progress = progress)
     }
 
     if (nthreads > 1 && .Platform$OS.type == "unix") {
@@ -290,7 +295,8 @@ calculate_lm_interaction <- function(se, sample_type_col = NULL, min_obs = 10, m
 
     .tsenat_report_fit_summary(res, verbose = verbose)
 
-    # Return the result data.frame (do not attach to or return a SummarizedExperiment)
+    # Return the result data.frame (do not attach to or return a
+    # SummarizedExperiment)
     return(res)
 }
 

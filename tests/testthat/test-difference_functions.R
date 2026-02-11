@@ -117,7 +117,7 @@ context("difference helper edge cases and paired permutations")
 # Tests for aggregation of FC values and pseudocount behavior
 test_that(".tsenat_aggregate_fc_values orders groups and handles NAs", {
     x <- matrix(c(
-        1, NA, 3, 4,  # gene1 across 4 samples
+        1, NA, 3, 4, # gene1 across 4 samples
         NA, NA, NA, NA # gene2 all NA
     ), nrow = 2, byrow = TRUE)
     samples <- c("A", "A", "B", "B")

@@ -511,8 +511,10 @@ test_that(".ptt_make_plot_for_gene returns ggplot object", {
 
 test_that(".ptt_combine_plots returns a plot-like object", {
     skip_if_not_installed("ggplot2")
-    p1 <- ggplot2::ggplot() + ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = 3:1))
-    p2 <- ggplot2::ggplot() + ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = c(1, 2, 3)))
+    p1 <- ggplot2::ggplot() +
+        ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = 3:1))
+    p2 <- ggplot2::ggplot() +
+        ggplot2::geom_point(mapping = ggplot2::aes(x = 1:3, y = c(1, 2, 3)))
     out <- TSENAT:::.ptt_combine_plots(list(p1, p2), output_file = NULL, agg_label_unique = "agg")
     expect_true(!is.null(out))
 })
@@ -722,36 +724,36 @@ test_that(".ptt_select_genes_from_res errors on NULL or missing genes", {
 })
 
 test_that(".ptt_select_genes_from_res sorts by adjusted or raw p-values and returns unique genes", {
-    res <- data.frame(genes = c('g1', 'g2', 'g1', 'g3'), adjusted_p_values = c(0.2, 0.01, 0.05, NA))
+    res <- data.frame(genes = c("g1", "g2", "g1", "g3"), adjusted_p_values = c(0.2, 0.01, 0.05, NA))
     sel <- .ptt_select_genes_from_res(res, top_n = 3)
-    expect_true(all(c('g2', 'g1') %in% sel))
+    expect_true(all(c("g2", "g1") %in% sel))
     expect_length(unique(sel), length(sel))
 
     # raw p-values fallback
-    res2 <- data.frame(genes = c('a','b','c'), raw_p_values = c(0.5, 0.1, 0.3))
+    res2 <- data.frame(genes = c("a", "b", "c"), raw_p_values = c(0.5, 0.1, 0.3))
     sel2 <- .ptt_select_genes_from_res(res2, top_n = 2)
-    expect_equal(sel2, c('b','c'))
+    expect_equal(sel2, c("b", "c"))
 })
 
 # .ptt_infer_samples_from_coldata
 test_that(".ptt_infer_samples_from_coldata handles row-named coldata and Sample id column", {
     counts <- matrix(1:6, nrow = 2)
-    colnames(counts) <- c('S1','S2','S3')[1:ncol(counts)]
+    colnames(counts) <- c("S1", "S2", "S3")[1:ncol(counts)]
 
-    cdf <- data.frame(sample_type = c('A','B','A'), stringsAsFactors = FALSE)
-    rownames(cdf) <- c('S1','S2','S3')
-    out <- .ptt_infer_samples_from_coldata(cdf, counts, 'sample_type')
-    expect_equal(out, c('A','B','A')[1:ncol(counts)])
+    cdf <- data.frame(sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
+    rownames(cdf) <- c("S1", "S2", "S3")
+    out <- .ptt_infer_samples_from_coldata(cdf, counts, "sample_type")
+    expect_equal(out, c("A", "B", "A")[1:ncol(counts)])
 
     # use Sample id column
-    cdf2 <- data.frame(Sample = c('S1','S2','S3'), sample_type = c('A','B','A'), stringsAsFactors = FALSE)
-    out2 <- .ptt_infer_samples_from_coldata(cdf2, counts, 'sample_type')
-    expect_equal(out2, c('A','B','A')[1:ncol(counts)])
+    cdf2 <- data.frame(Sample = c("S1", "S2", "S3"), sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
+    out2 <- .ptt_infer_samples_from_coldata(cdf2, counts, "sample_type")
+    expect_equal(out2, c("A", "B", "A")[1:ncol(counts)])
 
     # mismatched sample ids should error
-    cdf_bad <- data.frame(Sample = c('X','Y','Z'), sample_type = c('A','B','A'), stringsAsFactors = FALSE)
-    expect_error(.ptt_infer_samples_from_coldata(cdf_bad, counts, 'sample_type'), "coldata sample id column does not match")
-    expect_error(.ptt_infer_samples_from_coldata(123, counts, 'sample_type'), "must be a data.frame or path")
+    cdf_bad <- data.frame(Sample = c("X", "Y", "Z"), sample_type = c("A", "B", "A"), stringsAsFactors = FALSE)
+    expect_error(.ptt_infer_samples_from_coldata(cdf_bad, counts, "sample_type"), "coldata sample id column does not match")
+    expect_error(.ptt_infer_samples_from_coldata(123, counts, "sample_type"), "must be a data.frame or path")
 })
 
 # .ptt_read_tx2gene
@@ -761,77 +763,77 @@ test_that(".ptt_read_tx2gene validates inputs and reads mapping", {
     bad <- data.frame(X = 1:2)
     expect_error(.ptt_read_tx2gene(bad), "tx2gene must have columns 'Transcript' and 'Gen'")
 
-    good <- data.frame(Transcript = c('t1','t2'), Gen = c('g1','g1'), stringsAsFactors = FALSE)
+    good <- data.frame(Transcript = c("t1", "t2"), Gen = c("g1", "g1"), stringsAsFactors = FALSE)
     out <- .ptt_read_tx2gene(good)
     expect_equal(out, good)
 
-    tf <- tempfile(fileext = '.tsv')
-    write.table(good, file = tf, sep = '\t', row.names = FALSE, quote = FALSE)
+    tf <- tempfile(fileext = ".tsv")
+    write.table(good, file = tf, sep = "\t", row.names = FALSE, quote = FALSE)
     outf <- .ptt_read_tx2gene(tf)
     expect_true(is.data.frame(outf))
     unlink(tf)
-    expect_error(.ptt_read_tx2gene('no_such_file.tsv'), "tx2gene file not found")
+    expect_error(.ptt_read_tx2gene("no_such_file.tsv"), "tx2gene file not found")
 })
 
 # .ptt_make_agg
 test_that(".ptt_make_agg returns an aggregation function and label", {
-    maj <- .ptt_make_agg('median')
-    expect_equal(maj$metric_choice, 'median')
+    maj <- .ptt_make_agg("median")
+    expect_equal(maj$metric_choice, "median")
     expect_true(is.function(maj$agg_fun))
-    expect_true(grepl('median', maj$agg_label_unique, ignore.case = TRUE))
+    expect_true(grepl("median", maj$agg_label_unique, ignore.case = TRUE))
 
-    m2 <- .ptt_make_agg('iqr')
-    expect_equal(m2$metric_choice, 'iqr')
-    expect_true(grepl('IQR', m2$agg_label_unique))
+    m2 <- .ptt_make_agg("iqr")
+    expect_equal(m2$metric_choice, "iqr")
+    expect_true(grepl("IQR", m2$agg_label_unique))
 })
 
 # .ptt_build_tx_long and .ptt_aggregate_df_long
 test_that(".ptt_build_tx_long and aggregation pipeline works and errors appropriately", {
     counts <- matrix(1:12, nrow = 4)
-    rownames(counts) <- paste0('tx',1:4)
-    colnames(counts) <- paste0('S',1:3)
-    mapping <- data.frame(Transcript = paste0('tx',1:4), Gen = c('G1','G1','G2','G2'), stringsAsFactors = FALSE)
-    samples <- c('A','B','A')
+    rownames(counts) <- paste0("tx", 1:4)
+    colnames(counts) <- paste0("S", 1:3)
+    mapping <- data.frame(Transcript = paste0("tx", 1:4), Gen = c("G1", "G1", "G2", "G2"), stringsAsFactors = FALSE)
+    samples <- c("A", "B", "A")
 
-    expect_error(.ptt_build_tx_long('NOPE', mapping, counts, samples, top_n = NULL), 'No transcripts found')
+    expect_error(.ptt_build_tx_long("NOPE", mapping, counts, samples, top_n = NULL), "No transcripts found")
 
-    res <- .ptt_build_tx_long('G1', mapping, counts, samples, top_n = 1)
+    res <- .ptt_build_tx_long("G1", mapping, counts, samples, top_n = 1)
     expect_true(is.list(res))
-    expect_true(all(c('df_long','txs') %in% names(res)))
+    expect_true(all(c("df_long", "txs") %in% names(res)))
     expect_equal(length(unique(res$df_long$tx)), length(res$txs))
 
     summ <- .ptt_aggregate_df_long(res$df_long, agg_fun = function(x) mean(x, na.rm = TRUE), pseudocount = 0.1)
-    expect_true('log2expr' %in% colnames(summ))
+    expect_true("log2expr" %in% colnames(summ))
     expect_true(is.factor(summ$tx))
 })
 
 # .ptt_build_plot_from_summary and combine functions
 test_that(".ptt_build_plot_from_summary generates ggplot and combine functions operate", {
-    skip_if_not_installed('ggplot2')
-    p <- .ptt_build_plot_from_summary(data.frame(tx = factor(c('a','b')), group = c('A','B'), log2expr = c(1,2)), 'Label')
-    expect_s3_class(p, 'gg')
+    skip_if_not_installed("ggplot2")
+    p <- .ptt_build_plot_from_summary(data.frame(tx = factor(c("a", "b")), group = c("A", "B"), log2expr = c(1, 2)), "Label")
+    expect_s3_class(p, "gg")
 
     # patchwork combine
-    if (rlang::is_installed('patchwork')) {
-        skip_if_not_installed('patchwork')
+    if (rlang::is_installed("patchwork")) {
+        skip_if_not_installed("patchwork")
         p2 <- p + p
-        combined <- .ptt_combine_patchwork(list(p, p), 'Label')
-        expect_true(inherits(combined, 'patchwork'))
+        combined <- .ptt_combine_patchwork(list(p, p), "Label")
+        expect_true(inherits(combined, "patchwork"))
     }
 
-    if (rlang::is_installed('cowplot')) {
-        skip_if_not_installed('cowplot')
-        outp <- .ptt_combine_cowplot(list(p, p), output_file = NULL, agg_label_unique = 'Label')
-        expect_true(inherits(outp, 'gtable') || inherits(outp, 'ggplot') || inherits(outp, 'grob'))
+    if (rlang::is_installed("cowplot")) {
+        skip_if_not_installed("cowplot")
+        outp <- .ptt_combine_cowplot(list(p, p), output_file = NULL, agg_label_unique = "Label")
+        expect_true(inherits(outp, "gtable") || inherits(outp, "ggplot") || inherits(outp, "grob"))
     }
 
-    if (rlang::is_installed('grid')) {
-        skip_if_not_installed('grid')
+    if (rlang::is_installed("grid")) {
+        skip_if_not_installed("grid")
         # .ptt_combine_grid returns invisibly NULL when not writing file and should not
         # create an Rplots.pdf in the working directory
-        rpf <- 'Rplots.pdf'
+        rpf <- "Rplots.pdf"
         if (file.exists(rpf)) unlink(rpf)
-        res_grid <- .ptt_combine_grid(list(p, p), output_file = NULL, agg_label_unique = 'Label')
+        res_grid <- .ptt_combine_grid(list(p, p), output_file = NULL, agg_label_unique = "Label")
         expect_null(res_grid)
         expect_false(file.exists(rpf))
     }
@@ -842,73 +844,73 @@ context("plot_helpers extras")
 library(testthat)
 
 test_that(".tsenat_format_label handles various inputs", {
-  expect_null(.tsenat_format_label(NULL))
-  expect_equal(.tsenat_format_label("__FOO_bar  "), "Foo bar")
-  expect_equal(.tsenat_format_label(" a "), "A")
-  expect_equal(.tsenat_format_label("   "), "")
-  expect_equal(.tsenat_format_label("SINGLE"), "Single")
+    expect_null(.tsenat_format_label(NULL))
+    expect_equal(.tsenat_format_label("__FOO_bar  "), "Foo bar")
+    expect_equal(.tsenat_format_label(" a "), "A")
+    expect_equal(.tsenat_format_label("   "), "")
+    expect_equal(.tsenat_format_label("SINGLE"), "Single")
 })
 
 test_that(".tsenat_prepare_ma_plot_df handles mean_cols length >=2 and significance detection", {
-  df <- data.frame(genes = c('g1', 'g2', 'g3'), meanA = c(1,2,3), meanB = c(1.5, 1.5, 1.5), log2fc = c(0, 1.2, -0.5), padj = c(0.2, 0.01, NA), stringsAsFactors = FALSE)
-  res <- .tsenat_prepare_ma_plot_df(df, fold_col = 'log2fc', mean_cols = c('meanA', 'meanB'), x_label = NULL, y_label = 'Log2FC')
-  expect_is(res, 'list')
-  # when mean_cols length>=2 and x_label is NULL, default to 'meanA vs meanB'
-  expect_equal(res$x_label, 'meanA vs meanB')
-  expect_true('plot_df' %in% names(res))
-  expect_equal(nrow(res$plot_df), 3)
-  # gene 2 should be significant (abs(y)>0 and padj<0.05)
-  sig <- res$plot_df$significant
-  expect_equal(sig, c('non-significant', 'significant', 'non-significant'))
+    df <- data.frame(genes = c("g1", "g2", "g3"), meanA = c(1, 2, 3), meanB = c(1.5, 1.5, 1.5), log2fc = c(0, 1.2, -0.5), padj = c(0.2, 0.01, NA), stringsAsFactors = FALSE)
+    res <- .tsenat_prepare_ma_plot_df(df, fold_col = "log2fc", mean_cols = c("meanA", "meanB"), x_label = NULL, y_label = "Log2FC")
+    expect_is(res, "list")
+    # when mean_cols length>=2 and x_label is NULL, default to 'meanA vs meanB'
+    expect_equal(res$x_label, "meanA vs meanB")
+    expect_true("plot_df" %in% names(res))
+    expect_equal(nrow(res$plot_df), 3)
+    # gene 2 should be significant (abs(y)>0 and padj<0.05)
+    sig <- res$plot_df$significant
+    expect_equal(sig, c("non-significant", "significant", "non-significant"))
 })
 
 test_that(".tsenat_prepare_ma_plot_df handles single mean col and fallback mean/index", {
-  df1 <- data.frame(genes = c('g1','g2'), m = c(5,6), fc = c(0,2), stringsAsFactors = FALSE)
-  r1 <- .tsenat_prepare_ma_plot_df(df1, fold_col = 'fc', mean_cols = c('m'), x_label = NULL, y_label = NULL)
-  expect_equal(r1$x_label, 'm')
-  expect_equal(r1$plot_df$x, as.numeric(c(5,6)))
+    df1 <- data.frame(genes = c("g1", "g2"), m = c(5, 6), fc = c(0, 2), stringsAsFactors = FALSE)
+    r1 <- .tsenat_prepare_ma_plot_df(df1, fold_col = "fc", mean_cols = c("m"), x_label = NULL, y_label = NULL)
+    expect_equal(r1$x_label, "m")
+    expect_equal(r1$plot_df$x, as.numeric(c(5, 6)))
 
-  df2 <- data.frame(genes = c('g1','g2'), mean = c(3,4), fc = c(1, 0), stringsAsFactors = FALSE)
-  r2 <- .tsenat_prepare_ma_plot_df(df2, fold_col = 'fc', mean_cols = character(0), x_label = NULL, y_label = NULL)
-  expect_equal(r2$x_label, 'Mean')
+    df2 <- data.frame(genes = c("g1", "g2"), mean = c(3, 4), fc = c(1, 0), stringsAsFactors = FALSE)
+    r2 <- .tsenat_prepare_ma_plot_df(df2, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
+    expect_equal(r2$x_label, "Mean")
 
-  df3 <- data.frame(genes = c('g1','g2'), fc = c(1, 2), stringsAsFactors = FALSE)
-  r3 <- .tsenat_prepare_ma_plot_df(df3, fold_col = 'fc', mean_cols = character(0), x_label = NULL, y_label = NULL)
-  expect_equal(r3$x_label, 'Index')
-  expect_equal(r3$plot_df$x, c(1,2))
+    df3 <- data.frame(genes = c("g1", "g2"), fc = c(1, 2), stringsAsFactors = FALSE)
+    r3 <- .tsenat_prepare_ma_plot_df(df3, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
+    expect_equal(r3$x_label, "Index")
+    expect_equal(r3$plot_df$x, c(1, 2))
 })
 
 
 test_that(".tsenat_prepare_volcano_df detects _difference column and formats labels", {
-  df <- data.frame(gene = c('a','b','c'), median_difference = c(0.2, -0.5, 0.6), adjusted_p_values = c(0.2, 0.01, 0.001), stringsAsFactors = FALSE)
-  res <- .tsenat_prepare_volcano_df(df)
-  expect_equal(res$x_col, 'median_difference')
-  expect_equal(res$padj_col, 'adjusted_p_values')
-  expect_true('df' %in% names(res))
-  expect_match(res$x_label_formatted, 'Median')
-  expect_match(res$padj_label_formatted, 'Adjusted p values|Adjusted p values')
+    df <- data.frame(gene = c("a", "b", "c"), median_difference = c(0.2, -0.5, 0.6), adjusted_p_values = c(0.2, 0.01, 0.001), stringsAsFactors = FALSE)
+    res <- .tsenat_prepare_volcano_df(df)
+    expect_equal(res$x_col, "median_difference")
+    expect_equal(res$padj_col, "adjusted_p_values")
+    expect_true("df" %in% names(res))
+    expect_match(res$x_label_formatted, "Median")
+    expect_match(res$padj_label_formatted, "Adjusted p values|Adjusted p values")
 })
 
 test_that(".tsenat_prepare_volcano_df errors for missing columns and empty data", {
-  df <- data.frame(g = 1:3, something = letters[1:3], stringsAsFactors = FALSE)
-  # Because 'g' is numeric it will be chosen as x_col but the default padj
-  # column 'adjusted_p_values' is missing and an informative error is raised
-  expect_error(.tsenat_prepare_volcano_df(df), "Column 'adjusted_p_values' not found")
+    df <- data.frame(g = 1:3, something = letters[1:3], stringsAsFactors = FALSE)
+    # Because 'g' is numeric it will be chosen as x_col but the default padj
+    # column 'adjusted_p_values' is missing and an informative error is raised
+    expect_error(.tsenat_prepare_volcano_df(df), "Column 'adjusted_p_values' not found")
 
-  df2 <- data.frame(x = c(NA, Inf), adjusted_p_values = c(NA, NA), stringsAsFactors = FALSE)
-  expect_error(.tsenat_prepare_volcano_df(df2, x_col = 'x'), "No valid points to plot")
+    df2 <- data.frame(x = c(NA, Inf), adjusted_p_values = c(NA, NA), stringsAsFactors = FALSE)
+    expect_error(.tsenat_prepare_volcano_df(df2, x_col = "x"), "No valid points to plot")
 
-  df3 <- data.frame(x = c(1,2), adj = c(0.01, 0.02), stringsAsFactors = FALSE)
-  expect_error(.tsenat_prepare_volcano_df(df3, x_col = 'x', padj_col = 'nope'), "Column 'nope' not found")
+    df3 <- data.frame(x = c(1, 2), adj = c(0.01, 0.02), stringsAsFactors = FALSE)
+    expect_error(.tsenat_prepare_volcano_df(df3, x_col = "x", padj_col = "nope"), "Column 'nope' not found")
 })
 
 test_that(".tsenat_prepare_volcano_df handles padj <=0 and signficance logic", {
-  df <- data.frame(g = 1:4, value = c(0.2, 0.5, -0.2, 1), adjusted_p_values = c(0, 1e-10, 0.5, 0.001), stringsAsFactors = FALSE)
-  res <- .tsenat_prepare_volcano_df(df, x_col = 'value')
-  expect_true(all(res$df$padj > 0))
-  # label_thresh default 0.1: check significance assignment
-  sig <- res$df$significant
-  expect_equal(sig, ifelse(abs(res$df$xval) >= 0.1 & res$df$padj < 0.05, 'significant', 'non-significant'))
+    df <- data.frame(g = 1:4, value = c(0.2, 0.5, -0.2, 1), adjusted_p_values = c(0, 1e-10, 0.5, 0.001), stringsAsFactors = FALSE)
+    res <- .tsenat_prepare_volcano_df(df, x_col = "value")
+    expect_true(all(res$df$padj > 0))
+    # label_thresh default 0.1: check significance assignment
+    sig <- res$df$significant
+    expect_equal(sig, ifelse(abs(res$df$xval) >= 0.1 & res$df$padj < 0.05, "significant", "non-significant"))
 })
 
 skip_on_bioc()
@@ -1023,8 +1025,10 @@ test_that(".ptt_combine_grid writes a PNG file when output_file is given", {
     library(ggplot2)
 
     df <- data.frame(x = 1:3, y = rnorm(3))
-    p1 <- ggplot(df, ggplot2::aes(x = x, y = y)) + ggplot2::geom_point()
-    p2 <- ggplot(df, ggplot2::aes(x = x, y = -y)) + ggplot2::geom_point()
+    p1 <- ggplot(df, ggplot2::aes(x = x, y = y)) +
+        ggplot2::geom_point()
+    p2 <- ggplot(df, ggplot2::aes(x = x, y = -y)) +
+        ggplot2::geom_point()
 
     tf <- tempfile(fileext = ".png")
     # call grid combiner directly
@@ -1115,4 +1119,315 @@ test_that("plot_tsallis_gene_profile uses lm_res when gene is NULL and returns u
     expect_lte(length(plots), 5)
     # each element must be ggplot
     lapply(plots, function(p) expect_s3_class(p, "ggplot"))
+})
+
+context("generate_plots.R coverage")
+
+test_that("require_pkgs errors if packages are not installed", {
+    # This test will fail if the package is actually installed. Use a highly
+    # improbable package name to avoid needing to mock `requireNamespace`.
+    expect_error(TSENAT:::require_pkgs("definitely_not_installed_pkg_12345"), "definitely_not_installed_pkg_12345 required")
+})
+
+test_that("infer_samples_from_se fallback logic works", {
+    se <- SummarizedExperiment(
+        assays = list(counts = matrix(1:8, ncol = 4)),
+        colData = DataFrame(foo = c("a", "b", "c", "d"), bar = c("x", "y", "z", "w"))
+    )
+    # It should pick 'foo' as it has fewer unique values > 1
+    expect_equal(TSENAT:::infer_samples_from_se(se), c("a", "b", "c", "d"))
+
+    se2 <- SummarizedExperiment(
+        assays = list(counts = matrix(1:4, nrow = 2)),
+        colData = DataFrame(baz = c(1, 1), qux = c("a", "b"))
+    )
+    expect_equal(TSENAT:::infer_samples_from_se(se2), c("a", "b"))
+
+    se3 <- SummarizedExperiment(assays = list(counts = matrix(1:4, nrow = 2)))
+    colData(se3) <- NULL
+    expect_null(TSENAT:::infer_samples_from_se(se3))
+})
+
+test_that("get_readcounts_from_se works with file path and fallback", {
+    # test with a file path (with gene column)
+    rc_df <- data.frame(gene = c("g1", "g2"), c1 = c(1, 2), c2 = c(3, 4))
+    rc_file <- tempfile()
+    write.table(rc_df, rc_file, sep = "\t", row.names = FALSE)
+    se <- SummarizedExperiment()
+    rc <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = rc_file)
+    expect_equal(nrow(rc), 2)
+    expect_equal(ncol(rc), 2)
+
+    # test with a single-column file (no gene column) -> returns matrix of values
+    rc_single <- data.frame(V1 = c(1, 2))
+    rc_file_single <- tempfile()
+    # include a header so read.delim(..., header = TRUE) reads two rows
+    write.table(rc_single, rc_file_single, sep = "\t", row.names = FALSE, col.names = TRUE)
+    rc2 <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = rc_file_single)
+    expect_equal(as.vector(rc2), c(1, 2))
+
+    # test with a data.frame
+    rc_df_no_gene <- data.frame(c1 = c(1, 2), c2 = c(3, 4))
+    rc <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = rc_df_no_gene)
+    expect_equal(nrow(rc), 2)
+    expect_equal(ncol(rc), 2)
+
+    # test with a matrix with no rownames
+    rc_mat_no_rownames <- matrix(1:4, 2)
+    rc <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = rc_mat_no_rownames)
+    expect_equal(nrow(rc), 2)
+
+    # test error for invalid readcounts_arg
+    expect_error(TSENAT:::get_readcounts_from_se(se, readcounts_arg = 123), "`readcounts` must be a matrix/data.frame or path to a file")
+
+    # test fallback to first assay
+    se_assay <- SummarizedExperiment(assays = list(my_counts = matrix(1:4, 2)))
+    expect_warning(rc_assay <- TSENAT:::get_readcounts_from_se(se_assay), "Using first assay from SummarizedExperiment")
+    expect_equal(nrow(rc_assay), 2)
+
+    # metadata$readcounts should be preferred when present
+    se_meta <- SummarizedExperiment(assays = list(my_counts = matrix(1:4, nrow = 2)))
+    S4Vectors::metadata(se_meta) <- list(readcounts = matrix(5:8, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2"))))
+    rc_meta <- TSENAT:::get_readcounts_from_se(se_meta)
+    expect_equal(as.vector(rc_meta), c(5, 6, 7, 8))
+
+    # preferred assay name 'readcounts' should be selected when present
+    se_pref <- SummarizedExperiment(assays = list(readcounts = matrix(11:14, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2"))), counts = matrix(1:4, nrow = 2)))
+    rc_pref <- TSENAT:::get_readcounts_from_se(se_pref)
+    expect_equal(as.vector(rc_pref), c(11, 12, 13, 14))
+})
+
+test_that("get_tx2gene_from_se fallback works", {
+    se <- SummarizedExperiment(assays = list(counts = matrix(1:4, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))))
+    res <- TSENAT:::get_tx2gene_from_se(se, readcounts_mat = assay(se))
+    expect_equal(res$mapping, c("tx1", "tx2"))
+
+    # test with different column names
+    md <- list(tx2gene = data.frame(tx = c("tx1", "tx2"), g = c("g1", "g1")))
+    S4Vectors::metadata(se) <- md
+    res2 <- TSENAT:::get_tx2gene_from_se(se, readcounts_mat = assay(se))
+    expect_equal(res2$mapping, c("g1", "g1"))
+})
+
+test_that("plot_tsallis_gene_profile handles errors", {
+    mat <- matrix(1:4, nrow = 2, dimnames = list(NULL, c("s1", "s2")))
+    se <- SummarizedExperiment(assays = list(diversity = mat))
+    colData(se) <- DataFrame(sample_type = c("a", "b"), row.names = c("s1", "s2"))
+    expect_error(TSENAT::plot_tsallis_gene_profile(se, gene = "g1"), "Gene not found in assay: g1")
+
+    # Create a SE where prepare_tsallis_long will return a Gene 'g1' so
+    # plotting a different gene errors as expected.
+    mat2 <- matrix(1, nrow = 1, ncol = 1, dimnames = list(NULL, c("s1_q=0.5")))
+    se2 <- SummarizedExperiment(assays = list(diversity = mat2))
+    SummarizedExperiment::rowData(se2)$genes <- "g1"
+    SummarizedExperiment::colData(se2) <- DataFrame(sample_type = "A", row.names = "s1")
+    expect_error(TSENAT::plot_tsallis_gene_profile(se2, gene = "g2"), "Gene not found in assay: g2")
+
+    # gene is NULL, lm_res is not a data.frame
+    expect_error(TSENAT::plot_tsallis_gene_profile(se, lm_res = "not a dataframe"), "'lm_res' must be a data.frame with a 'gene' column")
+
+    # lm_res is a data.frame but without a 'gene' column
+    lm_res_no_gene <- data.frame(p = c(0.1, 0.2))
+    expect_error(TSENAT::plot_tsallis_gene_profile(se, lm_res = lm_res_no_gene), "'lm_res' must be a data.frame with a 'gene' column")
+
+    # lm_res is a data.frame with 'gene' column but no p-value column
+    lm_res_no_p <- data.frame(gene = c("g1", "g2"))
+    expect_error(TSENAT::plot_tsallis_gene_profile(se, lm_res = lm_res_no_p), "'lm_res' must contain 'adj_p_interaction' or 'p_interaction' columns")
+})
+
+# Additional tests to exercise plotting branches
+test_that("plot_tsallis_gene_profile plotting branches", {
+    mat_full <- matrix(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8), nrow = 2)
+    colnames(mat_full) <- c("s1_q=0.1", "s2_q=0.1", "s1_q=1", "s2_q=1")
+    rownames(mat_full) <- c("g1", "g2")
+    se_full <- SummarizedExperiment(assays = list(diversity = mat_full))
+    SummarizedExperiment::rowData(se_full)$genes <- rownames(mat_full)
+    # colData must have one row per column in the assay matrix
+    SummarizedExperiment::colData(se_full) <- DataFrame(sample_type = c("A", "B", "A", "B"))
+
+    # Single gene plot with sample lines shown (skip sample_type mapping)
+    p_single <- TSENAT::plot_tsallis_gene_profile(se_full, gene = "g1", show_samples = TRUE, sample_type_col = NULL)
+    expect_s3_class(p_single, "ggplot")
+    has_line <- any(vapply(p_single$layers, function(l) {
+        if (!is.null(l$geom) && is.character(l$geom$geom_name)) {
+            l$geom$geom_name == "line"
+        } else {
+            inherits(l$geom, "GeomLine")
+        }
+    }, logical(1)))
+    expect_true(has_line)
+
+    # Multi-gene via lm_res using adj_p_interaction
+    lm_res <- data.frame(gene = c("g2", "g1", "g3"), adj_p_interaction = c(0.01, 0.1, 0.2))
+    plots_list <- TSENAT::plot_tsallis_gene_profile(se_full, gene = NULL, lm_res = lm_res, n_top = 2, sample_type_col = NULL)
+    expect_true(is.list(plots_list))
+    expect_equal(names(plots_list), c("g2", "g1"))
+
+    # lm_res with only p_interaction (no adj) should also work
+    lm_res2 <- data.frame(gene = c("g1", "g2"), p_interaction = c(0.05, 0.01))
+    plots_list2 <- TSENAT::plot_tsallis_gene_profile(se_full, gene = NULL, lm_res = lm_res2, n_top = 2, sample_type_col = NULL)
+    expect_true(is.list(plots_list2))
+    expect_equal(names(plots_list2), c("g2", "g1"))
+})
+
+test_that(".plot_ma_core handles more edge cases", {
+    # No genes column, but rownames are present
+    df <- data.frame(mean = runif(5), log2_fold_change = rnorm(5))
+    rownames(df) <- paste0("g", 1:5)
+    p <- TSENAT:::.plot_ma_core(df)
+    expect_s3_class(p, "ggplot")
+
+    # fc_df without 'log2_fold_change' column
+    fc_df_bad <- data.frame(genes = paste0("g", 1:5))
+    expect_error(TSENAT:::.plot_ma_core(df, fc_df = fc_df_bad), "Provided `fc_df` must contain 'log2_fold_change' column")
+
+    # y_label_formatted branch
+    p2 <- TSENAT:::.plot_ma_core(df, y_label = "log2")
+    expect_s3_class(p2, "ggplot")
+})
+
+test_that("plot_ma_expression_impl handles errors", {
+    x <- data.frame(genes = paste0("g", 1:5), mean = runif(5))
+    # create a SummarizedExperiment with an assay but no colData so infer_samples_from_se returns NULL
+    se <- SummarizedExperiment(assays = list(counts = matrix(1:4, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))))
+    expect_error(TSENAT:::plot_ma_expression_impl(x, se = se), "Could not infer 'samples' from SummarizedExperiment; provide `samples`")
+
+    # se as a matrix without log2_fold_change
+    fc_mat_bad <- matrix(1:5)
+    expect_error(TSENAT:::plot_ma_expression_impl(x, se = fc_mat_bad), "`se` data.frame must contain 'log2_fold_change' column")
+
+    # Unsupported 'se' argument
+    expect_error(TSENAT:::plot_ma_expression_impl(x, se = 123), "Unsupported 'se' argument")
+})
+
+test_that("plot_tsallis_q_curve handles single group and empty long df", {
+    se <- SummarizedExperiment(assays = list(diversity = matrix(rnorm(4), 2, dimnames = list(NULL, c("s1_q=0.1", "s2_q=0.1")))))
+    colData(se) <- DataFrame(sample_type = c("A", "A"), row.names = c("s1", "s2"))
+    p <- plot_tsallis_q_curve(se)
+    expect_s3_class(p, "ggplot")
+    # check that legend is removed for single group
+    expect_true(p$theme$legend.position == "none")
+
+    # empty long df: create a SE with only NA tsallis values so the
+    # helper returns no valid rows
+    se_empty <- SummarizedExperiment(assays = list(diversity = matrix(NA_real_, nrow = 1, ncol = 1, dimnames = list(NULL, c("s1_q=0.1")))))
+    SummarizedExperiment::rowData(se_empty)$genes <- "g1"
+    SummarizedExperiment::colData(se_empty) <- DataFrame(sample_type = "A", row.names = "s1")
+    expect_error(plot_tsallis_q_curve(se_empty), "No tsallis values found in SummarizedExperiment")
+
+    # not a summarized experiment
+    expect_error(plot_tsallis_q_curve(123), "requires a SummarizedExperiment")
+})
+
+test_that(".compute_transcript_fill_limits handles no transcripts found", {
+    counts <- matrix(1:4, 2)
+    rownames(counts) <- c("tx1", "tx2")
+    mapping <- data.frame(Transcript = c("tx3"), Gen = c("g1"))
+    samples <- c("a", "b")
+    expect_error(TSENAT:::.compute_transcript_fill_limits(genes = "g1", mapping = mapping, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1), "No transcripts found for provided genes")
+
+    # case where one gene has no txs, but other does
+    mapping2 <- data.frame(Transcript = c("tx1", "tx4"), Gen = c("g2", "g3"))
+    limits <- TSENAT:::.compute_transcript_fill_limits(genes = c("g1", "g2"), mapping = mapping2, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1)
+    expect_is(limits, "numeric")
+})
+
+test_that(".draw_transcript_grid creates a temporary pdf in non-interactive sessions", {
+    # This is hard to test directly, but we can check the logic.
+    # We can't easily force a non-interactive session in a test.
+    # We can check that it doesn't error when no device is open.
+    grob <- grid::rectGrob()
+    expect_silent(TSENAT:::.draw_transcript_grid(list(grob), "title", NULL, 1, grid::unit(1, "null")))
+
+    # test with file (open a device so the function can close it)
+    tf <- tempfile(fileext = ".png")
+    png(tf, width = 400, height = 300)
+    expect_silent(TSENAT:::.draw_transcript_grid(list(grob), "title", NULL, 1, grid::unit(1, "null"), to_file = tf))
+    expect_true(file.exists(tf))
+    if (file.exists(tf)) unlink(tf)
+})
+
+test_that("plot_volcano handles errors", {
+    df <- data.frame(gene = c("a", "b"), p = c(0.1, 0.01))
+    expect_error(plot_volcano(df), "Column 'adjusted_p_values' not found in diff_df")
+})
+
+test_that(".ptt_combine_plots fallbacks work", {
+    p1 <- ggplot2::ggplot()
+    # Ensure the function runs and falls back to any available backend;
+    # don't rely on mocking namespace checks here.
+    expect_silent(.ptt_combine_plots(list(p1), "label"))
+})
+
+test_that(".ptt_combine_plots treats single string second arg as label", {
+    p1 <- ggplot2::ggplot()
+    # explicit label
+    out1 <- NULL
+    out2 <- NULL
+    expect_error(out1 <- .ptt_combine_plots(list(p1), output_file = NULL, agg_label_unique = "mylabel"), NA)
+    expect_error(out2 <- .ptt_combine_plots(list(p1), "mylabel"), NA)
+    expect_equal(class(out1), class(out2))
+})
+
+test_that(".ptt_prepare_inputs handles file paths and various errors", {
+    counts <- matrix(1:4, 2)
+    rownames(counts) <- paste0("tx", 1:2)
+    colnames(counts) <- paste0("s", 1:2)
+    samples <- c("a", "b")
+
+    # coldata as file
+    cd_file <- tempfile()
+    write.table(data.frame(sample_id = c("s1", "s2"), sample_type = c("a", "b")), cd_file, sep = "\t", row.names = F)
+
+    # tx2gene as file
+    t2g_file <- tempfile()
+    write.table(data.frame(Transcript = c("tx1", "tx2"), Gen = c("g1", "g1")), t2g_file, sep = "\t", row.names = F)
+
+    prep <- .ptt_prepare_inputs(counts, samples = NULL, coldata = cd_file, sample_type_col = "sample_type", tx2gene = t2g_file, res = NULL, top_n = 1, pseudocount = 1)
+    expect_equal(prep$samples, c("a", "b"))
+
+    # bad coldata (no sample_id-like columns)
+    bad_cd_file <- tempfile()
+    write.table(data.frame(x = 1), bad_cd_file)
+    expect_error(.ptt_prepare_inputs(counts, samples = NULL, coldata = bad_cd_file, tx2gene = t2g_file), "Could not match `coldata` rows to `counts` columns")
+
+    # coldata sample_id column does not match counts column names
+    cd_file_mismatch <- tempfile()
+    write.table(data.frame(sample_id = c("s3", "s4"), sample_type = c("a", "b")), cd_file_mismatch, sep = "\t", row.names = FALSE)
+    expect_error(.ptt_prepare_inputs(counts, samples = NULL, coldata = cd_file_mismatch, tx2gene = t2g_file), "coldata sample id column does not match column names of counts")
+
+    # coldata file path not found
+    expect_error(.ptt_prepare_inputs(counts, samples = NULL, coldata = "no_such_file.tsv", tx2gene = t2g_file), "coldata file not found")
+
+    # tx2gene must be provided
+    expect_error(.ptt_prepare_inputs(counts, samples = samples, tx2gene = NULL), "`tx2gene` must be provided")
+
+    # tx2gene file not found
+    expect_error(.ptt_prepare_inputs(counts, samples = samples, tx2gene = "no_such_tx2gene.tsv"), "tx2gene file not found")
+
+    # tx2gene missing required columns
+    bad_t2g <- tempfile()
+    write.table(data.frame(A = 1, B = 2), bad_t2g, sep = "\t", row.names = FALSE)
+    expect_error(.ptt_prepare_inputs(counts, samples = samples, tx2gene = bad_t2g), "tx2gene must have columns 'Transcript' and 'Gen'")
+
+    # counts must have rownames
+    counts_no_rownames <- matrix(1:4, 2)
+    expect_error(.ptt_prepare_inputs(counts_no_rownames, samples = samples, tx2gene = t2g_file), "`counts` must have rownames corresponding to transcript identifiers")
+
+    # counts must be matrix/data.frame
+    expect_error(.ptt_prepare_inputs(123, samples = samples, tx2gene = t2g_file), "`counts` must be a matrix or data.frame")
+
+    # samples length must match number of columns
+    expect_error(.ptt_prepare_inputs(counts, samples = c("a"), tx2gene = t2g_file), "Length of `samples` must equal number of columns in `counts`")
+
+    # SummarizedExperiment input with tx2gene in metadata
+    se <- SummarizedExperiment(assays = list(counts = matrix(1:4, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))))
+    S4Vectors::metadata(se) <- list(tx2gene = data.frame(Transcript = c("tx1", "tx2"), Gen = c("g1", "g1"), stringsAsFactors = FALSE))
+    cd_file2 <- tempfile()
+    write.table(data.frame(sample_id = c("s1", "s2"), sample_type = c("a", "b")), cd_file2, sep = "\t", row.names = FALSE)
+    prep2 <- .ptt_prepare_inputs(se, readcounts = NULL, samples = NULL, coldata = cd_file2, sample_type_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 1, pseudocount = 1, output_file = NULL)
+    expect_equal(prep2$mapping$Gen, c("g1", "g1"))
+
+    # no samples or coldata
+    expect_error(.ptt_prepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
 })

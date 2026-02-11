@@ -12,7 +12,7 @@
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
-                                 "D")) {
+    "D")) {
     what <- match.arg(what)
     # validate q
     if (!is.numeric(q) || any(q <= 0)) {
@@ -33,7 +33,8 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
 
     # compute requested quantity ('S' or 'D')
     result_mat <- t(vapply(gene_levels, function(gene) {
-        .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm, what = what)
+        .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
+            what = what)
     }, FUN.VALUE = setNames(numeric(length(coln)), coln)))
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown

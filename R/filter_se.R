@@ -18,12 +18,12 @@
 #' @return A filtered `SummarizedExperiment`.
 #' @export
 #' @examples
-#' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0("tx", 1:3), paste0("S", 1:2)))
+#' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0('tx', 1:3), paste0('S', 1:2)))
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
 #' filt <- filter_se(se, min_count = 5, min_samples = 1)
 #' class(filt)
 filter_se <- function(se, min_count = 5L, min_samples = 5L, assay_name = "counts",
-  verbose = TRUE) {
+    verbose = TRUE) {
     if (!is(se, "SummarizedExperiment")) {
         stop("'se' must be a SummarizedExperiment", call. = FALSE)
     }

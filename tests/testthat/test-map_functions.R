@@ -209,16 +209,20 @@ test_that("colData rownames and sample_base are aligned to assay columns", {
     cd <- SummarizedExperiment::colData(se2)
     expect_equal(rownames(cd), colnames(SummarizedExperiment::assay(se2)))
     expect_true("sample_base" %in% colnames(cd))
-    expect_equal(as.character(cd$sample_base),
-        sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2))))
+    expect_equal(
+        as.character(cd$sample_base),
+        sub("_q=.*", "", colnames(SummarizedExperiment::assay(se2)))
+    )
 })
 
 
 test_that("paired = TRUE accepts complete pairs", {
     # construct a small paired coldata with two participants A and B
-    coldata_small <- data.frame(Sample = c("A_N", "A_T", "B_N", "B_T"),
+    coldata_small <- data.frame(
+        Sample = c("A_N", "A_T", "B_N", "B_T"),
         Condition = c("Normal", "Tumor", "Normal", "Tumor"),
-        stringsAsFactors = FALSE)
+        stringsAsFactors = FALSE
+    )
     sample_names <- as.character(coldata_small$Sample)
     cols <- paste0(sample_names, "_q=0.1")
     mat <- matrix(runif(length(cols)), nrow = 1)
@@ -320,7 +324,8 @@ test_that("map_metadata handles NULL/invalid coldata and maps sample types + met
             rm(readcounts, envir = globalenv())
             rm(tx2gene, envir = globalenv())
         },
-        add = TRUE)
+        add = TRUE
+    )
     se4 <- map_metadata(se, coldata)
     expect_true("sample_type" %in% colnames(SummarizedExperiment::colData(se4)))
     expect_true("sample_base" %in% colnames(SummarizedExperiment::colData(se4)))

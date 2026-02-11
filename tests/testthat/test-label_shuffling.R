@@ -52,8 +52,8 @@ test_that("label_shuffling handles constant null distribution correctly", {
     # Build a simple matrix where permutation yields identical nulls
     # Two groups of 2 samples each: group A (control), group B (case)
     mat <- matrix(c(
-        0.1, 0.1, 0.1, 0.1,  # gene1: identical across samples -> permuted log2fc all zero
-        1.0, 1.0, 2.0, 2.0     # gene2: different between groups -> non-zero observed
+        0.1, 0.1, 0.1, 0.1, # gene1: identical across samples -> permuted log2fc all zero
+        1.0, 1.0, 2.0, 2.0 # gene2: different between groups -> non-zero observed
     ), nrow = 2, byrow = TRUE)
     colnames(mat) <- paste0("S", 1:4)
     samples <- c("A", "A", "B", "B")

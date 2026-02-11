@@ -5,14 +5,14 @@
         if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
             if (norm) {
-                sh <- sh / log(n, base = log_base)
+                sh <- sh/log(n, base = log_base)
             }
             return(sh)
         } else {
-            ts <- (1 - sum(p^qi)) / (qi - 1)
+            ts <- (1 - sum(p^qi))/(qi - 1)
             if (norm) {
-                max_ts <- (1 - n^(1 - qi)) / (qi - 1)
-                ts <- ts / max_ts
+                max_ts <- (1 - n^(1 - qi))/(qi - 1)
+                ts <- ts/max_ts
             }
             return(ts)
         }
@@ -27,15 +27,18 @@
             return(D1)
         } else {
             spq <- sum(p^qi)
-            Dq <- spq^(1 / (1 - qi))
+            Dq <- spq^(1/(1 - qi))
             return(Dq)
         }
     }, numeric(1))
 }
 # Input preparation
-.tsenat_prepare_diversity_input <- function(x, genes = NULL, tpm = FALSE, assayno = 1, verbose = FALSE) {
-    if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") || is(x, "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
-        stop("Input data type is not supported! Please use ?calculate_diversity to see the possible arguments and details.", call. = FALSE)
+.tsenat_prepare_diversity_input <- function(x, genes = NULL, tpm = FALSE, assayno = 1,
+    verbose = FALSE) {
+    if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") || is(x,
+        "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
+        stop("Input data type is not supported! Please use ?calculate_diversity to see the possible arguments and details.",
+            call. = FALSE)
     }
 
     if (is(x, "data.frame")) {
@@ -60,7 +63,7 @@
             x <- as.matrix(x$counts)
             if (verbose == TRUE) {
                 message("Note: calculate_diversity methods are only applicable",
-                    " if your DGEList contains transcript-level expression", " data.")
+                  " if your DGEList contains transcript-level expression", " data.")
             }
             if (tpm == TRUE && verbose == TRUE) {
                 message("Note: tpm as a logical argument is only interpreted", " in case of tximport lists.")
@@ -89,17 +92,17 @@
                 is.data.frame(md$tx2gene)) {
                 txmap <- md$tx2gene
                 tx_col <- if ("Transcript" %in% colnames(txmap)) {
-                    "Transcript"
+                  "Transcript"
                 } else {
-                    colnames(txmap)[1]
+                  colnames(txmap)[1]
                 }
                 gene_col <- if ("Gen" %in% colnames(txmap)) {
-                    "Gen"
+                  "Gen"
                 } else {
-                    colnames(txmap)[2]
+                  colnames(txmap)[2]
                 }
                 genes <- as.character(txmap[[gene_col]][match(rownames(se_assay_mat),
-                    txmap[[tx_col]])])
+                  txmap[[tx_col]])])
                 rownames(x) <- NULL
             } else {
                 genes <- rownames(x)
@@ -110,7 +113,7 @@
 
             if (is.null(genes)) {
                 stop("Please construct a valid gene set for your ", "SummarizedExperiment.",
-                    call. = FALSE)
+                  call. = FALSE)
             }
         }
     }

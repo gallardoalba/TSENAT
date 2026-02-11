@@ -25,7 +25,7 @@
 #' x <- c(10, 5, 0)
 #' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
 calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"),
-  log_base = exp(1)) {
+    log_base = exp(1)) {
     what <- match.arg(what)
     if (!is.numeric(q)) {
         stop("q must be numeric.")
@@ -47,10 +47,11 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
         return(rep(NA_real_, length(q)))
     }
 
-    p <- x / sum(x)
+    p <- x/sum(x)
 
     tol <- sqrt(.Machine$double.eps)
-    S_vec <- .tsenat_calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base, norm = norm)
+    S_vec <- .tsenat_calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base,
+        norm = norm)
     D_vec <- .tsenat_calc_D(p = p, q = q, tol = tol, log_base = log_base)
 
     if (what == "S") {

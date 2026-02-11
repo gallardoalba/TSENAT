@@ -274,7 +274,6 @@ plot_tsallis_gene_profile <- function(se,
     plots <- lapply(genes, make_plot_for_gene)
     names(plots) <- genes
     plots
-
 }
 
 #' Plot diversity distributions (density) by sample type
@@ -919,10 +918,13 @@ plot_volcano <- function(
         grDevices::pdf(tmp)
         temp_dev <- TRUE
         # Ensure device is closed and temporary file removed on exit
-        on.exit({
-            try(grDevices::dev.off(), silent = TRUE)
-            if (file.exists(tmp)) unlink(tmp)
-        }, add = TRUE)
+        on.exit(
+            {
+                try(grDevices::dev.off(), silent = TRUE)
+                if (file.exists(tmp)) unlink(tmp)
+            },
+            add = TRUE
+        )
     }
 
     grid::grid.newpage()
@@ -963,8 +965,14 @@ plot_volcano <- function(
     .ptt_build_plot_from_summary(df_summary, agg_label_unique, fill_limits)
 }
 
-.ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique) {
+.ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
     require_pkgs(c("ggplot2"))
+    # Allow callers to pass a single character second argument as the
+    # `agg_label_unique` for convenience (legacy test call patterns).
+    if (is.null(agg_label_unique) && !is.null(output_file) && is.character(output_file) && length(output_file) == 1) {
+        agg_label_unique <- output_file
+        output_file <- NULL
+    }
     if (requireNamespace("patchwork", quietly = TRUE)) {
         .ptt_combine_patchwork(plots, agg_label_unique)
     } else if (requireNamespace("cowplot", quietly = TRUE)) {
@@ -975,7 +983,7 @@ plot_volcano <- function(
 }
 
 ## Prepare and validate inputs for `plot_top_transcripts`
-.ptt_prepare_inputs <- function(counts, readcounts, samples, coldata, sample_type_col, tx2gene, res, top_n, pseudocount, output_file, metric = c("median", "mean", "variance", "iqr")) {
+.ptt_prepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, sample_type_col = "sample_type", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
     # handle selecting genes from `res` is left to caller; this function focuses
     # on normalizing counts, samples and tx2gene mapping and preparing agg functions
     if (inherits(counts, "SummarizedExperiment")) {

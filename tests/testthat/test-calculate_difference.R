@@ -328,7 +328,7 @@ test_that("Providing multiple samples column names to SummarizedExperiment error
     skip_if_not_installed("SummarizedExperiment")
     mat <- matrix(runif(8), nrow = 2)
     colnames(mat) <- paste0("S", seq_len(ncol(mat)))
-    colData_df <- S4Vectors::DataFrame(sample_type = rep(c("A","B","A","B"), length.out = ncol(mat)), row.names = colnames(mat))
+    colData_df <- S4Vectors::DataFrame(sample_type = rep(c("A", "B", "A", "B"), length.out = ncol(mat)), row.names = colnames(mat))
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(counts = mat), colData = colData_df)
 
     expect_error(calculate_difference(se, samples = c("sample_type", "foo"), control = "A"), "'samples' must be a single colData column")
