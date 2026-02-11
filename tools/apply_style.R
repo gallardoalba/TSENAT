@@ -52,40 +52,89 @@ if (apply_fixes) {
     }
 }
 
-# (No debug printing)
-
-# Check if any files needed styling
-# Handle different return types from styler::style_pkg():
-# - older versions may return a single logical TRUE/FALSE
-# - with dry = "on" it returns a data.frame with a `changed` column
-if (isTRUE(result)) {
-    cat("ERROR: Code style violations found!\n")
-    cat("Please run 'Rscript tools/apply_style.R' locally to fix styling.\n")
-    quit(status = 1)
-} else if (is.data.frame(result)) {
-    # result is a data.frame with files and a logical `changed` column
-    if (any(result$changed, na.rm = TRUE)) {
-        changed_files <- result$file[which(result$changed)]
-        cat("The following files would be changed by styler:\n")
-        cat(paste0(" - ", changed_files, "\n"), sep = "")
-        if (!apply_fixes) {
-            cat("ERROR: Code style violations found!\n")
-            cat("Run 'Rscript tools/apply_style.R --apply' to apply fixes.\n")
-            quit(status = 1)
-        } else {
-            cat("Applied style fixes to the above files.\n")
-            quit(status = 0)
-        }
-    } else {
-        cat("All files are properly styled!\n")
-        quit(status = 0)
+# After applying fixes (if requested), re-check and ensure there are no
+# lines longer than 80 characters and that indentation is 4 spaces.
+if (!apply_fixes) {
+    # result may be logical or data.frame; handle both
+    violations <- FALSE
+    if (isTRUE(result)) {
+        violations <- TRUE
+    } else if (is.data.frame(result) && any(result$changed, na.rm = TRUE)) {
+        violations <- TRUE
+    } else if (is.list(result) && length(result) > 0) {
+        violations <- TRUE
     }
-} else if (is.list(result) && length(result) > 0) {
-    # Fallback: treat non-empty lists as potential violations
-    cat("ERROR: Code style violations found!\n")
-    cat("Please run 'Rscript tools/apply_style.R' locally to fix styling.\n")
-    quit(status = 1)
+
+    if (violations) {
+        cat("ERROR: Code style violations found!\n")
+        cat("Run 'Rscript tools/apply_style.R --apply' to apply fixes, which will:\n")
+        cat(" - reformat code with styler using 4-space indentation\n")
+        cat(" - wrap long lines to 80 characters with formatR\n")
+        quit(status = 1)
+    }
+
+    # Check for long lines
+    long_line_files <- character(0)
+    r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
+    for (f in r_files) {
+        lines <- readLines(f, warn = FALSE)
+        if (any(nchar(lines, type = "width") > 80)) long_line_files <- c(long_line_files, f)
+    }
+    if (length(long_line_files) > 0) {
+        cat("The following files contain lines longer than 80 characters:\n")
+        cat(paste0(" - ", long_line_files, "\n"), sep = "")
+        cat("Consider running with --apply to reformat lines.\n")
+        quit(status = 1)
+    }
+
+    cat("All files are properly styled and under 80 characters per line!\n")
+    quit(status = 0)
 } else {
-    cat("All files are properly styled!\n")
+    # We applied fixes; ensure styler and formatR rewrote files and line lengths are OK
+    cat("Applied styler fixes; running formatR to wrap long lines to 80 chars...\n")
+    if (!requireNamespace("formatR", quietly = TRUE)) {
+        cat("Installing formatR package to reformat long lines...\n")
+        install.packages("formatR")
+    }
+    library(formatR)
+
+    r_files <- list.files("R", pattern = "\\.R$", full.names = TRUE)
+    problematic <- character(0)
+    for (f in r_files) {
+        # tidy_source with output = FALSE returns a list containing text.tidy
+        ok <- tryCatch({
+            res <- tidy_source(file = f, width.cutoff = 80, indent = 4, output = FALSE)
+            if (!is.null(res$text.tidy)) {
+                writeLines(res$text.tidy, con = f)
+                TRUE
+            } else {
+                FALSE
+            }
+        }, error = function(e) {
+            message(sprintf("formatR failed on %s: %s", f, conditionMessage(e)))
+            FALSE
+        })
+        if (!ok) problematic <- c(problematic, f)
+    }
+
+    # Re-run a quick length check
+    long_line_files <- character(0)
+    for (f in r_files) {
+        lines <- readLines(f, warn = FALSE)
+        if (any(nchar(lines, type = "width") > 80)) long_line_files <- c(long_line_files, f)
+    }
+
+    if (length(problematic) > 0 || length(long_line_files) > 0) {
+        cat("ERROR: Some files could not be fully reformatted or still have long lines:\n")
+        if (length(problematic) > 0) {
+            cat(paste0(" - formatR failed on: ", paste(problematic, collapse = ", "), "\n"))
+        }
+        if (length(long_line_files) > 0) {
+            cat(paste0(" - still long lines in: ", paste(long_line_files, collapse = ", "), "\n"))
+        }
+        quit(status = 1)
+    }
+
+    cat("All R files reformatted with 4-space indentation and wrapped to 80 characters.\n")
     quit(status = 0)
 }
