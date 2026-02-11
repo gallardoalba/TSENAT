@@ -26,5 +26,4 @@ vignette/*html
 vignette/*pdf
 vignettes/ts_debug.R
 .vscode/
-.tools
-.tools/
+tools/
