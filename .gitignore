@@ -27,3 +27,5 @@ vignette/*pdf
 vignettes/ts_debug.R
 .vscode/
 tools/
+# Generated site
+docs/
