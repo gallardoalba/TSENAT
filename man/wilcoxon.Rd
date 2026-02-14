@@ -26,6 +26,9 @@ the \code{p.adjust} function.}
 it will be a signed rank test instead of the rank sum test.}
 
 \item{exact}{If \code{TRUE}, an exact p-value will be computed.}
+
+\item{BPPARAM}{A \code{BiocParallelParam} instance for parallel processing.
+Defaults to \code{BiocParallel::bpparam()}.}
 }
 \value{
 Raw and corrected p-values in a matrix.

@@ -2,40 +2,51 @@
 
 .tsenat_calculate_difference_partition <- function(df, samples, control, method,
     test, pcorr, randomizations, verbose) {
-    if (ncol(df) - 1 != length(samples))
+    if (ncol(df) - 1 != length(samples)) {
         stop("Column count doesn't match length(samples).", call. = FALSE)
+    }
     uniq_groups <- unique(as.character(samples))
-    if (length(uniq_groups) > 2)
+    if (length(uniq_groups) > 2) {
         stop("More than two conditions; provide exactly two.", call. = FALSE)
-    if (length(uniq_groups) < 2)
+    }
+    if (length(uniq_groups) < 2) {
         stop("Fewer than two conditions; provide exactly two.", call. = FALSE)
-    if (!(control %in% uniq_groups))
+    }
+    if (!(control %in% uniq_groups)) {
         stop("Control sample type not found in samples.", call. = FALSE)
+    }
 
     case_label <- setdiff(uniq_groups, control)
     groups <- c(case_label, control)
 
-    if (!(method %in% c("mean", "median")))
+    if (!(method %in% c("mean", "median"))) {
         stop("Invalid method; see ?calculate_difference.", call. = FALSE)
-    if (!(test %in% c("wilcoxon", "shuffle")))
+    }
+    if (!(test %in% c("wilcoxon", "shuffle"))) {
         stop("Invalid test method; see ?calculate_difference.", call. = FALSE)
+    }
     valid_pcorr <- c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr",
         "none")
-    if (!(pcorr %in% valid_pcorr))
+    if (!(pcorr %in% valid_pcorr)) {
         stop("Invalid p-value correction; see ?calculate_difference.", call. = FALSE)
+    }
 
     tab <- table(samples)
     if (test == "wilcoxon") {
-        if (randomizations != 100 && verbose)
+        if (randomizations != 100 && verbose) {
             message("'randomizations' ignored for wilcoxon.")
-        if (any(tab < 3) || sum(tab) < 8)
+        }
+        if (any(tab < 3) || sum(tab) < 8) {
             warning("Low sample size for wilcoxon.", call. = FALSE)
+        }
     }
     if (test == "shuffle") {
-        if (sum(tab) <= 5)
+        if (sum(tab) <= 5) {
             warning("Low sample size for label shuffling.", call. = FALSE)
-        if (sum(tab) > 5 && sum(tab) < 10)
+        }
+        if (sum(tab) > 5 && sum(tab) < 10) {
             warning("Label shuffling may be unreliable.", call. = FALSE)
+        }
     }
 
     idx_case <- which(samples == groups[1])
@@ -100,9 +111,10 @@
 # Paired permutation helpers
 .tsenat_permute_paired <- function(x, samples, control, method, randomizations, paired_method) {
     ncols <- ncol(x)
-    if (ncols%%2 != 0)
+    if (ncols%%2 != 0) {
         stop("Paired permutation requires an even number of samples and paired column ordering",
             call. = FALSE)
+    }
     npairs <- ncols/2
     if (paired_method == "swap") {
         perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)

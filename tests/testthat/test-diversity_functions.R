@@ -54,8 +54,15 @@ test_that("Tsallis entropy calculation is mathematically correct", {
     expect_named(tsallis_vec, paste0("q=", qvec))
 
     # Edge cases
-    expect_true(is.nan(calculate_tsallis_entropy(c(1), q = 2)))
+    # Single-element vector normalized returns NA (undefined normalization: 0/0)
+    single_norm <- calculate_tsallis_entropy(c(1), q = 2, norm = TRUE)
+    expect_true(is.na(single_norm),
+                info = "Single-element normalized entropy should be NA (undefined)")
+    
+    # Zero-sum vector should produce NA
     expect_true(is.na(calculate_tsallis_entropy(c(0, 0), q = 2)))
+    
+    # Invalid q values should error
     expect_error(calculate_tsallis_entropy(read_counts, q = 0))
     expect_error(calculate_tsallis_entropy(read_counts, q = -1))
 })

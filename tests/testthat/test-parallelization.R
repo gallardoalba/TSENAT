@@ -201,7 +201,7 @@ test_that("Parallelization reproducibility with multiple seeds", {
     BiocParallel::register(BiocParallel::SerialParam())
     set.seed(100)
     result1 <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pcorr = "BH")
-    
+
     set.seed(100)
     result2 <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pcorr = "BH")
 

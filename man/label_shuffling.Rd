@@ -44,6 +44,9 @@ caller has arranged \code{samples} accordingly.}
 \code{'swap'} (randomly swap labels within pairs) or \code{'signflip'}
 (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
 for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).}
+
+\item{BPPARAM}{A \code{BiocParallelParam} instance for parallel processing.
+Defaults to \code{BiocParallel::bpparam()}.}
 }
 \value{
 Raw and corrected p-values.

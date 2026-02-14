@@ -72,11 +72,12 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
 #' @param paired If \code{TRUE}, the Wilcox-test will be paired, and therefore
 #' it will be a signed rank test instead of the rank sum test.
 #' @param exact If \code{TRUE}, an exact p-value will be computed.
+#' @param BPPARAM A \code{BiocParallelParam} instance for parallel processing.
+#' Defaults to \code{BiocParallel::bpparam()}.
 #' @return Raw and corrected p-values in a matrix.
 #' @import stats
 #' @importFrom BiocParallel bplapply
-wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE,
-                     BPPARAM = BiocParallel::bpparam()) {
+wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, BPPARAM = BiocParallel::bpparam()) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
     if (length(groups) != 2) {
@@ -135,6 +136,8 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE,
 #'   \code{'swap'} (randomly swap labels within pairs) or \code{'signflip'}
 #'   (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
 #'   for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).
+#' @param BPPARAM A \code{BiocParallelParam} instance for parallel processing.
+#' Defaults to \code{BiocParallel::bpparam()}.
 #' @return Raw and corrected p-values.
 #' @details The permutation p-values are computed two-sided as the proportion
 #' of permuted log2 fold-changes at least as extreme as the observed value,
@@ -145,8 +148,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE,
 #' the function documentation for details.
 #' @importFrom BiocParallel bplapply
 label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
-    paired = FALSE, paired_method = c("swap", "signflip"), 
-    BPPARAM = BiocParallel::bpparam()) {
+    paired = FALSE, paired_method = c("swap", "signflip"), BPPARAM = BiocParallel::bpparam()) {
     paired_method <- match.arg(paired_method)
     # observed log2 fold changes
     log2_fc <- calculate_fc(x, samples, control, method)[, 4]
@@ -163,7 +165,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         perm_mat <- vapply(permuted, function(z) as.numeric(z[, 4]), numeric(nrow(x)))
     }
 
-    # compute two-sided permutation p-value with pseudocount using parallel processing
+    # compute two-sided permutation p-value with pseudocount using parallel
+    # processing
     raw_p_values <- BiocParallel::bplapply(seq_len(nrow(perm_mat)), function(i) {
         obs <- log2_fc[i]
         nulls <- perm_mat[i, ]
@@ -179,7 +182,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         pval <- (cnt + 1)/(n_non_na + 1)
         return(pval)
     }, BPPARAM = BPPARAM)
-    
+
     raw_p_values <- unlist(raw_p_values, use.names = FALSE)
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)

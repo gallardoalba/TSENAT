@@ -1,10 +1,12 @@
 # Helpers for plot_top_transcripts internals
 
 .ptt_select_genes_from_res <- function(res, top_n) {
-    if (is.null(res))
+    if (is.null(res)) {
         stop("Either 'gene' or 'res' must be provided")
-    if (!("genes" %in% colnames(res)))
+    }
+    if (!("genes" %in% colnames(res))) {
         stop("Provided 'res' must contain a 'genes' column")
+    }
     if ("adjusted_p_values" %in% colnames(res)) {
         ord <- order(res$adjusted_p_values, na.last = NA)
     } else if ("raw_p_values" %in% colnames(res)) {
@@ -19,8 +21,9 @@
 
 .ptt_infer_samples_from_coldata <- function(coldata, counts, sample_type_col) {
     if (is.character(coldata) && length(coldata) == 1) {
-        if (!file.exists(coldata))
+        if (!file.exists(coldata)) {
             stop("coldata file not found: ", coldata)
+        }
         cdf <- utils::read.delim(coldata, header = TRUE, stringsAsFactors = FALSE)
     } else if (is.data.frame(coldata)) {
         cdf <- coldata
@@ -35,8 +38,9 @@
         sid <- intersect(sample_id_cols, colnames(cdf))
         if (length(sid) > 0) {
             sid <- sid[1]
-            if (!all(colnames(counts) %in% as.character(cdf[[sid]])))
+            if (!all(colnames(counts) %in% as.character(cdf[[sid]]))) {
                 stop("coldata sample id column does not match column names of counts")
+            }
             row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
             as.character(cdf[[sample_type_col]][row_ix])
         } else {
@@ -46,29 +50,36 @@
 }
 
 .ptt_read_tx2gene <- function(tx2gene) {
-    if (is.null(tx2gene))
+    if (is.null(tx2gene)) {
         stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
+    }
     if (is.character(tx2gene) && length(tx2gene) == 1) {
-        if (!file.exists(tx2gene))
+        if (!file.exists(tx2gene)) {
             stop("tx2gene file not found: ", tx2gene)
+        }
         mapping <- utils::read.delim(tx2gene, stringsAsFactors = FALSE, header = TRUE)
     } else if (is.data.frame(tx2gene)) {
         mapping <- tx2gene
     } else {
         stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
     }
-    if (!all(c("Transcript", "Gen") %in% colnames(mapping)))
+    if (!all(c("Transcript", "Gen") %in% colnames(mapping))) {
         stop("tx2gene must have columns 'Transcript' and 'Gen'")
+    }
     mapping
 }
 
 .ptt_make_agg <- function(metric = c("median", "mean", "variance", "iqr")) {
     metric_choice <- match.arg(metric)
     agg_fun <- switch(metric_choice, median = function(x) stats::median(x, na.rm = TRUE),
-        mean = function(x) base::mean(x, na.rm = TRUE), variance = function(x) stats::var(x,
-            na.rm = TRUE), iqr = function(x) stats::IQR(x, na.rm = TRUE))
-    agg_label_metric <- if (metric_choice == "iqr")
-        "IQR" else metric_choice
+        mean = function(x) base::mean(x, na.rm = TRUE), variance = function(x) {
+            stats::var(x, na.rm = TRUE)
+        }, iqr = function(x) stats::IQR(x, na.rm = TRUE))
+    agg_label_metric <- if (metric_choice == "iqr") {
+        "IQR"
+    } else {
+        metric_choice
+    }
     agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
     .cnt <- as.integer(getOption("TSENAT.plot_top_counter", 0)) + 1L
     options(TSENAT.plot_top_counter = .cnt)
@@ -79,10 +90,12 @@
 .ptt_build_tx_long <- function(gene_single, mapping, counts, samples, top_n) {
     txs <- mapping$Transcript[mapping$Gen == gene_single]
     txs <- intersect(txs, rownames(counts))
-    if (length(txs) == 0)
+    if (length(txs) == 0) {
         stop("No transcripts found for gene: ", gene_single)
-    if (!is.null(top_n))
+    }
+    if (!is.null(top_n)) {
         txs <- head(txs, top_n)
+    }
     mat <- counts[txs, , drop = FALSE]
     df_all <- as.data.frame(mat)
     df_all$tx <- rownames(mat)

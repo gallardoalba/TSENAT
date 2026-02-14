@@ -5,14 +5,26 @@
         if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
             if (norm) {
-                sh <- sh/log(n, base = log_base)
+                if (n <= 1) {
+                    # Single isoform: normalization is undefined (0/0)
+                    # Return NA to indicate undefined normalization
+                    sh <- NA_real_
+                } else {
+                    sh <- sh/log(n, base = log_base)
+                }
             }
             return(sh)
         } else {
             ts <- (1 - sum(p^qi))/(qi - 1)
             if (norm) {
                 max_ts <- (1 - n^(1 - qi))/(qi - 1)
-                ts <- ts/max_ts
+                # Handle single-isoform case: ts is 0, max_ts is also 0, so 0/0 is undefined
+                # Return NA to indicate undefined normalization
+                if (abs(max_ts) < tol || n <= 1) {
+                    ts <- NA_real_
+                } else {
+                    ts <- ts/max_ts
+                }
             }
             return(ts)
         }

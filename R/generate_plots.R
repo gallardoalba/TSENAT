@@ -287,10 +287,11 @@ plot_tsallis_gene_profile <- function(se,
 #' guides theme_minimal labs
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
-#' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
+#' data("tcga_brca_luma", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma[1:100, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:100, 1]
+#' se <- calculate_diversity(rc, gs, q = 0.1, norm = FALSE)
+#' # SummarizedExperiment will have sample_type set to 'Group' by default
 #' plot_diversity_density(se)
 plot_diversity_density <- function(
   se,
@@ -304,6 +305,14 @@ plot_diversity_density <- function(
         value_name = "diversity",
         sample_type_col = sample_type_col
     )
+
+    # Ensure sample_type column exists and has no NA values
+    if (!("sample_type" %in% colnames(long))) {
+        stop("sample_type column not found in data", call. = FALSE)
+    }
+    if (all(is.na(long$sample_type))) {
+        stop("All sample_type values are NA. Cannot create faceted plot.", call. = FALSE)
+    }
 
     ggplot2::ggplot(
         long,
@@ -327,10 +336,10 @@ plot_diversity_density <- function(
 #' @return A `ggplot` violin plot object.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
-#' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
+#' data("tcga_brca_luma", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma[1:100, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:100, 1]
+#' se <- calculate_diversity(rc, gs, q = 0.1, norm = FALSE)
 #' plot_mean_violin(se)
 plot_mean_violin <- function(
   se,
@@ -652,11 +661,11 @@ plot_ma_expression_impl <- function(
 #' @return A `ggplot` object showing median +- IQR across q values by group.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:40]
+#' data("tcga_brca_luma", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma[1:40, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:40, 1]
 #' se <- calculate_diversity(rc, gs,
-#'     q = seq(0.01, 0.1, by = 0.03), norm = TRUE
+#'     q = seq(0.01, 0.1, by = 0.03), norm = FALSE
 #' )
 #' p <- plot_tsallis_q_curve(se)
 #' p
@@ -722,9 +731,9 @@ plot_tsallis_q_curve <- function(
 #' @return A `ggplot` violin plot object faceted/colored by group and q.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' data("tcga_brca_luma", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:20, 1]
 #' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
 #' plot_tsallis_violin_multq(se)
 plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
@@ -765,10 +774,10 @@ plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
 #' @return A `ggplot` density plot object faceted by q and colored by group.
 #' @export
 #' @examples
-#' data("tcga_brca_luma_dataset", package = "TSENAT")
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
-#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
+#' data("tcga_brca_luma", package = "TSENAT")
+#' rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:20, 1]
+#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = FALSE)
 #' plot_tsallis_density_multq(se)
 plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
     require_pkgs(c("ggplot2", "tidyr", "dplyr"))

@@ -148,42 +148,45 @@ context("build_se GFF3 file format support")
 test_that("build_se extracts tx2gene from actual GFF3.gz file in inst/extdata", {
     # Use the reference GFF3.gz test file packaged with TSENAT
     gff3_gz_path <- system.file("extdata", "gencode_subset_test.gff3.gz", package = "TSENAT")
-    
+
     skip_if(gff3_gz_path == "", "gencode_subset_test.gff3.gz not found in inst/extdata")
-    
+
     # Create readcounts with transcript IDs from the GFF3 file
-    tc_ids <- c("ENST00000001", "ENST00000002", "ENST00000003", "ENST00000004", 
-                "ENST00000005", "ENST00000006", "ENST00000007", "ENST00000008")
-    rc <- matrix(sample(1:100, length(tc_ids) * 3, replace = TRUE), 
-                 nrow = length(tc_ids), ncol = 3)
+    tc_ids <- c(
+        "ENST00000001", "ENST00000002", "ENST00000003", "ENST00000004",
+        "ENST00000005", "ENST00000006", "ENST00000007", "ENST00000008"
+    )
+    rc <- matrix(sample(1:100, length(tc_ids) * 3, replace = TRUE),
+        nrow = length(tc_ids), ncol = 3
+    )
     colnames(rc) <- c("S1", "S2", "S3")
     rownames(rc) <- tc_ids
-    
+
     se <- build_se(rc, gff3_gz_path)
-    
+
     expect_s4_class(se, "SummarizedExperiment")
     expect_equal(length(SummarizedExperiment::rowData(se)$genes), 8)
-    expect_equal(SummarizedExperiment::rowData(se)$genes[1], "ENSG00000101456")  # MXRA8
-    expect_equal(SummarizedExperiment::rowData(se)$genes[5], "ENSG00000102458")  # C1orf86
-    expect_equal(SummarizedExperiment::rowData(se)$genes[7], "ENSG00000103259")  # PDPN
+    expect_equal(SummarizedExperiment::rowData(se)$genes[1], "ENSG00000101456") # MXRA8
+    expect_equal(SummarizedExperiment::rowData(se)$genes[5], "ENSG00000102458") # C1orf86
+    expect_equal(SummarizedExperiment::rowData(se)$genes[7], "ENSG00000103259") # PDPN
     expect_true("tx2gene" %in% names(S4Vectors::metadata(se)))
 })
 
 test_that("build_se detects GFF3.gz extension correctly", {
     gff3_gz_path <- system.file("extdata", "gencode_subset_test.gff3.gz", package = "TSENAT")
-    
+
     skip_if(gff3_gz_path == "", "gencode_subset_test.gff3.gz not found in inst/extdata")
-    
+
     # Verify file exists and has correct extension
     expect_true(file.exists(gff3_gz_path))
     expect_true(grepl("\\.gff3\\.gz$", gff3_gz_path))
-    
+
     tc_ids <- c("ENST00000001", "ENST00000003", "ENST00000005")
     rc <- matrix(1:9, nrow = 3, ncol = 3)
     rownames(rc) <- tc_ids
-    
+
     se <- build_se(rc, gff3_gz_path)
-    
+
     expect_s4_class(se, "SummarizedExperiment")
     expect_equal(dim(se), c(3, 3))
 })

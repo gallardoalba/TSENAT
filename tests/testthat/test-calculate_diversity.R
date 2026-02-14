@@ -202,7 +202,6 @@ test_that("calculate_diversity returns correct Tsallis entropy for vector q", {
     )
 })
 
-
 ## calculate_tsallis_entropy low-level tests
 
 test_that("calculate_tsallis_entropy computes correct q=1 Shannon entropy", {

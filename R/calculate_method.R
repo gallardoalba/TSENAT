@@ -15,9 +15,8 @@
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
 #' @importFrom BiocParallel bplapply
-calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, 
-                             what = c("S", "D"), 
-                             BPPARAM = BiocParallel::bpparam()) {
+calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
+    "D"), BPPARAM = BiocParallel::bpparam()) {
     what <- match.arg(what)
     # validate q
     if (!is.numeric(q) || any(q <= 0)) {
@@ -41,7 +40,7 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2,
         .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
             what = what)
     }, BPPARAM = BPPARAM)
-    
+
     # Convert list of vectors to matrix with proper column names
     result_mat <- do.call(rbind, result_list)
     colnames(result_mat) <- coln
@@ -54,9 +53,12 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2,
         return(x)
     }
     x <- out_df
-    y <- x[apply(x[2:ncol(x)], 1, function(X) all(is.finite(X))), ]
+    # Keep genes that have at least one finite value per sample-q combination
+    # This allows single-isoform genes (which produce NaN when normalized) to still
+    # contribute if they have valid data for some samples
+    y <- x[apply(x[2:ncol(x)], 1, function(X) any(is.finite(X))), ]
     if (nrow(x) - nrow(y) > 0 && verbose == TRUE) {
-        message(sprintf("Note: %d genes excluded.", nrow(x) - nrow(y)))
+        message(sprintf("Note: %d genes excluded (all non-finite values).", nrow(x) - nrow(y)))
     }
     colnames(y)[1] <- "Gene"
     return(y)

@@ -7,11 +7,11 @@
 extract_tx2gene_from_gff3(gff3_file)
 }
 \arguments{
-\item{gff3_file}{Path to a GFF3 or GFF3.gz file containing transcript/mRNA 
+\item{gff3_file}{Path to a GFF3 or GFF3.gz file containing transcript/mRNA
 features with ID and Parent attributes.}
 }
 \value{
-A data.frame with two columns (Transcript, Gene) containing the 
+A data.frame with two columns (Transcript, Gene) containing the
   transcript-to-gene mapping extracted from the GFF3 file.
 }
 \description{
@@ -22,7 +22,7 @@ when a GFF3 file path is provided. Users should not call this function directly.
 \details{
 The function expects GFF3 format with the following structure:
 \itemize{
-  \item 9 tab-separated columns: seqname, source, feature, start, end, 
+  \item 9 tab-separated columns: seqname, source, feature, start, end,
         score, strand, phase, attributes
   \item Feature type column (3rd column) should contain 'transcript' or 'mRNA'
   \item Attributes column (9th column) should contain ID and Parent fields

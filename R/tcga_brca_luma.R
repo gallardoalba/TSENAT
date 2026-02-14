@@ -1,7 +1,7 @@
 #' TCGA Luminal A breast cancer dataset (transcript-level)
 #'
-#' Data from The Cancer Genome Atlas, containing transcript-level read counts 
-#' of 20 patients with Luminal A type breast cancer (primary tumor and solid 
+#' Data from The Cancer Genome Atlas, containing transcript-level read counts
+#' of 20 patients with Luminal A type breast cancer (primary tumor and solid
 #' normal samples, 40 samples total). The dataset includes transcript IDs in
 #' the first column and read counts for 40 samples in subsequent columns.
 #'

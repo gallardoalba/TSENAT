@@ -1431,3 +1431,52 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
     # no samples or coldata
     expect_error(.ptt_prepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
 })
+
+test_that("plot_diversity_density handles empty data gracefully", {
+    # Bug fix: plot_diversity_density failed with cryptic ggplot2 error
+    # when get_assay_long returned empty dataframe (all values NA)
+    # Solution: Validate data before plotting and provide clear error message
+    
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    
+    library(SummarizedExperiment)
+    
+    # Create SE with all NA values
+    mat <- matrix(NA_real_, nrow = 5, ncol = 4)
+    colnames(mat) <- c("S1_q=0.1", "S2_q=0.1", "S3_q=0.1", "S4_q=0.1")
+    rownames(mat) <- paste0("G", 1:5)
+    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
+    colData_df <- S4Vectors::DataFrame(samples = c("S1", "S2", "S3", "S4"))
+    se <- SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rowData_df,
+        colData = colData_df
+    )
+    
+    # Should raise clear error about no non-NA values, not ggplot2 error
+    expect_error(plot_diversity_density(se),
+                 "No non-NA values found",
+                 info = "Should have clear error message about NA values")
+})
+
+test_that("plot_diversity_density works with small dataset from calculate_diversity", {
+    # Regression test: Ensure plot_diversity_density works when diversity values are calculated
+    # Use unnormalized entropy to ensure all genes (including single-isoform) produce finite values
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    
+    library(SummarizedExperiment)
+    library(ggplot2)
+    
+    data("tcga_brca_luma", package = "TSENAT")
+    rc <- as.matrix(tcga_brca_luma[1:100, -1, drop = FALSE])
+    gs <- tcga_brca_luma[1:100, 1]
+    # Use norm=FALSE to ensure single-isoform genes produce finite values
+    se <- calculate_diversity(rc, gs, q = 0.1, norm = FALSE)
+    
+    # Should succeed
+    p <- plot_diversity_density(se)
+    expect_s3_class(p, "ggplot")
+})
+

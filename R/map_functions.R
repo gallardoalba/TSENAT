@@ -23,9 +23,9 @@
 #' column names.
 #' @export
 #' @examples
-#' data('tcga_brca_luma_dataset', package = 'TSENAT')
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' data('tcga_brca_luma', package = 'TSENAT')
+#' rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:20, 1]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
 #' coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
@@ -263,7 +263,16 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
         long$sample_type <- rep("Group", nrow(long))
     }
 
-    long[!is.na(long[[value_name]]), , drop = FALSE]
+    # Filter out NA values but retain sample_type information
+    long_filtered <- long[!is.na(long[[value_name]]), , drop = FALSE]
+    
+    # Check if any data remains after filtering
+    if (nrow(long_filtered) == 0) {
+        stop(sprintf("No non-NA values found in assay '%s'. All values are NA.", assay_name), 
+             call. = FALSE)
+    }
+    
+    long_filtered
 }
 
 # Internal small helper: prepare long-format tsallis data from a

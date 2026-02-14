@@ -55,7 +55,7 @@ test_that("calculate_method handles missing sample names by producing columns ne
 
 context("calculate_method helpers and edge cases")
 
-test_that("single-transcript genes produce zeros (and NAs for zero counts) via helper", {
+test_that("single-transcript genes produce NAs when normalized (undefined normalization)", {
     mat <- matrix(c(
         5, 0, # gene A, single transcript
         2, 3, # gene B, transcript 1
@@ -67,12 +67,12 @@ test_that("single-transcript genes produce zeros (and NAs for zero counts) via h
     # Directly test the helper's output ordering: for each sample, q varies inner
     out_vec <- .tsenat_tsallis_row(x = mat, genes = genes, gene = "A", q = c(1, 2), norm = TRUE, what = "S")
     # ordering is: S1_q=1, S1_q=2, S2_q=1, S2_q=2
-    # When normalization is TRUE and n == 1, normalization divides by zero
-    # yielding NaN for the finite-count case; zero-counts produce NA
-    expect_true(all(is.nan(unname(out_vec[1:2]))))
-    expect_true(all(is.na(out_vec[3:4])))
+    # When normalization is TRUE and n == 1, returns NA (undefined normalization: 0/0)
+    # for finite counts; zero-counts also produce NA
+    expect_true(all(is.na(out_vec)))
 
-    # calculate_method filters genes with non-finite entries; gene 'A' should be excluded
+    # calculate_method filters genes with all non-finite entries
+    # gene 'A' has all NA values, so it should be excluded
     res <- calculate_method(mat, genes, q = c(1, 2), what = "S")
     expect_false("A" %in% res$Gene)
 })
