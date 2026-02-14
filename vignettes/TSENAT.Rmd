@@ -87,7 +87,16 @@ p_i\).
 
 ## Example dataset
 
-An example dataset is included for demonstration.
+An example dataset is included for demonstration. It consists of transcript-level 
+read counts from 20 patients with Luminal A type breast cancer (TCGA BRCA project), 
+with 40 samples total (21 normal + 21 tumor). The data includes:
+
+- **Read count matrix**: 1,100 transcripts × 40 samples
+- **GFF3 annotation file**: GENCODE-format GFF3.gz for transcript-to-gene mapping
+- **Sample metadata**: Phenotype classification (Normal vs Tumor)
+
+For more details on the dataset and annotation files, 
+see `inst/extdata/README.md` in the package.
 
 ```{r setup}
 # Load packages
@@ -105,31 +114,25 @@ Now we will load the example dataset and associated metadata:
 ```{r data}
 # Load example dataset
 data("tcga_brca_luma", package = "TSENAT")
-tx_ids <- tcga_brca_luma[, 1]
 readcounts <- as.matrix(tcga_brca_luma[, -1])
-rownames(readcounts) <- tx_ids
+rownames(readcounts) <- tcga_brca_luma[, 1]
 
-# Load tx2gene mapping and sample metadata
-tx2gene <- read.table(
-    system.file("extdata", "tx2gene.tsv", package = "TSENAT"),
-    header = TRUE, sep = "\t"
-)
-
+# Load sample metadata
 coldata_df <- read.table(
     system.file("extdata", "coldata.tsv", package = "TSENAT"),
     header = TRUE, sep = "\t"
 )
+
+# Get the GFF3.gz annotation file path
+gff3_dataset <- system.file("extdata", "gencode_subset.gff3.gz", package = "TSENAT")
 ```
 
 The next step is to inspect the loaded data to 
 ensure it looks correct.
 
 ```{r data-check}
-# Check transcript IDs and tx2gene mapping
+# Check transcript IDs and read count dataset
 head(rownames(readcounts))
-head(tx2gene)
-
-# Check read count dataset
 dim(readcounts)
 head(readcounts[1:4, 1:3])
 
@@ -139,14 +142,19 @@ head(coldata_df)
 
 ### Data preprocessing and filtering
 
-Next, we will create a a `SummarizedExperiment` data container,
-a standard Bioconductor class for storing high-throughput assay 
-data along with associated metadata. You can read more about it
-in the [Bioconductor documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
+Next, we will create a `SummarizedExperiment` data container, a standard 
+Bioconductor class for storing high-throughput assay data along with associated 
+metadata. You can read more about it in the [Bioconductor documentation]
+(https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
+
+Now will use a GFF3.gz annotation file for performing the transcript-to-gene 
+mapping.
 
 ```{r build-se}
-## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
-se <- build_se(readcounts, tx2gene)
+## Build a `SummarizedExperiment` from readcounts + GFF3.gz annotation
+# The gff3_path variable contains the path to gencode_subset.gff3.gz
+se <- build_se(readcounts, gff3_dataset)
+
 ```
 
 Before computing the Tsallis diversity, you might want to
@@ -473,6 +481,40 @@ isoform diversity.
 p_qcurve <- plot_tsallis_q_curve(ts_se)
 print(p_qcurve)
 ```
+
+## GFF3 Annotation Format
+
+TSENAT uses the **GFF3 (Generic Feature Format version 3)** standard for 
+transcript-to-gene annotations. This is the recommended and primary format for 
+providing annotation data. GFF3 is comprehensive and widely used in bioinformatics 
+(GENCODE, Ensembl, RefSeq).
+
+The `build_se()` function requires a GFF3 file (either uncompressed `.gff3` or 
+compressed `.gff3.gz`) and automatically extracts transcript-to-gene mappings 
+from the `transcript` or `mRNA` features.
+
+### GFF3 File Requirements
+
+- Must contain `transcript` or `mRNA` features
+- Each transcript feature must have `ID` and `Parent` attributes
+- Parent attribute should reference the gene ID
+- Recommended: Use gzip compression (`.gff3.gz`) for large files
+
+### Usage Example
+
+In TSENAT workflows, you provide the GFF3 file path to `build_se()`:
+
+```{r gff3-usage-example, eval = FALSE}
+# Load transcript-to-gene mapping from GFF3.gz file
+gff3_path <- system.file("extdata", "gencode_subset.gff3.gz", package = "TSENAT")
+se <- build_se(readcounts, gff3_path)
+```
+
+The example dataset includes a reference annotation file 
+(`gencode_subset.gff3.gz`) demonstrating the required GFF3 format.
+
+For comprehensive documentation on annotation format specifications and data generation 
+workflow, see `inst/extdata/README.md` in the package.
 
 ## Practical notes and recommendations
 
