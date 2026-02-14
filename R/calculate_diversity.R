@@ -15,6 +15,9 @@
 #' q.
 #' @param what Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
 #' numbers.
+#' @param BPPARAM BiocParallel parameter for parallel processing. Default uses
+#' the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
+#' disable parallel processing.
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 #' `diversity` containing per-gene diversity values.
 #' @import methods
@@ -28,7 +31,8 @@
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-    verbose = FALSE, q = 2, what = c("S", "D")) {
+    verbose = FALSE, q = 2, what = c("S", "D"), 
+    BPPARAM = BiocParallel::bpparam()) {
     # Normalize and validate input data, extract matrix and gene mapping
     inp <- .tsenat_prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno,
         verbose = verbose)
@@ -59,7 +63,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         se_assay_mat <- x
     }
 
-    result <- calculate_method(x, genes, norm, verbose = verbose, q = q, what = what)
+    result <- calculate_method(x, genes, norm, verbose = verbose, q = q, what = what,
+        BPPARAM = BPPARAM)
 
     # Prepare assay and row/col data
     result_assay <- result[, -1, drop = FALSE]

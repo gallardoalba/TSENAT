@@ -8,11 +8,16 @@
 #' @param verbose Logical; show diagnostic messages when TRUE.
 #' @param what Which quantity to return from `calculate_tsallis_entropy`:
 #' 'S' (Tsallis entropy) or 'D' (Hill numbers) (default: 'S').
+#' @param BPPARAM BiocParallel parameter for parallel processing. Default uses
+#' the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
+#' disable parallel processing.
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
-calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
-    "D")) {
+#' @importFrom BiocParallel bplapply
+calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, 
+                             what = c("S", "D"), 
+                             BPPARAM = BiocParallel::bpparam()) {
     what <- match.arg(what)
     # validate q
     if (!is.numeric(q) || any(q <= 0)) {
@@ -31,11 +36,14 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
     coln <- as.vector(t(outer(sample_names, q, function(s, qq) paste0(s, "_q=", qq))))
     rown <- gene_levels
 
-    # compute requested quantity ('S' or 'D')
-    result_mat <- t(vapply(gene_levels, function(gene) {
+    # compute requested quantity ('S' or 'D') using parallel processing
+    result_list <- BiocParallel::bplapply(gene_levels, function(gene) {
         .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
             what = what)
-    }, FUN.VALUE = setNames(numeric(length(coln)), coln)))
+    }, BPPARAM = BPPARAM)
+    
+    # Convert list of vectors to matrix with proper column names
+    result_mat <- do.call(rbind, result_list)
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown
     out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)

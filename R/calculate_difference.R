@@ -32,6 +32,9 @@
 #'   supported (default: `FALSE`).
 #' @param exact Logical; passed to the Wilcoxon test to request exact p-values
 #'   when supported (default: `FALSE`).
+#' @param BPPARAM BiocParallel parameter for parallel processing. Default uses
+#' the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
+#' disable parallel processing.
 #' @return A \code{data.frame} with the mean or median values of splicing
 #' diversity across sample categories and all samples, log2(fold change) of  the
 #' two different conditions, raw and corrected p-values.
@@ -61,7 +64,7 @@
 #' )
 calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
-    exact = FALSE, pseudocount = 0) {
+    exact = FALSE, pseudocount = 0, BPPARAM = BiocParallel::bpparam()) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
@@ -139,12 +142,13 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
         ymat <- sample_matrix(df_keep)
         # p-value calculation
         if (test == "wilcoxon") {
-            ptab <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact)
+            ptab <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact,
+                BPPARAM = BPPARAM)
             # wilcoxon should return a data.frame of p-values named
             # appropriately
         } else {
             ptab <- label_shuffling(ymat, samples, control, method, randomizations = randomizations,
-                pcorr = pcorr, paired = paired)
+                pcorr = pcorr, paired = paired, BPPARAM = BPPARAM)
         }
         result_list$tested <- data.frame(genes = df_keep[, 1], calculate_fc(ymat,
             samples, control, method, pseudocount = pseudocount), ptab, stringsAsFactors = FALSE)

@@ -74,7 +74,9 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
 #' @param exact If \code{TRUE}, an exact p-value will be computed.
 #' @return Raw and corrected p-values in a matrix.
 #' @import stats
-wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
+#' @importFrom BiocParallel bplapply
+wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE,
+                     BPPARAM = BiocParallel::bpparam()) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
     if (length(groups) != 2) {
@@ -91,9 +93,9 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
         # (e.g., via `map_metadata()`); do not attempt to infer pairing here.
     }
 
-    p_values <- vector("list", nrow(x))
-    for (i in seq_len(nrow(x))) {
-        p_values[i] <- tryCatch({
+    # Use parallel processing for gene-level Wilcoxon tests
+    p_values <- BiocParallel::bplapply(seq_len(nrow(x)), function(i) {
+        tryCatch({
             wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = paired, exact = exact)$p.value
         }, error = function(e) {
             NA_real_
@@ -101,7 +103,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
             # swallow specific warnings but return NA on unusual states
             NA_real_
         })
-    }
+    }, BPPARAM = BPPARAM)
 
     raw_p_values <- ifelse(is.na(vapply(p_values, c, numeric(1))), 1, vapply(p_values,
         c, numeric(1)))
@@ -141,8 +143,10 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE) {
 #' @note The permutation test returns two-sided empirical p-values using a
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
+#' @importFrom BiocParallel bplapply
 label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
-    paired = FALSE, paired_method = c("swap", "signflip")) {
+    paired = FALSE, paired_method = c("swap", "signflip"), 
+    BPPARAM = BiocParallel::bpparam()) {
     paired_method <- match.arg(paired_method)
     # observed log2 fold changes
     log2_fc <- calculate_fc(x, samples, control, method)[, 4]
@@ -159,9 +163,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         perm_mat <- vapply(permuted, function(z) as.numeric(z[, 4]), numeric(nrow(x)))
     }
 
-    # compute two-sided permutation p-value with pseudocount: (count >= |obs| +
-    # 1) / (n_perm + 1)
-    raw_p_values <- vapply(seq_len(nrow(perm_mat)), function(i) {
+    # compute two-sided permutation p-value with pseudocount using parallel processing
+    raw_p_values <- BiocParallel::bplapply(seq_len(nrow(perm_mat)), function(i) {
         obs <- log2_fc[i]
         nulls <- perm_mat[i, ]
         if (is.na(obs) || all(is.na(nulls))) {
@@ -175,7 +178,9 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         cnt <- sum(abs(nulls_non_na) >= abs(obs))
         pval <- (cnt + 1)/(n_non_na + 1)
         return(pval)
-    }, numeric(1))
+    }, BPPARAM = BPPARAM)
+    
+    raw_p_values <- unlist(raw_p_values, use.names = FALSE)
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     out <- cbind(raw_p_values, adjusted_p_values)
