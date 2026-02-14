@@ -16,7 +16,8 @@ calculate_difference(
   verbose = TRUE,
   paired = FALSE,
   exact = FALSE,
-  pseudocount = 0
+  pseudocount = 0,
+  BPPARAM = BiocParallel::bpparam()
 )
 }
 \arguments{
@@ -64,6 +65,10 @@ when supported (default: `FALSE`).}
 add a small value to non-positive group summaries before computing
 differences and log2 fold-changes. Default \code{1e-6}. Rows excluded for
 low sample counts remain \code{NA}.}
+
+\item{BPPARAM}{BiocParallel parameter for parallel processing. Default uses
+the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
+disable parallel processing.}
 }
 \value{
 A \code{data.frame} with the mean or median values of splicing

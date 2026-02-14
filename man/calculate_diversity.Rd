@@ -12,7 +12,8 @@ calculate_diversity(
   assayno = 1,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D")
+  what = c("S", "D"),
+  BPPARAM = BiocParallel::bpparam()
 )
 }
 \arguments{
@@ -38,6 +39,10 @@ q.}
 
 \item{what}{Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
 numbers.}
+
+\item{BPPARAM}{BiocParallel parameter for parallel processing. Default uses
+the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
+disable parallel processing.}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assay

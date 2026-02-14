@@ -4,7 +4,14 @@
 \alias{wilcoxon}
 \title{Calculate p-values using Wilcoxon rank sum test.}
 \usage{
-wilcoxon(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE)
+wilcoxon(
+  x,
+  samples,
+  pcorr = "BH",
+  paired = FALSE,
+  exact = FALSE,
+  BPPARAM = BiocParallel::bpparam()
+)
 }
 \arguments{
 \item{x}{A \code{matrix} with the splicing diversity values.}

@@ -12,7 +12,8 @@ label_shuffling(
   randomizations = 100,
   pcorr = "BH",
   paired = FALSE,
-  paired_method = c("swap", "signflip")
+  paired_method = c("swap", "signflip"),
+  BPPARAM = BiocParallel::bpparam()
 )
 }
 \arguments{

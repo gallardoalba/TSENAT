@@ -10,7 +10,8 @@ calculate_method(
   norm = TRUE,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D")
+  what = c("S", "D"),
+  BPPARAM = BiocParallel::bpparam()
 )
 }
 \arguments{
@@ -28,6 +29,10 @@ transcript to a gene.}
 
 \item{what}{Which quantity to return from `calculate_tsallis_entropy`:
 'S' (Tsallis entropy) or 'D' (Hill numbers) (default: 'S').}
+
+\item{BPPARAM}{BiocParallel parameter for parallel processing. Default uses
+the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
+disable parallel processing.}
 }
 \value{
 A data.frame with genes in the first column and per-sample (and
