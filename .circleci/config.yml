@@ -28,7 +28,7 @@ jobs:
           name: Install package dependencies
           command: |
             R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest", "covr"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors"), ask=FALSE)'
+            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors", "BiocParallel"), ask=FALSE)'
       - save_cache:
           paths:
             - ~/R/library
