@@ -91,11 +91,4 @@ workflows:
   version: 2
   build_and_upload:
     jobs:
-      - build:
-          filters:
-            branches:
-              only:
-                - stable
-                - main
-                - master
-                - /^pull\/\d+$/  # Run on PR branches
+      - build
