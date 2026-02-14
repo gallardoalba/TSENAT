@@ -1,4 +1,5 @@
-# Helper functions for parallel processing using BiocParallel and parallel package
+# Helper functions for parallel processing using BiocParallel and parallel
+# package
 
 #' Select and initialize parallel backend
 #' 
@@ -9,7 +10,7 @@
     if (nthreads <= 1) {
         return(BiocParallel::SerialParam())
     }
-    
+
     # On Unix-like systems, use MulticoreParam; on Windows use SnowParam
     if (.Platform$OS.type == "unix") {
         return(BiocParallel::MulticoreParam(workers = nthreads))
@@ -35,10 +36,10 @@
             return(vapply(X, FUN, FUN.VALUE = FUN.VALUE))
         }
     }
-    
+
     # Parallel execution
     bpparam <- .tsenat_get_bpparam(nthreads)
-    
+
     if (is.null(FUN.VALUE)) {
         return(BiocParallel::bplapply(X, FUN, BPPARAM = bpparam))
     } else {
@@ -59,7 +60,7 @@
     if (nthreads <= 1) {
         return(mapply(FUN, X, Y, SIMPLIFY = FALSE))
     }
-    
+
     bpparam <- .tsenat_get_bpparam(nthreads)
     return(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE))
 }

@@ -185,7 +185,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     }
 
     # compute two-sided permutation p-value with pseudocount, in parallel
-    raw_p_values <- unlist(.tsenat_bplapply(seq_len(nrow(perm_mat)), .compute_pval, nthreads = nthreads))
+    raw_p_values <- unlist(.tsenat_bplapply(seq_len(nrow(perm_mat)), .compute_pval,
+        nthreads = nthreads))
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     out <- cbind(raw_p_values, adjusted_p_values)
@@ -230,7 +231,8 @@ test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
     paired_method <- match.arg(paired_method)
     method <- match.arg(method)
     if (method == "wilcoxon") {
-        return(wilcoxon(x, samples, pcorr = pcorr, paired = paired, exact = exact, nthreads = nthreads))
+        return(wilcoxon(x, samples, pcorr = pcorr, paired = paired, exact = exact,
+            nthreads = nthreads))
     }
 
     # shuffle / permutation-based test

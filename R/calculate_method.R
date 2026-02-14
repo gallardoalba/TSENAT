@@ -38,10 +38,11 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
         .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
             what = what)
     }, nthreads = nthreads)
-    
-    # Convert list to matrix (each element is a named vector)
-    # result_list is a list of vectors; combine them into a matrix
-    result_mat <- t(vapply(result_list, identity, FUN.VALUE = setNames(numeric(length(coln)), coln)))
+
+    # Convert list to matrix (each element is a named vector) result_list is a
+    # list of vectors; combine them into a matrix
+    result_mat <- t(vapply(result_list, identity, FUN.VALUE = setNames(numeric(length(coln)),
+        coln)))
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown
     out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)

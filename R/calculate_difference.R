@@ -141,7 +141,8 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
         ymat <- sample_matrix(df_keep)
         # p-value calculation
         if (test == "wilcoxon") {
-            ptab <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact, nthreads = nthreads)
+            ptab <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact,
+                nthreads = nthreads)
             # wilcoxon should return a data.frame of p-values named
             # appropriately
         } else {

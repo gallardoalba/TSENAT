@@ -265,13 +265,13 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
 
     # Filter out NA values but retain sample_type information
     long_filtered <- long[!is.na(long[[value_name]]), , drop = FALSE]
-    
+
     # Check if any data remains after filtering
     if (nrow(long_filtered) == 0) {
-        stop(sprintf("No non-NA values found in assay '%s'. All values are NA.", assay_name), 
-             call. = FALSE)
+        stop(sprintf("No non-NA values found in assay '%s'. All values are NA.",
+            assay_name), call. = FALSE)
     }
-    
+
     long_filtered
 }
 

@@ -61,7 +61,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         se_assay_mat <- x
     }
 
-    result <- calculate_method(x, genes, norm, verbose = verbose, q = q, what = what, nthreads = nthreads)
+    result <- calculate_method(x, genes, norm, verbose = verbose, q = q, what = what,
+        nthreads = nthreads)
 
     # Prepare assay and row/col data
     result_assay <- result[, -1, drop = FALSE]
