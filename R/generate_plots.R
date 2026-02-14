@@ -1092,6 +1092,7 @@ plot_volcano <- function(
 #' @param pseudocount Numeric pseudocount added before log2 (default = 1e-6) to avoid division by zero.
 #' @param output_file Optional file path to save the plot. If `NULL`, the `ggplot` object is returned.
 #' @param metric Aggregation metric used to summarize transcript expression per group when plotting. One of c("median", "mean", "variance", "iqr"). Use "iqr" to compute the interquartile range. Defaults to "median".
+#' @return If \code{output_file} is \code{NULL}, returns a \code{ggplot} object. Otherwise, the plot is saved to the specified file and the function returns \code{NULL} invisibly.
 #' @examples
 #' tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
 #' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))

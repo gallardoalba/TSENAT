@@ -127,7 +127,7 @@ extract_tx2gene_from_gff3 <- function(gff3_file) {
     }
 
     # Trim to actual size and create data frame
-    tx2gene_df <- data.frame(Transcript = tx2gene_transcripts[1:idx], Gene = tx2gene_genes[1:idx],
+    tx2gene_df <- data.frame(Transcript = tx2gene_transcripts[seq_len(idx)], Gene = tx2gene_genes[seq_len(idx)],
         stringsAsFactors = FALSE)
     rownames(tx2gene_df) <- NULL
 
