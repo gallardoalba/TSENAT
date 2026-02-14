@@ -30,8 +30,8 @@ The tx2gene mapping can be provided as a file path (TSV) or a
 data.frame with a `Transcript` column.
 }
 \examples{
-readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c("s1", "s2")))
-tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
+readcounts <- matrix(1:4, nrow = 2, dimnames = list(NULL, c('s1', 's2')))
+tx2gene <- data.frame(Transcript = c('tx1', 'tx2'), Gene = c('g1', 'g2'), stringsAsFactors = FALSE)
 rc <- map_tx_to_readcounts(readcounts, tx2gene)
 rownames(rc)
 }

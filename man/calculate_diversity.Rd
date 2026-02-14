@@ -47,7 +47,7 @@ A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 Calculate Tsallis diversity per gene across samples
 }
 \examples{
-data("tcga_brca_luma_dataset", package = "TSENAT")
+data('tcga_brca_luma_dataset', package = 'TSENAT')
 rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
 gs <- tcga_brca_luma_dataset$genes[1:20]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)

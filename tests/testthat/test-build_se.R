@@ -7,9 +7,9 @@ testthat::test_that("build_se constructs SummarizedExperiment from tx2gene data.
     readcounts <- matrix(sample(0:50, n_tx * n_samps, replace = TRUE), nrow = n_tx, ncol = n_samps)
     colnames(readcounts) <- paste0("S", seq_len(n_samps))
     tx2gene_df <- data.frame(Transcript = paste0("tx", seq_len(n_tx)), Gene = genes, stringsAsFactors = FALSE)
-    readcounts <- map_tx_to_readcounts(readcounts, tx2gene_df)
+    rownames(readcounts) <- tx2gene_df$Transcript
 
-    se <- build_se(tx2gene_df, readcounts, genes)
+    se <- build_se(readcounts, tx2gene_df)
 
     testthat::expect_s4_class(se, "SummarizedExperiment")
     testthat::expect_true("tx2gene" %in% names(S4Vectors::metadata(se)))
@@ -28,27 +28,30 @@ testthat::test_that("build_se accepts tx2gene as data.frame and custom assay_nam
     readcounts <- matrix(sample(0:30, n_tx * n_samps, replace = TRUE), nrow = n_tx, ncol = n_samps)
     colnames(readcounts) <- paste0("S", seq_len(n_samps))
     tx2gene_df <- data.frame(Transcript = paste0("tx", seq_len(n_tx)), Gene = genes, stringsAsFactors = FALSE)
-    readcounts <- map_tx_to_readcounts(readcounts, tx2gene_df)
+    rownames(readcounts) <- tx2gene_df$Transcript
 
-    se2 <- build_se(tx2gene_df, readcounts, genes, assay_name = "mycounts")
+    se2 <- build_se(readcounts, tx2gene_df, assay_name = "mycounts")
     testthat::expect_s4_class(se2, "SummarizedExperiment")
     testthat::expect_true("tx2gene" %in% names(S4Vectors::metadata(se2)))
     testthat::expect_true("readcounts" %in% names(S4Vectors::metadata(se2)))
     testthat::expect_true("mycounts" %in% names(SummarizedExperiment::assays(se2)))
 })
 
-testthat::test_that("build_se errors on missing tx2gene path and mismatched genes length", {
-    # toy dataset for mismatch test
+testthat::test_that("build_se errors on missing tx2gene path and unmatched transcript IDs", {
+    # toy dataset
     set.seed(4)
     n_tx <- 6L
     n_samps <- 2L
     genes <- paste0("G", seq_len(n_tx))
     readcounts <- matrix(sample(0:20, n_tx * n_samps, replace = TRUE), nrow = n_tx, ncol = n_samps)
+    colnames(readcounts) <- paste0("S", seq_len(n_samps))
     tx2gene_df <- data.frame(Transcript = paste0("tx", seq_len(n_tx)), Gene = genes, stringsAsFactors = FALSE)
-    readcounts <- map_tx_to_readcounts(readcounts, tx2gene_df)
+    rownames(readcounts) <- tx2gene_df$Transcript
 
-    testthat::expect_error(build_se("this_file_does_not_exist.tsv", readcounts, genes))
-    testthat::expect_error(build_se(tx2gene_df, readcounts, genes[-1]))
+    testthat::expect_error(build_se("this_file_does_not_exist.tsv", readcounts))
+    # Test with mismatched transcript IDs
+    rownames(readcounts) <- paste0("wrong_tx", seq_len(n_tx))
+    testthat::expect_error(build_se(readcounts, tx2gene_df))
 })
 
 context("build_se extra edge-case tests")
@@ -63,9 +66,8 @@ test_that("build_se accepts tx2gene as a file path and preserves metadata", {
 
     rc <- matrix(c(5, 2, 9, 1, 0, 4), nrow = 3, byrow = FALSE)
     rownames(rc) <- tx2$Transcript
-    genes <- c("g1", "g1", "g2")
 
-    se <- build_se(tf, rc, genes, assay_name = "counts")
+    se <- build_se(rc, tf, assay_name = "counts")
     md <- S4Vectors::metadata(se)
     expect_true(is.data.frame(md$tx2gene))
     expect_equal(md$tx2gene$Transcript, tx2$Transcript)
@@ -77,32 +79,30 @@ test_that("build_se accepts numeric data.frame readcounts", {
     tx2 <- data.frame(Transcript = paste0("t", 1:2), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
     rc_df <- data.frame(S1 = c(1, 3), S2 = c(2, 4))
     rownames(rc_df) <- tx2$Transcript
-    genes <- c("g1", "g2")
 
-    se <- build_se(tx2, rc_df, genes)
+    se <- build_se(rc_df, tx2)
     expect_s4_class(se, "SummarizedExperiment")
     expect_true(is.matrix(SummarizedExperiment::assay(se, "counts")))
     expect_equal(SummarizedExperiment::assay(se, "counts"), as.matrix(rc_df))
 })
 
-# when readcounts has no rownames, rowData should have no rownames
+# when readcounts has no rownames, errors should occur
 test_that("build_se works when readcounts has no rownames", {
     tx2 <- data.frame(Transcript = paste0("tx", 1:2), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
     rc <- matrix(c(1, 2, 3, 4), nrow = 2)
-    genes <- c("g1", "g2")
+    rownames(rc) <- tx2$Transcript
 
-    se <- build_se(tx2, rc, genes)
+    se <- build_se(rc, tx2)
     rd <- SummarizedExperiment::rowData(se)
-    expect_equal(as.character(rd$genes), genes)
-    # rownames should be NULL when input rc has no rownames
-    expect_true(is.null(rownames(rd)))
+    expect_equal(as.character(rd$genes), c("g1", "g2"))
+    expect_equal(rownames(rd), rownames(rc))
 })
 
 # invalid tx2gene type should error
 test_that("build_se errors on invalid tx2gene argument type", {
     rc <- matrix(1:4, nrow = 2)
-    genes <- c("g1", "g2")
-    expect_error(build_se(12345, rc, genes), "'tx2gene_tsv' must be a path or a data.frame")
+    rownames(rc) <- c("tx1", "tx2")
+    expect_error(build_se(rc, 12345), "'tx2gene' must be a path or a data.frame")
 })
 
 context("build_se additional tests")
@@ -113,29 +113,28 @@ test_that("build_se accepts tx2gene data.frame and numeric matrix and sets metad
     tx2 <- data.frame(Transcript = paste0("tx", 1:3), Gene = c("g1", "g1", "g2"), stringsAsFactors = FALSE)
     rc <- matrix(c(10, 0, 5, 2, 3, 1), nrow = 3)
     rownames(rc) <- tx2$Transcript
-    genes <- c("g1", "g1", "g2")
-    se <- build_se(tx2, rc, genes, assay_name = "counts")
+    se <- build_se(rc, tx2, assay_name = "counts")
     expect_s4_class(se, "SummarizedExperiment")
     md <- S4Vectors::metadata(se)
     expect_true(!is.null(md$tx2gene))
     expect_true(!is.null(md$readcounts))
     expect_equal(SummarizedExperiment::assayNames(se), "counts")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, genes)
+    expect_equal(SummarizedExperiment::rowData(se)$genes, c("g1", "g1", "g2"))
 })
 
 test_that("build_se errors on missing tx2gene file path", {
     rc <- matrix(1:4, nrow = 2)
-    genes <- c("g1", "g2")
-    expect_error(build_se("/nonexistent/path.tsv", rc, genes), "tx2gene file not found")
+    rownames(rc) <- c("tx1", "tx2")
+    expect_error(build_se(rc, "/nonexistent/path.tsv"), "tx2gene file not found")
 })
 
-test_that("build_se errors on non-numeric readcounts or mismatched genes length", {
+test_that("build_se errors on non-numeric readcounts or mismatched transcript IDs", {
     tx2 <- data.frame(Transcript = paste0("t", 1:2), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
     rc_bad <- matrix(letters[1:4], nrow = 2)
-    genes <- c("g1", "g2")
-    expect_error(build_se(tx2, rc_bad, genes), "readcounts' must be a numeric")
+    rownames(rc_bad) <- tx2$Transcript
+    expect_error(build_se(rc_bad, tx2), "readcounts' must be a numeric")
 
     rc <- matrix(1:6, nrow = 3)
-    genes_short <- c("g1", "g2")
-    expect_error(build_se(tx2, rc, genes_short), "Length of 'genes' must equal nrow")
+    rownames(rc) <- c("t1", "t2", "t3")
+    expect_error(build_se(rc, tx2), "Some transcript IDs in readcounts were not found")
 })

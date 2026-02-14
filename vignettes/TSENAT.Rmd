@@ -103,20 +103,21 @@ suppressPackageStartupMessages({
 Now we will load the example dataset and associated metadata:
 
 ```{r data}
-# Load required files
-coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
-tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
+# Load example dataset
+data("tcga_brca_luma", package = "TSENAT")
+tx_ids <- tcga_brca_luma[, 1]
+readcounts <- as.matrix(tcga_brca_luma[, -1])
+rownames(readcounts) <- tx_ids
 
-# Extract gene names and read count data
-genes <- tcga_brca_luma_dataset[, 1]
-readcounts <- tcga_brca_luma_dataset[, -1]
+# Load tx2gene mapping and sample metadata
+tx2gene <- read.table(
+    system.file("extdata", "tx2gene.tsv", package = "TSENAT"),
+    header = TRUE, sep = "\t"
+)
 
-# Read sample metadata
-coldata_df <- read.table(coldata_tsv,
-    header = TRUE,
-    sep = "\t",
-    stringsAsFactors = FALSE
+coldata_df <- read.table(
+    system.file("extdata", "coldata.tsv", package = "TSENAT"),
+    header = TRUE, sep = "\t"
 )
 ```
 
@@ -124,8 +125,9 @@ The next step is to inspect the loaded data to
 ensure it looks correct.
 
 ```{r data-check}
-# Check gene names
-head(genes)
+# Check transcript IDs and tx2gene mapping
+head(rownames(readcounts))
+head(tx2gene)
 
 # Check read count dataset
 dim(readcounts)
@@ -137,16 +139,6 @@ head(coldata_df)
 
 ### Data preprocessing and filtering
 
-If the transcript IDs in `readcounts` are not already set
-as rownames, we need to map them. This step could be skipped
-if the dataset already has transcript IDs as rownames, 
-but in this case we need to assign them.
-
-```{r map-transcripts-ids}
-# Assign transcript IDs as rownames of `readcounts`
-readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
-```
-
 Next, we will create a a `SummarizedExperiment` data container,
 a standard Bioconductor class for storing high-throughput assay 
 data along with associated metadata. You can read more about it
@@ -154,7 +146,7 @@ in the [Bioconductor documentation](https://bioconductor.org/packages/release/bi
 
 ```{r build-se}
 ## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
-se <- build_se(tx2gene_tsv, readcounts, genes)
+se <- build_se(readcounts, tx2gene)
 ```
 
 Before computing the Tsallis diversity, you might want to

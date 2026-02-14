@@ -4,18 +4,16 @@
 \alias{build_se}
 \title{Build a SummarizedExperiment from transcript readcounts and tx->gene map}
 \usage{
-build_se(tx2gene_tsv, readcounts, genes, assay_name = "counts")
+build_se(readcounts, tx2gene, assay_name = "counts")
 }
 \arguments{
-\item{tx2gene_tsv}{Path to a tab-separated `tx2gene` file or a data.frame
-with transcript-to-gene mapping. If a path is provided, it must contain
-at least two columns (transcript, gene).}
-
 \item{readcounts}{Numeric matrix or data.frame of transcript-level counts
-(rows = transcripts, columns = samples).}
+(rows = transcripts, columns = samples). Rownames should contain
+transcript IDs that match the first column of tx2gene.}
 
-\item{genes}{Character vector of gene IDs assigning each transcript to a
-gene; length must equal nrow(readcounts).}
+\item{tx2gene}{Path to a tab-separated `tx2gene` file or a data.frame
+with transcript-to-gene mapping. Must contain at least two columns:
+Transcript (first column) and Gene (second column).}
 
 \item{assay_name}{Name for the assay to store readcounts (default: 'counts').}
 }
@@ -26,12 +24,12 @@ A `SummarizedExperiment` with assay, `metadata()$tx2gene`,
 \description{
 This helper creates a `SummarizedExperiment` with an assay named
 `counts`, stores the `tx2gene` table and the raw `readcounts` in
-`metadata()`, and places the provided `genes` vector into `rowData(se)$genes`.
+`metadata()`, and extracts gene assignments from the tx2gene mapping
+to populate `rowData(se)$genes`.
 }
 \examples{
-tx2gene <- data.frame(Transcript = c("tx1", "tx2"), Gene = c("g1", "g2"), stringsAsFactors = FALSE)
-readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))
-genes <- c("g1", "g2")
-se <- build_se(tx2gene, readcounts, genes)
-SummarizedExperiment::assay(se, "counts")
+tx2gene <- data.frame(Transcript = c('tx1', 'tx2'), Gene = c('g1', 'g2'))
+readcounts <- matrix(c(10, 5, 2, 3), nrow = 2, dimnames = list(c('tx1', 'tx2'), c('s1', 's2')))
+se <- build_se(readcounts, tx2gene)
+SummarizedExperiment::assay(se, 'counts')
 }
