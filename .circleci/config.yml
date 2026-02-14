@@ -98,3 +98,4 @@ workflows:
                 - stable
                 - main
                 - master
+                - /^pull\/\d+$/  # Run on PR branches
