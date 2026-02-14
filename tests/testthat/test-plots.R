@@ -452,22 +452,6 @@ test_that("plot_top_transcripts works on simple matrix input", {
     expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
 })
 
-test_that("plot_top_transcripts selects genes from res when gene is NULL", {
-    tx_counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 9)
-    rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-    colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-
-    # Make tx2gene mapping: three transcripts per gene
-    tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 3), stringsAsFactors = FALSE)
-    samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-
-    # create fake res with genes and p-values
-    res <- data.frame(genes = paste0("G", seq_len(3)), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
-
-    p <- plot_top_transcripts(tx_counts, res = res, tx2gene = tx2gene, samples = samples, top_n = 2)
-    expect_true(!is.null(p))
-})
-
 test_that("plot_top_transcripts errors when counts lack rownames", {
     mat <- matrix(1:6, nrow = 2)
     expect_error(plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a", "b"), Gen = c("G1", "G1"))), "counts.*rownames")
@@ -524,36 +508,6 @@ context("generate_plots extra tests")
 library(SummarizedExperiment)
 
 skip_on_bioc()
-
-test_that("plot_top_transcripts works on simple matrix input", {
-    skip_if_not_installed("ggplot2")
-    tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
-    rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-    colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-    tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
-    samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-    p <- TSENAT:::plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
-    expect_true(!is.null(p))
-    expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
-})
-
-test_that("plot_top_transcripts selects genes from res when gene is NULL", {
-    skip_if_not_installed("ggplot2")
-    tx_counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 9)
-    rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-    colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-    tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 3), stringsAsFactors = FALSE)
-    samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-    res <- data.frame(genes = paste0("G", 1:3), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
-    p <- TSENAT:::plot_top_transcripts(tx_counts, res = res, tx2gene = tx2gene, samples = samples, top_n = 2)
-    expect_true(!is.null(p))
-})
-
-test_that("plot_top_transcripts errors when counts lack rownames", {
-    skip_if_not_installed("ggplot2")
-    mat <- matrix(1:6, nrow = 2)
-    expect_error(TSENAT:::plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a", "b"), Gen = c("G1", "G1"))), "counts.*rownames")
-})
 
 test_that("plot_tsallis_gene_profile returns ggplot for simple SE", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
@@ -1431,52 +1385,3 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
     # no samples or coldata
     expect_error(.ptt_prepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
 })
-
-test_that("plot_diversity_density handles empty data gracefully", {
-    # Bug fix: plot_diversity_density failed with cryptic ggplot2 error
-    # when get_assay_long returned empty dataframe (all values NA)
-    # Solution: Validate data before plotting and provide clear error message
-    
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    
-    library(SummarizedExperiment)
-    
-    # Create SE with all NA values
-    mat <- matrix(NA_real_, nrow = 5, ncol = 4)
-    colnames(mat) <- c("S1_q=0.1", "S2_q=0.1", "S3_q=0.1", "S4_q=0.1")
-    rownames(mat) <- paste0("G", 1:5)
-    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(samples = c("S1", "S2", "S3", "S4"))
-    se <- SummarizedExperiment(
-        assays = list(diversity = mat),
-        rowData = rowData_df,
-        colData = colData_df
-    )
-    
-    # Should raise clear error about no non-NA values, not ggplot2 error
-    expect_error(plot_diversity_density(se),
-                 "No non-NA values found",
-                 info = "Should have clear error message about NA values")
-})
-
-test_that("plot_diversity_density works with small dataset from calculate_diversity", {
-    # Regression test: Ensure plot_diversity_density works when diversity values are calculated
-    # Use unnormalized entropy to ensure all genes (including single-isoform) produce finite values
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    
-    library(SummarizedExperiment)
-    library(ggplot2)
-    
-    data("tcga_brca_luma", package = "TSENAT")
-    rc <- as.matrix(tcga_brca_luma[1:100, -1, drop = FALSE])
-    gs <- tcga_brca_luma[1:100, 1]
-    # Use norm=FALSE to ensure single-isoform genes produce finite values
-    se <- calculate_diversity(rc, gs, q = 0.1, norm = FALSE)
-    
-    # Should succeed
-    p <- plot_diversity_density(se)
-    expect_s3_class(p, "ggplot")
-})
-

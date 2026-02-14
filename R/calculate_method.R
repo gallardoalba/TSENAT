@@ -8,15 +8,13 @@
 #' @param verbose Logical; show diagnostic messages when TRUE.
 #' @param what Which quantity to return from `calculate_tsallis_entropy`:
 #' 'S' (Tsallis entropy) or 'D' (Hill numbers) (default: 'S').
-#' @param BPPARAM BiocParallel parameter for parallel processing. Default uses
-#' the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
-#' disable parallel processing.
+#' @param nthreads Number of threads for parallel processing (default: 1).
+#' Set to > 1 to parallelize per-gene entropy calculations.
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
-#' @importFrom BiocParallel bplapply
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
-    "D"), BPPARAM = BiocParallel::bpparam()) {
+    "D"), nthreads = 1) {
     what <- match.arg(what)
     # validate q
     if (!is.numeric(q) || any(q <= 0)) {
@@ -35,14 +33,15 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
     coln <- as.vector(t(outer(sample_names, q, function(s, qq) paste0(s, "_q=", qq))))
     rown <- gene_levels
 
-    # compute requested quantity ('S' or 'D') using parallel processing
-    result_list <- BiocParallel::bplapply(gene_levels, function(gene) {
+    # compute requested quantity ('S' or 'D') in parallel
+    result_list <- .tsenat_bplapply(gene_levels, function(gene) {
         .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
             what = what)
-    }, BPPARAM = BPPARAM)
-
-    # Convert list of vectors to matrix with proper column names
-    result_mat <- do.call(rbind, result_list)
+    }, nthreads = nthreads)
+    
+    # Convert list to matrix (each element is a named vector)
+    # result_list is a list of vectors; combine them into a matrix
+    result_mat <- t(vapply(result_list, identity, FUN.VALUE = setNames(numeric(length(coln)), coln)))
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown
     out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)
@@ -53,12 +52,9 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
         return(x)
     }
     x <- out_df
-    # Keep genes that have at least one finite value per sample-q combination
-    # This allows single-isoform genes (which produce NaN when normalized) to still
-    # contribute if they have valid data for some samples
-    y <- x[apply(x[2:ncol(x)], 1, function(X) any(is.finite(X))), ]
+    y <- x[apply(x[2:ncol(x)], 1, function(X) all(is.finite(X))), ]
     if (nrow(x) - nrow(y) > 0 && verbose == TRUE) {
-        message(sprintf("Note: %d genes excluded (all non-finite values).", nrow(x) - nrow(y)))
+        message(sprintf("Note: %d genes excluded.", nrow(x) - nrow(y)))
     }
     colnames(y)[1] <- "Gene"
     return(y)

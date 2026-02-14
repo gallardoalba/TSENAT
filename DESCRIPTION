@@ -17,4 +17,4 @@ Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, mgcv, S4Vectors, cowplot, gg
 VignetteBuilder: knitr
 URL: https://gallardoalba.github.io/TSENAT
 BugReports: https://github.com/gallardoalba/TSENAT/issues
-biocViews: Transcriptomics, RNASeq, DifferentialSplicing, AlternativeSplicing, TranscriptomeVariant, GeneExpression, DifferentialExpression, GO
+biocViews: Transcriptomics, RNASeq, DifferentialSplicing, AlternativeSplicing, TranscriptomeVariant, GeneExpression, DifferentialExpression

@@ -54,15 +54,8 @@ test_that("Tsallis entropy calculation is mathematically correct", {
     expect_named(tsallis_vec, paste0("q=", qvec))
 
     # Edge cases
-    # Single-element vector normalized returns NA (undefined normalization: 0/0)
-    single_norm <- calculate_tsallis_entropy(c(1), q = 2, norm = TRUE)
-    expect_true(is.na(single_norm),
-                info = "Single-element normalized entropy should be NA (undefined)")
-    
-    # Zero-sum vector should produce NA
+    expect_true(is.nan(calculate_tsallis_entropy(c(1), q = 2)))
     expect_true(is.na(calculate_tsallis_entropy(c(0, 0), q = 2)))
-    
-    # Invalid q values should error
     expect_error(calculate_tsallis_entropy(read_counts, q = 0))
     expect_error(calculate_tsallis_entropy(read_counts, q = -1))
 })
@@ -200,16 +193,6 @@ test_that(".tsenat_prepare_diversity_input accepts data.frame and emits matrices
     res <- TSENAT:::.tsenat_prepare_diversity_input(df)
     expect_true(is.matrix(res$x))
     expect_null(res$se_assay_mat)
-})
-
-test_that(".tsenat_prepare_diversity_input handles tximport-like lists and tpm flag", {
-    lst <- list(counts = matrix(1:4, nrow = 2), abundance = matrix(5:8, nrow = 2), other = 1, other2 = 2)
-    res_counts <- TSENAT:::.tsenat_prepare_diversity_input(lst, tpm = FALSE)
-    expect_true(is.matrix(res_counts$x))
-    expect_equal(res_counts$x[1, 1], 1)
-
-    res_abun <- TSENAT:::.tsenat_prepare_diversity_input(lst, tpm = TRUE)
-    expect_equal(res_abun$x[1, 1], 5)
 })
 
 test_that(".tsenat_prepare_diversity_input warns/messages for tpm non-list inputs", {

@@ -72,12 +72,11 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
 #' @param paired If \code{TRUE}, the Wilcox-test will be paired, and therefore
 #' it will be a signed rank test instead of the rank sum test.
 #' @param exact If \code{TRUE}, an exact p-value will be computed.
-#' @param BPPARAM A \code{BiocParallelParam} instance for parallel processing.
-#' Defaults to \code{BiocParallel::bpparam()}.
+#' @param nthreads Number of threads for parallel processing (default: 1).
+#' Set to > 1 to parallelize per-feature Wilcoxon tests.
 #' @return Raw and corrected p-values in a matrix.
 #' @import stats
-#' @importFrom BiocParallel bplapply
-wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, BPPARAM = BiocParallel::bpparam()) {
+wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
     if (length(groups) != 2) {
@@ -94,8 +93,8 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, BP
         # (e.g., via `map_metadata()`); do not attempt to infer pairing here.
     }
 
-    # Use parallel processing for gene-level Wilcoxon tests
-    p_values <- BiocParallel::bplapply(seq_len(nrow(x)), function(i) {
+    # Function to compute Wilcoxon test for a single feature
+    .wilcox_one <- function(i) {
         tryCatch({
             wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = paired, exact = exact)$p.value
         }, error = function(e) {
@@ -104,7 +103,10 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, BP
             # swallow specific warnings but return NA on unusual states
             NA_real_
         })
-    }, BPPARAM = BPPARAM)
+    }
+
+    # Apply in parallel
+    p_values <- .tsenat_bplapply(seq_len(nrow(x)), .wilcox_one, nthreads = nthreads)
 
     raw_p_values <- ifelse(is.na(vapply(p_values, c, numeric(1))), 1, vapply(p_values,
         c, numeric(1)))
@@ -136,8 +138,8 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, BP
 #'   \code{'swap'} (randomly swap labels within pairs) or \code{'signflip'}
 #'   (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
 #'   for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).
-#' @param BPPARAM A \code{BiocParallelParam} instance for parallel processing.
-#' Defaults to \code{BiocParallel::bpparam()}.
+#' @param nthreads Number of threads for parallel processing (default: 1).
+#' Set to > 1 to parallelize per-feature p-value computation.
 #' @return Raw and corrected p-values.
 #' @details The permutation p-values are computed two-sided as the proportion
 #' of permuted log2 fold-changes at least as extreme as the observed value,
@@ -146,9 +148,8 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, BP
 #' @note The permutation test returns two-sided empirical p-values using a
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
-#' @importFrom BiocParallel bplapply
 label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
-    paired = FALSE, paired_method = c("swap", "signflip"), BPPARAM = BiocParallel::bpparam()) {
+    paired = FALSE, paired_method = c("swap", "signflip"), nthreads = 1) {
     paired_method <- match.arg(paired_method)
     # observed log2 fold changes
     log2_fc <- calculate_fc(x, samples, control, method)[, 4]
@@ -158,6 +159,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         perm_mat <- .tsenat_permute_paired(x = x, samples = samples, control = control,
             method = method, randomizations = randomizations, paired_method = paired_method)
     } else {
+        # Generate permutations
         permuted <- replicate(randomizations, calculate_fc(x, sample(samples), control,
             method), simplify = FALSE)
         # each element is a data.frame/matrix; extract log2_fold_change column
@@ -165,9 +167,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         perm_mat <- vapply(permuted, function(z) as.numeric(z[, 4]), numeric(nrow(x)))
     }
 
-    # compute two-sided permutation p-value with pseudocount using parallel
-    # processing
-    raw_p_values <- BiocParallel::bplapply(seq_len(nrow(perm_mat)), function(i) {
+    # Function to compute p-value for a single feature
+    .compute_pval <- function(i) {
         obs <- log2_fc[i]
         nulls <- perm_mat[i, ]
         if (is.na(obs) || all(is.na(nulls))) {
@@ -181,9 +182,10 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         cnt <- sum(abs(nulls_non_na) >= abs(obs))
         pval <- (cnt + 1)/(n_non_na + 1)
         return(pval)
-    }, BPPARAM = BPPARAM)
+    }
 
-    raw_p_values <- unlist(raw_p_values, use.names = FALSE)
+    # compute two-sided permutation p-value with pseudocount, in parallel
+    raw_p_values <- unlist(.tsenat_bplapply(seq_len(nrow(perm_mat)), .compute_pval, nthreads = nthreads))
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     out <- cbind(raw_p_values, adjusted_p_values)
@@ -209,6 +211,9 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #' @param seed Integer seed used to make permutations reproducible (default
 #'   123). The function sets a temporary RNG seed via `withr::local_seed(seed)`
 #'   before running `label_shuffling()` when `method = 'shuffle'`.
+#' @param nthreads Number of threads for parallel processing (default: 1).
+#'   Set to > 1 to parallelize per-feature statistical tests in
+#'   `wilcoxon()` or `label_shuffling()`.
 #' @return A two-column matrix with raw and adjusted p-values (as returned by
 #'   the underlying functions).
 #' @export
@@ -221,11 +226,11 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #'   `method = 'shuffle'`. See `label_shuffling()` for details.
 test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
     "shuffle"), fc_method = "mean", paired = FALSE, exact = FALSE, randomizations = 100,
-    pcorr = "BH", seed = 123L, paired_method = c("swap", "signflip")) {
+    pcorr = "BH", seed = 123L, paired_method = c("swap", "signflip"), nthreads = 1) {
     paired_method <- match.arg(paired_method)
     method <- match.arg(method)
     if (method == "wilcoxon") {
-        return(wilcoxon(x, samples, pcorr = pcorr, paired = paired, exact = exact))
+        return(wilcoxon(x, samples, pcorr = pcorr, paired = paired, exact = exact, nthreads = nthreads))
     }
 
     # shuffle / permutation-based test
@@ -241,5 +246,5 @@ test_differential <- function(x, samples, control = NULL, method = c("wilcoxon",
         withr::local_seed(as.integer(seed))
     }
     return(label_shuffling(x, samples, control, fc_method, randomizations = randomizations,
-        pcorr = pcorr, paired = paired, paired_method = paired_method))
+        pcorr = pcorr, paired = paired, paired_method = paired_method, nthreads = nthreads))
 }

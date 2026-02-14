@@ -1,445 +1,323 @@
-context("Parallelization with BiocParallel backends")
+context("Parallelization: wilcoxon with nthreads")
 
-# Test that functions produce identical results with different BiocParallel backends
-# This verifies that parallelization doesn't introduce numerical differences
-
-test_that("calculate_diversity produces identical results with SerialParam and MulticoreParam", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(c(
-        10, 5,
-        0, 0,
-        2, 8,
-        3, 7
-    ), nrow = 4, byrow = TRUE)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2", "g2")
-
-    # Set seed for reproducibility
+test_that("wilcoxon serial and parallel produce identical results", {
     set.seed(42)
-    result_serial <- tryCatch(
-        {
-            BiocParallel::register(BiocParallel::SerialParam())
-            calculate_diversity(x, genes, norm = TRUE, q = 1.5)
-        },
-        finally = BiocParallel::register(BiocParallel::SerialParam())
-    )
+    # Create large dataset: 500 genes, 20 samples
+    nfeat <- 500
+    nsamp <- 20
+    mat <- matrix(runif(nfeat * nsamp, 0, 10), nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("Control", "Treatment"), each = nsamp / 2)
+    
+    # Run serial version
+    res_serial <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1)
+    
+    # Run parallel version with 2 threads
+    res_parallel_2 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 2)
+    
+    # Run parallel version with 4 threads
+    res_parallel_4 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 4)
+    
+    # All versions should produce identical results
+    expect_equal(res_serial, res_parallel_2, tolerance = 1e-10)
+    expect_equal(res_serial, res_parallel_4, tolerance = 1e-10)
+    
+    # Check output structure
+    expect_true(is.matrix(res_serial) || is.data.frame(res_serial))
+    expect_equal(ncol(res_serial), 2)
+    expect_equal(nrow(res_serial), nfeat)
+    expect_true(all(colnames(res_serial) == c("raw_p_values", "adjusted_p_values")))
+})
 
+test_that("wilcoxon parallelization handles edge cases correctly", {
+    set.seed(123)
+    # Medium dataset: 100 genes, 10 samples
+    nfeat <- 100
+    nsamp <- 10
+    mat <- matrix(c(rnorm(nfeat * nsamp * 0.8, mean = 1, sd = 0.5),
+                    rep(NA_real_, nfeat * nsamp * 0.2)), 
+                  nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("A", "B"), each = nsamp / 2)
+    
+    # Serial vs parallel should match
+    res_serial <- wilcoxon(mat, samples, nthreads = 1)
+    res_parallel <- wilcoxon(mat, samples, nthreads = 2)
+    
+    # P-values should be valid (0 to 1)
+    expect_true(all(res_serial[, 1] >= 0 & res_serial[, 1] <= 1, na.rm = TRUE))
+    expect_true(all(res_parallel[, 1] >= 0 & res_parallel[, 1] <= 1, na.rm = TRUE))
+    
+    # Should match
+    expect_equal(res_serial, res_parallel, tolerance = 1e-10)
+})
+
+context("Parallelization: label_shuffling with nthreads")
+
+test_that("label_shuffling parallel execution completes and returns valid results", {
     set.seed(42)
-    result_serial2 <- tryCatch(
-        {
-            BiocParallel::register(BiocParallel::SerialParam())
-            calculate_diversity(x, genes, norm = TRUE, q = 1.5)
-        },
-        finally = BiocParallel::register(BiocParallel::SerialParam())
-    )
-
-    # Results should be identical
-    expect_equal(
-        SummarizedExperiment::assay(result_serial),
-        SummarizedExperiment::assay(result_serial2)
-    )
+    # Create large dataset: 300 genes, 12 samples
+    nfeat <- 300
+    nsamp <- 12
+    mat <- matrix(runif(nfeat * nsamp, 0, 5), nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("Control", "Treatment"), each = nsamp / 2)
+    
+    # Run serial version
+    set.seed(42)
+    res_serial <- label_shuffling(mat, samples, control = "Control", method = "mean", 
+                                   randomizations = 50, pcorr = "BH", nthreads = 1)
+    
+    # Run parallel version with 2 threads - will have different random stream
+    # but should still produce valid p-values in the same range
+    set.seed(42)
+    res_parallel_2 <- label_shuffling(mat, samples, control = "Control", method = "mean", 
+                                       randomizations = 50, pcorr = "BH", nthreads = 2)
+    
+    # Check output structure
+    expect_true(is.matrix(res_serial) || is.data.frame(res_serial))
+    expect_equal(ncol(res_serial), 2)
+    expect_equal(nrow(res_serial), nfeat)
+    expect_equal(ncol(res_parallel_2), 2)
+    expect_equal(nrow(res_parallel_2), nfeat)
+    
+    # All p-values should be valid
+    expect_true(all(res_serial[, 1] >= 0 & res_serial[, 1] <= 1))
+    expect_true(all(res_parallel_2[, 1] >= 0 & res_parallel_2[, 1] <= 1))
 })
 
-test_that("calculate_difference parallelizes correctly with wilcoxon test", {
-    skip_if_not_installed("BiocParallel")
+test_that("label_shuffling parallelization produces valid p-values", {
+    set.seed(456)
+    # Medium dataset: 150 genes, 8 samples
+    nfeat <- 150
+    nsamp <- 8
+    mat <- matrix(rpois(nfeat * nsamp, lambda = 5), nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("Normal", "Tumor"), each = nsamp / 2)
+    
+    # Different randomization counts with parallelization
+    res_100_serial <- label_shuffling(mat, samples, "Normal", "median", 100, 
+                                      pcorr = "none", nthreads = 1)
+    res_100_parallel <- label_shuffling(mat, samples, "Normal", "median", 100, 
+                                        pcorr = "none", nthreads = 2)
+    
+    # Results should have valid p-values
+    expect_true(all(res_100_serial[, 1] >= 0 & res_100_serial[, 1] <= 1))
+    expect_true(all(res_100_parallel[, 1] >= 0 & res_100_parallel[, 1] <= 1))
+    
+    # Both should have same dimensions
+    expect_equal(dim(res_100_serial), dim(res_100_parallel))
+})
 
-    x <- data.frame(
-        Genes = paste0("Gene", 1:8),
-        S1 = c(10, 20, 15, 22, 18, 25, 12, 19),
-        S2 = c(12, 19, 17, 20, 19, 24, 14, 18),
-        S3 = c(11, 21, 16, 21, 17, 23, 13, 20),
-        S4 = c(8, 18, 14, 21, 17, 22, 11, 17),
-        S5 = c(9, 17, 16, 19, 18, 21, 12, 16),
-        S6 = c(10, 19, 15, 20, 16, 20, 13, 15),
-        S7 = c(7, 16, 13, 18, 15, 19, 10, 14),
-        S8 = c(8, 18, 14, 19, 16, 21, 11, 16)
-    )
-    samples <- c(rep("Normal", 4), rep("Tumor", 4))
+context("Parallelization: calculate_method with nthreads")
 
-    # Serial computation
+test_that("calculate_method serial and parallel produce identical results", {
     set.seed(789)
-    result_serial <- tryCatch(
-        {
-            BiocParallel::register(BiocParallel::SerialParam())
-            calculate_difference(x, samples, control = "Normal", method = "mean", test = "wilcoxon", pcorr = "none")
-        },
-        finally = BiocParallel::register(BiocParallel::SerialParam())
+    # Create large dataset: 50 genes with multiple transcripts each, 6 samples
+    ntx <- 300  # total transcripts
+    nsamp <- 6
+    x <- matrix(rpois(ntx * nsamp, lambda = 10), nrow = ntx, ncol = nsamp)
+    colnames(x) <- paste0("Sample", seq_len(nsamp))
+    # Assign transcripts to genes (50 genes, ~6 transcripts each)
+    genes <- rep(paste0("Gene_", seq_len(50)), each = 6)
+    
+    # Single q value
+    res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
+    res_parallel_2 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 2)
+    res_parallel_4 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 4)
+    
+    # Should produce identical results
+    expect_equal(res_serial, res_parallel_2, tolerance = 1e-10)
+    expect_equal(res_serial, res_parallel_4, tolerance = 1e-10)
+    
+    # Check structure
+    expect_equal(nrow(res_serial), 50)
+    expect_equal(nrow(res_parallel_2), 50)
+    expect_true("Gene" %in% colnames(res_serial))
+})
+
+test_that("calculate_method parallelization with multiple q values", {
+    set.seed(111)
+    # Create dataset: 40 genes with multiple transcripts, 5 samples
+    ntx <- 200
+    nsamp <- 5
+    x <- matrix(rpois(ntx * nsamp, lambda = 8), nrow = ntx, ncol = nsamp)
+    colnames(x) <- paste0("S", seq_len(nsamp))
+    genes <- rep(paste0("G", seq_len(40)), each = 5)
+    
+    # Multiple q values
+    qvec <- c(0.5, 1, 2)
+    
+    res_serial <- calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 1)
+    res_parallel <- calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 2)
+    
+    expect_equal(res_serial, res_parallel, tolerance = 1e-10)
+    
+    # Should have columns for each sample-q combination
+    expected_cols <- 1 + (nsamp * length(qvec))
+    expect_equal(ncol(res_serial), expected_cols)
+})
+
+context("Parallelization: calculate_difference with nthreads")
+
+test_that("calculate_difference serial and parallel produce identical results", {
+    set.seed(222)
+    # Create large dataset: 250 genes, 10 samples
+    nfeat <- 250
+    nsamp <- 10
+    data_mat <- matrix(runif(nfeat * nsamp, 0, 1), nrow = nfeat, ncol = nsamp)
+    data_df <- as.data.frame(data_mat)
+    data_df <- cbind(genes = paste0("Gene_", seq_len(nfeat)), data_df)
+    colnames(data_df)[-1] <- paste0("Sample", seq_len(nsamp))
+    samples <- rep(c("Normal", "Tumor"), each = nsamp / 2)
+    
+    # Wilcoxon test, serial
+    res_wilcox_serial <- calculate_difference(data_df, samples = samples, 
+                                              control = "Normal", test = "wilcoxon",
+                                              nthreads = 1, verbose = FALSE)
+    
+    # Wilcoxon test, parallel
+    res_wilcox_par_2 <- calculate_difference(data_df, samples = samples,
+                                             control = "Normal", test = "wilcoxon",
+                                             nthreads = 2, verbose = FALSE)
+    
+    res_wilcox_par_4 <- calculate_difference(data_df, samples = samples,
+                                             control = "Normal", test = "wilcoxon",
+                                             nthreads = 4, verbose = FALSE)
+    
+    # Should produce identical results
+    expect_equal(res_wilcox_serial, res_wilcox_par_2, tolerance = 1e-10)
+    expect_equal(res_wilcox_serial, res_wilcox_par_4, tolerance = 1e-10)
+    
+    # Verify output structure
+    expect_true(is.data.frame(res_wilcox_serial))
+    expect_true("genes" %in% colnames(res_wilcox_serial))
+    expect_true("log2_fold_change" %in% colnames(res_wilcox_serial))
+    expect_true("raw_p_values" %in% colnames(res_wilcox_serial))
+    expect_equal(nrow(res_wilcox_serial), nfeat)
+})
+
+test_that("calculate_difference label_shuffling produces valid results", {
+    set.seed(333)
+    # Create dataset: 150 genes, 8 samples
+    nfeat <- 150
+    nsamp <- 8
+    data_mat <- matrix(runif(nfeat * nsamp, 0.1, 2), nrow = nfeat, ncol = nsamp)
+    data_df <- as.data.frame(data_mat)
+    data_df <- cbind(genes = paste0("Gene", seq_len(nfeat)), data_df)
+    colnames(data_df)[-1] <- paste0("Samp", seq_len(nsamp))
+    samples <- c(rep("Ctrl", nsamp/2), rep("Trt", nsamp/2))
+    
+    # Label shuffling, serial
+    res_shuffle_serial <- suppressWarnings(
+        calculate_difference(data_df, samples = samples,
+                           control = "Ctrl", test = "shuffle",
+                           randomizations = 30, nthreads = 1,
+                           verbose = FALSE)
     )
-
-    # Serial again
-    set.seed(789)
-    result_serial2 <- tryCatch(
-        {
-            BiocParallel::register(BiocParallel::SerialParam())
-            calculate_difference(x, samples, control = "Normal", method = "mean", test = "wilcoxon", pcorr = "none")
-        },
-        finally = BiocParallel::register(BiocParallel::SerialParam())
+    
+    # Label shuffling, parallel
+    res_shuffle_par <- suppressWarnings(
+        calculate_difference(data_df, samples = samples,
+                            control = "Ctrl", test = "shuffle",
+                            randomizations = 30, nthreads = 2,
+                            verbose = FALSE)
     )
-
-    # Results should be identical
-    expect_equal(result_serial, result_serial2)
+    
+    # Check validity - randomized results won't be identical
+    expect_true(all(res_shuffle_serial$raw_p_values >= 0 & res_shuffle_serial$raw_p_values <= 1))
+    expect_true(all(res_shuffle_par$raw_p_values >= 0 & res_shuffle_par$raw_p_values <= 1))
+    
+    # Should have same number of results
+    expect_equal(nrow(res_shuffle_serial), nrow(res_shuffle_par))
 })
 
-test_that("calculate_difference parallelizes correctly with label_shuffling test", {
-    skip_if_not_installed("BiocParallel")
+context("Parallelization: Large dataset stress test")
 
-    x <- data.frame(
-        Genes = paste0("Gene", 1:8),
-        S1 = c(10, 20, 15, 22, 18, 25, 12, 19),
-        S2 = c(12, 19, 17, 20, 19, 24, 14, 18),
-        S3 = c(11, 21, 16, 21, 17, 23, 13, 20),
-        S4 = c(8, 18, 14, 21, 17, 22, 11, 17),
-        S5 = c(9, 17, 16, 19, 18, 21, 12, 16),
-        S6 = c(10, 19, 15, 20, 16, 20, 13, 15),
-        S7 = c(11, 18, 17, 19, 19, 22, 14, 17),
-        S8 = c(7, 16, 13, 18, 15, 19, 10, 14),
-        S9 = c(8, 18, 14, 19, 16, 21, 11, 16),
-        S10 = c(9, 20, 15, 20, 17, 24, 12, 18)
-    )
-    samples <- c(rep("Normal", 5), rep("Tumor", 5))
-
-    # Serial computation
-    set.seed(999)
-    result_serial <- tryCatch(
-        {
-            BiocParallel::register(BiocParallel::SerialParam())
-            calculate_difference(x, samples, control = "Normal", method = "mean", test = "shuffle", randomizations = 100, pcorr = "none")
-        },
-        finally = BiocParallel::register(BiocParallel::SerialParam())
-    )
-
-    # Serial again
-    set.seed(999)
-    result_serial2 <- tryCatch(
-        {
-            BiocParallel::register(BiocParallel::SerialParam())
-            calculate_difference(x, samples, control = "Normal", method = "mean", test = "shuffle", randomizations = 100, pcorr = "none")
-        },
-        finally = BiocParallel::register(BiocParallel::SerialParam())
-    )
-
-    # Results should be very close (allowing for stochastic variation in shuffling)
-    expect_equal(result_serial, result_serial2, tolerance = 1e-2)
+test_that("Large dataset parallelization produces valid results", {
+    set.seed(444)
+    # Very large dataset to ensure parallelization overhead is worth it
+    # 1000 genes, 24 samples
+    nfeat <- 1000
+    nsamp <- 24
+    mat <- matrix(rpois(nfeat * nsamp, lambda = 10), nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("GroupA", "GroupB"), each = nsamp / 2)
+    
+    # Wilcoxon with different thread counts
+    res_1 <- wilcoxon(mat, samples, nthreads = 1)
+    res_2 <- wilcoxon(mat, samples, nthreads = 2)
+    res_4 <- wilcoxon(mat, samples, nthreads = 4)
+    
+    # All should match
+    expect_equal(res_1, res_2, tolerance = 1e-10)
+    expect_equal(res_1, res_4, tolerance = 1e-10)
+    
+    # All p-values should be valid
+    expect_true(all(is.finite(res_1[, 1])))
+    expect_true(all(res_1[, 2] >= 0 & res_1[, 2] <= 1))
 })
 
-test_that("Functions respect globally registered backend", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), nrow = 4)
-    colnames(x) <- c("S1", "S2", "S3")
-    genes <- c("g1", "g1", "g2", "g2")
-
-    # Register SerialParam
-    BiocParallel::register(BiocParallel::SerialParam())
-    result <- calculate_diversity(x, genes, q = 1)
-
-    # Should complete without error and produce valid output
-    expect_s4_class(result, "SummarizedExperiment")
-    expect_equal(nrow(result), length(unique(genes)))
-
-    # Reset to SerialParam for safety
-    BiocParallel::register(BiocParallel::SerialParam())
+test_that("Large calculate_method dataset with single q value", {
+    set.seed(555)
+    # 500 genes with multiple transcripts, 8 samples, single q value
+    ntx <- 2000  # 4 transcripts per gene
+    nsamp <- 8
+    x <- matrix(rpois(ntx * nsamp, lambda = 15), nrow = ntx, ncol = nsamp)
+    colnames(x) <- paste0("Samp_", seq_len(nsamp))
+    genes <- rep(paste0("Gene_", seq_len(500)), each = 4)
+    
+    # Serial execution
+    res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
+    
+    # Parallel execution
+    res_parallel <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 4)
+    
+    # Should produce identical results
+    expect_equal(res_serial, res_parallel, tolerance = 1e-10)
+    
+    # Correct dimensions
+    expect_equal(nrow(res_serial), 500)
+    expect_equal(nrow(res_parallel), 500)
+    expected_cols <- 1 + nsamp  # 1 for gene + 8 samples (single q)
+    expect_equal(ncol(res_serial), expected_cols)
 })
 
-test_that("Parallelization with multiple q values produces consistent results", {
-    skip_if_not_installed("BiocParallel")
+context("Parallelization: Consistency across different backends")
 
-    x <- matrix(rpois(30, 5), nrow = 5)
-    colnames(x) <- paste0("S", seq_len(ncol(x)))
-    genes <- c("g1", "g1", "g2", "g2", "g3")
-    q_vals <- c(0.5, 1, 1.5)
-
-    # Compute with global SerialParam backend
-    BiocParallel::register(BiocParallel::SerialParam())
-    result1 <- calculate_diversity(x, genes, norm = TRUE, q = q_vals)
-    result2 <- calculate_diversity(x, genes, norm = TRUE, q = q_vals)
-
-    # Results should be identical
-    expect_equal(
-        SummarizedExperiment::assay(result1),
-        SummarizedExperiment::assay(result2)
-    )
-    BiocParallel::register(BiocParallel::SerialParam())
+test_that("nthreads=1 produces serial results regardless of implementation", {
+    set.seed(666)
+    nfeat <- 200
+    nsamp <- 8
+    mat <- matrix(runif(nfeat * nsamp, 0, 1), nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("A", "B"), each = nsamp / 2)
+    
+    # Multiple calls with nthreads=1 should give identical results
+    res1 <- wilcoxon(mat, samples, nthreads = 1)
+    res2 <- wilcoxon(mat, samples, nthreads = 1)
+    res3 <- wilcoxon(mat, samples, nthreads = 1)
+    
+    expect_equal(res1, res2)
+    expect_equal(res2, res3)
 })
 
-test_that("Parallelization works with large gene sets", {
-    skip_if_not_installed("BiocParallel")
-
-    # Create larger dataset: 100 genes × 8 samples
-    x <- matrix(rpois(800, 5), nrow = 100)
-    colnames(x) <- paste0("Sample", seq_len(ncol(x)))
-    genes <- rep(paste0("Gene", 1:20), times = 5)
-
-    # Compute diversity
-    BiocParallel::register(BiocParallel::SerialParam())
-    result <- calculate_diversity(x, genes, q = 1.5, norm = TRUE)
-
-    # Should complete and produce valid output
-    expect_s4_class(result, "SummarizedExperiment")
-    expect_equal(nrow(result), 20)
-    expect_equal(ncol(result), 8)
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization reproducibility with multiple seeds", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- data.frame(
-        Genes = paste0("Gene", 1:8),
-        S1 = c(10, 20, 15, 22, 18, 25, 12, 19),
-        S2 = c(11, 21, 16, 21, 17, 24, 13, 18),
-        S3 = c(12, 22, 17, 22, 18, 25, 14, 19),
-        S4 = c(8, 18, 14, 20, 16, 23, 11, 17),
-        S5 = c(9, 19, 13, 21, 17, 22, 12, 16),
-        S6 = c(10, 20, 14, 20, 18, 21, 13, 15),
-        S7 = c(7, 17, 12, 19, 15, 20, 10, 14),
-        S8 = c(8, 18, 13, 18, 16, 21, 11, 15)
-    )
-    samples <- c(rep("Control", 4), rep("Treatment", 4))
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    set.seed(100)
-    result1 <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pcorr = "BH")
-
-    set.seed(100)
-    result2 <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pcorr = "BH")
-
-    # Results should be identical
-    expect_equal(result1, result2)
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with Hill numbers (D) produces consistent results", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(rpois(40, 5), nrow = 5)
-    colnames(x) <- paste0("S", seq_len(ncol(x)))
-    genes <- c("g1", "g1", "g2", "g2", "g3")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    result1 <- calculate_diversity(x, genes, norm = TRUE, q = 1.5, what = "D")
-    result2 <- calculate_diversity(x, genes, norm = TRUE, q = 1.5, what = "D")
-
-    # Results should be identical
-    expect_equal(
-        SummarizedExperiment::assay(result1),
-        SummarizedExperiment::assay(result2)
-    )
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with normalized=FALSE works consistently", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(rpois(32, 5), nrow = 4)
-    colnames(x) <- paste0("S", seq_len(ncol(x)))
-    genes <- c("g1", "g1", "g2", "g2")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    result1 <- calculate_diversity(x, genes, norm = FALSE, q = 2)
-    result2 <- calculate_diversity(x, genes, norm = FALSE, q = 2)
-
-    # Results should be identical
-    expect_equal(
-        SummarizedExperiment::assay(result1),
-        SummarizedExperiment::assay(result2)
-    )
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with single transcript per gene works", {
-    skip_if_not_installed("BiocParallel")
-
-    # Use data from existing working tests
-    x <- matrix(c(
-        10, 5,
-        0, 0,
-        2, 8,
-        3, 7,
-        4, 9
-    ), nrow = 5, byrow = TRUE)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g2", "g3", "g4", "g5")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    # Just check that it runs without error
-    expect_no_error(result <- calculate_diversity(x, genes, norm = TRUE, q = 1))
-    expect_s4_class(result, "SummarizedExperiment")
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with median method in calculate_difference", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- data.frame(
-        Genes = paste0("Gene", 1:8),
-        S1 = c(10, 20, 15, 22, 18, 25, 12, 19),
-        S2 = c(12, 19, 17, 20, 19, 24, 14, 18),
-        S3 = c(11, 21, 16, 21, 17, 23, 13, 20),
-        S4 = c(8, 18, 14, 21, 17, 22, 11, 17),
-        S5 = c(9, 17, 16, 19, 18, 21, 12, 16),
-        S6 = c(10, 19, 15, 20, 16, 20, 13, 15),
-        S7 = c(7, 16, 13, 18, 15, 19, 10, 14),
-        S8 = c(8, 18, 14, 19, 16, 21, 11, 16)
-    )
-    samples <- c(rep("Control", 4), rep("Treatment", 4))
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    result1 <- calculate_difference(x, samples, control = "Control", method = "median", test = "wilcoxon", pcorr = "BH")
-    result2 <- calculate_difference(x, samples, control = "Control", method = "median", test = "wilcoxon", pcorr = "BH")
-
-    # Results should be identical
-    expect_equal(result1, result2)
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with very small q values works", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(c(
-        10, 5,
-        0, 0,
-        2, 8,
-        3, 7,
-        4, 9
-    ), nrow = 5, byrow = TRUE)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2", "g2", "g3")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    # Just check that it runs without error
-    expect_no_error(result <- calculate_diversity(x, genes, norm = TRUE, q = 0.1))
-    expect_s4_class(result, "SummarizedExperiment")
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with very large q values works", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(c(
-        10, 5,
-        0, 0,
-        2, 8,
-        3, 7,
-        4, 9
-    ), nrow = 5, byrow = TRUE)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2", "g2", "g3")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    # Just check that it runs without error
-    expect_no_error(result <- calculate_diversity(x, genes, norm = TRUE, q = 100))
-    expect_s4_class(result, "SummarizedExperiment")
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization handles data.frame input correctly", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- as.data.frame(matrix(c(
-        10, 5,
-        0, 0,
-        2, 8,
-        3, 7,
-        4, 9
-    ), nrow = 5, byrow = TRUE))
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2", "g2", "g3")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    # Just check that it runs without error
-    expect_no_error(result <- calculate_diversity(x, genes, norm = TRUE, q = 1))
-    expect_s4_class(result, "SummarizedExperiment")
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with tpm=TRUE flag works", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- matrix(rpois(30, 10), nrow = 5)
-    colnames(x) <- paste0("S", seq_len(ncol(x)))
-    genes <- c("g1", "g1", "g2", "g2", "g3")
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    result_tpm <- calculate_diversity(x, genes, norm = TRUE, tpm = TRUE, q = 2)
-    result_no_tpm <- calculate_diversity(x, genes, norm = TRUE, tpm = FALSE, q = 2)
-
-    # Both should produce valid results
-    expect_s4_class(result_tpm, "SummarizedExperiment")
-    expect_s4_class(result_no_tpm, "SummarizedExperiment")
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization consistency with different pseudocount values", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- data.frame(
-        Genes = paste0("Gene", 1:8),
-        S1 = c(10, 20, 15, 22, 18, 25, 12, 19),
-        S2 = c(12, 19, 17, 20, 19, 24, 14, 18),
-        S3 = c(11, 21, 16, 21, 17, 23, 13, 20),
-        S4 = c(8, 18, 14, 21, 17, 22, 11, 17),
-        S5 = c(9, 17, 16, 19, 18, 21, 12, 16),
-        S6 = c(10, 19, 15, 20, 16, 20, 13, 15),
-        S7 = c(7, 16, 13, 18, 15, 19, 10, 14),
-        S8 = c(8, 18, 14, 19, 16, 21, 11, 16)
-    )
-    samples <- c(rep("Control", 4), rep("Treatment", 4))
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    result_ps0 <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pseudocount = 0, pcorr = "none")
-    result_ps1 <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pseudocount = 1, pcorr = "none")
-
-    # Both should produce valid results
-    expect_true(is.data.frame(result_ps0))
-    expect_true(is.data.frame(result_ps1))
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with multiple comparisons correction methods", {
-    skip_if_not_installed("BiocParallel")
-
-    x <- data.frame(
-        Genes = paste0("Gene", 1:8),
-        S1 = c(10, 20, 15, 22, 18, 25, 12, 19),
-        S2 = c(11, 21, 16, 21, 17, 24, 13, 18),
-        S3 = c(12, 22, 17, 22, 18, 25, 14, 19),
-        S4 = c(8, 18, 14, 20, 16, 23, 11, 17),
-        S5 = c(9, 19, 13, 21, 17, 22, 12, 16),
-        S6 = c(10, 20, 14, 20, 18, 21, 13, 15),
-        S7 = c(7, 17, 12, 19, 15, 20, 10, 14),
-        S8 = c(8, 18, 13, 18, 16, 21, 11, 15)
-    )
-    samples <- c(rep("Control", 4), rep("Treatment", 4))
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    result_bh <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pcorr = "BH")
-    result_bonf <- calculate_difference(x, samples, control = "Control", method = "mean", test = "wilcoxon", pcorr = "bonferroni")
-
-    # Both correction methods should produce valid results
-    expect_true(is.data.frame(result_bh))
-    expect_true(is.data.frame(result_bonf))
-    BiocParallel::register(BiocParallel::SerialParam())
-})
-
-test_that("Parallelization with many genes works efficiently", {
-    skip_if_not_installed("BiocParallel")
-
-    # Create dataset with 500 genes
-    x <- matrix(rpois(5000, 5), nrow = 500)
-    colnames(x) <- paste0("S", seq_len(ncol(x)))
-    genes <- rep(paste0("Gene", 1:100), times = 5)
-
-    BiocParallel::register(BiocParallel::SerialParam())
-    start_time <- Sys.time()
-    result <- calculate_diversity(x, genes, norm = TRUE, q = 2)
-    elapsed <- difftime(Sys.time(), start_time, units = "secs")
-
-    # Should complete reasonably fast and produce valid output
-    expect_s4_class(result, "SummarizedExperiment")
-    expect_equal(nrow(result), 100)
-    # For 500 genes, should complete in reasonable time even serially
-    expect_true(as.numeric(elapsed) < 60)
-    BiocParallel::register(BiocParallel::SerialParam())
+test_that("label_shuffling produces reproducible results with different serial calls", {
+    # Create moderate dataset
+    set.seed(777)
+    nfeat <- 100
+    nsamp <- 6
+    mat <- matrix(runif(nfeat * nsamp, 0, 2), nrow = nfeat, ncol = nsamp)
+    samples <- rep(c("Ctrl", "Test"), each = nsamp / 2)
+    
+    # Multiple runs with same seed and serial execution should match
+    set.seed(777)
+    res_serial_1 <- label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 1)
+    
+    set.seed(777)
+    res_serial_2 <- label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 1)
+    
+    # Serial calls should be identical
+    expect_equal(res_serial_1, res_serial_2)
+    
+    # Parallel execution will have different random stream, so just check validity
+    set.seed(777)
+    res_parallel <- label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 2)
+    
+    expect_true(all(res_parallel[, 1] >= 0 & res_parallel[, 1] <= 1))
+    expect_equal(dim(res_parallel), dim(res_serial_1))
 })
