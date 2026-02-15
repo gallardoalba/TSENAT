@@ -63,6 +63,26 @@ test_that("filter_se uses specified assay by name and falls back", {
     expect_warning(filter_se(se, min_count = 5, min_samples = 1, assay_name = "nope", verbose = FALSE))
 })
 
+test_that("filter_se uses numeric assay index when valid", {
+    mat1 <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3)
+    mat2 <- matrix(1:6, nrow = 3)
+    se <- SummarizedExperiment(assays = list(counts = mat1, other = mat2))
+    # Test using assay_name as numeric index (valid: 1 to length(assays))
+    res1 <- filter_se(se, min_count = 5, min_samples = 1, assay_name = 1, verbose = FALSE)
+    expect_s4_class(res1, "SummarizedExperiment")
+    res2 <- filter_se(se, min_count = 0, min_samples = 1, assay_name = 2, verbose = FALSE)
+    expect_s4_class(res2, "SummarizedExperiment")
+})
+
+test_that("filter_se falls back to first assay when numeric index is out of bounds", {
+    mat1 <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3)
+    mat2 <- matrix(1:6, nrow = 3)
+    se <- SummarizedExperiment(assays = list(counts = mat1, other = mat2))
+    # Test using numeric assay_name that's out of bounds (should trigger fallback warning)
+    expect_warning(res <- filter_se(se, min_count = 5, min_samples = 1, assay_name = 5, verbose = FALSE))
+    expect_s4_class(res, "SummarizedExperiment")
+})
+
 test_that("filter_se respects min_samples cap and returns empty SE when none kept", {
     mat <- matrix(0, nrow = 5, ncol = 3)
     se <- SummarizedExperiment(assays = list(counts = mat))

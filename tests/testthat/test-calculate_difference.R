@@ -228,6 +228,26 @@ test_that("calculate_difference accepts SummarizedExperiment and uses sample_typ
     expect_true("raw_p_values" %in% colnames(res) || "adjusted_p_values" %in% colnames(res))
 })
 
+test_that("calculate_difference accepts SummarizedExperiment with explicit samples column name", {
+    # Test the path where samples parameter is provided as a single colData column name
+    # This tests the line: samples_col <- samples
+    mat <- matrix(runif(3 * 8), nrow = 3)
+    rownames(mat) <- c("g1", "g2", "g3")
+    colnames(mat) <- paste0("S", 1:8)
+    # Create colData with a custom column name instead of "sample_type"
+    colData_df <- S4Vectors::DataFrame(
+        group_assignment = c(rep("Control", 4), rep("Treatment", 4)),
+        row.names = colnames(mat)
+    )
+    se <- SummarizedExperiment(assays = S4Vectors::SimpleList(counts = mat), colData = colData_df)
+
+    # Provide the custom column name explicitly as samples parameter
+    res <- calculate_difference(se, samples = "group_assignment", control = "Control", 
+                                method = "mean", test = "wilcoxon")
+    expect_true(is.data.frame(res))
+    expect_true("raw_p_values" %in% colnames(res) || "adjusted_p_values" %in% colnames(res))
+})
+
 test_that("calculate_difference errors on invalid assayno for SummarizedExperiment", {
     mat <- matrix(runif(2 * 4), nrow = 2)
     colnames(mat) <- paste0("S", 1:4)

@@ -709,3 +709,37 @@ test_that("extract_tx2gene_from_gff3 with many transcripts (tests vector growing
     
     unlink(gff3_file)
 })
+
+test_that("extract_tx2gene_from_gff3 triggers vector expansion for large GFF3 files", {
+    # Test the specific code path that expands vectors when idx > length(tx2gene_transcripts)
+    # The vector expansion adds 10000 slots, so we test with >10000 entries
+    # to ensure the expansion code is executed
+    
+    # Create GFF3 with 11000+ transcript entries to trigger vector growth
+    gff3_lines <- c("##gff-version 3", "##sequence-region chr1 1 1000000")
+    
+    # Add 11000 transcript entries
+    # The vector starts small and grows by 10000 when needed
+    for (i in 1:11000) {
+        gff3_lines <- c(gff3_lines, 
+            paste0("chr1\tGENCODE\ttranscript\t", i*100, "\t", i*100+50, "\t.\t+\t.\t",
+                   "ID=ENST", sprintf("%08d", i), ";Parent=ENSG", sprintf("%08d", ceiling(i/2))))
+    }
+    
+    gff3_file <- tempfile(fileext = ".gff3")
+    writeLines(gff3_lines, gff3_file)
+    
+    tx2gene_df <- TSENAT:::extract_tx2gene_from_gff3(gff3_file)
+    
+    # Verify the vector expansion happened and all entries were captured
+    expect_is(tx2gene_df, "data.frame")
+    expect_equal(nrow(tx2gene_df), 11000)
+    expect_equal(tx2gene_df$Transcript[1], "ENST00000001")
+    expect_equal(tx2gene_df$Gene[1], "ENSG00000001")
+    expect_equal(tx2gene_df$Transcript[5000], "ENST00005000")
+    expect_equal(tx2gene_df$Gene[5000], "ENSG00002500")
+    expect_equal(tx2gene_df$Transcript[11000], "ENST00011000")
+    expect_equal(tx2gene_df$Gene[11000], "ENSG00005500")
+    
+    unlink(gff3_file)
+})
