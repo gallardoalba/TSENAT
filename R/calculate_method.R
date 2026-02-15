@@ -13,6 +13,7 @@
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
+#' @export
 #' @examples
 #' # Create a small transcript expression matrix (4 transcripts x 2 samples)
 #' mat <- matrix(c(10, 5, 0, 0, 2, 8, 3, 7), nrow = 4, byrow = TRUE)

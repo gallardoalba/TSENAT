@@ -22,6 +22,7 @@
 #' calculate mean or median differences and log2 fold changes between two
 #' conditions.
 #' @import stats
+#' @export
 #' @examples
 #' # Simulate splicing diversity matrix (4 genes x 4 samples)
 #' mat <- matrix(c(
@@ -85,6 +86,7 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
 #' Set to > 1 to parallelize per-feature Wilcoxon tests.
 #' @return Raw and corrected p-values in a matrix.
 #' @import stats
+#' @export
 #' @examples
 #' # Create a matrix of splicing diversity values (3 genes x 6 samples)
 #' mat <- matrix(rnorm(18), nrow = 3)
@@ -165,6 +167,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #' @note The permutation test returns two-sided empirical p-values using a
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
+#' @export
 #' @examples
 #' set.seed(123)
 #' # Create a matrix of splicing diversity values (2 genes x 4 samples)
