@@ -301,3 +301,83 @@ test_that("paired lmm with subject_col attaches results when lme4 available", {
     }
     expect_true("p_interaction" %in% colnames(rd_out))
 })
+
+test_that("calculate_lm_interaction with nthreads > 1 uses .tsenat_bplapply", {
+    # This test covers the code path: res_list <- .tsenat_bplapply(rownames(mat), fit_one, nthreads = nthreads)
+    qvec <- seq(0.01, 0.1, by = 0.01)
+    sample_names <- rep(c("S1_N", "S2_T"), each = length(qvec))
+    coln <- paste0(sample_names, "_q=", qvec)
+
+    set.seed(3)
+    noise1 <- rnorm(length(coln), sd = 0.001)
+    gene1_vals <- c(qvec * 1, qvec * 2) + noise1
+    
+    set.seed(2)
+    noise <- rnorm(length(coln), sd = 0.001)
+    gene2_vals <- c(qvec * 1, qvec * 1) + noise
+    
+    # Create multiple genes to test parallel processing
+    mat <- rbind(
+        g1 = gene1_vals,
+        g2 = gene2_vals,
+        g3 = gene1_vals + 0.01,
+        g4 = gene2_vals + 0.01
+    )
+    colnames(mat) <- coln
+    rownames(mat) <- c("g1", "g2", "g3", "g4")
+
+    rd <- data.frame(
+        genes = rownames(mat),
+        row.names = rownames(mat),
+        stringsAsFactors = FALSE
+    )
+    cd <- data.frame(
+        samples = sample_names,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+
+    # Run with nthreads = 1 (serial)
+    res_serial <- calculate_lm_interaction(se,
+        sample_type_col = "samples",
+        min_obs = 8,
+        nthreads = 1
+    )
+
+    # Run with nthreads = 2 (parallel, uses .tsenat_bplapply)
+    res_parallel <- calculate_lm_interaction(se,
+        sample_type_col = "samples",
+        min_obs = 8,
+        nthreads = 2
+    )
+
+    # Convert to data.frame if necessary
+    if (!is.data.frame(res_serial)) {
+        df_serial <- as.data.frame(SummarizedExperiment::rowData(res_serial))
+    } else {
+        df_serial <- res_serial
+    }
+
+    if (!is.data.frame(res_parallel)) {
+        df_parallel <- as.data.frame(SummarizedExperiment::rowData(res_parallel))
+    } else {
+        df_parallel <- res_parallel
+    }
+
+    # Both should return results
+    expect_true(nrow(df_serial) > 0)
+    expect_true(nrow(df_parallel) > 0)
+
+    # Both should have the same columns
+    expect_equal(colnames(df_serial), colnames(df_parallel))
+
+    # Results should match (allowing for small numerical differences)
+    expect_equal(df_serial[order(df_serial$gene), ], df_parallel[order(df_parallel$gene), ], tolerance = 1e-5)
+})
+

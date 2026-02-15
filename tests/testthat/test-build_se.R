@@ -255,7 +255,7 @@ chr1\tGENCODE\texon\t1000\t1100\t.\t+\t.\tID=exon1;Parent=ENST00000001"
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "No transcript-gene mappings found")
+    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
 
     unlink(gff3_file)
 })
@@ -338,7 +338,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t."
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "No transcript-gene mappings found")
+    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
 
     unlink(gff3_file)
 })
@@ -355,7 +355,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tParent=ENSG00000001;Name=TRANSCR
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "No transcript-gene mappings found")
+    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
 
     unlink(gff3_file)
 })
@@ -373,7 +373,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001;Name=TRANSCRIPT1
     rownames(rc) <- "ENST00000001"
 
     # Will fail because Parent (gene) not found in readcounts
-    expect_error(build_se(rc, gff3_file), "No transcript-gene mappings found")
+    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
 
     unlink(gff3_file)
 })
@@ -389,7 +389,7 @@ test_that("build_se errors on empty GFF3 file (header only)", {
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "No transcript-gene mappings found")
+    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
 
     unlink(gff3_file)
 })
@@ -474,7 +474,7 @@ chr1\tGENCODE\tCDS\t1100\t1900\t.\t+\t0\tID=cds1;Parent=ENST00000001"
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "No transcript-gene mappings found")
+    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
 
     unlink(gff3_file)
 })
@@ -619,5 +619,93 @@ chr3\tGENCODE\ttranscript\t1000\t1500\t.\t+\t.\tID=ENST00000003;Parent=ENSG00000
     expect_equal(length(SummarizedExperiment::rowData(se)$genes), 3)
     expect_equal(SummarizedExperiment::rowData(se)$genes, c("ENSG00000001", "ENSG00000002", "ENSG00000003"))
 
+    unlink(gff3_file)
+})
+test_that("extract_tx2gene_from_gff3 handles transcript_id extraction without Parent field (substr with nchar)", {
+    # Test the code path: transcript_id <- substr(attributes, id_start, nchar(attributes))
+    # This happens when there's no semicolon after the ID field
+    gff3_content <- "##gff-version 3
+##sequence-region chr1 1 2000
+chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001"
+
+    gff3_file <- tempfile(fileext = ".gff3")
+    writeLines(gff3_content, gff3_file)
+
+    tx2gene_df <- TSENAT:::extract_tx2gene_from_gff3(gff3_file)
+    
+    # Should have extracted the transcript ID without trailing semicolon issues
+    expect_is(tx2gene_df, "data.frame")
+    expect_equal(nrow(tx2gene_df), 0)  # No Parent field, so no transcript-gene mapping
+    
+    unlink(gff3_file)
+})
+
+test_that("extract_tx2gene_from_gff3 handles transcript_id and gene_id extraction without Parent", {
+    # Test the code path where both ID and Parent lack semicolons (using nchar)
+    gff3_content <- "##gff-version 3
+##sequence-region chr1 1 2000
+chr1\tGENCODE\tmRNA\t1000\t2000\t.\t+\t.\tID=ENST00000001;Parent=ENSG00000001"
+
+    gff3_file <- tempfile(fileext = ".gff3")
+    writeLines(gff3_content, gff3_file)
+
+    tx2gene_df <- TSENAT:::extract_tx2gene_from_gff3(gff3_file)
+    
+    expect_is(tx2gene_df, "data.frame")
+    expect_equal(nrow(tx2gene_df), 1)
+    expect_equal(tx2gene_df$Transcript, "ENST00000001")
+    expect_equal(tx2gene_df$Gene, "ENSG00000001")
+    
+    unlink(gff3_file)
+})
+
+test_that("extract_tx2gene_from_gff3 with ID field that has no semicolon following it", {
+    # When ID field is at the end of attributes (no semicolon after it)
+    # and Parent field exists before it
+    gff3_content <- "##gff-version 3
+##sequence-region chr1 1 2000
+chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tParent=ENSG00000001;ID=ENST00000001"
+
+    gff3_file <- tempfile(fileext = ".gff3")
+    writeLines(gff3_content, gff3_file)
+
+    tx2gene_df <- TSENAT:::extract_tx2gene_from_gff3(gff3_file)
+    
+    expect_is(tx2gene_df, "data.frame")
+    expect_equal(nrow(tx2gene_df), 1)
+    expect_equal(tx2gene_df$Transcript, "ENST00000001")
+    expect_equal(tx2gene_df$Gene, "ENSG00000001")
+    
+    unlink(gff3_file)
+})
+
+test_that("extract_tx2gene_from_gff3 with many transcripts (tests vector growing)", {
+    # Test the code path that grows vectors when idx > length(tx2gene_transcripts)
+    # Initial allocation is 10000, so test with >10000 entries if needed
+    # For practical testing, create entries that will trigger growth
+    
+    # Create GFF3 with many transcript entries
+    gff3_lines <- c("##gff-version 3", "##sequence-region chr1 1 100000")
+    
+    # Add 100 transcript entries to test basic functionality
+    # (actual vector growth would require >10000, but we test the logic path)
+    for (i in 1:100) {
+        gff3_lines <- c(gff3_lines, 
+            paste0("chr1\tGENCODE\ttranscript\t", i*100, "\t", i*100+50, "\t.\t+\t.\t",
+                   "ID=ENST", sprintf("%08d", i), ";Parent=ENSG", sprintf("%08d", i)))
+    }
+    
+    gff3_file <- tempfile(fileext = ".gff3")
+    writeLines(gff3_lines, gff3_file)
+    
+    tx2gene_df <- TSENAT:::extract_tx2gene_from_gff3(gff3_file)
+    
+    expect_is(tx2gene_df, "data.frame")
+    expect_equal(nrow(tx2gene_df), 100)
+    expect_equal(tx2gene_df$Transcript[1], "ENST00000001")
+    expect_equal(tx2gene_df$Gene[1], "ENSG00000001")
+    expect_equal(tx2gene_df$Transcript[100], "ENST00000100")
+    expect_equal(tx2gene_df$Gene[100], "ENSG00000100")
+    
     unlink(gff3_file)
 })

@@ -299,6 +299,25 @@ plot_diversity_density <- function(
   sample_type_col = NULL
 ) {
     require_pkgs(c("ggplot2", "tidyr", "dplyr", "SummarizedExperiment"))
+    
+    # For plot_diversity_density, sample_type is required for faceting
+    # Determine which column to use for sample_type
+    if (is.null(sample_type_col)) {
+        # Check if "sample_type" exists in colData as a fallback
+        if (!("sample_type" %in% colnames(SummarizedExperiment::colData(se)))) {
+            stop("sample_type column not found in data", call. = FALSE)
+        }
+        sample_type_col <- "sample_type"
+    } else if (!(sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+        stop(sprintf("Column '%s' not found in colData.", sample_type_col), call. = FALSE)
+    }
+    
+    # Check for all NA sample_type values
+    st_col <- SummarizedExperiment::colData(se)[[sample_type_col]]
+    if (all(is.na(st_col))) {
+        stop("All sample_type values are NA. Cannot create faceted plot.", call. = FALSE)
+    }
+    
     long <- get_assay_long(
         se,
         assay_name = assay_name,

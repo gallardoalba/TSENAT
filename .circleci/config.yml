@@ -19,7 +19,9 @@ jobs:
             apt-get update && apt-get install -y --no-install-recommends \
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-              pandoc openssh-client git
+              pandoc openssh-client git \
+              libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+              fontconfig libfontconfig1-dev pkg-config
             rm -rf /var/lib/apt/lists/*
       - restore_cache:
           keys:
@@ -68,7 +70,7 @@ jobs:
           name: Check code style with styler
           command: |
             R -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
-            Rscript tools/apply_style.R || true
+            Rscript tools/apply_formatr.R || true
       - run:
           name: Run checks
           command: |
@@ -92,3 +94,7 @@ workflows:
   build_and_upload:
     jobs:
       - build
+            branches:
+              only:
+                - main
+                - master

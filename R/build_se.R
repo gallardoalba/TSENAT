@@ -121,14 +121,14 @@ extract_tx2gene_from_gff3 <- function(gff3_file) {
         }
     }
 
+    # Trim to actual size and create data frame (empty if no mappings found)
     if (idx == 0) {
-        stop("No transcript-gene mappings found in GFF3 file. ", "Ensure the file contains 'transcript' or 'mRNA' features with ID and Parent attributes.",
-            call. = FALSE)
+        tx2gene_df <- data.frame(Transcript = character(0), Gene = character(0),
+            stringsAsFactors = FALSE)
+    } else {
+        tx2gene_df <- data.frame(Transcript = tx2gene_transcripts[seq_len(idx)], Gene = tx2gene_genes[seq_len(idx)],
+            stringsAsFactors = FALSE)
     }
-
-    # Trim to actual size and create data frame
-    tx2gene_df <- data.frame(Transcript = tx2gene_transcripts[seq_len(idx)], Gene = tx2gene_genes[seq_len(idx)],
-        stringsAsFactors = FALSE)
     rownames(tx2gene_df) <- NULL
 
     return(tx2gene_df)

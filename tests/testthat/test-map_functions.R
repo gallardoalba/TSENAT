@@ -374,6 +374,53 @@ test_that("get_assay_long errors when assay missing", {
     expect_error(get_assay_long(se, assay_name = "nope"))
 })
 
+test_that("get_assay_long errors when all values are NA", {
+    # Test the code path: if (nrow(long_filtered) == 0) { stop(...) }
+    mat <- matrix(NA_real_, nrow = 2, ncol = 3)
+    rownames(mat) <- c("g1", "g2")
+    colnames(mat) <- c("S1", "S2", "S3")
+    se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
+    rowData(se)$genes <- c("G1", "G2")
+    SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(sample_type = c("N", "T", "N"), row.names = colnames(mat))
+    
+    expect_error(
+        get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = "sample_type"),
+        "No non-NA values found in assay 'diversity'. All values are NA."
+    )
+})
+
+test_that("get_assay_long filters out NA values but errors when all are NA", {
+    # Mixed NA and non-NA values should work
+    mat <- matrix(c(1, NA, 2, 3, 4, 5), nrow = 2, ncol = 3)
+    rownames(mat) <- c("g1", "g2")
+    colnames(mat) <- c("S1", "S2", "S3")
+    se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
+    rowData(se)$genes <- c("G1", "G2")
+    SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(sample_type = c("N", "T", "N"), row.names = colnames(mat))
+    
+    long <- get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = "sample_type")
+    
+    # Should have filtered out NA values but kept valid ones
+    expect_true(all(!is.na(long$val)))
+    expect_true(nrow(long) == 5)  # 6 values - 1 NA = 5
+})
+
+test_that("get_assay_long with default sample_type when column missing", {
+    # When sample_type_col is NULL, should use "Group" as default
+    mat <- matrix(c(1, 2, 3, 4), nrow = 2)
+    rownames(mat) <- c("g1", "g2")
+    colnames(mat) <- c("S1", "S2")
+    se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
+    rowData(se)$genes <- c("G1", "G2")
+    
+    long <- get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = NULL)
+    
+    expect_true("sample_type" %in% colnames(long))
+    expect_true(all(long$sample_type == "Group"))
+})
+
+
+
 test_that("prepare_tsallis_long handles no _q suffix and default group", {
     mat <- matrix(1:4, nrow = 2)
     colnames(mat) <- c("S1", "S2")

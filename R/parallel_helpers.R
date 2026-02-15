@@ -29,7 +29,7 @@
         if (is.null(FUN.VALUE)) {
             return(lapply(X, FUN))
         } else {
-            return(vapply(X, FUN, FUN.VALUE = FUN.VALUE))
+            return(unname(vapply(X, FUN, FUN.VALUE = FUN.VALUE)))
         }
     }
 
@@ -52,9 +52,9 @@
 # @param nthreads Number of threads (default: 1)
 .tsenat_bpmapply <- function(X, Y, FUN, nthreads = 1) {
     if (nthreads <= 1) {
-        return(mapply(FUN, X, Y, SIMPLIFY = FALSE))
+        return(unname(mapply(FUN, X, Y, SIMPLIFY = FALSE)))
     }
 
     bpparam <- .tsenat_get_bpparam(nthreads)
-    return(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE))
+    return(unname(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE)))
 }
