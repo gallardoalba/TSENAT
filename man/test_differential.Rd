@@ -15,7 +15,8 @@ test_differential(
   randomizations = 100,
   pcorr = "BH",
   seed = 123L,
-  paired_method = c("swap", "signflip")
+  paired_method = c("swap", "signflip"),
+  nthreads = 1
 )
 }
 \arguments{
@@ -44,6 +45,10 @@ before running `label_shuffling()` when `method = 'shuffle'`.}
 
 \item{paired_method}{Character; forwarded to `label_shuffling()` when
 `method = 'shuffle'`. See `label_shuffling()` for details.}
+
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-feature statistical tests in
+`wilcoxon()` or `label_shuffling()`.}
 }
 \value{
 A two-column matrix with raw and adjusted p-values (as returned by
@@ -54,7 +59,7 @@ Thin wrapper that selects between `wilcoxon()` and `label_shuffling()`.
 }
 \examples{
 mat <- matrix(rnorm(20), nrow = 5)
-samples <- rep(c("A", "B"), length.out = ncol(mat))
-test_differential(mat, samples, control = "A", method = "wilcoxon")
+samples <- rep(c('A', 'B'), length.out = ncol(mat))
+test_differential(mat, samples, control = 'A', method = 'wilcoxon')
 
 }

@@ -3,44 +3,51 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: rocker/r-ver:4.5.0
+      - image: rocker/r-ver:4.5.2
     working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-os-deps-{{ .Branch }}
+            - v1-os-deps-
       - run:
-          name: Setup R library paths
-          command: |
-            mkdir -p ~/R/library
-            echo 'R_LIBS_USER="~/R/library"' >> $BASH_ENV
-            source $BASH_ENV
-      - run:
-          name: Install OS dependencies
+          name: Install OS dependencies (cached)
           command: |
             apt-get update && apt-get install -y --no-install-recommends \
               build-essential gfortran liblapack-dev libblas-dev \
               libxml2-dev libssl-dev libcurl4-openssl-dev libgit2-dev \
-              pandoc openssh-client git
+              pandoc openssh-client git \
+              libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+              fontconfig libfontconfig1-dev pkg-config
             rm -rf /var/lib/apt/lists/*
+      - save_cache:
+          paths:
+            - /var/cache/apt
+          key: v1-os-deps-{{ .Branch }}
       - restore_cache:
           keys:
-            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
+            - v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
       - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest", "covr"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors", "BiocParallel"), ask=FALSE)'
+            Rscript - \<<'EOF'
+            options(Ncpus = 4)
+            if (!requireNamespace("BiocManager", quietly = TRUE)) {
+              install.packages("BiocManager", repos = "https://cloud.r-project.org")
+            }
+            cran_pkgs <- c("remotes", "rcmdcheck", "covr")
+            install.packages(cran_pkgs, repos = "https://cloud.r-project.org")
+            remotes::install_deps(dependencies = TRUE, upgrade = "never")
+            EOF
       - save_cache:
           paths:
-            - ~/R/library
-          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.0
+            - /usr/local/lib/R/site-library
+          key: v1-r-packages-{{ checksum "DESCRIPTION" }}-r4.5.2
       - run:
           name: Build package
           command: |
             R CMD build .
-      - run:
-          name: Install R package dependencies (including Suggests)
-          command: |
-            R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
@@ -65,27 +72,31 @@ jobs:
             chmod +x tools/*.sh || true
             find tools -type f -name '*.R' -exec chmod +x {} \; || true
       - run:
-          name: Check code style with styler
+          name: Apply code formatting (if available)
           command: |
-            R -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
-            Rscript tools/apply_style.R || true
+            if [ -f tools/apply_formatR.R ]; then
+              echo "Running code style formatter..."
+              Rscript tools/apply_formatR.R || echo "Warning: Code formatting script failed"
+            else
+              echo "Skipping code formatting (tools/apply_formatR.R not found)"
+            fi
       - run:
-          name: Run checks
+          name: Run checks with parallel compilation
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
-            R CMD check --no-manual *.tar.gz
-
+            R CMD check --no-manual --num-workers=auto *.tar.gz
       - run:
-          name: Generate coverage and HTML report
+          name: Generate coverage report and upload
           command: |
-            Rscript tools/run_coverage.R
-      - store_artifacts:
-          path: coverage
-          destination: coverage
-      - run:
-          name: Upload coverage to Codecov
-          command: |
-            Rscript tools/run_coverage.R --upload
+            if [ -f tools/run_coverage.R ]; then
+              Rscript tools/run_coverage.R
+              # Upload coverage in same step
+              if [ -f coverage/coverage.html ]; then
+                timeout 30 bash -c 'curl -s https://codecov.io/bash | bash' || echo "Warning: Codecov upload failed"
+              fi
+            else
+              echo "Warning: tools/run_coverage.R not found"
+            fi
 
 workflows:
   version: 2

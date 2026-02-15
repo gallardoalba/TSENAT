@@ -12,7 +12,8 @@ calculate_diversity(
   assayno = 1,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D")
+  what = c("S", "D"),
+  nthreads = 1
 )
 }
 \arguments{
@@ -38,6 +39,9 @@ q.}
 
 \item{what}{Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
 numbers.}
+
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-gene entropy calculations.}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assay
@@ -47,9 +51,9 @@ A \link[SummarizedExperiment]{SummarizedExperiment} with assay
 Calculate Tsallis diversity per gene across samples
 }
 \examples{
-data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-gs <- tcga_brca_luma_dataset$genes[1:20]
+data('tcga_brca_luma', package = 'TSENAT')
+rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma[1:20, 1]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 SummarizedExperiment::assay(se)[1:3, 1:3]
 }

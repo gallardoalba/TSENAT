@@ -10,7 +10,8 @@ calculate_method(
   norm = TRUE,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D")
+  what = c("S", "D"),
+  nthreads = 1
 )
 }
 \arguments{
@@ -28,6 +29,9 @@ transcript to a gene.}
 
 \item{what}{Which quantity to return from `calculate_tsallis_entropy`:
 'S' (Tsallis entropy) or 'D' (Hill numbers) (default: 'S').}
+
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-gene entropy calculations.}
 }
 \value{
 A data.frame with genes in the first column and per-sample (and
@@ -35,4 +39,14 @@ per-q) Tsallis entropy values in subsequent columns.
 }
 \description{
 Calculate Tsallis diversity values for transcripts grouped by gene
+}
+\examples{
+# Create a small transcript expression matrix (4 transcripts x 2 samples)
+mat <- matrix(c(10, 5, 0, 0, 2, 8, 3, 7), nrow = 4, byrow = TRUE)
+colnames(mat) <- c('Sample1', 'Sample2')
+genes <- c('geneA', 'geneA', 'geneB', 'geneB')
+
+# Calculate Tsallis diversity for q=1
+result <- calculate_method(mat, genes, norm = TRUE, q = 1)
+result
 }

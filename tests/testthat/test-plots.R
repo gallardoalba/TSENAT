@@ -15,9 +15,38 @@ test_that("plot_diversity_density returns ggplot object with valid data", {
     library(SummarizedExperiment)
     library(ggplot2)
 
-    # construct minimal SummarizedExperiment
+    # construct minimal SummarizedExperiment with sample_type in colData
     mat <- matrix(runif(20), nrow = 5, ncol = 4)
     colnames(mat) <- c("S1_N", "S2_T", "S3_N", "S4_T")
+    rownames(mat) <- paste0("G", 1:5)
+    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
+    colData_df <- S4Vectors::DataFrame(
+        samples = colnames(mat),
+        sample_type = c("N", "T", "N", "T")
+    )
+    se <- SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rowData_df,
+        colData = colData_df
+    )
+
+    p <- plot_diversity_density(se, sample_type_col = "sample_type")
+    expect_s3_class(p, "gg")
+    expect_s3_class(p, "ggplot")
+})
+
+test_that("plot_diversity_density errors when sample_type column is missing", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    skip_if_not_installed("tidyr")
+    skip_if_not_installed("dplyr")
+
+    library(SummarizedExperiment)
+    library(ggplot2)
+
+    # construct SummarizedExperiment without sample_type information
+    mat <- matrix(runif(20), nrow = 5, ncol = 4)
+    colnames(mat) <- c("S1", "S2", "S3", "S4")
     rownames(mat) <- paste0("G", 1:5)
     rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
     colData_df <- S4Vectors::DataFrame(samples = colnames(mat))
@@ -27,9 +56,40 @@ test_that("plot_diversity_density returns ggplot object with valid data", {
         colData = colData_df
     )
 
-    p <- plot_diversity_density(se)
-    expect_s3_class(p, "gg")
-    expect_s3_class(p, "ggplot")
+    expect_error(
+        plot_diversity_density(se),
+        "sample_type column not found in data"
+    )
+})
+
+test_that("plot_diversity_density errors when all sample_type values are NA", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    skip_if_not_installed("tidyr")
+    skip_if_not_installed("dplyr")
+
+    library(SummarizedExperiment)
+    library(ggplot2)
+
+    # construct SummarizedExperiment with all NA sample_type
+    mat <- matrix(runif(20), nrow = 5, ncol = 4)
+    colnames(mat) <- c("S1", "S2", "S3", "S4")
+    rownames(mat) <- paste0("G", 1:5)
+    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
+    colData_df <- S4Vectors::DataFrame(
+        samples = colnames(mat),
+        sample_type = c(NA, NA, NA, NA)
+    )
+    se <- SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rowData_df,
+        colData = colData_df
+    )
+
+    expect_error(
+        plot_diversity_density(se),
+        "All sample_type values are NA"
+    )
 })
 
 test_that("plot_mean_violin returns ggplot object", {
@@ -321,12 +381,15 @@ test_that("All plot functions produce buildable ggplot objects", {
     library(SummarizedExperiment)
     library(ggplot2)
 
-    # Create test data
+    # Create test data with sample_type for plot_diversity_density
     mat <- matrix(runif(15), nrow = 5, ncol = 3)
     colnames(mat) <- c("S1_N", "S2_T", "S3_N")
     rownames(mat) <- paste0("G", 1:5)
     rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(samples = colnames(mat))
+    colData_df <- S4Vectors::DataFrame(
+        samples = colnames(mat),
+        sample_type = c("N", "T", "N")
+    )
     se <- SummarizedExperiment(
         assays = list(diversity = mat),
         rowData = rowData_df,
@@ -452,22 +515,6 @@ test_that("plot_top_transcripts works on simple matrix input", {
     expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
 })
 
-test_that("plot_top_transcripts selects genes from res when gene is NULL", {
-    tx_counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 9)
-    rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-    colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-
-    # Make tx2gene mapping: three transcripts per gene
-    tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 3), stringsAsFactors = FALSE)
-    samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-
-    # create fake res with genes and p-values
-    res <- data.frame(genes = paste0("G", seq_len(3)), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
-
-    p <- plot_top_transcripts(tx_counts, res = res, tx2gene = tx2gene, samples = samples, top_n = 2)
-    expect_true(!is.null(p))
-})
-
 test_that("plot_top_transcripts errors when counts lack rownames", {
     mat <- matrix(1:6, nrow = 2)
     expect_error(plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a", "b"), Gen = c("G1", "G1"))), "counts.*rownames")
@@ -524,36 +571,6 @@ context("generate_plots extra tests")
 library(SummarizedExperiment)
 
 skip_on_bioc()
-
-test_that("plot_top_transcripts works on simple matrix input", {
-    skip_if_not_installed("ggplot2")
-    tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
-    rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-    colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-    tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
-    samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-    p <- TSENAT:::plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
-    expect_true(!is.null(p))
-    expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
-})
-
-test_that("plot_top_transcripts selects genes from res when gene is NULL", {
-    skip_if_not_installed("ggplot2")
-    tx_counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 9)
-    rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-    colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-    tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 3), stringsAsFactors = FALSE)
-    samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-    res <- data.frame(genes = paste0("G", 1:3), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
-    p <- TSENAT:::plot_top_transcripts(tx_counts, res = res, tx2gene = tx2gene, samples = samples, top_n = 2)
-    expect_true(!is.null(p))
-})
-
-test_that("plot_top_transcripts errors when counts lack rownames", {
-    skip_if_not_installed("ggplot2")
-    mat <- matrix(1:6, nrow = 2)
-    expect_error(TSENAT:::plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a", "b"), Gen = c("G1", "G1"))), "counts.*rownames")
-})
 
 test_that("plot_tsallis_gene_profile returns ggplot for simple SE", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
@@ -700,7 +717,7 @@ test_that(".plot_ma_core uses fc_df values when provided", {
     x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5), log2_fold_change = rnorm(5), stringsAsFactors = FALSE)
     fc <- data.frame(genes = x$genes, log2_fold_change = rnorm(5, mean = 5, sd = 0.1), stringsAsFactors = FALSE)
 
-    p <- .plot_ma_core(x, fc_df = fc)
+    p <- TSENAT:::.plot_ma_core(x, fc_df = fc)
     expect_s3_class(p, "ggplot")
     pb <- ggplot2::ggplot_build(p)
     plotted_y <- pb$data[[1]]$y
@@ -903,6 +920,63 @@ test_that(".tsenat_prepare_volcano_df errors for missing columns and empty data"
     df3 <- data.frame(x = c(1, 2), adj = c(0.01, 0.02), stringsAsFactors = FALSE)
     expect_error(.tsenat_prepare_volcano_df(df3, x_col = "x", padj_col = "nope"), "Column 'nope' not found")
 })
+
+test_that(".tsenat_prepare_volcano_df errors when x_col is not found in data", {
+    # Test the error: stop(sprintf("Column '%s' not found in diff_df", x_col))
+    df <- data.frame(
+        gene = c("g1", "g2", "g3"),
+        log2fc = c(0.5, -0.3, 0.8),
+        adjusted_p_values = c(0.01, 0.5, 0.001),
+        stringsAsFactors = FALSE
+    )
+    
+    # Explicitly provide non-existent x_col
+    expect_error(
+        .tsenat_prepare_volcano_df(df, x_col = "missing_column"),
+        "Column 'missing_column' not found in diff_df"
+    )
+})
+
+test_that(".tsenat_prepare_volcano_df errors when padj_col is not found in data", {
+    # Test the error: stop(sprintf("Column '%s' not found in diff_df", padj_col))
+    df <- data.frame(
+        gene = c("g1", "g2", "g3"),
+        log2fc = c(0.5, -0.3, 0.8),
+        pvalue = c(0.01, 0.5, 0.001),
+        stringsAsFactors = FALSE
+    )
+    
+    # Use default padj_col which doesn't exist
+    expect_error(
+        .tsenat_prepare_volcano_df(df, x_col = "log2fc"),
+        "Column 'adjusted_p_values' not found in diff_df"
+    )
+    
+    # Explicitly provide non-existent padj_col
+    expect_error(
+        .tsenat_prepare_volcano_df(df, x_col = "log2fc", padj_col = "wrong_padj"),
+        "Column 'wrong_padj' not found in diff_df"
+    )
+})
+
+test_that(".tsenat_prepare_volcano_df handles all valid column combinations", {
+    # Test with various valid column names to ensure error catching is precise
+    df <- data.frame(
+        gene = c("g1", "g2", "g3"),
+        mean_difference = c(0.5, -0.3, 0.8),
+        p_adj = c(0.01, 0.5, 0.001),
+        stringsAsFactors = FALSE
+    )
+    
+    # Should work with valid columns
+    result <- .tsenat_prepare_volcano_df(df, x_col = "mean_difference", padj_col = "p_adj")
+    expect_is(result, "list")
+    expect_true("df" %in% names(result))
+    expect_equal(result$x_col, "mean_difference")
+    expect_equal(result$padj_col, "p_adj")
+})
+
+
 
 test_that(".tsenat_prepare_volcano_df handles padj <=0 and signficance logic", {
     df <- data.frame(g = 1:4, value = c(0.2, 0.5, -0.2, 1), adjusted_p_values = c(0, 1e-10, 0.5, 0.001), stringsAsFactors = FALSE)

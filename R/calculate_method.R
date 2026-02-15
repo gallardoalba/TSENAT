@@ -8,11 +8,22 @@
 #' @param verbose Logical; show diagnostic messages when TRUE.
 #' @param what Which quantity to return from `calculate_tsallis_entropy`:
 #' 'S' (Tsallis entropy) or 'D' (Hill numbers) (default: 'S').
+#' @param nthreads Number of threads for parallel processing (default: 1).
+#' Set to > 1 to parallelize per-gene entropy calculations.
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' @import stats
+#' @examples
+#' # Create a small transcript expression matrix (4 transcripts x 2 samples)
+#' mat <- matrix(c(10, 5, 0, 0, 2, 8, 3, 7), nrow = 4, byrow = TRUE)
+#' colnames(mat) <- c('Sample1', 'Sample2')
+#' genes <- c('geneA', 'geneA', 'geneB', 'geneB')
+#' 
+#' # Calculate Tsallis diversity for q=1
+#' result <- calculate_method(mat, genes, norm = TRUE, q = 1)
+#' result
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
-    "D")) {
+    "D"), nthreads = 1) {
     what <- match.arg(what)
     # validate q
     if (!is.numeric(q) || any(q <= 0)) {
@@ -31,11 +42,16 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
     coln <- as.vector(t(outer(sample_names, q, function(s, qq) paste0(s, "_q=", qq))))
     rown <- gene_levels
 
-    # compute requested quantity ('S' or 'D')
-    result_mat <- t(vapply(gene_levels, function(gene) {
+    # compute requested quantity ('S' or 'D') in parallel
+    result_list <- .tsenat_bplapply(gene_levels, function(gene) {
         .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
             what = what)
-    }, FUN.VALUE = setNames(numeric(length(coln)), coln)))
+    }, nthreads = nthreads)
+
+    # Convert list to matrix (each element is a named vector) result_list is a
+    # list of vectors; combine them into a matrix
+    result_mat <- t(vapply(result_list, identity, FUN.VALUE = setNames(numeric(length(coln)),
+        coln)))
     colnames(result_mat) <- coln
     rownames(result_mat) <- rown
     out_df <- data.frame(Gene = rown, result_mat, check.names = FALSE)

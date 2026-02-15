@@ -12,7 +12,8 @@ label_shuffling(
   randomizations = 100,
   pcorr = "BH",
   paired = FALSE,
-  paired_method = c("swap", "signflip")
+  paired_method = c("swap", "signflip"),
+  nthreads = 1
 )
 }
 \arguments{
@@ -43,6 +44,9 @@ caller has arranged \code{samples} accordingly.}
 \code{'swap'} (randomly swap labels within pairs) or \code{'signflip'}
 (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
 for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).}
+
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-feature p-value computation.}
 }
 \value{
 Raw and corrected p-values.
@@ -59,4 +63,15 @@ with a pseudocount added: (count + 1) / (n_perm + 1).
 The permutation test returns two-sided empirical p-values using a
 pseudocount to avoid zero p-values for small numbers of permutations. See
 the function documentation for details.
+}
+\examples{
+set.seed(123)
+# Create a matrix of splicing diversity values (2 genes x 4 samples)
+mat <- matrix(rnorm(8), nrow = 2)
+samples <- c('Normal', 'Normal', 'Tumor', 'Tumor')
+
+# Run label shuffling test (100 permutations)
+result <- label_shuffling(mat, samples, control = 'Normal', 
+                          method = 'mean', randomizations = 100, pcorr = 'BH')
+head(result)
 }

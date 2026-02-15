@@ -37,11 +37,17 @@
 
     padj_candidates <- c("adjusted_p_values", "adj_p_value", "adj_p", "padj", "p.adjust")
     padj_col <- intersect(padj_candidates, colnames(df))
-    padj_col <- if (length(padj_col))
-        padj_col[1] else NULL
+    padj_col <- if (length(padj_col)) {
+        padj_col[1]
+    } else {
+        NULL
+    }
 
-    padj <- if (!is.null(padj_col))
-        as.numeric(df[[padj_col]]) else rep(1, length(yvals))
+    padj <- if (!is.null(padj_col)) {
+        as.numeric(df[[padj_col]])
+    } else {
+        rep(1, length(yvals))
+    }
     padj[is.na(padj)] <- 1
 
     sig_flag <- ifelse(abs(yvals) > 0 & padj < 0.05, "significant", "non-significant")
@@ -75,10 +81,12 @@
     }
 
     # Verify columns
-    if (!(x_col %in% cn))
+    if (!(x_col %in% cn)) {
         stop(sprintf("Column '%s' not found in diff_df", x_col))
-    if (!(padj_col %in% cn))
+    }
+    if (!(padj_col %in% cn)) {
         stop(sprintf("Column '%s' not found in diff_df", padj_col))
+    }
 
     df$xval <- as.numeric(df[[x_col]])
     df$padj <- as.numeric(df[[padj_col]])
@@ -89,12 +97,17 @@
         "significant", "non-significant")
     df <- df[is.finite(df$xval) & is.finite(df$padj), ]
 
-    if (nrow(df) == 0)
+    if (nrow(df) == 0) {
         stop("No valid points to plot")
+    }
 
-    metric_label <- if (grepl("median", x_col, ignore.case = TRUE))
-        "Median" else if (grepl("mean", x_col, ignore.case = TRUE))
-        "Mean" else "Value"
+    metric_label <- if (grepl("median", x_col, ignore.case = TRUE)) {
+        "Median"
+    } else if (grepl("mean", x_col, ignore.case = TRUE)) {
+        "Mean"
+    } else {
+        "Value"
+    }
 
     title_use <- title %||% "Volcano plot: fold-change vs significance"
 

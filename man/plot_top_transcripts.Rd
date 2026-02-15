@@ -44,6 +44,9 @@ plot_top_transcripts(
 
 \item{metric}{Aggregation metric used to summarize transcript expression per group when plotting. One of c("median", "mean", "variance", "iqr"). Use "iqr" to compute the interquartile range. Defaults to "median".}
 }
+\value{
+If \code{output_file} is \code{NULL}, returns a \code{ggplot} object. Otherwise, the plot is saved to the specified file and the function returns \code{NULL} invisibly.
+}
 \description{
 Plot top transcripts for a gene
 }

@@ -4,7 +4,7 @@
 \alias{wilcoxon}
 \title{Calculate p-values using Wilcoxon rank sum test.}
 \usage{
-wilcoxon(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE)
+wilcoxon(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1)
 }
 \arguments{
 \item{x}{A \code{matrix} with the splicing diversity values.}
@@ -19,10 +19,22 @@ the \code{p.adjust} function.}
 it will be a signed rank test instead of the rank sum test.}
 
 \item{exact}{If \code{TRUE}, an exact p-value will be computed.}
+
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-feature Wilcoxon tests.}
 }
 \value{
 Raw and corrected p-values in a matrix.
 }
 \description{
 Calculate p-values using Wilcoxon rank sum test.
+}
+\examples{
+# Create a matrix of splicing diversity values (3 genes x 6 samples)
+mat <- matrix(rnorm(18), nrow = 3)
+samples <- rep(c('Control', 'Treatment'), each = 3)
+
+# Run Wilcoxon test
+result <- wilcoxon(mat, samples, pcorr = 'BH')
+head(result)
 }

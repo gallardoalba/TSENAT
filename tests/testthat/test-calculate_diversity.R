@@ -180,28 +180,6 @@ test_that("calculate_diversity returns correct Tsallis entropy for single q", {
     expect_true(!is.null(SummarizedExperiment::rowData(result)$genes))
 })
 
-test_that("calculate_diversity returns correct Tsallis entropy for vector q", {
-    set.seed(123)
-    x <- matrix(rpois(60, 10), ncol = 6)
-    colnames(x) <- paste0("Sample", 1:6)
-    gene <- c(rep("Gene1", 3), rep("Gene2", 2), rep("Gene3", 3), rep("Gene4", 2))
-    q <- c(1, 2)
-    result <- calculate_diversity(x, gene, q = q)
-    expect_s4_class(result, "SummarizedExperiment")
-    expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
-    expect_equal(nrow(result), length(unique(gene)))
-    expect_equal(ncol(result), ncol(x) * length(q))
-    expect_true(!is.null(SummarizedExperiment::rowData(result)$genes))
-    expect_true(all(c(
-        "samples",
-        "q"
-    ) %in% colnames(SummarizedExperiment::colData(result))))
-    expect_equal(
-        length(unique(SummarizedExperiment::colData(result)$q)),
-        length(q)
-    )
-})
-
 
 ## calculate_tsallis_entropy low-level tests
 
@@ -288,22 +266,6 @@ test_that("calculate_diversity rejects non-positive q", {
     expect_error(calculate_diversity(mat, genes = genes, q = 0), "q")
 })
 
-# Test for Tsallis entropy calculation in calculate_diversity
-
-test_that("calculate_diversity returns correct Tsallis entropy for single q", {
-    set.seed(123)
-    x <- matrix(rpois(60, 10), ncol = 6)
-    colnames(x) <- paste0("Sample", 1:6)
-    gene <- c(rep("Gene1", 3), rep("Gene2", 2), rep("Gene3", 3), rep("Gene4", 2))
-    q <- 2
-    result <- calculate_diversity(x, gene, q = q)
-    expect_s4_class(result, "SummarizedExperiment")
-    expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
-    expect_equal(nrow(result), length(unique(gene)))
-    expect_equal(ncol(result), ncol(x))
-    expect_true(!is.null(SummarizedExperiment::rowData(result)$genes))
-})
-
 test_that("calculate_diversity returns correct Tsallis entropy for vector q", {
     set.seed(123)
     x <- matrix(rpois(60, 10), ncol = 6)
@@ -324,4 +286,57 @@ test_that("calculate_diversity returns correct Tsallis entropy for vector q", {
         length(unique(SummarizedExperiment::colData(result)$q)),
         length(q)
     )
+})
+test_that("calculate_diversity sets se_assay_mat when called directly with matrix input", {
+    # This test covers: if (!exists("se_assay_mat")) { se_assay_mat <- x }
+    # When calculate_diversity is called directly (not from within another function),
+    # se_assay_mat should not exist initially, so it gets assigned from input x
+    # Use multiple transcripts per gene to avoid NaN from single-isoform normalization
+    x <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8), nrow = 4, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2")  # 2 transcripts per gene
+    
+    # Make sure se_assay_mat doesn't exist in parent environment
+    # The function should create it internally from the input matrix
+    result <- calculate_diversity(x, genes, q = 1.5)
+    
+    # Verify the result is correct
+    expect_s4_class(result, "SummarizedExperiment")
+    expect_equal(nrow(result), 2)  # 2 genes
+    expect_equal(ncol(result), 2)  # 2 samples
+    expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
+})
+
+test_that("calculate_diversity with numeric matrix directly uses input as se_assay_mat", {
+    # Additional test to verify that direct matrix input is properly handled
+    # when se_assay_mat doesn't pre-exist
+    # Use at least 2 transcripts per gene to avoid NaN from single-isoform normalization
+    set.seed(42)
+    x <- matrix(rpois(24, lambda = 5), nrow = 6, ncol = 4)
+    colnames(x) <- c("SA", "SB", "SC", "SD")
+    genes <- c("g1", "g1", "g2", "g2", "g3", "g3")  # 2 transcripts per gene
+    
+    result <- calculate_diversity(x, genes, norm = TRUE, q = 2)
+    
+    expect_s4_class(result, "SummarizedExperiment")
+    expect_equal(ncol(result), 4)
+    expect_equal(rownames(SummarizedExperiment::assay(result)), unique(genes))
+})
+
+test_that("calculate_diversity handles matrix input with multiple q values correctly", {
+    # Tests the se_assay_mat assignment path with multi-value q vector
+    # Use multiple transcripts per gene to avoid NaN from single-isoform normalization
+    x <- matrix(c(10, 20, 15, 5, 8, 12, 6, 9, 11, 7, 4, 13), nrow = 6, ncol = 2)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1", "Gene2", "Gene2", "Gene3", "Gene3")
+    
+    q_vec <- c(0.5, 1, 1.5, 2)
+    result <- calculate_diversity(x, genes, q = q_vec)
+    
+    # Should have columns for each combination of sample and q value
+    expect_equal(ncol(result), length(colnames(x)) * length(q_vec))
+    expect_equal(nrow(result), length(unique(genes)))
+    
+    # Verify metadata has correct q values
+    expect_equal(S4Vectors::metadata(result)$q, q_vec)
 })

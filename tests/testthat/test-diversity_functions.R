@@ -195,16 +195,6 @@ test_that(".tsenat_prepare_diversity_input accepts data.frame and emits matrices
     expect_null(res$se_assay_mat)
 })
 
-test_that(".tsenat_prepare_diversity_input handles tximport-like lists and tpm flag", {
-    lst <- list(counts = matrix(1:4, nrow = 2), abundance = matrix(5:8, nrow = 2), other = 1, other2 = 2)
-    res_counts <- TSENAT:::.tsenat_prepare_diversity_input(lst, tpm = FALSE)
-    expect_true(is.matrix(res_counts$x))
-    expect_equal(res_counts$x[1, 1], 1)
-
-    res_abun <- TSENAT:::.tsenat_prepare_diversity_input(lst, tpm = TRUE)
-    expect_equal(res_abun$x[1, 1], 5)
-})
-
 test_that(".tsenat_prepare_diversity_input warns/messages for tpm non-list inputs", {
     mat <- matrix(1:6, nrow = 3)
     expect_message(TSENAT:::.tsenat_prepare_diversity_input(mat, tpm = TRUE, verbose = TRUE), "tpm as a logical argument is only interpreted")

@@ -16,7 +16,8 @@ calculate_difference(
   verbose = TRUE,
   paired = FALSE,
   exact = FALSE,
-  pseudocount = 0
+  pseudocount = 0,
+  nthreads = 1
 )
 }
 \arguments{
@@ -64,6 +65,9 @@ when supported (default: `FALSE`).}
 add a small value to non-positive group summaries before computing
 differences and log2 fold-changes. Default \code{1e-6}. Rows excluded for
 low sample counts remain \code{NA}.}
+
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-feature statistical tests.}
 }
 \value{
 A \code{data.frame} with the mean or median values of splicing
@@ -91,9 +95,9 @@ which statistical test is applied.
 }
 \examples{
 x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
+samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
 calculate_difference(x, samples,
-    control = "Healthy", method = "mean", test =
-        "wilcoxon"
+    control = 'Healthy', method = 'mean', test =
+        'wilcoxon'
 )
 }

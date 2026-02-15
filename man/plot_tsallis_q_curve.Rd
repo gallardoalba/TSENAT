@@ -28,11 +28,11 @@ genes by group (median and IQR) and plot median with a ribbon spanning
 median +- IQR/2.
 }
 \examples{
-data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- as.matrix(tcga_brca_luma_dataset[1:40, -1, drop = FALSE])
-gs <- tcga_brca_luma_dataset$genes[1:40]
+data("tcga_brca_luma", package = "TSENAT")
+rc <- as.matrix(tcga_brca_luma[1:40, -1, drop = FALSE])
+gs <- tcga_brca_luma[1:40, 1]
 se <- calculate_diversity(rc, gs,
-    q = seq(0.01, 0.1, by = 0.03), norm = TRUE
+    q = seq(0.01, 0.1, by = 0.03), norm = FALSE
 )
 p <- plot_tsallis_q_curve(se)
 p
