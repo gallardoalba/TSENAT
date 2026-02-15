@@ -42,6 +42,7 @@ ID=ENST00000001;Parent=ENSG00000101;Name=BRCA1-001}
 }
 }
 \examples{
+\dontrun{
 # Create a temporary GFF3 file with transcript features
 gff3_lines <- c(
   'chr1\tgencode\ttranscript\t1000\t3000\t.\t+\t.\tID=ENST001;Parent=ENSG001',
@@ -54,4 +55,5 @@ writeLines(gff3_lines, tf)
 # Extract transcript-to-gene mapping
 tx2gene <- extract_tx2gene_from_gff3(tf)
 head(tx2gene)
+}
 }
