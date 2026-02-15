@@ -17,7 +17,8 @@ test_differential(
   randomizations = 100,
   pcorr = "BH",
   seed = 123L,
-  paired_method = c("swap", "signflip")
+  paired_method = c("swap", "signflip"),
+  nthreads = 1
 )
 ```
 
@@ -71,6 +72,12 @@ test_differential(
   Character; forwarded to \`label_shuffling()\` when \`method =
   'shuffle'\`. See \`label_shuffling()\` for details.
 
+- nthreads:
+
+  Number of threads for parallel processing (default: 1). Set to \> 1 to
+  parallelize per-feature statistical tests in \`wilcoxon()\` or
+  \`label_shuffling()\`.
+
 ## Value
 
 A two-column matrix with raw and adjusted p-values (as returned by the
@@ -80,12 +87,12 @@ underlying functions).
 
 ``` r
 mat <- matrix(rnorm(20), nrow = 5)
-samples <- rep(c("A", "B"), length.out = ncol(mat))
-test_differential(mat, samples, control = "A", method = "wilcoxon")
+samples <- rep(c('A', 'B'), length.out = ncol(mat))
+test_differential(mat, samples, control = 'A', method = 'wilcoxon')
 #>      raw_p_values adjusted_p_values
-#> [1,]    0.2452781         0.4087969
-#> [2,]    0.2452781         0.4087969
-#> [3,]    1.0000000         1.0000000
-#> [4,]    1.0000000         1.0000000
-#> [5,]    0.2452781         0.4087969
+#> [1,]    0.6985354         0.8731692
+#> [2,]    0.2452781         0.6131953
+#> [3,]    0.2452781         0.6131953
+#> [4,]    0.6985354         0.8731692
+#> [5,]    1.0000000         1.0000000
 ```

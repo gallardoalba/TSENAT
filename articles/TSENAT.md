@@ -85,40 +85,36 @@ Now we will load the example dataset and associated metadata:
 
 ``` r
 
-# Load required files
-coldata_tsv <- system.file("extdata", "coldata.tsv", package = "TSENAT")
-tx2gene_tsv <- system.file("extdata", "tx2gene.tsv", package = "TSENAT")
-data("tcga_brca_luma_dataset", package = "TSENAT", envir = globalenv())
+# Load example dataset
+data("tcga_brca_luma", package = "TSENAT")
+readcounts <- as.matrix(tcga_brca_luma[, -1])
+rownames(readcounts) <- tcga_brca_luma[, 1]
 
-# Extract gene names and read count data
-genes <- tcga_brca_luma_dataset[, 1]
-readcounts <- tcga_brca_luma_dataset[, -1]
-
-# Read sample metadata
-coldata_df <- read.table(coldata_tsv,
-    header = TRUE,
-    sep = "\t",
-    stringsAsFactors = FALSE
+# Load sample metadata
+coldata_df <- read.table(
+    system.file("extdata", "coldata.tsv", package = "TSENAT"),
+    header = TRUE, sep = "\t"
 )
+
+# Get the GFF3.gz annotation file path
+gff3_dataset <- system.file("extdata", "gencode_subset.gff3.gz", package = "TSENAT")
 ```
 
 The next step is to inspect the loaded data to ensure it looks correct.
 
 ``` r
 
-# Check gene names
-head(genes)
-#> [1] "MXRA8"   "MXRA8"   "MXRA8"   "MXRA8"   "MXRA8"   "C1orf86"
-
-# Check read count dataset
+# Check transcript IDs and read count dataset
+head(rownames(readcounts))
+#> [1] "MXRA8.1"   "MXRA8.2"   "MXRA8.3"   "MXRA8.4"   "MXRA8.5"   "C1orf86.1"
 dim(readcounts)
 #> [1] 1100   40
 head(readcounts[1:4, 1:3])
-#>   TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N
-#> 1        2858.04         743.56         812.59
-#> 2         127.82          21.28          50.87
-#> 3         370.22          94.38         368.76
-#> 4        7472.00        3564.87        7647.76
+#>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N
+#> MXRA8.1        2858.04         743.56         812.59
+#> MXRA8.2         127.82          21.28          50.87
+#> MXRA8.3         370.22          94.38         368.76
+#> MXRA8.4        7472.00        3564.87        7647.76
 
 # Check the metadata
 head(coldata_df)
@@ -133,26 +129,21 @@ head(coldata_df)
 
 ### Data preprocessing and filtering
 
-If the transcript IDs in `readcounts` are not already set as rownames,
-we need to map them. This step could be skipped if the dataset already
-has transcript IDs as rownames, but in this case we need to assign them.
+Next, we will create a `SummarizedExperiment` data container, a standard
+Bioconductor class for storing high-throughput assay data along with
+associated metadata. You can read more about it in the \[Bioconductor
+documentation\]
+(<https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html>).
+
+Now will use a GFF3.gz annotation file for performing the
+transcript-to-gene mapping.
 
 ``` r
 
-# Assign transcript IDs as rownames of `readcounts`
-readcounts <- map_tx_to_readcounts(readcounts, tx2gene_tsv)
-```
-
-Next, we will create a a `SummarizedExperiment` data container, a
-standard Bioconductor class for storing high-throughput assay data along
-with associated metadata. You can read more about it in the
-[Bioconductor
-documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
-
-``` r
-
-## Build a `SummarizedExperiment` from readcounts + tx2gene mapping
-se <- build_se(tx2gene_tsv, readcounts, genes)
+## Build a `SummarizedExperiment` from readcounts + GFF3.gz annotation
+# The gff3_path variable contains the path to gencode_subset.gff3.gz
+se <- build_se(readcounts, gff3_dataset)
+#> Detected GFF3 format. Extracting transcript-to-gene mapping...
 ```
 
 Before computing the Tsallis diversity, you might want to filter out

@@ -17,7 +17,8 @@ calculate_difference(
   verbose = TRUE,
   paired = FALSE,
   exact = FALSE,
-  pseudocount = 0
+  pseudocount = 0,
+  nthreads = 1
 )
 ```
 
@@ -89,6 +90,11 @@ calculate_difference(
   fold-changes. Default `1e-6`. Rows excluded for low sample counts
   remain `NA`.
 
+- nthreads:
+
+  Number of threads for parallel processing (default: 1). Set to \> 1 to
+  parallelize per-feature statistical tests.
+
 ## Value
 
 A `data.frame` with the mean or median values of splicing diversity
@@ -117,10 +123,10 @@ applied.
 
 ``` r
 x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
+samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
 calculate_difference(x, samples,
-    control = "Healthy", method = "mean", test =
-        "wilcoxon"
+    control = 'Healthy', method = 'mean', test =
+        'wilcoxon'
 )
 #>    genes Pathogenic_mean Healthy_mean mean_difference log2_fold_change
 #> 1      a       0.3939888    0.4673230    -0.073334138      -0.24626521

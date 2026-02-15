@@ -16,7 +16,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-primary" data-bs-theme="dark" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">TSENAT</a>
 
@@ -64,7 +64,7 @@
 Gallardo <a href="mailto:gallardoalba@pm.me" class="email">gallardoalba@pm.me</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-02-11</h4>
+            <h4 data-toc-skip class="date">2026-02-15</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/gallardoalba/TSENAT/blob/HEAD/vignettes/TSENAT.Rmd" class="external-link"><code>vignettes/TSENAT.Rmd</code></a></small>
       <div class="d-none name"><code>TSENAT.Rmd</code></div>
@@ -170,37 +170,33 @@ and normalized
 </h3>
 <p>Now we will load the example dataset and associated metadata:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Load required files</span></span>
-<span><span class="va">coldata_tsv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"coldata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
-<span><span class="va">tx2gene_tsv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"tx2gene.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"tcga_brca_luma_dataset"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span>, envir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">globalenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Load example dataset</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"tcga_brca_luma"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span>
+<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">tcga_brca_luma</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span></span>
 <span></span>
-<span><span class="co"># Extract gene names and read count data</span></span>
-<span><span class="va">genes</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span></span>
-<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="va">tcga_brca_luma_dataset</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span></span>
+<span><span class="co"># Load sample metadata</span></span>
+<span><span class="va">coldata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"coldata.tsv"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span>,</span>
+<span>    header <span class="op">=</span> <span class="cn">TRUE</span>, sep <span class="op">=</span> <span class="st">"\t"</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Read sample metadata</span></span>
-<span><span class="va">coldata_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.table</a></span><span class="op">(</span><span class="va">coldata_tsv</span>,</span>
-<span>    header <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    sep <span class="op">=</span> <span class="st">"\t"</span>,</span>
-<span>    stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Get the GFF3.gz annotation file path</span></span>
+<span><span class="va">gff3_dataset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"gencode_subset.gff3.gz"</span>, package <span class="op">=</span> <span class="st">"TSENAT"</span><span class="op">)</span></span></code></pre></div>
 <p>The next step is to inspect the loaded data to ensure it looks
 correct.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Check gene names</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">genes</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "MXRA8"   "MXRA8"   "MXRA8"   "MXRA8"   "MXRA8"   "C1orf86"</span></span>
-<span></span>
-<span><span class="co"># Check read count dataset</span></span>
+<code class="sourceCode R"><span><span class="co"># Check transcript IDs and read count dataset</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "MXRA8.1"   "MXRA8.2"   "MXRA8.3"   "MXRA8.4"   "MXRA8.5"   "C1orf86.1"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 1100   40</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">readcounts</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N</span></span>
-<span><span class="co">#&gt; 1        2858.04         743.56         812.59</span></span>
-<span><span class="co">#&gt; 2         127.82          21.28          50.87</span></span>
-<span><span class="co">#&gt; 3         370.22          94.38         368.76</span></span>
-<span><span class="co">#&gt; 4        7472.00        3564.87        7647.76</span></span>
+<span><span class="co">#&gt;         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N</span></span>
+<span><span class="co">#&gt; MXRA8.1        2858.04         743.56         812.59</span></span>
+<span><span class="co">#&gt; MXRA8.2         127.82          21.28          50.87</span></span>
+<span><span class="co">#&gt; MXRA8.3         370.22          94.38         368.76</span></span>
+<span><span class="co">#&gt; MXRA8.4        7472.00        3564.87        7647.76</span></span>
 <span></span>
 <span><span class="co"># Check the metadata</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">coldata_df</span><span class="op">)</span></span>
@@ -215,28 +211,24 @@ correct.</p>
 <div class="section level3">
 <h3 id="data-preprocessing-and-filtering">Data preprocessing and filtering<a class="anchor" aria-label="anchor" href="#data-preprocessing-and-filtering"></a>
 </h3>
-<p>If the transcript IDs in <code>readcounts</code> are not already set
-as rownames, we need to map them. This step could be skipped if the
-dataset already has transcript IDs as rownames, but in this case we need
-to assign them.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Assign transcript IDs as rownames of `readcounts`</span></span>
-<span><span class="va">readcounts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_tx_to_readcounts.html">map_tx_to_readcounts</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">tx2gene_tsv</span><span class="op">)</span></span></code></pre></div>
-<p>Next, we will create a a <code>SummarizedExperiment</code> data
+<p>Next, we will create a <code>SummarizedExperiment</code> data
 container, a standard Bioconductor class for storing high-throughput
 assay data along with associated metadata. You can read more about it in
-the <a href="https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html" class="external-link">Bioconductor
-documentation</a>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">## Build a `SummarizedExperiment` from readcounts + tx2gene mapping</span></span>
-<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_se.html">build_se</a></span><span class="op">(</span><span class="va">tx2gene_tsv</span>, <span class="va">readcounts</span>, <span class="va">genes</span><span class="op">)</span></span></code></pre></div>
+the [Bioconductor documentation] (<a href="https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html" class="external-link uri">https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html</a>).</p>
+<p>Now will use a GFF3.gz annotation file for performing the
+transcript-to-gene mapping.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">## Build a `SummarizedExperiment` from readcounts + GFF3.gz annotation</span></span>
+<span><span class="co"># The gff3_path variable contains the path to gencode_subset.gff3.gz</span></span>
+<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/build_se.html">build_se</a></span><span class="op">(</span><span class="va">readcounts</span>, <span class="va">gff3_dataset</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Detected GFF3 format. Extracting transcript-to-gene mapping...</span></span></code></pre></div>
 <p>Before computing the Tsallis diversity, you might want to filter out
 genes with a low overall expression or limit the analysis to transcripts
 with a sufficient minimum expression level. Expression estimates of
 transcript isoforms with zero or low expression might be highly
 variable. For more details on the effect of transcript isoform
 prefiltering on differential transcript usage, see <a href="https://doi.org/10.1186/s13059-015-0862-3" class="external-link">this paper</a>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Filter lowly-expressed transcripts and report counts</span></span>
 <span><span class="co"># Keep transcripts with &gt;5 reads in more than 5 samples using `filter_se()`</span></span>
 <span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_se.html">filter_se</a></span><span class="op">(</span><span class="va">se</span>, min_count <span class="op">=</span> <span class="fl">5</span>, min_samples <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
@@ -254,7 +246,7 @@ inspect the resulting assay.</p>
 entropy can still be computed and used for descriptive analyses and
 quality control; formal group‑comparison tests are not applicable in
 this setting.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a single q value (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fl">0.1</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">se</span>, q <span class="op">=</span> <span class="va">q</span>, norm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -270,7 +262,7 @@ isoforms.</p>
 <p>Now we should map the sample metadata into the
 <code>SummarizedExperiment</code> object (ts_se), so plotting functions
 and downstream helpers can rely on it.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_metadata.html">map_metadata</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -293,7 +285,7 @@ intensive.</p>
 for comparisons. The reason is that Tsallis entropy values are often
 skewed and sensitive to outliers, and the median provides in this
 condition a more robust summary of central tendency than the mean.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute differences between groups using the Wilcoxon test</span></span>
 <span><span class="co"># with median aggregation</span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_difference.html">calculate_difference</a></span><span class="op">(</span></span>
@@ -327,7 +319,7 @@ diagnostic plots: MA and volcano plots.</p>
 the Tsallis entropy values directly to compute fold changes and mean
 expression. This plot provides a direct view of how diversity
 differences relate to overall expression levels.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># MA plot (Tsallis-based)</span></span>
 <span><span class="va">p_ma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma_tsallis.html">plot_ma_tsallis</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_ma</span><span class="op">)</span></span></code></pre></div>
@@ -336,7 +328,7 @@ differences relate to overall expression levels.</p>
 MA</strong>, which uses the original read counts to compute fold changes
 and mean expression. This plot helps to contextualize diversity
 differences in terms of overall gene expression levels.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># MA plot (expression/readcount-based)</span></span>
 <span><span class="va">p_ma_read</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_ma_expression.html">plot_ma_expression</a></span><span class="op">(</span></span>
 <span>    <span class="va">res</span>,</span>
@@ -350,7 +342,7 @@ relationship between the magnitude of diversity differences (mean
 difference) and their statistical significance (adjusted p-value). This
 plot helps to identify genes with both large effect sizes and strong
 statistical support.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Volcano plot: mean difference vs -log10(adjusted p-value)</span></span>
 <span><span class="va">p_volcano</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_volcano.html">plot_volcano</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_volcano</span><span class="op">)</span></span></code></pre></div>
@@ -360,7 +352,7 @@ statistical support.</p>
 </h3>
 <p>Here we will visualize the transcript-level expression for the most
 significant genes identified in the previous step.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot using median aggregation; let the function pick top genes from `res`</span></span>
 <span><span class="va">p_median</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
 <span>    res <span class="op">=</span> <span class="va">res</span>, top_n <span class="op">=</span> <span class="fl">3</span>, metric <span class="op">=</span> <span class="st">"median"</span></span>
@@ -370,7 +362,7 @@ significant genes identified in the previous step.</p>
 <p>We can also plot the same top genes but using variance aggregation
 instead of median. This allows us to see how transcript-level expression
 variability differs between groups for these genes.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot using variance aggregation</span></span>
 <span><span class="va">p_var</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_top_transcripts.html">plot_top_transcripts</a></span><span class="op">(</span><span class="va">ts_se</span>,</span>
 <span>    res <span class="op">=</span> <span class="va">res</span>, top_n <span class="op">=</span> <span class="fl">3</span>, metric <span class="op">=</span> <span class="st">"variance"</span></span>
@@ -387,7 +379,7 @@ the sificant estatistical differences by using single Tsalis
 <code>q</code> values, we will compute the normalized Tsallis entropy
 for two <code>q</code> values (0.1 and 2) to studiy potential
 scale-dependent patterns.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for q = 1 (normalized)</span></span>
 <span><span class="va">q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">se</span>,</span>
@@ -403,21 +395,21 @@ scale-dependent patterns.</p>
 <code>SummarizedExperiment</code>. This step is important to ensure that
 functions located downstream in the workflow can access the sample
 metadata correctly.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_metadata.html">map_metadata</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span><span class="op">)</span></span></code></pre></div>
 <p>In order to show the distributional differences between groups, we
 are going to create <strong>violin and density plots</strong>.</p>
 <p>The violin plot shows the distribution of Tsallis entropy values for
 each group and q value, allowing us to visually assess differences in
 diversity patterns between groups at different sensitivity levels.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_violin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_violin_multq.html">plot_tsallis_violin_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_violin</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plots-violin-1.png" class="r-plt" alt="" width="960"></p>
 <p>The density plot provides a equivalent view of the distribution of
 Tsallis entropy values, showing the density of samples across the range
 of diversity values for each group and q value.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p_density</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_density_multq.html">plot_tsallis_density_multq</a></span><span class="op">(</span><span class="va">ts_se</span>, assay_name <span class="op">=</span> <span class="st">"diversity"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_density</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/plots-density-1.png" class="r-plt" alt="" width="960"></p>
@@ -441,7 +433,7 @@ help with quality control and outlier detection. By examining the
 q-curves of individual samples, we can identify samples that deviate
 from expected patterns, which may indicate technical issues or
 biological outliers.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># compute Tsallis entropy for a sequence of values (normalized)</span></span>
 <span><span class="va">qvec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">2</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calculate_diversity.html">calculate_diversity</a></span><span class="op">(</span><span class="va">se</span>,</span>
@@ -455,7 +447,7 @@ biological outliers.</p>
 <span><span class="co">#&gt; ALDH4A1            0.8111864             0.7506492            0.7056995</span></span></code></pre></div>
 <p>Map once again the sample metadata into the multi-q
 <code>SummarizedExperiment</code> as before.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># For paired designs ensure sample_base is created so LMMs can use it</span></span>
 <span><span class="va">ts_se</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/map_metadata.html">map_metadata</a></span><span class="op">(</span><span class="va">ts_se</span>, <span class="va">coldata_df</span>, paired <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p>Once we have the <strong>q-sequence</strong> computed, we can test
@@ -483,7 +475,7 @@ high-dimensional variation.</li>
 This method is preferable for small or moderately sized paired RNA‑seq
 studies when per-term inference is required (for example, the q:group
 interaction).</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## Linear-model interaction test across q values: detect q x group interaction</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"lme4"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Compute and show top hits (by adjusted p-value)</span></span>
@@ -527,7 +519,7 @@ the linear-model interaction test. We will start with
 proteoglycan link protein family expressed in the extracellular matrix,
 and closely associated with the development and occurrence of various
 malignant tumors (<a href="https://doi.org/10.1007/s00432-022-04421-3" class="external-link">source</a>).</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"HAPLN3"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
@@ -535,14 +527,14 @@ malignant tumors (<a href="https://doi.org/10.1007/s00432-022-04421-3" class="ex
 <p>Now let’s look at <code>COL1A2</code>, encodes the pro-alpha2 chain
 of type I collagen, a fibril-forming collagen found in most connective
 tissues.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"COL1A2"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
 <p><img src="TSENAT_files/figure-html/colia2-gene-qprofile-1.png" class="r-plt" alt="" width="960"></p>
 <p>Finally, we can visualize the gene <code>PI16</code>, which is
 emerging as an important regulator in the vascular system.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot q-curve profile for top linear-model gene</span></span>
 <span><span class="va">plot_target</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_gene_profile.html">plot_tsallis_gene_profile</a></span><span class="op">(</span><span class="va">ts_se</span>, gene <span class="op">=</span> <span class="st">"PI16"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">plot_target</span><span class="op">)</span></span></code></pre></div>
@@ -551,7 +543,7 @@ emerging as an important regulator in the vascular system.</p>
 genes</strong>. This plot provides a global view of how diversity
 changes across the <code>q</code> spectrum for the entire dataset and
 can reveal general trends in isoform diversity.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Plot top tsallis q curve</span></span>
 <span><span class="va">p_qcurve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_tsallis_q_curve.html">plot_tsallis_q_curve</a></span><span class="op">(</span><span class="va">ts_se</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">p_qcurve</span><span class="op">)</span></span></code></pre></div>
@@ -578,7 +570,7 @@ about pseudocoints in this <a href="https://doi.org/10.1093/bioinformatics/bty47
 <strong>Quantification &amp; normalization</strong>: use bias-aware
 quantifiers, such Salmon or kallisto.</li>
 </ul>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.5.2 (2025-10-31)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-conda-linux-gnu</span></span>

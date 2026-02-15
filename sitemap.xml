@@ -15,6 +15,7 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_lm_interaction.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_method.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/calculate_tsallis_entropy.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/reference/extract_tx2gene_from_gff3.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/filter_se.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/index.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/label_shuffling.html</loc></url>
@@ -30,7 +31,7 @@
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_q_curve.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_tsallis_violin_multq.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/plot_volcano.html</loc></url>
-<url><loc>https://gallardoalba.github.io/TSENAT/reference/tcga_brca_luma_dataset.html</loc></url>
+<url><loc>https://gallardoalba.github.io/TSENAT/reference/tcga_brca_luma.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/test_differential.html</loc></url>
 <url><loc>https://gallardoalba.github.io/TSENAT/reference/wilcoxon.html</loc></url>
 </urlset>

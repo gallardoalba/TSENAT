@@ -23,6 +23,8 @@
 - [`calculate_tsallis_entropy()`](https://gallardoalba.github.io/TSENAT/reference/calculate_tsallis_entropy.md)
   : Calculate Tsallis entropy for a vector of transcript-level
   expression values of one gene.
+- [`extract_tx2gene_from_gff3()`](https://gallardoalba.github.io/TSENAT/reference/extract_tx2gene_from_gff3.md)
+  : Extract Transcript-to-Gene Mapping from GFF3 File
 - [`filter_se()`](https://gallardoalba.github.io/TSENAT/reference/filter_se.md)
   : Filter transcripts in a \`SummarizedExperiment\` by minimum
   count/sample
@@ -52,8 +54,8 @@
   : Violin plot of Tsallis entropy for multiple q values
 - [`plot_volcano()`](https://gallardoalba.github.io/TSENAT/reference/plot_volcano.md)
   : Volcano plot for differential results
-- [`tcga_brca_luma_dataset`](https://gallardoalba.github.io/TSENAT/reference/tcga_brca_luma_dataset.md)
-  : TCGA Luminal A breast cancer dataset
+- [`tcga_brca_luma`](https://gallardoalba.github.io/TSENAT/reference/tcga_brca_luma.md)
+  : TCGA Luminal A breast cancer dataset (transcript-level)
 - [`test_differential()`](https://gallardoalba.github.io/TSENAT/reference/test_differential.md)
   : Run a differential test by name: Wilcoxon or label-shuffle
 - [`wilcoxon()`](https://gallardoalba.github.io/TSENAT/reference/wilcoxon.md)

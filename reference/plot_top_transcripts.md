@@ -82,6 +82,12 @@ plot_top_transcripts(
   when plotting. One of c("median", "mean", "variance", "iqr"). Use
   "iqr" to compute the interquartile range. Defaults to "median".
 
+## Value
+
+If `output_file` is `NULL`, returns a `ggplot` object. Otherwise, the
+plot is saved to the specified file and the function returns `NULL`
+invisibly.
+
 ## Examples
 
 ``` r

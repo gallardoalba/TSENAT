@@ -13,7 +13,8 @@ calculate_diversity(
   assayno = 1,
   verbose = FALSE,
   q = 2,
-  what = c("S", "D")
+  what = c("S", "D"),
+  nthreads = 1
 )
 ```
 
@@ -58,6 +59,11 @@ calculate_diversity(
   Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
   numbers.
 
+- nthreads:
+
+  Number of threads for parallel processing (default: 1). Set to \> 1 to
+  parallelize per-gene entropy calculations.
+
 ## Value
 
 A
@@ -67,13 +73,13 @@ with assay \`diversity\` containing per-gene diversity values.
 ## Examples
 
 ``` r
-data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-gs <- tcga_brca_luma_dataset$genes[1:20]
+data('tcga_brca_luma', package = 'TSENAT')
+rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma[1:20, 1]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 SummarizedExperiment::assay(se)[1:3, 1:3]
-#>         TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N
-#> MXRA8        0.8409985      0.8149525      0.7861211
-#> C1orf86      0.0000000      0.0000000      0.0000000
-#> PDPN         0.3486679      0.3395884      0.0000000
+#>      TCGA-A7-A0CH_N TCGA-A7-A0CH_T TCGA-A7-A0D9_N
+#> NA               NA             NA             NA
+#> NA.1             NA             NA             NA
+#> NA.2             NA             NA             NA
 ```

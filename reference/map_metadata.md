@@ -58,20 +58,20 @@ the assay column names.
 ## Examples
 
 ``` r
-data("tcga_brca_luma_dataset", package = "TSENAT")
-rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-gs <- tcga_brca_luma_dataset$genes[1:20]
+data('tcga_brca_luma', package = 'TSENAT')
+rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+gs <- tcga_brca_luma[1:20, 1]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-sample_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
-coldata_df <- data.frame(Sample = sample_names, Condition = rep(c("A", "B"),
+sample_names <- sub('_q=.*', '', colnames(SummarizedExperiment::assay(se)))
+coldata_df <- data.frame(Sample = sample_names, Condition = rep(c('A', 'B'),
     length.out = ncol(se)
 ))
 map_metadata(se, coldata_df)
 #> class: SummarizedExperiment 
-#> dim: 6 40 
+#> dim: 0 40 
 #> metadata(9): method norm ... sample_base_names samples
 #> assays(1): diversity
-#> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
+#> rownames(0):
 #> rowData names(1): genes
 #> colnames(40): TCGA-A7-A0CH_N TCGA-A7-A0CH_T ... TCGA-BH-A0BV_T
 #>   TCGA-BH-A0BV_N
@@ -79,10 +79,10 @@ map_metadata(se, coldata_df)
 # Optionally validate pairs when appropriate
 map_metadata(se, coldata_df, paired = TRUE)
 #> class: SummarizedExperiment 
-#> dim: 6 40 
+#> dim: 0 40 
 #> metadata(9): method norm ... sample_base_names samples
 #> assays(1): diversity
-#> rownames(6): MXRA8 C1orf86 ... HNRNPR C1orf213
+#> rownames(0):
 #> rowData names(1): genes
 #> colnames(40): TCGA-A7-A0CH_N TCGA-A7-A0CH_T ... TCGA-BH-A0BV_T
 #>   TCGA-BH-A0BV_N
