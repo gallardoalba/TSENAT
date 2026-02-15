@@ -35,21 +35,21 @@ jobs:
             
             # Install BiocManager first (needed for Bioc packages)
             if (!requireNamespace("BiocManager", quietly = TRUE)) {
-              install.packages("BiocManager", repos = "https://cloud.r-project.org", type = "binary")
+              install.packages("BiocManager", repos = "https://cloud.r-project.org")
             }
             
             # Install CRAN packages (remotes, devtools are needed for install_deps)
             cran_pkgs <- c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", 
                           "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", 
                           "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest", "covr")
-            install.packages(cran_pkgs, repos = "https://cloud.r-project.org", type = "binary")
+            install.packages(cran_pkgs, repos = "https://cloud.r-project.org")
             
             # Install Bioc packages
             BiocManager::install(c("SummarizedExperiment", "S4Vectors", "BiocParallel"), 
-                                ask = FALSE, type = "binary")
+                                ask = FALSE)
             
             # Install all dependencies from DESCRIPTION (with Suggests)
-            remotes::install_deps(dependencies = TRUE, upgrade = "never", type = "binary")
+            remotes::install_deps(dependencies = TRUE, upgrade = "never")
             EOF
       - save_cache:
           paths:
