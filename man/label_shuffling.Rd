@@ -13,7 +13,7 @@ label_shuffling(
   pcorr = "BH",
   paired = FALSE,
   paired_method = c("swap", "signflip"),
-  BPPARAM = BiocParallel::bpparam()
+  nthreads = 1
 )
 }
 \arguments{
@@ -45,8 +45,8 @@ caller has arranged \code{samples} accordingly.}
 (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
 for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).}
 
-\item{BPPARAM}{A \code{BiocParallelParam} instance for parallel processing.
-Defaults to \code{BiocParallel::bpparam()}.}
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-feature p-value computation.}
 }
 \value{
 Raw and corrected p-values.

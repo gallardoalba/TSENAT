@@ -4,14 +4,7 @@
 \alias{wilcoxon}
 \title{Calculate p-values using Wilcoxon rank sum test.}
 \usage{
-wilcoxon(
-  x,
-  samples,
-  pcorr = "BH",
-  paired = FALSE,
-  exact = FALSE,
-  BPPARAM = BiocParallel::bpparam()
-)
+wilcoxon(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1)
 }
 \arguments{
 \item{x}{A \code{matrix} with the splicing diversity values.}
@@ -27,8 +20,8 @@ it will be a signed rank test instead of the rank sum test.}
 
 \item{exact}{If \code{TRUE}, an exact p-value will be computed.}
 
-\item{BPPARAM}{A \code{BiocParallelParam} instance for parallel processing.
-Defaults to \code{BiocParallel::bpparam()}.}
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-feature Wilcoxon tests.}
 }
 \value{
 Raw and corrected p-values in a matrix.

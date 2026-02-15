@@ -13,7 +13,7 @@ calculate_diversity(
   verbose = FALSE,
   q = 2,
   what = c("S", "D"),
-  BPPARAM = BiocParallel::bpparam()
+  nthreads = 1
 )
 }
 \arguments{
@@ -40,9 +40,8 @@ q.}
 \item{what}{Which quantity to return: 'S' for Tsallis entropy or 'D' for Hill
 numbers.}
 
-\item{BPPARAM}{BiocParallel parameter for parallel processing. Default uses
-the registered BiocParallel backend. Use \code{BiocParallel::SerialParam()} to
-disable parallel processing.}
+\item{nthreads}{Number of threads for parallel processing (default: 1).
+Set to > 1 to parallelize per-gene entropy calculations.}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assay

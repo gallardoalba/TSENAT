@@ -24,9 +24,9 @@
 #' colData
 #' @export
 #' @examples
-#' data('tcga_brca_luma_dataset', package = 'TSENAT')
-#' rc <- as.matrix(tcga_brca_luma_dataset[1:20, -1, drop = FALSE])
-#' gs <- tcga_brca_luma_dataset$genes[1:20]
+#' data('tcga_brca_luma', package = 'TSENAT')
+#' rc <- as.matrix(tcga_brca_luma[1:20, -1, drop = FALSE])
+#' gs <- tcga_brca_luma[1:20, 1]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
