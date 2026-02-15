@@ -70,7 +70,11 @@ jobs:
           name: Check code style with styler
           command: |
             R -e 'if (!requireNamespace("styler", quietly=TRUE)) install.packages("styler", repos="https://cloud.r-project.org")'
-            Rscript tools/apply_formatr.R || true
+            if [ -f tools/apply_formatR.R ]; then
+              Rscript tools/apply_formatR.R || true
+            else
+              echo "Warning: tools/apply_formatR.R not found in maintenance branch"
+            fi
       - run:
           name: Run checks
           command: |
@@ -80,14 +84,22 @@ jobs:
       - run:
           name: Generate coverage and HTML report
           command: |
-            Rscript tools/run_coverage.R
+            if [ -f tools/run_coverage.R ]; then
+              Rscript tools/run_coverage.R
+            else
+              echo "Warning: tools/run_coverage.R not found"
+            fi
       - store_artifacts:
           path: coverage
           destination: coverage
       - run:
           name: Upload coverage to Codecov
           command: |
-            Rscript tools/run_coverage.R --upload
+            if [ -f tools/run_coverage.R ]; then
+              Rscript tools/run_coverage.R --upload
+            else
+              echo "Warning: tools/run_coverage.R not found, skipping coverage upload"
+            fi
 
 workflows:
   version: 2

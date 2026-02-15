@@ -28,6 +28,19 @@
 #'   \item Employs efficient string operations instead of heavy regex on every line
 #'   \item Handles both compressed (.gz) and uncompressed files seamlessly
 #' }
+#' @examples
+#' # Create a temporary GFF3 file with transcript features
+#' gff3_lines <- c(
+#'   'chr1\tgencode\ttranscript\t1000\t3000\t.\t+\t.\tID=ENST001;Parent=ENSG001',
+#'   'chr1\tgencode\ttranscript\t1500\t3500\t.\t+\t.\tID=ENST002;Parent=ENSG001',
+#'   'chr2\tgencode\ttranscript\t5000\t8000\t.\t-\t.\tID=ENST003;Parent=ENSG002'
+#' )
+#' tf <- tempfile(fileext = '.gff3')
+#' writeLines(gff3_lines, tf)
+#' 
+#' # Extract transcript-to-gene mapping
+#' tx2gene <- extract_tx2gene_from_gff3(tf)
+#' head(tx2gene)
 extract_tx2gene_from_gff3 <- function(gff3_file) {
     # Handle both .gff3 and .gff3.gz files
     if (grepl("\\.gff3\\.gz$", gff3_file)) {

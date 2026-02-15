@@ -447,3 +447,194 @@ test_that("map_metadata paired validation errors on unpaired bases", {
     coldata <- data.frame(Sample = c("B1", "B1", "B2"), Condition = c("N", "T", "N"), stringsAsFactors = FALSE)
     expect_error(map_metadata(se, coldata, paired = TRUE), "Unpaired samples found in coldata")
 })
+# Tests for tx2gene/txmap environment lookup (lines 148-155)
+context("map_metadata: tx2gene/txmap environment lookups")
+
+test_that("map_metadata finds txmap in parent.frame", {
+    # This test covers: if (exists("txmap", envir = parent.frame())) { md$tx2gene <- get("txmap", envir = parent.frame()) }
+    wrapper_func <- function() {
+        # Define txmap in this function's environment
+        txmap <- data.frame(
+            transcript_id = c("t1", "t2", "t3"),
+            gene_id = c("g1", "g1", "g2"),
+            stringsAsFactors = FALSE
+        )
+        
+        coldata <- data.frame(
+            Sample = c("S1", "S2"),
+            Condition = c("A", "B"),
+            stringsAsFactors = FALSE
+        )
+        
+        mat <- matrix(rnorm(4), nrow = 2)
+        colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
+        se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
+        
+        # Call map_metadata - it should find txmap in parent.frame
+        result <- map_metadata(se, coldata)
+        
+        # Verify that tx2gene was set in metadata
+        md <- S4Vectors::metadata(result)
+        expect_true(!is.null(md$tx2gene))
+        expect_equal(nrow(md$tx2gene), 3)
+    }
+    wrapper_func()
+})
+
+test_that("map_metadata finds tx2gene in parent.frame when txmap not present", {
+    # This test covers: else if (exists("tx2gene", envir = parent.frame())) { md$tx2gene <- get("tx2gene", envir = parent.frame()) }
+    wrapper_func <- function() {
+        # Define tx2gene (not txmap) in this function's environment
+        tx2gene <- data.frame(
+            tx = c("t1", "t2", "t3"),
+            gene = c("g1", "g1", "g2"),
+            stringsAsFactors = FALSE
+        )
+        
+        coldata <- data.frame(
+            Sample = c("S1", "S2"),
+            Condition = c("A", "B"),
+            stringsAsFactors = FALSE
+        )
+        
+        mat <- matrix(rnorm(4), nrow = 2)
+        colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
+        se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
+        
+        # Call map_metadata - it should find tx2gene in parent.frame
+        result <- map_metadata(se, coldata)
+        
+        # Verify that tx2gene was set in metadata
+        md <- S4Vectors::metadata(result)
+        expect_true(!is.null(md$tx2gene))
+        expect_equal(nrow(md$tx2gene), 3)
+    }
+    wrapper_func()
+})
+
+test_that("map_metadata finds txmap in globalenv when not in parent.frame", {
+    # This test covers: else if (exists("txmap", envir = globalenv())) { md$tx2gene <- get("txmap", envir = globalenv()) }
+    # Set txmap in global environment
+    txmap_global <<- data.frame(
+        transcript_id = c("t1", "t2", "t3"),
+        gene_id = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    
+    coldata <- data.frame(
+        Sample = c("S1", "S2"),
+        Condition = c("A", "B"),
+        stringsAsFactors = FALSE
+    )
+    
+    mat <- matrix(rnorm(4), nrow = 2)
+    colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
+    se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
+    
+    # Rename to 'txmap' in global env (note: we use <<- which populates globalenv)
+    txmap <<- txmap_global
+    
+    # Call map_metadata - it should find txmap in globalenv
+    result <- map_metadata(se, coldata)
+    
+    # Verify that tx2gene was set in metadata
+    md <- S4Vectors::metadata(result)
+    expect_true(!is.null(md$tx2gene))
+    
+    # Clean up
+    rm(txmap, envir = globalenv())
+    rm(txmap_global, envir = globalenv())
+})
+
+test_that("map_metadata finds tx2gene in globalenv when txmap not found", {
+    # This test covers: else if (exists("tx2gene", envir = globalenv())) { md$tx2gene <- get("tx2gene", envir = globalenv()) }
+    # Set tx2gene in global environment (not txmap)
+    tx2gene <<- data.frame(
+        tx = c("t1", "t2", "t3"),
+        gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    
+    coldata <- data.frame(
+        Sample = c("S1", "S2"),
+        Condition = c("A", "B"),
+        stringsAsFactors = FALSE
+    )
+    
+    mat <- matrix(rnorm(4), nrow = 2)
+    colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
+    se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
+    
+    # Call map_metadata - it should find tx2gene in globalenv
+    result <- map_metadata(se, coldata)
+    
+    # Verify that tx2gene was set in metadata
+    md <- S4Vectors::metadata(result)
+    expect_true(!is.null(md$tx2gene))
+    expect_equal(nrow(md$tx2gene), 3)
+    
+    # Clean up
+    rm(tx2gene, envir = globalenv())
+})
+
+test_that("map_metadata prefers parent.frame tx2gene over globalenv", {
+    # When both exist, parent.frame should take precedence
+    # Set tx2gene in global environment
+    tx2gene_global <<- data.frame(
+        tx = c("g1", "g2"),
+        gene = c("global1", "global2"),
+        stringsAsFactors = FALSE
+    )
+    
+    wrapper_func <- function() {
+        # Define different tx2gene in parent.frame
+        tx2gene <- data.frame(
+            tx = c("t1", "t2", "t3"),
+            gene = c("g1", "g1", "g2"),
+            stringsAsFactors = FALSE
+        )
+        
+        tx2gene_global <<- tx2gene_global  # Make sure global exists
+        
+        coldata <- data.frame(
+            Sample = c("S1", "S2"),
+            Condition = c("A", "B"),
+            stringsAsFactors = FALSE
+        )
+        
+        mat <- matrix(rnorm(4), nrow = 2)
+        colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
+        se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
+        
+        result <- map_metadata(se, coldata)
+        
+        # Should have used parent.frame version (3 rows, not 2)
+        md <- S4Vectors::metadata(result)
+        expect_true(!is.null(md$tx2gene))
+        # The parent.frame version should be used (has 3 rows)
+        expect_equal(nrow(md$tx2gene), 3)
+    }
+    wrapper_func()
+    
+    # Clean up
+    rm(tx2gene_global, envir = globalenv())
+})
+
+test_that("map_metadata with no tx2gene/txmap leaves metadata tx2gene NULL", {
+    # When neither tx2gene nor txmap exist, tx2gene should remain NULL
+    coldata <- data.frame(
+        Sample = c("S1", "S2"),
+        Condition = c("A", "B"),
+        stringsAsFactors = FALSE
+    )
+    
+    mat <- matrix(rnorm(4), nrow = 2)
+    colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
+    se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
+    
+    result <- map_metadata(se, coldata)
+    
+    # Verify that tx2gene was not set (remains NULL)
+    md <- S4Vectors::metadata(result)
+    expect_true(is.null(md$tx2gene))
+})

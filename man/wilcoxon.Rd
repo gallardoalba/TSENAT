@@ -29,3 +29,12 @@ Raw and corrected p-values in a matrix.
 \description{
 Calculate p-values using Wilcoxon rank sum test.
 }
+\examples{
+# Create a matrix of splicing diversity values (3 genes x 6 samples)
+mat <- matrix(rnorm(18), nrow = 3)
+samples <- rep(c('Control', 'Treatment'), each = 3)
+
+# Run Wilcoxon test
+result <- wilcoxon(mat, samples, pcorr = 'BH')
+head(result)
+}

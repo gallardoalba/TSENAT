@@ -22,6 +22,15 @@
 #' calculate mean or median differences and log2 fold changes between two
 #' conditions.
 #' @import stats
+#' @examples
+#' # Simulate splicing diversity matrix (4 genes x 4 samples)
+#' mat <- matrix(c(
+#'   0.5, 0.6, 0.8, 0.9,  # gene1: low control, high treatment
+#'   0.7, 0.75, 0.6, 0.5  # gene2: high control, low treatment
+#' ), nrow = 2, byrow = TRUE)
+#' samples <- c('Normal', 'Normal', 'Tumor', 'Tumor')
+#' result <- calculate_fc(mat, samples, control = 'Normal', method = 'mean')
+#' head(result)
 calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) {
     # validate control and samples inputs
     if (is.null(control) || !nzchar(control)) {
@@ -76,6 +85,14 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0) 
 #' Set to > 1 to parallelize per-feature Wilcoxon tests.
 #' @return Raw and corrected p-values in a matrix.
 #' @import stats
+#' @examples
+#' # Create a matrix of splicing diversity values (3 genes x 6 samples)
+#' mat <- matrix(rnorm(18), nrow = 3)
+#' samples <- rep(c('Control', 'Treatment'), each = 3)
+#' 
+#' # Run Wilcoxon test
+#' result <- wilcoxon(mat, samples, pcorr = 'BH')
+#' head(result)
 wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
@@ -148,6 +165,16 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #' @note The permutation test returns two-sided empirical p-values using a
 #' pseudocount to avoid zero p-values for small numbers of permutations. See
 #' the function documentation for details.
+#' @examples
+#' set.seed(123)
+#' # Create a matrix of splicing diversity values (2 genes x 4 samples)
+#' mat <- matrix(rnorm(8), nrow = 2)
+#' samples <- c('Normal', 'Normal', 'Tumor', 'Tumor')
+#' 
+#' # Run label shuffling test (100 permutations)
+#' result <- label_shuffling(mat, samples, control = 'Normal', 
+#'                           method = 'mean', randomizations = 100, pcorr = 'BH')
+#' head(result)
 label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
     paired = FALSE, paired_method = c("swap", "signflip"), nthreads = 1) {
     paired_method <- match.arg(paired_method)

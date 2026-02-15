@@ -64,3 +64,14 @@ The permutation test returns two-sided empirical p-values using a
 pseudocount to avoid zero p-values for small numbers of permutations. See
 the function documentation for details.
 }
+\examples{
+set.seed(123)
+# Create a matrix of splicing diversity values (2 genes x 4 samples)
+mat <- matrix(rnorm(8), nrow = 2)
+samples <- c('Normal', 'Normal', 'Tumor', 'Tumor')
+
+# Run label shuffling test (100 permutations)
+result <- label_shuffling(mat, samples, control = 'Normal', 
+                          method = 'mean', randomizations = 100, pcorr = 'BH')
+head(result)
+}
