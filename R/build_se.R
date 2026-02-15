@@ -126,8 +126,8 @@ extract_tx2gene_from_gff3 <- function(gff3_file) {
         tx2gene_df <- data.frame(Transcript = character(0), Gene = character(0),
             stringsAsFactors = FALSE)
     } else {
-        tx2gene_df <- data.frame(Transcript = tx2gene_transcripts[seq_len(idx)], Gene = tx2gene_genes[seq_len(idx)],
-            stringsAsFactors = FALSE)
+        tx2gene_df <- data.frame(Transcript = tx2gene_transcripts[seq_len(idx)],
+            Gene = tx2gene_genes[seq_len(idx)], stringsAsFactors = FALSE)
     }
     rownames(tx2gene_df) <- NULL
 

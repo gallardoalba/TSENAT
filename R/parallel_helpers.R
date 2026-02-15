@@ -1,9 +1,8 @@
 # Helper functions for parallel processing using BiocParallel and parallel
 # package
 
-# Select and initialize parallel backend
-# @param nthreads Number of threads to use (default: 1)
-# @return BiocParallel BPPARAM object
+# Select and initialize parallel backend @param nthreads Number of threads to
+# use (default: 1) @return BiocParallel BPPARAM object
 .tsenat_get_bpparam <- function(nthreads = 1) {
     if (nthreads <= 1) {
         return(BiocParallel::SerialParam())
@@ -17,12 +16,10 @@
     }
 }
 
-# Apply function in parallel using the best available backend
-# @param X Vector or list to iterate over
-# @param FUN Function to apply
-# @param nthreads Number of threads (default: 1)
-# @param SIMPLIFY Whether to simplify results (default: TRUE)
-# @param FUN.VALUE Template for vapply (optional)
+# Apply function in parallel using the best available backend @param X Vector
+# or list to iterate over @param FUN Function to apply @param nthreads Number
+# of threads (default: 1) @param SIMPLIFY Whether to simplify results (default:
+# TRUE) @param FUN.VALUE Template for vapply (optional)
 .tsenat_bplapply <- function(X, FUN, nthreads = 1, SIMPLIFY = TRUE, FUN.VALUE = NULL) {
     if (nthreads <= 1) {
         # Serial execution
@@ -45,11 +42,9 @@
     }
 }
 
-# Apply function over two vectors in parallel
-# @param X First vector or list
-# @param Y Second vector or list  
-# @param FUN Function to apply (takes two arguments)
-# @param nthreads Number of threads (default: 1)
+# Apply function over two vectors in parallel @param X First vector or list
+# @param Y Second vector or list @param FUN Function to apply (takes two
+# arguments) @param nthreads Number of threads (default: 1)
 .tsenat_bpmapply <- function(X, Y, FUN, nthreads = 1) {
     if (nthreads <= 1) {
         return(unname(mapply(FUN, X, Y, SIMPLIFY = FALSE)))
