@@ -86,17 +86,19 @@ jobs:
             export _R_CHECK_FORCE_SUGGESTS_=false
             R CMD check --no-manual --num-workers=auto *.tar.gz
       - run:
-          name: Generate coverage report and upload
+          name: Generate coverage report and upload to Codecov
           command: |
             if [ -f tools/run_coverage.R ]; then
               Rscript tools/run_coverage.R
-              # Upload coverage in same step
-              if [ -f coverage/coverage.html ]; then
-                timeout 30 bash -c 'curl -s https://codecov.io/bash | bash' || echo "Warning: Codecov upload failed"
-              fi
+              # Install and use codecov CLI to upload coverage
+              pip install codecov
+              codecov
             else
               echo "Warning: tools/run_coverage.R not found"
             fi
+      - store_artifacts:
+          path: coverage
+          destination: coverage
 
 workflows:
   version: 2
