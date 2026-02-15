@@ -94,7 +94,3 @@ workflows:
   build_and_upload:
     jobs:
       - build
-            branches:
-              only:
-                - main
-                - master
