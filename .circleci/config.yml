@@ -32,7 +32,7 @@ jobs:
           name: Install package dependencies
           command: |
             Rscript - \<<'EOF'
-            options(Ncpus = 4)
+            options(Ncpus = 8)
             if (!requireNamespace("BiocManager", quietly = TRUE)) {
               install.packages("BiocManager", repos = "https://cloud.r-project.org")
             }
@@ -84,15 +84,14 @@ jobs:
           name: Run checks with parallel compilation
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
-            R CMD check --no-manual --num-workers=auto *.tar.gz
+            export _R_CHECK_ELAPSED_TIMEOUT_=Inf
+            R CMD check --no-manual *.tar.gz
       - run:
           name: Generate coverage report and upload to Codecov
           command: |
             if [ -f tools/run_coverage.R ]; then
-              Rscript tools/run_coverage.R
-              # Install and use codecov CLI to upload coverage
-              pip install --break-system-packages codecov
-              codecov
+              # Use covr::codecov() to upload directly (includes --upload flag)
+              Rscript tools/run_coverage.R --upload
             else
               echo "Warning: tools/run_coverage.R not found"
             fi
