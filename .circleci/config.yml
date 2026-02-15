@@ -84,7 +84,6 @@ jobs:
           name: Run checks with parallel compilation
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
-            export _R_CHECK_ELAPSED_TIMEOUT_=Inf
             R CMD check --no-manual *.tar.gz
       - run:
           name: Generate coverage report and upload to Codecov
