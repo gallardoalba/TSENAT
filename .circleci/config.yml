@@ -47,7 +47,7 @@ jobs:
       - run:
           name: Build package
           command: |
-            R CMD build .
+            R CMD build --compact-vignettes=both .
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
@@ -84,7 +84,7 @@ jobs:
           name: Run checks with parallel compilation
           command: |
             export _R_CHECK_FORCE_SUGGESTS_=false
-            R CMD check --no-manual *.tar.gz
+            R CMD check --no-manual --ignore-vignettes *.tar.gz
       - run:
           name: Generate coverage report and upload to Codecov
           command: |
