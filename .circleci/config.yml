@@ -91,7 +91,7 @@ jobs:
             if [ -f tools/run_coverage.R ]; then
               Rscript tools/run_coverage.R
               # Install and use codecov CLI to upload coverage
-              pip install codecov
+              pip install --break-system-packages codecov
               codecov
             else
               echo "Warning: tools/run_coverage.R not found"
