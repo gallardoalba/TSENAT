@@ -6,9 +6,9 @@
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
             if (norm) {
                 if (n <= 1) {
-                  # Single isoform: normalization is undefined (0/0) Return NA
+                  # Single isoform: normalization is undefined (0/0) Return NaN
                   # to indicate undefined normalization
-                  sh <- NA_real_
+                  sh <- NaN
                 } else {
                   sh <- sh/log(n, base = log_base)
                 }
@@ -19,9 +19,9 @@
             if (norm) {
                 max_ts <- (1 - n^(1 - qi))/(qi - 1)
                 # Handle single-isoform case: ts is 0, max_ts is also 0, so 0/0
-                # is undefined Return NA to indicate undefined normalization
+                # is undefined Return NaN to indicate undefined normalization
                 if (abs(max_ts) < tol || n <= 1) {
-                  ts <- NA_real_
+                  ts <- NaN
                 } else {
                   ts <- ts/max_ts
                 }
