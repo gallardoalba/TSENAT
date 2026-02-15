@@ -29,8 +29,28 @@ jobs:
       - run:
           name: Install package dependencies
           command: |
-            R -e 'install.packages(c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest", "covr"), repos="https://cloud.r-project.org")'
-            R -e 'if (!requireNamespace("BiocManager", quietly=TRUE)) install.packages("BiocManager", repos="https://cloud.r-project.org"); BiocManager::install(c("SummarizedExperiment", "S4Vectors", "BiocParallel"), ask=FALSE)'
+            Rscript - <<'EOF'
+            # Set options for faster parallel installation
+            options(Ncpus = 4)
+            
+            # Install BiocManager first (needed for Bioc packages)
+            if (!requireNamespace("BiocManager", quietly = TRUE)) {
+              install.packages("BiocManager", repos = "https://cloud.r-project.org", type = "binary")
+            }
+            
+            # Install CRAN packages (remotes, devtools are needed for install_deps)
+            cran_pkgs <- c("remotes", "devtools", "rcmdcheck", "ggplot2", "magrittr", 
+                          "tidyr", "dplyr", "knitr", "rmarkdown", "xml2", "ggrepel", 
+                          "cowplot", "patchwork", "mgcv", "pkgdown", "lme4", "lmerTest", "covr")
+            install.packages(cran_pkgs, repos = "https://cloud.r-project.org", type = "binary")
+            
+            # Install Bioc packages
+            BiocManager::install(c("SummarizedExperiment", "S4Vectors", "BiocParallel"), 
+                                ask = FALSE, type = "binary")
+            
+            # Install all dependencies from DESCRIPTION (with Suggests)
+            remotes::install_deps(dependencies = TRUE, upgrade = "never", type = "binary")
+            EOF
       - save_cache:
           paths:
             - ~/R/library
@@ -39,10 +59,6 @@ jobs:
           name: Build package
           command: |
             R CMD build .
-      - run:
-          name: Install R package dependencies (including Suggests)
-          command: |
-            R -e 'if (!requireNamespace("remotes", quietly=TRUE)) install.packages("remotes", repos="https://cloud.r-project.org"); remotes::install_deps(dependencies = TRUE)'
       - run:
           name: Fetch tools and CI config from maintenance branch
           command: |
