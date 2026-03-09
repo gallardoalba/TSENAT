@@ -11,7 +11,9 @@ plot_tsallis_gene_profile(
   n_top = 10,
   assay_name = "diversity",
   sample_type_col = "sample_type",
-  show_samples = FALSE
+  show_samples = FALSE,
+  metric = c("median", "mean"),
+  variability_metric = c("IQR", "variance")
 )
 }
 \arguments{
@@ -34,6 +36,13 @@ be plotted.}
 
 \item{show_samples}{Logical; if TRUE, draw per-sample lines in the
 background (default: FALSE).}
+
+\item{metric}{Central tendency metric to use (default: "median"). Options are
+"median" or "mean".}
+
+\item{variability_metric}{Variability metric to display as ribbon (default: "IQR").
+Options are "IQR" (interquartile range, shows ±IQR/2 around the central value) or
+"variance" (shows ±1 standard deviation around the central value).}
 }
 \value{
 A `ggplot` object when a single gene is requested, or a named list
@@ -41,12 +50,13 @@ A `ggplot` object when a single gene is requested, or a named list
 }
 \description{
 For a selected gene, plot per-sample Tsallis entropy across q values and
-overlay per-group median +/- IQR ribbons so group-level differences are
-easy to compare. Expects a `SummarizedExperiment` produced by
+overlay per-group centrality estimates with variability ribbons so group-level
+differences are easy to compare. Expects a `SummarizedExperiment` produced by
 `calculate_diversity()` with `_q=` suffixes in column names.
 }
 \examples{
 mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1", "g2"), c("s1_q=0.1", "s1_q=1", "s2_q=0.1", "s2_q=1")))
 se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
 plot_tsallis_gene_profile(se, gene = "g1")
+plot_tsallis_gene_profile(se, gene = "g1", metric = "mean", variability_metric = "variance")
 }

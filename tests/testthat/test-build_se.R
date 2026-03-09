@@ -1,3 +1,5 @@
+context("build_se: SummarizedExperiment Construction and Validation")
+
 testthat::test_that("build_se constructs SummarizedExperiment from tx2gene data.frame", {
     # small toy dataset
     set.seed(2)
@@ -54,7 +56,7 @@ testthat::test_that("build_se errors on missing tx2gene path and unmatched trans
     testthat::expect_error(build_se(readcounts, tx2gene_df))
 })
 
-context("build_se extra edge-case tests")
+context("SummarizedExperiment Construction: Edge Case Testing")
 
 library(SummarizedExperiment)
 
@@ -94,7 +96,7 @@ test_that("build_se works when readcounts has no rownames", {
 
     se <- build_se(rc, tx2)
     rd <- SummarizedExperiment::rowData(se)
-    expect_equal(as.character(rd$genes), c("g1", "g2"))
+    expect_equal(as.character(rd$gene_id), c("g1", "g2"))
     expect_equal(rownames(rd), rownames(rc))
 })
 
@@ -105,7 +107,7 @@ test_that("build_se errors on invalid tx2gene argument type", {
     expect_error(build_se(rc, 12345), "'tx2gene' must be a path \\(TSV or GFF3\\) or a data.frame")
 })
 
-context("build_se additional tests")
+context("SummarizedExperiment Construction: Additional Tests")
 
 library(SummarizedExperiment)
 
@@ -119,7 +121,7 @@ test_that("build_se accepts tx2gene data.frame and numeric matrix and sets metad
     expect_true(!is.null(md$tx2gene))
     expect_true(!is.null(md$readcounts))
     expect_equal(SummarizedExperiment::assayNames(se), "counts")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, c("g1", "g1", "g2"))
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, c("g1", "g1", "g2"))
 })
 
 test_that("build_se errors on missing tx2gene file path", {
@@ -136,14 +138,14 @@ test_that("build_se errors on non-numeric readcounts or mismatched transcript ID
 
     rc <- matrix(1:6, nrow = 3)
     rownames(rc) <- c("t1", "t2", "t3")
-    expect_error(build_se(rc, tx2), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, tx2), "Unmapped transcripts detected")
 })
 
 # ============================================================================
 # GFF3 Format Tests
 # ============================================================================
 
-context("build_se GFF3 file format support")
+context("SummarizedExperiment Construction: GFF3 File Format Support")
 
 test_that("build_se extracts tx2gene from actual GFF3.gz file in inst/extdata", {
     # Use the reference GFF3.gz test file packaged with TSENAT
@@ -165,10 +167,10 @@ test_that("build_se extracts tx2gene from actual GFF3.gz file in inst/extdata", 
     se <- build_se(rc, gff3_gz_path)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(length(SummarizedExperiment::rowData(se)$genes), 8)
-    expect_equal(SummarizedExperiment::rowData(se)$genes[1], "ENSG00000101456") # MXRA8
-    expect_equal(SummarizedExperiment::rowData(se)$genes[5], "ENSG00000102458") # C1orf86
-    expect_equal(SummarizedExperiment::rowData(se)$genes[7], "ENSG00000103259") # PDPN
+    expect_equal(length(SummarizedExperiment::rowData(se)$gene_id), 8)
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id[1], "ENSG00000101456") # MXRA8
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id[5], "ENSG00000102458") # C1orf86
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id[7], "ENSG00000103259") # PDPN
     expect_true("tx2gene" %in% names(S4Vectors::metadata(se)))
 })
 
@@ -211,7 +213,7 @@ chr1\tGENCODE\ttranscript\t3000\t4000\t.\t+\t.\tID=ENST00000003;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, c("ENSG00000001", "ENSG00000001", "ENSG00000002"))
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, c("ENSG00000001", "ENSG00000001", "ENSG00000002"))
     expect_true("tx2gene" %in% names(S4Vectors::metadata(se)))
 
     unlink(gff3_file)
@@ -238,7 +240,7 @@ chr1\tGENCODE\tmRNA\t1100\t1900\t.\t+\t.\tID=ENST00000002;Parent=ENSG00000001"
     se <- build_se(rc, gff3_gz_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, c("ENSG00000001", "ENSG00000001"))
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, c("ENSG00000001", "ENSG00000001"))
 
     unlink(gff3_gz_file)
 })
@@ -255,7 +257,7 @@ chr1\tGENCODE\texon\t1000\t1100\t.\t+\t.\tID=exon1;Parent=ENST00000001"
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -277,9 +279,9 @@ chr1\tGENCODE\ttranscript\t3000\t4000\t.\t+\t.\tID=ENST00000003;Parent=ENSG00000
 
     se <- build_se(rc, gff3_file)
 
-    expect_equal(length(SummarizedExperiment::rowData(se)$genes), 3)
-    expect_equal(SummarizedExperiment::rowData(se)$genes[1], "ENSG00000001")
-    expect_equal(SummarizedExperiment::rowData(se)$genes[3], "ENSG00000002")
+    expect_equal(length(SummarizedExperiment::rowData(se)$gene_id), 3)
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id[1], "ENSG00000001")
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id[3], "ENSG00000002")
 
     unlink(gff3_file)
 })
@@ -298,7 +300,7 @@ test_that("build_se backward compatible with TSV format", {
     se <- build_se(rc, tsv_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, c("ENSG00000001", "ENSG00000002"))
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, c("ENSG00000001", "ENSG00000002"))
 
     unlink(tsv_file)
 })
@@ -325,7 +327,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001;Parent=ENSG00000
 # GFF3 Malformed File Tests
 # ============================================================================
 
-context("build_se GFF3 malformed file handling")
+context("SummarizedExperiment Construction: GFF3 Malformed File Handling")
 
 test_that("build_se errors on GFF3 with missing columns", {
     # GFF3 with only 8 columns instead of 9
@@ -338,7 +340,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t."
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -355,7 +357,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tParent=ENSG00000001;Name=TRANSCR
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -373,7 +375,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001;Name=TRANSCRIPT1
     rownames(rc) <- "ENST00000001"
 
     # Will fail because Parent (gene) not found in readcounts
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -389,7 +391,7 @@ test_that("build_se errors on empty GFF3 file (header only)", {
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -416,7 +418,7 @@ chr1\tGENCODE\tmRNA\t1100\t1900\t.\t+\t.\tID=ENST00000002;Parent=ENSG00000001;Na
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, c("ENSG00000001", "ENSG00000001"))
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, c("ENSG00000001", "ENSG00000001"))
 
     unlink(gff3_file)
 })
@@ -436,7 +438,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, "ENSG00000001")
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, "ENSG00000001")
 
     unlink(gff3_file)
 })
@@ -456,7 +458,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, "ENSG00000001")
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, "ENSG00000001")
 
     unlink(gff3_file)
 })
@@ -474,7 +476,7 @@ chr1\tGENCODE\tCDS\t1100\t1900\t.\t+\t0\tID=cds1;Parent=ENST00000001"
     rc <- matrix(1:2, nrow = 1)
     rownames(rc) <- "tx1"
 
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -497,7 +499,7 @@ chr1\tGENCODE\ttranscript\t1100\t1900\t.\t+\t.\tID=enst00000002;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(length(SummarizedExperiment::rowData(se)$genes), 2)
+    expect_equal(length(SummarizedExperiment::rowData(se)$gene_id), 2)
 
     unlink(gff3_file)
 })
@@ -516,7 +518,7 @@ chr1\tGENCODE\ttranscript\t1100\t1900\t.\t+\t.\tID=ENST00000002;Parent=ENSG00000
     rc <- matrix(1:4, nrow = 2, ncol = 2)
     rownames(rc) <- c("ENST00000099", "ENST00000100")
 
-    expect_error(build_se(rc, gff3_file), "Some transcript IDs in readcounts were not found")
+    expect_error(build_se(rc, gff3_file), "Unmapped transcripts detected")
 
     unlink(gff3_file)
 })
@@ -558,7 +560,7 @@ chr1\tGENCODE\ttranscript\t1000\t2000\t.\t+\t.\tID=ENST00000001;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(SummarizedExperiment::rowData(se)$genes, "ENSG00000001")
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, "ENSG00000001")
 
     unlink(gff3_file)
 })
@@ -580,7 +582,7 @@ chr2\tGENCODE\ttranscript\t3000\t4000\t.\t+\t.\tID=ENST00000001;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     # Should use the first occurrence (ENSG00000001)
-    expect_equal(SummarizedExperiment::rowData(se)$genes, "ENSG00000001")
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, "ENSG00000001")
 
     unlink(gff3_file)
 })
@@ -616,8 +618,8 @@ chr3\tGENCODE\ttranscript\t1000\t1500\t.\t+\t.\tID=ENST00000003;Parent=ENSG00000
     se <- build_se(rc, gff3_file)
 
     expect_s4_class(se, "SummarizedExperiment")
-    expect_equal(length(SummarizedExperiment::rowData(se)$genes), 3)
-    expect_equal(SummarizedExperiment::rowData(se)$genes, c("ENSG00000001", "ENSG00000002", "ENSG00000003"))
+    expect_equal(length(SummarizedExperiment::rowData(se)$gene_id), 3)
+    expect_equal(SummarizedExperiment::rowData(se)$gene_id, c("ENSG00000001", "ENSG00000002", "ENSG00000003"))
 
     unlink(gff3_file)
 })
@@ -708,4 +710,331 @@ test_that("extract_tx2gene_from_gff3 with many transcripts (tests vector growing
     expect_equal(tx2gene_df$Gene[100], "ENSG00000100")
     
     unlink(gff3_file)
+})
+
+# Additional comprehensive tests for build_se.R functions
+# Testing skip parameter, unmapped transcript handling, gene name extraction, and metadata management
+
+context("SummarizedExperiment Construction: Skip Parameter and Unmapped Transcripts")
+
+library(testthat)
+library(SummarizedExperiment)
+library(S4Vectors)
+
+# Test 1: skip=FALSE with some unmapped transcripts (should error)
+test_that("build_se errors when skip=FALSE and some transcripts are unmapped", {
+    # Create readcounts with 5 transcripts
+    readcounts <- matrix(c(10, 20, 30, 40, 50, 15, 25, 35, 45, 55), 
+                         nrow = 5, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    rownames(readcounts) <- c("tx1", "tx2", "tx3", "tx4", "tx5")
+    
+    # Create tx2gene mapping with only 3 matches
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    
+    # skip=FALSE should error due to unmapped tx4 and tx5
+    expect_error(build_se(readcounts, tx2gene_df, skip = FALSE),
+                 "Unmapped transcripts detected")
+})
+
+# Test 2: skip=TRUE with minority unmapped transcripts (should remove them)
+test_that("build_se with skip=TRUE removes minority unmapped transcripts", {
+    # Create readcounts with 10 transcripts
+    readcounts <- matrix(sample(0:50, 10 * 2, replace = TRUE), 
+                         nrow = 10, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    rownames(readcounts) <- paste0("tx", 1:10)
+    
+    # Create tx2gene mapping with only 9 matches (90% mapped)
+    tx2gene_df <- data.frame(
+        Transcript = paste0("tx", 1:9),
+        Gene = c("g1", "g1", "g2", "g2", "g2", "g3", "g3", "g4", "g4"),
+        stringsAsFactors = FALSE
+    )
+    
+    # skip=TRUE should keep only mapped transcripts
+    expect_message(se <- build_se(readcounts, tx2gene_df, skip = TRUE),
+                   "Removing unmapped transcripts")
+    
+    # Check that SE has 9 rows (unmapped tx10 removed)
+    expect_equal(nrow(se), 9)
+    expect_equal(rownames(se), paste0("tx", 1:9))
+})
+
+# Test 3: skip=TRUE with >90% unmapped transcripts (should use transcript IDs as genes)
+test_that("build_se with skip=TRUE and >90% unmapped uses transcript IDs as gene identifiers", {
+    # Create readcounts with 100 transcripts
+    readcounts <- matrix(sample(0:50, 100 * 2, replace = TRUE), 
+                         nrow = 100, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    rownames(readcounts) <- paste0("tx", 1:100)
+    
+    # Create tx2gene mapping with only 5 matches (5% mapped, 95% unmapped)
+    tx2gene_df <- data.frame(
+        Transcript = paste0("tx", 1:5),
+        Gene = c("g1", "g1", "g2", "g2", "g3"),
+        stringsAsFactors = FALSE
+    )
+    
+    # skip=TRUE with >90% unmapped should use transcript IDs as genes
+    expect_message(se <- build_se(readcounts, tx2gene_df, skip = TRUE),
+                   ">90% of transcripts unmapped")
+    
+    # Check that all 100 rows are kept
+    expect_equal(nrow(se), 100)
+    
+    # Check that rowData$gene_id contains ALL transcript IDs (not just unmapped)
+    # When >90% unmapped, entire genes vector is replaced with tx_ids
+    rowdata <- rowData(se)
+    expect_equal(rowdata$gene_id[1], "tx1")
+    expect_equal(rowdata$gene_id[5], "tx5")
+    expect_equal(rowdata$gene_id[6], "tx6")
+    expect_equal(rowdata$gene_id[100], "tx100")
+    # All rows should be transcript IDs
+    expect_equal(as.character(rowdata$gene_id), paste0("tx", 1:100))
+})
+
+# Test 4: Metadata storage - tx2gene and readcounts
+test_that("build_se stores both tx2gene and readcounts in metadata", {
+    readcounts <- matrix(c(1, 2, 3, 4, 5, 6), nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    rownames(readcounts) <- tx2gene_df$Transcript
+    
+    se <- build_se(readcounts, tx2gene_df)
+    
+    # Check metadata storage
+    md <- metadata(se)
+    expect_true("tx2gene" %in% names(md))
+    expect_true("readcounts" %in% names(md))
+    
+    # Verify content
+    expect_equal(md$tx2gene, tx2gene_df)
+    expect_equal(md$readcounts, readcounts)
+})
+
+# Test 5: rowData structure with genes column
+test_that("build_se creates rowData with correct gene assignments", {
+    readcounts <- matrix(1:6, nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    rownames(readcounts) <- tx2gene_df$Transcript
+    
+    se <- build_se(readcounts, tx2gene_df)
+    
+    # Check rowData
+    rd <- rowData(se)
+    expect_equal(rd$gene_id, c("g1", "g1", "g2"))
+    expect_equal(rownames(rd), c("tx1", "tx2", "tx3"))
+})
+
+# Test 6: Test with TSV file containing tx2gene
+test_that("build_se with TSV file input stores tx2gene in metadata", {
+    # Create temporary TSV file
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    tsv_file <- tempfile(fileext = ".tsv")
+    write.table(tx2gene_df, file = tsv_file, sep = "\t", row.names = FALSE, quote = FALSE)
+    
+    readcounts <- matrix(1:6, nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    rownames(readcounts) <- tx2gene_df$Transcript
+    
+    se <- build_se(readcounts, tsv_file)
+    
+    # Check metadata
+    md <- metadata(se)
+    expect_true("tx2gene" %in% names(md))
+    expect_equal(md$tx2gene$Transcript, tx2gene_df$Transcript)
+    expect_equal(md$tx2gene$Gene, tx2gene_df$Gene)
+    
+    unlink(tsv_file)
+})
+
+context("SummarizedExperiment Construction: Error Handling for Invalid Inputs")
+
+# Test 7: Invalid tx2gene type (not character, data.frame, or path)
+test_that("build_se errors on invalid tx2gene type (numeric)", {
+    readcounts <- matrix(1:6, nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    rownames(readcounts) <- c("tx1", "tx2", "tx3")
+    
+    expect_error(build_se(readcounts, tx2gene = 123),
+                 "tx2gene.*must be a path.*or a data.frame")
+})
+
+# Test 8: Non-numeric readcounts
+test_that("build_se errors on non-numeric readcounts", {
+    readcounts <- data.frame(
+        S1 = c("a", "b", "c"),
+        S2 = c("d", "e", "f")
+    )
+    rownames(readcounts) <- c("tx1", "tx2", "tx3")
+    
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    
+    expect_error(build_se(readcounts, tx2gene_df),
+                 "readcounts.*must be a numeric")
+})
+
+# Test 9: Missing rownames in readcounts
+test_that("build_se errors when readcounts has no rownames", {
+    readcounts <- matrix(1:6, nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    # No rownames set
+    
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    
+    expect_error(build_se(readcounts, tx2gene_df),
+                 "readcounts.*must have transcript IDs as rownames")
+})
+
+# Test 10: Non-existent file path
+test_that("build_se errors when file path does not exist", {
+    readcounts <- matrix(1:6, nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    rownames(readcounts) <- c("tx1", "tx2", "tx3")
+    
+    expect_error(build_se(readcounts, "/nonexistent/path/file.tsv"),
+                 "tx2gene file not found")
+})
+
+context("SummarizedExperiment Construction: Custom Assay Names and Data Conversion")
+
+# Test 11: Multiple custom assay names
+test_that("build_se respects custom assay_name parameter", {
+    readcounts <- matrix(1:6, nrow = 3, ncol = 2)
+    colnames(readcounts) <- c("S1", "S2")
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    rownames(readcounts) <- tx2gene_df$Transcript
+    
+    se1 <- build_se(readcounts, tx2gene_df, assay_name = "raw_counts")
+    se2 <- build_se(readcounts, tx2gene_df, assay_name = "normalized")
+    
+    expect_true("raw_counts" %in% names(assays(se1)))
+    expect_false("counts" %in% names(assays(se1)))
+    expect_true("normalized" %in% names(assays(se2)))
+    expect_false("counts" %in% names(assays(se2)))
+})
+
+# Test 12: data.frame to matrix conversion
+test_that("build_se converts numeric data.frame readcounts to matrix", {
+    readcounts_df <- data.frame(
+        S1 = c(1, 2, 3),
+        S2 = c(4, 5, 6)
+    )
+    rownames(readcounts_df) <- c("tx1", "tx2", "tx3")
+    
+    tx2gene_df <- data.frame(
+        Transcript = c("tx1", "tx2", "tx3"),
+        Gene = c("g1", "g1", "g2"),
+        stringsAsFactors = FALSE
+    )
+    
+    se <- build_se(readcounts_df, tx2gene_df)
+    
+    assay_data <- assay(se, "counts")
+    expect_true(is.matrix(assay_data))
+    expect_equal(assay_data, as.matrix(readcounts_df))
+})
+
+context("SummarizedExperiment Construction: Dimension and Size Preservation")
+
+# Test 13: Verify SE dimensions match input
+test_that("build_se preserves dimensions of input readcounts", {
+    for (n_tx in c(5, 50, 500)) {
+        for (n_samps in c(2, 5, 10)) {
+            readcounts <- matrix(sample(0:50, n_tx * n_samps, replace = TRUE), 
+                                nrow = n_tx, ncol = n_samps)
+            colnames(readcounts) <- paste0("S", 1:n_samps)
+            rownames(readcounts) <- paste0("tx", 1:n_tx)
+            
+            tx2gene_df <- data.frame(
+                Transcript = rownames(readcounts),
+                Gene = rep_len(paste0("g", 1:10), n_tx),
+                stringsAsFactors = FALSE
+            )
+            
+            se <- build_se(readcounts, tx2gene_df)
+            
+            expect_equal(nrow(se), n_tx)
+            expect_equal(ncol(se), n_samps)
+            expect_equal(dim(assay(se)), c(n_tx, n_samps))
+        }
+    }
+})
+
+# Test 14: All transcripts mapped correctly
+test_that("build_se correctly maps all transcripts when all are in tx2gene", {
+    n_tx <- 20
+    readcounts <- matrix(sample(0:100, n_tx * 4, replace = TRUE), 
+                        nrow = n_tx, ncol = 4)
+    colnames(readcounts) <- paste0("S", 1:4)
+    rownames(readcounts) <- paste0("tx", 1:n_tx)
+    
+    # Create complete tx2gene mapping
+    tx2gene_df <- data.frame(
+        Transcript = paste0("tx", 1:n_tx),
+        Gene = rep(paste0("g", 1:5), each = 4),
+        stringsAsFactors = FALSE
+    )
+    
+    se <- build_se(readcounts, tx2gene_df)
+    rd <- rowData(se)
+    
+    # All genes should be mapped, no NAs
+    expect_false(any(is.na(rd$gene_id)))
+    expect_equal(length(unique(rd$gene_id)), 5)
+})
+
+context("SummarizedExperiment Construction: Real GFF3 File Integration")
+
+# Test 15: Full workflow with actual package data
+test_that("build_se works with real readcounts and GFF3 from package", {
+    skip_if_not_installed("TSENAT")
+    
+    # Load real example data (contains salmon_dataset, salmon_tpm, salmon_effective_length)
+    data(readcounts, package = "TSENAT")
+    
+    # Use real GFF3 file from package
+    gff3_path <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    skip_if(gff3_path == "", "GFF3 file not found in package")
+    
+    # Build SE from real data (salmon_dataset contains the transcript counts)
+    rc_matrix <- as.matrix(salmon_dataset)
+    mode(rc_matrix) <- "numeric"
+    se <- build_se(rc_matrix, gff3_path)
+    
+    # Verify structure
+    expect_s4_class(se, "SummarizedExperiment")
+    expect_true(nrow(se) > 0)
+    expect_true(ncol(se) > 0)
+    expect_true("counts" %in% names(assays(se)))
 })

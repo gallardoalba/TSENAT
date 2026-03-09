@@ -1,175 +1,124 @@
-[![CircleCI](https://circleci.com/gh/gallardoalba/TSENAT.svg?style=svg)](https://app.circleci.com/pipelines/github/gallardoalba/TSENAT) [![pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://gallardoalba.github.io/TSENAT/) [![License: GPL-3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE) ![GitHub last commit](https://img.shields.io/github/last-commit/gallardoalba/TSENAT) ![GitHub R package version](https://img.shields.io/github/r-package/v/gallardoalba/TSENAT) [![coverage](https://codecov.io/gh/gallardoalba/TSENAT/branch/stable/graph/badge.svg)](https://codecov.io/gh/gallardoalba/TSENAT/branch/stable)
+# tools — Developer and Maintenance Helpers
 
-# TSENAT: Tsallis Entropy Analysis Toolbox
+This directory contains small, focused helper tools to simplify local
+development, testing, documentation and release tasks for the TSENAT R
+package. Each tool is executable with `Rscript` and is designed to do
+one thing well.
 
+## Quick Reference
 
-TSENAT is an R package for quantifying and modelling the relative isoform-usage diversity across samples. It provides a complementary, _orthogonal_ analytical method to standard differential-expression tools (for example, DESeq2), allowing the identification of isoform switching and splicing-driven regulatory changes that may occur without pronounced changes in overall gene expression, enabling thus the detection of regulatory events which cannot be captured by count-based differential expression methods.
+| Tool | Purpose | Example |
+|---|---:|---|
+| `run_roxygen.R` | Regenerate `man/` from roxygen comments | `Rscript tools/run_roxygen.R` |
+| `run_tests.R` | Run package tests (testthat) | `Rscript tools/run_tests.R` |
+| `build_vignettes.R` | Build vignettes (HTML + PDF) → `inst/doc/` | `Rscript tools/build_vignettes.R` |
+| `build_pkgdown.R` | Build pkgdown site → `docs/` | `Rscript tools/build_pkgdown.R` |
+| `render_vignette.R` | Render a single vignette (HTML + PDF) | `Rscript tools/render_vignette.R` |
+| `install_deps.R` | Install package dependencies (remotes::install_deps) | `Rscript tools/install_deps.R` |
+| `run_bioccheck.R` | Run BiocCheck (Bioconductor) | `Rscript tools/run_bioccheck.R` |
+| `check_style.R` | Check / (optionally) fix code style (styler) | `Rscript tools/check_style.R` |
+| `fix_indent_multiple_of_4.R` | Normalize indentation in files | `Rscript tools/fix_indent_multiple_of_4.R <file>` |
+| `apply_style.R` | Check or apply code style fixes (styler) | `Rscript tools/apply_style.R` or `Rscript tools/apply_style.R --apply` |
 
-## Overview
+## New maintenance helpers
 
-Key capabilities:
-
-- Scale-dependent diversity analysis: evaluate isoform heterogeneity at different sensitivity levels using the parameter `q`.
-- Statistical testing: compare diversity measures between sample groups using Wilcoxon tests, permutation-based and linear-model approaches.
-- Reproducible workflows: from raw counts to publication-ready visualizations with paired sample support.
-
-## Tsallis Theory
-
-Tsallis entropy generalizes Shannon entropy. For a probability vector $p = (p_1, \dots, p_n)$ (with $p_i \ge 0$ and $\sum_i p_i = 1$) the Tsallis entropy of order $q$ is defined for $q \ne 1$ as
-
-$$
-S_q(p) = \frac{1 - \sum_{i} p_i^q}{q - 1}.
-$$
-
-When $q = 1$, this becomes Shannon entropy: $\lim_{q \to 1} S_q(p) = -\sum_i p_i \log p_i$ (a standard diversity measure).
-
-### Application to Transcript Expression
-
-Most genes produce multiple protein isoforms through alternative splicing. Rather than treating gene expression as a single number, TSENAT captures the pattern of isoform usage—which isoforms are abundant vs. rare—by computing Tsallis entropy at the transcript level.
-
-The parameter `q` acts as a sensitivity dial for isoform weighting:
-- $q < 1$ (e.g., 0.1, 0.5): emphasizes rare isoforms—useful for detecting whether a gene maintains diverse isoforms or loses minor variants in disease.
-- $q \approx 1$ (Shannon entropy): balanced view of overall isoform diversity.
-- $q > 1$ (e.g., 1.5, 2): emphasizes dominant isoforms—useful for detecting when one isoform abnormally dominates (common in cancer).
-
-## Features
-
-### Tsallis Entropy and Diversity Calculations
-
-- `calculate_tsallis_entropy()`: calculate Tsallis entropy for a single isoform distribution.
-  
-- `calculate_diversity()`: calculate diversity for every gene in your dataset. Works with count matrices, tximport lists, or standard Bioconductor objects.
-
-- `calculate_difference()`: test whether diversity changes between groups (e.g., tumor vs. normal). Supports paired samples and multiple statistical tests.
-
-- `calculate_lm_interaction()`: fit linear models to test interactions between factors (e.g., does treatment effect on diversity depend on genotype?). Useful for complex experimental designs.
-
-### Differential and Statistical Analyses
-
-Beyond computing diversity values, TSENAT enables group comparisons to identify biological effects:
-
-- Paired and unpaired designs: test whether isoform diversity differs between groups (e.g., tumor vs. normal samples). Account for paired designs when comparing same patients before/after treatment, or use unpaired designs for independent cohorts.
-- Robust statistical testing: choose between Wilcoxon rank-sum tests (ideal for small sample sizes and non-normal distributions common in omics data) or permutation-based tests (no distributional assumptions required).
-- Linear model framework: fit linear mixed-effects models to account for random effects and covariates, which are particularly useful when controlling for confounding variables while testing group effects on diversity.
-
-
-### Plotting and Visualization
-
-- Per-gene q-curve profiles: visualize how a single gene's isoform diversity changes across the sensitivity parameter `q`. This reveals scale-dependent patterns: rare isoforms may disappear at high `q`, while dominant isoforms emerge.
-
-![PI16 q-Curve Profile](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/pi16-gene-qprofile-1.png)
-
-- Group comparisons and significance: summarize diversity differences between biological groups across all genes simultaneously to identify candidate genes.
-
-![MA plot (Tsallis)](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/ma-tsallis-1.png)
-
-
-- Isoform-level details: explore individual transcripts to understand which specific isoforms are driving diversity changes. TSENAT enables the visualization of transcript composition across samples for candidate genes.
-
-![Isoform Composition](https://gallardoalba.github.io/TSENAT/articles/TSENAT_files/figure-html/top-transcripts-singleq-1.png)
-
-## Installation
-
-Install from GitHub:
-
-```r
-if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
-remotes::install_github("gallardoalba/TSENAT")
-
-## Recommended (reproducible environment): use renv
-install.packages("renv")
-renv::init()
-renv::snapshot()
+- `check_package.R` — Run a quick integrity suite (roxygen sync, style,
+  tests, dependency checks, doc completeness):
+```bash
+Rscript tools/check_package.R
 ```
 
-## Quick Start
-
-Compute Tsallis diversity for a single `q` and plot a q-curve across multiple `q` values:
-
-```r
-library(TSENAT)
-data("tcga_brca_luma", package = "TSENAT")
-
-# Compute normalized diversity for q = 0.1
-readcounts <- as.matrix(tcga_brca_luma[, -1, drop = FALSE])
-genes <- tcga_brca_luma[, 1]
-ts_se <- calculate_diversity(readcounts, genes, q = 0.1, norm = TRUE)
-
-# Compute across multiple q values
-qvec <- seq(0.01, 2, by = 0.1)
-ts_multi <- calculate_diversity(readcounts, genes, q = qvec, norm = TRUE)
-
-# Visualize
-p_qcurve <- plot_tsallis_q_curve(ts_multi)
-print(p_qcurve)
+- `bump_version.R` — Bump package `Version` (DESCRIPTION), update
+  `_pkgdown.yml` (if present) and prepend a NEWS entry. Usage:
+```bash
+Rscript tools/bump_version.R [major|minor|patch]
+# default: patch
 ```
 
-For a detailed, reproducible workflow see the [package vignette](https://gallardoalba.github.io/TSENAT/articles/TSENAT.html).
+- `prepare_release.R` — Orchestrates pre-release tasks:
+  checks → build vignettes → build docs → verify metadata. It prints a
 
-## Tests coverage
-
-Testing is vital in research as it ensures the validity and reliability 
-of results, which is essential for accurately interpreting findings. 
-The report about the current testing coverage can be found in [here](https://app.codecov.io/gh/gallardoalba/TSENAT).
-
-## Citation
-
-If you use TSENAT in your research, please cite:
-
-```r
-citation("TSENAT")
+```bash
+Rscript tools/prepare_release.R
 ```
 
-This command displays the recommended bibliographic entry. A machine-readable `CITATION` file is included with the package for easy export to reference managers.
+## Usage guidelines (recommended workflows)
 
-**BibTeX entry:**
-```bibtex
-@software{gallardo2026tsenat,
-  title={TSENAT: Tsallis Entropy Analysis Toolbox},
-  author={Gallardo Alba, Cristóbal},
-  url={https://github.com/gallardoalba/TSENAT},
-  year={2026}
-}
+### Recently added maintenance helpers
+
+- `run_linters.R` — Format and lint package source using `styler` and `lintr`.
+```bash
+Rscript tools/run_linters.R
 ```
 
-## Contributing
-
-We welcome contributions! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature-name`)
-3. Make your changes and test locally with `R CMD check`
-4. Commit with clear messages (`git commit -m 'Add feature: description'`)
-5. Push to your fork (`git push origin feature/your-feature-name`)
-6. Open a Pull Request describing your changes
-
-### Local Testing
-
-Ensure all checks pass before submitting:
-
-```r
-devtools::check()
-devtools::test()
+- `audit_deps.R` — Audit dependencies and print packages that are out-of-date
+  (uses `remotes::package_deps()`).
+```bash
+Rscript tools/audit_deps.R
 ```
 
-## CI and Local Checks
-
-Continuous integration is configured with CircleCI to install all suggested packages for comprehensive testing. To reproduce a CI-like environment locally:
-
-```r
-# Install all suggested dependencies
-remotes::install_deps(dependencies = c("Suggests"))
-
-# Run checks
-R CMD check --as-cran
+- `run_rhub_checks.R` — Submit the package to R-hub for platform checks.
+  Set `R_HUB_EMAIL` in your environment to receive notifications.
+```bash
+R_HUB_EMAIL=you@example.org Rscript tools/run_rhub_checks.R
 ```
 
-## License and Attribution
+- `generate_citation.R` — Print the package citation or write a `CITATION`
+  file if none exists (requires the package to be installed to generate a
+  full citation automatically).
+```bash
+Rscript tools/generate_citation.R
+```
 
-This project is licensed under the GNU General Public License v3.0 (GPL-3). See [LICENSE](LICENSE) for details.
 
-Attribution: TSENAT builds upon the [SplicingFactory package](https://github.com/esebesty/SplicingFactory), extending it with specialized focus on Tsallis entropy analysis.
+### Quick development loop
 
-> **“If I ever come back from the past, it's to create a cyclone.”**
->
-> — Juan José Lozano
+```bash
+# regenerate docs after changing roxygen comments
+Rscript tools/run_roxygen.R
+
+# run tests
+Rscript tools/run_tests.R
+
+# check code style and fix (if desired)
+Rscript tools/check_style.R
+```
+Rscript tools/apply_style.R
+# to apply fixes in-place:
+Rscript tools/apply_style.R --apply
+### Prepare documentation & website
+
+```bash
+# build vignettes and pkgdown site locally
+Rscript tools/build_vignettes.R
+Rscript tools/build_pkgdown.R
+Rscript tools/build_vignettes.R
+Rscript tools/build_vignettes.R --pdf
+```
+
+### Before tagging a release
+
+```bash
+Rscript tools/deploy_ghpages.R
+# run full package checks
+Rscript tools/check_package.R
+
+# bump version (patch, minor or major), update NEWS.md
+Rscript tools/bump_version.R patch
+
+Rscript tools/prepare_release.R
+```
+
+## CI notes
+
+- CI uses `.circleci/config.yml` to run the canonical build/test/deploy
+  steps. These tools are primarily for local development and help
+  reproduce CI steps locally.
+
+## Conventions and tips
+
+- Run tools from the package root.
+- Tools will attempt to install missing R packages from CRAN/Bioconductor
+  when necessary.
+- Tools are intended as developer conveniences — they are not a
+  replacement for a proper CI pipeline.

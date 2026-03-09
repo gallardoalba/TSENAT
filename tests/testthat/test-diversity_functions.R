@@ -1,4 +1,4 @@
-context("Tsallis entropy calculations")
+context("Tsallis Entropy: Core Calculations")
 
 test_that("Tsallis entropy calculation is mathematically correct", {
     # Mathematical reference:
@@ -54,13 +54,14 @@ test_that("Tsallis entropy calculation is mathematically correct", {
     expect_named(tsallis_vec, paste0("q=", qvec))
 
     # Edge cases
+    # Single isoform with norm=TRUE: normalized entropy is 0/0 = undefined (NaN)
     expect_true(is.nan(calculate_tsallis_entropy(c(1), q = 2)))
     expect_true(is.na(calculate_tsallis_entropy(c(0, 0), q = 2)))
     expect_error(calculate_tsallis_entropy(read_counts, q = 0))
     expect_error(calculate_tsallis_entropy(read_counts, q = -1))
 })
 
-context("diversity_helpers extras")
+context("Tsallis Entropy: Helper Function Extensions")
 
 library(testthat)
 
@@ -146,7 +147,7 @@ test_that(".tsenat_prepare_diversity_input handles SummarizedExperiment variants
 
 skip_on_bioc()
 
-context("Extra diversity function tests")
+context("Tsallis Entropy: Additional Function Tests")
 
 library(TSENAT)
 
@@ -190,6 +191,7 @@ test_that("calculate_tsallis_entropy computes expected values for simple distrib
 
 test_that(".tsenat_prepare_diversity_input accepts data.frame and emits matrices", {
     df <- data.frame(S1 = c(1, 2), S2 = c(3, 4))
+    rownames(df) <- c("g1", "g2")
     res <- TSENAT:::.tsenat_prepare_diversity_input(df)
     expect_true(is.matrix(res$x))
     expect_null(res$se_assay_mat)
@@ -197,6 +199,7 @@ test_that(".tsenat_prepare_diversity_input accepts data.frame and emits matrices
 
 test_that(".tsenat_prepare_diversity_input warns/messages for tpm non-list inputs", {
     mat <- matrix(1:6, nrow = 3)
+    rownames(mat) <- c("g1", "g2", "g3")
     expect_message(TSENAT:::.tsenat_prepare_diversity_input(mat, tpm = TRUE, verbose = TRUE), "tpm as a logical argument is only interpreted")
 })
 
@@ -228,4 +231,112 @@ test_that(".tsenat_prepare_diversity_input errors on invalid assayno for Summari
     rc <- matrix(1:4, nrow = 2)
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(a = rc))
     expect_error(TSENAT:::.tsenat_prepare_diversity_input(se, assayno = 2), "Please provide a valid assay number")
+})
+
+# Tests for vector pseudocount support in calculate_tsallis_entropy
+context("Tsallis Entropy: Vector Pseudocount Support")
+
+test_that("calculate_tsallis_entropy handles scalar pseudocount (existing behavior)", {
+    # Scalar pseudocount with vector input
+    x_vec <- c(10, 5, 2)
+    scalar_pc <- 0.5
+    
+    entropy_with_pc <- calculate_tsallis_entropy(x_vec, pseudocount = scalar_pc, q = 1, norm = FALSE)
+    
+    # Manual calculation: add pseudocount to each element
+    x_adjusted <- x_vec + scalar_pc
+    p_adjusted <- x_adjusted / sum(x_adjusted)
+    manual_entropy <- -sum(ifelse(p_adjusted > 0, p_adjusted * log(p_adjusted), 0))
+    
+    expect_equal(entropy_with_pc, manual_entropy, tolerance = 1e-8)
+})
+
+test_that("calculate_tsallis_entropy handles vector pseudocount with matrix (flattened treatment)", {
+    # Matrix input: function flattens it to compute single entropy value
+    x_mat <- matrix(c(
+        10, 5, 2, 8,    # row 1
+        5, 10, 15, 3    # row 2
+    ), nrow = 2, byrow = TRUE)
+    
+    # Vector pseudocount (one per row): will be applied row-wise via sweep then flattened
+    pseudocount_vec <- c(0.1, 0.2)
+    
+    entropy_with_pc_vec <- calculate_tsallis_entropy(x_mat, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
+    
+    # Manual calculation: apply row-wise pseudocounts via sweep, then flatten
+    x_adjusted <- sweep(x_mat, 1, pseudocount_vec, "+")
+    x_flat <- as.vector(x_adjusted)
+    p_flat <- x_flat / sum(x_flat)
+    manual_entropy <- -sum(ifelse(p_flat > 0, p_flat * log(p_flat), 0))
+    
+    expect_equal(entropy_with_pc_vec, manual_entropy, tolerance = 1e-8)
+})
+
+test_that("calculate_tsallis_entropy handles vector pseudocount with vector input", {
+    # Vector input with vector pseudocount (applied element-wise)
+    x_vec <- c(10, 5, 2, 8)
+    pseudocount_vec <- c(0.1, 0.2, 0.05, 0.15)
+    
+    entropy_with_pc <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
+    
+    # Manual calculation: element-wise addition
+    x_adjusted <- x_vec + pseudocount_vec
+    p_adjusted <- x_adjusted / sum(x_adjusted)
+    manual_entropy <- -sum(ifelse(p_adjusted > 0, p_adjusted * log(p_adjusted), 0))
+    
+    expect_equal(entropy_with_pc, manual_entropy, tolerance = 1e-8)
+})
+
+test_that("calculate_tsallis_entropy handles vector pseudocount rescuing zeros", {
+    # Vector with zeros rescued by pseudocount
+    x_vec <- c(0, 0, 0, 0)
+    pseudocount_vec <- c(1.0, 1.0, 1.0, 1.0)
+    
+    entropy_with_pc <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
+    
+    # Should have finite value after pseudocount rescue
+    expect_true(is.finite(entropy_with_pc))
+    
+    # Manual verification: uniform distribution should have Shannon entropy of log(4)
+    x_adjusted <- x_vec + pseudocount_vec
+    p_adjusted <- x_adjusted / sum(x_adjusted)
+    manual_entropy <- -sum(ifelse(p_adjusted > 0, p_adjusted * log(p_adjusted), 0))
+    
+    expect_equal(entropy_with_pc, manual_entropy, tolerance = 1e-8)
+})
+
+test_that("calculate_tsallis_entropy pseudocount works with different q values", {
+    x_vec <- c(10, 5, 2, 8)
+    pseudocount_vec <- c(0.1, 0.2, 0.05, 0.15)
+    
+    # Test with multiple q values
+    entropy_q2 <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 2, norm = FALSE)
+    entropy_q15 <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1.5, norm = FALSE)
+    
+    # All should be finite and different
+    expect_true(is.finite(entropy_q2))
+    expect_true(is.finite(entropy_q15))
+    expect_false(isTRUE(all.equal(entropy_q2, entropy_q15)))
+})
+
+test_that("calculate_tsallis_entropy pseudocount=0 matches original behavior", {
+    x_vec <- c(10, 5, 2)
+    
+    # With pseudocount=0 or no pseudocount specified
+    entropy_no_pc <- calculate_tsallis_entropy(x_vec, q = 1, norm = FALSE)
+    entropy_pc0 <- calculate_tsallis_entropy(x_vec, pseudocount = 0, q = 1, norm = FALSE)
+    entropy_pc_vec_zero <- calculate_tsallis_entropy(x_vec, pseudocount = c(0, 0, 0), q = 1, norm = FALSE)
+    
+    expect_equal(entropy_no_pc, entropy_pc0, tolerance = 1e-10)
+    expect_equal(entropy_no_pc, entropy_pc_vec_zero, tolerance = 1e-10)
+})
+
+test_that("calculate_tsallis_entropy vector pseudocount dimension matching", {
+    # Matrix with 3 rows: pseudocount vector should have 3 elements
+    x_mat <- matrix(1:12, nrow = 3, byrow = TRUE)
+    pseudocount_vec <- c(0.1, 0.2, 0.05)
+    
+    # Should apply successfully without error
+    entropy_result <- calculate_tsallis_entropy(x_mat, pseudocount = pseudocount_vec, q = 2, norm = FALSE)
+    expect_true(is.finite(entropy_result))
 })

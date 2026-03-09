@@ -7,25 +7,25 @@
 plot_volcano(
   diff_df,
   x_col = NULL,
-  padj_col = "adjusted_p_values",
+  padj_col = "padj",
   label_thresh = 0.1,
-  padj_thresh = 0.05,
+  sig_alpha = 0.05,
   top_n = 5,
   title = NULL
 )
 }
 \arguments{
-\item{diff_df}{Data.frame from `test_differential()` or similar results.
+\item{diff_df}{Data.frame with differential expression results.
 Should contain p-values and optionally fold-change columns.}
 
 \item{x_col}{Optional column name for the x-axis. If `NULL`, the function
 will try to auto-detect a suitable numeric column (excluding p-values).}
 
-\item{padj_col}{Adjusted p-value column name (default: "adjusted_p_values").}
+\item{padj_col}{Adjusted p-value column name (default: "padj").}
 
 \item{label_thresh}{Fold-change threshold used to annotate points (default: 0.1).}
 
-\item{padj_thresh}{Adjusted p-value cutoff for significance (default: 0.05).}
+\item{sig_alpha}{Adjusted p-value cutoff for significance (default: 0.05).}
 
 \item{top_n}{Number of top significant genes to label (default: 5).}
 
@@ -44,7 +44,7 @@ significance coloring.
 df <- data.frame(
     gene = paste0("g", seq_len(10)),
     mean_difference = runif(10),
-    adjusted_p_values = runif(10)
+    padj = runif(10)
 )
-# plot_volcano(df, x_col = "mean_difference", padj_col = "adjusted_p_values")
+# plot_volcano(df, x_col = "mean_difference", padj_col = "padj")
 }

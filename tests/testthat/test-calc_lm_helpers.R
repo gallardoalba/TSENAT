@@ -1,4 +1,4 @@
-context("calc_lm_helpers functions")
+context("Linear Model Helpers: Basic Calculations")
 
 library(testthat)
 
@@ -44,8 +44,8 @@ test_that(".tsenat_fpca_interaction computes a p-value with reasonable input", {
     expect_true(is.null(res) || (is.data.frame(res) && "p_interaction" %in% colnames(res)))
 })
 
-# Try lm fallbacks and LRT/Satterthwaite extraction
-test_that(".tsenat_try_lm_fallbacks returns lm fits and extractors return numeric p-values", {
+# Try lm fallbacks and LRT extraction
+test_that(".tsenat_try_lm_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
     # build small long-format df
     df <- data.frame(
         entropy = rnorm(30),
@@ -59,8 +59,6 @@ test_that(".tsenat_try_lm_fallbacks returns lm fits and extractors return numeri
     if (!is.null(fb)) {
         lrt_p <- .tsenat_extract_lrt_p(fb$fit0, fb$fit1)
         expect_true(is.numeric(lrt_p) || is.na(lrt_p))
-        st_p <- .tsenat_extract_satterthwaite_p(NULL, fallback_lm = fb)
-        expect_true(is.numeric(st_p) || is.na(st_p))
     }
 })
 
@@ -95,25 +93,7 @@ test_that(".tsenat_try_lmer attempts lmer fitting when lme4 is installed", {
     expect_true(inherits(fit_try, "try-error") || inherits(fit_try, "lmerMod"))
 })
 
-# Test extraction of Satterthwaite p-value using lmerTest when available
-test_that(".tsenat_extract_satterthwaite_p returns numeric or NA when lmerTest present", {
-    skip_if_not_installed("lme4")
-    # prefer lmerTest but allow absence
-    set.seed(6)
-    subject <- rep(paste0("s", 1:8), each = 3)
-    q <- rep(c(0.1, 0.5, 1), times = 8)
-    group <- rep(c("A", "B"), length.out = length(q))
-    entropy <- rnorm(length(q), mean = 0.2 + as.numeric(group == "A") * 0.05 + 0.3 * q, sd = 0.02)
-    df <- data.frame(entropy = entropy, q = q, group = group, subject = subject, stringsAsFactors = FALSE)
-    f <- as.formula("entropy ~ q * group + (1 | subject)")
-    fit <- try(lme4::lmer(f, data = df, REML = FALSE), silent = TRUE)
-    if (!inherits(fit, "try-error")) {
-        pval <- .tsenat_extract_satterthwaite_p(fit, fallback_lm = NULL)
-        expect_true(is.numeric(pval) || is.na(pval))
-    } else {
-        succeed()
-    }
-})
+
 
 testthat::test_that("FPCA helper and interaction work on simple synthetic data", {
     set.seed(42)
@@ -132,7 +112,8 @@ testthat::test_that("FPCA helper and interaction work on simple synthetic data",
     )
     testthat::expect_true(is.data.frame(res) || is.null(res))
     if (!is.null(res)) {
-        testthat::expect_named(res, c("gene", "p_interaction"))
+        # function may include additional metadata (n_pcs_tested, etc.)
+        testthat::expect_true(all(c("gene", "p_interaction") %in% names(res)))
         testthat::expect_type(res$p_interaction, "double")
     }
 })
@@ -163,8 +144,10 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
     res <- .tsenat_try_lm_fallbacks(df)
     testthat::expect_type(res, "list")
-    testthat::expect_true(res$method %in% c("lm_subject", "lm_nosubject"))
-    testthat::expect_s3_class(res$fit1, "lm")
+    # AR(1) implementation now tries nlme first, then glmmTMB, then lm_subject_fixed, then lm_nosubject
+    testthat::expect_true(res$method %in% c("nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject"))
+    # fit1 can be lme, glmmTMB, or lm depending on which strategy succeeded
+    testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm"))
 
     # drop subject -> should pick nosubject fallback
     df2 <- df[, c("entropy", "q", "group")]
@@ -187,19 +170,7 @@ testthat::test_that("LRT p extraction returns numeric p-value for nested lm mode
     if (!is.na(p)) testthat::expect_true(p >= 0 && p <= 1)
 })
 
-testthat::test_that("Satterthwaite extraction uses fallback lm coefficients when provided", {
-    set.seed(3)
-    n <- 48
-    subject <- rep(1:12, each = 4)
-    q <- runif(n)
-    group <- rep(c("A", "B"), length.out = n)
-    entropy <- 0.3 * q + ifelse(group == "B", 0.4, 0) + rnorm(n, 0, 0.15)
-    df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
-    fb <- .tsenat_try_lm_fallbacks(df)
-    testthat::expect_type(fb, "list")
-    p_fb <- .tsenat_extract_satterthwaite_p(NULL, fallback_lm = fb)
-    testthat::expect_true(is.numeric(p_fb) || is.na(p_fb))
-})
+
 
 testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv available", {
     if (!rlang::is_installed("mgcv")) {
@@ -214,7 +185,8 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
     res <- .tsenat_gam_interaction(df, q_vals = q, g = "geneX", min_obs = 5)
     testthat::expect_true(is.data.frame(res) || is.null(res))
     if (!is.null(res)) {
-        testthat::expect_named(res, c("gene", "p_interaction"))
+        # GAM returns at minimum (gene, p_interaction); may include bias correction columns
+        testthat::expect_true("gene" %in% colnames(res) && "p_interaction" %in% colnames(res))
         testthat::expect_type(res$p_interaction, "double")
     }
 })
@@ -233,7 +205,7 @@ testthat::test_that("try_lmer returns an lmer object when lme4 available", {
     testthat::expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
 })
 
-context("calc_lm_helpers extra cases")
+context("Linear Model Helpers: Edge Cases and Validation")
 
 library(testthat)
 
@@ -255,7 +227,7 @@ test_that(".tsenat_fit_one_interaction linear branch handles min_obs and returns
     # min_obs > non-missing -> NULL
     res_null <- .tsenat_fit_one_interaction("g1",
         se = NULL, mat = mat, q_vals = q_vals,
-        sample_names = sample_names, group_vec = group_vec, method = "linear",
+        sample_names = sample_names, group_vec = group_vec, method = "lmm",
         pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 10, verbose = FALSE,
         suppress_lme4_warnings = TRUE, progress = FALSE
     )
@@ -270,7 +242,7 @@ test_that(".tsenat_fit_one_interaction linear branch handles min_obs and returns
     rownames(mat2) <- "gX"
     res <- .tsenat_fit_one_interaction("gX",
         se = NULL, mat = mat2, q_vals = qv,
-        sample_names = paste0("s", seq_along(qv)), group_vec = group, method = "linear",
+        sample_names = paste0("s", seq_along(qv)), group_vec = group, method = "lmm",
         pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
         suppress_lme4_warnings = TRUE, progress = FALSE
     )
@@ -338,20 +310,7 @@ test_that(".tsenat_extract_lrt_p returns NA for invalid models", {
     expect_true(is.na(p))
 })
 
-# .tsenat_extract_satterthwaite_p returns NA when fallback has no interaction
-test_that(".tsenat_extract_satterthwaite_p handles fallback lm without interaction", {
-    df <- data.frame(entropy = rnorm(20), q = runif(20), group = rep(c("A", "B"), length.out = 20))
-    fit1 <- stats::lm(entropy ~ q + group, data = df)
-    fb <- list(fit1 = fit1)
-    p <- .tsenat_extract_satterthwaite_p(NULL, fallback_lm = fb)
-    expect_true(is.na(p) || is.numeric(p))
 
-    # now with an interaction term
-    fit2 <- stats::lm(entropy ~ q * group, data = df)
-    fb2 <- list(fit1 = fit2)
-    p2 <- .tsenat_extract_satterthwaite_p(NULL, fallback_lm = fb2)
-    expect_true(is.numeric(p2) || is.na(p2))
-})
 
 # .tsenat_prepare_fpca_matrix returns NULL when insufficient good rows (min_obs large)
 test_that(".tsenat_prepare_fpca_matrix returns NULL when min_obs larger than available", {
@@ -400,7 +359,7 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
     mat <- matrix(obs, nrow = 1)
     rownames(mat) <- "g_fallback"
 
-    # pvalue = 'both' should pick satterthwaite when present (extracted from fallback)
+    # pvalue = 'both' should return p_lrt (no Satterthwaite with nlme AR(1))
     res_both <- .tsenat_fit_one_interaction("g_fallback",
         se = NULL, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both",
@@ -408,8 +367,14 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
         suppress_lme4_warnings = TRUE, progress = FALSE
     )
     expect_true(is.data.frame(res_both))
-    expect_true(all(c("p_interaction", "p_lrt", "p_satterthwaite", "fit_method", "singular") %in% colnames(res_both)))
-    expect_true(res_both$fit_method %in% c("lm_subject", "lm_nosubject"))
+    # nlme LMM returns p_interaction, p_lrt (Satterthwaite not available for AR(1))
+    expect_true(all(c("p_interaction", "p_lrt", "fit_method", "singular") %in% colnames(res_both)))
+    # AR(1) implementation tries nlme first, then glmmTMB, then lm_subject_fixed, then lm_nosubject
+    expect_true(res_both$fit_method %in% c(
+        "nlme::lme", "nlme::lme_ar1", "nlme", 
+        "nlme::lme_ar1_raw", "nlme::lme_arima(1,1,0)",
+        "glmmTMB", "lm_subject_fixed", "lm_nosubject"
+    ))
 
     # pvalue = 'lrt' should use the LRT p-value
     res_lrt <- .tsenat_fit_one_interaction("g_fallback",
@@ -421,7 +386,7 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
     expect_true(is.data.frame(res_lrt))
     expect_true(is.numeric(res_lrt$p_interaction) || is.na(res_lrt$p_interaction))
 
-    # pvalue = 'satterthwaite' should use fallback coefficients when available
+    # pvalue = 'satterthwaite' (ignored for nlme but parameter still accepted for compatibility)
     res_sat <- .tsenat_fit_one_interaction("g_fallback",
         se = NULL, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "satterthwaite",
@@ -528,13 +493,19 @@ test_that("lmm branch uses fallback when lmer returns singular fits", {
     mat <- matrix(obs, nrow = 1)
     rownames(mat) <- "g_sing"
 
-    # Expect that a message is printed when fallback is attempted
-    expect_message(
-        res <- .tsenat_fit_one_interaction("g_sing", se = NULL, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = TRUE, suppress_lme4_warnings = TRUE, progress = TRUE),
-        "simpler fixed-effects fallback"
-    )
+    # AR(1) implementation tries nlme first, which may succeed or require fallback
+    # If nlme fails, a fallback message is printed
+    tryCatch({
+        res <- .tsenat_fit_one_interaction("g_sing", se = NULL, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = TRUE, suppress_lme4_warnings = TRUE, progress = TRUE)
+    }, error = function(e) { res <<- NULL })
+    
     expect_true(is.data.frame(res))
-    expect_true(res$fit_method %in% c("lm_subject", "lm_nosubject", "lmer_singular", "fallback"))
+    # AR(1) implementation now tries nlme first, so fit_method can be nlme or a fallback method
+    expect_true(res$fit_method %in% c(
+        "nlme::lme", "nlme::lme_ar1", "nlme", 
+        "nlme::lme_ar1_raw", "nlme::lme_arima(1,1,0)",
+        "glmmTMB", "lm_subject_fixed", "lm_nosubject"
+    ))
 })
 
 # Test that lmer branch uses provided subject_col when present and returns lmer path
@@ -564,7 +535,7 @@ test_that("lmm branch uses subject_col and returns lmer method when available", 
 
     res <- .tsenat_fit_one_interaction("g_sub", se = se, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt", subject_col = "my_subject", paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
     expect_true(is.data.frame(res))
-    expect_true(res$fit_method %in% c("lmer", "lmer_singular", "fallback", "lm_subject", "lm_nosubject"))
+    expect_true(res$fit_method %in% c("nlme::lme", "nlme::lme_ar1", "nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject", "lmer", "lmer_singular", "fallback", "lm_subject"))
 })
 
 

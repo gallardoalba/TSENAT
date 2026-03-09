@@ -17,7 +17,14 @@ calculate_difference(
   paired = FALSE,
   exact = FALSE,
   pseudocount = 0,
-  nthreads = 1
+  nthreads = 1,
+  seed = NULL,
+  use_precision_weights = FALSE,
+  counts = NULL,
+  alpha = NULL,
+  beta = NULL,
+  robust_loss_type = "huber",
+  robust_scale_method = "mad"
 )
 }
 \arguments{
@@ -37,7 +44,8 @@ input.}
 'WT'}.}
 
 \item{method}{Method to use for calculating the average splicing diversity
-value in a condition. Can be \code{'mean'} or \code{'median'}.}
+value in a condition. Can be \code{'mean'}, \code{'median'}, or \code{'m_estimate'}
+(M-estimation for robust location estimation). Default: \code{'mean'}.}
 
 \item{test}{Method to use for p-value calculation: use \code{'wilcoxon'} for
 Wilcoxon rank sum test or \code{'shuffle'} for a label shuffling test.}
@@ -68,9 +76,35 @@ low sample counts remain \code{NA}.}
 
 \item{nthreads}{Number of threads for parallel processing (default: 1).
 Set to > 1 to parallelize per-feature statistical tests.}
+
+\item{seed}{Integer seed for label shuffling reproducibility (default: NULL).
+When provided, ensures reproducible permutation test results.}
+
+\item{use_precision_weights}{Logical; if \code{TRUE}, apply empirical Bayes
+precision weighting to p-values (default: \code{FALSE}). When enabled,
+requires \code{counts}, \code{alpha}, and \code{beta} parameters.}
+
+\item{counts}{Optional numeric matrix of raw counts (rows = genes, columns = samples)
+used for precision weighting. Required when \code{use_precision_weights = TRUE}.}
+
+\item{alpha}{Numeric; prior shape parameter for empirical Bayes (default: NULL).
+Required when \code{use_precision_weights = TRUE}. Must be positive.}
+
+\item{beta}{Numeric; prior rate parameter for empirical Bayes (default: NULL).
+Required when \code{use_precision_weights = TRUE}. Must be positive.}
+
+\item{robust_loss_type}{Character; loss function for M-estimation when \code{method = "m_estimate"}.
+Options: \code{'huber'} (default, robust), \code{'tukey'} (more aggressive),
+\code{'lsq'} (least squares). Ignored if method is 'mean' or 'median'.}
+
+\item{robust_scale_method}{Character; scale selection method for M-estimation when
+\code{method = "m_estimate"}. Options: \code{'mad'} (default, fast),
+\code{'proposal2'} (Huber's Proposal 2, adaptive), \code{'s-estimator'} (high breakdown).
+Ignored if method is 'mean' or 'median'. **Note: Permutation loop uses ~50-100x more
+computation time with M-estimation; pre-computed scales once before permutations.**}
 }
 \value{
-A \code{data.frame} with the mean or median values of splicing
+A \code{data.frame} with the mean, median, or M-estimate values of splicing
 diversity across sample categories and all samples, log2(fold change) of  the
 two different conditions, raw and corrected p-values.
 }
@@ -84,8 +118,8 @@ is a \code{SummarizedExperiment} object of splicing diversity values.
 Additionally, it can use a \code{data.frame} as input, where the first column
 contains gene names, and all additional columns contain splicing diversity
 values for each sample. A vector of sample conditions also serves as input,
-used for aggregating the samples by condition.   It calculates the mean or
-median of the splicing diversity data per sample  condition, the difference
+used for aggregating the samples by condition.   It calculates the mean, median,
+or M-estimate of the splicing diversity data per sample condition, the difference
 of these values and the log2 fold change of the two  conditions. Furthermore,
 the user can select a statistical method to  calculate the significance of
 the changes. The p-values and adjusted p-values  are calculated using a

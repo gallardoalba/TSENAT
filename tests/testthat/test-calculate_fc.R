@@ -1,4 +1,4 @@
-context("calculate_fc defensive checks")
+context("Fold Change Calculation: Defensive Input Validation")
 
 library(testthat)
 
@@ -13,7 +13,7 @@ test_that("calculate_fc errors when control missing or not found", {
 
 library(testthat)
 
-context("calculate_fc pseudocount behavior")
+context("Fold Change Calculation: Pseudocount Behavior")
 
 test_that("scale-aware pseudocount replaces non-positive group summaries", {
     # construct a small matrix with two genes and four samples (2 groups)

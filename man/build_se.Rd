@@ -4,7 +4,15 @@
 \alias{build_se}
 \title{Build a SummarizedExperiment from transcript readcounts and tx->gene map}
 \usage{
-build_se(readcounts, tx2gene, assay_name = "counts")
+build_se(
+  readcounts,
+  tx2gene,
+  assay_name = "counts",
+  skip = FALSE,
+  tpm = NULL,
+  effective_length = NULL,
+  metadata = NULL
+)
 }
 \arguments{
 \item{readcounts}{Numeric matrix or data.frame of transcript-level counts
@@ -41,18 +49,44 @@ transcript IDs that match the first column of tx2gene.}
 }}
 
 \item{assay_name}{Name for the assay to store readcounts (default: 'counts').}
+
+\item{skip}{Logical. If TRUE, unmapped transcripts are silently removed. 
+If FALSE (default), an error is raised when unmapped transcripts are found.}
+
+\item{tpm}{Numeric matrix or data.frame of SALMON TPM values (optional).
+If provided, stored in metadata as `salmon_tpm` for `filter_se()` 
+TPM-based filtering. Rows = transcripts, columns = samples (same dimension as readcounts).
+Example: from preprocessing output `salmon_tpm` or loaded via `load('readcounts.RData')`.}
+
+\item{effective_length}{Numeric vector of effective transcript lengths (optional).
+If provided, stored in metadata as `salmon_effective_length` for `calculate_diversity()`
+length-normalized entropy calculations. Vector length = number of transcripts.
+Typically obtained from SALMON quantification's EffectiveLength column (median across samples).
+Example: from preprocessing output `salmon_effective_length` or loaded via `load('readcounts.RData')`.}
 }
 \value{
-A `SummarizedExperiment` with assay, `metadata()$tx2gene`,
-  `metadata()$readcounts` and `rowData(se)$genes` populated.
+A `SummarizedExperiment` with:
+  \itemize{
+    \item `assay (counts)`: raw transcript counts
+    \item `metadata$tx2gene`: transcript-to-gene mapping
+    \item `metadata$readcounts`: raw transcript counts (preserved)
+    \item `metadata$salmon_tpm`: TPM values (if provided)
+    \item `metadata$salmon_effective_length`: effective lengths (if provided)
+    \item `rowData$transcript_id`: transcript IDs (matching rownames)
+    \item `rowData$gene_id`: gene IDs for each transcript
+    \item `rowData$gene_name`: human-readable gene names (if GFF3 provided)
+  }
 }
 \description{
 This helper creates a `SummarizedExperiment` with an assay named
 `counts`, stores the `tx2gene` table and the raw `readcounts` in
 `metadata()`, and extracts gene assignments from the tx2gene mapping
-to populate `rowData(se)$genes`.
+to populate `rowData()` with both transcript IDs and gene IDs.
 }
 \details{
+**NEW:** Also accepts SALMON quantification data (TPM, effective_length) 
+for downstream filtering and length-normalized diversity analysis.
+
 The function accepts three different input types for the tx2gene mapping:
 a file path (TSV or GFF3 format) or an in-memory data.frame.
 
@@ -66,10 +100,30 @@ a file path (TSV or GFF3 format) or an in-memory data.frame.
   \item If tx2gene is a data.frame, it is used directly.
 }
 
+\strong{rowData Structure (NEW):}
+The rowData now contains both transcript-level and gene-level identifiers:
+\itemize{
+  \item `transcript_id`: Transcript identifier (from readcounts rownames)
+  \item `gene_id`: Gene identifier (from tx2gene mapping)
+  \item `gene_name`: Human-readable gene name (from GFF3 when available)
+}
+This enables downstream functions like `calculate_divergence()` to easily
+filter by gene ID and aggregate or subset transcripts by gene.
+
 \strong{Transcript Matching:}
 All transcript IDs in the readcounts object (rownames) must have a
 corresponding entry in the tx2gene mapping. If any transcript is missing,
 an error is raised.
+
+\strong{SALMON Data Integration:}
+When TPM and effective_length are provided, they are stored in metadata
+for seamless integration with:
+\itemize{
+  \item `filter_se()`: automatically detects TPM in metadata for 
+        normalization-aware filtering
+  \item `calculate_diversity()`: automatically detects effective_length in metadata
+        for length-normalized entropy calculations
+}
 
 \strong{Performance:}
 \itemize{
@@ -90,12 +144,23 @@ readcounts <- matrix(c(10, 5, 2, 3),
     dimnames = list(c('ENST00000001', 'ENST00000002'), c('s1', 's2'))
 )
 se <- build_se(readcounts, tx2gene)
+# Now rowData contains transcript_id and gene_id columns:
+# rowData(se)$transcript_id  # ENST00000001, ENST00000002
+# rowData(se)$gene_id        # ENSG00000101, ENSG00000102
 
-# Example 2: Using TSV file path
+# Example 2: With SALMON data (TPM, effective_length)
+# Assuming preprocessed SALMON output loaded:
+# load('readcounts.RData') # salmon_dataset, salmon_tpm, salmon_effective_length
+# se <- build_se(salmon_dataset, tx2gene, tpm = salmon_tpm, 
+#               effective_length = salmon_effective_length)
+# Now filter_se() and calculate_diversity() use SALMON data automatically:
+# filtered_se <- filter_se(se, stringency = 'medium')  # Uses TPM from metadata
+# div_se <- calculate_diversity(salmon_dataset, ...)   # Uses effective_length
+
+# Example 3: Using TSV file path
 # Assuming you have a file 'tx2gene.tsv' with Transcript and Gene columns
 # se <- build_se(readcounts, 'path/to/tx2gene.tsv')
-
-# Example 3: Using GFF3.gz file path
+# Example 4: Using GFF3.gz file path
 # Assuming you have a file 'annotation.gff3.gz' with transcript features
 # se <- build_se(readcounts, 'path/to/annotation.gff3.gz')
 }

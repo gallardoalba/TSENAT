@@ -2,12 +2,17 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_tsallis_q_curve}
 \alias{plot_tsallis_q_curve}
-\title{Plot median +- IQR of Tsallis entropy across q values by group}
+\title{Plot Tsallis Q-curve with Bootstrap Confidence Bands and Statistical Testing}
 \usage{
 plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type"
+  sample_type_col = "sample_type",
+  n_bootstrap = 500,
+  ci_level = 0.95,
+  test_method = "wilcox",
+  alpha = 0.05,
+  bootstrap = FALSE
 )
 }
 \arguments{
@@ -17,23 +22,58 @@ plot_tsallis_q_curve(
 
 \item{sample_type_col}{Column name in `colData(se)` containing sample
 type labels (default: "sample_type").}
+
+\item{n_bootstrap}{Number of bootstrap replicates for CI computation (default: 500).}
+
+\item{ci_level}{Confidence level for CIs (default: 0.95 for 95% CI).}
+
+\item{test_method}{Statistical test: "wilcox" (Wilcoxon rank-sum, non-parametric)
+or "ttest" (Welch's t-test, parametric). Default: "wilcox".}
+
+\item{alpha}{Significance level for coloring q-ranges (default: 0.05).}
+
+\item{use_bootstrap}{Logical; if TRUE (default), uses bootstrap CIs with statistical
+testing. If FALSE, uses legacy median ± IQR/2 visualization.}
 }
 \value{
-A `ggplot` object showing median +- IQR across q values by group.
+A `ggplot` object showing q-curve with bootstrap confidence bands,
+  group-specific medians, and shading for q-ranges with significant group differences.
 }
 \description{
-This reproduces the `tsallis-q-curve-mean-sd` plot from the vignette: for
-each q value, compute per-gene Tsallis entropy per sample, summarize across
-genes by group (median and IQR) and plot median with a ribbon spanning
-median +- IQR/2.
+Enhanced q-curve visualization with bootstrap confidence intervals and statistical
+testing to identify q-ranges where groups significantly differ. For each q value:
+1. Computes median Tsallis entropy per gene per sample
+2. Generates bootstrap confidence bands (default 500 replicates per group/q)
+3. Tests for group differences (Wilcoxon or t-test)
+4. Shades q-ranges with significant differences (p < alpha)
+}
+\details{
+**Bootstrap Procedure:**
+For each group and q-value, resamples entire genes (not individual samples) with
+replacement 500 times, computes median entropy per resample, and takes quantiles.
+
+**Statistical Testing:**
+At each q-value, tests whether the two group distributions differ using Wilcoxon
+rank-sum test (robust to non-normality) or Welch's t-test. P-values < alpha are
+highlighted with red background shading.
+
+**Interpretation:**
+- Overlapping CIs suggest no significant difference at that q
+- Red-shaded q-ranges indicate statistical significance (p < 0.05)
+- Ribbon width shows uncertainty; narrower ribbons = more stable estimates
 }
 \examples{
-data("tcga_brca_luma", package = "TSENAT")
-rc <- as.matrix(tcga_brca_luma[1:40, -1, drop = FALSE])
-gs <- tcga_brca_luma[1:40, 1]
+data("readcounts", package = "TSENAT")
+rc <- as.matrix(readcounts[1:40, -1, drop = FALSE])
+gs <- readcounts[1:40, 1]
 se <- calculate_diversity(rc, gs,
     q = seq(0.01, 0.1, by = 0.03), norm = FALSE
 )
+# Default: median ± IQR (simple approach)
 p <- plot_tsallis_q_curve(se)
 p
+
+# Bootstrap CIs with Wilcoxon testing
+p2 <- plot_tsallis_q_curve(se, bootstrap = TRUE)
+p2
 }

@@ -22,9 +22,9 @@ A `ggplot` object with layered density plots.
 Plot diversity distributions (density) by sample type
 }
 \examples{
-data("tcga_brca_luma", package = "TSENAT")
-rc <- as.matrix(tcga_brca_luma[1:100, -1, drop = FALSE])
-gs <- tcga_brca_luma[1:100, 1]
+data("readcounts", package = "TSENAT")
+rc <- as.matrix(readcounts[1:100, -1, drop = FALSE])
+gs <- readcounts[1:100, 1]
 se <- calculate_diversity(rc, gs, q = 0.1, norm = FALSE)
 # Manually set sample_type in colData for plotting
 SummarizedExperiment::colData(se)$sample_type <- 

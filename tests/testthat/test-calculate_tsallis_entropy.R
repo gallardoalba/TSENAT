@@ -3,6 +3,8 @@
 
 library(TSENAT)
 
+context("calculate_tsallis_entropy: Core Entropy Calculations")
+
 test_that("calculate_tsallis_entropy computes correct q=1 Shannon entropy", {
     # For q=1 (limit), Tsallis entropy equals Shannon entropy
     # S_1 = -sum(p_i * log(p_i))

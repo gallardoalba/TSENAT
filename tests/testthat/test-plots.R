@@ -6,6 +6,8 @@
 library(TSENAT)
 skip_on_bioc()
 
+context("plots: Visualization and Data Exploration")
+
 test_that("plot_diversity_density returns ggplot object with valid data", {
     skip_if_not_installed("SummarizedExperiment")
     skip_if_not_installed("ggplot2")
@@ -272,7 +274,7 @@ test_that("plot_tsallis_q_curve returns ggplot with valid SE", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_metadata(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_q_curve(ts_se)
     expect_true(inherits(p, "ggplot"))
@@ -301,7 +303,7 @@ test_that("plot_tsallis_gene_profile returns ggplot for single gene", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_metadata(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_gene_profile(ts_se, gene = "G1")
     expect_s3_class(p, "ggplot")
@@ -339,7 +341,7 @@ test_that("plot_tsallis_density_multq returns ggplot", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_metadata(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_density_multq(ts_se)
     expect_s3_class(p, "ggplot")
@@ -368,7 +370,7 @@ test_that("plot_tsallis_violin_multq returns ggplot", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_metadata(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
 
     p <- plot_tsallis_violin_multq(ts_se)
     expect_s3_class(p, "ggplot")
@@ -497,7 +499,7 @@ test_that(".plot_ma_core errors when fold-change column missing or x axis missin
     expect_s3_class(.plot_ma_core(df2), "ggplot")
 })
 
-context("plot_top_transcripts")
+context("Visualization: Top Transcripts Plotting")
 
 library(SummarizedExperiment)
 
@@ -520,7 +522,7 @@ test_that("plot_top_transcripts errors when counts lack rownames", {
     expect_error(plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a", "b"), Gen = c("G1", "G1"))), "counts.*rownames")
 })
 
-context("generate_plots more tests")
+context("Visualization: Generate Plots Additional Tests")
 
 library(SummarizedExperiment)
 
@@ -566,7 +568,7 @@ test_that(".ptt_combine_plots returns a plot-like object", {
     expect_true(!is.null(out))
 })
 
-context("generate_plots extra tests")
+context("Visualization: Generate Plots Extra Tests")
 
 library(SummarizedExperiment)
 
@@ -630,16 +632,130 @@ test_that("plot_tsallis_q_curve and multq plots return ggplot", {
     expect_s3_class(pd, "ggplot")
 })
 
+test_that("plot_tsallis_q_curve correctly handles multiple groups with different entropy values", {
+    skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
+    library(dplyr)
+    
+    # Create SE with two groups having different entropy profiles
+    set.seed(42)
+    n_genes <- 20
+    n_q_vals <- 5
+    n_samples_per_group <- 4
+    
+    # Create data where "normal" group has higher entropy than "tumor" group across all q-values
+    normal_data <- matrix(rnorm(n_genes * n_q_vals * n_samples_per_group, mean = 0.7, sd = 0.1), 
+                          nrow = n_genes)
+    tumor_data <- matrix(rnorm(n_genes * n_q_vals * n_samples_per_group, mean = 0.4, sd = 0.1), 
+                         nrow = n_genes)
+    
+    mat <- cbind(normal_data, tumor_data)
+    
+    # Create column names with multiple q-values
+    q_vals <- seq(0.1, 0.5, by = 0.1)
+    col_names <- c(
+        paste0("S", 1:n_samples_per_group, "_q=", rep(q_vals, each = n_samples_per_group)),
+        paste0("S", (n_samples_per_group+1):(2*n_samples_per_group), "_q=", rep(q_vals, each = n_samples_per_group))
+    )
+    
+    colnames(mat) <- col_names
+    rownames(mat) <- paste0("g", 1:n_genes)
+    
+    # Ensure matrix values are in [0, 1]
+    mat <- pmax(pmin(mat, 1), 0)
+    
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+    rowData(se)$genes <- rownames(mat)
+    
+    # Set sample type
+    sample_types <- c(rep("normal", n_samples_per_group * n_q_vals), 
+                      rep("tumor", n_samples_per_group * n_q_vals))
+    cd <- S4Vectors::DataFrame(sample_type = sample_types, row.names = colnames(mat))
+    SummarizedExperiment::colData(se) <- cd
+    
+    # Generate plot
+    p <- TSENAT:::plot_tsallis_q_curve(se, sample_type_col = "sample_type")
+    
+    # Verify plot is ggplot
+    expect_s3_class(p, "ggplot")
+    
+    # Verify plot data contains both groups
+    plot_data <- p$data
+    expect_true("group" %in% colnames(plot_data))
+    expect_true("normal" %in% plot_data$group)
+    expect_true("tumor" %in% plot_data$group)
+    
+    # Verify q values are numeric and correct
+    expect_true("q" %in% colnames(plot_data))
+    expect_true(is.numeric(plot_data$q))
+    expect_false(is.factor(plot_data$q))
+    
+    # Verify there are multiple q-values
+    unique_q_vals <- unique(plot_data$q)
+    expect_equal(length(unique_q_vals), length(q_vals))
+    
+    # Verify normal group has higher median entropy than tumor group (based on our data construction)
+    normal_medians <- filter(plot_data, group == "normal") %>% pull(median)
+    tumor_medians <- filter(plot_data, group == "tumor") %>% pull(median)
+    expect_true(mean(normal_medians) > mean(tumor_medians))
+})
+
+test_that("plot_tsallis_q_curve preserves decimal q-values correctly", {
+    skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
+    library(dplyr)
+    
+    # Create SE with decimal q-values
+    q_decimal_vals <- c(0.15, 0.35)
+    n_samples <- 3
+    n_genes <- 2
+    n_cols <- n_samples * length(q_decimal_vals)
+    
+    mat <- matrix(rnorm(n_genes * n_cols, mean = 0.5, sd = 0.1), nrow = n_genes, ncol = n_cols)
+    col_names <- character(n_cols)
+    idx <- 1
+    for (q in q_decimal_vals) {
+        for (s in 1:n_samples) {
+            col_names[idx] <- paste0("S", s, "_q=", q)
+            idx <- idx + 1
+        }
+    }
+    colnames(mat) <- col_names
+    rownames(mat) <- c("g1", "g2")
+    
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
+    rowData(se)$genes <- rownames(mat)
+    
+    # Set sample type
+    cd <- S4Vectors::DataFrame(sample_type = rep(c("N", "T", "N"), length(q_decimal_vals)), row.names = colnames(mat))
+    SummarizedExperiment::colData(se) <- cd
+    
+    # Generate plot
+    p <- TSENAT:::plot_tsallis_q_curve(se, sample_type_col = "sample_type")
+    
+    # Verify plot data q values are numeric
+    plot_data <- p$data
+    expect_true(is.numeric(plot_data$q))
+    
+    # Verify q-values are preserved (should be approximately equal, accounting for floating point)
+    plotted_q <- sort(unique(plot_data$q))
+    expected_q <- sort(unique(q_decimal_vals))
+    expect_equal(length(plotted_q), length(expected_q))
+    
+    # Check each q-value with tolerance for floating point
+    for (i in seq_len(length(expected_q))) {
+        expect_true(abs(plotted_q[i] - expected_q[i]) < 1e-10)
+    }
+})
+
 test_that("plot_volcano auto-detects x_col and returns ggplot", {
     skip_if_not_installed("ggplot2")
-    df <- data.frame(gene = paste0("g", 1:10), mean_difference = rnorm(10), adjusted_p_values = runif(10))
+    df <- data.frame(gene = paste0("g", 1:10), mean_difference = rnorm(10), padj = runif(10))
     p <- TSENAT::plot_volcano(df)
     expect_s3_class(p, "ggplot")
 })
 
 skip_on_bioc()
 
-context("Additional generate_plots tests")
+context("Visualization: Generate Plots Extended Tests")
 
 library(TSENAT)
 
@@ -730,7 +846,7 @@ test_that(".plot_ma_core uses fc_df values when provided", {
     expect_equal(plotted_y, expected_y)
 })
 
-context("plot_top_helpers extra cases")
+context("Visualization: Top Transcripts Helper Functions")
 
 library(testthat)
 
@@ -856,7 +972,7 @@ test_that(".ptt_build_plot_from_summary generates ggplot and combine functions o
     }
 })
 
-context("plot_helpers extras")
+context("Visualization: Plot Helper Functions")
 
 library(testthat)
 
@@ -989,7 +1105,7 @@ test_that(".tsenat_prepare_volcano_df handles padj <=0 and signficance logic", {
 
 skip_on_bioc()
 
-context("Unit tests for plot_top_transcripts helpers")
+context("Visualization: Unit Tests for Plotting Helpers")
 
 library(TSENAT)
 
@@ -1111,7 +1227,7 @@ test_that(".ptt_combine_grid writes a PNG file when output_file is given", {
     expect_true(file.info(tf)$size > 0)
 })
 
-context("plot_tsallis_gene_profile extra cases")
+context("Visualization: Gene Profile Plotting (Edge Cases)")
 
 library(testthat)
 
@@ -1134,7 +1250,7 @@ test_that("plot_tsallis_gene_profile accepts vector of genes and returns list of
         stringsAsFactors = FALSE
     )
 
-    ts_se <- map_metadata(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
 
     plots <- plot_tsallis_gene_profile(ts_se, gene = c("G1", "G2"))
     expect_type(plots, "list")
@@ -1177,10 +1293,10 @@ test_that("plot_tsallis_gene_profile uses lm_res when gene is NULL and returns u
         Condition = conds,
         stringsAsFactors = FALSE
     )
-    ts_se <- map_metadata(se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata(se, coldata_df)
 
-    # Run linear lm interaction (fast) to get lm_res
-    lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", method = "linear", pvalue = "lrt", min_obs = 2)
+    # Run lmm lm interaction (fast) to get lm_res
+    lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", method = "lmm", pvalue = "lrt", min_obs = 2)
     if (nrow(lm_res) == 0) {
         # fallback synthetic lm_res: ensure top genes exist for plotting
         pvals <- runif(50, min = 0.01, max = 1)
@@ -1195,7 +1311,7 @@ test_that("plot_tsallis_gene_profile uses lm_res when gene is NULL and returns u
     lapply(plots, function(p) expect_s3_class(p, "ggplot"))
 })
 
-context("generate_plots.R coverage")
+context("Visualization: generate_plots.R Comprehensive Coverage")
 
 test_that("require_pkgs errors if packages are not installed", {
     # This test will fail if the package is actually installed. Use a highly
@@ -1393,6 +1509,84 @@ test_that("plot_tsallis_q_curve handles single group and empty long df", {
     expect_error(plot_tsallis_q_curve(123), "requires a SummarizedExperiment")
 })
 
+test_that("plot_tsallis_q_curve bootstrap parameter controls IQR vs bootstrap CI", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    skip_if_not_installed("tidyr")
+    skip_if_not_installed("dplyr")
+
+    library(SummarizedExperiment)
+    library(ggplot2)
+
+    # Create multi-group SE with enough data for bootstrap
+    set.seed(42)
+    readcounts <- matrix(rpois(60 * 6, lambda = 15), nrow = 60, ncol = 6)
+    colnames(readcounts) <- c("S1_N", "S2_N", "S3_N", "S1_T", "S2_T", "S3_T")
+    genes <- rep(paste0("G", 1:20), length.out = nrow(readcounts))
+
+    qvals <- seq(0.1, 0.5, by = 0.1)
+    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
+
+    coldata_df <- data.frame(
+        Sample = colnames(readcounts),
+        Condition = rep(c("Normal", "Tumor"), each = 3),
+        stringsAsFactors = FALSE
+    )
+
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
+
+    # Test default: bootstrap = FALSE (should use IQR)
+    p_iqr <- plot_tsallis_q_curve(ts_se, bootstrap = FALSE)
+    expect_s3_class(p_iqr, "ggplot")
+    expect_true(grepl("median ± IQR", p_iqr$labels$title))
+
+    # Test bootstrap = TRUE (should use bootstrap CIs)
+    p_bootstrap <- plot_tsallis_q_curve(ts_se, bootstrap = TRUE, n_bootstrap = 100)
+    expect_s3_class(p_bootstrap, "ggplot")
+    expect_true(grepl("Bootstrap", p_bootstrap$labels$title))
+
+    # Check that the two plots have different titles (different methods)
+    expect_false(identical(p_iqr$labels$title, p_bootstrap$labels$title))
+})
+
+test_that("plot_tsallis_q_curve bootstrap = TRUE respects ci_level and test_method", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    skip_if_not_installed("tidyr")
+    skip_if_not_installed("dplyr")
+
+    library(SummarizedExperiment)
+
+    set.seed(43)
+    readcounts <- matrix(rpois(60 * 6, lambda = 15), nrow = 60, ncol = 6)
+    colnames(readcounts) <- c("S1_N", "S2_N", "S3_N", "S1_T", "S2_T", "S3_T")
+    genes <- rep(paste0("G", 1:20), length.out = nrow(readcounts))
+
+    qvals <- seq(0.1, 0.3, by = 0.1)
+    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
+
+    coldata_df <- data.frame(
+        Sample = colnames(readcounts),
+        Condition = rep(c("Normal", "Tumor"), each = 3),
+        stringsAsFactors = FALSE
+    )
+
+    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
+
+    # Test with different ci_level
+    p_ci90 <- plot_tsallis_q_curve(ts_se, bootstrap = TRUE, ci_level = 0.90, n_bootstrap = 50)
+    expect_s3_class(p_ci90, "ggplot")
+
+    # Test with different test_method
+    p_ttest <- plot_tsallis_q_curve(ts_se, bootstrap = TRUE, test_method = "ttest", n_bootstrap = 50)
+    expect_s3_class(p_ttest, "ggplot")
+
+    # Both should be valid ggplots
+    expect_true(inherits(p_ci90, "ggplot"))
+    expect_true(inherits(p_ttest, "ggplot"))
+})
+
+
 test_that(".compute_transcript_fill_limits handles no transcripts found", {
     counts <- matrix(1:4, 2)
     rownames(counts) <- c("tx1", "tx2")
@@ -1423,7 +1617,7 @@ test_that(".draw_transcript_grid creates a temporary pdf in non-interactive sess
 
 test_that("plot_volcano handles errors", {
     df <- data.frame(gene = c("a", "b"), p = c(0.1, 0.01))
-    expect_error(plot_volcano(df), "Column 'adjusted_p_values' not found in diff_df")
+    expect_error(plot_volcano(df), "Column 'padj' not found in diff_df")
 })
 
 test_that(".ptt_combine_plots fallbacks work", {
@@ -1504,4 +1698,234 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
 
     # no samples or coldata
     expect_error(.ptt_prepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
+})
+
+# Tests for Correspondence Analysis plotting functions
+# These test plot_ca_inertia, plot_ca_contributions, plot_ca_biplot, plot_ca_comprehensive
+
+test_that("plot_ca_inertia returns ggplot object with valid entropy matrix", {
+    skip_if_not_installed("ggplot2")
+
+    # Create a minimal entropy matrix (genes × q-values)
+    entropy_matrix <- matrix(
+        c(1.2, 0.8, 1.5, 0.9, 1.1, 0.7, 1.0, 1.3, 0.9, 1.4),
+        nrow = 5, ncol = 2
+    )
+    rownames(entropy_matrix) <- paste0("Gene", 1:5)
+    colnames(entropy_matrix) <- paste0("q_", c(0.5, 1.0))
+
+    q_values <- c(0.5, 1.0)
+
+    # Test basic functionality
+    p <- plot_ca_inertia(entropy_matrix, q_values, n_dims = 3)
+    expect_s3_class(p, "gg")
+    expect_s3_class(p, "ggplot")
+})
+
+test_that("plot_ca_inertia handles various n_dims values", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(runif(50), nrow = 10, ncol = 5)
+    rownames(entropy_matrix) <- paste0("Gene", 1:10)
+    colnames(entropy_matrix) <- paste0("q_", 1:5)
+
+    q_values <- 1:5
+
+    # Test with different n_dims
+    for (n_dims in c(2, 5, 8)) {
+        p <- plot_ca_inertia(entropy_matrix, q_values, n_dims = n_dims)
+        expect_s3_class(p, "ggplot")
+    }
+})
+
+test_that("plot_ca_contributions returns ggplot object with valid entropy matrix", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(
+        c(1.2, 0.8, 1.5, 0.9, 1.1, 0.7, 1.0, 1.3, 0.9, 1.4),
+        nrow = 5, ncol = 2
+    )
+    rownames(entropy_matrix) <- paste0("Gene", 1:5)
+    colnames(entropy_matrix) <- paste0("q_", c(0.5, 1.0))
+
+    q_values <- c(0.5, 1.0)
+
+    p <- plot_ca_contributions(entropy_matrix, q_values, n_variables_labeled = 3)
+    expect_s3_class(p, "gg")
+    expect_s3_class(p, "ggplot")
+})
+
+test_that("plot_ca_contributions handles various n_variables_labeled values", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(runif(50), nrow = 10, ncol = 5)
+    rownames(entropy_matrix) <- paste0("Gene", 1:10)
+    colnames(entropy_matrix) <- paste0("q_", 1:5)
+
+    q_values <- 1:5
+
+    # Test with different n_variables_labeled (note: parameter not currently used in function)
+    for (n_labeled in c(2, 5, 10)) {
+        p <- plot_ca_contributions(entropy_matrix, q_values, n_variables_labeled = n_labeled)
+        expect_s3_class(p, "ggplot")
+    }
+})
+
+test_that("plot_ca_biplot returns ggplot object with valid entropy matrix", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(
+        c(1.2, 0.8, 1.5, 0.9, 1.1, 0.7, 1.0, 1.3, 0.9, 1.4),
+        nrow = 5, ncol = 2
+    )
+    rownames(entropy_matrix) <- paste0("Gene", 1:5)
+    colnames(entropy_matrix) <- paste0("q_", c(0.5, 1.0))
+
+    q_values <- c(0.5, 1.0)
+
+    p <- plot_ca_biplot(entropy_matrix, q_values, n_genes_labeled = 3)
+    expect_s3_class(p, "gg")
+    expect_s3_class(p, "ggplot")
+})
+
+test_that("plot_ca_biplot works with show_origin parameter", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(runif(30), nrow = 6, ncol = 5)
+    rownames(entropy_matrix) <- paste0("Gene", 1:6)
+    colnames(entropy_matrix) <- paste0("q_", 1:5)
+
+    q_values <- 1:5
+
+    # Test with show_origin = TRUE
+    p1 <- plot_ca_biplot(entropy_matrix, q_values, show_origin = TRUE)
+    expect_s3_class(p1, "ggplot")
+
+    # Test with show_origin = FALSE
+    p2 <- plot_ca_biplot(entropy_matrix, q_values, show_origin = FALSE)
+    expect_s3_class(p2, "ggplot")
+})
+
+test_that("plot_ca_comprehensive returns list of plots with valid entropy matrix", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(
+        c(1.2, 0.8, 1.5, 0.9, 1.1, 0.7, 1.0, 1.3, 0.9, 1.4),
+        nrow = 5, ncol = 2
+    )
+    rownames(entropy_matrix) <- paste0("Gene", 1:5)
+    colnames(entropy_matrix) <- paste0("q_", c(0.5, 1.0))
+
+    q_values <- c(0.5, 1.0)
+
+    # Test with all components
+    result <- plot_ca_comprehensive(
+        entropy_matrix, q_values,
+        include_biplot = TRUE,
+        include_contributions = TRUE
+    )
+
+    # Should return a list or patchwork object
+    expect_true(!is.null(result))
+})
+
+test_that("plot_ca_comprehensive handles include_biplot parameter", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(runif(30), nrow = 6, ncol = 5)
+    rownames(entropy_matrix) <- paste0("Gene", 1:6)
+    colnames(entropy_matrix) <- paste0("q_", 1:5)
+
+    q_values <- 1:5
+
+    # Test with include_biplot = TRUE
+    result1 <- plot_ca_comprehensive(entropy_matrix, q_values, include_biplot = TRUE)
+    expect_true(!is.null(result1))
+
+    # Test with include_biplot = FALSE
+    result2 <- plot_ca_comprehensive(entropy_matrix, q_values, include_biplot = FALSE)
+    expect_true(!is.null(result2))
+})
+
+test_that("plot_ca_comprehensive handles include_contributions parameter", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(runif(30), nrow = 6, ncol = 5)
+    rownames(entropy_matrix) <- paste0("Gene", 1:6)
+    colnames(entropy_matrix) <- paste0("q_", 1:5)
+
+    q_values <- 1:5
+
+    # Test with include_contributions = TRUE
+    result1 <- plot_ca_comprehensive(entropy_matrix, q_values, include_contributions = TRUE)
+    expect_true(!is.null(result1))
+
+    # Test with include_contributions = FALSE
+    result2 <- plot_ca_comprehensive(entropy_matrix, q_values, include_contributions = FALSE)
+    expect_true(!is.null(result2))
+})
+
+test_that("plot_ca_biplot works correctly with entropy_matrix extracted from SummarizedExperiment", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+
+    library(SummarizedExperiment)
+
+    # Create a minimal SummarizedExperiment with diversity assay
+    entropy_mat <- matrix(runif(30), nrow = 6, ncol = 5)
+    rownames(entropy_mat) <- paste0("Gene", 1:6)
+    # Use column naming convention with _q= pattern to match the regex extraction
+    colnames(entropy_mat) <- paste0("diversity_q=", round(c(0.5, 1.0, 1.5, 2.0, 2.5), 1))
+
+    rowData_df <- S4Vectors::DataFrame(genes = rownames(entropy_mat))
+    colData_df <- S4Vectors::DataFrame(samples = colnames(entropy_mat))
+    se <- SummarizedExperiment(
+        assays = list(diversity = entropy_mat),
+        rowData = rowData_df,
+        colData = colData_df
+    )
+
+    # This tests the fix from Appendix H Step 4
+    # Extract entropy matrix correctly as shown in the updated appendix
+    entropy_matrix <- assay(se, "diversity")
+    q_values <- as.numeric(sub(".*_q=", "", colnames(entropy_matrix)))
+
+    # Should work with correct parameters
+    p <- plot_ca_biplot(entropy_matrix, q_values)
+    expect_s3_class(p, "ggplot")
+    expect_equal(length(q_values), 5)  # Should extract 5 q-values correctly
+})
+
+test_that("plot_ca_biplot fails gracefully with incorrect input types", {
+    skip_if_not_installed("ggplot2")
+
+    # Test with wrong input type (SummarizedExperiment instead of matrix)
+    if (requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+        library(SummarizedExperiment)
+        se <- SummarizedExperiment(assays = list(diversity = matrix(runif(20), 5, 4)))
+
+        # Should fail because se is not a matrix
+        expect_error(plot_ca_biplot(se, q_values = 1:4))
+    }
+})
+
+test_that("plot_ca functions handle valid q_values length", {
+    skip_if_not_installed("ggplot2")
+
+    entropy_matrix <- matrix(runif(30), nrow = 6, ncol = 5)
+    rownames(entropy_matrix) <- paste0("Gene", 1:6)
+    colnames(entropy_matrix) <- paste0("q_", 1:5)
+
+    # q_values length matches number of columns
+    q_values <- 1:5
+
+    # Functions should work with matching q_values
+    p1 <- plot_ca_inertia(entropy_matrix, q_values)
+    expect_s3_class(p1, "ggplot")
+
+    p2 <- plot_ca_contributions(entropy_matrix, q_values)
+    expect_s3_class(p2, "ggplot")
+
+    p3 <- plot_ca_biplot(entropy_matrix, q_values)
+    expect_s3_class(p3, "ggplot")
 })

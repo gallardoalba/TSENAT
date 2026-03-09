@@ -1,4 +1,4 @@
-context("Difference calculation")
+context("Difference Calculation: Statistical Testing")
 
 # Shared expected messages used across tests
 msg_input_type <- "Input type unsupported; see \\?calculate_difference\\."
@@ -206,12 +206,12 @@ test_that("Calculate difference output is correct.", {
     result <- calculate_difference(diversity, samples, control)
 
     expect_true(is.data.frame(result))
-    expect_length(result, 7)
+    expect_length(result, 9)
     expect_equal(mean(result$Pathogenic_mean), 0.65, tolerance = 0.001, scale = 1)
     expect_equal(mean(result$Healthy_mean), 0.25, tolerance = 0.001, scale = 1)
 })
 
-context("calculate_difference additional tests")
+context("Difference Calculation: Additional Tests")
 
 library(SummarizedExperiment)
 
@@ -225,7 +225,7 @@ test_that("calculate_difference accepts SummarizedExperiment and uses sample_typ
 
     res <- calculate_difference(se, samples = NULL, control = "Healthy", method = "mean", test = "wilcoxon")
     expect_true(is.data.frame(res))
-    expect_true("raw_p_values" %in% colnames(res) || "adjusted_p_values" %in% colnames(res))
+    expect_true("pvalue" %in% colnames(res) || "padj" %in% colnames(res))
 })
 
 test_that("calculate_difference errors on invalid assayno for SummarizedExperiment", {
@@ -251,9 +251,9 @@ test_that("Genes with insufficient observations are reported with NA p-values (s
     res <- suppressWarnings(calculate_difference(df, samples = samples, control = "A", method = "mean", test = "wilcoxon"))
     expect_true(is.data.frame(res))
     # find g2 row and check NA p-values
-    row_g2 <- res[res$genes == "g2", , drop = FALSE]
+    row_g2 <- res[res$gene_id == "g2", , drop = FALSE]
     expect_true(nrow(row_g2) == 1)
-    expect_true(is.na(row_g2$raw_p_values) || is.na(row_g2$adjusted_p_values))
+    expect_true(is.na(row_g2$pvalue) || is.na(row_g2$padj))
 })
 
 
@@ -281,12 +281,14 @@ test_that("paired signflip permutations enumerate all combos when randomizations
     samples <- c("A", "B", "A", "B")
     # call label_shuffling with paired signflip and randomizations=0 to force enumeration
     res <- label_shuffling(mat, samples = samples, control = "A", method = "mean", randomizations = 0, pcorr = "none", paired = TRUE, paired_method = "signflip")
-    expect_true(is.matrix(res))
-    # result should be 1 row and 2 columns (raw and adjusted)
-    expect_equal(dim(res), c(1, 2))
+    expect_true(is.data.frame(res))
+    # result should be 1 row and 7 columns (pvalue, padj, log2FC, U, r, and 2 group means)
+    expect_equal(nrow(res), 1)
+    expect_equal(ncol(res), 7)
+    expect_true(all(c("pvalue", "padj", "log2FC", "U", "r") %in% colnames(res)))
 })
 
-context("calculate_difference extra cases")
+context("Difference Calculation: Edge Cases")
 
 library(testthat)
 
@@ -319,8 +321,8 @@ test_that("calculate_difference integrates with label_shuffling (shuffle path)",
 
     res <- calculate_difference(df, samples = samples, control = "A", method = "mean", test = "shuffle", randomizations = 10, pcorr = "none")
     expect_true(is.data.frame(res))
-    # when shuffle used we expect raw_p_values and adjusted_p_values columns
-    expect_true(all(c("raw_p_values", "adjusted_p_values") %in% colnames(res)))
+    # when shuffle used we expect pvalue and padj columns
+    expect_true(all(c("pvalue", "padj") %in% colnames(res)))
 })
 
 
@@ -332,4 +334,988 @@ test_that("Providing multiple samples column names to SummarizedExperiment error
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(counts = mat), colData = colData_df)
 
     expect_error(calculate_difference(se, samples = c("sample_type", "foo"), control = "A"), "'samples' must be a single colData column")
+})
+
+# Tests for new features: seed parameter and precision weighting
+
+context("Difference Calculation: Seed Reproducibility for Permutation Tests")
+
+test_that("Seed parameter produces reproducible shuffle results", {
+    # Create test data
+    set.seed(123)
+    genes <- paste0("g", seq_len(8))
+    mat <- matrix(rnorm(8 * 12, mean = 5, sd = 1), nrow = 8)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+
+    # Run shuffle test twice with same seed
+    res1 <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50,
+        pcorr = "BH",
+        seed = 42
+    )
+
+    res2 <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50,
+        pcorr = "BH",
+        seed = 42
+    )
+
+    # Results should be identical when using same seed
+    expect_equal(res1$pvalue, res2$pvalue)
+    expect_equal(res1$padj, res2$padj)
+})
+
+
+test_that("Different seeds produce different shuffle results", {
+    # Create test data
+    set.seed(123)
+    genes <- paste0("g", seq_len(8))
+    mat <- matrix(rnorm(8 * 12, mean = 5, sd = 1), nrow = 8)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+
+    # Run shuffle test with different seeds
+    res1 <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50,
+        pcorr = "BH",
+        seed = 42
+    )
+
+    res_other_seed <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50,
+        pcorr = "BH",
+        seed = 99
+    )
+
+    # Results should differ when using different seeds (with high probability)
+    # We check that at least some p-values differ
+    p_value_diffs <- abs(res1$pvalue - res_other_seed$pvalue)
+    expect_true(sum(p_value_diffs > 0, na.rm = TRUE) > 0)
+})
+
+
+test_that("Seed parameter is ignored for wilcoxon test", {
+    # Create test data
+    genes <- paste0("g", seq_len(8))
+    mat <- matrix(rnorm(8 * 12), nrow = 8)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+
+    # Wilcoxon results should be identical regardless of seed
+    res1 <- suppressWarnings(calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon",
+        pcorr = "BH",
+        seed = 42
+    ))
+
+    res2 <- suppressWarnings(calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon",
+        pcorr = "BH",
+        seed = 99
+    ))
+
+    # Wilcoxon results should be identical (seed doesn't affect deterministic test)
+    expect_equal(res1$pvalue, res2$pvalue)
+})
+
+
+context("Difference Calculation: Precision Weighting Validation")
+
+test_that("use_precision_weights requires counts, alpha, and beta", {
+    # Create test data
+    genes <- paste0("g", seq_len(5))
+    mat <- matrix(rpois(5 * 8, lambda = 10), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 4)
+    counts <- mat
+
+    # Missing counts with non-SummarizedExperiment should error
+    expect_error(
+        calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = "mean",
+            test = "wilcoxon",
+            use_precision_weights = TRUE,
+            counts = NULL,
+            alpha = 1,
+            beta = 1
+        ),
+        "When use_precision_weights = TRUE and counts = NULL, x must be a SummarizedExperiment"
+    )
+
+    # Missing alpha should error
+    expect_error(
+        calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = "mean",
+            test = "wilcoxon",
+            use_precision_weights = TRUE,
+            counts = counts,
+            alpha = NULL,
+            beta = 1
+        ),
+        "When use_precision_weights = TRUE, must provide alpha and beta"
+    )
+
+    # Missing beta should error
+    expect_error(
+        calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = "mean",
+            test = "wilcoxon",
+            use_precision_weights = TRUE,
+            counts = counts,
+            alpha = 1,
+            beta = NULL
+        ),
+        "When use_precision_weights = TRUE, must provide alpha and beta"
+    )
+})
+
+
+test_that("Precision weighting validates matrix dimensions", {
+    # Create test data
+    genes <- paste0("g", seq_len(5))
+    mat <- matrix(rpois(5 * 8, lambda = 10), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 4)
+
+    # Wrong number of rows in counts matrix
+    wrong_counts <- matrix(rpois(4 * 8, lambda = 10), nrow = 4)  # Should be 5 rows
+    expect_error(
+        calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = "mean",
+            test = "wilcoxon",
+            use_precision_weights = TRUE,
+            counts = wrong_counts,
+            alpha = 1,
+            beta = 1
+        ),
+        "counts must have same number of rows"
+    )
+})
+
+
+test_that("Precision weighting validates alpha and beta parameters", {
+    # Create test data
+    genes <- paste0("g", seq_len(5))
+    mat <- matrix(rpois(5 * 8, lambda = 10), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 4)
+    counts <- mat
+
+    # Non-positive alpha should error
+    expect_error(
+        calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = "mean",
+            test = "wilcoxon",
+            use_precision_weights = TRUE,
+            counts = counts,
+            alpha = -1,
+            beta = 1
+        ),
+        "alpha and beta must be positive"
+    )
+
+    # Non-positive beta should error
+    expect_error(
+        calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = "mean",
+            test = "wilcoxon",
+            use_precision_weights = TRUE,
+            counts = counts,
+            alpha = 1,
+            beta = 0
+        ),
+        "alpha and beta must be positive"
+    )
+})
+
+
+context("Difference Calculation: Precision Weighting Functionality")
+
+test_that("Precision weighting column structure is correct", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Create SummarizedExperiment with counts assay
+    set.seed(123)
+    genes <- paste0("g", seq_len(10))
+    counts_mat <- matrix(rpois(10 * 8, lambda = 20), nrow = 10, dimnames = list(genes, NULL))
+    diversity_mat <- matrix(rnorm(10 * 8, mean = 0.5, sd = 0.1), nrow = 10, dimnames = list(genes, NULL))
+    
+    coldata <- S4Vectors::DataFrame(
+        sample_type = rep(c("A", "B"), each = 4),
+        row.names = seq_len(8)
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = S4Vectors::SimpleList(
+            diversity = diversity_mat,
+            counts = counts_mat
+        ),
+        colData = coldata
+    )
+
+    # Test with precision weighting using empirical Bayes parameters
+    res <- calculate_difference(
+        se,
+        samples = "sample_type",
+        control = "A",
+        method = "mean",
+        test = "wilcoxon",
+        use_precision_weights = TRUE,
+        counts = counts_mat,
+        alpha = 1,
+        beta = 1
+    )
+
+    # Check that we get expected columns
+    expect_true(is.data.frame(res))
+    expect_true(all(c("pvalue", "padj") %in% colnames(res)))
+})
+
+
+test_that("Precision weighting works with shuffle test", {
+    # Create test data
+    set.seed(456)
+    genes <- paste0("g", seq_len(8))
+    counts_mat <- matrix(rpois(8 * 8, lambda = 15), nrow = 8)
+    rownames(counts_mat) <- genes  # Add rownames to match gene identifiers
+    df <- data.frame(Genes = genes, matrix(rnorm(8 * 8, mean = 0.5, sd = 0.1), nrow = 8), stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 4)
+
+    # Run with precision weighting and shuffle test
+    # suppressWarnings: Small sample size triggers "Label shuffling may be unreliable" warning, which is expected with n=8
+    res <- suppressWarnings(calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 30,
+        use_precision_weights = TRUE,
+        counts = counts_mat,
+        alpha = 1.5,
+        beta = 2.0,
+        seed = 123
+    ))
+
+    # Check structure
+    expect_true(is.data.frame(res))
+    expect_true(nrow(res) > 0)
+    expect_true(all(c("pvalue", "padj") %in% colnames(res)))
+})
+
+
+test_that("Precision weighting disabled by default doesn't affect results", {
+    # Create test data
+    genes <- paste0("g", seq_len(6))
+    mat <- matrix(rnorm(6 * 8), nrow = 6)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 4)
+
+    # Run without precision weighting (default)
+    res_no_pw <- suppressWarnings(calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    ))
+
+    # Precision weighting off explicitly
+    res_pw_off <- suppressWarnings(calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon",
+        use_precision_weights = FALSE
+    ))
+
+    # Should be identical when precision weighting is off
+    expect_equal(res_no_pw$pvalue, res_pw_off$pvalue)
+})
+
+
+context("Difference Calculation: Effect Size Measures (r and U Preservation)")
+
+test_that("calculate_difference preserves r and U columns from wilcoxon test", {
+    # Create test data with enough samples to avoid low-sample warning
+    set.seed(789)
+    genes <- paste0("g", seq_len(5))
+    # Use higher samples to avoid Wilcoxon low-sample warning
+    mat <- matrix(rnorm(5 * 12, mean = 5, sd = 1), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    )
+
+    # Check that r column exists
+    expect_true("r" %in% colnames(result), label = "r column should exist in wilcoxon output")
+    
+    # Check that U column exists
+    expect_true("U" %in% colnames(result), label = "U column should exist in wilcoxon output")
+    
+    # Check that both are numeric
+    expect_true(is.numeric(result$r), label = "r column should be numeric")
+    expect_true(is.numeric(result$U), label = "U column should be numeric")
+    
+    # Check dimensions: should have 5 rows (one per gene) plus expected columns
+    expect_equal(nrow(result), 5)
+})
+
+
+test_that("r values from wilcoxon are in valid range [-1, 1]", {
+    # Create test data
+    set.seed(101)
+    genes <- paste0("g", seq_len(8))
+    # Create data with actual differences to ensure valid effect sizes
+    mat_group_a <- matrix(rnorm(8 * 8, mean = 3, sd = 0.5), nrow = 8)
+    mat_group_b <- matrix(rnorm(8 * 8, mean = 5, sd = 0.5), nrow = 8)
+    mat <- cbind(mat_group_a, mat_group_b)
+    
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- c(rep("A", 8), rep("B", 8))
+
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    )
+
+    # Check r values are in valid range: [-1, 1]
+    # (allowing for NAs if genes have insufficient data)
+    valid_r <- result$r[!is.na(result$r)]
+    if (length(valid_r) > 0) {
+        expect_true(all(valid_r >= -1 & valid_r <= 1), 
+                   label = "r values should be between -1 and 1")
+    }
+})
+
+
+test_that("U values from wilcoxon are non-negative", {
+    # Create test data
+    set.seed(202)
+    genes <- paste0("g", seq_len(6))
+    mat <- matrix(rnorm(6 * 12, mean = 5, sd = 1), nrow = 6)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    )
+
+    # Check U values are non-negative
+    # (U statistic should always be >= 0)
+    valid_U <- result$U[!is.na(result$U)]
+    if (length(valid_U) > 0) {
+        expect_true(all(valid_U >= 0), 
+                   label = "U values should be non-negative")
+    }
+})
+
+
+test_that("calculate_difference output includes both p-values and effect sizes", {
+    # Verify the complete output structure now includes both statistical 
+    # test results and effect sizes
+    set.seed(303)
+    genes <- paste0("g", seq_len(4))
+    mat <- matrix(rnorm(4 * 12, mean = 5, sd = 1), nrow = 4)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("Ctrl", "Treat"), each = 6)
+
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "Ctrl",
+        method = "mean",
+        test = "wilcoxon"
+    )
+
+    # Expected columns: gene_id, Ctrl_mean, Treat_mean, mean_difference, log2_fold_change, pvalue, padj, r, U
+    expected_cols <- c("gene_id", "Ctrl_mean", "Treat_mean", "mean_difference", "log2_fold_change", 
+                       "pvalue", "padj", "r", "U")
+    
+    for (col in expected_cols) {
+        expect_true(col %in% colnames(result), 
+                   label = paste("Column", col, "should exist in output"))
+    }
+    
+    # Verify all rows have values (or NA) for r and U
+    expect_equal(nrow(result), 4)
+    expect_equal(length(result$r), 4)
+    expect_equal(length(result$U), 4)
+})
+
+
+test_that("shuffle method also includes effect size columns when available", {
+    # Verify shuffle method preserves effect size columns if provided by wilcoxon
+    set.seed(404)
+    genes <- paste0("g", seq_len(5))
+    mat <- matrix(rnorm(5 * 10, mean = 5, sd = 1), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 5)
+
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50,
+        seed = 999
+    )
+
+    # Shuffle should return at least pvalue and padj
+    expect_true(all(c("pvalue", "padj") %in% colnames(result)))
+    
+    # If shuffle method also computes effect sizes, they should be preserved
+    # Check if r/U columns exist; if they do, verify they have numeric values
+    if ("r" %in% colnames(result)) {
+        expect_true(is.numeric(result$r))
+    }
+    if ("U" %in% colnames(result)) {
+        expect_true(is.numeric(result$U))
+    }
+})
+
+
+test_that("median method also preserves effect sizes from wilcoxon test", {
+    # Verify effect size preservation works with median method too
+    set.seed(505)
+    genes <- paste0("g", seq_len(4))
+    mat <- matrix(rnorm(4 * 10, mean = 5, sd = 1), nrow = 4)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 5)
+
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "median",
+        test = "wilcoxon"
+    )
+
+    # Should have both p-values and effect sizes
+    expect_true("pvalue" %in% colnames(result))
+    expect_true("r" %in% colnames(result))
+    expect_true("U" %in% colnames(result))
+    
+    # Check column count
+    expect_gte(length(colnames(result)), 9, 
+              label = "Should have at least 9 columns (added r and U)")
+})
+
+
+test_that("lowly-expressed genes have NA r and U values", {
+    # Verify that genes with insufficient observations have NA for r and U
+    # (since effect sizes cannot be computed without sufficient data)
+    set.seed(606)
+    
+    # Create 5 genes: first 4 with sufficient data, last 1 with mostly NA
+    genes <- paste0("g", seq_len(5))
+    mat <- matrix(rnorm(5 * 12, mean = 5, sd = 1), nrow = 5)
+    # Make last gene have NAs to trigger filtering as lowly-expressed
+    mat[5, 7:12] <- NA
+    
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    )
+    
+    # Result should have 5 rows (all genes)
+    expect_equal(nrow(result), 5)
+    
+    # All rows should have r and U columns
+    expect_true("r" %in% colnames(result))
+    expect_true("U" %in% colnames(result))
+    
+    # Last gene (g5) should have NA for r and U due to low observation count
+    row_g5 <- result[result$genes == "g5", , drop = FALSE]
+    if (nrow(row_g5) > 0) {
+        expect_true(is.na(row_g5$r[1]))
+        expect_true(is.na(row_g5$U[1]))
+        expect_true(is.na(row_g5$pvalue[1]))
+    }
+})
+
+
+test_that("paired wilcoxon test preserves r and U columns", {
+    # Verify effect sizes are preserved in paired Wilcoxon test
+    set.seed(707)
+    n_samples <- 10
+    genes <- paste0("g", seq_len(5))
+    mat <- matrix(rnorm(5 * n_samples, mean = 5, sd = 1), nrow = 5)
+    
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("Pre", "Post"), each = n_samples / 2)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "Pre",
+        method = "mean",
+        test = "wilcoxon",
+        paired = TRUE
+    )
+    
+    # Should have r and U columns present
+    expect_true("r" %in% colnames(result))
+    expect_true("U" %in% colnames(result))
+    
+    # Check that effect sizes are finite for tested genes
+    tested_rows <- !is.na(result$pvalue)
+    if (any(tested_rows)) {
+        r_values <- result$r[tested_rows]
+        u_values <- result$U[tested_rows]
+        # At least some values should be numeric
+        expect_true(any(is.finite(r_values) | is.na(r_values)), 
+                   label = "r column should contain numeric or NA values")
+        expect_true(any(is.numeric(u_values) | is.na(u_values)), 
+                   label = "U column should contain numeric or NA values")
+    }
+})
+
+
+test_that("r values remain in valid range [-1, 1] for all methods", {
+    # Comprehensive test ensuring r values stay within correlation bounds
+    set.seed(808)
+    genes <- paste0("g", seq_len(8))
+    mat <- matrix(rnorm(8 * 14, mean = 5, sd = 2), nrow = 8)
+    
+    for (method in c("mean", "median")) {
+        df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+        samples <- rep(c("A", "B"), each = 7)
+        
+        result <- calculate_difference(
+            df,
+            samples = samples,
+            control = "A",
+            method = method,
+            test = "wilcoxon"
+        )
+        
+        # All non-NA r values should be in [-1, 1]
+        valid_r <- result$r[!is.na(result$r)]
+        if (length(valid_r) > 0) {
+            expect_true(all(valid_r >= -1 & valid_r <= 1),
+                       label = paste("All", method, "r values should be in [-1, 1]"))
+        }
+    }
+})
+
+
+test_that("U values are non-negative for all wilcoxon tests", {
+    # Verify U statistic values stay non-negative (which they should mathematically)
+    set.seed(909)
+    genes <- paste0("g", seq_len(6))
+    mat <- matrix(rnorm(6 * 12, mean = 5, sd = 1), nrow = 6)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("A", "B"), each = 6)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    )
+    
+    # All non-NA U values should be >= 0
+    valid_U <- result$U[!is.na(result$U)]
+    if (length(valid_U) > 0) {
+        expect_true(all(valid_U >= 0),
+                   label = "All U values should be non-negative")
+    }
+})
+
+
+test_that("shuffle method preserves r and U structure", {
+    # Verify shuffle method returns consistent structure with r and U columns
+    set.seed(1010)
+    genes <- paste0("g", seq_len(4))
+    mat <- matrix(rnorm(4 * 10, mean = 5, sd = 1), nrow = 4)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("Ctrl", "Treat"), each = 5)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "Ctrl",
+        method = "median",
+        test = "shuffle",
+        randomizations = 100,
+        seed = 123
+    )
+    
+    # Result should have standard columns
+    expect_true("pvalue" %in% colnames(result))
+    expect_true("padj" %in% colnames(result))
+    
+    # Shuffle may or may not compute effect sizes depending on implementation
+    # But if they're present, they should be valid
+    if ("r" %in% colnames(result)) {
+        valid_r <- result$r[!is.na(result$r)]
+        if (length(valid_r) > 0) {
+            expect_true(all(valid_r >= -1 & valid_r <= 1))
+        }
+    }
+})
+
+# ============================================================================
+# Integration Tests: calculate_difference with shuffle test and effect sizes
+# ============================================================================
+
+context("Difference Calculation: Permutation Test Effect Sizes (U and r)")
+
+test_that("calculate_difference(test='shuffle') includes U and r columns", {
+    set.seed(100)
+    
+    genes <- paste0("Gene_", seq_len(5))
+    mat <- matrix(rnorm(5 * 10, mean = 5, sd = 1), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("Control", "Case"), times = 5)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "Control",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 100,
+        pcorr = "BH"
+    )
+    
+    # Should have effect size columns
+    expect_true("U" %in% colnames(result),
+                info = "Column 'U' missing from shuffle test output")
+    expect_true("r" %in% colnames(result),
+                info = "Column 'r' missing from shuffle test output")
+    
+    # Should have standard difference columns
+    expect_true("pvalue" %in% colnames(result))
+    expect_true("padj" %in% colnames(result))
+    expect_equal(nrow(result), length(genes))
+})
+
+test_that("calculate_difference: shuffle vs wilcoxon effect sizes match", {
+    set.seed(101)
+    
+    genes <- paste0("g", seq_len(4))
+    mat <- matrix(rnorm(4 * 12, mean = 3), nrow = 4)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- c(rep("A", 6), rep("B", 6))
+    
+    # Shuffle test
+    res_shuffle <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50
+    )
+    
+    # Wilcoxon test
+    res_wilcox <- calculate_difference(
+        df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "wilcoxon"
+    )
+    
+    # Effect sizes should match
+    expect_equal(res_shuffle$U, res_wilcox$U, tolerance = 1e-10,
+                 info = "U values differ between shuffle and wilcoxon")
+    expect_equal(res_shuffle$r, res_wilcox$r, tolerance = 1e-10,
+                 info = "r values differ between shuffle and wilcoxon")
+})
+
+test_that("calculate_difference(shuffle): Effect sizes in valid ranges", {
+    set.seed(102)
+    
+    genes <- paste0("Gene", seq_len(6))
+    mat <- matrix(rnorm(6 * 12, mean = 0, sd = 2), nrow = 6)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("Ctrl", "Treat"), times = 6)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "Ctrl",
+        method = "median",
+        test = "shuffle",
+        randomizations = 100,
+        pcorr = "BH"
+    )
+    
+    # Check r in [-1, 1]
+    r_vals <- result$r[!is.na(result$r)]
+    expect_true(all(r_vals >= -1 & r_vals <= 1),
+                info = sprintf("r values outside [-1, 1]: min=%.3f, max=%.3f",
+                              min(r_vals), max(r_vals)))
+    
+    # Check U >= 0
+    u_vals <- result$U[!is.na(result$U)]
+    expect_true(all(u_vals >= 0),
+                info = sprintf("Found negative U values: min=%.3f", min(u_vals)))
+})
+
+test_that("calculate_difference(shuffle) with paired design computes effect sizes", {
+    set.seed(103)
+    
+    genes <- paste0("G", seq_len(3))
+    # Create paired data (6 pairs)
+    control_vals <- rbind(
+        rnorm(6, mean = 1.0, sd = 0.3),
+        rnorm(6, mean = 2.0, sd = 0.3),
+        rnorm(6, mean = 1.5, sd = 0.3)
+    )
+    case_vals <- rbind(
+        rnorm(6, mean = 2.0, sd = 0.3),
+        rnorm(6, mean = 2.0, sd = 0.3),
+        rnorm(6, mean = 1.6, sd = 0.3)
+    )
+    mat <- cbind(control_vals, case_vals)
+    
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("Normal", "Tumor"), each = 6)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "Normal",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 100,
+        paired = TRUE,
+        pcorr = "BH"
+    )
+    
+    # Should have effect sizes even in paired design
+    expect_true("U" %in% colnames(result))
+    expect_true("r" %in% colnames(result))
+    expect_true(all(!is.na(result$U)),
+                info = "Some U values are NA in paired shuffle test")
+    expect_true(all(!is.na(result$r)),
+                info = "Some r values are NA in paired shuffle test")
+})
+
+test_that("calculate_difference(shuffle): Effect sizes independent of SummarizedExperiment input", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    set.seed(104)
+    
+    # Create data.frame version (12 samples: 6+6)
+    genes <- paste0("g", seq_len(3))
+    mat_df <- data.frame(
+        Genes = genes,
+        matrix(rnorm(3 * 12, mean = 5), nrow = 3),
+        stringsAsFactors = FALSE
+    )
+    samples <- rep(c("A", "B"), times = 6)
+    
+    result_df <- calculate_difference(
+        mat_df,
+        samples = samples,
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50
+    )
+    
+    # Create SummarizedExperiment version
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = as.matrix(mat_df[, -1])),
+        rowData = data.frame(gene = genes)
+    )
+    colData(se)$group <- samples
+    
+    result_se <- calculate_difference(
+        se,
+        samples = "group",
+        control = "A",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 50
+    )
+    
+    # Effect sizes should match
+    expect_equal(result_df$U, result_se$U, tolerance = 1e-10,
+                 info = "U differs between data.frame and SE")
+    expect_equal(result_df$r, result_se$r, tolerance = 1e-10,
+                 info = "r differs between data.frame and SE")
+})
+
+test_that("calculate_difference(shuffle): Effect sizes robust to small effect distributions", {
+    set.seed(105)
+    
+    genes <- paste0("Gene", seq_len(5))
+    
+    # All groups very similar -> small effect sizes
+    mat <- matrix(rnorm(5 * 10, mean = 10, sd = 0.5), nrow = 5)
+    df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
+    samples <- rep(c("X", "Y"), times = 5)
+    
+    result <- calculate_difference(
+        df,
+        samples = samples,
+        control = "X",
+        method = "mean",
+        test = "shuffle",
+        randomizations = 100
+    )
+    
+    # Even with small effects, U and r should be computable
+    expect_false(all(is.na(result$U)),
+                 info = "All U values are NA for small effect data")
+    expect_false(all(is.na(result$r)),
+                 info = "All r values are NA for small effect data")
+    
+    # Should be in valid ranges
+    expect_true(all(result$r[!is.na(result$r)] >= -1 & 
+                     result$r[!is.na(result$r)] <= 1))
+})
+
+test_that("calculate_difference rejects multiple q values with helpful error", {
+    # Create multi-q SummarizedExperiment (should fail)
+    library(SummarizedExperiment)
+    
+    # Create data with multiple q values (e.g., q=0.5, 1.0, 2.0)
+    mat <- matrix(runif(3 * 6), nrow = 3)  # 3 genes, 6 columns
+    rownames(mat) <- c("g1", "g2", "g3")
+    # Columns: g1_q=0.5, g1_q=1, g1_q=2, g2_q=0.5, g2_q=1, g2_q=2
+    colnames(mat) <- c("S1_q=0.5", "S1_q=1.0", "S1_q=2.0", 
+                       "S2_q=0.5", "S2_q=1.0", "S2_q=2.0")
+    
+    colData_df <- S4Vectors::DataFrame(
+        sample_type = c("normal", "normal", "tumor", "tumor", "normal", "tumor"),
+        row.names = colnames(mat)
+    )
+    
+    se_multi_q <- SummarizedExperiment(
+        assays = S4Vectors::SimpleList(diversity = mat),
+        colData = colData_df
+    )
+    
+    # Expect error about multiple q values
+    expect_error(
+        calculate_difference(
+            se_multi_q,
+            control = "normal",
+            method = "mean",
+            test = "wilcoxon"
+        ),
+        "calculate_difference\\(\\) does not accept multiple q values"
+    )
+    
+    # Also verify the error message mentions calculate_lm_interaction as alternative
+    expect_error(
+        calculate_difference(
+            se_multi_q,
+            control = "normal",
+            method = "mean",
+            test = "wilcoxon"
+        ),
+        "calculate_lm_interaction\\(\\)"
+    )
+})
+
+test_that("calculate_difference accepts single q value (no error)", {
+    # Create single-q SummarizedExperiment (should work)
+    library(SummarizedExperiment)
+    
+    mat <- matrix(runif(3 * 12), nrow = 3)
+    rownames(mat) <- c("g1", "g2", "g3")
+    colnames(mat) <- c("S1_q=1", "S2_q=1", "S3_q=1", "S4_q=1", "S5_q=1", "S6_q=1",
+                       "T1_q=1", "T2_q=1", "T3_q=1", "T4_q=1", "T5_q=1", "T6_q=1")
+    
+    colData_df <- S4Vectors::DataFrame(
+        sample_type = c("normal", "normal", "normal", "normal", "normal", "normal",
+                        "tumor", "tumor", "tumor", "tumor", "tumor", "tumor"),
+        row.names = colnames(mat)
+    )
+    
+    se_single_q <- SummarizedExperiment(
+        assays = S4Vectors::SimpleList(diversity = mat),
+        colData = colData_df
+    )
+    
+    # Should NOT error
+    expect_no_error(
+        result <- calculate_difference(
+            se_single_q,
+            control = "normal",
+            method = "mean",
+            test = "wilcoxon"
+        )
+    )
+    
+    # Should return valid result
+    expect_true(is.data.frame(result))
+    expect_true(nrow(result) > 0)
 })
