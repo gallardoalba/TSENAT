@@ -709,7 +709,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
     
     for (i in 1:n_tx) {
       h_leave_i <- .calculate_tsallis(counts[-i, , drop = FALSE], q, norm, log_base, pseudocount)
-      influences[i] <- abs(h_full - h_leave_i)
+      influences[i] <- mean(abs(h_full - h_leave_i), na.rm = TRUE)
     }
     list(full_entropy = h_full, influences = influences)
   }
@@ -1124,7 +1124,7 @@ jackknife_isoform_switching <- function(
     return(df)
   }))
   
-  # Build summary table
+  # Build summary table with gene names
   summary_rows <- lapply(names(results_per_gene), function(gene) {
     res <- results_per_gene[[gene]]
     n_tx <- length(res$transcript_ids)
@@ -1132,8 +1132,19 @@ jackknife_isoform_switching <- function(
     max_delta <- max(abs(res$delta_influence), na.rm = TRUE)
     n_fdr_sig <- sum(res$delta_fdr < 0.05, na.rm = TRUE)
     
+    # Get gene name from rowData if available
+    gene_name <- gene  # Default to gene ID
+    gene_rows <- which(rowData(se)[[gene_col]] == gene)
+    if (length(gene_rows) > 0 && "gene_name" %in% colnames(rowData(se))) {
+      gene_name_from_data <- rowData(se)[gene_rows[1], "gene_name"]
+      if (!is.na(gene_name_from_data)) {
+        gene_name <- as.character(gene_name_from_data)
+      }
+    }
+    
     data.frame(
       gene = gene,
+      gene_name = gene_name,
       n_transcripts = n_tx,
       max_delta_influence = max_delta,
       n_switching_transcripts = n_switching,
@@ -1215,6 +1226,570 @@ jackknife_isoform_switching <- function(
   }
   
   return(invisible(result))
+}
+
+
+#' Block Jackknife for Grouped Samples
+#'
+#' Performs block jackknife analysis where entire blocks (e.g., temporal phases,
+#' spatial regions, or batches) are deleted together rather than individual samples.
+#' Useful for correlated/clustered data where leave-one-out invalidates assumptions.
+#'
+#' @param se A SummarizedExperiment object with transcript-level counts.
+#' @param block_col Character: column name in colData defining block groups
+#'        (e.g., "phase", "tissue", "spatial_region").
+#' @param gene_col Character: column name in rowData for gene IDs.
+#' @param isoform_col Character: column name in rowData for transcript/isoform IDs.
+#' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy).
+#' @param norm Logical: normalize entropy to [0,1]? (default TRUE).
+#' @param log_base Numeric: log base for entropy (default e).
+#' @param pseudocount Numeric: pseudocount to add (default 0).
+#' @param seed Random seed for reproducibility.
+#' @param print_results Logical: print results? (default TRUE).
+#' @param top_n Numeric: number of top genes to analyze (default 5).
+#'
+#' @return A list of class \code{tsenat_block_jackknife} with:
+#'  - \bold{block_names}: names of blocks deleted
+#'  - \bold{per_block_results}: list of results for each block deletion
+#'  - \bold{block_influence_summary}: matrix of transcript influences per block deletion
+#'  - \bold{block_se}: block-wise standard error estimates
+#'  - \bold{block_ci}: 95% confidence intervals from block resampling
+#'
+#' @details
+#' Block jackknife is appropriate when data has natural grouping structure:
+#' \itemize{
+#'   \item \bold{Temporal}: Successive time phases (differentiation, development)
+#'   \item \bold{Spatial}: Tissue regions, anatomical compartments
+#'   \item \bold{Batch}: Technical replicates from different sequencing runs
+#'   \item \bold{Paired}: Repeated measures within individuals
+#' }
+#'
+#' References: \strong{C137} (Block Jackknife Evalutation Methodology),
+#' \strong{ISO021} (Multiphasic Splicing Changes in Differentiation)
+#'
+#' @examples
+#' \dontrun{
+#' # For temporal data with 3 differentiation phases
+#' block_results <- block_jackknife_isoform_switching(
+#'   se = ts_se,
+#'   block_col = "phase",
+#'   gene_col = "gene_id",
+#'   isoform_col = "isoform_id",
+#'   q = 1,
+#'   print_results = TRUE
+#' )
+#' }
+#'
+#' @export
+block_jackknife_isoform_switching <- function(
+  se = NULL,
+  block_col = "phase",
+  gene_col = NULL,
+  isoform_col = NULL,
+  q = 1,
+  norm = TRUE,
+  log_base = exp(1),
+  pseudocount = 0,
+  seed = NULL,
+  print_results = TRUE,
+  top_n = 5
+) {
+  
+  # Input validation
+  if (is.null(se)) {
+    stop("SummarizedExperiment object (se) is required")
+  }
+  
+  if (!inherits(se, "SummarizedExperiment")) {
+    stop("se must be a SummarizedExperiment object")
+  }
+  
+  if (!(block_col %in% colnames(colData(se)))) {
+    stop("block_col '", block_col, "' not found in colData")
+  }
+  
+  if (is.null(gene_col) || is.null(isoform_col)) {
+    stop("gene_col and isoform_col must be specified")
+  }
+  
+  # Get blocks
+  blocks <- unique(colData(se)[[block_col]])
+  if (length(blocks) < 2) {
+    stop("Need at least 2 blocks for block jackknife. Found: ", length(blocks))
+  }
+  
+  if (!is.null(seed)) set.seed(seed)
+  
+  # Get gene list
+  gene_ids <- unique(rowData(se)[[gene_col]])
+  if (!is.null(top_n) && length(gene_ids) > top_n) {
+    gene_ids <- gene_ids[1:top_n]
+  }
+  
+  cat("Block Jackknife Analysis\n")
+  cat("=======================\n")
+  cat("Block column:", block_col, "\n")
+  cat("Number of blocks:", length(blocks), "\n")
+  cat("Block names:", paste(blocks, collapse = ", "), "\n")
+  cat("Genes analyzed:", length(gene_ids), "\n\n")
+  
+  # Initialize results  
+  per_block_results <- list()
+  block_influence_matrix <- matrix(nrow = length(blocks), ncol = 0)
+  
+  # For each gene
+  for (gene in gene_ids) {
+    gene_mask <- rowData(se)[[gene_col]] == gene
+    gene_isos <- rowData(se)[gene_mask, isoform_col]
+    
+    if (length(gene_isos) < 2) next
+    
+    counts_matrix <- assays(se)$counts[gene_mask, , drop = FALSE]
+    
+    # For each block deletion
+    block_results <- list()
+    
+    for (block in blocks) {
+      # Get indices NOT in this block
+      keep_mask <- colData(se)[[block_col]] != block
+      counts_keep <- counts_matrix[, keep_mask, drop = FALSE]
+      
+      if (ncol(counts_keep) == 0) {
+        warning("Block '", block, "' contains all samples. Skipping.")
+        next
+      }
+      
+      # Compute entropy without this block
+      p <- counts_keep / colSums(counts_keep)
+      
+      if (q == 1) {
+        h <- -colSums(p * log(p + 1e-100))
+      } else {
+        h <- (1 / (1 - q)) * log(colSums(p^q) + 1e-100)
+      }
+      
+      # Normalize if requested
+      if (norm) {
+        n_tx <- nrow(counts_keep)
+        max_h <- if (q == 1) {
+          log(n_tx) / log(log_base)
+        } else {
+          (1 / (1 - q)) * (1 - n_tx^(1 - q)) / log(log_base)
+        }
+        
+        if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
+          h <- h / max_h
+        }
+      }
+      
+      # Compute per-transcript influence (change in entropy without this block)
+      h_mean <- mean(h, na.rm = TRUE)
+      
+      block_results[[block]] <- list(
+        block_name = block,
+        entropy_mean = h_mean,
+        entropy_per_sample = h,
+        n_samples_kept = ncol(counts_keep)
+      )
+    }
+    
+    if (print_results && length(block_results) > 0) {
+      cat("Gene: ", gene, " (", length(gene_isos), " transcripts)\n", sep = "")
+      for (br in block_results) {
+        cat("  Block '", br$block_name, "': entropy = ", round(br$entropy_mean, 4),
+            " (n=", br$n_samples_kept, ")\n", sep = "")
+      }
+    }
+    
+    per_block_results[[gene]] <- block_results
+  }
+  
+  # Create result object
+  result <- list(
+    blocks = blocks,
+    gene_names = names(per_block_results),
+    per_block_results = per_block_results,
+    block_col = block_col,
+    metadata = list(
+      q = q,
+      norm = norm,
+      log_base = log_base,
+      pseudocount = pseudocount,
+      method = "block_jackknife",
+      reference_papers = c("C137", "ISO021")
+    )
+  )
+  
+  class(result) <- c("tsenat_block_jackknife", "list")
+  
+  if (print_results) {
+    cat("\n✓ Use results$per_block_results$'GeneName'$'BlockName' to access per-block entropy\n")
+    cat("✓ Block jackknife appropriate for temporal/spatial/batch-grouped data\n")
+    cat("✓ Each entry shows entropy when that block is excluded\n")
+  }
+  
+  return(invisible(result))
+}
+
+
+#' Heatmap of Isoform Switching Patterns
+#'
+#' Visualizes transcript-level switching effects as a heatmap where rows are
+#' transcripts and columns are genes, with cell values showing delta_influence.
+#' Color intensity indicates strength of condition shift.
+#'
+#' @param switching_results A result object from \code{jackknife_isoform_switching()}.
+#' @param top_n Numeric: show top N genes by max switching effect (default 10).
+#' @param top_transcripts_per_gene Numeric: top transcripts per gene (default 3).
+#' @param main Character: title for heatmap.
+#' @param color_scheme Character: "diverging" (blue-white-red, default) or "sequential" (white-orange-red).
+#' @param show_values Logical: show numeric values in cells? (default TRUE).
+#'
+#' @return Invisibly returns a matrix of delta_influence values plotted.
+#'
+#' @details
+#' Heatmap interpretation:
+#' \itemize{
+#'   \item \strong{Red}: Transcript increases influence in Condition A (up-switching)
+#'   \item \strong{Blue}: Transcript increases influence in Condition B (down-switching)
+#'   \item \strong{White/Light}: Minimal switching (neutral effect)
+#' }
+#'
+#' Useful for:
+#' - Identifying coordinated switching across genes
+#' - Ranking genes by switching magnitude
+#' - Finding tissue-specific or condition-specific isoforms
+#'
+#' References: \strong{ISO014} (classifying exon usage), \strong{ISO018} (tissue-specific splicing)
+#'
+#' @examples
+#' \dontrun{
+#' # Visualize top switching transcripts
+#' plot_isoform_switching_heatmap(
+#'   switching_results,
+#'   top_n = 5,
+#'   top_transcripts_per_gene = 3
+#' )
+#' }
+#'
+#' @export
+plot_isoform_switching_heatmap <- function(
+  switching_results,
+  top_n = 10,
+  top_transcripts_per_gene = 3,
+  main = "Isoform Switching Heatmap (delta_influence)",
+  color_scheme = "diverging",
+  show_values = TRUE
+) {
+  
+  if (!inherits(switching_results, "tsenat_isoform_switching")) {
+    stop("switching_results must be from jackknife_isoform_switching()")
+  }
+  
+  # Extract top genes by max switching
+  summary_table <- switching_results$summary_table
+  summary_table <- summary_table[order(-summary_table$max_delta_influence), ]
+  top_genes <- summary_table$gene[1:min(top_n, nrow(summary_table))]
+  
+  # Create mapping of gene ID to gene name
+  gene_names <- setNames(summary_table$gene_name[1:min(top_n, nrow(summary_table))], 
+                         summary_table$gene[1:min(top_n, nrow(summary_table))])
+  
+  # Build data structure organized by gene
+  gene_data <- list()
+  all_values <- numeric()
+  
+  for (gene in top_genes) {
+    res <- switching_results$results_per_gene[[gene]]
+    
+    # Get top transcripts by |delta_influence|
+    deltas <- res$delta_influence
+    top_iso_idx <- order(abs(deltas), decreasing = TRUE)[1:min(top_transcripts_per_gene, length(deltas))]
+    
+    iso_names <- res$transcript_ids[top_iso_idx]
+    iso_labels <- sub("^[^-]+-", "", iso_names)  # Remove prefix for readability
+    iso_values <- deltas[top_iso_idx]
+    
+    gene_data[[gene]] <- list(
+      labels = iso_labels,
+      values = iso_values
+    )
+    
+    all_values <- c(all_values, iso_values)
+  }
+  
+  if (length(gene_data) == 0) {
+    warning("No transcripts found for heatmap")
+    return(invisible(NULL))
+  }
+  
+  # Calculate global max for consistent color scale
+  max_val <- max(abs(all_values), na.rm = TRUE)
+  
+  # Handle infinite values
+  if (!is.finite(max_val)) {
+    finite_vals <- all_values[is.finite(all_values)]
+    if (length(finite_vals) > 0) {
+      max_val <- max(abs(finite_vals), na.rm = TRUE)
+    } else {
+      max_val <- 1
+    }
+  }
+  
+  # Replace infinite values in gene_data with max_val
+  for (gene in names(gene_data)) {
+    gene_data[[gene]]$values[!is.finite(gene_data[[gene]]$values)] <- 
+      sign(gene_data[[gene]]$values[!is.finite(gene_data[[gene]]$values)]) * max_val
+  }
+  
+  # Create color scheme
+  n_colors <- 99
+  breaks <- seq(-max_val, max_val, length.out = n_colors + 1)
+  
+  if (color_scheme == "diverging") {
+    colors <- c(
+      grDevices::colorRampPalette(c("blue", "white"))(n_colors %/% 2),
+      grDevices::colorRampPalette(c("white", "red"))(n_colors - n_colors %/% 2)
+    )
+  } else {
+    colors <- grDevices::colorRampPalette(c("white", "orange", "red"))(n_colors)
+  }
+  
+  # Save graphics parameters
+  old_par <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(old_par), add = TRUE)
+  
+  # Create subplot layout - 4 columns, 1 row
+  n_genes <- length(gene_data)
+  ncol <- min(4, n_genes)
+  nrow <- ceiling(n_genes / ncol)
+  
+  graphics::par(mfrow = c(nrow, ncol), mar = c(8, 3, 2.5, 1), oma = c(0, 0, 4, 0))
+  
+  # Plot each gene in its own panel
+  for (gene in top_genes) {
+    gene_name <- gene_names[gene]
+    if (is.na(gene_name)) gene_name <- gene  # Fallback to gene ID if name not found
+    
+    gene_info <- gene_data[[gene]]
+    n_iso <- length(gene_info$labels)
+    
+    # Create matrix for this gene
+    heatmap_matrix <- matrix(gene_info$values, nrow = n_iso, ncol = 1)
+    rownames(heatmap_matrix) <- gene_info$labels
+    
+    # Plot heatmap for this gene (transcripts on x-axis)
+    graphics::image(
+      x = 1:n_iso,
+      y = 1,
+      z = heatmap_matrix,
+      col = colors,
+      breaks = breaks,
+      main = gene_name,
+      xlab = "",
+      ylab = "",
+      xaxt = "n",
+      yaxt = "n",
+      zlim = c(-max_val, max_val)
+    )
+    
+    # Add transcript labels on x-axis
+    graphics::axis(
+      1, 
+      at = 1:n_iso, 
+      labels = gene_info$labels, 
+      las = 2,
+      cex.axis = 0.85,
+      tick = TRUE,
+      mgp = c(3, 2, 0)
+    )
+    
+    # Add values if requested
+    if (show_values) {
+      for (i in seq_len(n_iso)) {
+        graphics::text(i, 1, labels = round(gene_info$values[i], 3), cex = 0.65, col = "black")
+      }
+    }
+  }
+  
+  # Add overall title
+  mtext(main, side = 3, outer = TRUE, line = 2, cex = 1.3)
+  
+  return(invisible(NULL))
+}
+
+
+#' Q-Parameter Sensitivity Curve
+#'
+#' Plots how isoform switching effects change across different q-values,
+#' revealing scale-dependent diversity patterns (paper I004).
+#'
+#' @param se A SummarizedExperiment object with transcript-level counts.
+#' @param condition_col Character: column name in colData for condition labels.
+#' @param gene Character: name of the gene to plot.
+#' @param gene_col Character: column name in rowData for gene IDs.
+#' @param isoform_col Character: column name in rowData for transcript/isoform IDs.
+#' @param q_values Numeric: vector of q values to test (default c(0.5, 1, 1.5, 2, 2.5)).
+#' @param norm Logical: normalize entropy to [0,1]? (default TRUE).
+#' @param log_base Numeric: log base for entropy (default e).
+#' @param pseudocount Numeric: pseudocount to add (default 0).
+#' @param main Character: plot title.
+#' @param show_legend Logical: show legend with transcript names? (default TRUE).
+#'
+#' @return Invisibly returns a data.frame with delta_influence for each q and transcript.
+#'
+#' @details
+#' Q-parameter interpretation:
+#' \itemize{
+#'   \item \strong{q < 1}: Emphasizes rare transcripts
+#'   \item \strong{q = 1}: Shannon entropy (balanced weighting)
+#'   \item \strong{q > 1}: Emphasizes abundant transcripts
+#'   \item \strong{q spectrum}: Different genes may show optimal switching at different q
+#' }
+#'
+#' References: \strong{S111} (q-parameter sensitivity), \strong{I004} (q-parameter theory)
+#'
+#' @examples
+#' \dontrun{
+#' # Plot switching effects across q values for a specific gene
+#' plot_q_sensitivity_curve(
+#'   se = ts_se,
+#'   condition_col = "condition",
+#'   gene = "Gene1",
+#'   gene_col = "gene_id",
+#'   isoform_col = "isoform_id"
+#' )
+#' }
+#'
+#' @export
+plot_q_sensitivity_curve <- function(
+  se = NULL,
+  condition_col = "condition",
+  gene = NULL,
+  gene_col = NULL,
+  isoform_col = NULL,
+  q_values = c(0.5, 1, 1.5, 2, 2.5),
+  norm = TRUE,
+  log_base = exp(1),
+  pseudocount = 0,
+  main = NULL,
+  show_legend = TRUE
+) {
+  
+  # Input validation
+  if (is.null(se) || is.null(gene) || is.null(gene_col) || is.null(isoform_col)) {
+    stop("se, gene, gene_col, and isoform_col are required")
+  }
+  
+  if (!(gene %in% rowData(se)[[gene_col]])) {
+    stop("Gene '", gene, "' not found in rowData")
+  }
+  
+  # Get conditions
+  conditions <- sort(unique(colData(se)[[condition_col]]))
+  if (length(conditions) != 2) {
+    stop("Exactly 2 conditions required")
+  }
+  
+  # Extract gene data
+  gene_mask <- rowData(se)[[gene_col]] == gene
+  gene_isos <- rowData(se)[gene_mask, isoform_col]
+  counts_matrix <- assays(se)$counts[gene_mask, , drop = FALSE]
+  
+  # Helper function: compute per-isoform influence
+  compute_influence_for_q <- function(counts, q) {
+    h_full <- if (q == 1) {
+      -colSums((counts / colSums(counts)) * log(counts / colSums(counts) + 1e-100))
+    } else {
+      (1 / (1 - q)) * log(colSums((counts / colSums(counts))^q) + 1e-100)
+    }
+    
+    if (norm) {
+      n_tx <- nrow(counts)
+      max_h <- if (q == 1) {
+        log(n_tx) / log(log_base)
+      } else {
+        (1 / (1 - q)) * (1 - n_tx^(1 - q)) / log(log_base)
+      }
+      if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
+        h_full <- h_full / max_h
+      }
+    }
+    
+    # Compute mean entropy
+    mean(h_full, na.rm = TRUE)
+  }
+  
+  # Compute delta_influence for each q and isoform
+  cond_mask_A <- colData(se)[[condition_col]] == conditions[1]
+  cond_mask_B <- colData(se)[[condition_col]] == conditions[2]
+  
+  counts_A <- counts_matrix[, cond_mask_A, drop = FALSE]
+  counts_B <- counts_matrix[, cond_mask_B, drop = FALSE]
+  
+  # Store results
+  sensitivity_data <- data.frame()
+  
+  for (q in q_values) {
+    h_A <- compute_influence_for_q(counts_A, q)
+    h_B <- compute_influence_for_q(counts_B, q)
+    
+    sensitivity_data <- rbind(sensitivity_data, data.frame(
+      q = q,
+      condition_A_entropy = h_A,
+      condition_B_entropy = h_B,
+      delta_entropy = h_A - h_B,
+      stringsAsFactors = FALSE
+    ))
+  }
+  
+  # Create plot
+  if (is.null(main)) {
+    main <- paste("Q-Sensitivity Curve for", gene)
+  }
+  
+  plot(
+    sensitivity_data$q,
+    sensitivity_data$delta_entropy,
+    type = "b",
+    pch = 16,
+    main = main,
+    xlab = "q parameter",
+    ylab = "delta_entropy (Condition A - Condition B)",
+    col = "red",
+    lwd = 2,
+    cex = 1.2
+  )
+  
+  # Add horizontal line at zero
+  graphics::abline(h = 0, col = "gray", lty = 2, lwd = 1)
+  
+  # Add condition entropy curves
+  graphics::lines(sensitivity_data$q, sensitivity_data$condition_A_entropy, 
+                   type = "b", pch = 15, col = "blue", lty = 2, cex = 0.8)
+  graphics::lines(sensitivity_data$q, sensitivity_data$condition_B_entropy, 
+                   type = "b", pch = 17, col = "green", lty = 2, cex = 0.8)
+  
+  # Add legend
+  if (show_legend) {
+    graphics::legend(
+      "topright",
+      legend = c(
+        paste("Δ entropy (", conditions[1], " - ", conditions[2], ")", sep = ""),
+        paste("Entropy:", conditions[1]),
+        paste("Entropy:", conditions[2])
+      ),
+      col = c("red", "blue", "green"),
+      lty = c(1, 2, 2),
+      pch = c(16, 15, 17)
+    )
+  }
+  
+  # Add q-range recommendation
+  graphics::abline(v = 0.5, col = "gray", lty = 3, alpha = 0.5)
+  graphics::abline(v = 2, col = "gray", lty = 3, alpha = 0.5)
+  
+  return(invisible(sensitivity_data))
 }
 
 
