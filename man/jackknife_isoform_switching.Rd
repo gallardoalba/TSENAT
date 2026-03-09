@@ -16,6 +16,7 @@ jackknife_isoform_switching(
   log_base = exp(1),
   pseudocount = 0,
   threshold = 90,
+  n_bootstrap = 1000,
   print_results = TRUE,
   verbose = FALSE,
   lm_results = NULL,
@@ -45,6 +46,8 @@ jackknife_isoform_switching(
 \item{pseudocount}{Numeric: pseudocount to add (default 0).}
 
 \item{threshold}{Numeric: percentile for outlier detection on influences (default 90).}
+
+\item{n_bootstrap}{Numeric: number of bootstrap resamples (default 1000).}
 
 \item{print_results}{Logical: print results? (default TRUE).}
 

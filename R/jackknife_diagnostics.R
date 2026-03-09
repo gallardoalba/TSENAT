@@ -777,6 +777,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #' @param log_base Numeric: log base for entropy (default e).
 #' @param pseudocount Numeric: pseudocount to add (default 0).
 #' @param threshold Numeric: percentile for outlier detection on influences (default 90).
+#' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
 #' @param print_results Logical: print results? (default TRUE).
 #' @param verbose Logical: verbose output? (default FALSE).
 #' @param lm_results Data frame: results from calculate_lm_interaction() with 'gene',
@@ -805,6 +806,7 @@ jackknife_isoform_switching <- function(
   log_base = exp(1),
   pseudocount = 0,
   threshold = 90,
+  n_bootstrap = 1000,
   print_results = TRUE,
   verbose = FALSE,
   lm_results = NULL,
@@ -1030,7 +1032,7 @@ jackknife_isoform_switching <- function(
     delta_stats <- compute_delta_statistics(
       counts_A, counts_B, delta_influence,
       q = q, norm = norm, log_base = log_base,
-      pseudocount = pseudocount
+      pseudocount = pseudocount, n_bootstrap = n_bootstrap
     )
     
     # Determine switching status

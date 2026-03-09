@@ -248,6 +248,272 @@ test_that("Equal transcripts have uniform influence", {
   expect_true(inf_range < 1e-6)
 })
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TESTS FOR jackknife_isoform_switching() - Input Validation and Structure
+# ═══════════════════════════════════════════════════════════════════════════════
+
+context("Jackknife Isoform Switching: Input Validation")
+
+# Setup test data for isoform switching
+set.seed(42)
+
+# Create a simple test SummarizedExperiment
+test_se_basic <- function() {
+  suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+  })
+  
+  counts_mat <- matrix(rpois(20, lambda=10), nrow=2, ncol=10,
+                       dimnames=list(c("T1", "T2"), paste0("S", 1:10)))
+  
+  SummarizedExperiment(
+    assays=list(counts=counts_mat),
+    rowData=data.frame(
+      isoform_id=c("T1", "T2"),
+      gene_id=c("Gene1", "Gene1")
+    ),
+    colData=data.frame(
+      sample_id=paste0("S", 1:10),
+      condition=rep(c("condA", "condB"), each=5)
+    )
+  )
+}
+
+# Test 1: Function signature accepts n_bootstrap parameter
+test_that("jackknife_isoform_switching accepts n_bootstrap parameter", {
+  se <- test_se_basic()
+  
+  # Just test that the parameter is accepted without error
+  expect_silent(
+    result <- jackknife_isoform_switching(
+      se = se,
+      condition_col = "condition",
+      gene_col = "gene_id",
+      isoform_col = "isoform_id",
+      n_bootstrap = 5,
+      norm = FALSE,
+      print_results = FALSE
+    )
+  )
+  
+  expect_is(result, "tsenat_isoform_switching")
+})
+
+# Test 2: Input validation - missing condition_col
+test_that("jackknife_isoform_switching detects missing condition column", {
+  se <- test_se_basic()
+  
+  expect_error(
+    jackknife_isoform_switching(
+      se = se,
+      condition_col = "nonexistent",
+      gene_col = "gene_id",
+      isoform_col = "isoform_id"
+    ),
+    "condition"
+  )
+})
+
+# Test 3: Input validation - invalid q parameter
+test_that("jackknife_isoform_switching validates q parameter", {
+  se <- test_se_basic()
+  
+  expect_error(
+    jackknife_isoform_switching(
+      se = se,
+      condition_col = "condition",
+      gene_col = "gene_id",
+      isoform_col = "isoform_id",
+      q = -1
+    ),
+    "positive"
+  )
+})
+
+# Test 4: Function returns correct class
+test_that("jackknife_isoform_switching returns tsenat_isoform_switching class", {
+  se <- test_se_basic()
+  
+  result <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "condition",
+    gene_col = "gene_id",
+    isoform_col = "isoform_id",
+    n_bootstrap = 5,
+    norm = FALSE,
+    print_results = FALSE
+  )
+  
+  expect_is(result, "tsenat_isoform_switching")
+  expect_true(inherits(result, "list"))
+})
+
+# Test 5: Required output components exist
+test_that("jackknife_isoform_switching output has required components", {
+  se <- test_se_basic()
+  
+  result <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "condition",
+    gene_col = "gene_id",
+    isoform_col = "isoform_id",
+    n_bootstrap = 5,
+    norm = FALSE,
+    print_results = FALSE
+  )
+  
+  expect_true(!is.null(result$gene_names))
+  expect_true(!is.null(result$conditions))
+  expect_true(!is.null(result$results_per_gene))
+  expect_true(!is.null(result$all_transcript_stats))
+  expect_true(!is.null(result$metadata))
+})
+
+# Test 6: all_transcript_stats has correct columns
+test_that("all_transcript_stats has required columns", {
+  se <- test_se_basic()
+  
+  result <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "condition",
+    gene_col = "gene_id",
+    isoform_col = "isoform_id",
+    n_bootstrap = 5,
+    norm = FALSE,
+    print_results = FALSE
+  )
+  
+  stats <- result$all_transcript_stats
+  required_cols <- c("gene", "transcript_id", "pvalue", "fdr")
+  expect_true(all(required_cols %in% names(stats)))
+})
+
+# Test 7: Paired design parameter is accepted
+test_that("jackknife_isoform_switching accepts pair_col parameter", {
+  suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+  })
+  
+  counts_mat <- matrix(rpois(30, lambda=10), nrow=3, ncol=10,
+                       dimnames=list(c("T1", "T2", "T3"), paste0("S", 1:10)))
+  
+  se_paired <- SummarizedExperiment(
+    assays=list(counts=counts_mat),
+    rowData=data.frame(
+      isoform_id=c("T1", "T2", "T3"),
+      gene_id=c("Gene1", "Gene1", "Gene1")
+    ),
+    colData=data.frame(
+      sample_id=paste0("S", 1:10),
+      condition=rep(c("A", "B"), each=5),
+      individual_id=rep(paste0("Ind", 1:5), 2)
+    )
+  )
+  
+  expect_silent(
+    result <- jackknife_isoform_switching(
+      se = se_paired,
+      condition_col = "condition",
+      pair_col = "individual_id",
+      gene_col = "gene_id",
+      isoform_col = "isoform_id",
+      n_bootstrap = 5,
+      norm = FALSE,
+      print_results = FALSE
+    )
+  )
+  
+  expect_is(result, "tsenat_isoform_switching")
+})
+
+# Test 8: LM results parameter is accepted
+test_that("jackknife_isoform_switching accepts lm_results parameter", {
+  suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+  })
+  
+  counts_mat <- matrix(rpois(40, lambda=10), nrow=4, ncol=10,
+                       dimnames=list(c("T1a", "T1b", "T2a", "T2b"), paste0("S", 1:10)))
+  
+  se_multi <- SummarizedExperiment(
+    assays=list(counts=counts_mat),
+    rowData=data.frame(
+      isoform_id=c("T1a", "T1b", "T2a", "T2b"),
+      gene_id=c("Gene1", "Gene1", "Gene2", "Gene2")
+    ),
+    colData=data.frame(
+      sample_id=paste0("S", 1:10),
+      condition=rep(c("A", "B"), each=5)
+    )
+  )
+  
+  lm_results <- data.frame(
+    gene=c("Gene1", "Gene2"),
+    p_interaction=c(0.01, 0.50),
+    adj_p_interaction=c(0.02, 0.60)
+  )
+  
+  expect_silent(
+    result <- jackknife_isoform_switching(
+      se = se_multi,
+      condition_col = "condition",
+      gene_col = "gene_id",
+      isoform_col = "isoform_id",
+      lm_results = lm_results,
+      lm_p_threshold = 0.05,
+      n_bootstrap = 5,
+      norm = FALSE,
+      print_results = FALSE
+    )
+  )
+  
+  expect_is(result, "tsenat_isoform_switching")
+})
+
+# Test 9: Metadata tracks parameters correctly
+test_that("Metadata tracks analysis parameters", {
+  se <- test_se_basic()
+  
+  result <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "condition",
+    gene_col = "gene_id",
+    isoform_col = "isoform_id",
+    q = 1.5,
+    n_bootstrap = 5,
+    norm = FALSE,
+    print_results = FALSE
+  )
+  
+  meta <- result$metadata
+  expect_equal(meta$q_parameter, 1.5)
+  expect_equal(meta$norm_applied, FALSE)
+  expect_equal(meta$n_bootstrap, 5)
+})
+
+# Test 10: Results are numeric (not NA/NaN) for small bootstrap
+test_that("Results contain numeric values with small bootstrap", {
+  se <- test_se_basic()
+  
+  result <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "condition",
+    gene_col = "gene_id",
+    isoform_col = "isoform_id",
+    n_bootstrap = 5,
+    norm = FALSE,
+    print_results = FALSE
+  )
+  
+  gene_res <- result$results_per_gene[["Gene1"]]
+  
+  # P-values should be numeric
+  expect_is(gene_res$delta_pvalue, "numeric")
+  expect_length(gene_res$delta_pvalue, 2)
+  expect_true(all(is.finite(gene_res$delta_pvalue)))
+})
+
 # Test 25: Pseudocount parameter
 test_that("Pseudocount parameter affects zero handling", {
   counts_zero <- c(100, 0, 50)
@@ -310,9 +576,6 @@ test_that("jackknife_tsallis_entropy handles large count values", {
   expect_true(!is.na(result$estimate))
   expect_true(all(!is.na(result$jackknife_estimates)))
 })
-# ============================================================================
-# New Tests for NaN/NA Handling (Fixed Issues)
-# ============================================================================
 
 # Test 31: Sparse counts that may produce NaN values
 test_that("jackknife_tsallis_entropy handles sparse counts with na.rm", {
