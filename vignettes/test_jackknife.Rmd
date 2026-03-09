@@ -1103,6 +1103,7 @@ cat("Running jackknife analysis on these genes...\n\n")
 
 # Run isoform switching analysis
 # Pass lm_res_for_jackknife with gene IDs for proper filtering
+# NOTE: se is already filtered (filter_se applied on line ~370)
 switching_results <- jackknife_isoform_switching(
   se = se,
   condition_col = condition_col,

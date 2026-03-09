@@ -878,12 +878,7 @@ jackknife_isoform_switching <- function(
   # Get gene list
   gene_ids <- unique(rowData(se)[[gene_col]])
   
-  # If top_n specified, limit genes
-  if (!is.null(top_n) && length(gene_ids) > top_n) {
-    gene_ids <- gene_ids[1:top_n]
-  }
-  
-  # Handle LM filtering
+  # Handle LM filtering first (BEFORE applying top_n limit)
   lm_gene_mapping <- NULL
   lm_genes_filtered <- 0
   
@@ -917,11 +912,25 @@ jackknife_isoform_switching <- function(
     }
   }
   
+  # Apply top_n limit AFTER LM filtering
+  if (!is.null(top_n) && length(gene_ids) > top_n) {
+    gene_ids <- gene_ids[1:top_n]
+  }
+  
   # Initialize results
   results_per_gene <- list()
   all_pvalues <- list()
   all_fdr <- list()
   summary_rows <- list()
+  
+  # Track gene processing for debugging (if verbose mode enabled)
+  gene_processing_log <- data.frame(
+    gene = character(),
+    n_transcripts = numeric(),
+    has_2_transcripts = logical(),
+    in_results = logical(),
+    stringsAsFactors = FALSE
+  )
   
   # Process each gene
   for (gene in gene_ids) {
@@ -930,8 +939,15 @@ jackknife_isoform_switching <- function(
     gene_isos <- rowData(se)[gene_mask, isoform_col]
     
     if (length(gene_isos) < 2) {
+      gene_processing_log <- rbind(gene_processing_log, data.frame(
+        gene = gene, n_transcripts = length(gene_isos),
+        has_2_transcripts = FALSE, in_results = FALSE
+      ))
       next # Skip single-transcript genes
     }
+    
+    # Mark that it passed 2-transcript check
+    processing_check_passed <- TRUE
     
     # Get counts for this gene
     counts_matrix <- assays(se)$counts[gene_mask, , drop = FALSE]
@@ -1069,6 +1085,12 @@ jackknife_isoform_switching <- function(
     
     results_per_gene[[gene]] <- gene_result
     
+    # Log successful processing
+    gene_processing_log <- rbind(gene_processing_log, data.frame(
+      gene = gene, n_transcripts = length(gene_isos),
+      has_2_transcripts = TRUE, in_results = TRUE
+    ))
+    
     # Collect p-values for global FDR correction (per-transcript)
     for (i in seq_along(gene_isos)) {
       all_pvalues[[length(all_pvalues) + 1]] <- list(
@@ -1176,7 +1198,8 @@ jackknife_isoform_switching <- function(
     n_fdr_significant = n_fdr_sig_total,
     lm_results_provided = !is.null(lm_results),
     lm_p_threshold = lm_p_threshold,
-    lm_genes_filtered = lm_genes_filtered
+    lm_genes_filtered = lm_genes_filtered,
+    gene_processing_log = gene_processing_log
   )
   
   # Create result object
