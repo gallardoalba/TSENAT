@@ -1813,8 +1813,8 @@ plot_q_sensitivity_curve <- function(
   }
   
   # Add q-range recommendation
-  graphics::abline(v = 0.5, col = "gray", lty = 3, alpha = 0.5)
-  graphics::abline(v = 2, col = "gray", lty = 3, alpha = 0.5)
+  graphics::abline(v = 0.5, col = "gray", lty = 3)
+  graphics::abline(v = 2, col = "gray", lty = 3)
   
   return(invisible(sensitivity_data))
 }

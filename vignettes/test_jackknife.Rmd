@@ -1319,9 +1319,9 @@ n_lm_sig <- sum(lm_res_for_jackknife$adj_p_interaction < 0.05)
 # Store results for comparison
 multi_q_results <- list()
 
-# Use top 3 LM-significant genes (by adj p-value, not switching magnitude)
+# Use top 4 LM-significant genes (by adj p-value, not switching magnitude)
 lm_res_sorted <- lm_res_for_jackknife[order(lm_res_for_jackknife$adj_p_interaction), ]
-top_genes_for_comparison <- head(lm_res_sorted$gene, 3)  # Top 3 by LM p-value
+top_genes_for_comparison <- head(lm_res_sorted$gene, 4)  # Top 4 by LM p-value
 
 for (q_val in q_test_values) {
   switch_q <- jackknife_isoform_switching(
@@ -1352,6 +1352,8 @@ for (q_val in q_test_values) {
 
 ```{r multi-q-switching-display, echo=TRUE, results='asis'}
 # Compare delta_influence for the same transcripts across q values
+cat("Delta influence across q values:\n\n")
+
 for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
   gene_id <- top_genes_for_comparison[gene_idx]
   # Get gene name from LM results
@@ -1434,6 +1436,9 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
       }
     })
     
+    # Add spacer column for visual separation
+    comparison_data$Spacer <- " "
+    
     # Add consistency as a new column
     comparison_data$Consistency <- consistency_results
     
@@ -1441,9 +1446,8 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
     col_display <- c("Transcript", sapply(q_values_available, function(qk) {
       q_num <- q_key_to_value[[qk]]
       paste0("q=", sprintf("%.2f", q_num))
-    }), " | Direction Consistency")
+    }), "", "Direction Consistency")
     
-    cat("Delta influence across q values:\n\n")
     # Use col.names parameter for display without modifying actual column names
     print(knitr::kable(comparison_data, digits = 3, col.names = col_display))
   }
@@ -1454,11 +1458,16 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
 
 ## Analysis 4: Visualization - Multi-Q Heatmaps
 
+### Delta Influence Across Diversity Scales
+
 Visualize switching patterns for the top genes identified by the LM
 interaction test. This shows which transcripts are switching in genes 
-with significant q×condition interaction effects.
+with significant q×condition interaction effects. The heatmaps below display
+the jackknife delta influence (a measure of transcript switching robustness)
+across different q-values (rows: 0.01 to 2.0, representing increasing diversity
+scales) and transcripts (columns) for each gene.
 
-```{r multi-q-heatmap, echo=TRUE, fig.width=18, fig.height=7.5}
+```{r multi-q-heatmap, echo=TRUE, fig.width=18, fig.height=20}
 # Prepare data for combined multi-Q heatmap
 all_gene_matrices <- list()
 all_gene_info <- list()
@@ -1577,12 +1586,14 @@ if (length(all_gene_matrices) > 0 && requireNamespace("pheatmap", quietly = TRUE
       cluster_cols = (ncol(mat_viz) > 1),
       display_numbers = FALSE,
       na_col = "lightgray",
-      color = colorRampPalette(c("#0072B2", "white", "#D55E00"))(100),
-      cellwidth = 50,
-      cellheight = 50,
-      fontsize = 10,
-      fontsize_number = 10,
-      margins = c(8, 8),
+      color = colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(100),
+      cellwidth = 65,
+      cellheight = 65,
+      fontsize = 16,
+      fontsize_row = 16,
+      fontsize_col = 16,
+      fontsize_number = 13,
+      margins = c(11, 10),
       show_rownames = TRUE,
       show_colnames = TRUE,
       silent = TRUE
@@ -1597,33 +1608,55 @@ if (length(all_gene_matrices) > 0 && requireNamespace("pheatmap", quietly = TRUE
   
   tryCatch({
     n_genes <- length(heatmap_plots)
-    n_cols <- 3
+    n_cols <- 2
     n_rows <- ceiling(n_genes / n_cols)
     
     # Save as PNG using manual grid layout
-    png(combined_png_file, width = 18, height = 6 * n_rows, units = "in", res = 96)
+    png(combined_png_file, width = 18, height = 9 * n_rows, units = "in", res = 96)
     
     grid::grid.newpage()
     
-    # Create viewport layout: n_rows rows, n_cols columns
-    grid::pushViewport(grid::viewport(layout = grid::grid.layout(
-      n_rows, 
+    # Add main title
+    grid::grid.text("Delta Influence Across Diversity Scales", 
+                    x = 0.5, y = 0.98, 
+                    just = "top",
+                    gp = grid::gpar(fontsize = 24, fontface = "bold"))
+    
+    # Create viewport layout: n_rows rows, n_cols columns with spacing
+    # Build layout with alternating content rows and spacing rows
+    row_heights <- c()
+    for (i in 1:n_rows) {
+      row_heights <- c(row_heights, 1)  # content row
+      if (i < n_rows) {
+        row_heights <- c(row_heights, 0.55)  # spacing row (increased from 0.18)
+      }
+    }
+    n_layout_rows <- length(row_heights)
+    
+    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 1, height = 0.78,
+                                      layout = grid::grid.layout(
+      n_layout_rows, 
       n_cols, 
-      heights = rep(1, n_rows),
-      widths = rep(1, n_cols)
+      heights = grid::unit(row_heights, "null"),
+      widths = rep(1, n_cols),
+      respect = FALSE
     )))
     
     # Draw each pheatmap in its own viewport
+    # Map heatmap rows to layout rows (skip spacing rows)
     plot_idx <- 1
-    for (row in 1:n_rows) {
+    layout_row <- 1
+    for (content_row in 1:n_rows) {
       for (col in 1:n_cols) {
         if (plot_idx <= length(heatmap_plots)) {
-          grid::pushViewport(grid::viewport(layout.pos.row = row, layout.pos.col = col))
+          grid::pushViewport(grid::viewport(layout.pos.row = layout_row, layout.pos.col = col))
           grid::grid.draw(heatmap_plots[[plot_idx]])
           grid::popViewport()
           plot_idx <- plot_idx + 1
         }
       }
+      # Move to next content row (skip spacing row)
+      layout_row <- layout_row + 2
     }
     
     grid::popViewport()
