@@ -916,6 +916,7 @@ if (exists("eff_res") &&
 3. **Comparison with genome-wide patterns**: Compute q-spectra for housekeeping genes (GAPDH, 
    ACTB, etc.). These should show BALANCED patterns. If not, revisit normalization parameters.
 
+
 ## References
 
 1. Adami, C. (2004). "Information Theory in Molecular Biology." *arXiv Preprint q-Bio/0405004*.
