@@ -399,7 +399,7 @@ The `SummarizedExperiment` object contains transcript-level counts with
 gene annotations extracted from the GFF3 file. Let's examine its
 internal structure:
 
-```{r examine-se-structure, include = FALSE}
+```{r examine-se-structure, include = TRUE}
 # Display the structure of the SummarizedExperiment
 cat("SummarizedExperiment dimensions:\n")
 cat("  Transcripts (rows):", nrow(se), "\n")
@@ -413,7 +413,7 @@ rd <- as.data.frame(rowData(se)[1:5, ])
 knitr::kable(rd, caption = "First 5 rows of rowData (gene information)", row.names = FALSE)
 ```
 
-```{r examine-metadata, include=FALSE}
+```{r examine-metadata, include=TRUE}
 # Display sample metadata (before mapping to colData)
 if (exists("metadata_df")) {
   cat("\nSample metadata (metadata_df):\n")
@@ -460,7 +460,7 @@ ts_se <- calculate_diversity(se,
 )
 ```
 
-```{r kable-tsallis-calc-sequence, echo = FALSE}
+```{r kable-tsallis-calc-sequence, echo = TRUE}
 # Create table with gene names instead of gene IDs
 assay_data <- assay(ts_se)
 ts_rowdata <- rowData(ts_se)
@@ -555,7 +555,7 @@ sample_qc <- m_estimate(ts_se, samples = "sample_type",
                         paired = TRUE)
 ```
 
-```{r qc-sample-display, echo=FALSE, results="asis"}
+```{r qc-sample-display, echo=TRUE, results="asis"}
 # Display QC results with condition, pair, influence, and centroid distance
 base_display_cols <- c("Sample", "Condition", "Proportion_Affected", 
                        "Genes_Affected", "Distance_from_Centroid", "Status")
@@ -651,7 +651,7 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
 }
 ```
 
-```{r kable-lm-interaction-before-qcurve, message=FALSE, echo = FALSE}
+```{r kable-lm-interaction-before-qcurve, message=FALSE, echo = TRUE}
 # show the top entries with proper p-value formatting
 lm_res_display <- head(lm_res, 6)
 
@@ -779,7 +779,7 @@ if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res)
 }
 ```
 
-```{r divergence-assay-display, echo = FALSE}
+```{r divergence-assay-display, echo = TRUE}
 
 # Display the raw divergence computation results (first 4 genes across 3 q values)
 if (exists("divergence_results_se") && nrow(divergence_results_se) > 0) {
@@ -815,7 +815,7 @@ eff_res <- effect_sizes_divergence(
 )
 ```
 
-```{r divergence-results-table, results='asis', echo = FALSE}
+```{r divergence-results-table, results='asis', echo = TRUE}
 # Display the raw divergence computation results
 # Show first 10 genes with their point estimates and bootstrap 95% confidence intervals
 # NOTE: These estimates are specifically for q=1.0 (Shannon entropy / Kullback-Leibler divergence)
@@ -898,7 +898,7 @@ each gene's isoform switching mechanism:
 classification_tbl <- extract_classification_table(eff_res, top_n = 10, sort_by = 'padj')
 ```
 
-```{r classify-pattern-table, results='asis', message=FALSE, echo = FALSE}
+```{r classify-pattern-table, results='asis', message=FALSE, echo = TRUE}
 # Display classification table if valid genes are present
 if (nrow(classification_tbl) > 0 && any(!is.na(classification_tbl$Pattern))) {
   print(knitr::kable(
@@ -1207,9 +1207,8 @@ Detect which transcripts change importance between conditions in genes
 with significant q×condition interactions. We filter the jackknife
 analysis to only LM-significant genes.
 
-```{r isoform-switching}
+```{r isoform-switching-analysis, echo=TRUE, results=FALSE}
 # Identify the condition column name in the real metadata
-# (TSENAT uses "sample_type" as the condition column)
 condition_col <- "sample_type"
 
 # Identify the paired samples column if available
@@ -1217,30 +1216,22 @@ pair_col <- NULL
 coldata_cols <- colnames(colData(se))
 if ("paired_samples" %in% coldata_cols) {
   pair_col <- "paired_samples"
-  cat("Paired design detected: using", pair_col, "column\n\n")
 }
 
-# The LM results use gene NAMES as identifiers, but jackknife needs Ensembl IDs.
-# Create a version of lm_res with gene IDs for jackknife compatibility
-# First, map gene names to gene IDs
+# Map gene names to Ensembl IDs for jackknife compatibility
 rd <- rowData(se)
 gene_name_to_id <- setNames(as.character(rd$gene_id), as.character(rd$gene_name))
 gene_name_to_id <- gene_name_to_id[!is.na(names(gene_name_to_id))]
 gene_name_to_id <- gene_name_to_id[!duplicated(names(gene_name_to_id))]
 
-# Create a copy of lm_res with gene column replaced by gene IDs for jackknife
+# Create a copy of lm_res with gene IDs for jackknife
 lm_res_for_jackknife <- lm_res
 lm_res_for_jackknife$gene <- unname(gene_name_to_id[as.character(lm_res$gene)])
-# Keep only rows where mapping succeeded
 lm_res_for_jackknife <- lm_res_for_jackknife[!is.na(lm_res_for_jackknife$gene), ]
 
 n_lm_sig <- sum(lm_res_for_jackknife$adj_p_interaction < 0.05)
-cat("LM test identified", n_lm_sig, "genes with significant q×condition interaction\n")
-cat("Running jackknife analysis on these genes...\n\n")
 
 # Run isoform switching analysis
-# Pass lm_res_for_jackknife with gene IDs for proper filtering
-# NOTE: se is already filtered (filter_se applied on line ~370)
 switching_results <- jackknife_isoform_switching(
   se = se,
   condition_col = condition_col,
@@ -1249,116 +1240,30 @@ switching_results <- jackknife_isoform_switching(
   isoform_col = "transcript_id",
   q = 1,
   norm = TRUE,
-  n_bootstrap = 100,  # Reduced for vignette speed (use 1000 for publication)
+  n_bootstrap = 100,
   print_results = FALSE,
   threshold = 90,
-  top_n = n_lm_sig,  # Process all LM-significant genes
-  lm_results = lm_res_for_jackknife,  # Pass LM results with gene IDs
+  top_n = n_lm_sig,
+  lm_results = lm_res_for_jackknife,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE
 )
 
-# DEBUG: Investigate jackknife output
-cat("\n=== DEBUG: Jackknife Results Inventory ===\n")
-cat("- switching_results$summary_table has", nrow(switching_results$summary_table), "rows\n")
-cat("- switching_results$results_per_gene has", length(switching_results$results_per_gene), "gene entries\n")
-
-if (nrow(switching_results$summary_table) > 0) {
-  # Show which genes have jackknife results
-  jackknife_genes <- switching_results$summary_table$gene
-  cat("- Genes with jackknife results (first 10):\n")
-  for (g in head(jackknife_genes, 10)) {
-    gene_name <- switching_results$summary_table$gene_name[switching_results$summary_table$gene == g][1]
-    cat("    ", g, " (", gene_name, ")\n", sep="")
-  }
-  if (length(jackknife_genes) > 10) {
-    cat("    ... and", length(jackknife_genes) - 10, "more genes\n")
-  }
-} else {
-  cat("- WARNING: No jackknife results produced!\n")
-}
-
-cat("\n")
-
-# Filter results to only genes with significant q×condition interaction (from LM test)
-# Use gene_name for matching since both datasets have this field
-# Sort LM results by adjusted p-value (most significant first)
-lm_res_sorted <- lm_res[order(lm_res$adj_p_interaction), ]
-
-# Find genes with significant q×condition interaction
-cat("Genes with significant q×condition interaction (LM test, adj_p < 0.05):\n")
-cat("(Note: jackknife will analyze all LM-significant genes found in se)\n\n")
-top_lm_all <- lm_res_sorted[lm_res_sorted$adj_p_interaction < 0.05, ]
-print(knitr::kable(head(top_lm_all[, c("gene_name", "p_interaction", "adj_p_interaction")], 10), 
-                   digits = 3))
-cat("\n")
-
-# VERIFICATION: Check how many genes in se have 2+ transcripts
-cat("VERIFICATION: Gene counts in se and ts_se\n")
-se_tx_per_gene <- table(rowData(se)$gene_id)
-se_genes_with_2plus_tx <- sum(se_tx_per_gene >= 2)
-cat("- se has", nrow(se), "transcripts total\n")
-cat("- se has", length(unique(rowData(se)$gene_id)), "unique genes\n")
-cat("- se has", se_genes_with_2plus_tx, "genes with 2+ transcripts\n")
-cat("- ts_se has", nrow(ts_se), "genes (rows)\n")
-cat("- ts_se rownames (first 10):", paste(head(rownames(ts_se), 10), collapse=", "), "\n")
-cat("- se gene_ids (first 10 unique):", paste(head(unique(rowData(se)$gene_id), 10), collapse=", "), "\n\n")
-
-# The issue: lm_res$gene contains gene NAMES (LINC03040, PNPT1, etc.)
-# but se$gene_id contains Ensembl IDs (ENSG00000...)
-# Need to map gene names to Ensembl IDs via rowData
-cat("Identifying the identifier mismatch and mapping genes...\n")
-
-# Build mapping from gene_name to gene_id from se
-rd <- rowData(se)
-gene_name_to_id <- setNames(as.character(rd$gene_id), as.character(rd$gene_name))
-gene_name_to_id <- gene_name_to_id[!is.na(names(gene_name_to_id))]  # Remove NA names
-gene_name_to_id <- gene_name_to_id[!duplicated(names(gene_name_to_id))]  # One name per ID
-
-cat("- Created mapping from", length(unique(names(gene_name_to_id))), "gene names to Ensembl IDs\n")
-
-# Get LM-significant genes (using gene NAMES from lm_res)
-lm_sig_gene_names <- lm_res$gene[lm_res$adj_p_interaction < 0.05]
-cat("- LM test has", length(lm_sig_gene_names), "significant genes (by name)\n")
-
-# Map gene names to Ensembl IDs
-lm_gene_ids_in_se <- unname(gene_name_to_id[lm_sig_gene_names])
-lm_gene_ids_in_se <- lm_gene_ids_in_se[!is.na(lm_gene_ids_in_se)]
-cat("- Of these,", length(lm_gene_ids_in_se), "can be mapped to Ensembl IDs in se\n")
-cat("- Mapped genes (sample):", paste(head(lm_gene_ids_in_se, 5), collapse=", "), if(length(lm_gene_ids_in_se) > 5) "..." else "", "\n\n")
-
-# Note: jackknife_isoform_switching was called with lm_results parameter,
-# so it already filtered to only LM-significant genes that exist in se.
-# All genes in switching_results$summary_table are now guaranteed to be
-# LM-significant (adj_p < 0.05) and analyzable in se.
-jackknife_gene_ids <- unique(switching_results$summary_table$gene)
-lm_in_jackknife <- intersect(lm_gene_ids_in_se, jackknife_gene_ids)
-cat("=== SUMMARY: LM-significant genes with jackknife results ===\n")
-cat("- Total LM-significant genes:", length(lm_gene_ids_in_se), "\n")
-cat("- Available in jackknife analysis:", length(lm_in_jackknife), "\n\n")
-
 # Prepare results for display
-# jackknife_isoform_switching already filtered to LM-significant genes,
-# so all genes in switching_results are ready for analysis
 summary_df <- switching_results$summary_table
 
 # Sort by LM test adjusted p-value (most significant first)
-# Map gene names for p-value lookup
 lm_pval_map <- setNames(lm_res$adj_p_interaction, lm_res$gene)
 summary_df$lm_adj_pval <- lm_pval_map[summary_df$gene_name]
 summary_df <- summary_df[order(summary_df$lm_adj_pval, na.last = TRUE), ]
+```
 
-cat("Summary of Switching Analysis (LM-Significant Genes in Filtered Dataset):\n")
-cat("Total genes available:", nrow(summary_df), "\n")
-cat("Genes with switching transcripts:", sum(summary_df$n_switching_transcripts > 0), "\n")
-cat("Genes with FDR-significant switching (FDR < 0.05):",
-    sum(summary_df$n_fdr_significant > 0), "\n\n")
-
+```{r isoform-switching-display, echo=TRUE, results='asis'}
 # Display detailed results for each gene (ordered by LM significance)
 if (nrow(summary_df) > 0) {
   cat("Top genes ordered by q×condition interaction significance (from LM test):\n\n")
   
-  for (i in seq_len(min(10, nrow(summary_df)))) {  # Show top 10 genes by LM significance
+  for (i in seq_len(min(3, nrow(summary_df)))) {
     gene <- summary_df$gene[i]
     gene_name <- summary_df$gene_name[i]
     lm_pval <- summary_df$lm_adj_pval[i]
@@ -1406,13 +1311,8 @@ patterns are consistent across different q values or vary by scale. This
 bridges the gap between the multi-q LM test and the single-q jackknife
 analysis.
 
-```{r multi-q-switching-validation}
+```{r multi-q-switching-validation, echo=TRUE, results=FALSE}
 # Multi-Q analysis: Test switching at different q values
-# This shows if transcripts switch consistently or if switching is q-dependent
-cat("\n========== Multi-Q Switching Validation ==========\n\n")
-cat("Testing switching at multiple q values: 0.01, 0.5, 1.0, 1.5, 2.0\n")
-cat("(Exploring lower diversity scale plus main q-spectrum)\n\n")
-
 q_test_values <- c(0.01, 0.5, 1.0, 1.5, 2.0)
 n_lm_sig <- sum(lm_res_for_jackknife$adj_p_interaction < 0.05)
 
@@ -1423,12 +1323,7 @@ multi_q_results <- list()
 lm_res_sorted <- lm_res_for_jackknife[order(lm_res_for_jackknife$adj_p_interaction), ]
 top_genes_for_comparison <- head(lm_res_sorted$gene, 3)  # Top 3 by LM p-value
 
-cat("Computing jackknife switching at q =", paste(q_test_values, collapse = ", "), "\n")
-cat("For genes:", paste(switching_results$summary_table$gene_name[1:3], collapse = ", "), "\n\n")
-
 for (q_val in q_test_values) {
-  cat("  Computing q =", q_val, "... ")
-  
   switch_q <- jackknife_isoform_switching(
     se = se,
     condition_col = condition_col,
@@ -1446,37 +1341,16 @@ for (q_val in q_test_values) {
     use_lm_fdr = TRUE
   )
   
-  # Format q-value consistently (e.g., 1.0 → "1_0" not "1")
+  # Format q-value consistently
   q_val_formatted <- sprintf("%.1f", q_val)
   q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
   multi_q_results[[q_key]] <- switch_q
-  cat("Done. (", nrow(switch_q$summary_table), " genes analyzed)\n", sep="")
 }
+```
 
-cat("\n========== Delta Influence Consistency Across Q ==========\n\n")
+## Delta Influence Consistency Across Q Values for Top 3 Genes
 
-# Display top genes by LM interaction p-value
-cat("Top LM-significant genes (by adj p-value):\n\n")
-top_lm_genes <- lm_res_for_jackknife[order(lm_res_for_jackknife$adj_p_interaction), ]
-
-# Select columns that exist
-col_select <- intersect(c("gene", "gene_name", "p_interaction", "adj_p_interaction"), 
-                        colnames(top_lm_genes))
-top_lm_display <- head(top_lm_genes[, col_select], 10)
-
-# Use gene names for display if available, otherwise use gene IDs
-display_cols <- col_select
-if ("gene_name" %in% display_cols && "gene" %in% display_cols) {
-  top_lm_display$gene <- top_lm_display$gene_name
-  display_cols <- setdiff(display_cols, "gene_name")
-  top_lm_display <- top_lm_display[, display_cols]
-}
-
-print(knitr::kable(top_lm_display, digits = -2, 
-                   col.names = c("Gene", "p-value", "adj p-value")))
-
-cat("\n\n========== Jackknife Switching at Top 3 Genes ==========\n\n")
-
+```{r multi-q-switching-display, echo=TRUE, results='asis'}
 # Compare delta_influence for the same transcripts across q values
 for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
   gene_id <- top_genes_for_comparison[gene_idx]
@@ -1484,15 +1358,14 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
   gene_name <- lm_res_sorted[lm_res_sorted$gene == gene_id, "gene_name"]
   if (length(gene_name) == 0) gene_name <- gene_id
   
-  cat("### Gene:", gene_name, " (", gene_id, ")\n\n", sep="")
+  cat("#### Gene: ", gene_name, " (", gene_id, ")\n\n", sep="")
   
   # Collect results for this gene across all q values
   q_values_available <- character(0)
   gene_data_by_q <- list()
-  q_key_to_value <- list()  # Track mapping from key to actual q value
+  q_key_to_value <- list()
   
   for (q_val in q_test_values) {
-    # Format q-value consistently before creating key
     q_val_formatted <- sprintf("%.1f", q_val)
     q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
     
@@ -1503,24 +1376,21 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
       if (!is.null(gene_res$delta_influence)) {
         q_values_available <- c(q_values_available, q_key)
         gene_data_by_q[[q_key]] <- gene_res
-        q_key_to_value[[q_key]] <- q_val  # Store original q value
+        q_key_to_value[[q_key]] <- q_val
       }
     }
   }
   
   # Build table if gene found in at least one q-value
   if (length(q_values_available) > 0) {
-    # Get transcript count from first available q
     first_q <- q_values_available[1]
     n_tx_available <- length(gene_data_by_q[[first_q]]$transcript_ids)
     n_tx <- min(3, n_tx_available)
     
-    # Build rows safely
     rows_list <- list()
     for (tx_idx in 1:n_tx) {
       row_data <- list(transcript = gene_data_by_q[[first_q]]$transcript_ids[tx_idx])
       
-      # Add delta_influence for each available q-value
       for (q_key in q_values_available) {
         if (tx_idx <= length(gene_data_by_q[[q_key]]$delta_influence)) {
           row_data[[q_key]] <- gene_data_by_q[[q_key]]$delta_influence[tx_idx]
@@ -1532,21 +1402,16 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
       rows_list[[tx_idx]] <- as.data.frame(row_data, stringsAsFactors = FALSE)
     }
     
-    # Safely combine rows
     comparison_data <- do.call(rbind, rows_list)
     rownames(comparison_data) <- NULL
     
-    # Create column names for display using tracked q values
-    col_labels <- c("Transcript", sapply(q_values_available, function(qk) {
-      q_num <- q_key_to_value[[qk]]
-      paste0("q=", sprintf("%.2f", q_num))
-    }))
+    # Ensure correct column order: transcript first, then q-values
+    col_order <- c("transcript", q_values_available)
+    comparison_data <- comparison_data[, col_order]
     
-    cat("Delta influence across q values (found in", length(q_values_available), "q-values):\n")
-    print(knitr::kable(comparison_data, digits = 3, col.names = col_labels))
-    
-    # Assess consistency: do transcripts show same direction (sign) across q?
-    consistency_results <- apply(comparison_data[, q_values_available], 1, function(x) {
+    # Calculate direction consistency BEFORE displaying table
+    numeric_cols <- q_values_available
+    consistency_results <- apply(comparison_data[, numeric_cols], 1, function(x) {
       x_valid <- x[!is.na(x) & !is.infinite(x)]
       if (length(x_valid) >= 2) {
         pos_count <- sum(x_valid > 0)
@@ -1554,13 +1419,13 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
         zero_count <- sum(x_valid == 0)
         
         if (pos_count == length(x_valid)) {
-          return("All positive")
+          return("Consistent positive")
         } else if (neg_count == length(x_valid)) {
-          return("All negative")
+          return("Consistent negative")
         } else if (zero_count == length(x_valid)) {
           return("All zero")
         } else {
-          return("Mixed sign")
+          return("Mixed directions")
         }
       } else if (length(x_valid) == 1) {
         return("Single q-value")
@@ -1569,61 +1434,32 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
       }
     })
     
-    cat("\nDirection consistency:\n")
-    for (i in seq_along(consistency_results)) {
-      cat("-", comparison_data$transcript[i], ":", consistency_results[i], "\n")
-    }
-  } else {
-    cat("Note: Gene not found in any q-value results.\n")
+    # Add consistency as a new column
+    comparison_data$Consistency <- consistency_results
+    
+    # Create display labels for column names (for knitr::kable only)
+    col_display <- c("Transcript", sapply(q_values_available, function(qk) {
+      q_num <- q_key_to_value[[qk]]
+      paste0("q=", sprintf("%.2f", q_num))
+    }), " | Direction Consistency")
+    
+    cat("Delta influence across q values:\n\n")
+    # Use col.names parameter for display without modifying actual column names
+    print(knitr::kable(comparison_data, digits = 3, col.names = col_display))
   }
   
   cat("\n")
 }
-
-cat("\n========== Interpretation ==========\n\n")
-cat("Consistency across q values indicates:\n")
-cat("- CONSISTENT: Transcript switching is robust across diversity scales\n")
-cat("  (Same transcripts important in both conditions across q spectrum)\n")
-cat("- VARIABLE: Transcript switching is q-dependent\n")
-cat("  (Different transcripts matter at different diversity scales)\n")
-cat("- This validates whether the LM q×condition effect reflects true\n")
-cat("  scale-dependence or simply noise at certain q values\n")
 ```
 
-## Analysis 4: Visualization - Multi-Q and Basic Switching Heatmaps
+## Analysis 4: Visualization - Multi-Q Heatmaps
 
 Visualize switching patterns for the top genes identified by the LM
-interaction test (calculate_lm_interaction). This shows which
-transcripts are switching in genes with significant q×condition
-interaction effects.
+interaction test. This shows which transcripts are switching in genes 
+with significant q×condition interaction effects.
 
-### Multi-Q Heatmap: Delta Influence Across Diversity Scales
-
-Show how transcript switching (delta_influence) varies across q-values
-for the top 3 LM-significant genes:
-
-```{r multi-q-heatmap}
-cat("Creating multi-Q heatmaps for top LM-significant genes\n")
-
-# Debug: check if multi_q_results exists and has data
-cat("DEBUG: multi_q_results structure check\n")
-cat("  - Is NULL:", is.null(multi_q_results), "\n")
-if (!is.null(multi_q_results)) {
-  cat("  - Number of q-values:", length(multi_q_results), "\n")
-  cat("  - Q-value keys:", paste(names(multi_q_results), collapse=", "), "\n")
-  if (length(multi_q_results) > 0) {
-    first_key <- names(multi_q_results)[1]
-    cat("  - First key '", first_key, "' has results_per_gene:", 
-        !is.null(multi_q_results[[first_key]]$results_per_gene), "\n")
-    if (!is.null(multi_q_results[[first_key]]$results_per_gene)) {
-      cat("  - Number of genes in first q:", 
-          length(multi_q_results[[first_key]]$results_per_gene), "\n")
-    }
-  }
-}
-cat("  - top_genes_for_comparison:", paste(top_genes_for_comparison[1:min(3, length(top_genes_for_comparison))], collapse=", "), "\n\n")
-
-# Prepare data for combined multi-Q heatmap (all 6 genes in one plot)
+```{r multi-q-heatmap, echo=TRUE, fig.width=18, fig.height=7.5}
+# Prepare data for combined multi-Q heatmap
 all_gene_matrices <- list()
 all_gene_info <- list()
 
@@ -1647,6 +1483,9 @@ for (gene_idx in 1:min(6, length(top_genes_for_comparison))) {
         col_name <- paste0("q_", sprintf("%.2f", q_val))
         delta_vals <- gene_res$delta_influence
         
+        # Replace Inf and NaN with NA for clean handling
+        delta_vals[is.infinite(delta_vals) | is.nan(delta_vals)] <- NA
+        
         if (is.null(heatmap_data)) {
           # Initialize with transcript IDs
           heatmap_data <- data.frame(
@@ -1655,96 +1494,80 @@ for (gene_idx in 1:min(6, length(top_genes_for_comparison))) {
           )
         }
         
-        # Add column for this q-value
-        heatmap_data[[col_name]] <- delta_vals[1:nrow(heatmap_data)]
+        # Add column for this q-value (with Inf/NaN as NA)
+        # Match length to existing data rows
+        n_to_add <- min(length(delta_vals), nrow(heatmap_data))
+        heatmap_data[[col_name]] <- c(delta_vals[1:n_to_add], rep(NA_real_, nrow(heatmap_data) - n_to_add))
       }
     }
   }
   
-  # Create and display heatmap
   if (!is.null(heatmap_data) && nrow(heatmap_data) > 0) {
-    cat("\n### Gene:", gene_name, " (", nrow(heatmap_data), " transcripts)\n\n")
-    
     # Convert to matrix for heatmap
     heatmap_matrix <- as.matrix(heatmap_data[, -1])
     rownames(heatmap_matrix) <- heatmap_data$transcript
     
-    cat("Before filtering: ", nrow(heatmap_matrix), "x", ncol(heatmap_matrix), " matrix\n")
-    
-    # FILTER FIRST: Remove transcripts with NO valid data (all NA/Inf/NaN)
-    valid_transcript_rows <- rowSums(!is.na(heatmap_matrix) & is.finite(heatmap_matrix)) > 0
+    # Remove transcripts with exclusively no valid data (all NA)
+    valid_transcript_rows <- rowSums(!is.na(heatmap_matrix)) > 0
     heatmap_matrix <- heatmap_matrix[valid_transcript_rows, ]
     heatmap_data <- heatmap_data[valid_transcript_rows, ]
     
-    cat("After filtering: ", nrow(heatmap_matrix), "x", ncol(heatmap_matrix), " matrix\n")
-    
     if (nrow(heatmap_matrix) == 0) {
-      cat("No valid transcript data to visualize\n")
       next
     }
     
-    # THEN CAP INFINITE VALUES at 95th percentile
+    # Cap outliers for remaining finite values
     finite_vals <- heatmap_matrix[is.finite(heatmap_matrix)]
     if (length(finite_vals) > 0) {
       cap_val <- quantile(abs(finite_vals), 0.95)
-      heatmap_matrix[is.infinite(heatmap_matrix)] <- sign(heatmap_matrix[is.infinite(heatmap_matrix)]) * cap_val * 2
+      # Cap finite values that exceed the 95th percentile
+      heatmap_matrix[is.finite(heatmap_matrix) & abs(heatmap_matrix) > cap_val] <- 
+        sign(heatmap_matrix[is.finite(heatmap_matrix) & abs(heatmap_matrix) > cap_val]) * cap_val
     }
     
     # Transpose: q-values as rows, transcripts as columns
     heatmap_matrix <- t(heatmap_matrix)
-    
-    cat("After transpose: ", nrow(heatmap_matrix), "x", ncol(heatmap_matrix), " matrix\n")
-    
-    # DEBUG: Inspect matrix content
-    cat("  Matrix summary:\n")
-    cat("    - Data type:", class(heatmap_matrix), "\n")
-    cat("    - Values range: ", min(heatmap_matrix, na.rm = TRUE), " to ", max(heatmap_matrix, na.rm = TRUE), "\n")
-    cat("    - Number of NAs:", sum(is.na(heatmap_matrix)), "\n")
-    cat("    - Number of Infs:", sum(is.infinite(heatmap_matrix)), "\n")
-    cat("    - Number of -Infs:", sum(is.infinite(heatmap_matrix) & heatmap_matrix < 0), "\n")
-    cat("    - Number of finite values:", sum(is.finite(heatmap_matrix)), "\n")
-    cat("    - Unique values count:", length(unique(as.vector(heatmap_matrix[is.finite(heatmap_matrix)]))), "\n")
-    
-    # Show first few rows/cols of the matrix
-    cat("  Matrix preview (first 3 rows, all cols):\n")
-    print(head(heatmap_matrix, 3))
-    cat("\n")
     
     # Store matrix and gene info for combined plot
     all_gene_matrices[[gene_idx]] <- heatmap_matrix
     all_gene_info[[gene_idx]] <- list(
       gene_id = gene_id,
       gene_name = gene_name,
-      n_transcripts = nrow(heatmap_matrix)
+      n_transcripts = ncol(heatmap_matrix)
     )
   }
 }
 
-# Create combined heatmap with all 3 genes in separate panels
+# Create combined heatmap with all 6 genes in separate panels
 if (length(all_gene_matrices) > 0 && requireNamespace("pheatmap", quietly = TRUE)) {
-  cat("\n## Creating combined multi-Q heatmap with independent panels for each gene\n\n")
-  
-  # Need gridExtra for combining plots
-  if (!requireNamespace("gridExtra", quietly = TRUE)) {
-    cat("Installing gridExtra for combined plots...\n")
-    install.packages("gridExtra", quiet = TRUE)
-  }
-  
   # Create individual heatmaps for each gene and store as grobs
   heatmap_plots <- list()
+  plot_gene_names <- character(0)
   
-  for (i in seq_along(all_gene_matrices)) {
-    mat <- all_gene_matrices[[i]]
-    gene_info <- all_gene_info[[i]]
+  # Create plots only for genes that have data (skip NULL entries)
+  for (gene_idx in seq_along(all_gene_matrices)) {
+    if (is.null(all_gene_matrices[[gene_idx]]) || is.null(all_gene_info[[gene_idx]])) {
+      next
+    }
+    
+    mat <- all_gene_matrices[[gene_idx]]
+    gene_info <- all_gene_info[[gene_idx]]
     gene_name <- gene_info$gene_name
+    plot_gene_names <- c(plot_gene_names, gene_name)
     
-    # Apply outlier capping
-    percentile_95 <- quantile(abs(as.vector(mat[is.finite(mat)])), 0.95)
+    # Apply outlier capping (safely handle if all values are NA)
+    finite_vals <- abs(as.vector(mat[is.finite(mat)]))
+    if (length(finite_vals) == 0) {
+      percentile_95 <- 1  # Default if no finite values
+    } else {
+      percentile_95 <- quantile(finite_vals, 0.95)
+    }
+    
     mat_viz <- mat
-    mat_viz[is.finite(mat_viz) & abs(mat_viz) > percentile_95] <- 
-      sign(mat_viz[is.finite(mat_viz) & abs(mat_viz) > percentile_95]) * percentile_95
-    
-    cat("Panel", i, ":", gene_name, "- Capped at", percentile_95, "\n")
+    if (length(finite_vals) > 0) {
+      mat_viz[is.finite(mat_viz) & abs(mat_viz) > percentile_95] <- 
+        sign(mat_viz[is.finite(mat_viz) & abs(mat_viz) > percentile_95]) * percentile_95
+    }
     
     # Create pheatmap (returns a grob object)
     p <- pheatmap::pheatmap(
@@ -1756,34 +1579,51 @@ if (length(all_gene_matrices) > 0 && requireNamespace("pheatmap", quietly = TRUE
       na_col = "lightgray",
       color = colorRampPalette(c("#0072B2", "white", "#D55E00"))(100),
       cellwidth = 50,
-      cellheight = 40,
+      cellheight = 50,
+      fontsize = 10,
+      fontsize_number = 10,
+      margins = c(8, 8),
       show_rownames = TRUE,
       show_colnames = TRUE,
-      silent = TRUE  # Silent to avoid printing during grid assembly
+      silent = TRUE
     )
     
-    heatmap_plots[[i]] <- p
+    heatmap_plots[[length(heatmap_plots) + 1]] <- p
   }
   
-  # Combine all three panels into one figure using manual grid layout
-  combined_png_file <- "heatmap_multiQ_combined_panels.png"
+  # Combine all panels into one figure using manual grid layout
+  # Save to temp directory for compatibility with knitr
+  combined_png_file <- tempfile(pattern = "heatmap_multiQ_", fileext = ".png")
   
   tryCatch({
-    cat("Creating combined figure with", length(heatmap_plots), "panels...\n")
+    n_genes <- length(heatmap_plots)
+    n_cols <- 3
+    n_rows <- ceiling(n_genes / n_cols)
     
-    # Save as PNG using manual grid layout (most reliable method)
-    png(combined_png_file, width = 16, height = 6, units = "in", res = 96)
+    # Save as PNG using manual grid layout
+    png(combined_png_file, width = 18, height = 6 * n_rows, units = "in", res = 96)
     
     grid::grid.newpage()
     
-    # Create viewport layout: 1 row, 3 columns
-    grid::pushViewport(grid::viewport(layout = grid::grid.layout(1, 3, widths = c(1, 1, 1))))
+    # Create viewport layout: n_rows rows, n_cols columns
+    grid::pushViewport(grid::viewport(layout = grid::grid.layout(
+      n_rows, 
+      n_cols, 
+      heights = rep(1, n_rows),
+      widths = rep(1, n_cols)
+    )))
     
-    # Draw each pheatmap in its own viewport column
-    for (i in 1:3) {
-      grid::pushViewport(grid::viewport(layout.pos.row = 1, layout.pos.col = i))
-      grid::grid.draw(heatmap_plots[[i]])
-      grid::popViewport()
+    # Draw each pheatmap in its own viewport
+    plot_idx <- 1
+    for (row in 1:n_rows) {
+      for (col in 1:n_cols) {
+        if (plot_idx <= length(heatmap_plots)) {
+          grid::pushViewport(grid::viewport(layout.pos.row = row, layout.pos.col = col))
+          grid::grid.draw(heatmap_plots[[plot_idx]])
+          grid::popViewport()
+          plot_idx <- plot_idx + 1
+        }
+      }
     }
     
     grid::popViewport()
@@ -1791,37 +1631,33 @@ if (length(all_gene_matrices) > 0 && requireNamespace("pheatmap", quietly = TRUE
     dev.off()
     
     Sys.sleep(0.5)
-    if (!file.exists(combined_png_file)) {
-      cat("ERROR: Combined PNG file does not exist\n")
-    } else {
-      cat("SUCCESS: Combined heatmap saved to", combined_png_file, "(", file.size(combined_png_file), "bytes)\n\n")
+    if (file.exists(combined_png_file)) {
       knitr::include_graphics(combined_png_file)
     }
   }, error = function(e) {
     tryCatch(dev.off(), silent = TRUE)
-    cat("ERROR creating combined heatmap PNG:", as.character(e), "\n")
   })
 }
-
-cat("Interpretation: Color intensity shows switching magnitude.\n")
-cat("ROWS (q-values): 0.01, 0.5, 1.0, 1.5, 2.0 - diversity scales from low to high\n")
-cat("COLUMNS (transcripts): Each transcript for this gene\n")
-cat("- Red cells: Transcript more influential in first condition\n")
-cat("- Blue cells: Transcript more influential in second condition\n")
-cat("- Pattern DOWN a column shows if transcript switches consistently\n")
-cat("  or q-dependently - validates the LM q×condition interaction\n")
 ```
+
+### Multi-Q Heatmap: Delta Influence Across Diversity Scales
+
+The heatmap above shows transcript switching across q-values (rows: 0.01 to 2.0) for selected genes.
+
+**Interpretation:**
+
+- **ROWS:** q-values from low (0.01) to high (2.0) diversity, showing scale-dependent effects
+- **COLUMNS:** Each transcript for the gene
+- **Red cells:** Transcript more influential in the first condition
+- **Blue cells:** Transcript more influential in the second condition
+- **Column patterns:** Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
 ### Basic Isoform Switching Heatmap
 
 ```{r heatmap-plot, fig.width=16, fig.height=6}
 # Create heatmap showing switching patterns in top LM-significant genes
-# Extract gene names from top LM results (use gene_name for matching)
 top_n_genes <- min(4, nrow(lm_res))
 top_lm_genes_names <- lm_res$gene_name[1:top_n_genes]
-
-cat("Creating heatmap for top", top_n_genes, "genes with significant q×condition interaction\n")
-cat("Genes to visualize:", paste(top_lm_genes_names, collapse = ", "), "\n\n")
 
 # Create a filtered version of switching results containing only the top LM genes
 switching_filtered <- switching_results
@@ -1844,7 +1680,6 @@ max_switching <- max(abs(switching_filtered$summary_table$max_delta_influence), 
 if (max_switching > 0.001) {
   tryCatch({
     suppressWarnings({
-      # Calculate max transcripts per gene to show all
       max_tx_per_gene <- max(sapply(switching_filtered$results_per_gene, 
                                     function(x) length(x$transcript_ids)))
       
@@ -1857,22 +1692,13 @@ if (max_switching > 0.001) {
         main = "Isoform Switching in Top LM-Significant Genes\n(Red=up in first condition, Blue=up in second)"
       )
     })
-    
-    cat("\nHeatmap Interpretation:\n")
-    cat("- Shows transcript switching patterns in genes with q×condition interactions\n")
-    cat("- Red cells: Transcripts more influential in the reference/first condition\n")
-    cat("- Blue cells: Transcripts more influential in the second condition\n")
-    cat("- White cells: Transcripts with minimal/stable switching\n")
-    cat("- Intensity indicates magnitude of switching effect\n")
   }, error = function(e) {
     cat("Note: Heatmap visualization encountered an issue.\n")
     cat("This may occur if selected genes have minimal switching patterns.\n")
-    cat("Summary statistics are available in Analysis 7.\n")
+    cat("Summary statistics are still available.\n")
   })
 } else {
-  cat("Note: No substantial isoform switching detected in selected LM-significant genes\n")
-  cat("(Max |delta_influence| = ", round(max_switching, 4), ")\n", sep = "")
-  cat("These genes show q-dependent effects without large switching magnitudes.\n")
+  cat("Note: No substantial isoform switching detected in selected genes.\n")
 }
 ```
 
@@ -1883,7 +1709,6 @@ with scale-dependent effects from the LM test.
 
 ```{r q-sensitivity-plot, fig.width=10, fig.height=6}
 # Select a gene with significant q×condition interaction from LM results
-# Use gene_name for matching
 significant_lm_genes_names <- lm_res$gene_name[lm_res$adj_p_interaction < 0.05]
 
 if (length(significant_lm_genes_names) > 0) {

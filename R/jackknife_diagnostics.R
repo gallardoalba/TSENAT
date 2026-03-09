@@ -683,20 +683,25 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
         h <- -colSums(p * log(p + 1e-100, log_base))
       }
     } else {
+      # Tsallis entropy: S_q = (1/(q-1)) * (1 - sum(p^q))
+      p_q_sum <- colSums(p^q)
       if (log_base == exp(1)) {
-        h <- (1 / (1 - q)) * log(colSums(p^q) + 1e-100)
+        h <- (1 / (1 - q)) * (1 - p_q_sum)
       } else {
-        h <- (1 / (1 - q)) * log(colSums(p^q) + 1e-100, log_base)
+        h <- (1 / (1 - q)) * (1 - p_q_sum)
       }
     }
     
     if (norm) {
       if (q == 1) {
-        max_h <- log(ncol(counts))
+        max_h <- log(ncol(counts)) / log(log_base)
       } else {
-        max_h <- (1 / (1 - q)) * log(ncol(counts))
+        # Max entropy for uniform distribution: S_q = (1/(q-1)) * (1 - n^(1-q))
+        max_h <- (1 / (1 - q)) * (1 - ncol(counts)^(1 - q))
       }
-      h <- h / max_h
+      if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
+        h <- h / max_h
+      }
     }
     return(h)
   }
@@ -993,11 +998,9 @@ jackknife_isoform_switching <- function(
           -colSums(p * log(p + 1e-100, log_base))
         }
       } else {
-        h <- if (log_base == exp(1)) {
-          (1 / (1 - q)) * log(colSums(p^q) + 1e-100)
-        } else {
-          (1 / (1 - q)) * log(colSums(p^q) + 1e-100, log_base)
-        }
+        # Tsallis entropy: S_q = (1/(q-1)) * (1 - sum(p^q))
+        p_q_sum <- colSums(p^q)
+        h <- (1 / (1 - q)) * (1 - p_q_sum)
       }
       
       if (norm) {
@@ -1006,7 +1009,8 @@ jackknife_isoform_switching <- function(
         if (q == 1) {
           max_h <- log(n_transcripts) / log(log_base)
         } else {
-          max_h <- (1 / (1 - q)) * (1 - n_transcripts^(1 - q)) / log(log_base)
+          # Max entropy for uniform distribution: S_q = (1/(q-1)) * (1 - n^(1-q))
+          max_h <- (1 / (1 - q)) * (1 - n_transcripts^(1 - q))
         }
         
         # Safely normalize: avoid division by zero or infinite values
