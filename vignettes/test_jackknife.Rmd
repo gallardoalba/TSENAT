@@ -1296,10 +1296,10 @@ if (nrow(summary_df) > 0) {
 }
 ```
 
-## Analysis 3b: Multi-Q Switching Validation
+## Transcript Switching Across Diversity Scales
 
 The LM interaction test revealed that condition effects vary across the
-diversity scale (q parameter). Here we validate whether these switching
+diversity scale (q parameter). Here we assess whether these switching
 patterns are consistent across different q values or vary by scale. This
 bridges the gap between the multi-q LM test and the single-q jackknife
 analysis.
@@ -1329,6 +1329,8 @@ multi_q_results <- jackknife_isoform_switching(
 ```
 
 ## Delta Influence Consistency Across Q Values for Top Genes
+
+The tables below examine how transcript switching patterns vary across different diversity scales (q-values) for the four genes with the strongest q×condition interactions. The delta influence metric quantifies the difference in transcript importance between the two conditions: positive values indicate a transcript is more influential under the first condition, negative values indicate greater importance in the second condition. By comparing these values across q-values (0.01 to 2.0), we identify whether transcript switching is consistent across all scales or scale-dependent. The "Direction Consistency" column classifies each transcript's behavior: "Consistent positive/negative" indicates robust, scale-independent switching; "Mixed directions" indicates scale-dependent switching where the same transcript switches direction depending on the diversity scale analyzed. This analysis reveals whether isoform shifts are driven by the same transcripts across all q-values or whether different q-values emphasize switching in different transcripts.
 
 ```{r multi-q-switching-display, echo=TRUE, results='asis'}
 # Compare delta_influence for the same transcripts across q values
@@ -1412,30 +1414,36 @@ for (gene_idx in seq_along(top_genes_for_comparison)) {
     col_order <- c("transcript", q_values_available)
     comparison_data <- comparison_data[, col_order]
     
-    # Calculate direction consistency BEFORE displaying table
-    numeric_cols <- q_values_available
-    consistency_results <- apply(comparison_data[, numeric_cols], 1, function(x) {
-      x_valid <- x[!is.na(x) & !is.infinite(x)]
-      if (length(x_valid) >= 2) {
-        pos_count <- sum(x_valid > 0)
-        neg_count <- sum(x_valid < 0)
-        zero_count <- sum(x_valid == 0)
-        
-        if (pos_count == length(x_valid)) {
-          return("Consistent positive")
-        } else if (neg_count == length(x_valid)) {
-          return("Consistent negative")
-        } else if (zero_count == length(x_valid)) {
-          return("All zero")
+    # Get pre-computed direction consistency from function results
+    # (computed internally by jackknife_isoform_switching for multi-q)
+    consistency_results <- gene_results$direction_consistency
+    
+    # If not available, compute it here (fallback for compatibility)
+    if (is.null(consistency_results) || length(consistency_results) == 0) {
+      numeric_cols <- q_values_available
+      consistency_results <- apply(comparison_data[, numeric_cols], 1, function(x) {
+        x_valid <- x[!is.na(x) & !is.infinite(x)]
+        if (length(x_valid) >= 2) {
+          pos_count <- sum(x_valid > 0)
+          neg_count <- sum(x_valid < 0)
+          zero_count <- sum(x_valid == 0)
+          
+          if (pos_count == length(x_valid)) {
+            return("Consistent positive")
+          } else if (neg_count == length(x_valid)) {
+            return("Consistent negative")
+          } else if (zero_count == length(x_valid)) {
+            return("All zero")
+          } else {
+            return("Mixed directions")
+          }
+        } else if (length(x_valid) == 1) {
+          return("Single q-value")
         } else {
-          return("Mixed directions")
+          return("No data")
         }
-      } else if (length(x_valid) == 1) {
-        return("Single q-value")
-      } else {
-        return("No data")
-      }
-    })
+      })
+    }
     
     # Add spacer column for visual separation
     comparison_data$Spacer <- " "

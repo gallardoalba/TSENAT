@@ -833,6 +833,58 @@ jackknife_isoform_switching <- function(
     
     # Create named list with q values formatted as keys
     names(results_list) <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
+    
+    # Add direction consistency to multi-q results
+    # This analyzes each transcript's delta_influence pattern across q-values
+    for (gene_idx in seq_along(results_list[[1]]$results_per_gene)) {
+      gene_name <- names(results_list[[1]]$results_per_gene)[gene_idx]
+      
+      # Collect delta_influence for this gene across all q-values
+      transcript_ids <- results_list[[1]]$results_per_gene[[gene_name]]$transcript_ids
+      
+      # Build matrix: rows = transcripts, cols = q-values
+      delta_matrix <- matrix(NA_real_, nrow = length(transcript_ids), ncol = length(q))
+      colnames(delta_matrix) <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
+      rownames(delta_matrix) <- transcript_ids
+      
+      for (q_idx in seq_along(results_list)) {
+        if (!is.null(results_list[[q_idx]]$results_per_gene[[gene_name]])) {
+          delta_matrix[, q_idx] <- results_list[[q_idx]]$results_per_gene[[gene_name]]$delta_influence
+        }
+      }
+      
+      # Compute direction consistency for each transcript
+      consistency_results <- apply(delta_matrix, 1, function(x) {
+        x_valid <- x[!is.na(x) & !is.infinite(x)]
+        if (length(x_valid) >= 2) {
+          pos_count <- sum(x_valid > 0)
+          neg_count <- sum(x_valid < 0)
+          zero_count <- sum(x_valid == 0)
+          
+          if (pos_count == length(x_valid)) {
+            return("Consistent positive")
+          } else if (neg_count == length(x_valid)) {
+            return("Consistent negative")
+          } else if (zero_count == length(x_valid)) {
+            return("All zero")
+          } else {
+            return("Mixed directions")
+          }
+        } else if (length(x_valid) == 1) {
+          return("Single q-value")
+        } else {
+          return("No data")
+        }
+      })
+      
+      # Add direction_consistency to each q-value result for this gene
+      for (q_idx in seq_along(results_list)) {
+        if (!is.null(results_list[[q_idx]]$results_per_gene[[gene_name]])) {
+          results_list[[q_idx]]$results_per_gene[[gene_name]]$direction_consistency <- consistency_results
+        }
+      }
+    }
+    
     class(results_list) <- c("tsenat_isoform_switching_multiq", "list")
     
     # Optional printing for multi-q results
