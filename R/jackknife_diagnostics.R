@@ -1980,3 +1980,216 @@ print.tsenat_isoform_switching <- function(x, ...) {
   
   invisible(x)
 }
+
+
+#' Prepare Gene Switching Comparison Tables Across Q-Values
+#'
+#' Generates delta influence comparison tables showing transcript switching patterns
+#' across multiple q-values from multi-q jackknife analysis results.
+#'
+#' @param lm_res Data frame of LM interaction results (from \code{calculate_lm_interaction})
+#' @param multi_q_results List of multi-q jackknife switching results (from \code{jackknife_isoform_switching}).
+#'   Names of list elements must be q-keys in format "q_X_XX" (e.g., "q_0_01", "q_0_50");
+#'   q-values are automatically extracted to determine the sensitivity scale.
+#' @param n_top_genes Integer or NULL, number of top genes to include. If NULL (default), uses all genes from summary_df.
+#' @param n_transcripts_per_gene Integer, max transcripts to display per gene (default: 10)
+#' @param verbose Logical, whether to print progress messages (default: FALSE)
+#'
+#' @return List containing:
+#'   \item{summary_df}{Data frame of top genes sorted by adj_p_interaction}
+#'   \item{top_genes_list}{List of top gene IDs and names}
+#'   \item{comparison_tables}{List of data frames (one per gene) with delta influence across q-values}
+#'   \item{gene_headers}{Character vector of formatted gene headers}
+#'   \item{q_metadata}{List (per gene) containing q_values_available and q_key_to_value}
+#'
+#' @details
+#' This function encapsulates the workflow for preparing delta influence comparison tables:
+#' 1. Creates a summary table from lm_res and sorts by adjusted p-value
+#' 2. Extracts gene ID-to-name mappings from multi_q_results
+#' 3. Matches top genes between summary_df and multi_q_results
+#' 4. Builds comparison tables showing delta_influence values across q-values
+#' 5. Adds direction_consistency classifications
+#' 6. Cleans NaN/Inf values for display
+#'
+#' @keywords internal
+#' @export
+prepare_gene_switching_tables <- function(
+    lm_res,
+    multi_q_results,
+    n_top_genes = NULL,
+    n_transcripts_per_gene = 10,
+    verbose = FALSE) {
+  
+  # Input validation
+  if (!is.data.frame(lm_res)) {
+    stop("lm_res must be a data frame")
+  }
+  if (!is.list(multi_q_results)) {
+    stop("multi_q_results must be a list")
+  }
+  
+  # Extract q_vector from multi_q_results names
+  # Names are formatted as "q_0_01", "q_0_50", etc. (underscore-separated)
+  q_keys <- names(multi_q_results)
+  if (length(q_keys) == 0) {
+    stop("multi_q_results must have named elements (q_keys)")
+  }
+  
+  # Parse q-values from keys (format: "q_0_01", "q_0_50", etc.)
+  q_keys_clean <- gsub("^q_", "", q_keys)  # Remove leading "q_"
+  q_vector <- as.numeric(gsub("_", ".", q_keys_clean))  # Convert "0_01" to "0.01"
+  q_vector <- sort(q_vector)  # Ensure numeric order
+  
+  if (verbose) {
+    cat(sprintf("Extracted q_vector from multi_q_results: %s\n", paste(sprintf("%.2f", q_vector), collapse=", ")))
+  }
+  
+  # Create summary_df from lm_res
+  summary_df <- data.frame(
+    gene = lm_res$gene,
+    gene_name = lm_res$gene_name,
+    p_interaction = lm_res$p_interaction,
+    adj_p_interaction = lm_res$adj_p_interaction,
+    stringsAsFactors = FALSE
+  )
+  
+  # Sort by adjusted p-value (most significant first)
+  summary_df <- summary_df[order(summary_df$adj_p_interaction, na.last = TRUE), ]
+  rownames(summary_df) <- NULL
+  
+  # Set n_top_genes to all genes if NULL
+  if (is.null(n_top_genes)) {
+    n_top_genes <- nrow(summary_df)
+    if (verbose) {
+      cat(sprintf("n_top_genes is NULL; using all %d genes from summary_df\n", n_top_genes))
+    }
+  }
+  
+  if (verbose) {
+    cat(sprintf("Created summary_df with %d genes\n", nrow(summary_df)))
+  }
+  
+  # Extract gene_name_map from the first multi_q result
+  first_q_key <- names(multi_q_results)[1]
+  if (is.null(first_q_key)) {
+    stop("multi_q_results is empty or has no named elements")
+  }
+  
+  gene_id_to_name <- setNames(
+    multi_q_results[[first_q_key]]$gene_name_map,
+    multi_q_results[[first_q_key]]$gene_ids
+  )
+  
+  # Get all available gene IDs
+  available_gene_ids <- names(multi_q_results[[first_q_key]]$results_per_gene)
+  
+  # Create reverse lookup: gene_name -> gene_id
+  gene_name_to_id <- setNames(
+    names(gene_id_to_name),
+    gene_id_to_name
+  )
+  
+  # Get top genes by matching summary_df gene_name to available gene IDs
+  top_genes_list <- list()
+  for (i in 1:min(n_top_genes, nrow(summary_df))) {
+    gene_name <- summary_df$gene_name[i]
+    if (gene_name %in% names(gene_name_to_id)) {
+      gene_id <- gene_name_to_id[gene_name]
+      if (!is.na(gene_id) && gene_id %in% available_gene_ids) {
+        top_genes_list[[length(top_genes_list) + 1]] <- list(
+          gene_id = gene_id,
+          gene_name = gene_name
+        )
+      }
+    }
+  }
+  
+  if (verbose) {
+    cat(sprintf("Matched %d top genes to multi_q_results\n", length(top_genes_list)))
+  }
+  
+  # Build comparison tables for each gene
+  comparison_tables <- list()
+  gene_headers <- character(length(top_genes_list))
+  q_metadata <- list()
+  
+  for (gene_idx in seq_along(top_genes_list)) {
+    gene_id <- top_genes_list[[gene_idx]]$gene_id
+    gene_name <- top_genes_list[[gene_idx]]$gene_name
+    
+    # Format header with gene name and ID
+    if (is.na(gene_name) || gene_name == "") {
+      gene_headers[gene_idx] <- gene_id
+    } else {
+      gene_headers[gene_idx] <- paste0(gene_name, " (", gene_id, ")")
+    }
+    
+    # Collect results for this gene across all q values
+    q_values_available <- character(0)
+    gene_data_by_q <- list()
+    q_key_to_value <- list()
+    
+    for (q_val in q_vector) {
+      q_val_formatted <- sprintf("%.2f", q_val)
+      q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
+      
+      if (!is.null(multi_q_results[[q_key]]) && 
+          !is.null(multi_q_results[[q_key]]$results_per_gene) &&
+          gene_id %in% names(multi_q_results[[q_key]]$results_per_gene)) {
+        gene_res <- multi_q_results[[q_key]]$results_per_gene[[gene_id]]
+        if (!is.null(gene_res$delta_influence)) {
+          q_values_available <- c(q_values_available, q_key)
+          gene_data_by_q[[q_key]] <- gene_res
+          q_key_to_value[[q_key]] <- q_val
+        }
+      }
+    }
+    
+    # Build table if gene found in at least one q-value
+    if (length(q_values_available) > 0) {
+      first_q <- q_values_available[1]
+      n_tx_available <- length(gene_data_by_q[[first_q]]$transcript_ids)
+      n_tx <- min(n_transcripts_per_gene, n_tx_available)
+      
+      # Build data frame with proper structure
+      tx_ids <- gene_data_by_q[[first_q]]$transcript_ids[1:n_tx]
+      comparison_data <- data.frame(transcript = tx_ids, stringsAsFactors = FALSE)
+      
+      # Add delta_influence values for each q-value
+      for (q_key in q_values_available) {
+        delta_vals <- gene_data_by_q[[q_key]]$delta_influence[1:n_tx]
+        comparison_data[[q_key]] <- delta_vals
+      }
+      
+      # Clean NaN and Inf values for display
+      for (col in q_values_available) {
+        comparison_data[[col]][is.nan(comparison_data[[col]]) | is.infinite(comparison_data[[col]])] <- NA
+      }
+      
+      # Get pre-computed direction consistency from jackknife results
+      consistency_results <- gene_data_by_q[[q_values_available[1]]]$direction_consistency[1:n_tx]
+      
+      # Add consistency column
+      comparison_data$Spacer <- " "
+      comparison_data$Consistency <- consistency_results
+      
+      comparison_tables[[gene_idx]] <- comparison_data
+      q_metadata[[gene_idx]] <- list(
+        q_values_available = q_values_available,
+        q_key_to_value = q_key_to_value
+      )
+    } else {
+      comparison_tables[[gene_idx]] <- NULL
+      q_metadata[[gene_idx]] <- NULL
+    }
+  }
+  
+  # Return results
+  list(
+    summary_df = summary_df,
+    top_genes_list = top_genes_list,
+    comparison_tables = comparison_tables,
+    gene_headers = gene_headers,
+    q_metadata = q_metadata
+  )
+}

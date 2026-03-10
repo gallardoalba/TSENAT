@@ -666,126 +666,39 @@ multi_q_results <- jackknife_isoform_switching(
 
 ```
 
-## Delta Influence Consistency Across Q Values for Top Genes
-
 The tables below examine how transcript switching patterns vary across different diversity scales (q-values) for the four genes with the strongest q×condition interactions. The delta influence metric quantifies the difference in transcript importance between the two conditions: positive values indicate a transcript is more influential under the first condition, negative values indicate greater importance in the second condition. By comparing these values across q-values (0.01 to 2.0), we identify whether transcript switching is consistent across all scales or scale-dependent. The "Direction Consistency" column classifies each transcript's behavior: "Consistent positive/negative" indicates robust, scale-independent switching; "Mixed directions" indicates scale-dependent switching where the same transcript switches direction depending on the diversity scale analyzed. This analysis reveals whether isoform shifts are driven by the same transcripts across all q-values or whether different q-values emphasize switching in different transcripts.
+
+
+```{r multi-q-switching-table, echo=TRUE, results='hide'}
+# Use the helper function to prepare comparison tables across q-values
+tables_result <- prepare_gene_switching_tables(
+  lm_res = lm_res,
+  multi_q_results = multi_q_results,
+  verbose = FALSE
+)
+```
 
 ```{r multi-q-switching-display, echo=TRUE, results='asis'}
 
-# Create summary_df from lm_res for downstream analysis
-# This ensures we use the top genes by LM interaction p-value
-summary_df <- data.frame(
-  gene = lm_res$gene,
-  gene_name = lm_res$gene_name,
-  p_interaction = lm_res$p_interaction,
-  adj_p_interaction = lm_res$adj_p_interaction,
-  stringsAsFactors = FALSE
-)
-
-# Sort by adjusted p-value (most significant first)
-summary_df <- summary_df[order(summary_df$adj_p_interaction, na.last = TRUE), ]
-rownames(summary_df) <- NULL
-
-# Extract gene_name_map from the first multi_q result to resolve IDs to names
-first_q_key <- names(multi_q_results)[1]
-gene_id_to_name <- setNames(
-  multi_q_results[[first_q_key]]$gene_name_map,
-  multi_q_results[[first_q_key]]$gene_ids
-)
-
-# Get all available gene IDs from multi_q_results
-available_gene_ids <- names(multi_q_results[[first_q_key]]$results_per_gene)
-
-# Match top genes from summary_df to available gene IDs
-# Create reverse lookup: gene_name -> gene_id
-gene_name_to_id <- setNames(
-  names(gene_id_to_name),
-  gene_id_to_name
-)
-
-# Get top genes by matching summary_df gene_name to available gene IDs
-top_genes_list <- list()
-for (i in 1:min(2, nrow(summary_df))) {
-  gene_name <- summary_df$gene_name[i]
-  if (gene_name %in% names(gene_name_to_id)) {
-    gene_id <- gene_name_to_id[gene_name]
-    if (!is.na(gene_id) && gene_id %in% available_gene_ids) {
-      top_genes_list[[length(top_genes_list) + 1]] <- list(
-        gene_id = gene_id,
-        gene_name = gene_name
-      )
-    }
-  }
-}
-
-for (gene_idx in seq_along(top_genes_list)) {
-  gene_id <- top_genes_list[[gene_idx]]$gene_id
-  gene_name <- top_genes_list[[gene_idx]]$gene_name
+# Iterate over the prepared comparison tables and display top 2 genes
+for (gene_idx in 1:min(2, length(tables_result$gene_headers))) {
+  cat("#### Gene: ", tables_result$gene_headers[gene_idx], "\n\n", sep="")
   
-  # Display header with gene name and ID
-  if (is.na(gene_name) || gene_name == "") {
-    header_text <- gene_id
-  } else {
-    header_text <- paste0(gene_name, " (", gene_id, ")")
-  }
+  comparison_data <- tables_result$comparison_tables[[gene_idx]]
+  q_metadata <- tables_result$q_metadata[[gene_idx]]
   
-  cat("#### Gene: ", header_text, "\n\n", sep="")
-  
-  # Collect results for this gene across all q values
-  q_values_available <- character(0)
-  gene_data_by_q <- list()
-  q_key_to_value <- list()
-  
-  for (q_val in q_vector) {
-    q_val_formatted <- sprintf("%.2f", q_val)
-    q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
-    
-    if (!is.null(multi_q_results[[q_key]]) && 
-        !is.null(multi_q_results[[q_key]]$results_per_gene) &&
-        gene_id %in% names(multi_q_results[[q_key]]$results_per_gene)) {
-      gene_res <- multi_q_results[[q_key]]$results_per_gene[[gene_id]]
-      if (!is.null(gene_res$delta_influence)) {
-        q_values_available <- c(q_values_available, q_key)
-        gene_data_by_q[[q_key]] <- gene_res
-        q_key_to_value[[q_key]] <- q_val
-      }
-    }
-  }
-  
-  # Build table if gene found in at least one q-value
-  if (length(q_values_available) > 0) {
-    first_q <- q_values_available[1]
-    n_tx_available <- length(gene_data_by_q[[first_q]]$transcript_ids)
-    # Show all transcripts (or up to 10 for very large genes)
-    n_tx <- min(10, n_tx_available)
-    
-    # Build data frame with proper structure
-    tx_ids <- gene_data_by_q[[first_q]]$transcript_ids[1:n_tx]
-    comparison_data <- data.frame(transcript = tx_ids, stringsAsFactors = FALSE)
-    
-    # Add delta_influence values for each q-value
-    for (q_key in q_values_available) {
-      delta_vals <- gene_data_by_q[[q_key]]$delta_influence[1:n_tx]
-      comparison_data[[q_key]] <- delta_vals
-    }
-    
-    # Clean NaN and Inf values for display
-    for (col in q_values_available) {
-      comparison_data[[col]][is.nan(comparison_data[[col]]) | is.infinite(comparison_data[[col]])] <- NA
-    }
-    
-    # Get pre-computed direction consistency from jackknife results
-    consistency_results <- gene_data_by_q[[q_values_available[1]]]$direction_consistency[1:n_tx]
-    
-    # Add consistency column
-    comparison_data$Spacer <- " "
-    comparison_data$Consistency <- consistency_results
-    
+  if (!is.null(comparison_data) && !is.null(q_metadata)) {
     # Create display labels for column names (for knitr::kable)
-    col_display <- c("Transcript", sapply(q_values_available, function(qk) {
-      q_num <- q_key_to_value[[qk]]
-      paste0("q=", sprintf("%.2f", q_num))
-    }), "", "Direction Consistency")
+    q_values_available <- q_metadata$q_values_available
+    col_display <- c(
+      "Transcript",
+      sapply(q_values_available, function(qk) {
+        q_num <- q_metadata$q_key_to_value[[qk]]
+        paste0("q=", sprintf("%.2f", q_num))
+      }),
+      "",
+      "Direction Consistency"
+    )
     
     print(knitr::kable(comparison_data, digits = 3, col.names = col_display))
   }
@@ -820,11 +733,11 @@ if (!is.null(heatmap_file) && file.exists(heatmap_file)) {
 
 Interpretation:
 
-- **ROWS:** q-values from low (0.01) to high (2.0) diversity, showing scale-dependent effects
-- **COLUMNS:** Each transcript for the gene
-- **Red cells:** Transcript more influential in the first condition
-- **Blue cells:** Transcript more influential in the second condition
-- **Column patterns:** Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
+- Rows: q-values from low (0.01) to high (2.0) diversity, showing scale-dependent effects
+- Columns: Each transcript for the gene
+- Red cells: Transcript more influential in the first condition
+- Blue cells: Transcript more influential in the second condition
+- Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
 
 ### Effect size analysis
