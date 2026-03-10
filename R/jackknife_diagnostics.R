@@ -748,7 +748,8 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #' @param gene_col Character: column name in rowData for gene IDs.
 #' @param isoform_col Character: column name in rowData for transcript/isoform IDs.
 #' @param top_n Numeric: number of top genes to analyze (default 5). If NULL, all genes.
-#' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy).
+#' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy). Can be a vector
+#'   for multi-q analysis (e.g., q = c(0.5, 1.0, 1.5, 2.0)); results will be nested by q value.
 #' @param norm Logical: normalize entropy to [0,1]? (default TRUE).
 #' @param log_base Numeric: log base for entropy (default e).
 #' @param pseudocount Numeric: pseudocount to add (default 0).
@@ -761,7 +762,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #' @param lm_p_threshold Numeric: p-value threshold for LM gene filtering (default 0.05).
 #' @param use_lm_fdr Logical: use adjusted p-values from LM results if available (default TRUE).
 #'
-#' @return A list of class tsenat_isoform_switching with:
+#' @return If q is a single value, returns a list of class tsenat_isoform_switching with:
 #'   \describe{
 #'     \item{results_per_gene}{named list of per-gene results}
 #'     \item{summary_table}{data.frame with per-gene summary}
@@ -770,6 +771,10 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #'     \item{conditions}{character vector of the two conditions compared}
 #'     \item{metadata}{list with analysis metadata}
 #'   }
+#'   
+#'   If q is a vector, returns a list of class tsenat_isoform_switching_multiq where each
+#'   element is a complete tsenat_isoform_switching result for that q value. Keys are
+#'   formatted as "q_X_XX" for ease of iteration (e.g., q_0_01, q_1_00, q_2_00).
 #'
 #' @export
 jackknife_isoform_switching <- function(
@@ -799,6 +804,56 @@ jackknife_isoform_switching <- function(
   
   if (!inherits(se, "SummarizedExperiment")) {
     stop("se must be a SummarizedExperiment object")
+  }
+  
+  # Handle multiple q values
+  if (is.numeric(q) && length(q) > 1) {
+    # Recursive call for each q value
+    results_list <- lapply(q, function(q_val) {
+      jackknife_isoform_switching(
+        se = se,
+        condition_col = condition_col,
+        pair_col = pair_col,
+        gene_col = gene_col,
+        isoform_col = isoform_col,
+        top_n = top_n,
+        q = q_val,
+        norm = norm,
+        log_base = log_base,
+        pseudocount = pseudocount,
+        threshold = threshold,
+        n_bootstrap = n_bootstrap,
+        print_results = FALSE,
+        verbose = verbose,
+        lm_results = lm_results,
+        lm_p_threshold = lm_p_threshold,
+        use_lm_fdr = use_lm_fdr
+      )
+    })
+    
+    # Create named list with q values formatted as keys
+    names(results_list) <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
+    class(results_list) <- c("tsenat_isoform_switching_multiq", "list")
+    
+    # Optional printing for multi-q results
+    if (print_results) {
+      cat("Isoform Switching Analysis - Multi-Q Comparison\n")
+      cat("================================================\n\n")
+      for (i in seq_along(results_list)) {
+        cat("q = ", q[i], "\n")
+        res <- results_list[[i]]
+        if (!is.null(res$metadata)) {
+          cat("  Genes analyzed:      ", length(res$gene_names), "\n")
+          cat("  Transcripts tested:  ", res$metadata$n_transcripts_tested, "\n")
+          cat("  FDR-significant:     ", res$metadata$n_fdr_significant, "\n")
+          cat("  Genes with switching:", sum(res$summary_table$n_switching_transcripts > 0), "\n\n")
+        }
+      }
+      cat("✓ Access results$q_<value>$results_per_gene$<gene> for per-q, per-gene details\n")
+      cat("✓ Compare q values to assess scale-dependent isoform switching patterns\n\n")
+    }
+    
+    return(invisible(results_list))
   }
   
   if (!(condition_col %in% colnames(colData(se)))) {

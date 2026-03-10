@@ -901,7 +901,7 @@ classification_tbl <- extract_classification_table(eff_res, top_n = 10, sort_by 
 ```{r classify-pattern-table, results='asis', message=FALSE, echo = TRUE}
 # Display classification table if valid genes are present
 if (nrow(classification_tbl) > 0 && any(!is.na(classification_tbl$Pattern))) {
-  print(knitr::kable(
+  cat(knitr::kable(
     classification_tbl,
     caption = "Classification of gene q-patterns and per-q divergence values (top 10 genes)",
     digits = 4,
@@ -1315,40 +1315,44 @@ bridges the gap between the multi-q LM test and the single-q jackknife
 analysis.
 
 ```{r multi-q-switching-validation, echo=TRUE, results=FALSE}
+
 # Multi-Q analysis: Test switching at different q values
-q_test_values <- c(0.01, 0.5, 1.0, 1.5, 2.0)
+q_vector <- c(0.01, 0.5, 1.0, 1.5, 2.0)
+
+# Map gene names to Ensembl IDs for jackknife compatibility
+rd <- rowData(se)
+gene_name_to_id <- setNames(as.character(rd$gene_id), as.character(rd$gene_name))
+gene_name_to_id <- gene_name_to_id[!is.na(names(gene_name_to_id))]
+gene_name_to_id <- gene_name_to_id[!duplicated(names(gene_name_to_id))]
+
+# Create a copy of lm_res with gene IDs for jackknife
+lm_res_for_jackknife <- lm_res
+lm_res_for_jackknife$gene <- unname(gene_name_to_id[as.character(lm_res$gene)])
+lm_res_for_jackknife <- lm_res_for_jackknife[!is.na(lm_res_for_jackknife$gene), ]
+
 n_lm_sig <- sum(lm_res_for_jackknife$adj_p_interaction < 0.05)
 
-# Store results for comparison
-multi_q_results <- list()
-
-# Use top 4 LM-significant genes (by adj p-value, not switching magnitude)
+# Use top 4 LM-significant genes (by adj p-value)
 lm_res_sorted <- lm_res_for_jackknife[order(lm_res_for_jackknife$adj_p_interaction), ]
-top_genes_for_comparison <- head(lm_res_sorted$gene, 4)  # Top 4 by LM p-value
+top_genes_for_comparison <- head(lm_res_sorted$gene, 4)
 
-for (q_val in q_test_values) {
-  switch_q <- jackknife_isoform_switching(
-    se = se,
-    condition_col = condition_col,
-    pair_col = pair_col,
-    gene_col = "gene_id",
-    isoform_col = "transcript_id",
-    q = q_val,
-    norm = TRUE,
-    n_bootstrap = 100,
-    print_results = FALSE,
-    threshold = 90,
-    top_n = n_lm_sig,
-    lm_results = lm_res_for_jackknife,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = TRUE
-  )
-  
-  # Format q-value consistently
-  q_val_formatted <- sprintf("%.1f", q_val)
-  q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
-  multi_q_results[[q_key]] <- switch_q
-}
+# Single call for all q values at once (vectorized approach)
+multi_q_results <- jackknife_isoform_switching(
+  se = se,
+  condition_col = "sample_type",
+  pair_col = "paired_samples",
+  gene_col = "gene_id",
+  isoform_col = "transcript_id",
+  q = q_vector,
+  norm = TRUE,
+  n_bootstrap = 100,
+  print_results = TRUE,
+  threshold = 90,
+  top_n = n_lm_sig,
+  lm_results = lm_res_for_jackknife,
+  lm_p_threshold = 0.05,
+  use_lm_fdr = TRUE
+)
 ```
 
 ## Delta Influence Consistency Across Q Values for Top 3 Genes
@@ -1371,7 +1375,7 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
   q_key_to_value <- list()
   
   for (q_val in q_test_values) {
-    q_val_formatted <- sprintf("%.1f", q_val)
+    q_val_formatted <- sprintf("%.2f", q_val)
     q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
     
     if (!is.null(multi_q_results[[q_key]]) && 
@@ -1451,7 +1455,6 @@ for (gene_idx in 1:min(3, length(top_genes_for_comparison))) {
       paste0("q=", sprintf("%.2f", q_num))
     }), "", "Direction Consistency")
     
-    # Use col.names parameter for display without modifying actual column names
     print(knitr::kable(comparison_data, digits = 3, col.names = col_display))
   }
   
@@ -1484,7 +1487,7 @@ for (gene_idx in 1:min(6, length(top_genes_for_comparison))) {
   heatmap_data <- NULL
   
   for (q_val in q_test_values) {
-    q_val_formatted <- sprintf("%.1f", q_val)
+    q_val_formatted <- sprintf("%.2f", q_val)
     q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
     
     if (!is.null(multi_q_results[[q_key]]) && 

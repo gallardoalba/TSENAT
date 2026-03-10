@@ -402,36 +402,27 @@ n_lm_sig <- sum(lm_res_for_jackknife$adj_p_interaction < 0.05)
 # Multi-Q analysis: Test switching at different q values
 q_test_values <- c(0.01, 0.5, 1.0, 1.5, 2.0)
 
-# Store results for comparison
-multi_q_results <- list()
-
 # Use top 4 LM-significant genes (by adj p-value)
 lm_res_sorted <- lm_res_for_jackknife[order(lm_res_for_jackknife$adj_p_interaction), ]
 top_genes_for_comparison <- head(lm_res_sorted$gene, 4)
 
-for (q_val in q_test_values) {
-  switch_q <- jackknife_isoform_switching(
-    se = se,
-    condition_col = condition_col,
-    pair_col = pair_col,
-    gene_col = "gene_id",
-    isoform_col = "transcript_id",
-    q = q_val,
-    norm = TRUE,
-    n_bootstrap = 100,
-    print_results = FALSE,
-    threshold = 90,
-    top_n = n_lm_sig,
-    lm_results = lm_res_for_jackknife,
-    lm_p_threshold = 0.05,
-    use_lm_fdr = TRUE
-  )
-  
-  # Format q-value consistently
-  q_val_formatted <- sprintf("%.1f", q_val)
-  q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
-  multi_q_results[[q_key]] <- switch_q
-}
+# Single call for all q values at once (vectorized approach)
+multi_q_results <- jackknife_isoform_switching(
+  se = se,
+  condition_col = condition_col,
+  pair_col = pair_col,
+  gene_col = "gene_id",
+  isoform_col = "transcript_id",
+  q = q_test_values,
+  norm = TRUE,
+  n_bootstrap = 100,
+  print_results = TRUE,
+  threshold = 90,
+  top_n = n_lm_sig,
+  lm_results = lm_res_for_jackknife,
+  lm_p_threshold = 0.05,
+  use_lm_fdr = TRUE
+)
 
 # =============================================================================
 # Analysis 4: Visualization - Multi-Q Heatmaps
@@ -449,16 +440,15 @@ for (gene_idx in 1:min(6, length(top_genes_for_comparison))) {
   # Collect delta_influence for all transcripts across all q-values
   heatmap_data <- NULL
   
-  for (q_val in q_test_values) {
-    q_val_formatted <- sprintf("%.1f", q_val)
-    q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
-    
+  # Iterate over the multi_q_results keys (q_0_01, q_0_50, etc.)
+  for (q_key in names(multi_q_results)) {
     if (!is.null(multi_q_results[[q_key]]) && 
         !is.null(multi_q_results[[q_key]]$results_per_gene) &&
         gene_id %in% names(multi_q_results[[q_key]]$results_per_gene)) {
       gene_res <- multi_q_results[[q_key]]$results_per_gene[[gene_id]]
       if (!is.null(gene_res$delta_influence)) {
-        col_name <- paste0("q_", sprintf("%.2f", q_val))
+        # Extract q value from key name (e.g., "q_1_00" -> "q_1.00")
+        col_display_name <- gsub("_", ".", q_key)
         delta_vals <- gene_res$delta_influence
         
         # Replace Inf and NaN with NA for clean handling
@@ -475,7 +465,7 @@ for (gene_idx in 1:min(6, length(top_genes_for_comparison))) {
         # Add column for this q-value (with Inf/NaN as NA)
         # Match length to existing data rows
         n_to_add <- min(length(delta_vals), nrow(heatmap_data))
-        heatmap_data[[col_name]] <- c(delta_vals[1:n_to_add], rep(NA_real_, nrow(heatmap_data) - n_to_add))
+        heatmap_data[[col_display_name]] <- c(delta_vals[1:n_to_add], rep(NA_real_, nrow(heatmap_data) - n_to_add))
       }
     }
   }
