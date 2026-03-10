@@ -763,44 +763,48 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     }
     
     if (!is.null(gene_name_col)) {
-      # Establish what the gene IDs are in rowData
-      # Could be in 'genes' column (from calculate_diversity), 'gene_id' column, or as rownames
+      # Directly extract gene_id and gene_name from rowData using rownames as key
+      # rowData rows correspond to matrix rows in same order
+      
+      # Determine gene_id column if it exists
       id_col <- if ("genes" %in% colnames(rd)) {
         "genes"
       } else if ("gene_id" %in% colnames(rd)) {
         "gene_id"
       } else {
-        NA  # Will use rownames
+        NA  # rownames will be used as ID
       }
       
-      # Build the mapping
+      # Build lookup tables: rowname -> gene_id and rowname -> gene_name
       if (is.na(id_col)) {
-        # Use rownames as IDs
-        gene_id_to_name <- setNames(
-          as.character(rd[[gene_name_col]]),
+        # rownames ARE the gene IDs
+        rowname_to_id <- setNames(
+          as.character(rownames(rd)),
           as.character(rownames(rd))
         )
-        id_source <- "rownames"
       } else {
-        # Use column as IDs
-        gene_id_to_name <- setNames(
-          as.character(rd[[gene_name_col]]),
-          as.character(rd[[id_col]])
+        # gene IDs are in a column
+        rowname_to_id <- setNames(
+          as.character(rd[[id_col]]),
+          as.character(rownames(rd))
         )
-        id_source <- id_col
       }
+      
+      rowname_to_name <- setNames(
+        as.character(rd[[gene_name_col]]),
+        as.character(rownames(rd))
+      )
       
       if (verbose) {
-        message("  - Using gene ID from: ", id_source)
+        message("  - Using gene ID from: ", if (is.na(id_col)) "rownames" else id_col)
         message("  - Using gene names from: ", gene_name_col)
-        message("  - mapping keys (first 5): ", paste(head(names(gene_id_to_name), 5), collapse=", "))
-        message("  - mapping values (first 5): ", paste(head(gene_id_to_name[1:5], 5), collapse=", "))
       }
       
-      # Add gene_name column to results (map from gene column which uses IDs)
-      res$gene_name <- unname(gene_id_to_name[as.character(res$gene)])
+      # Vectorized lookup: map res$gene (rownames) to gene_id and gene_name
+      res$gene_id <- unname(rowname_to_id[as.character(res$gene)])
+      res$gene_name <- unname(rowname_to_name[as.character(res$gene)])
       
-      # For any genes not found in mapping, use gene column value as fallback
+      # For any unmapped genes, use gene column as fallback
       unmapped_idx <- is.na(res$gene_name)
       n_mapped <- sum(!unmapped_idx)
       n_unmapped <- sum(unmapped_idx)
@@ -819,6 +823,12 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
       }
     } else if (verbose) {
       message("[calculate_lm_interaction] WARNING: gene_name column not found in rowData - downstream matching may fail!")
+    }
+    
+    # Ensure gene_id column is always present and populated
+    if (is.null(res$gene_id) || !"gene_id" %in% colnames(res)) {
+      # If gene_id wasn't set above, use gene column (which may be rownames or gene symbols)
+      res$gene_id <- res$gene
     }
 
     # Return the result data.frame (do not attach to or return a

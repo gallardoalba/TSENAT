@@ -747,7 +747,6 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #' @param pair_col Character: optional column name for paired design (individual IDs).
 #' @param gene_col Character: column name in rowData for gene IDs.
 #' @param isoform_col Character: column name in rowData for transcript/isoform IDs.
-#' @param top_n Numeric: number of top genes to analyze (default 5). If NULL, all genes.
 #' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy). Can be a vector
 #'   for multi-q analysis (e.g., q = c(0.5, 1.0, 1.5, 2.0)); results will be nested by q value.
 #' @param norm Logical: normalize entropy to [0,1]? (default TRUE).
@@ -757,8 +756,11 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
 #' @param print_results Logical: print results? (default TRUE).
 #' @param verbose Logical: verbose output? (default FALSE).
-#' @param lm_results Data frame: results from calculate_lm_interaction() with 'gene',
-#'  'p_interaction' and/or 'adj_p_interaction' columns for filtering genes.
+#' @param lm_results Data frame: results from calculate_lm_interaction() with 'gene' column.
+#'   Can contain either gene names or gene IDs; function automatically maps names to IDs
+#'   using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction' columns for
+#'   filtering genes by significance. When provided, only genes passing lm_p_threshold are
+#'   analyzed; all matching genes are included (top_n parameter removed).
 #' @param lm_p_threshold Numeric: p-value threshold for LM gene filtering (default 0.05).
 #' @param use_lm_fdr Logical: use adjusted p-values from LM results if available (default TRUE).
 #'
@@ -783,7 +785,6 @@ jackknife_isoform_switching <- function(
   pair_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
-  top_n = 5,
   q = 1,
   norm = TRUE,
   log_base = exp(1),
@@ -816,7 +817,6 @@ jackknife_isoform_switching <- function(
         pair_col = pair_col,
         gene_col = gene_col,
         isoform_col = isoform_col,
-        top_n = top_n,
         q = q_val,
         norm = norm,
         log_base = log_base,
@@ -911,7 +911,19 @@ jackknife_isoform_switching <- function(
   # Get gene list
   gene_ids <- unique(rowData(se)[[gene_col]])
   
-  # Handle LM filtering first (BEFORE applying top_n limit)
+  # Create mapping from gene_id to gene_name from rowData
+  rd_mapping <- rowData(se)
+  gene_id_to_name <- character(0)
+  if ("gene_name" %in% colnames(rd_mapping)) {
+    gene_id_to_name <- setNames(
+      as.character(rd_mapping$gene_name),
+      as.character(rd_mapping[[gene_col]])
+    )
+    # Remove duplicates, keeping first occurrence
+    gene_id_to_name <- gene_id_to_name[!duplicated(names(gene_id_to_name))]
+  }
+  
+  # Handle LM filtering with automatic gene name to ID mapping
   lm_gene_mapping <- NULL
   lm_genes_filtered <- 0
   
@@ -920,35 +932,60 @@ jackknife_isoform_switching <- function(
       stop("lm_results must have 'gene' column")
     }
     
-    # Determine which p-value column to use
-    p_col <- NULL
-    if (use_lm_fdr && "adj_p_interaction" %in% colnames(lm_results)) {
-      p_col <- "adj_p_interaction"
-    } else if ("p_interaction" %in% colnames(lm_results)) {
-      p_col <- "p_interaction"
+    # Check if lm_results contains gene names or gene IDs
+    # First, check if the "gene" column matches gene IDs in se
+    sample_lm_genes <- lm_results$gene[1:min(5, nrow(lm_results))]
+    genes_are_ids <- all(sample_lm_genes %in% gene_ids)
+    
+    # If genes are names, map them to IDs
+    if (!genes_are_ids) {
+      # Map gene names to Ensembl IDs from rowData
+      rd <- rowData(se)
+      gene_name_to_id <- setNames(as.character(rd[[gene_col]]), as.character(rd$gene_name))
+      gene_name_to_id <- gene_name_to_id[!is.na(names(gene_name_to_id))]
+      gene_name_to_id <- gene_name_to_id[!duplicated(names(gene_name_to_id))]
+      
+      # Map genes in lm_results
+      lm_results <- lm_results
+      lm_results$gene <- unname(gene_name_to_id[as.character(lm_results$gene)])
+      lm_results <- lm_results[!is.na(lm_results$gene), ]
+      
+      if (nrow(lm_results) == 0) {
+        warning("No genes from lm_results matched in SummarizedExperiment rowData.")
+        lm_gene_mapping <- NULL
+      } else {
+        lm_gene_mapping <- lm_results
+      }
     } else {
-      warning("lm_results missing p_interaction or adj_p_interaction columns")
+      lm_gene_mapping <- lm_results
     }
     
-    if (!is.null(p_col)) {
-      sig_genes <- lm_results[lm_results[[p_col]] < lm_p_threshold, "gene"]
-      lm_genes_filtered <- length(sig_genes)
-      
-      if (length(sig_genes) == 0) {
-        warning("No genes pass LM threshold p < ", lm_p_threshold,
-                ". Analyzing all genes.")
-        lm_gene_mapping <- lm_results
+    # Determine which p-value column to use
+    if (!is.null(lm_gene_mapping)) {
+      p_col <- NULL
+      if (use_lm_fdr && "adj_p_interaction" %in% colnames(lm_gene_mapping)) {
+        p_col <- "adj_p_interaction"
+      } else if ("p_interaction" %in% colnames(lm_gene_mapping)) {
+        p_col <- "p_interaction"
       } else {
-        gene_ids <- intersect(gene_ids, sig_genes)
-        lm_gene_mapping <- lm_results
+        warning("lm_results missing p_interaction or adj_p_interaction columns")
+      }
+      
+      if (!is.null(p_col)) {
+        sig_genes <- lm_gene_mapping[lm_gene_mapping[[p_col]] < lm_p_threshold, "gene"]
+        lm_genes_filtered <- length(sig_genes)
+        
+        if (length(sig_genes) == 0) {
+          warning("No genes pass LM threshold p < ", lm_p_threshold,
+                  ". Analyzing all genes.")
+        } else {
+          gene_ids <- intersect(gene_ids, sig_genes)
+        }
       }
     }
   }
   
-  # Apply top_n limit AFTER LM filtering
-  if (!is.null(top_n) && length(gene_ids) > top_n) {
-    gene_ids <- gene_ids[1:top_n]
-  }
+  # Note: top_n parameter removed - all LM-significant genes are analyzed
   
   # Initialize results
   results_per_gene <- list()
@@ -1235,8 +1272,23 @@ jackknife_isoform_switching <- function(
   )
   
   # Create result object
+  # Build gene_id and gene_name vectors for analyzed genes
+  analyzed_genes <- names(results_per_gene)
+  
+  # gene_names currently contains gene IDs (from rowData gene_col)
+  # Add explicit gene_id vector for clarity
+  result_gene_ids <- analyzed_genes
+  
+  # Add gene_names vector (mapped from gene_id_to_name)
+  result_gene_names <- unname(gene_id_to_name[analyzed_genes])
+  if (length(result_gene_names) == 0) {
+    result_gene_names <- rep(NA_character_, length(analyzed_genes))
+  }
+  
   result <- list(
-    gene_names = names(results_per_gene),
+    gene_names = analyzed_genes,  # Keep for backwards compatibility (actually gene IDs)
+    gene_ids = result_gene_ids,   # Explicit gene IDs
+    gene_name_map = result_gene_names,  # Mapping to gene symbols/names
     conditions = conditions,
     results_per_gene = results_per_gene,
     summary_table = summary_table,
