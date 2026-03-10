@@ -11,20 +11,15 @@ entropy_effect_size_guidelines(
 )
 }
 \arguments{
-\item{q_value}{Numeric; Tsallis q-parameter (default: 1.0 for Shannon entropy).
-Different q-values may have different natural ranges.}
+\item{q_value}{Numeric. Tsallis q-parameter (default 1.0 for Shannon entropy).}
 
-\item{n_isoforms}{Numeric; typical number of isoforms in your data. 
-Used to provide relative (% of maximum) guidelines. Default: 50.}
+\item{n_isoforms}{Numeric. Typical number of isoforms in your data (default 50). Used for relative guidelines.}
 
-\item{focus}{Character; type of output desired. Options:
-- "practical" (default): Thresholds for practical significance
-- "statistical": Conservative statistical thresholds
-- "biological": Biologically meaningful ranges
-- "all": All three frameworks}
+\item{focus}{Character. Output type: practical (default), statistical, biological, or all.}
 }
 \value{
-Data frame with interpretation guidelines including:
+A data frame with interpretation guidelines including:
+\describe{
   \item{Framework}{Guideline framework (practical, statistical, or biological)}
   \item{Magnitude}{Effect size category (negligible, small, medium, large)}
   \item{Range}{Absolute entropy difference threshold}
@@ -32,6 +27,7 @@ Data frame with interpretation guidelines including:
   \item{Description}{Interpretation and practical meaning}
   \item{Applications}{Recommended use cases}
   \item{References}{Supporting literature codes}
+}
 }
 \description{
 Provides practical effect size thresholds specifically calibrated for Tsallis entropy
@@ -48,18 +44,18 @@ practical RNA-seq studies.
 **Framework Descriptions:**
 
 **1. Practical Framework** (Default; based on Cohen's d analog)
-- Negligible: < 0.05 × log(n): Barely detectable entropy difference
-- Small: 0.05-0.15 × log(n): Subtle but consistent effect
-- Medium: 0.15-0.35 × log(n): Moderate biological effect
-- Large: ≥ 0.35 × log(n): Strong, practically significant effect
+- Negligible: < 0.05 * log(n): Barely detectable entropy difference
+- Small: 0.05-0.15 * log(n): Subtle but consistent effect
+- Medium: 0.15-0.35 * log(n): Moderate biological effect
+- Large: >= 0.35 * log(n): Strong, practically significant effect
 
 Suitable for: Sample size estimation, effect interpretation in papers
 
 **2. Statistical Framework** (Conservative; Type I error control priority)
-- Negligible: < 0.02 × log(n): Within measurement error
-- Small: 0.02-0.08 × log(n): Statistically detectable
-- Medium: 0.08-0.25 × log(n): Robust statistical effect
-- Large: ≥ 0.25 × log(n): Highly significant effect
+- Negligible: < 0.02 * log(n): Within measurement error
+- Small: 0.02-0.08 * log(n): Statistically detectable
+- Medium: 0.08-0.25 * log(n): Robust statistical effect
+- Large: >= 0.25 * log(n): Highly significant effect
 
 Suitable for: Hypothesis testing, FWER-controlled studies
 
@@ -67,7 +63,7 @@ Suitable for: Hypothesis testing, FWER-controlled studies
 - Negligible: < 10% of range: Not biologically meaningful
 - Small: 10-25% of range: Subtle biological difference
 - Medium: 25-50% of range: Moderate biological effect
-- Large: ≥ 50% of range: Major biological shift
+- Large: >= 50% of range: Major biological shift
 
 Suitable for: Ecological interpretation, longitudinal studies
 
@@ -75,11 +71,11 @@ Suitable for: Ecological interpretation, longitudinal studies
 
 Entropy difference bounds:
 - Maximum entropy: H_max = log(n_isoforms)
-- Entropy difference for two distributions: |H₁ - H₂| ≤ H_max
+- Entropy difference for two distributions: |H₁ - H₂| <= H_max
 - For two extreme distributions (uniform vs single species): Δ = log(n)
 
 Effect size relative to maximum (analogous to Cohen's d for entropy):
-\deqn{\delta_H = \frac{|Delta H|}{H_{max}} \times 100}{delta_H = (|Delta H| / H_max) × 100}
+\deqn{\delta_H = \frac{|Delta H|}{H_{max}} \times 100}{delta_H = (|Delta H| / H_max) * 100}
 
 **Database Verification (tsenat_papers.db)**
 

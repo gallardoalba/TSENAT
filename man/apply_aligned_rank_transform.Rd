@@ -7,7 +7,7 @@
 apply_aligned_rank_transform(data, factors, formula = NULL)
 }
 \arguments{
-\item{data}{Matrix or data.frame (genes × samples) of expression values}
+\item{data}{Matrix or data.frame (genes * samples) of expression values}
 
 \item{factors}{Data.frame of factor assignments with columns for each factor
 (rows must match columns of data)}
@@ -16,9 +16,11 @@ apply_aligned_rank_transform(data, factors, formula = NULL)
 }
 \value{
 List containing:
-  \item{aligned_ranks}{Aligned rank-transformed data}
-  \item{alignment_effects}{Estimated effects subtracted during alignment}
-  \item{summary}{Summary statistics of rank transformation}
+  \describe{
+    \item{aligned_ranks}{Aligned rank-transformed data}
+    \item{alignment_effects}{Estimated effects subtracted during alignment}
+    \item{summary}{Summary statistics of rank transformation}
+  }
 }
 \description{
 Non-parametric rank-based methods for robust statistical testing across
@@ -103,6 +105,7 @@ art_result <- apply_aligned_rank_transform(
 }
 \keyword{(ART)}
 \keyword{(e.g.,}
+\keyword{*}
 \keyword{1.}
 \keyword{2.}
 \keyword{3.}
@@ -152,4 +155,3 @@ art_result <- apply_aligned_rank_transform(
 \keyword{to}
 \keyword{two}
 \keyword{without}
-\keyword{×}

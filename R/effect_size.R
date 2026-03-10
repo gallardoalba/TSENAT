@@ -4,32 +4,28 @@
 #' Supports multiple effect size metrics including Cliff's delta, r-value,
 #' and rank-biserial correlation.
 #'
-#' @param x A \code{matrix} with the splicing diversity values or other numeric data.
-#'   Ignored if \code{ts_se} is provided.
-#' @param samples Character vector with an equal length to the number of columns
-#'   in the input dataset, specifying the category of each sample (two groups expected).
+#' @param x Matrix with splicing diversity values or other numeric data. Ignored if \code{ts_se} is provided.
+#' @param samples Character vector with length equal to number of columns in input dataset, specifying category of each sample (two groups expected).
 #'   Ignored if \code{ts_se} is provided; extracted from colData automatically.
-#' @param ts_se Optional \code{SummarizedExperiment} containing diversity values and sample metadata.
-#'   When provided, \code{x} and \code{samples} are extracted automatically from the diversity
+#' @param ts_se Optional SummarizedExperiment containing diversity values and sample metadata. When provided, x and samples are extracted automatically from the diversity assay.
 #'   assay and colData. If \code{NULL}, \code{x} and \code{samples} must be provided.
-#' @param paired Logical; if \code{TRUE}, compute paired effect sizes (signed rank test).
-#'   Default: \code{FALSE}.
-#' @param pairs Optional character vector with an equal length to the number of 
-#'   columns in the input dataset, specifying the pairing identifier for each sample. 
+#' @param paired Logical. If TRUE, compute paired effect sizes (signed rank test, default FALSE).
+#' @param pairs Optional character vector with length equal to number of columns in input dataset, specifying pairing identifier for each sample. 
 #'   When provided with \code{paired = TRUE}, samples are matched based on this 
 #'   pairing information rather than column order.
 #' @param res Optional \code{data.frame} with statistical test results containing columns
 #'   'pvalue' and 'padj'. When provided, combines effect sizes with
 #'   p-values for integrated interpretation (see Details).
 #' @param nthreads Number of threads for parallel processing (default: 1).
-#' @param return_summary Logical; if \code{TRUE} and \code{res} is provided, prints
-#'   a summary combining p-values and effect sizes for top genes. Default: \code{TRUE}.
+#' @param return_summary Logical. If TRUE and res is provided, print summary combining p-values and effect sizes for top genes (default TRUE).
 #'
 #' @return A \code{data.frame} with columns:
+#'   \describe{
 #'   \item{cliffs_delta}{Cliff's delta effect size (range: [-1, 1]).}
 #'   \item{r_value}{Standardized effect size Z / √N (range: [-1, 1]).}
 #'   \item{rank_biserial}{Rank-biserial correlation (for unpaired tests).}
 #'   \item{effect_magnitude}{Interpretation: 'negligible', 'small', 'medium', 'large'.}
+#'   }
 #'
 #' @details
 #' **Cliff's Delta:** Non-parametric effect size measuring the dominance probability (Cliff, 1993).
@@ -456,7 +452,7 @@ wilcoxon_effect_size_guidelines <- function() {
     cliffs_thresholds <- data.frame(
         Metric = rep("Cliff's Delta", 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
-        Range = c("|δ| < 0.147", "0.147 ≤ |δ| < 0.33", "0.33 ≤ |δ| < 0.474", "|δ| ≥ 0.474"),
+        Range = c("|δ| < 0.147", "0.147 <= |δ| < 0.33", "0.33 <= |δ| < 0.474", "|δ| >= 0.474"),
         Description = c(
             "Effect not meaningful",
             "Small practical effect",
@@ -469,7 +465,7 @@ wilcoxon_effect_size_guidelines <- function() {
     r_thresholds <- data.frame(
         Metric = rep("r-value", 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
-        Range = c("|r| < 0.1", "0.1 ≤ |r| < 0.3", "0.3 ≤ |r| < 0.5", "|r| ≥ 0.5"),
+        Range = c("|r| < 0.1", "0.1 <= |r| < 0.3", "0.3 <= |r| < 0.5", "|r| >= 0.5"),
         Description = c(
             "Effect not meaningful",
             "Small practical effect",
@@ -494,17 +490,13 @@ wilcoxon_effect_size_guidelines <- function() {
 #' Guidelines are based on 34 published papers on entropy-based effect metrics and 
 #' practical RNA-seq studies.
 #'
-#' @param q_value Numeric; Tsallis q-parameter (default: 1.0 for Shannon entropy).
-#'   Different q-values may have different natural ranges.
-#' @param n_isoforms Numeric; typical number of isoforms in your data. 
-#'   Used to provide relative (% of maximum) guidelines. Default: 50.
-#' @param focus Character; type of output desired. Options:
-#'   - "practical" (default): Thresholds for practical significance
-#'   - "statistical": Conservative statistical thresholds
-#'   - "biological": Biologically meaningful ranges
-#'   - "all": All three frameworks
+#' @param q_value Numeric. Tsallis q-parameter (default 1.0 for Shannon entropy).
+#' @param n_isoforms Numeric. Typical number of isoforms in your data (default 50). Used for relative guidelines.
+#' @param focus Character. Output type: practical (default), statistical, biological, or all.
 #'
-#' @return Data frame with interpretation guidelines including:
+#' @return
+#' A data frame with interpretation guidelines including:
+#' \describe{
 #'   \item{Framework}{Guideline framework (practical, statistical, or biological)}
 #'   \item{Magnitude}{Effect size category (negligible, small, medium, large)}
 #'   \item{Range}{Absolute entropy difference threshold}
@@ -512,23 +504,24 @@ wilcoxon_effect_size_guidelines <- function() {
 #'   \item{Description}{Interpretation and practical meaning}
 #'   \item{Applications}{Recommended use cases}
 #'   \item{References}{Supporting literature codes}
+#' }
 #'
 #' @details
 #' **Framework Descriptions:**
 #'
 #' **1. Practical Framework** (Default; based on Cohen's d analog)
-#' - Negligible: < 0.05 × log(n): Barely detectable entropy difference
-#' - Small: 0.05-0.15 × log(n): Subtle but consistent effect
-#' - Medium: 0.15-0.35 × log(n): Moderate biological effect
-#' - Large: ≥ 0.35 × log(n): Strong, practically significant effect
+#' - Negligible: < 0.05 * log(n): Barely detectable entropy difference
+#' - Small: 0.05-0.15 * log(n): Subtle but consistent effect
+#' - Medium: 0.15-0.35 * log(n): Moderate biological effect
+#' - Large: >= 0.35 * log(n): Strong, practically significant effect
 #' 
 #' Suitable for: Sample size estimation, effect interpretation in papers
 #'
 #' **2. Statistical Framework** (Conservative; Type I error control priority)
-#' - Negligible: < 0.02 × log(n): Within measurement error
-#' - Small: 0.02-0.08 × log(n): Statistically detectable
-#' - Medium: 0.08-0.25 × log(n): Robust statistical effect
-#' - Large: ≥ 0.25 × log(n): Highly significant effect
+#' - Negligible: < 0.02 * log(n): Within measurement error
+#' - Small: 0.02-0.08 * log(n): Statistically detectable
+#' - Medium: 0.08-0.25 * log(n): Robust statistical effect
+#' - Large: >= 0.25 * log(n): Highly significant effect
 #'
 #' Suitable for: Hypothesis testing, FWER-controlled studies
 #'
@@ -536,7 +529,7 @@ wilcoxon_effect_size_guidelines <- function() {
 #' - Negligible: < 10% of range: Not biologically meaningful
 #' - Small: 10-25% of range: Subtle biological difference
 #' - Medium: 25-50% of range: Moderate biological effect
-#' - Large: ≥ 50% of range: Major biological shift
+#' - Large: >= 50% of range: Major biological shift
 #'
 #' Suitable for: Ecological interpretation, longitudinal studies
 #'
@@ -544,11 +537,11 @@ wilcoxon_effect_size_guidelines <- function() {
 #'
 #' Entropy difference bounds:
 #' - Maximum entropy: H_max = log(n_isoforms)
-#' - Entropy difference for two distributions: |H₁ - H₂| ≤ H_max
+#' - Entropy difference for two distributions: |H₁ - H₂| <= H_max
 #' - For two extreme distributions (uniform vs single species): Δ = log(n)
 #'
 #' Effect size relative to maximum (analogous to Cohen's d for entropy):
-#' \deqn{\delta_H = \frac{|Delta H|}{H_{max}} \times 100}{delta_H = (|Delta H| / H_max) × 100}
+#' \deqn{\delta_H = \frac{|Delta H|}{H_{max}} \times 100}{delta_H = (|Delta H| / H_max) * 100}
 #'
 #' **Database Verification (tsenat_papers.db)**
 #'
@@ -631,7 +624,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     
     # Practical framework: analogous to Cohen's d for entropy
     practical <- data.frame(
-        Framework = rep(sprintf("Practical (q=%.2f, multiplier=%.3f×)", q_value, q_power_multiplier), 4),
+        Framework = rep(sprintf("Practical (q=%.2f, multiplier=%.3f*)", q_value, q_power_multiplier), 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
         Range = c(
             sprintf("< %.4f", 0.05 * H_max * es_adjustment),
@@ -658,7 +651,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     
     # Statistical framework: conservative, Type I control
     statistical <- data.frame(
-        Framework = rep(sprintf("Statistical (q=%.2f, multiplier=%.3f×)", q_value, q_power_multiplier), 4),
+        Framework = rep(sprintf("Statistical (q=%.2f, multiplier=%.3f*)", q_value, q_power_multiplier), 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
         Range = c(
             sprintf("< %.4f", 0.02 * H_max * es_adjustment),
@@ -685,7 +678,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     
     # Biological framework: organism/system specific
     biological <- data.frame(
-        Framework = rep(sprintf("Biological (q=%.2f, multiplier=%.3f×)", q_value, q_power_multiplier), 4),
+        Framework = rep(sprintf("Biological (q=%.2f, multiplier=%.3f*)", q_value, q_power_multiplier), 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
         Range = c(
             sprintf("< %.4f", 0.10 * H_max * es_adjustment),
@@ -714,11 +707,11 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     info_row <- data.frame(
         Framework = paste("System: q =", sprintf("%.2f", q_value), ", n_isoforms =", n_isoforms, 
                          ", H_max =", sprintf("%.4f", H_max), ", q_weight =", sprintf("%.2f", q_weight),
-                         ", adjustment =", sprintf("%.3f×", es_adjustment)),
+                         ", adjustment =", sprintf("%.3f*", es_adjustment)),
         Magnitude = NA_character_,
         Range = NA_character_,
         Percent_Max = NA_character_,
-        Description = "Q-parameter adjustment scales effect sizes inversely with power multiplier:higher q → smaller effect sizes needed (information_gain = |log(fc)| × (0.5 + q))",
+        Description = "Q-parameter adjustment scales effect sizes inversely with power multiplier:higher q → smaller effect sizes needed (information_gain = |log(fc)| * (0.5 + q))",
         Applications = NA_character_,
         References = "I001,I004,S063,S065",
         stringsAsFactors = FALSE
@@ -744,15 +737,13 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
 #'
 #' @param x A \code{SummarizedExperiment} or \code{matrix}. If matrix, also provide
 #'   \code{transcript_stats} with effect size information and \code{tx2gene} mapping.
-#' @param transcript_stats A \code{data.frame} containing transcript-level statistics,
-#'   typically from diversity analysis. Required columns: \code{genes} (gene names) and
+#' @param transcript_stats Data frame containing transcript-level statistics, typically from diversity analysis. Required columns: genes (gene names) and expression metrics.
 #'   \code{log2_fold_change} (log2 fold-change values).
 #'   Ignored if \code{x} is a SummarizedExperiment with rowData containing \code{log2_fold_change}.
 #' @param tx2gene Optional \code{data.frame} mapping transcript IDs to gene names with columns
 #'   \code{transcript_id} and \code{gene_name}. Required if \code{x} is a matrix.
 #'   Ignored for SummarizedExperiment input (uses rowData gene information instead).
-#' @param min_abs_log2fc Numeric threshold for minimum absolute log2 fold-change.
-#'   Genes with median \eqn{|\log_2 FC| < min\_abs\_log2fc}{|log2FC| < min_abs_log2fc}
+#' @param min_abs_log2fc Numeric threshold for minimum absolute log2 fold-change. Genes with median |log2FC| < min_abs_log2fc are filtered out.
 #'   are removed. Default: 0.1 (recommended for power optimization).
 #' @param verbose Logical; if \code{TRUE}, print summary statistics during filtering.
 #'   Default: \code{TRUE}.
@@ -764,14 +755,16 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
 #'
 #' If \code{x} is a \code{matrix}:
 #'   Returns a \code{list} with components:
+#'   \describe{
 #'   \item{readcounts}{Filtered count matrix.}
 #'   \item{tx2gene}{Filtered transcript-to-gene mapping.}
+#'   }
 #'
 #' @details
 #' **Rationale:** Very small fold-changes require enormous sample sizes to achieve
 #' statistical significance. For example, a median log2 FC of 0.052 (empirical effect size
 #' in real datasets) requires ~789 samples per group using TSENAT analysis framework.
-#' Filtering to genes with |log2 FC| ≥ 0.1 reduces this to ~320-400 samples,
+#' Filtering to genes with |log2 FC| >= 0.1 reduces this to ~320-400 samples,
 #' representing meaningful biological effects.
 #'
 #' **Pipeline integration:** Recommended to use early in preprocessing, after
@@ -787,7 +780,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
 #' @references
 #' Power analysis recommendations:
 #' - RnaSeqSampleSize: Assumes minimum fold-change of ~0.1-0.2 (log2)
-#' - RNASeqPower: Typically uses |log2 FC| ≥ 0.1 for robust power estimates
+#' - RNASeqPower: Typically uses |log2 FC| >= 0.1 for robust power estimates
 #' - TSENAT: Adaptive π0 estimation requires sufficient effect heterogeneity
 #' Reference: P001, P002, S049
 #'
@@ -1015,8 +1008,10 @@ filter_se_by_fold_change <- function(x, transcript_stats = NULL, tx2gene = NULL,
 #'   Genes with median |log2FC| < this value are removed. Default: 0.1.
 #'
 #' @return A \code{list} with elements:
-#'   \item{readcounts}{Filtered read count matrix}
-#'   \item{tx2gene}{Filtered transcript-to-gene mapping}
+#'   \describe{
+#'     \item{readcounts}{Filtered read count matrix}
+#'     \item{tx2gene}{Filtered transcript-to-gene mapping}
+#'   }
 #'
 #' @examples
 #' \dontrun{
@@ -1065,7 +1060,7 @@ filter_by_effect_size <- function(readcounts, transcript_stats, tx2gene, min_abs
     # Filter genes with sufficient effect size
     genes_with_effect <- gene_stats$genes[gene_stats$median_log2fc >= min_abs_log2fc]
     
-    message("  Effect size threshold: |log2FC| ≥ ", min_abs_log2fc)
+    message("  Effect size threshold: |log2FC| >= ", min_abs_log2fc)
     message("  Genes with sufficient effect size: ", length(genes_with_effect), "/", length(unique(tx2gene$gene_name)))
     
     if (length(genes_with_effect) == 0) {
@@ -1109,12 +1104,14 @@ filter_by_effect_size <- function(readcounts, transcript_stats, tx2gene, min_abs
 #'   has no 'pvalue' or 'padj' column.
 #'
 #' @return A \code{data.frame} with columns:
-#'   \item{Gene}{Gene identifier.}
-#'   \item{Pattern}{Classification result: 'RARE_DRIVEN', 'ABUNDANT_DRIVEN', or 'BALANCED'.}
-#'   \item{D_q0.5}{Divergence value at q=0.5.}
-#'   \item{D_q1.0}{Divergence value at q=1.0.}
-#'   \item{D_q1.5}{Divergence value at q=1.5.}
-#'   \item{D_q2.0}{Divergence value at q=2.0.}
+#'   \describe{
+#'     \item{Gene}{Gene identifier.}
+#'     \item{Pattern}{Classification result: 'RARE_DRIVEN', 'ABUNDANT_DRIVEN', or 'BALANCED'.}
+#'     \item{D_q0.5}{Divergence value at q=0.5.}
+#'     \item{D_q1.0}{Divergence value at q=1.0.}
+#'     \item{D_q1.5}{Divergence value at q=1.5.}
+#'     \item{D_q2.0}{Divergence value at q=2.0.}
+#'   }
 #'   Returns an empty data.frame if input is NULL, invalid, or contains no valid genes.
 #'
 #' @details
@@ -1130,7 +1127,7 @@ filter_by_effect_size <- function(readcounts, transcript_stats, tx2gene, min_abs
 #'
 #' **Classification:** Uses all 39 q-values for robust pattern classification:
 #' - Rare region (q < 1.0): Uses 18 q-values (q=0.1 to 0.95)
-#' - Abundant region (q ≥ 1.0): Uses 21 q-values (q=1.0 to 2.0)
+#' - Abundant region (q >= 1.0): Uses 21 q-values (q=1.0 to 2.0)
 #' - Ratio threshold: 1.3 (30% minimum difference)
 #' - Returns: RARE_DRIVEN, ABUNDANT_DRIVEN, or BALANCED
 #'

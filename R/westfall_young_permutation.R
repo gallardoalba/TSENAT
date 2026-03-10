@@ -4,7 +4,7 @@
 #' Performs joint permutation testing across multiple q-values (diversity orders)
 #' using the Westfall-Young stepdown procedure for family-wise error rate control.
 #'
-#' @param x A \code{matrix} with diversity values (rows = genes, columns = samples×q-values).
+#' @param x A \code{matrix} with diversity values (rows = genes, columns = samples*q-values).
 #'   Column names should indicate q-value (e.g., "Sample1_q=0.5", "Sample1_q=1.0").
 #' @param q_values Numeric vector of q-values used in computing diversity.  
 #'   Should be in increasing order and match column names in \code{x}.
@@ -23,7 +23,7 @@
 #'   - `pvalue_raw`: Raw two-sided permutation p-value (Phipson-Smyth corrected)
 #'   - `pvalue_wy`: Westfall-Young adjusted p-value (true stepdown FWER control)
 #'   - `padj_bh`: Multiple testing adjusted p-value (BH-FDR on raw p-values)
-#'   - Family-wise error rate ≤ 0.05 is guaranteed by true WY stepdown
+#'   - Family-wise error rate <= 0.05 is guaranteed by true WY stepdown
 #'
 #' @details
 #' **Westfall-Young Stepdown Procedure for Multi-q Analysis:**
@@ -35,7 +35,7 @@
 #' 1. Computing raw two-sided permutation p-values for each gene-q combination
 #' 2. Ranking p-values from smallest to largest
 #' 3. For each p-value in order:
-#'    - Count permutations where minimum p-value ≤ observed (accounts for all smaller tests)
+#'    - Count permutations where minimum p-value <= observed (accounts for all smaller tests)
 #'    - Adjusted p-value = min(raw_p, count/num_permutations)
 #' 4. Enforce monotonicity: adjusted p-values are non-decreasing as p-values increase
 #'
@@ -47,7 +47,7 @@
 #'
 #' **Phipson-Smyth Correction (S019):**
 #' Each permutation test uses p = (b+1)/(m+1) to avoid zero p-values,
-#' where b = count of permutations ≥ observed, m = number of permutations.
+#' where b = count of permutations >= observed, m = number of permutations.
 #'
 #' @references
 #' Westfall, P. H., & Young, S. S. (1993). Resampling-based Multiple Testing:
@@ -73,7 +73,7 @@
 #' n_samples <- 8  # 4 pairs
 #' n_q <- 5  # q = 0.5, 1.0, 1.5, 2.0
 #'
-#' # Create diversity matrix: genes × (samples × q-values)
+#' # Create diversity matrix: genes * (samples * q-values)
 #' diversity_data <- matrix(rnorm(n_genes * n_samples * n_q), 
 #'                          nrow = n_genes)
 #' colnames(diversity_data) <- 
@@ -137,7 +137,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
         cat("FWER control: α = 0.05\n\n")
     }
     
-    # Step 1: Compute raw p-values for all gene × q combinations
+    # Step 1: Compute raw p-values for all gene * q combinations
     # Also collect permutation distributions for true WY stepdown
     if (verbose) cat("Computing permutations...\n")
     
@@ -189,7 +189,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
     # For true Westfall-Young, we need the minimum p-value from each permutation
     # across all tests. However, computing p-values for each gene in each permutation
     # is expensive. Instead, we use test statistics (absolute fold-change):
-    # For each permutation, track the maximum |FC| across all genes × q-values
+    # For each permutation, track the maximum |FC| across all genes * q-values
     # Then for each observed test, count permutations where max(|perm_FC|) >= |obs_FC|
     
     perm_minima <- numeric(randomizations)
@@ -199,7 +199,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
         all_fc_abs_perm <- numeric()
         
         for (q_idx in seq_along(q_values)) {
-            # perm_pvalues_all_q[[q_idx]] is a matrix: genes × randomizations
+            # perm_pvalues_all_q[[q_idx]] is a matrix: genes * randomizations
             # Extract the fold-change values for this permutation at this q-value
             fc_perm_q <- abs(perm_pvalues_all_q[[q_idx]][, perm_idx])
             all_fc_abs_perm <- c(all_fc_abs_perm, fc_perm_q)
@@ -242,7 +242,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
     # 4. Enforce monotonicity: adjusted p-values must be non-decreasing
     #
     # This implements the true WY stepdown from Westfall & Young (1993),
-    # accounting for the joint dependence among all gene × q-value tests.
+    # accounting for the joint dependence among all gene * q-value tests.
     # Reference: Meinshausen et al. (2011, S165/S166) prove optimality.
     #
     for (i in seq_along(sorted_pvalues)) {
@@ -255,7 +255,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
     }
     
     # Enforce monotonicity: adjusted p-values must be non-decreasing
-    # This maintains the stepdown property and guarantees FWER ≤ α
+    # This maintains the stepdown property and guarantees FWER <= α
     for (i in 2:length(wy_adjusted)) {
         if (wy_adjusted[sort_order[i]] < wy_adjusted[sort_order[i-1]]) {
             wy_adjusted[sort_order[i]] <- wy_adjusted[sort_order[i-1]]
@@ -294,7 +294,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
         cat("\nResults:\n")
         cat("  Significant (WY-adjusted p < 0.05):", sig_wy, "\n")
         cat("  Significant (BH-FDR < 0.05):", sig_bh, "\n")
-        cat("  FWER control: Family-wise error rate ≤ 0.05\n")
+        cat("  FWER control: Family-wise error rate <= 0.05\n")
     }
     
     return(output)
@@ -306,7 +306,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
 #' Helper function for computing permutation p-values at a single q-value.
 #' Returns both the p-values and the full permutation distribution matrix.
 #'
-#' @param x Matrix of diversity values (genes × samples)
+#' @param x Matrix of diversity values (genes * samples)
 #' @param samples Character vector of sample group labels
 #' @param control Control group name
 #' @param method Aggregation method ("mean" or "median")
@@ -314,11 +314,14 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
 #' @param nthreads Number of threads
 #'
 #' @return List with:
-#'   - `pvalue`: Vector of p-values for each gene
-#'   - `log2FC`: Vector of observed log2 fold-changes
-#'   - `perm_matrix`: Matrix of permutation fold-changes (genes × randomizations)
+#'   \describe{
+#'     \item{pvalue}{Vector of p-values for each gene}
+#'     \item{log2FC}{Vector of observed log2 fold-changes}
+#'     \item{perm_matrix}{Matrix of permutation fold-changes (genes * randomizations)}
+#'   }
 #'
 #' @keywords internal
+#' @noRd
 .label_shuffling_single_q <- function(x, samples, control, method, randomizations, nthreads) {
     
     # Compute observed fold changes
@@ -363,7 +366,7 @@ label_shuffling_westfall_young <- function(x, q_values, samples, control,
     result <- list(
         pvalue = raw_p_values,
         log2FC = log2_fc,
-        perm_matrix = perm_mat  # Full permutation distribution (genes × randomizations)
+        perm_matrix = perm_mat  # Full permutation distribution (genes * randomizations)
     )
     
     return(result)

@@ -9,7 +9,7 @@
 #' Supports both sequential and parallel computation, with optional support for paired sample designs.
 #' 
 #' Returns a SummarizedExperiment object containing:
-#' - **assay**: genes × q matrix of divergence estimates (one per q value)
+#' - **assay**: genes * q matrix of divergence estimates (one per q value)
 #' - **rowData**: gene metadata including per-q divergence estimates, CIs, pattern classification
 #' - **colData**: one row per q value with q-specific metadata
 #' - **metadata**: processing parameters and summary statistics
@@ -22,7 +22,7 @@
 #'   Step 1: Auto-aggregates transcripts → genes via colSums
 #'   Step 2: Computes divergence for each gene across q values
 #'   Output: SummarizedExperiment with:
-#'           - assay: genes × q_values matrix (divergence estimates)
+#'           - assay: genes * q_values matrix (divergence estimates)
 #'           - rowData: gene_name, per_q_pattern, estimate_q*, lower_ci_q*, etc.
 #'           - colData: one row per q value
 #'           - metadata: parameters, timing, sample sizes
@@ -84,7 +84,7 @@
 #' @param seed Random seed (optional; NULL for non-reproducible)
 #'
 #' @return SummarizedExperiment object with:
-#'   **assay** (genes × 1 matrix):
+#'   **assay** (genes * 1 matrix):
 #'     - Divergence point estimates for each gene
 #'   
 #'   **rowData** (data frame with one row per gene):
@@ -137,7 +137,7 @@
 #'   - Parallel overhead: ~1-2 seconds initial cluster setup
 #'   - Break-even point: ~10-20 genes
 #' - With bootstrap=FALSE (point estimates only):
-#'   - Sequential: ~0.02-0.05 seconds per gene (50-100× faster)
+#'   - Sequential: ~0.02-0.05 seconds per gene (50-100* faster)
 #'
 #' **Gene Filtering:**
 #' - Always process all genes in se
@@ -176,10 +176,12 @@
 #' @param se SummarizedExperiment object with sample metadata in colData
 #'
 #' @return List with elements:
-#'   - \code{group_col}: Name of the colData column used for grouping, or NA_character_ if none detected
-#'   - \code{control_group}: Name of the control/reference group, or NA_character_ if none detected
-#'   - \code{groups}: Character vector of all unique groups found
-#'   - \code{sample_counts}: Named integer vector of sample counts per group (names: group names)
+#'   \describe{
+#'     \item{group_col}{Name of the colData column used for grouping, or NA_character_ if none detected}
+#'     \item{control_group}{Name of the control/reference group, or NA_character_ if none detected}
+#'     \item{groups}{Character vector of all unique groups found}
+#'     \item{sample_counts}{Named integer vector of sample counts per group (names: group names)}
+#'   }
 #'
 #' @keywords internal
 #' @noRd
@@ -296,11 +298,13 @@
 #' @param se SummarizedExperiment object with sample metadata in colData
 #'
 #' @return List with elements:
-#'   - \code{pair_ids}: Character vector (names: sample names, values: pair identifiers)
-#'     or NULL if no pairing detected
-#'   - \code{column_name}: Name of the colData column used, or NA_character_ if none
-#'   - \code{num_pairs}: Number of unique pairs (0 if none detected)
-#'   - \code{samples_per_pair}: Vector of samples per pair (names: pair IDs, values: counts)
+#'   \describe{
+#'     \item{pair_ids}{Character vector (names: sample names, values: pair identifiers)
+#'       or NULL if no pairing detected}
+#'     \item{column_name}{Name of the colData column used, or NA_character_ if none}
+#'     \item{num_pairs}{Number of unique pairs (0 if none detected)}
+#'     \item{samples_per_pair}{Vector of samples per pair (names: pair IDs, values: counts)}
+#'   }
 #'
 #' @note Paired samples detected from any of: "paired_samples", "pair_id", "pair_samples",
 #'   "subject_id", "patient_id". Returns NULL if none present or validation fails.
@@ -377,8 +381,10 @@
 #' @param control_group Character: name of control group
 #'
 #' @return List with elements:
-#'   - \code{control_resampled}: Resampled control group counts
-#'   - \code{treatment_resampled}: Resampled treatment group counts
+#'   \describe{
+#'     \item{control_resampled}{Resampled control group counts}
+#'     \item{treatment_resampled}{Resampled treatment group counts}
+#'   }
 #'
 #' @keywords internal
 #' @noRd
@@ -848,14 +854,14 @@ calculate_divergence <- function(
   elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
 
   # =========================================================================
-  # RESULTS COMPILATION - Build genes × q matrix
+  # RESULTS COMPILATION - Build genes * q matrix
   # =========================================================================
 
   # Extract results into proper per-q structure
   num_q_vals <- length(q)
   max_genes <- num_genes
   
-  # Initialize matrices: genes × q
+  # Initialize matrices: genes * q
   assay_matrix <- matrix(NA_real_, nrow = max_genes, ncol = num_q_vals,
                          dimnames = list(NULL, paste0("q_", q)))
   
@@ -1087,7 +1093,7 @@ calculate_divergence <- function(
   # =========================================================================
 
   # Create SummarizedExperiment with:
-  # - assay: genes × 1 matrix (one divergence value per gene)
+  # - assay: genes * 1 matrix (one divergence value per gene)
   # - rowData: gene metadata (estimates, CIs, computation details)
   # - colData: "divergence" as the single pseudo-sample (represents the divergence assay)
   # - metadata: processing parameters
@@ -1495,27 +1501,21 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
 #'
 #' @return A list with two elements:
 #'   \describe{
-#'     \item{\code{interaction_results}}{Data frame (genes × columns) with merged results:
-#'       \itemize{
-#'         \item `gene`: Gene name (character)
-#'         \item `p_value_interaction`: LMM adjusted p-value for q:group interaction
-#'         \item `slope_diff`: q:group interaction slope coefficient (if present in lm_res)
-#'         \item For EACH q value found: 
-#'           \itemize{
-#'             \item `effect_size_D_q*`: Absolute Tsallis divergence at q
-#'             \item `D_q*_lower_ci`: Bootstrap lower confidence bound
-#'             \item `D_q*_upper_ci`: Bootstrap upper confidence bound
-#'           }
-#'       }
+#'     \item{\code{interaction_results}}{Data frame (genes * columns) with merged results:
+#'       - `gene`: Gene name (character)
+#'       - `p_value_interaction`: LMM adjusted p-value for q:group interaction
+#'       - `slope_diff`: q:group interaction slope coefficient (if present in lm_res)
+#'       - For EACH q value found: 
+#'         - `effect_size_D_q*`: Absolute Tsallis divergence at q
+#'         - `D_q*_lower_ci`: Bootstrap lower confidence bound
+#'         - `D_q*_upper_ci`: Bootstrap upper confidence bound
 #'     }
 #'     \item{\code{validation_stats}}{List with merge quality metrics:
-#'       \itemize{
-#'         \item `total_genes`: Total significant genes from LMM
-#'         \item `passed_lmm`: Successfully merged with divergence data
-#'         \item `failed_missing_divergence`: Missing or NA divergence estimate
-#'         \item `other_errors`: Other processing failures
-#'         \item `q_values`: Numeric vector of q-values processed
-#'       }
+#'       - `total_genes`: Total significant genes from LMM
+#'       - `passed_lmm`: Successfully merged with divergence data
+#'       - `failed_missing_divergence`: Missing or NA divergence estimate
+#'       - `other_errors`: Other processing failures
+#'       - `q_values`: Numeric vector of q-values processed
 #'     }
 #'   }
 #'
@@ -1676,7 +1676,7 @@ effect_sizes_divergence <- function(
 
   if (length(significant_genes) == 0) {
     if (verbose) {
-      cat("No genes with significant q×group interaction detected.\n")
+      cat("No genes with significant q*group interaction detected.\n")
     }
     return(list(
       interaction_results = interaction_results,

@@ -13,7 +13,7 @@ plot_ca_comprehensive(
 )
 }
 \arguments{
-\item{entropy_matrix}{Matrix of entropy values (genes × q-values)}
+\item{entropy_matrix}{Matrix of entropy values (genes * q-values)}
 
 \item{q_values}{Numeric vector of q values}
 

@@ -44,11 +44,13 @@ block_jackknife_isoform_switching(
 }
 \value{
 A list of class \code{tsenat_block_jackknife} with:
- - \bold{block_names}: names of blocks deleted
- - \bold{per_block_results}: list of results for each block deletion
- - \bold{block_influence_summary}: matrix of transcript influences per block deletion
- - \bold{block_se}: block-wise standard error estimates
- - \bold{block_ci}: 95% confidence intervals from block resampling
+  \describe{
+    \item{block_names}{names of blocks deleted}
+    \item{per_block_results}{list of results for each block deletion}
+    \item{block_influence_summary}{matrix of transcript influences per block deletion}
+    \item{block_se}{block-wise standard error estimates}
+    \item{block_ci}{95\% confidence intervals from block resampling}
+  }
 }
 \description{
 Performs block jackknife analysis where entire blocks (e.g., temporal phases,
@@ -57,12 +59,10 @@ Useful for correlated/clustered data where leave-one-out invalidates assumptions
 }
 \details{
 Block jackknife is appropriate when data has natural grouping structure:
-\itemize{
-  \item \bold{Temporal}: Successive time phases (differentiation, development)
-  \item \bold{Spatial}: Tissue regions, anatomical compartments
-  \item \bold{Batch}: Technical replicates from different sequencing runs
-  \item \bold{Paired}: Repeated measures within individuals
-}
+- \bold{Temporal}: Successive time phases (differentiation, development)
+- \bold{Spatial}: Tissue regions, anatomical compartments
+- \bold{Batch}: Technical replicates from different sequencing runs
+- \bold{Paired}: Repeated measures within individuals
 
 References: \strong{C137} (Block Jackknife Evalutation Methodology),
 \strong{ISO021} (Multiphasic Splicing Changes in Differentiation)

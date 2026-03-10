@@ -16,7 +16,7 @@ heatmap_batch(se, batch, n_genes = 50, annotation_col = TRUE)
 \item{annotation_col}{Logical; add batch annotation (default: TRUE)}
 }
 \value{
-Heatmap (from ComplexHeatmap or pheatmap)
+Heatmap (from pheatmap)
 }
 \description{
 Visualize expression patterns across batches via hierarchical clustered heatmap.

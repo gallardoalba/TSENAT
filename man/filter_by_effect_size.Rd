@@ -26,8 +26,10 @@ Genes with median |log2FC| < this value are removed. Default: 0.1.}
 }
 \value{
 A \code{list} with elements:
-  \item{readcounts}{Filtered read count matrix}
-  \item{tx2gene}{Filtered transcript-to-gene mapping}
+  \describe{
+    \item{readcounts}{Filtered read count matrix}
+    \item{tx2gene}{Filtered transcript-to-gene mapping}
+  }
 }
 \description{
 Filters transcripts based on median log2 fold-change per gene, retaining only

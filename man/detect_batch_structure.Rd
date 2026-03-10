@@ -12,16 +12,13 @@ detect_batch_structure(
 )
 }
 \arguments{
-\item{entropy_lists}{List or matrix. If list, each element is a q-value's
-entropy matrix (genes × samples). If matrix, treated as single q-value.}
+\item{entropy_lists}{List or matrix. If list, each element is a q-value's entropy matrix (genes * samples). If matrix, treated as single q-value.}
 
-\item{sample_metadata}{Data frame with colnames: sample_id, batch (or similar),
-condition (e.g., "normal", "tumor")}
+\item{sample_metadata}{Data frame with colnames: sample_id, batch (or similar), condition (e.g., "normal", "tumor").}
 
 \item{n_pcs}{Integer. Number of principal components to compute (default: 5)}
 
-\item{color_by}{Character. Column name in sample_metadata to color samples.
-Common: "condition", "batch", "sequencing_run"}
+\item{color_by}{Character. Column name in sample_metadata to color samples (e.g., "condition", "batch", "sequencing_run").}
 }
 \value{
 S3 object of class "batch_pca" containing:

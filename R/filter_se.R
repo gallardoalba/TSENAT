@@ -22,8 +22,8 @@
 #'   - SALMON TPM values (recommended, already normalized)
 #'   - SALMON raw counts (NumReads) if TPM not available
 #' @param min_tpm Numeric TPM threshold (default 1.0).
-#'   Keeps transcripts with TPM ≥ `min_tpm` in ≥ `min_samples` samples.
-#'   TPM ≥ 1 is recommended for typical sequencing depth (Soneson et al. 2015, Law et al. 2014).
+#'   Keeps transcripts with TPM >= `min_tpm` in >= `min_samples` samples.
+#'   TPM >= 1 is recommended for typical sequencing depth (Soneson et al. 2015, Law et al. 2014).
 #'   Ignored if `stringency` is specified; when stringency is provided, `min_tpm` is
 #'   auto-estimated from data using quantile-based approach (Law et al. limma-voom methodology).
 #' @param tpm_assay_name Character; name of assay containing TPM data (default: NULL).
@@ -361,25 +361,25 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
     return(new_se)
 }
 # ============================================================================
-# Filter by Effect Size Threshold (η² > threshold)
+# Filter by Effect Size Threshold (η^2 > threshold)
 # ============================================================================
 
-#' Filter SummarizedExperiment by Effect Size (η²) Threshold
+#' Filter SummarizedExperiment by Effect Size (η^2) Threshold
 #'
-#' Subset a `SummarizedExperiment` based on effect size in q×gene interaction
+#' Subset a `SummarizedExperiment` based on effect size in q*gene interaction
 #' analysis. Keeps only genes where the Tsallis entropy difference across 
-#' q-values explains more than the specified proportion of variance (η² > threshold).
+#' q-values explains more than the specified proportion of variance (η^2 > threshold).
 #'
-#' This function implements the recommended η² > 0.02 threshold from entropy 
+#' This function implements the recommended η^2 > 0.02 threshold from entropy 
 #' effect size guidelines, which balances power (detecting meaningful effects) 
 #' with filtering (removing negligible noise). See references for justification.
 #'
 #' @details
 #' **Effect Size Interpretation (Statistical Framework from TSENAT bibliography):**
-#' - η² ∈ [0, log(n_isoforms)] bounded by maximum entropy
-#' - η² > 0.02 × log(n) = "small effect" threshold (Cohen's analog)
+#' - η^2 ∈ [0, log(n_isoforms)] bounded by maximum entropy
+#' - η^2 > 0.02 * log(n) = "small effect" threshold (Cohen's analog)
 #' - Filters out negligible effects while preserving discovery power
-#' - Reduces multiple testing burden by 5-20× enabling stronger statistical control
+#' - Reduces multiple testing burden by 5-20* enabling stronger statistical control
 #'
 #' **References:**
 #' - S023 (2018): Power analysis for RNA sequencing - justifies effect size filtering
@@ -388,29 +388,18 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
 #' - I003-I010: Tsallis entropy papers - theoretical foundations
 #' - entropy_effect_size_guidelines() in R/effect_size.R - detailed framework
 #'
-#' @param se A `SummarizedExperiment` object after `detect_q_gene_interactions()` 
-#'   analysis. Must contain genes as rows.
-#' @param interaction_results Data frame from `detect_q_gene_interactions()` containing
-#'   columns: gene, effect_size_eta2 (or eta2)
-#' @param eta2_threshold Numeric threshold for effect size (default: 0.02 = 2%).
-#'   Recommended values:
-#'   - 0.01 (1%): Liberal, discovers more genes (higher false positive risk)
-#'   - 0.02 (2%): **RECOMMENDED** - Balances power & specificity
-#'   - 0.05 (5%): Stringent, high confidence
-#'   - 0.10 (10%): Very conservative, only major effects
+#' @param se A `SummarizedExperiment` object after `detect_q_gene_interactions()` analysis.
+#' @param interaction_results Data frame from `detect_q_gene_interactions()` with columns gene and effect_size_eta2.
+#' @param eta2_threshold Numeric threshold for effect size (default 0.02). Recommended values: 0.01, 0.02, 0.05, 0.10.
 #' @param verbose Logical; print filtering summary when TRUE.
 #' @param keep_metadata Logical; preserve metadata if genes are removed (default TRUE).
 #'
 #' @return
-#' A filtered `SummarizedExperiment` containing only genes with η² > threshold.
-#' Attributes include:
-#'   - metadata()$effect_size_filter: List with threshold, genes_before, genes_after, 
-#'     genes_removed
-#'   - rowData() subset to matching genes
-#'   - All assays and colData preserved
+#' A filtered `SummarizedExperiment` containing only genes with η^2 > threshold.
+#' Attributes include metadata()$effect_size_filter with threshold and gene counts.
 #'
 #' @examples
-#' # After q×gene interaction testing:
+#' # After q*gene interaction testing:
 #' # interaction_results <- detect_q_gene_interactions(model_data)
 #' # se_filtered <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02)
 #'
@@ -461,7 +450,7 @@ filter_se_by_effect_size <- function(se, interaction_results, eta2_threshold = 0
     
     if (verbose) {
         message(sprintf(
-            "Effect Size Filtering (η² > %.4f):\n  Genes before: %d\n  Genes after: %d\n  Genes removed: %d (%.1f%%)",
+            "Effect Size Filtering (η^2 > %.4f):\n  Genes before: %d\n  Genes after: %d\n  Genes removed: %d (%.1f%%)",
             eta2_threshold, before, after, length(removed),
             100 * length(removed) / before
         ))
@@ -473,13 +462,13 @@ filter_se_by_effect_size <- function(se, interaction_results, eta2_threshold = 0
             message(sprintf(
                 "\n  Effect Size Statistics:"))
             message(sprintf(
-                "    Mean η²: %.4f | Median η²: %.4f | Max η²: %.4f",
+                "    Mean η^2: %.4f | Median η^2: %.4f | Max η^2: %.4f",
                 mean(effect_sizes, na.rm=TRUE),
                 median(effect_sizes, na.rm=TRUE),
                 max(effect_sizes, na.rm=TRUE)
             ))
             message(sprintf(
-                "    Genes with η² > %.2f: %d (%.1f%%)",
+                "    Genes with η^2 > %.2f: %d (%.1f%%)",
                 eta2_threshold,
                 sum(effect_sizes > eta2_threshold, na.rm=TRUE),
                 100 * sum(effect_sizes > eta2_threshold, na.rm=TRUE) / length(effect_sizes)
@@ -534,7 +523,7 @@ filter_se_by_effect_size <- function(se, interaction_results, eta2_threshold = 0
                 genes_after = after,
                 genes_removed = length(removed),
                 percent_removed = 100 * length(removed) / before,
-                methodology = "η² > threshold (Tsallis entropy effect size)"
+                methodology = "η^2 > threshold (Tsallis entropy effect size)"
             )
         ))
     )

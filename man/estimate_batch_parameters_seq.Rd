@@ -12,7 +12,7 @@ estimate_batch_parameters_seq(
 )
 }
 \arguments{
-\item{counts}{Matrix of count data (genes × samples)}
+\item{counts}{Matrix of count data (genes * samples)}
 
 \item{batch}{Batch vector (length = ncol(counts))}
 

@@ -34,7 +34,7 @@ Default: 1 (single q-value)}
 \item{q_values}{Numeric vector of q-parameter values to compare (e.g., c(0.5, 1.0, 2.0)).
 When NULL (default), uses single q-value power scaling. When provided, generates
 separate curves for each q value to visualize power differences. Use for comparing
-q=0.5 (1.0× power), q=1.0 (1.5× power), or q=2.0 (2.5× power) (papers S063-S067).}
+q=0.5 (1.0* power), q=1.0 (1.5* power), or q=2.0 (2.5* power) (papers S063-S067).}
 
 \item{power_target}{Numeric. Target power level (default 0.80 for 80% power).
 Displayed as a reference line on the plot.}
@@ -56,7 +56,7 @@ Default: c(Small = "#E41A1C", Medium = "#377EB8", Large = "#4DAF4A")}
 \item{n_genes}{Integer (NEW). Total number of genes in genome-wide study (papers C106, C107, S063, S064).
 Default: NULL (per-gene power analysis). When specified with fdr_threshold, activates 
 Benjamini-Hochberg FDR multiple testing correction. By providing n_genes, power curves 
-automatically account for multiple testing penalty (2-4× larger sample sizes).
+automatically account for multiple testing penalty (2-4* larger sample sizes).
 Example: n_genes = 20000 for typical RNA-seq study.}
 
 \item{fdr_threshold}{Numeric (NEW). False Discovery Rate threshold (papers S063, S076-S084). 

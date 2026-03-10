@@ -17,11 +17,9 @@ detect_batch_structure_from_se(
 \item{entropy_data}{SummarizedExperiment with entropy matrices, or list of
 entropy matrices, or a single entropy matrix}
 
-\item{batch_column}{Character; name of batch column in colData (if SE input)
-or vector indicating batch for each sample}
+\item{batch_column}{Character. Name of batch column in colData (if SE input) or vector indicating batch for each sample.}
 
-\item{condition_column}{Character; optional name of condition column for
-batch confounding assessment}
+\item{condition_column}{Character. Optional name of condition column for batch confounding assessment.}
 
 \item{sample_metadata}{Data frame with sample-level metadata. If NULL and
 entropy_data is an SE, metadata extracted from colData}
@@ -32,12 +30,14 @@ entropy_data is an SE, metadata extracted from colData}
 }
 \value{
 List with class "batch_pca" containing:
+  \describe{
   \item{pca_result}{PCA fit object from prcomp}
   \item{variance_explained}{Numeric vector of PC variance proportions}
   \item{batch_pca_scores}{Data frame with PC scores and metadata}
   \item{is_batch_confounded}{Logical; TRUE if batch affects PC2 (F > 3)}
   \item{batch_effect_strength}{F-statistic from PC2 ~ batch ANOVA}
   \item{entropy_data}{Filtered entropy matrix used for PCA}
+  }
 }
 \description{
 Wrapper function that detects batch effects in Tsallis entropy matrices

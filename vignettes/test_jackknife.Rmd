@@ -992,7 +992,10 @@ if (exists("eff_res") &&
       plot_generated <- TRUE
     }
   }, error = function(e) {
-    # Error generating plot
+    # Print error message for debugging
+    cat("Note: plot_multi_gene_q_spectrum() encountered an error:\n")
+    cat(conditionMessage(e), "\n")
+    cat("This function may not be available in the current TSENAT version.\n")
   })
 }
 ```

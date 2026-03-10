@@ -12,7 +12,7 @@ rank_based_fwer_control(
 )
 }
 \arguments{
-\item{data}{Matrix of test statistics or p-values (genes × comparisons)}
+\item{data}{Matrix of test statistics or p-values (genes * comparisons)}
 
 \item{groups}{Factor vector assigning each column to a group/factor level}
 
@@ -23,9 +23,11 @@ rank_based_fwer_control(
 }
 \value{
 List with:
-  \item{fwer_pvalues}{Adjusted p-values controlling FWER at 0.05}
-  \item{unadjusted_pvalues}{Original p-values before adjustment}
-  \item{permutation_distribution}{Distribution of max/min statistics}
+  \describe{
+    \item{fwer_pvalues}{Adjusted p-values controlling FWER at 0.05}
+    \item{unadjusted_pvalues}{Original p-values before adjustment}
+    \item{permutation_distribution}{Distribution of max/min statistics}
+  }
 }
 \description{
 Apply permutation testing on ranks to control FWER across multiple tests

@@ -7,7 +7,7 @@
 power_deseq2_wald(n, fc, baseline_mean = 100, dispersion = 0.1, alpha = 0.05)
 }
 \arguments{
-\item{n}{Integer. Sample size per group (n ≥ 1).}
+\item{n}{Integer. Sample size per group (n >= 1).}
 
 \item{fc}{Numeric. Fold change (fc > 1).}
 
@@ -18,7 +18,7 @@ power_deseq2_wald(n, fc, baseline_mean = 100, dispersion = 0.1, alpha = 0.05)
 \item{alpha}{Numeric. Significance level (default: 0.05).}
 }
 \value{
-Numeric. Statistical power (0 ≤ power ≤ 1).
+Numeric. Statistical power (0 <= power <= 1).
 }
 \description{
 Compute statistical power for DESeq2 Wald test for RNA-seq differential
@@ -26,7 +26,7 @@ expression analysis using the negative binomial GLM framework.
 }
 \details{
 DESeq2 uses Wald test with variance stabilized counts under negative binomial
-distribution: Var[Y] = μ + φμ². Power is calculated from standard error of
+distribution: Var[Y] = μ + φμ^2. Power is calculated from standard error of
 log fold change through normal approximation.
 }
 \examples{

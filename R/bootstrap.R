@@ -66,36 +66,34 @@
 #'   When paired=TRUE, CI is more conservative to account for correlation within pairs.
 #'
 #' @return A list with components (for single q):
-#'   \item{estimate}{Point estimate of Tsallis entropy (calculated on original data).}
-#'   \item{lower_ci}{Lower confidence bound.}
-#'   \item{upper_ci}{Upper confidence bound.}
-#'   \item{ci_level}{Requested confidence level.}
-#'   \item{method}{Bootstrap method used.}
-#'   \item{nboot}{Number of bootstrap replicates computed.}
-#'   \item{bootstrap_dist}{Numeric vector of bootstrap replicates (for inspection).}
-#'   \item{diagnostics}{(if include_diagnostics=TRUE) List with CI quality assessment:
-#'     \itemize{
-#'       \item{\code{effective_sample_size}:}{Adjusted n accounting for replicate autocorrelation}
-#'       \item{\code{skewness}:}{Bootstrap distribution skewness; |·| > 2 suggests unreliability}
-#'       \item{\code{bias}:}{Difference between point estimate and bootstrap median}
-#'       \item{\code{acceleration_factor}:}{(BCa only) Second-order correction from jackknife}
+#'   \describe{
+#'     \item{estimate}{Point estimate of Tsallis entropy (calculated on original data).}
+#'     \item{lower_ci}{Lower confidence bound.}
+#'     \item{upper_ci}{Upper confidence bound.}
+#'     \item{ci_level}{Requested confidence level.}
+#'     \item{method}{Bootstrap method used.}
+#'     \item{nboot}{Number of bootstrap replicates computed.}
+#'     \item{bootstrap_dist}{Numeric vector of bootstrap replicates (for inspection).}
+#'     \item{diagnostics}{(if include_diagnostics=TRUE) List with CI quality assessment:
+#'       - \code{effective_sample_size}: Adjusted n accounting for replicate autocorrelation
+#'       - \code{skewness}: Bootstrap distribution skewness; |.| > 2 suggests unreliability
+#'       - \code{bias}: Difference between point estimate and bootstrap median
+#'       - \code{acceleration_factor}: (BCa only) Second-order correction from jackknife
 #'     }
-#'   }
-#'   \item{job_stability}{(if use_job=TRUE) List with jackknife-of-bootstrap stability metrics:
-#'     \itemize{
-#'       \item{\code{ci_lower_stable}:}{Conservative lower bound from jackknife replicates}
-#'       \item{\code{ci_upper_stable}:}{Conservative upper bound from jackknife replicates}
-#'       \item{\code{ci_width_variation}:}{Coefficient of variation of CI widths}
-#'       \item{\code{bound_variability}:}{Relative change in bounds across jackknife samples}
-#'       \item{\code{n_outlier_bounds}:}{Count of outlier CI estimates}
+#'     \item{job_stability}{(if use_job=TRUE) List with jackknife-of-bootstrap stability metrics:
+#'       - \code{ci_lower_stable}: Conservative lower bound from jackknife replicates
+#'       - \code{ci_upper_stable}: Conservative upper bound from jackknife replicates
+#'       - \code{ci_width_variation}: Coefficient of variation of CI widths
+#'       - \code{bound_variability}: Relative change in bounds across jackknife samples
+#'       - \code{n_outlier_bounds}: Count of outlier CI estimates
 #'     }
 #'   }
 #'
 #'   **Matrix input (vectorized processing):**
-#'   When \code{x} is a matrix (genes × samples), returns a list of class
+#'   When \code{x} is a matrix (genes * samples), returns a list of class
 #'   \code{tsenat_bootstrap_ci_list} with one result per gene, with names from rownames(x).
 #'   If \code{nthreads > 1}, uses parallel processing (Unix/Mac via \code{parallel::mclapply}).
-#'   Computational speedup: typically 5-10× for multi-gene analysis (paper C017).
+#'   Computational speedup: typically 5-10* for multi-gene analysis (paper C017).
 #'
 #'   For multiple q values, returns a list of above structures, one per q value,
 #'   of class \code{tsenat_bootstrap_ci_list}.
@@ -125,13 +123,11 @@
 #'
 #' **Automatic data extraction with se and res:**
 #' When \code{se} and \code{res} are provided (with or without \code{x}):
-#' \itemize{
-#'   \item Extracts the top genes ranked by significance from \code{res}
-#'   \item Selects the gene at position \code{top_n} (1=most significant)
-#'   \item Automatically retrieves transcript counts from \code{se}
-#'   \item Sets \code{gene_name} from rownames(se) for display if not provided
-#'   \item Performs bootstrap analysis on the extracted transcript counts
-#' }
+#' - Extracts the top genes ranked by significance from \code{res}
+#' - Selects the gene at position \code{top_n} (1=most significant)
+#' - Automatically retrieves transcript counts from \code{se}
+#' - Sets \code{gene_name} from rownames(se) for display if not provided
+#' - Performs bootstrap analysis on the extracted transcript counts
 #'
 #' **When \code{gene_name} is provided with \code{print_results = TRUE}:**
 #' The function displays:
@@ -368,7 +364,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         
         # Test [16] Improvement 4.2: Filter genes by minimum count threshold
         # Ensures bootstrap reliability and avoids hard failures on low-count genes
-        # Paper S111, S114 recommend minimum total count ≥ 10 for bootstrap stability
+        # Paper S111, S114 recommend minimum total count >= 10 for bootstrap stability
         min_count_threshold <- 10
         valid_genes <- character()
         candidate_genes <- res_genes  # Search beyond top_n if needed for valid genes
@@ -408,9 +404,9 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         # If no genes with sufficient counts, issue warning and fail gracefully
         if (length(valid_genes) == 0) {
             warning(
-                "No genes with sufficient total counts (≥", min_count_threshold, ") for bootstrap analysis.\n",
+                "No genes with sufficient total counts (>=", min_count_threshold, ") for bootstrap analysis.\n",
                 "Top genes have low abundance: bootstrap estimates would be unreliable.\n",
-                "Papers S111, S114 recommend minimum count ≥ 10 for bootstrap stability.\n",
+                "Papers S111, S114 recommend minimum count >= 10 for bootstrap stability.\n",
                 "Consider filtering genes before analysis."
             )
             return(NULL)
@@ -551,7 +547,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
     
     # For paired samples, sample size must be even (even number of samples = n/2 pairs)
     if (paired && (length(x) %% 2 != 0)) {
-        stop("For paired=TRUE, data must have even length (n pairs × 2 observations per pair)")
+        stop("For paired=TRUE, data must have even length (n pairs * 2 observations per pair)")
     }
     
     # Minimum sample size validation (per papers S111, S114)
@@ -761,7 +757,7 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
         cat("Effective sample size: ", sprintf("%.1f", object$diagnostics$effective_sample_size), 
             " (>= n * 0.5 is good)\n")
         cat("Skewness: ", sprintf("%.4f", object$diagnostics$skewness), 
-            " (|·| > 2 suggests unreliability)\n")
+            " (|.| > 2 suggests unreliability)\n")
         cat("Bias: ", sprintf("%.6f", object$diagnostics$bias), 
             " (distance from median to estimate)\n")
         if (!is.na(object$diagnostics$acceleration_factor)) {
@@ -797,11 +793,13 @@ print.tsenat_bootstrap_ci <- function(x, ...) {
 #' @param what Character: "S" (entropy) or "D" (Hill numbers)
 #'
 #' @return List with:
-#'   \item{ci_lower_stable}{Lower CI bound (stability-adjusted)}
-#'   \item{ci_upper_stable}{Upper CI bound (stability-adjusted)}
-#'   \item{ci_width_variation}{Coefficient of variation of CI widths across jackknife samples}
-#'   \item{bound_variability}{Max relative change in bounds across jackknife samples}
-#'   \item{n_outlier_bounds}{Count of jackknife samples with outlier CI bounds}
+#'   \describe{
+#'     \item{ci_lower_stable}{Lower CI bound (stability-adjusted)}
+#'     \item{ci_upper_stable}{Upper CI bound (stability-adjusted)}
+#'     \item{ci_width_variation}{Coefficient of variation of CI widths across jackknife samples}
+#'     \item{bound_variability}{Max relative change in bounds across jackknife samples}
+#'     \item{n_outlier_bounds}{Count of jackknife samples with outlier CI bounds}
+#'   }
 #'
 #' @details
 #' JOB Procedure (paper S111):
@@ -931,10 +929,12 @@ print.tsenat_bootstrap_ci <- function(x, ...) {
 #'
 #' @return A nested list structure: \code{[[group]][[q_string]]} where each element
 #'   contains a list with:
+#'   \describe{
 #'   \item{median}{Median entropy from original data.}
 #'   \item{ci_lower}{Lower confidence bound.}
 #'   \item{ci_upper}{Upper confidence bound.}
 #'   \item{n}{Number of genes in group at that q-value.}
+#'   }
 #'
 #' @details
 #' **Bootstrap Procedure:**
@@ -1036,11 +1036,9 @@ compute_bootstrap_qcurve_cis <- function(long, unique_q, groups,
 #' the percentile method offers a good accuracy-to-speed trade-off.
 #'
 #' **Recommendations by scenario:**
-#' \itemize{
-#'   \item Single gene analysis: 1000-2000 replicates (detailed inference)
-#'   \item Small gene sets (2-5 genes): 500-1000 replicates (balanced)
-#'   \item Large gene sets (>10 genes): 250-500 replicates (speed-prioritized)
-#' }
+#' - Single gene analysis: 1000-2000 replicates (detailed inference)
+#' - Small gene sets (2-5 genes): 500-1000 replicates (balanced)
+#' - Large gene sets (>10 genes): 250-500 replicates (speed-prioritized)
 #'
 #' **Usage:**
 #' ```
@@ -1177,14 +1175,16 @@ suggest_nboot <- function(n_genes, use_bca = FALSE) {
 #'   (pair_id, subject_id, patient_id, etc.). Default: NULL.
 #'
 #' @return A list with components (for single q):
-#'   \item{estimate}{Point estimate of divergence (on original data).}
-#'   \item{lower_ci}{Lower confidence bound.}
-#'   \item{upper_ci}{Upper confidence bound.}
-#'   \item{ci_level}{Requested confidence level.}
-#'   \item{method}{Bootstrap method used.}
-#'   \item{nboot}{Number of bootstrap replicates computed.}
-#'   \item{bootstrap_dist}{Numeric vector of bootstrap replicates.}
-#'   \item{q}{The q-parameter used.}
+#'   \describe{
+#'     \item{estimate}{Point estimate of divergence (on original data).}
+#'     \item{lower_ci}{Lower confidence bound.}
+#'     \item{upper_ci}{Upper confidence bound.}
+#'     \item{ci_level}{Requested confidence level.}
+#'     \item{method}{Bootstrap method used.}
+#'     \item{nboot}{Number of bootstrap replicates computed.}
+#'     \item{bootstrap_dist}{Numeric vector of bootstrap replicates.}
+#'     \item{q}{The q-parameter used.}
+#'   }
 #'
 #'   For multiple q values, returns a list of above structures (class
 #'   \code{tsenat_divergence_bootstrap_list}).
@@ -1226,7 +1226,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE) {
 #'   statistical power. Bootstrap methodology confirmed to maintain Type I error control.
 #' - **C016, C030, S018, S030** (Bootstrap methodology): Percentile and BCa bootstrap
 #'   performance validated. Coverage probabilities for entropy/divergence estimates
-#'   confirmed with confidence level ≥ 0.95 using nboot ≥ 500.
+#'   confirmed with confidence level >= 0.95 using nboot >= 500.
 #' - **I004** (Validation study): Explicit validation of divergence computation
 #'   showing different q-parameters produce different divergence values reflecting
 #'   different aspects of distribution differences.
@@ -1585,6 +1585,7 @@ calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = 
 #' @return Numeric scalar; Tsallis divergence value
 #'
 #' @keywords internal
+#' @noRd
 .tsenat_compute_tsallis_divergence <- function(p, r, q, log_base = exp(1), norm = FALSE) {
     
     # Handle edge cases
@@ -1630,6 +1631,7 @@ calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = 
 #' @return List with \code{lower} and \code{upper} CI bounds
 #'
 #' @keywords internal
+#' @noRd
 .tsenat_bca_ci <- function(boot_dist, theta_hat, alpha) {
     
     n <- length(boot_dist)

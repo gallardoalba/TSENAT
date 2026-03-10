@@ -46,25 +46,21 @@
 #'   transcript-to-gene mapping extracted from the GFF3 file.
 #' @details
 #' The function expects GFF3 format with the following structure:
-#' \itemize{
-#'   \item 9 tab-separated columns: seqname, source, feature, start, end,
-#'         score, strand, phase, attributes
-#'   \item Feature type column (3rd column) should contain 'transcript' or 'mRNA'
-#'   \item Attributes column (9th column) should contain ID and Parent fields
-#'   \item ID field: unique identifier for the transcript
-#'   \item Parent field: references the gene ID that this transcript belongs to
-#' }
+#' - 9 tab-separated columns: seqname, source, feature, start, end,
+#'   score, strand, phase, attributes
+#' - Feature type column (3rd column) should contain 'transcript' or 'mRNA'
+#' - Attributes column (9th column) should contain ID and Parent fields
+#' - ID field: unique identifier for the transcript
+#' - Parent field: references the gene ID that this transcript belongs to
 #' Example GFF3 line:
 #' \preformatted{chr1\tgencode\ttranscript\t1000\t3000\t.\t+\t.\t
 #' ID=ENST00000001;Parent=ENSG00000101;Name=BRCA1-001}
 #'
 #' \strong{Performance:} This function is optimized for large GFF3 files:
-#' \itemize{
-#'   \item Reads files in 10,000-line chunks (not line-by-line)
-#'   \item Uses fast pre-filtering (feature type check before regex)
-#'   \item Employs efficient string operations instead of heavy regex on every line
-#'   \item Handles both compressed (.gz) and uncompressed files seamlessly
-#' }
+#' - Reads files in 10,000-line chunks (not line-by-line)
+#' - Uses fast pre-filtering (feature type check before regex)
+#' - Employs efficient string operations instead of heavy regex on every line
+#' - Handles both compressed (.gz) and uncompressed files seamlessly
 #' @examples
 #' \dontrun{
 #' # Create a temporary GFF3 file with transcript features
@@ -346,34 +342,28 @@ extract_gene_names_from_gff3 <- function(gff3_file) {
 #'   If FALSE (default), an error is raised when unmapped transcripts are found.
 #'
 #' @return A `SummarizedExperiment` with:
-#'   \itemize{
-#'     \item `assay (counts)`: raw transcript counts
-#'     \item `metadata$tx2gene`: transcript-to-gene mapping
-#'     \item `metadata$readcounts`: raw transcript counts (preserved)
-#'     \item `metadata$salmon_tpm`: TPM values (if provided)
-#'     \item `metadata$salmon_effective_length`: effective lengths (if provided)
-#'     \item `rowData$transcript_id`: transcript IDs (matching rownames)
-#'     \item `rowData$gene_id`: gene IDs for each transcript
-#'     \item `rowData$gene_name`: human-readable gene names (if GFF3 provided)
-#'   }
+#'   - `assay (counts)`: raw transcript counts
+#'   - `metadata$tx2gene`: transcript-to-gene mapping
+#'   - `metadata$readcounts`: raw transcript counts (preserved)
+#'   - `metadata$salmon_tpm`: TPM values (if provided)
+#'   - `metadata$salmon_effective_length`: effective lengths (if provided)
+#'   - `rowData$transcript_id`: transcript IDs (matching rownames)
+#'   - `rowData$gene_id`: gene IDs for each transcript
+#'   - `rowData$gene_name`: human-readable gene names (if GFF3 provided)
 #'
 #' @details
 #' \strong{Input Format Detection:}
-#' \itemize{
-#'   \item If tx2gene is a character string ending in .gff3 or .gff3.gz,
-#'         it is parsed as a GFF3 file.
-#'   \item If tx2gene is a character string with any other extension or
-#'         no extension, it is parsed as a tab-separated file.
-#'   \item If tx2gene is a data.frame, it is used directly.
-#' }
+#' - If tx2gene is a character string ending in .gff3 or .gff3.gz,
+#'   it is parsed as a GFF3 file.
+#' - If tx2gene is a character string with any other extension or
+#'   no extension, it is parsed as a tab-separated file.
+#' - If tx2gene is a data.frame, it is used directly.
 #'
 #' \strong{rowData Structure (NEW):}
 #' The rowData now contains both transcript-level and gene-level identifiers:
-#' \itemize{
-#'   \item `transcript_id`: Transcript identifier (from readcounts rownames)
-#'   \item `gene_id`: Gene identifier (from tx2gene mapping)
-#'   \item `gene_name`: Human-readable gene name (from GFF3 when available)
-#' }
+#' - `transcript_id`: Transcript identifier (from readcounts rownames)
+#' - `gene_id`: Gene identifier (from tx2gene mapping)
+#' - `gene_name`: Human-readable gene name (from GFF3 when available)
 #' This enables downstream functions like `calculate_divergence()` to easily
 #' filter by gene ID and aggregate or subset transcripts by gene.
 #'
@@ -385,20 +375,16 @@ extract_gene_names_from_gff3 <- function(gff3_file) {
 #' \strong{SALMON Data Integration:}
 #' When TPM and effective_length are provided, they are stored in metadata
 #' for seamless integration with:
-#' \itemize{
-#'   \item `filter_se()`: automatically detects TPM in metadata for 
-#'         normalization-aware filtering
-#'   \item `calculate_diversity()`: automatically detects effective_length in metadata
-#'         for length-normalized entropy calculations
-#' }
+#' - `filter_se()`: automatically detects TPM in metadata for 
+#'   normalization-aware filtering
+#' - `calculate_diversity()`: automatically detects effective_length in metadata
+#'   for length-normalized entropy calculations
 #'
 #' \strong{Performance:}
-#' \itemize{
-#'   \item GFF3 files are processed efficiently even for large annotations
-#'         (e.g., full GENCODE with 100k+ transcripts)
-#'   \item TSV files are standard tab-separated format for fast parsing
-#'   \item Data.frame inputs have no I/O overhead
-#' }
+#' - GFF3 files are processed efficiently even for large annotations
+#'   (e.g., full GENCODE with 100k+ transcripts)
+#' - TSV files are standard tab-separated format for fast parsing
+#' - Data.frame inputs have no I/O overhead
 #'
 #' @export
 #'

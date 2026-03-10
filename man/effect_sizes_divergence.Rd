@@ -32,27 +32,21 @@ to console (default: TRUE). Shows counts of passed, skipped, and failed genes.}
 \value{
 A list with two elements:
   \describe{
-    \item{\code{interaction_results}}{Data frame (genes × columns) with merged results:
-      \itemize{
-        \item `gene`: Gene name (character)
-        \item `p_value_interaction`: LMM adjusted p-value for q:group interaction
-        \item `slope_diff`: q:group interaction slope coefficient (if present in lm_res)
-        \item For EACH q value found: 
-          \itemize{
-            \item `effect_size_D_q*`: Absolute Tsallis divergence at q
-            \item `D_q*_lower_ci`: Bootstrap lower confidence bound
-            \item `D_q*_upper_ci`: Bootstrap upper confidence bound
-          }
-      }
+    \item{\code{interaction_results}}{Data frame (genes * columns) with merged results:
+      - `gene`: Gene name (character)
+      - `p_value_interaction`: LMM adjusted p-value for q:group interaction
+      - `slope_diff`: q:group interaction slope coefficient (if present in lm_res)
+      - For EACH q value found: 
+        - `effect_size_D_q*`: Absolute Tsallis divergence at q
+        - `D_q*_lower_ci`: Bootstrap lower confidence bound
+        - `D_q*_upper_ci`: Bootstrap upper confidence bound
     }
     \item{\code{validation_stats}}{List with merge quality metrics:
-      \itemize{
-        \item `total_genes`: Total significant genes from LMM
-        \item `passed_lmm`: Successfully merged with divergence data
-        \item `failed_missing_divergence`: Missing or NA divergence estimate
-        \item `other_errors`: Other processing failures
-        \item `q_values`: Numeric vector of q-values processed
-      }
+      - `total_genes`: Total significant genes from LMM
+      - `passed_lmm`: Successfully merged with divergence data
+      - `failed_missing_divergence`: Missing or NA divergence estimate
+      - `other_errors`: Other processing failures
+      - `q_values`: Numeric vector of q-values processed
     }
   }
 }

@@ -82,18 +82,20 @@
 #' 2. Rank residual data
 #' 3. Apply ANOVA-type tests to ranks
 #'
-#' This enables robust testing of multi-factor designs (e.g., gene × q-value)
+#' This enables robust testing of multi-factor designs (e.g., gene * q-value)
 #' without parametric assumptions.
 #'
-#' @param data Matrix or data.frame (genes × samples) of expression values
+#' @param data Matrix or data.frame (genes * samples) of expression values
 #' @param factors Data.frame of factor assignments with columns for each factor
 #'   (rows must match columns of data)
 #' @param formula Formula specifying model (e.g., ~ q_value + gene)
 #'
 #' @return List containing:
-#'   \item{aligned_ranks}{Aligned rank-transformed data}
-#'   \item{alignment_effects}{Estimated effects subtracted during alignment}
-#'   \item{summary}{Summary statistics of rank transformation}
+#'   \describe{
+#'     \item{aligned_ranks}{Aligned rank-transformed data}
+#'     \item{alignment_effects}{Estimated effects subtracted during alignment}
+#'     \item{summary}{Summary statistics of rank transformation}
+#'   }
 #'
 #' @export
 #' @examples
@@ -224,9 +226,11 @@ print.art_result <- function(x, ...) {
 #' @param use_ranks Logical; use gene ranks instead of p-values (default: TRUE)
 #'
 #' @return List with:
-#'   \item{correlation_matrix}{Pairwise correlations between q-value results}
-#'   \item{mean_correlation}{Average correlation across q-values}
-#'   \item{consistency_score}{Higher = more consistent ranking across q-values}
+#'   \describe{
+#'     \item{correlation_matrix}{Pairwise correlations between q-value results}
+#'     \item{mean_correlation}{Average correlation across q-values}
+#'     \item{consistency_score}{Higher = more consistent ranking across q-values}
+#'   }
 #'
 #' @export
 #' @examples
@@ -319,16 +323,18 @@ print.rank_correlation_multiq <- function(x, ...) {
 #' (e.g., different q-values in multi-q analysis). Provides exact p-values
 #' without parametric assumptions.
 #'
-#' @param data Matrix of test statistics or p-values (genes × comparisons)
+#' @param data Matrix of test statistics or p-values (genes * comparisons)
 #' @param groups Factor vector assigning each column to a group/factor level
 #' @param n_permutations Integer; number of permutations (default: 1000)
 #' @param test_statistic Function; how to aggregate ranks into test stat
 #'   (default: maximum/minimum across ranks)
 #'
 #' @return List with:
-#'   \item{fwer_pvalues}{Adjusted p-values controlling FWER at 0.05}
-#'   \item{unadjusted_pvalues}{Original p-values before adjustment}
-#'   \item{permutation_distribution}{Distribution of max/min statistics}
+#'   \describe{
+#'     \item{fwer_pvalues}{Adjusted p-values controlling FWER at 0.05}
+#'     \item{unadjusted_pvalues}{Original p-values before adjustment}
+#'     \item{permutation_distribution}{Distribution of max/min statistics}
+#'   }
 #'
 #' @export
 rank_based_fwer_control <- function(data, groups, n_permutations = 1000,
@@ -665,57 +671,26 @@ print.rank_assumptions <- function(x, ...) {
 #' across different q-values?" Permutation-based CIs provide a non-parametric answer
 #' without assuming bivariate normality, which rarely holds for rank correlation distributions.
 #'
-#' @param pvalues_or_ranks List of numeric vectors (typically p-values or ranks from 
-#'   different q-values). Length ≥ 2. Named vectors recommended (e.g., list(q01 = ..., q05 = ...))
-#' @param method Character; correlation method ("spearman" or "kendall"). Default: "spearman"
-#' @param ci Character; confidence interval method. Options:
-#'   - "percentile": Bootstrap percentile method (default; straightforward interpretation)
-#'   - "bca": Bias-corrected and accelerated (better coverage; recommended for small n)
-#'   - "permutation": Exact permutation distribution (most conservative, exact Type I control)
-#' @param ci_level Numeric; confidence level (default: 0.95 for 95% CI)
-#' @param n_bootstrap Integer; number of bootstrap resamples (default: 1000, 
-#'   increased to 5000 for BCA method)
-#' @param n_permutations Integer; number of permutations if ci="permutation" (default: 5000)
-#' @param seed Integer; random seed for reproducibility (default: 42)
-#' @param return_distribution Logical; if TRUE, return full bootstrap distribution 
-#'   (default: FALSE; saves memory for large studies)
+#' @param pvalues_or_ranks List of numeric vectors (p-values or ranks).
+#' @param method Character. Spearman (default) or kendall.
+#' @param ci Character. Percentile (default), bca, or permutation.
+#' @param ci_level Numeric. Confidence level (default 0.95).
+#' @param n_bootstrap Integer. Bootstrap resamples (default 1000, 5000 for BCA).
+#' @param n_permutations Integer. Permutations (default 5000).
+#' @param seed Integer. Random seed (default 42).
+#' @param return_distribution Logical. Return full distribution (default FALSE).
 #'
 #' @return List of class "rank_correlation_ci" containing:
-#'   \item{correlation_matrix}{Spearman/Kendall correlation between pairs}
-#'   \item{ci_matrix}{Matrix of [lower, upper] CI bounds for each pair}
-#'   \item{method}{Correlation and CI method used}
-#'   \item{ci_level}{Requested confidence level}
-#'   \item{interpretation}{Summary table with interpretation}
-#'   \item{bootstrap_distribution}{Full bootstrap distribution (if return_distribution=TRUE)}
+#'   \describe{
+#'     \item{correlation_matrix}{Spearman/Kendall correlation between pairs}
+#'     \item{ci_matrix}{Matrix of [lower, upper] CI bounds for each pair}
+#'     \item{method}{Correlation and CI method used}
+#'     \item{ci_level}{Requested confidence level}
+#'     \item{interpretation}{Summary table with interpretation}
+#'     \item{bootstrap_distribution}{Full bootstrap distribution (if return_distribution=TRUE)}
+#'   }
 #'
-#' @details
-#' **Three Confidence Interval Methods:**
-#'
-#' **1. Bootstrap Percentile (Default)**
-#' - Method: Resample genes with replacement; compute correlation at each bootstrap replicate
-#' - CI bounds: α/2 and 1-α/2 quantiles of bootstrap distribution
-#' - Pros: Simple, fast, reproducible, straightforward interpretation
-#' - Cons: May have poorer coverage with very small n or extreme correlations
-#' - Use when: n > 20, correlations near [-1, 1] boundaries
-#'
-#' **2. Bias-Corrected and Accelerated (BCA)**
-#' - Method: Percentile CI + bias correction + acceleration factor from jackknife
-#' - Adjusts for non-normality and skewness in bootstrap distribution
-#' - Pros: Better coverage probability under non-normality; accounts for distribution skew
-#' - Cons: Slower; requires higher n_bootstrap (5000 default)
-#' - Use when: n < 20, expected non-normal bootstrap distribution, precision critical
-#'
-#' **3. Permutation-based (Exact)**
-#' - Method: Resample without replacement; true null permutation distribution
-#' - Guarantees exact Type I error control under null hypothesis
-#' - Pros: Theoretically exact, unconditional coverage under exchangeability
-#' - Cons: Very conservative (may be overly wide); slower for large permutation count
-#' - Use when: Hypothesis testing with strict Type I control (e.g., FWER analysis)
-#'
-#' **Mathematical Framework:**
-#'
-#' Bootstrap percentile CI for correlation ρ:
-#' \deqn{CI = [r^*_{(\lceil \alpha/2 \cdot B \rceil)}, r^*_{(\lfloor (1-\alpha/2) \cdot B \rfloor)}]}{CI = [r_bootstrap(alpha/2 quantile), r_bootstrap((1-alpha/2) quantile)]}
+#' @details Three CI methods available: (1) Bootstrap Percentile (default, fast, straightforward) - suitable for n > 20; (2) Bias-Corrected and Accelerated (BCA, better coverage, slower) - best for small n or non-normal distributions; (3) Permutation-based (exact Type I control, conservative) - for strict hypothesis testing. Bootstrap percentile CI computed as quantiles of bootstrap distribution. Spearman/Kendall correlations tested between pairs of input vectors.
 #'
 #' where r* are bootstrap correlation replicates.
 #'
@@ -1005,13 +980,10 @@ print.rank_correlation_ci <- function(x, ...) {
 #' potential batch confounding effects. Analyzes whether samples cluster by
 #' sample type (biological) or by unexpected batch structure.
 #'
-#' @param entropy_lists List or matrix. If list, each element is a q-value's
-#'   entropy matrix (genes × samples). If matrix, treated as single q-value.
-#' @param sample_metadata Data frame with colnames: sample_id, batch (or similar),
-#'   condition (e.g., "normal", "tumor")
+#' @param entropy_lists List or matrix. If list, each element is a q-value's entropy matrix (genes * samples). If matrix, treated as single q-value.
+#' @param sample_metadata Data frame with colnames: sample_id, batch (or similar), condition (e.g., "normal", "tumor").
 #' @param n_pcs Integer. Number of principal components to compute (default: 5)
-#' @param color_by Character. Column name in sample_metadata to color samples.
-#'   Common: "condition", "batch", "sequencing_run"
+#' @param color_by Character. Column name in sample_metadata to color samples (e.g., "condition", "batch", "sequencing_run").
 #'
 #' @return S3 object of class "batch_pca" containing:
 #'   - pca_result: Result from prcomp()
@@ -1191,7 +1163,7 @@ print.batch_pca <- function(x, ...) {
 #' This approach maintains validity of permutation tests because under null
 #' hypothesis (no biological signal), the residuals remain exchangeable.
 #'
-#' @param entropy_matrix Matrix of entropy values (genes × samples)
+#' @param entropy_matrix Matrix of entropy values (genes * samples)
 #' @param batch_factor Factor indicating batch membership for each sample
 #' @param condition_factor Factor indicating biological condition (normal/tumor)
 #'
@@ -1203,8 +1175,8 @@ print.batch_pca <- function(x, ...) {
 #'
 #' @details
 #' Equations used:
-#'   Entropy[g, s] = α[g] + β[g] × condition[s] + γ[g, b] × batch[s] + ε[g, s]
-#'   Entropy_corrected[g, s] = Entropy[g, s] - (γ[g, b] × batch[s])
+#'   Entropy[g, s] = α[g] + β[g] * condition[s] + γ[g, b] * batch[s] + ε[g, s]
+#'   Entropy_corrected[g, s] = Entropy[g, s] - (γ[g, b] * batch[s])
 #'
 #' This maintains:
 #' - Exchangeability: Residuals still exchangeable under null
@@ -1274,7 +1246,7 @@ apply_batch_correction_ranking <- function(
     batch_effects[[rownames(entropy_matrix)[g]]] <- batch_pred
     model_fits[[rownames(entropy_matrix)[g]]] <- model
     
-    # Calculate R² for batch term
+    # Calculate R^2 for batch term
     r_squared_by_gene[g] <- summary(model)$r.squared
   }
   
@@ -1289,7 +1261,7 @@ apply_batch_correction_ranking <- function(
 }
 
 
-#' Detect Q×Gene Interaction Terms
+#' Detect Q*Gene Interaction Terms
 #'
 #' Tests whether genes respond differently to the q-parameter in Tsallis entropy
 #' analysis. Some genes may be robust across q-values while others show
@@ -1309,7 +1281,7 @@ apply_batch_correction_ranking <- function(
 #'   - gene: Gene identifier
 #'   - n_q_values_tested: Number of q-levels tested for this gene
 #'   - f_statistic: Test statistic (H-statistic for Kruskal-Wallis, F for ANOVA)
-#'   - p_value: P-value for H0: "No q×gene interaction"
+#'   - p_value: P-value for H0: "No q*gene interaction"
 #'   - ss_interaction: Sum of squares for q-effect
 #'   - ss_residual: Sum of squares for residuals
 #'   - df_interaction: Degrees of freedom for interaction
@@ -1324,9 +1296,9 @@ apply_batch_correction_ranking <- function(
 #' significantly across q-parameters for each gene.
 #'
 #' Classification:
-#'   - Robust: p ≥ 0.05 (no significant q-effect)
-#'   - Moderately dependent: p < 0.05 AND η² ≤ 0.10
-#'   - Strongly dependent: p < 0.05 AND η² > 0.10
+#'   - Robust: p >= 0.05 (no significant q-effect)
+#'   - Moderately dependent: p < 0.05 AND η^2 <= 0.10
+#'   - Strongly dependent: p < 0.05 AND η^2 > 0.10
 #'
 #' @references
 #' Papers S041, S042: Interaction testing in genomic designs
@@ -1471,24 +1443,25 @@ detect_q_gene_interactions <- function(
 #'
 #' @param interaction_results Data frame output from detect_q_gene_interactions()
 #' @param p_threshold Numeric: p-value threshold for significance (default: 0.05)
-#' @param eta2_threshold_moderate Numeric: Effect size threshold for moderate dependency
-#'   (default: 0.01, i.e., 1%)
-#' @param eta2_threshold_strong Numeric: Effect size threshold for strong dependency
-#'   (default: 0.10, i.e., 10%)
+#' @param eta2_threshold_moderate Numeric: Effect size threshold for moderate dependency (default 0.01)
+#' @param eta2_threshold_strong Numeric: Effect size threshold for strong dependency (default 0.10)
 #'
-#' @return Character vector of classifications for each gene:
-#'   - "Robust across q": p ≥ p_threshold
-#'   - "Moderately q-dependent": p < p_threshold AND eta2 ≤ eta2_threshold_strong
-#'   - "Strongly q-dependent": p < p_threshold AND eta2 > eta2_threshold_strong
-#'   - "Test failed": No valid test result
-#'   - "Insufficient data": Fewer than 2 q-levels
+#' @return
+#' A character vector of classifications for each gene. Possible values:
+#' \describe{
+#'   \item{Robust across q}{p >= p_threshold}
+#'   \item{Moderately q-dependent}{p < p_threshold AND eta2 <= eta2_threshold_strong}
+#'   \item{Strongly q-dependent}{p < p_threshold AND eta2 > eta2_threshold_strong}
+#'   \item{Test failed}{No valid test result}
+#'   \item{Insufficient data}{Fewer than 2 q-levels}
+#' }
 #'
 #' @details
 #' Classification thresholds can be adjusted based on prior knowledge or
 #' exploratory data analysis. Default thresholds correspond to:
-#'   - Robust: Stable ranking across q (Cohen's small effect)
-#'   - Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
-#'   - Strong: Substantial ranking changes (Cohen's large effect)
+#' - Robust: Stable ranking across q (Cohen's small effect)
+#' - Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
+#' - Strong: Substantial ranking changes (Cohen's large effect)
 #'
 #' @export
 #' @examples
@@ -1545,11 +1518,9 @@ classify_q_dependency <- function(
 #' Provides data-driven recommendations for q-value selection in multi-q
 #' Tsallis entropy analysis based on detected interactions.
 #'
-#' @param interaction_results Data frame output from detect_q_gene_interactions()
-#' @param robust_threshold Numeric: If percentage of robust genes exceeds this,
-#'   suggest simplified q-range (default: 0.70, i.e., 70%)
-#' @param strong_threshold Numeric: If percentage of strongly q-dependent genes
-#'   exceeds this, recommend full q-spectrum (default: 0.05, i.e., 5%)
+#' @param interaction_results Data frame from detect_q_gene_interactions().
+#' @param robust_threshold Numeric. Threshold for robust genes (default 0.70).
+#' @param strong_threshold Numeric. Threshold for strong dependency (default 0.05).
 #'
 #' @return List with elements:
 #'   - recommendation: Character string with recommended q-range
@@ -1560,23 +1531,7 @@ classify_q_dependency <- function(
 #'   - suggested_q_values: Numeric vector of suggested q-values
 #'   - sample_sizes: Approximate number of genes in each category
 #'
-#' @details
-#' Classification-based recommendations:
-#'
-#'   **If >5% genes show strong q-dependency:**
-#'   Use FULL spectrum (q ∈ {0.1, 0.5, 1.0, 1.5, 2.0, 2.5})
-#'   These genes' rankings change substantially with q-parameter.
-#'   Single q-value would miss/misclassify important signals.
-#'
-#'   **Else if >10% moderate q-dependency:**
-#'   Use STANDARD range (q ∈ {0.5, 1.0, 1.5, 2.0})
-#'   Most genes rank similarly, but noticeable variation exists.
-#'   Balances statistical power with computational cost.
-#'
-#'   **Else (mostly robust genes):**
-#'   Can use FOCUSED range (q ∈ {0.9, 1.0, 1.1}) or FIXED q=1.0 (Shannon)
-#'   Gene rankings are stable across parameter values.
-#'   Simpler, faster analysis justified by data.
+#' @details Provides classification-based recommendations: If >5% strong q-dependency, use full spectrum {0.1, 0.5, 1.0, 1.5, 2.0, 2.5}. If >10% moderate q-dependency, use standard range {0.5, 1.0, 1.5, 2.0}. Otherwise, use focused range {0.9, 1.0, 1.1} or fixed q=1.0 (Shannon).
 #'
 #' @export
 #' @examples
@@ -1607,7 +1562,7 @@ recommend_q_range <- function(
   if (strong_pct > strong_threshold) {
     recommendation <- "FULL q-spectrum: q ∈ {0.1, 0.5, 1.0, 1.5, 2.0, 2.5}"
     rationale <- sprintf(
-      "Strong q×gene interactions detected in %.1f%% of genes (%d genes). These genes' rankings change substantially with q-parameter. Single q-value selection would miss critical signals. Full spectrum captures complete parametric space for diversity measurement.",
+      "Strong q*gene interactions detected in %.1f%% of genes (%d genes). These genes' rankings change substantially with q-parameter. Single q-value selection would miss critical signals. Full spectrum captures complete parametric space for diversity measurement.",
       strong_pct * 100, strong_count
     )
     suggested_q <- c(0.1, 0.5, 1.0, 1.5, 2.0, 2.5)
@@ -1621,7 +1576,7 @@ recommend_q_range <- function(
   } else if (moderate_pct > 0.10) {
     recommendation <- "STANDARD q-range: q ∈ {0.5, 1.0, 1.5, 2.0}"
     rationale <- sprintf(
-      "Moderate q×gene interactions detected in %.1f%% of genes (%d genes). Most genes rank similarly, but noticeable variation exists. Standard range balances statistical power and computational efficiency.",
+      "Moderate q*gene interactions detected in %.1f%% of genes (%d genes). Most genes rank similarly, but noticeable variation exists. Standard range balances statistical power and computational efficiency.",
       moderate_pct * 100, moderate_count
     )
     suggested_q <- c(0.5, 1.0, 1.5, 2.0)

@@ -17,7 +17,7 @@ plot_divergence_q_curve(
 \arguments{
 \item{se}{A `SummarizedExperiment` returned by `calculate_diversity` with multiple q-values.}
 
-\item{readcounts}{Optional matrix of raw read counts (genes × transcripts) for computing
+\item{readcounts}{Optional matrix of raw read counts (genes * transcripts) for computing
 true Tsallis divergence from isoform distributions. If NULL, uses entropy-based approximation.}
 
 \item{tx2gene_map}{Optional data.frame mapping transcripts to genes (columns: "transcript", "gene").}

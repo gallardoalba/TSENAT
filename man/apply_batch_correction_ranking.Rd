@@ -11,7 +11,7 @@ apply_batch_correction_ranking(
 )
 }
 \arguments{
-\item{entropy_matrix}{Matrix of entropy values (genes × samples)}
+\item{entropy_matrix}{Matrix of entropy values (genes * samples)}
 
 \item{batch_factor}{Factor indicating batch membership for each sample}
 
@@ -37,8 +37,8 @@ hypothesis (no biological signal), the residuals remain exchangeable.
 
 
 Equations used:
-  Entropy[g, s] = α[g] + β[g] × condition[s] + γ[g, b] × batch[s] + ε[g, s]
-  Entropy_corrected[g, s] = Entropy[g, s] - (γ[g, b] × batch[s])
+  Entropy[g, s] = α[g] + β[g] * condition[s] + γ[g, b] * batch[s] + ε[g, s]
+  Entropy_corrected[g, s] = Entropy[g, s] - (γ[g, b] * batch[s])
 
 This maintains:
 - Exchangeability: Residuals still exchangeable under null

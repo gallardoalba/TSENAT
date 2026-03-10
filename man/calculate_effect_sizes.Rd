@@ -16,22 +16,17 @@ calculate_effect_sizes(
 )
 }
 \arguments{
-\item{x}{A \code{matrix} with the splicing diversity values or other numeric data.
-Ignored if \code{ts_se} is provided.}
+\item{x}{Matrix with splicing diversity values or other numeric data. Ignored if \code{ts_se} is provided.}
 
-\item{samples}{Character vector with an equal length to the number of columns
-in the input dataset, specifying the category of each sample (two groups expected).
+\item{samples}{Character vector with length equal to number of columns in input dataset, specifying category of each sample (two groups expected).
 Ignored if \code{ts_se} is provided; extracted from colData automatically.}
 
-\item{ts_se}{Optional \code{SummarizedExperiment} containing diversity values and sample metadata.
-When provided, \code{x} and \code{samples} are extracted automatically from the diversity
+\item{ts_se}{Optional SummarizedExperiment containing diversity values and sample metadata. When provided, x and samples are extracted automatically from the diversity assay.
 assay and colData. If \code{NULL}, \code{x} and \code{samples} must be provided.}
 
-\item{paired}{Logical; if \code{TRUE}, compute paired effect sizes (signed rank test).
-Default: \code{FALSE}.}
+\item{paired}{Logical. If TRUE, compute paired effect sizes (signed rank test, default FALSE).}
 
-\item{pairs}{Optional character vector with an equal length to the number of 
-columns in the input dataset, specifying the pairing identifier for each sample. 
+\item{pairs}{Optional character vector with length equal to number of columns in input dataset, specifying pairing identifier for each sample. 
 When provided with \code{paired = TRUE}, samples are matched based on this 
 pairing information rather than column order.}
 
@@ -41,15 +36,16 @@ p-values for integrated interpretation (see Details).}
 
 \item{nthreads}{Number of threads for parallel processing (default: 1).}
 
-\item{return_summary}{Logical; if \code{TRUE} and \code{res} is provided, prints
-a summary combining p-values and effect sizes for top genes. Default: \code{TRUE}.}
+\item{return_summary}{Logical. If TRUE and res is provided, print summary combining p-values and effect sizes for top genes (default TRUE).}
 }
 \value{
 A \code{data.frame} with columns:
+  \describe{
   \item{cliffs_delta}{Cliff's delta effect size (range: [-1, 1]).}
   \item{r_value}{Standardized effect size Z / √N (range: [-1, 1]).}
   \item{rank_biserial}{Rank-biserial correlation (for unpaired tests).}
   \item{effect_magnitude}{Interpretation: 'negligible', 'small', 'medium', 'large'.}
+  }
 }
 \description{
 Compute effect size measures for Wilcoxon rank sum and signed rank tests.

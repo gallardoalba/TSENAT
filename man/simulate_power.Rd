@@ -21,49 +21,41 @@ simulate_power(
 \arguments{
 \item{n_per_group}{Integer. Number of samples per group to simulate.}
 
-\item{effect_size}{Numeric. Interaction coefficient (q×group slope difference).
-This is NOT a constant effect; instead, it specifies how much the difference
-between group slopes varies with q. Simulated effects scale from 
-(effect_size × 0.1) at low q to (effect_size × 0.9) at high q.
-Example: effect_size=0.20 produces actual effects ranging from 0.02 to 0.18
-depending on the q value, with signal-to-noise ratios from 0.2 to 1.8
-(when residual_sd=0.3). This q-dependent structure is TSENAT's core feature.}
+\item{effect_size}{Numeric. Interaction coefficient (q*group slope).}
 
 \item{n_q_values}{Integer. Number of q-values per sample.}
 
-\item{residual_sd}{Numeric. Residual standard deviation of entropy values.}
+\item{residual_sd}{Numeric. Entropy residual standard deviation.}
 
-\item{n_simulations}{Integer. Number of Monte Carlo replications. Default: 500}
+\item{n_simulations}{Integer. Monte Carlo replications (default 1000).}
 
-\item{alpha}{Numeric. Type I error rate. Default: 0.05}
+\item{alpha}{Numeric. Type I error rate (default 0.05).}
 
-\item{method}{String. Testing method (default: "lm"):
-- "lm": Parametric linear model (baseline power)
-- "lmm": Linear mixed model (~1% penalty vs lm)
-- "wilcoxon": Non-parametric rank-based test. **WARNING:** Only valid for
-  single q-value (n_q_values=1). For multiple q-values with unpaired groups,
-  use "shuffle" (permutation test) instead. (~5% penalty for single q)
-- "shuffle": Permutation/randomization test (~8% penalty). **RECOMMENDED** for
-  testing q×group interaction with repeated measures (multiple q-values).
-- "gam": Smooth generalized additive model (~2% penalty)
-- "fpca": Functional principal component analysis (~1.5% penalty)
-- "gee": Generalized estimating equations (~4% penalty)}
+\item{method}{String. Testing method (lm, lmm, shuffle, etc).}
 
-\item{verbose}{Logical. Print progress messages. Default: FALSE}
+\item{paired}{Logical. Paired/matched design (default FALSE).}
+
+\item{correlation}{Numeric. Within-pair correlation (default NULL).}
+
+\item{q}{Numeric. Tsallis q-parameter (default 1.0).}
+
+\item{verbose}{Logical. Print progress messages (default FALSE).}
 }
 \value{
 List with components:
-  - power: Proportion of simulations detecting interaction effect (p < alpha)
-  - ci_lower: Lower 95% CI on power estimate
-  - ci_upper: Upper 95% CI on power estimate
-  - n_per_group: Input sample size
-  - effect_size: Input interaction coefficient
-  - method: Testing method used
-  - n_simulations: Number of Monte Carlo replications
+  \describe{
+    \item{power}{Proportion of simulations detecting interaction effect (p < alpha)}
+    \item{ci_lower}{Lower 95\% CI on power estimate}
+    \item{ci_upper}{Upper 95\% CI on power estimate}
+    \item{n_per_group}{Input sample size}
+    \item{effect_size}{Input interaction coefficient}
+    \item{method}{Testing method used}
+    \item{n_simulations}{Number of Monte Carlo replications}
+  }
 }
 \description{
 Run Monte Carlo simulations to compute statistical power for a given
-sample size and effect size combination. Tests for q×group interaction
+sample size and effect size combination. Tests for q*group interaction
 in entropy curves (the core TSENAT research question: do treatment effects
 depend on the entropy order q?).
 }
@@ -120,7 +112,7 @@ validating the TSENAT core model: treatment effects are q-dependent slope change
 # Simulate power for n=20 per group, interaction effect=0.20, 5 q-values
 sim_result <- simulate_power(n_per_group = 20, effect_size = 0.20,
                               n_q_values = 5, n_simulations = 200)
-cat("Power to detect q×group interaction:", sim_result$power, "\n")
+cat("Power to detect q*group interaction:", sim_result$power, "\n")
 }
 
 }

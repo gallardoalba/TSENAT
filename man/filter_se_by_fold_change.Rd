@@ -16,8 +16,7 @@ filter_se_by_fold_change(
 \item{x}{A \code{SummarizedExperiment} or \code{matrix}. If matrix, also provide
 \code{transcript_stats} with effect size information and \code{tx2gene} mapping.}
 
-\item{transcript_stats}{A \code{data.frame} containing transcript-level statistics,
-typically from diversity analysis. Required columns: \code{genes} (gene names) and
+\item{transcript_stats}{Data frame containing transcript-level statistics, typically from diversity analysis. Required columns: genes (gene names) and expression metrics.
 \code{log2_fold_change} (log2 fold-change values).
 Ignored if \code{x} is a SummarizedExperiment with rowData containing \code{log2_fold_change}.}
 
@@ -25,8 +24,7 @@ Ignored if \code{x} is a SummarizedExperiment with rowData containing \code{log2
 \code{transcript_id} and \code{gene_name}. Required if \code{x} is a matrix.
 Ignored for SummarizedExperiment input (uses rowData gene information instead).}
 
-\item{min_abs_log2fc}{Numeric threshold for minimum absolute log2 fold-change.
-Genes with median \eqn{|\log_2 FC| < min\_abs\_log2fc}{|log2FC| < min_abs_log2fc}
+\item{min_abs_log2fc}{Numeric threshold for minimum absolute log2 fold-change. Genes with median |log2FC| < min_abs_log2fc are filtered out.
 are removed. Default: 0.1 (recommended for power optimization).}
 
 \item{verbose}{Logical; if \code{TRUE}, print summary statistics during filtering.
@@ -39,8 +37,10 @@ If \code{x} is a \code{SummarizedExperiment}:
 
 If \code{x} is a \code{matrix}:
   Returns a \code{list} with components:
+  \describe{
   \item{readcounts}{Filtered count matrix.}
   \item{tx2gene}{Filtered transcript-to-gene mapping.}
+  }
 }
 \description{
 Filters genes based on median absolute log2 fold-change magnitude.
@@ -51,7 +51,7 @@ in sample size calculations for differential expression analysis.
 **Rationale:** Very small fold-changes require enormous sample sizes to achieve
 statistical significance. For example, a median log2 FC of 0.052 (empirical effect size
 in real datasets) requires ~789 samples per group using TSENAT analysis framework.
-Filtering to genes with |log2 FC| ≥ 0.1 reduces this to ~320-400 samples,
+Filtering to genes with |log2 FC| >= 0.1 reduces this to ~320-400 samples,
 representing meaningful biological effects.
 
 **Pipeline integration:** Recommended to use early in preprocessing, after
@@ -120,7 +120,7 @@ if (require("SummarizedExperiment")) {
 \references{
 Power analysis recommendations:
 - RnaSeqSampleSize: Assumes minimum fold-change of ~0.1-0.2 (log2)
-- RNASeqPower: Typically uses |log2 FC| ≥ 0.1 for robust power estimates
+- RNASeqPower: Typically uses |log2 FC| >= 0.1 for robust power estimates
 - TSENAT: Adaptive π0 estimation requires sufficient effect heterogeneity
 Reference: P001, P002, S049
 }

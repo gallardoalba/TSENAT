@@ -25,119 +25,12 @@ NULL
 #' @references
 #' Wilkinson, L. (2005). The grammar of graphics. Springer.
 #' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
-#
 #' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
 #' Robust Statistics: Theory and Methods. John Wiley & Sons.
 
-#' Trimmed Wilcoxon Test
-#'
-#' M-Estimation for Robust Location Comparison
-#'
-#' Estimates location differences between groups using M-estimation
-#' (iteratively re-weighted least squares), which is more robust to
-#' outliers than standard least squares.
-#'
-#' @param x Matrix of values (rows = features, columns = samples), or a
-#'   SummarizedExperiment object with multi-q entropy data
-#' @param samples Character vector indicating group membership. If x is a
-#'   SummarizedExperiment, this should be a column name in colData.
-#'   For multi-q data, can also specify "multi_q_analysis" to automatically
-#'   handle q-value collapsing and leave-one-out influence analysis.
-#' @param loss_type Type of loss function: "huber" (default, robust),
-#'        "tukey" (more aggressive), or "lsq" (least squares, for comparison)
-#' @param scale Numeric. Scale parameter for Huber loss (default: 1.345*MAD).
-#'        Controls how much weight is given to outliers.
-#' @param max_iter Integer. Maximum iterations for IRLS. Default: 50
-#' @param tol Numeric. Convergence tolerance. Default: 1e-6
-#' @param paired Logical. If TRUE, use paired design. Default: FALSE
-#' @param pcorr P-value correction method. Default: "BH"
-#' @param q_combine_method Character. For multi-q data: "mean" (default) or 
-#'   "median" for summarizing across q values
-#' @param influence_threshold Numeric. Quantile threshold (0-1) for flagging high-influence
-#'   samples in multi-q analysis. Default: 0.75 (75th percentile)
-#' @param scale_method Character. Scale selection method: "mad" (default, Median Absolute Deviation),
-#'   "proposal2" (Huber's Proposal 2 for automatic scale selection), or 
-#'   "s-estimator" (S-estimator for high breakdown point). Default: "mad"
-#'
-#' @return Data frame with columns:
-#'   - location_diff: Estimated location difference (from M-estimation)
-#'   - se_diff: Standard error of difference
-#'   - t_stat: t-statistic
-#'   - pvalue: Two-tailed p-value
-#'   - padj: Adjusted p-value
-#'   - n_down_weighted: Number of observations down-weighted as outliers
-#'   - max_weight: Maximum weight assigned (1 = no down-weighting)
-#'   
-#'   For multi-q analysis on SummarizedExperiment, returns sample-level
-#'   influence scores (proportion of genes with >2% change when sample removed).
-#'
-#' @references
-#' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
-#' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
-#' Robust Statistics: Theory and Methods. John Wiley & Sons.
-#' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine equivariant 
-#' estimators of multivariate location and covariance matrices. Annals of Statistics, 19(1), 229-248.
-#'
-#' @export
-#' @details
-#' M-estimation uses the Huber loss function by default:
-#' L(u) = u²/2 if |u| ≤ k (quadratic, like LSQ)
-#' L(u) = k|u| - k²/2 if |u| > k (linear, like absolute value)
-#'
-#' This provides a compromise: near the center, it's as efficient as LSQ,
-#' but observations far from the center (outliers) have reduced influence.
-#'
-#' The default scale k = 1.345 * MAD detects outliers beyond 1.345 standard
-#' deviations (scaled by the median absolute deviation).
-#'
-#' For multi-q SummarizedExperiment data, the function automatically:
-#' 1. Extracts the multi-q entropy assay
-#' 2. Collapses samples across q values (using mean or median)
-#' 3. Performs leave-one-out influence analysis
-#' 4. Returns sample influence scores
-#'
-#' **Scale Estimation Methods:**
-#' - **mad (default):** Scale = 1.345 × MAD (Median Absolute Deviation).
-#'   Fast, consistent for normal data. Detects outliers at ~1.345σ.
-#'
-#' - **proposal2:** Huber's Proposal 2. Iteratively selects optimal k 
-#'   to balance efficiency and robustness. More adaptive but slower.
-#'   Good for data with unknown error distribution.
-#'
-#' - **s-estimator:** S-estimator with high breakdown point (~50%).
-#'   More robust to extreme contamination than M-estimation (~25%).
-#'   Recommended when data contamination is suspected.
-#'
-#' @examples
-#' \dontrun{
-#' # Data with outliers
-#' x <- matrix(c(
-#'   rnorm(80, mean=5),  # Group A
-#'   100, 101,           # Two outliers
-#'   rnorm(80, mean=8)   # Group B
-#' ), nrow=100)
-#' samples <- rep(c("A", "B"), each=10)
-#'
-#' # Standard t-test (sensitive to outliers)
-#' t.test(x[,1:10], x[,11:20])
-#'
-#' # M-estimation with default MAD scale
-#' result <- m_estimate(x, samples)
-#' head(result)
-#'
-#' # M-estimation with Huber's Proposal 2 (adaptive scale)
-#' result <- m_estimate(x, samples, scale_method = "proposal2")
-#'
-#' # M-estimation with S-estimator (high breakdown)
-#' result <- m_estimate(x, samples, scale_method = "s-estimator")
-#' 
-#' # For multi-q SummarizedExperiment:
-#' # result <- m_estimate(ts_se, samples = "sample_type", 
-#' #                      q_combine_method = "median",
-#' #                      scale_method = "proposal2")
-#' }
-
-# Helper function: Huber's Proposal 2 scale
+#' Helper function: Huber's Proposal 2 scale
+#' @keywords internal
+#' @noRd
 .huber_proposal2_scale <- function(y) {
   # Iteratively determines optimal scale for M-estimation
   # Based on finding scale k that balances efficiency and robustness
@@ -181,7 +74,7 @@ NULL
     # Residuals standardized by current scale
     u <- y / s0
     
-    # Huber loss: rho(u) = u^2/2 if |u|≤1, |u|-0.5 if |u|>1
+    # Huber loss: rho(u) = u^2/2 if |u|<=1, |u|-0.5 if |u|>1
     rho <- ifelse(abs(u) <= 1, u^2 / 2, abs(u) - 0.5)
     
     # Mean rho should equal b
@@ -313,6 +206,83 @@ NULL
 # M-ESTIMATION FOR ROBUST GROUP COMPARISON
 # ============================================================================
 
+#' M-Estimation for Robust Location Comparison
+#'
+#' Estimates location differences between groups using M-estimation
+#' (iteratively re-weighted least squares), which is more robust to
+#' outliers than standard least squares.
+#'
+#' @param x Matrix of values (rows = features, columns = samples), or a
+#'   SummarizedExperiment object with multi-q entropy data
+#' @param samples Character vector indicating group membership. If x is a
+#'   SummarizedExperiment, this should be a column name in colData.
+#'   For multi-q data, can also specify "multi_q_analysis" to automatically
+#'   handle q-value collapsing and leave-one-out influence analysis.
+#' @param loss_type Type of loss function: "huber" (default, robust),
+#'        "tukey" (more aggressive), or "lsq" (least squares, for comparison)
+#' @param scale Numeric. Scale parameter for Huber loss (default: 1.345*MAD).
+#'        Controls how much weight is given to outliers.
+#' @param max_iter Integer. Maximum iterations for IRLS. Default: 50
+#' @param tol Numeric. Convergence tolerance. Default: 1e-6
+#' @param paired Logical. If TRUE, use paired design. Default: FALSE
+#' @param pcorr P-value correction method. Default: "BH"
+#' @param q_combine_method Character. For multi-q data: "mean" (default) or 
+#'   "median" for summarizing across q values
+#' @param influence_threshold Numeric. Quantile threshold (0-1) for flagging high-influence
+#'   samples in multi-q analysis. Default: 0.75 (75th percentile)
+#' @param scale_method Character. Scale selection method: "mad" (default, Median Absolute Deviation),
+#'   "proposal2" (Huber's Proposal 2 for automatic scale selection), or 
+#'   "s-estimator" (S-estimator for high breakdown point). Default: "mad"
+#'
+#' @return Data frame with columns:
+#'   - location_diff: Estimated location difference (from M-estimation)
+#'   - se_diff: Standard error of difference
+#'   - t_stat: t-statistic
+#'   - pvalue: Two-tailed p-value
+#'   - padj: Adjusted p-value
+#'   - n_down_weighted: Number of observations down-weighted as outliers
+#'   - max_weight: Maximum weight assigned (1 = no down-weighting)
+#'   
+#'   For multi-q analysis on SummarizedExperiment, returns sample-level
+#'   influence scores (proportion of genes with >2% change when sample removed).
+#'
+#' @references
+#' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
+#' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
+#' Robust Statistics: Theory and Methods. John Wiley & Sons.
+#' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine equivariant 
+#' estimators of multivariate location and covariance matrices. Annals of Statistics, 19(1), 229-248.
+#'
+#' @export
+#' @details
+#' M-estimation uses the Huber loss function by default:
+#' L(u) = u^2/2 if |u| <= k (quadratic, like LSQ)
+#' L(u) = k|u| - k^2/2 if |u| > k (linear, like absolute value)
+#'
+#' This provides a compromise: near the center, it's as efficient as LSQ,
+#' but observations far from the center (outliers) have reduced influence.
+#'
+#' The default scale k = 1.345 * MAD detects outliers beyond 1.345 standard
+#' deviations (scaled by the median absolute deviation).
+#'
+#' For multi-q SummarizedExperiment data, the function automatically:
+#' 1. Extracts the multi-q entropy assay
+#' 2. Collapses samples across q values (using mean or median)
+#' 3. Performs leave-one-out influence analysis
+#' 4. Returns sample influence scores
+#'
+#' **Scale Estimation Methods:**
+#' - **mad (default):** Scale = 1.345 * MAD (Median Absolute Deviation).
+#'   Fast, consistent for normal data. Detects outliers at ~1.345 sigma.
+#'
+#' - **proposal2:** Huber's Proposal 2. Iteratively selects optimal k 
+#'   to balance efficiency and robustness. More adaptive but slower.
+#'   Good for data with unknown error distribution.
+#'
+#' - **s-estimator:** S-estimator with high breakdown point (~50%).
+#'   More robust to extreme contamination than M-estimation (~25%).
+#'   Recommended when data contamination is suspected.
+#'
 m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
                        max_iter = 50, tol = 1e-6, paired = FALSE, pcorr = "BH",
                        q_combine_method = "mean", influence_threshold = 0.75,

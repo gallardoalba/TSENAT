@@ -19,51 +19,45 @@ power_curve_analytical(
 )
 }
 \arguments{
-\item{effect_size}{Numeric. Interaction coefficient (q×group slope difference).
-Specifies the q-dependent effect structure: actual treatment effect equals
-effect_size × q. For effect_size=0.20, effects range from 0.02 to 0.18
-across the q spectrum.}
+\item{effect_size}{Numeric. Interaction coefficient (q*group slope).}
 
-\item{sample_sizes}{Integer vector. Range of sample sizes to evaluate.
-Default: seq(5, 50, by = 5)}
+\item{sample_sizes}{Integer vector. Range of sample sizes (default seq(5,50,by=5)).}
 
 \item{n_q_values}{Integer. Number of q-values per sample.}
 
-\item{residual_sd}{Numeric. Residual standard deviation of entropy measurements.}
+\item{residual_sd}{Numeric. Entropy residual standard deviation.}
 
-\item{power_target}{Numeric. Target power level (default 0.80). 
-Sample size achieving this power is highlighted in output.}
+\item{power_target}{Numeric. Target power level (default 0.80).}
 
 \item{alpha}{Numeric. Type I error rate (default 0.05).}
 
-\item{method}{Character. Statistical test method (default: "lm"):
-- "lm": Parametric linear model (baseline power)
-- "lmm": Linear mixed model (~1% power penalty vs lm)
-- "wilcoxon": Non-parametric rank-based test. **CAUTION:** Only for single 
-  q-value. For q×group interaction (multiple q-values), use "shuffle" instead. (~5% penalty)
-- "shuffle": Permutation test (~8% penalty). **RECOMMENDED** for testing 
-  q×group interaction with repeated measures
-- "gam": Smooth model (~2% penalty)
-- "fpca": Functional PCA (~1.5% penalty)
-- "gee": Generalized estimating equations (~4% penalty)}
+\item{method}{Character. Statistical test method (lm, lmm, etc).}
 
-\item{verbose}{Logical. Print progress messages.}
+\item{alternative}{Character. Test type (default "two.sided").}
+
+\item{correlation}{Numeric. Within-pair correlation (default NULL).}
+
+\item{q}{Numeric. Tsallis q-parameter (default 1.0).}
+
+\item{verbose}{Logical. Print progress messages (default FALSE).}
 }
 \value{
 Data frame with columns:
-  - n_per_group: Sample size per group
-  - power: Estimated power (q×group interaction detection)
-  - power_target: TRUE if power >= target
+  \describe{
+    \item{n_per_group}{Sample size per group}
+    \item{power}{Estimated power (q*group interaction detection)}
+    \item{power_target}{TRUE if power >= target}
+  }
 }
 \description{
-Create a power curve showing power vs. sample size for a given q×group
+Create a power curve showing power vs. sample size for a given q*group
 interaction effect size. Tests the core TSENAT hypothesis: treatment effects
 manifest as changes in how Tsallis entropy varies across the q spectrum.
 }
 \details{
 **Analytical Power Calculation via Non-Central t-Distribution**
 
-For testing the q×group interaction term in the linear model:
+For testing the q*group interaction term in the linear model:
 Y = intercept + slope_A*q + slope_B*group + slope_int*(q*group) + noise
 
 The test statistic for the interaction follows a non-central t-distribution:

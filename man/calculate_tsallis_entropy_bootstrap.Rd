@@ -106,36 +106,34 @@ When paired=TRUE, CI is more conservative to account for correlation within pair
 }
 \value{
 A list with components (for single q):
-  \item{estimate}{Point estimate of Tsallis entropy (calculated on original data).}
-  \item{lower_ci}{Lower confidence bound.}
-  \item{upper_ci}{Upper confidence bound.}
-  \item{ci_level}{Requested confidence level.}
-  \item{method}{Bootstrap method used.}
-  \item{nboot}{Number of bootstrap replicates computed.}
-  \item{bootstrap_dist}{Numeric vector of bootstrap replicates (for inspection).}
-  \item{diagnostics}{(if include_diagnostics=TRUE) List with CI quality assessment:
-    \itemize{
-      \item{\code{effective_sample_size}:}{Adjusted n accounting for replicate autocorrelation}
-      \item{\code{skewness}:}{Bootstrap distribution skewness; |·| > 2 suggests unreliability}
-      \item{\code{bias}:}{Difference between point estimate and bootstrap median}
-      \item{\code{acceleration_factor}:}{(BCa only) Second-order correction from jackknife}
+  \describe{
+    \item{estimate}{Point estimate of Tsallis entropy (calculated on original data).}
+    \item{lower_ci}{Lower confidence bound.}
+    \item{upper_ci}{Upper confidence bound.}
+    \item{ci_level}{Requested confidence level.}
+    \item{method}{Bootstrap method used.}
+    \item{nboot}{Number of bootstrap replicates computed.}
+    \item{bootstrap_dist}{Numeric vector of bootstrap replicates (for inspection).}
+    \item{diagnostics}{(if include_diagnostics=TRUE) List with CI quality assessment:
+      - \code{effective_sample_size}: Adjusted n accounting for replicate autocorrelation
+      - \code{skewness}: Bootstrap distribution skewness; |.| > 2 suggests unreliability
+      - \code{bias}: Difference between point estimate and bootstrap median
+      - \code{acceleration_factor}: (BCa only) Second-order correction from jackknife
     }
-  }
-  \item{job_stability}{(if use_job=TRUE) List with jackknife-of-bootstrap stability metrics:
-    \itemize{
-      \item{\code{ci_lower_stable}:}{Conservative lower bound from jackknife replicates}
-      \item{\code{ci_upper_stable}:}{Conservative upper bound from jackknife replicates}
-      \item{\code{ci_width_variation}:}{Coefficient of variation of CI widths}
-      \item{\code{bound_variability}:}{Relative change in bounds across jackknife samples}
-      \item{\code{n_outlier_bounds}:}{Count of outlier CI estimates}
+    \item{job_stability}{(if use_job=TRUE) List with jackknife-of-bootstrap stability metrics:
+      - \code{ci_lower_stable}: Conservative lower bound from jackknife replicates
+      - \code{ci_upper_stable}: Conservative upper bound from jackknife replicates
+      - \code{ci_width_variation}: Coefficient of variation of CI widths
+      - \code{bound_variability}: Relative change in bounds across jackknife samples
+      - \code{n_outlier_bounds}: Count of outlier CI estimates
     }
   }
 
   **Matrix input (vectorized processing):**
-  When \code{x} is a matrix (genes × samples), returns a list of class
+  When \code{x} is a matrix (genes * samples), returns a list of class
   \code{tsenat_bootstrap_ci_list} with one result per gene, with names from rownames(x).
   If \code{nthreads > 1}, uses parallel processing (Unix/Mac via \code{parallel::mclapply}).
-  Computational speedup: typically 5-10× for multi-gene analysis (paper C017).
+  Computational speedup: typically 5-10* for multi-gene analysis (paper C017).
 
   For multiple q values, returns a list of above structures, one per q value,
   of class \code{tsenat_bootstrap_ci_list}.
@@ -170,13 +168,11 @@ improving coverage in small samples (more accurate but slower).
 
 **Automatic data extraction with se and res:**
 When \code{se} and \code{res} are provided (with or without \code{x}):
-\itemize{
-  \item Extracts the top genes ranked by significance from \code{res}
-  \item Selects the gene at position \code{top_n} (1=most significant)
-  \item Automatically retrieves transcript counts from \code{se}
-  \item Sets \code{gene_name} from rownames(se) for display if not provided
-  \item Performs bootstrap analysis on the extracted transcript counts
-}
+- Extracts the top genes ranked by significance from \code{res}
+- Selects the gene at position \code{top_n} (1=most significant)
+- Automatically retrieves transcript counts from \code{se}
+- Sets \code{gene_name} from rownames(se) for display if not provided
+- Performs bootstrap analysis on the extracted transcript counts
 
 **When \code{gene_name} is provided with \code{print_results = TRUE}:**
 The function displays:

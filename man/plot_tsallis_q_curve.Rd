@@ -16,51 +16,31 @@ plot_tsallis_q_curve(
 )
 }
 \arguments{
-\item{se}{A `SummarizedExperiment` returned by `calculate_diversity`.}
+\item{se}{SummarizedExperiment from calculate_diversity().}
 
-\item{assay_name}{Name of the assay to use (default: "diversity").}
+\item{assay_name}{Character. Assay name (default "diversity").}
 
-\item{sample_type_col}{Column name in `colData(se)` containing sample
-type labels (default: "sample_type").}
+\item{sample_type_col}{Character. Column in colData(se) with sample types (default "sample_type").}
 
-\item{n_bootstrap}{Number of bootstrap replicates for CI computation (default: 500).}
+\item{n_bootstrap}{Integer. Bootstrap replicates (default 500).}
 
-\item{ci_level}{Confidence level for CIs (default: 0.95 for 95% CI).}
+\item{ci_level}{Numeric. Confidence level (default 0.95).}
 
-\item{test_method}{Statistical test: "wilcox" (Wilcoxon rank-sum, non-parametric)
-or "ttest" (Welch's t-test, parametric). Default: "wilcox".}
+\item{test_method}{Character. Test: wilcox (default) or ttest.}
 
-\item{alpha}{Significance level for coloring q-ranges (default: 0.05).}
+\item{alpha}{Numeric. Significance level (default 0.05).}
 
-\item{use_bootstrap}{Logical; if TRUE (default), uses bootstrap CIs with statistical
-testing. If FALSE, uses legacy median ± IQR/2 visualization.}
+\item{use_bootstrap}{Logical. Use bootstrap CIs (TRUE, default).}
 }
 \value{
-A `ggplot` object showing q-curve with bootstrap confidence bands,
-  group-specific medians, and shading for q-ranges with significant group differences.
+A ggplot object with bootstrap confidence bands and group medians.
 }
 \description{
-Enhanced q-curve visualization with bootstrap confidence intervals and statistical
-testing to identify q-ranges where groups significantly differ. For each q value:
-1. Computes median Tsallis entropy per gene per sample
-2. Generates bootstrap confidence bands (default 500 replicates per group/q)
-3. Tests for group differences (Wilcoxon or t-test)
-4. Shades q-ranges with significant differences (p < alpha)
+Enhanced q-curve visualization with bootstrap confidence intervals. Tests for group
+differences at each q-value and shades significant q-ranges (p < alpha).
 }
 \details{
-**Bootstrap Procedure:**
-For each group and q-value, resamples entire genes (not individual samples) with
-replacement 500 times, computes median entropy per resample, and takes quantiles.
-
-**Statistical Testing:**
-At each q-value, tests whether the two group distributions differ using Wilcoxon
-rank-sum test (robust to non-normality) or Welch's t-test. P-values < alpha are
-highlighted with red background shading.
-
-**Interpretation:**
-- Overlapping CIs suggest no significant difference at that q
-- Red-shaded q-ranges indicate statistical significance (p < 0.05)
-- Ribbon width shows uncertainty; narrower ribbons = more stable estimates
+Resamples genes with replacement, computes medians and quantiles, tests group differences (Wilcoxon or t-test). Red-shaded q-ranges show significance (p < 0.05).
 }
 \examples{
 data("readcounts", package = "TSENAT")

@@ -22,12 +22,14 @@ has no 'pvalue' or 'padj' column.}
 }
 \value{
 A \code{data.frame} with columns:
-  \item{Gene}{Gene identifier.}
-  \item{Pattern}{Classification result: 'RARE_DRIVEN', 'ABUNDANT_DRIVEN', or 'BALANCED'.}
-  \item{D_q0.5}{Divergence value at q=0.5.}
-  \item{D_q1.0}{Divergence value at q=1.0.}
-  \item{D_q1.5}{Divergence value at q=1.5.}
-  \item{D_q2.0}{Divergence value at q=2.0.}
+  \describe{
+    \item{Gene}{Gene identifier.}
+    \item{Pattern}{Classification result: 'RARE_DRIVEN', 'ABUNDANT_DRIVEN', or 'BALANCED'.}
+    \item{D_q0.5}{Divergence value at q=0.5.}
+    \item{D_q1.0}{Divergence value at q=1.0.}
+    \item{D_q1.5}{Divergence value at q=1.5.}
+    \item{D_q2.0}{Divergence value at q=2.0.}
+  }
   Returns an empty data.frame if input is NULL, invalid, or contains no valid genes.
 }
 \description{
@@ -49,7 +51,7 @@ The function:
 
 **Classification:** Uses all 39 q-values for robust pattern classification:
 - Rare region (q < 1.0): Uses 18 q-values (q=0.1 to 0.95)
-- Abundant region (q ≥ 1.0): Uses 21 q-values (q=1.0 to 2.0)
+- Abundant region (q >= 1.0): Uses 21 q-values (q=1.0 to 2.0)
 - Ratio threshold: 1.3 (30% minimum difference)
 - Returns: RARE_DRIVEN, ABUNDANT_DRIVEN, or BALANCED
 

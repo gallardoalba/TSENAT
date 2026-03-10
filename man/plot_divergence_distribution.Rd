@@ -35,5 +35,5 @@ information-theoretic significance threshold of D=0.1.
 }
 \references{
 - Chanda et al. (2020). Information Theory in Computational Biology. *Entropy*, 22(6), 627.
-- Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs Statistics. *Journal of Statistical Physics*, 52(1), 479–487.
+- Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs Statistics. *Journal of Statistical Physics*, 52(1), 479-487.
 }

@@ -25,8 +25,8 @@ precision-weighted pseudocounts.
 The method:
 1. Computes posterior Beta(α + counts, β + depth - counts) distribution
 2. Calculates posterior mean: (α + sum(counts)) / (α + β + total_depth)
-3. Weights by precision: (posterior_α × posterior_β) / ((α+β+depth)² × (α+β+depth+1))
-4. Returns posterior_mean × precision_weight as gene-specific pseudocount
+3. Weights by precision: (posterior_α * posterior_β) / ((α+β+depth)^2 * (α+β+depth+1))
+4. Returns posterior_mean * precision_weight as gene-specific pseudocount
 
 The resulting pseudocount can be passed to \code{calculate_tsallis_entropy()}.
 }

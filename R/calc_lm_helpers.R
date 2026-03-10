@@ -158,7 +158,7 @@
 .tsenat_ar1_design_effect <- function(rho, cluster_size) {
     # Compute design effect for AR(1) correlation
     # Args:
-    #   rho: autocorrelation coefficient φ on differenced data (0 ≤ φ ≤ 1)
+    #   rho: autocorrelation coefficient φ on differenced data (0 <= φ <= 1)
     #   cluster_size: m = observations per subject (e.g., number of q-values)
     # Returns:
     #   D_eff = design effect to adjust effective sample size as n_eff = n_subjects / D_eff
@@ -471,7 +471,7 @@
 #     Statistical Association, 74(366), 427-431.
 #   Kwiatkowski, D., Phillips, P. C., Schmidt, P., & Shin, Y. (1992). Testing
 #     the null hypothesis of stationarity against the alternative of a unit root.
-#     Journal of Econometrics, 54(1–3), 159–178.
+#     Journal of Econometrics, 54(1-3), 159-178.
 #   MacKinnon, J. G. (1996). Numerical distribution functions for unit root
 #     and cointegration tests. Journal of Applied Econometrics, 11(6), 601-618.
 #   Tsallis, C. (1988). Possible generalization of Boltzmann-Gibbs statistics.
@@ -1088,7 +1088,7 @@
         
         # Fit GAMM with ARIMA(1,1,0) covariance structure for q-measurements within subjects
         # ARIMA(1,1,0): First difference ΔH_q modeled as AR(1) to handle monotone trend
-        # Cov(ΔY_t, ΔY_s) = σ² φ^|t-s| where t,s are q-ordered indices
+        # Cov(ΔY_t, ΔY_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
         # This separates trend (differencing) from autocorrelation, validated in TEST L.1.6
         fit_null <- try(
             mgcv::gamm(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
@@ -1175,7 +1175,7 @@
         gene = g, 
         p_interaction = bc_result$p_value,
         p_raw = bc_result$p_raw,  # Always include for reference
-        n_observations = bc_result$n_observations,  # Total observations (observations per subject × subjects)
+        n_observations = bc_result$n_observations,  # Total observations (observations per subject * subjects)
         n_subjects = bc_result$n_subjects,  # Independent sampl units
         n_effective = bc_result$n_effective,  # Effective sample size accounting for AR(1) correlation
         rho_ar1 = bc_result$rho_estimate,  # AR(1) rho estimate used in design effect
@@ -1750,7 +1750,7 @@
         }
         
         # Fit nlme models with AR(1) covariance structure for q-measurements within subjects
-        # AR(1) model: Cov(Y_t, Y_s) = σ² φ^|t-s| where t,s are q-ordered indices
+        # AR(1) model: Cov(Y_t, Y_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
         # *** CRITICAL: Now applied to differenced entropy ΔH_q, not raw H_q ***
         fit0 <- try(
             nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",

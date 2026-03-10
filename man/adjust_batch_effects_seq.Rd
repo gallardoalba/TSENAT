@@ -14,7 +14,7 @@ adjust_batch_effects_seq(
 )
 }
 \arguments{
-\item{se}{A SummarizedExperiment object with count matrix (genes × samples)}
+\item{se}{A SummarizedExperiment object with count matrix (genes * samples)}
 
 \item{batch}{Character; name of batch column in colData(se)}
 
@@ -22,8 +22,7 @@ adjust_batch_effects_seq(
 
 \item{shrinkage}{Logical; use empirical Bayes shrinkage (default: TRUE)}
 
-\item{par.prior}{Logical; use parametric prior (default: TRUE). If FALSE, 
-uses non-parametric prior}
+\item{par.prior}{Logical. Use parametric prior (default TRUE). If FALSE, uses non-parametric prior.}
 
 \item{mean.only}{Logical; adjust only mean, not dispersion (default: FALSE)}
 }

@@ -42,11 +42,13 @@ or "normal" approximation. Default: "percentile".}
 }
 \value{
 A list with class "qcurve_bootstrap" containing:
-  \item{plot_data}{Data frame with columns: q, median, ci_lower, ci_upper, group,
-    test_pvalue, significant}
-  \item{significant_qranges}{Data frame identifying q-ranges where groups differ significantly}
-  \item{metadata}{List with parameters: n_bootstrap, ci_level, ci_type, test_method}
-  \item{ggplot}{A \code{ggplot} object with confidence bands and significance annotations}
+  \describe{
+    \item{plot_data}{Data frame with columns: q, median, ci_lower, ci_upper, group,
+      test_pvalue, significant}
+    \item{significant_qranges}{Data frame identifying q-ranges where groups differ significantly}
+    \item{metadata}{List with parameters: n_bootstrap, ci_level, ci_type, test_method}
+    \item{ggplot}{A \code{ggplot} object with confidence bands and significance annotations}
+  }
 }
 \description{
 Compute bootstrap confidence bands and perform statistical testing to identify

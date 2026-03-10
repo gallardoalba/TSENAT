@@ -41,8 +41,8 @@ Required when `stringency` is specified. If NULL and `stringency` is set,
 function attempts to auto-detect from colData.}
 
 \item{min_tpm}{Numeric TPM threshold (default 1.0).
-Keeps transcripts with TPM ≥ `min_tpm` in ≥ `min_samples` samples.
-TPM ≥ 1 is recommended for typical sequencing depth (Soneson et al. 2015, Law et al. 2014).
+Keeps transcripts with TPM >= `min_tpm` in >= `min_samples` samples.
+TPM >= 1 is recommended for typical sequencing depth (Soneson et al. 2015, Law et al. 2014).
 Ignored if `stringency` is specified; when stringency is provided, `min_tpm` is
 auto-estimated from data using quantile-based approach (Law et al. limma-voom methodology).}
 

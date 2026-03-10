@@ -31,11 +31,9 @@ higher computational cost due to jackknife calculations. For datasets with many 
 the percentile method offers a good accuracy-to-speed trade-off.
 
 **Recommendations by scenario:**
-\itemize{
-  \item Single gene analysis: 1000-2000 replicates (detailed inference)
-  \item Small gene sets (2-5 genes): 500-1000 replicates (balanced)
-  \item Large gene sets (>10 genes): 250-500 replicates (speed-prioritized)
-}
+- Single gene analysis: 1000-2000 replicates (detailed inference)
+- Small gene sets (2-5 genes): 500-1000 replicates (balanced)
+- Large gene sets (>10 genes): 250-500 replicates (speed-prioritized)
 
 **Usage:**
 ```

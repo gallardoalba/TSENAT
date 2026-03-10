@@ -62,12 +62,14 @@ jackknife_isoform_switching(
 }
 \value{
 A list of class tsenat_isoform_switching with:
- - results_per_gene: named list of per-gene results
- - summary_table: data.frame with per-gene summary
- - all_transcript_stats: data.frame with all transcript statistics
- - gene_names: character vector of analyzed genes
- - conditions: character vector of the two conditions compared
- - metadata: list with analysis metadata
+  \describe{
+    \item{results_per_gene}{named list of per-gene results}
+    \item{summary_table}{data.frame with per-gene summary}
+    \item{all_transcript_stats}{data.frame with all transcript statistics}
+    \item{gene_names}{character vector of analyzed genes}
+    \item{conditions}{character vector of the two conditions compared}
+    \item{metadata}{list with analysis metadata}
+  }
 }
 \description{
 Detects isoform/transcript switches between conditions using condition-stratified

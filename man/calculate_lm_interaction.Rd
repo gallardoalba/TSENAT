@@ -104,13 +104,13 @@ correlation structure in Tsallis entropy (default: 'hochberg'). The interaction
 p-values from linear models naturally exhibit AR(1) correlation for different q-values 
 of the same gene (Papers S168-S175). This parameter selects the primary multiple testing
 correction method:
-'hochberg': Hochberg stepup procedure (FWER ≤ α under positive regression dependence). 
+'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
 Closed-form, computationally efficient. Recommended for strong signal detection with 
 family-wise error control.
-'westfall-young': True Westfall-Young permutation procedure (FWER ≤ α). Uses resampling 
+'westfall-young': True Westfall-Young permutation procedure (FWER <= α). Uses resampling 
 to empirically control FWER by tracking the minima across all tests. More powerful than 
 Hochberg under dependence but computationally expensive (refits LMM for each permutation).
-'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR ≤ α under arbitrary dependence). 
+'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
 Valid under any correlation structure. More conservative than Hochberg but makes fewer 
 power loss assumptions. Reference: Papers S190, S193.}
 

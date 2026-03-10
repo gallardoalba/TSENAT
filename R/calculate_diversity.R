@@ -55,11 +55,9 @@
 #' names matching x rownames. If a matrix (rows=transcripts, cols=samples), can be
 #' sample-specific. Typically obtained from salmon quantification (EffectiveLength column).
 #' Example: load(readcounts.RData'); calculate_diversity(salmon_dataset, effective_length=salmon_effective_length)#' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assays:
-#' \itemize{
-#'   \item `diversity`: Per-gene Tsallis entropy values (if what="S")
-#'   \item `hill`: Per-gene Hill numbers (if what="D")
-#'   \item `counts`: Original raw transcript counts (preserved for downstream analysis)
-#' }
+#' - `diversity`: Per-gene Tsallis entropy values (if what="S")
+#' - `hill`: Per-gene Hill numbers (if what="D")
+#' - `counts`: Original raw transcript counts (preserved for downstream analysis)
 #' 
 #' **Important:** The original "counts" assay is preserved to allow downstream functions
 #' (e.g., `calculate_tsallis_entropy_bootstrap`, `jackknife_tsallis_entropy`) to access
@@ -86,7 +84,7 @@
 #'   described in papers S004-S006 (Bayesian shrinkage methods), improving stability
 #'   for genes with few expressed isoforms.
 #' ✓ Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
-#'   min_valid_frac ≥ 0.75 and pseudocount ≥ 0.5 achieve ≥95% confidence interval
+#'   min_valid_frac >= 0.75 and pseudocount >= 0.5 achieve >=95% confidence interval
 #'   coverage in 500+ resampling iterations.
 #' ✓ Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
 #'   that analyzing multiple q values reveals different aspects of isoform diversity,
@@ -107,6 +105,7 @@
 # ============================================================================
 
 #' @keywords internal
+#' @noRd
 .tsenat_normalize_zscore <- function(entropy_matrix, per_q = TRUE) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
     stop("Input must be a matrix or data.frame", call. = FALSE)
@@ -750,7 +749,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' This implements the empirical Bayes approach from Erhard et al. (2018), which can be
 #' used to compute data-adaptive pseudocounts for entropy calculations.
 #'
-#' @param x Either a numeric matrix (genes × samples) with non-negative counts,
+#' @param x Either a numeric matrix (genes * samples) with non-negative counts,
 #'   or a SummarizedExperiment object (typically the output of \code{calculate_diversity()}).
 #'   If SummarizedExperiment, transcript-level counts will be extracted and aggregated
 #'   to gene level using the tx2gene mapping stored in metadata.
@@ -771,8 +770,10 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' the method solves for \eqn{\alpha}{alpha} and \eqn{\beta}{beta} by inverting these relationships.
 #'
 #' @return List with components:
-#'   \item{alpha}{Alpha parameter of Beta prior}
-#'   \item{beta}{Beta parameter of Beta prior}
+#'   \describe{
+#'     \item{alpha}{Alpha parameter of Beta prior}
+#'     \item{beta}{Beta parameter of Beta prior}
+#'   }
 #'
 #' @references
 #' Erhard, F., Hense, B., Jafari, M., et al. (2018).
@@ -898,7 +899,7 @@ fit_empirical_beta_prior <- function(x) {
     }
 
     # Solve for α and β using method of moments
-    # For Beta(α, β): α + β = μ(1-μ)/σ² - 1
+    # For Beta(α, β): α + β = μ(1-μ)/sigma^2 - 1
     alpha_beta_sum <- (mean_p * (1 - mean_p) / var_p) - 1
 
     # Ensure positive parameters
@@ -936,8 +937,8 @@ fit_empirical_beta_prior <- function(x) {
 #' The method:
 #' 1. Computes posterior Beta(α + counts, β + depth - counts) distribution
 #' 2. Calculates posterior mean: (α + sum(counts)) / (α + β + total_depth)
-#' 3. Weights by precision: (posterior_α × posterior_β) / ((α+β+depth)² × (α+β+depth+1))
-#' 4. Returns posterior_mean × precision_weight as gene-specific pseudocount
+#' 3. Weights by precision: (posterior_α * posterior_β) / ((α+β+depth)^2 * (α+β+depth+1))
+#' 4. Returns posterior_mean * precision_weight as gene-specific pseudocount
 #'
 #' The resulting pseudocount can be passed to \code{calculate_tsallis_entropy()}.
 #'
@@ -1014,14 +1015,16 @@ compute_wlfc_pseudocounts <- function(counts, alpha, beta) {
 #'    Set to \code{NULL} to skip CI computation.
 #'
 #' @return List with components:
-#'   \item{posterior_alpha}{Posterior alpha parameter: α + sum(counts)}
-#'   \item{posterior_beta}{Posterior beta parameter: β + total_depth - sum(counts)}
-#'   \item{posterior_mean}{Posterior mean estimate (point estimate): α' / (α' + β')}
-#'   \item{posterior_variance}{Posterior variance: (α'β') / ((α'+β')² (α'+β'+1))}
-#'   \item{posterior_sd}{Posterior standard deviation (square root of variance)}
-#'   \item{ci_lower}{Lower credible interval bound (if ci != NULL)}
-#'   \item{ci_upper}{Upper credible interval bound (if ci != NULL)}
-#'   \item{ci_level}{Credible interval level requested (e.g., 0.95)}
+#'   \describe{
+#'     \item{posterior_alpha}{Posterior alpha parameter: α + sum(counts)}
+#'     \item{posterior_beta}{Posterior beta parameter: β + total_depth - sum(counts)}
+#'     \item{posterior_mean}{Posterior mean estimate (point estimate): α' / (α' + β')}
+#'     \item{posterior_variance}{Posterior variance: (α'β') / ((α'+β')^2 (α'+β'+1))}
+#'     \item{posterior_sd}{Posterior standard deviation (square root of variance)}
+#'     \item{ci_lower}{Lower credible interval bound (if ci != NULL)}
+#'     \item{ci_upper}{Upper credible interval bound (if ci != NULL)}
+#'     \item{ci_level}{Credible interval level requested (e.g., 0.95)}
+#'   }
 #'
 #' @details
 #' For a gene with count vector, this function updates the empirical Bayes prior 
@@ -1123,17 +1126,19 @@ get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
 #' Extracts posterior credible intervals for all genes in a count matrix,
 #' useful for visualizing uncertainty across the genome.
 #'
-#' @param counts_matrix Matrix or data.frame; genes (rows) × samples (columns).
+#' @param counts_matrix Matrix or data.frame; genes (rows) * samples (columns).
 #' @param alpha Numeric; alpha parameter of Beta prior.
 #' @param beta Numeric; beta parameter of Beta prior.
 #' @param ci Numeric; credible interval width (default: 0.95).
 #'
 #' @return Data frame with columns:
-#'   \item{gene}{Gene name (from rownames of counts_matrix)}
-#'   \item{posterior_mean}{Point estimate}
-#'   \item{ci_lower}{Lower CI bound}
-#'   \item{ci_upper}{Upper CI bound}
-#'   \item{posterior_sd}{Standard deviation}
+#'   \describe{
+#'     \item{gene}{Gene name (from rownames of counts_matrix)}
+#'     \item{posterior_mean}{Point estimate}
+#'     \item{ci_lower}{Lower CI bound}
+#'     \item{ci_upper}{Upper CI bound}
+#'     \item{posterior_sd}{Standard deviation}
+#'   }
 #'
 #' @examples
 #' # Fit prior
@@ -1367,9 +1372,11 @@ compute_posterior_credible_intervals <- function(counts_matrix, alpha, beta, ci 
 #'   (default: 1).
 #'
 #' @return A list with:
-#' \item{global_mean}{Named numeric vector of global mean entropy per q-value.}
-#' \item{global_var}{Named numeric vector of variance per q-value.}
-#' \item{n_isoforms}{Vector of number of expressed isoforms per gene.}
+#'   \describe{
+#'     \item{global_mean}{Named numeric vector of global mean entropy per q-value.}
+#'     \item{global_var}{Named numeric vector of variance per q-value.}
+#'     \item{n_isoforms}{Vector of number of expressed isoforms per gene.}
+#'   }
 #'
 #' @keywords internal
 #' @noRd
@@ -1695,6 +1702,7 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 #' per-q) Tsallis entropy values in subsequent columns.
 #' 
 #' @keywords internal
+#' @noRd
 .calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none", 
     "empirical_bayes"), effective_length = NULL) {
@@ -1801,8 +1809,20 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 #' \code{calculate_diversity} which works on
 #' \link[SummarizedExperiment]{SummarizedExperiment} objects.
 #'
-#' @inheritParams .calculate_method
+#' @param x Numeric matrix; gene expression data (rows = genes, columns = samples)
+#' @param genes Character vector; gene assignments for each row
+#' @param norm Logical; normalize results by per-sample sum
+#' @param verbose Logical; print diagnostic messages
+#' @param q Numeric; Tsallis parameter (default 2)
+#' @param what Character; output type ("S" or "D")
+#' @param nthreads Integer; number of threads for parallel computation
+#' @param pseudocount Numeric; pseudocount to add before computation
+#' @param min_valid_frac Numeric; minimum fraction of valid values per gene
+#' @param shrinkage Character; shrinkage method ("none" or "empirical_bayes")
+#' @param effective_length Numeric vector; effective transcript lengths (optional)
+#'
 #' @keywords internal
+#' @noRd
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none",
     "empirical_bayes"), effective_length = NULL) {

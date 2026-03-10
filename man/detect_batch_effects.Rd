@@ -18,24 +18,23 @@ detect_batch_effects(
 
 \item{batch}{Character; name of batch column in colData(se)}
 
-\item{biological_group}{Character; optional biological grouping variable to 
-separate from batch effects}
+\item{biological_group}{Character. Optional biological grouping variable to separate from batch effects.}
 
 \item{n_components}{Integer; number of PCs to examine (default: 5)}
 
-\item{n_permutations}{Integer; number of random batch permutations for 
-significance testing (default: 100)}
+\item{n_permutations}{Integer. Number of random batch permutations for significance testing (default 100).}
 
-\item{method}{Character; one of "pca" (default), "variance_partition", 
-or "silhouette"}
+\item{method}{Character. One of "pca" (default), "variance_partition", or "silhouette".}
 }
 \value{
 List containing:
-  \item{batch_variance_pct}{Percent variance explained by batch across PCs}
-  \item{pvalue}{Permutation p-value for batch effect significance}
-  \item{pc_loadings}{PC loadings matrix}
-  \item{summary}{Character summary of findings}
-  \item{method}{Method used for detection}
+  \describe{
+    \item{batch_variance_pct}{Percent variance explained by batch across PCs}
+    \item{pvalue}{Permutation p-value for batch effect significance}
+    \item{pc_loadings}{PC loadings matrix}
+    \item{summary}{Character summary of findings}
+    \item{method}{Method used for detection}
+  }
 }
 \description{
 Functions for detecting and correcting batch effects in high-dimensional 

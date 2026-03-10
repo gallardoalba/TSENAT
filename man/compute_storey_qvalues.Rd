@@ -13,7 +13,7 @@ compute_storey_qvalues(
 )
 }
 \arguments{
-\item{pvalues}{Numeric vector of p-values (0 ≤ p ≤ 1). 
+\item{pvalues}{Numeric vector of p-values (0 <= p <= 1). 
 **IMPORTANT**: These must be independent or correlation-adjusted. 
 For TSENAT multi-q tests, use Westfall-Young adjusted p-values, not raw p-values.}
 
@@ -47,15 +47,15 @@ violates its mathematical assumptions and underestimates π₀.
 
 For each p-value p ranked r-th among m tests:
 
-  q(p) = π₀ × (rank(p) / m) × (1 / r)
+  q(p) = π₀ * (rank(p) / m) * (1 / r)
 
-Then enforce monotonicity: q(p_i) ≤ q(p_j) for p_i ≤ p_j
+Then enforce monotonicity: q(p_i) <= q(p_j) for p_i <= p_j
 (ensures that smaller p-values never have larger q-values).
 
 **Robust Floor:**
 
 If robust=TRUE, applies min(1, q) to cap q-values at 1, and enforces 
-that each q-value ≥ the raw p-value (can never be "better" than raw).
+that each q-value >= the raw p-value (can never be "better" than raw).
 }
 \examples{
 # Generate test p-values

@@ -16,19 +16,19 @@ classify_q_dependency(
 
 \item{p_threshold}{Numeric: p-value threshold for significance (default: 0.05)}
 
-\item{eta2_threshold_moderate}{Numeric: Effect size threshold for moderate dependency
-(default: 0.01, i.e., 1%)}
+\item{eta2_threshold_moderate}{Numeric: Effect size threshold for moderate dependency (default 0.01)}
 
-\item{eta2_threshold_strong}{Numeric: Effect size threshold for strong dependency
-(default: 0.10, i.e., 10%)}
+\item{eta2_threshold_strong}{Numeric: Effect size threshold for strong dependency (default 0.10)}
 }
 \value{
-Character vector of classifications for each gene:
-  - "Robust across q": p ≥ p_threshold
-  - "Moderately q-dependent": p < p_threshold AND eta2 ≤ eta2_threshold_strong
-  - "Strongly q-dependent": p < p_threshold AND eta2 > eta2_threshold_strong
-  - "Test failed": No valid test result
-  - "Insufficient data": Fewer than 2 q-levels
+A character vector of classifications for each gene. Possible values:
+\describe{
+  \item{Robust across q}{p >= p_threshold}
+  \item{Moderately q-dependent}{p < p_threshold AND eta2 <= eta2_threshold_strong}
+  \item{Strongly q-dependent}{p < p_threshold AND eta2 > eta2_threshold_strong}
+  \item{Test failed}{No valid test result}
+  \item{Insufficient data}{Fewer than 2 q-levels}
+}
 }
 \description{
 Stratifies genes based on their sensitivity to q-parameter changes.
@@ -36,9 +36,9 @@ Stratifies genes based on their sensitivity to q-parameter changes.
 \details{
 Classification thresholds can be adjusted based on prior knowledge or
 exploratory data analysis. Default thresholds correspond to:
-  - Robust: Stable ranking across q (Cohen's small effect)
-  - Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
-  - Strong: Substantial ranking changes (Cohen's large effect)
+- Robust: Stable ranking across q (Cohen's small effect)
+- Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
+- Strong: Substantial ranking changes (Cohen's large effect)
 }
 \examples{
 \dontrun{

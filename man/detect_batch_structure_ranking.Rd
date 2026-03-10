@@ -13,35 +13,33 @@ detect_batch_structure_ranking(
 )
 }
 \arguments{
-\item{entropy_data}{A matrix or list of matrices containing diversity/entropy
-values (genes × samples), or a SummarizedExperiment object. When a list is
+\item{entropy_data}{Matrix, list of matrices, or SummarizedExperiment containing diversity/entropy values (genes * samples).
 provided, matrices are averaged across q-values.}
 
-\item{sample_metadata}{A data.frame with sample-level metadata (rows = samples).
-Should contain at least one column with biological or batch information.
+\item{sample_metadata}{Data frame with sample-level metadata (rows = samples). Should contain at least one column with biological or batch information.
 If NULL, only PCA structure is returned without metadata annotation.}
 
-\item{n_pcs}{Integer; number of principal components to extract (default: 5).
-Automatically adjusted if fewer samples available.}
+\item{n_pcs}{Integer. Number of principal components to extract (default 5). Automatically adjusted if fewer samples available.}
 
-\item{color_by}{Character; name of column in sample_metadata (or colData if 
-SE) to use for detecting confounding. Typically contains batch information
+\item{color_by}{Character. Name of column in sample_metadata (or colData if SE) to use for detecting confounding (typically batch information).
 or a biological factor of interest. Default: "condition".}
 
 \item{scale}{Logical; whether to scale the entropy data before PCA (default: TRUE).}
 }
 \value{
 An object of class "batch_pca" containing:
-  \item{pca_result}{prcomp object with sample scores and loadings}
-  \item{variance_explained}{Variance explained by each PC (as fraction)}
-  \item{cumulative_variance}{Cumulative variance explained}
-  \item{batch_pca_scores}{Data frame with PC1, PC2, sample_id and metadata columns}
-  \item{entropy_data}{The processed entropy matrix used for PCA}
-  \item{is_batch_confounded}{Logical; indicates if batch shows strong 
-    confounding (F-statistic > 3)}
-  \item{batch_effect_strength}{F-statistic value indicating batch strength 
-    on PC2}
-  \item{sample_metadata}{Original metadata provided (or NULL)}
+  \describe{
+    \item{pca_result}{prcomp object with sample scores and loadings}
+    \item{variance_explained}{Variance explained by each PC (as fraction)}
+    \item{cumulative_variance}{Cumulative variance explained}
+    \item{batch_pca_scores}{Data frame with PC1, PC2, sample_id and metadata columns}
+    \item{entropy_data}{The processed entropy matrix used for PCA}
+    \item{is_batch_confounded}{Logical; indicates if batch shows strong 
+      confounding (F-statistic > 3)}
+    \item{batch_effect_strength}{F-statistic value indicating batch strength 
+      on PC2}
+    \item{sample_metadata}{Original metadata provided (or NULL)}
+  }
 }
 \description{
 Perform batch effect detection specifically designed for rank-based entropy

@@ -21,25 +21,21 @@ when a GFF3 file path is provided. Users should not call this function directly.
 }
 \details{
 The function expects GFF3 format with the following structure:
-\itemize{
-  \item 9 tab-separated columns: seqname, source, feature, start, end,
-        score, strand, phase, attributes
-  \item Feature type column (3rd column) should contain 'transcript' or 'mRNA'
-  \item Attributes column (9th column) should contain ID and Parent fields
-  \item ID field: unique identifier for the transcript
-  \item Parent field: references the gene ID that this transcript belongs to
-}
+- 9 tab-separated columns: seqname, source, feature, start, end,
+  score, strand, phase, attributes
+- Feature type column (3rd column) should contain 'transcript' or 'mRNA'
+- Attributes column (9th column) should contain ID and Parent fields
+- ID field: unique identifier for the transcript
+- Parent field: references the gene ID that this transcript belongs to
 Example GFF3 line:
 \preformatted{chr1\tgencode\ttranscript\t1000\t3000\t.\t+\t.\t
 ID=ENST00000001;Parent=ENSG00000101;Name=BRCA1-001}
 
 \strong{Performance:} This function is optimized for large GFF3 files:
-\itemize{
-  \item Reads files in 10,000-line chunks (not line-by-line)
-  \item Uses fast pre-filtering (feature type check before regex)
-  \item Employs efficient string operations instead of heavy regex on every line
-  \item Handles both compressed (.gz) and uncompressed files seamlessly
-}
+- Reads files in 10,000-line chunks (not line-by-line)
+- Uses fast pre-filtering (feature type check before regex)
+- Employs efficient string operations instead of heavy regex on every line
+- Handles both compressed (.gz) and uncompressed files seamlessly
 }
 \examples{
 \dontrun{

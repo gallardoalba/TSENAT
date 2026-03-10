@@ -16,17 +16,17 @@ apply_batch_correction_ranking_se(
 
 \item{batch_column}{Character; name of batch factor column in colData(se)}
 
-\item{condition_column}{Character; optional name of biological condition
-column in colData(se)}
+\item{condition_column}{Character. Optional name of biological condition column in colData(se).}
 
 \item{assay}{Integer or character; which assay to correct (default: 1)}
 }
 \value{
 SummarizedExperiment with corrected entropy data in assays:
-  \item{assay(result, 1)}{Batch-corrected entropy matrix}
-  Additional metadata:
-  \item{metadata(result)$batch_correction}{Full correction result from
-    apply_batch_correction_ranking}
+  \describe{
+    \item{assay(result, 1)}{Batch-corrected entropy matrix}
+    \item{metadata(result)$batch_correction}{Full correction result from
+      apply_batch_correction_ranking}
+  }
 }
 \description{
 Corrects batch effects in entropy/diversity data while preserving exchangeability

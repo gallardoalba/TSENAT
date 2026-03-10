@@ -14,7 +14,7 @@ power_tsenat_entropy(
 )
 }
 \arguments{
-\item{n}{Integer. Sample size per group (n ≥ 1). Typical range: 5-100.}
+\item{n}{Integer. Sample size per group (n >= 1). Typical range: 5-100.}
 
 \item{fc}{Numeric. Fold change (fc > 1). Typical range for RNA-seq: 1.5-5.0.
 Example: fc=2.0 means 2-fold difference between groups.}
@@ -29,19 +29,19 @@ Currently unused but retained for interface consistency with classical methods.}
 Controls Type I error rate through Bonferroni-corrected threshold.}
 
 \item{q}{Numeric. Tsallis q-parameter (default: 0.2).
-Range: 0 ≤ q ≤ 2. **Verified: Higher q increases statistical power.**
+Range: 0 <= q <= 2. **Verified: Higher q increases statistical power.**
 
 Power scaling with q (database-verified, paper I004):
 - q=0.5: q_weight = 1.0 (rare isoformsemphasis, balanced)
 - q=1.0: q_weight = 1.5 (Shannon entropy, limiting case)
 - q=2.0: q_weight = 2.5 (abundant isoforms emphasis)
 
-**Interpretation:** Information gain = |log(fc)| × (0.5 + q)
+**Interpretation:** Information gain = |log(fc)| * (0.5 + q)
 Higher q → larger information gain → higher power to detect effects.
 This has been validated against 363 papers in tsenat_papers.db (papers I001-I004, S063-S067).}
 }
 \value{
-Numeric. Statistical power (0 ≤ power ≤ 1) for detecting fold change at
+Numeric. Statistical power (0 <= power <= 1) for detecting fold change at
 significance level α with sample size n.
 }
 \description{
@@ -64,7 +64,7 @@ difference between null (fc=1) and alternative (fc>1) hypotheses:
 ```
 log_fc = log(fc)
 q_weight = 0.5 + q
-information_gain = |log_fc| × q_weight
+information_gain = |log_fc| * q_weight
 ```
 
 Where:
@@ -77,7 +77,7 @@ Where:
 ```
 α_adjusted = α / log(n + 2)              # Mild Bonferroni correction
 z_critical = Φ^(-1)(1 - α_adjusted/2)   # Inverse normal CDF
-power = Φ(√n × information_gain - z_critical)
+power = Φ(√n * information_gain - z_critical)
 ```
 
 Where Φ is the standard normal CDF.

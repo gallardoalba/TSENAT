@@ -18,14 +18,16 @@ Set to \code{NULL} to skip CI computation.}
 }
 \value{
 List with components:
-  \item{posterior_alpha}{Posterior alpha parameter: α + sum(counts)}
-  \item{posterior_beta}{Posterior beta parameter: β + total_depth - sum(counts)}
-  \item{posterior_mean}{Posterior mean estimate (point estimate): α' / (α' + β')}
-  \item{posterior_variance}{Posterior variance: (α'β') / ((α'+β')² (α'+β'+1))}
-  \item{posterior_sd}{Posterior standard deviation (square root of variance)}
-  \item{ci_lower}{Lower credible interval bound (if ci != NULL)}
-  \item{ci_upper}{Upper credible interval bound (if ci != NULL)}
-  \item{ci_level}{Credible interval level requested (e.g., 0.95)}
+  \describe{
+    \item{posterior_alpha}{Posterior alpha parameter: α + sum(counts)}
+    \item{posterior_beta}{Posterior beta parameter: β + total_depth - sum(counts)}
+    \item{posterior_mean}{Posterior mean estimate (point estimate): α' / (α' + β')}
+    \item{posterior_variance}{Posterior variance: (α'β') / ((α'+β')^2 (α'+β'+1))}
+    \item{posterior_sd}{Posterior standard deviation (square root of variance)}
+    \item{ci_lower}{Lower credible interval bound (if ci != NULL)}
+    \item{ci_upper}{Upper credible interval bound (if ci != NULL)}
+    \item{ci_level}{Credible interval level requested (e.g., 0.95)}
+  }
 }
 \description{
 Computes posterior Beta distribution parameters and credible intervals 

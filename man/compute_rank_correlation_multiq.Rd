@@ -19,9 +19,11 @@ compute_rank_correlation_multiq(
 }
 \value{
 List with:
-  \item{correlation_matrix}{Pairwise correlations between q-value results}
-  \item{mean_correlation}{Average correlation across q-values}
-  \item{consistency_score}{Higher = more consistent ranking across q-values}
+  \describe{
+    \item{correlation_matrix}{Pairwise correlations between q-value results}
+    \item{mean_correlation}{Average correlation across q-values}
+    \item{consistency_score}{Higher = more consistent ranking across q-values}
+  }
 }
 \description{
 Compute Spearman correlation between results at different q-value thresholds

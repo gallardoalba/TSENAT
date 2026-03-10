@@ -66,16 +66,14 @@ Example: from preprocessing output `salmon_effective_length` or loaded via `load
 }
 \value{
 A `SummarizedExperiment` with:
-  \itemize{
-    \item `assay (counts)`: raw transcript counts
-    \item `metadata$tx2gene`: transcript-to-gene mapping
-    \item `metadata$readcounts`: raw transcript counts (preserved)
-    \item `metadata$salmon_tpm`: TPM values (if provided)
-    \item `metadata$salmon_effective_length`: effective lengths (if provided)
-    \item `rowData$transcript_id`: transcript IDs (matching rownames)
-    \item `rowData$gene_id`: gene IDs for each transcript
-    \item `rowData$gene_name`: human-readable gene names (if GFF3 provided)
-  }
+  - `assay (counts)`: raw transcript counts
+  - `metadata$tx2gene`: transcript-to-gene mapping
+  - `metadata$readcounts`: raw transcript counts (preserved)
+  - `metadata$salmon_tpm`: TPM values (if provided)
+  - `metadata$salmon_effective_length`: effective lengths (if provided)
+  - `rowData$transcript_id`: transcript IDs (matching rownames)
+  - `rowData$gene_id`: gene IDs for each transcript
+  - `rowData$gene_name`: human-readable gene names (if GFF3 provided)
 }
 \description{
 This helper creates a `SummarizedExperiment` with an assay named
@@ -92,21 +90,17 @@ a file path (TSV or GFF3 format) or an in-memory data.frame.
 
 
 \strong{Input Format Detection:}
-\itemize{
-  \item If tx2gene is a character string ending in .gff3 or .gff3.gz,
-        it is parsed as a GFF3 file.
-  \item If tx2gene is a character string with any other extension or
-        no extension, it is parsed as a tab-separated file.
-  \item If tx2gene is a data.frame, it is used directly.
-}
+- If tx2gene is a character string ending in .gff3 or .gff3.gz,
+  it is parsed as a GFF3 file.
+- If tx2gene is a character string with any other extension or
+  no extension, it is parsed as a tab-separated file.
+- If tx2gene is a data.frame, it is used directly.
 
 \strong{rowData Structure (NEW):}
 The rowData now contains both transcript-level and gene-level identifiers:
-\itemize{
-  \item `transcript_id`: Transcript identifier (from readcounts rownames)
-  \item `gene_id`: Gene identifier (from tx2gene mapping)
-  \item `gene_name`: Human-readable gene name (from GFF3 when available)
-}
+- `transcript_id`: Transcript identifier (from readcounts rownames)
+- `gene_id`: Gene identifier (from tx2gene mapping)
+- `gene_name`: Human-readable gene name (from GFF3 when available)
 This enables downstream functions like `calculate_divergence()` to easily
 filter by gene ID and aggregate or subset transcripts by gene.
 
@@ -118,20 +112,16 @@ an error is raised.
 \strong{SALMON Data Integration:}
 When TPM and effective_length are provided, they are stored in metadata
 for seamless integration with:
-\itemize{
-  \item `filter_se()`: automatically detects TPM in metadata for 
-        normalization-aware filtering
-  \item `calculate_diversity()`: automatically detects effective_length in metadata
-        for length-normalized entropy calculations
-}
+- `filter_se()`: automatically detects TPM in metadata for 
+  normalization-aware filtering
+- `calculate_diversity()`: automatically detects effective_length in metadata
+  for length-normalized entropy calculations
 
 \strong{Performance:}
-\itemize{
-  \item GFF3 files are processed efficiently even for large annotations
-        (e.g., full GENCODE with 100k+ transcripts)
-  \item TSV files are standard tab-separated format for fast parsing
-  \item Data.frame inputs have no I/O overhead
-}
+- GFF3 files are processed efficiently even for large annotations
+  (e.g., full GENCODE with 100k+ transcripts)
+- TSV files are standard tab-separated format for fast parsing
+- Data.frame inputs have no I/O overhead
 }
 \examples{
 # Example 1: Using data.frame (in-memory mapping)

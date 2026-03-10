@@ -7,7 +7,7 @@
 estimate_storey_pi0(pvalues, lambda = 0.5, pi0_method = "lambda", na.rm = TRUE)
 }
 \arguments{
-\item{pvalues}{Numeric vector of p-values (0 ≤ p ≤ 1). 
+\item{pvalues}{Numeric vector of p-values (0 <= p <= 1). 
 **IMPORTANT**: For TSENAT multi-q Tsallis entropy: use 
 Westfall-Young preprocessed p-values only (already correlation-adjusted).
 Direct application to raw multi-q p-values violates the independence assumption.}
@@ -24,11 +24,13 @@ Common range: 0.3-0.9. Higher λ uses more conservative p-values.}
 }
 \value{
 List with components:
-  - pi0: Estimated proportion of true nulls (0-1 range)
-  - lambda: Threshold used (if applicable)
-  - pi0_method: Method used ("lambda", "smoother", or "bootstrap")
-  - n_hypotheses: Total number of tests
-  - n_null: Estimated number of true null hypotheses
+  \describe{
+    \item{pi0}{Estimated proportion of true nulls (0-1 range)}
+    \item{lambda}{Threshold used (if applicable)}
+    \item{pi0_method}{Method used ("lambda", "smoother", or "bootstrap")}
+    \item{n_hypotheses}{Total number of tests}
+    \item{n_null}{Estimated number of true null hypotheses}
+  }
 }
 \description{
 Implements adaptive false discovery rate (FDR) control using Storey's π₀ 
@@ -64,7 +66,7 @@ Example workflow:
 The proportion of true null hypotheses (π₀) is estimated from the p-value 
 distribution using the method of Storey (2002):
 
-π₀(λ) = (# p-values > λ) / ((1-λ) × m)
+π₀(λ) = (# p-values > λ) / ((1-λ) * m)
 
 where λ is a threshold (typically 0.5) and m is the number of tests.
 
@@ -75,9 +77,9 @@ allowing increased power when many signals are present.
 
 Once π₀ is estimated, q-values are computed as:
 
-q(p) = π₀ × (rank(p) / m) × FDR_level
+q(p) = π₀ * (rank(p) / m) * FDR_level
 
-This maintains FDR ≤ α while incorporating the estimated proportion of 
+This maintains FDR <= α while incorporating the estimated proportion of 
 true signals.
 }
 \examples{

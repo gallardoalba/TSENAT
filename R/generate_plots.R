@@ -737,42 +737,21 @@ plot_ma_expression_impl <- function(
 
 #' Plot Tsallis Q-curve with Bootstrap Confidence Bands and Statistical Testing
 #'
-#' Enhanced q-curve visualization with bootstrap confidence intervals and statistical
-#' testing to identify q-ranges where groups significantly differ. For each q value:
-#' 1. Computes median Tsallis entropy per gene per sample
-#' 2. Generates bootstrap confidence bands (default 500 replicates per group/q)
-#' 3. Tests for group differences (Wilcoxon or t-test)
-#' 4. Shades q-ranges with significant differences (p < alpha)
+#' Enhanced q-curve visualization with bootstrap confidence intervals. Tests for group
+#' differences at each q-value and shades significant q-ranges (p < alpha).
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity`.
-#' @param assay_name Name of the assay to use (default: "diversity").
-#' @param sample_type_col Column name in `colData(se)` containing sample
-#'   type labels (default: "sample_type").
-#' @param n_bootstrap Number of bootstrap replicates for CI computation (default: 500).
-#' @param ci_level Confidence level for CIs (default: 0.95 for 95% CI).
-#' @param test_method Statistical test: "wilcox" (Wilcoxon rank-sum, non-parametric)
-#'   or "ttest" (Welch's t-test, parametric). Default: "wilcox".
-#' @param alpha Significance level for coloring q-ranges (default: 0.05).
-#' @param use_bootstrap Logical; if TRUE (default), uses bootstrap CIs with statistical
-#'   testing. If FALSE, uses legacy median ± IQR/2 visualization.
+#' @param se SummarizedExperiment from calculate_diversity().
+#' @param assay_name Character. Assay name (default "diversity").
+#' @param sample_type_col Character. Column in colData(se) with sample types (default "sample_type").
+#' @param n_bootstrap Integer. Bootstrap replicates (default 500).
+#' @param ci_level Numeric. Confidence level (default 0.95).
+#' @param test_method Character. Test: wilcox (default) or ttest.
+#' @param alpha Numeric. Significance level (default 0.05).
+#' @param use_bootstrap Logical. Use bootstrap CIs (TRUE, default).
 #'
-#' @return A `ggplot` object showing q-curve with bootstrap confidence bands,
-#'   group-specific medians, and shading for q-ranges with significant group differences.
+#' @return A ggplot object with bootstrap confidence bands and group medians.
 #'
-#' @details
-#' **Bootstrap Procedure:**
-#' For each group and q-value, resamples entire genes (not individual samples) with
-#' replacement 500 times, computes median entropy per resample, and takes quantiles.
-#'
-#' **Statistical Testing:**
-#' At each q-value, tests whether the two group distributions differ using Wilcoxon
-#' rank-sum test (robust to non-normality) or Welch's t-test. P-values < alpha are
-#' highlighted with red background shading.
-#'
-#' **Interpretation:**
-#' - Overlapping CIs suggest no significant difference at that q
-#' - Red-shaded q-ranges indicate statistical significance (p < 0.05)
-#' - Ribbon width shows uncertainty; narrower ribbons = more stable estimates
+#' @details Resamples genes with replacement, computes medians and quantiles, tests group differences (Wilcoxon or t-test). Red-shaded q-ranges show significance (p < 0.05).
 #'
 #' @export
 #' @examples
@@ -1804,11 +1783,13 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
 #'   or "normal" approximation. Default: "percentile".
 #'
 #' @return A list with class "qcurve_bootstrap" containing:
-#'   \item{plot_data}{Data frame with columns: q, median, ci_lower, ci_upper, group,
-#'     test_pvalue, significant}
-#'   \item{significant_qranges}{Data frame identifying q-ranges where groups differ significantly}
-#'   \item{metadata}{List with parameters: n_bootstrap, ci_level, ci_type, test_method}
-#'   \item{ggplot}{A \code{ggplot} object with confidence bands and significance annotations}
+#'   \describe{
+#'     \item{plot_data}{Data frame with columns: q, median, ci_lower, ci_upper, group,
+#'       test_pvalue, significant}
+#'     \item{significant_qranges}{Data frame identifying q-ranges where groups differ significantly}
+#'     \item{metadata}{List with parameters: n_bootstrap, ci_level, ci_type, test_method}
+#'     \item{ggplot}{A \code{ggplot} object with confidence bands and significance annotations}
+#'   }
 #'
 #' @details
 #' **Bootstrap Procedure:**
@@ -2354,7 +2335,7 @@ if (getRversion() >= "2.15.1") {
 #' for understanding patterns in correspondence analysis (Abdi & Valentin 2007, 
 #' Khangar & Kamalja 2017).
 #'
-#' @param entropy_matrix Matrix of entropy values (genes × q-values)
+#' @param entropy_matrix Matrix of entropy values (genes * q-values)
 #' @param q_values Numeric vector of q values
 #' @param n_dims Integer; number of dimensions to plot (default: 5)
 #' @param title Character; plot title
@@ -2477,7 +2458,7 @@ plot_ca_inertia <- function(entropy_matrix,
 #' to the first two principal dimensions. This reveals which q-values
 #' drive the main patterns (Khangar & Kamalja 2017).
 #'
-#' @param entropy_matrix Matrix of entropy values (genes × q-values)
+#' @param entropy_matrix Matrix of entropy values (genes * q-values)
 #' @param q_values Numeric vector of q values
 #' @param n_variables_labeled Integer; number of variables (q-values) to label in heatmap (default: 5)
 #' @param title Character; plot title
@@ -2581,7 +2562,7 @@ plot_ca_contributions <- function(entropy_matrix,
 #' not classical Correspondence Analysis on continuous values. Entropy values are
 #' automatically categorized into 3 levels (low, medium, high) before analysis.
 #'
-#' @param entropy_matrix Matrix of entropy values (genes × q-values)
+#' @param entropy_matrix Matrix of entropy values (genes * q-values)
 #' @param q_values Numeric vector of q values
 #' @param n_genes_labeled Integer; number of extreme genes to label (default: 8)
 #' @param title Character; plot title
@@ -2774,7 +2755,7 @@ plot_ca_biplot <- function(entropy_matrix,
 #' Creates a multi-panel visualization combining inertia, contributions, and biplot.
 #' Provides complete picture of CA results as recommended by leading references.
 #'
-#' @param entropy_matrix Matrix of entropy values (genes × q-values)
+#' @param entropy_matrix Matrix of entropy values (genes * q-values)
 #' @param q_values Numeric vector of q values
 #' @param include_biplot Logical; if TRUE, include the row-column biplot (default: TRUE)
 #' @param include_contributions Logical; if TRUE, include contribution heatmap (default: TRUE)
@@ -2958,7 +2939,7 @@ plot_ca_comprehensive <- function(entropy_matrix,
 #'
 #' @references
 #' - Chanda et al. (2020). Information Theory in Computational Biology. *Entropy*, 22(6), 627.
-#' - Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs Statistics. *Journal of Statistical Physics*, 52(1), 479–487.
+#' - Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs Statistics. *Journal of Statistical Physics*, 52(1), 479-487.
 #'
 #' @examples
 #' \dontrun{
@@ -3795,7 +3776,7 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
 #'   a vector of names, or NULL. If NULL, uses top genes from lm_res.
 #' @param lm_res Optional data.frame with columns: gene, p_value_interaction, 
 #'   adj_p_lmm (or adj_p_interaction). If provided and gene=NULL, top genes are selected by significance.
-#' @param readcounts Optional matrix of raw read counts (genes × transcripts) for computing
+#' @param readcounts Optional matrix of raw read counts (genes * transcripts) for computing
 #'   true Tsallis divergence from isoform distributions. If NULL, uses entropy-based approximation.
 #' @param tx2gene_map Optional data.frame mapping transcripts to genes (columns: "transcript", "gene").
 #' @param group_col Character name of the column in colData(se) indicating group assignment.
@@ -3984,7 +3965,7 @@ plot_tsallis_divergence_profile <- function(se,
         return(div_approx)
     }
 
-    # Calculate divergence for all genes × q combinations
+    # Calculate divergence for all genes * q combinations
     plot_data_list <- list()
     for (gene_name in genes) {
         divergences <- sapply(unique_q, function(q) calc_div_for_gene_q(gene_name, q))
@@ -4133,7 +4114,7 @@ plot_tsallis_divergence_profile <- function(se,
 #' complementing gene-specific divergence profiles.
 #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity` with multiple q-values.
-#' @param readcounts Optional matrix of raw read counts (genes × transcripts) for computing
+#' @param readcounts Optional matrix of raw read counts (genes * transcripts) for computing
 #'   true Tsallis divergence from isoform distributions. If NULL, uses entropy-based approximation.
 #' @param tx2gene_map Optional data.frame mapping transcripts to genes (columns: "transcript", "gene").
 #' @param group_col Character name of the column in colData(se) indicating group assignment.
@@ -4277,7 +4258,7 @@ plot_divergence_q_curve <- function(se,
         return(div_approx)
     }
 
-    # Calculate divergence for all genes × q combinations
+    # Calculate divergence for all genes * q combinations
     all_genes <- rownames(SummarizedExperiment::assay(se, assay_name))
     divergence_data <- list()
 

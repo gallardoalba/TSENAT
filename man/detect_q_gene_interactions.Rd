@@ -2,7 +2,7 @@
 % Please edit documentation in R/rank_based_methods.R
 \name{detect_q_gene_interactions}
 \alias{detect_q_gene_interactions}
-\title{Detect Q×Gene Interaction Terms}
+\title{Detect Q*Gene Interaction Terms}
 \usage{
 detect_q_gene_interactions(
   data,
@@ -32,7 +32,7 @@ Data frame with columns:
   - gene: Gene identifier
   - n_q_values_tested: Number of q-levels tested for this gene
   - f_statistic: Test statistic (H-statistic for Kruskal-Wallis, F for ANOVA)
-  - p_value: P-value for H0: "No q×gene interaction"
+  - p_value: P-value for H0: "No q*gene interaction"
   - ss_interaction: Sum of squares for q-effect
   - ss_residual: Sum of squares for residuals
   - df_interaction: Degrees of freedom for interaction
@@ -52,9 +52,9 @@ non-normally distributed entropy data. Tests whether entropy values differ
 significantly across q-parameters for each gene.
 
 Classification:
-  - Robust: p ≥ 0.05 (no significant q-effect)
-  - Moderately dependent: p < 0.05 AND η² ≤ 0.10
-  - Strongly dependent: p < 0.05 AND η² > 0.10
+  - Robust: p >= 0.05 (no significant q-effect)
+  - Moderately dependent: p < 0.05 AND η^2 <= 0.10
+  - Strongly dependent: p < 0.05 AND η^2 > 0.10
 }
 \examples{
 \dontrun{

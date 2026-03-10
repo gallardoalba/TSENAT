@@ -11,13 +11,11 @@ recommend_q_range(
 )
 }
 \arguments{
-\item{interaction_results}{Data frame output from detect_q_gene_interactions()}
+\item{interaction_results}{Data frame from detect_q_gene_interactions().}
 
-\item{robust_threshold}{Numeric: If percentage of robust genes exceeds this,
-suggest simplified q-range (default: 0.70, i.e., 70%)}
+\item{robust_threshold}{Numeric. Threshold for robust genes (default 0.70).}
 
-\item{strong_threshold}{Numeric: If percentage of strongly q-dependent genes
-exceeds this, recommend full q-spectrum (default: 0.05, i.e., 5%)}
+\item{strong_threshold}{Numeric. Threshold for strong dependency (default 0.05).}
 }
 \value{
 List with elements:
@@ -34,22 +32,7 @@ Provides data-driven recommendations for q-value selection in multi-q
 Tsallis entropy analysis based on detected interactions.
 }
 \details{
-Classification-based recommendations:
-
-  **If >5% genes show strong q-dependency:**
-  Use FULL spectrum (q ∈ {0.1, 0.5, 1.0, 1.5, 2.0, 2.5})
-  These genes' rankings change substantially with q-parameter.
-  Single q-value would miss/misclassify important signals.
-
-  **Else if >10% moderate q-dependency:**
-  Use STANDARD range (q ∈ {0.5, 1.0, 1.5, 2.0})
-  Most genes rank similarly, but noticeable variation exists.
-  Balances statistical power with computational cost.
-
-  **Else (mostly robust genes):**
-  Can use FOCUSED range (q ∈ {0.9, 1.0, 1.1}) or FIXED q=1.0 (Shannon)
-  Gene rankings are stable across parameter values.
-  Simpler, faster analysis justified by data.
+Provides classification-based recommendations: If >5% strong q-dependency, use full spectrum {0.1, 0.5, 1.0, 1.5, 2.0, 2.5}. If >10% moderate q-dependency, use standard range {0.5, 1.0, 1.5, 2.0}. Otherwise, use focused range {0.9, 1.0, 1.1} or fixed q=1.0 (Shannon).
 }
 \examples{
 \dontrun{

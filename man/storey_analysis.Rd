@@ -28,14 +28,16 @@ for details on the independence requirement.}
 }
 \value{
 List with components:
-  - pvalues: Input p-values
-  - qvalues: Computed Storey q-values  
-  - pi0: Estimated proportion of true nulls
-  - lambda: Lambda parameter used for π₀ estimation
-  - pi0_method: Method used
-  - n_significant: Number of significant tests at given FDR level
-  - fdr_level: FDR level used
-  - power_gain: Comparison with Benjamini-Hochberg ((n_sig_storey - n_sig_bh) / n_sig_bh)
+  \describe{
+    \item{pvalues}{Input p-values}
+    \item{qvalues}{Computed Storey q-values}
+    \item{pi0}{Estimated proportion of true nulls}
+    \item{lambda}{Lambda parameter used for \eqn{\pi_0}{pi_0} estimation}
+    \item{pi0_method}{Method used}
+    \item{n_significant}{Number of significant tests at given FDR level}
+    \item{fdr_level}{FDR level used}
+    \item{power_gain}{Comparison with Benjamini-Hochberg ((n_sig_storey - n_sig_bh) / n_sig_bh)}
+  }
 }
 \description{
 Convenient wrapper that estimates π₀ and computes Storey q-values,

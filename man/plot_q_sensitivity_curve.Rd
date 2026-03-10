@@ -50,12 +50,10 @@ revealing scale-dependent diversity patterns (paper I004).
 }
 \details{
 Q-parameter interpretation:
-\itemize{
-  \item \strong{q < 1}: Emphasizes rare transcripts
-  \item \strong{q = 1}: Shannon entropy (balanced weighting)
-  \item \strong{q > 1}: Emphasizes abundant transcripts
-  \item \strong{q spectrum}: Different genes may show optimal switching at different q
-}
+- \strong{q < 1}: Emphasizes rare transcripts
+- \strong{q = 1}: Shannon entropy (balanced weighting)
+- \strong{q > 1}: Emphasizes abundant transcripts
+- \strong{q spectrum}: Different genes may show optimal switching at different q
 
 References: \strong{S111} (q-parameter sensitivity), \strong{I004} (q-parameter theory)
 }

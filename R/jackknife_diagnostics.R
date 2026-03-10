@@ -7,57 +7,36 @@
 #'
 #' The jackknife works by iteratively removing each transcript and recalculating
 #' entropy on the remaining transcripts. This reveals:
-#' \itemize{
-#'   \item Which transcripts are "stabilizers" (small influence on entropy)
-#'   \item Which transcripts are "dominators" (large influence on entropy)
-#'   \item Whether entropy estimates are robust (low standard error)
-#'   \item Outlier transcripts that disproportionately affect diversity measures
-#' }
+#' - Which transcripts are "stabilizers" (small influence on entropy)
+#' - Which transcripts are "dominators" (large influence on entropy)
+#' - Whether entropy estimates are robust (low standard error)
+#' - Outlier transcripts that disproportionately affect diversity measures
 #'
-#' @param x Optional: A numeric vector of transcript abundance counts for a single gene,
-#'          or a matrix/data.frame where each row is analyzed separately.
-#'          Should contain positive integers or normalized counts.
-#'          If NULL, must provide `se` and `res` for automatic data extraction.
-#' @param se Optional: A SummarizedExperiment object containing transcript-level counts.
-#'           Required when `x` is NULL. The function will extract counts and gene names
-#'           from this object using the "counts" assay.
-#' @param res Optional: A data.frame of results (e.g., from calculate_difference()).
-#'          When provided with `se`, the function extracts the top `top_n` genes from `res`
-#'          and performs jackknife analysis on their transcript counts.
-#'          If NULL, the entire `se` is analyzed.
-#' @param top_n Numeric: Number of top genes to analyze when `se` and `res` are provided
-#'             (default 5). Genes are selected in the order they appear in `res`.
-#' @param q Numeric: Tsallis entropy order (default 1). Scalar or vector of q values.
-#'          If vector, returns list of results, one per q value.
-#'          q=1 corresponds to Shannon entropy / KL divergence. Must be > 0.
+#' @param x Optional numeric vector or matrix of transcript abundance counts. If NULL, must provide `se` and `res`.
+#' @param se Optional SummarizedExperiment object containing transcript-level counts with "counts" assay.
+#' @param res Optional data.frame of results from `calculate_difference()` to extract top genes.
+#' @param top_n Numeric: Number of top genes to analyze (default 5).
+#' @param q Numeric: Tsallis entropy order (default 1). Can be vector for multiple q values.
 #' @param norm Logical: normalize entropy to [0,1]? (default TRUE)
-#' @param log_base Numeric: base for logarithm in entropy calculation (default e).
-#'                 Use 2 for bits, 10 for dits.
-#' @param pseudocount Numeric: small value to add before normalizing to avoid zeros
-#'                   (default 0). Set to positive value (e.g., 1e-10) to add smoothing
-#'                   and prevent log(0) errors. Reconciled with calculate_diversity()
-#'                   for consistent entropy computation.
+#' @param log_base Numeric: logarithm base for entropy calculation (default e).
+#' @param pseudocount Numeric: small value to add before normalizing to avoid zeros (default 0).
 #' @param threshold Numeric: percentile threshold for outlier detection (default 90).
-#'                  Transcripts with influence > threshold%ile are marked as outliers.
-#' @param seed Random seed for reproducibility (though jackknife is deterministic).
-#' @param print_results Logical: if TRUE (default), automatically display formatted results
-#'                      for each gene (only applies when x is a matrix/data.frame or se/res).
-#'                      When FALSE or for vector input, only returns results silently.
-#' @param verbose Logical: if TRUE, print diagnostic messages during processing
-#'                (default FALSE). Currently reserved for future use.
+#' @param seed Random seed for reproducibility.
+#' @param print_results Logical: if TRUE (default), display formatted results for each gene.
+#' @param verbose Logical: if TRUE, print diagnostic messages (default FALSE).
 #'
 #' @return If x is a vector, a list of class `tsenat_jackknife` with:
-#' \itemize{
-#'   \item `estimate`: Numeric entropy of the full dataset
-#'   \item `jackknife_estimates`: Numeric vector of entropy values with each transcript removed
-#'   \item `influence`: Numeric vector of transcript influence (absolute change in entropy)
-#'   \item `jackknife_se`: Numeric standard error estimated from jackknife
-#'   \item `outlier_indices`: Integer vector of transcript indices with high influence
-#'   \item `outlier_threshold`: Numeric threshold value used for outlier detection
-#'   \item `n_transcripts`: Integer total number of transcripts
-#'   \item `q`: Numeric q value used
-#'   \item `norm`: Logical indicating whether normalization was used
-#' }
+#'   \describe{
+#'     \item{estimate}{Numeric entropy of the full dataset}
+#'     \item{jackknife_estimates}{Numeric vector of entropy values with each transcript removed}
+#'     \item{influence}{Numeric vector of transcript influence (absolute change in entropy)}
+#'     \item{jackknife_se}{Numeric standard error estimated from jackknife}
+#'     \item{outlier_indices}{Integer vector of transcript indices with high influence}
+#'     \item{outlier_threshold}{Numeric threshold value used for outlier detection}
+#'     \item{n_transcripts}{Integer total number of transcripts}
+#'     \item{q}{Numeric q value used}
+#'     \item{norm}{Logical indicating whether normalization was used}
+#'   }
 #'
 #' If x is a matrix, returns a list where each element is the jackknife result
 #' for one row (gene).
@@ -77,52 +56,44 @@
 #'
 #' The jackknife standard error is estimated as:
 #'
-#' \deqn{SE_{jack} = \sqrt{\frac{n-1}{n} \sum_{i=1}^{n} (H_{(-i)} - \bar{H}_{(·)})^2}}{SE_jack = sqrt((n-1)/n * sum(H_-i - mean(H))^2)}
+#' \deqn{SE_{jack} = \sqrt{\frac{n-1}{n} \sum_{i=1}^{n} (H_{(-i)} - \bar{H}_{(.)})^2}}{SE_jack = sqrt((n-1)/n * sum(H_-i - mean(H))^2)}
 #'
 #' **Interpretation of Influence:**
-#' \itemize{
-#'   \item Large influence (>0.1 for normalized): transcript heavily dominates diversity
-#'   \item Small influence (<0.01 for normalized): transcript is "neutral", minor contributor
-#'   \item All similar: balanced isoform usage (diversity is robust)
-#'   \item One very large outlier: single dominant isoform (entropy driven by one transcript)
-#' }
+#' - Large influence (>0.1 for normalized): transcript heavily dominates diversity
+#' - Small influence (<0.01 for normalized): transcript is "neutral", minor contributor
+#' - All similar: balanced isoform usage (diversity is robust)
+#' - One very large outlier: single dominant isoform (entropy driven by one transcript)
 #'
 #' **Tsallis entropy q-parameter optimization (papers S111, I004):**
 #' The Tsallis entropy parameter \eqn{q}{q} controls the weight given to rare vs. abundant
 #' isoforms. Different q values have different resampling properties that affect jackknife
 #' stability and influence patterns:
-#' \itemize{
-#'   \item \eqn{q < 0.5}{q < 0.5}: Heavily underweights rare isoforms, emphasizes common ones.
-#'         Jackknife results may show large influence from abundant transcripts. Best for
-#'         detecting changes in dominant isoforms only.
-#'   \item \eqn{q \in [0.5, 2]}{q in [0.5, 2]}: **Recommended range** for balanced sensitivity.
-#'         Jackknife results capture both rare and abundant isoform contributions. Provides
-#'         reliable diversity assessment for general use (papers S111, I004).
-#'   \item \eqn{q > 2}{q > 2}: May be insensitive to rare isoform diversity. Jackknife focuses
-#'         on most abundant transcripts only. May miss important rare transcript signal.
-#' }
+#' - \eqn{q < 0.5}{q < 0.5}: Heavily underweights rare isoforms, emphasizes common ones.
+#'   Jackknife results may show large influence from abundant transcripts. Best for
+#'   detecting changes in dominant isoforms only.
+#' - \eqn{q \in [0.5, 2]}{q in [0.5, 2]}: **Recommended range** for balanced sensitivity.
+#'   Jackknife results capture both rare and abundant isoform contributions. Provides
+#'   reliable diversity assessment for general use (papers S111, I004).
+#' - \eqn{q > 2}{q > 2}: May be insensitive to rare isoform diversity. Jackknife focuses
+#'   on most abundant transcripts only. May miss important rare transcript signal.
 #' When calling this function, messages are automatically displayed for q < 0.5 or q > 2,
 #' recommending appropriate interpretation. Set \code{verbose=TRUE} for additional guidance
 #' when q is in the recommended range (per papers S111, I004).
 #'
 #' **Display behavior (print_results parameter):**
 #' When x is a matrix/data.frame and print_results=TRUE (default):
-#' \itemize{
-#'   \item Displays header: "Jackknife Stability Analysis for Top N Genes"
-#'   \item For each gene: number of transcripts, diversity estimate, jackknife SE,
-#'         max transcript influence, number of outliers detected, and outlier indices
-#'   \item Shows interpretation guide explaining stability patterns
-#' }
+#' - Displays header: "Jackknife Stability Analysis for Top N Genes"
+#' - For each gene: number of transcripts, diversity estimate, jackknife SE,
+#'   max transcript influence, number of outliers detected, and outlier indices
+#' - Shows interpretation guide explaining stability patterns
 #' When x is a vector, returns silently regardless of print_results value.
 #' For programmatic access without display, set print_results=FALSE.
 #'
 #' **Use cases:**
-#' \itemize{
-#'   \item Identify genes with one dominant isoform (suspect for splicing errors)
-#'   \item Quality control: detect when one transcript has anomalous counts
-#'   \item Understand which transcripts drive group differences (see calculate_difference)
-#'   \item Compare stability across genes or conditions
-#' }
+#' - Identify genes with one dominant isoform (suspect for splicing errors)
+#' - Quality control: detect when one transcript has anomalous counts
+#' - Understand which transcripts drive group differences (see calculate_difference)
+#' - Compare stability across genes or conditions
 #'
 #' **Relationship to other functions:**
 #' - \code{\link{calculate_tsallis_entropy}}: computes entropy (stability as background)
@@ -158,7 +129,7 @@
 #' ✓ Influence patterns: Paper I004 (validation) confirms that jackknife-derived influence
 #'   metrics correctly reflect transcript contribution to entropy across q-values.
 #' ✓ Bootstrap confidence: Papers C030, S018 show that 500-1000 resampling iterations
-#'   (as in jackknife) achieve ≥95% CI coverage for entropy estimates, validating the
+#'   (as in jackknife) achieve >=95% CI coverage for entropy estimates, validating the
 #'   standard error estimates computed here.
 #'
 #' Users can cite papers I001-I004 for q-parameter theoretical grounding and C016/C030
@@ -791,12 +762,14 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #' @param use_lm_fdr Logical: use adjusted p-values from LM results if available (default TRUE).
 #'
 #' @return A list of class tsenat_isoform_switching with:
-#'  - results_per_gene: named list of per-gene results
-#'  - summary_table: data.frame with per-gene summary
-#'  - all_transcript_stats: data.frame with all transcript statistics
-#'  - gene_names: character vector of analyzed genes
-#'  - conditions: character vector of the two conditions compared
-#'  - metadata: list with analysis metadata
+#'   \describe{
+#'     \item{results_per_gene}{named list of per-gene results}
+#'     \item{summary_table}{data.frame with per-gene summary}
+#'     \item{all_transcript_stats}{data.frame with all transcript statistics}
+#'     \item{gene_names}{character vector of analyzed genes}
+#'     \item{conditions}{character vector of the two conditions compared}
+#'     \item{metadata}{list with analysis metadata}
+#'   }
 #'
 #' @export
 jackknife_isoform_switching <- function(
@@ -1276,20 +1249,20 @@ jackknife_isoform_switching <- function(
 #' @param top_n Numeric: number of top genes to analyze (default 5).
 #'
 #' @return A list of class \code{tsenat_block_jackknife} with:
-#'  - \bold{block_names}: names of blocks deleted
-#'  - \bold{per_block_results}: list of results for each block deletion
-#'  - \bold{block_influence_summary}: matrix of transcript influences per block deletion
-#'  - \bold{block_se}: block-wise standard error estimates
-#'  - \bold{block_ci}: 95% confidence intervals from block resampling
+#'   \describe{
+#'     \item{block_names}{names of blocks deleted}
+#'     \item{per_block_results}{list of results for each block deletion}
+#'     \item{block_influence_summary}{matrix of transcript influences per block deletion}
+#'     \item{block_se}{block-wise standard error estimates}
+#'     \item{block_ci}{95\% confidence intervals from block resampling}
+#'   }
 #'
 #' @details
 #' Block jackknife is appropriate when data has natural grouping structure:
-#' \itemize{
-#'   \item \bold{Temporal}: Successive time phases (differentiation, development)
-#'   \item \bold{Spatial}: Tissue regions, anatomical compartments
-#'   \item \bold{Batch}: Technical replicates from different sequencing runs
-#'   \item \bold{Paired}: Repeated measures within individuals
-#' }
+#' - \bold{Temporal}: Successive time phases (differentiation, development)
+#' - \bold{Spatial}: Tissue regions, anatomical compartments
+#' - \bold{Batch}: Technical replicates from different sequencing runs
+#' - \bold{Paired}: Repeated measures within individuals
 #'
 #' References: \strong{C137} (Block Jackknife Evalutation Methodology),
 #' \strong{ISO021} (Multiphasic Splicing Changes in Differentiation)
@@ -1476,11 +1449,9 @@ block_jackknife_isoform_switching <- function(
 #'
 #' @details
 #' Heatmap interpretation:
-#' \itemize{
-#'   \item \strong{Red}: Transcript increases influence in Condition A (up-switching)
-#'   \item \strong{Blue}: Transcript increases influence in Condition B (down-switching)
-#'   \item \strong{White/Light}: Minimal switching (neutral effect)
-#' }
+#' - \strong{Red}: Transcript increases influence in Condition A (up-switching)
+#' - \strong{Blue}: Transcript increases influence in Condition B (down-switching)
+#' - \strong{White/Light}: Minimal switching (neutral effect)
 #'
 #' Useful for:
 #' - Identifying coordinated switching across genes
@@ -1667,12 +1638,10 @@ plot_isoform_switching_heatmap <- function(
 #'
 #' @details
 #' Q-parameter interpretation:
-#' \itemize{
-#'   \item \strong{q < 1}: Emphasizes rare transcripts
-#'   \item \strong{q = 1}: Shannon entropy (balanced weighting)
-#'   \item \strong{q > 1}: Emphasizes abundant transcripts
-#'   \item \strong{q spectrum}: Different genes may show optimal switching at different q
-#' }
+#' - \strong{q < 1}: Emphasizes rare transcripts
+#' - \strong{q = 1}: Shannon entropy (balanced weighting)
+#' - \strong{q > 1}: Emphasizes abundant transcripts
+#' - \strong{q spectrum}: Different genes may show optimal switching at different q
 #'
 #' References: \strong{S111} (q-parameter sensitivity), \strong{I004} (q-parameter theory)
 #'

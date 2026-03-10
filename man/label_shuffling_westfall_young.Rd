@@ -16,7 +16,7 @@ label_shuffling_westfall_young(
 )
 }
 \arguments{
-\item{x}{A \code{matrix} with diversity values (rows = genes, columns = samples×q-values).
+\item{x}{A \code{matrix} with diversity values (rows = genes, columns = samples*q-values).
 Column names should indicate q-value (e.g., "Sample1_q=0.5", "Sample1_q=1.0").}
 
 \item{q_values}{Numeric vector of q-values used in computing diversity.
@@ -43,7 +43,7 @@ A data frame with columns:
   - `pvalue_raw`: Raw two-sided permutation p-value (Phipson-Smyth corrected)
   - `pvalue_wy`: Westfall-Young adjusted p-value (true stepdown FWER control)
   - `padj_bh`: Multiple testing adjusted p-value (BH-FDR on raw p-values)
-  - Family-wise error rate ≤ 0.05 is guaranteed by true WY stepdown
+  - Family-wise error rate <= 0.05 is guaranteed by true WY stepdown
 }
 \description{
 Performs joint permutation testing across multiple q-values (diversity orders)
@@ -59,7 +59,7 @@ properly accounts for these correlations by:
 1. Computing raw two-sided permutation p-values for each gene-q combination
 2. Ranking p-values from smallest to largest
 3. For each p-value in order:
-   - Count permutations where minimum p-value ≤ observed (accounts for all smaller tests)
+   - Count permutations where minimum p-value <= observed (accounts for all smaller tests)
    - Adjusted p-value = min(raw_p, count/num_permutations)
 4. Enforce monotonicity: adjusted p-values are non-decreasing as p-values increase
 
@@ -71,7 +71,7 @@ properly accounts for these correlations by:
 
 **Phipson-Smyth Correction (S019):**
 Each permutation test uses p = (b+1)/(m+1) to avoid zero p-values,
-where b = count of permutations ≥ observed, m = number of permutations.
+where b = count of permutations >= observed, m = number of permutations.
 }
 \examples{
 \dontrun{
@@ -81,7 +81,7 @@ n_genes <- 50
 n_samples <- 8  # 4 pairs
 n_q <- 5  # q = 0.5, 1.0, 1.5, 2.0
 
-# Create diversity matrix: genes × (samples × q-values)
+# Create diversity matrix: genes * (samples * q-values)
 diversity_data <- matrix(rnorm(n_genes * n_samples * n_q), 
                          nrow = n_genes)
 colnames(diversity_data) <- 

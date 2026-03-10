@@ -7,7 +7,7 @@
 power_edger_qlf(n, fc, baseline_mean = 100, dispersion = 0.1, alpha = 0.05)
 }
 \arguments{
-\item{n}{Integer. Sample size per group (n ≥ 1).}
+\item{n}{Integer. Sample size per group (n >= 1).}
 
 \item{fc}{Numeric. Fold change (fc > 1).}
 
@@ -18,7 +18,7 @@ power_edger_qlf(n, fc, baseline_mean = 100, dispersion = 0.1, alpha = 0.05)
 \item{alpha}{Numeric. Significance level (default: 0.05).}
 }
 \value{
-Numeric. Statistical power (0 ≤ power ≤ 1).
+Numeric. Statistical power (0 <= power <= 1).
 }
 \description{
 Compute statistical power for edgeR QLF test with empirical Bayes shrinkage

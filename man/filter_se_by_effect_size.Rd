@@ -2,7 +2,7 @@
 % Please edit documentation in R/filter_se.R
 \name{filter_se_by_effect_size}
 \alias{filter_se_by_effect_size}
-\title{Filter SummarizedExperiment by Effect Size (η²) Threshold}
+\title{Filter SummarizedExperiment by Effect Size (η^2) Threshold}
 \usage{
 filter_se_by_effect_size(
   se,
@@ -13,47 +13,36 @@ filter_se_by_effect_size(
 )
 }
 \arguments{
-\item{se}{A `SummarizedExperiment` object after `detect_q_gene_interactions()` 
-analysis. Must contain genes as rows.}
+\item{se}{A `SummarizedExperiment` object after `detect_q_gene_interactions()` analysis.}
 
-\item{interaction_results}{Data frame from `detect_q_gene_interactions()` containing
-columns: gene, effect_size_eta2 (or eta2)}
+\item{interaction_results}{Data frame from `detect_q_gene_interactions()` with columns gene and effect_size_eta2.}
 
-\item{eta2_threshold}{Numeric threshold for effect size (default: 0.02 = 2%).
-Recommended values:
-- 0.01 (1%): Liberal, discovers more genes (higher false positive risk)
-- 0.02 (2%): **RECOMMENDED** - Balances power & specificity
-- 0.05 (5%): Stringent, high confidence
-- 0.10 (10%): Very conservative, only major effects}
+\item{eta2_threshold}{Numeric threshold for effect size (default 0.02). Recommended values: 0.01, 0.02, 0.05, 0.10.}
 
 \item{verbose}{Logical; print filtering summary when TRUE.}
 
 \item{keep_metadata}{Logical; preserve metadata if genes are removed (default TRUE).}
 }
 \value{
-A filtered `SummarizedExperiment` containing only genes with η² > threshold.
-Attributes include:
-  - metadata()$effect_size_filter: List with threshold, genes_before, genes_after, 
-    genes_removed
-  - rowData() subset to matching genes
-  - All assays and colData preserved
+A filtered `SummarizedExperiment` containing only genes with η^2 > threshold.
+Attributes include metadata()$effect_size_filter with threshold and gene counts.
 }
 \description{
-Subset a `SummarizedExperiment` based on effect size in q×gene interaction
+Subset a `SummarizedExperiment` based on effect size in q*gene interaction
 analysis. Keeps only genes where the Tsallis entropy difference across 
-q-values explains more than the specified proportion of variance (η² > threshold).
+q-values explains more than the specified proportion of variance (η^2 > threshold).
 }
 \details{
-This function implements the recommended η² > 0.02 threshold from entropy 
+This function implements the recommended η^2 > 0.02 threshold from entropy 
 effect size guidelines, which balances power (detecting meaningful effects) 
 with filtering (removing negligible noise). See references for justification.
 
 
 **Effect Size Interpretation (Statistical Framework from TSENAT bibliography):**
-- η² ∈ [0, log(n_isoforms)] bounded by maximum entropy
-- η² > 0.02 × log(n) = "small effect" threshold (Cohen's analog)
+- η^2 ∈ [0, log(n_isoforms)] bounded by maximum entropy
+- η^2 > 0.02 * log(n) = "small effect" threshold (Cohen's analog)
 - Filters out negligible effects while preserving discovery power
-- Reduces multiple testing burden by 5-20× enabling stronger statistical control
+- Reduces multiple testing burden by 5-20* enabling stronger statistical control
 
 **References:**
 - S023 (2018): Power analysis for RNA sequencing - justifies effect size filtering
@@ -63,7 +52,7 @@ with filtering (removing negligible noise). See references for justification.
 - entropy_effect_size_guidelines() in R/effect_size.R - detailed framework
 }
 \examples{
-# After q×gene interaction testing:
+# After q*gene interaction testing:
 # interaction_results <- detect_q_gene_interactions(model_data)
 # se_filtered <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02)
 

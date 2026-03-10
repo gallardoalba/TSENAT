@@ -16,36 +16,32 @@ rank_correlation_bootstrap_ci(
 )
 }
 \arguments{
-\item{pvalues_or_ranks}{List of numeric vectors (typically p-values or ranks from 
-different q-values). Length ≥ 2. Named vectors recommended (e.g., list(q01 = ..., q05 = ...))}
+\item{pvalues_or_ranks}{List of numeric vectors (p-values or ranks).}
 
-\item{method}{Character; correlation method ("spearman" or "kendall"). Default: "spearman"}
+\item{method}{Character. Spearman (default) or kendall.}
 
-\item{ci}{Character; confidence interval method. Options:
-- "percentile": Bootstrap percentile method (default; straightforward interpretation)
-- "bca": Bias-corrected and accelerated (better coverage; recommended for small n)
-- "permutation": Exact permutation distribution (most conservative, exact Type I control)}
+\item{ci}{Character. Percentile (default), bca, or permutation.}
 
-\item{ci_level}{Numeric; confidence level (default: 0.95 for 95% CI)}
+\item{ci_level}{Numeric. Confidence level (default 0.95).}
 
-\item{n_bootstrap}{Integer; number of bootstrap resamples (default: 1000, 
-increased to 5000 for BCA method)}
+\item{n_bootstrap}{Integer. Bootstrap resamples (default 1000, 5000 for BCA).}
 
-\item{n_permutations}{Integer; number of permutations if ci="permutation" (default: 5000)}
+\item{n_permutations}{Integer. Permutations (default 5000).}
 
-\item{seed}{Integer; random seed for reproducibility (default: 42)}
+\item{seed}{Integer. Random seed (default 42).}
 
-\item{return_distribution}{Logical; if TRUE, return full bootstrap distribution 
-(default: FALSE; saves memory for large studies)}
+\item{return_distribution}{Logical. Return full distribution (default FALSE).}
 }
 \value{
 List of class "rank_correlation_ci" containing:
-  \item{correlation_matrix}{Spearman/Kendall correlation between pairs}
-  \item{ci_matrix}{Matrix of [lower, upper] CI bounds for each pair}
-  \item{method}{Correlation and CI method used}
-  \item{ci_level}{Requested confidence level}
-  \item{interpretation}{Summary table with interpretation}
-  \item{bootstrap_distribution}{Full bootstrap distribution (if return_distribution=TRUE)}
+  \describe{
+    \item{correlation_matrix}{Spearman/Kendall correlation between pairs}
+    \item{ci_matrix}{Matrix of [lower, upper] CI bounds for each pair}
+    \item{method}{Correlation and CI method used}
+    \item{ci_level}{Requested confidence level}
+    \item{interpretation}{Summary table with interpretation}
+    \item{bootstrap_distribution}{Full bootstrap distribution (if return_distribution=TRUE)}
+  }
 }
 \description{
 Construct bootstrap or permutation-based confidence intervals for Spearman/Kendall
@@ -57,33 +53,7 @@ across different q-values?" Permutation-based CIs provide a non-parametric answe
 without assuming bivariate normality, which rarely holds for rank correlation distributions.
 }
 \details{
-**Three Confidence Interval Methods:**
-
-**1. Bootstrap Percentile (Default)**
-- Method: Resample genes with replacement; compute correlation at each bootstrap replicate
-- CI bounds: α/2 and 1-α/2 quantiles of bootstrap distribution
-- Pros: Simple, fast, reproducible, straightforward interpretation
-- Cons: May have poorer coverage with very small n or extreme correlations
-- Use when: n > 20, correlations near [-1, 1] boundaries
-
-**2. Bias-Corrected and Accelerated (BCA)**
-- Method: Percentile CI + bias correction + acceleration factor from jackknife
-- Adjusts for non-normality and skewness in bootstrap distribution
-- Pros: Better coverage probability under non-normality; accounts for distribution skew
-- Cons: Slower; requires higher n_bootstrap (5000 default)
-- Use when: n < 20, expected non-normal bootstrap distribution, precision critical
-
-**3. Permutation-based (Exact)**
-- Method: Resample without replacement; true null permutation distribution
-- Guarantees exact Type I error control under null hypothesis
-- Pros: Theoretically exact, unconditional coverage under exchangeability
-- Cons: Very conservative (may be overly wide); slower for large permutation count
-- Use when: Hypothesis testing with strict Type I control (e.g., FWER analysis)
-
-**Mathematical Framework:**
-
-Bootstrap percentile CI for correlation ρ:
-\deqn{CI = [r^*_{(\lceil \alpha/2 \cdot B \rceil)}, r^*_{(\lfloor (1-\alpha/2) \cdot B \rfloor)}]}{CI = [r_bootstrap(alpha/2 quantile), r_bootstrap((1-alpha/2) quantile)]}
+Three CI methods available: (1) Bootstrap Percentile (default, fast, straightforward) - suitable for n > 20; (2) Bias-Corrected and Accelerated (BCA, better coverage, slower) - best for small n or non-normal distributions; (3) Permutation-based (exact Type I control, conservative) - for strict hypothesis testing. Bootstrap percentile CI computed as quantiles of bootstrap distribution. Spearman/Kendall correlations tested between pairs of input vectors.
 
 where r* are bootstrap correlation replicates.
 

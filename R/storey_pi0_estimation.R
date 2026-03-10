@@ -34,7 +34,7 @@
 #' The proportion of true null hypotheses (π₀) is estimated from the p-value 
 #' distribution using the method of Storey (2002):
 #' 
-#' π₀(λ) = (# p-values > λ) / ((1-λ) × m)
+#' π₀(λ) = (# p-values > λ) / ((1-λ) * m)
 #' 
 #' where λ is a threshold (typically 0.5) and m is the number of tests.
 #' 
@@ -45,12 +45,12 @@
 #' 
 #' Once π₀ is estimated, q-values are computed as:
 #' 
-#' q(p) = π₀ × (rank(p) / m) × FDR_level
+#' q(p) = π₀ * (rank(p) / m) * FDR_level
 #' 
-#' This maintains FDR ≤ α while incorporating the estimated proportion of 
+#' This maintains FDR <= α while incorporating the estimated proportion of 
 #' true signals.
 #' 
-#' @param pvalues Numeric vector of p-values (0 ≤ p ≤ 1). 
+#' @param pvalues Numeric vector of p-values (0 <= p <= 1). 
 #'   **IMPORTANT**: For TSENAT multi-q Tsallis entropy: use 
 #'   Westfall-Young preprocessed p-values only (already correlation-adjusted).
 #'   Direct application to raw multi-q p-values violates the independence assumption.
@@ -63,11 +63,13 @@
 #' @param na.rm Logical: If TRUE, remove NAs before computation (default: TRUE)
 #' 
 #' @return List with components:
-#'   - pi0: Estimated proportion of true nulls (0-1 range)
-#'   - lambda: Threshold used (if applicable)
-#'   - pi0_method: Method used ("lambda", "smoother", or "bootstrap")
-#'   - n_hypotheses: Total number of tests
-#'   - n_null: Estimated number of true null hypotheses
+#'   \describe{
+#'     \item{pi0}{Estimated proportion of true nulls (0-1 range)}
+#'     \item{lambda}{Threshold used (if applicable)}
+#'     \item{pi0_method}{Method used ("lambda", "smoother", or "bootstrap")}
+#'     \item{n_hypotheses}{Total number of tests}
+#'     \item{n_null}{Estimated number of true null hypotheses}
+#'   }
 #' 
 #' @references
 #' Storey JD. A direct approach to false discovery rates. Journal of the 
@@ -207,7 +209,7 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
 #' This provides adaptive FDR control more powerful than Benjamini-Hochberg 
 #' when many true signals are present.
 #' 
-#' @param pvalues Numeric vector of p-values (0 ≤ p ≤ 1). 
+#' @param pvalues Numeric vector of p-values (0 <= p <= 1). 
 #'   **IMPORTANT**: These must be independent or correlation-adjusted. 
 #'   For TSENAT multi-q tests, use Westfall-Young adjusted p-values, not raw p-values.
 #' @param pi0 Estimated proportion of true null hypotheses. If NULL, 
@@ -232,15 +234,15 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
 #' 
 #' For each p-value p ranked r-th among m tests:
 #' 
-#'   q(p) = π₀ × (rank(p) / m) × (1 / r)
+#'   q(p) = π₀ * (rank(p) / m) * (1 / r)
 #' 
-#' Then enforce monotonicity: q(p_i) ≤ q(p_j) for p_i ≤ p_j
+#' Then enforce monotonicity: q(p_i) <= q(p_j) for p_i <= p_j
 #' (ensures that smaller p-values never have larger q-values).
 #' 
 #' **Robust Floor:**
 #' 
 #' If robust=TRUE, applies min(1, q) to cap q-values at 1, and enforces 
-#' that each q-value ≥ the raw p-value (can never be "better" than raw).
+#' that each q-value >= the raw p-value (can never be "better" than raw).
 #' 
 #' @examples
 #' # Generate test p-values
@@ -289,7 +291,7 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
   # Rank p-values: smallest = rank 1
   rank_p <- rank(pvalues_clean)
   
-  # Compute Storey q-values: π₀ × (rank / m)
+  # Compute Storey q-values: π₀ * (rank / m)
   qvalues_raw <- pi0 * (rank_p / m)
   
   # Robust floor: cap at 1
@@ -338,14 +340,16 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
 #' @param na.rm Logical: Handle NAs (default: TRUE)
 #' 
 #' @return List with components:
-#'   - pvalues: Input p-values
-#'   - qvalues: Computed Storey q-values  
-#'   - pi0: Estimated proportion of true nulls
-#'   - lambda: Lambda parameter used for π₀ estimation
-#'   - pi0_method: Method used
-#'   - n_significant: Number of significant tests at given FDR level
-#'   - fdr_level: FDR level used
-#'   - power_gain: Comparison with Benjamini-Hochberg ((n_sig_storey - n_sig_bh) / n_sig_bh)
+#'   \describe{
+#'     \item{pvalues}{Input p-values}
+#'     \item{qvalues}{Computed Storey q-values}
+#'     \item{pi0}{Estimated proportion of true nulls}
+#'     \item{lambda}{Lambda parameter used for \eqn{\pi_0}{pi_0} estimation}
+#'     \item{pi0_method}{Method used}
+#'     \item{n_significant}{Number of significant tests at given FDR level}
+#'     \item{fdr_level}{FDR level used}
+#'     \item{power_gain}{Comparison with Benjamini-Hochberg ((n_sig_storey - n_sig_bh) / n_sig_bh)}
+#'   }
 #'   
 #' @export
 storey_analysis <- function(pvalues, pi0_method = "lambda", lambda = 0.5, 

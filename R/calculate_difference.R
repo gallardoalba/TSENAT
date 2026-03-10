@@ -460,13 +460,13 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' p-values from linear models naturally exhibit AR(1) correlation for different q-values 
 #' of the same gene (Papers S168-S175). This parameter selects the primary multiple testing
 #' correction method:
-#' 'hochberg': Hochberg stepup procedure (FWER ≤ α under positive regression dependence). 
+#' 'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
 #' Closed-form, computationally efficient. Recommended for strong signal detection with 
 #' family-wise error control.
-#' 'westfall-young': True Westfall-Young permutation procedure (FWER ≤ α). Uses resampling 
+#' 'westfall-young': True Westfall-Young permutation procedure (FWER <= α). Uses resampling 
 #' to empirically control FWER by tracking the minima across all tests. More powerful than 
 #' Hochberg under dependence but computationally expensive (refits LMM for each permutation).
-#' 'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR ≤ α under arbitrary dependence). 
+#' 'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
 #' Valid under any correlation structure. More conservative than Hochberg but makes fewer 
 #' power loss assumptions. Reference: Papers S190, S193.
 #' @param storey Logical; whether to apply Storey's adaptive FDR π₀ estimation after the 
@@ -1122,29 +1122,22 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #' permutations.
 #'
 #' \strong{Why This Correction Matters:}
-#' \itemize{
-#'   \item \strong{Prevents p = 0:} Traditional formula produces p = 0 when observed
+#' - \strong{Prevents p = 0:} Traditional formula produces p = 0 when observed
 #'   statistic is more extreme than all m permutations. This is statistically incorrect.
-#'
-#'   \item \strong{Proper Calibration:} The pseudocount ensures valid Type I error control
+#' - \strong{Proper Calibration:} The pseudocount ensures valid Type I error control
 #'   and proper coverage properties, especially important with small permutation counts.
-#'
-#'   \item \strong{Minimum P-Value:} With m permutations, p_min = 1/(m+1), not 0.
+#' - \strong{Minimum P-Value:} With m permutations, p_min = 1/(m+1), not 0.
 #'   Example: With m = 1000, p_min ≈ 0.000999 (not 0).
-#'
-#'   \item \strong{Standard Practice:} This correction is now implemented in limma, edgeR,
+#' - \strong{Standard Practice:} This correction is now implemented in limma, edgeR,
 #'   DESeq2, and other standard bioinformatics packages.
-#' }
 #'
 #' The permutation p-values are computed two-sided as the proportion
 #' of permuted log2 fold-changes at least as extreme as the observed value,
 #' with the pseudocount applied: (count + 1) / (n_perm + 1).
 #' 
 #' For paired designs, the function supports two permutation schemes:
-#' \itemize{
-#'   \item \code{'swap'}: Randomly swaps sample labels within pairs
-#'   \item \code{'signflip'}: Performs sign-flip permutations (Pesarin & Salmaso 2010)
-#' }
+#' - \code{'swap'}: Randomly swaps sample labels within pairs
+#' - \code{'signflip'}: Performs sign-flip permutations (Pesarin & Salmaso 2010)
 #' @note The permutation test returns two-sided empirical p-values using the
 #' Phipson & Smyth (2010) pseudocount correction to avoid zero p-values.
 #' This ensures proper statistical calibration regardless of the number of permutations.
@@ -1413,6 +1406,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 #'   - `precision`: Precision weight (inverse variance) for each gene
 #'
 #' @keywords internal
+#' @noRd
 .apply_precision_weighting_to_test <- function(test_results, counts, samples, 
                                                 alpha, beta, pcorr) {
     n_genes <- nrow(test_results)

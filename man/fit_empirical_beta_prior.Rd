@@ -7,15 +7,17 @@
 fit_empirical_beta_prior(x)
 }
 \arguments{
-\item{x}{Either a numeric matrix (genes × samples) with non-negative counts,
+\item{x}{Either a numeric matrix (genes * samples) with non-negative counts,
 or a SummarizedExperiment object (typically the output of \code{calculate_diversity()}).
 If SummarizedExperiment, transcript-level counts will be extracted and aggregated
 to gene level using the tx2gene mapping stored in metadata.}
 }
 \value{
 List with components:
-  \item{alpha}{Alpha parameter of Beta prior}
-  \item{beta}{Beta parameter of Beta prior}
+  \describe{
+    \item{alpha}{Alpha parameter of Beta prior}
+    \item{beta}{Beta parameter of Beta prior}
+  }
 }
 \description{
 Estimates Beta prior hyperparameters (α, β) from a count matrix or SummarizedExperiment using method of moments.

@@ -22,10 +22,12 @@ recommend_study_design(
 }
 \value{
 Invisibly, a list with:
-  - recommended_n: Recommended samples per group
-  - effect_size: Input effect size
-  - power_curve: Data frame with power curve
-  - guidelines: Effect size guidelines
+  \describe{
+    \item{recommended_n}{Recommended samples per group}
+    \item{effect_size}{Input effect size}
+    \item{power_curve}{Data frame with power curve}
+    \item{guidelines}{Effect size guidelines}
+  }
 }
 \description{
 Generate a comprehensive recommendation report for study planning.

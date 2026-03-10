@@ -31,7 +31,7 @@ NULL
 
 #' Compute MCA-based q-parameter informativeness
 #'
-#' @param entropy_matrix Matrix or data.frame of entropy values (genes × q-samples)
+#' @param entropy_matrix Matrix or data.frame of entropy values (genes * q-samples)
 #'   where each column represents entropy for a specific q value
 #' @param q_values Numeric vector of q values corresponding to columns in entropy_matrix
 #' @param n_categories Integer; number of bins for categorizing entropy values
@@ -269,7 +269,7 @@ NULL
     # MCA creates multiple variables per q (one per category level)
     # We need to aggregate contributions at the q-value level
     var_coords <- mca_result$var$coord
-    var_contrib <- mca_result$var$contrib  # Contribution matrix (variables × dimensions)
+    var_contrib <- mca_result$var$contrib  # Contribution matrix (variables * dimensions)
     
     # Aggregate contributions by q-value
     # Row names in var_coords are like "q=0.5.Low", "q=0.5.Medium", etc.

@@ -7,7 +7,7 @@
 compute_posterior_credible_intervals(counts_matrix, alpha, beta, ci = 0.95)
 }
 \arguments{
-\item{counts_matrix}{Matrix or data.frame; genes (rows) × samples (columns).}
+\item{counts_matrix}{Matrix or data.frame; genes (rows) * samples (columns).}
 
 \item{alpha}{Numeric; alpha parameter of Beta prior.}
 
@@ -17,11 +17,13 @@ compute_posterior_credible_intervals(counts_matrix, alpha, beta, ci = 0.95)
 }
 \value{
 Data frame with columns:
-  \item{gene}{Gene name (from rownames of counts_matrix)}
-  \item{posterior_mean}{Point estimate}
-  \item{ci_lower}{Lower CI bound}
-  \item{ci_upper}{Upper CI bound}
-  \item{posterior_sd}{Standard deviation}
+  \describe{
+    \item{gene}{Gene name (from rownames of counts_matrix)}
+    \item{posterior_mean}{Point estimate}
+    \item{ci_lower}{Lower CI bound}
+    \item{ci_upper}{Upper CI bound}
+    \item{posterior_sd}{Standard deviation}
+  }
 }
 \description{
 Extracts posterior credible intervals for all genes in a count matrix,

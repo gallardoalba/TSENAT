@@ -52,20 +52,19 @@
 #'
 #' @param se A SummarizedExperiment object with gene expression/count data
 #' @param batch Character; name of batch column in colData(se)
-#' @param biological_group Character; optional biological grouping variable to 
-#'   separate from batch effects
+#' @param biological_group Character. Optional biological grouping variable to separate from batch effects.
 #' @param n_components Integer; number of PCs to examine (default: 5)
-#' @param n_permutations Integer; number of random batch permutations for 
-#'   significance testing (default: 100)
-#' @param method Character; one of "pca" (default), "variance_partition", 
-#'   or "silhouette"
+#' @param n_permutations Integer. Number of random batch permutations for significance testing (default 100).
+#' @param method Character. One of "pca" (default), "variance_partition", or "silhouette".
 #'
 #' @return List containing:
-#'   \item{batch_variance_pct}{Percent variance explained by batch across PCs}
-#'   \item{pvalue}{Permutation p-value for batch effect significance}
-#'   \item{pc_loadings}{PC loadings matrix}
-#'   \item{summary}{Character summary of findings}
-#'   \item{method}{Method used for detection}
+#'   \describe{
+#'     \item{batch_variance_pct}{Percent variance explained by batch across PCs}
+#'     \item{pvalue}{Permutation p-value for batch effect significance}
+#'     \item{pc_loadings}{PC loadings matrix}
+#'     \item{summary}{Character summary of findings}
+#'     \item{method}{Method used for detection}
+#'   }
 #'
 #' @export
 #' @examples
@@ -218,12 +217,11 @@ print.batch_detection <- function(x, ...) {
 #' while preserving biological signal. Specifically designed for RNA-seq count data
 #' with negative binomial distribution assumptions.
 #'
-#' @param se A SummarizedExperiment object with count matrix (genes × samples)
+#' @param se A SummarizedExperiment object with count matrix (genes * samples)
 #' @param batch Character; name of batch column in colData(se)
 #' @param group Character; optional biological group variable to preserve
 #' @param shrinkage Logical; use empirical Bayes shrinkage (default: TRUE)
-#' @param par.prior Logical; use parametric prior (default: TRUE). If FALSE, 
-#'   uses non-parametric prior
+#' @param par.prior Logical. Use parametric prior (default TRUE). If FALSE, uses non-parametric prior.
 #' @param mean.only Logical; adjust only mean, not dispersion (default: FALSE)
 #'
 #' @return SummarizedExperiment with batch-corrected counts in assay slot
@@ -331,7 +329,7 @@ adjust_batch_effects_seq <- function(
 #' Estimate location (μ) and dispersion (φ) parameters for each gene-batch 
 #' combination for use in ComBat-seq.
 #'
-#' @param counts Matrix of count data (genes × samples)
+#' @param counts Matrix of count data (genes * samples)
 #' @param batch Batch vector (length = ncol(counts))
 #' @param shrinkage Logical; apply empirical Bayes shrinkage
 #' @param par.prior Logical; parametric prior
@@ -369,7 +367,7 @@ estimate_batch_parameters_seq <- function(counts, batch, shrinkage = TRUE,
         # For negative binomial: var = μ(1 + φμ) or similar parameterization
         if (params$mu[gene, b_idx] > 0) {
           var_counts <- stats::var(counts_batch, na.rm = TRUE)
-          # Estimate φ: (var - μ) / μ²
+          # Estimate φ: (var - μ) / μ^2
           params$phi[gene, b_idx] <- max(0, (var_counts - params$mu[gene, b_idx]) / 
                                              (params$mu[gene, b_idx]^2 + 1e-6))
         } else {
@@ -564,7 +562,7 @@ plot_batch_pca <- function(se, batch, biological_group = NULL,
 #' @param n_genes Integer; number of top-variance genes to plot (default: 50)
 #' @param annotation_col Logical; add batch annotation (default: TRUE)
 #'
-#' @return Heatmap (from ComplexHeatmap or pheatmap)
+#' @return Heatmap (from pheatmap)
 #' @export
 #' @examples
 #' \dontrun{
@@ -675,30 +673,28 @@ print.batch_correction_comparison <- function(x, ...) {
 #' and diversity matrices. Uses PCA to assess whether batch effects explain
 #' significant variance in the data while preserving the rank structure.
 #'
-#' @param entropy_data A matrix or list of matrices containing diversity/entropy
-#'   values (genes × samples), or a SummarizedExperiment object. When a list is
+#' @param entropy_data Matrix, list of matrices, or SummarizedExperiment containing diversity/entropy values (genes * samples).
 #'   provided, matrices are averaged across q-values.
-#' @param sample_metadata A data.frame with sample-level metadata (rows = samples).
-#'   Should contain at least one column with biological or batch information.
+#' @param sample_metadata Data frame with sample-level metadata (rows = samples). Should contain at least one column with biological or batch information.
 #'   If NULL, only PCA structure is returned without metadata annotation.
-#' @param n_pcs Integer; number of principal components to extract (default: 5).
-#'   Automatically adjusted if fewer samples available.
-#' @param color_by Character; name of column in sample_metadata (or colData if 
-#'   SE) to use for detecting confounding. Typically contains batch information
+#' @param n_pcs Integer. Number of principal components to extract (default 5). Automatically adjusted if fewer samples available.
+#' @param color_by Character. Name of column in sample_metadata (or colData if SE) to use for detecting confounding (typically batch information).
 #'   or a biological factor of interest. Default: "condition".
 #' @param scale Logical; whether to scale the entropy data before PCA (default: TRUE).
 #'
 #' @return An object of class "batch_pca" containing:
-#'   \item{pca_result}{prcomp object with sample scores and loadings}
-#'   \item{variance_explained}{Variance explained by each PC (as fraction)}
-#'   \item{cumulative_variance}{Cumulative variance explained}
-#'   \item{batch_pca_scores}{Data frame with PC1, PC2, sample_id and metadata columns}
-#'   \item{entropy_data}{The processed entropy matrix used for PCA}
-#'   \item{is_batch_confounded}{Logical; indicates if batch shows strong 
-#'     confounding (F-statistic > 3)}
-#'   \item{batch_effect_strength}{F-statistic value indicating batch strength 
-#'     on PC2}
-#'   \item{sample_metadata}{Original metadata provided (or NULL)}
+#'   \describe{
+#'     \item{pca_result}{prcomp object with sample scores and loadings}
+#'     \item{variance_explained}{Variance explained by each PC (as fraction)}
+#'     \item{cumulative_variance}{Cumulative variance explained}
+#'     \item{batch_pca_scores}{Data frame with PC1, PC2, sample_id and metadata columns}
+#'     \item{entropy_data}{The processed entropy matrix used for PCA}
+#'     \item{is_batch_confounded}{Logical; indicates if batch shows strong 
+#'       confounding (F-statistic > 3)}
+#'     \item{batch_effect_strength}{F-statistic value indicating batch strength 
+#'       on PC2}
+#'     \item{sample_metadata}{Original metadata provided (or NULL)}
+#'   }
 #'
 #' @details
 #' This function is designed for rank-based diversity metrics (Tsallis entropy,
@@ -774,22 +770,22 @@ detect_batch_structure_ranking <- function(
 #'
 #' @param entropy_data SummarizedExperiment with entropy matrices, or list of
 #'   entropy matrices, or a single entropy matrix
-#' @param batch_column Character; name of batch column in colData (if SE input)
-#'   or vector indicating batch for each sample
-#' @param condition_column Character; optional name of condition column for
-#'   batch confounding assessment
+#' @param batch_column Character. Name of batch column in colData (if SE input) or vector indicating batch for each sample.
+#' @param condition_column Character. Optional name of condition column for batch confounding assessment.
 #' @param sample_metadata Data frame with sample-level metadata. If NULL and
 #'   entropy_data is an SE, metadata extracted from colData
 #' @param color_by Character; column name to color samples in PCA plots
 #' @param n_pcs Integer; number of principal components to compute
 #'
 #' @return List with class "batch_pca" containing:
+#'   \describe{
 #'   \item{pca_result}{PCA fit object from prcomp}
 #'   \item{variance_explained}{Numeric vector of PC variance proportions}
 #'   \item{batch_pca_scores}{Data frame with PC scores and metadata}
 #'   \item{is_batch_confounded}{Logical; TRUE if batch affects PC2 (F > 3)}
 #'   \item{batch_effect_strength}{F-statistic from PC2 ~ batch ANOVA}
 #'   \item{entropy_data}{Filtered entropy matrix used for PCA}
+#'   }
 #'
 #' @details
 #' This function:
@@ -856,15 +852,15 @@ detect_batch_structure_from_se <- function(
 #'
 #' @param se SummarizedExperiment containing entropy matrices in assays
 #' @param batch_column Character; name of batch factor column in colData(se)
-#' @param condition_column Character; optional name of biological condition
-#'   column in colData(se)
+#' @param condition_column Character. Optional name of biological condition column in colData(se).
 #' @param assay Integer or character; which assay to correct (default: 1)
 #'
 #' @return SummarizedExperiment with corrected entropy data in assays:
-#'   \item{assay(result, 1)}{Batch-corrected entropy matrix}
-#'   Additional metadata:
-#'   \item{metadata(result)$batch_correction}{Full correction result from
-#'     apply_batch_correction_ranking}
+#'   \describe{
+#'     \item{assay(result, 1)}{Batch-corrected entropy matrix}
+#'     \item{metadata(result)$batch_correction}{Full correction result from
+#'       apply_batch_correction_ranking}
+#'   }
 #'
 #' @details
 #' Workflow:

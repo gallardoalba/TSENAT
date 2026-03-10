@@ -25,189 +25,42 @@ recommend_sample_size(
 )
 }
 \arguments{
-\item{effect_size}{Numeric. Interaction effect size (slope difference between groups).
-Range: 0.01 to 1.0. Larger values = easier to detect.}
+\item{effect_size}{Numeric. Interaction effect size (0.01-1.0).}
 
-\item{power}{Numeric. Desired statistical power (1 - beta). Default: 0.80
-Common values: 0.80 (80%), 0.90 (90%)}
+\item{power}{Numeric. Desired statistical power (default 0.80).}
 
-\item{alpha}{Numeric. Type I error rate. Default: 0.05}
+\item{alpha}{Numeric. Type I error rate (default 0.05).}
 
-\item{n_q_values}{Integer. Number of q-values being tested (e.g., 5 or 10).
-More q-values increases information content.}
+\item{n_q_values}{Integer. Number of q-values tested.}
 
-\item{residual_sd}{Numeric. Expected residual standard deviation of entropy values.
-Default: 0.3 (typical for RNA-seq entropy; see KRAEMER001 for measurement error guidance)}
+\item{residual_sd}{Numeric. Entropy residual SD (default 0.3).}
 
-\item{method}{Character. Statistical test method (default: "lm"):
-- "lm": Parametric linear model (baseline power)
-- "lmm": Linear mixed model with random intercepts (~1% more samples needed)
-- "wilcoxon": Non-parametric rank-based test (~5% more samples needed)
-- "shuffle": Permutation/randomization test (~8% more samples needed)
-- "gam": Smooth generalized additive model (~2% more samples needed)
-- "fpca": Functional principal component analysis (~1.5% more samples needed)
-- "gee": Generalized estimating equations (~4% more samples needed)}
+\item{method}{Character. Statistical test method (default "lm").}
 
-\item{paired}{Logical. Whether using paired/matched design (default: FALSE).
-Use TRUE for matched samples (e.g., tumor/normal from same patient, or baseline/follow-up).
-Paired designs reduce required sample size via variance reduction factor (1 - r²) where
-r = within-pair correlation. With correlation r=0.54 (typical for RNA-seq),
-paired design reduces sample size by ~27% compared to unpaired.
-Example: If unpaired design needs n=20 per group, paired needs only n≈15 pairs.}
+\item{paired}{Logical. Paired/matched design (default FALSE).}
 
-\item{correlation}{Numeric. Within-pair correlation for paired designs. 
-Default: NULL (uses theoretical correlation ≈ 0.54).
-Range: -1 to 1. Used to calculate variance reduction when paired=TRUE.}
+\item{correlation}{Numeric. Within-pair correlation (null=~0.54).}
 
-\item{n_genes}{Integer (NEW). Total number of genes being tested in genome-wide analysis.
-Default: NULL (per-gene power analysis). When specified, activates Benjamini-Hochberg
-FDR multiple testing correction (papers C106, C107, S063, S064, S076-S084).
-Example: n_genes = 20000 for RNA-seq with ~20K genes. This increases required 
-sample size by 2-4× compared to per-gene analysis to maintain genome-wide power.
-**Per ssizeRNA (paper C106):** Matching parameters nGenes (total genes), 
-pi0 (proportion non-DE), fdr (FDR threshold), targets genome-wide significance.}
+\item{n_genes}{Integer. Total genes (NULL for per-gene).}
 
-\item{fdr_threshold}{Numeric (NEW). False Discovery Rate threshold for multiple testing 
-control. Default: NULL. When specified with n_genes, uses explicit Benjamini-Hochberg 
-procedure (papers S063, S076-S084). Typical value: 0.05 (5% FDR). Replaces the 
-ad-hoc "α / log(n+2)" correction with principled FDR control equation:
-α_BH = fdr_threshold / n_genes (less conservative than Bonferroni α/n_genes).
-**Requirement:** If specifying fdr_threshold, must also specify n_genes.}
+\item{fdr_threshold}{Numeric. FDR threshold (default NULL).}
 
-\item{pi0}{Numeric (NEW). Proportion of non-DE (null hypothesis true) genes.
-Default: NULL → 0.95 (typical RNA-seq value). Range: 0-1. Affects power 
-calculation for genome-wide analysis (papers C106, C108, S063). 
-Example: pi0=0.95 means 5% of genes are truly DE, 95% are null.
-When pi0 is lower (e.g., 0.8, more true DE genes), fewer samples needed.
-When pi0 is higher (e.g., 0.99, sparse DE), more samples needed.}
+\item{pi0}{Numeric. Proportion non-DE (default NULL=0.95).}
 
-\item{dispersion}{Numeric (PHASE 2). RNA-seq negative binomial overdispersion 
-parameter (φ). Default: NULL (no dispersion adjustment, normal model assumed).
-The dispersion parameter quantifies variance inflation in RNA-seq count data 
-relative to Poisson distribution.
+\item{dispersion}{Numeric. Overdispersion (default NULL).}
 
-**NB Variance Model:** Var(Y) = μ + μ²φ  
-where μ = mean count, φ = dispersion
+\item{data}{Optional matrix of RNA-seq counts.}
 
-**Typical Values (papers C106-C108):**
-- φ = 0.01-0.05: Low (abundant genes, high coverage)
-- φ = 0.1-0.3: Moderate (typical genes) ← RECOMMENDED
-- φ = 0.5-1.0: High (sparse genes, low coverage)
+\item{q}{Numeric. Tsallis q-parameter (default 1.0).}
 
-When dispersion is specified, automatically adjusts sample size calculation:
-`n_adjusted = n_base × (1 + φ)`
+\item{use_simulation}{Logical. Use Monte Carlo (default FALSE).}
 
-This ensures proper power for RNA-seq count data instead of normal approximation.
-**Importance:** Ignoring dispersion underestimates required sample size.
+\item{n_simulations}{Integer. MC replications (default 500-1000).}
 
-**Estimation:** From pilot RNA-seq data using edgeR or similar:
-```
-library(edgeR)
-d <- DGEList(counts = pilot_data)
-d <- estimateDisp(d)
-median_disp <- median(d$tagwise.dispersion)
-recommend_sample_size(..., dispersion = median_disp)
-```
-
-Papers: C106 (ssizeRNA), C107 (PROPER), C108 (RnaSeqSampleSize) all 
-emphasize dispersion importance for accurate RNA-seq power analysis.}
-
-\item{data}{Optional matrix or data.frame of RNA-seq counts.
-If provided, automatically estimates dispersion parameter from data using 
-method-of-moments: φ = (Var(gene) - Mean(gene)) / Mean(gene)²
-This is the NB variance MLE approach used in edgeR and DESeq2.
-
-**Data Format:**
-- Matrix: rows = genes, columns = samples, values = counts
-- data.frame: same structure as matrix
-- ExpressionSet: will extract counts automatically via exprs()
-
-Counts should be raw (not CPM, FPKM, or normalized log-scale).
-If low/non-integer counts detected, may indicate normalization.
-
-**Behavior:**
-- If both data AND dispersion specified: Uses explicit dispersion (ignores data)
-- If data specified WITHOUT dispersion: Estimates dispersion automatically
-- If neither specified: Uses default residual_sd (normal model)
-
-**Note:** Dispersion estimation requires at least 100-200 genes with 
-mean count > 0. Very sparse data may yield unstable estimates.
-In such cases, consider specifying dispersion manually (papers C106-C108).}
-
-\item{q}{Numeric (PHASE 3). Tsallis entropy order parameter. Default: 1.0 (Shannon entropy).
-Range: 0 < q ≤ 3. **ONLY USED when n_q_values = 1** (single q-value analysis).
-
-**Biological Interpretation (papers I004, S063-S067):**
-Different q values emphasize different aspects of isoform diversity:
-
-- **q = 0.5**: Rare-isoform emphasis. Higher sensitivity to low-abundance isoforms.
-  Power multiplier: 1.0× (baseline). Sample size: n_baseline
-
-- **q = 1.0**: Shannon entropy (balanced). RECOMMENDED for general use.
-  Power multiplier: 1.5× (more power than q=0.5). Sample size: n_baseline / √1.5
-
-- **q = 2.0**: Abundant-isoform emphasis. Highest sensitivity to major isoforms.
-  Power multiplier: 2.5× (highest power). Sample size: n_baseline / √2.5
-
-**Power Formula:** Power scales with information gain = |log(fc)| × (0.5 + q)
-where the factor (0.5 + q) represents Tsallis q-weighting.
-
-**Sample Size Adjustment:**
-When n_q_values = 1 with specific q, sample size is reduced by:
-```
-n_adjusted = n_base / √(power_multiplier)
-```
-
-Example: For q=1.0 (power_multiplier = 1.5):
-```
-n_adjusted = n_base / √1.5 ≈ 0.816 × n_base
-```
-So q=1.0 requires ~18% fewer samples than q=0.5 baseline.
-
-**Choice of q for Your Study:**
-
-| Scenario | Recommended q | Reason |
-|----------|---------------|--------|
-| General exploratory | q = 1.0 | Balanced, standard, highest power for most situations |
-| Focus on rare isoforms | q = 0.5 | Conservative, emphasizes rare transcripts |
-| Focus on major isoforms | q = 2.0 | Highest power, but only detects abundant changes |
-| Unknown structure | q = 1.0 | Default; maximize power while maintaining balance |
-
-**Note:** Parameter q is ignored when n_q_values > 1 (multiple q-value analysis).
-For multiple q testing, power is averaged across all q values queried.
-Reference: Papers I004 (Tsallis entropy theory), S063-S067 (q-parameter validation)}
-
-\item{use_simulation}{Logical (NEW, optional). Use Monte Carlo simulation-based power
-instead of analytical formula. Default: FALSE (analytical, fast).
-When TRUE, runs simulate_power() with n_simulations iterations to estimate power.
-Useful for:
-- Complex designs not well-served by analytical approximation
-- Validation of analytical formula via simulation
-- Obtaining confidence intervals on power estimates
-
-**Note:** Simulation-based requires more computation time (10-30s for n_simulations=1000).
-Analytical method is recommended for routine use. Simulation most valuable when
-method is "gam", "fpca", or "gee" (complex, less predictable power patterns).
-
-When use_simulation=TRUE, returns recommended sample size that achieves target power
-based on simulation results. Can combine with all other parameters including
-n_genes, fdr_threshold, dispersion, paired, etc.}
-
-\item{n_simulations}{Integer. Number of Monte Carlo replications when use_simulation=TRUE.
-Default: 500 (faster) to 1000 (more precise).
-Higher values (2000+) give more stable estimates but take longer.
-Trade-off: 500 simulations ≈ 5-10s, 1000 ≈ 10-20s, 2000 ≈ 20-40s depending on method.
-CI width decreases as √n_simulations, so 4× more simulations needed for 2× narrower CI.}
-
-\item{verbose}{Logical. Print informative sample size recommendation message.
-Default: TRUE. When genome-wide mode active (n_genes, fdr_threshold specified),
-also shows multiple testing penalty factor (e.g., "FDR control requires 3.2× larger").
-When use_simulation=TRUE, shows simulation progress (every 50 iterations).}
+\item{verbose}{Logical. Print message (default TRUE).}
 }
 \value{
-Integer. Recommended number of samples per group (or pairs if paired=TRUE).
-  With verbose=TRUE, also prints a formatted recommendation message to console.
-  When genome-wide mode active, includes note about multiple testing penalty.
+Integer. Recommended sample size per group.
 }
 \description{
 Calculate Sample Size for Desired Power
@@ -303,13 +156,13 @@ recommend_sample_size(effect_size = 0.10, power = 0.80, n_q_values = 5, method =
 recommend_sample_size(effect_size = 0.20, power = 0.80, n_q_values = 5, paired = TRUE)
 
 # For single q-value analysis with specific Tsallis q parameter
-# q = 0.5 (rare isoforms): 1.0× baseline power
+# q = 0.5 (rare isoforms): 1.0* baseline power
 recommend_sample_size(effect_size = 0.20, power = 0.80, n_q_values = 1, q = 0.5)
 
-# q = 1.0 (Shannon entropy, RECOMMENDED): 1.5× power, ~18\% fewer samples needed
+# q = 1.0 (Shannon entropy, RECOMMENDED): 1.5* power, ~18\% fewer samples needed
 recommend_sample_size(effect_size = 0.20, power = 0.80, n_q_values = 1, q = 1.0)
 
-# q = 2.0 (abundant isoforms): 2.5× power, ~37\% fewer samples needed
+# q = 2.0 (abundant isoforms): 2.5* power, ~37\% fewer samples needed
 recommend_sample_size(effect_size = 0.20, power = 0.80, n_q_values = 1, q = 2.0)
 
 # Comparison: same effect, different q values  

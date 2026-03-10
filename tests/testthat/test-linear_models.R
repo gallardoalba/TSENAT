@@ -1434,23 +1434,6 @@ test_that("LMM hypothesis testing does NOT need p-value bias correction", {
   expect_true(TRUE)  # Literature review confirms: no p-value bias correction needed for LMM
 })
 
-test_that("Satterthwaite t-distribution already handles small-sample behavior in LMM", {
-  # TSENAT's LMM implementation (calc_lm_helpers.R line 491-541) includes:
-  # - Satterthwaite degrees-of-freedom approximation
-  # - t-test based hypothesis testing
-  # - Kenward-Roger adjustments for variance estimation
-  #
-  # These methods INHERENTLY account for small-sample effects in:
-  # ✓ Type I error control
-  # ✓ Test power
-  # ✓ Confidence interval coverage
-  #
-  # This is why p-value bias correction is NOT needed for LMM hypothesis testing,
-  # unlike GAM (which uses smoothing that can inflate Type I errors)
-  
-  expect_true(TRUE)  # Satterthwaite methodology sufficient for LMM testing
-})
-
 test_that("K-C correction needed for GEE: sandwich variance underestimation", {
   # GAM/GEE NEED bias correction because:
   # 

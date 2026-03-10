@@ -36,11 +36,9 @@ Color intensity indicates strength of condition shift.
 }
 \details{
 Heatmap interpretation:
-\itemize{
-  \item \strong{Red}: Transcript increases influence in Condition A (up-switching)
-  \item \strong{Blue}: Transcript increases influence in Condition B (down-switching)
-  \item \strong{White/Light}: Minimal switching (neutral effect)
-}
+- \strong{Red}: Transcript increases influence in Condition A (up-switching)
+- \strong{Blue}: Transcript increases influence in Condition B (down-switching)
+- \strong{White/Light}: Minimal switching (neutral effect)
 
 Useful for:
 - Identifying coordinated switching across genes

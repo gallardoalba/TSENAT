@@ -71,29 +71,22 @@ with |test_statistic| >= |observed_statistic| and \code{m} is the total number o
 permutations.
 
 \strong{Why This Correction Matters:}
-\itemize{
-  \item \strong{Prevents p = 0:} Traditional formula produces p = 0 when observed
+- \strong{Prevents p = 0:} Traditional formula produces p = 0 when observed
   statistic is more extreme than all m permutations. This is statistically incorrect.
-
-  \item \strong{Proper Calibration:} The pseudocount ensures valid Type I error control
+- \strong{Proper Calibration:} The pseudocount ensures valid Type I error control
   and proper coverage properties, especially important with small permutation counts.
-
-  \item \strong{Minimum P-Value:} With m permutations, p_min = 1/(m+1), not 0.
+- \strong{Minimum P-Value:} With m permutations, p_min = 1/(m+1), not 0.
   Example: With m = 1000, p_min ≈ 0.000999 (not 0).
-
-  \item \strong{Standard Practice:} This correction is now implemented in limma, edgeR,
+- \strong{Standard Practice:} This correction is now implemented in limma, edgeR,
   DESeq2, and other standard bioinformatics packages.
-}
 
 The permutation p-values are computed two-sided as the proportion
 of permuted log2 fold-changes at least as extreme as the observed value,
 with the pseudocount applied: (count + 1) / (n_perm + 1).
 
 For paired designs, the function supports two permutation schemes:
-\itemize{
-  \item \code{'swap'}: Randomly swaps sample labels within pairs
-  \item \code{'signflip'}: Performs sign-flip permutations (Pesarin & Salmaso 2010)
-}
+- \code{'swap'}: Randomly swaps sample labels within pairs
+- \code{'signflip'}: Performs sign-flip permutations (Pesarin & Salmaso 2010)
 }
 \note{
 The permutation test returns two-sided empirical p-values using the
