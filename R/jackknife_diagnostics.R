@@ -1272,7 +1272,9 @@ jackknife_isoform_switching <- function(
     res <- results_per_gene[[gene]]
     n_tx <- length(res$transcript_ids)
     n_switching <- sum(res$switching_status != "neutral", na.rm = TRUE)
-    max_delta <- max(abs(res$delta_influence), na.rm = TRUE)
+    # Only compute max_delta if there are finite values
+    delta_vals <- res$delta_influence[is.finite(res$delta_influence)]
+    max_delta <- if (length(delta_vals) > 0) max(abs(delta_vals)) else 0
     n_fdr_sig <- sum(res$delta_fdr < 0.05, na.rm = TRUE)
     
     # Get gene name from rowData if available

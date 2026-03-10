@@ -10,7 +10,6 @@ jackknife_isoform_switching(
   pair_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
-  top_n = 5,
   q = 1,
   norm = TRUE,
   log_base = exp(1),
@@ -35,9 +34,8 @@ jackknife_isoform_switching(
 
 \item{isoform_col}{Character: column name in rowData for transcript/isoform IDs.}
 
-\item{top_n}{Numeric: number of top genes to analyze (default 5). If NULL, all genes.}
-
-\item{q}{Numeric: Tsallis entropy order (default 1 = Shannon entropy).}
+\item{q}{Numeric: Tsallis entropy order (default 1 = Shannon entropy). Can be a vector
+for multi-q analysis (e.g., q = c(0.5, 1.0, 1.5, 2.0)); results will be nested by q value.}
 
 \item{norm}{Logical: normalize entropy to [0,1]? (default TRUE).}
 
@@ -53,15 +51,18 @@ jackknife_isoform_switching(
 
 \item{verbose}{Logical: verbose output? (default FALSE).}
 
-\item{lm_results}{Data frame: results from calculate_lm_interaction() with 'gene',
-'p_interaction' and/or 'adj_p_interaction' columns for filtering genes.}
+\item{lm_results}{Data frame: results from calculate_lm_interaction() with 'gene' column.
+Can contain either gene names or gene IDs; function automatically maps names to IDs
+using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction' columns for
+filtering genes by significance. When provided, only genes passing lm_p_threshold are
+analyzed; all matching genes are included (top_n parameter removed).}
 
 \item{lm_p_threshold}{Numeric: p-value threshold for LM gene filtering (default 0.05).}
 
 \item{use_lm_fdr}{Logical: use adjusted p-values from LM results if available (default TRUE).}
 }
 \value{
-A list of class tsenat_isoform_switching with:
+If q is a single value, returns a list of class tsenat_isoform_switching with:
   \describe{
     \item{results_per_gene}{named list of per-gene results}
     \item{summary_table}{data.frame with per-gene summary}
@@ -70,6 +71,10 @@ A list of class tsenat_isoform_switching with:
     \item{conditions}{character vector of the two conditions compared}
     \item{metadata}{list with analysis metadata}
   }
+  
+  If q is a vector, returns a list of class tsenat_isoform_switching_multiq where each
+  element is a complete tsenat_isoform_switching result for that q value. Keys are
+  formatted as "q_X_XX" for ease of iteration (e.g., q_0_01, q_1_00, q_2_00).
 }
 \description{
 Detects isoform/transcript switches between conditions using condition-stratified

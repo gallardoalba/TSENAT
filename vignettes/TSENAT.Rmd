@@ -25,11 +25,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Overview
+# Overview
 
 **TSENAT** (Tsallis Entropy Analysis Toolbox) quantifies **isoform heterogeneity** in RNA-seq data using Tsallis entropy—a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, Salmon) and differential transcript usage packages (*SplincingFactory*). By tuning a sensitivity parameter `q`, users examine diversity at different scales: rare variants (low `q`) or dominant isoforms (high `q`). This vignette demonstrates computing Tsallis entropy from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves. All results integrate seamlessly with Bioconductor via `SummarizedExperiment`.
 
-### Motivation and Bioconductor Contribution
+## Motivation and Bioconductor Contribution
 
 Common RNA-seq tools, such as DESeq2 or differential transcript usage (DTU) packages like 
 *SplincingFactory*, focus either on changes in **total gene abundance** or on **individual 
@@ -56,7 +56,7 @@ isoform-level complexity that are inaccessible to existing DTU or abundance-focu
 
 
 
-### High-level workflow
+## High-level workflow
 
 1. Preprocess counts and filter low-abundance transcripts.
 2. Compute relative transcript proportions within each gene and evaluate
@@ -125,9 +125,7 @@ All analysis results are organized into a `SummarizedExperiment` object—the st
 
 Within each `SummarizedExperiment` object, three key components work together: **column metadata** (`colData`) captures sample-level information including identifiers, group assignments, and pairing information; **row metadata** (`rowData`) stores transcript identifiers, gene assignments, and feature annotations; and **assays** contain the computed diversity measures themselves. The assay structure is flexible—typically one assay per `q` value, or a single assay when combining multiple q values—where each cell represents the normalized or unnormalized Tsallis entropy for a specific gene-sample combination.
 
-## What is Tsallis entropy?
-
-### Mathematical Definition
+# What is Tsallis entropy?
 
 Tsallis entropy is a one-parameter family of diversity measures that
 generalizes Shannon entropy [@Shannon1948] via a sensitivity parameter `q` [@Tsallis1988a]. Unlike Shannon entropy,
@@ -145,7 +143,7 @@ This parametric family unites diverse entropy concepts under a single framework:
 - **Mathematical elegance**: Reduces to well-known indices at specific q-values
 - **Practical flexibility**: Allows data-driven exploration via q-curves
 
-### Information-Theoretic Interpretation
+## Information-Theoretic Interpretation
 
 In information theory terms [@Shannon1948, @CoverThomas2006], entropy measures the 
 **uncertainty or surprise** when drawing a single item (transcript) from a probabilistic 
@@ -269,7 +267,11 @@ the q-spectrum, captures organization at multiple biological scales simultaneous
 essential for unpacking the complexity of gene regulation in health and disease.
 
 
-## Example dataset
+# Isoform switching workflow
+
+Having established the mathematical and biological foundations of Tsallis entropy, we now demonstrate a complete workflow for detecting and characterizing **isoform switching**—the coordinated changes in transcript usage patterns between experimental conditions. Isoform switching occurs when cells reorganize their isoform landscape without necessarily changing total gene abundance, often reflecting strategic shifts in protein function driven by splicing regulation. This section walks through a practical analysis pipeline: from raw transcript counts to identifying genes with significant scale-dependent isoform complexity changes (via linear model interaction testing) and dissecting the specific transcripts driving those changes (via jackknife-based influence assessment). We'll use a paired experimental design where treated and control samples are linked, enabling detection of robust biological signals while controlling for subject-level variability. By the end of this workflow, you'll be able to identify not just *which genes* undergo isoform switching, but *which transcripts* are responsible and *at which diversity scales* the switching occurs.
+
+## Load data and metadata
 
 An example dataset is included for demonstration.
 
@@ -281,8 +283,6 @@ suppressPackageStartupMessages({
     library(SummarizedExperiment)
 })
 ```
-
-### Load data and metadata
 
 Now we will load the example dataset and associated metadata:
 
@@ -308,7 +308,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 ```
 
-### Data preprocessing and filtering
+## Data preprocessing and filtering
 
 Next, we will create a `SummarizedExperiment` data container, a standard 
 Bioconductor class for storing high-throughput assay data along with associated 
@@ -378,7 +378,7 @@ samples with TPM values above the median of mean gene TPM. This balanced approac
 filters out low-abundance transcripts that contribute noise while retaining sufficient 
 isoform diversity for meaningful entropy calculations.
 
-## Compute Tsallis entropy.
+## Compute Tsallis entropy
 
 Now we will compute Tsallis entropy.
 
@@ -515,7 +515,7 @@ knitr::kable(
 )
 ```
 
-## Linear-model interaction
+## Linear-Model interaction
 
 Once we have, we can test for interactions between `q` and
 sample groups across a sequence of `q` values (`q-sequence`), that is,
@@ -633,8 +633,201 @@ print(plot_target)
 ```
 
 
+## Transcript Switching Across Diversity Scales
 
-### Effect size analysis across q-spectrum
+The LM interaction test revealed that condition effects vary across the
+diversity scale (q parameter). Here we assess whether these switching
+patterns are consistent across different q values or vary by scale. This
+bridges the gap between the multi-q LM test and the single-q jackknife
+analysis.
+
+```{r multi-q-switching-validation, echo=TRUE, results='hide'}
+
+# Multi-Q analysis: Test switching at different q values
+q_vector <- c(0.01, 0.5, 1.0, 1.5, 2.0)
+
+# Single call for all q values at once (vectorized approach)
+# Note: jackknife_isoform_switching now handles gene name to ID mapping automatically
+multi_q_results <- jackknife_isoform_switching(
+  se = se,
+  condition_col = "sample_type",
+  pair_col = "paired_samples",
+  gene_col = "gene_id",
+  isoform_col = "transcript_id",
+  q = q_vector,
+  norm = TRUE,
+  n_bootstrap = 100,
+  print_results = TRUE,
+  threshold = 90,
+  lm_results = lm_res,
+  lm_p_threshold = 0.05,
+  use_lm_fdr = TRUE
+)
+
+```
+
+## Delta Influence Consistency Across Q Values for Top Genes
+
+The tables below examine how transcript switching patterns vary across different diversity scales (q-values) for the four genes with the strongest q×condition interactions. The delta influence metric quantifies the difference in transcript importance between the two conditions: positive values indicate a transcript is more influential under the first condition, negative values indicate greater importance in the second condition. By comparing these values across q-values (0.01 to 2.0), we identify whether transcript switching is consistent across all scales or scale-dependent. The "Direction Consistency" column classifies each transcript's behavior: "Consistent positive/negative" indicates robust, scale-independent switching; "Mixed directions" indicates scale-dependent switching where the same transcript switches direction depending on the diversity scale analyzed. This analysis reveals whether isoform shifts are driven by the same transcripts across all q-values or whether different q-values emphasize switching in different transcripts.
+
+```{r multi-q-switching-display, echo=TRUE, results='asis'}
+
+# Create summary_df from lm_res for downstream analysis
+# This ensures we use the top genes by LM interaction p-value
+summary_df <- data.frame(
+  gene = lm_res$gene,
+  gene_name = lm_res$gene_name,
+  p_interaction = lm_res$p_interaction,
+  adj_p_interaction = lm_res$adj_p_interaction,
+  stringsAsFactors = FALSE
+)
+
+# Sort by adjusted p-value (most significant first)
+summary_df <- summary_df[order(summary_df$adj_p_interaction, na.last = TRUE), ]
+rownames(summary_df) <- NULL
+
+# Extract gene_name_map from the first multi_q result to resolve IDs to names
+first_q_key <- names(multi_q_results)[1]
+gene_id_to_name <- setNames(
+  multi_q_results[[first_q_key]]$gene_name_map,
+  multi_q_results[[first_q_key]]$gene_ids
+)
+
+# Get all available gene IDs from multi_q_results
+available_gene_ids <- names(multi_q_results[[first_q_key]]$results_per_gene)
+
+# Match top genes from summary_df to available gene IDs
+# Create reverse lookup: gene_name -> gene_id
+gene_name_to_id <- setNames(
+  names(gene_id_to_name),
+  gene_id_to_name
+)
+
+# Get top genes by matching summary_df gene_name to available gene IDs
+top_genes_list <- list()
+for (i in 1:min(2, nrow(summary_df))) {
+  gene_name <- summary_df$gene_name[i]
+  if (gene_name %in% names(gene_name_to_id)) {
+    gene_id <- gene_name_to_id[gene_name]
+    if (!is.na(gene_id) && gene_id %in% available_gene_ids) {
+      top_genes_list[[length(top_genes_list) + 1]] <- list(
+        gene_id = gene_id,
+        gene_name = gene_name
+      )
+    }
+  }
+}
+
+for (gene_idx in seq_along(top_genes_list)) {
+  gene_id <- top_genes_list[[gene_idx]]$gene_id
+  gene_name <- top_genes_list[[gene_idx]]$gene_name
+  
+  # Display header with gene name and ID
+  if (is.na(gene_name) || gene_name == "") {
+    header_text <- gene_id
+  } else {
+    header_text <- paste0(gene_name, " (", gene_id, ")")
+  }
+  
+  cat("#### Gene: ", header_text, "\n\n", sep="")
+  
+  # Collect results for this gene across all q values
+  q_values_available <- character(0)
+  gene_data_by_q <- list()
+  q_key_to_value <- list()
+  
+  for (q_val in q_vector) {
+    q_val_formatted <- sprintf("%.2f", q_val)
+    q_key <- paste0("q_", gsub("\\.", "_", q_val_formatted))
+    
+    if (!is.null(multi_q_results[[q_key]]) && 
+        !is.null(multi_q_results[[q_key]]$results_per_gene) &&
+        gene_id %in% names(multi_q_results[[q_key]]$results_per_gene)) {
+      gene_res <- multi_q_results[[q_key]]$results_per_gene[[gene_id]]
+      if (!is.null(gene_res$delta_influence)) {
+        q_values_available <- c(q_values_available, q_key)
+        gene_data_by_q[[q_key]] <- gene_res
+        q_key_to_value[[q_key]] <- q_val
+      }
+    }
+  }
+  
+  # Build table if gene found in at least one q-value
+  if (length(q_values_available) > 0) {
+    first_q <- q_values_available[1]
+    n_tx_available <- length(gene_data_by_q[[first_q]]$transcript_ids)
+    # Show all transcripts (or up to 10 for very large genes)
+    n_tx <- min(10, n_tx_available)
+    
+    # Build data frame with proper structure
+    tx_ids <- gene_data_by_q[[first_q]]$transcript_ids[1:n_tx]
+    comparison_data <- data.frame(transcript = tx_ids, stringsAsFactors = FALSE)
+    
+    # Add delta_influence values for each q-value
+    for (q_key in q_values_available) {
+      delta_vals <- gene_data_by_q[[q_key]]$delta_influence[1:n_tx]
+      comparison_data[[q_key]] <- delta_vals
+    }
+    
+    # Clean NaN and Inf values for display
+    for (col in q_values_available) {
+      comparison_data[[col]][is.nan(comparison_data[[col]]) | is.infinite(comparison_data[[col]])] <- NA
+    }
+    
+    # Get pre-computed direction consistency from jackknife results
+    consistency_results <- gene_data_by_q[[q_values_available[1]]]$direction_consistency[1:n_tx]
+    
+    # Add consistency column
+    comparison_data$Spacer <- " "
+    comparison_data$Consistency <- consistency_results
+    
+    # Create display labels for column names (for knitr::kable)
+    col_display <- c("Transcript", sapply(q_values_available, function(qk) {
+      q_num <- q_key_to_value[[qk]]
+      paste0("q=", sprintf("%.2f", q_num))
+    }), "", "Direction Consistency")
+    
+    print(knitr::kable(comparison_data, digits = 3, col.names = col_display))
+  }
+  
+  cat("\n")
+}
+```
+
+### Delta Influence Across Diversity Scales
+
+Visualize switching patterns for the top genes identified by the LM
+interaction test. This shows which transcripts are switching in genes 
+with significant q×condition interaction effects. The heatmaps below display
+the jackknife delta influence (a measure of transcript switching robustness)
+across different q-values (rows: 0.01 to 2.0, representing increasing diversity
+scales) and transcripts (columns) for each gene.
+
+```{r multi-q-heatmap, echo=TRUE, fig.width=18, fig.height=20}
+# Generate multi-Q heatmaps using the dedicated function
+# The function extracts all needed information from the multi_q_results object
+heatmap_file <- plot_multiq_delta_influence_heatmaps(
+  switching_results = multi_q_results,
+  n_genes = 4,
+  lm_results = lm_res
+)
+
+# Display the generated heatmap
+if (!is.null(heatmap_file) && file.exists(heatmap_file)) {
+  knitr::include_graphics(heatmap_file)
+}
+```
+
+Interpretation:
+
+- **ROWS:** q-values from low (0.01) to high (2.0) diversity, showing scale-dependent effects
+- **COLUMNS:** Each transcript for the gene
+- **Red cells:** Transcript more influential in the first condition
+- **Blue cells:** Transcript more influential in the second condition
+- **Column patterns:** Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
+
+
+### Effect size analysis
 
 To understand which **diversity scales show the most pronounced biological differences** 
 between groups, we compute effect size metrics (Tsallis divergence D_q) across the q-spectrum while **respecting 
@@ -674,24 +867,25 @@ if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res)
   # calculate_divergence handles transcript-to-gene aggregation internally
   # and matches genes from lm_res against rowData gene_names column
   
-  # Set rownames of lm_res to gene names (required by calculate_divergence)
+  # Note: Set rownames of lm_res to gene names for later use in effect_sizes_divergence()
   rownames(lm_res) <- lm_res$gene
   
   # Calculate Tsallis divergence with bootstrap CIs (reduced iterations for speed)
-  # Explicitly specify group_col and control_group to avoid auto-detection issues
+  # divergence_results_se: SummarizedExperiment with divergence estimates for each gene-q combination
   divergence_results_se <- calculate_divergence(
       se = se,
       group_col = "sample_type",
       control_group = "normal",
       q = qvec,
+      paired = TRUE,
       bootstrap = TRUE,
       nboot = 50,
       ci = 0.95,
       method = "percentile"
   )
   
-  # Note: effect_sizes_divergence() automatically filters lm_res to match genes 
-  # in divergence_results_se, ensuring alignment and preventing row mismatches
+  # Note: effect_sizes_divergence() will merge lm_res results with divergence_results_se,
+  # automatically filtering lm_res to match genes in divergence_results_se
 }
 ```
 
@@ -733,33 +927,41 @@ eff_res <- effect_sizes_divergence(
 ```
 
 ```{r divergence-results-table, results='asis', echo = FALSE}
-# Display the raw divergence computation results
-# Show first 10 genes with their point estimates and bootstrap 95% confidence intervals
+# Display divergence results for top genes by LM interaction significance
+# Show top 5 genes sorted by adjusted p-value from LM interaction test
 # NOTE: These estimates are specifically for q=1.0 (Shannon entropy / Kullback-Leibler divergence)
 # The full per-q divergence spectrum (q=0.1 to 2.0) is available in the assay matrix
-if (exists("divergence_results_se")) {
+if (exists("divergence_results_se") && exists("lm_res")) {
     div_rd <- SummarizedExperiment::rowData(divergence_results_se)
     
-    # Get top 10 by absolute divergence estimate (excluding NAs)
-    # The 'estimate', 'lower_ci', and 'upper_ci' columns correspond to q=1.0
+    # Get divergence data with gene names
     div_df <- as.data.frame(div_rd)[!is.na(div_rd$estimate), 
                                      c("estimate", "lower_ci", "upper_ci"), 
                                      drop = FALSE]
-    # Add gene names from rownames (set by calculate_divergence)
     div_df$gene_name <- rownames(div_rd)[!is.na(div_rd$estimate)]
     
-    div_df <- div_df[order(-abs(div_df$estimate)), ]
-    div_df <- head(div_df, 10)
+    # Merge with lm_res to get LM p-values
+    lm_res_sub <- lm_res[, c("gene", "adj_p_interaction")]
+    colnames(lm_res_sub) <- c("gene_name", "padj_lm")
+    div_df <- merge(div_df, lm_res_sub, by = "gene_name", all.x = TRUE)
+    
+    # Sort by LM adjusted p-value (ascending = most significant first)
+    div_df <- div_df[order(div_df$padj_lm, na.last = TRUE), ]
+    
+    # Get top 5 genes
+    div_df <- head(div_df, 5)
     
     if (nrow(div_df) > 0) {
         # Reorder columns to put gene_name first
-        div_df <- div_df[, c("gene_name", "estimate", "lower_ci", "upper_ci")]
+        div_df <- div_df[, c("gene_name", "estimate", "lower_ci", "upper_ci", "padj_lm")]
+        # Format p-values in scientific notation
+        div_df$padj_lm <- format(div_df$padj_lm, scientific = TRUE, digits = 3)
         # Format columns for display
-        colnames(div_df) <- c("Gene", "KL Divergence (D_q=1.0)", "Lower CI", "Upper CI")
+        colnames(div_df) <- c("Gene", "KL Divergence (D_q=1.0)", "Lower CI", "Upper CI", "LM adj. p-value")
         
         knitr::kable(
             div_df,
-            caption = "Kullback-Leibler divergence (Shannon-based) with bootstrap 95% confidence intervals (first 10 genes)",
+            caption = "Top 5 genes by LM interaction significance with Kullback-Leibler divergence estimates and bootstrap 95% confidence intervals",
             digits = 5,
             row.names = FALSE
         )
@@ -876,11 +1078,11 @@ plot_gene_q_spectrum(divergence_results_se, target_gene = "LINC03040", verbose =
 ```{r compare-q-spectra-plot, fig.width=10, fig.height=10, message=FALSE, warning=FALSE}
 # Compare q-spectra across multiple significant genes
 # Using the new plot_multi_gene_q_spectrum() function
-# Plots top 9 genes (3x3 grid) sorted by statistical significance
+# Plots top 6 genes (2 rows × 3 columns) sorted by statistical significance
 
 plot_generated <- FALSE
 
-# Plot top 9 genes (3x3 grid) sorted by statistical significance
+# Plot top 6 genes (2 rows × 3 columns) sorted by statistical significance
 if (exists("eff_res") && 
     !is.null(eff_res) &&
     !is.null(eff_res$interaction_results) &&
@@ -889,7 +1091,7 @@ if (exists("eff_res") &&
   tryCatch({
     p_multi <- plot_multi_gene_q_spectrum(
       eff_res = eff_res, 
-      n_genes = 9, 
+      n_genes = 6, 
       ncol = 3,
       verbose = TRUE
     )
