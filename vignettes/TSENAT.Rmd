@@ -954,33 +954,13 @@ plot_gene_q_spectrum(divergence_results_se, target_gene = "LINC03040", verbose =
 
 ```{r compare-q-spectra-plot, fig.width=10, fig.height=10, message=FALSE, warning=FALSE}
 # Compare q-spectra across multiple significant genes
-# Using the new plot_multi_gene_q_spectrum() function
-# Plots top 6 genes (2 rows × 3 columns) sorted by statistical significance
-
-plot_generated <- FALSE
-
-# Plot top 6 genes (2 rows × 3 columns) sorted by statistical significance
-if (exists("eff_res") && 
-    !is.null(eff_res) &&
-    !is.null(eff_res$interaction_results) &&
-    nrow(eff_res$interaction_results) > 0) {
-  
-  tryCatch({
-    p_multi <- plot_multi_gene_q_spectrum(
-      eff_res = eff_res, 
-      n_genes = 6, 
-      ncol = 3,
-      verbose = TRUE
-    )
-    
-    if (!is.null(p_multi)) {
-      print(p_multi)
-      plot_generated <- TRUE
-    }
-  }, error = function(e) {
-    # Error generating plot
-  })
-}
+p_multi <- plot_multi_gene_q_spectrum(
+  eff_res = eff_res, 
+  n_genes = 6, 
+  ncol = 3,
+  verbose = TRUE
+)
+print(p_multi)
 ```
 
 **Statistical Validation During Interpretation:**
