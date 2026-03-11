@@ -1129,26 +1129,149 @@
     return(k_final)
 }
 
-# Helper: Handle bounded support for Tsallis entropy via scaling and appropriate GAM family
-# Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
-# This violates Gaussian family assumption of unbounded support (-∞, +∞)
-# Solution: Scale entropy to (0,1), use quasibinomial family with logit link, then unscale
-.tsenat_handle_bounded_support <- function(df, q_vals) {
-    # TEMPORARY DISABLE (March 2026): Gamma family was causing incorrect significance levels
-    # The bounded support assumption is TOO aggressive - Tsallis entropy in practice
-    # often has near-normal residuals and doesn't actually need Gamma family.
-    #
-    # Future: Only apply Gamma if entropy actually shows clear bounded [0, log(m)] support.
-    # For now, use Gaussian which matches statistical theory better.
+# Helper: Select appropriate GAM family based on data characteristics
+# Tsallis entropy is bounded [0, log(m)], but Gaussian is often better in practice
+# Use Gamma only if data shows: heteroscedasticity, boundary clustering, or asymmetry
+.tsenat_select_gam_family <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
+    # ─────────────────────────────────────────────────────────────────────
+    # INDICATOR 1: Heteroscedasticity detection
+    # ─────────────────────────────────────────────────────────────────────
+    hetero_result <- try(
+        .tsenat_detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
+        silent = TRUE
+    )
+    
+    heteroscedastic <- FALSE
+    var_ratio_q <- 1
+    var_ratio_group <- 1
+    
+    if (!inherits(hetero_result, "try-error") && !is.na(hetero_result$is_heteroscedastic)) {
+        heteroscedastic <- hetero_result$is_heteroscedastic
+        var_ratio_q <- if (is.null(hetero_result$var_ratio_q)) 1 else hetero_result$var_ratio_q
+        var_ratio_group <- if (is.null(hetero_result$var_ratio_group)) 1 else hetero_result$var_ratio_group
+    }
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # INDICATOR 2: Boundary clustering (values near 0 or 1)
+    # ─────────────────────────────────────────────────────────────────────
+    entropy_vals <- na.omit(df$entropy)
+    n_total <- length(entropy_vals)
+    
+    # Find actual bounds from data
+    entropy_min <- min(entropy_vals)
+    entropy_max <- max(entropy_vals)
+    entropy_range <- entropy_max - entropy_min
+    boundary_threshold <- 0.1 * entropy_range  # 10% of range is "near boundary"
+    
+    # Count values near boundaries
+    n_near_min <- sum(entropy_vals <= entropy_min + boundary_threshold)
+    n_near_max <- sum(entropy_vals >= entropy_max - boundary_threshold)
+    pct_boundary_clustering <- 100 * (n_near_min + n_near_max) / n_total
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # INDICATOR 3: Skewness (asymmetry indicates non-Gaussian behavior)
+    # ─────────────────────────────────────────────────────────────────────
+    # Skewness = (mean - median) / sd * constant; values > 1 or < -1 indicate strong asymmetry
+    skewness_val <- .tsenat_compute_skewness(entropy_vals)
+    has_strong_skew <- abs(skewness_val) > 1.0
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # DECISION LOGIC: Use Gamma if strong evidence of non-Gaussian behavior
+    # ─────────────────────────────────────────────────────────────────────
+    use_gamma <- FALSE
+    reasons <- c()
+    
+    # Criterion 1: Strong heteroscedasticity (p < 0.05) AND variance changes much
+    if (heteroscedastic && (var_ratio_q > 3 || var_ratio_group > 3)) {
+        use_gamma <- TRUE
+        reasons <- c(reasons, sprintf("Heteroscedasticity detected (p<0.05, var_ratio=%.2f)", 
+                                     max(var_ratio_q, var_ratio_group)))
+    }
+    
+    # Criterion 2: EXTREME boundary clustering only (> 40% of data near bounds)
+    # Most entropy distributions naturally have some clustering - must be severe
+    if (pct_boundary_clustering > 40) {
+        use_gamma <- TRUE
+        reasons <- c(reasons, sprintf("Extreme boundary clustering: %.1f%% near bounds", pct_boundary_clustering))
+    }
+    
+    # Criterion 3: Extreme skewness (|skew| > 1) AND evidence of heteroscedasticity
+    # Require combination of indicators rather than skewness alone
+    if (has_strong_skew && abs(skewness_val) > 1.0 && heteroscedastic && var_ratio_q > 3) {
+        use_gamma <- TRUE
+        reasons <- c(reasons, sprintf("Extreme skewness (|skew|=%.2f) with heteroscedasticity (var_ratio=%.2f)", 
+                                     skewness_val, var_ratio_q))
+    }
+    
+    if (verbose && length(reasons) > 0) {
+        message(sprintf("[GAM Family Selection] Using Gamma because: %s", paste(reasons, collapse="; ")))
+    }
+    
+    if (verbose && !use_gamma) {
+        message(sprintf("[GAM Family Selection] Using Gaussian (no strong indicators); hetero_p=%.4f, hetero_vars=(%.2f,%.2f), boundary=%.1f%%, |skew|=%.2f",
+                       if(is.na(hetero_result$p_value)) NA else hetero_result$p_value,
+                       var_ratio_q, var_ratio_group, pct_boundary_clustering, skewness_val))
+    }
     
     return(list(
-        use_bounded = FALSE,  # DISABLED: Use Gaussian instead
-        entropy_scaled = NA,
-        entropy_min = min(df$entropy[!is.na(df$entropy)]),
-        entropy_offset = 0,
-        family_obj = stats::gaussian(),  # Use Gaussian by default
-        inverse_link = function(eta) eta  # Identity link
+        use_gamma = use_gamma,
+        use_gaussian = !use_gamma,
+        heteroscedastic = heteroscedastic,
+        var_ratio_q = var_ratio_q,
+        var_ratio_group = var_ratio_group,
+        boundary_pct = pct_boundary_clustering,
+        skewness = skewness_val,
+        reasons = reasons
     ))
+}
+
+# Helper: Compute skewness of a vector
+# Positive skew: right tail longer (mode < median < mean)
+# Negative skew: left tail longer (mean < median < mode)
+.tsenat_compute_skewness <- function(x, na.rm = TRUE) {
+    if (na.rm) x <- na.omit(x)
+    if (length(x) < 3) return(NA)
+    
+    m <- mean(x)
+    s <- sd(x)
+    n <- length(x)
+    
+    if (s == 0) return(0)
+    
+    # Unbiased skewness estimate
+    skew <- (sum((x - m)^3) / n) / (s^3)
+    return(skew)
+}
+
+# Helper: Handle bounded support for Tsallis entropy via appropriate GAM family selection
+# Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
+# Previous approach of forcing Gamma for ALL data was too aggressive
+# NEW: Use conditional logic to select Gaussian (safer) or Gamma (if data supports it)
+.tsenat_handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
+    # Select family based on data characteristics
+    family_info <- .tsenat_select_gam_family(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose)
+    
+    if (family_info$use_gamma) {
+        # Use Gamma family with log link (appropriate for positive bounded data)
+        return(list(
+            use_bounded = TRUE,
+            use_gamma = TRUE,
+            use_gaussian = FALSE,
+            family_obj = stats::Gamma(link = "log"),
+            inverse_link = function(eta) exp(eta),
+            family_info = family_info
+        ))
+    } else {
+        # Default to Gaussian (safer, works for most real entropy data)
+        return(list(
+            use_bounded = FALSE,
+            use_gamma = FALSE,
+            use_gaussian = TRUE,
+            family_obj = stats::gaussian(),
+            inverse_link = function(eta) eta,
+            family_info = family_info
+        ))
+    }
 }
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1381,16 +1504,11 @@
     # ═══════════════════════════════════════════════════════════════════════════════
     # BOUNDED SUPPORT HANDLING (NEW - March 2026)
     # ═══════════════════════════════════════════════════════════════════════════════
-    # Tsallis entropy is bounded [0, log(m)], violating Gaussian assumption of unbounded support
-    # Solution: Use Gamma family with log link - naturally handles positive bounded data
-    bounded_result <- .tsenat_handle_bounded_support(df, q_vals)
-    use_bounded_family <- bounded_result$use_bounded
-    
-    # Apply entropy offset if needed (Gamma requires strictly positive values)
-    if (use_bounded_family && bounded_result$entropy_offset > 0) {
-        df$entropy <- df$entropy + bounded_result$entropy_offset
-    }
-    
+    # Tsallis entropy is bounded [0, log(m)], but Gaussian is often more appropriate
+    # NEW: Conditional logic detects heteroscedasticity, boundary clustering, skewness
+    # Uses Gamma family ONLY if strong evidence; defaults to Gaussian (safer)
+    bounded_result <- .tsenat_handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
+    use_bounded_family <- bounded_result$use_gamma
     family_gam <- bounded_result$family_obj
     inverse_link_fn <- bounded_result$inverse_link
     
@@ -1647,21 +1765,22 @@
     # Add ARIMA transformation flag
     result$arima_transformation <- use_arima
     
-    # Add bounded support handling flag (NEW - March 2026)
+    # Add bounded support handling flag and family selection information (March 2026)
     result$bounded_support_model <- use_bounded_family
-    if (use_bounded_family) {
-        result$family_used <- "quasibinomial(logit)"
-        result$support_min <- bounded_result$entropy_min
-        result$support_max <- bounded_result$entropy_max
+    
+    # Add family selection information from conditional logic
+    if (bounded_result$use_gamma) {
+        result$family_used <- "Gamma(link='log')"
+        result$heteroscedasticity_detected <- bounded_result$family_info$heteroscedastic
+        result$variance_ratio_q <- bounded_result$family_info$var_ratio_q
     } else {
-        result$family_used <- "gaussian(identity)"
+        result$family_used <- "Gaussian(link='identity')"
+        result$heteroscedasticity_detected <- bounded_result$family_info$heteroscedastic
+        result$variance_ratio_q <- bounded_result$family_info$var_ratio_q
     }
     
     # Add fit method tag
-    result$fit_method <- ifelse(use_arima, "mgcv::gamm_arima(1,1,0)", "mgcv::gamm_ar1_raw")
-    if (use_bounded_family) {
-        result$fit_method <- paste0(result$fit_method, "_bounded")
-    }
+    result$fit_method <- ifelse(use_arima, "mgcv::gamm_arima(1,1,0)", "mgcv::gamm")
     
     # ═══════════════════════════════════════════════════════════════════════════════
     # RESIDUAL NORMALITY TESTING (NEW - March 2026)

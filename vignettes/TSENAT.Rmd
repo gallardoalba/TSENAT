@@ -582,6 +582,10 @@ if ("gene_name" %in% colnames(lm_res_display) && "gene" %in% colnames(lm_res_dis
     lm_res_display$gene_name <- NULL  # Remove redundant column
 }
 
+# Select key columns for display
+display_cols <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "shapiro_p_value", "residuals_normal", "n_observations", "n_subjects", "arima_transformation")
+lm_res_display <- lm_res_display[, intersect(display_cols, colnames(lm_res_display))]
+
 # Format p-values in scientific notation to show actual values
 if ("p_interaction" %in% colnames(lm_res_display)) {
     lm_res_display$p_interaction <- format(lm_res_display$p_interaction, scientific = TRUE, digits = 3)
@@ -595,17 +599,23 @@ if ("shapiro_p_value" %in% colnames(lm_res_display)) {
 
 knitr::kable(
     lm_res_display,
-    caption = "Top q-interaction results from GAM analysis with Hochberg correction and Shapiro-Wilk normality tests",
+    caption = "Top q-interaction results from GAM analysis with conditional family selection (Gaussian/Gamma), Hochberg correction, and Shapiro-Wilk normality tests",
     digits = 5,
     row.names = FALSE
 )
 ```
 
-### Interpreting the Results: Understanding P-Values and Residual Normality
+### Interpreting the Results: Understanding P-Values, Family Selection, and Residual Normality
 
 The statistical analysis results in the table above provide several key outputs:
 
+- **gene**: Gene identifier for each analysis result.
+
 - **p_interaction**: The p-value from the GAM F-test comparing the null model (group + q main effects) to the alternative model (group × q interaction). Small p-values (< 0.05) indicate significant evidence that condition effects vary across the diversity scale q.
+
+- **adj_p_interaction**: Adjusted p-value using Hochberg stepup multiple testing correction to control family-wise error rate across all genes.
+
+- **family_used**: The statistical family selected for GAM modeling. **Gaussian(link='identity')** is the default for well-behaved entropy data, while **Gamma(link='log')** is selected when strong heteroscedasticity or boundary clustering is detected. The conditional selection logic ensures appropriate family choice for each gene's data characteristics.
 
 - **residuals_normal**: A Boolean indicator (TRUE/FALSE) showing whether the GAM residuals pass the Shapiro-Wilk normality test at α = 0.05. When FALSE, residuals deviate from normality, which may occur due to:
   - Bounded entropy values (0 to 1 range) creating non-normal tails
