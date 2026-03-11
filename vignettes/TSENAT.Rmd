@@ -605,27 +605,6 @@ knitr::kable(
 )
 ```
 
-### Interpreting the Results: Understanding P-Values, Family Selection, and Residual Normality
-
-The statistical analysis results in the table above provide several key outputs:
-
-- **gene**: Gene identifier for each analysis result.
-
-- **p_interaction**: The p-value from the GAM F-test comparing the null model (group + q main effects) to the alternative model (group × q interaction). Small p-values (< 0.05) indicate significant evidence that condition effects vary across the diversity scale q.
-
-- **adj_p_interaction**: Adjusted p-value using Hochberg stepup multiple testing correction to control family-wise error rate across all genes.
-
-- **family_used**: The statistical family selected for GAM modeling. **Gaussian(link='identity')** is the default for well-behaved entropy data, while **Gamma(link='log')** is selected when strong heteroscedasticity or boundary clustering is detected. The conditional selection logic ensures appropriate family choice for each gene's data characteristics.
-
-- **residuals_normal**: A Boolean indicator (TRUE/FALSE) showing whether the GAM residuals pass the Shapiro-Wilk normality test at α = 0.05. When FALSE, residuals deviate from normality, which may occur due to:
-  - Bounded entropy values (0 to 1 range) creating non-normal tails
-  - Outliers or heteroscedasticity
-  - Smaller sample sizes amplifying departure from normality
-  
-- **shapiro_p_value**: The exact p-value from the Shapiro-Wilk test. Values much less than 0.05 indicate strong evidence of non-normality.
-
-**Note on robustness**: GAM models using Gaussian families are relatively robust to moderate violations of normality, especially with larger sample sizes. The TSENAT analysis uses the Gaussian family for entropy modeling to properly account for the effects of isoform heterogeneity structure. Even when residuals show non-normality, the p-values remain statistically valid under the GAM likelihood framework.
-
 Now we will plot the q-curve profile for the top gene identified 
 by the linear-model interaction test. We will start with `SNHG10`.   
 
@@ -652,7 +631,6 @@ Finally, we can visualize the gene `PDE7A`.
 plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PDE7A")
 print(plot_target)
 ```
-
 
 ## Transcript Switching Across Diversity Scales
 

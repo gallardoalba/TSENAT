@@ -1770,11 +1770,11 @@
     
     # Add family selection information from conditional logic
     if (bounded_result$use_gamma) {
-        result$family_used <- "Gamma(link='log')"
+        result$family_used <- "Gamma"
         result$heteroscedasticity_detected <- bounded_result$family_info$heteroscedastic
         result$variance_ratio_q <- bounded_result$family_info$var_ratio_q
     } else {
-        result$family_used <- "Gaussian(link='identity')"
+        result$family_used <- "Gaussian"
         result$heteroscedasticity_detected <- bounded_result$family_info$heteroscedastic
         result$variance_ratio_q <- bounded_result$family_info$var_ratio_q
     }
