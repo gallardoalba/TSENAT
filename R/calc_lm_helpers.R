@@ -992,6 +992,53 @@
     return(k_final)
 }
 
+# Helper: Handle bounded support for Tsallis entropy via scaling and appropriate GAM family
+# Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
+# This violates Gaussian family assumption of unbounded support (-∞, +∞)
+# Solution: Scale entropy to (0,1), use quasibinomial family with logit link, then unscale
+.tsenat_handle_bounded_support <- function(df, q_vals) {
+    # Detect if entropy has bounded support
+    # Expect: min ≈ 0, max ≈ log(isoforms)
+    
+    entropy_vals <- df$entropy[!is.na(df$entropy)]
+    if (length(entropy_vals) == 0) return(NULL)
+    
+    entropy_min <- min(entropy_vals)
+    entropy_max <- max(entropy_vals)
+    entropy_range <- entropy_max - entropy_min
+    
+    # If entropy is near 0 and bounded, apply logit transformation via scaling
+    # Heuristic: if min close to 0 AND range is modest (not infinite), assume bounded
+    if (entropy_min >= -0.1 && entropy_range < 20) {
+        # Scaled entropy: map [0, max] → (0.001, 0.999) for logit stability
+        # Add small epsilon to avoid log(0) and log(1) in logit
+        entropy_scaled <- (entropy_vals - entropy_min) / (entropy_range + 1e-6)
+        entropy_scaled <- pmin(pmax(entropy_scaled, 0.001), 0.999)  # Clamp to (0.001, 0.999)
+        
+        return(list(
+            use_bounded = TRUE,
+            entropy_scaled = entropy_scaled,
+            entropy_min = entropy_min,
+            entropy_max = entropy_max,
+            entropy_range = entropy_range,
+            family_obj = mgcv::quasibinomial(link = "logit"),  # Logit link for (0,1) support
+            inverse_link = function(eta) {
+                # Unscale predictions from [0,1] back to original [min, max]
+                p <- 1 / (1 + exp(-eta))  # Inverse logit
+                unscaled <- entropy_min + p * (entropy_range + 1e-6)
+                return(unscaled)
+            }
+        ))
+    }
+    
+    # Default: no scaling needed
+    return(list(
+        use_bounded = FALSE,
+        family_obj = gaussian(link = "identity"),  # Standard Gaussian
+        inverse_link = function(eta) eta  # Identity: no transform needed
+    ))
+}
+
 # GAM interaction helper - enhanced with regularization and bias correction support
 .tsenat_gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL,
                                    regularization = c("pca", "gamsel", "spline"),
@@ -1035,6 +1082,27 @@
             use_arima <- TRUE
         }
     }
+    
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # BOUNDED SUPPORT HANDLING (NEW - March 2026)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Tsallis entropy is bounded [0, log(m)], violating Gaussian assumption of unbounded support
+    # Solution: Use quasibinomial family with logit link if bounded support detected
+    bounded_result <- .tsenat_handle_bounded_support(df, q_vals)
+    use_bounded_family <- bounded_result$use_bounded
+    
+    if (use_bounded_family) {
+        # Scale entropy from [min, max] to (0.001, 0.999) for logit stability
+        df$entropy <- bounded_result$entropy_scaled
+        if (!is.null(df$entropy_raw)) {
+            # Already have raw; don't overwrite
+        } else {
+            # Store original for unscaling later
+            df$entropy_raw <- df$entropy  # Store de-scaled values (not used, just reference)
+        }
+    }
+    family_gam <- bounded_result$family_obj
+    inverse_link_fn <- bounded_result$inverse_link
     
     # Determine sample size for bias correction
     # For GAM, use actual number of observations (nrow(df)) not number of subjects
@@ -1090,10 +1158,12 @@
         # ARIMA(1,1,0): First difference ΔH_q modeled as AR(1) to handle monotone trend
         # Cov(ΔY_t, ΔY_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
         # This separates trend (differencing) from autocorrelation, validated in TEST L.1.6
+        # BOUNDED SUPPORT: Use quasibinomial(logit) if entropy is bounded [0, log(m)]
         fit_null <- try(
             mgcv::gamm(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
                       random = list(subject = ~1), 
                       correlation = nlme::corAR1(form = ~1|subject),
+                      family = family_gam,
                       data = df),
             silent = TRUE
         )
@@ -1101,6 +1171,7 @@
             mgcv::gamm(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
                       random = list(subject = ~1), 
                       correlation = nlme::corAR1(form = ~1|subject),
+                      family = family_gam,
                       data = df),
             silent = TRUE
         )
@@ -1126,14 +1197,19 @@
     } else {
         # Fallback to standard GAM (treats samples as independent)
         # This is used only when subject info is not available
+        # BOUNDED SUPPORT: Use quasibinomial(logit) if entropy is bounded [0, log(m)]
         bs_arg <- "tp"  # Thin plate spline
         
         fit_null <- try(
-            mgcv::gam(entropy ~ group + s(q, k = k_q, bs = bs_arg), data = df), 
+            mgcv::gam(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
+                     family = family_gam,
+                     data = df), 
             silent = TRUE
         )
         fit_alt <- try(
-            mgcv::gam(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), data = df),
+            mgcv::gam(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
+                     family = family_gam,
+                     data = df),
             silent = TRUE
         )
         
@@ -1194,8 +1270,21 @@
     # Add ARIMA transformation flag
     result$arima_transformation <- use_arima
     
+    # Add bounded support handling flag (NEW - March 2026)
+    result$bounded_support_model <- use_bounded_family
+    if (use_bounded_family) {
+        result$family_used <- "quasibinomial(logit)"
+        result$support_min <- bounded_result$entropy_min
+        result$support_max <- bounded_result$entropy_max
+    } else {
+        result$family_used <- "gaussian(identity)"
+    }
+    
     # Add fit method tag
     result$fit_method <- ifelse(use_arima, "mgcv::gamm_arima(1,1,0)", "mgcv::gamm_ar1_raw")
+    if (use_bounded_family) {
+        result$fit_method <- paste0(result$fit_method, "_bounded")
+    }
     
     return(result)
 }
@@ -1700,6 +1789,8 @@
         
         # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
         # Differencing removes monotone trend from Tsallis entropy, enabling valid AR(1) inference
+        # BONUS: First differencing of bounded [0, log(m)] data helps normalize distribution
+        # (bounded support becomes approximately normal after differencing in many cases)
         arima_result <- .tsenat_compute_arima_differences(df, q_vals, df$group, df$subject)
         
         if (is.null(arima_result) || nrow(arima_result$df) < 3) {
