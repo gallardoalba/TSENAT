@@ -649,10 +649,10 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     sample_type_in_coldata <- !is.null(sample_type_col) && sample_type_col %in% colnames(SummarizedExperiment::colData(se))
     if (sample_type_in_coldata) {
         st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
-        names(st) <- SummarizedExperiment::colData(se)$samples %||% colnames(mat)
-        # when user provides a sample_type_col, index by the sample names
-        # (strip q suffix)
-        group_vec <- unname(st[sample_names])
+        names(st) <- rownames(SummarizedExperiment::colData(se))
+        # when user provides a sample_type_col, index by the FULL column names (sample_q)
+        # not by sample_names (which lose the q-value information)
+        group_vec <- unname(st[sample_q])
     } else {
         stop("No sample grouping found: please supply `sample_type_col` or map sample",
             "types into `colData(se)` before calling calculate_lm_interaction().",

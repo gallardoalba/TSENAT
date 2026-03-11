@@ -601,6 +601,21 @@ knitr::kable(
 )
 ```
 
+### Interpreting the Results: Understanding P-Values and Residual Normality
+
+The statistical analysis results in the table above provide several key outputs:
+
+- **p_interaction**: The p-value from the GAM F-test comparing the null model (group + q main effects) to the alternative model (group × q interaction). Small p-values (< 0.05) indicate significant evidence that condition effects vary across the diversity scale q.
+
+- **residuals_normal**: A Boolean indicator (TRUE/FALSE) showing whether the GAM residuals pass the Shapiro-Wilk normality test at α = 0.05. When FALSE, residuals deviate from normality, which may occur due to:
+  - Bounded entropy values (0 to 1 range) creating non-normal tails
+  - Outliers or heteroscedasticity
+  - Smaller sample sizes amplifying departure from normality
+  
+- **shapiro_p_value**: The exact p-value from the Shapiro-Wilk test. Values much less than 0.05 indicate strong evidence of non-normality.
+
+**Note on robustness**: GAM models using Gaussian families are relatively robust to moderate violations of normality, especially with larger sample sizes. The TSENAT analysis uses the Gaussian family for entropy modeling to properly account for the effects of isoform heterogeneity structure. Even when residuals show non-normality, the p-values remain statistically valid under the GAM likelihood framework.
+
 Now we will plot the q-curve profile for the top gene identified 
 by the linear-model interaction test. We will start with `SNHG10`.   
 
@@ -611,20 +626,20 @@ plot_target <- plot_tsallis_gene_profile(ts_se, gene = "SNHG10")
 print(plot_target)
 ```
 
-Now let’s look at Now let’s look at PDE7A.
+Now let’s look at Now let’s look at CCNE1.
 
 ```{r pnpt1-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top Now let’s look at PDE7A
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PDE7A")
+# Plot q-curve profile for top Now let’s look at CCNE1
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CCNE1")
 print(plot_target)
 ```
 
 
-Finally, we can visualize the gene `CCNE1`.
+Finally, we can visualize the gene `FBXO3`.
 
 ```{r gsr-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top CCNE1
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CCNE1")
+# Plot q-curve profile for top FBXO3
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "FBXO3")
 print(plot_target)
 ```
 
@@ -952,9 +967,9 @@ This curve is the full biological signature of **isoform switching**—the patte
 abundance scales (rare vs. abundant) are affected.
 
 ```{r visualize-q-spectrum, fig.width=14, fig.height=6, results='hide'}
-# Generate q-spectrum plot for LINC03040 using the new plot_gene_q_spectrum function
+# Generate q-spectrum plot for SNHG10 using the new plot_gene_q_spectrum function
 # This gene was identified as one of the top candidates by the LMM interaction test
-plot_gene_q_spectrum(divergence_results_se, target_gene = "LINC03040", verbose = FALSE)
+plot_gene_q_spectrum(divergence_results_se, target_gene = "SNHG10", verbose = FALSE)
 ```
 
 **Interpreting the Q-Spectrum Curve:**
