@@ -570,7 +570,7 @@ lm_res_display <- head(lm_res, 6)
 
 # Select only key columns that exist in the data, including Shapiro-Wilk normality test results
 col_select <- intersect(c("gene", "gene_name", "p_interaction", "adj_p_interaction", 
-                          "shapiro_p_value", "residuals_normal",
+                          "family_used", "shapiro_p_value", "residuals_normal",
                           "n_observations", "n_subjects", "arima_transformation"), 
                         colnames(lm_res_display))
 lm_res_display <- lm_res_display[, col_select]
@@ -636,20 +636,20 @@ plot_target <- plot_tsallis_gene_profile(ts_se, gene = "SNHG10")
 print(plot_target)
 ```
 
-Now let’s look at Now let’s look at CCNE1.
+Now let’s look at Now let’s look at FBXO3.
 
 ```{r pnpt1-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top Now let’s look at CCNE1
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CCNE1")
+# Plot q-curve profile for top Now let’s look at FBXO3
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "FBXO3")
 print(plot_target)
 ```
 
 
-Finally, we can visualize the gene `FBXO3`.
+Finally, we can visualize the gene `PDE7A`.
 
 ```{r gsr-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top FBXO3
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "FBXO3")
+# Plot q-curve profile for top PDE7A
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PDE7A")
 print(plot_target)
 ```
 
