@@ -1,0 +1,738 @@
+---
+title: "TSENAT Appendix B: Rank-Based Methods for Robust Multi-Q Analysis"
+author: "Cristóbal Gallardo <gallardoalba@pm.me>"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    toc: true
+    fig_width: 10
+    fig_height: 6.5
+    toc_depth: 2
+bibliography: TSENAT.bib
+suppress-bibliography: true
+vignette: |
+  %\VignetteIndexEntry{TSENAT Appendix B}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup-global, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>",
+    fig.width = 10,
+    fig.height = 6.5,
+    message = FALSE,
+    warning = FALSE
+)
+```
+
+# Overview: Rank-Based Methods for Entropy Analysis
+
+## Motivation
+
+While TSENAT's linear mixed model (LMM) and generalized additive model (GAM) approaches are powerful for detecting q×group interactions, they rely on parametric assumptions that may not hold for entropy data. **Tsallis entropy** distributions are often:
+
+- **Non-normally distributed** (bounded between 0 and log(m), skewed)
+- **Heteroscedastic** (variance depends on number of isoforms per gene)
+- **Dependent across q** (autocorrelated q-values violate independence assumptions)
+
+This appendix presents **rank-based (non-parametric) alternatives** that complement the main TSENAT pipeline. These methods:
+
+1. **Require no distributional assumptions** beyond exchangeability
+2. **Handle dependence between q-values naturally** via ranking
+3. **Provide robust inference even under outliers and skewness**
+4. **Enable permutation-based exact p-values** for strict Type I control
+
+## When to Use Rank-Based Methods
+
+Use rank-based methods in these scenarios:
+
+- **Diagnostic validation**: Confirm LMM/GAM results using non-parametric alternatives
+- **Non-normal data**: When entropy distributions violate normality
+- **Outlier sensitivity**: When a few samples exert disproportionate influence
+- **Conservative inference**: When Type I error control is critical (e.g., regulatory biomarkers)
+- **Multi-testing robustness**: When accounting for dependence between q-values matters
+
+## Key Differences from Parametric Methods
+
+| Aspect | Parametric (GAM/LMM) | Rank-Based |
+|--------|----------------------|-----------|
+| **Assumptions** | Normality + independence | Exchangeability only |
+| **Outlier sensitivity** | High (mean-based) | Low (rank-based) |
+| **Multi-q dependence** | Not explicitly handled | Naturally accommodated |
+| **FWER control** | Approximation (closed-form) | Exact (permutation) |
+| **Computational cost** | Fast (< 1 min for 5000 genes) | Moderate (minutes for permutation) |
+
+---
+
+# Setup and Data Preparation
+
+## Load packages and data
+
+We'll build on the TSENAT pipeline from the main vignette. Start by loading the preprocessed data and entropy calculations:
+
+```{r setup-packages}
+# Load packages
+suppressPackageStartupMessages({
+    library(TSENAT)
+    library(ggplot2)
+    library(SummarizedExperiment)
+})
+
+# For reproducibility
+set.seed(42)
+```
+
+```{r setup-data, message=FALSE}
+# Load preprocessed example dataset (from main TSENAT.Rmd)
+data(readcounts)
+
+# Build SummarizedExperiment with preprocessing
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+
+metadata_df <- read.table(
+    system.file("extdata", "metadata.tsv", package = "TSENAT"),
+    header = TRUE, sep = "\t"
+)
+
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+# Create SummarizedExperiment
+se <- build_se(readcounts, gff3_dataset, metadata = metadata_df)
+
+# Filter low-abundance transcripts
+se <- filter_se(se, stringency = "medium")
+
+# Compute Tsallis entropy across q-spectrum
+qvec <- seq(0.1, 2, by = 0.05)
+ts_se <- calculate_diversity(se,
+    q = qvec, norm = TRUE, metadata = metadata_df
+)
+
+cat("Data loaded and preprocessed:\n")
+cat("  Genes:", nrow(se), "\n")
+cat("  Samples:", ncol(se), "\n")
+cat("  Q-values:", length(qvec), "\n")
+```
+
+---
+
+# Part 1: Aligned Rank Transform (ART) for Multi-Factor Designs
+
+## Rationale
+
+The Aligned Rank Transform (ART) converts non-normal data to a rank scale suitable for parametric-style testing without assuming normality. This is particularly useful when entropy data violates assumptions of ANOVA or linear regression.
+
+**Two-stage process:**
+1. **Align**: Fit and subtract factor effects (e.g., q-value effects)
+2. **Rank**: Convert residuals to ranks, then to normal scores
+
+This enables robust ANOVA-type tests on entropy data while respecting multi-factor structure.
+
+## Apply ART to entropy data
+
+```{r art-basic, message=FALSE}
+# Extract entropy assay and colData
+entropy_matrix <- assay(ts_se)
+ts_coldata_full <- colData(ts_se)
+
+# For q × sample_type interaction test, we need both sample types at multiple q-values
+# Select columns strategically to ensure we have both normal AND tumor samples
+
+# Get unique q-values (should be 40, from 0.1 to 2)
+unique_qs <- unique(ts_coldata_full$q)
+n_qs_available <- length(unique_qs)
+
+# Select 3 representative q-values: low, mid, high
+selected_q_values <- c(unique_qs[1], 
+                       unique_qs[ceiling(n_qs_available/2)], 
+                       unique_qs[n_qs_available])
+
+# Find columns matching these q-values with varying sample types
+selected_cols <- integer()
+for (q_val in selected_q_values) {
+    # Get ALL columns with this q-value
+    cols_with_q <- which(ts_coldata_full$q == q_val)
+    
+    # Select 2 normal and 2 tumor from these columns
+    cols_normal <- cols_with_q[ts_coldata_full$sample_type[cols_with_q] == "normal"]
+    cols_tumor <- cols_with_q[ts_coldata_full$sample_type[cols_with_q] == "tumor"]
+    
+    # Take first 2 from each type (if available)
+    selected_cols <- c(selected_cols, 
+                      head(cols_normal, 2),
+                      head(cols_tumor, 2))
+}
+
+# Extract data and create factor table
+subset_genes <- 1:10  # First 10 genes (for compact visualization)
+entropy_subset <- entropy_matrix[subset_genes, selected_cols]
+
+selected_coldata <- ts_coldata_full[selected_cols, ]
+factors_subset <- data.frame(
+    q_value = factor(selected_coldata$q),
+    sample_type = factor(selected_coldata$sample_type),
+    pair_id = factor(selected_coldata$paired_samples)
+)
+
+# Verify we have both sample types in the design
+cat("Data for q × sample_type interaction ART:\n")
+cat("  Entropy matrix shape:", nrow(entropy_subset), "genes ×", ncol(entropy_subset), "columns\n")
+cat("  Factors shape:", nrow(factors_subset), "rows\n")
+cat("  Q-values tested:", paste(round(unique(as.numeric(as.character(factors_subset$q_value))), 2), collapse = ", "), "\n")
+cat("  Sample types:", paste(unique(as.character(factors_subset$sample_type)), collapse = ", "), "\n")
+cat("  Design:", length(unique(factors_subset$q_value)), "q-values ×", 
+    length(unique(factors_subset$sample_type)), "sample types\n")
+cat("  Sample type breakdown:\n")
+print(table(factors_subset[, c("q_value", "sample_type")]))
+cat("\n  Alignment check (factors rows == entropy columns):", 
+    nrow(factors_subset) == ncol(entropy_subset), "\n\n")
+
+# Apply ART with formula testing q × sample_type interaction (with pairing adjustment)
+# This is the rank-based parallel to calculate_lm_interaction()
+art_result <- apply_aligned_rank_transform(
+    data = entropy_subset,
+    factors = factors_subset,
+    formula = ~ q_value * sample_type + pair_id  # Test q × condition interaction, adjust for pairing
+)
+
+cat("\n")
+print(art_result)
+```
+
+## Interpretation: ART for q × sample_type Interactions
+
+The ART output shows:
+
+- **aligned_ranks**: Rank-transformed entropy values after adjusting for q-effects, sample-type effects, and pairing
+- **normal_scores**: Van der Waerden normal scores (now suitable for parametric ANOVA)
+- **alignment_effects**: Estimated effects (q, sample_type, pairing) subtracted during alignment step
+- **summary**: Quality metrics for the alignment process
+
+**Key insight:** ART allows testing whether the difference between normal and tumor samples varies across the q-spectrum. This parallels the **q × sample_type interaction** from `calculate_lm_interaction()`, but using rank-based methods that don't assume normality.
+
+After ART alignment and ranking, downstream tests can use standard parametric procedures on the aligned ranks/normal scores with confidence that rank-based robustness is preserved.
+
+```{r art-diagnostic}
+# Check alignment quality
+art_summary <- art_result$summary
+cat("\nART Diagnostic Summary:\n")
+cat(art_summary, "\n")
+
+# Get dimensions
+n_genes <- nrow(art_result$aligned_ranks)
+n_samples <- ncol(art_result$aligned_ranks)
+
+cat("\nART Results:\n")
+cat("  Genes processed:", n_genes, "\n")
+cat("  Samples/observations:", n_samples, "\n")
+
+# Show sample ranks for first gene
+cat("\nAligned ranks for Gene 1:\n")
+print(art_result$aligned_ranks[1, ])
+
+cat("\nNormal scores (van der Waerden) for Gene 1:\n")
+print(art_result$normal_scores[1, ])
+```
+
+---
+
+# Part 2: Rank Correlation Across Q-Values
+
+## Rationale
+
+A key question in multi-q analysis: **Are gene rankings consistent across q-values?**
+
+- **High correlation (r > 0.85)**: Genes rank similarly regardless of q → robust effects
+- **Low correlation (r < 0.50)**: Gene rankings shift dramatically with q → scale-dependent effects
+
+## Compute rank correlations
+
+```{r rank-corr-basic, message=FALSE}
+# For demonstration: subsample q-values for faster computation
+# (Use full q-spectrum in actual analysis)
+entropy_matrix_full <- assay(ts_se)
+subset_qs <- seq(1, ncol(entropy_matrix_full), length.out = 10)  # Sample 10 from 40
+entropy_matrix <- entropy_matrix_full[, subset_qs]
+
+# For visualization: use only first 10 genes
+subset_genes <- 1:min(10, nrow(entropy_matrix))
+entropy_matrix <- entropy_matrix[subset_genes, ]
+
+n_genes <- nrow(entropy_matrix)
+n_qvalues <- ncol(entropy_matrix)
+
+cat("Rank correlation analysis dimensions:", n_genes, "genes ×", n_qvalues, "q-values (subsampled)\n\n")
+
+# KEY: For each q-value, rank the genes (not samples)
+# This tests: "Are gene rankings consistent across q-values?"
+# Create a list where each element is the ranked genes for one q-value
+pvals_list <- list()
+for (i in seq_len(n_qvalues)) {
+    # Get entropy values for this q-value (across all genes)
+    q_entropy <- entropy_matrix[, i]
+    # Rank genes by their entropy at this q-value
+    pvals_list[[i]] <- q_entropy
+}
+names(pvals_list) <- colnames(entropy_matrix)
+
+# Compute Spearman rank correlations between q-value-specific gene rankings
+rank_corr_result <- compute_rank_correlation_multiq(
+    pvalues_list = pvals_list,
+    method = "spearman",
+    use_ranks = TRUE
+)
+
+cat("\n")
+print(rank_corr_result)
+```
+
+## Visualization
+
+```{r rank-corr-visualization}
+# Plot correlation heatmap
+# Each cell shows: correlation between gene rankings at two different q-values
+# High correlation (red): genes rank similarly at both q-values (robust)
+# Low correlation (blue): gene order changes with q-value (scale-dependent)
+
+p_rank_corr <- plot_rank_correlation_heatmap(
+    rank_corr_result,
+    title = "Gene Ranking Consistency Across Q-Values\n(Spearman correlation of gene-specific entropy rankings)"
+)
+print(p_rank_corr)
+```
+
+## Interpretation Table
+
+```{r rank-corr-interpretation}
+# Create interpretation summary
+# What we're measuring: For each q-value pair, how similar are gene rankings?
+
+corr_matrix <- rank_corr_result$correlation_matrix
+
+# Extract key statistics
+upper_tri_corrs <- corr_matrix[upper.tri(corr_matrix)]
+mean_corr <- mean(upper_tri_corrs, na.rm = TRUE)
+min_corr <- min(upper_tri_corrs, na.rm = TRUE)
+max_corr <- max(upper_tri_corrs, na.rm = TRUE)
+
+cat("Question: Do genes rank consistently across different q-values?\n\n")
+
+summary_df <- data.frame(
+    Metric = c("Mean Correlation", "Min Correlation", "Max Correlation", 
+               "Interpretation"),
+    Value = c(
+        sprintf("%.4f", mean_corr),
+        sprintf("%.4f", min_corr),
+        sprintf("%.4f", max_corr),
+        if (mean_corr > 0.80) "Very stable rankings (high q-robustness)"
+        else if (mean_corr > 0.65) "Moderate stability (moderate q-effects)"
+        else "Variable rankings (strong q-dependence)"
+    )
+)
+
+knitr::kable(summary_df, caption = "Gene Ranking Consistency Across Q-Values")
+
+cat("\n\nInterpretation:\n")
+cat("  > 0.80 : Same top/bottom genes regardless of q (robust, universal effects)\n")
+cat("  0.65-0.80 : Generally consistent but some q-dependent shifts (scale effects present)\n")
+cat("  < 0.65 : Gene rankings change dramatically with q (scale-dependent biology)\n")
+```
+---
+
+# Part 3: Rank Correlation Confidence Intervals
+
+## Rationale
+
+Point estimates (correlations) don't capture **uncertainty**. Bootstrap confidence intervals reveal:
+
+- **Wide CI**: Uncertain gene ranking → results may not replicate
+- **Narrow CI**: Confident gene ranking → robust, reproducible effects
+
+## Compute bootstrap CIs
+
+```{r rank-ci-basic, message=FALSE}
+# Compute 95% bootstrap percentile CIs
+# Note: n_bootstrap = 200 for vignette speed; use 1000+ for publication
+rank_ci <- rank_correlation_bootstrap_ci(
+    pvalues_or_ranks = pvals_list,
+    method = "spearman",
+    ci = "percentile",
+    ci_level = 0.95,
+    n_bootstrap = 200,  # Reduced from 1000 for vignette
+    seed = 42,
+    return_distribution = FALSE
+)
+
+cat("\n")
+print(rank_ci)
+```
+
+## CI Interpretation
+
+```{r rank-ci-interpretation}
+# Extract and display interpretation table
+ci_interp <- rank_ci$interpretation
+knitr::kable(
+    ci_interp,
+    caption = "Rank Correlation Confidence Intervals and Stability Assessment",
+    digits = 4
+)
+```
+
+**Key insights for each pairwise comparison:**
+
+- **Includes zero**: No significant rank correlation → q-values give independent rankings
+- **Narrow CI + high r**: Robust, reliable ranking consistency across q
+- **Wide CI + medium r**: Uncertain ranking (need more data or biological replication)
+- **Narrow CI + low r**: Stable but weak correlation (q-values select different genes)
+
+---
+
+# Part 4: Detecting Gene-Q Interactions via Rank-Based Testing
+
+## Rationale
+
+Extends the LMM/GAM approach from the main vignette using **Kruskal-Wallis test** (rank-based ANOVA equivalent). Answers: **Do gene rankings differ significantly across q-values?**
+
+This is a non-parametric alternative to `calculate_lm_interaction()`, robust to non-normality and outliers.
+
+## Prepare data for interaction testing
+
+```{r q-interaction-prep, message=FALSE}
+# Create long-format data for interaction testing
+# Use available genes (min of 50 or total available)
+n_test_genes <- min(50, nrow(ts_se))
+test_gene_names <- rownames(ts_se)[1:n_test_genes]
+
+# Check colData structure (already has pairing info!)
+cat("colData(ts_se) columns:", paste(colnames(colData(ts_se)), collapse = ", "), "\n")
+cat("ts_se dimensions:", nrow(ts_se), "genes ×", ncol(ts_se), "(samples × q-values)\n")
+cat("Expected entropy matrix rows:", n_test_genes, "\n\n")
+
+# Create long-format data (one row per gene-column combination)
+# ts_se has one column per (sample, q-value) combination
+# colData(ts_se) already contains sample_type and paired_samples metadata
+entropy_values <- as.numeric(assay(ts_se[test_gene_names, ]))
+n_cols <- ncol(ts_se)
+ts_coldata <- colData(ts_se)
+
+# Create long-format data using colData directly
+entropy_long <- data.frame(
+    entropy = entropy_values,
+    gene = rep(test_gene_names, n_cols),
+    sample_id = rep(ts_coldata$samples, each = n_test_genes),
+    q = rep(ts_coldata$q, each = n_test_genes),
+    sample_type = rep(ts_coldata$sample_type, each = n_test_genes),
+    pair_id = rep(ts_coldata$paired_samples, each = n_test_genes)
+)
+
+cat("Long-format data created (WITH pairing from colData):\n")
+cat("  Rows:", nrow(entropy_long), "\n")
+cat("  Expected:", n_test_genes, "genes ×", n_cols, "columns =", n_test_genes * n_cols, "\n")
+cat("  Unique sample_type:", paste(unique(entropy_long$sample_type), collapse = ", "), "\n")
+cat("  Unique pair_id:", paste(unique(entropy_long$pair_id), collapse = ", "), "\n")
+head(entropy_long, 15)
+```
+
+## Run interaction test
+
+```{r q-interaction-test, message=FALSE}
+# Use subset of genes for faster demo
+n_test_genes <- min(40, nrow(ts_se))
+test_gene_names <- rownames(ts_se)[1:n_test_genes]
+
+# Create long-format data for testing
+n_cols <- ncol(ts_se)
+entropy_values <- as.numeric(assay(ts_se[test_gene_names, ]))
+ts_coldata <- colData(ts_se)
+
+# Create long-format data using colData directly (already has metadata)
+entropy_long <- data.frame(
+    entropy = entropy_values,
+    gene = rep(test_gene_names, n_cols),
+    sample_id = rep(ts_coldata$samples, each = n_test_genes),
+    q = rep(ts_coldata$q, each = n_test_genes),
+    sample_type = rep(ts_coldata$sample_type, each = n_test_genes),
+    pair_id = rep(ts_coldata$paired_samples, each = n_test_genes)
+)
+
+# Note: detect_q_gene_interactions() tests q-effect within each gene
+# Pairing structure is preserved in the data, though KW test doesn't
+# explicitly model random intercepts. For paired analysis, see main vignette.
+
+# Test for q-gene interactions (rank-based)
+q_interactions <- detect_q_gene_interactions(
+    data = entropy_long,
+    entropy_col = "entropy",
+    q_col = "q",
+    gene_col = "gene",
+    method = "kruskal.test"  # Rank-based
+)
+
+# Display top significant results
+q_inter_sig <- q_interactions[order(q_interactions$p_value), ]
+top_genes <- head(q_inter_sig, 10)
+
+knitr::kable(
+    top_genes[, c("gene", "f_statistic", "p_value", "effect_size_eta2", "interaction_class")],
+    caption = "Top 10 Genes with Significant Q-Gene Interactions (Kruskal-Wallis)",
+    digits = 6
+)
+```
+
+## Classify genes by Q-dependency
+
+```{r q-dependency-classification}
+# Classify each gene's q-dependency pattern
+classifications <- classify_q_dependency(
+    q_interactions,
+    p_threshold = 0.05,
+    eta2_threshold_moderate = 0.01,
+    eta2_threshold_strong = 0.10
+)
+
+# Summary table
+class_table <- table(classifications)
+knitr::kable(
+    data.frame(
+        Classification = names(class_table),
+        Count = as.numeric(class_table),
+        Percentage = sprintf("%.1f%%", 100 * class_table / sum(class_table))
+    ),
+    caption = "Gene Classification by Q-Dependency"
+)
+```
+
+## Recommend Q-Value Range
+
+```{r q-range-recommendation}
+# Get data-driven q-value recommendations
+q_recommendation <- recommend_q_range(
+    q_interactions,
+    robust_threshold = 0.70,
+    strong_threshold = 0.05
+)
+
+cat("\n=== Q-VALUE RANGE RECOMMENDATION ===\n\n")
+cat("Recommendation:", q_recommendation$recommendation, "\n\n")
+cat("Rationale:\n", q_recommendation$rationale, "\n\n")
+cat("Sample composition:\n")
+cat("  Robust genes:", q_recommendation$sample_sizes$robust, 
+    sprintf("(%.1f%%)\n", 100 * q_recommendation$robust_pct))
+cat("  Moderate q-dependency:", q_recommendation$sample_sizes$moderate,
+    sprintf("(%.1f%%)\n", 100 * q_recommendation$moderate_pct))
+cat("  Strong q-dependency:", q_recommendation$sample_sizes$strong,
+    sprintf("(%.1f%%)\n", 100 * q_recommendation$strong_pct))
+cat("\nSuggested q-values:", 
+    sprintf("%.2f", q_recommendation$suggested_q_values), "\n")
+```
+
+---
+
+# Part 5: Rank-Based FWER Control via Permutation
+
+## Rationale
+
+Traditional multiple testing corrections (Hochberg, Benjamini-Hochberg) assume independence. When testing across multiple q-values (dependent structure), permutation-based FWER control provides **exact Type I error rates** without assumptions.
+
+## Run permutation test
+
+```{r fwer-perm-test, message=FALSE}
+# Prepare data: entropy differences between sample types
+# Note: Permutation respects original pairing structure in entropy matrix
+# (samples are paired by column position from metadata_df)
+
+sample_groups <- factor(colData(ts_se)$sample_type)
+
+# Use available genes (safe subset)
+n_fwer_genes <- min(30, nrow(ts_se))  # Reduced from 50
+entropy_subset_fwer <- assay(ts_se)[1:n_fwer_genes, ]
+
+# Document pairing structure
+cat("FWER Permutation Test\n")
+cat("  Genes tested:", n_fwer_genes, "\n")
+cat("  Sample groups:", paste(unique(metadata_df$sample_type), collapse=" vs "), "\n")
+cat("  Paired samples:", length(unique(metadata_df$paired_samples)), "\n")
+cat("  Note: Samples maintain pairing structure during permutation\n\n")
+
+# Run rank-based FWER control
+# Note: n_permutations = 250 for vignette speed; use 1000+ for publication
+fwer_result <- rank_based_fwer_control(
+    data = entropy_subset_fwer,
+    groups = sample_groups,
+    n_permutations = 250,  # Reduced from 500
+    test_statistic = "maxT"
+)
+
+cat("\n")
+print(fwer_result)
+```
+
+## Comparison: Adjusted P-values
+
+```{r fwer-pvalues-display}
+# Display adjusted p-values
+n_display <- min(20, n_fwer_genes)
+fwer_df <- data.frame(
+    Gene = rownames(entropy_subset_fwer)[1:n_display],
+    Gene_Statistic = fwer_result$gene_level_statistics[1:n_display],
+    FWER_Adjusted_P = fwer_result$fwer_adjusted_p[1:n_display]
+)
+
+# Identify significant genes
+fwer_df$Significant_FWER = fwer_df$FWER_Adjusted_P < 0.05
+
+knitr::kable(
+    head(fwer_df[order(fwer_df$FWER_Adjusted_P), ], 10),
+    caption = "Genes Significant After Permutation-Based FWER Control (p < 0.05)",
+    digits = 6
+)
+```
+
+---
+
+# Part 6: Diagnostic - Assumptions Validation
+
+## Why check assumptions?
+
+Rank-based methods require **exchangeability** (samples are independent, interchangeable). This diagnostic confirms data fits that assumption.
+
+```{r rank-assumptions-test}
+# Validate rank-based method assumptions
+assumptions <- test_rankbased_assumptions(
+    data = entropy_matrix,
+    checks = c("exchangeability", "monotonicity", "consistency")
+)
+
+cat("\n")
+print(assumptions)
+```
+
+---
+
+# Part 7: Comparison - Parametric vs. Rank-Based Results
+
+## Motivation
+
+Do parametric and non-parametric methods agree? Concordance validates results; discrepancies suggest data violations.
+
+## Compare LMM vs. Kruskal-Wallis
+
+```{r comparison-lmm-kw, message=FALSE}
+# Run both parametric (LMM) and rank-based (KW) tests on same data
+# This serves as validation
+
+# Parametric: linear mixed model (from main vignette)
+if (requireNamespace("mgcv", quietly = TRUE)) {
+    lm_res <- calculate_lm_interaction(
+        ts_se[1:30, ],  # Reduced from 50 genes
+        method = "gam",
+        paired = TRUE,
+        multicorr = "hochberg",
+        nthreads = 1,
+        verbose = FALSE
+    )
+    lm_pvals <- data.frame(
+        Gene = lm_res$gene,
+        LMM_P = lm_res$p_interaction,
+        LMM_Padj = lm_res$adj_p_interaction
+    )
+} else {
+    lm_pvals <- NULL
+}
+
+# Rank-based: Kruskal-Wallis (already run above)
+kw_pvals <- data.frame(
+    Gene = q_interactions$gene[1:50],
+    KW_P = q_interactions$p_value[1:50]
+)
+
+# Merge and compare
+if (!is.null(lm_pvals)) {
+    comparison <- merge(lm_pvals, kw_pvals, by = "Gene", all = TRUE)
+    
+    # Correlation of p-values
+    p_corr <- cor(comparison$LMM_P, comparison$KW_P, use = "complete.obs")
+    
+    cat("\n=== PARAMETRIC vs. RANK-BASED COMPARISON ===\n\n")
+    cat("Correlation of p-values:", sprintf("%.4f", p_corr), "\n")
+    cat("Interpretation: ")
+    cat(if (p_corr > 0.85) "High concordance (methods agree)\n"
+        else if (p_corr > 0.70) "Moderate concordance (substantial agreement)\n"
+        else "Low concordance (methods may identify different genes)\n")
+    
+    cat("\nTop 10 genes by LMM p-value:\n")
+    print(knitr::kable(
+        head(comparison[order(comparison$LMM_P), ], 10),
+        digits = 6
+    ))
+}
+```
+
+---
+
+# Part 8: Practical Recommendations
+
+## When to use each approach
+
+| Scenario | Recommendation |
+|----------|-----------------|
+| **Normal entropy data** | GAM/LMM (faster, parametric efficient) |
+| **Non-normal or skewed** | Rank-based (robust, no assumptions) |
+| **Few outliers** | GAM/LMM (outlier-robust with m-estimation) |
+| **Many outliers** | Rank-based (insensitive to extreme values) |
+| **High heterogeneity** | Rank-based (no variance homogeneity needed) |
+| **Strict Type I control** | Permutation FWER (exact p-values) |
+| **Q-dependence critical** | Rank-based (naturally accounts for dependence) |
+| **Publication biomarkers** | Both (validate results across methods) |
+
+## Best Practice Workflow
+
+```{r best-practice-workflow, eval=FALSE}
+# Step 1: Run parametric pipeline (fast, primary)
+lm_res <- calculate_lm_interaction(ts_se, method = "gam", paired = TRUE)
+
+# Step 2: Classify genes by q-dependency
+classifications <- classify_q_dependency(
+    detect_q_gene_interactions(entropy_long)
+)
+
+# Step 3: Validate with rank-based methods
+rank_corr <- compute_rank_correlation_multiq(pvals_list)
+rank_ci <- rank_correlation_bootstrap_ci(pvals_list, ci = "percentile")
+
+# Step 4: Report on results meeting both criteria
+# (good LMM p-value AND high rank correlation CI)
+robust_genes <- which(
+    lm_res$adj_p_interaction < 0.05 &
+    rank_ci$interpretation$Includes_Zero == FALSE
+)
+
+# Step 5: Visualize and interpret
+plot(rank_corr)  # Rank correlation heatmap
+plot_tsallis_gene_profile(ts_se, gene = rownames(ts_se)[robust_genes[1]])
+```
+
+---
+
+# Conclusion
+
+Rank-based methods provide **robust validation** of TSENAT's main parametric pipeline:
+
+- **Complementary**: Non-parametric alternatives require different assumptions
+- **Reassuring**: High concordance between methods validates results
+- **Diagnostic**: Discrepancies signal data violations needing investigation
+- **Conservative**: Permutation-based p-values guarantee Type I control
+
+For **publication-ready results**, report both parametric and rank-based findings, highlighting genes significant in both analyses.
+
+---
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```

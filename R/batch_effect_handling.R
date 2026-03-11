@@ -743,8 +743,7 @@ detect_batch_structure_ranking <- function(
     color_by = "condition",
     scale = TRUE) {
   
-  # Call the rank-based batch detection function from rank_based_methods module
-  # This provides a unified user-facing interface in batch_effect_handling
+  # Call the underlying detect_batch_structure implementation defined in this file
   result <- detect_batch_structure(
     entropy_lists = entropy_data,
     sample_metadata = sample_metadata,
@@ -755,12 +754,11 @@ detect_batch_structure_ranking <- function(
   return(result)
 }
 
-# Note: apply_batch_correction_ranking is already defined and exported in 
-# R/rank_based_methods.R and is available in the TSENAT namespace
-
 # ============================================================================
 # 3. RANK-BASED BATCH DETECTION AND CORRECTION (Entropy Framework)
 # ============================================================================
+# Core implementations: detect_batch_structure and apply_batch_correction_ranking
+# defined below (moved from R/rank_based_methods.R)
 
 #' Detect Batch Structure in Rank-Based Entropy Data
 #'
@@ -798,7 +796,7 @@ detect_batch_structure_ranking <- function(
 #'
 #' @seealso
 #'   \code{\link{apply_batch_correction_ranking_se}} for batch correction
-#'   \code{\link{detect_batch_structure}} in rank_based_methods.R (underlying)
+#'   \code{\link{detect_batch_structure}} (underlying implementation)
 #'
 #' @export
 #' @examples
@@ -829,8 +827,7 @@ detect_batch_structure_from_se <- function(
     }
   }
   
-  # Call the underlying detect_batch_structure function from rank_based_methods
-  # This preserves the original implementation
+  # Call the underlying detect_batch_structure implementation defined in this file
   batch_pca_result <- detect_batch_structure(
     entropy_lists = entropy_data,
     sample_metadata = sample_metadata,
@@ -944,4 +941,292 @@ apply_batch_correction_ranking_se <- function(
   )
   
   return(se_corrected)
+}
+
+################################################################################
+#
+#' Detect Batch Structure in Entropy Data via PCA
+#'
+#' Performs Principal Component Analysis on entropy matrices to identify
+#' potential batch confounding effects. Analyzes whether samples cluster by
+#' sample type (biological) or by unexpected batch structure.
+#'
+#' @param entropy_lists List or matrix. If list, each element is a q-value's entropy matrix (genes * samples). If matrix, treated as single q-value.
+#' @param sample_metadata Data frame with colnames: sample_id, batch (or similar), condition (e.g., "normal", "tumor").
+#' @param n_pcs Integer. Number of principal components to compute (default: 5)
+#' @param color_by Character. Column name in sample_metadata to color samples (e.g., "condition", "batch", "sequencing_run").
+#'
+#' @return S3 object of class "batch_pca" containing:
+#'   - pca_result: Result from prcomp()
+#'   - variance_explained: Proportion of variance for each PC
+#'   - cumulative_variance: Cumulative variance explained
+#'   - batch_pca_scores: Sample scores on first 2 PCs
+#'   - sample_metadata: Metadata used for coloring
+#'   - color_by: Name of grouping variable
+#'   - entropy_data: Original entropy data used
+#'   - is_batch_confounded: Logical, TRUE if batch structure detected
+#'   - batch_effect_strength: PC2 separation by unsupervised clustering
+#'
+#' @details
+#' PCA reveals batch effects as:
+#' - Samples separating by sequencing batch instead of biology
+#' - Unexpected clustering patterns in PC1-PC2 space
+#' - High variance explained by non-biological factors
+#'
+#' Papers: C012, C013 (batch correction in RNA-seq)
+#'
+#' @export
+detect_batch_structure <- function(
+    entropy_lists,
+    sample_metadata = NULL,
+    n_pcs = 5,
+    color_by = "condition") {
+  
+  # Handle input format: SummarizedExperiment, single matrix, or list of matrices
+  if (methods::is(entropy_lists, "SummarizedExperiment")) {
+    # Extract first assay from SummarizedExperiment
+    entropy_matrix <- assay(entropy_lists, 1)
+  } else if (is.matrix(entropy_lists)) {
+    entropy_matrix <- entropy_lists
+  } else if (is.list(entropy_lists)) {
+    # Combine all q-values: use average entropy across q-values
+    entropy_matrices <- entropy_lists
+    # Average but preserve column names from first matrix
+    entropy_matrix <- Reduce(`+`, entropy_matrices) / length(entropy_matrices)
+    # Restore column names from first matrix
+    colnames(entropy_matrix) <- colnames(entropy_matrices[[1]])
+  } else {
+    stop("entropy_lists must be a SummarizedExperiment, matrix, or list of matrices", call. = FALSE)
+  }
+  
+  # Remove rows with NaN, Inf, or zero variance
+  # Check for missing/infinite values per row
+  finite_rows <- apply(entropy_matrix, 1, function(x) all(is.finite(x)))
+  
+  # Check for zero-variance rows
+  col_vars <- apply(entropy_matrix, 1, var, na.rm = TRUE)
+  nonzero_var_rows <- which(!is.na(col_vars) & col_vars > 0)
+  
+  # Keep only rows that are finite and have nonzero variance
+  keep_rows <- intersect(which(finite_rows), nonzero_var_rows)
+  
+  if (length(keep_rows) == 0) {
+    stop("No genes with finite values and non-zero variance found", call. = FALSE)
+  }
+  
+  entropy_matrix <- entropy_matrix[keep_rows, ]
+  
+  # Limit n_pcs to minimum of requested and available
+  n_samples <- ncol(entropy_matrix)
+  n_pcs_actual <- min(n_pcs, n_samples - 1)
+  
+  # Samples are columns; perform PCA on transposed (pca operates on rows)
+  pca_result <- prcomp(t(entropy_matrix), scale. = TRUE, rank. = n_pcs_actual)
+  
+  # Calculate variance explained
+  var_tot <- sum(pca_result$sdev^2)
+  var_explained <- (pca_result$sdev^2) / var_tot
+  cum_var <- cumsum(var_explained)
+  
+  # Prepare output with sample scores
+  batch_pca_scores <- data.frame(
+    sample_id = rownames(pca_result$x),
+    PC1 = pca_result$x[, 1],
+    PC2 = pca_result$x[, 2],
+    stringsAsFactors = FALSE
+  )
+  
+  # Add metadata if provided
+  if (!is.null(sample_metadata)) {
+    # Prefer sample_id column if it exists; otherwise use rownames
+    if ("sample_id" %in% colnames(sample_metadata)) {
+      # Match PCA sample IDs to metadata sample_id column
+      pca_sids <- as.character(batch_pca_scores$sample_id)
+      meta_sids <- as.character(sample_metadata$sample_id)
+      row_idx <- match(pca_sids, meta_sids)
+    } else if (!is.null(rownames(sample_metadata))) {
+      row_idx <- match(as.character(batch_pca_scores$sample_id), as.character(rownames(sample_metadata)))
+    } else {
+      row_idx <- seq_len(nrow(sample_metadata))
+    }
+    
+    # Only add metadata columns if matching was successful (row_idx not all NA)
+    if (!all(is.na(row_idx))) {
+      for (col in setdiff(colnames(sample_metadata), "sample_id")) {
+        batch_pca_scores[[col]] <- sample_metadata[row_idx, col]
+      }
+    }
+  }
+  
+  # Detect batch confounding by checking if PC2 shows unexpected structure
+  is_confounded <- FALSE
+  batch_strength <- 0
+  
+  if (!is.null(sample_metadata) && color_by %in% colnames(batch_pca_scores)) {
+    # Use ANOVA to test if color_by explains PC2 variance
+    groups <- batch_pca_scores[[color_by]]
+    if (length(unique(groups)) > 1) {
+      aov_result <- aov(batch_pca_scores$PC2 ~ groups)
+      f_stat <- summary(aov_result)[[1]]$`F value`[1]
+      batch_strength <- if (is.finite(f_stat)) f_stat else 0
+      # Threshold: F > 3 suggests batch confounding
+      is_confounded <- (batch_strength > 3)
+    }
+  }
+  
+  structure(
+    list(
+      pca_result = pca_result,
+      variance_explained = var_explained,
+      cumulative_variance = cum_var,
+      batch_pca_scores = batch_pca_scores,
+      sample_metadata = sample_metadata,
+      color_by = color_by,
+      entropy_data = entropy_matrix,
+      is_batch_confounded = is_confounded,
+      batch_effect_strength = batch_strength,
+      n_components = n_pcs
+    ),
+    class = "batch_pca"
+  )
+}
+
+#' @noRd
+#' @exportS3Method
+print.batch_pca <- function(x, ...) {
+  cat("BATCH EFFECT DETECTION VIA PCA\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n\n")
+  
+  cat("VARIANCE EXPLAINED BY PRINCIPAL COMPONENTS:\n")
+  cat(paste(rep("-", 70), collapse = ""), "\n")
+  for (i in seq_len(min(5, length(x$variance_explained)))) {
+    pct <- round(x$variance_explained[i] * 100, 1)
+    cum <- round(x$cumulative_variance[i] * 100, 1)
+    cat(sprintf("  PC%-2d: %5.1f%% (cumulative: %5.1f%%)\n", i, pct, cum))
+  }
+  
+  cat("\nBATCH CONFOUNDING ASSESSMENT:\n")
+  cat(paste(rep("-", 70), collapse = ""), "\n")
+  if (x$is_batch_confounded) {
+    cat("  ✗ BATCH EFFECT DETECTED\n")
+    cat(sprintf("  Batch effect strength (F-statistic): %.2f (threshold: 3.0)\n", x$batch_effect_strength))
+    cat("  Recommendation: Apply batch correction before analysis\n")
+  } else {
+    cat("  ✓ No significant batch confounding detected\n")
+    cat(sprintf("  Batch effect strength (F-statistic): %.2f (threshold: 3.0)\n", x$batch_effect_strength))
+    cat("  Samples cluster primarily by biological condition\n")
+  }
+  
+  cat("\nNOTE: PCA inspection required; F-statistic is suggestive only\n")
+  cat("      Visual inspection of PCA plots recommended\n")
+  
+  invisible(x)
+}
+
+#' Apply Batch Correction in Rank-Based Framework
+#'
+#' Removes batch effects from entropy values using residual method compatible
+#' with rank-based testing (preserves exchangeability assumption).
+#'
+#' Uses linear model: Entropy ~ condition + batch
+#' Then extracts residuals: Entropy_corrected = Entropy - batch_effect
+#'
+#' This approach maintains validity of permutation tests because under null
+#' hypothesis (no biological signal), the residuals remain exchangeable.
+#'
+#' @param entropy_matrix Matrix of entropy values (genes * samples)
+#' @param batch_factor Factor indicating batch membership for each sample
+#' @param condition_factor Factor indicating biological condition (normal/tumor)
+#'
+#' @return List containing:
+#'   - entropy_corrected: Batch-corrected entropy matrix (same dimensions)
+#'   - batch_effects: Estimated batch effects per sample
+#'   - model_fit: Linear model fit object
+#'   - r_squared: Variance explained by batch term
+#'
+#' @details
+#' Equations used:
+#'   Entropy[g, s] = α[g] + β[g] * condition[s] + γ[g, b] * batch[s] + ε[g, s]
+#'   Entropy_corrected[g, s] = Entropy[g, s] - (γ[g, b] * batch[s])
+#'
+#' This maintains:
+#' - Exchangeability: Residuals still exchangeable under null
+#' - Monotonicity: Ordering within genes preserved
+#' - Interpretability: Effect sizes unchanged in biological direction
+#'
+#' Papers: C012, C013 (ComBat-like batch correction)
+#'
+#' @export
+apply_batch_correction_ranking <- function(
+    entropy_matrix,
+    batch_factor,
+    condition_factor = NULL) {
+  
+  if (nrow(entropy_matrix) == 0 || ncol(entropy_matrix) == 0) {
+    stop("Entropy matrix has zero dimensions", call. = FALSE)
+  }
+  
+  if (length(batch_factor) != ncol(entropy_matrix)) {
+    stop("batch_factor length must equal number of samples", call. = FALSE)
+  }
+  
+  if (!is.null(condition_factor) && length(condition_factor) != ncol(entropy_matrix)) {
+    stop("condition_factor length must equal number of samples", call. = FALSE)
+  }
+  
+  # Ensure batch and condition are factors
+  batch_factor <- as.factor(batch_factor)
+  if (!is.null(condition_factor)) {
+    condition_factor <- as.factor(condition_factor)
+  }
+  
+  entropy_corrected <- entropy_matrix
+  batch_effects <- list()
+  model_fits <- list()
+  r_squared_by_gene <- numeric(nrow(entropy_matrix))
+  names(r_squared_by_gene) <- rownames(entropy_matrix)
+  
+  # For each gene, fit model and extract batch effect
+  for (g in seq_len(nrow(entropy_matrix))) {
+    gene_entropy <- entropy_matrix[g, ]
+    
+    # Build model: entropy ~ condition + batch
+    df <- data.frame(
+      entropy = gene_entropy,
+      batch = batch_factor
+    )
+    
+    if (!is.null(condition_factor)) {
+      df$condition <- condition_factor
+      model <- lm(entropy ~ condition + batch, data = df)
+    } else {
+      model <- lm(entropy ~ batch, data = df)
+    }
+    
+    # Extract batch effects: predicted values with batch set to first level
+    batch_baseline <- levels(batch_factor)[1]
+    batch_pred <- numeric(length(batch_factor))
+    for (s in seq_along(batch_factor)) {
+      # Predict entropy with this sample's batch
+      batch_effect <- coef(model)[paste0("batch", as.character(batch_factor[s]))]
+      batch_pred[s] <- if (is.na(batch_effect)) 0 else batch_effect
+    }
+    
+    # Corrected entropy: remove batch effect (keep biological effect + residual)
+    entropy_corrected[g, ] <- gene_entropy - batch_pred
+    batch_effects[[rownames(entropy_matrix)[g]]] <- batch_pred
+    model_fits[[rownames(entropy_matrix)[g]]] <- model
+    
+    # Calculate R^2 for batch term
+    r_squared_by_gene[g] <- summary(model)$r.squared
+  }
+  
+  list(
+    entropy_corrected = entropy_corrected,
+    batch_effects = batch_effects,
+    model_fits = model_fits,
+    r_squared_by_gene = r_squared_by_gene,
+    batch_levels = levels(batch_factor),
+    mean_r_squared = mean(r_squared_by_gene, na.rm = TRUE)
+  )
 }

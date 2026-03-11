@@ -6,7 +6,8 @@ Authors@R: person(given = "Cristóbal", family = "Gallardo", role = c("aut", "cr
 Description: Tsallis entropy generalizes Shannon entropy with a parameter
     q that controls sensitivity to transcript abundance. This package allows the calculation 
     of Tsallis entropy for transcript-level expression data and differential analyses 
-    between two sample conditions.
+    between two sample conditions. For power analysis and sample size planning, 
+    see the companion package TSENATPower.
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: false

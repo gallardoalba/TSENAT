@@ -69,5 +69,5 @@ print(batch_detection)  # Shows F-statistic and variance explained
 }
 \seealso{
 \code{\link{apply_batch_correction_ranking_se}} for batch correction
-  \code{\link{detect_batch_structure}} in rank_based_methods.R (underlying)
+  \code{\link{detect_batch_structure}} (underlying implementation)
 }
