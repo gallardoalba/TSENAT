@@ -488,6 +488,142 @@
 # 
 # These tests VALIDATE the ARIMA(1,1,0) modeling approach
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# RESIDUAL DIAGNOSTICS: Shapiro-Wilk Normality Testing
+# ═══════════════════════════════════════════════════════════════════════════════
+# 
+# DATABASE EVIDENCE (March 2026):
+# • B001 (2001) - Foundations of Systems Biology
+# • B004 (2008) - LINEAR MODELS IN [Systems Biology]
+# • C017 (2006) - Springer Handbook of Statistical Methods
+#
+# Purpose: Verify that residuals from GAM/LMM/GEE models satisfy normality assumption
+# Method: Shapiro-Wilk test on model residuals (tests H0: residuals are normal)
+# Standard Practice: Applied universally in statistical modeling literature
+# Interpretation:
+#   • p > 0.05: Fail to reject H0 → Residuals appear normal ✓
+#   • p ≤ 0.05: Reject H0 → Residuals show significant departure from normality ⚠
+#
+# Implementation: Extract residuals from fitted model, apply shapiro.test()
+
+.tsenat_test_residual_normality <- function(model, model_type = c("gam", "gamm", "lme", "gee"),
+                                            verbose = FALSE) {
+    # Args:
+    #   model: fitted model object (GAM, GAMM, lme, or geeglm)
+    #   model_type: character - type of model for residual extraction
+    #   verbose: if TRUE, print diagnostic messages
+    # Returns:
+    #   List with components:
+    #   - shapiro_p_value: p-value from Shapiro-Wilk test (NA if test fails)
+    #   - residuals_normal: logical - TRUE if p > 0.05 (residuals appear normal)
+    #   - n_residuals: number of residuals tested
+    #   - test_status: character - "pass", "fail", or "error"
+    #   - report: character - human-readable summary
+    
+    if (is.null(model) || inherits(model, "try-error")) {
+        return(list(
+            shapiro_p_value = NA_real_,
+            residuals_normal = NA,
+            n_residuals = 0,
+            test_status = "error",
+            report = "Model object is NULL or error class"
+        ))
+    }
+    
+    model_type <- match.arg(model_type)
+    residuals_vec <- NULL
+    
+    # Extract residuals based on model type
+    tryCatch({
+        if (model_type == "gam") {
+            # Standard GAM: use residuals() generic
+            residuals_vec <- residuals(model, type = "deviance")
+        } else if (model_type == "gamm") {
+            # GAMM: extract residuals from $gam component
+            if (!is.null(model$gam)) {
+                residuals_vec <- residuals(model$gam, type = "deviance")
+            } else {
+                residuals_vec <- residuals(model, type = "deviance")
+            }
+        } else if (model_type == "lme") {
+            # nlme::lme model: use residuals() generic
+            residuals_vec <- residuals(model, type = "normalized")
+        } else if (model_type == "gee") {
+            # geeglm: use residuals() generic (pearson residuals)
+            residuals_vec <- residuals(model, type = "pearson")
+        }
+    }, error = function(e) {
+        if (verbose) {
+            message("[.tsenat_test_residual_normality] Could not extract residuals: ", e$message)
+        }
+    })
+    
+    # Check if residuals were extracted successfully
+    if (is.null(residuals_vec) || length(residuals_vec) == 0) {
+        return(list(
+            shapiro_p_value = NA_real_,
+            residuals_normal = NA,
+            n_residuals = 0,
+            test_status = "error",
+            report = "Could not extract residuals from model"
+        ))
+    }
+    
+    # Remove missing values
+    residuals_clean <- as.numeric(na.omit(residuals_vec))
+    n_res <- length(residuals_clean)
+    
+    # Shapiro-Wilk test requires at least 3 observations
+    if (n_res < 3) {
+        return(list(
+            shapiro_p_value = NA_real_,
+            residuals_normal = NA,
+            n_residuals = n_res,
+            test_status = "error",
+            report = sprintf("Insufficient residuals for Shapiro-Wilk test (n=%d, need ≥3)", n_res)
+        ))
+    }
+    
+    # Run Shapiro-Wilk test
+    test_result <- tryCatch({
+        stats::shapiro.test(residuals_clean)
+    }, error = function(e) {
+        return(NULL)
+    })
+    
+    if (is.null(test_result)) {
+        return(list(
+            shapiro_p_value = NA_real_,
+            residuals_normal = NA,
+            n_residuals = n_res,
+            test_status = "error",
+            report = "Shapiro-Wilk test execution failed"
+        ))
+    }
+    
+    # Extract test statistics
+    p_value <- test_result$p.value
+    is_normal <- p_value > 0.05  # Fail to reject H0 at α=0.05
+    
+    if (verbose) {
+        status_text <- if (is_normal) "PASS ✓" else "FAIL ⚠"
+        message(sprintf("[.tsenat_test_residual_normality] %s (p=%.4f, n=%d residuals)",
+                       status_text, p_value, n_res))
+    }
+    
+    return(list(
+        shapiro_p_value = p_value,
+        residuals_normal = is_normal,
+        n_residuals = n_res,
+        test_status = if (is_normal) "pass" else "fail",
+        report = sprintf(
+            "Shapiro-Wilk test: p=%.4f, %s normal (n=%d residuals)",
+            p_value, if(is_normal) "residuals appear" else "residuals NOT",
+            n_res
+        )
+    ))
+}
+
 # Helper: Check visual monotonicity of entropy values
 # Purpose: Detect ordering issues or data quality problems before statistical testing
 .tsenat_check_monotonicity <- function(entropy_vals, q_vals, tolerance = 0.05) {
@@ -1525,6 +1661,26 @@
     result$fit_method <- ifelse(use_arima, "mgcv::gamm_arima(1,1,0)", "mgcv::gamm_ar1_raw")
     if (use_bounded_family) {
         result$fit_method <- paste0(result$fit_method, "_bounded")
+    }
+    
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # RESIDUAL NORMALITY TESTING (NEW - March 2026)
+    # Database Evidence: B001, B004, C017 (Normality testing in regression)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    shapiro_result <- .tsenat_test_residual_normality(
+        model = fit_alt,
+        model_type = if (!is.null(subject)) "gamm" else "gam",
+        verbose = FALSE
+    )
+    
+    if (!is.na(shapiro_result$shapiro_p_value)) {
+        result$shapiro_p_value <- shapiro_result$shapiro_p_value
+        result$residuals_normal <- shapiro_result$residuals_normal
+        result$n_residuals_tested <- shapiro_result$n_residuals
+    } else {
+        result$shapiro_p_value <- NA_real_
+        result$residuals_normal <- NA
+        result$n_residuals_tested <- NA_integer_
     }
     
     return(result)
@@ -3101,8 +3257,18 @@
         }
     }
     
-    # Return result
-    return(data.frame(
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # RESIDUAL NORMALITY TESTING (NEW - March 2026)
+    # Database Evidence: B001, B004, C017 (Normality testing in regression)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    shapiro_result <- .tsenat_test_residual_normality(
+        model = fit_alt,
+        model_type = "gee",
+        verbose = FALSE
+    )
+    
+    # Return result with Shapiro-Wilk test
+    gee_result <- data.frame(
         gene = g,
         p_interaction = p_interaction,
         n_clusters = n_clusters,
@@ -3110,5 +3276,19 @@
         correlation_structure = selected_corstr,
         corstr_selection_method = if (corstr == "auto") "QIC_based" else "user_specified",
         stringsAsFactors = FALSE
-    ))
+    )
+    
+    # Add Shapiro-Wilk residual normality test results
+    if (!is.na(shapiro_result$shapiro_p_value)) {
+        gee_result$shapiro_p_value <- shapiro_result$shapiro_p_value
+        gee_result$residuals_normal <- shapiro_result$residuals_normal
+        gee_result$n_residuals_tested <- shapiro_result$n_residuals
+    } else {
+        gee_result$shapiro_p_value <- NA_real_
+        gee_result$residuals_normal <- NA
+        gee_result$n_residuals_tested <- NA_integer_
+    }
+    
+    return(gee_result)
 }
+

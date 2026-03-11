@@ -355,18 +355,50 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     if (m == 0) return(numeric(0))
     if (m == 1) return(pmin(1, pvalues[1]))
     
-    order_idx <- order(pvalues)
-    sorted_p <- pvalues[order_idx]
+    # Handle NA/NaN/Inf values: preserve their positions but exclude from sorting
+    invalid_mask <- !is.finite(pvalues)
+    if (all(invalid_mask)) return(pvalues)  # All invalid, return as is
     
-    adjusted <- (m - (0:(m-1))) * sorted_p
-    adjusted <- pmin(1, adjusted)
+    # Create result vector with invalid values preserved
+    result <- numeric(m)
+    result[invalid_mask] <- pvalues[invalid_mask]
     
-    for (i in 2:m) {
-        if (adjusted[i] < adjusted[i-1]) adjusted[i] <- adjusted[i-1]
+    # Find indices of valid values
+    valid_idx <- which(is.finite(pvalues))
+    if (length(valid_idx) == 0) return(result)
+    if (length(valid_idx) == 1) {
+        result[valid_idx] <- pmin(1, pvalues[valid_idx])
+        return(result)
     }
     
-    result <- numeric(m)
-    result[order_idx] <- adjusted
+    # Apply Hochberg only to valid values
+    valid_p <- pvalues[valid_idx]
+    valid_m <- length(valid_p)
+    
+    order_idx <- order(valid_p)
+    sorted_p <- valid_p[order_idx]
+    
+    adjusted_valid <- (valid_m - (0:(valid_m-1))) * sorted_p
+    adjusted_valid <- pmin(1, adjusted_valid)
+    
+    # Ensure no NaN/Inf after adjustment; replace with 1
+    na_idx <- which(!is.finite(adjusted_valid))
+    if (length(na_idx) > 0) {
+        adjusted_valid[na_idx] <- 1
+    }
+    
+    # Monotone increasing constraint (Hochberg stepup)
+    if (valid_m > 1) {
+        for (i in 2:valid_m) {
+            adjusted_valid[i] <- max(adjusted_valid[i-1], adjusted_valid[i])
+        }
+    }
+    
+    # Map adjusted back to original positions
+    adjusted_result <- numeric(valid_m)
+    adjusted_result[order_idx] <- adjusted_valid
+    result[valid_idx] <- adjusted_result
+    
     return(result)
 }
 
@@ -650,6 +682,20 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
         return(data.frame())
     }
     res <- do.call(rbind, all_results)
+    
+    # Ensure Shapiro-Wilk columns exist for methods that add them
+    # (GAM and GEE should add them; ensure consistency)
+    if (method %in% c("gam", "gee")) {
+        if (!"shapiro_p_value" %in% colnames(res)) {
+            res$shapiro_p_value <- NA_real_
+        }
+        if (!"residuals_normal" %in% colnames(res)) {
+            res$residuals_normal <- NA
+        }
+        if (!"n_residuals_tested" %in% colnames(res)) {
+            res$n_residuals_tested <- NA_integer_
+        }
+    }
     
     # Apply primary multi-q p-value adjustment method
     if (multicorr == "hochberg") {

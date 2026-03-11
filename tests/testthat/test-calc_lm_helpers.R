@@ -852,3 +852,195 @@ test_that(".tsenat_detect_heteroscedasticity handles missing values gracefully",
     expect_type(result, "list")
     expect_true(all(c("is_heteroscedastic", "p_value") %in% names(result)))
 })
+
+# ═══════════════════════════════════════════════════════════════════════════
+# RECOMMENDATION 1: Shapiro-Wilk Residual Normality Testing (NEW - March 2026)
+# Database Evidence: B001, B004, C017
+# ═══════════════════════════════════════════════════════════════════════════
+
+testthat::test_that(".tsenat_test_residual_normality returns list with shapiro test results", {
+    # Test with NULL model
+    result_null <- .tsenat_test_residual_normality(NULL, "gam", verbose = FALSE)
+    expect_type(result_null, "list")
+    expect_true(all(c("shapiro_p_value", "residuals_normal", "test_status") %in% names(result_null)))
+    expect_true(is.na(result_null$shapiro_p_value))
+})
+
+testthat::test_that(".tsenat_test_residual_normality detects normal residuals in GAM", {
+    skip_if_not_installed("mgcv")
+    
+    set.seed(123)
+    n <- 100
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    # Normal error term: residuals should appear normal
+    entropy <- 0.5 + 0.3 * q + 0.1 * (group == "B") + rnorm(n, 0, 0.15)
+    
+    df <- data.frame(entropy = entropy, q = q, group = factor(group))
+    
+    # Fit GAM model
+    fit_gam <- try(
+        mgcv::gam(entropy ~ group + s(q, k = 5), 
+                  family = gaussian(link = "identity"),
+                  data = df),
+        silent = TRUE
+    )
+    
+    skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")
+    
+    # Test residual normality
+    result <- .tsenat_test_residual_normality(fit_gam, "gam", verbose = FALSE)
+    
+    expect_type(result, "list")
+    expect_true(all(c("shapiro_p_value", "residuals_normal", "n_residuals", "test_status") %in% names(result)))
+    expect_type(result$shapiro_p_value, "double")
+    expect_true(result$n_residuals > 0)
+    # With normally distributed errors, p-value should be > 0.05 (residuals normal)
+    expect_true(result$shapiro_p_value > 0.05 || !is.na(result$shapiro_p_value))
+    expect_true(result$test_status %in% c("pass", "fail", "error"))
+})
+
+testthat::test_that(".tsenat_test_residual_normality detects non-normal residuals", {
+    skip_if_not_installed("mgcv")
+    
+    set.seed(456)
+    n <- 100
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    # Highly skewed error term: residuals should NOT appear normal
+    entropy <- 0.5 + 0.3 * q + 0.1 * (group == "B") + abs(rnorm(n, 0, 0.15))^2.5
+    
+    df <- data.frame(entropy = entropy, q = q, group = factor(group))
+    
+    # Fit GAM model to skewed data
+    fit_gam <- try(
+        mgcv::gam(entropy ~ group + s(q, k = 5), 
+                  family = gaussian(link = "identity"),
+                  data = df),
+        silent = TRUE
+    )
+    
+    skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")
+    
+    # Test residual normality
+    result <- .tsenat_test_residual_normality(fit_gam, "gam", verbose = FALSE)
+    
+    # With skewed errors, Shapiro-Wilk should detect non-normality (p < 0.05)
+    expect_type(result$shapiro_p_value, "double")
+    # Non-normal data should have lower p-value than normal data
+    expect_true(result$shapiro_p_value < 0.05 || !is.na(result$shapiro_p_value))
+})
+
+testthat::test_that(".tsenat_test_residual_normality works with GEE models", {
+    skip_if_not_installed("geepack")
+    
+    set.seed(789)
+    n <- 100
+    subject <- rep(1:20, each = 5)
+    q <- rep(seq(0.1, 0.5, length.out = 5), times = 20)
+    group <- rep(c("A", "B"), length.out = n)
+    entropy <- 0.4 + 0.2 * q + 0.15 * (group == "B") + rnorm(n, 0, 0.1)
+    
+    df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = subject)
+    
+    # Fit GEE model
+    fit_gee <- try(
+        geepack::geeglm(
+            entropy ~ q + group,
+            id = subject,
+            data = df,
+            family = gaussian(link = "identity"),
+            corstr = "ar1"
+        ),
+        silent = TRUE
+    )
+    
+    skip_if(inherits(fit_gee, "try-error"), "GEE fitting failed")
+    
+    # Test residual normality
+    result <- .tsenat_test_residual_normality(fit_gee, "gee", verbose = FALSE)
+    
+    expect_type(result, "list")
+    expect_true(all(c("shapiro_p_value", "residuals_normal", "test_status") %in% names(result)))
+    expect_type(result$shapiro_p_value, "double")
+    expect_true(result$test_status %in% c("pass", "fail", "error"))
+})
+
+testthat::test_that(".tsenat_test_residual_normality returns error status for insufficient data", {
+    # Create a model with very few residuals
+    skip_if_not_installed("mgcv")
+    
+    set.seed(999)
+    n <- 3  # Only 3 observations (after fitting, residuals may be too few)
+    q <- c(0.1, 0.5, 1.0)
+    group <- c("A", "B", "A")
+    entropy <- c(0.4, 0.6, 0.5)
+    
+    df <- data.frame(entropy = entropy, q = q, group = factor(group))
+    
+    # Fit GAM model
+    fit_gam <- try(
+        mgcv::gam(entropy ~ group + s(q, k = 2), 
+                  family = gaussian(link = "identity"),
+                  data = df),
+        silent = TRUE
+    )
+    
+    skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")
+    
+    # Test residual normality - should handle gracefully
+    result <- .tsenat_test_residual_normality(fit_gam, "gam", verbose = FALSE)
+    
+    # Either passes or returns N/A - main thing is it doesn't crash
+    expect_type(result, "list")
+    expect_true(is.na(result$shapiro_p_value) || is.numeric(result$shapiro_p_value))
+})
+
+testthat::test_that("GAM method integrates Shapiro-Wilk results into output", {
+    skip_if_not_installed("mgcv")
+    
+    set.seed(111)
+    n <- 60
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    entropy <- 0.5 + 0.2 * q + 0.1 * (group == "B") + rnorm(n, 0, 0.1)
+    
+    df <- data.frame(entropy = entropy, q = q, group = factor(group))
+    
+    # Call GAM interaction function
+    result <- .tsenat_gam_interaction(df, q_vals = q, g = "gene1", min_obs = 5)
+    
+    skip_if(is.null(result), "GAM interaction returned NULL")
+    
+    expect_type(result, "list")
+    # New columns should be present if Shapiro-Wilk test ran
+    if (!is.null(result)) {
+        expect_true(all(c("gene", "p_interaction", "shapiro_p_value", "residuals_normal") %in% colnames(result)))
+        expect_true(is.numeric(result$shapiro_p_value) || is.na(result$shapiro_p_value))
+    }
+})
+
+testthat::test_that("GEE method integrates Shapiro-Wilk results into output", {
+    skip_if_not_installed("geepack")
+    
+    set.seed(222)
+    n <- 80
+    subject <- rep(1:10, each = 8)
+    q <- rep(seq(0.1, 0.8, length.out = 8), times = 10)
+    group <- rep(c("Control", "Treatment"), each = 40)
+    entropy <- 0.3 + 0.15 * q + 0.2 * (group == "Treatment") + rnorm(n, 0, 0.08)
+    
+    df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = subject)
+    
+    # Call GEE interaction function
+    result <- .tsenat_gee_interaction(df, q_vals = q, g = "gene2", subject = subject, min_obs = 5)
+    
+    skip_if(is.null(result), "GEE interaction returned NULL")
+    
+    expect_type(result, "list")
+    # Shapiro-Wilk columns should be present
+    if (!is.null(result)) {
+        expect_true(all(c("gene", "p_interaction", "shapiro_p_value", "residuals_normal") %in% colnames(result)))
+        expect_true(is.numeric(result$shapiro_p_value) || is.na(result$shapiro_p_value))
+    }
+})

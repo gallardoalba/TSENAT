@@ -435,7 +435,8 @@ test_that(".tsenat_gam_interaction handles anova failures", {
         group = rep(c("A", "B"), each = 3)
     )
     
-    res <- TSENAT:::.tsenat_gam_interaction(df, df$q, "problematic", min_obs = 2)
+    # Suppress expected warnings from mgcv about fitting failures on problematic data
+    res <- suppressWarnings(TSENAT:::.tsenat_gam_interaction(df, df$q, "problematic", min_obs = 2))
     
     # Should either return NULL or handle gracefully
     if (!is.null(res)) {
@@ -1518,5 +1519,188 @@ test_that("Different methods produce different adjustments", {
             expect_true(diff_count >= 0,
                        "Comparison should complete without error")
         }
+    }
+})
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SHAPIRO-WILK INTEGRATION TESTS (NEW - March 2026)
+# Verify Shapiro-Wilk results are properly included in calculate_lm_interaction
+# ═══════════════════════════════════════════════════════════════════════════
+
+test_that("calculate_lm_interaction includes Shapiro-Wilk results for GAM method", {
+    skip_if_not_installed("mgcv")
+    
+    # Create simple test data with normal residuals
+    set.seed(333)
+    qvec <- seq(0.01, 0.1, by = 0.02)
+    sample_names <- rep(c("S1_N", "S2_T"), each = length(qvec))
+    coln <- paste0(sample_names, "_q=", qvec)
+    
+    # Generate normal-error data
+    noise1 <- rnorm(length(coln), sd = 0.002)
+    gene1_vals <- c(qvec * 1, qvec * 1.5) + noise1
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- "g1"
+    
+    rd <- data.frame(
+        genes = rownames(mat),
+        row.names = rownames(mat),
+        stringsAsFactors = FALSE
+    )
+    cd <- data.frame(
+        samples = sample_names,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    # Run with GAM method
+    res <- tryCatch({
+        calculate_lm_interaction(se,
+            sample_type_col = "samples",
+            method = "gam",
+            min_obs = 4
+        )
+    }, error = function(e) NULL)
+    
+    skip_if(is.null(res), "calculate_lm_interaction failed for GAM")
+    
+    # Extract results
+    if (is.data.frame(res)) {
+        rd_df <- as.data.frame(res)
+    } else {
+        rd_df <- as.data.frame(SummarizedExperiment::rowData(res))
+    }
+    
+    # Check for Shapiro-Wilk columns
+    expect_true("shapiro_p_value" %in% colnames(rd_df),
+               "Shapiro-Wilk p-value not found in results")
+    expect_true("residuals_normal" %in% colnames(rd_df),
+               "Residuals normality flag not found in results")
+})
+
+test_that("calculate_lm_interaction includes Shapiro-Wilk results for GEE method", {
+    skip_if_not_installed("geepack")
+    
+    # Create test data for GEE method
+    set.seed(444)
+    qvec <- seq(0.01, 0.1, by = 0.02)
+    # Build sample IDs: 4 samples, each with Normal and Tumor
+    # Results in: S1_N, S1_T, S2_N, S2_T, S3_N, S3_T, S4_N, S4_T (each repeated for each q)
+    sample_cond_ids <- rep(paste0("S", rep(1:4, each = 2), "_", rep(c("N", "T"), 4)), each = length(qvec))
+    condition <- rep(rep(c("Normal", "Tumor"), 4), each = length(qvec))
+    coln <- paste0(sample_cond_ids, "_q=", rep(qvec, times = 8))
+    
+    # Generate test data
+    set.seed(1)
+    gene1_vals <- 0.5 + rnorm(length(coln), 0, 0.08)
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- "g1"
+    
+    rd <- data.frame(
+        genes = rownames(mat),
+        row.names = rownames(mat),
+        stringsAsFactors = FALSE
+    )
+    cd <- data.frame(
+        samples = sample_cond_ids,
+        condition = condition,
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    # Run with GEE method
+    res <- calculate_lm_interaction(se,
+        sample_type_col = "condition",
+        method = "gee",
+        min_obs = 4
+    )
+    
+    # Extract results
+    if (is.data.frame(res)) {
+        rd_df <- as.data.frame(res)
+    } else {
+        rd_df <- as.data.frame(SummarizedExperiment::rowData(res))
+    }
+    
+    # Check for Shapiro-Wilk columns
+    expect_true("shapiro_p_value" %in% colnames(rd_df),
+               "Shapiro-Wilk p-value not found in GEE results")
+    expect_true("residuals_normal" %in% colnames(rd_df),
+               "Residuals normality flag not found in GEE results")
+})
+
+test_that("Shapiro-Wilk results have expected data types and ranges", {
+    # This is a meta-test to ensure the results are well-formed
+    skip_if_not_installed("mgcv")
+    
+    set.seed(555)
+    qvec <- seq(0.01, 0.08, by = 0.02)
+    sample_names <- rep(c("N", "T"), each = length(qvec))
+    coln <- paste0(sample_names, "_q=", qvec)
+    
+    noise <- rnorm(length(coln), sd = 0.003)
+    gene1_vals <- c(qvec * 1, qvec * 1.3) + noise
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- "g1"
+    
+    rd <- data.frame(genes = rownames(mat), row.names = rownames(mat), stringsAsFactors = FALSE)
+    cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    res <- tryCatch({
+        calculate_lm_interaction(se,
+            sample_type_col = "samples",
+            method = "gam",
+            min_obs = 4
+        )
+    }, error = function(e) NULL)
+    
+    skip_if(is.null(res), "calculate_lm_interaction failed")
+    
+    if (is.data.frame(res)) {
+        rd_df <- as.data.frame(res)
+    } else {
+        rd_df <- as.data.frame(SummarizedExperiment::rowData(res))
+    }
+    
+    # Check data types and ranges if columns exist
+    if ("shapiro_p_value" %in% colnames(rd_df)) {
+        # p-values should be numeric and in [0, 1] or NA
+        p_vals <- rd_df$shapiro_p_value
+        valid_p <- !is.na(p_vals)
+        if (any(valid_p)) {
+            expect_true(all(p_vals[valid_p] >= 0 & p_vals[valid_p] <= 1),
+                       "Shapiro-Wilk p-values should be in [0, 1]")
+        }
+    }
+    
+    if ("residuals_normal" %in% colnames(rd_df)) {
+        # Should be logical or NA
+        is_normal <- rd_df$residuals_normal
+        expect_true(all(is.logical(is_normal) | is.na(is_normal)),
+                   "Residuals normality flag should be logical or NA")
     }
 })
