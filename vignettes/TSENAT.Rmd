@@ -598,29 +598,29 @@ knitr::kable(
 ```
 
 Now we will plot the q-curve profile for the top gene identified 
-by the linear-model interaction test. We will start with `LINC03040`.   
+by the linear-model interaction test. We will start with `SNHG10`.   
 
 ```{r foxj2-gene-qprofile, fig.width=10, fig.height=6.5}
 # Plot q-curve profile for the top 2 genes from lm_res with the most significant interactions
 # Pass lm_res directly to the function to let it extract genes by significance
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "LINC03040")
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "SNHG10")
 print(plot_target)
 ```
 
-Now let’s look at Now let’s look at PNPT1.
+Now let’s look at Now let’s look at PDE7A.
 
 ```{r pnpt1-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top Now let’s look at PNPT1
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PNPT1")
+# Plot q-curve profile for top Now let’s look at PDE7A
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PDE7A")
 print(plot_target)
 ```
 
 
-Finally, we can visualize the gene `CXCL12`.
+Finally, we can visualize the gene `CCNE1`.
 
 ```{r gsr-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top METTL26
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CXCL12")
+# Plot q-curve profile for top CCNE1
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CCNE1")
 print(plot_target)
 ```
 
@@ -672,8 +672,8 @@ tables_result <- prepare_gene_switching_tables(
 
 ```{r multi-q-switching-display, echo=FALSE, results='asis'}
 
-# Iterate over the prepared comparison tables and display top 2 genes
-for (gene_idx in 1:min(2, length(tables_result$gene_headers))) {
+# Iterate over the prepared comparison tables and display top 4 genes
+for (gene_idx in 1:min(4, length(tables_result$gene_headers))) {
   cat("#### Gene: ", tables_result$gene_headers[gene_idx], "\n\n", sep="")
   
   comparison_data <- tables_result$comparison_tables[[gene_idx]]
@@ -711,14 +711,33 @@ scales) and transcripts (columns) for each gene.
 ```{r multi-q-heatmap, echo=TRUE, fig.width=18, fig.height=20}
 # Generate multi-Q heatmaps using the dedicated function
 # The function extracts all needed information from the multi_q_results object
-heatmap_file <- plot_multiq_delta_influence_heatmaps(
-  switching_results = multi_q_results,
-  n_genes = 4,
-  lm_results = lm_res
-)
+heatmap_file <- NA
 
-# Display the generated heatmap
-knitr::include_graphics(heatmap_file)
+tryCatch({
+  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+    switching_results = multi_q_results,
+    n_genes = 4,
+    lm_results = lm_res
+  )
+}, error = function(e) {
+  cat("ERROR in plot_multiq_delta_influence_heatmaps: ", e$message, "\n")
+})
+
+# Display the generated heatmap if valid data was found
+if (is.character(heatmap_file) && length(heatmap_file) > 0 && !is.na(heatmap_file)) {
+  if (file.exists(heatmap_file)) {
+    knitr::include_graphics(heatmap_file)
+  } else {
+    cat("⚠️  File was not created or path is invalid: ", heatmap_file, "\n")
+  }
+} else {
+  cat("⚠️  No valid heatmap data generated.\n")
+  cat("   Check the validation report above for details on which genes lack delta_influence data.\n")
+  cat("   Possible causes:\n")
+  cat("   - multi_q_results doesn't contain delta_influence values\n")
+  cat("   - lm_res has no significant genes to display\n")
+  cat("   - Data structure mismatch\n")
+}
 ```
 
 Interpretation:

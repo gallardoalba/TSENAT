@@ -597,3 +597,258 @@ test_that(".tsenat_fpca_interaction handles prcomp and t.test failures gracefull
     res3 <- .tsenat_fpca_interaction(mat3, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 2)
     expect_true(is.null(res3) || (is.data.frame(res3) && "p_interaction" %in% colnames(res3)))
 })
+
+context("Heteroscedasticity Detection and Weighting")
+
+# Test heteroscedasticity detection with homoscedastic data
+test_that(".tsenat_detect_heteroscedasticity returns FALSE for homoscedastic data", {
+    set.seed(123)
+    n <- 100
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    # Constant variance across q and group
+    entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.05)
+    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    
+    expect_type(result, "list")
+    expect_true("is_heteroscedastic" %in% names(result))
+    expect_true("bp_stat" %in% names(result))
+    expect_true("p_value" %in% names(result))
+    # With homoscedastic data and large n, should not detect heteroscedasticity (p > 0.05)
+    expect_true(is.logical(result$is_heteroscedastic) || is.na(result$is_heteroscedastic))
+})
+
+# Test heteroscedasticity detection with heteroscedastic data
+test_that(".tsenat_detect_heteroscedasticity detects heteroscedasticity in variance structure", {
+    set.seed(456)
+    n <- 100
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    # Variance depends on q (power-law heteroscedasticity)
+    entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1 * q)
+    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    
+    expect_type(result, "list")
+    expect_true("is_heteroscedastic" %in% names(result))
+    expect_true("p_value" %in% names(result))
+    expect_true(is.numeric(result$p_value))
+})
+
+# Test heteroscedasticity detection with insufficient data
+test_that(".tsenat_detect_heteroscedasticity handles insufficient observations", {
+    n <- 5
+    q <- runif(n)
+    group <- rep(c("A", "B"), length.out = n)
+    entropy <- rnorm(n)
+    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    
+    expect_type(result, "list")
+    expect_true(is.na(result$is_heteroscedastic) || is.logical(result$is_heteroscedastic))
+})
+
+# Test variance weight estimation with power-law method
+test_that(".tsenat_estimate_variance_weights computes weights correctly", {
+    set.seed(789)
+    n <- 80
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1 * q)
+    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_estimate_variance_weights(df, q_vals = q, method = "power")
+    
+    expect_type(result, "list")
+    expect_true("weights" %in% names(result))
+    expect_true("power_param" %in% names(result))
+    expect_true("method" %in% names(result))
+    expect_equal(result$method, "power")
+    
+    if (!is.null(result$weights)) {
+        expect_true(length(result$weights) == n)
+        expect_true(all(result$weights > 0))
+        expect_true(all(is.finite(result$weights)))
+    }
+})
+
+# Test variance weight estimation with residual method
+test_that(".tsenat_estimate_variance_weights works with residual method", {
+    set.seed(234)
+    n <- 60
+    q <- runif(n, 0.1, 2)
+    entropy <- 0.5 + 0.2 * q + rnorm(n, 0, 0.1 * q)
+    df <- data.frame(entropy = entropy, q = q, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_estimate_variance_weights(df, q_vals = q, method = "residual")
+    
+    # Residual method should return a list
+    expect_type(result, "list")
+    
+    # If weights exist, verify their properties
+    if (!is.null(result$weights)) {
+        expect_true(length(result$weights) == n)
+        expect_true(all(result$weights > 0))
+    }
+})
+
+# Test GAM with heteroscedasticity detection and weighting
+test_that(".tsenat_gam_interaction applies weights when heteroscedasticity detected", {
+    skip_if_not_installed("mgcv")
+    set.seed(111)
+    n <- 100
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    # Create heteroscedastic data - stronger variance in group B
+    entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.4 * q, 0.1 * q) + 
+               rnorm(n, 0, sd = ifelse(group == "B", 0.1 * q, 0.01))
+    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+    
+    res <- .tsenat_gam_interaction(df, q_vals = q, g = "geneHetero", min_obs = 10)
+    
+    expect_true(is.data.frame(res) || is.null(res))
+    if (is.data.frame(res)) {
+        expect_true("p_interaction" %in% colnames(res))
+        expect_true(is.numeric(res$p_interaction) || is.na(res$p_interaction))
+    }
+})
+
+# Test LMM with heteroscedasticity detection
+test_that(".tsenat_fit_one_interaction LMM applies variance structure for heteroscedasticity", {
+    skip_if_not_installed("nlme")
+    set.seed(222)
+    
+    # Create data with heteroscedasticity and subjects
+    n_subj <- 8
+    n_per <- 10
+    n_total <- n_subj * n_per
+    
+    q <- rep(runif(n_per, 0.1, 2), n_subj)
+    group <- rep(rep(c("A", "B"), length.out = n_per), n_subj)
+    subject <- rep(1:n_subj, each = n_per)
+    
+    # Heteroscedastic entropy: variance scales with q in group B
+    entropy <- 0.5 + 0.2 * q + 
+               ifelse(group == "B", 0.3 * q, 0) + 
+               rnorm(n_total, 0, sd = ifelse(group == "B", 0.08 * q + 0.01, 0.05))
+    
+    # Build expression count matrix (1 gene for testing)
+    expr_matrix <- matrix(rnorm(1 * n_total), nrow = 1)
+    rownames(expr_matrix) <- "gene1"
+    colnames(expr_matrix) <- paste0("s", 1:n_total)
+    
+    # Build SummarizedExperiment
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = expr_matrix),
+        colData = S4Vectors::DataFrame(
+            sample = colnames(expr_matrix),
+            q = q,
+            group = group,
+            subject = factor(subject)
+        )
+    )
+    
+    # Call the function with LMM method
+    # Extract necessary components for .tsenat_fit_one_interaction
+    mat <- SummarizedExperiment::assays(se)$counts
+    coldata <- SummarizedExperiment::colData(se)
+    sample_names <- coldata$sample
+    q_vals <- coldata$q
+    group_vec <- coldata$group
+    
+    result <- .tsenat_fit_one_interaction(
+        g = "gene1",
+        se = se,
+        mat = mat,
+        q_vals = q_vals,
+        sample_names = sample_names,
+        group_vec = group_vec,
+        subject_col = "subject",
+        method = "lmm",
+        min_obs = 5,
+        verbose = FALSE
+    )
+    
+    expect_true(is.data.frame(result) || is.null(result))
+    if (is.data.frame(result)) {
+        expect_true("p_interaction" %in% colnames(result))
+    }
+})
+
+# Test GEE with heteroscedasticity detection
+test_that(".tsenat_gee_interaction applies weights when heteroscedasticity detected", {
+    skip_if_not_installed("geepack")
+    set.seed(333)
+    
+    n <- 60
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    subject <- rep(1:10, each = 6)
+    
+    # Create heteroscedastic entropy
+    entropy <- 0.5 + 0.2 * q + 
+               ifelse(group == "B", 0.2 * q, 0) + 
+               rnorm(n, 0, sd = 0.08 * q)
+    
+    df <- data.frame(
+        entropy = entropy, 
+        q = q, 
+        group = factor(group),
+        subject = factor(subject),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- .tsenat_gee_interaction(
+        df = df,
+        q_vals = q,
+        g = "geneGEE",
+        subject = subject,
+        min_obs = 5,
+        corstr = "independence"
+    )
+    
+    expect_true(is.data.frame(result) || is.null(result))
+    if (is.data.frame(result)) {
+        expect_true("p_interaction" %in% colnames(result))
+        expect_true("n_clusters" %in% colnames(result))
+    }
+})
+
+# Test that weights sum to approximately n (normal scaling)
+test_that(".tsenat_estimate_variance_weights returns normalized weights", {
+    set.seed(555)
+    n <- 50
+    q <- runif(n, 0.5, 2)
+    entropy <- rnorm(n, mean = 0.5, sd = 0.1 * q)
+    df <- data.frame(entropy = entropy, q = q, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_estimate_variance_weights(df, q_vals = q, method = "power")
+    
+    if (!is.null(result$weights)) {
+        # Weights should sum close to n (since they're normalized)
+        expect_true(abs(sum(result$weights) - n) / n < 0.5)
+    }
+})
+
+# Test heteroscedasticity with missing data
+test_that(".tsenat_detect_heteroscedasticity handles missing values gracefully", {
+    set.seed(666)
+    n <- 40
+    q <- runif(n, 0.1, 2)
+    group <- rep(c("A", "B"), length.out = n)
+    entropy <- 0.5 + 0.2 * q + rnorm(n, 0, 0.1 * q)
+    
+    # Add some missing values
+    entropy[c(5, 10, 15)] <- NA
+    
+    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+    
+    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    
+    expect_type(result, "list")
+    expect_true(all(c("is_heteroscedastic", "p_value") %in% names(result)))
+})

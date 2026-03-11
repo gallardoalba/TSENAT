@@ -1021,7 +1021,7 @@
             entropy_min = entropy_min,
             entropy_max = entropy_max,
             entropy_range = entropy_range,
-            family_obj = mgcv::quasibinomial(link = "logit"),  # Logit link for (0,1) support
+            family_obj = stats::quasibinomial(link = "logit"),  # Logit link for (0,1) support
             inverse_link = function(eta) {
                 # Unscale predictions from [0,1] back to original [min, max]
                 p <- 1 / (1 + exp(-eta))  # Inverse logit
@@ -1036,6 +1036,189 @@
         use_bounded = FALSE,
         family_obj = gaussian(link = "identity"),  # Standard Gaussian
         inverse_link = function(eta) eta  # Identity: no transform needed
+    ))
+}
+
+# ════════════════════════════════════════════════════════════════════════════════
+# HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (March 2026)
+# ════════════════════════════════════════════════════════════════════════════════
+# Tsallis entropy often exhibits variance that depends on:
+#   1. Mean entropy level (mean-variance relationship)
+#   2. q-value (variance changes across diversity orders)
+#   3. Group/condition (treatment vs control may have different variance)
+#
+# Consequence: Tests can be biased with inflated Type I error if heteroscedasticity ignored
+# Solution: Detect heteroscedasticity and apply appropriate variance adjustment/weighting
+
+# Detect heteroscedasticity using Breusch-Pagan test
+.tsenat_detect_heteroscedasticity <- function(df, q_vals, group_vec, verbose = FALSE) {
+    # Fit OLS to get residuals
+    fit_ols <- try(
+        lm(entropy ~ q + group, data = df),
+        silent = TRUE
+    )
+    
+    if (inherits(fit_ols, "try-error")) {
+        return(list(
+            is_heteroscedastic = NA,
+            bp_stat = NA,
+            p_value = NA,
+            var_ratio_q = NA,
+            var_ratio_group = NA
+        ))
+    }
+    
+    residuals_sq <- residuals(fit_ols)^2
+    
+    # Breusch-Pagan auxiliary regression: log(residuals^2) ~ q + group
+    fit_aux <- try(
+        lm(log(residuals_sq + 1e-8) ~ q + factor(group), data = df),
+        silent = TRUE
+    )
+    
+    if (inherits(fit_aux, "try-error")) {
+        return(list(
+            is_heteroscedastic = NA,
+            bp_stat = NA,
+            p_value = NA,
+            var_ratio_q = NA,
+            var_ratio_group = NA
+        ))
+    }
+    
+    # BP statistic = RSS from auxiliary model / (2 * RSS from original model)
+    rss_aux <- sum(residuals(fit_aux)^2)
+    tss_aux <- sum((fitted(fit_aux) - mean(fitted(fit_aux)))^2) + rss_aux
+    
+    bp_stat <- (sum((fitted(fit_aux) - mean(fitted(fit_aux)))^2) / tss_aux * nrow(df))
+    p_value <- 1 - pchisq(bp_stat, df = 2)  # df = number of predictors
+    
+    # Compute variance ratios
+    q_unique <- sort(unique(na.omit(df$q)))
+    var_by_q <- sapply(q_unique, function(qq) {
+        var(residuals(fit_ols)[df$q == qq], na.rm = TRUE)
+    })
+    var_ratio_q <- max(var_by_q) / (min(var_by_q) + 1e-8)
+    
+    group_unique <- unique(na.omit(df$group))
+    var_by_group <- sapply(group_unique, function(gg) {
+        var(residuals(fit_ols)[df$group == gg], na.rm = TRUE)
+    })
+    var_ratio_group <- max(var_by_group) / (min(var_by_group) + 1e-8)
+    
+    if (verbose) {
+        message(sprintf("[Heteroscedasticity] BP p-value: %.4f, Var ratio (q): %.2f, Var ratio (group): %.2f",
+                        p_value, var_ratio_q, var_ratio_group))
+    }
+    
+    return(list(
+        is_heteroscedastic = p_value < 0.05,
+        bp_stat = bp_stat,
+        p_value = p_value,
+        var_ratio_q = var_ratio_q,
+        var_ratio_group = var_ratio_group
+    ))
+}
+
+# Estimate variance weights for heteroscedasticity adjustment
+.tsenat_estimate_variance_weights <- function(df, q_vals, method = "power", verbose = FALSE) {
+    # Estimate weights to model variance heterogeneity
+    # method = "power": Model Var ~ q^θ, compute weights w_i = q_i^(-θ)
+    # method = "residual": Use residual variance from OLS as observation weights
+    
+    if (method == "power") {
+        # Estimate power parameter θ via regression: log(residuals_sq) ~ q
+        # First, fit OLS to get residuals
+        fit_ols <- try(
+            lm(entropy ~ q + group, data = df),
+            silent = TRUE
+        )
+        
+        # If OLS with group fails, try just q
+        if (inherits(fit_ols, "try-error")) {
+            fit_ols <- try(
+                lm(entropy ~ q, data = df),
+                silent = TRUE
+            )
+        }
+        
+        if (inherits(fit_ols, "try-error")) {
+            return(NULL)
+        }
+        
+        residuals_ols <- residuals(fit_ols)
+        residuals_sq <- residuals_ols^2
+        
+        # This gives: log(Var) = log(σ²) + θ * log(q)
+        # So: Var ~ σ² * q^θ
+        # Weights: w_i = 1 / (σ² * q_i^θ) ∝ q_i^(-θ)
+        
+        w <- 1 / (residuals_sq + 1e-8)
+        wfit <- try(
+            lm(log(residuals_sq + 1e-8) ~ log(df$q + 1e-8), weights = w),
+            silent = TRUE
+        )
+        
+        if (!inherits(wfit, "try-error")) {
+            theta_est <- coef(wfit)[2]
+            if (!is.na(theta_est)) {
+                # Ensure positive weighting
+                theta_est <- max(theta_est, 0.01)
+                weights <- 1 / (df$q^theta_est + 1e-8)
+                weights <- weights / mean(weights, na.rm = TRUE)  # Standardize
+                
+                if (verbose) {
+                    message(sprintf("[Variance Weighting] Estimated power parameter θ = %.3f", theta_est))
+                }
+                
+                return(list(
+                    weights = weights,
+                    power_param = theta_est,
+                    method = "power"
+                ))
+            }
+        }
+    }
+    
+    if (method == "residual") {
+        # Use inverse variance as weights
+        # Try OLS fit to estimate residual variance
+        ols_fit <- NULL
+        
+        # Try with group if available, otherwise just q
+        if ("group" %in% colnames(df)) {
+            ols_fit <- try(
+                lm(entropy ~ q + group, data = df),
+                silent = TRUE
+            )
+        } else {
+            ols_fit <- try(
+                lm(entropy ~ q, data = df),
+                silent = TRUE
+            )
+        }
+        
+        residuals_sq <- NA_real_
+        if (!is.null(ols_fit) && !inherits(ols_fit, "try-error")) {
+            residuals_sq <- residuals(ols_fit)^2
+        }
+        
+        # If OLS succeeded and we have residuals, compute weights
+        if (!all(is.na(residuals_sq))) {
+            weights <- 1 / (residuals_sq + 1e-8)
+            weights <- weights / mean(weights, na.rm = TRUE)  # Standardize
+            
+            return(list(
+                weights = weights,
+                method = "residual"
+            ))
+        }
+    }
+    
+    # Fallback: uniform weights
+    return(list(
+        weights = rep(1, nrow(df)),
+        method = "uniform"
     ))
 }
 
@@ -1104,6 +1287,21 @@
     family_gam <- bounded_result$family_obj
     inverse_link_fn <- bounded_result$inverse_link
     
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (NEW - March 2026)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Detect q-dependent and group-dependent variance heterogeneity in Tsallis entropy
+    # Apply variance weighting for GAM/GAMM if heteroscedasticity detected
+    hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals, df$group)
+    gam_weights <- NULL
+    
+    if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+        weights_result <- .tsenat_estimate_variance_weights(df, q_vals, method = "power")
+        if (!is.null(weights_result)) {
+            gam_weights <- weights_result$weights
+        }
+    }
+    
     # Determine sample size for bias correction
     # For GAM, use actual number of observations (nrow(df)) not number of subjects
     # The 'subject' parameter is structural metadata for paired designs but n_samples 
@@ -1159,22 +1357,46 @@
         # Cov(ΔY_t, ΔY_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
         # This separates trend (differencing) from autocorrelation, validated in TEST L.1.6
         # BOUNDED SUPPORT: Use quasibinomial(logit) if entropy is bounded [0, log(m)]
-        fit_null <- try(
-            mgcv::gamm(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
-                      random = list(subject = ~1), 
-                      correlation = nlme::corAR1(form = ~1|subject),
-                      family = family_gam,
-                      data = df),
-            silent = TRUE
-        )
-        fit_alt <- try(
-            mgcv::gamm(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
-                      random = list(subject = ~1), 
-                      correlation = nlme::corAR1(form = ~1|subject),
-                      family = family_gam,
-                      data = df),
-            silent = TRUE
-        )
+        # HETEROSCEDASTICITY: Use weights parameter to model variance heterogeneity
+        
+        if (!is.null(gam_weights)) {
+            df$gam_weights <- gam_weights
+            fit_null <- try(
+                mgcv::gamm(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
+                          random = list(subject = ~1), 
+                          correlation = nlme::corAR1(form = ~1|subject),
+                          family = family_gam,
+                          weights = gam_weights,
+                          data = df),
+                silent = TRUE
+            )
+            fit_alt <- try(
+                mgcv::gamm(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
+                          random = list(subject = ~1), 
+                          correlation = nlme::corAR1(form = ~1|subject),
+                          family = family_gam,
+                          weights = gam_weights,
+                          data = df),
+                silent = TRUE
+            )
+        } else {
+            fit_null <- try(
+                mgcv::gamm(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
+                          random = list(subject = ~1), 
+                          correlation = nlme::corAR1(form = ~1|subject),
+                          family = family_gam,
+                          data = df),
+                silent = TRUE
+            )
+            fit_alt <- try(
+                mgcv::gamm(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
+                          random = list(subject = ~1), 
+                          correlation = nlme::corAR1(form = ~1|subject),
+                          family = family_gam,
+                          data = df),
+                silent = TRUE
+            )
+        }
         
         if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
             return(NULL)
@@ -1198,20 +1420,39 @@
         # Fallback to standard GAM (treats samples as independent)
         # This is used only when subject info is not available
         # BOUNDED SUPPORT: Use quasibinomial(logit) if entropy is bounded [0, log(m)]
+        # HETEROSCEDASTICITY: Use weights parameter to model variance heterogeneity
         bs_arg <- "tp"  # Thin plate spline
         
-        fit_null <- try(
-            mgcv::gam(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
-                     family = family_gam,
-                     data = df), 
-            silent = TRUE
-        )
-        fit_alt <- try(
-            mgcv::gam(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
-                     family = family_gam,
-                     data = df),
-            silent = TRUE
-        )
+        if (!is.null(gam_weights)) {
+            df$gam_weights <- gam_weights
+            fit_null <- try(
+                mgcv::gam(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
+                         family = family_gam,
+                         weights = gam_weights,
+                         data = df), 
+                silent = TRUE
+            )
+            fit_alt <- try(
+                mgcv::gam(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
+                         family = family_gam,
+                         weights = gam_weights,
+                         data = df),
+                silent = TRUE
+            )
+        } else {
+            fit_null <- try(
+                mgcv::gam(entropy ~ group + s(q, k = k_q, bs = bs_arg), 
+                         family = family_gam,
+                         data = df), 
+                silent = TRUE
+            )
+            fit_alt <- try(
+                mgcv::gam(entropy ~ group + s(q, by = group, k = k_q, bs = bs_arg), 
+                         family = family_gam,
+                         data = df),
+                silent = TRUE
+            )
+        }
         
         if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
             return(NULL)
@@ -1840,19 +2081,53 @@
             }
         }
         
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (NEW - March 2026)
+        # ═══════════════════════════════════════════════════════════════════════════════
+        # Detect q-dependent and group-dependent variance heterogeneity
+        # Apply nlme::varPower() to model variance heterogeneity if detected
+        hetero_result <- .tsenat_detect_heteroscedasticity(df_model, df_model$q, df_model$group)
+        use_var_structure <- FALSE
+        
+        if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+            use_var_structure <- TRUE
+            if (verbose) {
+                message(sprintf("[calculate_lmm_interaction] Heteroscedasticity detected (BP p = %.4f); applying varPower",
+                               hetero_result$p_value))
+            }
+        }
+        
         # Fit nlme models with AR(1) covariance structure for q-measurements within subjects
         # AR(1) model: Cov(Y_t, Y_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
         # *** CRITICAL: Now applied to differenced entropy ΔH_q, not raw H_q ***
-        fit0 <- try(
-            nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",
-                     correlation = nlme::corAR1(form = ~1 | subject)),
-            silent = TRUE
-        )
-        fit1 <- try(
-            nlme::lme(formula_alt, random = ~1 | subject, data = df_model, method = "ML",
-                     correlation = nlme::corAR1(form = ~1 | subject)),
-            silent = TRUE
-        )
+        # HETEROSCEDASTICITY: Add varPower() structure if heteroscedasticity detected
+        
+        if (use_var_structure) {
+            # Include variance power model: Var(Y) ~ q^θ
+            fit0 <- try(
+                nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",
+                         correlation = nlme::corAR1(form = ~1 | subject),
+                         weights = nlme::varPower(form = ~ q)),
+                silent = TRUE
+            )
+            fit1 <- try(
+                nlme::lme(formula_alt, random = ~1 | subject, data = df_model, method = "ML",
+                         correlation = nlme::corAR1(form = ~1 | subject),
+                         weights = nlme::varPower(form = ~ q)),
+                silent = TRUE
+            )
+        } else {
+            fit0 <- try(
+                nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",
+                         correlation = nlme::corAR1(form = ~1 | subject)),
+                silent = TRUE
+            )
+            fit1 <- try(
+                nlme::lme(formula_alt, random = ~1 | subject, data = df_model, method = "ML",
+                         correlation = nlme::corAR1(form = ~1 | subject)),
+                silent = TRUE
+            )
+        }
 
         # If either fit failed, try falling back to simpler approaches
         fallback_lm <- NULL
@@ -2577,6 +2852,19 @@
     
     df$subject <- factor(subject)
     
+    # HETEROSCEDASTICITY ADJUSTMENT: Detect variance dependence on q and group
+    # Breusch-Pagan test to determine if weights are needed
+    hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals = df$q, group_vec = df$group)
+    gee_weights <- NULL
+    
+    if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+        # Estimate variance weights using power-law model: Var ~ q^theta
+        weights_result <- .tsenat_estimate_variance_weights(df, q_vals = df$q, method = "power")
+        if (!is.null(weights_result) && !is.null(weights_result$weights)) {
+            gee_weights <- weights_result$weights
+        }
+    }
+    
     # Count clusters for bias correction decisions
     n_clusters <- length(unique(as.numeric(df$subject)))
     
@@ -2621,29 +2909,61 @@
     }
     
     # Fit models with selected correlation structure
-    fit_null <- try(
-        geepack::geeglm(
-            entropy ~ q + group,
-            id = df$subject,
-            data = df,
-            family = stats::gaussian(),
-            corstr = selected_corstr,
-            na.action = stats::na.omit
-        ),
-        silent = TRUE
-    )
-    
-    fit_alt <- try(
-        geepack::geeglm(
-            entropy ~ q * group,
-            id = df$subject,
-            data = df,
-            family = stats::gaussian(),
-            corstr = selected_corstr,
-            na.action = stats::na.omit
-        ),
-        silent = TRUE
-    )
+    # If heteroscedasticity detected, apply variance weights
+    if (!is.null(gee_weights)) {
+        df$gee_weights <- gee_weights
+        
+        fit_null <- try(
+            geepack::geeglm(
+                entropy ~ q + group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                weights = gee_weights,
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+        
+        fit_alt <- try(
+            geepack::geeglm(
+                entropy ~ q * group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                weights = gee_weights,
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+    } else {
+        # Standard GEE fitting without weights
+        fit_null <- try(
+            geepack::geeglm(
+                entropy ~ q + group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+        
+        fit_alt <- try(
+            geepack::geeglm(
+                entropy ~ q * group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+    }
     
     # If either fit failed, return NULL
     if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {

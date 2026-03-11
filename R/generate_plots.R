@@ -4333,6 +4333,7 @@ plot_multiq_delta_influence_heatmaps <- function(
   # Prepare data for combined multi-Q heatmap
   all_gene_matrices <- list()
   all_gene_info <- list()
+  data_validity_report <- list()  # Track validation for debugging
   
   for (gene_idx in seq_along(top_genes_for_comparison)) {
     gene_id <- top_genes_for_comparison[gene_idx]
@@ -4343,6 +4344,17 @@ plot_multiq_delta_influence_heatmaps <- function(
     if (!is.na(gene_name_idx)) {
       gene_name <- gene_name_map[gene_name_idx]
     }
+    
+    # Initialize validation report for this gene
+    validity_report <- list(
+      gene_id = gene_id,
+      gene_name = gene_name,
+      has_heatmap_data = FALSE,
+      has_valid_rows = FALSE,
+      has_valid_cols = FALSE,
+      has_valid_transcripts = FALSE,
+      reason_skipped = NA_character_
+    )
     
     # Collect delta_influence for all transcripts across all q-values
     heatmap_data <- NULL
@@ -4385,6 +4397,10 @@ plot_multiq_delta_influence_heatmaps <- function(
     }
     
     if (!is.null(heatmap_data) && nrow(heatmap_data) > 0 && ncol(heatmap_data) > 1) {
+      validity_report$has_heatmap_data <- TRUE
+      validity_report$has_valid_rows <- (nrow(heatmap_data) > 0)
+      validity_report$has_valid_cols <- (ncol(heatmap_data) > 1)
+      
       # Convert to matrix for heatmap (transcripts as rows, q-values as columns)
       heatmap_matrix <- as.matrix(heatmap_data[, -1, drop = FALSE])
       rownames(heatmap_matrix) <- heatmap_data$transcript
@@ -4398,6 +4414,8 @@ plot_multiq_delta_influence_heatmaps <- function(
         
         # Skip if no valid transcripts remain or fewer than 1 q-value column
         if (nrow(heatmap_matrix) > 0 && ncol(heatmap_matrix) > 0) {
+          validity_report$has_valid_transcripts <- TRUE
+          
           # Cap outliers for remaining finite values
           finite_vals <- heatmap_matrix[is.finite(heatmap_matrix)]
           if (length(finite_vals) > 0) {
@@ -4428,10 +4446,24 @@ plot_multiq_delta_influence_heatmaps <- function(
               gene_name = gene_name,
               n_transcripts = ncol(heatmap_matrix)
             )
+          } else {
+            validity_report$reason_skipped <- "Matrix dimensions invalid after transpose"
           }
+        } else {
+          validity_report$reason_skipped <- paste0("No valid transcripts (nrow=", nrow(heatmap_matrix), ", ncol=", ncol(heatmap_matrix), ")")
         }
+      } else {
+        validity_report$reason_skipped <- "All transcript rows are all-NA"
+      }
+    } else {
+      if (is.null(heatmap_data)) {
+        validity_report$reason_skipped <- "No heatmap_data collected (no delta_influence found)"
+      } else {
+        validity_report$reason_skipped <- paste0("Insufficient data (nrow=", nrow(heatmap_data), ", ncol=", ncol(heatmap_data), ")")
       }
     }
+    
+    data_validity_report[[gene_idx]] <- validity_report
   }
   
   # Create combined heatmap with genes in separate panels
@@ -4439,8 +4471,42 @@ plot_multiq_delta_influence_heatmaps <- function(
   
   if (length(all_gene_matrices) == 0) {
     warning("No valid heatmap data generated for any genes")
+    # Suppress validation report output
+    invisible(capture.output({
+      cat("\n=== Data Validation Report ===\n")
+      for (i in seq_along(data_validity_report)) {
+        report <- data_validity_report[[i]]
+        cat("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ")\n", sep = "")
+        cat("  - Has heatmap data: ", report$has_heatmap_data, "\n", sep = "")
+        cat("  - Has valid rows: ", report$has_valid_rows, "\n", sep = "")
+        cat("  - Has valid cols: ", report$has_valid_cols, "\n", sep = "")
+        cat("  - Has valid transcripts: ", report$has_valid_transcripts, "\n", sep = "")
+        if (!is.na(report$reason_skipped)) {
+          cat("  - Reason skipped: ", report$reason_skipped, "\n", sep = "")
+        }
+      }
+      cat("\n================================\n\n")
+    }))
     return(NULL)
   }
+  
+  # Suppress validation report output (show all genes, even those skipped)
+  invisible(capture.output({
+    cat("\n=== Data Validation Report ===\n")
+    for (i in seq_along(data_validity_report)) {
+      report <- data_validity_report[[i]]
+      status <- if (!is.na(report$reason_skipped)) "❌ SKIPPED" else "✓ VALID"
+      cat("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ") - ", status, "\n", sep = "")
+      cat("  - Has heatmap data: ", report$has_heatmap_data, "\n", sep = "")
+      cat("  - Has valid rows: ", report$has_valid_rows, "\n", sep = "")
+      cat("  - Has valid cols: ", report$has_valid_cols, "\n", sep = "")
+      cat("  - Has valid transcripts: ", report$has_valid_transcripts, "\n", sep = "")
+      if (!is.na(report$reason_skipped)) {
+        cat("  - Reason: ", report$reason_skipped, "\n", sep = "")
+      }
+    }
+    cat("\n================================\n\n")
+  }))
   
   if (!requireNamespace("pheatmap", quietly = TRUE)) {
     stop("pheatmap package required for this function. Install with: install.packages('pheatmap')")
@@ -4450,13 +4516,17 @@ plot_multiq_delta_influence_heatmaps <- function(
     # Create individual heatmaps for each gene and store as grobs
     heatmap_plots <- list()
     plot_gene_names <- character(0)
+    genes_with_data <- integer(0)
     
-    # Create plots only for genes that have data (skip NULL entries)
-    for (gene_idx in seq_along(all_gene_matrices)) {
+    # Create plots for genes with data, track which genes have valid data
+    for (gene_idx in seq_along(top_genes_for_comparison)) {
       if (is.null(all_gene_matrices[[gene_idx]]) || is.null(all_gene_info[[gene_idx]])) {
+        # Mark this position with empty placeholder
+        heatmap_plots[[gene_idx]] <- NULL
         next
       }
       
+      genes_with_data <- c(genes_with_data, gene_idx)
       mat <- all_gene_matrices[[gene_idx]]
       gene_info <- all_gene_info[[gene_idx]]
       gene_name <- gene_info$gene_name
@@ -4509,12 +4579,32 @@ plot_multiq_delta_influence_heatmaps <- function(
         silent = TRUE
       )
       
-      heatmap_plots[[length(heatmap_plots) + 1]] <- p
+      heatmap_plots[[gene_idx]] <- p
+    }
+    
+    # Pad with placeholder grobs for genes without data to maintain grid structure
+    n_total_genes <- length(top_genes_for_comparison)
+    for (gene_idx in seq_len(n_total_genes)) {
+      if (is.null(heatmap_plots[[gene_idx]])) {
+        # Create an empty placeholder grob
+        placeholder_grob <- grid::gTree(
+          children = grid::gList(
+            grid::rectGrob(gp = grid::gpar(fill = "white", col = "lightgray", lwd = 2)),
+            grid::textGrob("No data available", x = 0.5, y = 0.5, 
+                          gp = grid::gpar(col = "gray50", fontsize = 14))
+          )
+        )
+        heatmap_plots[[gene_idx]] <- placeholder_grob
+      }
     }
     
     # Combine all panels into one figure using manual grid layout
     # Save as PNG using manual grid layout
-    grDevices::png(combined_png_file, width = 18, height = 9 * ceiling(length(heatmap_plots) / 2), 
+    n_genes <- n_total_genes  # Always use requested number of genes for grid layout
+    n_cols <- 2
+    n_rows <- ceiling(n_genes / n_cols)
+    
+    grDevices::png(combined_png_file, width = 18, height = 9 * n_rows, 
                    units = "in", res = 96)
     
     grid::grid.newpage()
@@ -4525,20 +4615,9 @@ plot_multiq_delta_influence_heatmaps <- function(
                     just = "top",
                     gp = grid::gpar(fontsize = 24, fontface = "bold"))
     
-    # Create viewport layout
-    n_genes <- length(heatmap_plots)
-    n_cols <- 2
-    n_rows <- ceiling(n_genes / n_cols)
-    
-    # Build layout with alternating content rows and spacing rows
-    row_heights <- c()
-    for (i in 1:n_rows) {
-      row_heights <- c(row_heights, 1)  # content row
-      if (i < n_rows) {
-        row_heights <- c(row_heights, 0.55)  # spacing row
-      }
-    }
-    n_layout_rows <- length(row_heights)
+    # Create viewport layout with uniform spacing
+    row_heights <- rep(1, n_rows)
+    n_layout_rows <- n_rows
     
     grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 1, height = 0.78,
                                       layout = grid::grid.layout(
@@ -4549,20 +4628,17 @@ plot_multiq_delta_influence_heatmaps <- function(
       respect = FALSE
     )))
     
-    # Draw each pheatmap in its own viewport
+    # Draw each pheatmap (or placeholder) in its own viewport
     plot_idx <- 1
-    layout_row <- 1
-    for (content_row in 1:n_rows) {
+    for (row in 1:n_rows) {
       for (col in 1:n_cols) {
         if (plot_idx <= length(heatmap_plots)) {
-          grid::pushViewport(grid::viewport(layout.pos.row = layout_row, layout.pos.col = col))
+          grid::pushViewport(grid::viewport(layout.pos.row = row, layout.pos.col = col))
           grid::grid.draw(heatmap_plots[[plot_idx]])
           grid::popViewport()
           plot_idx <- plot_idx + 1
         }
       }
-      # Move to next content row (skip spacing row)
-      layout_row <- layout_row + 2
     }
     
     grid::popViewport()

@@ -641,11 +641,31 @@ print.tsenat_jackknife_list <- function(x, ...) {
 compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
                                    q = 1, norm = TRUE, log_base = exp(1),
                                    pseudocount = 0, n_bootstrap = 1000,
-                                   seed = 42, confidence = 0.95) {
-  .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount) {
+                                   seed = 42, confidence = 0.95, n_transcripts = NULL) {
+  .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
     if (is.vector(counts)) counts <- t(as.matrix(counts))
-    if (pseudocount > 0) counts <- counts + pseudocount
-    p <- counts / colSums(counts)
+    
+    # Check for zero-sum columns BEFORE adding pseudocount to detect samples with no expression
+    raw_col_sums <- colSums(counts)
+    with_zero_counts <- raw_col_sums == 0
+    
+    # CRITICAL FIX: Enforce minimum pseudocount to avoid zero-count edge cases
+    if (pseudocount <= 0) {
+      pseudocount <- 1e-8
+    }
+    counts <- counts + pseudocount
+    
+    col_sums <- colSums(counts)
+    # Avoid division by zero
+    if (any(col_sums <= 0)) {
+      return(rep(NA_real_, ncol(counts)))
+    }
+    
+    # Avoid division by near-zero for zero-count columns by using raw column sums intelligently
+    # For zero-count columns, set col_sums to 1 to avoid division by near-zero
+    col_sums_safe <- pmax(col_sums, 1)
+    
+    p <- counts / col_sums_safe
     
     if (q == 1) {
       if (log_base == exp(1)) {
@@ -654,7 +674,6 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
         h <- -colSums(p * log(p + 1e-100, log_base))
       }
     } else {
-      # Tsallis entropy: S_q = (1/(q-1)) * (1 - sum(p^q))
       p_q_sum <- colSums(p^q)
       if (log_base == exp(1)) {
         h <- (1 / (1 - q)) * (1 - p_q_sum)
@@ -663,12 +682,19 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
       }
     }
     
+    h[!is.finite(h)] <- NA_real_
+    # Set entropy to NA for zero-count columns
+    h[with_zero_counts] <- NA_real_
+    
     if (norm) {
       if (q == 1) {
-        max_h <- log(ncol(counts)) / log(log_base)
+        # Use FIXED n_transcripts if provided, otherwise use current matrix dimensions
+        n_tx <- if (!is.null(n_transcripts_fixed)) n_transcripts_fixed else nrow(counts)
+        max_h <- log(n_tx) / log(log_base)
       } else {
-        # Max entropy for uniform distribution: S_q = (1/(q-1)) * (1 - n^(1-q))
-        max_h <- (1 / (1 - q)) * (1 - ncol(counts)^(1 - q))
+        n_tx <- if (!is.null(n_transcripts_fixed)) n_transcripts_fixed else nrow(counts)
+        # Use absolute value because the formula produces negative values for q<1 and q>1
+        max_h <- abs((1 / (1 - q)) * (1 - n_tx^(1 - q)))
       }
       if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
         h <- h / max_h
@@ -677,14 +703,14 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
     return(h)
   }
   
-  .jackknife_entropy <- function(counts, q, norm, log_base, pseudocount) {
+  .jackknife_entropy <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
     if (is.vector(counts)) counts <- matrix(counts, nrow = 1)
     n_tx <- nrow(counts)
-    h_full <- .calculate_tsallis(counts, q, norm, log_base, pseudocount)
+    h_full <- .calculate_tsallis(counts, q, norm, log_base, pseudocount, n_transcripts_fixed)
     influences <- numeric(n_tx)
     
     for (i in 1:n_tx) {
-      h_leave_i <- .calculate_tsallis(counts[-i, , drop = FALSE], q, norm, log_base, pseudocount)
+      h_leave_i <- .calculate_tsallis(counts[-i, , drop = FALSE], q, norm, log_base, pseudocount, n_transcripts_fixed)
       influences[i] <- mean(abs(h_full - h_leave_i), na.rm = TRUE)
     }
     list(full_entropy = h_full, influences = influences)
@@ -701,8 +727,8 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
     boot_A <- counts_A[, idx_A, drop = FALSE]
     boot_B <- counts_B[, idx_B, drop = FALSE]
     
-    jack_A <- .jackknife_entropy(boot_A, q, norm, log_base, pseudocount)
-    jack_B <- .jackknife_entropy(boot_B, q, norm, log_base, pseudocount)
+    jack_A <- .jackknife_entropy(boot_A, q, norm, log_base, pseudocount, n_transcripts)
+    jack_B <- .jackknife_entropy(boot_B, q, norm, log_base, pseudocount, n_transcripts)
     
     # Compute per-transcript delta for this bootstrap sample
     bootstrap_deltas_matrix[b, ] <- jack_A$influences - jack_B$influences
@@ -1104,9 +1130,37 @@ jackknife_isoform_switching <- function(
     }
     
     # Calculate Tsallis entropy and influences
-    .tsallis_entropy <- function(counts, q, norm, log_base, pseudocount) {
-      if (pseudocount > 0) counts <- counts + pseudocount
-      p <- counts / colSums(counts)
+    # CRITICAL: Need to maintain consistent normalization across jackknife leave-one-out iterations
+    n_tx_original <- nrow(counts_A)  # Store original transcript count
+    
+    .tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+      # Check for zero-sum columns BEFORE adding pseudocount to detect samples with no expression
+      raw_col_sums <- colSums(counts)
+      with_zero_counts <- raw_col_sums == 0
+      
+      # Ensure pseudocount is used to avoid log(0) and division by zero
+      if (pseudocount == 0) {
+        pseudocount <- 1e-8
+      }
+      counts <- counts + pseudocount
+      
+      col_sums <- colSums(counts)
+      if (any(col_sums <= 0)) {
+        return(rep(NA_real_, ncol(counts)))
+      }
+      
+      # Return NA for samples with zero total counts (no expression for this gene)
+      h_result <- rep(NA_real_, ncol(counts))
+      if (all(with_zero_counts)) {
+        return(h_result)
+      }
+      
+      # Avoid division by zero for zero-count columns by using raw column sums intelligently
+      # For zero-count columns, set col_sums to 1 to avoid division by near-zero
+      # These samples will return NA anyway (no valid probability distribution)
+      col_sums_safe <- pmax(col_sums, 1)
+      
+      p <- counts / col_sums_safe
       
       if (q == 1) {
         h <- if (log_base == exp(1)) {
@@ -1115,42 +1169,43 @@ jackknife_isoform_switching <- function(
           -colSums(p * log(p + 1e-100, log_base))
         }
       } else {
-        # Tsallis entropy: S_q = (1/(q-1)) * (1 - sum(p^q))
         p_q_sum <- colSums(p^q)
         h <- (1 / (1 - q)) * (1 - p_q_sum)
       }
       
+      h[!is.finite(h)] <- NA_real_
+      # Set entropy to NA for zero-count columns
+      h[with_zero_counts] <- NA_real_
+      
       if (norm) {
-        # Compute max entropy for normalized distribution
-        n_transcripts <- nrow(counts)
+        # Use FIXED n_transcripts if provided (for consistent jackknife normalization)
+        n_tx_use <- if (!is.null(n_tx_fixed)) n_tx_fixed else nrow(counts)
         if (q == 1) {
-          max_h <- log(n_transcripts) / log(log_base)
+          max_h <- log(n_tx_use) / log(log_base)
         } else {
-          # Max entropy for uniform distribution: S_q = (1/(q-1)) * (1 - n^(1-q))
-          max_h <- (1 / (1 - q)) * (1 - n_transcripts^(1 - q))
+          # Use absolute value because the formula produces negative values for q<1 and q>1
+          max_h <- abs((1 / (1 - q)) * (1 - n_tx_use^(1 - q)))
         }
         
-        # Safely normalize: avoid division by zero or infinite values
         if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
           h <- h / max_h
         }
-        # else: if max_h is problematic, return h unnormalized
       }
       return(h)
     }
     
-    .jackknife_influences <- function(counts, q, norm, log_base, pseudocount) {
-      h_full <- .tsallis_entropy(counts, q, norm, log_base, pseudocount)
+    .jackknife_influences <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+      h_full <- .tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
       n_tx <- nrow(counts)
       influences <- numeric(n_tx)
       
       if (n_tx < 2) {
-        return(influences)  # Return zeros for single-transcript genes
+        return(influences)
       }
       
       for (i in 1:n_tx) {
         counts_leave_i <- counts[-i, , drop = FALSE]
-        h_leave_i <- .tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount)
+        h_leave_i <- .tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed)
         # Compute mean absolute difference across samples
         diffs <- abs(h_full - h_leave_i)
         influences[i] <- mean(diffs, na.rm = TRUE)
@@ -1158,18 +1213,23 @@ jackknife_isoform_switching <- function(
       return(influences)
     }
     
-    # Calculate influences for each condition
-    influences_A <- .jackknife_influences(counts_A, q, norm, log_base, pseudocount)
-    influences_B <- .jackknife_influences(counts_B, q, norm, log_base, pseudocount)
+    # Calculate influences for each condition with fixed transcript count
+    # This ensures consistent normalization across all jackknife iterations
+    influences_A <- .jackknife_influences(counts_A, q, norm, log_base, pseudocount, n_tx_original)
+    influences_B <- .jackknife_influences(counts_B, q, norm, log_base, pseudocount, n_tx_original)
     
     # Calculate delta influence
     delta_influence <- influences_A - influences_B
+    
+    # Get original transcript count for consistent normalization during jackknife bootstrap
+    n_tx <- nrow(counts_A)
     
     # Calculate bootstrap statistics
     delta_stats <- compute_delta_statistics(
       counts_A, counts_B, delta_influence,
       q = q, norm = norm, log_base = log_base,
-      pseudocount = pseudocount, n_bootstrap = n_bootstrap
+      pseudocount = pseudocount, n_bootstrap = n_bootstrap,
+      n_transcripts = n_tx  # Pass original transcript count for consistent normalization
     )
     
     # Determine switching status
