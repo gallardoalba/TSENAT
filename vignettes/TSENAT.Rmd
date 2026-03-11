@@ -663,17 +663,19 @@ The tables below examine how transcript switching patterns vary across different
 
 ```{r multi-q-switching-table, echo=TRUE, results='hide'}
 # Use the helper function to prepare comparison tables across q-values
+# Limiting to top 2 genes with strongest switching patterns
 tables_result <- prepare_gene_switching_tables(
   lm_res = lm_res,
   multi_q_results = multi_q_results,
+  n_top_genes = 2,
   verbose = FALSE
 )
 ```
 
 ```{r multi-q-switching-display, echo=FALSE, results='asis'}
 
-# Iterate over the prepared comparison tables and display top 4 genes
-for (gene_idx in 1:min(4, length(tables_result$gene_headers))) {
+# Iterate over the prepared comparison tables and display top 2 genes
+for (gene_idx in 1:min(2, length(tables_result$gene_headers))) {
   cat("#### Gene: ", tables_result$gene_headers[gene_idx], "\n\n", sep="")
   
   comparison_data <- tables_result$comparison_tables[[gene_idx]]

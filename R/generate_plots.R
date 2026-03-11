@@ -3623,7 +3623,31 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
   
   nrow <- ceiling(length(plot_list) / ncol)
   
-  combined_plot <- patchwork::wrap_plots(plot_list, ncol = ncol, nrow = nrow)
+  # Build layout with spacers between rows to prevent overlap
+  layout_plots <- list()
+  for (row_idx in 1:nrow) {
+    row_start <- (row_idx - 1) * ncol + 1
+    row_end <- min(row_idx * ncol, length(plot_list))
+    row_plots <- plot_list[row_start:row_end]
+    
+    # Combine plots in this row horizontally
+    if (length(row_plots) == 1) {
+      row_combined <- row_plots[[1]]
+    } else {
+      row_combined <- Reduce(function(x, y) x + y, row_plots)
+    }
+    
+    layout_plots[[length(layout_plots) + 1]] <- row_combined
+    
+    # Add spacer between rows (except after last row)
+    if (row_idx < nrow) {
+      layout_plots[[length(layout_plots) + 1]] <- patchwork::plot_spacer()
+    }
+  }
+  
+  # Combine all rows with spacers vertically
+  combined_plot <- Reduce(function(x, y) x / y, layout_plots) +
+                   patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect")
   
   if (verbose) cat(sprintf("✓ Multi-gene q-spectrum plot created with %d genes\n", length(plot_list)))
   
@@ -4604,22 +4628,25 @@ plot_multiq_delta_influence_heatmaps <- function(
     n_cols <- 2
     n_rows <- ceiling(n_genes / n_cols)
     
-    grDevices::png(combined_png_file, width = 18, height = 9 * n_rows, 
+    # Increase height to accommodate spacing between rows
+    heatmap_height <- 9 * n_rows + 2 * (n_rows - 1)  # Add 2 inches per gap between rows
+    grDevices::png(combined_png_file, width = 18, height = heatmap_height, 
                    units = "in", res = 96)
     
     grid::grid.newpage()
     
-    # Add main title
+    # Add main title (positioned to create more space before first row)
     grid::grid.text("Delta Influence Across Diversity Scales", 
-                    x = 0.5, y = 0.98, 
+                    x = 0.5, y = 0.97, 
                     just = "top",
                     gp = grid::gpar(fontsize = 24, fontface = "bold"))
     
-    # Create viewport layout with uniform spacing
-    row_heights <- rep(1, n_rows)
-    n_layout_rows <- n_rows
+    # Create viewport layout with spacing between rows
+    # Alternate between content rows and gap rows with larger gaps
+    n_layout_rows <- n_rows * 2 - 1  # n_rows for content + (n_rows-1) for gaps
+    row_heights <- rep(c(1, 0.25), n_rows)[1:n_layout_rows]  # Larger gap height (0.25) for more row separation
     
-    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 1, height = 0.78,
+    grid::pushViewport(grid::viewport(x = 0.5, y = 0.47, width = 1, height = 0.85,
                                       layout = grid::grid.layout(
       n_layout_rows, 
       n_cols, 
@@ -4629,16 +4656,20 @@ plot_multiq_delta_influence_heatmaps <- function(
     )))
     
     # Draw each pheatmap (or placeholder) in its own viewport
+    # Skip over gap rows (every odd row in expanded layout)
     plot_idx <- 1
+    layout_row <- 1
     for (row in 1:n_rows) {
       for (col in 1:n_cols) {
         if (plot_idx <= length(heatmap_plots)) {
-          grid::pushViewport(grid::viewport(layout.pos.row = row, layout.pos.col = col))
+          grid::pushViewport(grid::viewport(layout.pos.row = layout_row, layout.pos.col = col))
           grid::grid.draw(heatmap_plots[[plot_idx]])
           grid::popViewport()
           plot_idx <- plot_idx + 1
         }
       }
+      # Move to next content row (skip gap row)
+      layout_row <- layout_row + 2
     }
     
     grid::popViewport()
