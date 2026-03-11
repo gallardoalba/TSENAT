@@ -735,23 +735,19 @@ plot_ma_expression_impl <- function(
 }
 
 
-#' Plot Tsallis Q-curve with Bootstrap Confidence Bands and Statistical Testing
+#' Plot Tsallis Q-curve Profile
 #'
-#' Enhanced q-curve visualization with bootstrap confidence intervals. Tests for group
-#' differences at each q-value and shades significant q-ranges (p < alpha).
+#' Visualize q-curve showing Tsallis entropy across diversity scales for each sample group.
+#' Displays median entropy with IQR ribbons for comparison between groups.
 #'
 #' @param se SummarizedExperiment from calculate_diversity().
 #' @param assay_name Character. Assay name (default "diversity").
 #' @param sample_type_col Character. Column in colData(se) with sample types (default "sample_type").
-#' @param n_bootstrap Integer. Bootstrap replicates (default 500).
-#' @param ci_level Numeric. Confidence level (default 0.95).
-#' @param test_method Character. Test: wilcox (default) or ttest.
-#' @param alpha Numeric. Significance level (default 0.05).
-#' @param use_bootstrap Logical. Use bootstrap CIs (TRUE, default).
 #'
-#' @return A ggplot object with bootstrap confidence bands and group medians.
+#' @return A ggplot object with q-curves and IQR ribbons for each group.
 #'
-#' @details Resamples genes with replacement, computes medians and quantiles, tests group differences (Wilcoxon or t-test). Red-shaded q-ranges show significance (p < 0.05).
+#' @details Computes median Tsallis entropy and interquartile range (IQR) at each q-value
+#' for each sample group, displayed as median line with IQR ribbon.
 #'
 #' @export
 #' @examples
@@ -761,22 +757,12 @@ plot_ma_expression_impl <- function(
 #' se <- calculate_diversity(rc, gs,
 #'     q = seq(0.01, 0.1, by = 0.03), norm = FALSE
 #' )
-#' # Default: median ± IQR (simple approach)
 #' p <- plot_tsallis_q_curve(se)
 #' p
-#'
-#' # Bootstrap CIs with Wilcoxon testing
-#' p2 <- plot_tsallis_q_curve(se, bootstrap = TRUE)
-#' p2
 plot_tsallis_q_curve <- function(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type",
-  n_bootstrap = 500,
-  ci_level = 0.95,
-  test_method = "wilcox",
-  alpha = 0.05,
-  bootstrap = FALSE
+  sample_type_col = "sample_type"
 ) {
     # SE-first API: require a SummarizedExperiment with per-column sample
     # type mapping in `colData(se)[, sample_type_col]` (or allow a single
@@ -789,152 +775,31 @@ plot_tsallis_q_curve <- function(
         # Ensure q is numeric; handle case where it might be a factor or character
         long$q <- as.numeric(as.character(long$q))
         
-        # If bootstrap is TRUE, compute bootstrap CIs; otherwise use IQR
-        if (bootstrap) {
-            unique_q <- sort(unique(long$q))
-            groups <- unique(sort(long$group))
-            
-            plot_df <- data.frame(
-                q = numeric(),
-                median = numeric(),
-                ci_lower = numeric(),
-                ci_upper = numeric(),
-                group = character(),
-                pvalue = numeric(),
-                significant = logical(),
-                stringsAsFactors = FALSE
-            )
-            
-            # Compute bootstrap CIs using helper function
-            bootstrap_results <- compute_bootstrap_qcurve_cis(
-                long = long,
-                unique_q = unique_q,
-                groups = groups,
-                ci_level = ci_level,
-                n_bootstrap = n_bootstrap
-            )
-            
-            # Build plot_df from bootstrap results
-            for (g in groups) {
-                for (q_val in unique_q) {
-                    q_str <- as.character(q_val)
-                    bt_res <- bootstrap_results[[g]][[q_str]]
-                    
-                    plot_df <- rbind(plot_df, data.frame(
-                        q = q_val, median = bt_res$median,
-                        ci_lower = bt_res$ci_lower, ci_upper = bt_res$ci_upper,
-                        group = g, pvalue = NA_real_, significant = FALSE, stringsAsFactors = FALSE
-                    ))
-                }
-            }
-            
-            # Perform statistical tests at each q-value
-            for (q_val in unique_q) {
-                q_data_g1 <- long %>%
-                    dplyr::filter(group == groups[1], q == q_val) %>%
-                    dplyr::pull(tsallis)
-                
-                if (length(groups) > 1) {
-                    q_data_g2 <- long %>%
-                        dplyr::filter(group == groups[2], q == q_val) %>%
-                        dplyr::pull(tsallis)
-                    
-                    if (length(q_data_g1) >= 2 && length(q_data_g2) >= 2) {
-                        if (test_method == "wilcox") {
-                            test_result <- wilcox.test(q_data_g1, q_data_g2, paired = FALSE)
-                        } else {
-                            test_result <- t.test(q_data_g1, q_data_g2, var.equal = FALSE)
-                        }
-                        pvalue <- test_result$p.value
-                        plot_df$pvalue[plot_df$q == q_val] <- pvalue
-                        plot_df$significant[plot_df$q == q_val] <- pvalue < alpha
-                    }
-                }
-            }
-            
-            # Create plot with bootstrap CIs
-            p <- ggplot2::ggplot(
-                plot_df,
-                ggplot2::aes(x = q, y = median, color = group, fill = group)
+        # Compute median and IQR at each q-value for each group
+        stats_df <- dplyr::summarise(dplyr::group_by(long, group, q),
+            median = median(tsallis, na.rm = TRUE),
+            IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
+        )
+        
+        # Create plot with IQR ribbons
+        p <- ggplot2::ggplot(
+            stats_df,
+            ggplot2::aes(x = q, y = median, color = group, fill = group)
+        ) +
+            ggplot2::geom_line(linewidth = 1.3) +
+            ggplot2::geom_ribbon(
+                ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
+                alpha = 0.2, color = NA
             ) +
-                ggplot2::geom_line(linewidth = 1.2) +
-                ggplot2::geom_ribbon(
-                    ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
-                    alpha = 0.15,
-                    color = NA
-                ) +
-                ggplot2::theme_minimal(base_size = 14) +
-                ggplot2::labs(
-                    title = "Tsallis q-curve with Bootstrap Confidence Bands",
-                    subtitle = paste0("95% CI from ", n_bootstrap, " bootstrap replicates; ",
-                                    "p < ", alpha, " highlighted"),
-                    x = "q value",
-                    y = y_label,
-                    color = "Group",
-                    fill = "Group"
-                ) +
-                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 15),
-                             plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11, color = "gray40"))
-            
-            # Add significance shading
-            sig_ranges <- plot_df %>%
-                dplyr::filter(significant) %>%
-                dplyr::pull(q) %>%
-                unique() %>%
-                sort()
-            
-            if (length(sig_ranges) > 0) {
-                # Find contiguous ranges
-                if (length(sig_ranges) > 1) {
-                    gaps <- which(diff(sig_ranges) > 0.01)
-                    if (length(gaps) > 0) {
-                        range_starts <- c(1, gaps + 1)
-                        range_ends <- c(gaps, length(sig_ranges))
-                    } else {
-                        range_starts <- 1
-                        range_ends <- length(sig_ranges)
-                    }
-                } else {
-                    range_starts <- 1
-                    range_ends <- 1
-                }
-                
-                for (i in seq_along(range_starts)) {
-                    q_range <- sig_ranges[range_starts[i]:range_ends[i]]
-                    p <- p + ggplot2::annotate(
-                        "rect",
-                        xmin = min(q_range) - 0.02, xmax = max(q_range) + 0.02,
-                        ymin = -Inf, ymax = Inf,
-                        alpha = 0.08, fill = "red"
-                    )
-                }
-            }
-            
-        } else {
-            # Legacy IQR-based approach
-            stats_df <- dplyr::summarise(dplyr::group_by(long, group, q),
-                median = median(tsallis, na.rm = TRUE),
-                IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
-            )
-            p <- ggplot2::ggplot(
-                stats_df,
-                ggplot2::aes(x = q, y = median, color = group, fill = group)
+            ggplot2::theme_minimal(base_size = 14) +
+            ggplot2::labs(
+                title = "Tsallis q-curve: median ± IQR",
+                x = "q value",
+                y = y_label,
+                color = "Group",
+                fill = "Group"
             ) +
-                ggplot2::geom_line(linewidth = 1.3) +
-                ggplot2::geom_ribbon(
-                    ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
-                    alpha = 0.2, color = NA
-                ) +
-                ggplot2::theme_minimal(base_size = 14) +
-                ggplot2::labs(
-                    title = "Tsallis q-curve: median ± IQR",
-                    x = "q value",
-                    y = y_label,
-                    color = "Group",
-                    fill = "Group"
-                ) +
-                ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 16))
-        }
+            ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 16))
         
         # use default discrete ggplot2 colours (not viridis)
         p <- p + ggplot2::scale_color_discrete(name = "Group") +

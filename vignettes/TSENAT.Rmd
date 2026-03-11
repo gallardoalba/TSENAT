@@ -27,7 +27,7 @@ knitr::opts_chunk$set(
 
 # Overview
 
-**TSENAT** (Tsallis Entropy Analysis Toolbox) quantifies **isoform heterogeneity** in RNA-seq data using Tsallis entropy—a scale-dependent diversity measure distinct from abundance-focused tools (DESeq2, Salmon) and differential transcript usage packages (*SplincingFactory*). By tuning a sensitivity parameter `q`, users examine diversity at different scales: rare variants (low `q`) or dominant isoforms (high `q`). This vignette demonstrates computing Tsallis entropy from transcript-level abundance estimates, comparing measures between groups, and visualizing scale-dependent differences via q-curves. All results integrate seamlessly with Bioconductor via `SummarizedExperiment`.
+**TSENAT** (**Tsallis Entropy** Analysis Toolbox) quantifies **isoform heterogeneity** in RNA-seq data using **Tsallis entropy**—a **scale-dependent** diversity measure distinct from abundance-focused tools (DESeq2, Salmon) and differential transcript usage packages (*SplincingFactory*). By tuning a sensitivity parameter `q`, users examine diversity at different scales: rare variants (low `q`) or dominant isoforms (high `q`). This vignette demonstrates computing **Tsallis entropy** from transcript-level abundance estimates, comparing measures between groups, and visualizing **scale-dependent** differences via q-curves. All results integrate seamlessly with Bioconductor via `SummarizedExperiment`.
 
 ## Motivation and Bioconductor Contribution
 
@@ -38,15 +38,14 @@ biological phenomenon: genes often change *which* isoforms they express without 
 in overall abundance, and this isoform heterogeneity itself—independent of proportional shifts—
 carries biological signal about cellular state and function.
 
-**TSENAT fills this gap** by providing a **scale-dependent diversity framework** that captures 
+**TSENAT** fills this gap by providing a **scale-dependent** **diversity** framework that captures 
 isoform heterogeneity regardless of which specific isoforms dominate. Unlike *SplincingFactory*, 
 which tests for shifts in transcript proportions between conditions, TSENAT quantifies the 
-**entropy or "complexity"** of the isoform distribution itself. Tsallis entropy achieves this 
-through a sensitivity parameter `q`: by tuning `q`, you slide a lens across abundance 
+entropy or complexity of the isoform distribution itself. **Tsallis entropy** achieves this through a sensitivity parameter `q`: by tuning `q`, you slide a lens across abundance 
 scales—zooming in on rare variants (low `q`) or focusing on dominant isoforms (high `q`)—
 capturing scale-dependent isoform switching that ordinary summaries overlook.
 
-**Bioconductor inclusion** reflects TSENAT's role as a complementary statistical framework 
+Bioconductor inclusion reflects TSENAT's role as a complementary statistical framework 
 for transcript-level analysis. The package introduces rigorous information-theoretic methods 
 (Tsallis entropy with bootstrapped confidence intervals, paired testing, and functional 
 principal component analysis) designed specifically for isoform-level RNA-seq. By integrating 
@@ -65,7 +64,7 @@ Tsallis entropy across one or more `q` values.
 differences between groups (Wilcoxon or permutations).
 4. Visualize q-curves and inspect transcript-level counts for top genes.
 
-**Design assumption**: This vignette assumes paired or longitudinal study designs
+Design assumption: This vignette assumes paired or longitudinal study designs
 with a minimum of 6-8 samples per group for adequate statistical power.
 
 
@@ -119,18 +118,16 @@ ts_se <- calculate_diversity(se, q = 1, norm = TRUE, metadata = metadata_df)
 
 ## Data Structure Overview
 
-`TSENAT` operates on **transcript-level read counts** rather than pre-aggregated gene-level summaries. Input data should be organized as a matrix with transcript IDs as rows and samples as columns, typically derived from quantification tools such as SALMON or kallisto. This matrix must be accompanied by transcript-to-gene mapping information, conventionally provided through a GFF3 annotation file.
+`TSENAT` operates on transcript-level read counts rather than pre-aggregated gene-level summaries. Input data should be organized as a matrix with transcript IDs as rows and samples as columns, typically derived from quantification tools such as SALMON or kallisto. This matrix must be accompanied by transcript-to-gene mapping information, conventionally provided through a GFF3 annotation file.
 
 All analysis results are organized into a `SummarizedExperiment` object—the standard Bioconductor container for high-throughput expression data. This unified structure facilitates seamless integration with the broader Bioconductor ecosystem. For more details on the `SummarizedExperiment` class and its capabilities, refer to the [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
 
-Within each `SummarizedExperiment` object, three key components work together: **column metadata** (`colData`) captures sample-level information including identifiers, group assignments, and pairing information; **row metadata** (`rowData`) stores transcript identifiers, gene assignments, and feature annotations; and **assays** contain the computed diversity measures themselves. The assay structure is flexible—typically one assay per `q` value, or a single assay when combining multiple q values—where each cell represents the normalized or unnormalized Tsallis entropy for a specific gene-sample combination.
+Within each **SummarizedExperiment** object, three key components work together: column metadata (`colData`) captures sample-level information including identifiers, group assignments, and pairing information; row metadata (`rowData`) stores transcript identifiers, gene assignments, and feature annotations; and assays contain the computed **diversity** measures themselves. The assay structure is flexible—typically one assay per `q` value, or a single assay when combining multiple q values—where each cell represents the normalized or unnormalized Tsallis entropy for a specific gene-sample combination.
 
-# What is Tsallis entropy?
+# What is Entropy and Tsallis entropy?
 
-Tsallis entropy is a one-parameter family of diversity measures that
-generalizes Shannon entropy [@Shannon1948] via a sensitivity parameter `q` [@Tsallis1988a]. Unlike Shannon entropy,
-which treats all isoforms equally, Tsallis entropy lets you **zoom in on rare isoforms
-(low q) or focus on dominant species (high q)**, capturing scale-dependent isoform
+**Tsallis entropy** is a one-parameter family of **diversity** measures that generalizes Shannon **entropy** [@Shannon1948] via a sensitivity parameter `q` [@Tsallis1988a]. Unlike Shannon entropy,
+which treats all isoforms equally, **Tsallis entropy** lets you zoom in on rare isoforms (low q) or focus on dominant species (high q), capturing scale-dependent isoform
 variation that ordinary summaries miss. For a discrete probability vector 
 $p=(p_1,\dots,p_n)$ it is defined as:
 
@@ -138,29 +135,28 @@ $p=(p_1,\dots,p_n)$ it is defined as:
 S_q(p) = \frac{1-\sum_{i=1}^n p_i^q}{q-1}.
 \]
 
-This parametric family unites diverse entropy concepts under a single framework:
-- **Generalization**: Extends beyond classical Shannon entropy to capture scale-dependent phenomena
-- **Mathematical elegance**: Reduces to well-known indices at specific q-values
-- **Practical flexibility**: Allows data-driven exploration via q-curves
+This parametric family unites diverse **entropy** concepts under a single framework:
+- Generalization: Extends beyond classical Shannon **entropy** to capture **scale-dependent** phenomena
+- Mathematical elegance: Reduces to well-known indices at specific `q`-values
+- Practical flexibility: Allows data-driven exploration via **q-spectrum** curves
 
 ## Information-Theoretic Interpretation
 
-In information theory terms [@Shannon1948, @CoverThomas2006], entropy measures the 
-**uncertainty or surprise** when drawing a single item (transcript) from a probabilistic 
+In information theory terms [@Shannon1948, @CoverThomas2006], **entropy** measures the 
+uncertainty or surprise when drawing a single item (transcript) from a probabilistic 
 ensemble (isoform distribution). Higher entropy means the draw is less predictable 
 (many similarly abundant isoforms contribute equally), while lower entropy means the 
 distribution is dominated by one or a few highly abundant transcripts. This distinction 
 is crucial: two genes may have identical total abundance but dramatically different 
 isoform complexity.
 
-Tsallis entropy generalizes this concept by introducing the `q` parameter as a 
-**sensitivity dial** that shifts emphasis between different abundance scales:
-- **Small q (0 < q < 1)**: Emphasizes rare, low-abundance isoforms
-- **q = 1**: Recovers Shannon entropy (balanced across all abundance scales)
-- **q = 2**: Yields the Gini-Simpson index, emphasizing dominant isoforms
-- **Large q (q > 2)**: Focuses almost exclusively on the most abundant species
+**Tsallis entropy** generalizes this concept by introducing the `q` parameter as a sensitivity dial for **scale-dependent** emphasis:
+- q < 1: Emphasizes rare, low-abundance isoforms
+- q = 1: Recovers Shannon entropy (balanced across all abundance scales)
+- q = 2: Yields the Gini-Simpson index, emphasizing dominant isoforms
+- q > 2: Focuses almost exclusively on the most abundant species
 
-This scale-dependence is the key innovation: by computing $S_q$ across a range of 
+This **Tsallis entropy** **scale-dependent** nature is the key innovation: by computing $S_q$ across a range of 
 q-values (a "q-curve"), you obtain a complete picture of isoform heterogeneity 
 across biological scales [@Jost2006, @Furuichi2006]. In practice, combining q-curves 
 with resampling or paired designs yields a concise, statistically rigorous summary 
@@ -170,26 +166,26 @@ of isoform complexity.
 
 Tsallis entropy exhibits several important mathematical limits and special cases:
 
-- **Limit $q\to 1$ (Shannon entropy)**: \(\lim_{q\to1} S_q(p) = H(p) = -\sum_i p_i\log p_i\)
-  - Classical information entropy (measured in *bits* if log base 2, or *nats* if natural log)
+- q→1 (Shannon entropy): \(\lim_{q\to1} S_q(p) = H(p) = -\sum_i p_i\log p_i\)
+  - Classical information entropy (measured in bits if log base 2, or nats if natural log)
   - Treats all isoforms with equal weight regardless of abundance
 
-- **q = 0 (Richness)**: \(S_0 = m - 1\) where $m$ = number of observed isoforms
+- q = 0 (Richness): \(S_0 = m - 1\) where $m$ = number of observed isoforms
   - Counts expressed isoforms (pure species richness, log-scale)
   - Minimum assumption: just presence/absence
 
-- **q = 1 (Shannon)**: \(S_1(p) = -\sum_i p_i\log p_i\)
-  - Standard information entropy [@Shannon1948]
+- q = 1 (Shannon): \(S_1(p) = -\sum_i p_i\log p_i\)
+  - Standard information **entropy** [@Shannon1948]
   - Optimal estimator of information content and predictability
 
-- **q = 2 (Gini–Simpson / collision index)**: \(S_2 = 1 - \sum_i p_i^2\)
+- q = 2 (Gini–Simpson / collision index): \(S_2 = 1 - \sum_i p_i^2\)
   - Probability that two randomly drawn transcripts differ [@Simpson1949]
   - Robust to rare variants (insensitive to very low-abundance isoforms)
   - Range: [0, 1 - 1/m] for m isoforms
 
-- **Uniform maximum**: For $m$ equally expressed isoforms, maximum entropy is:
+- Uniform maximum: For $m$ equally expressed isoforms, maximum entropy is:
   \[S_{q,\max}(m) = \frac{1-m^{1-q}}{q-1}\]
-  - **Normalized Tsallis entropy**: \(\tilde S_q = \frac{S_q(p)}{S_{q,\max}(m)} \in [0,1]\)
+  - Normalized **Tsallis entropy**: \(\tilde S_q = \frac{S_q(p)}{S_{q,\max}(m)} \in [0,1]\)
   - Enables comparison across genes with different isoform counts
   - Essential for distinguishing true biological heterogeneity from annotation artifacts
 
@@ -197,19 +193,15 @@ Tsallis entropy exhibits several important mathematical limits and special cases
 
 Standard RNA-seq analysis measures *whether* transcript abundance changes between 
 conditions (fold change, differential expression). However, a critical complementary 
-question remains underexplored: *how* does the **diversity of isoforms** change? 
+question remains underexplored: *how* does the diversity of isoforms change? 
 
 A gene may show little change in total abundance while dramatically reshuffling its 
-isoform repertoire—a phenomenon that current methods largely miss. Tsallis entropy 
-captures precisely this: the **complexity, richness, and balance of the isoform landscape**. 
-By varying `q`, researchers can examine whether changes are driven by **shifts in rare 
-variants or reorganization of dominant isoforms**, yielding mechanistic insight into 
-splicing regulation and cellular adaptation.
+isoform repertoire—a phenomenon that current methods largely miss. **Tsallis entropy** captures precisely this: the complexity, richness, and balance of the **isoform heterogeneity** landscape. 
+By varying `q`, researchers can examine whether changes are driven by shifts in rare variants or reorganization of dominant isoforms from **scale-dependent** analysis
 
-The mathematical foundation of Tsallis entropy rests on Shannon's seminal information 
-theory [@Shannon1948], which defined entropy as a measure of uncertainty. Building on 
+The mathematical foundation of **Tsallis entropy** rests on Shannon's seminal information theory [@Shannon1948], which defined entropy as a measure of uncertainty. Building on 
 this, Rényi [@Renyi1961] developed a parametrized family of entropy measures that 
-generalize Shannon entropy. Tsallis entropy extends this framework further, providing 
+generalize Shannon entropy. **Tsallis entropy** extends this framework further, providing 
 a scale-dependent diversity measure where the `q` parameter controls emphasis: at $q \to 1$ 
 it approaches Shannon entropy (balanced sensitivity), while $q = 2$ yields the Gini-Simpson 
 index (focus on common species), and $q \to 0$ approaches richness (emphasis on rare species). 
@@ -221,7 +213,7 @@ by a single isoform (low q sensitivity) while the other distributes evenly (high
 
 ### Applications of Tsallis Entropy in Genomics and Precision Medicine
 
-Tsallis entropy has emerged as a powerful tool for analyzing isoform complexity across diverse
+**Tsallis entropy** has emerged as a powerful tool for analyzing isoform complexity across diverse
 biological contexts, from single-cell transcriptomics [@Gandrillon2021, @Seweryn2020] to 
 spatial transcriptomics [@Hinostroza2026]. Recent applications demonstrate its value:
 
@@ -262,14 +254,14 @@ medicine beyond mutation detection to include functional complexity of the prote
 
 The recent emphasis on information theory in computational biology [@Chanda2020, @Adami2004, 
 @Bartal2022] reflects growing recognition that traditional measures (fold change, p-values) 
-miss key aspects of biological organization. Tsallis entropy, by allowing exploration across 
-the q-spectrum, captures organization at multiple biological scales simultaneously—a capability 
+miss key aspects of biological organization. **Tsallis entropy**, by allowing exploration across 
+the **q-spectrum**, captures organization at multiple biological scales simultaneously—a capability 
 essential for unpacking the complexity of gene regulation in health and disease.
 
 
 # Isoform switching workflow
 
-Having established the mathematical and biological foundations of Tsallis entropy, we now demonstrate a complete workflow for detecting and characterizing **isoform switching**—the coordinated changes in transcript usage patterns between experimental conditions. Isoform switching occurs when cells reorganize their isoform landscape without necessarily changing total gene abundance, often reflecting strategic shifts in protein function driven by splicing regulation. This section walks through a practical analysis pipeline: from raw transcript counts to identifying genes with significant scale-dependent isoform complexity changes (via linear model interaction testing) and dissecting the specific transcripts driving those changes (via jackknife-based influence assessment). We'll use a paired experimental design where treated and control samples are linked, enabling detection of robust biological signals while controlling for subject-level variability. By the end of this workflow, you'll be able to identify not just *which genes* undergo isoform switching, but *which transcripts* are responsible and *at which diversity scales* the switching occurs.
+Having established the mathematical and biological foundations of **Tsallis entropy**, we now demonstrate a complete workflow for detecting and characterizing **isoform switching**—the coordinated changes in transcript usage patterns between experimental conditions. Isoform switching occurs when cells reorganize their isoform landscape without necessarily changing total gene abundance, often reflecting strategic shifts in protein function driven by splicing regulation. This section walks through a practical analysis pipeline: from raw transcript counts to identifying genes with significant scale-dependent isoform complexity changes (via linear model interaction testing) and dissecting the specific transcripts driving those changes (via jackknife-based influence assessment). We'll use a paired experimental design where treated and control samples are linked, enabling detection of robust biological signals while controlling for subject-level variability. By the end of this workflow, you'll be able to identify not just *which genes* undergo isoform switching, but *which transcripts* are responsible and *at which diversity scales* the switching occurs.
 
 ## Load data and metadata
 
@@ -440,11 +432,11 @@ knitr::kable(
 Map once again the sample metadata into the multi-q 
 `SummarizedExperiment` as before.
 
-With the **Tsallis q-sequence** we can produce a q-curve per sample and gene.
-These curves show how diversity emphasis shifts from rare to dominant
+With the **q-spectrum** we can produce a q-curve per sample and gene.
+These curves show how **diversity** emphasis shifts from rare to dominant
 isoforms as `q` increases and form the basis for interaction tests. The
 q-curve shows entropy as a function of `q`. Diverging curves between
-groups indicate **scale-dependent diversity differences**: separation at low
+groups indicate **scale-dependent** **diversity** differences: separation at low
 `q` implies differences in rare isoforms, while separation at high `q`
 signals differences in dominant isoforms.
 
@@ -456,7 +448,7 @@ print(p_qcurve)
 
 ## Quality Control: Sample Influence Assessment
 
-Before proceeding with group-level comparisons, we should assess whether individual samples exert disproportionate influence on our entropy estimates. To address this, we employ a **leave-one-out influence assessment** combined with **robust M-estimation** (iteratively re-weighted least squares with Huber loss). This approach quantifies how much each sample's removal affects the estimated location differences across the q-spectrum, providing a sample-level quality control metric independent of group assignment.
+Before proceeding with group-level comparisons, we should assess whether individual samples exert disproportionate influence on our entropy estimates. To address this, we employ a leave-one-out influence assessment combined with robust M-estimation (iteratively re-weighted least squares with Huber loss). This approach quantifies how much each sample's removal affects the estimated location differences across the q-spectrum, providing a sample-level quality control metric independent of group assignment.
 
 Samples with high influence scores exert disproportionate leverage on entropy estimates and may warrant deeper investigation for technical quality issues, subject-specific outliers, or genuine biological signals that require careful interpretation.
 
@@ -524,11 +516,11 @@ This approach is a powerful way to detect scale-dependent
 diversity differences that may not be apparent at a
 single `q` value.
 
-Computing Tsallis entropy across a sequence of `q` values 
+Compute **Tsallis entropy** across a sequence of `q` values 
 is important because `q` acts as a sensitivity lens that 
 shifts emphasis between rare and dominant events in data.
-Thus,  the resulting **q-curve** can help us identify at which 
-scales (i.e. for which `q` values) the diversity differences
+Thus,  the resulting q-curve can help us identify at which 
+scales (i.e. for which `q` values) the **diversity** differences
 between groups are most pronounced. The Tsallis `q-sequence` can 
 also help with quality control and outlier detection. By 
 examining the q-curves of individual samples, we can 
@@ -536,18 +528,18 @@ identify samples that deviate from expected patterns,
 which may indicate technical issues or biological outliers.
 
 
-Once we have the **q-sequence** computed, we can test for interactions
+Once we have the **q-spectrum** computed, we can test for interactions
 between `q` and sample groups using one of four methods implemented
 in `calculate_lm_interaction()`:
 
-- **linear**: fits a simple linear model. This is
+- linear: fits a simple linear model. This is
 fast and interpretable and is appropriate when the q–response is
 approximately linear and samples are independent.
-- **lmm**: fits a linear mixed model which accounts
+- lmm: fits a linear mixed model which accounts
 for subject-level random effects (paired or repeated measures).
-- **gam**: fits a generalized additive model. This method allows
+- gam: fits a generalized additive model. This method allows
 to capture nonlinear q–response shapes.
-- **fpca**: uses a functional-data approach to reduce each gene's
+- fpca: uses a functional-data approach to reduce each gene's
 q-curve to principal component scores. This is recommended when q
 is densely sampled or when q-curves exhibit complex, high-dimensional
 variation.
@@ -678,7 +670,7 @@ tables_result <- prepare_gene_switching_tables(
 )
 ```
 
-```{r multi-q-switching-display, echo=TRUE, results='asis'}
+```{r multi-q-switching-display, echo=FALSE, results='asis'}
 
 # Iterate over the prepared comparison tables and display top 2 genes
 for (gene_idx in 1:min(2, length(tables_result$gene_headers))) {
@@ -712,7 +704,7 @@ for (gene_idx in 1:min(2, length(tables_result$gene_headers))) {
 Visualize switching patterns for the top genes identified by the LM
 interaction test. This shows which transcripts are switching in genes 
 with significant q×condition interaction effects. The heatmaps below display
-the jackknife delta influence (a measure of transcript switching robustness)
+the **jackknife** delta influence (a measure of transcript switching robustness)
 across different q-values (rows: 0.01 to 2.0, representing increasing diversity
 scales) and transcripts (columns) for each gene.
 
@@ -726,9 +718,7 @@ heatmap_file <- plot_multiq_delta_influence_heatmaps(
 )
 
 # Display the generated heatmap
-if (!is.null(heatmap_file) && file.exists(heatmap_file)) {
-  knitr::include_graphics(heatmap_file)
-}
+knitr::include_graphics(heatmap_file)
 ```
 
 Interpretation:
@@ -742,17 +732,16 @@ Interpretation:
 
 ### Effect size analysis
 
-To understand which **diversity scales show the most pronounced biological differences** 
-between groups, we compute effect size metrics (Tsallis divergence D_q) across the q-spectrum while **respecting 
-the paired sample design**. This reveals whether group differences are driven by rare 
+To understand which diversity scales show the most pronounced biological differences 
+between groups, we compute effect size metrics (Tsallis divergence D_q) across the q-spectrum while respecting the paired sample design. This reveals whether group differences are driven by rare 
 isoforms (low q), dominant isoforms (high q), or uniformly across scales.
 
-The approach uses **linear mixed-effects regression** (LMM) with q as continuous predictor to assess 
+The approach uses linear mixed-effects regression (LMM) with q as continuous predictor to assess 
 slope differences in entropy change across q-spectrum between treatment groups, with effect size computed 
-as **Tsallis divergence** D_q(control||treatment) [@I002; @I003; @I004]. This information-theoretic measure 
+as Tsallis divergence D_q(control||treatment) [@I002; @I003; @I004]. This information-theoretic measure 
 automatically respects Tsallis entropy properties and adapts to each q value.
 
-**Theoretical Justification:** Tsallis entropy theory [@I002, @I004] demonstrates that 
+Theoretical Justification: **Tsallis entropy** theory [@I002, @I004] demonstrates that 
 different q values reveal fundamentally different aspects of the isoform distribution. 
 As documented in the foundational divergence literature [@I004], D₀.₅(P||Q) often differs 
 substantially from D₂(P||Q), with q=0.5 emphasizing rare variants and q=2 emphasizing 
@@ -760,21 +749,18 @@ abundant isoforms. Computing effect sizes independently at each q value thus cap
 which diversity scales (rare vs. dominant isoforms) show the strongest biological 
 differentiation between conditions.
 
-**Effect Size Interpretation:** Tsallis divergence D_q quantifies the information-theoretic distance between 
+Effect Size Interpretation: **Tsallis divergence** D_q quantifies the information-theoretic distance between 
 two distributions' entropy patterns across the q-spectrum. For paired designs, divergence is computed 
 separately for each pair and then averaged, accounting for within-pair correlation and reducing noise from 
-between-pair variation. The **mean divergence** across q values serves as the effect size, automatically 
+between-pair variation. The mean divergence across q values serves as the effect size, automatically 
 capturing how entropy distributions differ between control and treatment groups at all scales (rare to 
 abundant isoforms). Values D > 0.1 indicate meaningful divergence, following information-theoretic 
 thresholds. Genes with D > 0.1 demonstrate significant information-theoretic separation between conditions, 
 revealing that isoform complexity patterns (captured by multi-q Tsallis entropy) fundamentally differ between 
 treatment groups across all q-dependent scales.
 
-
-
-
 ```{r effect-size-multiq, message=FALSE, warning=FALSE, results='hide'}
-
+# Effect size multi-q plot
 if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res) > 0) {
   # Compute divergence effect sizes from raw transcript counts
   # calculate_divergence handles transcript-to-gene aggregation internally
@@ -804,7 +790,6 @@ if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res)
 
 
 ```{r divergence-assay-display, echo = FALSE}
-
 # Display the raw divergence computation results (first 4 genes across 3 q values)
 if (exists("divergence_results_se") && nrow(divergence_results_se) > 0) {
     div_assay <- assay(divergence_results_se)
@@ -882,8 +867,7 @@ if (exists("divergence_results_se") && exists("lm_res")) {
 }
 ```
 
-
-The effect sizes reveal **which genes show the most information-theoretic separation** 
+The effect sizes reveal which genes show the most information-theoretic separation 
 across the q-spectrum **between paired treatment groups**. Genes with Tsallis divergence D > 0.1 show 
 substantial divergence, indicating that entropy distributions differ fundamentally between conditions 
 across the full q-spectrum.
@@ -901,21 +885,10 @@ for investigation of condition-specific splicing architecture and dynamic isofor
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
-
-# First ensure we have eff_res with data
-if (exists("eff_res") && 
-    !is.null(eff_res) && 
-    !is.null(eff_res$interaction_results) &&
-    nrow(eff_res$interaction_results) > 0) {
-    
-    p <- plot_divergence_distribution(eff_res$interaction_results, 
-        threshold = 0.1)
-    print(p)
-}
-
+p <- plot_divergence_distribution(eff_res$interaction_results, 
+    threshold = 0.1)
+print(p)
 ```
-
-
 
 ### Classify Gene Pattern Type
 
@@ -943,23 +916,14 @@ if (nrow(classification_tbl) > 0 && any(!is.na(classification_tbl$Pattern))) {
 
 | Pattern Type | Signature | Biological Meaning |
 |--------------|-----------|-------------------|
-| **RARE_DRIVEN** | D(q=0.5) >> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
-| **ABUNDANT_DRIVEN** | D(q=0.5) << D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
-| **BALANCED** | D(q=0.5) ≈ D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
-
-**Example Interpretation:**
-- *BRCA1 (RARE_DRIVEN)*: Tumor samples express cryptic exons or non-canonical transcripts 
-  absent in normal tissue. Pattern suggests cell-type specific or context-dependent variants 
-  that could be biomarkers.
-- *TP53 (ABUNDANT_DRIVEN)*: Major isoforms (p53 full-length vs. p53-α) rebalance between 
-  conditions. Pattern reflects functional isoform switching with clinical significance.
-- *GAPDH (BALANCED)*: Housekeeping gene with proportional but no isoform-specific shifts. 
-  Validates constitutive expression assumption.
+| Rare driven | D(q=0.5) >> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
+| Abundant driver | D(q=0.5) << D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
+| Balanced | D(q=0.5) ≈ D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
 
 ### Visualize Q-Spectrum Curve
 
 The q-spectrum is a curve showing how divergence varies across Tsallis sensitivity parameters. 
-This curve is the **full biological signature** of isoform switching—the pattern encodes which 
+This curve is the full biological signature of **isoform switching**—the pattern encodes which 
 abundance scales (rare vs. abundant) are affected.
 
 ```{r visualize-q-spectrum, fig.width=14, fig.height=6, results='hide'}
@@ -970,20 +934,20 @@ plot_gene_q_spectrum(divergence_results_se, target_gene = "LINC03040", verbose =
 
 **Interpreting the Q-Spectrum Curve:**
 
-- **Shape matters more than single value**: The q-spectrum curve is the complete biological story. 
+- Shape matters more than single value: The **q-spectrum** curve is the complete biological story. 
   A flat curve (BALANCED) vs. declining curve (RARE_DRIVEN) vs. rising curve (ABUNDANT_DRIVEN) 
   encode fundamentally different mechanisms.
 
-- **q=1 (KL divergence)**: The middle point corresponds to ordinary Kullback-Leibler divergence, 
+- q=1 (KL divergence): The middle point corresponds to ordinary Kullback-Leibler divergence, 
   which weights all isoforms equally. This is the "average" effect.
 
-- **q < 1 (rare isoforms)**: Emphasizes how much low-abundance transcripts differ between 
+- q < 1 (rare isoforms): Emphasizes how much low-abundance transcripts differ between 
   groups. If D(q=0.5) >> D(q=1), the divergence is driven by changes in rare variants.
 
-- **q > 1 (abundant isoforms)**: Emphasizes dominant transcripts. If D(q=2) >> D(q=1), major 
+- q > 1 (abundant isoforms): Emphasizes dominant transcripts. If D(q=2) >> D(q=1), major 
   isoforms rebalance while rare ones stay similar.
 
-- **Bootstrap CI bands**: Shaded region shows 95% confidence limits on per-q estimates. Narrow 
+- Bootstrap CI bands: Shaded region shows 95% confidence limits on per-q estimates. Narrow 
   bands indicate robust estimates; wide bands suggest noisy data or small sample sizes.
 
 **Advanced Visualization: Multiple Gene Comparison**
@@ -1021,10 +985,10 @@ if (exists("eff_res") &&
 
 **Statistical Validation During Interpretation:**
 
-1. **Bootstrap CI validity**: Per-q CIs should narrow as q increases (higher q = aggregation 
+1. Bootstrap CI validity: Per-q CIs should narrow as q increases (higher q = aggregation 
    effect, less variance). If CIs grow with q, check for data quality issues.
 
-2. **Monotonicity check**: By Tsallis theory, entropy is monotone decreasing in q. Divergence 
+2. Monotonicity check: By **Tsallis entropy** theory, entropy is monotone decreasing in q. Divergence 
    should NOT show erratic increases with q. Small fluctuations are normal, but large spikes 
    indicate numerical instability.
 

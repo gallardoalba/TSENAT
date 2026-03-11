@@ -2,17 +2,12 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_tsallis_q_curve}
 \alias{plot_tsallis_q_curve}
-\title{Plot Tsallis Q-curve with Bootstrap Confidence Bands and Statistical Testing}
+\title{Plot Tsallis Q-curve Profile}
 \usage{
 plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type",
-  n_bootstrap = 500,
-  ci_level = 0.95,
-  test_method = "wilcox",
-  alpha = 0.05,
-  bootstrap = FALSE
+  sample_type_col = "sample_type"
 )
 }
 \arguments{
@@ -21,26 +16,17 @@ plot_tsallis_q_curve(
 \item{assay_name}{Character. Assay name (default "diversity").}
 
 \item{sample_type_col}{Character. Column in colData(se) with sample types (default "sample_type").}
-
-\item{n_bootstrap}{Integer. Bootstrap replicates (default 500).}
-
-\item{ci_level}{Numeric. Confidence level (default 0.95).}
-
-\item{test_method}{Character. Test: wilcox (default) or ttest.}
-
-\item{alpha}{Numeric. Significance level (default 0.05).}
-
-\item{use_bootstrap}{Logical. Use bootstrap CIs (TRUE, default).}
 }
 \value{
-A ggplot object with bootstrap confidence bands and group medians.
+A ggplot object with q-curves and IQR ribbons for each group.
 }
 \description{
-Enhanced q-curve visualization with bootstrap confidence intervals. Tests for group
-differences at each q-value and shades significant q-ranges (p < alpha).
+Visualize q-curve showing Tsallis entropy across diversity scales for each sample group.
+Displays median entropy with IQR ribbons for comparison between groups.
 }
 \details{
-Resamples genes with replacement, computes medians and quantiles, tests group differences (Wilcoxon or t-test). Red-shaded q-ranges show significance (p < 0.05).
+Computes median Tsallis entropy and interquartile range (IQR) at each q-value
+for each sample group, displayed as median line with IQR ribbon.
 }
 \examples{
 data("readcounts", package = "TSENAT")
@@ -49,11 +35,6 @@ gs <- readcounts[1:40, 1]
 se <- calculate_diversity(rc, gs,
     q = seq(0.01, 0.1, by = 0.03), norm = FALSE
 )
-# Default: median ± IQR (simple approach)
 p <- plot_tsallis_q_curve(se)
 p
-
-# Bootstrap CIs with Wilcoxon testing
-p2 <- plot_tsallis_q_curve(se, bootstrap = TRUE)
-p2
 }
