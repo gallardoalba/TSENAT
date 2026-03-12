@@ -1140,6 +1140,126 @@ recommend_q_range <- function(
 
 ################################################################################
 #
+# Internal Helper Functions for Multiple Testing Correction (March 2026)
+#
+
+#' Hochberg Stepup Procedure for FWER Control
+#' 
+#' Applies Hochberg's stepup procedure for family-wise error rate (FWER) control
+#' under positive regression dependence. Recommended for q-correlated p-values
+#' from Tsallis entropy analysis (Papers S168-S175: AR(1) covariance).
+#' @param pvalues Numeric vector of p-values to adjust
+#' @return Numeric vector of adjusted p-values
+#' @keywords internal
+.tsenat_hochberg_stepup <- function(pvalues) {
+    m <- length(pvalues)
+    if (m == 0) return(numeric(0))
+    if (m == 1) return(pmin(1, pvalues[1]))
+    
+    # Handle NA/NaN/Inf values: preserve their positions but exclude from sorting
+    invalid_mask <- !is.finite(pvalues)
+    if (all(invalid_mask)) return(pvalues)  # All invalid, return as is
+    
+    # Create result vector with invalid values preserved
+    result <- numeric(m)
+    result[invalid_mask] <- pvalues[invalid_mask]
+    
+    # Find indices of valid values
+    valid_idx <- which(is.finite(pvalues))
+    if (length(valid_idx) == 0) return(result)
+    if (length(valid_idx) == 1) {
+        result[valid_idx] <- pmin(1, pvalues[valid_idx])
+        return(result)
+    }
+    
+    # Apply Hochberg only to valid values
+    valid_p <- pvalues[valid_idx]
+    valid_m <- length(valid_p)
+    
+    order_idx <- order(valid_p)
+    sorted_p <- valid_p[order_idx]
+    
+    adjusted_valid <- (valid_m - (0:(valid_m-1))) * sorted_p
+    adjusted_valid <- pmin(1, adjusted_valid)
+    
+    # Ensure no NaN/Inf after adjustment; replace with 1
+    na_idx <- which(!is.finite(adjusted_valid))
+    if (length(na_idx) > 0) {
+        adjusted_valid[na_idx] <- 1
+    }
+    
+    # Monotone increasing constraint (Hochberg stepup)
+    if (valid_m > 1) {
+        for (i in 2:valid_m) {
+            adjusted_valid[i] <- max(adjusted_valid[i-1], adjusted_valid[i])
+        }
+    }
+    
+    # Map adjusted back to original positions
+    adjusted_result <- numeric(valid_m)
+    adjusted_result[order_idx] <- adjusted_valid
+    result[valid_idx] <- adjusted_result
+    
+    return(result)
+}
+
+#' Benjamini-Yekutieli FDR Control for Dependent Tests
+#' 
+#' Applies Benjamini-Yekutieli FDR control that is valid under arbitrary
+#' dependence structures, including AR(1) correlations from Tsallis entropy
+#' q-value sequences (Papers S190, S193).
+#' @param pvalues Numeric vector of p-values to adjust
+#' @return Numeric vector of adjusted p-values
+#' @keywords internal
+.tsenat_benjamini_yekutieli <- function(pvalues) {
+    m <- length(pvalues)
+    if (m == 0) return(numeric(0))
+    if (m == 1) return(pmin(1, pvalues[1]))
+    
+    # Handle NA/NaN/Inf values: preserve their positions but exclude from sorting
+    invalid_mask <- !is.finite(pvalues)
+    if (all(invalid_mask)) return(pvalues)  # All invalid, return as is
+    
+    # Create result vector with invalid values preserved
+    result <- numeric(m)
+    result[invalid_mask] <- pvalues[invalid_mask]
+    
+    # Find indices of valid values
+    valid_idx <- which(is.finite(pvalues))
+    if (length(valid_idx) == 0) return(result)
+    if (length(valid_idx) == 1) {
+        result[valid_idx] <- pmin(1, pvalues[valid_idx])
+        return(result)
+    }
+    
+    # Apply Benjamini-Yekutieli only to valid values
+    valid_p <- pvalues[valid_idx]
+    valid_m <- length(valid_p)
+    
+    order_idx <- order(valid_p)
+    sorted_p <- valid_p[order_idx]
+    
+    c_m <- sum(1 / (1:valid_m))
+    ranks <- 1:valid_m
+    # Benjamini-Yekutieli: multiply BH by harmonic constant c_m
+    adjusted <- pmin(1, (valid_m * c_m / ranks) * sorted_p)
+    
+    # Ensure monotone increasing (cumulative minimum from the back)
+    # For sorted p-values, adjusted p-values should be non-decreasing
+    for (i in (valid_m-1):1) {
+        adjusted[i] <- min(adjusted[i], adjusted[i+1], na.rm = TRUE)
+    }
+    
+    # Map adjusted back to original positions
+    adjusted_result <- numeric(valid_m)
+    adjusted_result[order_idx] <- adjusted
+    result[valid_idx] <- adjusted_result
+    
+    return(result)
+}
+
+################################################################################
+#
 #' Detect Q*Gene Interaction Terms
 #'
 #' Tests whether genes respond differently to the q-parameter in Tsallis entropy
@@ -1155,12 +1275,25 @@ recommend_q_range <- function(
 #' @param q_col Character name of q-parameter column (default: "q")
 #' @param gene_col Character name of gene column (default: "gene")
 #' @param method Character: "kruskal.test" (default, rank-based) or "anova" (parametric)
+#' @param multicorr Method for adjusting p-values across multiple q-values to account for 
+#'   correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
+#'   p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
+#'   of the same gene (Papers S168-S175). This parameter selects the multiple testing
+#'   correction method:
+#'   'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
+#'   Closed-form, computationally efficient. Recommended for strong signal detection with 
+#'   family-wise error control.
+#'   'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
+#'   Valid under any correlation structure. More conservative than Hochberg but appropriate
+#'   for exploratory analysis. Reference: Papers S190, S193.
+#'   'none': No adjustment (returns raw p-values). Use for exploratory analysis only.
 #'
 #' @return Data frame with columns:
 #'   - gene: Gene identifier
 #'   - n_q_values_tested: Number of q-levels tested for this gene
 #'   - f_statistic: Test statistic (H-statistic for Kruskal-Wallis, F for ANOVA)
-#'   - p_value: P-value for H0: "No q*gene interaction"
+#'   - p_value: P-value for H0: "No q*gene interaction" (unadjusted)
+#'   - adj_p_value: Adjusted p-value using multicorr method (NEW - March 2026)
 #'   - ss_interaction: Sum of squares for q-effect
 #'   - ss_residual: Sum of squares for residuals
 #'   - df_interaction: Degrees of freedom for interaction
@@ -1213,9 +1346,11 @@ detect_q_gene_interactions <- function(
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
-    method = c("kruskal.test", "anova")) {
+    method = c("kruskal.test", "anova"),
+    multicorr = c("hochberg", "benjamini-yekutieli", "none")) {
   
   method <- match.arg(method)
+  multicorr <- match.arg(multicorr)
   
   # Ensure proper column names in input data
   if (!entropy_col %in% colnames(data)) {
@@ -1246,6 +1381,7 @@ detect_q_gene_interactions <- function(
     n_q_values_tested = integer(n_genes),
     f_statistic = numeric(n_genes),
     p_value = numeric(n_genes),
+    adj_p_value = numeric(n_genes),  # NEW: Multiple testing correction (March 2026)
     ss_interaction = numeric(n_genes),
     ss_residual = numeric(n_genes),
     df_interaction = numeric(n_genes),
@@ -1343,6 +1479,24 @@ detect_q_gene_interactions <- function(
     eta2_threshold_moderate = 0.01,
     eta2_threshold_strong = 0.10
   )
+  
+  # Apply multiple testing correction for multi-q dependence (NEW - March 2026)
+  # Q-values exhibit AR(1) correlation structure (Papers S168-S175)
+  if (multicorr == "hochberg") {
+    # Hochberg stepup procedure (FWER control under positive regression dependence)
+    interaction_results$adj_p_value <- .tsenat_hochberg_stepup(interaction_results$p_value)
+  } else if (multicorr == "benjamini-yekutieli") {
+    # Benjamini-Yekutieli FDR control (valid under any dependence structure)
+    interaction_results$adj_p_value <- .tsenat_benjamini_yekutieli(interaction_results$p_value)
+  } else if (multicorr == "none") {
+    # No adjustment (for exploratory analysis)
+    interaction_results$adj_p_value <- interaction_results$p_value
+  }
+  
+  # Sort by adjusted p-values (primary) then unadjusted p-values (secondary for ties)
+  interaction_results <- interaction_results[order(interaction_results$adj_p_value, 
+                                                    interaction_results$p_value), , drop = FALSE]
+  rownames(interaction_results) <- NULL
   
   return(interaction_results)
 }

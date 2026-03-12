@@ -39,8 +39,8 @@ This appendix validates the `calculate_lm_interaction()` semi-parametric results
 3. Which genes are truly robust (significant in BOTH methods)?
 
 **Equivalent improvements applied:**
-- **GEE with improvements**: Kenward-Carroll bias correction (automatic when n_clusters < 20), AR(1) correlation structure detection, automatic heteroscedasticity weighting
-- **Rank-based with improvements** (NEW - March 2026): conditional test selection, heteroscedasticity → ART, boundary clustering → quantile tests, extreme skewness → median tests
+- **GEE with improvements**: Kenward-Carroll bias correction (automatic when n_clusters < 20), AR(1) correlation structure detection, automatic heteroscedasticity weighting, **multiple testing correction** (Hochberg FWER or Benjamini-Yekutieli FDR control)
+- **Rank-based with improvements** (NEW - March 2026): conditional test selection, heteroscedasticity → ART, boundary clustering → quantile tests, extreme skewness → median tests, **multiple testing correction** (Hochberg FWER or Benjamini-Yekutieli FDR control respecting AR(1) dependence)
 
 If results agree, confidence increases substantially. Both methods now adapt to data rather than imposing fixed assumptions.
 
@@ -84,6 +84,46 @@ This analysis incorporates empirical Bayes pseudocount regularization using the 
 - **Theoretically justified**: Optimal for Beta-Binomial conjugate model
 
 **Reference:** Erhard et al. (2018), *Bioinformatics* 34(12):2096-2102
+
+## Multiple Testing Correction for Multi-Q Interactions (NEW - March 2026)
+
+Both semi-parametric and rank-based methods now include intelligent multiple testing correction that accounts for the AR(1) correlation structure inherent in Tsallis entropy q-value sequences (Papers S168-S175).
+
+### Why Special Correction?
+
+Standard multiple testing corrections (Bonferroni, Benjamini-Hochberg) assume independence or weak dependence. However, Tsallis entropy q-values exhibit **first-order autoregressive (AR(1)) correlation** because:
+- Sequential q-values (e.g., 0.5, 1.0, 1.5, 2.0) produce ordered entropy estimates
+- Adjacent q-values share measurement conditions, introducing positive correlation
+- Simple Bonferroni is overly conservative; BH may miss true signals
+
+### Correction Methods in TSENAT
+
+**Default: Hochberg Stepup (`multicorr = "hochberg"`)** — FWER Control
+- Optimal for positive regression dependence (which AR(1) exhibits)
+- **More stringent** than Benjamini-Hochberg
+- Controls family-wise error rate (probability of ANY false positive)
+- Removes fewer true signals due to lower inflation factor (~3-6×)
+- **Recommended for**: High-confidence validation, regulatory claims
+
+**Alternative: Benjamini-Yekutieli (`multicorr = "benjamini-yekutieli"`)** — FDR Control
+- Valid under arbitrary dependence (including AR(1))
+- **More lenient** than Hochberg
+- Controls expected proportion of false discoveries (false discovery rate)
+- Better power; more signals pass at α = 0.05
+- Includes harmonic correction factor: $c_m = \sum_{i=1}^m \frac{1}{i}$
+- **Recommended for**: Exploratory studies, discovery (validate findings in new data)
+
+**Exploratory: No Correction (`multicorr = "none"`)** — Raw P-values
+- Returns unadjusted p-values
+- Useful for estimating effect sizes and confidence intervals
+- Not recommended for significance testing without additional validation
+
+### Implementation Details
+
+- **Both methods** (GEE via `calculate_lm_interaction()` and rank-based via `detect_q_gene_interactions()`) use identical correction procedures
+- **Output**: New `adj_p_value` column contains multiple-testing-corrected p-values
+- **Sorting**: Results sorted by adjusted p-values for stable ranking across method choices
+- **Monotonicity**: Adjusted p-values satisfy $p_i \leq p\_adjusted_i \leq p\_adjusted_{i-1}$ (for ordered tests)
 
 ---
 
@@ -270,11 +310,15 @@ if (nrow(lm_res) == 0) {
     cols_to_show <- intersect(c("gene", "p_interaction", "adj_p_interaction", "fit_method", "n_observations"), 
                               colnames(top_gee))
     if (length(cols_to_show) > 0) {
-      # Format p-values with scientific notation for very small values
+      # Format p-values with scientific notation for very small values (avoids 0e+00)
       top_gee_display <- top_gee[, cols_to_show, drop = FALSE]
       p_cols <- intersect(c("p_interaction", "adj_p_interaction"), colnames(top_gee_display))
       for (pcol in p_cols) {
-        top_gee_display[[pcol]] <- format(top_gee_display[[pcol]], scientific = TRUE, digits = 5)
+        top_gee_display[[pcol]] <- sapply(top_gee_display[[pcol]], function(x) {
+          if (is.na(x)) return("NA")
+          if (x == 0) return("< 1e-300")
+          sprintf("%.3e", x)
+        })
       }
       
       print(knitr::kable(
@@ -1024,7 +1068,8 @@ kw_res_raw <- detect_q_gene_interactions(
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
-    method = "kruskal.test"  # Uses conditional selection internally
+    method = "kruskal.test",  # Uses conditional selection internally
+    multicorr = "hochberg"  # Multiple testing correction for AR(1) q-value dependence
 )
 
 cat("Rank-based returned object of class:", class(kw_res_raw), "\n")
@@ -1129,20 +1174,32 @@ cat(sprintf("    Highly skewed genes:        %3d (%5.1f%%)\n\n",
            sum(kw_res$highly_skewed, na.rm = TRUE),
            100 * sum(kw_res$highly_skewed, na.rm = TRUE) / nrow(kw_res)))
 
-# Top genes
-cat("Top 10 Genes by Rank-Based P-Value:\n")
-idx_kw_sorted <- order(kw_res$kw_p_value, na.last = TRUE)
+# Top genes (sorted by adjusted p-values from Hochberg correction)
+cat("Top 10 Genes by Rank-Based Adjusted P-Value (Hochberg correction):\n")
+idx_kw_sorted <- order(kw_res$adj_p_value, na.last = TRUE)
 kw_res_sorted <- kw_res[idx_kw_sorted, , drop = FALSE]
 n_top_kw <- min(10, nrow(kw_res_sorted))
 top_kw <- kw_res_sorted[1:n_top_kw, ]
-top_kw_display <- top_kw[, c("gene", "kw_statistic", "kw_p_value", "effect_size_eta2", "test_method"), drop = FALSE]
-# Format p-values with scientific notation
-top_kw_display$kw_p_value <- format(top_kw_display$kw_p_value, scientific = TRUE, digits = 5)
-top_kw_display$kw_statistic <- format(top_kw_display$kw_statistic, scientific = TRUE, digits = 5)
+top_kw_display <- top_kw[, c("gene", "kw_statistic", "kw_p_value", "adj_p_value", "effect_size_eta2", "test_method"), drop = FALSE]
+# Format p-values with scientific notation (avoids 0e+00)
+top_kw_display$kw_p_value <- sapply(top_kw_display$kw_p_value, function(x) {
+  if (is.na(x)) return("NA")
+  if (x == 0) return("< 1e-300")
+  sprintf("%.3e", x)
+})
+top_kw_display$adj_p_value <- sapply(top_kw_display$adj_p_value, function(x) {
+  if (is.na(x)) return("NA")
+  if (x == 0) return("< 1e-300")
+  sprintf("%.3e", x)
+})
+top_kw_display$kw_statistic <- sapply(top_kw_display$kw_statistic, function(x) {
+  if (is.na(x)) return("NA")
+  sprintf("%.3e", x)
+})
 print(knitr::kable(
     top_kw_display,
-    caption = "Rank-Based (Improved) - Top Significant Genes",
-    align = "lccccc"
+    caption = "Rank-Based (Improved, with Hochberg Correction) - Top Significant Genes",
+    align = "lcccccc"
 ))
 ```
 
@@ -1829,10 +1886,14 @@ if (nrow(comparison) == 0) {
     comp_display_table <- comparison[1:n_disp, disp_cols, drop = FALSE]
     # Format p-values with scientific notation
     if ("p_interaction" %in% colnames(comp_display_table)) {
-      comp_display_table$p_interaction <- format(comp_display_table$p_interaction, scientific = TRUE, digits = 5)
+      comp_display_table$p_interaction <- sapply(comp_display_table$p_interaction, function(x) {
+        if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
+      })
     }
     if ("kw_p_value" %in% colnames(comp_display_table)) {
-      comp_display_table$kw_p_value <- format(comp_display_table$kw_p_value, scientific = TRUE, digits = 5)
+      comp_display_table$kw_p_value <- sapply(comp_display_table$kw_p_value, function(x) {
+        if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
+      })
     }
     print(knitr::kable(
         comp_display_table,
@@ -1875,10 +1936,14 @@ if (nrow(comparison) == 0) {
       robust_display_table <- robust_display[1:n_disp, disp_cols_robust, drop = FALSE]
       # Format p-values with scientific notation
       if ("p_interaction" %in% colnames(robust_display_table)) {
-        robust_display_table$p_interaction <- format(robust_display_table$p_interaction, scientific = TRUE, digits = 5)
+        robust_display_table$p_interaction <- sapply(robust_display_table$p_interaction, function(x) {
+          if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
+        })
       }
       if ("kw_p_value" %in% colnames(robust_display_table)) {
-        robust_display_table$kw_p_value <- format(robust_display_table$kw_p_value, scientific = TRUE, digits = 5)
+        robust_display_table$kw_p_value <- sapply(robust_display_table$kw_p_value, function(x) {
+          if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
+        })
       }
       
       print(knitr::kable(
@@ -2175,10 +2240,14 @@ top_mood <- head(mood_results[order(mood_results$mood_p_value), ], 10)
 top_mood_display <- top_mood
 # Format p-values with scientific notation
 if ("mood_p_value" %in% colnames(top_mood_display)) {
-  top_mood_display$mood_p_value <- format(top_mood_display$mood_p_value, scientific = TRUE, digits = 5)
+  top_mood_display$mood_p_value <- sapply(top_mood_display$mood_p_value, function(x) {
+    if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
+  })
 }
 if ("mood_statistic" %in% colnames(top_mood_display)) {
-  top_mood_display$mood_statistic <- format(top_mood_display$mood_statistic, scientific = TRUE, digits = 5)
+  top_mood_display$mood_statistic <- sapply(top_mood_display$mood_statistic, function(x) {
+    if (is.na(x)) return("NA"); sprintf("%.3e", x)
+  })
 }
 print(knitr::kable(top_mood_display, caption = "Most Significant Median Shifts", align = "lccccc"))
 
@@ -2694,9 +2763,10 @@ lm_res <- calculate_lm_interaction(ts_se, method = "gee", paired = TRUE, bias_co
 # Returns: p_interaction (K-C corrected for small clusters), fit_method, n_clusters
 # Note: K-C correction automatically applied when n_clusters < 20
 
-# 2. Run improved rank-based validation (with conditional test selection)  
-kw_res <- detect_q_gene_interactions(entropy_long, method = "kruskal.test")
-# Returns: test_method (kruskal.test/art_kw/quantile_test/robust_median_test),
+# 2. Run improved rank-based validation (with conditional test selection and Hochberg correction)  
+kw_res <- detect_q_gene_interactions(entropy_long, method = "kruskal.test", multicorr = "hochberg")
+# Returns: p_value (raw p-value), adj_p_value (Hochberg-corrected for AR(1) q-value dependence),
+#          test_method (kruskal.test/art_kw/quantile_test/robust_median_test),
 #          heteroscedastic, boundary_clustered, highly_skewed for each gene
 
 # 3. Calculate concordance accounting for method selection

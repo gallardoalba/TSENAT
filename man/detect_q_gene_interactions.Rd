@@ -9,7 +9,8 @@ detect_q_gene_interactions(
   entropy_col = "entropy",
   q_col = "q",
   gene_col = "gene",
-  method = c("kruskal.test", "anova")
+  method = c("kruskal.test", "anova"),
+  multicorr = c("hochberg", "benjamini-yekutieli", "none")
 )
 }
 \arguments{
@@ -26,13 +27,21 @@ detect_q_gene_interactions(
 \item{gene_col}{Character name of gene column (default: "gene")}
 
 \item{method}{Character: "kruskal.test" (default, rank-based) or "anova" (parametric)}
+
+\item{multicorr}{Method for adjusting p-values across multiple q-values to account for 
+correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
+p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
+of the same gene (Papers S168-S175). 'hochberg': Hochberg stepup procedure (FWER),
+computationally efficient. 'benjamini-yekutieli': Benjamini-Yekutieli FDR control,
+valid under any dependence structure. 'none': No adjustment (raw p-values).}
 }
 \value{
 Data frame with columns:
   - gene: Gene identifier
   - n_q_values_tested: Number of q-levels tested for this gene
   - f_statistic: Test statistic (H-statistic for Kruskal-Wallis, F for ANOVA)
-  - p_value: P-value for H0: "No q*gene interaction"
+  - p_value: P-value for H0: "No q*gene interaction" (unadjusted)
+  - adj_p_value: Adjusted p-value using multicorr method (NEW March 2026)
   - ss_interaction: Sum of squares for q-effect
   - ss_residual: Sum of squares for residuals
   - df_interaction: Degrees of freedom for interaction
