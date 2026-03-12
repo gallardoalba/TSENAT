@@ -78,7 +78,7 @@ readcounts <- as.matrix(salmon_dataset)
 mode(readcounts) <- "numeric"
 
 # Subset for faster analysis (set to NULL for all genes)
-n_genes_subset <- 500
+n_genes_subset <- 200
 if (!is.null(n_genes_subset) && nrow(readcounts) > n_genes_subset) {
   readcounts <- readcounts[1:n_genes_subset, ]
   cat("NOTE: Analyzing", n_genes_subset, "genes for speed. Set n_genes_subset=NULL for all genes.\n\n")
@@ -104,66 +104,33 @@ cat("Data after filtering - Genes:", nrow(se), "\n")
 
 ## Bayesian Pseudocount Regularization
 
+This analysis incorporates **WLFC (Weighted Likelihood Fold Change)** empirical Bayesian regularization to handle sparse count data. The `estimate_wlfc_pseudocounts()` function:
+
+1. **Fits an empirical Beta prior** from the observed count data across all genes
+2. **Computes gene-specific WLFC pseudocounts** based on each gene's posterior distribution
+3. **Returns a scalar pseudocount** (mean of per-gene estimates) for entropy regularization
+
+This data-driven approach is more principled than fixed pseudocounts, as it learns the regularization strength from the actual data characteristics.
+
 ```{r bayesian-pseudocounts, message=FALSE}
-cat("\n=== BAYESIAN PSEUDOCOUNT REGULARIZATION (WLFC) ===\n\n")
+# Estimate WLFC pseudocounts integrated workflow
+result <- estimate_wlfc_pseudocounts(se, verbose = TRUE)
 
-raw_counts <- SummarizedExperiment::assay(se)
+scalar_pseudocount <- result$scalar_pseudocount
+wlfc_pseudocounts <- result$pseudocounts
 
-# Diagnostic: Check for duplicate rownames in SE before processing
-cat("Diagnostic: SE structure\n")
-cat("  Rows:", nrow(se), "\n")
-cat("  Unique rownames:", length(unique(rownames(se))), "\n")
-if (length(unique(rownames(se))) < nrow(se)) {
-  dup_genes <- names(table(rownames(se))[table(rownames(se)) > 1])
-  cat("  WARNING: Duplicate genes found:", paste(head(dup_genes, 5), collapse=", "), "\n")
-}
+cat(sprintf("\nUsing scalar pseudocount = %.6f (mean of WLFC estimates)\n", scalar_pseudocount))
 
-# Fit empirical Beta prior
-prior_params <- fit_empirical_beta_prior(raw_counts)
-alpha_prior <- prior_params$alpha
-beta_prior <- prior_params$beta
-
-cat("\nEmpirical Beta prior fitted:\n")
-cat(sprintf("  α (alpha):  %.4f\n", alpha_prior))
-cat(sprintf("  β (beta):   %.4f\n", beta_prior))
-
-# Compute WLFC pseudocounts
-wlfc_pseudocounts <- numeric(nrow(raw_counts))
-names(wlfc_pseudocounts) <- rownames(raw_counts)
-
-for (i in seq_len(nrow(raw_counts))) {
-  gene_counts <- raw_counts[i, ]
-  wlfc_pseudocounts[i] <- compute_wlfc_pseudocounts(
-    counts = gene_counts,
-    alpha = alpha_prior,
-    beta = beta_prior
-  )
-}
-
-cat("\nWLFC Pseudocount Distribution:\n")
-cat(sprintf("  Mean:       %.6f\n", mean(wlfc_pseudocounts)))
-cat(sprintf("  Median:     %.6f\n", median(wlfc_pseudocounts)))
-cat(sprintf("  Range:      [%.6f, %.6f]\n", min(wlfc_pseudocounts), max(wlfc_pseudocounts)))
-
-# Use mean as scalar regularization
-scalar_pseudocount <- mean(wlfc_pseudocounts)
-
-# Calculate Tsallis entropy with regularization
+# Calculate Tsallis entropy with Bayesian pseudocount regularization
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(
   se, 
   q = qvec, 
   norm = TRUE, 
   pseudocount = scalar_pseudocount,
-  metadata = metadata_df,
-  shrinkage = "empirical_bayes"
+  metadata = metadata_df
 )
 
-cat("\nTsallis Entropy Data Summary:\n")
-cat("  Genes:", nrow(ts_se), "\n")
-cat("  Samples:", length(unique(colData(ts_se)$samples)), "\n")
-cat("  Q-values:", length(unique(colData(ts_se)$q)), "\n")
-cat("  Total observations:", ncol(ts_se), "\n")
 ```
 
 ---
@@ -183,7 +150,7 @@ Expected runtime: 2-5 minutes for 500 genes with 3 threads. For faster iteration
 ```{r gam-analysis, message=FALSE}
 cat("\n=== FLEXIBLE PARAMETRIC APPROACH (GAM) ===\n\n")
 
-gam_results <- calculate_lm_interaction(
+gam_results_raw <- calculate_lm_interaction(
     ts_se,
     method = "gam",
     paired = TRUE,
@@ -192,19 +159,35 @@ gam_results <- calculate_lm_interaction(
     verbose = FALSE
 )
 
+# Convert to data frame robustly
+gam_results <- as.data.frame(gam_results_raw, stringsAsFactors = FALSE)
+
 cat("GAM Results Summary:\n")
 cat("  Genes tested:", nrow(gam_results), "\n")
-cat("  Significant (p < 0.05):", sum(gam_results$p_interaction < 0.05, na.rm = TRUE), "\n")
-cat("  NAs:", sum(is.na(gam_results$p_interaction)), "\n")
 
-# Show top genes
-gam_sig <- gam_results %>%
-  filter(!is.na(p_interaction)) %>%
-  arrange(p_interaction) %>%
-  head(10)
-
-cat("\nTop 10 Genes (GAM):\n")
-print(gam_sig[, c("gene", "p_interaction")])
+if ("p_interaction" %in% colnames(gam_results)) {
+  cat("  Significant (p < 0.05):", sum(gam_results$p_interaction < 0.05, na.rm = TRUE), "\n")
+  cat("  NAs:", sum(is.na(gam_results$p_interaction)), "\n")
+  
+  # Show top genes
+  gam_sig <- gam_results[!is.na(gam_results$p_interaction), ]
+  if (nrow(gam_sig) > 0) {
+    gam_sig <- gam_sig[order(gam_sig$p_interaction), ]
+    gam_sig <- gam_sig[1:min(10, nrow(gam_sig)), ]
+    
+    cat("\nTop Genes (GAM):\n")
+    cols_to_show <- intersect(c("gene", "p_interaction", "adj_p_interaction"), 
+                              colnames(gam_sig))
+    if (length(cols_to_show) > 0) {
+      print(gam_sig[, cols_to_show, drop = FALSE])
+    } else {
+      print(gam_sig)
+    }
+  }
+} else {
+  cat("WARNING: p_interaction column not found in results\n")
+  cat("Available columns:", paste(colnames(gam_results), collapse=", "), "\n")
+}
 ```
 
 ---
@@ -246,13 +229,20 @@ cat("  Significant (p < 0.05):", sum(kw_results$p_value < 0.05, na.rm = TRUE), "
 cat("  NAs:", sum(is.na(kw_results$p_value)), "\n")
 
 # Show top genes
-kw_sig <- kw_results %>%
-  filter(!is.na(p_value)) %>%
-  arrange(p_value) %>%
-  head(10)
-
-cat("\nTop 10 Genes (K-W):\n")
-print(kw_sig[, c("gene", "p_value")])
+kw_sig <- kw_results[!is.na(kw_results$p_value), ]
+if (nrow(kw_sig) > 0) {
+  kw_sig <- kw_sig[order(kw_sig$p_value), ]
+  kw_sig <- kw_sig[1:min(10, nrow(kw_sig)), ]
+  
+  cat("\nTop Genes (K-W):\n")
+  cols_to_show <- intersect(c("gene", "p_value", "adj_p_value", "test_method"), 
+                            colnames(kw_sig))
+  if (length(cols_to_show) > 0) {
+    print(kw_sig[, cols_to_show, drop = FALSE])
+  } else {
+    print(kw_sig)
+  }
+}
 ```
 
 ---
@@ -262,96 +252,117 @@ print(kw_sig[, c("gene", "p_value")])
 ```{r concordance, message=FALSE}
 cat("\n=== METHOD CONCORDANCE ANALYSIS ===\n\n")
 
-# Merge results
-# Note: GAM returns p_interaction, K-W returns p_value
-comparison_df <- gam_results %>%
-  select(gene, p_interaction) %>%
-  rename(p_gam = p_interaction) %>%
-  left_join(
-    kw_results %>% select(gene, p_value) %>% rename(p_kw = p_value),
-    by = "gene"
-  ) %>%
-  filter(!is.na(p_gam) & !is.na(p_kw))
-
-# Calculate correlation
-if (nrow(comparison_df) > 2) {
-  spearman_rho <- cor(comparison_df$p_gam, comparison_df$p_kw, 
-                      method = "spearman")
-  cat(sprintf("Spearman correlation: ρ = %.4f\n", spearman_rho))
-}
-
-# Categorize agreement
-comparison_df <- comparison_df %>%
-  mutate(
-    gam_sig = p_gam < 0.05,
-    kw_sig = p_kw < 0.05,
-    agreement = case_when(
-      gam_sig & kw_sig ~ "Both significant",
-      gam_sig & !kw_sig ~ "GAM only",
-      !gam_sig & kw_sig ~ "K-W only",
-      TRUE ~ "Neither significant"
+# Check if we have valid results from both methods
+if (!("p_interaction" %in% colnames(gam_results)) || 
+    !("p_value" %in% colnames(kw_results))) {
+  cat("Skipping concordance analysis: missing required columns\n")
+} else {
+  # Merge results using base R
+  # Create matching sets - only genes with values in both methods
+  gam_genes <- gam_results$gene[!is.na(gam_results$p_interaction)]
+  kw_genes <- kw_results$gene[!is.na(kw_results$p_value)]
+  common_genes <- intersect(gam_genes, kw_genes)
+  
+  if (length(common_genes) > 2) {
+    # Extract matching rows
+    gam_idx <- match(common_genes, gam_results$gene)
+    kw_idx <- match(common_genes, kw_results$gene)
+    
+    comparison_df <- data.frame(
+      gene = common_genes,
+      p_gam = gam_results$p_interaction[gam_idx],
+      p_kw = kw_results$p_value[kw_idx],
+      stringsAsFactors = FALSE
     )
-  )
-
-cat("\nAgreement Summary:\n")
-agreement_table <- table(comparison_df$agreement)
-print(agreement_table)
-print(prop.table(agreement_table))
-
-# High-confidence genes (both methods)
-high_conf <- comparison_df %>%
-  filter(gam_sig & kw_sig) %>%
-  arrange(pmax(p_gam, p_kw))
-
-cat(sprintf("\n\nHIGH-CONFIDENCE GENES (significant in both methods): %d\n", nrow(high_conf)))
-if (nrow(high_conf) > 0) {
-  print(head(high_conf[, c("gene", "p_gam", "p_kw", "agreement")], 15))
+    
+    # Calculate correlation
+    spearman_rho <- cor(comparison_df$p_gam, comparison_df$p_kw, 
+                        method = "spearman", use = "complete.obs")
+    cat(sprintf("Spearman correlation: ρ = %.4f\n\n", spearman_rho))
+    
+    # Categorize agreement
+    comparison_df$gam_sig <- comparison_df$p_gam < 0.05
+    comparison_df$kw_sig <- comparison_df$p_kw < 0.05
+    comparison_df$agreement <- ifelse(
+      comparison_df$gam_sig & comparison_df$kw_sig, "Both significant",
+      ifelse(comparison_df$gam_sig & !comparison_df$kw_sig, "GAM only",
+             ifelse(!comparison_df$gam_sig & comparison_df$kw_sig, "K-W only",
+                    "Neither significant"))
+    )
+    
+    cat("Agreement Summary:\n")
+    agreement_table <- table(comparison_df$agreement)
+    print(agreement_table)
+    cat("\nProportions:\n")
+    print(prop.table(agreement_table))
+    
+    # High-confidence genes (both methods)
+    high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$kw_sig, ]
+    high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_kw)), ]
+    
+    cat(sprintf("\n\nHIGH-CONFIDENCE GENES (significant in both methods): %d\n", nrow(high_conf)))
+    if (nrow(high_conf) > 0) {
+      print(head(high_conf[, c("gene", "p_gam", "p_kw")], 15))
+    }
+  } else {
+    cat("Not enough genes in common between methods for concordance analysis\n")
+  }
 }
 ```
 
 ## Visualization: Method Comparison
 
 ```{r concordance-plot, fig.width=10, fig.height=8}
-# Create comparison plot
-p1 <- ggplot(comparison_df, aes(x = -log10(p_gam), y = -log10(p_kw), color = agreement)) +
-  geom_point(size = 2.5, alpha = 0.6) +
-  geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-  scale_color_manual(
-    values = c("Both significant" = "#2ecc71", 
-               "GAM only" = "#3498db",
-               "K-W only" = "#e74c3c",
-               "Neither significant" = "#95a5a6")
-  ) +
-  labs(
-    title = "GAM vs Kruskal-Wallis: Method Concordance",
-    x = "-log10(p-value, GAM)",
-    y = "-log10(p-value, K-W)",
-    color = "Significance"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(face = "bold", size = 12),
-    legend.position = "bottomright",
-    panel.grid.major = element_line(color = "gray90")
+# Create comparison plot only if we have valid comparison data
+if (exists("comparison_df") && nrow(comparison_df) > 0) {
+  
+  # Create comparison plot
+  p1 <- ggplot(comparison_df, aes(x = -log10(p_gam), y = -log10(p_kw), color = agreement)) +
+    geom_point(size = 2.5, alpha = 0.6) +
+    geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+    scale_color_manual(
+      values = c("Both significant" = "#2ecc71", 
+                 "GAM only" = "#3498db",
+                 "K-W only" = "#e74c3c",
+                 "Neither significant" = "#95a5a6"),
+      breaks = c("Both significant", "GAM only", "K-W only", "Neither significant")
+    ) +
+    labs(
+      title = "GAM vs Kruskal-Wallis: Method Concordance",
+      x = "-log10(p-value, GAM)",
+      y = "-log10(p-value, K-W)",
+      color = "Significance"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(face = "bold", size = 12),
+      legend.position = "bottomright",
+      panel.grid.major = element_line(color = "gray90")
+    )
+  
+  # P-value distribution comparison
+  p_long <- data.frame(
+    p_value = c(comparison_df$p_gam, comparison_df$p_kw),
+    method = c(rep("GAM", nrow(comparison_df)), rep("K-W", nrow(comparison_df)))
   )
-
-# P-value distribution comparison
-p2 <- ggplot(comparison_df %>% select(p_gam, p_kw) %>% 
-             pivot_longer(everything(), names_to = "method", values_to = "p_value"),
-             aes(x = p_value, fill = method)) +
-  geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
-  scale_fill_manual(values = c("p_gam" = "#3498db", "p_kw" = "#e74c3c")) +
-  labs(
-    title = "P-value Distributions",
-    x = "P-value",
-    y = "Frequency",
-    fill = "Method"
-  ) +
-  theme_minimal() +
-  theme(plot.title = element_text(face = "bold", size = 12))
-
-gridExtra::grid.arrange(p1, p2, ncol = 2)
+  
+  p2 <- ggplot(p_long, aes(x = p_value, fill = method)) +
+    geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+    scale_fill_manual(values = c("GAM" = "#3498db", "K-W" = "#e74c3c")) +
+    labs(
+      title = "P-value Distributions",
+      x = "P-value",
+      y = "Frequency",
+      fill = "Method"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(face = "bold", size = 12))
+  
+  gridExtra::grid.arrange(p1, p2, ncol = 2)
+} else {
+  cat("Visualization skipped: No valid comparison data available\n")
+}
 ```
 
 ---
@@ -372,7 +383,11 @@ cat("   - Default: Conditional test selection adapts to data characteristics\n")
 cat("   - Advantage: No parametric assumptions needed\n\n")
 
 cat("3. HIGH-CONFIDENCE GENES\n")
-cat(sprintf("   - %d genes significant in BOTH methods\n", nrow(high_conf)))
+if (exists("high_conf") && nrow(high_conf) > 0) {
+  cat(sprintf("   - %d genes significant in BOTH methods\n", nrow(high_conf)))
+} else {
+  cat("   - No genes significant in both methods in this analysis\n")
+}
 cat("   - Recommended for downstream biological validation\n")
 cat("   - Strong evidence of genuine q-value × group interaction\n\n")
 

@@ -15,17 +15,22 @@ detect_q_gene_interactions(
 )
 }
 \arguments{
-\item{data}{Data frame with columns: entropy, q, gene, sample
-- entropy: numeric entropy values
-- q: factor or character for q-parameter levels
-- gene: factor or character for gene identifiers
-- sample: character for sample identifiers}
+\item{data}{SummarizedExperiment (from calculate_diversity) or data frame.
+If SummarizedExperiment: assay contains entropy values, colData must have "q" column,
+rownames are gene IDs. Automatically converted to long-format internally.
+If data frame: must have columns: entropy, q, gene
+  - entropy: numeric entropy values
+  - q: factor or character for q-parameter levels
+  - gene: factor or character for gene identifiers}
 
-\item{entropy_col}{Character name of entropy column (default: "entropy")}
+\item{entropy_col}{Character name of entropy column (default: "entropy").
+Only used if data is a data frame. Ignored for SummarizedExperiment.}
 
-\item{q_col}{Character name of q-parameter column (default: "q")}
+\item{q_col}{Character name of q-parameter column (default: "q").
+Only used if data is a data frame. Ignored for SummarizedExperiment.}
 
-\item{gene_col}{Character name of gene column (default: "gene")}
+\item{gene_col}{Character name of gene column (default: "gene").
+Only used if data is a data frame. Ignored for SummarizedExperiment.}
 
 \item{multicorr}{Method for adjusting p-values across multiple q-values to account for 
 correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
@@ -96,14 +101,22 @@ Classification:
 }
 \examples{
 \dontrun{
-# Create long-format data: entropy by q and gene
+# Method 1: From SummarizedExperiment (recommended)
+library(TSENAT)
+data(readcounts)
+se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
+ts_se <- calculate_diversity(se, q = seq(0.1, 2, by = 0.05))
+
+# Direct use with SummarizedExperiment
+results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg")
+head(results)
+
+# Method 2: From long-format data frame (for custom data)
 model_data <- data.frame(
   entropy = rnorm(600),
   q = rep(c(0.5, 1.0, 1.5, 2.0), 150),
-  gene = rep(rep(paste0("Gene", 1:25), each = 4), 6),
-  sample = rep(paste0("S", 1:150), each = 4)
+  gene = rep(rep(paste0("Gene", 1:25), each = 4), 6)
 )
-
 results <- detect_q_gene_interactions(model_data)
 head(results)
 }

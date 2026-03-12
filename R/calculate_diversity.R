@@ -1009,6 +1009,135 @@ compute_wlfc_pseudocounts <- function(counts, alpha, beta) {
     return(wlfc_pseudocount)
 }
 
+#' Compute WLFC Pseudocounts with Prior Estimation and Diagnostics
+#'
+#' High-level wrapper that orchestrates the complete workflow:
+#' validates input, estimates empirical Beta prior, computes per-gene WLFC pseudocounts,
+#' and returns comprehensive diagnostics.
+#'
+#' @param se SummarizedExperiment or Matrix; raw count matrix (genes × samples).
+#'            If SummarizedExperiment, assay(se) is extracted.
+#' @param verbose Logical; if TRUE, print diagnostic information (default: TRUE).
+#'
+#' @return List with elements:
+#'   \item{pseudocounts}{Named numeric vector of WLFC pseudocounts (one per gene)}.
+#'   \item{scalar_pseudocount}{Numeric; mean of pseudocount vector (recommended for regularization)}.
+#'   \item{prior}{List with estimated Beta prior parameters: $alpha, $beta}.
+#'   \item{diagnostics}{List with data quality checks: unique_rownames, duplicate_genes, n_genes_filtered}.
+#'
+#' @details
+#' This function performs the following steps:
+#' 1. **Input validation:** Checks for duplicate rownames and reports data structure
+#' 2. **Prior estimation:** Fits empirical Beta prior using \code{fit_empirical_beta_prior()}
+#' 3. **Per-gene pseudocounts:** Computes WLFC pseudocounts using conjugate Bayesian update
+#' 4. **Diagnostics:** Returns summary statistics and data quality metrics
+#'
+#' Expected output (typical RNA-seq data):
+#' - Mean WLFC pseudocount: 0.05-0.15 (depends on count magnitude)
+#' - Range: [0, ~0.5]
+#' - Median: Often near 0 (most genes sparse in many samples)
+#'
+#' @examples
+#' \dontrun{
+#' # From SummarizedExperiment
+#' library(TSENAT)
+#' data(readcounts)
+#' se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
+#' result <- estimate_wlfc_pseudocounts(se, verbose = TRUE)
+#' scalar_pc <- result$scalar_pseudocount
+#'
+#' # From raw count matrix
+#' counts_matrix <- matrix(rpois(300, lambda=10), nrow=30, ncol=10)
+#' result <- estimate_wlfc_pseudocounts(counts_matrix, verbose = TRUE)
+#' }
+#'
+#' @references
+#' Bayesian Beta-Binomial conjugacy used for posterior parameter estimation.
+#'
+#' @export
+estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
+    # Extract raw counts
+    if (methods::is(se, "SummarizedExperiment")) {
+        raw_counts <- SummarizedExperiment::assay(se)
+    } else if (is.matrix(se)) {
+        raw_counts <- se
+    } else {
+        stop("se must be a SummarizedExperiment or matrix")
+    }
+
+    # Data validation
+    if (verbose) cat("Diagnostic: Input structure\n")
+    
+    n_genes <- nrow(raw_counts)
+    n_samples <- ncol(raw_counts)
+    unique_names <- length(unique(rownames(raw_counts)))
+    
+    if (verbose) {
+        cat("  Rows (genes):", n_genes, "\n")
+        cat("  Columns (samples):", n_samples, "\n")
+        cat("  Unique rownames:", unique_names, "\n")
+    }
+
+    # Check for duplicates
+    dup_genes <- NULL
+    if (unique_names < n_genes) {
+        dup_genes <- names(table(rownames(raw_counts))[table(rownames(raw_counts)) > 1])
+        if (verbose) {
+            cat("  WARNING: Duplicate genes found:", 
+                paste(head(dup_genes, 5), collapse = ", "), "\n")
+        }
+    }
+
+    # Fit empirical Beta prior
+    if (verbose) cat("\nEmpirical Beta prior estimation:\n")
+    prior_params <- fit_empirical_beta_prior(raw_counts)
+    alpha_prior <- prior_params$alpha
+    beta_prior <- prior_params$beta
+
+    if (verbose) {
+        cat(sprintf("  α (alpha):  %.4f\n", alpha_prior))
+        cat(sprintf("  β (beta):   %.4f\n", beta_prior))
+    }
+
+    # Compute WLFC pseudocounts for all genes
+    wlfc_pseudocounts <- numeric(n_genes)
+    names(wlfc_pseudocounts) <- rownames(raw_counts)
+
+    for (i in seq_len(n_genes)) {
+        gene_counts <- raw_counts[i, ]
+        wlfc_pseudocounts[i] <- compute_wlfc_pseudocounts(
+            counts = gene_counts,
+            alpha = alpha_prior,
+            beta = beta_prior
+        )
+    }
+
+    # Compute scalar pseudocount (mean for regularization)
+    scalar_pseudocount <- mean(wlfc_pseudocounts)
+
+    # Summary statistics
+    if (verbose) {
+        cat("\nWLFC Pseudocount Distribution:\n")
+        cat(sprintf("  Mean:       %.6f\n", mean(wlfc_pseudocounts)))
+        cat(sprintf("  Median:     %.6f\n", median(wlfc_pseudocounts)))
+        cat(sprintf("  Range:      [%.6f, %.6f]\n", 
+                    min(wlfc_pseudocounts), max(wlfc_pseudocounts)))
+    }
+
+    # Return results with diagnostics
+    list(
+        pseudocounts = wlfc_pseudocounts,
+        scalar_pseudocount = scalar_pseudocount,
+        prior = list(alpha = alpha_prior, beta = beta_prior),
+        diagnostics = list(
+            unique_rownames = unique_names,
+            duplicate_genes = dup_genes,
+            n_genes_filtered = n_genes,
+            n_samples = n_samples
+        )
+    )
+}
+
 #' Extract Posterior Distribution Parameters
 #'
 #' Computes posterior Beta distribution parameters and credible intervals 

@@ -1304,14 +1304,19 @@ recommend_q_range <- function(
 #' analysis. Some genes may be robust across q-values while others show
 #' q-dependent expression patterns.
 #'
-#' @param data Data frame with columns: entropy, q, gene, sample
-#'   - entropy: numeric entropy values
-#'   - q: factor or character for q-parameter levels
-#'   - gene: factor or character for gene identifiers
-#'   - sample: character for sample identifiers
-#' @param entropy_col Character name of entropy column (default: "entropy")
-#' @param q_col Character name of q-parameter column (default: "q")
-#' @param gene_col Character name of gene column (default: "gene")
+#' @param data SummarizedExperiment (from calculate_diversity) or data frame.
+#'   If SummarizedExperiment: assay contains entropy values, colData must have "q" column,
+#'   rownames are gene IDs. Automatically converted to long-format internally.
+#'   If data frame: must have columns: entropy, q, gene
+#'     - entropy: numeric entropy values
+#'     - q: factor or character for q-parameter levels
+#'     - gene: factor or character for gene identifiers
+#' @param entropy_col Character name of entropy column (default: "entropy").
+#'   Only used if data is a data frame. Ignored for SummarizedExperiment.
+#' @param q_col Character name of q-parameter column (default: "q").
+#'   Only used if data is a data frame. Ignored for SummarizedExperiment.
+#' @param gene_col Character name of gene column (default: "gene").
+#'   Only used if data is a data frame. Ignored for SummarizedExperiment.
 #' @param method Character: "kruskal.test" (default, rank-based) or "anova" (parametric)
 #' @param multicorr Method for adjusting p-values across multiple q-values to account for 
 #'   correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
@@ -1377,14 +1382,22 @@ recommend_q_range <- function(
 #' @export
 #' @examples
 #' \dontrun{
-#' # Create long-format data: entropy by q and gene
+#' # Method 1: From SummarizedExperiment (recommended)
+#' library(TSENAT)
+#' data(readcounts)
+#' se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
+#' ts_se <- calculate_diversity(se, q = seq(0.1, 2, by = 0.05))
+#' 
+#' # Direct use with SummarizedExperiment
+#' results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg")
+#' head(results)
+#' 
+#' # Method 2: From long-format data frame (for custom data)
 #' model_data <- data.frame(
 #'   entropy = rnorm(600),
 #'   q = rep(c(0.5, 1.0, 1.5, 2.0), 150),
-#'   gene = rep(rep(paste0("Gene", 1:25), each = 4), 6),
-#'   sample = rep(paste0("S", 1:150), each = 4)
+#'   gene = rep(rep(paste0("Gene", 1:25), each = 4), 6)
 #' )
-#'
 #' results <- detect_q_gene_interactions(model_data)
 #' head(results)
 #' }
@@ -1398,6 +1411,37 @@ detect_q_gene_interactions <- function(
     verbose = FALSE) {
   
   multicorr <- match.arg(multicorr)
+  
+  # Handle SummarizedExperiment input: convert to long-format data frame
+  if (methods::is(data, "SummarizedExperiment")) {
+    if (verbose) cat("Converting SummarizedExperiment to long-format data frame...\n")
+    
+    entropy_matrix <- SummarizedExperiment::assay(data)
+    ts_coldata <- SummarizedExperiment::colData(data)
+    test_genes <- rownames(data)
+    n_genes <- nrow(data)
+    n_cols <- ncol(data)
+    
+    # Check for required q column
+    if (!"q" %in% colnames(ts_coldata)) {
+      stop("SummarizedExperiment colData must contain 'q' column")
+    }
+    
+    # Convert to long format
+    data <- data.frame(
+      entropy = as.numeric(entropy_matrix),
+      gene = rep(test_genes, n_cols),
+      q = rep(ts_coldata$q, each = n_genes),
+      stringsAsFactors = FALSE
+    )
+    
+    # Override column name parameters for converted data
+    entropy_col <- "entropy"
+    q_col <- "q"
+    gene_col <- "gene"
+    
+    if (verbose) cat("Conversion complete:", nrow(data), "observations from", n_genes, "genes\n")
+  }
   
   # Ensure proper column names in input data
   if (!entropy_col %in% colnames(data)) {

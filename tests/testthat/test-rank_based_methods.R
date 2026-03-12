@@ -200,8 +200,8 @@ test_that("rank_correlation_bootstrap_ci handles BCA CI", {
     q05 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
-                                         ci = "bca", n_bootstrap = 200)
+  result <- suppressWarnings(rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
+                                         ci = "bca", n_bootstrap = 200))
   
   expect_equal(result$ci_type, "bca")
   expect_equal(dim(result$ci_matrix), c(2, 2, 2))
@@ -798,7 +798,8 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   model_data <- rbind(data_robust, data_moderate, data_strong)
   
   # Step 1: Detect interactions
-  results <- detect_q_gene_interactions(model_data)
+  # Suppress expected chi-squared approximation warning from small cell counts in test data
+  results <- suppressWarnings(detect_q_gene_interactions(model_data))
   expect_equal(nrow(results), 45)
   
   # Step 2: Classify
@@ -912,11 +913,12 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(
+  # Suppress expected chi-squared approximation warning from small cell counts in test data
+  result <- suppressWarnings(detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 15
-  )
+  ))
   
   # Sort by p_value and check that adj_p_value is non-decreasing
   result_sorted <- result[order(result$p_value), ]
@@ -935,17 +937,18 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
   )
   
   # Test with different randomization counts
-  result_small <- detect_q_gene_interactions(
+  # Suppress expected chi-squared approximation warning from small cell counts in test data
+  result_small <- suppressWarnings(detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 5
-  )
+  ))
   
-  result_large <- detect_q_gene_interactions(
+  result_large <- suppressWarnings(detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 50
-  )
+  ))
   
   # Both should have valid results
   expect_is(result_small, "data.frame")
@@ -967,15 +970,18 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   )
   
   # Capture message output
-  expect_message(
-    detect_q_gene_interactions(
-      model_data,
-      multicorr = "westfall-young",
-      wy_randomizations = 10,
-      verbose = TRUE
+  expect_warning(
+    expect_message(
+      detect_q_gene_interactions(
+        model_data,
+        multicorr = "westfall-young",
+        wy_randomizations = 10,
+        verbose = TRUE
+      ),
+      "westfall-young|WY|permutation",
+      ignore.case = TRUE
     ),
-    "westfall-young|WY|permutation",
-    ignore.case = TRUE
+    "Chi-squared approximation may be incorrect"
   )
 })
 
@@ -990,10 +996,13 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(
-    model_data,
-    multicorr = "westfall-young",
-    wy_randomizations = 50
+  result <- expect_warning(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = 50
+    ),
+    "Chi-squared approximation may be incorrect"
   )
   
   # Under null hypothesis with pure noise, should have very few significant genes

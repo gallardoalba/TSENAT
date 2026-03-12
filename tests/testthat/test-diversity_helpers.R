@@ -445,3 +445,191 @@ test_that("Posterior mean estimates are valid across different data sizes", {
   expect_true(post_low$posterior_sd >= post_mid$posterior_sd - 1e-6)
   expect_true(post_mid$posterior_sd >= post_high$posterior_sd - 1e-6)
 })
+
+context("Bayesian Methods: Integrated WLFC Workflow")
+
+test_that("estimate_wlfc_pseudocounts works with matrix input", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  rownames(counts) <- c("Gene1", "Gene2", "Gene3")
+  
+  result <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  # Check return structure
+  expect_is(result, "list")
+  expect_true("pseudocounts" %in% names(result))
+  expect_true("scalar_pseudocount" %in% names(result))
+  expect_true("prior" %in% names(result))
+  expect_true("diagnostics" %in% names(result))
+  
+  # Check pseudocounts
+  expect_is(result$pseudocounts, "numeric")
+  expect_equal(length(result$pseudocounts), 3)
+  expect_equal(names(result$pseudocounts), c("Gene1", "Gene2", "Gene3"))
+  
+  # Check scalar pseudocount
+  expect_is(result$scalar_pseudocount, "numeric")
+  expect_equal(result$scalar_pseudocount, mean(result$pseudocounts))
+  expect_true(result$scalar_pseudocount > 0)
+})
+
+test_that("estimate_wlfc_pseudocounts works with SummarizedExperiment input", {
+  skip_if_not_installed("SummarizedExperiment")
+  
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  rownames(counts) <- c("Gene1", "Gene2", "Gene3")
+  se <- suppressWarnings(SummarizedExperiment::SummarizedExperiment(assay = list(data = counts)))
+  
+  result <- estimate_wlfc_pseudocounts(se, verbose = FALSE)
+  
+  # Check return structure
+  expect_is(result, "list")
+  expect_equal(length(result$pseudocounts), 3)
+  expect_equal(names(result$pseudocounts), c("Gene1", "Gene2", "Gene3"))
+})
+
+test_that("estimate_wlfc_pseudocounts prior parameters are positive", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  
+  result <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  # Check prior structure
+  expect_is(result$prior, "list")
+  expect_true("alpha" %in% names(result$prior))
+  expect_true("beta" %in% names(result$prior))
+  
+  # Check positivity
+  expect_true(result$prior$alpha > 0)
+  expect_true(result$prior$beta > 0)
+  
+  # Check reasonable range
+  expect_true(result$prior$alpha < 100)
+  expect_true(result$prior$beta < 100)
+})
+
+test_that("estimate_wlfc_pseudocounts returns diagnostic information", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  rownames(counts) <- c("Gene1", "Gene2", "Gene3")
+  
+  result <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  # Check diagnostics
+  expect_is(result$diagnostics, "list")
+  expect_equal(result$diagnostics$unique_rownames, 3)
+  expect_equal(result$diagnostics$n_genes_filtered, 3)
+  expect_equal(result$diagnostics$n_samples, 3)
+  expect_null(result$diagnostics$duplicate_genes)
+})
+
+test_that("estimate_wlfc_pseudocounts detects duplicate gene rownames", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  rownames(counts) <- c("Gene1", "Gene1", "Gene2")
+  
+  result <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  # Check duplicate detection
+  expect_equal(result$diagnostics$unique_rownames, 2)
+  expect_true(!is.null(result$diagnostics$duplicate_genes))
+  expect_true("Gene1" %in% result$diagnostics$duplicate_genes)
+})
+
+test_that("estimate_wlfc_pseudocounts pseudocount values are in valid range", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  
+  result <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  # All pseudocounts should be non-negative
+  expect_true(all(result$pseudocounts >= 0))
+  
+  # All should be less than 1 (typical for WLFC)
+  expect_true(all(result$pseudocounts <= 1))
+  
+  # Scalar should be mean
+  expect_equal(result$scalar_pseudocount, mean(result$pseudocounts))
+})
+
+test_that("estimate_wlfc_pseudocounts handles sparse counts", {
+  # Matrix with mostly zeros
+  counts <- matrix(0, nrow = 5, ncol = 10)
+  counts[1, 1:3] <- c(100, 50, 20)
+  counts[2, 4:6] <- c(80, 40, 15)
+  
+  result <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  expect_equal(length(result$pseudocounts), 5)
+  expect_true(all(is.finite(result$pseudocounts)))
+  expect_true(all(result$pseudocounts >= 0))
+})
+
+test_that("estimate_wlfc_pseudocounts handles all-zero matrix", {
+  counts <- matrix(0, nrow = 3, ncol = 3)
+  
+  result <- expect_warning(
+    estimate_wlfc_pseudocounts(counts, verbose = FALSE),
+    "Variance near zero|cannot compute"
+  )
+  
+  # Should still return valid structure (with fallback values)
+  expect_equal(length(result$pseudocounts), 3)
+})
+
+test_that("estimate_wlfc_pseudocounts rejects invalid input", {
+  # Non-matrix, non-SummarizedExperiment input
+  expect_error(
+    estimate_wlfc_pseudocounts(c(1, 2, 3), verbose = FALSE),
+    "must be a SummarizedExperiment or matrix"
+  )
+  
+  # Data frame (not supported directly)
+  expect_error(
+    estimate_wlfc_pseudocounts(data.frame(x = 1:3), verbose = FALSE),
+    "must be a SummarizedExperiment or matrix"
+  )
+})
+
+test_that("estimate_wlfc_pseudocounts verbose output is informative", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  rownames(counts) <- c("Gene1", "Gene2", "Gene3")
+  
+  # Capture output when verbose=TRUE
+  captured_output <- capture.output({
+    result <- estimate_wlfc_pseudocounts(counts, verbose = TRUE)
+  })
+  
+  # Should contain diagnostic information
+  expect_true(any(grepl("Diagnostic", captured_output)))
+  expect_true(any(grepl("Rows", captured_output)))
+  expect_true(any(grepl("Empirical Beta prior", captured_output)))
+  expect_true(any(grepl("WLFC Pseudocount Distribution", captured_output)))
+  expect_true(any(grepl("Mean", captured_output)))
+})
+
+test_that("estimate_wlfc_pseudocounts consistent across multiple calls", {
+  counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
+  
+  result1 <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  result2 <- estimate_wlfc_pseudocounts(counts, verbose = FALSE)
+  
+  # Same input should give identical results
+  expect_equal(result1$pseudocounts, result2$pseudocounts)
+  expect_equal(result1$scalar_pseudocount, result2$scalar_pseudocount)
+  expect_equal(result1$prior$alpha, result2$prior$alpha)
+  expect_equal(result1$prior$beta, result2$prior$beta)
+})
+
+test_that("estimate_wlfc_pseudocounts scales appropriately with sample size", {
+  # Small sample
+  counts_small <- matrix(c(10, 5, 1, 20, 8, 3), nrow = 2, ncol = 3)
+  result_small <- estimate_wlfc_pseudocounts(counts_small, verbose = FALSE)
+  
+  # Large sample (same proportions, scaled up)
+  counts_large <- matrix(c(100, 50, 10, 200, 80, 30), nrow = 2, ncol = 3)
+  result_large <- estimate_wlfc_pseudocounts(counts_large, verbose = FALSE)
+  
+  # Both should return valid results with similar structure
+  expect_equal(length(result_small$pseudocounts), 2)
+  expect_equal(length(result_large$pseudocounts), 2)
+  
+  # Pseudocounts may differ (effect of scaling on posterior), but all valid
+  expect_true(all(result_small$pseudocounts >= 0))
+  expect_true(all(result_large$pseudocounts >= 0))
+})
