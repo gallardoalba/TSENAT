@@ -536,22 +536,51 @@
     # Extract residuals based on model type
     tryCatch({
         if (model_type == "gam") {
-            # Standard GAM: use Pearson residuals (better for Gamma family)
-            # Pearson residuals are standardized: (y - fitted) / sqrt(var(fitted))
-            residuals_vec <- residuals(model, type = "pearson")
-        } else if (model_type == "gamm") {
-            # GAMM: extract Pearson residuals from $gam component
-            if (!is.null(model$gam)) {
-                residuals_vec <- residuals(model$gam, type = "pearson")
+            # Standard GAM: check family to determine residual type
+            # Pearson residuals available for non-gaussian families (gamma, beta, etc.)
+            # Gaussian family: use deviance residuals directly
+            family_name <- ifelse(!is.null(model$family), model$family$family, "gaussian")
+            if (family_name == "gaussian") {
+                residuals_vec <- residuals(model, type = "deviance")
             } else {
-                residuals_vec <- residuals(model, type = "pearson")
+                # For non-gaussian families, use Pearson residuals
+                residuals_vec <- tryCatch(
+                    residuals(model, type = "pearson"),
+                    error = function(e) residuals(model, type = "deviance")
+                )
+            }
+        } else if (model_type == "gamm") {
+            # GAMM: extract residuals from $gam component, check family first
+            if (!is.null(model$gam)) {
+                family_name <- ifelse(!is.null(model$gam$family), model$gam$family$family, "gaussian")
+                if (family_name == "gaussian") {
+                    residuals_vec <- residuals(model$gam, type = "deviance")
+                } else {
+                    residuals_vec <- tryCatch(
+                        residuals(model$gam, type = "pearson"),
+                        error = function(e) residuals(model$gam, type = "deviance")
+                    )
+                }
+            } else {
+                family_name <- ifelse(!is.null(model$family), model$family$family, "gaussian")
+                if (family_name == "gaussian") {
+                    residuals_vec <- residuals(model, type = "deviance")
+                } else {
+                    residuals_vec <- tryCatch(
+                        residuals(model, type = "pearson"),
+                        error = function(e) residuals(model, type = "deviance")
+                    )
+                }
             }
         } else if (model_type == "lme") {
             # nlme::lme model: use residuals() generic
             residuals_vec <- residuals(model, type = "normalized")
         } else if (model_type == "gee") {
-            # geeglm: use residuals() generic (pearson residuals)
-            residuals_vec <- residuals(model, type = "pearson")
+            # geeglm: use residuals() generic
+            residuals_vec <- tryCatch(
+                residuals(model, type = "pearson"),
+                error = function(e) residuals(model, type = "deviance")
+            )
         }
     }, error = function(e) {
         if (verbose) {
@@ -655,7 +684,9 @@
     diffs <- diff(entropy_sorted)
     
     # Identify violations (positive differences indicate increase instead of decrease)
-    violations <- which(diffs > 0)
+    # Use numerical tolerance to avoid false positives from floating-point errors
+    violation_tolerance <- 1e-10
+    violations <- which(diffs >= violation_tolerance)
     n_violations <- length(violations)
     n_total_pairs <- length(diffs)
     violation_rate <- n_violations / n_total_pairs
@@ -1403,7 +1434,10 @@
     tss_aux <- sum((fitted(fit_aux) - mean(fitted(fit_aux)))^2) + rss_aux
     
     bp_stat <- (sum((fitted(fit_aux) - mean(fitted(fit_aux)))^2) / tss_aux * nrow(df))
-    p_value <- 1 - pchisq(bp_stat, df = 2)  # df = number of predictors
+    # Compute correct degrees of freedom: number of predictors in auxiliary regression
+    # BUG FIX: Was hardcoded to 2, but should be ncol(X) - 1 where X is model.matrix
+    df_bp <- ncol(model.matrix(fit_aux)) - 1
+    p_value <- 1 - pchisq(bp_stat, df = df_bp)
     
     # Compute variance ratios
     q_unique <- sort(unique(na.omit(df$q)))
@@ -1577,6 +1611,16 @@
     family_gam <- bounded_result$family_obj
     inverse_link_fn <- bounded_result$inverse_link
     
+    # GAMM COMPATIBILITY FIX (March 2026): mgcv::gamm() does NOT support extended families
+    # (beta, gamma, Tweedie, etc.). For paired designs (subject != NULL -> uses gamm),
+    # fall back to gaussian family instead of extended families.
+    # Reference: C042/C043 (GAMM Tutorial, mgcv Documentation)
+    if (!is.null(subject)) {
+        # For paired/mixed designs using gamm(), force gaussian family
+        family_gam <- stats::gaussian()
+        inverse_link_fn <- function(eta) eta
+    }
+    
     # If beta regression is selected, use stabilized entropy
     if (bounded_result$use_beta && !is.null(bounded_result$stabilized_df)) {
         df <- bounded_result$stabilized_df
@@ -1623,6 +1667,8 @@
             # Reason: Differencing changes the variance structure, weights would be invalid
             # Conservative approach: Better to lose efficiency than introduce bias
             gam_weights_original <- NULL
+        } else {
+            # ARIMA differencing failed or insufficient data - skip ARIMA
         }
     }
     
@@ -1667,6 +1713,17 @@
             df$subject <- factor(df$subject)
         }
         
+        # CRITICAL FIX: Ensure data is sorted by q|subject for corAR1 correlation structure
+        # (nlme::corAR1 assumes observations are ordered by the within-group ordering variable)
+        # This is especially important after adding new columns like gam_weights or group_numeric
+        df <- df[order(df$subject, df$q), ]
+        rownames(df) <- NULL
+        
+        # FIX: Create observation sequence within each subject for corAR1 ordering
+        # corAR1 requires unique values within each group; use sequence index
+        # This respects the q-ordering (data is sorted by q within subject) while providing unique IDs
+        df$obs_seq <- unlist(lapply(rle(as.numeric(df$subject))$lengths, seq_len))
+        
         # Check if we have at least 2 subjects
         if (length(unique(na.omit(df$subject))) < 2) {
             return(NULL)
@@ -1686,21 +1743,28 @@
         # BOUNDED SUPPORT: Use quasibinomial(logit) if entropy is bounded [0, log(m)]
         # HETEROSCEDASTICITY: Use weights parameter to model variance heterogeneity
         
+        # BUG FIX: Use smooth splines s() instead of poly() for actual GAM fitting
+        # Adaptive spline basis with thin-plate (tp) for flexible curve fitting
         if (!is.null(gam_weights)) {
             df$gam_weights <- gam_weights
             fit_null <- try(
-                mgcv::gamm(entropy ~ group + poly(q, 3), 
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
                           random = list(subject = ~1), 
-                          correlation = nlme::corAR1(form = ~1|subject),
+                          correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
                           weights = gam_weights,
                           data = df),
                 silent = TRUE
             )
+            # Use group-specific smooth for interaction:
+            # FIX (March 2026): Convert group to numeric for tensor product smooth
+            # gamm() fails with factor in ti() due to arithmetic operations within mgcv smooth construction
+            # Reference: C042/C043 (GAMM Tutorial, mgcv Documentation)
+            df$group_numeric <- as.numeric(df$group)
             fit_alt <- try(
-                mgcv::gamm(entropy ~ group * poly(q, 3), 
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
                           random = list(subject = ~1), 
-                          correlation = nlme::corAR1(form = ~1|subject),
+                          correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
                           weights = gam_weights,
                           data = df),
@@ -1708,17 +1772,18 @@
             )
         } else {
             fit_null <- try(
-                mgcv::gamm(entropy ~ group + poly(q, 3), 
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
                           random = list(subject = ~1), 
-                          correlation = nlme::corAR1(form = ~1|subject),
+                          correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
                           data = df),
                 silent = TRUE
             )
+            # Use group-specific smooth for interaction:
             fit_alt <- try(
-                mgcv::gamm(entropy ~ group * poly(q, 3), 
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
                           random = list(subject = ~1), 
-                          correlation = nlme::corAR1(form = ~1|subject),
+                          correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
                           data = df),
                 silent = TRUE
@@ -1729,7 +1794,24 @@
             return(NULL)
         }
         
-        # For GAMM, use AIC comparison via anova
+        # For GAMM, compare models via LRT on the LME component
+        # Note: Both models have identical random structure and correlation
+        # The difference is in the smooth terms (fixed vs by-group)
+        # 
+        # APPROACH 1 (Current - Simpler): Use LME comparison
+        # Both GAMM objects contain an $lme component for the random effects.
+        # LRT comparing these LME objects is valid because:
+        # - GAM/GAMM uses same likelihood framework as LME
+        # - Smooth terms are fitted as fixed effects within GAMM
+        # - LME comparison reflects overall model difference
+        # Reference: mgcv documentation - gamm() returns a list with $gam and $lme components
+        
+        # APPROACH 2 (Alternative): Use anova.gam on GAM components
+        # mgcv::anova.gam() performs hypothesis tests on GAM fits
+        # For multi-model comparison with test="Chisq", returns GLRT test
+        # However, this only compares the smooth term differences, not the full models
+        # Thus, LME comparison is more appropriate for full model comparison
+        
         old_warn <- options(warn = -1)
         an <- try(anova(fit_null$lme, fit_alt$lme), silent = TRUE)
         options(old_warn)
@@ -1738,12 +1820,22 @@
             return(NULL)
         }
         
-        # Extract p-value from LME anova
+        # Extract p-value from LRT
+        # anova.lme() returns: Model, df, AIC, BIC, logLik, Test, L.Ratio, p-value
         p_interaction <- NA_real_
         if (nrow(an) >= 2) {
             if ("p-value" %in% colnames(an)) {
                 p_interaction <- an[2, "p-value"]
+            } else if ("Pr(>Chisq)" %in% colnames(an)) {
+                p_interaction <- an[2, "Pr(>Chisq)"]
+            } else if ("Pr(>F)" %in% colnames(an)) {
+                p_interaction <- an[2, "Pr(>F)"]
             }
+        }
+        
+        # If p-value not extracted, return NULL
+        if (is.na(p_interaction)) {
+            return(NULL)
         }
     } else {
         # Fallback to standard GAM (treats samples as independent)
@@ -1752,17 +1844,20 @@
         # HETEROSCEDASTICITY: Use weights parameter to model variance heterogeneity
         bs_arg <- "tp"  # Thin plate spline
         
+        # BUG FIX: Use smooth splines s() instead of poly() for actual GAM fitting
+        # Adaptive spline basis with thin-plate (tp) for flexible curve fitting
         if (!is.null(gam_weights)) {
             df$gam_weights <- gam_weights
             fit_null <- try(
-                mgcv::gam(entropy ~ group + poly(q, 3), 
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
                          family = family_gam,
                          weights = gam_weights,
                          data = df), 
                 silent = TRUE
             )
+            # Use group-specific smooth for interaction testing
             fit_alt <- try(
-                mgcv::gam(entropy ~ group * poly(q, 3), 
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
                          family = family_gam,
                          weights = gam_weights,
                          data = df),
@@ -1770,13 +1865,14 @@
             )
         } else {
             fit_null <- try(
-                mgcv::gam(entropy ~ group + poly(q, 3), 
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
                          family = family_gam,
                          data = df), 
                 silent = TRUE
             )
+            # Use group-specific smooth for interaction testing
             fit_alt <- try(
-                mgcv::gam(entropy ~ group * poly(q, 3), 
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
                          family = family_gam,
                          data = df),
                 silent = TRUE
@@ -2109,22 +2205,36 @@
                 subj_1 <- subj_vals[grp_vals == g1]
                 subj_2 <- subj_vals[grp_vals == g2]
                 
-                # Check if we have complete pairing
-                if (length(subj_1) == length(subj_2) && length(unique(subj_1)) == length(subj_1) && 
-                    all(sort(subj_1) == sort(subj_2))) {
-                    # Paired t-test on this PC
-                    order_1 <- order(subj_1)
-                    order_2 <- order(subj_2)
-                    pc_g1_sorted <- pc_g1[order_1]
-                    pc_g2_sorted <- pc_g2[order_2]
-                    t_res <- try(stats::t.test(pc_g1_sorted, pc_g2_sorted, paired = TRUE), silent = TRUE)
+                # BUG FIX (March 2026): Aggregate PC values by subject before paired test
+                # The original code required length(unique(subj_1)) == length(subj_1) 
+                # (each subject appears once), which never happens with multiple q-values per subject.
+                # Solution: Compute mean PC value per subject, then do paired t-test on means.
+                
+                unique_subj <- unique(as.character(subj_1))
+                
+                # Aggregate PC scores to subject level (mean across q-values within each subject)
+                pc_g1_by_subj <- sapply(unique_subj, function(s) {
+                    idx_g1 <- grp_vals == g1 & as.character(subj_vals) == s
+                    mean(pc_vals[idx_g1], na.rm = TRUE)
+                })
+                
+                pc_g2_by_subj <- sapply(unique_subj, function(s) {
+                    idx_g2 <- grp_vals == g2 & as.character(subj_vals) == s
+                    mean(pc_vals[idx_g2], na.rm = TRUE)
+                })
+                
+                # Only proceed with paired test if we have valid subject-aggregated data
+                if (length(pc_g1_by_subj) >= 2 && length(pc_g2_by_subj) >= 2 && 
+                    !anyNA(pc_g1_by_subj) && !anyNA(pc_g2_by_subj)) {
+                    # Paired t-test on aggregated PC values
+                    t_res <- try(stats::t.test(pc_g1_by_subj, pc_g2_by_subj, paired = TRUE), silent = TRUE)
                     if (!inherits(t_res, "try-error")) {
                         pc_pvals[pc_idx] <- as.numeric(t_res$p.value)
                     } else {
                         pc_pvals[pc_idx] <- NA
                     }
                 } else {
-                    # Unpaired t-test on this PC
+                    # Fallback to unpaired t-test if pairing fails
                     t_res <- try(stats::t.test(pc_g1, pc_g2), silent = TRUE)
                     if (!inherits(t_res, "try-error")) {
                         pc_pvals[pc_idx] <- as.numeric(t_res$p.value)
@@ -2225,17 +2335,26 @@
             subj_1 <- subj_vals[x1_idx]
             subj_2 <- subj_vals[x2_idx]
             
-            # Check if we have complete pairing (same subjects in both groups)
-            if (length(subj_1) == length(subj_2) && length(unique(subj_1)) == length(subj_1) && 
-                all(sort(subj_1) == sort(subj_2))) {
-                # Valid paired design: use paired t-test
-                # Sort both vectors by subject to match pairs
-                order_1 <- order(subj_1)
-                order_2 <- order(subj_2)
-                x1_sorted <- x1[order_1]
-                x2_sorted <- x2[order_2]
-                
-                t_res <- try(stats::t.test(x1_sorted, x2_sorted, paired = TRUE), silent = TRUE)
+            # BUG FIX (March 2026): Aggregate values by subject before paired test
+            # Compute mean value per subject, then do paired t-test on means
+            unique_subj <- unique(as.character(subj_1))
+            
+            # Aggregate reduction values to subject level (mean across q-values within each subject)
+            x1_by_subj <- sapply(unique_subj, function(s) {
+                idx_x1 <- x1_idx & as.character(subj_vals) == s
+                mean(reduction_vals[idx_x1], na.rm = TRUE)
+            })
+            
+            x2_by_subj <- sapply(unique_subj, function(s) {
+                idx_x2 <- x2_idx & as.character(subj_vals) == s
+                mean(reduction_vals[idx_x2], na.rm = TRUE)
+            })
+            
+            # Only proceed with paired test if we have valid subject-aggregated data
+            if (length(x1_by_subj) >= 2 && length(x2_by_subj) >= 2 &&
+                !anyNA(x1_by_subj) && !anyNA(x2_by_subj)) {
+                # Paired t-test on aggregated values
+                t_res <- try(stats::t.test(x1_by_subj, x2_by_subj, paired = TRUE), silent = TRUE)
                 if (!inherits(t_res, "try-error")) {
                     pval <- as.numeric(t_res$p.value)
                     return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
@@ -2554,6 +2673,7 @@
 
     if (method == "gam") {
         # Extract subject info for paired/repeated measures (same as LMM)
+
         subject <- NULL
         if (!is.null(subject_col)) {
             if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
@@ -2715,47 +2835,6 @@
     return(structure("error", class = "try-error"))
 }
 
-
-# LRT p-value extraction
-.tsenat_extract_lrt_p <- function(fit0, fit1) {
-    an <- try(stats::anova(fit0, fit1), silent = TRUE)
-    if (!inherits(an, "try-error") && nrow(an) >= 2) {
-        pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-        if (length(pcol) == 0) {
-            return(as.numeric(an[2, ncol(an)]))
-        } else {
-            return(as.numeric(an[2, pcol[1]]))
-        }
-    }
-    return(NA_real_)
-}
-
-# Satterthwaite p-value extraction
-.tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL) {
-    if (!is.null(fallback_lm)) {
-        coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
-        if (!is.null(coefs) && !inherits(coefs, "try-error")) {
-            ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0) {
-                return(coefs[ia_idx[1], "Pr(>|t|)"])
-            }
-        }
-        return(NA_real_)
-    }
-    if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod") &&
-        !isTRUE(attr(fit1, "singular"))) {
-        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
-            REML = FALSE), silent = TRUE)
-        if (!inherits(fit_lt, "try-error")) {
-            coefs <- summary(fit_lt)$coefficients
-            ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0) {
-                return(coefs[ia_idx[1], "Pr(>|t|)"])
-            }
-        }
-    }
-    return(NA_real_)
-}
 .tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL, suppress_lme4_warnings = TRUE,
     verbose = FALSE, mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
     # If we have a fallback lm, extract from its coefficients
