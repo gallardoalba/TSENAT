@@ -2717,7 +2717,297 @@ cat("  K-W should now detect meaningful Q-effects if they exist\n")
 
 ---
 
-# Part 6: Recommendations
+# Part 7: Diagnostic Visualization for Method Disagreement
+
+## Understanding Disagreement Patterns
+
+When methods disagree, it's NOT a bug—it reflects different perspectives on the same data:
+
+| Scenario | GEE Detects | Rank-Based Detects | Interpretation | Action |
+|----------|------------|-------------------|---|---|
+| **Both significant** | Smooth trend in mean | Median/distribution shift | Very robust signal | ✅ Report with high confidence |
+| **Only GEE significant** | Smooth/linear trend | — | Smooth trend, possibly heteroscedastic | ⚠ Check variance pattern; note method selection |
+| **Only rank-based significant** | — | Median/step-wise change or robust shift | Non-linear or distribution change | ⚠ Inspect for step-wise patterns |
+| **Neither significant** | — | — | No clear q-interaction | ✓ Not significant |
+
+## Diagnostic Code: Categorizing Genes by Agreement
+
+```{r diagnostic-categorize-genes, eval=FALSE}
+# Assuming you have:
+# - lm_res: GEE results with p_interaction
+# - kw_res: Rank-based results with p_value (or adj_p_value from multicorr)
+# - Both with same gene names
+
+# Set significance threshold
+alpha <- 0.05
+
+# Merge results
+merged <- cbind(
+  gene = rownames(lm_res),
+  gee_p = lm_res$p_interaction,
+  rank_p = kw_res$p_value
+)
+
+# Create categories
+merged$category <- NA
+merged$category[merged$gee_p < alpha & merged$rank_p < alpha] <- "Both Sig"
+merged$category[merged$gee_p < alpha & merged$rank_p >= alpha] <- "GEE Only"
+merged$category[merged$gee_p >= alpha & merged$rank_p < alpha] <- "Rank-Based Only"
+merged$category[merged$gee_p >= alpha & merged$rank_p >= alpha] <- "Neither"
+
+# Summary
+cat("Method Agreement Summary:\n")
+cat("Both significant:       ", sum(merged$category == "Both Sig"), "genes\n")
+cat("GEE only:               ", sum(merged$category == "GEE Only"), "genes\n")
+cat("Rank-based only:        ", sum(merged$category == "Rank-Based Only"), "genes\n")
+cat("Neither significant:    ", sum(merged$category == "Neither"), "genes\n\n")
+
+# Correlation
+correlation <- cor(merged$gee_p, merged$rank_p, method = "spearman")
+cat("Spearman correlation (GEE vs Rank-based p-values):", sprintf("%.3f", correlation), "\n\n")
+```
+
+## Diagnostic Code: Visualizing Disagreement
+
+```{r diagnostic-visualize-agreement, eval=FALSE, fig.width=14, fig.height=6}
+library(ggplot2)
+library(gridExtra)
+
+# Define significance threshold
+alpha <- 0.05
+sig_threshold <- -log10(alpha)
+
+# 1. SCATTER PLOT: GEE vs Rank-based p-values with concordance quadrants
+p1 <- ggplot(merged, aes(x = -log10(gee_p), y = -log10(rank_p), color = category)) +
+  geom_point(alpha = 0.6, size = 3) +
+  geom_hline(yintercept = sig_threshold, linetype = "dashed", color = "red", linewidth = 0.8) +
+  geom_vline(xintercept = sig_threshold, linetype = "dashed", color = "red", linewidth = 0.8) +
+  # Add quadrant labels
+  annotate("text", x = 0.5, y = Inf, label = "GEE Only", vjust = 1.5, hjust = 0, color = "blue", size = 4) +
+  annotate("text", x = Inf, y = 0.5, label = "Rank Only", vjust = 0.5, hjust = 1, color = "orange", size = 4) +
+  annotate("text", x = Inf, y = Inf, label = "Both Sig", vjust = 1, hjust = 1, color = "darkgreen", size = 4) +
+  scale_color_manual(
+    values = c("Both Sig" = "darkgreen", "GEE Only" = "blue", 
+               "Rank-Based Only" = "orange", "Neither" = "gray"),
+    limits = c("Both Sig", "GEE Only", "Rank-Based Only", "Neither"),
+    na.value = "gray"
+  ) +
+  xlab("-log10(GEE p-value)") +
+  ylab("-log10(Rank-based p-value)") +
+  ggtitle("Method Concordance: GEE vs Rank-Based Q-Interaction Tests") +
+  theme_minimal() +
+  theme(
+    legend.position = "topright",
+    plot.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10)
+  )
+
+# 2. BAR PLOT: Gene counts by category (only categories present in data)
+cat_counts <- as.data.frame(table(merged$category))
+colnames(cat_counts) <- c("Category", "Count")
+# Ensure proper ordering
+cat_counts$Category <- factor(cat_counts$Category, 
+                              levels = c("Both Sig", "GEE Only", "Rank-Based Only", "Neither"))
+cat_counts <- cat_counts[order(cat_counts$Category), ]
+
+color_map <- c("Both Sig" = "darkgreen", "GEE Only" = "blue", 
+               "Rank-Based Only" = "orange", "Neither" = "gray")
+colors_used <- color_map[as.character(cat_counts$Category)]
+
+p2 <- ggplot(cat_counts, aes(x = Category, y = Count, fill = Category)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = Count), vjust = -0.5, size = 4, fontface = "bold") +
+  scale_fill_manual(
+    values = color_map,
+    limits = c("Both Sig", "GEE Only", "Rank-Based Only", "Neither"),
+    na.value = "gray"
+  ) +
+  xlab("Agreement Category") +
+  ylab("Number of Genes") +
+  ggtitle("Gene Distribution by Method Agreement") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    plot.title = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 10)
+  )
+
+# Combine and display
+combined_plot <- grid.arrange(p1, p2, ncol = 2, widths = c(1, 0.8))
+print(combined_plot)
+
+# Print summary statistics
+cat("\n=== METHOD CONCORDANCE SUMMARY ===\n")
+cat("Spearman correlation (GEE vs Rank p-values):", 
+    sprintf("%.3f\n", cor(merged$gee_p, merged$rank_p, method = "spearman", use = "complete.obs")))
+cat("\nGene Counts by Category:\n")
+print(cat_counts)
+```
+
+## Diagnostic Code: Inspecting Problematic Genes
+
+```{r diagnostic-inspect-discordant, eval=FALSE}
+# Ensure merged has gene names in accessible format
+if (!("gene" %in% colnames(merged))) {
+  merged <- cbind(gene = rownames(merged), merged)
+}
+
+# Find genes with largest disagreement (high p-value difference)
+merged$p_diff <- abs(merged$gee_p - merged$rank_p)
+discordant <- merged[order(-merged$p_diff), ][1:10, ]
+
+cat("\n=== Top 10 Most Discordant Genes ===\n")
+cat("(Sorted by largest absolute p-value difference between GEE and Rank-based)\n\n")
+print_cols <- intersect(c("gene", "gee_p", "rank_p", "category", "p_diff"), colnames(discordant))
+print(discordant[, print_cols])
+
+# For each discordant gene, generate diagnostic report
+cat("\n\n=== DETAILED DIAGNOSTIC REPORT ===\n")
+
+genes_to_inspect <- discordant$gene[1:min(3, nrow(discordant))]
+
+for (gene in genes_to_inspect) {
+  cat("\n")
+  cat(strrep("═", 60), "\n")
+  cat("GENE: ", gene, "\n")
+  cat(strrep("═", 60), "\n\n")
+  
+  # Basic statistics
+  gee_p <- as.numeric(merged[merged$gene == gene, "gee_p"])
+  rank_p <- as.numeric(merged[merged$gene == gene, "rank_p"])
+  cat(sprintf("GEE p-value:        %12.3e\n", gee_p))
+  cat(sprintf("Rank-based p-value: %12.3e\n", rank_p))
+  cat(sprintf("Absolute difference:%12.3e\n", abs(gee_p - rank_p)))
+  cat(sprintf("Category:           %s\n\n", merged[merged$gene == gene, "category"]))
+  
+  # Extract gene data if available
+  if (exists("entropy_long") && gene %in% unique(entropy_long$gene)) {
+    gene_data <- entropy_long[entropy_long$gene == gene, ]
+    
+    cat("─── ENTROPY DISTRIBUTION ANALYSIS ───\n")
+    
+    # Variance analysis by q-value
+    q_unique <- sort(unique(gene_data$q))
+    cat(sprintf("Q-values analyzed: %s\n\n", paste(sprintf("%.2f", q_unique), collapse = ", ")))
+    
+    vars <- tapply(gene_data$entropy, gene_data$q, var, na.rm = TRUE)
+    means <- tapply(gene_data$entropy, gene_data$q, mean, na.rm = TRUE)
+    
+    cat("Variance by Q:\n")
+    for (i in seq_along(vars)) {
+      cat(sprintf("  Q = %.2f: σ² = %.4f, μ = %.4f\n", 
+                  as.numeric(names(vars)[i]), vars[i], means[i]))
+    }
+    
+    # Overall variance pattern
+    var_ratio <- max(vars, na.rm = TRUE) / min(vars, na.rm = TRUE)
+    cat(sprintf("\nVariance ratio (max/min): %.2f\n", var_ratio))
+    
+    if (var_ratio > 2) {
+      cat("STATUS: ⚠ HETEROSCEDASTIC\n")
+      cat("INTERPRETATION: Variance increases significantly across Q-values.\n")
+      cat("APPROPRIATE TESTS: ART (Aligned Rank Transform), Quantile tests\n")
+      cat("RECOMMENDATION: If only rank-based method significant, heteroscedasticity likely\n")
+      cat("                explains GEE lack of signal (assumes homoscedasticity).\n")
+    } else {
+      cat("STATUS: ✓ HOMOSCEDASTIC\n")
+      cat("INTERPRETATION: Variance is relatively stable across Q-values.\n")
+      cat("APPROPRIATE TESTS: Standard Kruskal-Wallis or linear methods\n")
+    }
+    
+    cat("\n─── TREND ANALYSIS ───\n")
+    
+    # Check monotonicity
+    mean_diffs <- diff(means)
+    all_pos <- all(mean_diffs > 0, na.rm = TRUE)
+    all_neg <- all(mean_diffs < 0, na.rm = TRUE)
+    
+    if (all_pos || all_neg) {
+      direction <- if (all_pos) "INCREASING" else "DECREASING"
+      cat(sprintf("STATUS: ✓ MONOTONIC %s TREND\n", direction))
+      cat("INTERPRETATION: Entropy changes consistently across Q-values.\n")
+      cat("APPROPRIATE TESTS: GEE, linear models with smooth assumptions\n")
+      cat("LIKELY REASON FOR GEE DETECTION: Consistent trend detectable by linear methods\n")
+    } else {
+      cat("STATUS: ⚠ NON-MONOTONIC PATTERN\n")
+      cat("INTERPRETATION: Entropy changes direction or shows step-like behavior.\n")
+      cat("APPROPRIATE TESTS: Rank-based, median tests, quantile tests\n")
+      cat("LIKELY REASON FOR RANK-BASED DETECTION: Step-wise or median shifts\n")
+    }
+    
+    # Visualize pattern
+    cat("\nEntropy by Q: ")
+    cat(sprintf("%.3f ", means))
+    cat("\n")
+    
+    cat("\n─── BOUNDARY CLUSTERING ANALYSIS ───\n")
+    
+    # Check boundaries (entropy bounded by [0, log(m)])
+    min_ent <- min(gene_data$entropy, na.rm = TRUE)
+    max_ent <- max(gene_data$entropy, na.rm = TRUE)
+    range_ent <- max_ent - min_ent
+    
+    cat(sprintf("Min entropy: %.4f, Max entropy: %.4f, Range: %.4f\n", 
+                min_ent, max_ent, range_ent))
+    
+    near_lower <- min_ent / (range_ent + min_ent) < 0.1
+    near_upper <- (1 - max_ent / (range_ent + max_ent)) < 0.1
+    
+    if (near_lower || near_upper) {
+      cat("STATUS: ⚠ BOUNDARY CLUSTERING DETECTED\n")
+      cat(sprintf("Close to %s boundary\n", if (near_lower) "LOWER (0)" else "UPPER"))
+      cat("INTERPRETATION: Entropy constrained by [0, log(m)] bounds.\n")
+      cat("APPROPRIATE TESTS: Quantile tests, non-parametric rank-based tests\n")
+      cat("RECOMMENDATION: Rank-based method more suitable for boundary-affected data\n")
+    } else {
+      cat("STATUS: ✓ INTERIOR VALUES\n")
+      cat("INTERPRETATION: Entropy well away from boundaries.\n")
+      cat("APPROPRIATE TESTS: Standard parametric or non-parametric methods\n")
+    }
+    
+  } else {
+    cat("NOTE: entropy_long data not available for detailed diagnostics.\n")
+    cat("Run full TSENAT.Rmd workflow to access entropy distribution analysis.\n")
+  }
+  
+  cat("\n")
+}
+
+cat("\n" %+% strrep("═", 60) %+% "\n")
+cat("INTERPRETATION SUMMARY\n")
+cat(strrep("═", 60), "\n\n")
+cat("For each discordant gene:\n")
+cat("- HETEROSCEDASTIC pattern → Rank-based methods more appropriate\n")
+cat("- MONOTONIC trend → GEE more appropriate\n")
+cat("- BOUNDARY clustering → Rank-based methods more appropriate\n")
+cat("- BOTH patterns present → Method selection depends on biological question\n\n")
+```
+
+## Recommendations Based on Disagreement Pattern
+
+### If "GEE Only" genes dominate:
+→ Your data has **smooth trends** in entropy  
+→ GEE (with K-C correction) is appropriate primary method  
+→ Rank-based methods serve as robustness checks  
+→ **Report**: "GEE detected X significant q-interactions; rank-based validation identified Y
+
+, indicating robust signals at Z genes"
+
+### If "Rank-Based Only" genes dominate:
+→ Your data has **step-wise/median shifts** or heteroscedasticity  
+→ Rank-based methods catching real signal GEE misses  
+→ Consider checking GEE model fit (is linear trend assumption realistic?)  
+→ **Report**: "Rank-based q-interaction testing revealed X genes with significant median shifts; GEE detected Y subsets"
+
+### If "Both Sig" genes are largest group:
+→ **EXCELLENT**: Both methods agree on robust findings  
+→ These genes have **strong, consistent signals**  
+→ High publication confidence  
+→ **Report**: "Both parametric (GEE) and non-parametric (rank-based) methods converged on X robust q-interaction genes"
+
+---
+
+
 
 ## Publication Strategy (Both Methods with Improvements)
 
