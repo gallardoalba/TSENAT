@@ -978,12 +978,18 @@ testthat::test_that(".tsenat_test_residual_normality returns error status for in
     
     df <- data.frame(entropy = entropy, q = q, group = factor(group))
     
-    # Fit GAM model
-    fit_gam <- try(
-        mgcv::gam(entropy ~ group + s(q, k = 2), 
-                  family = gaussian(link = "identity"),
-                  data = df),
-        silent = TRUE
+    # Fit GAM model with small data - mgcv will auto-adjust basis dimension
+    # This generates informational message "basis dimension, k, increased to minimum possible"
+    # which is expected and not a real problem - just testing edge case handling
+    fit_gam <- expect_warning(
+        try(
+            mgcv::gam(entropy ~ group + s(q, k = 2), 
+                      family = gaussian(link = "identity"),
+                      data = df),
+            silent = TRUE
+        ),
+        "basis dimension, k, increased to minimum possible",
+        ignore.case = TRUE
     )
     
     skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")

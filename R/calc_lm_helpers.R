@@ -194,6 +194,7 @@
     # Estimate first-order autocorrelation ρ from differenced entropy
     # Input: entropy_diff = first-differenced entropy values ΔH_q = H_q - H_{q-1}
     # Returns: ρ estimate in [0, 1], or NULL if insufficient data
+    # Issues warning if ρ is very high (GAMM convergence risk)
     
     if (is.null(entropy_diff) || length(na.omit(entropy_diff)) < 3) {
         return(NULL)
@@ -228,6 +229,19 @@
     
     # Ensure ρ is in [0, 1] (sometimes numerical errors give slight negative values)
     rho_est <- max(0, min(1, rho_est))
+    
+    # OPTIMIZATION (March 2026): Add tolerance checks for edge cases
+    # Issue #9: Missing tolerance checks from CODE_REVIEW_BUGS_FOUND.md
+    if (rho_est > 0.95) {
+        # Very high autocorrelation - warn about GAMM convergence risk
+        warning(sprintf("AR(1) autocorrelation very high (rho=%.3f). GAMM may fail to converge. Consider reducing q-values or checking data for trends.", rho_est), call. = FALSE)
+    }
+    
+    if (rho_est < 0.01) {
+        # Very small autocorrelation - independence assumption near valid
+        # Return NULL to suggest simpler model without AR(1)
+        return(NULL)
+    }
     
     return(rho_est)
 }
@@ -1729,6 +1743,13 @@
             return(NULL)
         }
         
+        # OPTIMIZATION (March 2026): Adaptive knot selection for smooth terms
+        # Issue #4 & #8: Replace hardcoded/aggressive k parameters with data-driven selection
+        # Marginal smooth for q: Use conservative knots to avoid overfitting
+        k_q_marginal <- max(3, min(k_q, max(3, nrow(df) / 30)))  # Divide by 30 instead of 3 for marginal
+        # Interaction smooth: Use fewer knots since it must accommodate both q and group
+        k_q_interaction <- max(2, min(k_q / 2, 5))  # Scale down by half or cap at 5
+        
         # Determine spline smoothing approach based on regularization
         bs_arg <- "tp"  # Thin plate spline basis - good for continuous covariates
         if (!is.null(reg_result) && reg_result$mode == "spline") {
@@ -1748,7 +1769,7 @@
         if (!is.null(gam_weights)) {
             df$gam_weights <- gam_weights
             fit_null <- try(
-                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
                           random = list(subject = ~1), 
                           correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
@@ -1762,7 +1783,7 @@
             # Reference: C042/C043 (GAMM Tutorial, mgcv Documentation)
             df$group_numeric <- as.numeric(df$group)
             fit_alt <- try(
-                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
                           random = list(subject = ~1), 
                           correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
@@ -1772,7 +1793,7 @@
             )
         } else {
             fit_null <- try(
-                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
                           random = list(subject = ~1), 
                           correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
@@ -1781,7 +1802,7 @@
             )
             # Use group-specific smooth for interaction:
             fit_alt <- try(
-                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
+                mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
                           random = list(subject = ~1), 
                           correlation = nlme::corAR1(form = ~obs_seq|subject),
                           family = family_gam,
@@ -1849,7 +1870,7 @@
         if (!is.null(gam_weights)) {
             df$gam_weights <- gam_weights
             fit_null <- try(
-                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
                          family = family_gam,
                          weights = gam_weights,
                          data = df), 
@@ -1857,7 +1878,7 @@
             )
             # Use group-specific smooth for interaction testing
             fit_alt <- try(
-                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
                          family = family_gam,
                          weights = gam_weights,
                          data = df),
@@ -1865,14 +1886,14 @@
             )
         } else {
             fit_null <- try(
-                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, nrow(df)/3)), 
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
                          family = family_gam,
                          data = df), 
                 silent = TRUE
             )
             # Use group-specific smooth for interaction testing
             fit_alt <- try(
-                mgcv::gam(entropy ~ group + s(q, bs="tp", k=min(k_q, 5), by=group),
+                mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
                          family = family_gam,
                          data = df),
                 silent = TRUE
