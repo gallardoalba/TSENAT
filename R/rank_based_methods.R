@@ -1174,6 +1174,17 @@ recommend_q_range <- function(
 #' non-normally distributed entropy data. Tests whether entropy values differ
 #' significantly across q-parameters for each gene.
 #'
+#' Adaptive test selection (March 2026):
+#'   With method="kruskal.test" (default), applies conditional rank test selection:
+#'   - Heteroscedasticity detected → Aligned Rank Transform + parametric test
+#'   - Extreme skewness detected → Mood's robust median test  
+#'   - Standard case → Kruskal-Wallis (rank-based)
+#'   
+#'   **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity metrics,
+#'   since these are mathematically bounded by definition [0, log(m)] and boundary
+#'   clustering is EXPECTED, not pathological. This fix (March 2026) resolves prior
+#'   false positives that were triggering inappropriate quantile test selection.
+#'
 #' Classification:
 #'   - Robust: p >= 0.05 (no significant q-effect)
 #'   - Moderately dependent: p < 0.05 AND η^2 <= 0.10
@@ -1241,6 +1252,10 @@ detect_q_gene_interactions <- function(
     df_residual = numeric(n_genes),
     effect_size_eta2 = numeric(n_genes),
     interaction_class = character(n_genes),
+    test_method = character(n_genes),  # Track which test was used (NEW - March 2026)
+    heteroscedastic = logical(n_genes),  # Data characteristic (NEW - March 2026)
+    boundary_clustered = logical(n_genes),  # Data characteristic (NEW - March 2026)
+    highly_skewed = logical(n_genes),  # Data characteristic (NEW - March 2026)
     stringsAsFactors = FALSE
   )
   
@@ -1253,28 +1268,44 @@ detect_q_gene_interactions <- function(
     if (length(q_levels) < 2) {
       interaction_results$interaction_class[g_idx] <- "Insufficient data"
       interaction_results$p_value[g_idx] <- NA
+      interaction_results$test_method[g_idx] <- "insufficient_data"
       next
     }
     
     interaction_results$n_q_values_tested[g_idx] <- length(q_levels)
     
-    # Perform test
+    # Perform test with conditional rank test selection (March 2026)
     if (method == "kruskal.test") {
+      # NEW: Use conditional test selection based on data characteristics
       test_result <- tryCatch(
-        kruskal.test(entropy ~ q, data = gene_data),
+        .tsenat_apply_conditional_rank_test(
+          data = gene_data,
+          value_col = "entropy",
+          group_col = "q",
+          verbose = FALSE
+        ),
         error = function(e) NULL
       )
       
       if (is.null(test_result)) {
         interaction_results$interaction_class[g_idx] <- "Test failed"
         interaction_results$p_value[g_idx] <- NA
+        interaction_results$test_method[g_idx] <- "test_failed"
         next
       }
       
       interaction_results$f_statistic[g_idx] <- as.numeric(test_result$statistic)
-      interaction_results$p_value[g_idx] <- as.numeric(test_result$p.value)
+      interaction_results$p_value[g_idx] <- as.numeric(test_result$p_value)
       interaction_results$df_interaction[g_idx] <- length(q_levels) - 1
       interaction_results$df_residual[g_idx] <- nrow(gene_data) - length(q_levels)
+      
+      # NEW: Store test method and data characteristics (March 2026)
+      interaction_results$test_method[g_idx] <- test_result$test_type
+      if (!is.null(test_result$characteristics)) {
+        interaction_results$heteroscedastic[g_idx] <- test_result$characteristics$heteroscedastic
+        interaction_results$boundary_clustered[g_idx] <- test_result$characteristics$boundary_clustered
+        interaction_results$highly_skewed[g_idx] <- test_result$characteristics$highly_skewed
+      }
       
     } else if (method == "anova") {
       # Parametric ANOVA
@@ -1285,6 +1316,7 @@ detect_q_gene_interactions <- function(
       interaction_results$p_value[g_idx] <- as.numeric(anova_result$`Pr(>F)`[1])
       interaction_results$df_interaction[g_idx] <- as.numeric(anova_result$Df[1])
       interaction_results$df_residual[g_idx] <- as.numeric(anova_result$Df[2])
+      interaction_results$test_method[g_idx] <- "anova"  # NEW: Track method
     }
     
     # Compute effect size (eta-squared)
