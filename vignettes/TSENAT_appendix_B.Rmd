@@ -983,16 +983,28 @@ if (!"kw_statistic" %in% kw_cols && "f_statistic" %in% colnames(kw_res)) {
 }
 
 # NEW: Handle problematic genes (NA test_method or insufficient data)
+# Only filter if we have results; if filtering removes all genes, keep raw results
 problematic_genes <- kw_res[is.na(kw_res$test_method) | kw_res$test_method %in% c("insufficient_data", "test_failed"), ]
-kw_res_clean <- kw_res[!is.na(kw_res$test_method) & !kw_res$test_method %in% c("insufficient_data", "test_failed"), ]
+kw_res_potential_clean <- kw_res[!is.na(kw_res$test_method) & !kw_res$test_method %in% c("insufficient_data", "test_failed"), ]
 
 if (nrow(problematic_genes) > 0) {
-  cat("⚠ Note: ", nrow(problematic_genes), " gene(s) excluded from analysis (insufficient data or test failure)\n")
-  cat("  Genes:", paste(problematic_genes$gene, collapse = ", "), "\n\n")
+  cat("⚠ Note: ", nrow(problematic_genes), " gene(s) found with insufficient data or test failure\n")
+  
+  # If filtering removes ALL genes, use raw results with warning
+  if (nrow(kw_res_potential_clean) == 0) {
+    cat("    ⚠ WARNING: Filtering would remove all genes. Using all rank-based results for comparison.\n")
+    cat("    These genes may have limited Q-value variation, but including them for concordance analysis.\n\n")
+    kw_res <- kw_res  # Keep all results
+  } else {
+    cat("  Genes:", paste(head(problematic_genes$gene, 10), collapse = ", "), 
+        if (nrow(problematic_genes) > 10) paste0(", ... and ", nrow(problematic_genes) - 10, " more") else "", 
+        "\n\n")
+    kw_res <- kw_res_potential_clean  # Use cleaned results
+  }
+} else {
+  # No problematic genes, use cleaned results
+  kw_res <- kw_res_potential_clean
 }
-
-# Use cleaned results for analysis
-kw_res <- kw_res_clean
 
 cat("Improved Rank-Based Results Summary:\n")
 cat("  Genes analyzed:", nrow(kw_res), "\n")
@@ -1062,6 +1074,42 @@ cat("\nData Quality Checks:\n")
 cat(sprintf("  GAM p_interaction NAs:      %3d\n", sum(is.na(lm_res$p_interaction))))
 cat(sprintf("  K-W kw_p_value NAs:         %3d\n", sum(is.na(kw_res$kw_p_value))))
 
+cat("\nGene Name Extraction:\n")
+# Handle case where genes are stored as rownames vs. column (using base R only)
+if (!"gene" %in% colnames(lm_res)) {
+  if (!is.null(rownames(lm_res)) && length(rownames(lm_res)) > 0) {
+    cat("  ℹ GAM: Gene names in rownames, converting to column\n")
+    lm_res$gene <- rownames(lm_res)
+    rownames(lm_res) <- NULL
+  } else {
+    cat("  ⚠ WARNING: No gene identifier found in GAM results\n")
+    cat("    Available columns: ", paste(colnames(lm_res), collapse=", "), "\n")
+  }
+} else {
+  cat("  ℹ GAM: Gene names in $gene column\n")
+}
+
+if (!"gene" %in% colnames(kw_res)) {
+  if (!is.null(rownames(kw_res)) && length(rownames(kw_res)) > 0) {
+    cat("  ℹ K-W: Gene names in rownames, converting to column\n")
+    kw_res$gene <- rownames(kw_res)
+    rownames(kw_res) <- NULL
+  } else {
+    cat("  ⚠ WARNING: No gene identifier found in K-W results\n")
+    cat("    Available columns: ", paste(colnames(kw_res), collapse=", "), "\n")
+  }
+} else {
+  cat("  ℹ K-W: Gene names in $gene column\n")
+}
+
+# Clean whitespace from gene names (only if gene column exists now)
+if ("gene" %in% colnames(lm_res)) {
+  lm_res$gene <- trimws(as.character(lm_res$gene))
+}
+if ("gene" %in% colnames(kw_res)) {
+  kw_res$gene <- trimws(as.character(kw_res$gene))
+}
+
 cat("\nGene Name Overlap:\n")
 common_genes <- intersect(lm_res$gene, kw_res$gene)
 cat(sprintf("  Genes in both:              %3d\n", length(common_genes)))
@@ -1088,6 +1136,7 @@ cat("  K-W:  ", paste(head(kw_res$gene, 5), collapse=", "), "\n")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Merge only genes with valid results in BOTH methods
+# Handle case where one method has no results
 # ─────────────────────────────────────────────────────────────────────────────
 
 cat("\n\n=== MERGING WITH VALIDATION ===\n\n")
@@ -1100,6 +1149,16 @@ cat("After filtering for valid results:\n")
 cat(sprintf("  GAM valid genes:    %3d\n", nrow(lm_res_valid)))
 cat(sprintf("  K-W valid genes:    %3d\n", nrow(kw_res_valid)))
 
+# Check if one method has zero results
+if (nrow(kw_res_valid) == 0 && nrow(lm_res) > 0) {
+  cat("\n⚠ NOTE: Rank-based method returned 0 results for comparison.\n")
+  cat("  Proceeding with GAM results only for downstream analysis.\n")
+  cat("  This may occur if:\n")
+  cat("  - Data lacks sufficient Q-value variation (no Q-effect)\n")
+  cat("  - All genes marked as insufficient_data or test_failed\n")
+  cat("  - Different filtering thresholds applied\n\n")
+}
+
 # Merge results with method information
 # First, check which columns actually exist
 lm_cols_available <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "heteroscedasticity_detected")
@@ -1111,31 +1170,103 @@ kw_cols_to_use <- intersect(kw_cols_available, colnames(kw_res_valid))
 cat("LM columns to merge:", paste(lm_cols_to_use, collapse=", "), "\n")
 cat("KW columns to merge:", paste(kw_cols_to_use, collapse=", "), "\n")
 
-# If critical columns missing, check what's actually available
-if (!"p_interaction" %in% lm_cols_to_use) {
-  cat("\nERROR DIAGNOSTIC: p_interaction not found!\n")
-  cat("  All columns available: ", paste(colnames(lm_res_valid), collapse=", "), "\n")
-  cat("  P-value columns containing 'p': ", paste(grep("p", colnames(lm_res_valid), value=TRUE), collapse=", "), "\n")
-  stop("CRITICAL ERROR: p_interaction not found in lm_res_valid - check function return structure")
+# Handle case where merge is empty due to no common genes
+if (length(common_genes) == 0) {
+  cat("\nWARNING: No gene overlap between GAM and rank-based results\n")
+  cat("  GAM genes: ", nrow(lm_res), "\n")
+  cat("  Rank-based genes: ", nrow(kw_res), "\n")
+  
+  if (nrow(kw_res) == 0) {
+    cat("\n⚠ RANK-BASED RETURNED NO GENES\n")
+    cat("  This typically means:\n")
+    cat("  - All genes had insufficient Q-value variation for testing\n")
+    cat("  - The rank-based method filtered out all results\n")
+    cat("  - Proceeding with GAM results only for this section\n\n")
+    
+    # Create minimal comparison with GAM only
+    comparison <- lm_res_valid[, c("gene", "p_interaction"), drop = FALSE]
+    if (!"adj_p_interaction" %in% colnames(comparison) && "adj_p_interaction" %in% colnames(lm_res)) {
+      comparison$adj_p_interaction <- lm_res_valid$adj_p_interaction
+    }
+    
+    comparison <- comparison[order(comparison$p_interaction), ]
+    cat(sprintf("  Proceeding with %d GAM genes for concordance diagnostics\n\n", nrow(comparison)))
+  } else {
+    # Detailed diagnostics for gene name mismatch
+    cat("\n⚠ DIAGNOSTIC: Gene name mismatch detected\n")
+    cat(sprintf("  GAM results: %d genes\n", nrow(lm_res)))
+    cat(sprintf("  K-W results: %d genes\n", nrow(kw_res)))
+    cat(sprintf("  Common genes after intersect(): %d\n", length(common_genes)))
+    
+    # Debug: Show actual gene names
+    cat("\n  GAM gene names (first 10):\n")
+    cat("    ", paste(head(lm_res$gene, 10), collapse=", "), "\n")
+    cat("\n  K-W gene names (first 10):\n")
+    cat("    ", paste(head(kw_res$gene, 10), collapse=", "), "\n")
+    
+    # Try to identify the problem
+    cat("\n  Checking for formatting differences...\n")
+    
+    # Remove whitespace and try again
+    lm_genes_clean <- trimws(tolower(as.character(lm_res$gene)))
+    kw_genes_clean <- trimws(tolower(as.character(kw_res$gene)))
+    common_genes_clean <- intersect(lm_genes_clean, kw_genes_clean)
+    
+    if (length(common_genes_clean) > 0) {
+      cat(sprintf("    ✓ Found %d matches after case-insensitive comparison\n", length(common_genes_clean)))
+      # Use cleaned genes for matching
+      lm_res$gene <- lm_genes_clean
+      kw_res$gene <- kw_genes_clean
+      common_genes <- common_genes_clean
+    } else {
+      cat("    ✗ Still no matches - genes truly differ\n")
+      cat("\n  This indicates a deeper data structure problem.\n")
+      cat("  Proceeding with GAM results only.\n\n")
+      
+      # Fallback: use GAM only
+      comparison <- lm_res_valid[, c("gene", "p_interaction"), drop = FALSE]
+      if ("adj_p_interaction" %in% colnames(lm_res_valid)) {
+        comparison$adj_p_interaction <- lm_res_valid$adj_p_interaction
+      }
+      comparison <- comparison[order(comparison$p_interaction), ]
+      cat(sprintf("  Using %d GAM genes for this section\n\n", nrow(comparison)))
+    }
+  }
+} else if (!"p_interaction" %in% lm_cols_to_use) {
+  cat("\nERROR DIAGNOSTIC: p_interaction not found in lm_cols_to_use!\n")
+  cat("  lm_res dimensions:", nrow(lm_res), "rows x", ncol(lm_res), "columns\n")
+  cat("  All columns in lm_res: ", paste(colnames(lm_res), collapse=", "), "\n")
+  cat("  lm_cols_to_use:", paste(lm_cols_to_use, collapse=", "), "\n")
+  
+  p_cols <- grep("p", colnames(lm_res), value=TRUE)
+  if (length(p_cols) > 0) {
+    cat("  P-value columns found: ", paste(p_cols, collapse=", "), "\n")
+  }
+  
+  stop("CRITICAL ERROR: p_interaction not found in results - check function return structure")
 }
-if (!"kw_p_value" %in% kw_cols_to_use) {
-  stop("CRITICAL ERROR: kw_p_value not found in kw_res_valid")
+
+# Perform merge (only if common genes exist)
+if (length(common_genes) > 0 && nrow(lm_res_valid) > 0 && nrow(kw_res_valid) > 0) {
+  comparison <- merge(
+      lm_res_valid[, lm_cols_to_use, drop = FALSE],
+      kw_res_valid[, kw_cols_to_use, drop = FALSE],
+      by = "gene"
+  )
+  
+  if (nrow(comparison) == 0) {
+    cat("WARNING: Merge produced 0 rows. lm_res_valid has", nrow(lm_res_valid), "genes, kw_res_valid has", nrow(kw_res_valid), "genes\n")
+  }
+} else if (nrow(comparison) == 0) {
+  # comparison was created above with GAM-only data, just sort it
+  # (this happens when rank-based returned no genes)
 }
 
-# Perform merge
-comparison <- merge(
-    lm_res_valid[, lm_cols_to_use, drop = FALSE],
-    kw_res_valid[, kw_cols_to_use, drop = FALSE],
-    by = "gene"
-)
-
-if (nrow(comparison) == 0) {
-  cat("WARNING: Merge produced 0 rows. lm_res_valid has", nrow(lm_res_valid), "genes, kw_res_valid has", nrow(kw_res_valid), "genes\n")
+if (nrow(comparison) > 0) {
+  comparison <- comparison[order(comparison$p_interaction), ]
 }
 
-comparison <- comparison[order(comparison$p_interaction), ]
-
-cat(sprintf("  Final merged genes: %3d\n\n", nrow(comparison)))
+cat(sprintf("  Final genes for concordance analysis: %3d\n\n", nrow(comparison)))
 
 # Correlation
 if (nrow(comparison) == 0) {
@@ -1451,7 +1582,11 @@ cat("\n\n=== INTERPRETATION ===\n\n")
 
 mean_eta2 <- mean(gene_q_effects, na.rm = TRUE)
 
-if (mean_eta2 < 0.001) {
+# Handle case where all values are NA
+if (is.na(mean_eta2)) {
+  cat("⚠ WARNING: Could not compute mean effect size (all values NA)\n")
+  cat("   This may indicate insufficient data for effect analysis\n")
+} else if (mean_eta2 < 0.001) {
   cat("⚠ FINDING: Q-values show essentially NO variation in entropy across Q-levels\n")
   cat("   This means K-W finding p≈1 is CORRECT - there's no Q-effect to detect!\n")
   cat("   The discordance with GAM suggests:\n")
@@ -2185,27 +2320,34 @@ cat("  - If GAM assumption (Gaussian mean structure) is WRONG → False positive
 cat("  - If K-W assumption (similar shapes) is WRONG → False negatives\n\n")
 
 # Check if GAM residuals are actually normal
-gam_normality_violations <- sum(sapply(gam_diagnostics, function(x) {
-  !is.na(x$normality_pvalue) && x$normality_pvalue < 0.05
-}))
-
-if (gam_normality_violations > 0) {
-  cat(sprintf("⚠ WARNING: %d of %d top GAM genes have NON-NORMAL residuals\n",
-              gam_normality_violations, length(gam_diagnostics)))
-  cat("  This suggests GAM's Gaussian assumption may be violated\n")
-  cat("  Result: GAM may be detecting false positives from model misspecification\n\n")
+if (length(gam_diagnostics) > 0) {
+  gam_normality_results <- sapply(gam_diagnostics, function(x) {
+    !is.na(x$normality_pvalue) && x$normality_pvalue < 0.05
+  })
+  gam_normality_violations <- sum(as.numeric(gam_normality_results), na.rm = TRUE)
+  
+  if (gam_normality_violations > 0) {
+    cat(sprintf("⚠ WARNING: %d of %d top GAM genes have NON-NORMAL residuals\n",
+                gam_normality_violations, length(gam_diagnostics)))
+    cat("  This suggests GAM's Gaussian assumption may be violated\n")
+    cat("  Result: GAM may be detecting false positives from model misspecification\n\n")
+  } else {
+    cat(sprintf("✓ All %d top GAM genes have NORMALLY distributed residuals\n", length(gam_diagnostics)))
+    cat("  This supports GAM's Gaussian assumption\n\n")
+  }
 } else {
-  cat("✓ Top GAM genes have normally distributed residuals\n")
-  cat("  GAM assumptions appear valid on these genes\n\n")
+  cat("⚠ No genes analyzed in GAM diagnostics\n")
 }
 
 # Check for high outlier percentages
-high_outlier_genes <- Filter(function(x) x$pct_outliers > 10, gam_diagnostics)
-if (length(high_outlier_genes) > 0) {
-  cat(sprintf("⚠ WARNING: %d of %d top GAM genes have >10%% outliers\n",
-              length(high_outlier_genes), length(gam_diagnostics)))
-  cat("  Outliers can drive parametric tests (GAM) but not rank tests (K-W)\n")
-  cat("  Result: Disagreement may be due to leverage points\n\n")
+if (length(gam_diagnostics) > 0) {
+  high_outlier_genes <- Filter(function(x) x$pct_outliers > 10, gam_diagnostics)
+  if (length(high_outlier_genes) > 0) {
+    cat(sprintf("⚠ WARNING: %d of %d top GAM genes have >10%% outliers\n",
+                length(high_outlier_genes), length(gam_diagnostics)))
+    cat("  Outliers can drive parametric tests (GAM) but not rank tests (K-W)\n")
+    cat("  Result: Disagreement may be due to leverage points\n\n")
+  }
 }
 
 # ─────────────────────────────────────────────────────────────────────────────

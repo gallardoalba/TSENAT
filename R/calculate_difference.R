@@ -683,6 +683,12 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     }
     res <- do.call(rbind, all_results)
     
+    # VALIDATION: Ensure critical p_interaction column exists after rbind
+    if (method == "gam" && !"p_interaction" %in% colnames(res)) {
+        stop(sprintf("[calculate_lm_interaction] CRITICAL: p_interaction missing after rbind for %s method. Available columns: %s",
+                     method, paste(colnames(res), collapse=", ")))
+    }
+    
     # Ensure Shapiro-Wilk columns exist for methods that add them
     # (GAM and GEE should add them; ensure consistency)
     if (method %in% c("gam", "gee")) {

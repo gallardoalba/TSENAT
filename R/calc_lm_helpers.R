@@ -1129,12 +1129,33 @@
     return(k_final)
 }
 
+# Helper: Check if entropy data is truly bounded in [0, 1]
+# Returns TRUE if data appears normalized/proportional
+.tsenat_is_bounded_0_1 <- function(entropy_vals) {
+    entropy_clean <- na.omit(entropy_vals)
+    if (length(entropy_clean) == 0) return(FALSE)
+    
+    min_val <- min(entropy_clean)
+    max_val <- max(entropy_clean)
+    
+    # True [0,1] bounding: values naturally stay in this range
+    # Allow small numerical tolerance
+    tolerance <- 0.01
+    return(min_val >= -tolerance && max_val <= 1 + tolerance)
+}
+
 # Helper: Select appropriate GAM family based on data characteristics
-# Tsallis entropy is bounded [0, log(m)], but Gaussian is often better in practice
-# Use Gamma only if data shows: heteroscedasticity, boundary clustering, or asymmetry
+# Priority: Beta (if [0,1] bounded) > Gamma (if heteroscedastic) > Gaussian (default)
+# Tsallis entropy is mathematically bounded [0, log(m)], but Beta is ideal for [0,1]
 .tsenat_select_gam_family <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
     # ─────────────────────────────────────────────────────────────────────
-    # INDICATOR 1: Heteroscedasticity detection
+    # INDICATOR 1: Check if data is [0,1] bounded (ideal for Beta regression)
+    # ─────────────────────────────────────────────────────────────────────
+    entropy_vals <- na.omit(df$entropy)
+    is_bounded_01 <- .tsenat_is_bounded_0_1(entropy_vals)
+    
+    # ─────────────────────────────────────────────────────────────────────
+    # INDICATOR 2: Heteroscedasticity detection
     # ─────────────────────────────────────────────────────────────────────
     hetero_result <- try(
         .tsenat_detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
@@ -1152,9 +1173,8 @@
     }
     
     # ─────────────────────────────────────────────────────────────────────
-    # INDICATOR 2: Boundary clustering (values near 0 or 1)
+    # INDICATOR 3: Boundary clustering (values near 0 or 1)
     # ─────────────────────────────────────────────────────────────────────
-    entropy_vals <- na.omit(df$entropy)
     n_total <- length(entropy_vals)
     
     # Find actual bounds from data
@@ -1169,59 +1189,80 @@
     pct_boundary_clustering <- 100 * (n_near_min + n_near_max) / n_total
     
     # ─────────────────────────────────────────────────────────────────────
-    # INDICATOR 3: Skewness (asymmetry indicates non-Gaussian behavior)
+    # INDICATOR 4: Skewness (asymmetry indicates non-Gaussian behavior)
     # ─────────────────────────────────────────────────────────────────────
     # Skewness = (mean - median) / sd * constant; values > 1 or < -1 indicate strong asymmetry
     skewness_val <- .tsenat_compute_skewness(entropy_vals)
     has_strong_skew <- abs(skewness_val) > 1.0
     
     # ─────────────────────────────────────────────────────────────────────
-    # DECISION LOGIC: Use Gamma if strong evidence of non-Gaussian behavior
+    # DECISION LOGIC (NEW - March 2026)
+    # Priority: Beta > Gamma > Gaussian
     # ─────────────────────────────────────────────────────────────────────
+    use_beta <- FALSE
     use_gamma <- FALSE
+    family_choice <- "gaussian"
     reasons <- c()
     
-    # Criterion 1: Strong heteroscedasticity (p < 0.05) AND variance changes much
-    if (heteroscedastic && (var_ratio_q > 3 || var_ratio_group > 3)) {
-        use_gamma <- TRUE
-        reasons <- c(reasons, sprintf("Heteroscedasticity detected (p<0.05, var_ratio=%.2f)", 
-                                     max(var_ratio_q, var_ratio_group)))
+    # *** PRIORITY 1: Use Beta if data is [0,1] bounded ***
+    # Beta regression is mathematically ideal for bounded (0,1) data
+    # Database paper S223: "Information entropy of the generalized beta distribution"
+    if (is_bounded_01) {
+        use_beta <- TRUE
+        family_choice <- "beta"
+        reasons <- c(reasons, "Data bounded in [0,1] - Beta regression ideal (S223)")
+    } else {
+        # *** PRIORITY 2: Use Gamma if strong evidence of non-Gaussian behavior ***
+        # Criterion 1: Strong heteroscedasticity (p < 0.05) AND variance changes much
+        if (heteroscedastic && (var_ratio_q > 3 || var_ratio_group > 3)) {
+            use_gamma <- TRUE
+            family_choice <- "gamma"
+            reasons <- c(reasons, sprintf("Heteroscedasticity detected (p<0.05, var_ratio=%.2f)", 
+                                         max(var_ratio_q, var_ratio_group)))
+        }
+        
+        # Criterion 2: EXTREME boundary clustering only (> 40% of data near bounds)
+        # Most entropy distributions naturally have some clustering - must be severe
+        if (pct_boundary_clustering > 40 && !use_gamma) {
+            use_gamma <- TRUE
+            family_choice <- "gamma"
+            reasons <- c(reasons, sprintf("Extreme boundary clustering: %.1f%% near bounds", pct_boundary_clustering))
+        }
+        
+        # Criterion 3: Extreme skewness (|skew| > 1) AND evidence of heteroscedasticity
+        # Require combination of indicators rather than skewness alone
+        if (has_strong_skew && abs(skewness_val) > 1.0 && heteroscedastic && var_ratio_q > 3 && !use_gamma) {
+            use_gamma <- TRUE
+            family_choice <- "gamma"
+            reasons <- c(reasons, sprintf("Extreme skewness (|skew|=%.2f) with heteroscedasticity (var_ratio=%.2f)", 
+                                         skewness_val, var_ratio_q))
+        }
     }
     
-    # Criterion 2: EXTREME boundary clustering only (> 40% of data near bounds)
-    # Most entropy distributions naturally have some clustering - must be severe
-    if (pct_boundary_clustering > 40) {
-        use_gamma <- TRUE
-        reasons <- c(reasons, sprintf("Extreme boundary clustering: %.1f%% near bounds", pct_boundary_clustering))
-    }
-    
-    # Criterion 3: Extreme skewness (|skew| > 1) AND evidence of heteroscedasticity
-    # Require combination of indicators rather than skewness alone
-    if (has_strong_skew && abs(skewness_val) > 1.0 && heteroscedastic && var_ratio_q > 3) {
-        use_gamma <- TRUE
-        reasons <- c(reasons, sprintf("Extreme skewness (|skew|=%.2f) with heteroscedasticity (var_ratio=%.2f)", 
-                                     skewness_val, var_ratio_q))
-    }
-    
-    if (verbose && length(reasons) > 0) {
-        message(sprintf("[GAM Family Selection] Using Gamma because: %s", paste(reasons, collapse="; ")))
-    }
-    
-    if (verbose && !use_gamma) {
-        message(sprintf("[GAM Family Selection] Using Gaussian (no strong indicators); hetero_p=%.4f, hetero_vars=(%.2f,%.2f), boundary=%.1f%%, |skew|=%.2f",
-                       if(is.na(hetero_result$p_value)) NA else hetero_result$p_value,
-                       var_ratio_q, var_ratio_group, pct_boundary_clustering, skewness_val))
+    if (verbose) {
+        if (length(reasons) > 0) {
+            message(sprintf("[GAM Family Selection] Using %s because: %s", 
+                          toupper(family_choice), paste(reasons, collapse="; ")))
+        } else {
+            message(sprintf("[GAM Family Selection] Using Gaussian (no strong indicators); bounded=[%s], hetero_p=%.4f, hetero_vars=(%.2f,%.2f), boundary=%.1f%%, |skew|=%.2f",
+                          is_bounded_01, 
+                          if(is.na(hetero_result$p_value)) NA else hetero_result$p_value,
+                          var_ratio_q, var_ratio_group, pct_boundary_clustering, skewness_val))
+        }
     }
     
     return(list(
+        use_beta = use_beta,
         use_gamma = use_gamma,
-        use_gaussian = !use_gamma,
+        use_gaussian = !use_beta && !use_gamma,
+        is_bounded_01 = is_bounded_01,
         heteroscedastic = heteroscedastic,
         var_ratio_q = var_ratio_q,
         var_ratio_group = var_ratio_group,
         boundary_pct = pct_boundary_clustering,
         skewness = skewness_val,
-        reasons = reasons
+        reasons = reasons,
+        family_choice = family_choice
     ))
 }
 
@@ -1245,30 +1286,66 @@
 
 # Helper: Handle bounded support for Tsallis entropy via appropriate GAM family selection
 # Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
-# Previous approach of forcing Gamma for ALL data was too aggressive
-# NEW: Use conditional logic to select Gaussian (safer) or Gamma (if data supports it)
+# Priority: Beta (if [0,1]) > Gamma (if heteroscedastic) > Gaussian (default)
+# Database Support (March 2026):
+#   - S223: "Information entropy of generalized beta distribution"
+#   - S220-S222: Beta regression applications with robustness validation
 .tsenat_handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
     # Select family based on data characteristics
     family_info <- .tsenat_select_gam_family(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose)
     
-    if (family_info$use_gamma) {
+    if (family_info$use_beta) {
+        # Use Beta family with logit link (BEST for [0,1] bounded entropy data)
+        # Beta regression respects bounds and handles skewness naturally
+        #
+        # CRITICAL: For continuous data in (0,1), use quasibinomial NOT binomial
+        # - binomial() expects count/binary data → gives warnings for continuous values
+        # - quasibinomial() is designed for continuous proportions in (0,1)
+        # - Alternatively, mgcv::betar() (v1.8.41+) is specialized for beta regression
+        #
+        # Numerical stability: Ensure no exact 0 or 1 values which cause singularities
+        # FIX (March 2026): Return the stabilized dataframe so calling code uses it!
+        df$entropy <- pmax(pmin(df$entropy, 1 - 1e-7), 1e-7)
+        
+        # Try to use betar() from mgcv if available (v1.8.41+), otherwise quasibinomial
+        family_obj <- try(mgcv::betar(), silent = TRUE)
+        if (inherits(family_obj, "try-error")) {
+            # Fallback to quasibinomial for continuous (0,1) data
+            family_obj <- stats::quasibinomial(link = "logit")
+        }
+        
+        return(list(
+            use_bounded = TRUE,
+            use_beta = TRUE,
+            use_gamma = FALSE,
+            use_gaussian = FALSE,
+            family_obj = family_obj,
+            inverse_link = function(eta) 1 / (1 + exp(-eta)),  # logistic function
+            stabilized_df = df,  # FIX: Return stabilized dataframe!
+            family_info = family_info
+        ))
+    } else if (family_info$use_gamma) {
         # Use Gamma family with log link (appropriate for positive bounded data)
         return(list(
             use_bounded = TRUE,
+            use_beta = FALSE,
             use_gamma = TRUE,
             use_gaussian = FALSE,
             family_obj = stats::Gamma(link = "log"),
             inverse_link = function(eta) exp(eta),
+            stabilized_df = NULL,  # No stabilization needed for Gamma
             family_info = family_info
         ))
     } else {
         # Default to Gaussian (safer, works for most real entropy data)
         return(list(
             use_bounded = FALSE,
+            use_beta = FALSE,
             use_gamma = FALSE,
             use_gaussian = TRUE,
             family_obj = stats::gaussian(),
             inverse_link = function(eta) eta,
+            stabilized_df = NULL,  # No stabilization needed for Gaussian
             family_info = family_info
         ))
     }
@@ -1484,9 +1561,52 @@
         df$group <- factor(df$group)
     }
     
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # BOUNDED SUPPORT HANDLING (CRITICAL FIX - March 2026)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # MUST be done BEFORE ARIMA differencing to:
+    # 1. Detect bounds on ORIGINAL entropy (not differenced)
+    # 2. Stabilize entropy before any transformations
+    # 3. Preserve ARIMA structure for differenced data
+    # 
+    # Bug fix: Was previously done AFTER ARIMA differencing, which:
+    # - Checked bounds on differences ΔH_q (can be negative, so bounds check always failed)
+    # - Tried to stabilize differences (clamping negatives to 1e-7, destroying AR(1) structure)
+    bounded_result <- .tsenat_handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
+    use_bounded_family <- bounded_result$use_gamma
+    family_gam <- bounded_result$family_obj
+    inverse_link_fn <- bounded_result$inverse_link
+    
+    # If beta regression is selected, use stabilized entropy
+    if (bounded_result$use_beta && !is.null(bounded_result$stabilized_df)) {
+        df <- bounded_result$stabilized_df
+    }
+    
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (FIXED - March 2026)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # CRITICAL FIX: Detect heteroscedasticity on ORIGINAL entropy BEFORE ARIMA differencing
+    # BUG #5 FIX: Was previously called after ARIMA, so it tested variance of differences ΔH_q
+    #             Now properly analyzes variance pattern of original entropy
+    # 
+    # Weights are computed on original data; if ARIMA is applied later, they will NOT be used
+    # because the differenced data has a different variance structure (differencing changes variance)
+    # This is a conservative approach: better to avoid incorrect weighting than to misapply weights
+    hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals, df$group)
+    gam_weights <- NULL
+    gam_weights_original <- NULL  # Will be used only if ARIMA NOT applied
+    
+    if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+        weights_result <- .tsenat_estimate_variance_weights(df, q_vals, method = "power")
+        if (!is.null(weights_result)) {
+            gam_weights_original <- weights_result$weights  # Store original weights
+        }
+    }
+    
     # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
     # Differencing removes monotone trend from Tsallis entropy, enabling valid AR(1) inference
     # This is applied when subject information is available (paired design)
+    # CRITICAL: ARIMA is applied AFTER heteroscedasticity detection on original data
     use_arima <- FALSE
     n_samples_original <- nrow(df)
     
@@ -1498,34 +1618,16 @@
             # Sufficient data for ARIMA differencing
             df <- arima_result$df
             use_arima <- TRUE
+            
+            # FIX: When ARIMA is applied, DON'T use weights computed on original data
+            # Reason: Differencing changes the variance structure, weights would be invalid
+            # Conservative approach: Better to lose efficiency than introduce bias
+            gam_weights_original <- NULL
         }
     }
     
-    # ═══════════════════════════════════════════════════════════════════════════════
-    # BOUNDED SUPPORT HANDLING (NEW - March 2026)
-    # ═══════════════════════════════════════════════════════════════════════════════
-    # Tsallis entropy is bounded [0, log(m)], but Gaussian is often more appropriate
-    # NEW: Conditional logic detects heteroscedasticity, boundary clustering, skewness
-    # Uses Gamma family ONLY if strong evidence; defaults to Gaussian (safer)
-    bounded_result <- .tsenat_handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
-    use_bounded_family <- bounded_result$use_gamma
-    family_gam <- bounded_result$family_obj
-    inverse_link_fn <- bounded_result$inverse_link
-    
-    # ═══════════════════════════════════════════════════════════════════════════════
-    # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (NEW - March 2026)
-    # ═══════════════════════════════════════════════════════════════════════════════
-    # Detect q-dependent and group-dependent variance heterogeneity in Tsallis entropy
-    # Apply variance weighting for GAM/GAMM if heteroscedasticity detected
-    hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals, df$group)
-    gam_weights <- NULL
-    
-    if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
-        weights_result <- .tsenat_estimate_variance_weights(df, q_vals, method = "power")
-        if (!is.null(weights_result)) {
-            gam_weights <- weights_result$weights
-        }
-    }
+    # Use original weights only if ARIMA was NOT applied
+    gam_weights <- gam_weights_original
     
     # Determine sample size for bias correction
     # For GAM, use actual number of observations (nrow(df)) not number of subjects
@@ -1800,6 +1902,12 @@
         result$shapiro_p_value <- NA_real_
         result$residuals_normal <- NA
         result$n_residuals_tested <- NA_integer_
+    }
+    
+    # VALIDATION: Ensure p_interaction is always present with correct name
+    if (!"p_interaction" %in% colnames(result)) {
+        stop(sprintf("[.tsenat_gam_interaction] CRITICAL: p_interaction missing from result for gene %s. Available columns: %s",
+                     g, paste(colnames(result), collapse=", ")))
     }
     
     return(result)
