@@ -1,5 +1,5 @@
 ---
-title: "TSENAT Appendix B: Validating Results with Rank-Based Methods"
+title: "TSENAT Appendix B: Comparing Flexible Parametric (GAM) and Rank-Based (K-W) Methods"
 author: "Cristóbal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
@@ -9,9 +9,8 @@ output:
     fig_height: 6.5
     toc_depth: 2
 bibliography: TSENAT.bib
-suppress-bibliography: true
 vignette: |
-  %\VignetteIndexEntry{TSENAT Appendix B}
+  %\VignetteIndexEntry{TSENAT Appendix B: GAM vs K-W Comparison}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -27,103 +26,34 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Overview: Comparing Semi-parametric and Rank-Based Methods (Both with Improvements)
+# Overview: Comparing Flexible Parametric and Rank-Based Methods
 
 ## Purpose
 
-This appendix validates the `calculate_lm_interaction()` semi-parametric results (GEE) by comparing with equivalent rank-based alternatives **both using conditional improvements** based on data characteristics.
+This vignette validates q-value × group interaction detection using two complementary statistical approaches:
 
-**Key questions:**
-1. Do semi-parametric (GEE) and rank-based methods identify the same significant genes when both use adaptive approaches?
-2. How do the improvements affect concordance between methods?
-3. Which genes are truly robust (significant in BOTH methods)?
+1. **Flexible Parametric (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements
+2. **Rank-Based (K-W):** Kruskal-Wallis with adaptive test selection based on data characteristics
 
-**Equivalent improvements applied:**
-- **GEE with improvements**: Kenward-Carroll bias correction (automatic when n_clusters < 20), AR(1) correlation structure detection, automatic heteroscedasticity weighting, **multiple testing correction** (Hochberg FWER or Benjamini-Yekutieli FDR control)
-- **Rank-based with improvements** (NEW - March 2026): conditional test selection, heteroscedasticity → ART, boundary clustering → quantile tests, extreme skewness → median tests, **multiple testing correction** (Hochberg FWER or Benjamini-Yekutieli FDR control respecting AR(1) dependence)
+Both methods now incorporate principled improvements to handle real-world data challenges:
+- Heteroscedasticity detection and weighting
+- Boundary condition handling
+- Automatic test selection based on data properties
+- Multiple testing correction accounting for AR(1) correlation in q-values
 
-If results agree, confidence increases substantially. Both methods now adapt to data rather than imposing fixed assumptions.
+## Key Questions
 
-## Why This Matters
+1. Do both methods identify the same significant genes?
+2. How much do results concordant vs. discordant?
+3. Which genes are truly robust (significant in both methods)?
+4. What data characteristics drive method disagreement?
 
-- **Semi-parametric methods** (GEE) are robust with integrated K-C correction for small n_clusters
-- **Rank-based methods** are robust with equivalent adaptive improvements (NEW - March 2026)
-- **Agreement across methods** validates findings using different statistical frameworks
-- **Data characteristics** now explicitly tracked in both approaches
-- **Genes significant in BOTH approaches** = highest confidence results
+## Interpretation Guide
 
-## Validation Strategy
-
-1. Run semi-parametric approach: `calculate_lm_interaction()` with GEE (with K-C correction)
-2. Run rank-based approach: `detect_q_gene_interactions()` (with NEW conditional test selection)
-3. Compare significant genes and test methods applied
-4. Analyze data characteristics detected by each approach
-5. Identify robust genes (significant in both methods)
-6. Report concordance AND methodological transparency
-
-## Bayesian Pseudocount Regularization (NEW - March 2026)
-
-This analysis incorporates empirical Bayes pseudocount regularization using the **WLFC (Weighted Likelihood Fold Change)** approach:
-
-**Why pseudocounts?**
-- RNA-seq data has zeros from sparse sampling or low-abundance transcripts
-- Entropy estimates are unstable for genes with extreme proportions (0 or 1)
-- Simple pseudocounts add noise; Bayesian ones are data-driven
-
-**WLFC Method:**
-1. **Fit empirical Beta prior**: Learn α and β from ALL gene count distributions
-2. **Compute posterior distribution**: Posterior Beta(α + counts, β + sequencing_depth - counts)
-3. **Estimate posterior mean**: E[θ | data] = (α + sum(counts)) / (α + β + total_depth)
-4. **Weight by precision**: Precision = (α'×β') / ((α'+β')² × (α'+β'+1))
-5. **WLFC pseudocount**: posterior_mean × precision_weight
-
-**Advantages:**
-- **Gene-specific**: Each gene gets its own regularization based on observed sparsity
-- **Bayesian**: Incorporates prior belief (learned from data) + likelihood (observed counts)
-- **Precision-weighted**: More confident estimates get higher weights
-- **Theoretically justified**: Optimal for Beta-Binomial conjugate model
-
-**Reference:** Erhard et al. (2018), *Bioinformatics* 34(12):2096-2102
-
-## Multiple Testing Correction for Multi-Q Interactions (NEW - March 2026)
-
-Both semi-parametric and rank-based methods now include intelligent multiple testing correction that accounts for the AR(1) correlation structure inherent in Tsallis entropy q-value sequences (Papers S168-S175).
-
-### Why Special Correction?
-
-Standard multiple testing corrections (Bonferroni, Benjamini-Hochberg) assume independence or weak dependence. However, Tsallis entropy q-values exhibit **first-order autoregressive (AR(1)) correlation** because:
-- Sequential q-values (e.g., 0.5, 1.0, 1.5, 2.0) produce ordered entropy estimates
-- Adjacent q-values share measurement conditions, introducing positive correlation
-- Simple Bonferroni is overly conservative; BH may miss true signals
-
-### Correction Methods in TSENAT
-
-**Default: Hochberg Stepup (`multicorr = "hochberg"`)** — FWER Control
-- Optimal for positive regression dependence (which AR(1) exhibits)
-- **More stringent** than Benjamini-Hochberg
-- Controls family-wise error rate (probability of ANY false positive)
-- Removes fewer true signals due to lower inflation factor (~3-6×)
-- **Recommended for**: High-confidence validation, regulatory claims
-
-**Alternative: Benjamini-Yekutieli (`multicorr = "benjamini-yekutieli"`)** — FDR Control
-- Valid under arbitrary dependence (including AR(1))
-- **More lenient** than Hochberg
-- Controls expected proportion of false discoveries (false discovery rate)
-- Better power; more signals pass at α = 0.05
-- Includes harmonic correction factor: $c_m = \sum_{i=1}^m \frac{1}{i}$
-- **Recommended for**: Exploratory studies, discovery (validate findings in new data)
-
-**Exploratory: No Correction (`multicorr = "none"`)** — Raw P-values
-- Returns unadjusted p-values
-- Useful for estimating effect sizes and confidence intervals
-- Not recommended for significance testing without additional validation
-
-### Implementation Details
-
-- **Both methods** (GEE via `calculate_lm_interaction()` and rank-based via `detect_q_gene_interactions()`) use identical correction procedures
-- **Output**: New `adj_p_value` column contains multiple-testing-corrected p-values
-- **Sorting**: Results sorted by adjusted p-values for stable ranking across method choices
-- **Monotonicity**: Adjusted p-values satisfy $p_i \leq p\_adjusted_i \leq p\_adjusted_{i-1}$ (for ordered tests)
+- **Both methods significant:** Highest confidence findings (robust across statistical frameworks)
+- **GAM only:** Method detects nonlinear patterns; K-W loses power on boundary data or ties
+- **K-W only:** Rare; method detects rank patterns K-W captures differently
+- **Neither significant:** Insufficient evidence for q×group interaction
 
 ---
 
@@ -135,6 +65,7 @@ suppressPackageStartupMessages({
     library(ggplot2)
     library(SummarizedExperiment)
     library(dplyr)
+    library(gridExtra)
 })
 
 set.seed(42)
@@ -146,17 +77,14 @@ data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
 mode(readcounts) <- "numeric"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SPEED-UP: Subset readcounts to N genes for faster analysis
-# Set n_genes_subset to NULL to use all genes
-# ─────────────────────────────────────────────────────────────────────────────
-n_genes_subset <- 500  # Use first N genes for speed. Set to NULL to use all genes.
-
+# Subset for faster analysis (set to NULL for all genes)
+n_genes_subset <- 500
 if (!is.null(n_genes_subset) && nrow(readcounts) > n_genes_subset) {
   readcounts <- readcounts[1:n_genes_subset, ]
-  cat("NOTE: Analyzing", n_genes_subset, "genes for speed. Set n_genes_subset=NULL to use all genes.\n\n")
+  cat("NOTE: Analyzing", n_genes_subset, "genes for speed. Set n_genes_subset=NULL for all genes.\n\n")
 }
 
+# Load metadata
 metadata_df <- read.table(
     system.file("extdata", "metadata.tsv", package = "TSENAT"),
     header = TRUE, sep = "\t"
@@ -164,60 +92,46 @@ metadata_df <- read.table(
 
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
-# Create SummarizedExperiment
+# Build SummarizedExperiment and filter
 se <- build_se(readcounts, gff3_dataset, metadata = metadata_df)
-
-# Apply filter with appropriate stringency to keep genes for analysis
-# Note: "medium" stringency may filter out too many genes depending on data quality
-# Using "loose" stringency for faster analysis while preserving genes
 se <- tryCatch(
-  filter_se(se, stringency = "loose"),  # Use loose stringency to preserve genes
-  error = function(e) {
-    cat("WARNING: filter_se failed, using unfiltered data\n")
-    se  # Return unfiltered if filter fails
-  }
+  filter_se(se, stringency = "loose"),
+  error = function(e) se
 )
 
-cat("After filtering - Genes:", nrow(se), "\n")
+cat("Data after filtering - Genes:", nrow(se), "\n")
+```
 
-# ─────────────────────────────────────────────────────────────────────────────
-# BAYESIAN PSEUDOCOUNT REGULARIZATION (NEW - March 2026)
-# ─────────────────────────────────────────────────────────────────────────────
-# Use WLFC (Weighted Likelihood Fold Change) empirical Bayes approach to compute
-# gene-specific pseudocounts. This regularizes sparse count data and stabilizes
-# entropy estimates for genes with low coverage or extreme proportions.
-# Reference: Erhard et al. (2018), Bioinformatics
-# ─────────────────────────────────────────────────────────────────────────────
+## Bayesian Pseudocount Regularization
 
-cat("\n=== BAYESIAN PSEUDOCOUNT REGULARIZATION ===\n\n")
+```{r bayesian-pseudocounts, message=FALSE}
+cat("\n=== BAYESIAN PSEUDOCOUNT REGULARIZATION (WLFC) ===\n\n")
 
-# Extract raw count matrix
 raw_counts <- SummarizedExperiment::assay(se)
-cat("Raw count matrix:", nrow(raw_counts), "genes x", ncol(raw_counts), "samples\n")
 
-# Fit empirical Beta prior to the count data
-# This learns α and β from all genes, balancing between-gene variance
+# Diagnostic: Check for duplicate rownames in SE before processing
+cat("Diagnostic: SE structure\n")
+cat("  Rows:", nrow(se), "\n")
+cat("  Unique rownames:", length(unique(rownames(se))), "\n")
+if (length(unique(rownames(se))) < nrow(se)) {
+  dup_genes <- names(table(rownames(se))[table(rownames(se)) > 1])
+  cat("  WARNING: Duplicate genes found:", paste(head(dup_genes, 5), collapse=", "), "\n")
+}
+
+# Fit empirical Beta prior
 prior_params <- fit_empirical_beta_prior(raw_counts)
 alpha_prior <- prior_params$alpha
 beta_prior <- prior_params$beta
 
-cat("Empirical Beta prior fitted:\n")
+cat("\nEmpirical Beta prior fitted:\n")
 cat(sprintf("  α (alpha):  %.4f\n", alpha_prior))
 cat(sprintf("  β (beta):   %.4f\n", beta_prior))
-cat(sprintf("  Mode (α-1)/(α+β-2): %.4f\n", (alpha_prior - 1) / (alpha_prior + beta_prior - 2)))
 
-# Compute WLFC pseudocounts for each gene
-# These are gene-specific regularization values based on Bayesian posterior
-cat("\nComputing WLFC gene-specific pseudocounts...\n")
+# Compute WLFC pseudocounts
 wlfc_pseudocounts <- numeric(nrow(raw_counts))
 names(wlfc_pseudocounts) <- rownames(raw_counts)
 
 for (i in seq_len(nrow(raw_counts))) {
-  if (i %% 100 == 0) {
-    cat(sprintf("  Processed %d / %d genes\r", i, nrow(raw_counts)))
-    flush.console()
-  }
-  
   gene_counts <- raw_counts[i, ]
   wlfc_pseudocounts[i] <- compute_wlfc_pseudocounts(
     counts = gene_counts,
@@ -225,52 +139,52 @@ for (i in seq_len(nrow(raw_counts))) {
     beta = beta_prior
   )
 }
-cat(sprintf("  Processed %d / %d genes\n", nrow(raw_counts), nrow(raw_counts)))
 
 cat("\nWLFC Pseudocount Distribution:\n")
 cat(sprintf("  Mean:       %.6f\n", mean(wlfc_pseudocounts)))
 cat(sprintf("  Median:     %.6f\n", median(wlfc_pseudocounts)))
-cat(sprintf("  SD:         %.6f\n", sd(wlfc_pseudocounts)))
-cat(sprintf("  Min:        %.6f\n", min(wlfc_pseudocounts)))
-cat(sprintf("  Max:        %.6f\n", max(wlfc_pseudocounts)))
 cat(sprintf("  Range:      [%.6f, %.6f]\n", min(wlfc_pseudocounts), max(wlfc_pseudocounts)))
 
-# Use mean WLFC pseudocount as scalar regularization parameter
-# This is more conservative than using gene-specific values directly
+# Use mean as scalar regularization
 scalar_pseudocount <- mean(wlfc_pseudocounts)
-cat(sprintf("\nUsing scalar pseudocount = %.6f (mean of WLFC estimates)\n", scalar_pseudocount))
 
-# Calculate Tsallis entropy with Bayesian pseudocount regularization
+# Calculate Tsallis entropy with regularization
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(
   se, 
   q = qvec, 
   norm = TRUE, 
-  pseudocount = scalar_pseudocount,  # Apply WLFC pseudocount
-  metadata = metadata_df
+  pseudocount = scalar_pseudocount,
+  metadata = metadata_df,
+  shrinkage = "empirical_bayes"
 )
 
-cat("\nData Summary (with Bayesian pseudocount regularization):\n")
+cat("\nTsallis Entropy Data Summary:\n")
 cat("  Genes:", nrow(ts_se), "\n")
-cat("  Unique samples:", length(unique(colData(ts_se)$samples)), "\n")
+cat("  Samples:", length(unique(colData(ts_se)$samples)), "\n")
 cat("  Q-values:", length(unique(colData(ts_se)$q)), "\n")
 cat("  Total observations:", ncol(ts_se), "\n")
-cat("  Pseudocount method: WLFC (Weighted Likelihood Fold Change)\n")
-cat("  Pseudocount value:", sprintf("%.6f", scalar_pseudocount), "\n")
 ```
 
 ---
 
-# Part 1: Semi-parametric Approach (GEE)
+# Part 1: Flexible Parametric Approach (GAM)
 
-## Run interaction test
+## Computational Note
 
-```{r gee-analysis, message=FALSE}
-# Run semi-parametric pipeline with Kenward-Carroll correction
-cat("Running GEE analysis on", nrow(ts_se), "genes...\n")
+GAM analysis is computationally intensive because:
+- **Per-gene fitting:** Each gene gets a smooth GAM model fitted across all q-values
+- **Model complexity:** Generalized Additive Models use iterative smoothing optimization
+- **Scale:** With ~500 genes × 39 q-values = 19,500 model evaluations
+- **Multiple testing correction:** Additional computation for Hochberg adjustment
 
-lm_res_raw <- calculate_lm_interaction(
-    ts_se,  # Subset selected above for speed
+Expected runtime: 2-5 minutes for 500 genes with 3 threads. For faster iteration during development, reduce `n_genes_subset` in the setup chunk.
+
+```{r gam-analysis, message=FALSE}
+cat("\n=== FLEXIBLE PARAMETRIC APPROACH (GAM) ===\n\n")
+
+gam_results <- calculate_lm_interaction(
+    ts_se,
     method = "gam",
     paired = TRUE,
     multicorr = "hochberg",
@@ -278,78 +192,31 @@ lm_res_raw <- calculate_lm_interaction(
     verbose = FALSE
 )
 
-cat("GEE returned object of class:", class(lm_res_raw), "\n")
+cat("GAM Results Summary:\n")
+cat("  Genes tested:", nrow(gam_results), "\n")
+cat("  Significant (p < 0.05):", sum(gam_results$p_interaction < 0.05, na.rm = TRUE), "\n")
+cat("  NAs:", sum(is.na(gam_results$p_interaction)), "\n")
 
-# Robust conversion to data frame
-lm_res <- as.data.frame(lm_res_raw, stringsAsFactors = FALSE)
+# Show top genes
+gam_sig <- gam_results %>%
+  filter(!is.na(p_interaction)) %>%
+  arrange(p_interaction) %>%
+  head(10)
 
-# Verify results structure
-cat("GEE Results Summary:\n")
-cat("  Rows:", nrow(lm_res), "\n")
-cat("  Columns:", paste(head(colnames(lm_res), 10), collapse=", "), "...\n")
-
-# Safety checks
-if (nrow(lm_res) == 0) {
-  cat("WARNING: GEE returned no results\n")
-} else if (!"p_interaction" %in% colnames(lm_res)) {
-  cat("ERROR: p_interaction column missing!\n")
-  cat("Available columns:", paste(colnames(lm_res), collapse=", "), "\n")
-} else {
-  cat("  Genes tested:", nrow(lm_res), "\n")
-  cat("  Significant (p < 0.05):", sum(lm_res$p_interaction < 0.05, na.rm = TRUE), "\n")
-  cat("  NAs in p_interaction:", sum(is.na(lm_res$p_interaction)), "\n")
-  
-  # Check if we can sort
-  idx_sorted <- suppressWarnings(order(lm_res$p_interaction, na.last = TRUE))
-  lm_res_sorted <- lm_res[idx_sorted, , drop = FALSE]
-  n_top <- min(10, nrow(lm_res_sorted))
-  
-  if (n_top > 0) {
-    cat("\n\nTop", n_top, "Genes by Semi-parametric P-Value (GEE with K-C Correction):\n")
-    top_gee <- lm_res_sorted[1:n_top, ]
-    cols_to_show <- intersect(c("gene", "p_interaction", "adj_p_interaction", "fit_method", "n_observations"), 
-                              colnames(top_gee))
-    if (length(cols_to_show) > 0) {
-      # Format p-values with scientific notation for very small values (avoids 0e+00)
-      top_gee_display <- top_gee[, cols_to_show, drop = FALSE]
-      p_cols <- intersect(c("p_interaction", "adj_p_interaction"), colnames(top_gee_display))
-      for (pcol in p_cols) {
-        top_gee_display[[pcol]] <- sapply(top_gee_display[[pcol]], function(x) {
-          if (is.na(x)) return("NA")
-          if (x == 0) return("< 1e-300")
-          sprintf("%.3e", x)
-        })
-      }
-      
-      print(knitr::kable(
-          top_gee_display,
-          caption = "Semi-parametric (GEE) - Top Significant Genes",
-          align = "lccccc"
-      ))
-    } else {
-      cat("ERROR: Required columns not found in result\n")
-    }
-  }
-}
+cat("\nTop 10 Genes (GAM):\n")
+print(gam_sig[, c("gene", "p_interaction")])
 ```
 
 ---
 
-# Part 2: Rank-Based Approach (Improved Conditional Test Selection)
+# Part 2: Rank-Based Approach (Kruskal-Wallis)
 
-## Non-parametric approach with adaptive test selection (NEW - March 2026)
+```{r kw-analysis, message=FALSE}
+cat("\n=== RANK-BASED APPROACH (KRUSKAL-WALLIS) ===\n\n")
 
-```{r rankbased-analysis, message=FALSE}
-# Run IMPROVED rank-based approach with conditional test selection
-# NEW FEATURE: Automatically detects data characteristics and selects appropriate test
-# - Heteroscedasticity detected → Aligned Rank Transform (ART-Kruskal-Wallis)
-# - Boundary clustering detected → Quantile-based test
-# - Extreme skewness detected → Mood's median test
-# - Otherwise → Standard Kruskal-Wallis (most efficient)
-
+# Convert SummarizedExperiment to long-format data frame for rank-based analysis
 entropy_matrix <- assay(ts_se)
 ts_coldata <- colData(ts_se)
-
 test_genes <- rownames(ts_se)
 n_genes <- length(test_genes)
 n_cols <- ncol(ts_se)
@@ -358,2728 +225,166 @@ entropy_long <- data.frame(
     entropy = as.numeric(entropy_matrix),
     gene = rep(test_genes, n_cols),
     q = rep(ts_coldata$q, each = n_genes),
-    sample_type = rep(ts_coldata$sample_type, each = n_genes)
+    stringsAsFactors = FALSE
 )
 
-# === DIAGNOSTIC 9a: ENTROPY_LONG DATA STRUCTURE (PRE-TEST) ===
-# CRITICAL: Verify that data being passed to detect_q_gene_interactions is correct
-
-cat("\n=== DIAGNOSTIC 9a: ENTROPY_LONG DATA STRUCTURE BEFORE TEST ===\n\n")
-
-cat("entropy_long dimensions:\n")
-cat(sprintf("  Rows: %d (should be %d genes × %d columns = %d)\n", 
-            nrow(entropy_long), length(test_genes), n_cols, length(test_genes) * n_cols))
-cat(sprintf("  Columns: %d\n", ncol(entropy_long)))
-
-cat("\nColumn names and types:\n")
-for (col in colnames(entropy_long)) {
-  cat(sprintf("  %s: %s\n", col, class(entropy_long[[col]])[1]))
-}
-
-cat("\nQ-value structure in entropy_long:\n")
-q_unique <- unique(entropy_long$q)
-cat(sprintf("  Unique Q values: %d\n", length(q_unique)))
-cat(sprintf("  Q value range: [%g, %g]\n", min(q_unique, na.rm=TRUE), max(q_unique, na.rm=TRUE)))
-cat(sprintf("  Sample Q values: %s\n", paste(head(sort(unique(entropy_long$q)), 6), collapse=", ")))
-
-cat("\nGene structure in entropy_long:\n")
-gene_unique <- unique(entropy_long$gene)
-cat(sprintf("  Unique genes: %d\n", length(gene_unique)))
-cat(sprintf("  Sample genes: %s\n", paste(head(gene_unique), collapse=", ")))
-
-# For gene PTCHD1, show the data structure
-ptchd1_data <- entropy_long[entropy_long$gene == "PTCHD1", ]
-cat(sprintf("\nFor PTCHD1 (our test case):\n"))
-cat(sprintf("  Rows: %d\n", nrow(ptchd1_data)))
-cat(sprintf("  Unique Q values: %d\n", length(unique(ptchd1_data$q))))
-cat(sprintf("  Unique sample_types: %d\n", length(unique(ptchd1_data$sample_type))))
-
-# Check the mapping between Q values and rows
-ptchd1_q_counts <- table(ptchd1_data$q)
-if (length(unique(ptchd1_q_counts)) == 1) {
-  cat(sprintf("  ✓ BALANCED: Each Q value appears %d times\n", ptchd1_q_counts[1]))
-} else {
-  cat(sprintf("  ⚠ UNBALANCED Q distribution: %s\n", paste(head(ptchd1_q_counts), collapse=", ")))
-}
-
-# === DIAGNOSTIC 9b: TRACE HOW DETECT_Q_GENE_INTERACTIONS STRUCTURES DATA ===
-# CRITICAL: Manually replicate the internal logic to find where H-stat differs
-
-cat("\n\n=== DIAGNOSTIC 9b: INTERNAL DATA STRUCTURING IN DETECT_Q_GENE_INTERACTIONS ===\n\n")
-
-# For PTCHD1, manually trace what detect_q_gene_interactions does internally
-test_gene <- "PTCHD1"
-
-# Check if PTCHD1 is in our subset
-if (test_gene %in% unique(entropy_long$gene)) {
-  cat("Tracing internal logic for", test_gene, ":\n\n")
-  
-  # Step 1: Extract gene data (what detect_q_gene_interactions does internally)
-  gene_data <- entropy_long[entropy_long$gene == test_gene, ]
-  
-  cat("STEP 1: Gene data extraction\n")
-  cat(sprintf("  Rows: %d\n", nrow(gene_data)))
-  cat(sprintf("  q_levels: %d unique\n", length(unique(gene_data$q))))
-  cat(sprintf("  Sufficient? %s (min required: 2)\n\n", ifelse(length(unique(gene_data$q)) >= 2, "YES", "NO")))
-  
-  # Step 2: Prepare for K-W test (from .tsenat_apply_conditional_rank_test)
-  cat("STEP 2: Test selection logic\n")
-  
-  # Get values and groups as K-W would
-  values <- gene_data$entropy
-  groups <- gene_data$q  # This is a critical point!
-  
-  cat(sprintf("  Values: %d (match nrow? %s)\n", length(values), ifelse(length(values) == nrow(gene_data), "YES", "NO")))
-  cat(sprintf("  Groups factor from 'q' column: %d levels\n", nlevels(factor(groups))))
-  cat(sprintf("  Group values are: %s\n", paste(unique(groups), collapse=", ")))
-  
-  # Step 3: Run the actual K-W test as the code would
-  cat("\nSTEP 3: K-W test execution\n")
-  groups_factor <- factor(gene_data$q)
-  
-  # This is exactly what .tsenat_apply_conditional_rank_test does:
-  kw_test <- kruskal.test(values ~ groups_factor)
-  
-  cat(sprintf("  Kruskal.test H-statistic: %g\n", as.numeric(kw_test$statistic)))
-  cat(sprintf("  Kruskal.test p-value: %g\n", as.numeric(kw_test$p.value)))
-  
-  # Step 4: Manually compute H to verify
-  cat("\nSTEP 4: Manual H-statistic verification\n")
-  
-  n <- length(values)
-  k <- nlevels(groups_factor)
-  
-  # Rank all values
-  ranks <- rank(values)
-  
-  # Sum ranks per group
-  rank_sums <- tapply(ranks, groups_factor, sum)
-  n_per_group <- tapply(ranks, groups_factor, length)
-  
-  # Compute H statistic
-  H <- 12/(n*(n+1)) * sum(rank_sums^2 / n_per_group) - 3*(n+1)
-  
-  cat(sprintf("  n: %d, k: %d\n", n, k))
-  cat(sprintf("  Manual H-statistic: %g\n", H))
-  cat(sprintf("  Match? %s\n", ifelse(abs(H - as.numeric(kw_test$statistic)) < 0.001, "YES ✓", "NO ✗")))
-  
-  # Step 5: Check for tied ranks
-  cat("\nSTEP 5: Rank structure analysis\n")
-  tied_ranks <- table(ranks)
-  n_tied <- sum(tied_ranks > 1)
-  n_unique_ranks <- length(unique(ranks))
-  
-  cat(sprintf("  Unique rank values: %d (vs max possible %d)\n", n_unique_ranks, n))
-  cat(sprintf("  Number of tied values: %d\n", n_tied))
-  cat(sprintf("  Worst tie size: %d\n", max(tied_ranks)))
-  
-  # Show distribution of ranks per group
-  cat("\nRanks per group:\n")
-  for (g in levels(groups_factor)) {
-    g_ranks <- ranks[groups_factor == g]
-    cat(sprintf("  Q=%s: n=%d, rank_range=[%d,%d], rank_sum=%d\n", 
-                g, length(g_ranks), min(g_ranks), max(g_ranks), sum(g_ranks)))
-  }
-  
-} else {
-  cat(test_gene, "not in analysis subset\n\n")
-}
-
-# === DIAGNOSTIC 9c: ROOT CAUSE ANALYSIS - WHY H-STATISTICS DON'T MATCH ===
-# CRITICAL: Identify whether tie correction formula differs
-
-cat("\n\n=== DIAGNOSTIC 9c: H-STATISTIC MISMATCH ROOT CAUSE ===\n\n")
-
-if (test_gene %in% unique(entropy_long$gene)) {
-  cat("Investigating H-statistic formula differences:\n\n")
-  
-  gene_data <- entropy_long[entropy_long$gene == test_gene, ]
-  values <- gene_data$entropy
-  groups_factor <- factor(gene_data$q)
-  
-  n <- length(values)
-  k <- nlevels(groups_factor)
-  
-  # Rank with tie handling
-  ranks <- rank(values)
-  rank_sums <- tapply(ranks, groups_factor, sum)
-  n_per_group <- tapply(ranks, groups_factor, length)
-  
-  # Standard Kruskal-Wallis formula (WITHOUT tie correction)
-  H_standard <- 12/(n*(n+1)) * sum(rank_sums^2 / n_per_group) - 3*(n+1)
-  
-  # With tie correction (for many ties)
-  tied_vals <- table(values)
-  n_tied <- sum(tied_vals)
-  n_distinct <- length(tied_vals)
-  
-  # Correction factor for ties
-  T <- sum(tied_vals^3 - tied_vals)  # Sum of (t_i^3 - t_i) for tied groups
-  
-  # H_corrected = H / (1 - T/(n^3 - n))
-  denominator <- 1 - T/(n^3 - n)
-  H_corrected <- H_standard / denominator
-  
-  cat("H-statistic computation analysis:\n\n")
-  
-  cat("DATA CHARACTERISTICS:\n")
-  cat(sprintf("  n (total values): %d\n", n))
-  cat(sprintf("  k (groups/Q-levels): %d\n", k))
-  cat(sprintf("  n_distinct (distinct entropy values): %d\n", n_distinct))
-  cat(sprintf("  Tied values: %d (%.1f%% of total)\n", n_tied, 100*n_tied/n))
-  cat(sprintf("  Worst tie: %d values at entropy=%.3f\n\n", 
-              max(tied_vals), as.numeric(names(tied_vals))[which.max(tied_vals)]))
-  
-  cat("H-STATISTIC CALCULATIONS:\n")
-  cat(sprintf("  H_standard (no correction): %.6f\n", H_standard))
-  cat(sprintf("  Tie correction factor (T): %.0f\n", T))
-  cat(sprintf("  Denominator (1 - T/(n³-n)): %.6f\n", denominator))
-  cat(sprintf("  H_corrected (with tie correction): %.6f\n", H_corrected))
-  
-  # Run actual test
-  kw_test <- kruskal.test(values ~ groups_factor)
-  H_actual <- as.numeric(kw_test$statistic)
-  
-  cat(sprintf("  H_actual (kruskal.test output): %.6f\n\n", H_actual))
-  
-  cat("COMPARISON:\n")
-  if (abs(H_corrected - H_actual) < 0.001) {
-    cat(sprintf("  ✓ H_corrected MATCHES H_actual (diff: %.6f)\n", 
-                abs(H_corrected - H_actual)))
-    cat("  → Conclusion: kruskal.test IS applying tie correction\n")
-  } else if (abs(H_standard - H_actual) < 0.001) {
-    cat(sprintf("  ✓ H_standard MATCHES H_actual (diff: %.6f)\n",
-                abs(H_standard - H_actual)))
-    cat("  → Conclusion: kruskal.test is NOT using tie correction\n")
-  } else {
-    cat(sprintf("  ✗ Neither formula matches (std-diff=%.6f, corr-diff=%.6f)\n",
-                abs(H_standard - H_actual), abs(H_corrected - H_actual)))
-    cat("  → Conclusion: Different calculation method in use\n")
-  }
-  
-  cat("\nIMPLICATION FOR K-W RESULTS:\n")
-  cat(sprintf("  With H=%.6f and p=%.6f: This is STATISTICALLY CORRECT\n", H_actual, as.numeric(kw_test$p.value)))
-  cat("  Why p=1.0 despite monotonic ranks:\n")
-  cat("  1. Rank sums are PERFECTLY BALANCED (5019→4981, ~5000 expected)\n")
-  cat("  2. Variation is only 38 points across 39 Q-levels\n")
-  cat("  3. This trivial variation → no statistical evidence of Q-effect in ranks\n")
-  cat("  4. K-W correctly infers: Rank distribution is SAME across Q-levels\n\n")
-  
-  cat("FINAL CONCLUSION:\n")
-  cat("  ✓ K-W is NOT buggy - it is functioning correctly\n")
-  cat("  ✓ K-W has REDUCED POWER on boundary-clustered (heavy-tie) data\n")
-  cat("  ✓ GAM detects effects because it works on MEANS, not RANKS\n")
-  cat("  ✗ K-W and GAM test DIFFERENT HYPOTHESES on this data\n")
-  cat("  ✓ BOTH results are valid - use the method appropriate to your hypothesis\n\n")
-}
-
-# === DIAGNOSTIC 9d: VERIFY AGAINST KRUSKAL.TEST SOURCE CODE ===
-# Replicate exact calculation from stats:::kruskal.test.default
-
-cat("\n\n=== DIAGNOSTIC 9d: VERIFY KRUSKAL.TEST SOURCE CODE CALCULATION ===\n\n")
-
-if (test_gene %in% unique(entropy_long$gene)) {
-  cat("Reverse-engineering the exact H-statistic calculation:\n\n")
-  
-  gene_data <- entropy_long[entropy_long$gene == test_gene, ]
-  x <- gene_data$entropy
-  g <- factor(gene_data$q)
-  
-  n <- length(x)
-  k <- nlevels(g)
-  
-  # Step 1: Rank the values
-  r <- rank(x)
-  
-  # Step 2: Get tied value table
-  TIES <- table(x)
-  n_distinct <- length(TIES)
-  
-  # Step 3: Compute S = sum(R_i^2/n_i) exactly as in source
-  rank_sum_by_group <- tapply(r, g, sum)
-  n_by_group <- tapply(r, g, length)
-  S_components <- rank_sum_by_group^2 / n_by_group
-  S <- sum(S_components)
-  
-  # Step 4: Compute tie correction factor
-  tie_sum <- sum(TIES^3 - TIES)
-  tie_denom <- n^3 - n
-  tie_correction_factor <- 1 - tie_sum / tie_denom
-  
-  # Step 5: Apply exact formula from source code
-  numerator <- 12 * S / (n * (n + 1)) - 3 * (n + 1)
-  H_computed <- numerator / tie_correction_factor
-  
-  # Get actual kruskal.test result
-  kw_test <- kruskal.test(x ~ g)
-  H_actual <- as.numeric(kw_test$statistic)
-  p_actual <- as.numeric(kw_test$p.value)
-  
-  # Verify p-value
-  p_computed <- pchisq(H_actual, k - 1, lower.tail = FALSE)
-  
-  cat("Detailed Calculation Trace:\n")
-  cat(sprintf("  n (total samples): %d\n", n))
-  cat(sprintf("  k (groups): %d\n", k))
-  cat(sprintf("  n_distinct (unique entropy values): %d\n", n_distinct))
-  cat(sprintf("\nRank Sum Computation:\n"))
-  cat(sprintf("  S = sum(R_i^2/n_i): %.1f\n", S))
-  cat(sprintf("  Expected sum of all ranks: %.1f\n", n*(n+1)/2))
-  cat(sprintf("  Check: sum(R_i) should equal %.1f (sum of ranks 1:n)\n", n*(n+1)/2))
-  actual_rank_sum <- sum(rank_sum_by_group)
-  cat(sprintf("  Actual sum(R_i): %.1f\n\n", actual_rank_sum))
-  
-  cat(sprintf("Tie Correction:\n"))
-  cat(sprintf("  T = sum(t_i^3 - t_i): %.0f\n", tie_sum))
-  cat(sprintf("  n^3 - n: %.0f\n", tie_denom))
-  cat(sprintf("  Correction factor: %.8f\n\n", tie_correction_factor))
-  
-  cat(sprintf("H-Statistic Formula:\n"))
-  cat(sprintf("  Numerator: 12*%.1f/(%.0f) - 3*(%.0f) = %.6f\n", 
-              S, n*(n+1), n+1, numerator))
-  cat(sprintf("  H_computed = %.6f / %.8f = %.6f\n", numerator, tie_correction_factor, H_computed))
-  cat(sprintf("  H_actual (kruskal.test): %.6f\n", H_actual))
-  cat(sprintf("  Difference: %.12f\n\n", abs(H_computed - H_actual)))
-  
-  cat(sprintf("P-value Verification:\n"))
-  cat(sprintf("  p from pchisq(H=%.6f, df=%d): %g\n", H_actual, k-1, p_computed))
-  cat(sprintf("  p from kruskal.test(): %g\n", p_actual))
-  cat(sprintf("  Match? %s\n\n", ifelse(abs(p_computed - p_actual) < 1e-10, "YES ✓", "NO")))
-  
-  cat(sprintf("INTERPRETATION:\n"))
-  if (abs(H_computed - H_actual) < 0.001) {
-    cat(sprintf("  ✓ Formula replication MATCHES kruskal.test()\n"))
-  } else {
-    cat(sprintf("  Note: H values differ slightly (computing artifact or rounding)\n"))
-    cat(sprintf("  But p-values AGREE: both give p = 1.0\n"))
-  }
-  cat(sprintf("  This p-value reflects BALANCED rank sums across Q-levels\n"))
-  cat(sprintf("  Rank sum range: min=%.0f, max=%.0f, range=%.0f\n", 
-              min(rank_sum_by_group), max(rank_sum_by_group),
-              max(rank_sum_by_group) - min(rank_sum_by_group)))
-  cat(sprintf("  Expected per group: %.0f (very close!)\n", n*(n+1)/(2*k)))
-  cat(sprintf("  K-W CONCLUSION: No significant Q-effect (p = 1.0)\n\n"))
-}
-
-# DIAGNOSTIC 9e: Investigating the H-statistic formula difference
-# Purpose: Determine if the 0.020 vs 0.132 difference comes from:
-#  (a) Order of operations
-#  (b) Numerical precision  
-#  (c) Different intermediate calculations
-cat("\n\n=== DIAGNOSTIC 9e: H-statistic Formula Order Investigation ===\n\n")
-
-gene_test <- "PTCHD1"
-values <- entropy_long[entropy_long$gene == gene_test, "entropy"]
-groups <- entropy_long[entropy_long$gene == gene_test, "q"]
-groups_factor <- factor(groups)
-
-# Reference result from kruskal.test
-kw_test <- kruskal.test(values ~ groups_factor)
-H_reference <- as.numeric(kw_test$statistic)
-
-n <- length(values)
-k <- nlevels(groups_factor)
-ranks <- rank(values)
-rank_sums <- tapply(ranks, groups_factor, sum)
-n_per_group <- tapply(ranks, groups_factor, length)
-
-cat("Testing three different formula orders:\n\n")
-
-# FORMULA 1: My manual approach (numerator then denominator division)
-cat("FORMULA 1: [12*S/(n(n+1)) - 3(n+1)] / [1 - T/(n³-n)]\n")
-S1 <- sum(rank_sums^2 / n_per_group)
-numerator1 <- 12*S1/(n*(n+1)) - 3*(n+1)
-TIES <- table(values)
-tie_sum1 <- sum(TIES^3 - TIES)
-denominator1 <- 1 - tie_sum1/(n^3 - n)
-H1 <- numerator1 / denominator1
-cat(sprintf("  S = %.1f\n", S1))
-cat(sprintf("  Numerator = [12*%.1f/(%.0f*%.0f) - 3*%.0f] = %.6f\n", 
-            S1, n, n+1, n+1, numerator1))
-cat(sprintf("  Tie sum = %.0f, denominator = %.8f\n", tie_sum1, denominator1))
-cat(sprintf("  H = %.6f\n", H1))
-if (abs(H1 - H_reference) < 0.001) {
-  cat("  ✓ MATCHES kruskal.test() (difference < 0.001)\n")
-} else {
-  cat(sprintf("  ✗ Differs from kruskal.test(): diff = %.6f\n", abs(H1 - H_reference)))
-}
-
-# FORMULA 2: Apply tie correction FIRST, then compute H
-cat("\nFORMULA 2: Apply tie correction to each rank sum first\n")
-tie_correction_factor2 <- 1 - tie_sum1/(n^3 - n)
-corrected_rank_sums2 <- rank_sums / sqrt(tie_correction_factor2)
-S2 <- sum(corrected_rank_sums2^2 / n_per_group)
-H2 <- 12*S2/(n*(n+1)) - 3*(n+1)
-cat(sprintf("  Tie correction factor = %.8f\n", tie_correction_factor2))
-cat(sprintf("  S (corrected) = %.1f\n", S2))
-cat(sprintf("  H = %.6f\n", H2))
-if (abs(H2 - H_reference) < 0.001) {
-  cat("  ✓ MATCHES kruskal.test()\n")
-} else {
-  cat(sprintf("  ✗ Differs: diff = %.6f\n", abs(H2 - H_reference)))
-}
-
-# FORMULA 3: Alternative order - compute uncorrected H, then divide by tie factor
-cat("\nFORMULA 3: Compute H_uncorrected first, then apply tie correction\n")
-H_uncorrected3 <- 12/(n*(n+1)) * sum(rank_sums^2 / n_per_group) - 3*(n+1)
-H3 <- H_uncorrected3 / denominator1
-cat(sprintf("  H_uncorrected = %.6f\n", H_uncorrected3))
-cat(sprintf("  Denominator = %.8f\n", denominator1))
-cat(sprintf("  H = %.6f\n", H3))
-if (abs(H3 - H_reference) < 0.001) {
-  cat("  ✓ MATCHES kruskal.test()\n")
-} else {
-  cat(sprintf("  ✗ Differs: diff = %.6f\n", abs(H3 - H_reference)))
-}
-
-# FORMULA 4: What if the intermediate S is computed differently?
-cat("\nFORMULA 4: Check if S computation is the issue\n")
-S_alt <- sum(tapply(ranks, groups_factor, function(r) sum(r)^2/length(r)))
-H4_uncorrected <- 12/(n*(n+1)) * S_alt - 3*(n+1)
-H4 <- H4_uncorrected / denominator1
-cat(sprintf("  S (alt method) = %.1f (vs standard = %.1f)\n", S_alt, S1))
-cat(sprintf("  H_uncorrected = %.6f\n", H4_uncorrected))
-cat(sprintf("  H = %.6f\n", H4))
-if (abs(H4 - H_reference) < 0.001) {
-  cat("  ✓ MATCHES kruskal.test()\n")
-} else {
-  cat(sprintf("  ✗ Differs: diff = %.6f\n", abs(H4 - H_reference)))
-}
-
-# FORMULA 5: Direct replication of kruskal.test source code
-cat("\nFORMULA 5: Direct replication of R's kruskal.test.default logic\n")
-r <- rank(values)
-TIES <- table(values)
-STATISTIC <- sum(tapply(r, groups_factor, sum)^2/tapply(r, groups_factor, length))
-STATISTIC <- ((12 * STATISTIC/(n * (n + 1)) - 3 * (n + 1))/(1 - sum(TIES^3 - TIES)/(n^3 - n)))
-H5 <- STATISTIC
-cat(sprintf("  H = %.6f\n", H5))
-cat(sprintf("  Reference H = %.6f\n", H_reference))
-if (abs(H5 - H_reference) < 0.001) {
-  cat("  ✓ MATCHES exactly (diff < 0.001)\n")
-} else {
-  cat(sprintf("  Diff: %.10f\n", abs(H5 - H_reference)))
-}
-
-# Summary
-cat("\n\nSUMMARY - Formula Variant Analysis:\n")
-cat(sprintf("  kruskal.test() reference H: %.6f\n", H_reference))
-cat(sprintf("  Formula 1 (my manual):      %.6f [diff=%.6f] %s\n", H1, abs(H1-H_reference), ifelse(abs(H1-H_reference)<0.001,"✓","✗")))
-cat(sprintf("  Formula 2 (correct first):  %.6f [diff=%.6f] %s\n", H2, abs(H2-H_reference), ifelse(abs(H2-H_reference)<0.001,"✓","✗")))
-cat(sprintf("  Formula 3 (divide last):    %.6f [diff=%.6f] %s\n", H3, abs(H3-H_reference), ifelse(abs(H3-H_reference)<0.001,"✓","✗")))
-cat(sprintf("  Formula 4 (alt S):          %.6f [diff=%.6f] %s\n", H4, abs(H4-H_reference), ifelse(abs(H4-H_reference)<0.001,"✓","✗")))
-cat(sprintf("  Formula 5 (R source code):  %.6f [diff=%.6f] %s\n\n", H5, abs(H5-H_reference), ifelse(abs(H5-H_reference)<0.001,"✓","✗")))
-
-# Identify which formula matches
-matching_formulas <- c(ifelse(abs(H1-H_reference)<0.001,1,NA),
-                       ifelse(abs(H2-H_reference)<0.001,2,NA),
-                       ifelse(abs(H3-H_reference)<0.001,3,NA),
-                       ifelse(abs(H4-H_reference)<0.001,4,NA),
-                       ifelse(abs(H5-H_reference)<0.001,5,NA))
-matching_formulas <- matching_formulas[!is.na(matching_formulas)]
-
-if (length(matching_formulas) > 0) {
-  cat(sprintf("✓ FOUND MATCH: Formula %d matches kruskal.test() exactly\n", min(matching_formulas)))
-  cat("  This identifies the correct order of operations in R's implementation\n")
-} else {
-  cat("⚠ No formula matches exactly (all have minor differences)\n")
-  cat("  This suggests:\n")
-  cat("  - Rounding/precision differences in intermediate calculations\n")
-  cat("  - Different computational pathway in kruskal.test()\n")
-  cat("  - But p-values are identical, so result is the same\n")
-}
-
-cat(sprintf("\n✓ DIAGNOSTIC CONCLUSION: P-value is %.6f (independent of formula variant)\n", 
-            as.numeric(kw_test$p.value)))
-cat("  The H-statistic difference is a computational artifact, not a bug.\n")
-cat("  All formulas yield the same statistical conclusion.\n\n")
-
-# DIAGNOSTIC 9f: Trace intermediate values to find divergence point
-cat("=== DIAGNOSTIC 9f: Intermediate Value Comparison ===\n\n")
-cat("Purpose: Identify exactly WHERE my manual calculation diverges from kruskal.test()\n\n")
-
-# Use same gene and data as 9e
-gene_test <- "PTCHD1"
-values <- entropy_long[entropy_long$gene == gene_test, "entropy"]
-groups <- entropy_long[entropy_long$gene == gene_test, "q"]
-groups_factor <- factor(groups)
-
-cat("Step-by-Step Comparison:\n\n")
-
-# STEP 1: Basic statistics
-n <- length(values)
-k <- nlevels(groups_factor)
-cat(sprintf("STEP 1 - Basic Stats: n=%d, k=%d (groups)\n", n, k))
-
-# STEP 2: Ranking
-ranks_manual <- rank(values)
-cat(sprintf("STEP 2 - Rank Computation: min=%.0f, max=%.0f, unique=%d\n", 
-            min(ranks_manual), max(ranks_manual), length(unique(ranks_manual))))
-
-# STEP 3: Rank sums - check if they match
-rank_sums_manual <- tapply(ranks_manual, groups_factor, sum)
-rank_sums_names <- names(rank_sums_manual)
-cat("\nSTEP 3 - Rank Sums (Manual Tapply):\n")
-cat(sprintf("  Q-level: %s\n", paste(rank_sums_names, collapse=", ")))
-cat(sprintf("  Rank Sum: %s\n", paste(sprintf("%.0f", rank_sums_manual), collapse=", ")))
-
-# STEP 4: N per group
-n_per_group_manual <- tapply(ranks_manual, groups_factor, length)
-cat("\nSTEP 4 - N per Group:\n")
-cat(sprintf("  All should be 16: %s\n", paste(n_per_group_manual, collapse=", ")))
-
-# STEP 5: Compute S statistic
-S_manual_method1 <- sum(rank_sums_manual^2 / n_per_group_manual)
-cat(sprintf("\nSTEP 5a - S via sum(R_i²/n_i): %.1f\n", S_manual_method1))
-
-# STEP 5b: Alternative S computation
-S_manual_method2 <- sum(rank_sums_manual^2) / 16  # All groups have n_i=16
-cat(sprintf("STEP 5b - S via sum(R_i²)/16:  %.1f\n", S_manual_method2))
-
-# STEP 6: Tied values analysis
-TIES <- table(values)
-n_distinct_ties <- length(TIES)
-n_tied_values <- sum(ifelse(TIES > 1, TIES, 0))
-tie_sum <- sum(TIES^3 - TIES)
-cat(sprintf("\nSTEP 6 - Tied Values Analysis:\n"))
-cat(sprintf("  Distinct unique values: %d\n", length(unique(values))))
-cat(sprintf("  Groups with ties (TIES>1): %d\n", sum(TIES > 1)))
-cat(sprintf("  Total tied values: %d (%.1f%%)\n", n_tied_values, 100*n_tied_values/n))
-cat(sprintf("  Tie sum (Σ(t_i³-t_i)): %.0f\n", tie_sum))
-
-# STEP 7: Compute H with both approaches
-H_without_correction <- 12/(n*(n+1)) * S_manual_method1 - 3*(n+1)
-tie_correction_factor <- 1 - tie_sum/(n^3 - n)
-H_corrected <- H_without_correction / tie_correction_factor
-
-cat(sprintf("\nSTEP 7 - H Statistic Calculation:\n"))
-cat(sprintf("  H_uncorrected: %.6f\n", H_without_correction))
-cat(sprintf("  Tie correction factor: %.8f\n", tie_correction_factor))
-cat(sprintf("  H_corrected (my formula): %.6f\n", H_corrected))
-
-# STEP 8: What does kruskal.test actually return?
-kw_test <- kruskal.test(values ~ groups_factor)
-H_kw <- as.numeric(kw_test$statistic)
-p_kw <- as.numeric(kw_test$p.value)
-cat(sprintf("\nSTEP 8 - kruskal.test() Output:\n"))
-cat(sprintf("  H from kruskal.test: %.6f\n", H_kw))
-cat(sprintf("  P-value from kruskal.test: %g\n", p_kw))
-
-# STEP 9: Try to reverse-engineer what H value would produce the p-value
-# If H_kw is correct, what intermediate computation would give it?
-cat(sprintf("\nSTEP 9 - Reverse-engineer H from p-value:\n"))
-H_reverse <- qchisq(1 - p_kw, df=k-1)
-cat(sprintf("  H from pchisq^-1(p=%.6f, df=%d): %.6f\n", p_kw, k-1, H_reverse))
-
-# STEP 10: What if the issue is in the S computation itself?
-cat(sprintf("\nSTEP 10 - Alternative S computations:\n"))
-# Method 1: Direct using rank sums
-S_m1 <- sum(rank_sums_manual^2 / n_per_group_manual)
-# Method 2: Recompute from raw ranks
-S_m2 <- sum(tapply(ranks_manual, groups_factor, function(x) sum(x)^2/length(x)))
-# Method 3: Another way
-S_m3 <- sum((rank_sums_manual/sqrt(n_per_group_manual))^2) * 16
-cat(sprintf("  S via sum(R_i²/n_i): %.1f\n", S_m1))
-cat(sprintf("  S via retapply:       %.1f\n", S_m2))
-cat(sprintf("  S via corrected:      %.1f\n", S_m3))
-
-# STEP 11: What if kruskal.test uses a DIFFERENT H formula entirely?
-cat(sprintf("\nSTEP 11 - Test alternative H formulas:\n"))
-# Formula A: Standard (what we've been using)
-H_formulaA <- 12/(n*(n+1)) * S_manual_method1 - 3*(n+1)
-# Formula B: Without the -3(n+1) term (unlikely but check)
-H_formulaB <- 12/(n*(n+1)) * S_manual_method1
-# Formula C: Different denominator scaling
-H_formulaC <- (12 * S_manual_method1) / (n * (n+1)) - 3 * (n+1)
-# Formula D: Uncorrected H (what if kruskal.test returns uncorrected?)
-H_formulaD <- H_without_correction
-
-cat(sprintf("  H_standard (our approach): %.6f\n", H_formulaA))
-cat(sprintf("  H without -3(n+1):        %.6f\n", H_formulaB))
-cat(sprintf("  H alt denominator:        %.6f\n", H_formulaC))
-cat(sprintf("  H uncorrected:            %.6f\n", H_formulaD))
-
-# STEP 12: Check if there's a scale factor
-cat(sprintf("\nSTEP 12 - Scale factor analysis:\n"))
-scale_factor <- H_kw / H_corrected
-cat(sprintf("  H_kw / H_corrected = %.6f / %.6f = %.8f\n", H_kw, H_corrected, scale_factor))
-cat(sprintf("  This suggests: H_kw ≈ H_corrected × %.8f\n", scale_factor))
-cat(sprintf("  Is scale = tie_correction_factor²? %.8f (no)\n", tie_correction_factor^2))
-cat(sprintf("  Is scale related to n? (n-1)/n = %.8f (no)\n", (n-1)/n))
-
-# STEP 13: FINAL DIAGNOSIS
-cat(sprintf("\n=== DIAGNOSTIC 9f CONCLUSION ===\n"))
-cat(sprintf("My H calculation: %.6f\n", H_corrected))
-cat(sprintf("kruskal.test() H:  %.6f\n", H_kw))
-cat(sprintf("Difference:        %.6f\n\n", abs(H_kw - H_corrected)))
-
-if (abs(H_corrected - H_kw) < 0.001) {
-  cat("✓ My formula matches kruskal.test()\n")
-  cat("  The discrepancy is just rounding/precision\n")
-} else {
-  cat("⚠ Formulas produce DIFFERENT H-values\n")
-  cat("  But BOTH produce the SAME p-value: 1.0\n\n")
-  cat("Root cause analysis:\n")
-  if (scale_factor > 1 && scale_factor < 10) {
-    cat(sprintf("  - Scale factor (%.6f) suggests systematic difference\n", scale_factor))
-    cat("  - Likely: kruskal.test() uses different intermediate calculation\n")
-    cat("  - Possibly: Different handling of tied ranks or S-statistic\n")
-    cat("  - Impact on conclusion: NONE (p-values identical)\n")
-  }
-}
-
-# DIAGNOSTIC 9g: Systematically find formula variant that produces H_kw
-cat("\n\n=== DIAGNOSTIC 9g: Find the Correct Formula ===\n\n")
-cat("Purpose: Test formula variants to find which produces H = 0.132115\n\n")
-
-# Known values
-cat(sprintf("Known intermediate values:\n"))
-cat(sprintf("  n = %.0f, k = %.0f\n", n, k))
-cat(sprintf("  S = %.1f\n", S_manual_method1))
-cat(sprintf("  Tie sum T = %.0f\n", tie_sum))
-cat(sprintf("  Correction factor = %.10f\n\n", tie_correction_factor))
-
-# Test various formula combinations
-formulas_to_test <- list(
-  # Original formula
-  list(name = "H = [12S/(n(n+1)) - 3(n+1)] / [1 - T/(n³-n)]",
-       compute = function() {
-         H_num <- 12/(n*(n+1)) * S_manual_method1 - 3*(n+1)
-         H_num / (1 - tie_sum/(n^3 - n))
-       }),
-  
-  # What if numerator computation is different?
-  list(name = "H = [12S/(n(n+1))] / [1 - T/(n³-n)] (no -3(n+1))",
-       compute = function() {
-         H_num <- 12/(n*(n+1)) * S_manual_method1
-         H_num / (1 - tie_sum/(n^3 - n))
-       }),
-  
-  # What if the correction applies differently?
-  list(name = "H = [12S - 3n(n+1)²] / [n(n+1)(1 - T/(n³-n))]",
-       compute = function() {
-         H_num <- 12*S_manual_method1 - 3*n*(n+1)^2
-         H_denom <- n*(n+1)*(1 - tie_sum/(n^3 - n))
-         H_num / H_denom
-       }),
-  
-  # What if S has a different role?
-  list(name = "H = [12S/(n(n+1)) - 3(n+1)] × [1/(1 - T/(n³-n))]",
-       compute = function() {
-         H_base <- 12/(n*(n+1)) * S_manual_method1 - 3*(n+1)
-         H_base / (1 - tie_sum/(n^3 - n))
-       }),
-  
-  # Alternative: what if we multiply by reciprocal of correction?
-  list(name = "H = [12S/(n(n+1)) - 3(n+1)] × [1 - T/(n³-n)]",
-       compute = function() {
-         H_base <- 12/(n*(n+1)) * S_manual_method1 - 3*(n+1)
-         H_base * (1 - tie_sum/(n^3 - n))
-       }),
-  
-  # What if computation order is: apply correction to S first?
-  list(name = "H = [12(S/(1-T/(n³-n)))/(n(n+1)) - 3(n+1)]",
-       compute = function() {
-         S_corrected <- S_manual_method1 / (1 - tie_sum/(n^3 - n))
-         12/(n*(n+1)) * S_corrected - 3*(n+1)
-       }),
-  
-  # Alternative formula structure
-  list(name = "H = [12S/(n(n+1)) - 3(n+1)] / [1 / (1 - T/(n³-n))]",
-       compute = function() {
-         H_num <- 12/(n*(n+1)) * S_manual_method1 - 3*(n+1)
-         H_num * (1 - tie_sum/(n^3 - n))
-       }),
-  
-  # What if the -3(n+1) is not applied?
-  list(name = "H = 12S/(n(n+1)) / [1 - T/(n³-n)]",
-       compute = function() {
-         H_num <- 12/(n*(n+1)) * S_manual_method1
-         H_num / (1 - tie_sum/(n^3 - n))
-       }),
-  
-  # Different grouping of division
-  list(name = "H = [12S - 3n(n+1)²] / [n(n+1) - T]",
-       compute = function() {
-         H_num <- 12*S_manual_method1 - 3*n*(n+1)^2
-         H_denom <- n*(n+1) - tie_sum
-         H_num / H_denom
-       })
-)
-
-# Test each formula
-cat("Testing formula variants:\n\n")
-results <- data.frame(
-  formula = character(),
-  H_value = numeric(),
-  diff_to_kw = numeric(),
-  match = logical()
-)
-
-for (i in seq_along(formulas_to_test)) {
-  f <- formulas_to_test[[i]]
-  H_test <- f$compute()
-  diff <- abs(H_test - H_kw)
-  matches <- diff < 0.001
-  
-  results <- rbind(results, data.frame(
-    formula = f$name,
-    H_value = H_test,
-    diff_to_kw = diff,
-    match = matches
-  ))
-  
-  match_str <- if(matches) "✓ MATCH" else "✗"
-  cat(sprintf("%d. %s\n", i, f$name))
-  cat(sprintf("   H = %.6f (diff = %.6f) %s\n\n", H_test, diff, match_str))
-}
-
-# Check for matches
-matching_idx <- which(results$match)
-if (length(matching_idx) > 0) {
-  cat(sprintf("\n✓ FOUND MATCH: Formula %d matches kruskal.test() exactly!\n", matching_idx[1]))
-  cat(sprintf("  Formula: %s\n", results$formula[matching_idx[1]]))
-}
-
-# Find closest match if no exact match
-closest_idx <- which.min(results$diff_to_kw)
-cat(sprintf("\nClosest formula (smallest difference): Formula %d\n", closest_idx))
-cat(sprintf("  H = %.6f (diff = %.6f)\n", results$H_value[closest_idx], results$diff_to_kw[closest_idx]))
-cat(sprintf("  Formula: %s\n\n", results$formula[closest_idx]))
-
-# If no match, analyze the pattern
-if (length(matching_idx) == 0) {
-  cat("ANALYSIS: No formula perfectly matches, but closest results suggest:\n")
-  cat(sprintf("  - Most formulas converge to ~0.020-0.030 range\n"))
-  cat(sprintf("  - kruskal.test returning 0.132115 uses different computation\n"))
-  cat(sprintf("  - Scale factors computed above (6.448) indicate 6-7x multiplication\n"))
-  cat(sprintf("  - This is likely tied to tie correction application strategy\n\n"))
-  cat(sprintf("CONCLUSION: kruskal.test() uses a formula variant that:\n"))
-  cat(sprintf("  1) Is valid (p-values match)\n"))
-  cat(sprintf("  2) Differs from standard statistic textbook formula\n"))
-  cat(sprintf("  3) Applies tie correction at different computation step\n\n"))
-}
-
-# Run improved rank-based test using conditional test selection
-cat("\n\nRunning rank-based analysis on", length(unique(entropy_long$gene)), "genes...\n")
-
-kw_res_raw <- detect_q_gene_interactions(
+# Run rank-based interaction test with conditional test selection
+# Note: detect_q_gene_interactions automatically selects appropriate rank-based tests
+# (Kruskal-Wallis, ART, Mood's Median) based on data characteristics
+kw_results <- detect_q_gene_interactions(
     entropy_long,
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
-    multicorr = "hochberg"  # Multiple testing correction for AR(1) q-value dependence
+    multicorr = "hochberg",
+    verbose = FALSE
 )
 
-cat("Rank-based returned object of class:", class(kw_res_raw), "\n")
+cat("K-W Results Summary:\n")
+cat("  Genes tested:", nrow(kw_results), "\n")
+cat("  Significant (p < 0.05):", sum(kw_results$p_value < 0.05, na.rm = TRUE), "\n")
+cat("  NAs:", sum(is.na(kw_results$p_value)), "\n")
 
-# Robust conversion to data frame
-kw_res <- as.data.frame(kw_res_raw, stringsAsFactors = FALSE)
+# Show top genes
+kw_sig <- kw_results %>%
+  filter(!is.na(p_value)) %>%
+  arrange(p_value) %>%
+  head(10)
 
-# Verify results structure
-cat("Rank-Based Results Summary:\n")
-cat("  Rows:", nrow(kw_res), "\n")
-cat("  Columns:", paste(head(colnames(kw_res), 10), collapse=", "), "...\n")
-
-# Safety checks
-if (nrow(kw_res) == 0) {
-  cat("WARNING: Rank-based returned no results\n")
-} else if (!"p_value" %in% colnames(kw_res)) {
-  cat("ERROR: p_value column missing!\n")
-  cat("Available columns:", paste(colnames(kw_res), collapse=", "), "\n")
-} else {
-  cat("  Genes analyzed:", nrow(kw_res), "\n")
-  
-  # Rename p_value to kw_p_value for consistency  
-  if ("p_value" %in% colnames(kw_res) && !"kw_p_value" %in% colnames(kw_res)) {
-    kw_res$kw_p_value <- kw_res$p_value
-  }
-  if ("f_statistic" %in% colnames(kw_res) && !"kw_statistic" %in% colnames(kw_res)) {
-    kw_res$kw_statistic <- kw_res$f_statistic
-  }
-  
-  cat("  Significant (p < 0.05):", sum(kw_res$kw_p_value < 0.05, na.rm = TRUE), "\n")
-  cat("  NAs in kw_p_value:", sum(is.na(kw_res$kw_p_value)), "\n")
-}
-
-# Ensure all required columns exist
-required_kw_cols <- c("gene", "effect_size_eta2", "test_method")
-missing_cols <- setdiff(required_kw_cols, colnames(kw_res))
-if (length(missing_cols) > 0) {
-  cat("WARNING: Missing KW columns:", paste(missing_cols, collapse=", "), "\n")
-  for (col in missing_cols) {
-    kw_res[[col]] <- NA
-  }
-}
-
-# Select relevant columns for comparison
-kw_cols <- intersect(c("gene", "kw_statistic", "kw_p_value", "effect_size_eta2", 
-                       "test_method", "heteroscedastic", "boundary_clustered", "highly_skewed"),
-                     colnames(kw_res))
-if (!"kw_p_value" %in% kw_cols && "p_value" %in% colnames(kw_res)) {
-  kw_res$kw_p_value <- kw_res$p_value
-  kw_cols <- c(kw_cols, "kw_p_value")
-}
-if (!"kw_statistic" %in% kw_cols && "f_statistic" %in% colnames(kw_res)) {
-  kw_res$kw_statistic <- kw_res$f_statistic
-  kw_cols <- c(kw_cols, "kw_statistic")
-}
-
-# NEW: Handle problematic genes (NA test_method or insufficient data)
-# Only filter if we have results; if filtering removes all genes, keep raw results
-problematic_genes <- kw_res[is.na(kw_res$test_method) | kw_res$test_method %in% c("insufficient_data", "test_failed"), ]
-kw_res_potential_clean <- kw_res[!is.na(kw_res$test_method) & !kw_res$test_method %in% c("insufficient_data", "test_failed"), ]
-
-if (nrow(problematic_genes) > 0) {
-  cat("⚠ Note: ", nrow(problematic_genes), " gene(s) found with insufficient data or test failure\n")
-  
-  # If filtering removes ALL genes, use raw results with warning
-  if (nrow(kw_res_potential_clean) == 0) {
-    cat("    ⚠ WARNING: Filtering would remove all genes. Using all rank-based results for comparison.\n")
-    cat("    These genes may have limited Q-value variation, but including them for concordance analysis.\n\n")
-    kw_res <- kw_res  # Keep all results
-  } else {
-    cat("  Genes:", paste(head(problematic_genes$gene, 10), collapse = ", "), 
-        if (nrow(problematic_genes) > 10) paste0(", ... and ", nrow(problematic_genes) - 10, " more") else "", 
-        "\n\n")
-    kw_res <- kw_res_potential_clean  # Use cleaned results
-  }
-} else {
-  # No problematic genes, use cleaned results
-  kw_res <- kw_res_potential_clean
-}
-
-cat("Improved Rank-Based Results Summary:\n")
-cat("  Genes analyzed:", nrow(kw_res), "\n")
-cat("  Significant (p < 0.05):", sum(kw_res$kw_p_value < 0.05), "\n")
-
-# Test method breakdown
-cat("\n  Test Methods Used:\n")
-test_method_table <- table(kw_res$test_method)
-for (method in names(test_method_table)) {
-    pct <- 100 * test_method_table[method] / nrow(kw_res)
-    cat(sprintf("    %-30s: %3d genes (%5.1f%%)\n", method, test_method_table[method], pct))
-}
-
-# Data characteristics detected
-cat("\n  Data Characteristics Detected:\n")
-cat(sprintf("    Heteroscedastic genes:      %3d (%5.1f%%)\n", 
-           sum(kw_res$heteroscedastic, na.rm = TRUE),
-           100 * sum(kw_res$heteroscedastic, na.rm = TRUE) / nrow(kw_res)))
-cat(sprintf("    Boundary-clustered genes:   %3d (%5.1f%%)\n",
-           sum(kw_res$boundary_clustered, na.rm = TRUE),
-           100 * sum(kw_res$boundary_clustered, na.rm = TRUE) / nrow(kw_res)))
-cat(sprintf("    Highly skewed genes:        %3d (%5.1f%%)\n\n",
-           sum(kw_res$highly_skewed, na.rm = TRUE),
-           100 * sum(kw_res$highly_skewed, na.rm = TRUE) / nrow(kw_res)))
-
-# Top genes (sorted by adjusted p-values from Hochberg correction)
-cat("Top 10 Genes by Rank-Based Adjusted P-Value (Hochberg correction):\n")
-idx_kw_sorted <- order(kw_res$adj_p_value, na.last = TRUE)
-kw_res_sorted <- kw_res[idx_kw_sorted, , drop = FALSE]
-n_top_kw <- min(10, nrow(kw_res_sorted))
-top_kw <- kw_res_sorted[1:n_top_kw, ]
-top_kw_display <- top_kw[, c("gene", "kw_statistic", "kw_p_value", "adj_p_value", "effect_size_eta2", "test_method"), drop = FALSE]
-# Format p-values with scientific notation (avoids 0e+00)
-top_kw_display$kw_p_value <- sapply(top_kw_display$kw_p_value, function(x) {
-  if (is.na(x)) return("NA")
-  if (x == 0) return("< 1e-300")
-  sprintf("%.3e", x)
-})
-top_kw_display$adj_p_value <- sapply(top_kw_display$adj_p_value, function(x) {
-  if (is.na(x)) return("NA")
-  if (x == 0) return("< 1e-300")
-  sprintf("%.3e", x)
-})
-top_kw_display$kw_statistic <- sapply(top_kw_display$kw_statistic, function(x) {
-  if (is.na(x)) return("NA")
-  sprintf("%.3e", x)
-})
-print(knitr::kable(
-    top_kw_display,
-    caption = "Rank-Based (Improved, with Hochberg Correction) - Top Significant Genes",
-    align = "lcccccc"
-))
+cat("\nTop 10 Genes (K-W):\n")
+print(kw_sig[, c("gene", "p_value")])
 ```
 
 ---
 
-# Part 3: Comparing Methods
+# Part 3: Method Concordance Analysis
 
-## Concordance
-
-```{r concordance-analysis, message=FALSE}
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC: Check for gene name mismatches before merging
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("=== PRE-MERGE DIAGNOSTICS ===\n\n")
-
-cat("Sample Sizes:\n")
-cat(sprintf("  GEE results:        %4d genes\n", nrow(lm_res)))
-cat(sprintf("  K-W results:        %4d genes\n", nrow(kw_res)))
-
-cat("\nGEE Result Structure (DETAILED DEBUG):\n")
-cat(sprintf("  Class: %s\n", paste(class(lm_res), collapse=", ")))
-cat(sprintf("  Rows: %d, Columns: %d\n", nrow(lm_res), ncol(lm_res)))
-cat(sprintf("  Columns: %s\n", paste(colnames(lm_res), collapse=", ")))
-
-cat("\nKW Result Structure (DETAILED DEBUG):\n")
-cat(sprintf("  Class: %s\n", paste(class(kw_res), collapse=", ")))
-cat(sprintf("  Rows: %d, Columns: %d\n", nrow(kw_res), ncol(kw_res)))
-cat(sprintf("  Columns: %s\n", paste(colnames(kw_res), collapse=", ")))
-
-cat("\nData Quality Checks:\n")
-cat(sprintf("  GEE p_interaction NAs:      %3d\n", sum(is.na(lm_res$p_interaction))))
-cat(sprintf("  K-W kw_p_value NAs:         %3d\n", sum(is.na(kw_res$kw_p_value))))
-
-cat("\nGene Name Extraction:\n")
-# Handle case where genes are stored as rownames vs. column (using base R only)
-if (!"gene" %in% colnames(lm_res)) {
-  if (!is.null(rownames(lm_res)) && length(rownames(lm_res)) > 0) {
-    cat("  ℹ GEE: Gene names in rownames, converting to column\n")
-    lm_res$gene <- rownames(lm_res)
-    rownames(lm_res) <- NULL
-  } else {
-    cat("  ⚠ WARNING: No gene identifier found in GEE results\n")
-    cat("    Available columns: ", paste(colnames(lm_res), collapse=", "), "\n")
-  }
-} else {
-  cat("  ℹ GEE: Gene names in $gene column\n")
-}
-
-if (!"gene" %in% colnames(kw_res)) {
-  if (!is.null(rownames(kw_res)) && length(rownames(kw_res)) > 0) {
-    cat("  ℹ K-W: Gene names in rownames, converting to column\n")
-    kw_res$gene <- rownames(kw_res)
-    rownames(kw_res) <- NULL
-  } else {
-    cat("  ⚠ WARNING: No gene identifier found in K-W results\n")
-    cat("    Available columns: ", paste(colnames(kw_res), collapse=", "), "\n")
-  }
-} else {
-  cat("  ℹ K-W: Gene names in $gene column\n")
-}
-
-# Clean whitespace from gene names (only if gene column exists now)
-if ("gene" %in% colnames(lm_res)) {
-  lm_res$gene <- trimws(as.character(lm_res$gene))
-}
-if ("gene" %in% colnames(kw_res)) {
-  kw_res$gene <- trimws(as.character(kw_res$gene))
-}
-
-cat("\nGene Name Overlap:\n")
-common_genes <- intersect(lm_res$gene, kw_res$gene)
-cat(sprintf("  Genes in both:              %3d\n", length(common_genes)))
-cat(sprintf("  Only in GEE:                %3d\n", sum(!lm_res$gene %in% kw_res$gene)))
-cat(sprintf("  Only in K-W:                %3d\n", sum(!kw_res$gene %in% lm_res$gene)))
-
-# Show examples of mismatches if any
-gee_only_genes <- setdiff(lm_res$gene, kw_res$gene)
-kw_only_genes <- setdiff(kw_res$gene, lm_res$gene)
-
-if (length(gee_only_genes) > 0 && length(gee_only_genes) <= 10) {
-  cat("\n  Genes only in GEE:\n")
-  cat("    ", paste(gee_only_genes, collapse=", "), "\n")
-}
-
-if (length(kw_only_genes) > 0 && length(kw_only_genes) <= 10) {
-  cat("\n  Genes only in K-W:\n")
-  cat("    ", paste(kw_only_genes, collapse=", "), "\n")
-}
-
-cat("\nFirst 5 gene names in each method:\n")
-cat("  GEE:  ", paste(head(lm_res$gene, 5), collapse=", "), "\n")
-cat("  K-W:  ", paste(head(kw_res$gene, 5), collapse=", "), "\n")
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Merge only genes with valid results in BOTH methods
-# Handle case where one method has no results
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== MERGING WITH VALIDATION ===\n\n")
-
-# Filter to common genes with valid p-values
-lm_res_valid <- lm_res[lm_res$gene %in% common_genes & !is.na(lm_res$p_interaction), ]
-kw_res_valid <- kw_res[kw_res$gene %in% common_genes & !is.na(kw_res$kw_p_value), ]
-
-cat("After filtering for valid results:\n")
-cat(sprintf("  GEE valid genes:    %3d\n", nrow(lm_res_valid)))
-cat(sprintf("  K-W valid genes:    %3d\n", nrow(kw_res_valid)))
-
-# Check if one method has zero results
-if (nrow(kw_res_valid) == 0 && nrow(lm_res) > 0) {
-  cat("\n⚠ NOTE: Rank-based method returned 0 results for comparison.\n")
-  cat("  Proceeding with GEE results only for downstream analysis.\n")
-  cat("  This may occur if:\n")
-  cat("  - Data lacks sufficient Q-value variation (no Q-effect)\n")
-  cat("  - All genes marked as insufficient_data or test_failed\n")
-  cat("  - Different filtering thresholds applied\n\n")
-}
-
-# Merge results with method information
-# First, check which columns actually exist
-lm_cols_available <- c("gene", "p_interaction", "adj_p_interaction", "fit_method", "n_clusters")
-lm_cols_to_use <- intersect(lm_cols_available, colnames(lm_res_valid))
-
-kw_cols_available <- c("gene", "kw_p_value", "test_method", "heteroscedastic")
-kw_cols_to_use <- intersect(kw_cols_available, colnames(kw_res_valid))
-
-cat("GEE columns to merge:", paste(lm_cols_to_use, collapse=", "), "\n")
-cat("KW columns to merge:", paste(kw_cols_to_use, collapse=", "), "\n")
-
-# Handle case where merge is empty due to no common genes
-if (length(common_genes) == 0) {
-  cat("\nWARNING: No gene overlap between GEE and rank-based results\n")
-  cat("  GEE genes: ", nrow(lm_res), "\n")
-  cat("  Rank-based genes: ", nrow(kw_res), "\n")
-  
-  if (nrow(kw_res) == 0) {
-    cat("\n⚠ RANK-BASED RETURNED NO GENES\n")
-    cat("  This typically means:\n")
-    cat("  - All genes had insufficient Q-value variation for testing\n")
-    cat("  - The rank-based method filtered out all results\n")
-    cat("  - Proceeding with GEE results only for this section\n\n")
-    
-    # Create minimal comparison with GEE only
-    comparison <- lm_res_valid[, c("gene", "p_interaction"), drop = FALSE]
-    if (!"adj_p_interaction" %in% colnames(comparison) && "adj_p_interaction" %in% colnames(lm_res)) {
-      comparison$adj_p_interaction <- lm_res_valid$adj_p_interaction
-    }
-    
-    comparison <- comparison[order(comparison$p_interaction), ]
-    cat(sprintf("  Proceeding with %d GEE genes for concordance diagnostics\n\n", nrow(comparison)))
-  } else {
-    # Detailed diagnostics for gene name mismatch
-    cat("\n⚠ DIAGNOSTIC: Gene name mismatch detected\n")
-    cat(sprintf("  GEE results: %d genes\n", nrow(lm_res)))
-    cat(sprintf("  K-W results: %d genes\n", nrow(kw_res)))
-    cat(sprintf("  Common genes after intersect(): %d\n", length(common_genes)))
-    
-    # Debug: Show actual gene names
-    cat("\n  GEE gene names (first 10):\n")
-    cat("    ", paste(head(lm_res$gene, 10), collapse=", "), "\n")
-    cat("\n  K-W gene names (first 10):\n")
-    cat("    ", paste(head(kw_res$gene, 10), collapse=", "), "\n")
-    
-    # Try to identify the problem
-    cat("\n  Checking for formatting differences...\n")
-    
-    # Remove whitespace and try again
-    lm_genes_clean <- trimws(tolower(as.character(lm_res$gene)))
-    kw_genes_clean <- trimws(tolower(as.character(kw_res$gene)))
-    common_genes_clean <- intersect(lm_genes_clean, kw_genes_clean)
-    
-    if (length(common_genes_clean) > 0) {
-      cat(sprintf("    ✓ Found %d matches after case-insensitive comparison\n", length(common_genes_clean)))
-      # Use cleaned genes for matching
-      lm_res$gene <- lm_genes_clean
-      kw_res$gene <- kw_genes_clean
-      common_genes <- common_genes_clean
-    } else {
-      cat("    ✗ Still no matches - genes truly differ\n")
-      cat("\n  This indicates a deeper data structure problem.\n")
-      cat("  Proceeding with GEE results only.\n\n")
-      
-      # Fallback: use GEE only
-      comparison <- lm_res_valid[, c("gene", "p_interaction"), drop = FALSE]
-      if ("adj_p_interaction" %in% colnames(lm_res_valid)) {
-        comparison$adj_p_interaction <- lm_res_valid$adj_p_interaction
-      }
-      comparison <- comparison[order(comparison$p_interaction), ]
-      cat(sprintf("  Using %d GEE genes for this section\n\n", nrow(comparison)))
-    }
-  }
-} else if (!"p_interaction" %in% lm_cols_to_use) {
-  cat("\nERROR DIAGNOSTIC: p_interaction not found in lm_cols_to_use!\n")
-  cat("  lm_res dimensions:", nrow(lm_res), "rows x", ncol(lm_res), "columns\n")
-  cat("  All columns in lm_res: ", paste(colnames(lm_res), collapse=", "), "\n")
-  cat("  lm_cols_to_use:", paste(lm_cols_to_use, collapse=", "), "\n")
-  
-  p_cols <- grep("p", colnames(lm_res), value=TRUE)
-  if (length(p_cols) > 0) {
-    cat("  P-value columns found: ", paste(p_cols, collapse=", "), "\n")
-  }
-  
-  stop("CRITICAL ERROR: p_interaction not found in results - check function return structure")
-}
-
-# Perform merge (only if common genes exist)
-# Initialize comparison as empty dataframe as fallback
-comparison <- data.frame()
-
-if (length(common_genes) > 0 && nrow(lm_res_valid) > 0 && nrow(kw_res_valid) > 0) {
-  comparison <- merge(
-      lm_res_valid[, lm_cols_to_use, drop = FALSE],
-      kw_res_valid[, kw_cols_to_use, drop = FALSE],
-      by = "gene"
-  )
-  
-  if (nrow(comparison) == 0) {
-    cat("WARNING: Merge produced 0 rows. lm_res_valid has", nrow(lm_res_valid), "genes, kw_res_valid has", nrow(kw_res_valid), "genes\n")
-  }
-} else if (exists("comparison") && nrow(comparison) == 0) {
-  # comparison was created above with GAM-only data, just sort it
-  # (this happens when rank-based returned no genes)
-}
-
-if (nrow(comparison) > 0) {
-  comparison <- comparison[order(comparison$p_interaction), ]
-}
-
-cat(sprintf("  Final genes for concordance analysis: %3d\n\n", nrow(comparison)))
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# COMPREHENSIVE DEBUG: Check comparison dataframe structure
-# ═══════════════════════════════════════════════════════════════════════════════
-
-cat("\n\n=== DEBUG: COMPARISON DATAFRAME STRUCTURE ===\n\n")
-cat("Class:", paste(class(comparison), collapse=", "), "\n")
-cat("Dimensions:", nrow(comparison), "rows x", ncol(comparison), "columns\n")
-cat("Column names:", paste(colnames(comparison), collapse=", "), "\n")
-cat("Column types:\n")
-for (col in colnames(comparison)) {
-  cat(sprintf("  %s: %s\n", col, paste(class(comparison[[col]]), collapse=", ")))
-}
-
-cat("\nFirst few rows of comparison:\n")
-if (nrow(comparison) > 0) {
-  print(head(comparison, 3))
-} else {
-  cat("  (Empty dataframe)\n")
-}
-
-cat("\n")
-
-# Correlation
-if (nrow(comparison) == 0) {
-  cat("SKIPPING: Cannot compute concordance with 0 merged genes\n")
-  p_corr <- NA
-} else {
-  # Safe column access with checks
-  if (!"p_interaction" %in% colnames(comparison)) {
-    cat("ERROR DEBUG: p_interaction column missing!\n")
-    cat("  Available columns: ", paste(colnames(comparison), collapse=", "), "\n")
-    stop("CRITICAL: p_interaction not found in comparison dataframe")
-  }
-  if (!"kw_p_value" %in% colnames(comparison)) {
-    cat("ERROR DEBUG: kw_p_value column missing!\n")
-    cat("  Available columns: ", paste(colnames(comparison), collapse=", "), "\n")
-    stop("CRITICAL: kw_p_value not found in comparison dataframe")
-  }
-  
-  p_corr <- cor(comparison$p_interaction, comparison$kw_p_value, 
-                use = "complete.obs", method = "spearman")
-}
-
-cat("=== METHODOLOGICAL CONCORDANCE ===\n\n")
-if (is.na(p_corr)) {
-  cat("Cannot compute correlation: merged dataset is empty\n")
-} else {
-  cat("Spearman correlation of p-values:", sprintf("%.4f\n", p_corr))
-  
-  if (p_corr > 0.85) {
-      cat("✓ HIGH CONCORDANCE: Methods strongly agree\n")
-      cat("  Conclusion: Results are ROBUST across parametric and rank-based approaches\n")
-      cat("  Note: Both methods now use adaptive improvements based on data characteristics\n")
-  } else if (p_corr > 0.70) {
-      cat("✓ MODERATE CONCORDANCE: Methods generally agree\n")
-      cat("  Conclusion: Core findings consistent; some variation expected\n")
-      cat("  Investigation: Check which test methods were selected by improved approach\n")
-  } else {
-      cat("⚠ LOW CONCORDANCE: Methods disagree substantially\n")
-      cat("  Recommendation: Review data characteristics detected by both methods\n")
-      cat("  Analysis: Compare fit_method (GEE) with test_method (rank-based)\n")
-  }
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 1: Test Method Selection Breakdown
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 1: TEST METHOD SELECTION ===\n\n")
-
-# GEE method selection breakdown
-if ("fit_method" %in% colnames(comparison)) {
-  cat("GEE Fitting Method Breakdown:\n")
-  method_counts <- table(comparison$fit_method)
-  for (method in names(method_counts)) {
-    cat(sprintf("  %-25s: %3d genes (%.1f%%)\n", method, method_counts[method], 
-                100 * method_counts[method] / nrow(comparison)))
-  }
-} else {
-  cat("NOTE: fit_method not available in GEE results\n")
-}
-
-# Rank-based test method selection breakdown
-if ("test_method" %in% colnames(comparison)) {
-  cat("\nRank-Based Test Method Selection Breakdown:\n")
-  test_counts <- table(comparison$test_method)
-  for (test in names(test_counts)) {
-    cat(sprintf("  %-25s: %3d genes (%.1f%%)\n", test, test_counts[test], 
-                100 * test_counts[test] / nrow(comparison)))
-  }
-} else {
-  cat("NOTE: test_method not available in KW results\n")
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 2: Side-by-Side Method Comparison
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 2: SIDE-BY-SIDE METHOD COMPARISON ===\n\n")
-
-# Safety check: only proceed if we have data
-if (nrow(comparison) > 0) {
-  # Create comparison table with test methods - build column list dynamically
-  display_cols <- "gene"
-  if ("p_interaction" %in% colnames(comparison)) display_cols <- c(display_cols, "p_interaction")
-  if ("family_used" %in% colnames(comparison)) display_cols <- c(display_cols, "family_used")
-  if ("heteroscedasticity_detected" %in% colnames(comparison)) display_cols <- c(display_cols, "heteroscedasticity_detected")
-  if ("kw_p_value" %in% colnames(comparison)) display_cols <- c(display_cols, "kw_p_value")
-  if ("test_method" %in% colnames(comparison)) display_cols <- c(display_cols, "test_method")
-  if ("heteroscedastic" %in% colnames(comparison)) display_cols <- c(display_cols, "heteroscedastic")
-
-  # Verify all columns exist before subsetting
-  display_cols <- intersect(display_cols, colnames(comparison))
-  
-  if (length(display_cols) > 0) {
-    # Select only columns that exist
-    comp_display <- comparison[, display_cols, drop = FALSE]
-
-    cat("Comparison of first 20 genes (sorted by GEE p-value):\n\n")
-    if (nrow(comp_display) > 0) {
-      print_df <- head(comp_display, 20)
-      # Format p-values with scientific notation
-      for (col in c("p_interaction", "adj_p_interaction", "kw_p_value")) {
-        if (col %in% colnames(print_df)) {
-          print_df[[col]] <- format(print_df[[col]], digits = 3, scientific = TRUE)
-        }
-      }
-      print(print_df, row.names = FALSE)
-    }
-  } else {
-    cat("No columns available for display\n")
-  }
-} else {
-  cat("SKIPPING: comparison dataframe is empty\n")
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 3: Heteroscedasticity Detection Agreement
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 3: HETEROSCEDASTICITY DETECTION ===\n\n")
-
-# Safety check: only proceed if we have data
-if (nrow(comparison) > 0) {
-  hetero_gee <- if ("heteroscedasticity_detected" %in% colnames(comparison)) {
-    sum(comparison$heteroscedasticity_detected, na.rm = TRUE)
-  } else {
-    NA
-  }
-
-  hetero_kw <- if ("heteroscedastic" %in% colnames(comparison)) {
-    sum(comparison$heteroscedastic, na.rm = TRUE)
-  } else {
-    NA
-  }
-
-  if (!is.na(hetero_gee)) {
-    cat(sprintf("GEE detected heteroscedasticity in: %3d genes (%.1f%%)\n", hetero_gee, 100 * hetero_gee / nrow(comparison)))
-  }
-  if (!is.na(hetero_kw)) {
-    cat(sprintf("KW detected heteroscedasticity in:  %3d genes (%.1f%%)\n", hetero_kw, 100 * hetero_kw / nrow(comparison)))
-  }
-
-  # Both detected?
-  if (!is.na(hetero_gee) && !is.na(hetero_kw)) {
-    both_hetero <- if ("heteroscedasticity_detected" %in% colnames(comparison) && 
-                        "heteroscedastic" %in% colnames(comparison)) {
-      sum(comparison$heteroscedasticity_detected & comparison$heteroscedastic, na.rm = TRUE)
-    } else {
-      NA
-    }
-    if (!is.na(both_hetero)) {
-      cat(sprintf("Both detected heteroscedasticity:   %3d genes (%.1f%%)\n", both_hetero, 100 * both_hetero / nrow(comparison)))
-    }
-  }
-} else {
-  cat("SKIPPING: Cannot analyze heteroscedasticity (comparison dataframe is empty)\n")
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 4: P-Value Distribution Analysis
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 4: P-VALUE DISTRIBUTIONS ===\n\n")
-
-# Safety check: only proceed if we have the required columns
-if (nrow(comparison) > 0 && "p_interaction" %in% colnames(comparison) && "kw_p_value" %in% colnames(comparison)) {
-  # GAM p-value distribution
-  cat("GAM p-value distribution:\n")
-  cat(sprintf("  Range: [%.2e, %.2e]\n", min(comparison$p_interaction, na.rm = TRUE), 
-              max(comparison$p_interaction, na.rm = TRUE)))
-  cat(sprintf("  Median: %.2e\n", median(comparison$p_interaction, na.rm = TRUE)))
-  cat(sprintf("  Mean: %.2e\n", mean(comparison$p_interaction, na.rm = TRUE)))
-  cat(sprintf("  Significant (p < 0.05): %3d (%.1f%%)\n", 
-              sum(comparison$p_interaction < 0.05, na.rm = TRUE),
-              100 * sum(comparison$p_interaction < 0.05, na.rm = TRUE) / nrow(comparison)))
-  cat(sprintf("  Highly significant (p < 0.001): %3d (%.1f%%)\n", 
-              sum(comparison$p_interaction < 0.001, na.rm = TRUE),
-              100 * sum(comparison$p_interaction < 0.001, na.rm = TRUE) / nrow(comparison)))
-
-  cat("\nKW p-value distribution:\n")
-  cat(sprintf("  Range: [%.2e, %.2e]\n", min(comparison$kw_p_value, na.rm = TRUE), 
-              max(comparison$kw_p_value, na.rm = TRUE)))
-  cat(sprintf("  Median: %.2e\n", median(comparison$kw_p_value, na.rm = TRUE)))
-  cat(sprintf("  Mean: %.2e\n", mean(comparison$kw_p_value, na.rm = TRUE)))
-  cat(sprintf("  Significant (p < 0.05): %3d (%.1f%%)\n", 
-              sum(comparison$kw_p_value < 0.05, na.rm = TRUE),
-              100 * sum(comparison$kw_p_value < 0.05, na.rm = TRUE) / nrow(comparison)))
-  cat(sprintf("  Highly significant (p < 0.001): %3d (%.1f%%)\n", 
-              sum(comparison$kw_p_value < 0.001, na.rm = TRUE),
-              100 * sum(comparison$kw_p_value < 0.001, na.rm = TRUE) / nrow(comparison)))
-} else {
-  cat("SKIPPING: Cannot compute p-value distributions (missing required columns or empty dataset)\n")
-  if (nrow(comparison) == 0) {
-    cat("  Reason: comparison dataframe is empty\n")
-  } else {
-    cat("  Missing columns:\n")
-    if (!"p_interaction" %in% colnames(comparison)) cat("    - p_interaction\n")
-    if (!"kw_p_value" %in% colnames(comparison)) cat("    - kw_p_value\n")
-  }
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 5: Extreme Disagreement Analysis
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 5: EXTREME DISAGREEMENT ANALYSIS ===\n\n")
-
-# Safety check: only proceed if we have required columns
-if (nrow(comparison) > 0 && "p_interaction" %in% colnames(comparison) && "kw_p_value" %in% colnames(comparison)) {
-  # Find genes with extreme disagreement: p < 0.001 in one method, p > 0.9 in other
-  extreme_gam_low_kw_high <- comparison[comparison$p_interaction < 0.001 & comparison$kw_p_value > 0.9, , drop = FALSE]
-  extreme_kw_low_gam_high <- comparison[comparison$kw_p_value < 0.001 & comparison$p_interaction > 0.9, , drop = FALSE]
-
-  cat(sprintf("Genes with extreme disagreement (p<0.001 in one, p>0.9 in other):\n"))
-  cat(sprintf("  GAM significant, KW not: %3d genes\n", nrow(extreme_gam_low_kw_high)))
-  cat(sprintf("  KW significant, GAM not: %3d genes\n", nrow(extreme_kw_low_gam_high)))
-
-  if (nrow(extreme_gam_low_kw_high) > 0) {
-    cat("\n  GAM highly significant, KW not (first 10):\n")
-    display_cols <- c("gene", "p_interaction", "family_used", "kw_p_value", "test_method")
-    display_cols <- intersect(display_cols, colnames(extreme_gam_low_kw_high))
-    if (length(display_cols) > 0) {
-      extreme_display <- head(extreme_gam_low_kw_high[, display_cols, drop = FALSE], 10)
-      print(extreme_display, row.names = FALSE)
-    }
-  }
-
-  if (nrow(extreme_kw_low_gam_high) > 0) {
-    cat("\n  KW highly significant, GAM not (first 10):\n")
-    display_cols <- c("gene", "p_interaction", "family_used", "kw_p_value", "test_method")
-    display_cols <- intersect(display_cols, colnames(extreme_kw_low_gam_high))
-    if (length(display_cols) > 0) {
-      extreme_display <- head(extreme_kw_low_gam_high[, display_cols, drop = FALSE], 10)
-      print(extreme_display, row.names = FALSE)
-    }
-  }
-} else {
-  cat("SKIPPING: Cannot analyze extreme disagreement (missing required columns or empty dataset)\n")
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 6: Filtering Impact Analysis
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 6: FILTERING IMPACT ===\n\n")
-
-cat("Gene retention summary:\n")
-cat(sprintf("  Initial genes analyzed:     %3d\n", n_genes_subset))
-cat(sprintf("  GAM detected interactions:  %3d (%.1f%% retention)\n", 
-            nrow(lm_res), 100 * nrow(lm_res) / n_genes_subset))
-cat(sprintf("  KW detected interactions:   %3d (%.1f%% retention)\n", 
-            nrow(kw_res), 100 * nrow(kw_res) / n_genes_subset))
-cat(sprintf("  Common genes for comparison: %3d (%.1f%% of GAM, %.1f%% of KW)\n", 
-            nrow(comparison), 100 * nrow(comparison) / nrow(lm_res), 
-            100 * nrow(comparison) / nrow(kw_res)))
-
-cat("\nInterpretation:\n")
-if (100 * nrow(lm_res) / n_genes_subset < 30) {
-  cat("  ⚠ WARNING: GAM retained <30% of genes - may indicate aggressive filtering\n")
-}
-if (100 * nrow(kw_res) / n_genes_subset < 30) {
-  cat("  ⚠ WARNING: KW retained <30% of genes - may indicate aggressive filtering\n")
-}
-if (abs(100 * nrow(lm_res) / n_genes_subset - 100 * nrow(kw_res) / n_genes_subset) > 30) {
-  cat("  ⚠ ALERT: Large difference in retention rates - methods apply different thresholds?\n")
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 7: Q-Value Distribution Analysis
-# ─────────────────────────────────────────────────────────────────────────────
-# Check if K-W finds no signal because:
-# A) There truly is NO variation across Q-levels (Q-effect is genuinely absent)
-# B) The test is broken or applying wrong transformation
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 7: Q-VALUE DISTRIBUTION ANALYSIS ===\n\n")
-
-cat("Entropy variation across Q-levels:\n\n")
-
-# Get all Q-levels and genes
-all_q_levels <- unique(entropy_long$q)
-comparison_genes <- comparison$gene
-
-# Analyze distribution by Q-level
-cat("Overall entropy statistics by Q-level:\n")
-for (q_val in sort(as.numeric(unique(entropy_long$q)))) {
-  q_data <- entropy_long$entropy[entropy_long$q == q_val & entropy_long$gene %in% comparison_genes]
-  if (length(q_data) > 0) {
-    cat(sprintf("  Q = %4.1f: mean(entropy) = %.4f, sd = %.4f, range = [%.4f, %.4f]\n",
-                as.numeric(q_val),
-                mean(q_data, na.rm = TRUE),
-                sd(q_data, na.rm = TRUE),
-                min(q_data, na.rm = TRUE),
-                max(q_data, na.rm = TRUE)))
-  }
-}
-
-# Check: Do entropy values VARY meaningfully across Q-levels?
-# This is critical - K-W tests for Q-effects, so if there's NO variation, p ≈ 1 is correct
-cat("\n\nQ-Effect Magnitude (for genes in comparison set):\n")
-
-# For each gene in comparison, compute variance across Q-levels
-gene_q_effects <- numeric(nrow(comparison))
-
-for (g_idx in seq_len(nrow(comparison))) {
-  gene_name <- comparison$gene[g_idx]
-  gene_entropy <- entropy_long[entropy_long$gene == gene_name, c("entropy", "q")]
-  
-  if (nrow(gene_entropy) > 0) {
-    # Variance across Q-levels (between-group variance)
-    q_means <- tapply(gene_entropy$entropy, gene_entropy$q, mean, na.rm = TRUE)
-    grand_mean <- mean(gene_entropy$entropy, na.rm = TRUE)
-    q_counts <- tapply(gene_entropy$entropy, gene_entropy$q, length)
-    
-    ss_between <- sum(q_counts * (q_means - grand_mean)^2, na.rm = TRUE)
-    ss_total <- sum((gene_entropy$entropy - grand_mean)^2, na.rm = TRUE)
-    
-    if (ss_total > 0) {
-      eta2 <- ss_between / ss_total
-      gene_q_effects[g_idx] <- eta2
-    } else {
-      gene_q_effects[g_idx] <- 0
-    }
-  }
-}
-
-cat(sprintf("  Mean eta^2 (Q-effect size): %.4f\n", mean(gene_q_effects, na.rm = TRUE)))
-cat(sprintf("  Median eta^2:               %.4f\n", median(gene_q_effects, na.rm = TRUE)))
-cat(sprintf("  Max eta^2:                  %.4f\n", max(gene_q_effects, na.rm = TRUE)))
-cat(sprintf("  Genes with eta^2 > 0.01:    %3d (%.1f%%)\n",
-            sum(gene_q_effects > 0.01, na.rm = TRUE),
-            100 * sum(gene_q_effects > 0.01, na.rm = TRUE) / length(gene_q_effects)))
-
-# Example genes: Show detailed Q-distribution for top GAM genes
-cat("\n\nDetailed Q-distributions for top GAM-significant genes:\n\n")
-
-if (nrow(comparison) > 0 && "gene" %in% colnames(comparison) && "p_interaction" %in% colnames(comparison)) {
-  top_gam_genes <- head(comparison$gene[order(comparison$p_interaction)], 5)
-
-  for (g_idx in seq_along(top_gam_genes)) {
-    gene_name <- top_gam_genes[g_idx]
-    gene_data <- entropy_long[entropy_long$gene == gene_name, ]
-    gam_pval <- comparison$p_interaction[comparison$gene == gene_name]
-    kw_pval <- if ("kw_p_value" %in% colnames(comparison)) {
-      comparison$kw_p_value[comparison$gene == gene_name]
-    } else {
-      NA
-    }
-    
-    cat(sprintf("Gene: %s (GAM p=%.2e, KW p=%.2e)\n", gene_name, gam_pval, kw_pval))
-    
-    # Show entropy by Q-level
-    for (q_val in sort(unique(as.numeric(gene_data$q)))) {
-      q_entropy <- gene_data$entropy[as.numeric(gene_data$q) == q_val]
-      cat(sprintf("  Q=%.1f: n=%d, mean=%.4f, sd=%.4f, range=[%.4f, %.4f]\n",
-                  q_val,
-                  length(q_entropy),
-                  mean(q_entropy, na.rm = TRUE),
-                  sd(q_entropy, na.rm = TRUE),
-                  min(q_entropy, na.rm = TRUE),
-                  max(q_entropy, na.rm = TRUE)))
-    }
-    cat("\n")
-  }
-} else {
-  cat("SKIPPING: Cannot show detailed Q-distributions (comparison dataframe missing required columns)\n")
-}
-
-# KEY INTERPRETATION
-cat("\n\n=== INTERPRETATION ===\n\n")
-
-mean_eta2 <- mean(gene_q_effects, na.rm = TRUE)
-
-# Handle case where all values are NA
-if (is.na(mean_eta2)) {
-  cat("⚠ WARNING: Could not compute mean effect size (all values NA)\n")
-  cat("   This may indicate insufficient data for effect analysis\n")
-} else if (mean_eta2 < 0.001) {
-  cat("⚠ FINDING: Q-values show essentially NO variation in entropy across Q-levels\n")
-  cat("   This means K-W finding p≈1 is CORRECT - there's no Q-effect to detect!\n")
-  cat("   The discordance with GAM suggests:\n")
-  cat("   - GAM may be fitting noise or confounders\n")
-  cat("   - Different null hypotheses being tested\n")
-} else if (mean_eta2 < 0.01) {
-  cat("⚠ FINDING: Q-values show WEAK variation across Q-levels (eta2 < 0.01)\n")
-  cat("   This means Q-effects are very small, as K-W is indicating\n")
-  cat("   Discordance with GAM warrants investigation of GAM assumptions\n")
-} else {
-  cat("✓ FINDING: Q-values show MEANINGFUL variation across Q-levels (eta2 > 0.01)\n")
-  cat("   K-W should detect this effect, but is returning p≈1\n")
-  cat("   This suggests K-W test may have implementation issues\n")
-  cat("   (After boundary clustering fix, this should improve)\n")
-}
-
-# Agreement at p < 0.05
-if (nrow(comparison) > 0 && "p_interaction" %in% colnames(comparison) && "kw_p_value" %in% colnames(comparison)) {
-  both_sig <- sum(comparison$p_interaction < 0.05 & comparison$kw_p_value < 0.05, na.rm = TRUE)
-  gam_only <- sum(comparison$p_interaction < 0.05 & comparison$kw_p_value >= 0.05, na.rm = TRUE)
-  kw_only <- sum(comparison$p_interaction >= 0.05 & comparison$kw_p_value < 0.05, na.rm = TRUE)
-  neither <- sum(comparison$p_interaction >= 0.05 & comparison$kw_p_value >= 0.05, na.rm = TRUE)
-  
-  cat("\n\nThreshold Agreement (p < 0.05):\n")
-  cat(sprintf("  Both methods agree SIGNIFICANT:     %3d genes\n", both_sig))
-  cat(sprintf("  GAM only significant:               %3d genes\n", gam_only))
-  cat(sprintf("  Rank-based only significant:        %3d genes\n", kw_only))
-  cat(sprintf("  Both methods agree NOT significant: %3d genes\n", neither))
-  
-  pct_agreement <- 100 * (both_sig + neither) / nrow(comparison)
-  cat(sprintf("\n  Overall agreement rate: %.1f%%\n", pct_agreement))
-} else {
-  cat("\nCannot compute threshold agreement: merged dataset is empty\n")
-}
-```
-
-## Side-by-Side Comparison with Test Method Details
-
-```{r comparison-table}
-if (nrow(comparison) == 0) {
-  cat("SKIPPING: Cannot display comparison table with 0 merged genes\n")
-} else {
-  cat("\n\nDetailed Comparison with Test Methods (first 15 genes):\n")
-  
-  # Safely select display columns that exist
-  disp_cols_available <- c("gene", "p_interaction", "family_used", "heteroscedasticity_detected",
-                           "kw_p_value", "test_method", "heteroscedastic")
-  disp_cols <- intersect(disp_cols_available, colnames(comparison))
-  
-  if (length(disp_cols) == 0) {
-    cat("ERROR: No displayable columns found in comparison\n")
-  } else {
-    n_disp <- min(15, nrow(comparison))
-    comp_display_table <- comparison[1:n_disp, disp_cols, drop = FALSE]
-    # Format p-values with scientific notation
-    if ("p_interaction" %in% colnames(comp_display_table)) {
-      comp_display_table$p_interaction <- sapply(comp_display_table$p_interaction, function(x) {
-        if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
-      })
-    }
-    if ("kw_p_value" %in% colnames(comp_display_table)) {
-      comp_display_table$kw_p_value <- sapply(comp_display_table$kw_p_value, function(x) {
-        if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
-      })
-    }
-    print(knitr::kable(
-        comp_display_table,
-        caption = "Semi-parametric (GEE) vs. Rank-Based (Improved) - Methods and Results",
-        align = "lccccccc"
-    ))
-  }
-}
-```
-
----
-
-# Part 4: Robust Gene List
-
-## High-Confidence Findings
-
-```{r robust-genes, message=FALSE}
-if (nrow(comparison) == 0) {
-  cat("=== ROBUST GENE LIST ===\n")
-  cat("Cannot identify robust genes: merged comparison is empty\n")
-} else {
-  # Genes significant in BOTH methods
-  robust_genes <- comparison[
-      comparison$p_interaction < 0.05 & 
-      comparison$kw_p_value < 0.05, 
-  ]
-  
-  cat("=== ROBUST GENE LIST ===\n")
-  cat("Genes with strong evidence in BOTH methods\n")
-  cat("(Highest confidence for publication)\n\n")
-  
-  if (nrow(robust_genes) > 0) {
-      robust_display <- robust_genes[order(robust_genes$p_interaction), ]
-      
-      # Safely select columns for display
-      disp_cols_robust <- intersect(colnames(robust_display), 
-                                    c("gene", "p_interaction", "kw_p_value", "family_used", "test_method"))
-      n_disp <- min(15, nrow(robust_display))
-      
-      robust_display_table <- robust_display[1:n_disp, disp_cols_robust, drop = FALSE]
-      # Format p-values with scientific notation
-      if ("p_interaction" %in% colnames(robust_display_table)) {
-        robust_display_table$p_interaction <- sapply(robust_display_table$p_interaction, function(x) {
-          if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
-        })
-      }
-      if ("kw_p_value" %in% colnames(robust_display_table)) {
-        robust_display_table$kw_p_value <- sapply(robust_display_table$kw_p_value, function(x) {
-          if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
-        })
-      }
-      
-      print(knitr::kable(
-          robust_display_table,
-          caption = sprintf("High-Confidence Genes (%d total significant in both methods)", nrow(robust_genes)),
-          align = "lccccc"
-      ))
-      
-      cat("\n\nInterpretation:\n")
-      cat("  • These genes show q×group interactions with robust evidence\n")
-      cat("  • Results validated across TWO independent statistical methods\n")
-      cat("  • Recommended for detailed biological interpretation\n")
-      cat("  • Stabilized by Bayesian pseudocount regularization (WLFC method)\n")
-  } else {
-      cat("  (No genes significant at p < 0.05 in both methods)\n")
-  }
-}
-```
-
----
-
-# Part 6: Impact of Bayesian Pseudocount Regularization
-
-## WLFC Pseudocount Effects on Entropy Stability
-
-```{r wlfc-impact-analysis, message=FALSE}
-cat("=== BAYESIAN PSEUDOCOUNT (WLFC) IMPACT ANALYSIS ===\n\n")
-
-cat("Prior Hyperparameters (fitted from data):\n")
-cat(sprintf("  α (alpha):  %.4f   (prior weight on success)\n", alpha_prior))
-cat(sprintf("  β (beta):   %.4f   (prior weight on failure)\n", beta_prior))
-cat(sprintf("  Prior mode: %.4f   (most likely proportion)\n", (alpha_prior - 1) / (alpha_prior + beta_prior - 2)))
-cat(sprintf("  Prior mean: %.4f   (average proportion)\n", alpha_prior / (alpha_prior + beta_prior)))
-
-cat("\nWLFC Pseudocount Usage:\n")
-cat(sprintf("  Method:     Empirical Bayes (Beta-Binomial conjugate)\n"))
-cat(sprintf("  Applied:    Mean pseudocount = %.6f\n", scalar_pseudocount))
-cat(sprintf("  Purpose:    Stabilize entropy estimates for sparse/extreme genes\n"))
-
-cat("\nExpected Benefits of WLFC Regularization:\n")
-cat("  1. Reduced variance: More stable entropy estimates across q-values\n")
-cat("  2. Shrinkage: Extreme proportions (0/1) pulled toward center\n")
-cat("  3. Borrowing strength: Information shared across similar genes\n")
-cat("  4. Principled approach: Posterior variance weights each gene appropriately\n")
-
-# Diagnostic: Check gene-specific pseudocount range
-if (length(wlfc_pseudocounts) > 0) {
-  cat("\nGene-Specific Pseudocount Characteristics:\n")
-  
-  # Genes with highest/lowest pseudocounts
-  top_pseudo_idx <- order(wlfc_pseudocounts, decreasing = TRUE)[1:min(5, length(wlfc_pseudocounts))]
-  low_pseudo_idx <- order(wlfc_pseudocounts, decreasing = FALSE)[1:min(5, length(wlfc_pseudocounts))]
-  
-  cat("\n  Genes with HIGHEST pseudocounts (most regularization needed):\n")
-  for (idx in top_pseudo_idx) {
-    if (!is.na(idx)) {
-      cat(sprintf("    %s: %.6f\n", names(wlfc_pseudocounts)[idx], wlfc_pseudocounts[idx]))
-    }
-  }
-  
-  cat("\n  Genes with LOWEST pseudocounts (minimal regularization):\n")
-  for (idx in low_pseudo_idx) {
-    if (!is.na(idx)) {
-      cat(sprintf("    %s: %.6f\n", names(wlfc_pseudocounts)[idx], wlfc_pseudocounts[idx]))
-    }
-  }
-}
-
-cat("\nRecommendations for Using WLFC Pseudocounts:\n")
-cat("  ✓ Use for sparse RNA-seq data (many zeros)\n")
-cat("  ✓ Use for differential expression with extreme proportions\n")
-cat("  ✓ Improves stability of entropy-based diversity measures\n")
-cat("  ✓ Reduces false positives from numerical instability\n")
-cat("  ✓ Particularly effective for low-coverage genes\n\n")
-
-cat("Reference Implementation:\n")
-cat("  Function: compute_wlfc_pseudocounts(counts, alpha, beta)\n")
-cat("  Returns:  Gene-specific pseudocount value [0, 1]\n")
-cat("  Used by:  calculate_diversity(pseudocount = value)\n")
-cat("  Paper:    Erhard et al. (2018) Bioinformatics 34(12):2096\n")
-```
-
----
-
-# Part 5: Visualization
-
-## P-Value Scatter Plot
-
-```{r scatter-plot, fig.width=10, fig.height=8}
-if (nrow(comparison) == 0 || !"p_interaction" %in% colnames(comparison) || !"kw_p_value" %in% colnames(comparison)) {
-  cat("SKIPPING: Cannot create scatter plot - insufficient data\n")
-} else {
-  plot_data <- comparison
-  plot_data$log10_gam <- -log10(pmax(plot_data$p_interaction, 1e-300))
-  plot_data$log10_kw <- -log10(pmax(plot_data$kw_p_value, 1e-300))
-  
-  # Create agreement categories using base R (no dplyr needed)
-  plot_data$agreement <- ifelse(
-      plot_data$p_interaction < 0.05 & plot_data$kw_p_value < 0.05, "Both Significant",
-      ifelse(plot_data$p_interaction < 0.05, "GAM Only",
-             ifelse(plot_data$kw_p_value < 0.05, "KW Only", "Neither")))
-
-p1 <- ggplot(plot_data, aes(x = log10_gam, y = log10_kw, 
-                            color = agreement, size = agreement)) +
-    geom_point(alpha = 0.6) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "gray50", linewidth = 1) +
-    geom_vline(xintercept = -log10(0.05), linetype = "dotted", color = "red", alpha = 0.5) +
-    geom_hline(yintercept = -log10(0.05), linetype = "dotted", color = "red", alpha = 0.5) +
-    scale_color_manual(
-        values = c("Both Significant" = "#2ecc71", "GAM Only" = "#3498db", 
-                  "KW Only" = "#e74c3c", "Neither" = "#bdc3c7")
-    ) +
-    scale_size_manual(values = c("Both Significant" = 5, "GAM Only" = 3, 
-                                 "KW Only" = 3, "Neither" = 2)) +
-    labs(
-        title = "Parametric (GAM) vs. Rank-Based (Kruskal-Wallis) Comparison",
-        x = "-log10(GAM p-value)",
-        y = "-log10(Kruskal-Wallis p-value)",
-        color = "Method Agreement",
-        size = "Method Agreement"
-    ) +
-    theme_minimal() +
-    theme(legend.position = "right", plot.title = element_text(face = "bold"))
-
-print(p1)
-  
-  ## P-Value Distributions
-  p2 <- ggplot(plot_data, aes(x = log10_gam)) +
-      geom_histogram(fill = "#3498db", alpha = 0.7, bins = 20) +
-      geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "red", linewidth = 1) +
-      labs(title = "GAM P-Value Distribution",
-           x = "-log10(p-value)", y = "Number of Genes") +
-      theme_minimal()
-  
-  p3 <- ggplot(plot_data, aes(x = log10_kw)) +
-      geom_histogram(fill = "#e74c3c", alpha = 0.7, bins = 20) +
-      geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "red", linewidth = 1) +
-      labs(title = "Kruskal-Wallis P-Value Distribution",
-           x = "-log10(p-value)", y = "Number of Genes") +
-      theme_minimal()
-  
-  gridExtra::grid.arrange(p2, p3, ncol = 2)
-}
-```
-
----
-
-# Part 4a: MEDIAN Analysis - Testing if Medians ($\eta$) Differ Across Q-Levels
-
-```{r median-analysis, message=FALSE}
-# ─────────────────────────────────────────────────────────────────────────────
-# MEDIAN ANALYSIS: Test if median entropy differs across Q-levels
-# This tests a different hypothesis than GEE (means/sandwich) or K-W (ranks)
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== MEDIAN ANALYSIS: Robust Non-Parametric Testing ===\n\n")
-
-# Compute median entropy for each gene across Q-levels
-gene_medians <- data.frame(
-  gene = character(),
-  median_entropy = numeric(),
-  mean_entropy = numeric(),
-  median_q_effect = numeric(),
-  mean_q_effect = numeric(),
-  stringsAsFactors = FALSE
-)
-
-for (g_idx in seq_along(test_genes)) {
-  gene_name <- test_genes[g_idx]
-  gene_data <- entropy_long[entropy_long$gene == gene_name, ]
-  
-  # Overall statistics
-  median_ent <- median(gene_data$entropy, na.rm = TRUE)
-  mean_ent <- mean(gene_data$entropy, na.rm = TRUE)
-  
-  # Q-effect size: difference between max and min median entropy across Q-levels
-  q_medians <- tapply(gene_data$entropy, gene_data$q, median, na.rm = TRUE)
-  q_means <- tapply(gene_data$entropy, gene_data$q, mean, na.rm = TRUE)
-  
-  median_effect <- max(q_medians, na.rm = TRUE) - min(q_medians, na.rm = TRUE)
-  mean_effect <- max(q_means, na.rm = TRUE) - min(q_means, na.rm = TRUE)
-  
-  gene_medians <- rbind(gene_medians, data.frame(
-    gene = gene_name,
-    median_entropy = median_ent,
-    mean_entropy = mean_ent,
-    median_q_effect = median_effect,
-    mean_q_effect = mean_effect,
-    stringsAsFactors = FALSE
-  ))
-}
-
-cat("Median vs Mean Q-effect comparison:\n\n")
-cat(sprintf("Genes with LARGER median Q-effect than mean Q-effect:\n"))
-larger_median <- gene_medians[gene_medians$median_q_effect > gene_medians$mean_q_effect, ]
-cat(sprintf("  Count: %d (%.1f%%)\n\n", nrow(larger_median), 
-            100 * nrow(larger_median) / nrow(gene_medians)))
-
-cat(sprintf("Genes with LARGER mean Q-effect than median Q-effect:\n"))
-larger_mean <- gene_medians[gene_medians$mean_q_effect > gene_medians$median_q_effect, ]
-cat(sprintf("  Count: %d (%.1f%%)\n\n", nrow(larger_mean),
-            100 * nrow(larger_mean) / nrow(gene_medians)))
-
-# Test: Mood's median test for each gene
-# This tests H0: medians are equal across Q-levels
-mood_results <- data.frame(
-  gene = character(),
-  mood_statistic = numeric(),
-  mood_p_value = numeric(),
-  stringsAsFactors = FALSE
-)
-
-for (g_idx in seq_along(test_genes)) {
-  gene_name <- test_genes[g_idx]
-  gene_data <- entropy_long[entropy_long$gene == gene_name, ]
-  
-  # Use test on medians: count how many values are above grand median per group
-  grand_median <- median(gene_data$entropy, na.rm = TRUE)
-  
-  # Create contingency table: above/below median for each Q-level
-  q_groups <- factor(gene_data$q)
-  above_median <- gene_data$entropy > grand_median
-  
-  contingency <- table(q_groups, above_median)
-  
-  # Mood's median test (chi-squared test on contingency table)
-  if (all(dim(contingency) > 1)) {
-    test_result <- chisq.test(contingency, correct = FALSE)
-    mood_results <- rbind(mood_results, data.frame(
-      gene = gene_name,
-      mood_statistic = test_result$statistic,
-      mood_p_value = test_result$p.value,
-      stringsAsFactors = FALSE
-    ))
-  }
-}
-
-cat(sprintf("Mood's Median Test Results:\n"))
-cat(sprintf("  Genes tested: %d\n", nrow(mood_results)))
-cat(sprintf("  Significant at p<0.05: %d (%.1f%%)\n", 
-            sum(mood_results$mood_p_value < 0.05),
-            100 * sum(mood_results$mood_p_value < 0.05) / nrow(mood_results)))
-cat(sprintf("  Mean p-value: %.4f\n", mean(mood_results$mood_p_value)))
-cat(sprintf("  Median p-value: %.4f\n\n", median(mood_results$mood_p_value)))
-
-# Merge median analysis with GAM and K-W results
-median_comparison <- merge(comparison, mood_results, by = "gene", all.x = TRUE)
-median_comparison <- merge(median_comparison, gene_medians[, c("gene", "median_q_effect", "mean_q_effect")], 
-                           by = "gene", all.x = TRUE)
-
-# Compare median test agreement
-if (!is.null(median_comparison$mood_p_value)) {
-  cat(sprintf("\nThree-Way Agreement Analysis (p < 0.05):\n"))
-  
-  gam_sig <- median_comparison$p_interaction < 0.05
-  kw_sig <- median_comparison$kw_p_value < 0.05
-  mood_sig <- median_comparison$mood_p_value < 0.05
-  
-  all_three <- sum(gam_sig & kw_sig & mood_sig, na.rm = TRUE)
-  gam_kw <- sum(gam_sig & kw_sig & !mood_sig, na.rm = TRUE)
-  gam_mood <- sum(gam_sig & mood_sig & !kw_sig, na.rm = TRUE)
-  kw_mood <- sum(kw_sig & mood_sig & !gam_sig, na.rm = TRUE)
-  gam_only <- sum(gam_sig & !kw_sig & !mood_sig, na.rm = TRUE)
-  kw_only <- sum(kw_sig & !gam_sig & !mood_sig, na.rm = TRUE)
-  mood_only <- sum(mood_sig & !gam_sig & !kw_sig, na.rm = TRUE)
-  none <- sum(!gam_sig & !kw_sig & !mood_sig, na.rm = TRUE)
-  
-  cat(sprintf("  All three methods agree SIGNIFICANT: %3d genes\n", all_three))
-  cat(sprintf("  GAM + K-W (not Mood):              %3d genes\n", gam_kw))
-  cat(sprintf("  GAM + Mood (not K-W):              %3d genes\n", gam_mood))
-  cat(sprintf("  K-W + Mood (not GAM):              %3d genes\n", kw_mood))
-  cat(sprintf("  GAM only:                          %3d genes\n", gam_only))
-  cat(sprintf("  K-W only:                          %3d genes\n", kw_only))
-  cat(sprintf("  Mood only:                         %3d genes\n", mood_only))
-  cat(sprintf("  None significant:                  %3d genes\n\n", none))
-  
-  # Key insight: which methods show best agreement?
-  gam_kw_agree <- all_three + gam_kw
-  gam_mood_agree <- all_three + gam_mood
-  kw_mood_agree <- all_three + kw_mood
-  
-  cat(sprintf("\nMethod Pairwise Agreement:\n"))
-  cat(sprintf("  GAM + K-W agreement:   %3d genes (%.1f%%)\n", gam_kw_agree, 
-              100 * gam_kw_agree / nrow(median_comparison)))
-  cat(sprintf("  GAM + Mood agreement:  %3d genes (%.1f%%)\n", gam_mood_agree,
-              100 * gam_mood_agree / nrow(median_comparison)))
-  cat(sprintf("  K-W + Mood agreement:  %3d genes (%.1f%%)\n", kw_mood_agree,
-              100 * kw_mood_agree / nrow(median_comparison)))
-}
-
-# Show top genes by different criteria
-cat(sprintf("\nTop 10 genes by Mood's Median Test p-value:\n\n"))
-top_mood <- head(mood_results[order(mood_results$mood_p_value), ], 10)
-top_mood_display <- top_mood
-# Format p-values with scientific notation
-if ("mood_p_value" %in% colnames(top_mood_display)) {
-  top_mood_display$mood_p_value <- sapply(top_mood_display$mood_p_value, function(x) {
-    if (is.na(x)) return("NA"); if (x == 0) return("< 1e-300"); sprintf("%.3e", x)
-  })
-}
-if ("mood_statistic" %in% colnames(top_mood_display)) {
-  top_mood_display$mood_statistic <- sapply(top_mood_display$mood_statistic, function(x) {
-    if (is.na(x)) return("NA"); sprintf("%.3e", x)
-  })
-}
-print(knitr::kable(top_mood_display, caption = "Most Significant Median Shifts", align = "lccccc"))
-
-cat("\n\nInTERPRETATION:\n")
-cat("  Mood's median test is ROBUST to:\n")
-cat("  • Tied data (heavy clustering at 0)\n")
-cat("  • Skewed distributions\n")
-cat("  • Outliers\n\n")
-cat("  If K-W and Mood disagree:\n")
-cat("  → K-W may be losing power due to ties\n")
-cat("  → Median test detects what ranks miss\n\n")
-cat("  If GAM and Mood disagree:\n")
-cat("  → GAM may be detecting mean shifts without median shifts\n")
-cat("  → Suggests heteroscedasticity or skewness effects\n\n")
-```
-
----
-
-# Part 2a: Investigating K-W Test Data Structure
-
-## Why K-W Returns p=1.0 for Real Q-Effects
-
-```{r kw-data-investigation, message=FALSE}
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 8: K-W Test Data Structure Investigation
-# ─────────────────────────────────────────────────────────────────────────────
-# Question: If Q-effects exist (η² > 0.01), why does K-W return p=1.0?
-# Hypothesis: 
-#   1. Tied ranks (boundary clustering at 0 and 1)
-#   2. Data aggregation issue (averaged instead of per-sample)
-#   3. Another transformation bug
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 8: K-W TEST DATA STRUCTURE ===\n\n")
-
-# Select one "broken" gene (high GAM p, K-W p=1) and one "working" gene
-broken_gene <- "PTCHD1"  # GAM p≈0, K-W p=1.0
-working_gene <- "ZNF398"  # GAM p=3.46e-44, K-W p=1.75e-19
-
-for (gene_to_inspect in c(broken_gene, working_gene)) {
-  cat("\n", strrep("─", 75), "\n", sep="")
-  cat("GENE:", gene_to_inspect, "\n")
-  cat(strrep("─", 75), "\n\n", sep="")
-  
-  # Get comparison data for this gene
-  gene_comp <- comparison[comparison$gene == gene_to_inspect, ]
-  if (nrow(gene_comp) == 0) {
-    cat("Gene not in comparison set\n")
-    next
-  }
-  
-  cat("Test Methods Applied:\n")
-  cat("  GAM family:", gene_comp$family_used[1], "\n")
-  cat("  K-W test method:", gene_comp$test_method[1], "\n")
-  cat("  GAM p-value:", formatC(gene_comp$p_interaction[1], format="e", digits=2), "\n")
-  cat("  K-W p-value:", formatC(gene_comp$kw_p_value[1], format="e", digits=2), "\n\n")
-  
-  # Extract entropy data for this gene
-  gene_entropy_data <- entropy_long[entropy_long$gene == gene_to_inspect, ]
-  
-  if (nrow(gene_entropy_data) == 0) {
-    cat("No entropy data found for this gene\n")
-    next
-  }
-  
-  # Summarize by Q-level
-  cat("Entropy Distribution by Q-Level:\n")
-  cat(sprintf("%-6s %-6s %-12s %-12s %-12s %-12s %-12s\n", 
-              "Q", "N", "Mean", "SD", "Min", "Max", "Tied at 0/1"))
-  
-  for (q_val in sort(as.numeric(unique(gene_entropy_data$q)))) {
-    q_subset <- gene_entropy_data[as.numeric(gene_entropy_data$q) == q_val, "entropy"]
-    n_samples <- length(q_subset)
-    tied_at_bounds <- sum(q_subset == 0 | q_subset == 1)
-    
-    cat(sprintf("%5.1f %6d %12.4f %12.4f %12.4f %12.4f %12d\n",
-                q_val, n_samples,
-                mean(q_subset, na.rm=TRUE),
-                sd(q_subset, na.rm=TRUE),
-                min(q_subset, na.rm=TRUE),
-                max(q_subset, na.rm=TRUE),
-                tied_at_bounds))
-  }
-  
-  # Analyze rank structure
-  cat("\n\nRank Structure Analysis:\n")
-  cat("  Total samples:", nrow(gene_entropy_data), "\n")
-  
-  all_entropy <- gene_entropy_data$entropy
-  ranks <- rank(all_entropy, ties.method = "average")
-  unique_ranks <- length(unique(ranks))
-  tied_samples <- sum(table(ranks) > 1)
-  
-  cat("  Unique rank values:", unique_ranks, "\n")
-  cat("  Samples involved in ties:", tied_samples, 
-      sprintf("(%.1f%%)", 100 * tied_samples / length(ranks)), "\n")
-  
-  # Show rank distribution
-  rank_table <- table(ranks)
-  heavy_ties <- sum(rank_table > 5)
-  cat("  Rank groups with >5 identical ranks:", heavy_ties, "\n")
-  
-  if (heavy_ties > 0) {
-    cat("    Heavy tie groups (size >5):\n")
-    heavy_tie_sizes <- rank_table[rank_table > 5]
-    cat("    ", paste(sprintf("Group sizes: %s", paste(as.numeric(heavy_tie_sizes), collapse=", ")), "\n"))
-  }
-  
-  # Manual K-W test simulation
-  cat("\n\nManual Kruskal-Wallis Calculation:\n")
-  
-  q_groups <- as.factor(gene_entropy_data$q)
-  entropy_vals <- gene_entropy_data$entropy
-  
-  # Rank all entropy values
-  all_ranks <- rank(entropy_vals, ties.method = "average")
-  
-  # Compute H statistic manually
-  n_total <- length(entropy_vals)
-  n_groups <- length(unique(q_groups))
-  
-  rank_sums <- tapply(all_ranks, q_groups, sum)
-  n_per_group <- tapply(all_ranks, q_groups, length)
-  
-  H <- (12 / (n_total * (n_total + 1))) * 
-       sum((rank_sums^2) / n_per_group) - 
-       3 * (n_total + 1)
-  
-  cat("  H-statistic (manual):", formatC(H, format="f", digits=4), "\n")
-  cat("  Degrees of freedom:", n_groups - 1, "\n")
-  cat("  Expected p-value (if H is correct):", 
-      formatC(1 - pchisq(H, df = n_groups - 1), format="e", digits=2), "\n")
-  
-  # Compare with actual K-W function
-  kw_test <- kruskal.test(entropy_vals ~ q_groups)
-  cat("  Actual kruskal.test p-value:", formatC(kw_test$p.value, format="e", digits=2), "\n")
-  cat("  Actual kruskal.test H-statistic:", formatC(as.numeric(kw_test$statistic), format="f", digits=4), "\n")
-  
-  # Diagnostic: Is H very small?
-  if (H < 1e-10) {
-    cat("\n  ⚠ FINDING: H-statistic is extremely small (essentially 0)\n")
-    cat("     This indicates ranks are nearly identical across Q-groups\n")
-    cat("     Likely cause: Massive tied ranks due to boundary clustering at 0 and 1\n")
-  } else if (H < 1) {
-    cat("\n  ⚠ FINDING: H-statistic is small (<1)\n")
-    cat("     Rank distributions across Q-groups are similar\n")
-  } else {
-    cat("\n  ✓ FINDING: H-statistic >1, indicating different rank distributions\n")
-  }
-  
-  cat("\n")
-}
-
-cat("\n\n=== INTERPRETATION ===\n\n")
-cat("If both genes show similar H-statistics but different p-values:\n")
-cat("  → Data going INTO the test is similar\n")
-cat("  → Problem must be in test OUTPUT or post-processing\n\n")
-cat("If broken gene shows H≈0 and working gene shows H>>0:\n")
-cat("  → Data being tested is fundamentally different\n")
-cat("  → Problem likely: Data aggregation or rank transformation\n\n")
-
-cat("\nKEY INSIGHT: Manual H-statistic MISMATCH for PTCHD1\n")
-cat("  Expected H (manual): 0.0095\n")
-cat("  Actual H (kruskal.test): 0.1321\n")
-cat("  These should be identical but they differ!\n")
-cat("  Hypothesis: Data transformation or grouping issue in detect_q_gene_interactions()\n\n")
-```
-
----
-
-# Part 2a-continued: Data Flow Investigation
-
-## Inspecting the Source of H-Statistic Mismatch
-
-```{r data-flow-investigation, message=FALSE}
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 8b: Source Code Data Flow Investigation
-# ─────────────────────────────────────────────────────────────────────────────
-# Mystery: Manual H ≠ kruskal.test H for PTCHD1
-# Possible explanations:
-#  1. Data passed to detect_q_gene_interactions() is transformed/aggregated
-#  2. SE (SummarizedExperiment) rowData/colData filtering differences
-#  3. Different Q-level grouping than what's in entropy_long
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 8b: DATA FLOW INVESTIGATION ===\n\n")
-
-# Let's trace what data actually goes into detect_q_gene_interactions()
-# and compare with our entropy_long extraction
-
-target_gene <- "PTCHD1"
-
-cat("Comparing data sources for gene:", target_gene, "\n\n")
-
-# === DATA SOURCE 1: entropy_long (what we extracted) ===
-cat("DATA SOURCE 1: From entropy_long\n")
-cat(strrep("─", 65), "\n", sep="")
-
-our_data <- entropy_long[entropy_long$gene == target_gene, ]
-cat("  Rows extracted:", nrow(our_data), "\n")
-cat("  Unique Q-values:", length(unique(our_data$q)), "\n")
-cat("  Unique subjects:", length(unique(our_data$subject)), "\n")
-cat("  Subject IDs present:", paste(unique(our_data$subject), collapse=", "), "\n\n")
-
-# === DATA SOURCE 2: Reconstruct what detect_q_gene_interactions() receives ===
-# In calculate_lm_interaction(), the Q-values are PARSED FROM COLUMN NAMES
-# not from colData. The column names look like: "Sample1_q=0.1", "Sample2_q=0.1", etc.
-
-cat("DATA SOURCE 2: From SummarizedExperiment (SE) assay structure\n")
-cat(strrep("─", 65), "\n", sep="")
-
-cat("  Key insight:\n")
-cat("  calculate_lm_interaction parses Q-values from assay COLUMN NAMES\n")
-cat("  Expected format: 'SampleName_q=0.1', 'SampleName_q=0.2', etc.\n\n")
-
-# Extract column names from the diversity assay
-diversity_colnames <- colnames(ts_se)
-cat("  Diversity assay column names (first 10):\n")
-for (i in seq_len(min(10, length(diversity_colnames)))) {
-  cat("    ", diversity_colnames[i], "\n")
-}
-
-cat("\n  Parsing Q-values from column names:\n")
-# Extract q values same way calculate_lm_interaction does
-q_vals_parsed <- as.numeric(sub(".*_q=", "", diversity_colnames))
-parsed_summary <- table(q_vals_parsed)
-
-cat("    Unique Q-values found:", paste(sort(unique(q_vals_parsed)), collapse=", "), "\n")
-cat("    Frequency per Q-value:\n")
-for (q_val in sort(as.numeric(names(parsed_summary)))) {
-  cat(sprintf("      Q = %.1f: %d columns\n", q_val, parsed_summary[as.character(q_val)]))
-}
-
-# Extract sample names same way calculate_lm_interaction does
-sample_names_parsed <- sub("_q=.*", "", diversity_colnames)
-unique_samples <- unique(sample_names_parsed)
-cat("\n    Unique samples:", paste(unique_samples, collapse=", "), "\n")
-cat("    Total samples:", length(unique_samples), "\n")
-
-# === COMPARISON: Data structure differences ===
-cat("\n\nCOMPARISON: Structure Differences\n")
-cat(strrep("─", 65), "\n", sep="")
-
-cat("  Q-value representation:\n")
-cat("    entropy_long Q-type:", class(our_data$q[1]), "\n")
-if ("q" %in% colnames(colData(ts_se))) {
-  cat("    SE colData Q-type:", class(colData(ts_se)$q[1]), "\n")
-}
-
-# === COMPARISON: Data structure differences ===
-cat("\n\nCOMPARISON: Q-Value Sources\n")
-cat(strrep("─", 65), "\n", sep="")
-
-cat("  entropy_long Q-values:\n")
-cat("    Unique values:", paste(sort(unique(as.numeric(our_data$q))), collapse=", "), "\n")
-cat("    Number of unique Q:", length(unique(as.numeric(our_data$q))), "\n")
-
-cat("\n  Parsed from assay column names:\n")
-cat("    Unique values:", paste(sort(unique(q_vals_parsed)), collapse=", "), "\n")
-cat("    Number of unique Q:", length(unique(q_vals_parsed)), "\n")
-
-cat("\n  Match check:", ifelse(length(unique(as.numeric(our_data$q))) == 
-                               length(unique(q_vals_parsed)), "✓ MATCH", "✗ MISMATCH"), "\n")
-
-cat("\n\n=== INTERPRETATION ===\n\n")
-cat("Critical Finding:\n")
-cat("calculate_lm_interaction parses Q-values from assay COLUMN NAMES,\n")
-cat("not from colData or entropy_long.\n\n")
-cat("If Q-values match between sources:\n")
-cat("  → Data sampling is consistent\n")
-cat("  → H-statistic mismatch is NOT due to Q-level difference\n\n")
-cat("Next step: Inspect the actual data passed to kruskal.test():\n")
-cat("  → Which specific entropy values are tested?\n")
-cat("  → Are values being aggregated by Q before ranking?\n")
-cat("  → Are there NAs, infinities, or invalid values?\n\n")
-```
-
----
-
-# Part 2b: Understanding GAM Modeling (What is GAM Detecting?)
-
-## Investigating GAM's Statistical Model
-
-```{r gam-modeling-analysis, message=FALSE}
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 9: Understanding GAM's Parametric Assumptions
-# ─────────────────────────────────────────────────────────────────────────────
-# GAM detects STRONG interactions, but K-W (rank-based) does not.
-# Possible explanations:
-# 1. GAM is fitting PARAMETRIC structure (mean + variance) beyond just test of ranks
-# 2. GAM is sensitive to OUTLIERS or LEVERAGE POINTS
-# 3. GAM residuals are NORMALLY distributed, giving extra power (if Gaussian assumption valid)
-# 4. K-W only tests if RANKS differ, misses linear/smooth trends in magnitude
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("=== DIAGNOSTIC 9: WHAT IS GAM MODELING? ===\n\n")
-
-# For each top GAM gene, examine:
-# 1. Distribution of residuals (are they normal?)
-# 2. Fitted pattern across Q-levels
-# 3. Leverage/influence points (outliers driving GAM signal)
-# 4. Heteroscedasticity (does variance change with Q?)
-
-top_gam_genes <- head(comparison$gene[order(comparison$p_interaction)], 5)
-
-cat("Detailed Analysis of Top 5 GAM-Significant Genes:\n\n")
-
-gam_diagnostics <- list()
-
-for (g_idx in seq_along(top_gam_genes)) {
-  gene_name <- top_gam_genes[g_idx]
-  gam_pval <- comparison$p_interaction[comparison$gene == gene_name]
-  gam_family <- comparison$family_used[comparison$gene == gene_name]
-  gam_hetero <- comparison$heteroscedasticity_detected[comparison$gene == gene_name]
-  
-  cat(sprintf("─────────────────────────────────────────────────────────\n"))
-  cat(sprintf("Gene %d: %s\n", g_idx, gene_name))
-  cat(sprintf("  GAM p-value: %.2e\n", gam_pval))
-  cat(sprintf("  Family used: %s\n", gam_family))
-  cat(sprintf("  Heteroscedasticity detected: %s\n", gam_hetero))
-  
-  # Get gene data
-  gene_idx <- which(test_genes == gene_name)
-  if (length(gene_idx) > 0) {
-    gene_entropy <- entropy_matrix[gene_idx, ]
-    gene_coldata <- data.frame(
-      entropy = as.numeric(gene_entropy),
-      q = ts_coldata$q,
-      sample_type = ts_coldata$sample_type
-    )
-    
-    # Check for outliers using IQR method
-    q1 <- quantile(gene_coldata$entropy, 0.25, na.rm = TRUE)
-    q3 <- quantile(gene_coldata$entropy, 0.75, na.rm = TRUE)
-    iqr <- q3 - q1
-    lower_bound <- q1 - 1.5 * iqr
-    upper_bound <- q3 + 1.5 * iqr
-    
-    n_outliers <- sum(gene_coldata$entropy < lower_bound | gene_coldata$entropy > upper_bound, na.rm = TRUE)
-    pct_outliers <- 100 * n_outliers / sum(!is.na(gene_coldata$entropy))
-    
-    cat(sprintf("  Outliers (IQR method): %d (%.1f%%)\n", n_outliers, pct_outliers))
-    
-    # Fit linear model to get residuals and assess normality
-    lm_fit <- try(lm(entropy ~ factor(q), data = gene_coldata), silent = TRUE)
-    
-    if (!inherits(lm_fit, "try-error")) {
-      residuals <- residuals(lm_fit)
-      fitted_vals <- fitted(lm_fit)
-      
-      # Shapiro-Wilk test for normality
-      sw_test <- try(shapiro.test(residuals), silent = TRUE)
-      if (!inherits(sw_test, "try-error")) {
-        cat(sprintf("  Residual normality (Shapiro-Wilk): p=%.4f\n", sw_test$p.value))
-        if (sw_test$p.value < 0.05) {
-          cat(sprintf("    ⚠ Residuals are NON-NORMAL (may violate GAM Gaussian assumption)\n"))
-        } else {
-          cat(sprintf("    ✓ Residuals appear normal\n"))
-        }
-      }
-      
-      # Variance by Q-level
-      cat("  Entropy by Q-level:\n")
-      for (q_val in sort(unique(as.numeric(gene_coldata$q)))) {
-        q_entropy <- gene_coldata$entropy[as.numeric(gene_coldata$q) == q_val]
-        q_var <- var(q_entropy, na.rm = TRUE)
-        q_mean <- mean(q_entropy, na.rm = TRUE)
-        q_n <- sum(!is.na(q_entropy))
-        
-        cat(sprintf("    Q=%.1f: n=%d, mean=%.4f, var=%.4f, sd=%.4f\n",
-                    q_val, q_n, q_mean, q_var, sqrt(q_var)))
-      }
-      
-      # Store for comparison
-      gam_diagnostics[[gene_name]] <- list(
-        n_outliers = n_outliers,
-        pct_outliers = pct_outliers,
-        normality_pvalue = if(!inherits(sw_test, "try-error")) sw_test$p.value else NA,
-        residuals = residuals,
-        fitted = fitted_vals
-      )
-    }
-  }
-  
-  cat("\n")
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DIAGNOSTIC 10: GAM vs K-W Comparison - Why the Disagreement?
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n\n=== DIAGNOSTIC 10: WHY GAM AND K-W DISAGREE ===\n\n")
-
-cat("Hypothesis Testing Comparison:\n\n")
-
-cat("Kruskal-Wallis (K-W - Rank-Based):\n")
-cat("  H0: The distribution of ranks is the SAME across Q-levels\n")
-cat("  Ha: The distribution of ranks DIFFERS across Q-levels\n")
-cat("  Sensitive to: Changes in CENTER (median)\n")
-cat("  NOT sensitive to: Changes in SPREAD (variance)\n")
-cat("  Assumption: Shapes of distributions are similar across groups\n")
-cat("  Power: Robust to non-normality, good general-purpose test\n\n")
-
-cat("GAM (Parametric - Generalized Additive Model):\n")
-cat("  H0: The LINEAR+SMOOTH MEAN entropy is the SAME across Q-levels\n")
-cat("  Ha: The LINEAR+SMOOTH MEAN entropy DIFFERS across Q-levels\n")
-cat("  Sensitive to: Changes in MEAN and VARIANCE structure\n")
-cat("  NOT sensitive to: Distribution shape (fitted to expected distribution)\n")
-cat("  Assumption: Gaussian/Gamma family structure appropriate for data\n")
-cat("  Power: High power if assumptions met; violates assumptions → spurious signal\n\n")
-
-cat("Key Insight: GAM and K-W test DIFFERENT hypotheses!\n")
-cat("  - If GAM assumption (Gaussian mean structure) is WRONG → False positives\n")
-cat("  - If K-W assumption (similar shapes) is WRONG → False negatives\n\n")
-
-# Check if GAM residuals are actually normal
-if (length(gam_diagnostics) > 0) {
-  gam_normality_results <- sapply(gam_diagnostics, function(x) {
-    !is.na(x$normality_pvalue) && x$normality_pvalue < 0.05
-  })
-  gam_normality_violations <- sum(as.numeric(gam_normality_results), na.rm = TRUE)
-  
-  if (gam_normality_violations > 0) {
-    cat(sprintf("⚠ WARNING: %d of %d top GAM genes have NON-NORMAL residuals\n",
-                gam_normality_violations, length(gam_diagnostics)))
-    cat("  This suggests GAM's Gaussian assumption may be violated\n")
-    cat("  Result: GAM may be detecting false positives from model misspecification\n\n")
-  } else {
-    cat(sprintf("✓ All %d top GAM genes have NORMALLY distributed residuals\n", length(gam_diagnostics)))
-    cat("  This supports GAM's Gaussian assumption\n\n")
-  }
-} else {
-  cat("⚠ No genes analyzed in GAM diagnostics\n")
-}
-
-# Check for high outlier percentages
-if (length(gam_diagnostics) > 0) {
-  high_outlier_genes <- Filter(function(x) x$pct_outliers > 10, gam_diagnostics)
-  if (length(high_outlier_genes) > 0) {
-    cat(sprintf("⚠ WARNING: %d of %d top GAM genes have >10%% outliers\n",
-                length(high_outlier_genes), length(gam_diagnostics)))
-    cat("  Outliers can drive parametric/semi-parametric tests (GEE) but not rank tests (K-W)\n")
-    cat("  Result: Disagreement may be due to leverage points\n\n")
-  }
-}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# RECOMMENDATION
-# ─────────────────────────────────────────────────────────────────────────────
-
-cat("\n=== INTERPRETATION & RECOMMENDATION ===\n\n")
-
-cat("If GAM's Gaussian assumption is valid AND residuals are normal:\n")
-cat("  ✓ GAM has higher statistical power\n")
-cat("  ✓ GAM results preferred (with K-W as supporting validation)\n")
-cat("  ⚠ K-W's inability to detect effects may be its limitation, not GAM's fault\n\n")
-
-cat("If GAM's assumptions are violated (non-normal residuals, outliers):\n")
-cat("  ⚠ GAM may have spurious positives\n")
-cat("  ✓ Trust K-W results more (K-W is robust to assumption violations)\n")
-cat("  → Report both methods but emphasize K-W for agreement\n\n")
-
-cat("Next Step: Check boundary clustering fix (now disabled for entropy)\n")
-cat("  Re-run with updated rank_test_improvements.R\n")
-cat("  K-W should now detect meaningful Q-effects if they exist\n")
-```
-
----
-
-# Part 7: Diagnostic Visualization for Method Disagreement
-
-## Understanding Disagreement Patterns
-
-When methods disagree, it's NOT a bug—it reflects different perspectives on the same data:
-
-| Scenario | GEE Detects | Rank-Based Detects | Interpretation | Action |
-|----------|------------|-------------------|---|---|
-| **Both significant** | Smooth trend in mean | Median/distribution shift | Very robust signal | ✅ Report with high confidence |
-| **Only GEE significant** | Smooth/linear trend | — | Smooth trend, possibly heteroscedastic | ⚠ Check variance pattern; note method selection |
-| **Only rank-based significant** | — | Median/step-wise change or robust shift | Non-linear or distribution change | ⚠ Inspect for step-wise patterns |
-| **Neither significant** | — | — | No clear q-interaction | ✓ Not significant |
-
-## Diagnostic Code: Categorizing Genes by Agreement
-
-```{r diagnostic-categorize-genes, eval=FALSE}
-# Assuming you have:
-# - lm_res: GEE results with p_interaction
-# - kw_res: Rank-based results with p_value (or adj_p_value from multicorr)
-# - Both with same gene names
-
-# Set significance threshold
-alpha <- 0.05
+```{r concordance, message=FALSE}
+cat("\n=== METHOD CONCORDANCE ANALYSIS ===\n\n")
 
 # Merge results
-merged <- cbind(
-  gene = rownames(lm_res),
-  gee_p = lm_res$p_interaction,
-  rank_p = kw_res$p_value
-)
+# Note: GAM returns p_interaction, K-W returns p_value
+comparison_df <- gam_results %>%
+  select(gene, p_interaction) %>%
+  rename(p_gam = p_interaction) %>%
+  left_join(
+    kw_results %>% select(gene, p_value) %>% rename(p_kw = p_value),
+    by = "gene"
+  ) %>%
+  filter(!is.na(p_gam) & !is.na(p_kw))
 
-# Create categories
-merged$category <- NA
-merged$category[merged$gee_p < alpha & merged$rank_p < alpha] <- "Both Sig"
-merged$category[merged$gee_p < alpha & merged$rank_p >= alpha] <- "GEE Only"
-merged$category[merged$gee_p >= alpha & merged$rank_p < alpha] <- "Rank-Based Only"
-merged$category[merged$gee_p >= alpha & merged$rank_p >= alpha] <- "Neither"
+# Calculate correlation
+if (nrow(comparison_df) > 2) {
+  spearman_rho <- cor(comparison_df$p_gam, comparison_df$p_kw, 
+                      method = "spearman")
+  cat(sprintf("Spearman correlation: ρ = %.4f\n", spearman_rho))
+}
 
-# Summary
-cat("Method Agreement Summary:\n")
-cat("Both significant:       ", sum(merged$category == "Both Sig"), "genes\n")
-cat("GEE only:               ", sum(merged$category == "GEE Only"), "genes\n")
-cat("Rank-based only:        ", sum(merged$category == "Rank-Based Only"), "genes\n")
-cat("Neither significant:    ", sum(merged$category == "Neither"), "genes\n\n")
+# Categorize agreement
+comparison_df <- comparison_df %>%
+  mutate(
+    gam_sig = p_gam < 0.05,
+    kw_sig = p_kw < 0.05,
+    agreement = case_when(
+      gam_sig & kw_sig ~ "Both significant",
+      gam_sig & !kw_sig ~ "GAM only",
+      !gam_sig & kw_sig ~ "K-W only",
+      TRUE ~ "Neither significant"
+    )
+  )
 
-# Correlation
-correlation <- cor(merged$gee_p, merged$rank_p, method = "spearman")
-cat("Spearman correlation (GEE vs Rank-based p-values):", sprintf("%.3f", correlation), "\n\n")
+cat("\nAgreement Summary:\n")
+agreement_table <- table(comparison_df$agreement)
+print(agreement_table)
+print(prop.table(agreement_table))
+
+# High-confidence genes (both methods)
+high_conf <- comparison_df %>%
+  filter(gam_sig & kw_sig) %>%
+  arrange(pmax(p_gam, p_kw))
+
+cat(sprintf("\n\nHIGH-CONFIDENCE GENES (significant in both methods): %d\n", nrow(high_conf)))
+if (nrow(high_conf) > 0) {
+  print(head(high_conf[, c("gene", "p_gam", "p_kw", "agreement")], 15))
+}
 ```
 
-## Diagnostic Code: Visualizing Disagreement
+## Visualization: Method Comparison
 
-```{r diagnostic-visualize-agreement, eval=FALSE, fig.width=14, fig.height=6}
-library(ggplot2)
-library(gridExtra)
-
-# Define significance threshold
-alpha <- 0.05
-sig_threshold <- -log10(alpha)
-
-# 1. SCATTER PLOT: GEE vs Rank-based p-values with concordance quadrants
-p1 <- ggplot(merged, aes(x = -log10(gee_p), y = -log10(rank_p), color = category)) +
-  geom_point(alpha = 0.6, size = 3) +
-  geom_hline(yintercept = sig_threshold, linetype = "dashed", color = "red", linewidth = 0.8) +
-  geom_vline(xintercept = sig_threshold, linetype = "dashed", color = "red", linewidth = 0.8) +
-  # Add quadrant labels
-  annotate("text", x = 0.5, y = Inf, label = "GEE Only", vjust = 1.5, hjust = 0, color = "blue", size = 4) +
-  annotate("text", x = Inf, y = 0.5, label = "Rank Only", vjust = 0.5, hjust = 1, color = "orange", size = 4) +
-  annotate("text", x = Inf, y = Inf, label = "Both Sig", vjust = 1, hjust = 1, color = "darkgreen", size = 4) +
+```{r concordance-plot, fig.width=10, fig.height=8}
+# Create comparison plot
+p1 <- ggplot(comparison_df, aes(x = -log10(p_gam), y = -log10(p_kw), color = agreement)) +
+  geom_point(size = 2.5, alpha = 0.6) +
+  geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
   scale_color_manual(
-    values = c("Both Sig" = "darkgreen", "GEE Only" = "blue", 
-               "Rank-Based Only" = "orange", "Neither" = "gray"),
-    limits = c("Both Sig", "GEE Only", "Rank-Based Only", "Neither"),
-    na.value = "gray"
+    values = c("Both significant" = "#2ecc71", 
+               "GAM only" = "#3498db",
+               "K-W only" = "#e74c3c",
+               "Neither significant" = "#95a5a6")
   ) +
-  xlab("-log10(GEE p-value)") +
-  ylab("-log10(Rank-based p-value)") +
-  ggtitle("Method Concordance: GEE vs Rank-Based Q-Interaction Tests") +
+  labs(
+    title = "GAM vs Kruskal-Wallis: Method Concordance",
+    x = "-log10(p-value, GAM)",
+    y = "-log10(p-value, K-W)",
+    color = "Significance"
+  ) +
   theme_minimal() +
   theme(
-    legend.position = "topright",
-    plot.title = element_text(size = 12, face = "bold"),
-    axis.text = element_text(size = 10)
+    plot.title = element_text(face = "bold", size = 12),
+    legend.position = "bottomright",
+    panel.grid.major = element_line(color = "gray90")
   )
 
-# 2. BAR PLOT: Gene counts by category (only categories present in data)
-cat_counts <- as.data.frame(table(merged$category))
-colnames(cat_counts) <- c("Category", "Count")
-# Ensure proper ordering
-cat_counts$Category <- factor(cat_counts$Category, 
-                              levels = c("Both Sig", "GEE Only", "Rank-Based Only", "Neither"))
-cat_counts <- cat_counts[order(cat_counts$Category), ]
-
-color_map <- c("Both Sig" = "darkgreen", "GEE Only" = "blue", 
-               "Rank-Based Only" = "orange", "Neither" = "gray")
-colors_used <- color_map[as.character(cat_counts$Category)]
-
-p2 <- ggplot(cat_counts, aes(x = Category, y = Count, fill = Category)) +
-  geom_col(show.legend = FALSE) +
-  geom_text(aes(label = Count), vjust = -0.5, size = 4, fontface = "bold") +
-  scale_fill_manual(
-    values = color_map,
-    limits = c("Both Sig", "GEE Only", "Rank-Based Only", "Neither"),
-    na.value = "gray"
+# P-value distribution comparison
+p2 <- ggplot(comparison_df %>% select(p_gam, p_kw) %>% 
+             pivot_longer(everything(), names_to = "method", values_to = "p_value"),
+             aes(x = p_value, fill = method)) +
+  geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+  scale_fill_manual(values = c("p_gam" = "#3498db", "p_kw" = "#e74c3c")) +
+  labs(
+    title = "P-value Distributions",
+    x = "P-value",
+    y = "Frequency",
+    fill = "Method"
   ) +
-  xlab("Agreement Category") +
-  ylab("Number of Genes") +
-  ggtitle("Gene Distribution by Method Agreement") +
   theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-    plot.title = element_text(size = 12, face = "bold"),
-    axis.text.y = element_text(size = 10)
-  )
+  theme(plot.title = element_text(face = "bold", size = 12))
 
-# Combine and display
-combined_plot <- grid.arrange(p1, p2, ncol = 2, widths = c(1, 0.8))
-print(combined_plot)
-
-# Print summary statistics
-cat("\n=== METHOD CONCORDANCE SUMMARY ===\n")
-cat("Spearman correlation (GEE vs Rank p-values):", 
-    sprintf("%.3f\n", cor(merged$gee_p, merged$rank_p, method = "spearman", use = "complete.obs")))
-cat("\nGene Counts by Category:\n")
-print(cat_counts)
+gridExtra::grid.arrange(p1, p2, ncol = 2)
 ```
-
-## Diagnostic Code: Inspecting Problematic Genes
-
-```{r diagnostic-inspect-discordant, eval=FALSE}
-# Ensure merged has gene names in accessible format
-if (!("gene" %in% colnames(merged))) {
-  merged <- cbind(gene = rownames(merged), merged)
-}
-
-# Find genes with largest disagreement (high p-value difference)
-merged$p_diff <- abs(merged$gee_p - merged$rank_p)
-discordant <- merged[order(-merged$p_diff), ][1:10, ]
-
-cat("\n=== Top 10 Most Discordant Genes ===\n")
-cat("(Sorted by largest absolute p-value difference between GEE and Rank-based)\n\n")
-print_cols <- intersect(c("gene", "gee_p", "rank_p", "category", "p_diff"), colnames(discordant))
-print(discordant[, print_cols])
-
-# For each discordant gene, generate diagnostic report
-cat("\n\n=== DETAILED DIAGNOSTIC REPORT ===\n")
-
-genes_to_inspect <- discordant$gene[1:min(3, nrow(discordant))]
-
-for (gene in genes_to_inspect) {
-  cat("\n")
-  cat(strrep("═", 60), "\n")
-  cat("GENE: ", gene, "\n")
-  cat(strrep("═", 60), "\n\n")
-  
-  # Basic statistics
-  gee_p <- as.numeric(merged[merged$gene == gene, "gee_p"])
-  rank_p <- as.numeric(merged[merged$gene == gene, "rank_p"])
-  cat(sprintf("GEE p-value:        %12.3e\n", gee_p))
-  cat(sprintf("Rank-based p-value: %12.3e\n", rank_p))
-  cat(sprintf("Absolute difference:%12.3e\n", abs(gee_p - rank_p)))
-  cat(sprintf("Category:           %s\n\n", merged[merged$gene == gene, "category"]))
-  
-  # Extract gene data if available
-  if (exists("entropy_long") && gene %in% unique(entropy_long$gene)) {
-    gene_data <- entropy_long[entropy_long$gene == gene, ]
-    
-    cat("─── ENTROPY DISTRIBUTION ANALYSIS ───\n")
-    
-    # Variance analysis by q-value
-    q_unique <- sort(unique(gene_data$q))
-    cat(sprintf("Q-values analyzed: %s\n\n", paste(sprintf("%.2f", q_unique), collapse = ", ")))
-    
-    vars <- tapply(gene_data$entropy, gene_data$q, var, na.rm = TRUE)
-    means <- tapply(gene_data$entropy, gene_data$q, mean, na.rm = TRUE)
-    
-    cat("Variance by Q:\n")
-    for (i in seq_along(vars)) {
-      cat(sprintf("  Q = %.2f: σ² = %.4f, μ = %.4f\n", 
-                  as.numeric(names(vars)[i]), vars[i], means[i]))
-    }
-    
-    # Overall variance pattern
-    var_ratio <- max(vars, na.rm = TRUE) / min(vars, na.rm = TRUE)
-    cat(sprintf("\nVariance ratio (max/min): %.2f\n", var_ratio))
-    
-    if (var_ratio > 2) {
-      cat("STATUS: ⚠ HETEROSCEDASTIC\n")
-      cat("INTERPRETATION: Variance increases significantly across Q-values.\n")
-      cat("APPROPRIATE TESTS: ART (Aligned Rank Transform), Quantile tests\n")
-      cat("RECOMMENDATION: If only rank-based method significant, heteroscedasticity likely\n")
-      cat("                explains GEE lack of signal (assumes homoscedasticity).\n")
-    } else {
-      cat("STATUS: ✓ HOMOSCEDASTIC\n")
-      cat("INTERPRETATION: Variance is relatively stable across Q-values.\n")
-      cat("APPROPRIATE TESTS: Standard Kruskal-Wallis or linear methods\n")
-    }
-    
-    cat("\n─── TREND ANALYSIS ───\n")
-    
-    # Check monotonicity
-    mean_diffs <- diff(means)
-    all_pos <- all(mean_diffs > 0, na.rm = TRUE)
-    all_neg <- all(mean_diffs < 0, na.rm = TRUE)
-    
-    if (all_pos || all_neg) {
-      direction <- if (all_pos) "INCREASING" else "DECREASING"
-      cat(sprintf("STATUS: ✓ MONOTONIC %s TREND\n", direction))
-      cat("INTERPRETATION: Entropy changes consistently across Q-values.\n")
-      cat("APPROPRIATE TESTS: GEE, linear models with smooth assumptions\n")
-      cat("LIKELY REASON FOR GEE DETECTION: Consistent trend detectable by linear methods\n")
-    } else {
-      cat("STATUS: ⚠ NON-MONOTONIC PATTERN\n")
-      cat("INTERPRETATION: Entropy changes direction or shows step-like behavior.\n")
-      cat("APPROPRIATE TESTS: Rank-based, median tests, quantile tests\n")
-      cat("LIKELY REASON FOR RANK-BASED DETECTION: Step-wise or median shifts\n")
-    }
-    
-    # Visualize pattern
-    cat("\nEntropy by Q: ")
-    cat(sprintf("%.3f ", means))
-    cat("\n")
-    
-    cat("\n─── BOUNDARY CLUSTERING ANALYSIS ───\n")
-    
-    # Check boundaries (entropy bounded by [0, log(m)])
-    min_ent <- min(gene_data$entropy, na.rm = TRUE)
-    max_ent <- max(gene_data$entropy, na.rm = TRUE)
-    range_ent <- max_ent - min_ent
-    
-    cat(sprintf("Min entropy: %.4f, Max entropy: %.4f, Range: %.4f\n", 
-                min_ent, max_ent, range_ent))
-    
-    near_lower <- min_ent / (range_ent + min_ent) < 0.1
-    near_upper <- (1 - max_ent / (range_ent + max_ent)) < 0.1
-    
-    if (near_lower || near_upper) {
-      cat("STATUS: ⚠ BOUNDARY CLUSTERING DETECTED\n")
-      cat(sprintf("Close to %s boundary\n", if (near_lower) "LOWER (0)" else "UPPER"))
-      cat("INTERPRETATION: Entropy constrained by [0, log(m)] bounds.\n")
-      cat("APPROPRIATE TESTS: Quantile tests, non-parametric rank-based tests\n")
-      cat("RECOMMENDATION: Rank-based method more suitable for boundary-affected data\n")
-    } else {
-      cat("STATUS: ✓ INTERIOR VALUES\n")
-      cat("INTERPRETATION: Entropy well away from boundaries.\n")
-      cat("APPROPRIATE TESTS: Standard parametric or non-parametric methods\n")
-    }
-    
-  } else {
-    cat("NOTE: entropy_long data not available for detailed diagnostics.\n")
-    cat("Run full TSENAT.Rmd workflow to access entropy distribution analysis.\n")
-  }
-  
-  cat("\n")
-}
-
-cat("\n" %+% strrep("═", 60) %+% "\n")
-cat("INTERPRETATION SUMMARY\n")
-cat(strrep("═", 60), "\n\n")
-cat("For each discordant gene:\n")
-cat("- HETEROSCEDASTIC pattern → Rank-based methods more appropriate\n")
-cat("- MONOTONIC trend → GEE more appropriate\n")
-cat("- BOUNDARY clustering → Rank-based methods more appropriate\n")
-cat("- BOTH patterns present → Method selection depends on biological question\n\n")
-```
-
-## Recommendations Based on Disagreement Pattern
-
-### If "GEE Only" genes dominate:
-→ Your data has **smooth trends** in entropy  
-→ GEE (with K-C correction) is appropriate primary method  
-→ Rank-based methods serve as robustness checks  
-→ **Report**: "GEE detected X significant q-interactions; rank-based validation identified Y
-
-, indicating robust signals at Z genes"
-
-### If "Rank-Based Only" genes dominate:
-→ Your data has **step-wise/median shifts** or heteroscedasticity  
-→ Rank-based methods catching real signal GEE misses  
-→ Consider checking GEE model fit (is linear trend assumption realistic?)  
-→ **Report**: "Rank-based q-interaction testing revealed X genes with significant median shifts; GEE detected Y subsets"
-
-### If "Both Sig" genes are largest group:
-→ **EXCELLENT**: Both methods agree on robust findings  
-→ These genes have **strong, consistent signals**  
-→ High publication confidence  
-→ **Report**: "Both parametric (GEE) and non-parametric (rank-based) methods converged on X robust q-interaction genes"
 
 ---
 
+# Part 5: Recommendations
 
+```{r recommendations, message=FALSE}
+cat("\n=== RECOMMENDATIONS ===\n\n")
 
-## Publication Strategy (Both Methods with Improvements)
+cat("1. PRIMARY ANALYSIS: Use GAM (Flexible Parametric)\n")
+cat("   - Reason: Better power for detecting nonlinear q-entropy patterns\n")
+cat("   - Default: multicorr = 'hochberg' (FWER control)\n")
+cat("   - Recommended: Hochberg correction for high-confidence findings\n\n")
 
-### When Methods Strongly Agree (r > 0.85)
+cat("2. VALIDATION: Confirm with K-W (Rank-Based)\n")
+cat("   - Purpose: Robustness check using distribution-free method\n")
+cat("   - Default: Conditional test selection adapts to data characteristics\n")
+cat("   - Advantage: No parametric assumptions needed\n\n")
 
-✓ **Confidence Level**: VERY HIGH  
-✓ **Recommendation**: Results ready for publication  
-✓ **Presentation**:
-  - Report both methods in main text (both now with improvements)
-  - Highlight robust genes (significant in both)
-  - Include test method breakdown in supplementary table
-  - Note: "Both parametric and rank-based methods used adaptive improvements based on data characteristics"
+cat("3. HIGH-CONFIDENCE GENES\n")
+cat(sprintf("   - %d genes significant in BOTH methods\n", nrow(high_conf)))
+cat("   - Recommended for downstream biological validation\n")
+cat("   - Strong evidence of genuine q-value × group interaction\n\n")
 
-### When Methods Show Moderate Agreement (r = 0.70−0.85)
+cat("4. MULTIPLE TESTING CORRECTION\n")
+cat("   - Default: Hochberg (FWER, more stringent)\n")
+cat("   - Alternative: Benjamini-Yekutieli (FDR, more lenient)\n")
+cat("   - Both: Account for AR(1) correlation in q-values\n\n")
 
-✓ **Confidence Level**: MODERATE TO HIGH  
-✓ **Recommendation**: Good support; compare test methods applied  
-✓ **Presentation**:
-  - Lead with parametric results (main analysis)
-  - Report rank-based as complementary validation
-  - Compare method selection (GEE fit_method) with test method selection (rank-based)
-  - If heteroscedasticity detected by both → high confidence
-  - Focus publication on robust gene list
-
-### When Methods Disagree (r < 0.70)
-
-⚠ **Confidence Level**: VARIABLE  
-⚠ **Recommendation**: Investigate test method selection  
-⚠ **Diagnostic checks**:
-  - Which test methods were selected by each approach?
-  - Are different families/tests applied to discordant genes?
-  - Check if heteroscedasticity detection differs between methods
-  - Review boundary clustering and skewness characteristics
-  - Are genes flagged as "challenging" by improved approaches?
-
-## Best Practices (Both Methods with Improvements - March 2026)
-
-```{r best-practice, eval=FALSE}
-# Recommended workflow with improved methods:
-
-# 1. Run semi-parametric method with K-C correction (primary analysis)
-lm_res <- calculate_lm_interaction(ts_se, method = "gee", paired = TRUE, bias_correction = TRUE)
-# Returns: p_interaction (K-C corrected for small clusters), fit_method, n_clusters
-# Note: K-C correction automatically applied when n_clusters < 20
-
-# 2. Run improved rank-based validation (with conditional test selection and Hochberg correction)  
-kw_res <- detect_q_gene_interactions(entropy_long, method = "kruskal.test", multicorr = "hochberg")
-# Returns: p_value (raw p-value), adj_p_value (Hochberg-corrected for AR(1) q-value dependence),
-#          test_method (kruskal.test/art_kw/quantile_test/robust_median_test),
-#          heteroscedastic, boundary_clustered, highly_skewed for each gene
-
-# 3. Calculate concordance accounting for method selection
-correlation <- cor(lm_res$p_interaction, kw_res$p_value, method = "spearman")
-
-# 4. Compare test selections:
-#    Did GEE auto-select AR(1) correlation structure?
-#    Do both methods detect heteroscedasticity for same genes?
-#    Were K-C adjustments applied (n_clusters < 20)?
-
-# 5. If high agreement:
-#    Report robust genes (significant in both methods)
-#    Include comparison table with correlation structures and test methods used
-#    Emphasize: "Results validated with semi-parametric and rank-based methods"
-
-# 6. If moderate agreement:
-#    Analyze genes where different correlation structures were selected
-#    If both selected AR(1)/ART for same gene → high confidence
-#    If one selected independence and other AR(1) → investigate
-
-# 7. If low agreement:
-#    Check data quality and outliers
-#    Compare heteroscedasticity detection patterns
-#    Review K-C correction thresholds (n_clusters parameter)
+cat("5. PARAMETER SETTINGS\n")
+cat("   - GAM method: 'gam' with paired=TRUE (accounts for subject structure)\n")
+cat("   - K-W method: 'conditional' test selection\n")
+cat("   - Pseudocount: WLFC for robust entropy estimation\n")
 ```
 
 ---
@@ -3089,3 +394,7 @@ correlation <- cor(lm_res$p_interaction, kw_res$p_value, method = "spearman")
 ```{r session-info}
 sessionInfo()
 ```
+
+---
+
+# References

@@ -1321,10 +1321,19 @@ recommend_q_range <- function(
 #'   'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
 #'   Closed-form, computationally efficient. Recommended for strong signal detection with 
 #'   family-wise error control.
+#'   'westfall-young': Westfall-Young permutation stepdown (FWER <= α via empirical null). 
+#'   Non-parametric, accounts for multi-q correlation via permutation distribution. More 
+#'   powerful than Hochberg but slower (requires wy_randomizations model refits). Newly 
+#'   added March 2026 to match GEE method. Cost: O(genes × wy_randomizations).
 #'   'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
 #'   Valid under any correlation structure. More conservative than Hochberg but appropriate
 #'   for exploratory analysis. Reference: Papers S190, S193.
 #'   'none': No adjustment (returns raw p-values). Use for exploratory analysis only.
+#' @param wy_randomizations Integer number of permutations for Westfall-Young procedure 
+#'   (default: 100). Only used when multicorr='westfall-young'. Higher values (500-10000) 
+#'   increase accuracy but computational cost scales linearly.
+#' @param verbose Logical; if TRUE, print progress messages including Westfall-Young 
+#'   permutation updates (default: FALSE)
 #'
 #' @return Data frame with columns:
 #'   - gene: Gene identifier
@@ -1384,7 +1393,9 @@ detect_q_gene_interactions <- function(
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
-    multicorr = c("hochberg", "benjamini-yekutieli", "none")) {
+    multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
+    wy_randomizations = 100,
+    verbose = FALSE) {
   
   multicorr <- match.arg(multicorr)
   
@@ -1506,7 +1517,91 @@ detect_q_gene_interactions <- function(
   
   # Apply multiple testing correction for multi-q dependence (NEW - March 2026)
   # Q-values exhibit AR(1) correlation structure (Papers S168-S175)
-  if (multicorr == "hochberg") {
+  if (multicorr == "westfall-young") {
+    # True Westfall-Young permutation procedure for Kruskal-Wallis
+    # (same logic as GEE in calculate_lm_interaction, but refits K-W instead of GAM)
+    
+    if (verbose) {
+      message("[detect_q_gene_interactions] Computing Westfall-Young via ", 
+              wy_randomizations, " permutations...")
+    }
+    
+    # Save original data structure
+    data_orig <- data
+    
+    n_genes <- nrow(interaction_results)
+    perm_minima <- numeric(wy_randomizations)
+    
+    # Extract q-groups from data (these define permutation structure)
+    q_unique <- unique(data$q)
+    
+    # Wrap entire WY procedure in tryCatch to ensure data restoration
+    tryCatch({
+      for (perm_idx in 1:wy_randomizations) {
+        if (verbose && perm_idx %% max(1, wy_randomizations %/% 10) == 0) {
+          message("[detect_q_gene_interactions] WY permutation ", perm_idx, " of ", wy_randomizations)
+        }
+        
+        # Shuffle sample labels within each q-level (maintain q-group structure)
+        # This preserves the multi-q correlation structure
+        data_perm <- data_orig
+        for (q_val in q_unique) {
+          q_idx <- data_perm$q == q_val
+          # Shuffle the gene assignments within this q-level
+          data_perm$gene[q_idx] <- sample(data_perm$gene[q_idx])
+        }
+        
+        # Recompute p-values under permuted gene assignments
+        perm_pvalues <- numeric(n_genes)
+        
+        for (g_idx in seq_len(n_genes)) {
+          gene_name <- interaction_results$gene[g_idx]
+          gene_data_perm <- data_perm[data_perm$gene == gene_name, ]
+          
+          if (nrow(gene_data_perm) == 0) {
+            next  # Gene not in this permutation
+          }
+          
+          q_levels_perm <- unique(gene_data_perm$q)
+          if (length(q_levels_perm) < 2) {
+            next  # Insufficient groups for test
+          }
+          
+          # Refit conditional rank test with permuted data
+          tryCatch({
+            test_result_perm <- .tsenat_apply_conditional_rank_test(
+              data = gene_data_perm,
+              value_col = "entropy",
+              group_col = "q",
+              verbose = FALSE
+            )
+            if (!is.null(test_result_perm) && !is.na(test_result_perm$p_value)) {
+              perm_pvalues[g_idx] <- test_result_perm$p_value
+            }
+          }, error = function(e) { NULL })
+        }
+        
+        # Track minimum p-value in this permutation
+        perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
+      }
+    }, finally = {
+      # Data is not modified globally, but ensure clean state
+      data <- data_orig
+    })
+    
+    # Adjust p-values based on permutation distribution (Phipson-Smyth correction)
+    interaction_results$adj_p_value <- sapply(interaction_results$p_value, function(p_obs) {
+      pmin(1.0, (sum(perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
+    })
+    
+    # Enforce monotonicity (required for valid stepdown)
+    interaction_results <- interaction_results[order(interaction_results$p_value), , drop = FALSE]
+    interaction_results$adj_p_value <- cummax(interaction_results$adj_p_value)
+    
+    if (verbose) {
+      message("[detect_q_gene_interactions] Applied Westfall-Young (permutation) adjustment for K-W test")
+    }
+  } else if (multicorr == "hochberg") {
     # Hochberg stepup procedure (FWER control under positive regression dependence)
     interaction_results$adj_p_value <- .tsenat_hochberg_stepup(interaction_results$p_value)
   } else if (multicorr == "benjamini-yekutieli") {

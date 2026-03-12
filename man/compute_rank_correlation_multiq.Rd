@@ -7,15 +7,17 @@
 compute_rank_correlation_multiq(
   pvalues_list,
   method = c("spearman", "kendall"),
-  use_ranks = TRUE
+  use_ranks = FALSE
 )
 }
 \arguments{
-\item{pvalues_list}{List of p-value vectors named by q-value (e.g., list(q01 = ..., q05 = ...))}
+\item{pvalues_list}{List of numeric vectors named by q-value (e.g., list(q01 = ..., q05 = ...)).
+Can be either p-values or pre-ranked data, depending on \code{use_ranks} parameter.}
 
 \item{method}{Character; "spearman" (default) or "kendall" for rank correlation}
 
-\item{use_ranks}{Logical; use gene ranks instead of p-values (default: TRUE)}
+\item{use_ranks}{Logical; if FALSE (default), input data are p-values that will be ranked;
+if TRUE, input data are already gene ranks and will be used as-is}
 }
 \value{
 List with:
@@ -32,15 +34,23 @@ genes rank across different q-value settings.
 }
 \examples{
 \dontrun{
-# Compare ranking consistency across q-values
+# Compare ranking consistency across q-values with p-values
 pvals <- list(
   q01 = runif(100),
   q05 = runif(100),
   q10 = runif(100)
 )
 
-corr_result <- compute_rank_correlation_multiq(pvals, method = "spearman")
+corr_result <- compute_rank_correlation_multiq(pvals, method = "spearman", use_ranks = FALSE)
 print(corr_result$correlation_matrix)
 cat("\nConsistency score:", corr_result$consistency_score, "\n")
+
+# Or with pre-ranked data
+ranks <- list(
+  q01 = rank(runif(100)),
+  q05 = rank(runif(100)),
+  q10 = rank(runif(100))
+)
+corr_result2 <- compute_rank_correlation_multiq(ranks, use_ranks = TRUE)
 }
 }

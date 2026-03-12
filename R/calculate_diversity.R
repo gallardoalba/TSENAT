@@ -372,6 +372,12 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             gene_names <- sapply(result_genes, function(gid) {
                 if (gid %in% names(gene_to_name)) gene_to_name[[gid]] else gid
             }, USE.NAMES = FALSE)
+            
+            # CRITICAL: Check if gene_names contains duplicates
+            # If yes, fall back to gene IDs to avoid data.frame(row.names = ...) errors
+            if (length(unique(gene_names)) < length(gene_names)) {
+                gene_names <- NULL  # Force fallback to gene IDs
+            }
         }
     }
 

@@ -9,7 +9,9 @@ detect_q_gene_interactions(
   entropy_col = "entropy",
   q_col = "q",
   gene_col = "gene",
-  method = c("kruskal.test", "anova")
+  multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
+  wy_randomizations = 100,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -25,6 +27,30 @@ detect_q_gene_interactions(
 
 \item{gene_col}{Character name of gene column (default: "gene")}
 
+\item{multicorr}{Method for adjusting p-values across multiple q-values to account for 
+correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
+p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
+of the same gene (Papers S168-S175). This parameter selects the multiple testing
+correction method:
+'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
+Closed-form, computationally efficient. Recommended for strong signal detection with 
+family-wise error control.
+'westfall-young': Westfall-Young permutation stepdown (FWER <= α via empirical null). 
+Non-parametric, accounts for multi-q correlation via permutation distribution. More 
+powerful than Hochberg but slower (requires wy_randomizations model refits). Newly 
+added March 2026 to match GEE method. Cost: O(genes × wy_randomizations).
+'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
+Valid under any correlation structure. More conservative than Hochberg but appropriate
+for exploratory analysis. Reference: Papers S190, S193.
+'none': No adjustment (returns raw p-values). Use for exploratory analysis only.}
+
+\item{wy_randomizations}{Integer number of permutations for Westfall-Young procedure 
+(default: 100). Only used when multicorr='westfall-young'. Higher values (500-10000) 
+increase accuracy but computational cost scales linearly.}
+
+\item{verbose}{Logical; if TRUE, print progress messages including Westfall-Young 
+permutation updates (default: FALSE)}
+
 \item{method}{Character: "kruskal.test" (default, rank-based) or "anova" (parametric)}
 }
 \value{
@@ -32,7 +58,8 @@ Data frame with columns:
   - gene: Gene identifier
   - n_q_values_tested: Number of q-levels tested for this gene
   - f_statistic: Test statistic (H-statistic for Kruskal-Wallis, F for ANOVA)
-  - p_value: P-value for H0: "No q*gene interaction"
+  - p_value: P-value for H0: "No q*gene interaction" (unadjusted)
+  - adj_p_value: Adjusted p-value using multicorr method (NEW - March 2026)
   - ss_interaction: Sum of squares for q-effect
   - ss_residual: Sum of squares for residuals
   - df_interaction: Degrees of freedom for interaction
@@ -50,6 +77,17 @@ q-dependent expression patterns.
 Uses Kruskal-Wallis test (rank-based) by default, which is appropriate for
 non-normally distributed entropy data. Tests whether entropy values differ
 significantly across q-parameters for each gene.
+
+Adaptive test selection (March 2026):
+  With method="kruskal.test" (default), applies conditional rank test selection:
+  - Heteroscedasticity detected → Aligned Rank Transform + parametric test
+  - Extreme skewness detected → Mood's robust median test  
+  - Standard case → Kruskal-Wallis (rank-based)
+  
+  **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity metrics,
+  since these are mathematically bounded by definition [0, log(m)] and boundary
+  clustering is EXPECTED, not pathological. This fix (March 2026) resolves prior
+  false positives that were triggering inappropriate quantile test selection.
 
 Classification:
   - Robust: p >= 0.05 (no significant q-effect)

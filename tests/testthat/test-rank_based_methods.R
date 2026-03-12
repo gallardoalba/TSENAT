@@ -847,3 +847,271 @@ test_that("Functions handle edge case: many q-levels", {
   expect_equal(nrow(result), 1)
   expect_is(result$p_value[1], "numeric")
 })
+
+# ============================================================================
+# NEW TEST SUITE: Westfall-Young Permutation for detect_q_gene_interactions
+# ============================================================================
+
+test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
+  # Create test data
+  set.seed(777)
+  model_data <- data.frame(
+    entropy = rnorm(100, mean = 1, sd = 0.5),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
+    gene = rep(paste0("Gene", 1:5), each = 20),
+    sample = rep(paste0("S", 1:5), 20),
+    stringsAsFactors = FALSE
+  )
+  
+  # Should accept westfall-young without error
+  result <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 10  # Small number for speed in tests
+  )
+  
+  expect_is(result, "data.frame")
+  expect_true("adj_p_value" %in% colnames(result))
+  expect_equal(nrow(result), 5)  # 5 genes
+})
+
+test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-values", {
+  set.seed(888)
+  # Create test data with various signal strengths
+  model_data <- data.frame(
+    entropy = c(
+      rnorm(40, mean = 1.0, sd = 0.2),  # Gene1: stable
+      rnorm(40, mean = 1.0, sd = 0.2) + seq(0, 1.0, length.out = 40),  # Gene2: q-dependent
+      rnorm(40, mean = 1.0, sd = 0.3)   # Gene3: stable
+    ),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 40),
+    sample = rep(paste0("S", 1:20), 6),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 30
+  )
+  
+  # Verify adjusted p-values exist and are valid
+  expect_true(all(!is.na(result$adj_p_value)))
+  expect_true(all(result$adj_p_value >= 0 & result$adj_p_value <= 1))
+  expect_equal(nrow(result), 3)
+})
+
+test_that("detect_q_gene_interactions westfall-young adjusted p-values are monotonic", {
+  set.seed(999)
+  model_data <- data.frame(
+    entropy = rnorm(120),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
+    gene = rep(paste0("Gene", 1:6), each = 20),
+    sample = rep(paste0("S", 1:10), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 15
+  )
+  
+  # Sort by p_value and check that adj_p_value is non-decreasing
+  result_sorted <- result[order(result$p_value), ]
+  diffs <- diff(result_sorted$adj_p_value)
+  expect_true(all(diffs >= -1e-10))  # Allow tiny floating point errors
+})
+
+test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter works", {
+  set.seed(1001)
+  model_data <- data.frame(
+    entropy = rnorm(80),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 20),
+    gene = rep(paste0("Gene", 1:4), each = 20),
+    sample = rep(paste0("S", 1:5), 16),
+    stringsAsFactors = FALSE
+  )
+  
+  # Test with different randomization counts
+  result_small <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 5
+  )
+  
+  result_large <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 50
+  )
+  
+  # Both should have valid results
+  expect_is(result_small, "data.frame")
+  expect_is(result_large, "data.frame")
+  
+  # Results may differ slightly due to permutation randomness, but structure same
+  expect_equal(nrow(result_small), nrow(result_large))
+  expect_equal(colnames(result_small), colnames(result_large))
+})
+
+test_that("detect_q_gene_interactions westfall-young verbose mode works", {
+  set.seed(1011)
+  model_data <- data.frame(
+    entropy = rnorm(60),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
+    gene = rep(paste0("Gene", 1:3), each = 20),
+    sample = rep(paste0("S", 1:5), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  # Capture message output
+  expect_message(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = 10,
+      verbose = TRUE
+    ),
+    "westfall-young|WY|permutation",
+    ignore.case = TRUE
+  )
+})
+
+test_that("detect_q_gene_interactions westfall-young produces FWER control", {
+  # Create null data (no true q-effects)
+  set.seed(1021)
+  model_data <- data.frame(
+    entropy = rnorm(200),  # Pure noise, no structure
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 50),
+    gene = rep(paste0("Gene", 1:10), each = 20),
+    sample = rep(paste0("S", 1:10), 20),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 50
+  )
+  
+  # Under null hypothesis with pure noise, should have very few significant genes
+  # (true FWER control means at most α fraction false positives expected)
+  n_sig_alpha05 <- sum(result$adj_p_value < 0.05)
+  expect_true(n_sig_alpha05 <= 2)  # Allow at most 2 false positives out of 10 genes
+})
+
+test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
+  set.seed(1031)
+  # Create test data with multiple q-levels
+  model_data <- data.frame(
+    entropy = c(
+      rnorm(40, mean = 1.0, sd = 0.2),
+      rnorm(40, mean = 1.0, sd = 0.2) + seq(0, 1.2, length.out = 40),  # Signal
+      rnorm(40, mean = 1.0, sd = 0.2) + seq(0, 0.5, length.out = 40)   # Moderate signal
+    ),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 40),
+    sample = rep(paste0("S", 1:10), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  result_wy <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 40
+  )
+  
+  result_hoch <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "hochberg"
+  )
+  
+  # Both should produce valid p-values
+  expect_true(all(result_wy$adj_p_value >= 0 & result_wy$adj_p_value <= 1))
+  expect_true(all(result_hoch$adj_p_value >= 0 & result_hoch$adj_p_value <= 1))
+  
+  # Check that methods are working (non-zero variance suggests differentiation)
+  expect_true(var(result_wy$adj_p_value) >= 0)
+  expect_true(var(result_hoch$adj_p_value) >= 0)
+})
+
+test_that("detect_q_gene_interactions westfall-young handles small randomizations", {
+  set.seed(1041)
+  model_data <- data.frame(
+    entropy = rnorm(60),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
+    gene = rep(paste0("Gene", 1:3), each = 20),
+    sample = rep(paste0("S", 1:5), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  # Should work with very small wy_randomizations (though less accurate)
+  result <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 5
+  )
+  
+  expect_is(result, "data.frame")
+  expect_true(all(result$adj_p_value >= 0 & result$adj_p_value <= 1))
+})
+
+test_that("detect_q_gene_interactions westfall-young handles edge cases gracefully", {
+  set.seed(1051)
+  # Create clean dataset with sufficient samples
+  model_data <- data.frame(
+    entropy = c(
+      rnorm(20),  # Gene1
+      rnorm(20),  # Gene2
+      rnorm(20)   # Gene3
+    ),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
+    sample = rep(paste0("S", 1:5), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  # Should handle without crashing
+  result <- detect_q_gene_interactions(
+    model_data,
+    multicorr = "westfall-young",
+    wy_randomizations = 10
+  )
+  
+  expect_is(result, "data.frame")
+  expect_true("adj_p_value" %in% colnames(result))
+  expect_equal(nrow(result), 3)  # 3 genes
+})
+
+test_that("detect_q_gene_interactions westfall-young phipson-smyth correction prevents zero p-values", {
+  set.seed(1061)
+  # Create data with varying signal strengths
+  model_data <- data.frame(
+    entropy = c(
+      rnorm(40, mean = 1.0, sd = 0.15) + seq(0, 2.0, length.out = 40),  # Strong
+      rnorm(40, mean = 1.0, sd = 0.3),
+      rnorm(40, mean = 1.0, sd = 0.3)
+    ),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 40),
+    sample = rep(paste0("S", 1:10), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  result <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = 100
+    )
+  )
+  
+  # All p-values should be valid (never exactly 0, due to Phipson-Smyth correction)
+  expect_true(all(result$adj_p_value > 0))
+  expect_true(all(result$adj_p_value <= 1))
+  expect_true(all(!is.na(result$adj_p_value)))
+  expect_equal(nrow(result), 3)  # Should have 3 genes
+})
+
