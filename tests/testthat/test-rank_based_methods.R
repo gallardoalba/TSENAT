@@ -32,11 +32,20 @@ test_that("compute_rank_correlation_multiq handles kendall correlation", {
 })
 
 test_that("apply_aligned_rank_transform produces valid output", {
-  load(system.file("data", "readcounts.RData", package = "TSENAT"))
-  expr_data <- as.matrix(salmon_dataset)[1:10, ]  # subset for speed
+  # Create synthetic expression data
+  set.seed(123)
+  expr_data <- matrix(
+    rnorm(160),  # 16 genes x 10 samples
+    nrow = 16,
+    ncol = 10,
+    dimnames = list(
+      paste0("Gene", 1:16),
+      paste0("Sample", 1:10)
+    )
+  )
   
   factors <- data.frame(
-    batch = factor(c(rep("A", 8), rep("B", 8))),
+    batch = factor(c(rep("A", 5), rep("B", 5))),
     row.names = colnames(expr_data)
   )
   
@@ -73,9 +82,17 @@ test_that("rank_based_fwer_control controls FWER", {
 })
 
 test_that("test_rankbased_assumptions validates assumptions", {
-  # Test that the function exists and can be called successfully
-  load(system.file("data", "readcounts.RData", package = "TSENAT"))
-  expr_data <- as.matrix(salmon_dataset)[1:20, ]
+  # Create synthetic expression data
+  set.seed(456)
+  expr_data <- matrix(
+    rnorm(400),  # 20 genes x 20 samples
+    nrow = 20,
+    ncol = 20,
+    dimnames = list(
+      paste0("Gene", 1:20),
+      paste0("Sample", 1:20)
+    )
+  )
   
   # Call the function and verify it returns a result
   result <- test_rankbased_assumptions(
@@ -511,7 +528,7 @@ test_that("detect_q_gene_interactions validates column names", {
   )
 })
 
-test_that("detect_q_gene_interactions anova method produces results", {
+test_that("detect_q_gene_interactions kruskal.test method produces results", {
   set.seed(111)
   entropy_vals <- c(
     rnorm(10, mean = 1.0, sd = 0.2),  # q=0.5
@@ -527,7 +544,7 @@ test_that("detect_q_gene_interactions anova method produces results", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data, method = "anova")
+  result <- detect_q_gene_interactions(model_data)
   
   # Should complete successfully
   expect_is(result, "data.frame")
@@ -808,7 +825,8 @@ test_that("Functions handle edge case: single sample per q-level", {
   )
   
   # Should handle without error (though with limited power)
-  result <- detect_q_gene_interactions(model_data)
+  # Suppress expected warnings from edge-case variance calculations with N=1 per group
+  result <- suppressWarnings(detect_q_gene_interactions(model_data))
   expect_is(result, "data.frame")
 })
 

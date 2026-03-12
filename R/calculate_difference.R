@@ -293,20 +293,34 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
             # df_keep[, 1] contains gene identifiers
             gene_ids <- df_keep[, 1]
             
-            # Try to match by rownames first, then by numeric index
-            if (!is.null(rownames(counts)) && all(gene_ids %in% rownames(counts))) {
-                # Counts has rownames and they match gene_ids
-                counts_tested <- counts[gene_ids, , drop = FALSE]
-            } else if (is.numeric(gene_ids) || all(suppressWarnings(!is.na(as.numeric(gene_ids))))) {
-                # Gene_ids are numeric - use as index
-                gene_idx <- as.numeric(gene_ids)
-                if (all(gene_idx > 0 & gene_idx <= nrow(counts))) {
-                    counts_tested <- counts[gene_idx, , drop = FALSE]
-                } else {
-                    stop("Gene indices out of bounds when subsetting counts matrix", call. = FALSE)
-                }
-            } else {
-                stop("Cannot match gene identifiers in counts matrix. Ensure rownames(counts) match gene ids.", call. = FALSE)
+            # STRICT: Only accept rowname matching - numeric fallback is ambiguous and error-prone
+            # Reason: test_results rows come from filtered df_keep, so row indices don't correspond
+            # to original counts matrix rows. Must use explicit rowname matching.
+            
+            if (is.null(rownames(counts))) {
+                stop("When use_precision_weights = TRUE, counts matrix must have rownames ",
+                     "that match gene identifiers in the diversity data. ",
+                     "Received counts with NULL rownames.", call. = FALSE)
+            }
+            
+            if (!all(gene_ids %in% rownames(counts))) {
+                missing_genes <- setdiff(gene_ids, rownames(counts))
+                stop("When use_precision_weights = TRUE, gene IDs from tested genes must match ",
+                     "rownames(counts). Missing genes:\n  ",
+                     paste(head(missing_genes, 5), collapse = ", "),
+                     if (length(missing_genes) > 5) "..." else "",
+                     "\n Expected rownames sample: ", paste(head(rownames(counts), 5), collapse = ", "),
+                     call. = FALSE)
+            }
+            
+            # Index by rowname (safe, unambiguous)
+            counts_tested <- counts[as.character(gene_ids), , drop = FALSE]
+            
+            # Sanity check: verify alignment
+            if (nrow(counts_tested) != nrow(test_results)) {
+                stop("Row count mismatch after subsetting counts: expected ", nrow(test_results),
+                     " tested genes, got ", nrow(counts_tested), " from counts matrix. ",
+                     "This suggests counts and test_results are misaligned.", call. = FALSE)
             }
             
             test_results <- .apply_precision_weighting_to_test(
@@ -683,10 +697,19 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     }
     res <- do.call(rbind, all_results)
     
-    # VALIDATION: Ensure critical p_interaction column exists after rbind
-    if (method == "gam" && !"p_interaction" %in% colnames(res)) {
-        stop(sprintf("[calculate_lm_interaction] CRITICAL: p_interaction missing after rbind for %s method. Available columns: %s",
-                     method, paste(colnames(res), collapse=", ")))
+    # VALIDATION: Ensure critical columns exist after rbind
+    if (nrow(res) == 0) {
+        warning("[calculate_lm_interaction] No genes analyzed (all filtered out)", call. = FALSE)
+        return(res)
+    }
+    
+    critical_cols <- c("p_interaction", "gene")
+    missing_cols <- setdiff(critical_cols, colnames(res))
+    if (length(missing_cols) > 0) {
+        stop("[calculate_lm_interaction] CRITICAL: Missing columns in results for ",
+             method, " method: ", paste(missing_cols, collapse=", "),
+             "\nAvailable columns: ", paste(colnames(res), collapse=", "),
+             call. = FALSE)
     }
     
     # Ensure Shapiro-Wilk columns exist for methods that add them
@@ -720,40 +743,49 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
                     wy_randomizations, " permutations (may be slow)...")
         }
         
-        # Implement permutation test for WY
+        # Save original group vector for safe restoration
+        # (WY procedure temporarily modifies group_vec for each permutation)
         group_vec_orig <- group_vec
+        
+        # Implement permutation test for WY
         groups_unique <- unique(group_vec_orig)
         n_genes <- nrow(res)
         perm_minima <- numeric(wy_randomizations)
         
-        for (perm_idx in 1:wy_randomizations) {
-            if (verbose && perm_idx %% max(1, wy_randomizations %/% 10) == 0) {
-                message("[calculate_lm_interaction] WY permutation ", perm_idx, " of ", wy_randomizations)
+        # Wrap entire WY procedure in tryCatch to ensure group_vec restoration
+        tryCatch({
+            for (perm_idx in 1:wy_randomizations) {
+                if (verbose && perm_idx %% max(1, wy_randomizations %/% 10) == 0) {
+                    message("[calculate_lm_interaction] WY permutation ", perm_idx, " of ", wy_randomizations)
+                }
+                
+                # Shuffle group labels while preserving group sizes
+                perm_assignment <- sample(group_vec_orig)
+                
+                # IMPORTANT: Temporarily modify group_vec for this permutation
+                # All fit_one() calls will use the permuted assignment
+                # (group_vec stays constant across genes in same permutation)
+                group_vec <- perm_assignment
+                
+                # Refit models with permuted groups
+                perm_pvalues <- numeric(n_genes)
+                for (g_idx in seq_along(rownames(mat))) {
+                    gene_name <- rownames(mat)[g_idx]
+                    tryCatch({
+                        gene_result <- fit_one(gene_name)
+                        if (!is.null(gene_result) && !is.na(gene_result$p_interaction)) {
+                            perm_pvalues[g_idx] <- gene_result$p_interaction
+                        }
+                    }, error = function(e) { NULL })
+                }
+                
+                # Track minimum p-value in this permutation
+                perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
             }
-            
-            # Shuffle group labels while preserving group sizes
-            perm_assignment <- sample(group_vec_orig)
-            
-            # Refit models with permuted groups
-            perm_pvalues <- numeric(n_genes)
-            for (g_idx in seq_along(rownames(mat))) {
-                gene_name <- rownames(mat)[g_idx]
-                tryCatch({
-                    # Temporarily swap group_vec for this permutation
-                    group_vec <- perm_assignment
-                    gene_result <- fit_one(gene_name)
-                    if (!is.null(gene_result) && !is.na(gene_result$p_interaction)) {
-                        perm_pvalues[g_idx] <- gene_result$p_interaction
-                    }
-                }, error = function(e) { NULL })
-            }
-            
-            # Track minimum p-value in this permutation
-            perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
-        }
-        
-        # Restore original group_vec
-        group_vec <- group_vec_orig
+        }, finally = {
+            # CRITICAL: Always restore group_vec, even if error occurs during loop
+            group_vec <<- group_vec_orig
+        })
         
         # Adjust p-values based on permutation distribution
         # For each observed p-value, compute proportion of permutations with min_perm <= p_obs
@@ -1231,6 +1263,18 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     robust_loss_type = "huber", robust_scale_method = "mad") {
     paired_method <- match.arg(paired_method)
     
+    # CRITICAL: Validate control and sample structure
+    if (!(control %in% samples)) {
+        stop("Control group '", control, "' not found in unique sample types: ",
+             paste(unique(samples), collapse = ", "), call. = FALSE)
+    }
+    
+    unique_groups <- unique(samples)
+    if (length(unique_groups) != 2) {
+        stop("label_shuffling() requires exactly 2 sample groups (control and case); found ",
+             length(unique_groups), ": ", paste(unique_groups, collapse = ", "), call. = FALSE)
+    }
+    
     # When paired with explicit pairing info, validate structure
     if (isTRUE(paired) && !is.null(pairs)) {
         if (length(pairs) != ncol(x)) {
@@ -1377,7 +1421,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                         all_diffs <- c(all_diffs, x[i, g1_samples] - x[i, g2_samples])
                     }
                 }
-                if (length(all_diffs) < 2) {
+                if (is.null(all_diffs) || length(all_diffs) < 2) {
                     return(c(U = NA_real_, r = NA_real_))
                 }
                 # Signed-rank test on paired differences (exact=FALSE to avoid tie warnings)
@@ -1396,7 +1440,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                 g1_idx <- which(samples == groups[1])
                 g2_idx <- which(samples == groups[2])
                 
-                if (length(g1_idx) < 1 || length(g2_idx) < 1) {
+                if (length(g1_idx) == 0 || length(g2_idx) == 0) {
                     return(c(U = NA_real_, r = NA_real_))
                 }
                 
@@ -1475,31 +1519,59 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     
     # Compute precision weights from empirical Bayes posteriors
     precision_weights <- numeric(n_genes)
+    n_valid <- 0
     
     for (i in seq_len(n_genes)) {
-        # Get posterior for this gene
-        posterior <- get_posterior_distribution(
-            counts = counts[i, ],
-            alpha = alpha,
-            beta = beta,
-            ci = NULL  # We only need variance, not CI
-        )
-        
-        # Precision = inverse variance
-        precision_weights[i] <- 1 / posterior$posterior_variance
+        tryCatch({
+            # Get posterior for this gene
+            posterior <- get_posterior_distribution(
+                counts = counts[i, ],
+                alpha = alpha,
+                beta = beta,
+                ci = NULL  # We only need variance, not CI
+            )
+            
+            # Validate posterior variance before using as precision
+            if (is.null(posterior$posterior_variance) || 
+                !is.numeric(posterior$posterior_variance) ||
+                posterior$posterior_variance <= 0) {
+                precision_weights[i] <- NA_real_
+            } else {
+                # Precision = inverse variance
+                precision_weights[i] <- 1 / posterior$posterior_variance
+                n_valid <- n_valid + 1
+            }
+        }, error = function(e) {
+            # Mark as NA for this gene if posterior computation fails
+            if (i <= 5) {  # Only warn on first few failures
+                message("[.apply_precision_weighting_to_test] Gene ", i, 
+                       " posterior computation failed: ", conditionMessage(e))
+            }
+            precision_weights[i] <<- NA_real_
+        })
+    }
+    
+    # Check if any valid weights computed
+    if (n_valid == 0) {
+        warning("[.apply_precision_weighting_to_test] No genes had valid posterior variance estimates; ",
+                "returning unweighted p-values", call. = FALSE)
+        return(test_results)
     }
     
     # Normalize precision weights to [0, 1] for interpretability
     precision_weights_norm <- precision_weights / max(precision_weights, na.rm = TRUE)
+    precision_weights_norm[is.na(precision_weights)] <- NA_real_
     
     # Convert original p-values to z-scores (two-tailed)
     z_scores <- stats::qnorm(1 - test_results$pvalue / 2)
     
     # Weight z-scores by precision (high precision strengthens signal)
-    z_weighted <- z_scores * sqrt(precision_weights_norm)
+    # Handle NAs: set to 0 weight for genes with no precision estimate
+    z_weighted <- z_scores * sqrt(ifelse(is.na(precision_weights_norm), 0, precision_weights_norm))
     
     # Convert back to p-values
     pvalue_weighted <- 2 * (1 - stats::pnorm(abs(z_weighted)))
+    pvalue_weighted[is.na(test_results$pvalue)] <- NA_real_  # Preserve original NAs
     
     # Adjust weighted p-values
     padj_weighted <- stats::p.adjust(pvalue_weighted, method = pcorr)
@@ -1617,7 +1689,11 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             group2_vals <- feat_vals[group2_idx]
             
             # Use .irls_estimate_location from m_estimation.R
-            # (pre-computes scales once, reduces permutation overhead)
+            # NOTE: Scales are computed per-feature (not pre-computed once) because
+            # .irls_estimate_location() recomputes scale for each call. This is ~2-10x
+            # slower than pre-computing once. For future optimization: if .irls_estimate_location()
+            # accepts a 'scale' parameter, compute it once per group, then pass to all features.
+            # See CODE_REVIEW_CALCULATE_DIFFERENCE.md Issue #3 for details.
             est1 <- .irls_estimate_location(group1_vals, 
                                             loss_type = robust_loss_type,
                                             scale_method = robust_scale_method,

@@ -221,9 +221,11 @@ print.art_result <- function(x, ...) {
 #' to assess effect size consistency in multi-q analysis. Measures how similarly
 #' genes rank across different q-value settings.
 #'
-#' @param pvalues_list List of p-value vectors named by q-value (e.g., list(q01 = ..., q05 = ...))
+#' @param pvalues_list List of numeric vectors named by q-value (e.g., list(q01 = ..., q05 = ...)).
+#'   Can be either p-values or pre-ranked data, depending on \code{use_ranks} parameter.
 #' @param method Character; "spearman" (default) or "kendall" for rank correlation
-#' @param use_ranks Logical; use gene ranks instead of p-values (default: TRUE)
+#' @param use_ranks Logical; if FALSE (default), input data are p-values that will be ranked;
+#'   if TRUE, input data are already gene ranks and will be used as-is
 #'
 #' @return List with:
 #'   \describe{
@@ -235,24 +237,38 @@ print.art_result <- function(x, ...) {
 #' @export
 #' @examples
 #' \dontrun{
-#' # Compare ranking consistency across q-values
+#' # Compare ranking consistency across q-values with p-values
 #' pvals <- list(
 #'   q01 = runif(100),
 #'   q05 = runif(100),
 #'   q10 = runif(100)
 #' )
 #' 
-#' corr_result <- compute_rank_correlation_multiq(pvals, method = "spearman")
+#' corr_result <- compute_rank_correlation_multiq(pvals, method = "spearman", use_ranks = FALSE)
 #' print(corr_result$correlation_matrix)
 #' cat("\nConsistency score:", corr_result$consistency_score, "\n")
+#' 
+#' # Or with pre-ranked data
+#' ranks <- list(
+#'   q01 = rank(runif(100)),
+#'   q05 = rank(runif(100)),
+#'   q10 = rank(runif(100))
+#' )
+#' corr_result2 <- compute_rank_correlation_multiq(ranks, use_ranks = TRUE)
 #' }
 compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman", "kendall"), 
-                                           use_ranks = TRUE) {
+                                           use_ranks = FALSE) {
   
   method <- match.arg(method)
   
-  # Convert p-values to ranks
-  rank_list <- lapply(pvalues_list, rank)
+  # Implement use_ranks parameter:
+  # If use_ranks = FALSE (default): input is p-values, convert to ranks
+  # If use_ranks = TRUE: input is already ranks, use as-is
+  if (use_ranks) {
+    rank_list <- pvalues_list  # Data are already ranks
+  } else {
+    rank_list <- lapply(pvalues_list, rank)  # Convert p-values to ranks
+  }
   
   # Compute correlations
   n_q <- length(rank_list)
@@ -261,15 +277,21 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
   corr_matrix <- matrix(NA, nrow = n_q, ncol = n_q, 
                        dimnames = list(q_names, q_names))
   
+  # Bug #5 Fix: Optimize by computing only upper triangle (O(n_q²/2) instead of O(n_q²))
+  # Correlation matrix is symmetric, so compute once and mirror
   for (i in seq_len(n_q)) {
-    for (j in seq_len(n_q)) {
+    for (j in i:n_q) {
       ranks_i <- rank_list[[i]]
       ranks_j <- rank_list[[j]]
       
       # Compute rank correlation
-      corr_matrix[i, j] <- stats::cor(ranks_i, ranks_j, 
-                                     method = method, 
-                                     use = "complete.obs")
+      corr <- stats::cor(ranks_i, ranks_j, 
+                        method = method, 
+                        use = "complete.obs")
+      corr_matrix[i, j] <- corr
+      if (i != j) {
+        corr_matrix[j, i] <- corr  # Fill symmetric element
+      }
     }
   }
   
@@ -407,14 +429,17 @@ rank_based_fwer_control <- function(data, groups, n_permutations = 1000,
   # Observed test statistic
   observed_t <- compute_test_stat(ranked_data, groups)
   
-  # Permutation distribution: permute GROUP ASSIGNMENTS
+  # Permutation distribution: properly permute DATA while keeping group assignments fixed
+  # Bug #3 Fix: Shuffle data rows instead of group labels for correct permutation logic
   perm_distribution <- numeric(n_permutations)
   set.seed(42)  # For reproducibility
   
   for (perm in seq_len(n_permutations)) {
-    # Permute group assignments (shuffle which samples are in which group)
-    perm_groups <- groups[sample(seq_len(n_samples))]
-    perm_distribution[perm] <- compute_test_stat(ranked_data, perm_groups)
+    # Permute data rows (shuffle which observations go to which group)
+    # This maintains exchangeability assumption while keeping group structure fixed
+    perm_idx <- sample(seq_len(n_samples), replace = FALSE)
+    perm_ranked_data <- ranked_data[, perm_idx, drop = FALSE]
+    perm_distribution[perm] <- compute_test_stat(perm_ranked_data, groups)
   }
   
   # Compute adjusted p-values (per-gene, based on global max statistic)
@@ -548,6 +573,9 @@ plot_rank_correlation_heatmap <- function(rank_corr_obj,
   )
   
   # Create heatmap
+  # Bug #6 Fix: Use method variable instead of hardcoded "Spearman"
+  method_label <- sprintf("%s Correlation", toupper(rank_corr_obj$method))
+  
   p <- ggplot2::ggplot(corr_long, 
                        ggplot2::aes(x = q_value_2, y = q_value_1, 
                                    fill = correlation)) +
@@ -557,7 +585,7 @@ plot_rank_correlation_heatmap <- function(rank_corr_obj,
     ggplot2::theme_minimal() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)) +
     ggplot2::labs(title = title, x = "Q-value 2", y = "Q-value 1",
-                 fill = "Spearman Correlation")
+                 fill = method_label)
   
   p
 }
@@ -746,7 +774,7 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
                                           method = c("spearman", "kendall"),
                                           ci = c("percentile", "bca", "permutation"),
                                           ci_level = 0.95,
-                                          n_bootstrap = 1000,
+                                          n_bootstrap = 5000,
                                           n_permutations = 5000,
                                           seed = 42,
                                           return_distribution = FALSE) {
@@ -839,17 +867,27 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
           jack_mean <- mean(jack_corrs, na.rm = TRUE)
           numerator <- sum((jack_mean - jack_corrs)^3, na.rm = TRUE)
           denominator <- 6 * (sum((jack_mean - jack_corrs)^2, na.rm = TRUE))^(3/2)
-          accel <- numerator / denominator
           
-          # BCA percentiles
-          z_alpha_lower <- stats::qnorm(alpha / 2)
-          z_alpha_upper <- stats::qnorm(1 - alpha / 2)
-          
-          p_lower <- stats::pnorm(z0 + (z0 + z_alpha_lower) / (1 - accel * (z0 + z_alpha_lower)))
-          p_upper <- stats::pnorm(z0 + (z0 + z_alpha_upper) / (1 - accel * (z0 + z_alpha_upper)))
-          
-          ci_matrix[i, j, "lower"] <- quantile(boot_dist, p_lower, na.rm = TRUE)
-          ci_matrix[i, j, "upper"] <- quantile(boot_dist, p_upper, na.rm = TRUE)
+          # Bug #2 Fix: Check for near-zero denominator (uniform jackknife values)
+          if (abs(denominator) < 1e-10) {
+            # Fallback to percentile CI when jackknife correlations are uniform
+            alpha <- 1 - ci_level
+            ci_matrix[i, j, "lower"] <- quantile(boot_dist, alpha / 2, na.rm = TRUE)
+            ci_matrix[i, j, "upper"] <- quantile(boot_dist, 1 - alpha / 2, na.rm = TRUE)
+            warning(sprintf("BCA acceleration denominator near zero for Q pair (%s, %s). Falling back to percentile method.", q_names[i], q_names[j]))
+          } else {
+            accel <- numerator / denominator
+            
+            # BCA percentiles
+            z_alpha_lower <- stats::qnorm(alpha / 2)
+            z_alpha_upper <- stats::qnorm(1 - alpha / 2)
+            
+            p_lower <- stats::pnorm(z0 + (z0 + z_alpha_lower) / (1 - accel * (z0 + z_alpha_lower)))
+            p_upper <- stats::pnorm(z0 + (z0 + z_alpha_upper) / (1 - accel * (z0 + z_alpha_upper)))
+            
+            ci_matrix[i, j, "lower"] <- quantile(boot_dist, p_lower, na.rm = TRUE)
+            ci_matrix[i, j, "upper"] <- quantile(boot_dist, p_upper, na.rm = TRUE)
+          }
         }
       }
     }
@@ -1346,10 +1384,8 @@ detect_q_gene_interactions <- function(
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
-    method = c("kruskal.test", "anova"),
     multicorr = c("hochberg", "benjamini-yekutieli", "none")) {
   
-  method <- match.arg(method)
   multicorr <- match.arg(multicorr)
   
   # Ensure proper column names in input data
@@ -1411,48 +1447,36 @@ detect_q_gene_interactions <- function(
     interaction_results$n_q_values_tested[g_idx] <- length(q_levels)
     
     # Perform test with conditional rank test selection (March 2026)
-    if (method == "kruskal.test") {
-      # NEW: Use conditional test selection based on data characteristics
-      test_result <- tryCatch(
-        .tsenat_apply_conditional_rank_test(
-          data = gene_data,
-          value_col = "entropy",
-          group_col = "q",
-          verbose = FALSE
-        ),
-        error = function(e) NULL
-      )
-      
-      if (is.null(test_result)) {
-        interaction_results$interaction_class[g_idx] <- "Test failed"
-        interaction_results$p_value[g_idx] <- NA
-        interaction_results$test_method[g_idx] <- "test_failed"
-        next
-      }
-      
-      interaction_results$f_statistic[g_idx] <- as.numeric(test_result$statistic)
-      interaction_results$p_value[g_idx] <- as.numeric(test_result$p_value)
-      interaction_results$df_interaction[g_idx] <- length(q_levels) - 1
-      interaction_results$df_residual[g_idx] <- nrow(gene_data) - length(q_levels)
-      
-      # NEW: Store test method and data characteristics (March 2026)
-      interaction_results$test_method[g_idx] <- test_result$test_type
-      if (!is.null(test_result$characteristics)) {
-        interaction_results$heteroscedastic[g_idx] <- test_result$characteristics$heteroscedastic
-        interaction_results$boundary_clustered[g_idx] <- test_result$characteristics$boundary_clustered
-        interaction_results$highly_skewed[g_idx] <- test_result$characteristics$highly_skewed
-      }
-      
-    } else if (method == "anova") {
-      # Parametric ANOVA
-      model <- lm(entropy ~ q, data = gene_data)
-      anova_result <- anova(model)
-      
-      interaction_results$f_statistic[g_idx] <- as.numeric(anova_result$`F value`[1])
-      interaction_results$p_value[g_idx] <- as.numeric(anova_result$`Pr(>F)`[1])
-      interaction_results$df_interaction[g_idx] <- as.numeric(anova_result$Df[1])
-      interaction_results$df_residual[g_idx] <- as.numeric(anova_result$Df[2])
-      interaction_results$test_method[g_idx] <- "anova"  # NEW: Track method
+    # Perform test with Kruskal-Wallis rank test (March 2026)
+    # NEW: Use conditional test selection based on data characteristics
+    test_result <- tryCatch(
+      .tsenat_apply_conditional_rank_test(
+        data = gene_data,
+        value_col = "entropy",
+        group_col = "q",
+        verbose = FALSE
+      ),
+      error = function(e) NULL
+    )
+    
+    if (is.null(test_result)) {
+      interaction_results$interaction_class[g_idx] <- "Test failed"
+      interaction_results$p_value[g_idx] <- NA
+      interaction_results$test_method[g_idx] <- "test_failed"
+      next
+    }
+    
+    interaction_results$f_statistic[g_idx] <- as.numeric(test_result$statistic)
+    interaction_results$p_value[g_idx] <- as.numeric(test_result$p_value)
+    interaction_results$df_interaction[g_idx] <- length(q_levels) - 1
+    interaction_results$df_residual[g_idx] <- nrow(gene_data) - length(q_levels)
+    
+    # NEW: Store test method and data characteristics (March 2026)
+    interaction_results$test_method[g_idx] <- test_result$test_type
+    if (!is.null(test_result$characteristics)) {
+      interaction_results$heteroscedastic[g_idx] <- test_result$characteristics$heteroscedastic
+      interaction_results$boundary_clustered[g_idx] <- test_result$characteristics$boundary_clustered
+      interaction_results$highly_skewed[g_idx] <- test_result$characteristics$highly_skewed
     }
     
     # Compute effect size (eta-squared)

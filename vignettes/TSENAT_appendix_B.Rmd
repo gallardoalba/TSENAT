@@ -271,7 +271,7 @@ cat("Running GEE analysis on", nrow(ts_se), "genes...\n")
 
 lm_res_raw <- calculate_lm_interaction(
     ts_se,  # Subset selected above for speed
-    method = "gee",
+    method = "gam",
     paired = TRUE,
     multicorr = "hochberg",
     nthreads = 3,
@@ -1068,7 +1068,6 @@ kw_res_raw <- detect_q_gene_interactions(
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
-    method = "kruskal.test",  # Uses conditional selection internally
     multicorr = "hochberg"  # Multiple testing correction for AR(1) q-value dependence
 )
 

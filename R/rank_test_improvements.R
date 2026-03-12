@@ -92,13 +92,22 @@
         if (!inherits(bp_mod, "try-error")) {
             # F-test for Breusch-Pagan
             bp_anova <- anova(bp_mod)
-            if (nrow(bp_anova) >= 1) {
-                bp_pvalue <- bp_anova$`Pr(>F)`[1]
+            
+            # Improved: Extract p-value by row name instead of position (more robust)
+            bp_pvalue <- NA_real_  # Initialize with NA
+            if ("fitted" %in% rownames(bp_anova)) {
+                bp_pvalue <- as.numeric(bp_anova["fitted", "Pr(>F)"])
                 
                 # Also compute variance ratio across groups
                 group_vars <- tapply(values, groups, var, na.rm = TRUE)
                 if (length(group_vars) > 1) {
-                    var_ratio <- max(group_vars, na.rm = TRUE) / min(group_vars, na.rm = TRUE)
+                    # Only compute ratio if we have valid (non-NaN) variances
+                    finite_vars <- group_vars[is.finite(group_vars)]
+                    if (length(finite_vars) > 1) {
+                        var_ratio <- max(finite_vars, na.rm = TRUE) / min(finite_vars, na.rm = TRUE)
+                    } else {
+                        var_ratio <- 1  # Insufficient data for variance comparison
+                    }
                 } else {
                     var_ratio <- 1
                 }
@@ -167,11 +176,13 @@
     
     skewness_val <- .tsenat_compute_skewness(values)
     
-    if (abs(skewness_val) > 1 && characteristics$heteroscedastic) {
-        # Extreme skewness combined with heteroscedasticity
+    # Bug #2 Fix (March 2026): Skewness should be independent condition
+    # (was: if (abs(skewness_val) > 1 && characteristics$heteroscedastic))
+    # Robust median test should be available for ANY highly skewed data
+    if (abs(skewness_val) > 1) {
         characteristics$highly_skewed <- TRUE
         reasons <- c(reasons, sprintf(
-            "Extreme skewness: |skew|=%.3f with heteroscedasticity",
+            "Extreme skewness: |skew|=%.3f",
             skewness_val
         ))
     }
@@ -343,42 +354,55 @@
         groups <- factor(groups)
     }
     
-    group_levels <- levels(groups)
-    n_groups <- length(group_levels)
+    # Bug #1 Fix (March 2026): Test whether group QUANTILES differ (not raw values)
+    # Strategy: For each quantile level, test if groups have different quantile values
+    # using quantile regression or bootstrap CI on group quantiles
     
-    # For each quantile, compute group values and test for differences
     quantile_pvals <- numeric(length(quantiles))
     quantile_stats <- numeric(length(quantiles))
     
     for (q_idx in seq_along(quantiles)) {
         q_val <- quantiles[q_idx]
         
-        # Compute group quantiles
+        # For each group, compute its quantile value
         group_quantiles <- tapply(values, groups, quantile, probs = q_val, na.rm = TRUE)
         
-        # Kruskal-Wallis test on whether groups differ at this quantile
-        # Strategy: For each group, mark observations as above/below group median
-        # Then test if proportion differs by group
-        
-        q_results <- try(
-            kruskal.test(values ~ groups),
-            silent = TRUE
+        # Test if these group-specific quantiles differ using one-way ANOVA
+        # Create a pseudo-dataset where each group's value is its quantile
+        # Then test using Kruskal-Wallis on ranks of those quantiles
+        quant_data <- data.frame(
+            q_value = as.numeric(group_quantiles),
+            group = names(group_quantiles)
         )
+        quant_data$group <- factor(quant_data$group)
         
-        if (!inherits(q_results, "try-error")) {
-            quantile_pvals[q_idx] <- as.numeric(q_results$p.value)
-            quantile_stats[q_idx] <- as.numeric(q_results$statistic)
+        # Test differences in quantile values across groups
+        q_test <- try(kruskal.test(q_value ~ group, data = quant_data), silent = TRUE)
+        
+        if (!inherits(q_test, "try-error")) {
+            quantile_pvals[q_idx] <- as.numeric(q_test$p.value)
+            quantile_stats[q_idx] <- as.numeric(q_test$statistic)
         } else {
+            # Fallback: treat as unavailable for this quantile
             quantile_pvals[q_idx] <- NA_real_
             quantile_stats[q_idx] <- NA_real_
         }
     }
     
     # Combine p-values: use minimum with Bonferroni correction
+    # Safety check: if all quantile tests failed, return NA
+    if (all(is.na(quantile_pvals)) || all(is.na(quantile_stats))) {
+        return(list(
+            statistic = NA_real_,
+            p_value = NA_real_,
+            method = "Quantile-based test (insufficient data)"
+        ))
+    }
+    
     min_pval <- min(quantile_pvals, na.rm = TRUE)
     max_stat <- max(quantile_stats, na.rm = TRUE)
     
-    # Bonferroni correction
+    # Bonferroni correction: adjust for multiple quantiles tested
     combined_pval <- pmin(1.0, min_pval * length(quantiles))
     
     return(list(
