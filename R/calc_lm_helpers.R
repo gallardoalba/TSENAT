@@ -1926,6 +1926,46 @@
             }
         }
         
+        # Extract test statistic and effect size from standard GAM fit
+        test_statistic <- NA_real_
+        effect_size <- NA_real_
+        df_residual <- NA_real_
+        model_converged <- !inherits(fit_alt, "try-error")
+        
+        if (!inherits(fit_alt, "try-error") && !is.null(fit_alt)) {
+            tryCatch({
+                gam_summary <- summary(fit_alt)
+                if (!is.null(gam_summary)) {
+                    if (!is.null(gam_summary$dev.expl)) {
+                        effect_size <- as.numeric(gam_summary$dev.expl)[1]
+                        if (!is.finite(effect_size)) {
+                            effect_size <- NA_real_
+                        }
+                    }
+                    if (!is.null(gam_summary$residual.df)) {
+                        df_residual <- as.numeric(gam_summary$residual.df)[1]
+                        if (!is.finite(df_residual)) {
+                            df_residual <- NA_real_
+                        }
+                    }
+                }
+            }, error = function(e) { NULL })
+            
+            # Extract F-statistic from anova if available
+            if (!is.null(an) && nrow(an) >= 2 && !inherits(an, "try-error")) {
+                tryCatch({
+                    if ("F" %in% colnames(an)) {
+                        test_statistic <- as.numeric(an[2, "F"])[1]
+                    } else if ("Chisq" %in% colnames(an)) {
+                        test_statistic <- as.numeric(an[2, "Chisq"])[1]
+                    }
+                    if (!is.finite(test_statistic)) {
+                        test_statistic <- NA_real_
+                    }
+                }, error = function(e) { NULL })
+            }
+        }
+        
         # DEBUG: Log p-value BEFORE bias correction (gene 'g' will be used as identifier)
         if (FALSE && g == "g1") {  # Change to TRUE to enable debug output
             cat(sprintf("[GAM DEBUG] Gene %s: p_interaction BEFORE bias correction = %.20e\n", g, p_interaction))
@@ -1960,6 +2000,60 @@
         }
     }
     
+    # Extract test statistic and effect size from anova if available
+    test_statistic <- NA_real_
+    effect_size <- NA_real_
+    df_residual <- NA_real_
+    model_converged <- NA
+    
+    # Try to extract statistics from GAM/GAMM model summaries
+    if (!inherits(fit_alt, "try-error")) {
+        model_converged <- TRUE
+        
+        # Extract effect size (deviance explained / R-squared equivalent)
+        # Handle both GAMM (list with $gam component) and GAM (gam object directly)
+        gam_obj <- fit_alt
+        if (is.list(fit_alt) && !is.null(fit_alt$gam)) {
+            # GAMM: fit_alt is a list with $gam and $lme components
+            gam_obj <- fit_alt$gam
+        }
+        
+        # Now gam_obj should be a gam object (from either standard GAM or GAMM)
+        if (!is.null(gam_obj)) {
+            tryCatch({
+                gam_summary <- summary(gam_obj)
+                if (!is.null(gam_summary) && !is.null(gam_summary$dev.expl)) {
+                    effect_size <- as.numeric(gam_summary$dev.expl)[1]
+                    if (!is.finite(effect_size)) {
+                        effect_size <- NA_real_
+                    }
+                }
+                if (!is.null(gam_summary) && !is.null(gam_summary$residual.df)) {
+                    df_residual <- as.numeric(gam_summary$residual.df)[1]
+                    if (!is.finite(df_residual)) {
+                        df_residual <- NA_real_
+                    }
+                }
+            }, error = function(e) { NULL })
+        }
+        
+        # Extract F-statistic or likelihood ratio if anova results are available
+        if (!is.null(an) && nrow(an) >= 2 && !inherits(an, "try-error")) {
+            tryCatch({
+                if ("L.Ratio" %in% colnames(an)) {
+                    test_statistic <- as.numeric(an[2, "L.Ratio"])[1]
+                } else if ("F" %in% colnames(an)) {
+                    test_statistic <- as.numeric(an[2, "F"])[1]
+                } else if ("Chisq" %in% colnames(an)) {
+                    test_statistic <- as.numeric(an[2, "Chisq"])[1]
+                }
+                if (!is.finite(test_statistic)) {
+                    test_statistic <- NA_real_
+                }
+            }, error = function(e) { NULL })
+        }
+    }
+    
     # Return result with bias correction information
     result <- data.frame(
         gene = g, 
@@ -1969,6 +2063,10 @@
         n_subjects = bc_result$n_subjects,  # Independent sampl units
         n_effective = bc_result$n_effective,  # Effective sample size accounting for AR(1) correlation
         rho_ar1 = bc_result$rho_estimate,  # AR(1) rho estimate used in design effect
+        test_statistic = test_statistic,  # F-statistic or likelihood ratio from anova
+        effect_size = effect_size,  # Deviance explained (proportion, 0-1 scale)
+        df_residual = df_residual,  # Residual degrees of freedom
+        model_converged = model_converged,  # Whether the model fit succeeded
         stringsAsFactors = FALSE
     )
     
