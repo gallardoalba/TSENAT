@@ -94,3 +94,160 @@ plot_method_concordance <- function(comparison_df) {
   # Combine and return
   gridExtra::grid.arrange(p1, p2, ncol = 2)
 }
+
+
+#' Compute Method Concordance between GAM and Kruskal-Wallis Results
+#'
+#' Analyzes agreement between GAM (flexible parametric) and Kruskal-Wallis (rank-based)
+#' statistical test results. Merges results, calculates correlation, categorizes
+#' agreement patterns, and identifies high-confidence genes significant in both methods.
+#'
+#' @param gam_results A data.frame from GAM analysis with columns:
+#'   \itemize{
+#'     \item \code{gene}: Gene identifiers
+#'     \item \code{p_interaction}: GAM p-values for q-value × group interaction
+#'     \item \code{adj_p_interaction}: Adjusted GAM p-values
+#'     \item \code{effect_size}: Effect size estimate (optional)
+#'   }
+#'
+#' @param kw_results A data.frame from Kruskal-Wallis analysis with columns:
+#'   \itemize{
+#'     \item \code{gene}: Gene identifiers (must match gam_results$gene)
+#'     \item \code{p_value}: Kruskal-Wallis p-values
+#'     \item \code{adj_p_value}: Adjusted K-W p-values (optional)
+#'     \item \code{effect_size_eta2}: Effect size estimate (optional)
+#'   }
+#'
+#' @return A list with elements:
+#'   \itemize{
+#'     \item \code{comparison_df}: Data frame with merged results and agreement classification
+#'       Contains columns: gene, p_gam, padj_gam, effect_gam, p_kw, padj_kw, effect_kw,
+#'       gam_sig, kw_sig, agreement
+#'     \item \code{spearman_rho}: Spearman correlation between GAM and K-W p-values
+#'     \item \code{high_conf}: Subset of comparison_df for genes significant in both methods,
+#'       ordered by minimum p-value
+#'     \item \code{agreement_table}: Table of agreement categories with counts
+#'   }
+#'
+#' @details
+#' Agreement categories are defined based on significance at p < 0.05:
+#' \itemize{
+#'   \item "Both significant": Significant in both GAM and K-W (most reliable)
+#'   \item "GAM only": Significant only in GAM
+#'   \item "K-W only": Significant only in Kruskal-Wallis
+#'   \item "Neither significant": Not significant in either method
+#' }
+#'
+#' High-confidence genes are those reaching p < 0.05 in both methods, indicating
+#' robust detection of q-value × group interactions.
+#'
+#' @examples
+#' \dontrun{
+#'   # Assuming gam_results and kw_results are available
+#'   concordance_result <- compute_method_concordance(gam_results, kw_results)
+#'   
+#'   # View agreement breakdown
+#'   print(concordance_result$agreement_table)
+#'   
+#'   # View high-confidence genes
+#'   head(concordance_result$high_conf)
+#'   
+#'   # Check correlation
+#'   cat("Spearman ρ =", concordance_result$spearman_rho)
+#' }
+#'
+#' @export
+compute_method_concordance <- function(gam_results, kw_results) {
+  
+  # Initialize outputs
+  comparison_df <- NULL
+  spearman_rho <- NA
+  high_conf <- NULL
+  agreement_table <- NULL
+  
+  # Validate inputs
+  if (!is.data.frame(gam_results)) {
+    stop("gam_results must be a data.frame")
+  }
+  
+  if (!is.data.frame(kw_results)) {
+    stop("kw_results must be a data.frame")
+  }
+  
+  if (!("p_interaction" %in% colnames(gam_results))) {
+    stop("gam_results missing required column: p_interaction")
+  }
+  
+  if (!("p_value" %in% colnames(kw_results))) {
+    stop("kw_results missing required column: p_value")
+  }
+  
+  # Create matching gene sets
+  gam_genes <- gam_results$gene[!is.na(gam_results$p_interaction)]
+  kw_genes <- kw_results$gene[!is.na(kw_results$p_value)]
+  common_genes <- intersect(gam_genes, kw_genes)
+  
+  if (length(common_genes) > 2) {
+    # Extract matching rows by index
+    gam_idx <- match(common_genes, gam_results$gene)
+    kw_idx <- match(common_genes, kw_results$gene)
+    
+    # Build comparison data frame with all available columns
+    comparison_df <- data.frame(
+      gene = common_genes,
+      p_gam = gam_results$p_interaction[gam_idx],
+      padj_gam = gam_results$adj_p_interaction[gam_idx],
+      effect_gam = if ("effect_size" %in% colnames(gam_results)) {
+        gam_results$effect_size[gam_idx]
+      } else {
+        rep(NA_real_, length(gam_idx))
+      },
+      p_kw = kw_results$p_value[kw_idx],
+      padj_kw = if ("adj_p_value" %in% colnames(kw_results)) {
+        kw_results$adj_p_value[kw_idx]
+      } else {
+        rep(NA_real_, length(kw_idx))
+      },
+      effect_kw = if ("effect_size_eta2" %in% colnames(kw_results)) {
+        kw_results$effect_size_eta2[kw_idx]
+      } else {
+        rep(NA_real_, length(kw_idx))
+      },
+      stringsAsFactors = FALSE
+    )
+    
+    # Calculate Spearman correlation on p-values
+    spearman_rho <- stats::cor(comparison_df$p_gam, comparison_df$p_kw,
+                               method = "spearman", use = "complete.obs")
+    
+    # Categorize agreement based on significance (p < 0.05)
+    comparison_df$gam_sig <- comparison_df$p_gam < 0.05
+    comparison_df$kw_sig <- comparison_df$p_kw < 0.05
+    
+    comparison_df$agreement <- ifelse(
+      comparison_df$gam_sig & comparison_df$kw_sig, "Both significant",
+      ifelse(comparison_df$gam_sig & !comparison_df$kw_sig, "GAM only",
+             ifelse(!comparison_df$gam_sig & comparison_df$kw_sig, "K-W only",
+                    "Neither significant"))
+    )
+    
+    # Create agreement frequency table
+    agreement_table <- table(comparison_df$agreement)
+    
+    # Extract high-confidence genes (significant in both methods)
+    high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$kw_sig, ]
+    
+    # Sort by minimum p-value across methods
+    if (nrow(high_conf) > 0) {
+      high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_kw)), ]
+    }
+  }
+  
+  # Return results as list
+  list(
+    comparison_df = comparison_df,
+    spearman_rho = spearman_rho,
+    high_conf = high_conf,
+    agreement_table = agreement_table
+  )
+}

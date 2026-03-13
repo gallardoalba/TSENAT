@@ -344,61 +344,14 @@ if ("p_interaction" %in% colnames(gam_results)) {
 # Part 3: Method Concordance Analysis
 
 ```{r concordance-summary, message=FALSE}
-# Create concordance summary statistics (show code and calculations)
-# Check if we have valid results from both methods
-comparison_df <- NULL
-spearman_rho <- NA
-high_conf <- NULL
-agreement_table <- NULL
+# Compute concordance analysis using dedicated function
+concordance_result <- compute_method_concordance(gam_results, kw_results)
 
-if (!("p_interaction" %in% colnames(gam_results)) || 
-    !("p_value" %in% colnames(kw_results))) {
-  cat("Note: Skipping concordance analysis - missing required columns\n")
-} else {
-  # Merge results using base R
-  # Create matching sets - only genes with values in both methods
-  gam_genes <- gam_results$gene[!is.na(gam_results$p_interaction)]
-  kw_genes <- kw_results$gene[!is.na(kw_results$p_value)]
-  common_genes <- intersect(gam_genes, kw_genes)
-  
-  if (length(common_genes) > 2) {
-    # Extract matching rows
-    gam_idx <- match(common_genes, gam_results$gene)
-    kw_idx <- match(common_genes, kw_results$gene)
-    
-    comparison_df <- data.frame(
-      gene = common_genes,
-      p_gam = gam_results$p_interaction[gam_idx],
-      padj_gam = gam_results$adj_p_interaction[gam_idx],
-      effect_gam = if ("effect_size" %in% colnames(gam_results)) gam_results$effect_size[gam_idx] else NA,
-      p_kw = kw_results$p_value[kw_idx],
-      padj_kw = if ("adj_p_value" %in% colnames(kw_results)) kw_results$adj_p_value[kw_idx] else NA,
-      effect_kw = if ("effect_size_eta2" %in% colnames(kw_results)) kw_results$effect_size_eta2[kw_idx] else NA,
-      stringsAsFactors = FALSE
-    )
-    
-    # Calculate correlation
-    spearman_rho <- cor(comparison_df$p_gam, comparison_df$p_kw, 
-                        method = "spearman", use = "complete.obs")
-    
-    # Categorize agreement
-    comparison_df$gam_sig <- comparison_df$p_gam < 0.05
-    comparison_df$kw_sig <- comparison_df$p_kw < 0.05
-    comparison_df$agreement <- ifelse(
-      comparison_df$gam_sig & comparison_df$kw_sig, "Both significant",
-      ifelse(comparison_df$gam_sig & !comparison_df$kw_sig, "GAM only",
-             ifelse(!comparison_df$gam_sig & comparison_df$kw_sig, "K-W only",
-                    "Neither significant"))
-    )
-    
-    # Calculate agreement table
-    agreement_table <- table(comparison_df$agreement)
-    
-    # High-confidence genes (both methods)
-    high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$kw_sig, ]
-    high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_kw)), ]
-  }
-}
+# Extract components
+comparison_df <- concordance_result$comparison_df
+spearman_rho <- concordance_result$spearman_rho
+high_conf <- concordance_result$high_conf
+agreement_table <- concordance_result$agreement_table
 ```
 
 ```{r concordance-output, message=FALSE, echo=FALSE}
