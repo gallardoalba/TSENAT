@@ -122,108 +122,9 @@ ts_se <- calculate_diversity(
 
 ```
 
-
-# Part 1: Rank-Based Approach (Kruskal-Wallis)
-
-```{r kw-analysis, message=FALSE}
-cat("\n=== RANK-BASED APPROACH (KRUSKAL-WALLIS) ===\n\n")
-
-# Convert SummarizedExperiment to long-format data frame for rank-based analysis
-entropy_matrix <- assay(ts_se)
-ts_coldata <- colData(ts_se)
-test_genes <- rownames(ts_se)
-n_genes <- length(test_genes)
-n_cols <- ncol(ts_se)
-
-entropy_long <- data.frame(
-    entropy = as.numeric(entropy_matrix),
-    gene = rep(test_genes, n_cols),
-    q = rep(ts_coldata$q, each = n_genes),
-    stringsAsFactors = FALSE
-)
-
-# Run rank-based interaction test with conditional test selection
-# Note: detect_q_gene_interactions automatically selects appropriate rank-based tests
-# (Kruskal-Wallis, ART, Mood's Median) based on data characteristics
-kw_results <- detect_q_gene_interactions(
-    entropy_long,
-    entropy_col = "entropy",
-    q_col = "q",
-    gene_col = "gene",
-    multicorr = "hochberg",
-    verbose = FALSE
-)
-```
-
-```{r kw-summary, message=FALSE, echo=FALSE}
-# Create summary statistics table with additional metrics
-# Handle NA and NaN values properly
-mean_effect_kw <- mean(kw_results$effect_size_eta2, na.rm = TRUE)
-median_effect_kw <- median(kw_results$effect_size_eta2, na.rm = TRUE)
-
-kw_summary_stats <- data.frame(
-  Metric = c(
-    "Genes tested", 
-    "Significant (p < 0.05)", 
-    "NAs",
-    "Mean effect size (η²)",
-    "Median effect size (η²)",
-    "Strong effect genes (η² > 10%)"
-  ),
-  Value = c(
-    nrow(kw_results),
-    sum(kw_results$p_value < 0.05, na.rm = TRUE),
-    sum(is.na(kw_results$p_value)),
-    if (is.na(mean_effect_kw) || !is.finite(mean_effect_kw)) "Not available" else sprintf("%.1f%%", mean_effect_kw * 100),
-    if (is.na(median_effect_kw) || !is.finite(median_effect_kw)) "Not available" else sprintf("%.1f%%", median_effect_kw * 100),
-    sum(kw_results$p_value < 0.05 & kw_results$effect_size_eta2 > 0.10, na.rm = TRUE)
-  )
-)
-
-knitr::kable(kw_summary_stats, caption = "Rank-Based (K-W) Results Summary", align = c("l", "r"))
-
-# Show top genes with effect size and test method
-kw_sig <- kw_results[!is.na(kw_results$p_value), ]
-if (nrow(kw_sig) > 0) {
-  kw_sig <- kw_sig[order(kw_sig$p_value), ]
-  kw_sig <- kw_sig[1:min(10, nrow(kw_sig)), ]
-  
-  # Select columns: gene, p-values, effect size, test method, interaction class
-  cols_to_show <- intersect(c("gene", "p_value", "adj_p_value", "effect_size_eta2", 
-                              "test_method", "interaction_class"), 
-                            colnames(kw_sig))
-  if (length(cols_to_show) > 0) {
-    kw_display <- kw_sig[, cols_to_show, drop = FALSE]
-    
-    # Format p-values in scientific notation for readability
-    for (col in c("p_value", "adj_p_value")) {
-      if (col %in% colnames(kw_display)) {
-        kw_display[[col]] <- sapply(kw_display[[col]], function(x) {
-          if (is.na(x)) "NA" else sprintf("%.3e", x)
-        })
-      }
-    }
-    
-    # Format effect size as percentage if available
-    if ("effect_size_eta2" %in% colnames(kw_display)) {
-      kw_display$effect_size_eta2 <- sapply(kw_display$effect_size_eta2, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
-      })
-    }
-    
-    # Improve column distribution: right-align numeric columns, left-align text
-    # gene | p-value | adj_p | eta2 | test_method | interaction_class
-    knitr::kable(kw_display, 
-                 caption = "Top 10 Genes by K-W p-value (with Effect Size & Test Method)",
-                 align = c("l", "r", "r", "r", "l", "l"),
-                 format.args = list(big.mark = ","))
-  }
-}
-```
-
 ---
 
-# Part 2: Flexible Parametric Approach (GAM)
+# Part 1: Flexible Parametric Approach (GAM)
 
 GAM analysis is computationally intensive:
 
@@ -334,6 +235,105 @@ if ("p_interaction" %in% colnames(gam_results)) {
 } else {
   cat("WARNING: p_interaction column not found in results\n")
   cat("Available columns:", paste(colnames(gam_results), collapse=", "), "\n")
+}
+```
+
+
+# Part 2: Rank-Based Approach (Kruskal-Wallis)
+
+```{r kw-analysis, message=FALSE}
+cat("\n=== RANK-BASED APPROACH (KRUSKAL-WALLIS) ===\n\n")
+
+# Convert SummarizedExperiment to long-format data frame for rank-based analysis
+entropy_matrix <- assay(ts_se)
+ts_coldata <- colData(ts_se)
+test_genes <- rownames(ts_se)
+n_genes <- length(test_genes)
+n_cols <- ncol(ts_se)
+
+entropy_long <- data.frame(
+    entropy = as.numeric(entropy_matrix),
+    gene = rep(test_genes, n_cols),
+    q = rep(ts_coldata$q, each = n_genes),
+    stringsAsFactors = FALSE
+)
+
+# Run rank-based interaction test with conditional test selection
+# Note: detect_q_gene_interactions automatically selects appropriate rank-based tests
+# (Kruskal-Wallis, ART, Mood's Median) based on data characteristics
+kw_results <- detect_q_gene_interactions(
+    entropy_long,
+    entropy_col = "entropy",
+    q_col = "q",
+    gene_col = "gene",
+    multicorr = "hochberg",
+    verbose = FALSE
+)
+```
+
+```{r kw-summary, message=FALSE, echo=FALSE}
+# Create summary statistics table with additional metrics
+# Handle NA and NaN values properly
+mean_effect_kw <- mean(kw_results$effect_size_eta2, na.rm = TRUE)
+median_effect_kw <- median(kw_results$effect_size_eta2, na.rm = TRUE)
+
+kw_summary_stats <- data.frame(
+  Metric = c(
+    "Genes tested", 
+    "Significant (p < 0.05)", 
+    "NAs",
+    "Mean effect size (η²)",
+    "Median effect size (η²)",
+    "Strong effect genes (η² > 10%)"
+  ),
+  Value = c(
+    nrow(kw_results),
+    sum(kw_results$p_value < 0.05, na.rm = TRUE),
+    sum(is.na(kw_results$p_value)),
+    if (is.na(mean_effect_kw) || !is.finite(mean_effect_kw)) "Not available" else sprintf("%.1f%%", mean_effect_kw * 100),
+    if (is.na(median_effect_kw) || !is.finite(median_effect_kw)) "Not available" else sprintf("%.1f%%", median_effect_kw * 100),
+    sum(kw_results$p_value < 0.05 & kw_results$effect_size_eta2 > 0.10, na.rm = TRUE)
+  )
+)
+
+knitr::kable(kw_summary_stats, caption = "Rank-Based (K-W) Results Summary", align = c("l", "r"))
+
+# Show top genes with effect size and test method
+kw_sig <- kw_results[!is.na(kw_results$p_value), ]
+if (nrow(kw_sig) > 0) {
+  kw_sig <- kw_sig[order(kw_sig$p_value), ]
+  kw_sig <- kw_sig[1:min(10, nrow(kw_sig)), ]
+  
+  # Select columns: gene, p-values, effect size, test method, interaction class
+  cols_to_show <- intersect(c("gene", "p_value", "adj_p_value", "effect_size_eta2", 
+                              "test_method", "interaction_class"), 
+                            colnames(kw_sig))
+  if (length(cols_to_show) > 0) {
+    kw_display <- kw_sig[, cols_to_show, drop = FALSE]
+    
+    # Format p-values in scientific notation for readability
+    for (col in c("p_value", "adj_p_value")) {
+      if (col %in% colnames(kw_display)) {
+        kw_display[[col]] <- sapply(kw_display[[col]], function(x) {
+          if (is.na(x)) "NA" else sprintf("%.3e", x)
+        })
+      }
+    }
+    
+    # Format effect size as percentage if available
+    if ("effect_size_eta2" %in% colnames(kw_display)) {
+      kw_display$effect_size_eta2 <- sapply(kw_display$effect_size_eta2, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
+      })
+    }
+    
+    # Improve column distribution: right-align numeric columns, left-align text
+    # gene | p-value | adj_p | eta2 | test_method | interaction_class
+    knitr::kable(kw_display, 
+                 caption = "Top 10 Genes by K-W p-value (with Effect Size & Test Method)",
+                 align = c("l", "r", "r", "r", "l", "l"),
+                 format.args = list(big.mark = ","))
+  }
 }
 ```
 

@@ -278,6 +278,14 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
   corr_matrix <- matrix(NA, nrow = n_q, ncol = n_q, 
                        dimnames = list(q_names, q_names))
   
+  # Note on method selection:
+  # Since rank_list already contains ranked data, we use pearson correlation.
+  # This is mathematically equivalent to:
+  #   - Spearman(original) = Pearson(rank(original))
+  #   - Kendall on ranks gives same result as Kendall on original (rank-invariant)
+  # Using Pearson avoids redundant re-ranking for Spearman method.
+  correlation_method <- if (method == "spearman") "pearson" else method
+  
   # Bug #5 Fix: Optimize by computing only upper triangle (O(n_q²/2) instead of O(n_q²))
   # Correlation matrix is symmetric, so compute once and mirror
   for (i in seq_len(n_q)) {
@@ -285,9 +293,9 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
       ranks_i <- rank_list[[i]]
       ranks_j <- rank_list[[j]]
       
-      # Compute rank correlation
+      # Compute correlation on pre-ranked data
       corr <- stats::cor(ranks_i, ranks_j, 
-                        method = method, 
+                        method = correlation_method, 
                         use = "complete.obs")
       corr_matrix[i, j] <- corr
       if (i != j) {
@@ -298,7 +306,7 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
   
   # Consistency score: average off-diagonal correlation
   offdiag <- corr_matrix[lower.tri(corr_matrix)]
-  consistency_score <- mean(offdiag, na.rm = TRUE)
+  consistency_score <- if (length(offdiag) > 0) mean(offdiag, na.rm = TRUE) else NA_real_
   
   # Summary
   summary_text <- sprintf(
