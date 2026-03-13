@@ -1562,8 +1562,8 @@ detect_q_gene_interactions <- function(
   # Apply multiple testing correction for multi-q dependence (NEW - March 2026)
   # Q-values exhibit AR(1) correlation structure (Papers S168-S175)
   if (multicorr == "westfall-young") {
-    # True Westfall-Young permutation procedure for Kruskal-Wallis
-    # (same logic as GEE in calculate_lm_interaction, but refits K-W instead of GAM)
+    # True Westfall-Young permutation procedure for rank-based tests
+    # (same permutation logic as calculate_lm_interaction, but refits rank tests instead of GAM)
     
     if (verbose) {
       message("[detect_q_gene_interactions] Computing Westfall-Young via ", 
@@ -1572,70 +1572,64 @@ detect_q_gene_interactions <- function(
     
     # Save original data structure
     data_orig <- data
-    
-    n_genes <- nrow(interaction_results)
-    perm_minima <- numeric(wy_randomizations)
-    
-    # Extract q-groups from data (these define permutation structure)
     q_unique <- unique(data$q)
     
-    # Wrap entire WY procedure in tryCatch to ensure data restoration
-    tryCatch({
-      for (perm_idx in 1:wy_randomizations) {
-        if (verbose && perm_idx %% max(1, wy_randomizations %/% 10) == 0) {
-          message("[detect_q_gene_interactions] WY permutation ", perm_idx, " of ", wy_randomizations)
-        }
-        
-        # Shuffle sample labels within each q-level (maintain q-group structure)
-        # This preserves the multi-q correlation structure
-        data_perm <- data_orig
-        for (q_val in q_unique) {
-          q_idx <- data_perm$q == q_val
-          # Shuffle the gene assignments within this q-level
-          data_perm$gene[q_idx] <- sample(data_perm$gene[q_idx])
-        }
-        
-        # Recompute p-values under permuted gene assignments
-        perm_pvalues <- numeric(n_genes)
-        
-        for (g_idx in seq_len(n_genes)) {
-          gene_name <- interaction_results$gene[g_idx]
-          gene_data_perm <- data_perm[data_perm$gene == gene_name, ]
-          
-          if (nrow(gene_data_perm) == 0) {
-            next  # Gene not in this permutation
-          }
-          
-          q_levels_perm <- unique(gene_data_perm$q)
-          if (length(q_levels_perm) < 2) {
-            next  # Insufficient groups for test
-          }
-          
-          # Refit conditional rank test with permuted data
-          tryCatch({
-            test_result_perm <- .tsenat_apply_conditional_rank_test(
-              data = gene_data_perm,
-              value_col = "entropy",
-              group_col = "q",
-              verbose = FALSE
-            )
-            if (!is.null(test_result_perm) && !is.na(test_result_perm$p_value)) {
-              perm_pvalues[g_idx] <- test_result_perm$p_value
+    # Use helper function for WY permutation machinery
+    # This consolidates the permutation loop and p-value aggregation logic
+    # shared with calculate_lm_interaction()
+    perm_result <- .tsenat_westfall_young_permutation(
+        n_genes = nrow(interaction_results),
+        wy_randomizations = wy_randomizations,
+        permute_fn = function() {
+            # Shuffle sample/gene labels within each q-level
+            # This preserves the multi-q correlation structure
+            data_perm <- data_orig
+            for (q_val in q_unique) {
+                q_idx <- data_perm$q == q_val
+                # Shuffle the gene assignments within this q-level
+                data_perm$gene[q_idx] <- sample(data_perm$gene[q_idx])
             }
-          }, error = function(e) { NULL })
-        }
-        
-        # Track minimum p-value in this permutation
-        perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
-      }
-    }, finally = {
-      # Data is not modified globally, but ensure clean state
-      data <- data_orig
-    })
+            return(data_perm)
+        },
+        refit_fn = function(data_perm) {
+            # Refit rank tests with permuted gene assignments
+            perm_pvalues <- numeric(nrow(interaction_results))
+            
+            for (g_idx in seq_len(nrow(interaction_results))) {
+                gene_name <- interaction_results$gene[g_idx]
+                gene_data_perm <- data_perm[data_perm$gene == gene_name, ]
+                
+                if (nrow(gene_data_perm) == 0) {
+                    next  # Gene not in this permutation
+                }
+                
+                q_levels_perm <- unique(gene_data_perm$q)
+                if (length(q_levels_perm) < 2) {
+                    next  # Insufficient groups for test
+                }
+                
+                # Refit conditional rank test with permuted data
+                tryCatch({
+                    test_result_perm <- .tsenat_apply_conditional_rank_test(
+                        data = gene_data_perm,
+                        value_col = "entropy",
+                        group_col = "q",
+                        verbose = FALSE
+                    )
+                    if (!is.null(test_result_perm) && !is.na(test_result_perm$p_value)) {
+                        perm_pvalues[g_idx] <- test_result_perm$p_value
+                    }
+                }, error = function(e) { NULL })
+            }
+            
+            return(perm_pvalues)
+        },
+        verbose = verbose
+    )
     
     # Adjust p-values based on permutation distribution (Phipson-Smyth correction)
     interaction_results$adj_p_value <- sapply(interaction_results$p_value, function(p_obs) {
-      pmin(1.0, (sum(perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
+        pmin(1.0, (sum(perm_result$perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
     })
     
     # Enforce monotonicity (required for valid stepdown)
@@ -1643,7 +1637,7 @@ detect_q_gene_interactions <- function(
     interaction_results$adj_p_value <- cummax(interaction_results$adj_p_value)
     
     if (verbose) {
-      message("[detect_q_gene_interactions] Applied Westfall-Young (permutation) adjustment for K-W test")
+      message("[detect_q_gene_interactions] Applied Westfall-Young (permutation) adjustment for rank-based tests")
     }
   } else if (multicorr == "hochberg") {
     # Hochberg stepup procedure (FWER control under positive regression dependence)
@@ -1662,4 +1656,567 @@ detect_q_gene_interactions <- function(
   rownames(interaction_results) <- NULL
   
   return(interaction_results)
+}
+
+# ════════════════════════════════════════════════════════════════════════════════
+# RANK-BASED TEST IMPROVEMENTS (March 2026)
+# ════════════════════════════════════════════════════════════════════════════════
+# Conditional test selection for Kruskal-Wallis and related rank tests
+# Equivalent improvements to LM interaction tests (heteroscedasticity, bounded support)
+#
+# APPROACH:
+# 1. Pre-test detection of data characteristics
+# 2. Conditional test selection based on characteristics
+# 3. Alternative test methods with better properties for detected conditions
+#
+# IMPROVEMENTS:
+# • Heteroscedasticity detection → Aligned Rank Transform (ART) instead of K-W
+# • Boundary clustering detection → Quantile-based comparison
+# • Extreme skewness detection → Robust median test
+# • Default → Standard Kruskal-Wallis (already robust)
+# ════════════════════════════════════════════════════════════════════════════════
+
+# Internal helper: Compute skewness for data quality assessment
+.tsenat_compute_skewness <- function(x, na.rm = TRUE) {
+    if (na.rm) x <- na.omit(x)
+    if (length(x) < 3) return(NA)
+    
+    m <- mean(x)
+    s <- sd(x)
+    n <- length(x)
+    
+    if (s == 0) return(0)
+    
+    # Unbiased skewness estimate
+    skew <- (sum((x - m)^3) / n) / (s^3)
+    return(skew)
+}
+
+#' Select appropriate rank-based test based on data characteristics
+#'
+#' Implements conditional logic to choose between:
+#' - Standard Kruskal-Wallis (default)
+#' - Aligned Rank Transform + parametric test (heteroscedastic)
+#' - Quantile-based test (boundary clustering)
+#' - Robust median test (extreme skewness)
+#'
+#' @param data Data frame with values and group indicators
+#' @param value_col Column name for values to test
+#' @param group_col Column name for group membership
+#' @param verbose Logical: print diagnostic information
+#'
+#' @return List with:
+#' - test_selected: Name of selected test
+#' - characteristics: List of detected characteristics
+#' - reasons: Character vector of reasons for selection
+#'
+.tsenat_select_rank_test <- function(data, value_col = "entropy", group_col = "q", verbose = FALSE) {
+    
+    values <- data[[value_col]]
+    groups <- data[[group_col]]
+    
+    # Ensure factor
+    if (!is.factor(groups)) {
+        groups <- factor(groups)
+    }
+    
+    characteristics <- list(
+        heteroscedastic = FALSE,
+        boundary_clustered = FALSE,
+        highly_skewed = FALSE,
+        n_groups = nlevels(groups),
+        n_values = length(values)
+    )
+    
+    reasons <- character(0)
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # 1. HETEROSCEDASTICITY DETECTION (Breusch-Pagan test)
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    # Fit linear model to get residuals
+    lin_mod <- try(lm(values ~ groups), silent = TRUE)
+    
+    if (!inherits(lin_mod, "try-error")) {
+        residuals <- residuals(lin_mod)
+        fitted <- fitted(lin_mod)
+        
+        # Breusch-Pagan test: test if residual variance depends on fitted values
+        bp_data <- data.frame(
+            residuals_sq = residuals^2,
+            fitted = fitted
+        )
+        
+        bp_mod <- try(lm(residuals_sq ~ fitted, data = bp_data), silent = TRUE)
+        
+        if (!inherits(bp_mod, "try-error")) {
+            # F-test for Breusch-Pagan
+            bp_anova <- anova(bp_mod)
+            
+            # Improved: Extract p-value by row name instead of position (more robust)
+            bp_pvalue <- NA_real_  # Initialize with NA
+            if ("fitted" %in% rownames(bp_anova)) {
+                bp_pvalue <- as.numeric(bp_anova["fitted", "Pr(>F)"])
+                
+                # Also compute variance ratio across groups
+                group_vars <- tapply(values, groups, var, na.rm = TRUE)
+                if (length(group_vars) > 1) {
+                    # Only compute ratio if we have valid (non-NaN) variances
+                    finite_vars <- group_vars[is.finite(group_vars)]
+                    if (length(finite_vars) > 1) {
+                        var_ratio <- max(finite_vars, na.rm = TRUE) / min(finite_vars, na.rm = TRUE)
+                    } else {
+                        var_ratio <- 1  # Insufficient data for variance comparison
+                    }
+                } else {
+                    var_ratio <- 1
+                }
+                
+                # Heteroscedasticity detected if p < 0.05 AND variance_ratio > 2
+                if (!is.na(bp_pvalue) && bp_pvalue < 0.05 && var_ratio > 2) {
+                    characteristics$heteroscedastic <- TRUE
+                    reasons <- c(reasons, sprintf(
+                        "Heteroscedasticity: BP_p=%.4f, var_ratio=%.2f",
+                        bp_pvalue, var_ratio
+                    ))
+                }
+            }
+        }
+    }
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # 2. BOUNDARY CLUSTERING DETECTION (Skip for inherently bounded metrics)
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    # IMPORTANT (March 2026): Entropy and diversity metrics are MATHEMATICALLY BOUNDED
+    # by definition (entropy ∈ [0, log(m)]), not by measurement artifacts.
+    # Boundary clustering is therefore EXPECTED and NOT a statistical problem.
+    # Skip detection for entropy/diversity metrics to avoid false positives.
+    #
+    # Detection is retained for OTHER metrics where boundaries indicate:
+    # - Detection limits / censoring
+    # - Measurement artifacts
+    # - True data quality issues
+    
+    is_entropy_like <- tolower(value_col) %in% c("entropy", "diversity", "q_value", "tsallis")
+    
+    if (!is_entropy_like) {
+        min_val <- min(values, na.rm = TRUE)
+        max_val <- max(values, na.rm = TRUE)
+        range_val <- max_val - min_val
+        
+        # Define "near boundary" as within 10% of range from either end
+        if (range_val > 0) {
+            lower_bound <- min_val + 0.10 * range_val
+            upper_bound <- max_val - 0.10 * range_val
+            
+            n_near_bounds <- sum(values <= lower_bound | values >= upper_bound, na.rm = TRUE)
+            pct_near_bounds <- 100 * n_near_bounds / sum(!is.na(values))
+            
+            if (pct_near_bounds > 40) {
+                characteristics$boundary_clustered <- TRUE
+                reasons <- c(reasons, sprintf(
+                    "Boundary clustering: %.1f%% within 10%% of bounds",
+                    pct_near_bounds
+                ))
+            }
+        }
+    } else {
+        # For entropy/diversity metrics, explicitly note that boundary clustering
+        # is expected and not treated as a special condition
+        if (verbose) {
+            message("  Note: Boundary clustering detection skipped for ", value_col,
+                    " (inherently bounded metric)")
+        }
+    }
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # 3. EXTREME SKEWNESS DETECTION
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    skewness_val <- .tsenat_compute_skewness(values)
+    
+    # Bug #2 Fix (March 2026): Skewness should be independent condition
+    # (was: if (abs(skewness_val) > 1 && characteristics$heteroscedastic))
+    # Robust median test should be available for ANY highly skewed data
+    if (abs(skewness_val) > 1) {
+        characteristics$highly_skewed <- TRUE
+        reasons <- c(reasons, sprintf(
+            "Extreme skewness: |skew|=%.3f",
+            skewness_val
+        ))
+    }
+    
+    # ─────────────────────────────────────────────────────────────────────────────
+    # TEST SELECTION LOGIC
+    # ─────────────────────────────────────────────────────────────────────────────
+    
+    test_selected <- "kruskal.test"  # Default
+    
+    if (characteristics$highly_skewed) {
+        test_selected <- "robust_median_test"
+        reasons <- c(reasons, "→ Using robust median test")
+    } else if (characteristics$boundary_clustered) {
+        test_selected <- "quantile_test"
+        reasons <- c(reasons, "→ Using quantile-based test")
+    } else if (characteristics$heteroscedastic) {
+        test_selected <- "art_kw"
+        reasons <- c(reasons, "→ Using Aligned Rank Transform + parametric test")
+    } else {
+        reasons <- c(reasons, "→ Using standard Kruskal-Wallis (no special characteristics)")
+    }
+    
+    if (verbose && length(reasons) > 0) {
+        message("Test selection for ", value_col, ":")
+        for (r in reasons) message("  ", r)
+    }
+    
+    return(list(
+        test_selected = test_selected,
+        characteristics = characteristics,
+        reasons = reasons
+    ))
+}
+
+#' Apply Aligned Rank Transform + Kruskal-Wallis test
+#'
+#' Pre-processes data using Aligned Rank Transform (ART) to handle
+#' heteroscedasticity, then applies parametric ANOVA or K-W on transformed data
+#'
+#' @param data Data frame with values and group indicators
+#' @param value_col Column name for values
+#' @param group_col Column name for groups
+#'
+#' @return List with:
+#' - statistic: Test statistic (H or F equivalent)
+#' - p_value: P-value from test
+#' - method: "ART-Kruskal-Wallis" or similar
+#'
+.tsenat_apply_art_kw <- function(data, value_col = "entropy", group_col = "q") {
+    
+    values <- data[[value_col]]
+    groups <- data[[group_col]]
+    
+    if (!is.factor(groups)) {
+        groups <- factor(groups)
+    }
+    
+    # Step 1: Calculate aligned values (residuals from main effect model)
+    # Remove group effect by fitting linear model
+    lin_mod <- try(lm(values ~ groups), silent = TRUE)
+    
+    if (inherits(lin_mod, "try-error")) {
+        # Fallback to standard K-W if ART fails
+        return(tryCatch(
+            {
+                kw_test <- kruskal.test(values ~ groups)
+                list(
+                    statistic = as.numeric(kw_test$statistic),
+                    p_value = as.numeric(kw_test$p.value),
+                    method = "Kruskal-Wallis (fallback)"
+                )
+            },
+            error = function(e) list(
+                statistic = NA_real_,
+                p_value = NA_real_,
+                method = "test_failed"
+            )
+        ))
+    }
+    
+    # Get residuals (alignment step)
+    aligned <- residuals(lin_mod)
+    
+    # Step 2: Rank aligned values
+    ranks <- rank(aligned, na.last = "keep")
+    
+    # Step 3: Apply van der Waerden normal scores (convert ranks to approximate normal)
+    n_vals <- sum(!is.na(ranks))
+    normal_scores <- stats::qnorm(ranks / (n_vals + 1))
+    
+    # Step 4: Test on normal scores using parametric ANOVA
+    score_data <- data.frame(
+        scores = normal_scores,
+        group = groups
+    )
+    
+    score_mod <- try(lm(scores ~ group, data = score_data), silent = TRUE)
+    
+    if (inherits(score_mod, "try-error")) {
+        # Fallback to standard K-W
+        return(tryCatch(
+            {
+                kw_test <- kruskal.test(values ~ groups)
+                list(
+                    statistic = as.numeric(kw_test$statistic),
+                    p_value = as.numeric(kw_test$p.value),
+                    method = "Kruskal-Wallis (fallback)"
+                )
+            },
+            error = function(e) list(
+                statistic = NA_real_,
+                p_value = NA_real_,
+                method = "test_failed"
+            )
+        ))
+    }
+    
+    # Extract F-statistic from ANOVA
+    anova_res <- anova(score_mod)
+    
+    if (nrow(anova_res) >= 1) {
+        f_stat <- as.numeric(anova_res$`F value`[1])
+        p_val <- as.numeric(anova_res$`Pr(>F)`[1])
+        
+        return(list(
+            statistic = f_stat,
+            p_value = p_val,
+            method = "ART-Kruskal-Wallis (heteroscedasticity-adjusted)"
+        ))
+    } else {
+        return(list(
+            statistic = NA_real_,
+            p_value = NA_real_,
+            method = "test_failed"
+        ))
+    }
+}
+
+#' Apply quantile-based test for boundary-clustered data
+#'
+#' Instead of comparing means/medians globally, compares quantiles
+#' within each group to detect group differences accounting for
+#' boundary clustering
+#'
+#' @note For entropy and diversity metrics: This test is NOT RECOMMENDED.
+#' Entropy is mathematically bounded [0, log(m)], so boundary clustering
+#' is EXPECTED and not a statistical anomaly. Standard Kruskal-Wallis
+#' is more appropriate. Quantile tests are designed for artificially-bounded
+#' metrics (detection limits, censoring).
+#'
+#' @param data Data frame with values and group indicators
+#' @param value_col Column name for values
+#' @param group_col Column name for groups
+#' @param quantiles Quantiles to test (default: 0.25, 0.50, 0.75)
+#'
+#' @return List with:
+#' - statistic: Maximum quantile effect size
+#' - p_value: Minimum p-value across quantiles (Bonferroni adjusted)
+#' - method: "Quantile-based test"
+#'
+.tsenat_apply_quantile_test <- function(data, value_col = "entropy", group_col = "q",
+                                       quantiles = c(0.25, 0.50, 0.75)) {
+    
+    values <- data[[value_col]]
+    groups <- data[[group_col]]
+    
+    if (!is.factor(groups)) {
+        groups <- factor(groups)
+    }
+    
+    # Bug #1 Fix (March 2026): Test whether group QUANTILES differ (not raw values)
+    # Strategy: For each quantile level, test if groups have different quantile values
+    # using quantile regression or bootstrap CI on group quantiles
+    
+    quantile_pvals <- numeric(length(quantiles))
+    quantile_stats <- numeric(length(quantiles))
+    
+    for (q_idx in seq_along(quantiles)) {
+        q_val <- quantiles[q_idx]
+        
+        # For each group, compute its quantile value
+        group_quantiles <- tapply(values, groups, quantile, probs = q_val, na.rm = TRUE)
+        
+        # Test if these group-specific quantiles differ using one-way ANOVA
+        # Create a pseudo-dataset where each group's value is its quantile
+        # Then test using Kruskal-Wallis on ranks of those quantiles
+        quant_data <- data.frame(
+            q_value = as.numeric(group_quantiles),
+            group = names(group_quantiles)
+        )
+        quant_data$group <- factor(quant_data$group)
+        
+        # Test differences in quantile values across groups
+        q_test <- try(kruskal.test(q_value ~ group, data = quant_data), silent = TRUE)
+        
+        if (!inherits(q_test, "try-error")) {
+            quantile_pvals[q_idx] <- as.numeric(q_test$p.value)
+            quantile_stats[q_idx] <- as.numeric(q_test$statistic)
+        } else {
+            # Fallback: treat as unavailable for this quantile
+            quantile_pvals[q_idx] <- NA_real_
+            quantile_stats[q_idx] <- NA_real_
+        }
+    }
+    
+    # Combine p-values: use minimum with Bonferroni correction
+    # Safety check: if all quantile tests failed, return NA
+    if (all(is.na(quantile_pvals)) || all(is.na(quantile_stats))) {
+        return(list(
+            statistic = NA_real_,
+            p_value = NA_real_,
+            method = "Quantile-based test (insufficient data)"
+        ))
+    }
+    
+    min_pval <- min(quantile_pvals, na.rm = TRUE)
+    max_stat <- max(quantile_stats, na.rm = TRUE)
+    
+    # Bonferroni correction: adjust for multiple quantiles tested
+    combined_pval <- pmin(1.0, min_pval * length(quantiles))
+    
+    return(list(
+        statistic = max_stat,
+        p_value = combined_pval,
+        method = "Quantile-based test (boundary-adjusted)"
+    ))
+}
+
+#' Apply robust median test for highly skewed data
+#'
+#' Mood's median test: tests whether groups have the same median
+#' More robust to extreme skewness than K-W, which assumes similar shapes
+#'
+#' @param data Data frame with values and group indicators
+#' @param value_col Column name for values
+#' @param group_col Column name for groups
+#'
+#' @return List with:
+#' - statistic: Chi-square statistic
+#' - p_value: P-value from median test
+#' - method: "Mood's median test"
+#'
+.tsenat_apply_robust_median_test <- function(data, value_col = "entropy", group_col = "q") {
+    
+    values <- data[[value_col]]
+    groups <- data[[group_col]]
+    
+    if (!is.factor(groups)) {
+        groups <- factor(groups)
+    }
+    
+    group_levels <- levels(groups)
+    n_groups <- length(group_levels)
+    
+    # Mood's median test
+    # 1. Compute grand median
+    grand_median <- median(values, na.rm = TRUE)
+    
+    # 2. For each group, count how many are above/below median
+    contingency_table <- matrix(0, nrow = n_groups, ncol = 2)
+    rownames(contingency_table) <- group_levels
+    colnames(contingency_table) <- c("Below_Median", "Above_Median")
+    
+    for (g_idx in seq_len(n_groups)) {
+        group_name <- group_levels[g_idx]
+        group_vals <- values[groups == group_name]
+        
+        n_below <- sum(group_vals < grand_median, na.rm = TRUE)
+        n_above <- sum(group_vals >= grand_median, na.rm = TRUE)
+        
+        contingency_table[g_idx, 1] <- n_below
+        contingency_table[g_idx, 2] <- n_above
+    }
+    
+    # 3. Chi-square test on contingency table
+    chisq_result <- try(
+        chisq.test(contingency_table),
+        silent = TRUE
+    )
+    
+    if (!inherits(chisq_result, "try-error")) {
+        return(list(
+            statistic = as.numeric(chisq_result$statistic),
+            p_value = as.numeric(chisq_result$p.value),
+            method = "Mood's median test (skewness-robust)"
+        ))
+    } else {
+        return(list(
+            statistic = NA_real_,
+            p_value = NA_real_,
+            method = "test_failed"
+        ))
+    }
+}
+
+#' Conditional rank-based test dispatcher
+#'
+#' Main function to apply conditional logic to select and run
+#' appropriate rank-based test
+#'
+#' @param data Data frame with values and group indicators
+#' @param value_col Column name for values
+#' @param group_col Column name for groups
+#' @param verbose Logical: print diagnostics
+#'
+#' @return List with:
+#' - statistic: Test statistic
+#' - p_value: P-value
+#' - method: Name of test applied
+#' - test_type: "standard", "art_adjusted", "quantile_adjusted", "median_robust"
+#' - characteristics: Data characteristics detected
+#'
+.tsenat_apply_conditional_rank_test <- function(data, value_col = "entropy", group_col = "q",
+                                               verbose = FALSE) {
+    
+    # Step 1: Detect data characteristics
+    selection <- .tsenat_select_rank_test(data, value_col, group_col, verbose = verbose)
+    
+    # Step 2: Apply selected test
+    test_func <- switch(
+        selection$test_selected,
+        "art_kw" = .tsenat_apply_art_kw,
+        "quantile_test" = .tsenat_apply_quantile_test,
+        "robust_median_test" = .tsenat_apply_robust_median_test,
+        # Default: standard Kruskal-Wallis
+        function(d, v, g) {
+            res <- try(kruskal.test(d[[v]] ~ d[[g]]), silent = TRUE)
+            if (inherits(res, "try-error")) {
+                list(statistic = NA_real_, p_value = NA_real_, method = "test_failed")
+            } else {
+                list(
+                    statistic = as.numeric(res$statistic),
+                    p_value = as.numeric(res$p.value),
+                    method = "Kruskal-Wallis (standard)"
+                )
+            }
+        }
+    )
+    
+    # Apply test
+    test_result <- test_func(data, value_col, group_col)
+    
+    # Step 3: Return result with metadata
+    return(c(
+        test_result,
+        list(
+            test_type = selection$test_selected,
+            characteristics = selection$characteristics
+        )
+    ))
+}
+
+
+#' Export improved rank test selection for Appendix B vignette
+#'
+#' This function enables the Appendix B vignette to use improved
+#' rank-based tests by wrapping conditional selection
+
+.tsenat_improved_kruskal_wallis <- function(data, value_col = "entropy", group_col = "q") {
+    result <- .tsenat_apply_conditional_rank_test(data, value_col, group_col, verbose = FALSE)
+    
+    # Return in format compatible with standard k-test output
+    structure(
+        list(
+            statistic = c(result$statistic),
+            p.value = result$p_value,
+            method = result$method,
+            data.name = paste(value_col, "~", group_col),
+            test_details = list(
+                test_type = result$test_type,
+                characteristics =result$characteristics
+            )
+        ),
+        class = "htest"
+    )
 }

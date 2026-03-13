@@ -744,31 +744,37 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
         }
         
         # Save original group vector for safe restoration
-        # (WY procedure temporarily modifies group_vec for each permutation)
         group_vec_orig <- group_vec
         
-        # Implement permutation test for WY
-        groups_unique <- unique(group_vec_orig)
-        n_genes <- nrow(res)
-        perm_minima <- numeric(wy_randomizations)
-        
-        # Wrap entire WY procedure in tryCatch to ensure group_vec restoration
-        tryCatch({
-            for (perm_idx in 1:wy_randomizations) {
-                if (verbose && perm_idx %% max(1, wy_randomizations %/% 10) == 0) {
-                    message("[calculate_lm_interaction] WY permutation ", perm_idx, " of ", wy_randomizations)
+        # Use helper function for WY permutation machinery
+        # This consolidates the permutation loop and p-value aggregation logic
+        # that was previously duplicated in detect_q_gene_interactions()
+        # CRITICAL: Permutation must preserve q-level structure because:
+        # - Multi-q tests exhibit AR(1) autoregressive correlation WITHIN each q-level
+        # - Exchangeability assumption only holds within q-levels, not globally
+        # - Global shuffling violates this assumption and inflates Type I error
+        # Solution: Shuffle group assignments separately within each q-level
+        perm_result <- .tsenat_westfall_young_permutation(
+            n_genes = nrow(res),
+            wy_randomizations = wy_randomizations,
+            permute_fn = function() {
+                # Generate permutation assignment by shuffling group labels separately within each q-level
+                # This preserves the multi-q correlation structure and maintains valid exchangeability
+                q_unique <- unique(q_vals)
+                perm_assignment <- group_vec_orig
+                for (q_val in q_unique) {
+                    q_idx <- which(q_vals == q_val)
+                    perm_assignment[q_idx] <- sample(group_vec_orig[q_idx])
                 }
+                return(perm_assignment)
+            },
+            refit_fn = function(perm_assignment) {
+                # Refit models with permuted group assignment
+                # Captures group_vec from outer scope to temporarily modify for this permutation
+                group_vec <<- perm_assignment  # Temporary assignment for fit_one() calls
                 
-                # Shuffle group labels while preserving group sizes
-                perm_assignment <- sample(group_vec_orig)
-                
-                # IMPORTANT: Temporarily modify group_vec for this permutation
-                # All fit_one() calls will use the permuted assignment
-                # (group_vec stays constant across genes in same permutation)
-                group_vec <- perm_assignment
-                
-                # Refit models with permuted groups
-                perm_pvalues <- numeric(n_genes)
+                perm_pvalues <- numeric(nrow(res))
+                # Refit each gene with permuted group assignment
                 for (g_idx in seq_along(rownames(mat))) {
                     gene_name <- rownames(mat)[g_idx]
                     tryCatch({
@@ -779,18 +785,18 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
                     }, error = function(e) { NULL })
                 }
                 
-                # Track minimum p-value in this permutation
-                perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
-            }
-        }, finally = {
-            # CRITICAL: Always restore group_vec, even if error occurs during loop
-            group_vec <<- group_vec_orig
-        })
+                return(perm_pvalues)
+            },
+            verbose = verbose
+        )
+        
+        # Restore original group_vec after permutation testing
+        group_vec <<- group_vec_orig
         
         # Adjust p-values based on permutation distribution
         # For each observed p-value, compute proportion of permutations with min_perm <= p_obs
         res$adj_p_interaction <- sapply(res$p_interaction, function(p_obs) {
-            pmin(1.0, (sum(perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
+            pmin(1.0, (sum(perm_result$perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
         })
         
         if (verbose) {

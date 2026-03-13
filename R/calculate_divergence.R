@@ -906,9 +906,6 @@ calculate_divergence <- function(
           row_data_df[[paste0("nboot_q", q[j])]][i] <- nboot
         } else if (progress && i <= 3) {
           # Log first few genes with NA estimates for debugging rare q-values
-          if (is.na(result_j$estimate)) {
-            cat("[DEBUG] Gene ", i, " (", res$gene_name, ") has NA estimate at q=", q[j], "\n", sep = "")
-          }
         }
       }
     }

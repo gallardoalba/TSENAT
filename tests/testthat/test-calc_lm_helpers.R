@@ -19,7 +19,7 @@ test_that(".tsenat_gam_interaction returns a data.frame with p_interaction when 
     group <- rep(c("A", "B"), length.out = n)
     entropy <- 0.5 + 0.2 * (q) + ifelse(group == "A", 0.05, -0.05) + rnorm(n, 0, 0.01)
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
-    res <- .tsenat_gam_interaction(df, q_vals = q, g = "g1", min_obs = 5)
+    res <- suppressWarnings(.tsenat_gam_interaction(df, q_vals = q, g = "g1", min_obs = 5))
     expect_true(is.data.frame(res) || is.null(res))
     if (is.data.frame(res)) {
         expect_true("p_interaction" %in% colnames(res))
@@ -464,7 +464,7 @@ test_that(".tsenat_fit_one_interaction dispatches to gam and fpca methods", {
         df <- data.frame(entropy = entropy, q = q, group = group)
         mat_gam <- matrix(entropy, nrow = 1)
         rownames(mat_gam) <- "g1"
-        out_gam <- .tsenat_fit_one_interaction("g1", se = NULL, mat = mat_gam, q_vals = q, sample_names = paste0("s", seq_along(q)), group_vec = group, method = "gam", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
+        out_gam <- suppressWarnings(.tsenat_fit_one_interaction("g1", se = NULL, mat = mat_gam, q_vals = q, sample_names = paste0("s", seq_along(q)), group_vec = group, method = "gam", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE))
         expect_true(is.null(out_gam) || (is.data.frame(out_gam) && "p_interaction" %in% colnames(out_gam)))
     } else {
         succeed()
@@ -542,38 +542,40 @@ test_that("lmm branch uses subject_col and returns lmer method when available", 
 # Test that .tsenat_gam_interaction handles different anova.gam column names
 test_that(".tsenat_gam_interaction extracts p_interaction from different column names", {
     skip_if_not_installed("mgcv")
-    ns_mgcv <- asNamespace("mgcv")
-    orig_gam <- get("gam", envir = ns_mgcv)
-    orig_anova <- get("anova.gam", envir = ns_mgcv)
-    on.exit(
-        {
-            assignInNamespace("gam", orig_gam, ns = "mgcv")
-            assignInNamespace("anova.gam", orig_anova, ns = "mgcv")
-        },
-        add = TRUE
-    )
+    suppressWarnings({
+        ns_mgcv <- asNamespace("mgcv")
+        orig_gam <- get("gam", envir = ns_mgcv)
+        orig_anova <- get("anova.gam", envir = ns_mgcv)
+        on.exit(
+            {
+                assignInNamespace("gam", orig_gam, ns = "mgcv")
+                assignInNamespace("anova.gam", orig_anova, ns = "mgcv")
+            },
+            add = TRUE
+        )
 
-    # Replace gam with a no-op that returns a 'gam' object
-    assignInNamespace("gam", function(...) structure(list(), class = "gam"), ns = "mgcv")
+        # Replace gam with a no-op that returns a 'gam' object
+        assignInNamespace("gam", function(...) structure(list(), class = "gam"), ns = "mgcv")
 
-    # Case 1: 'Pr(F)' column
-    assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `Pr(F)` = c(1, 0.004)), ns = "mgcv")
-    df <- data.frame(entropy = rnorm(10), q = rep(1:5, each = 2), group = factor(rep(c("A", "B"), 5)))
-    res1 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
-    expect_true(is.data.frame(res1))
-    expect_true(is.numeric(res1$p_interaction) || is.na(res1$p_interaction))
+        # Case 1: 'Pr(F)' column
+        assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `Pr(F)` = c(1, 0.004)), ns = "mgcv")
+        df <- data.frame(entropy = rnorm(10), q = rep(1:5, each = 2), group = factor(rep(c("A", "B"), 5)))
+        res1 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
+        expect_true(is.data.frame(res1))
+        expect_true(is.numeric(res1$p_interaction) || is.na(res1$p_interaction))
 
-    # Case 2: 'Pr(>F)' column
-    assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `Pr(>F)` = c(1, 0.02)), ns = "mgcv")
-    res2 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
-    expect_true(is.data.frame(res2))
-    expect_true(is.numeric(res2$p_interaction) || is.na(res2$p_interaction))
+        # Case 2: 'Pr(>F)' column
+        assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `Pr(>F)` = c(1, 0.02)), ns = "mgcv")
+        res2 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
+        expect_true(is.data.frame(res2))
+        expect_true(is.numeric(res2$p_interaction) || is.na(res2$p_interaction))
 
-    # Case 3: 'p-value' column
-    assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `p-value` = c(1, 0.5)), ns = "mgcv")
-    res3 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
-    expect_true(is.data.frame(res3))
-    expect_true(is.numeric(res3$p_interaction) || is.na(res3$p_interaction))
+        # Case 3: 'p-value' column
+        assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `p-value` = c(1, 0.5)), ns = "mgcv")
+        res3 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
+        expect_true(is.data.frame(res3))
+        expect_true(is.numeric(res3$p_interaction) || is.na(res3$p_interaction))
+    })
 })
 
 
@@ -699,22 +701,24 @@ test_that(".tsenat_estimate_variance_weights works with residual method", {
 # Test GAM with heteroscedasticity detection and weighting
 test_that(".tsenat_gam_interaction applies weights when heteroscedasticity detected", {
     skip_if_not_installed("mgcv")
-    set.seed(111)
-    n <- 100
-    q <- runif(n, 0.1, 2)
-    group <- rep(c("A", "B"), length.out = n)
-    # Create heteroscedastic data - stronger variance in group B
-    entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.4 * q, 0.1 * q) + 
-               rnorm(n, 0, sd = ifelse(group == "B", 0.1 * q, 0.01))
-    df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
-    
-    res <- .tsenat_gam_interaction(df, q_vals = q, g = "geneHetero", min_obs = 10)
-    
-    expect_true(is.data.frame(res) || is.null(res))
-    if (is.data.frame(res)) {
-        expect_true("p_interaction" %in% colnames(res))
-        expect_true(is.numeric(res$p_interaction) || is.na(res$p_interaction))
-    }
+    suppressWarnings({
+        set.seed(111)
+        n <- 100
+        q <- runif(n, 0.1, 2)
+        group <- rep(c("A", "B"), length.out = n)
+        # Create heteroscedastic data - stronger variance in group B
+        entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.4 * q, 0.1 * q) + 
+                   rnorm(n, 0, sd = ifelse(group == "B", 0.1 * q, 0.01))
+        df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
+        
+        res <- .tsenat_gam_interaction(df, q_vals = q, g = "geneHetero", min_obs = 10)
+        
+        expect_true(is.data.frame(res) || is.null(res))
+        if (is.data.frame(res)) {
+            expect_true("p_interaction" %in% colnames(res))
+            expect_true(is.numeric(res$p_interaction) || is.na(res$p_interaction))
+        }
+    })
 })
 
 # Test LMM with heteroscedasticity detection

@@ -1183,10 +1183,24 @@
     min_val <- min(entropy_clean)
     max_val <- max(entropy_clean)
     
-    # True [0,1] bounding: values naturally stay in this range
-    # Allow small numerical tolerance
+    # True [0,1] bounding requires:
+    # 1. Data fits within [0,1] (with small tolerance)
+    # 2. Data actually approaches the boundaries (min <= 0.1 OR max >= 0.9)
+    #
+    # This prevents treating normal data centered at 0.5 as "bounded" just because
+    # it fits within [0,1]. True bounded data demonstrates that the bounds are real
+    # constraints by having values close to 0 or close to 1.
     tolerance <- 0.01
-    return(min_val >= -tolerance && max_val <= 1 + tolerance)
+    bounds_check <- min_val >= -tolerance && max_val <= 1 + tolerance
+    
+    if (!bounds_check) return(FALSE)
+    
+    # Check if data approaches the actual boundaries
+    # If neither boundary is approached, it's not truly bounded
+    approaches_lower_bound <- min_val <= 0.1
+    approaches_upper_bound <- max_val >= 0.9
+    
+    return(approaches_lower_bound || approaches_upper_bound)
 }
 
 # Helper: Select appropriate GAM family based on data characteristics
@@ -1745,10 +1759,16 @@
         
         # OPTIMIZATION (March 2026): Adaptive knot selection for smooth terms
         # Issue #4 & #8: Replace hardcoded/aggressive k parameters with data-driven selection
+        # FIX (April 2026): mgcv thin-plate splines s(x, bs="tp") have minimum basis dimension k=3
+        # mgcv automatically increases k if specified value is too low, causing warning
+        # Previous code set min_k_adaptive=2 for small samples, triggering mgcv auto-increase
+        min_k_adaptive <- 3L  # Thin-plate spline minimum basis dimension
         # Marginal smooth for q: Use conservative knots to avoid overfitting
-        k_q_marginal <- max(3, min(k_q, max(3, nrow(df) / 30)))  # Divide by 30 instead of 3 for marginal
+        # Formula: at least 3 knots, but not more than available unique q-values - 1
+        k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, max(min_k_adaptive, nrow(df) / 15))))
         # Interaction smooth: Use fewer knots since it must accommodate both q and group
-        k_q_interaction <- max(2, min(k_q / 2, 5))  # Scale down by half or cap at 5
+        # Also enforce minimum of 3 to prevent mgcv auto-increase warnings
+        k_q_interaction <- as.integer(max(3L, min(k_q / 2, 4L)))  # Min 3 for tp splines, cap at 4
         
         # Determine spline smoothing approach based on regularization
         bs_arg <- "tp"  # Thin plate spline basis - good for continuous covariates
@@ -1766,6 +1786,17 @@
         
         # BUG FIX: Use smooth splines s() instead of poly() for actual GAM fitting
         # Adaptive spline basis with thin-plate (tp) for flexible curve fitting
+        # FIX (April 2026): Implement fallback strategy for convergence failures
+        # Priority 1: GAMM with AR(1) correlation (handles autocorrelated measurements)
+        # Priority 2: GAMM with random intercept only (if AR(1) convergence fails)
+        # Priority 3: Standard GAM with independence assumption (last resort)
+        
+        # PRIORITY 1: Try GAMM with AR(1) correlation (full autocorrelation model)
+        convergence_note <- NULL
+        fit_null <- NULL
+        fit_alt <- NULL
+        use_ar1 <- TRUE  # Track which model succeeded
+        
         if (!is.null(gam_weights)) {
             df$gam_weights <- gam_weights
             fit_null <- try(
@@ -1777,10 +1808,6 @@
                           data = df),
                 silent = TRUE
             )
-            # Use group-specific smooth for interaction:
-            # FIX (March 2026): Convert group to numeric for tensor product smooth
-            # gamm() fails with factor in ti() due to arithmetic operations within mgcv smooth construction
-            # Reference: C042/C043 (GAMM Tutorial, mgcv Documentation)
             df$group_numeric <- as.numeric(df$group)
             fit_alt <- try(
                 mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
@@ -1800,7 +1827,6 @@
                           data = df),
                 silent = TRUE
             )
-            # Use group-specific smooth for interaction:
             fit_alt <- try(
                 mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
                           random = list(subject = ~1), 
@@ -1811,53 +1837,122 @@
             )
         }
         
+        # PRIORITY 2: If AR(1) convergence failed, try GAMM without correlation structure
+        if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
+            convergence_note <- "AR1_convergence_failed"
+            use_ar1 <- FALSE
+            
+            if (!is.null(gam_weights)) {
+                fit_null <- try(
+                    mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
+                              random = list(subject = ~1),
+                              family = family_gam,
+                              weights = gam_weights,
+                              data = df),
+                    silent = TRUE
+                )
+                fit_alt <- try(
+                    mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
+                              random = list(subject = ~1),
+                              family = family_gam,
+                              weights = gam_weights,
+                              data = df),
+                    silent = TRUE
+                )
+            } else {
+                fit_null <- try(
+                    mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
+                              random = list(subject = ~1),
+                              family = family_gam,
+                              data = df),
+                    silent = TRUE
+                )
+                fit_alt <- try(
+                    mgcv::gamm(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
+                              random = list(subject = ~1),
+                              family = family_gam,
+                              data = df),
+                    silent = TRUE
+                )
+            }
+        }
+        
+        # PRIORITY 3: If GAMM fails entirely, fall back to standard GAM (independence assumption)
+        if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
+            convergence_note <- "GAMM_failed_using_GAM_fallback"
+            
+            if (!is.null(gam_weights)) {
+                fit_null <- try(
+                    mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
+                              family = family_gam,
+                              weights = gam_weights,
+                              data = df),
+                    silent = TRUE
+                )
+                fit_alt <- try(
+                    mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
+                              family = family_gam,
+                              weights = gam_weights,
+                              data = df),
+                    silent = TRUE
+                )
+            } else {
+                fit_null <- try(
+                    mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
+                              family = family_gam,
+                              data = df),
+                    silent = TRUE
+                )
+                fit_alt <- try(
+                    mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
+                              family = family_gam,
+                              data = df),
+                    silent = TRUE
+                )
+            }
+        }
+        
         if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
             return(NULL)
         }
         
-        # For GAMM, compare models via LRT on the LME component
-        # Note: Both models have identical random structure and correlation
-        # The difference is in the smooth terms (fixed vs by-group)
-        # 
-        # APPROACH 1 (Current - Simpler): Use LME comparison
-        # Both GAMM objects contain an $lme component for the random effects.
-        # LRT comparing these LME objects is valid because:
-        # - GAM/GAMM uses same likelihood framework as LME
-        # - Smooth terms are fitted as fixed effects within GAMM
-        # - LME comparison reflects overall model difference
-        # Reference: mgcv documentation - gamm() returns a list with $gam and $lme components
-        
-        # APPROACH 2 (Alternative): Use anova.gam on GAM components
-        # mgcv::anova.gam() performs hypothesis tests on GAM fits
-        # For multi-model comparison with test="Chisq", returns GLRT test
-        # However, this only compares the smooth term differences, not the full models
-        # Thus, LME comparison is more appropriate for full model comparison
-        
+        # Compare models based on what type of fit we have
+        # GAMM objects have $lme component; standard GAM objects don't
         old_warn <- options(warn = -1)
-        an <- try(anova(fit_null$lme, fit_alt$lme), silent = TRUE)
-        options(old_warn)
         
-        if (inherits(an, "try-error")) {
-            return(NULL)
-        }
-        
-        # Extract p-value from LRT
-        # anova.lme() returns: Model, df, AIC, BIC, logLik, Test, L.Ratio, p-value
         p_interaction <- NA_real_
-        if (nrow(an) >= 2) {
-            if ("p-value" %in% colnames(an)) {
-                p_interaction <- an[2, "p-value"]
-            } else if ("Pr(>Chisq)" %in% colnames(an)) {
-                p_interaction <- an[2, "Pr(>Chisq)"]
-            } else if ("Pr(>F)" %in% colnames(an)) {
-                p_interaction <- an[2, "Pr(>F)"]
+        if (!is.null(fit_null$lme) && !is.null(fit_alt$lme)) {
+            # GAMM comparison via LME component
+            an <- try(anova(fit_null$lme, fit_alt$lme), silent = TRUE)
+            if (!inherits(an, "try-error") && nrow(an) >= 2) {
+                if ("p-value" %in% colnames(an)) {
+                    p_interaction <- an[2, "p-value"]
+                } else if ("Pr(>Chisq)" %in% colnames(an)) {
+                    p_interaction <- an[2, "Pr(>Chisq)"]
+                } else if ("Pr(>F)" %in% colnames(an)) {
+                    p_interaction <- an[2, "Pr(>F)"]
+                }
+            }
+        } else {
+            # Standard GAM comparison via anova.gam()
+            # Use hypothesis test comparing smooth term differences
+            an <- try(anova(fit_null, fit_alt, test = "Chisq"), silent = TRUE)
+            if (!inherits(an, "try-error") && nrow(an) >= 2) {
+                if ("p-value" %in% colnames(an)) {
+                    p_interaction <- an[2, "p-value"]
+                } else if ("Pr(>Chi)" %in% colnames(an)) {
+                    p_interaction <- an[2, "Pr(>Chi)"]
+                } else if ("p-value" %in% tolower(colnames(an))) {
+                    # Case-insensitive search for p-value column
+                    col_idx <- grep("p-value", tolower(colnames(an)))[1]
+                    if (!is.na(col_idx) && nrow(an) >= 2) {
+                        p_interaction <- an[2, col_idx]
+                    }
+                }
             }
         }
         
-        # If p-value not extracted, return NULL
-        if (is.na(p_interaction)) {
-            return(NULL)
-        }
+        options(old_warn)
     } else {
         # Fallback to standard GAM (treats samples as independent)
         # This is used only when subject info is not available
@@ -1867,7 +1962,15 @@
         
         # BUG FIX: Use smooth splines s() instead of poly() for actual GAM fitting
         # Adaptive spline basis with thin-plate (tp) for flexible curve fitting
+        
+        # Determine k values for standard GAM (non-paired design)
+        # Adaptive minimum k based on sample size: mgcv needs ~15-20 points per basis function
+        min_k_adaptive <- if (nrow(df) < 25) 2L else if (nrow(df) < 50) 3L else 4L
+        k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, max(min_k_adaptive, nrow(df) / 25))))
+        k_q_interaction <- as.integer(max(2L, min(k_q, max(2L, nrow(df) / 20))))
+        
         if (!is.null(gam_weights)) {
+            # Fitting with weights
             df$gam_weights <- gam_weights
             fit_null <- try(
                 mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
@@ -1876,6 +1979,8 @@
                          data = df), 
                 silent = TRUE
             )
+            if (inherits(fit_null, "try-error")) {
+            }
             # Use group-specific smooth for interaction testing
             fit_alt <- try(
                 mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
@@ -1884,6 +1989,8 @@
                          data = df),
                 silent = TRUE
             )
+            if (inherits(fit_alt, "try-error")) {
+            }
         } else {
             fit_null <- try(
                 mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_marginal), 
@@ -1891,6 +1998,8 @@
                          data = df), 
                 silent = TRUE
             )
+            if (inherits(fit_null, "try-error")) {
+            }
             # Use group-specific smooth for interaction testing
             fit_alt <- try(
                 mgcv::gam(entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
@@ -1898,9 +2007,15 @@
                          data = df),
                 silent = TRUE
             )
+            if (inherits(fit_alt, "try-error")) {
+            }
         }
         
-        if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
+        # Allow model fitting errors to proceed with NA values (don't return NULL)
+        # This ensures genes with convergence issues still appear in output
+        
+        # CRITICAL: Return NULL if BOTH models failed to fit
+        if (inherits(fit_null, "try-error") && inherits(fit_alt, "try-error")) {
             return(NULL)
         }
         
@@ -1916,6 +2031,12 @@
         } else {
             p_interaction <- NA_real_
             if (nrow(an) >= 2) {
+                # DEBUG: Uncomment to see anova extraction
+                if (FALSE) {  # Change to TRUE for debug
+                    cat("[DEBUG] Anova colnames:", paste(colnames(an), collapse=", "), "\n")
+                    cat("[DEBUG] Anova nrow:", nrow(an), "\n")
+                    print(an)
+                }
                 if ("Pr(F)" %in% colnames(an)) {
                     p_interaction <- an[2, "Pr(F)"]
                 } else if ("Pr(>F)" %in% colnames(an)) {

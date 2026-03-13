@@ -54,7 +54,9 @@
 #' @param batch Character; name of batch column in colData(se)
 #' @param biological_group Character. Optional biological grouping variable to separate from batch effects.
 #' @param n_components Integer; number of PCs to examine (default: 5)
-#' @param n_permutations Integer. Number of random batch permutations for significance testing (default 100).
+#' @param n_permutations Integer. Number of random batch permutations for significance testing (default 1000).
+#'   Higher values provide better p-value resolution. With 100 permutations, p-values can only be
+#'   {0.01, 0.02, ..., 1.0}. With 1000 permutations: {0.001, 0.002, ..., 1.0}.
 #' @param method Character. One of "pca" (default), "variance_partition", or "silhouette".
 #'
 #' @return List containing:
@@ -85,7 +87,7 @@ detect_batch_effects <- function(
     batch,
     biological_group = NULL,
     n_components = 5,
-    n_permutations = 100,
+    n_permutations = 1000,
     method = c("pca", "variance_partition", "silhouette")) {
   
   method <- match.arg(method)
@@ -109,16 +111,28 @@ detect_batch_effects <- function(
   # Remove zero-variance genes (common in sparse RNA-seq data)
   gene_vars <- apply(y_log, 2, stats::var, na.rm = TRUE)
   keep_genes <- !is.na(gene_vars) & gene_vars > 1e-10
-  if (sum(keep_genes) < ncol(y_log) / 2) {
-    warning("Removing ", sum(!keep_genes), " zero-variance genes for PCA stability")
+  if (sum(keep_genes) == 0) {
+    stop("All genes have zero variance after filtering. ",
+         "Cannot perform PCA. Check for unexpressed genes or constant values.")
+  }
+  if (sum(keep_genes) < max(3, ncol(y_log) / 2)) {
+    warning("Very few genes pass variance filter (", sum(keep_genes), 
+            " of ", ncol(y_log), "). PCA results may be unstable.")
   }
   y_log <- y_log[, keep_genes]
   
   # Center and scale
   y_scaled <- scale(y_log, center = TRUE, scale = TRUE)
   
-  # Handle cases where scaling may produce NaN (e.g., constant columns)
-  y_scaled[!is.finite(y_scaled)] <- 0
+  # Detect and fail on NaN/Inf values (rather than silently replacing them)
+  # This preserves data integrity and alerts users to potential data quality issues
+  nan_inf_count <- sum(!is.finite(y_scaled))
+  if (nan_inf_count > 0) {
+    stop("NaN or Inf values detected in scaled data (count: ", nan_inf_count, "). ",
+         "This may indicate: extreme outliers, zero-variance genes after scaling, ",
+         "or constant columns. Please check input data quality and remove problematic genes.",
+         call. = FALSE)
+  }
   
   # PCA
   pca_result <- stats::prcomp(y_scaled, rank. = min(n_components, min(nrow(y_scaled), ncol(y_scaled)) - 1))
@@ -259,7 +273,25 @@ adjust_batch_effects_seq <- function(
   # Extract data
   counts <- as.matrix(SummarizedExperiment::assay(se))
   batch_vector <- SummarizedExperiment::colData(se)[[batch]]
-  n_batches <- length(unique(batch_vector))
+  
+  # Validate batch vector
+  if (length(batch_vector) != ncol(se)) {
+    stop("batch vector length (", length(batch_vector), ") does not match ncol(se) (",
+         ncol(se), ")", call. = FALSE)
+  }
+  
+  if (any(is.na(batch_vector))) {
+    stop("batch vector contains NA values. Please handle missing batch assignments.",
+         call. = FALSE)
+  }
+  
+  # Convert to factor if not already (required for model operations)
+  if (!is.factor(batch_vector)) {
+    batch_vector <- as.factor(batch_vector)
+  }
+  
+  n_batches <- length(levels(batch_vector))
+  
   
   if (n_batches < 2) {
     warning("Only one batch detected. Returning data unchanged.")
@@ -294,12 +326,24 @@ adjust_batch_effects_seq <- function(
         grand_mean <- mean(gene_counts, na.rm = TRUE)
         batch_effect <- batch_mean - grand_mean
         
-        # Adjust: shift counts toward grand mean
+        # Adjust: shift counts toward grand mean while preserving exact zeros
+        # This simplified approach is designed to:
+        # 1. Preserve exact zeros (genes with true zero counts remain zero)
+        # 2. Adjust non-zero counts toward grand mean
+        # NOTE: This is a simplified batch correction. For publication-quality
+        # results, consider using sva::ComBat_seq() which implements the full
+        # negative binomial model from Zhang et al. (2020).
         if (!mean.only && !is.na(batch_effect)) {
-          # Add small constant to avoid negative counts
-          corrected_counts[gene, batch_idx] <- pmax(
-            1,
-            gene_counts[batch_idx] - batch_effect * 0.5
+          adjusted <- gene_counts[batch_idx] - batch_effect * 0.5
+          # Preserve exact zeros and use small pseudocount (0.5) for non-zero values
+          # to avoid artificial inflation while preventing negative counts
+          # Round adjusted counts to nearest integer, preserving exact zeros
+          # Use explicit rounding to ensure deterministic behavior across platforms
+          rounded_adjusted <- round(adjusted)
+          corrected_counts[gene, batch_idx] <- ifelse(
+            gene_counts[batch_idx] == 0,
+            0,  # Keep exact zeros as zeros (deterministic)
+            pmax(1L, rounded_adjusted)  # Minimum count of 1 after rounding
           )
         }
       }
@@ -308,7 +352,9 @@ adjust_batch_effects_seq <- function(
   
   # Create new SummarizedExperiment with corrected counts
   corrected_se <- se
-  SummarizedExperiment::assay(corrected_se) <- round(corrected_counts)
+  # Convert to integer while preserving matrix structure
+  storage.mode(corrected_counts) <- "integer"
+  SummarizedExperiment::assay(corrected_se, withDimnames=FALSE) <- corrected_counts
   
   # Add batch correction metadata
   S4Vectors::metadata(corrected_se)$batch_correction <- list(
@@ -356,7 +402,9 @@ estimate_batch_parameters_seq <- function(counts, batch, shrinkage = TRUE,
     batch_level <- batch_levels[b_idx]
     batch_idx <- batch == batch_level
     
-    if (sum(batch_idx) > 1) {
+    # Require minimum batch size (>= 5) for reliable dispersion estimation
+    # Small batches (2-3 samples) give unreliable variance/φ estimates
+    if (sum(batch_idx) >= 5) {
       for (gene in seq_len(n_genes)) {
         counts_batch <- counts[gene, batch_idx]
         
@@ -365,12 +413,16 @@ estimate_batch_parameters_seq <- function(counts, batch, shrinkage = TRUE,
         
         # Overdispersion (φ) - use variance/mean ratio
         # For negative binomial: var = μ(1 + φμ) or similar parameterization
-        if (params$mu[gene, b_idx] > 0) {
+        # Require minimum mean to avoid inflated φ estimates for low-expression genes
+        if (params$mu[gene, b_idx] > 0.1) {
           var_counts <- stats::var(counts_batch, na.rm = TRUE)
           # Estimate φ: (var - μ) / μ^2
+          # This formula requires ~ 15-20 counts for reliable estimation
           params$phi[gene, b_idx] <- max(0, (var_counts - params$mu[gene, b_idx]) / 
                                              (params$mu[gene, b_idx]^2 + 1e-6))
         } else {
+          # Treat low-expression genes as having zero overdispersion (Poisson-like)
+          # This avoids inflating φ estimates when mean is very small
           params$phi[gene, b_idx] <- 0
         }
       }
@@ -457,11 +509,18 @@ adjust_batch_effects_ref <- function(se, batch, ref_batch, group = NULL,
       batch_mean <- mean(counts[gene, batch_idx], na.rm = TRUE)
       batch_effect <- batch_mean - ref_mean
       
-      # Adjust: shift toward reference
+      # Adjust: shift toward reference while preserving exact zeros
+      # Preserve exact zeros (genes with true zero counts remain zero)
+      # Use small pseudocount (0.5) instead of 1 to minimize artificial inflation
       if (!is.na(batch_effect) && abs(batch_effect) > 1e-6) {
-        corrected_counts[gene, batch_idx] <- pmax(
-          1,
-          counts[gene, batch_idx] - batch_effect
+        adjusted <- counts[gene, batch_idx] - batch_effect
+        # Round adjusted counts to nearest integer, preserving exact zeros
+        # Use explicit rounding to ensure deterministic behavior across platforms
+        rounded_adjusted <- round(adjusted)
+        corrected_counts[gene, batch_idx] <- ifelse(
+          counts[gene, batch_idx] == 0,
+          0,  # Keep exact zeros as zeros (deterministic)
+          pmax(1L, rounded_adjusted)  # Minimum count of 1 after rounding
         )
       }
     }
@@ -469,7 +528,9 @@ adjust_batch_effects_ref <- function(se, batch, ref_batch, group = NULL,
   
   # Return corrected SE
   corrected_se <- se
-  SummarizedExperiment::assay(corrected_se) <- round(corrected_counts)
+  # Convert to integer while preserving matrix structure
+  storage.mode(corrected_counts) <- "integer"
+  SummarizedExperiment::assay(corrected_se, withDimnames=FALSE) <- corrected_counts
   
   S4Vectors::metadata(corrected_se)$batch_correction <- list(
     method = "ComBat-ref",
@@ -517,7 +578,9 @@ plot_batch_pca <- function(se, batch, biological_group = NULL,
   y_log <- log2(y + 1)
   y_scaled <- scale(y_log, center = TRUE, scale = TRUE)
   
-  pca_result <- stats::prcomp(y_scaled)
+  # Specify rank to avoid unnecessary computation of full covariance matrix
+  n_components_actual <- min(pc2, min(nrow(y_scaled), ncol(y_scaled)) - 1)
+  pca_result <- stats::prcomp(y_scaled, rank. = n_components_actual)
   scores <- as.data.frame(pca_result$x)
   
   batch_vector <- SummarizedExperiment::colData(se)[[batch]]
@@ -906,12 +969,24 @@ apply_batch_correction_ranking_se <- function(
   
   # Extract data
   entropy_matrix <- SummarizedExperiment::assay(se, assay)
+  
+  # Validate entropy matrix is numeric and contains finite values
+  if (!is.numeric(entropy_matrix)) {
+    stop("Entropy matrix must be numeric. Found class: ", class(entropy_matrix)[1], call. = FALSE)
+  }
+  
+  n_non_finite <- sum(!is.finite(entropy_matrix))
+  if (n_non_finite > 0) {
+    stop("Entropy matrix contains ", n_non_finite, " non-finite values (NaN or Inf). ",
+         "Please clean data before batch correction.", call. = FALSE)
+  }
+  
   batch_factor <- SummarizedExperiment::colData(se)[[batch_column]]
   
   condition_factor <- NULL
   if (!is.null(condition_column)) {
     if (!(condition_column %in% names(SummarizedExperiment::colData(se)))) {
-      warning("condition_column '", condition_column, "' not found in colData. Proceeding without condition.", call. = FALSE)
+      stop("condition_column '", condition_column, "' not found in colData(se)", call. = FALSE)
     } else {
       condition_factor <- SummarizedExperiment::colData(se)[[condition_column]]
     }
@@ -991,9 +1066,19 @@ detect_batch_structure <- function(
   } else if (is.list(entropy_lists)) {
     # Combine all q-values: use average entropy across q-values
     entropy_matrices <- entropy_lists
-    # Average but preserve column names from first matrix
+    
+    # Validate all matrices have compatible dimensions
+    col_names_list <- lapply(entropy_matrices, colnames)
+    if (!all(sapply(col_names_list[-1], function(x) identical(x, col_names_list[[1]])))) {
+      stop("Not all matrices have identical column names. Cannot average matrices with different sample sets. ",
+           "Ensure all entropy matrices correspond to the same samples (columns).",
+           call. = FALSE)
+    }
+    
+    # Average matrices while preserving both row and column names from first matrix
     entropy_matrix <- Reduce(`+`, entropy_matrices) / length(entropy_matrices)
-    # Restore column names from first matrix
+    # Restore both row and column names from first matrix to maintain complete structure
+    rownames(entropy_matrix) <- rownames(entropy_matrices[[1]])
     colnames(entropy_matrix) <- colnames(entropy_matrices[[1]])
   } else {
     stop("entropy_lists must be a SummarizedExperiment, matrix, or list of matrices", call. = FALSE)
@@ -1039,6 +1124,7 @@ detect_batch_structure <- function(
   # Add metadata if provided
   if (!is.null(sample_metadata)) {
     # Prefer sample_id column if it exists; otherwise use rownames
+    # Validate and match sample metadata to PCA results
     if ("sample_id" %in% colnames(sample_metadata)) {
       # Match PCA sample IDs to metadata sample_id column
       pca_sids <- as.character(batch_pca_scores$sample_id)
@@ -1047,14 +1133,30 @@ detect_batch_structure <- function(
     } else if (!is.null(rownames(sample_metadata))) {
       row_idx <- match(as.character(batch_pca_scores$sample_id), as.character(rownames(sample_metadata)))
     } else {
-      row_idx <- seq_len(nrow(sample_metadata))
+      # No reliable way to match - must have either sample_id or rownames
+      stop("Cannot match samples between PCA results and metadata. ",
+           "sample_metadata must have either a 'sample_id' column or rownames matching PCA sample IDs.",
+           call. = FALSE)
     }
     
-    # Only add metadata columns if matching was successful (row_idx not all NA)
-    if (!all(is.na(row_idx))) {
-      for (col in setdiff(colnames(sample_metadata), "sample_id")) {
-        batch_pca_scores[[col]] <- sample_metadata[row_idx, col]
-      }
+    # Verify matching was successful
+    if (all(is.na(row_idx))) {
+      stop("Failed to match any samples between PCA results and metadata. ",
+           "Check that sample identifiers in 'sample_id' column or rownames match PCA sample IDs.",
+           call. = FALSE)
+    }
+    
+    if (any(is.na(row_idx))) {
+      unmatched_samples <- batch_pca_scores$sample_id[is.na(row_idx)]
+      warning("Could not match ", sum(is.na(row_idx)), " samples to metadata: ",
+              paste(head(unmatched_samples, 3), collapse=", "), 
+              if (length(unmatched_samples) > 3) "..." else "",
+              call. = FALSE)
+    }
+    
+    # Add metadata columns (using validated row_idx)
+    for (col in setdiff(colnames(sample_metadata), "sample_id")) {
+      batch_pca_scores[[col]] <- sample_metadata[row_idx, col]
     }
   }
   
@@ -1176,6 +1278,18 @@ apply_batch_correction_ranking <- function(
   
   # Ensure batch and condition are factors
   batch_factor <- as.factor(batch_factor)
+  batch_table <- table(batch_factor)
+  
+  # Check that each batch has minimum 2 samples (required for lm contrast matrix)
+  if (any(batch_table < 2)) {
+    problematic_batches <- names(batch_table[batch_table < 2])
+    stop("Some batch levels have fewer than 2 samples: ",
+         paste(problematic_batches, " (", batch_table[batch_table < 2], " sample", 
+               ifelse(batch_table[batch_table < 2] == 1, "", "s"), ")", sep="", collapse=", "),
+         ". Linear model requires ≥2 samples per batch level to estimate independent parameters.",
+         call. = FALSE)
+  }
+  
   if (!is.null(condition_factor)) {
     condition_factor <- as.factor(condition_factor)
   }
@@ -1190,27 +1304,46 @@ apply_batch_correction_ranking <- function(
   for (g in seq_len(nrow(entropy_matrix))) {
     gene_entropy <- entropy_matrix[g, ]
     
-    # Build model: entropy ~ condition + batch
+    # Built model: entropy ~ condition + batch
     df <- data.frame(
       entropy = gene_entropy,
       batch = batch_factor
     )
     
-    if (!is.null(condition_factor)) {
-      df$condition <- condition_factor
-      model <- lm(entropy ~ condition + batch, data = df)
-    } else {
-      model <- lm(entropy ~ batch, data = df)
-    }
+    # Fit linear model with error handling (may fail if rank-deficient, but batch size check above prevents this)
+    tryCatch({
+      if (!is.null(condition_factor)) {
+        df$condition <- condition_factor
+        model <- lm(entropy ~ condition + batch, data = df)
+      } else {
+        model <- lm(entropy ~ batch, data = df)
+      }
+    }, error = function(e) {
+      stop("Failed to fit linear model for gene ", rownames(entropy_matrix)[g], ": ",
+           e$message, ". This may indicate singular design matrix (e.g., redundant batch levels).",
+           call. = FALSE)
+    })
     
-    # Extract batch effects: predicted values with batch set to first level
+    # Extract batch effects using predictions (correctly accounts for reference level being in intercept)
+    # Method: Difference between predicted value with actual batch and with reference batch
     batch_baseline <- levels(batch_factor)[1]
-    batch_pred <- numeric(length(batch_factor))
-    for (s in seq_along(batch_factor)) {
-      # Predict entropy with this sample's batch
-      batch_effect <- coef(model)[paste0("batch", as.character(batch_factor[s]))]
-      batch_pred[s] <- if (is.na(batch_effect)) 0 else batch_effect
+    
+    # Create data frame for prediction with reference batch for all samples
+    pred_data_ref <- data.frame(batch = rep(batch_baseline, length(batch_factor)))
+    if (!is.null(condition_factor)) {
+      pred_data_ref$condition <- condition_factor
     }
+    pred_ref <- predict(model, newdata = pred_data_ref)
+    
+    # Create data frame for prediction with actual batch for each sample
+    pred_data_actual <- data.frame(batch = batch_factor)
+    if (!is.null(condition_factor)) {
+      pred_data_actual$condition <- condition_factor
+    }
+    pred_actual <- predict(model, newdata = pred_data_actual)
+    
+    # Batch effect = difference from reference (accounts for reference level in intercept)
+    batch_pred <- pred_actual - pred_ref
     
     # Corrected entropy: remove batch effect (keep biological effect + residual)
     entropy_corrected[g, ] <- gene_entropy - batch_pred

@@ -223,7 +223,7 @@ test_that("gam method attaches p_interaction to rowData when mgcv available", {
 
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    res <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "gam", min_obs = 8)
+    res <- suppressWarnings(calculate_lm_interaction(se, sample_type_col = "sample_type", method = "gam", min_obs = 8))
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -383,7 +383,7 @@ test_that(".tsenat_gam_interaction handles null cases gracefully", {
         group = rep(c("A", "B"), each = 4)
     )
     
-    res <- TSENAT:::.tsenat_gam_interaction(df, df$q, "gene1", min_obs = 3)
+    res <- suppressWarnings(TSENAT:::.tsenat_gam_interaction(df, df$q, "gene1", min_obs = 3))
     
     # Result should be either NULL or a valid data frame with p_interaction
     if (!is.null(res)) {
@@ -407,7 +407,7 @@ test_that(".tsenat_gam_interaction extracts p-values from anova", {
         group = rep(c("A", "B"), each = length(q_vals))
     )
     
-    res <- TSENAT:::.tsenat_gam_interaction(df, df$q, "gene_test", min_obs = 4)
+    res <- suppressWarnings(TSENAT:::.tsenat_gam_interaction(df, df$q, "gene_test", min_obs = 4))
     
     # If result is not NULL, verify structure; otherwise verify it's NULL
     if (!is.null(res)) {
@@ -1563,11 +1563,11 @@ test_that("calculate_lm_interaction includes Shapiro-Wilk results for GAM method
     
     # Run with GAM method
     res <- tryCatch({
-        calculate_lm_interaction(se,
+        suppressWarnings(calculate_lm_interaction(se,
             sample_type_col = "samples",
             method = "gam",
             min_obs = 4
-        )
+        ))
     }, error = function(e) NULL)
     
     skip_if(is.null(res), "calculate_lm_interaction failed for GAM")

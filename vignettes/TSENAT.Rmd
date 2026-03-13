@@ -606,29 +606,29 @@ knitr::kable(
 ```
 
 Now we will plot the q-curve profile for the top gene identified 
-by the linear-model interaction test. We will start with `LINC03040`.   
+by the linear-model interaction test. We will start with `CXCL12`.   
 
 ```{r foxj2-gene-qprofile, fig.width=10, fig.height=6.5}
 # Plot q-curve profile for the top 2 genes from lm_res with the most significant interactions
 # Pass lm_res directly to the function to let it extract genes by significance
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "LINC03040")
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CXCL12")
 print(plot_target)
 ```
 
-Now let’s look at Now let’s look at PNPT1.
+Now let’s look at Now let’s look at `SH3PXD2A`.
 
 ```{r pnpt1-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top Now let’s look at PNPT1
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PNPT1")
+# Plot q-curve profile for top Now let’s look at SH3PXD2A
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "SH3PXD2A")
 print(plot_target)
 ```
 
 
-Finally, we can visualize the gene `METTL26`.
+Finally, we can visualize the gene `PNRC2`.
 
 ```{r gsr-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top PDE7A
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "METTL26")
+# Plot q-curve profile for top PNRC2
+plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PNRC2")
 print(plot_target)
 ```
 

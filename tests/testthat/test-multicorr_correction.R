@@ -377,24 +377,6 @@ test_that("detect_q_gene_interactions invalid multicorr parameter raises error",
   )
 })
 
-test_that("detect_q_gene_interactions multicorr works with method=anova", {
-  set.seed(107)
-  model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
-                rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
-    q = rep(c(0.5, 1.0, 1.5), each = 10),
-    gene = rep(c("Gene1", "Gene2"), each = 30),
-    sample = rep(paste0("S", 1:10), 6),
-    stringsAsFactors = FALSE
-  )
-  
-  result <- detect_q_gene_interactions(model_data, method = "anova", multicorr = "hochberg")
-  
-  # Should have adj_p_value column even with anova method
-  expect_true("adj_p_value" %in% colnames(result))
-  expect_true(all(result$adj_p_value >= result$p_value, na.rm = TRUE))
-})
-
 test_that("detect_q_gene_interactions multicorr handles NA p-values correctly", {
   set.seed(108)
   

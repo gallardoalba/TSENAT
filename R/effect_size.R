@@ -624,7 +624,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     
     # Practical framework: analogous to Cohen's d for entropy
     practical <- data.frame(
-        Framework = rep(sprintf("Practical (q=%.2f, multiplier=%.3f*)", q_value, q_power_multiplier), 4),
+        Framework = rep(sprintf("Practical (q=%.2f, multiplier=%.3f×)", q_value, q_power_multiplier), 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
         Range = c(
             sprintf("< %.4f", 0.05 * H_max * es_adjustment),
@@ -651,7 +651,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     
     # Statistical framework: conservative, Type I control
     statistical <- data.frame(
-        Framework = rep(sprintf("Statistical (q=%.2f, multiplier=%.3f*)", q_value, q_power_multiplier), 4),
+        Framework = rep(sprintf("Statistical (q=%.2f, multiplier=%.3f×)", q_value, q_power_multiplier), 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
         Range = c(
             sprintf("< %.4f", 0.02 * H_max * es_adjustment),
@@ -678,7 +678,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     
     # Biological framework: organism/system specific
     biological <- data.frame(
-        Framework = rep(sprintf("Biological (q=%.2f, multiplier=%.3f*)", q_value, q_power_multiplier), 4),
+        Framework = rep(sprintf("Biological (q=%.2f, multiplier=%.3f×)", q_value, q_power_multiplier), 4),
         Magnitude = c("Negligible", "Small", "Medium", "Large"),
         Range = c(
             sprintf("< %.4f", 0.10 * H_max * es_adjustment),
@@ -707,7 +707,7 @@ entropy_effect_size_guidelines <- function(q_value = 1.0, n_isoforms = 50,
     info_row <- data.frame(
         Framework = paste("System: q =", sprintf("%.2f", q_value), ", n_isoforms =", n_isoforms, 
                          ", H_max =", sprintf("%.4f", H_max), ", q_weight =", sprintf("%.2f", q_weight),
-                         ", adjustment =", sprintf("%.3f*", es_adjustment)),
+                         ", adjustment =", sprintf("%.3f×", es_adjustment)),
         Magnitude = NA_character_,
         Range = NA_character_,
         Percent_Max = NA_character_,

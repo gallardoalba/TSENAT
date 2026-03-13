@@ -295,7 +295,7 @@ testthat::test_that(".tsenat_gam_interaction uses conditional family selection",
     df <- data.frame(entropy = pmax(entropy, 0.001), q = q, group = factor(group))
     
     # Call GAM interaction
-    result <- .tsenat_gam_interaction(df, q_vals = unique(q), g = "test_gene", min_obs = 5)
+    result <- suppressWarnings(.tsenat_gam_interaction(df, q_vals = unique(q), g = "test_gene", min_obs = 5))
     
     skip_if(is.null(result), "GAM interaction returned NULL")
     

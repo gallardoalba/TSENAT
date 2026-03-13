@@ -1547,12 +1547,14 @@ block_jackknife_isoform_switching <- function(
     gene_ids <- gene_ids[1:top_n]
   }
   
-  cat("Block Jackknife Analysis\n")
-  cat("=======================\n")
-  cat("Block column:", block_col, "\n")
-  cat("Number of blocks:", length(blocks), "\n")
-  cat("Block names:", paste(blocks, collapse = ", "), "\n")
-  cat("Genes analyzed:", length(gene_ids), "\n\n")
+  if (print_results) {
+    cat("Block Jackknife Analysis\n")
+    cat("=======================\n")
+    cat("Block column:", block_col, "\n")
+    cat("Number of blocks:", length(blocks), "\n")
+    cat("Block names:", paste(blocks, collapse = ", "), "\n")
+    cat("Genes analyzed:", length(gene_ids), "\n\n")
+  }
   
   # Initialize results  
   per_block_results <- list()

@@ -68,7 +68,7 @@ test_that("GAM with PCA mode (no regularization) works", {
     se <- create_test_se_gam(n_samples = 20, n_genes = 5)
     
     # Test with PCA regularization (should be equivalent to no regularization)
-    result <- calculate_lm_interaction(
+    result <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -76,7 +76,7 @@ test_that("GAM with PCA mode (no regularization) works", {
         subject_col = "sample_base",
         paired = FALSE,
         verbose = FALSE
-    )
+    ))
     
     # Result should be a data.frame
     expect_is(result, "data.frame")
@@ -97,7 +97,7 @@ test_that("GAM with spline regularization works", {
     se <- create_test_se_gam(n_samples = 20, n_genes = 5)
     
     # Test with spline regularization
-    result <- calculate_lm_interaction(
+    result <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -105,7 +105,7 @@ test_that("GAM with spline regularization works", {
         subject_col = "sample_base",
         paired = FALSE,
         verbose = FALSE
-    )
+    ))
     
     # Result should be valid
     expect_is(result, "data.frame")
@@ -124,7 +124,7 @@ test_that("GAM with GAMSEL regularization works", {
     se <- create_test_se_gam(n_samples = 20, n_genes = 5)
     
     # Test with GAMSEL regularization
-    result <- calculate_lm_interaction(
+    result <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -132,7 +132,7 @@ test_that("GAM with GAMSEL regularization works", {
         subject_col = "sample_base",
         paired = FALSE,
         verbose = FALSE
-    )
+    ))
     
     # Result should be valid - may fallback to spline if gamsel not available
     expect_is(result, "data.frame")
@@ -187,7 +187,7 @@ test_that("GAM regularization handles small sample sizes gracefully", {
     se <- create_test_se_gam(n_samples = 12, n_genes = 3)
     
     # Apply spline regularization with small samples
-    result <- calculate_lm_interaction(
+    result <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -196,7 +196,7 @@ test_that("GAM regularization handles small sample sizes gracefully", {
         min_obs = 5,
         paired = FALSE,
         verbose = FALSE
-    )
+    ))
     
     # Should handle small samples without error
     expect_is(result, "data.frame")
@@ -228,7 +228,7 @@ test_that("GAM regularization consistency across multiple runs", {
     se <- create_test_se_gam(n_samples = 20, n_genes = 5, seed = 123)
     
     set.seed(123)
-    result1 <- calculate_lm_interaction(
+    result1 <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -236,10 +236,10 @@ test_that("GAM regularization consistency across multiple runs", {
         subject_col = "sample_base",
         paired = FALSE,
         verbose = FALSE
-    )
+    ))
     
     set.seed(123)
-    result2 <- calculate_lm_interaction(
+    result2 <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -247,7 +247,7 @@ test_that("GAM regularization consistency across multiple runs", {
         subject_col = "sample_base",
         paired = FALSE,
         verbose = FALSE
-    )
+    ))
     
     # Results should have same dimensions
     expect_equal(nrow(result1), nrow(result2))
@@ -261,32 +261,33 @@ test_that("GAM regularization consistency across multiple runs", {
 test_that("GAM regularization vs non-regularized gives comparable results", {
     skip_if_not_installed("mgcv")
     
-    se <- create_test_se_gam(n_samples = 20, n_genes = 5)
-    
-    # Run both with and without regularization
-    result_no_reg <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "pca",  # No regularization
-        subject_col = "sample_base",
-        paired = FALSE,
-        verbose = FALSE
-    )
-    
-    result_spline <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "spline",  # With spline regularization
-        subject_col = "sample_base",
-        paired = FALSE,
-        verbose = FALSE
-    )
-    
-    # Both should return data frames
-    expect_is(result_no_reg, "data.frame")
-    expect_is(result_spline, "data.frame")
+    suppressWarnings({
+        se <- create_test_se_gam(n_samples = 20, n_genes = 5)
+        
+        # Run both with and without regularization
+        result_no_reg <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "pca",  # No regularization
+            subject_col = "sample_base",
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        result_spline <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "spline",  # With spline regularization
+            subject_col = "sample_base",
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        # Both should return data frames
+        expect_is(result_no_reg, "data.frame")
+        expect_is(result_spline, "data.frame")
     
     # Should have same column structure
     expect_equal(colnames(result_no_reg), colnames(result_spline))
@@ -306,6 +307,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
                            result_spline$p_interaction[valid_idx] <= 1))
         }
     }
+    })
 })
 
 test_that("GAM regularization works with paired samples", {
@@ -314,7 +316,7 @@ test_that("GAM regularization works with paired samples", {
     se <- create_test_se_gam(n_samples = 20, n_genes = 5)
     
     # Test with paired data
-    result <- calculate_lm_interaction(
+    result <- suppressWarnings(calculate_lm_interaction(
         se,
         sample_type_col = "group",
         method = "gam",
@@ -322,7 +324,7 @@ test_that("GAM regularization works with paired samples", {
         subject_col = "sample_base",
         paired = TRUE,
         verbose = FALSE
-    )
+    ))
     
     expect_is(result, "data.frame")
     expect_true(nrow(result) >= 0)
@@ -1620,59 +1622,61 @@ create_test_se_small <- function(n_samples = 12, n_genes = 5, seed = 42) {
 
 test_that("GAM bias correction is disabled when bias_correction=FALSE", {
     skip_if_not_installed("mgcv")
-    
-    se <- create_test_se_small(n_samples = 12, n_genes = 3)
-    
-    # Test with bias_correction=FALSE
-    result <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "pca",
-        subject_col = "sample_base",
-        bias_correction = FALSE,
-        paired = FALSE,
-        verbose = FALSE
-    )
-    
-    # Result should be valid
-    expect_is(result, "data.frame")
-    expect_true(nrow(result) >= 0)
-    # When bias_correction=FALSE, we should not have correction columns
-    if (nrow(result) > 0) {
-        expect_false("bias_correction_applied" %in% colnames(result))
-    }
+    suppressWarnings({
+        se <- create_test_se_small(n_samples = 12, n_genes = 3)
+        
+        # Test with bias_correction=FALSE
+        result <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = FALSE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        # Result should be valid
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+        # When bias_correction=FALSE, we should not have correction columns
+        if (nrow(result) > 0) {
+            expect_false("bias_correction_applied" %in% colnames(result))
+        }
+    })
 })
 
 test_that("GAM bias correction is applied for small samples", {
     skip_if_not_installed("mgcv")
-    
-    se <- create_test_se_small(n_samples = 12, n_genes = 3)  # Small sample
-    
-    # Test with bias_correction=TRUE (default)
-    result <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "pca",
-        subject_col = "sample_base",
-        bias_correction = TRUE,
-        paired = FALSE,
-        verbose = FALSE
-    )
-    
-    # Result should be valid
-    expect_is(result, "data.frame")
-    expect_true(nrow(result) >= 0)
-    if (nrow(result) > 0) {
-        # For small samples, correction should be applied (or not present if p_value is NA)
-        valid_idx <- !is.na(result$p_interaction) & result$p_interaction != 0
-        # Check structure
-        if (any(valid_idx)) {
-            # May or may not have bias_correction_applied column depending on whether correction was needed
-            expect_true("p_interaction" %in% colnames(result))
+    suppressWarnings({
+        se <- create_test_se_small(n_samples = 12, n_genes = 3)  # Small sample
+        
+        # Test with bias_correction=TRUE (default)
+        result <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        # Result should be valid
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+        if (nrow(result) > 0) {
+            # For small samples, correction should be applied (or not present if p_value is NA)
+            valid_idx <- !is.na(result$p_interaction) & result$p_interaction != 0
+            # Check structure
+            if (any(valid_idx)) {
+                # May or may not have bias_correction_applied column depending on whether correction was needed
+                expect_true("p_interaction" %in% colnames(result))
+            }
         }
-    }
+    })
 })
 
 test_that(".tsenat_gam_bias_correct returns correct adjustment for small samples", {
@@ -1748,67 +1752,70 @@ test_that("GAM bias correction respects bias_correction=FALSE parameter", {
 
 test_that("Bias correction with GAM spline regularization", {
     skip_if_not_installed("mgcv")
-    
-    se <- create_test_se_small(n_samples = 12, n_genes = 3)
-    
-    # Test combining spline regularization with bias correction
-    result <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "spline",
-        subject_col = "sample_base",
-        bias_correction = TRUE,
-        paired = FALSE,
-        verbose = FALSE
-    )
-    
-    expect_is(result, "data.frame")
-    expect_true(nrow(result) >= 0)
+    suppressWarnings({
+        se <- create_test_se_small(n_samples = 12, n_genes = 3)
+        
+        # Test combining spline regularization with bias correction
+        result <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "spline",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+    })
 })
 
 test_that("Large samples ignore bias correction threshold (n >= 20)", {
     skip_if_not_installed("mgcv")
-    
-    se <- create_test_se_small(n_samples = 20, n_genes = 3)
-    
-    # Even with bias_correction=TRUE, large samples shouldn't trigger it
-    result_large <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "pca",
-        subject_col = "sample_base",
-        bias_correction = TRUE,
-        paired = FALSE,
-        verbose = FALSE
-    )
-    
-    expect_is(result_large, "data.frame")
-    # Just verify the result is valid; large samples may or may not have 
-    # bias_correction_applied column depending on implementation
-    expect_true(nrow(result_large) >= 0)
+    suppressWarnings({
+        se <- create_test_se_small(n_samples = 20, n_genes = 3)
+        
+        # Even with bias_correction=TRUE, large samples shouldn't trigger it
+        result_large <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        expect_is(result_large, "data.frame")
+        # Just verify the result is valid; large samples may or may not have 
+        # bias_correction_applied column depending on implementation
+        expect_true(nrow(result_large) >= 0)
+    })
 })
 
 test_that("Bias correction consistency with paired GAM", {
     skip_if_not_installed("mgcv")
-    
-    se <- create_test_se_small(n_samples = 12, n_genes = 3)
-    
-    # Test with paired design
-    result <- calculate_lm_interaction(
-        se,
-        sample_type_col = "group",
-        method = "gam",
-        regularization = "pca",
-        subject_col = "sample_base",
-        bias_correction = TRUE,
-        paired = TRUE,
-        verbose = FALSE
-    )
-    
-    expect_is(result, "data.frame")
-    expect_true(nrow(result) >= 0)
+    suppressWarnings({
+        se <- create_test_se_small(n_samples = 12, n_genes = 3)
+        
+        # Test with paired design
+        result <- calculate_lm_interaction(
+            se,
+            sample_type_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = TRUE,
+            verbose = FALSE
+        )
+        
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+    })
 })
 
 test_that("P-value capping at 1.0 after adjustment", {
