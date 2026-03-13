@@ -48,13 +48,6 @@ Both methods now incorporate principled improvements to handle real-world data c
 3. Which genes are truly robust (significant in both methods)?
 4. What data characteristics drive method disagreement?
 
-## Interpretation Guide
-
-- **Both methods significant:** Highest confidence findings (robust across statistical frameworks)
-- **GAM only:** Method detects nonlinear patterns; K-W loses power on boundary data or ties
-- **K-W only:** Rare; method detects rank patterns K-W captures differently
-- **Neither significant:** Insufficient evidence for q×group interaction
-
 ---
 
 # Setup
@@ -163,17 +156,31 @@ kw_results <- detect_q_gene_interactions(
 ```
 
 ```{r kw-summary, message=FALSE, echo=FALSE}
-# Create summary statistics table
+# Create summary statistics table with additional metrics
+# Handle NA and NaN values properly
+mean_effect_kw <- mean(kw_results$effect_size_eta2, na.rm = TRUE)
+median_effect_kw <- median(kw_results$effect_size_eta2, na.rm = TRUE)
+
 kw_summary_stats <- data.frame(
-  Metric = c("Genes tested", "Significant (p < 0.05)", "NAs"),
+  Metric = c(
+    "Genes tested", 
+    "Significant (p < 0.05)", 
+    "NAs",
+    "Mean effect size (η²)",
+    "Median effect size (η²)",
+    "Strong effect genes (η² > 10%)"
+  ),
   Value = c(
     nrow(kw_results),
     sum(kw_results$p_value < 0.05, na.rm = TRUE),
-    sum(is.na(kw_results$p_value))
+    sum(is.na(kw_results$p_value)),
+    if (is.na(mean_effect_kw) || !is.finite(mean_effect_kw)) "Not available" else sprintf("%.1f%%", mean_effect_kw * 100),
+    if (is.na(median_effect_kw) || !is.finite(median_effect_kw)) "Not available" else sprintf("%.1f%%", median_effect_kw * 100),
+    sum(kw_results$p_value < 0.05 & kw_results$effect_size_eta2 > 0.10, na.rm = TRUE)
   )
 )
 
-knitr::kable(kw_summary_stats, caption = "Rank-Based (K-W) Results Summary")
+knitr::kable(kw_summary_stats, caption = "Rank-Based (K-W) Results Summary", align = c("l", "r"))
 
 # Show top genes with effect size and test method
 kw_sig <- kw_results[!is.na(kw_results$p_value), ]
@@ -204,8 +211,12 @@ if (nrow(kw_sig) > 0) {
       })
     }
     
-    knitr::kable(kw_display, caption = "Top 10 Genes by K-W p-value (with Effect Size & Test Method)", 
-                 align = c("l", "c", "c", "c", "l", "l"))
+    # Improve column distribution: right-align numeric columns, left-align text
+    # gene | p-value | adj_p | eta2 | test_method | interaction_class
+    knitr::kable(kw_display, 
+                 caption = "Top 10 Genes by K-W p-value (with Effect Size & Test Method)",
+                 align = c("l", "r", "r", "r", "l", "l"),
+                 format.args = list(big.mark = ","))
   }
 }
 ```
@@ -315,8 +326,9 @@ if ("p_interaction" %in% colnames(gam_results)) {
         })
       }
       
-      knitr::kable(gam_display, caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)", 
-                   align = c("l", "c", "c", "c", "c", "c"))
+      knitr::kable(gam_display, 
+                   caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)",
+                   align = c("l", "r", "r", "r", "r", "r"))
     }
   }
 } else {
@@ -328,17 +340,20 @@ if ("p_interaction" %in% colnames(gam_results)) {
 ---
 
 
----
 
 # Part 3: Method Concordance Analysis
 
-```{r concordance, message=FALSE}
-cat("\n=== METHOD CONCORDANCE ANALYSIS ===\n\n")
-
+```{r concordance-summary, message=FALSE}
+# Create concordance summary statistics (show code and calculations)
 # Check if we have valid results from both methods
+comparison_df <- NULL
+spearman_rho <- NA
+high_conf <- NULL
+agreement_table <- NULL
+
 if (!("p_interaction" %in% colnames(gam_results)) || 
     !("p_value" %in% colnames(kw_results))) {
-  cat("Skipping concordance analysis: missing required columns\n")
+  cat("Note: Skipping concordance analysis - missing required columns\n")
 } else {
   # Merge results using base R
   # Create matching sets - only genes with values in both methods
@@ -354,14 +369,17 @@ if (!("p_interaction" %in% colnames(gam_results)) ||
     comparison_df <- data.frame(
       gene = common_genes,
       p_gam = gam_results$p_interaction[gam_idx],
+      padj_gam = gam_results$adj_p_interaction[gam_idx],
+      effect_gam = if ("effect_size" %in% colnames(gam_results)) gam_results$effect_size[gam_idx] else NA,
       p_kw = kw_results$p_value[kw_idx],
+      padj_kw = if ("adj_p_value" %in% colnames(kw_results)) kw_results$adj_p_value[kw_idx] else NA,
+      effect_kw = if ("effect_size_eta2" %in% colnames(kw_results)) kw_results$effect_size_eta2[kw_idx] else NA,
       stringsAsFactors = FALSE
     )
     
     # Calculate correlation
     spearman_rho <- cor(comparison_df$p_gam, comparison_df$p_kw, 
                         method = "spearman", use = "complete.obs")
-    cat(sprintf("Spearman correlation: ρ = %.4f\n\n", spearman_rho))
     
     # Categorize agreement
     comparison_df$gam_sig <- comparison_df$p_gam < 0.05
@@ -373,22 +391,65 @@ if (!("p_interaction" %in% colnames(gam_results)) ||
                     "Neither significant"))
     )
     
-    cat("Agreement Summary:\n")
+    # Calculate agreement table
     agreement_table <- table(comparison_df$agreement)
-    print(agreement_table)
-    cat("\nProportions:\n")
-    print(prop.table(agreement_table))
     
     # High-confidence genes (both methods)
     high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$kw_sig, ]
     high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_kw)), ]
+  }
+}
+```
+
+```{r concordance-output, message=FALSE, echo=FALSE}
+if (is.null(comparison_df)) {
+  # Silently skip - no output
+} else {
+  # Create agreement summary table
+  agreement_stats <- data.frame(
+    Category = names(agreement_table),
+    Count = as.numeric(agreement_table),
+    Proportion = as.numeric(prop.table(agreement_table)),
+    stringsAsFactors = FALSE
+  )
+  
+  # Format proportions as percentages
+  agreement_stats$Proportion <- sprintf("%.1f%%", agreement_stats$Proportion * 100)
+  
+  knitr::kable(agreement_stats, 
+               caption = "Agreement Summary between GAM and K-W Methods",
+               align = c("l", "r", "r"))
+  
+  cat("\n")
+  
+  # High-confidence genes table
+  if (nrow(high_conf) > 0) {
+    high_conf_display <- high_conf[1:min(15, nrow(high_conf)), 
+                                   c("gene", "padj_gam", "padj_kw", "effect_gam", "effect_kw")]
+    rownames(high_conf_display) <- NULL
     
-    cat(sprintf("\n\nHIGH-CONFIDENCE GENES (significant in both methods): %d\n", nrow(high_conf)))
-    if (nrow(high_conf) > 0) {
-      print(head(high_conf[, c("gene", "p_gam", "p_kw")], 15))
-    }
-  } else {
-    cat("Not enough genes in common between methods for concordance analysis\n")
+    # Format p-values
+    high_conf_display$padj_gam <- sapply(high_conf_display$padj_gam, function(x) {
+      if (is.na(x)) "NA" else sprintf("%.3e", x)
+    })
+    high_conf_display$padj_kw <- sapply(high_conf_display$padj_kw, function(x) {
+      if (is.na(x)) "NA" else sprintf("%.3e", x)
+    })
+    
+    # Format effect sizes
+    high_conf_display$effect_gam <- sapply(high_conf_display$effect_gam, function(x) {
+      if (is.na(x)) "NA" else sprintf("%.3f", x)
+    })
+    high_conf_display$effect_kw <- sapply(high_conf_display$effect_kw, function(x) {
+      if (is.na(x)) "NA" else sprintf("%.3f", x)
+    })
+    
+    # Rename columns for display
+    colnames(high_conf_display) <- c("Gene", "GAM padj", "K-W padj", "GAM Effect", "K-W Effect")
+    
+    knitr::kable(high_conf_display, 
+                 caption = "Top High-Confidence Genes Detected by Both Methods",
+                 align = c("l", "r", "r", "r", "r"))
   }
 }
 ```

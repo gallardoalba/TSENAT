@@ -1936,12 +1936,17 @@
             tryCatch({
                 gam_summary <- summary(fit_alt)
                 if (!is.null(gam_summary)) {
-                    if (!is.null(gam_summary$dev.expl)) {
+                    # Try dev.expl first (standard GAM), then r.sq as fallback
+                    if (!is.null(gam_summary$dev.expl) && length(gam_summary$dev.expl) > 0 && is.finite(gam_summary$dev.expl)) {
                         effect_size <- as.numeric(gam_summary$dev.expl)[1]
-                        if (!is.finite(effect_size)) {
-                            effect_size <- NA_real_
-                        }
+                    } else if (!is.null(gam_summary$r.sq) && length(gam_summary$r.sq) > 0 && is.finite(gam_summary$r.sq)) {
+                        effect_size <- as.numeric(gam_summary$r.sq)[1]
                     }
+                    
+                    if (!is.finite(effect_size)) {
+                        effect_size <- NA_real_
+                    }
+                    
                     if (!is.null(gam_summary$residual.df)) {
                         df_residual <- as.numeric(gam_summary$residual.df)[1]
                         if (!is.finite(df_residual)) {
@@ -2012,26 +2017,36 @@
         
         # Extract effect size (deviance explained / R-squared equivalent)
         # Handle both GAMM (list with $gam component) and GAM (gam object directly)
-        gam_obj <- fit_alt
-        if (is.list(fit_alt) && !is.null(fit_alt$gam)) {
-            # GAMM: fit_alt is a list with $gam and $lme components
-            gam_obj <- fit_alt$gam
-        }
+        is_gamm <- is.list(fit_alt) && !is.null(fit_alt$gam)
+        gam_obj <- if (is_gamm) fit_alt$gam else fit_alt
         
         # Now gam_obj should be a gam object (from either standard GAM or GAMM)
         if (!is.null(gam_obj)) {
             tryCatch({
                 gam_summary <- summary(gam_obj)
-                if (!is.null(gam_summary) && !is.null(gam_summary$dev.expl)) {
-                    effect_size <- as.numeric(gam_summary$dev.expl)[1]
+                if (!is.null(gam_summary)) {
+                    # For standard GAM: use dev.expl (deviance explained)
+                    # For GAMM: dev.expl may be NA due to random effects, use r.sq instead
+                    if (!is.null(gam_summary$dev.expl) && length(gam_summary$dev.expl) > 0 && is.finite(gam_summary$dev.expl)) {
+                        effect_size <- as.numeric(gam_summary$dev.expl)[1]
+                    } else if (!is_gamm && !is.null(gam_summary$r.sq) && length(gam_summary$r.sq) > 0 && is.finite(gam_summary$r.sq)) {
+                        # Fallback to r.sq for any model where dev.expl fails
+                        effect_size <- as.numeric(gam_summary$r.sq)[1]
+                    } else if (is_gamm && !is.null(gam_summary$r.sq) && length(gam_summary$r.sq) > 0 && is.finite(gam_summary$r.sq)) {
+                        # GAMM: use r.sq (explained variance) as effect size
+                        effect_size <- as.numeric(gam_summary$r.sq)[1]
+                    }
+                    
                     if (!is.finite(effect_size)) {
                         effect_size <- NA_real_
                     }
-                }
-                if (!is.null(gam_summary) && !is.null(gam_summary$residual.df)) {
-                    df_residual <- as.numeric(gam_summary$residual.df)[1]
-                    if (!is.finite(df_residual)) {
-                        df_residual <- NA_real_
+                    
+                    # Residual df
+                    if (!is.null(gam_summary$residual.df)) {
+                        df_residual <- as.numeric(gam_summary$residual.df)[1]
+                        if (!is.finite(df_residual)) {
+                            df_residual <- NA_real_
+                        }
                     }
                 }
             }, error = function(e) { NULL })
@@ -2063,12 +2078,14 @@
         n_subjects = bc_result$n_subjects,  # Independent sampl units
         n_effective = bc_result$n_effective,  # Effective sample size accounting for AR(1) correlation
         rho_ar1 = bc_result$rho_estimate,  # AR(1) rho estimate used in design effect
-        test_statistic = test_statistic,  # F-statistic or likelihood ratio from anova
-        effect_size = effect_size,  # Deviance explained (proportion, 0-1 scale)
-        df_residual = df_residual,  # Residual degrees of freedom
-        model_converged = model_converged,  # Whether the model fit succeeded
         stringsAsFactors = FALSE
     )
+    
+    # Explicitly add effect size, test statistic, and df columns
+    result$test_statistic <- test_statistic
+    result$effect_size <- effect_size
+    result$df_residual <- df_residual
+    result$model_converged <- model_converged
     
     # Add bias correction metadata if applied
     if (bc_result$bias_correction_applied) {
