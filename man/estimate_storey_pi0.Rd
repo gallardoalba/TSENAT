@@ -48,10 +48,10 @@ entropy analysis where q-values exhibit AR(1) correlation (ρ(k) = φ^|k|):
 
 Example workflow:
 ```
-  1. Run: wy_result <- label_shuffling_westfall_young(...)
-  2. Get: wy_pvalues <- wy_result$pvalue_raw (correlation-adjusted)
-  3. Then: pi0_obj <- estimate_storey_pi0(wy_pvalues)
-  4. Then: qvals <- compute_storey_qvalues(wy_pvalues, pi0 = pi0_obj$pi0)
+  1. [For multi-q correlation-adjusted analysis, see calculate_lm_interaction() with multicorr='westfall-young']
+  2. Or: Use detect_q_gene_interactions() for rank-based multi-q testing with WY control
+  3. Then: pi0_obj <- estimate_storey_pi0(adjusted_pvalues)
+  4. Then: qvals <- compute_storey_qvalues(adjusted_pvalues, pi0 = pi0_obj$pi0)
 ```
 
 **Why Westfall-Young First?**

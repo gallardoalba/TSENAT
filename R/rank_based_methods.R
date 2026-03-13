@@ -9,19 +9,20 @@
 #' demonstrates all four key rank-based functions working together on real RNA-seq
 #' entropy data (3514 → 517 → 106 genes after filtering):
 #'
-#' 1. **TEST L.2**: `compute_rank_correlation_multiq()` 
+#' 2. **TEST L.2**: `compute_rank_correlation_multiq()` 
 #'    - Measures consistency of gene rankings across 6 q-values (0.1 to 2.5)
 #'    - Spearman rank correlation matrix showing which genes rank similarly
 #'    - Tells whether entropy signal is stable or q-dependent
 #'
-#' 2. **TEST L.3**: `rank_based_fwer_control()`
+#' 3. **MULTI-Q FWER CONTROL**: See `detect_q_gene_interactions(multicorr='westfall-young')`
+#'    - Built-in Westfall-Young permutation procedure for rank-based tests
 #'    - Permutation-based Family-Wise Error Rate control
 #'    - Accounts for correlations between multi-q tests
 #'    - Very conservative but guarantees Type I error control
 #'
-#' 3. **TEST L.3.5 & L.3.6**: Complementary methods
-#'    - Westfall-Young stepdown (minimum p-value + monotonicity correction)
-#'    - Storey FDR (pi0-adjusted Benjamini-Hochberg)
+#' 4. **OTHER METHODS**: Complementary approaches
+#'    - Westfall-Young stepdown: minimum p-value + monotonicity correction (parametric via `calculate_lm_interaction`)
+#'    - Storey FDR: pi0-adjusted Benjamini-Hochberg
 #'    - Both handle multi-q correlations better than standard FDR
 #'
 #' 4. **TEST L.4**: `apply_aligned_rank_transform()`
@@ -331,214 +332,6 @@ print.rank_correlation_multiq <- function(x, ...) {
   cat(x$summary)
   print(round(x$correlation_matrix, 4))
   cat("\nNote: Use attr(result, 'ranking_data') to access individual rank matrices per Q-value\n")
-  invisible(x)
-}
-
-
-# ============================================================================
-# 3. RANK-BASED FWER CONTROL VIA PERMUTATION
-# ============================================================================
-
-#' Rank-Based Family-Wise Error Rate Control
-#'
-#' Apply permutation testing on ranks to control FWER across multiple tests
-#' (e.g., different q-values in multi-q analysis). Provides exact p-values
-#' without parametric assumptions.
-#'
-#' @param data Matrix of test statistics or p-values (genes * comparisons)
-#' @param groups Factor vector assigning each column to a group/factor level
-#' @param n_permutations Integer; number of permutations (default: 1000)
-#' @param test_statistic Function; how to aggregate ranks into test stat
-#'   (default: maximum/minimum across ranks)
-#'
-#' @return List with:
-#'   \describe{
-#'     \item{fwer_pvalues}{Adjusted p-values controlling FWER at 0.05}
-#'     \item{unadjusted_pvalues}{Original p-values before adjustment}
-#'     \item{permutation_distribution}{Distribution of max/min statistics}
-#'   }
-#'
-#' @export
-rank_based_fwer_control <- function(data, groups, n_permutations = 1000,
-                                   test_statistic = c("maxT", "minP")) {
-  
-  test_statistic <- match.arg(test_statistic)
-  
-  if (!is.matrix(data)) data <- as.matrix(data)
-  
-  # Validate and prepare groups
-  if (length(groups) != ncol(data)) {
-    stop("Length of groups must equal number of columns in data")
-  }
-  if (!is.factor(groups)) {
-    groups <- as.factor(groups)
-  }
-  
-  n_genes <- nrow(data)
-  n_samples <- ncol(data)
-  
-  # Convert to ranks (within each gene)
-  ranked_data <- data
-  for (i in seq_len(n_genes)) {
-    ranked_data[i, ] <- rank(data[i, ], na.last = "keep")
-  }
-  
-  # Helper function: compute test statistic from ranked data and group assignment
-  compute_test_stat <- function(ranked_mat, group_assign) {
-    test_stats <- numeric(nrow(ranked_mat))
-    
-    for (i in seq_len(nrow(ranked_mat))) {
-      gene_ranks <- ranked_mat[i, ]
-      
-      # Compute mean rank per group
-      group_means <- tapply(gene_ranks, group_assign, mean, na.rm = TRUE)
-      
-      # Compute all pairwise differences
-      pairwise_diffs <- numeric(0)
-      group_levels <- levels(group_assign)
-      
-      if (length(group_levels) >= 2) {
-        for (g1 in seq_len(length(group_levels) - 1)) {
-          for (g2 in (g1 + 1):length(group_levels)) {
-            diff <- abs(group_means[g1] - group_means[g2])
-            pairwise_diffs <- c(pairwise_diffs, diff)
-          }
-        }
-      }
-      
-      # Maximum or minimum difference across pairs
-      if (length(pairwise_diffs) > 0) {
-        if (test_statistic == "maxT") {
-          test_stats[i] <- max(pairwise_diffs, na.rm = TRUE)
-        } else {
-          test_stats[i] <- min(pairwise_diffs, na.rm = TRUE)
-        }
-      } else {
-        test_stats[i] <- 0
-      }
-    }
-    
-    # Return aggregated statistic across genes
-    if (test_statistic == "maxT") {
-      return(max(test_stats, na.rm = TRUE))
-    } else {
-      return(min(test_stats, na.rm = TRUE))
-    }
-  }
-  
-  # Observed test statistic
-  observed_t <- compute_test_stat(ranked_data, groups)
-  
-  # Permutation distribution: properly permute DATA while keeping group assignments fixed
-  # Bug #3 Fix: Shuffle data rows instead of group labels for correct permutation logic
-  perm_distribution <- numeric(n_permutations)
-  set.seed(42)  # For reproducibility
-  
-  for (perm in seq_len(n_permutations)) {
-    # Permute data rows (shuffle which observations go to which group)
-    # This maintains exchangeability assumption while keeping group structure fixed
-    perm_idx <- sample(seq_len(n_samples), replace = FALSE)
-    perm_ranked_data <- ranked_data[, perm_idx, drop = FALSE]
-    perm_distribution[perm] <- compute_test_stat(perm_ranked_data, groups)
-  }
-  
-  # Compute adjusted p-values (per-gene, based on global max statistic)
-  adjusted_p <- numeric(n_genes)
-  for (i in seq_len(n_genes)) {
-    gene_ranks <- ranked_data[i, ]
-    group_means <- tapply(gene_ranks, groups, mean, na.rm = TRUE)
-    
-    # Get max difference for this gene
-    pairwise_diffs <- numeric(0)
-    group_levels <- levels(groups)
-    
-    if (length(group_levels) >= 2) {
-      for (g1 in seq_len(length(group_levels) - 1)) {
-        for (g2 in (g1 + 1):length(group_levels)) {
-          diff <- abs(group_means[g1] - group_means[g2])
-          pairwise_diffs <- c(pairwise_diffs, diff)
-        }
-      }
-    }
-    
-    gene_stat <- if (length(pairwise_diffs) > 0) {
-      if (test_statistic == "maxT") {
-        max(pairwise_diffs, na.rm = TRUE)
-      } else {
-        min(pairwise_diffs, na.rm = TRUE)
-      }
-    } else {
-      0
-    }
-    
-    # Compare to permutation distribution
-    if (test_statistic == "maxT") {
-      adjusted_p[i] <- (sum(perm_distribution >= gene_stat) + 1) / (n_permutations + 1)
-    } else {
-      adjusted_p[i] <- (sum(perm_distribution <= gene_stat) + 1) / (n_permutations + 1)
-    }
-  }
-  
-  # Compute gene-level test statistics for return
-  gene_level_stats <- numeric(n_genes)
-  for (i in seq_len(n_genes)) {
-    gene_ranks <- ranked_data[i, ]
-    group_means <- tapply(gene_ranks, groups, mean, na.rm = TRUE)
-    
-    pairwise_diffs <- numeric(0)
-    group_levels <- levels(groups)
-    
-    if (length(group_levels) >= 2) {
-      for (g1 in seq_len(length(group_levels) - 1)) {
-        for (g2 in (g1 + 1):length(group_levels)) {
-          diff <- abs(group_means[g1] - group_means[g2])
-          pairwise_diffs <- c(pairwise_diffs, diff)
-        }
-      }
-    }
-    
-    gene_level_stats[i] <- if (length(pairwise_diffs) > 0) {
-      if (test_statistic == "maxT") {
-        max(pairwise_diffs, na.rm = TRUE)
-      } else {
-        min(pairwise_diffs, na.rm = TRUE)
-      }
-    } else {
-      0
-    }
-  }
-  
-  structure(
-    list(
-      fwer_adjusted_p = adjusted_p,
-      gene_level_statistics = gene_level_stats,  # Gene-level test statistics
-      test_statistic_type = test_statistic,
-      n_permutations = n_permutations,
-      n_significant_fwer = sum(adjusted_p < 0.05),
-      summary = sprintf(
-        "RANK-BASED FWER CONTROL (PERMUTATION)\n%s\nTest statistic: %s\nPermutations: %d\nGenes significant (FWER < 0.05): %d/%d",
-        paste(rep("-", 50), collapse = ""),
-        test_statistic,
-        n_permutations,
-        sum(adjusted_p < 0.05),
-        n_genes
-      )
-    ),
-    class = "rank_fwer",
-    permutation_distribution = perm_distribution,  # Store as attribute
-    observed_statistic = observed_t  # Store as attribute
-  )
-}
-
-#' Print method for rank-based FWER result
-#'
-#' @param x Object of class "rank_fwer"
-#' @param ... Additional arguments (ignored)
-#'
-print.rank_fwer <- function(x, ...) {
-  cat(x$summary, "\n")
-  cat("Significant (FWER p<0.05): ", x$n_significant_fwer, " genes\n\n")
-  cat("Use attr(result, 'permutation_distribution') and attr(result, 'observed_statistic') for detailed results\n")
   invisible(x)
 }
 

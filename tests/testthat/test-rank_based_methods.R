@@ -61,26 +61,6 @@ test_that("apply_aligned_rank_transform produces valid output", {
   expect_true(all(!is.na(result$normal_scores)))
 })
 
-test_that("rank_based_fwer_control controls FWER", {
-  # Create test statistics: genes x samples matrix
-  # groups must have length = ncol(test_stats)
-  test_stats <- matrix(rnorm(500), nrow = 100, ncol = 5)
-  groups <- factor(rep(c(1, 2), c(2, 3)))  # 5 samples in 2 groups
-  
-  result <- rank_based_fwer_control(
-    data = test_stats,
-    groups = groups,
-    n_permutations = 50,
-    test_statistic = "maxT"
-  )
-  
-  expect_s3_class(result, "rank_fwer")
-  expect_equal(length(result$fwer_adjusted_p), 100)
-  expect_true(all(result$fwer_adjusted_p >= 0))
-  expect_true(all(result$fwer_adjusted_p <= 1))
-  expect_true(result$n_significant_fwer <= 100)
-})
-
 test_that("test_rankbased_assumptions validates assumptions", {
   # Create synthetic expression data
   set.seed(456)
@@ -137,22 +117,6 @@ test_that("ART handles edge cases gracefully", {
   
   expect_s3_class(result, "art_result")
   expect_true(!any(is.infinite(result$normal_scores)))
-})
-
-test_that("FWER p-values are always >= original", {
-  test_stats <- matrix(rnorm(200), nrow = 50, ncol = 4)
-  groups <- factor(c("A", "A", "B", "B"))  # 4 samples in 2 groups
-  
-  result <- rank_based_fwer_control(
-    data = test_stats,
-    groups = groups,
-    n_permutations = 50
-  )
-  
-  # FWER adjusted should be >= original (conservativeness)
-  # This is a general property of multiple testing adjustment
-  expect_true(all(result$fwer_adjusted_p >= 0))
-  expect_true(all(result$fwer_adjusted_p <= 1))
 })
 
 # ============================================================================
