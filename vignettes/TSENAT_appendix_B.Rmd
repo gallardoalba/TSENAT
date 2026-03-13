@@ -459,51 +459,7 @@ if (is.null(comparison_df)) {
 ```{r concordance-plot, fig.width=10, fig.height=8}
 # Create comparison plot only if we have valid comparison data
 if (exists("comparison_df") && nrow(comparison_df) > 0) {
-  
-  # Create comparison plot
-  p1 <- ggplot(comparison_df, aes(x = -log10(p_gam), y = -log10(p_kw), color = agreement)) +
-    geom_point(size = 2.5, alpha = 0.6) +
-    geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-    geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
-    scale_color_manual(
-      values = c("Both significant" = "#2ecc71", 
-                 "GAM only" = "#3498db",
-                 "K-W only" = "#e74c3c",
-                 "Neither significant" = "#95a5a6"),
-      breaks = c("Both significant", "GAM only", "K-W only", "Neither significant")
-    ) +
-    labs(
-      title = "GAM vs Kruskal-Wallis: Method Concordance",
-      x = "-log10(p-value, GAM)",
-      y = "-log10(p-value, K-W)",
-      color = "Significance"
-    ) +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(face = "bold", size = 12),
-      legend.position = "bottomright",
-      panel.grid.major = element_line(color = "gray90")
-    )
-  
-  # P-value distribution comparison
-  p_long <- data.frame(
-    p_value = c(comparison_df$p_gam, comparison_df$p_kw),
-    method = c(rep("GAM", nrow(comparison_df)), rep("K-W", nrow(comparison_df)))
-  )
-  
-  p2 <- ggplot(p_long, aes(x = p_value, fill = method)) +
-    geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
-    scale_fill_manual(values = c("GAM" = "#3498db", "K-W" = "#e74c3c")) +
-    labs(
-      title = "P-value Distributions",
-      x = "P-value",
-      y = "Frequency",
-      fill = "Method"
-    ) +
-    theme_minimal() +
-    theme(plot.title = element_text(face = "bold", size = 12))
-  
-  gridExtra::grid.arrange(p1, p2, ncol = 2)
+  plot_method_concordance(comparison_df)
 } else {
   cat("Visualization skipped: No valid comparison data available\n")
 }
