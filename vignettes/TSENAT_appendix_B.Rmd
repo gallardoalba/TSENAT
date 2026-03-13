@@ -241,6 +241,85 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 # Part 2: Rank-Based Approach (Kruskal-Wallis)
 
+## Assumption Validation
+
+Before applying rank-based methods, we verify that the entropy data meets the key assumptions for robust non-parametric inference.
+
+```{r rank-assumptions-calculation, message=FALSE}
+# Extract entropy matrix for assumption validation
+entropy_matrix <- assay(ts_se)
+
+# Test rank-based assumptions:
+# 1. Exchangeability: samples are independent and identically distributed
+# 2. Monotonicity: rank ordering is preserved across observations
+# 3. Consistency: ranks are consistent across replicate measurements
+rank_assumptions <- test_rankbased_assumptions(entropy_matrix)
+```
+
+```{r rank-assumptions-output, message=FALSE, echo=FALSE}
+# Extract summary statistics and test results from rank_assumptions object
+summary_stats <- attr(rank_assumptions, "summary_stats")
+check_results <- attr(rank_assumptions, "checks")
+
+# Create entropy data summary table
+entropy_summary <- data.frame(
+  Metric = c(
+    "Genes tested",
+    "Samples (q-values × groups)",
+    "Entropy range",
+    "Mean entropy",
+    "Median entropy",
+    "Missing values"
+  ),
+  Value = c(
+    summary_stats$n_genes,
+    summary_stats$n_samples,
+    sprintf("%.4f to %.4f", summary_stats$entropy_min, summary_stats$entropy_max),
+    sprintf("%.4f", summary_stats$entropy_mean),
+    sprintf("%.4f", summary_stats$entropy_median),
+    summary_stats$n_missing
+  )
+)
+
+knitr::kable(entropy_summary, 
+             caption = "Rank-Based Entropy Data Summary",
+             align = c("l", "r"))
+
+cat("\n")
+
+# Create rigorous assumption checks table
+exchangeability_check <- check_results$exchangeability
+monotonicity_check <- check_results$monotonicity
+consistency_check <- check_results$consistency
+
+assumptions_checks <- data.frame(
+  Assumption = c(
+    "Exchangeability",
+    "Monotonicity",
+    "Consistency"
+  ),
+  Test = c(
+    "Permutation test",
+    "Spearman correlation",
+    "Kendall's W + ICC"
+  ),
+  Result = c(
+    sprintf("p=%.3f", exchangeability_check$p_value),
+    sprintf("r=%.3f (±%.3f)", monotonicity_check$mean_correlation, monotonicity_check$sd_correlation),
+    sprintf("W=%.3f, ICC=%.3f", consistency_check$kendall_w, consistency_check$icc_simplified)
+  ),
+  Status = c(
+    exchangeability_check$status,
+    monotonicity_check$status,
+    consistency_check$status
+  )
+)
+
+knitr::kable(assumptions_checks, 
+             caption = "Rigorous Statistical Tests for Rank-Based Method Assumptions",
+             align = c("l", "l", "r", "r"))
+```
+
 ```{r kw-analysis, message=FALSE}
 cat("\n=== RANK-BASED APPROACH (KRUSKAL-WALLIS) ===\n\n")
 

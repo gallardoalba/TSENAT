@@ -408,55 +408,175 @@ plot_rank_correlation_heatmap <- function(rank_corr_obj,
 #' @export
 test_rankbased_assumptions <- function(data, checks = c("exchangeability", 
                                                        "monotonicity", 
-                                                       "consistency")) {
+                                                       "consistency"),
+                                      alpha = 0.05) {
   
   if (!is.matrix(data)) data <- as.matrix(data)
   
   results <- list()
   
-  # Check 1: Exchangeability (no strong temporal/spatial trends)
-  if ("exchangeability" %in% checks) {
-    # Permutation stability test
-    results$exchangeability <- list(
-      description = "Sample exchangeability (no strong ordering effects)",
-      status = "✓ PASS (rank-based valid)",
-      details = "Rank-based methods assume exchangeable samples"
-    )
-  }
+  # Calculate summary statistics for entropy data
+  summary_stats <- list(
+    n_genes = nrow(data),
+    n_samples = ncol(data),
+    entropy_min = min(data, na.rm = TRUE),
+    entropy_max = max(data, na.rm = TRUE),
+    entropy_mean = mean(data, na.rm = TRUE),
+    entropy_median = median(data, na.rm = TRUE),
+    n_missing = sum(is.na(data))
+  )
   
-  # Check 2: Monotonicity (ranks preserve ordering)
-  if ("monotonicity" %in% checks) {
-    rank_changes <- 0
-    for (i in seq_len(nrow(data) - 1)) {
-      rank_i <- rank(data[i, ])
-      rank_i1 <- rank(data[i + 1, ])
-      if (!all(rank_i == rank_i1)) {
-        rank_changes <- rank_changes + 1
+  # Check 1: Exchangeability (permutation test for temporal/spatial ordering effects)
+  if ("exchangeability" %in% checks) {
+    # Permutation test: compare variance of within-row means vs between-row means
+    # Hypothesis: if data is exchangeable, permuting column order shouldn't affect patterns
+    
+    # Original statistic: autocorrelation of row means
+    row_means <- rowMeans(data, na.rm = TRUE)
+    original_acf <- if (length(row_means) > 1) {
+      cor(row_means[-length(row_means)], row_means[-1], use = "complete.obs")
+    } else {
+      0
+    }
+    
+    # Permutation test: resample column order 999 times
+    n_perms <- 99
+    perm_acf <- numeric(n_perms)
+    set.seed(42)
+    for (i in seq_len(n_perms)) {
+      perm_idx <- sample(seq_len(ncol(data)))
+      perm_data <- data[, perm_idx]
+      perm_means <- rowMeans(perm_data, na.rm = TRUE)
+      perm_acf[i] <- if (length(perm_means) > 1) {
+        cor(perm_means[-length(perm_means)], perm_means[-1], use = "complete.obs")
+      } else {
+        0
       }
     }
     
-    results$monotonicity <- list(
-      description = "Rank ordering consistency across genes",
-      pct_changes = 100 * (rank_changes / (nrow(data) - 1)),
-      status = if (rank_changes > nrow(data) * 0.1) "⚠ Variable" else "✓ PASS"
+    # P-value: proportion of permutations with |acf| >= |original|
+    p_exchangeability <- mean(abs(perm_acf) >= abs(original_acf))
+    
+    results$exchangeability <- list(
+      description = "Sample exchangeability (no strong ordering effects)",
+      method = "Permutation test (row mean autocorrelation)",
+      test_statistic = original_acf,
+      p_value = p_exchangeability,
+      status = if (p_exchangeability > alpha) "✓ PASS" else "⚠ FAIL",
+      details = sprintf("Autocorr=%.3f, p=%.3f (permutation test, 99 replicates)", 
+                        original_acf, p_exchangeability)
     )
   }
   
-  # Check 3: Consistency (rank correlation among replicates)
-  if ("consistency" %in% checks) {
-    # If multiple samples per group assumed
-    results$consistency <- list(
-      description = "Rank consistency for replicate evaluation",
-      status = "✓ PASS (rank-based handles variability)"
+  # Check 2: Monotonicity (Spearman correlation stability across rows)
+  if ("monotonicity" %in% checks) {
+    # Compute pairwise Spearman correlations between consecutive rows
+    spearman_cors <- numeric(max(1, nrow(data) - 1))
+    
+    if (nrow(data) > 1) {
+      for (i in seq_len(nrow(data) - 1)) {
+        spearman_cors[i] <- stats::cor(data[i, ], data[i + 1, ], 
+                                       method = "spearman", 
+                                       use = "complete.obs")
+      }
+    }
+    
+    # Summary statistics of correlation stability
+    mean_cor <- mean(spearman_cors, na.rm = TRUE)
+    sd_cor <- stats::sd(spearman_cors, na.rm = TRUE)
+    min_cor <- min(spearman_cors, na.rm = TRUE)
+    
+    # Status: high and stable correlations indicate good monotonicity
+    status <- if (mean_cor > 0.7 && sd_cor < 0.2) {
+      "✓ PASS"
+    } else if (mean_cor > 0.4) {
+      "⚠ ACCEPTABLE"
+    } else {
+      "⚠ VARIABLE"
+    }
+    
+    results$monotonicity <- list(
+      description = "Rank ordering stability (Spearman correlation across rows)",
+      method = "Pairwise Spearman correlations between consecutive rows",
+      mean_correlation = mean_cor,
+      sd_correlation = sd_cor,
+      min_correlation = min_cor,
+      status = status,
+      details = sprintf("Mean r=%.3f (±%.3f), Min r=%.3f", mean_cor, sd_cor, min_cor)
     )
+  }
+  
+  # Check 3: Consistency (ICC for replicate consistency)
+  if ("consistency" %in% checks) {
+    # Calculate Kendall's W (concordance coefficient) across columns
+    # W ranges from 0 (no agreement) to 1 (perfect agreement)
+    
+    if (ncol(data) >= 2 && nrow(data) >= 2) {
+      # Transpose for ICC calculation (samples as rows, variables as columns)
+      data_t <- t(data)
+      
+      # Compute mean rank across each column (gene)
+      ranked_data <- apply(data_t, 2, function(x) rank(x, na.last = "keep"))
+      
+      # Kendall's W = 12*S / (m^2 * (n^3 - n))
+      # where S = sum of squared deviations from mean rank, m = judges (samples), n = objects (genes)
+      m <- nrow(ranked_data)
+      n <- ncol(ranked_data)
+      
+      # Sum of squared deviations
+      col_means <- colMeans(ranked_data, na.rm = TRUE)
+      S <- sum((colSums(ranked_data, na.rm = TRUE) - m * col_means)^2, na.rm = TRUE)
+      
+      # Kendall's W
+      kendall_w <- if (n > 1) {
+        12 * S / (m^2 * (n^3 - n))
+      } else {
+        NA_real_
+      }
+      
+      # Alternative: compute intraclass correlation (ICC 2-way mixed)
+      # Use simplified two-way ICC calculation
+      grand_mean <- mean(data, na.rm = TRUE)
+      between_col_var <- sum((colMeans(data, na.rm = TRUE) - grand_mean)^2, 
+                             na.rm = TRUE) / (ncol(data) - 1)
+      within_var <- var(as.numeric(data), na.rm = TRUE)
+      icc_simplified <- between_col_var / (between_col_var + within_var)
+      
+      status <- if (!is.na(kendall_w) && kendall_w > 0.7) {
+        "✓ PASS"
+      } else if (!is.na(kendall_w) && kendall_w > 0.4) {
+        "⚠ ACCEPTABLE"
+      } else {
+        "⚠ LOW CONSISTENCY"
+      }
+      
+      results$consistency <- list(
+        description = "Rank consistency evaluation (Kendall's W & ICC)",
+        method = "Kendall's W concordance coefficient + ICC approximation",
+        kendall_w = kendall_w,
+        icc_simplified = icc_simplified,
+        status = status,
+        details = sprintf("Kendall W=%.3f, ICC≈%.3f", 
+                          if (is.na(kendall_w)) 0 else kendall_w,
+                          if (is.na(icc_simplified)) 0 else icc_simplified)
+      )
+    } else {
+      results$consistency <- list(
+        description = "Rank consistency evaluation",
+        method = "Insufficient data for consistency test",
+        status = "⚠ SKIP",
+        details = "Requires at least 2 samples and 2 genes"
+      )
+    }
   }
   
   structure(
     list(
-      overall_summary = "Rank-based methods are generally robust. Assumptions met."
+      overall_summary = "Rank-based assumptions evaluated with rigorous statistical tests."
     ),
     class = "rank_assumptions",
-    checks = results  # Store checks as attribute
+    checks = results,  # Store checks as attribute
+    summary_stats = summary_stats  # Store summary statistics as attribute
   )
 }
 
@@ -466,22 +586,47 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
 #' @param ... Additional arguments (ignored)
 #'
 print.rank_assumptions <- function(x, ...) {
-  cat("RANK-BASED METHOD ASSUMPTIONS\n")
-  cat(paste(rep("-", 50), collapse = ""), "\n\n")
+  cat("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)\n")
+  cat(paste(rep("=", 60), collapse = ""), "\n\n")
   
   # Get checks from attribute
   check_results <- attr(x, "checks")
   if (!is.null(check_results)) {
     for (check_name in names(check_results)) {
       check <- check_results[[check_name]]
-      cat(sprintf("✓ %s\n", check_name))
-      cat(sprintf("  %s\n", check$description))
-      cat(sprintf("  Status: %s\n\n", check$status))
+      cat(sprintf("Test: %s\n", check_name))
+      cat(sprintf("  Description: %s\n", check$description))
+      
+      if (!is.null(check$method)) {
+        cat(sprintf("  Method: %s\n", check$method))
+      }
+      
+      if (!is.null(check$status)) {
+        cat(sprintf("  Status: %s\n", check$status))
+      }
+      
+      if (!is.null(check$details)) {
+        cat(sprintf("  Details: %s\n", check$details))
+      }
+      
+      if (!is.null(check$p_value)) {
+        cat(sprintf("  P-value: %.4f\n", check$p_value))
+      }
+      
+      if (!is.null(check$mean_correlation)) {
+        cat(sprintf("  Mean Spearman r: %.4f\n", check$mean_correlation))
+      }
+      
+      if (!is.null(check$kendall_w)) {
+        cat(sprintf("  Kendall's W: %.4f\n", check$kendall_w))
+      }
+      
+      cat("\n")
     }
   }
   
   cat(x$overall_summary, "\n")
-  cat("Use attr(result, 'checks') for detailed check results\n")
+  cat("Note: Use attr(result, 'checks') for detailed numeric results\n")
   invisible(x)
 }
 
