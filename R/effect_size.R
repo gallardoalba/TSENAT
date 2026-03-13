@@ -316,9 +316,9 @@ calculate_effect_sizes <- function(x = NULL, samples = NULL, ts_se = NULL, paire
     # Sum of ranks for first group
     R1 <- sum(ranks[1:n1])
 
-    # Rank-biserial formula: r_rb = (2*R1)/(n1*N) - (n1+1)/(2*n)
-    # Alternative: r_rb = (2 * (R1 - n1*(n1+1)/2)) / (n1*n2)
-    r_rb <- (2 * R1 - n1 * (N + 1)) / (n1 * n2)
+    # Rank-biserial formula: r_rb = (R1 - n1*(n1+1)/2) / (n1*n2)
+    # This is the standard Mann-Whitney rank-biserial correlation
+    r_rb <- (R1 - n1 * (n1 + 1) / 2) / (n1 * n2)
 
     return(r_rb)
 }
@@ -430,6 +430,7 @@ calculate_effect_sizes <- function(x = NULL, samples = NULL, ts_se = NULL, paire
 #' @description
 #' Provides standardized interpretation thresholds for effect size metrics
 #' (Cliff's delta and r-value) based on established statistical guidelines.
+#' This is an internal utility function.
 #'
 #' @return Data frame with effect size interpretation thresholds for Wilcoxon test metrics.
 #'   Columns include: Metric (effect size measure name), Magnitude (interpretation level),
@@ -444,10 +445,7 @@ calculate_effect_sizes <- function(x = NULL, samples = NULL, ts_se = NULL, paire
 #' nonparametric correlation. Comprehensive Psychology, 3, 11.IT.3.1.
 #' Reference: ES002
 #'
-#' @examples
-#' wilcoxon_effect_size_guidelines()
-#'
-#' @export
+#' @noRd
 wilcoxon_effect_size_guidelines <- function() {
     cliffs_thresholds <- data.frame(
         Metric = rep("Cliff's Delta", 4),
@@ -477,6 +475,7 @@ wilcoxon_effect_size_guidelines <- function() {
 
     rbind(cliffs_thresholds, r_thresholds)
 }
+
 #' Entropy-Specific Effect Size Guidelines for Tsallis Entropy Differences
 #'
 #' @description

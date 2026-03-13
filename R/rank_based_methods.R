@@ -1134,7 +1134,7 @@ recommend_q_range <- function(
 #' from Tsallis entropy analysis (Papers S168-S175: AR(1) covariance).
 #' @param pvalues Numeric vector of p-values to adjust
 #' @return Numeric vector of adjusted p-values
-#' @keywords internal
+#' @noRd
 .tsenat_hochberg_stepup <- function(pvalues) {
     m <- length(pvalues)
     if (m == 0) return(numeric(0))
@@ -1194,7 +1194,7 @@ recommend_q_range <- function(
 #' q-value sequences (Papers S190, S193).
 #' @param pvalues Numeric vector of p-values to adjust
 #' @return Numeric vector of adjusted p-values
-#' @keywords internal
+#' @noRd
 .tsenat_benjamini_yekutieli <- function(pvalues) {
     m <- length(pvalues)
     if (m == 0) return(numeric(0))
@@ -1655,7 +1655,7 @@ detect_q_gene_interactions <- function(
 #' - test_selected: Name of selected test
 #' - characteristics: List of detected characteristics
 #' - reasons: Character vector of reasons for selection
-#'
+#' @noRd
 .tsenat_select_rank_test <- function(data, value_col = "entropy", group_col = "q", verbose = FALSE) {
     
     values <- data[[value_col]]
@@ -1837,7 +1837,7 @@ detect_q_gene_interactions <- function(
 #' - statistic: Test statistic (H or F equivalent)
 #' - p_value: P-value from test
 #' - method: "ART-Kruskal-Wallis" or similar
-#'
+#' @noRd
 .tsenat_apply_art_kw <- function(data, value_col = "entropy", group_col = "q") {
     
     values <- data[[value_col]]
@@ -2031,7 +2031,7 @@ detect_q_gene_interactions <- function(
 #' - statistic: Chi-square statistic
 #' - p_value: P-value from median test
 #' - method: "Mood's median test"
-#'
+#' @noRd
 .tsenat_apply_robust_median_test <- function(data, value_col = "entropy", group_col = "q") {
     
     values <- data[[value_col]]

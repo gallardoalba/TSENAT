@@ -6,7 +6,8 @@
 \usage{
 test_rankbased_assumptions(
   data,
-  checks = c("exchangeability", "monotonicity", "consistency")
+  checks = c("exchangeability", "monotonicity", "consistency"),
+  alpha = 0.05
 )
 }
 \arguments{

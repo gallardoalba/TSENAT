@@ -67,14 +67,7 @@ test_that("calculate_effect_sizes works for paired data", {
     expect_equal(ncol(result), 4)
 })
 
-test_that("wilcoxon_effect_size_guidelines can be called and returns data frame", {
-    guidelines <- wilcoxon_effect_size_guidelines()
-    
-    expect_is(guidelines, "data.frame")
-    expect_true(nrow(guidelines) > 0)
-    expect_true(ncol(guidelines) >= 4)
-    expect_true("Metric" %in% colnames(guidelines))
-})
+
 
 test_that("effect sizes match across examples", {
     mat <- matrix(rnorm(18, mean = 5, sd = 1), nrow = 3)
@@ -306,12 +299,14 @@ test_that("entropy_effect_size_guidelines threshold values are ordered", {
 })
 
 
+
+
 # ============================================================================
 # Wilcoxon Effect Size Guidelines - Comprehensive Tests
 # ============================================================================
 
 test_that("wilcoxon_effect_size_guidelines returns both metrics", {
-    guidelines <- wilcoxon_effect_size_guidelines()
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
     
     # Should have rows for both Cliff's Delta and r-value
     expect_equal(nrow(guidelines), 8)  # 4 categories × 2 metrics
@@ -320,7 +315,7 @@ test_that("wilcoxon_effect_size_guidelines returns both metrics", {
 })
 
 test_that("wilcoxon_effect_size_guidelines has correct structure for Cliff's Delta", {
-    guidelines <- wilcoxon_effect_size_guidelines()
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
     cliffs <- guidelines[grep("Cliff", guidelines$Metric), ]
     
     expect_equal(nrow(cliffs), 4)
@@ -329,7 +324,7 @@ test_that("wilcoxon_effect_size_guidelines has correct structure for Cliff's Del
 })
 
 test_that("wilcoxon_effect_size_guidelines Cliff's Delta thresholds are ordered", {
-    guidelines <- wilcoxon_effect_size_guidelines()
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
     cliffs <- guidelines[grep("Cliff", guidelines$Metric), ]
     
     # Extract threshold values from range strings
@@ -342,7 +337,7 @@ test_that("wilcoxon_effect_size_guidelines Cliff's Delta thresholds are ordered"
 })
 
 test_that("wilcoxon_effect_size_guidelines has correct structure for r-value", {
-    guidelines <- wilcoxon_effect_size_guidelines()
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
     r_vals <- guidelines[grep("r-value", guidelines$Metric), ]
     
     expect_equal(nrow(r_vals), 4)
@@ -351,7 +346,7 @@ test_that("wilcoxon_effect_size_guidelines has correct structure for r-value", {
 })
 
 test_that("wilcoxon_effect_size_guidelines r-value thresholds are ordered", {
-    guidelines <- wilcoxon_effect_size_guidelines()
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
     r_vals <- guidelines[grep("r-value", guidelines$Metric), ]
     
     # Expected thresholds: 0.1, 0.3, 0.5
@@ -363,16 +358,11 @@ test_that("wilcoxon_effect_size_guidelines r-value thresholds are ordered", {
 })
 
 test_that("wilcoxon_effect_size_guidelines has descriptions for all rows", {
-    guidelines <- wilcoxon_effect_size_guidelines()
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
     
     expect_true(all(!is.na(guidelines$Description)))
     expect_true(all(nchar(guidelines$Description) > 0))
 })
-
-
-# ============================================================================
-# Entropy Effect Size Guidelines - Edge Cases
-# ============================================================================
 
 test_that("entropy_effect_size_guidelines handles very small n_isoforms", {
     # n=2 is minimum meaningful case
@@ -615,9 +605,18 @@ test_that("calculate_effect_sizes results have magnitudes matching guidelines", 
     expect_true(all(result$effect_magnitude %in% valid_mags))
 })
 
+test_that("wilcoxon_effect_size_guidelines can be called and returns data frame", {
+    guidelines <- TSENAT:::wilcoxon_effect_size_guidelines()
+    
+    expect_is(guidelines, "data.frame")
+    expect_true(nrow(guidelines) > 0)
+    expect_true(ncol(guidelines) >= 4)
+    expect_true("Metric" %in% colnames(guidelines))
+})
+
 test_that("wilcoxon and entropy guidelines are complementary", {
     # Wilcoxon works with Cliff's delta and r-value
-    wilc <- wilcoxon_effect_size_guidelines()
+    wilc <- TSENAT:::wilcoxon_effect_size_guidelines()
     expect_true("Cliff's Delta" %in% wilc$Metric || "Cliff" %in% wilc$Metric)
     
     # Entropy works with entropy differences (should have Practical, Statistical, or Biological)

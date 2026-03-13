@@ -321,30 +321,18 @@ knitr::kable(assumptions_checks,
 ```
 
 ```{r kw-analysis, message=FALSE}
-cat("\n=== RANK-BASED APPROACH (KRUSKAL-WALLIS) ===\n\n")
+# Run rank-based interaction test with automatic SummarizedExperiment conversion
+# detect_q_gene_interactions() handles the data transformation internally:
+# 1. Extracts entropy matrix from ts_se assay
+# 2. Retrieves q-values from colData
+# 3. Extracts gene identifiers from rownames
+# 4. Converts to long-format data frame
+# 5. Selects appropriate rank-based test (Kruskal-Wallis, ART, Mood's Median)
+#    based on data characteristics
+# 6. Applies multiple testing correction with AR(1) correlation awareness
 
-# Convert SummarizedExperiment to long-format data frame for rank-based analysis
-entropy_matrix <- assay(ts_se)
-ts_coldata <- colData(ts_se)
-test_genes <- rownames(ts_se)
-n_genes <- length(test_genes)
-n_cols <- ncol(ts_se)
-
-entropy_long <- data.frame(
-    entropy = as.numeric(entropy_matrix),
-    gene = rep(test_genes, n_cols),
-    q = rep(ts_coldata$q, each = n_genes),
-    stringsAsFactors = FALSE
-)
-
-# Run rank-based interaction test with conditional test selection
-# Note: detect_q_gene_interactions automatically selects appropriate rank-based tests
-# (Kruskal-Wallis, ART, Mood's Median) based on data characteristics
 kw_results <- detect_q_gene_interactions(
-    entropy_long,
-    entropy_col = "entropy",
-    q_col = "q",
-    gene_col = "gene",
+    ts_se,
     multicorr = "hochberg",
     verbose = FALSE
 )

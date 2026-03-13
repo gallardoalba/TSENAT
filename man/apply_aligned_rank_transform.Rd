@@ -33,19 +33,20 @@ The comprehensive rank-based methods test (TSENAT_Appendix_L_RankBased_test.R)
 demonstrates all four key rank-based functions working together on real RNA-seq
 entropy data (3514 → 517 → 106 genes after filtering):
 
-1. **TEST L.2**: `compute_rank_correlation_multiq()` 
+2. **TEST L.2**: `compute_rank_correlation_multiq()` 
    - Measures consistency of gene rankings across 6 q-values (0.1 to 2.5)
    - Spearman rank correlation matrix showing which genes rank similarly
    - Tells whether entropy signal is stable or q-dependent
 
-2. **TEST L.3**: `rank_based_fwer_control()`
+3. **MULTI-Q FWER CONTROL**: See `detect_q_gene_interactions(multicorr='westfall-young')`
+   - Built-in Westfall-Young permutation procedure for rank-based tests
    - Permutation-based Family-Wise Error Rate control
    - Accounts for correlations between multi-q tests
    - Very conservative but guarantees Type I error control
 
-3. **TEST L.3.5 & L.3.6**: Complementary methods
-   - Westfall-Young stepdown (minimum p-value + monotonicity correction)
-   - Storey FDR (pi0-adjusted Benjamini-Hochberg)
+4. **OTHER METHODS**: Complementary approaches
+   - Westfall-Young stepdown: minimum p-value + monotonicity correction (parametric via `calculate_lm_interaction`)
+   - Storey FDR: pi0-adjusted Benjamini-Hochberg
    - Both handle multi-q correlations better than standard FDR
 
 4. **TEST L.4**: `apply_aligned_rank_transform()`

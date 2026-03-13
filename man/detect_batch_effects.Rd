@@ -9,7 +9,7 @@ detect_batch_effects(
   batch,
   biological_group = NULL,
   n_components = 5,
-  n_permutations = 100,
+  n_permutations = 1000,
   method = c("pca", "variance_partition", "silhouette")
 )
 }
@@ -22,7 +22,9 @@ detect_batch_effects(
 
 \item{n_components}{Integer; number of PCs to examine (default: 5)}
 
-\item{n_permutations}{Integer. Number of random batch permutations for significance testing (default 100).}
+\item{n_permutations}{Integer. Number of random batch permutations for significance testing (default 1000).
+Higher values provide better p-value resolution. With 100 permutations, p-values can only be
+{0.01, 0.02, ..., 1.0}. With 1000 permutations: {0.001, 0.002, ..., 1.0}.}
 
 \item{method}{Character. One of "pca" (default), "variance_partition", or "silhouette".}
 }

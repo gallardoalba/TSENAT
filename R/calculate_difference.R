@@ -1047,23 +1047,7 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0,
 #' Sections 7.4.1 (Wilcoxon Rank-Sum Test) and 7.4.2 (Wilcoxon Signed-Rank Test)
 #' provide detailed methodology and mathematical foundations for both unpaired
 #' and paired designs.
-#'
-#' Geller, N. L. (Ed.). (2005). Advances in Clinical Trial Biostatistics.
-#' Chapman & Hall/CRC. Covers practical implementation of rank-based tests
-#' in clinical trial contexts.
-#'
-#' Sokal, R. R., & Rohlf, F. J. (1995). Biometry: The Principles and Practice
-#' of Statistics in Biological Research (3rd ed.). W.H. Freeman.
-#' Comprehensive coverage of Mann-Whitney U test and non-parametric methods.
-#' @export
-#' @examples
-#' # Create a matrix of splicing diversity values (3 genes x 6 samples)
-#' mat <- matrix(rnorm(18), nrow = 3)
-#' samples <- rep(c('Control', 'Treatment'), each = 3)
-#' 
-#' # Run Wilcoxon test
-#' result <- wilcoxon(mat, samples, pcorr = 'BH')
-#' head(result)
+#' @noRd
 wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1, pairs = NULL) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
