@@ -24,6 +24,110 @@ knitr::opts_chunk$set(
 ```
 
 
+# Introduction: Transcript Diversity Analysis and Method Comparison
+
+## Who Should Read This Appendix?
+
+**This appendix is essential if you**:
+
+- ✅ **Are considering TSENAT** for transcript diversity analysis and want to understand how it compares to SplicingFactory
+- ✅ **Need to choose between methods** based on your research question and data characteristics
+- ✅ **Want to understand precision weighting**: How count-level uncertainty affects significance testing and why fewer genes may pass threshold in precision-weighted analysis
+- ✅ **Are preparing manuscripts** and need to justify methodological choices to reviewers
+- ✅ **Work with RNA-seq data** where isoform complexity and measurement uncertainty matter (sparse counts, variable sequencing depth)
+
+**You can skip this appendix if you**:
+- Are only interested in basic TSENAT usage (see main vignette instead)
+- Work exclusively with gene-level counts (TSENAT is designed for transcript diversity)
+- Are not comparing against other methods
+
+## Key Questions Answered Here
+
+1. **How concordant are SplicingFactory and TSENAT?** → Expected differences, overlap statistics, correlation analysis
+2. **Why does precision-weighted TSENAT give fewer significant genes?** → Mathematical foundations, not a limitation
+3. **Which method should I use?** → Decision framework based on study design and goals
+4. **How does measurement uncertainty affect p-values?** → Count-level Bayesian weighting explained with real data
+
+---
+
+## Background: The Challenge of Isoform Complexity
+
+RNA sequencing has revolutionized our understanding of gene expression, but organisms rarely express genes at a single isoform. Instead, **alternative splicing**, **alternative transcription start sites**, and **alternative polyadenylation** create transcriptomic complexity that varies:
+- **Within genes**: Some genes produce 2-3 isoforms; others produce dozens
+- **Across conditions**: Disease, development, and tissue context alter isoform usage
+- **Across individuals**: Genetic variation influences splicing patterns
+
+This **isoform-level heterogeneity** is a fundamental feature of eukaryotic gene regulation and is often neglected in standard differential expression analysis, which collapses all isoforms into a single "gene-level" count.
+
+## Why Measure Transcript Diversity?
+
+**Transcript diversity quantifies isoform heterogeneity within genes**, complementing standard gene-level analysis:
+
+- **Shannon entropy** (diversity): Measures complexity—how many isoforms are expressed, how evenly distributed
+- **Simpson index** (concentration): Measures dominance—whether one isoform monopolizes expression
+- **Tsallis family**: Generalizes both measures with a tuning parameter (q) balancing rarity and abundance
+
+**Biological relevance**:
+- Genes with high diversity may use multiple isoforms to enable protein functional diversity
+- Genes with low diversity suggest committed, specific functions
+- **Shifts in diversity between conditions** signal changes in transcript usage patterns (not just abundance)—potentially revealing new mechanisms of disease, development, or cellular state
+
+## Existing Tools: SplicingFactory
+
+**SplicingFactory** was a pioneering approach for transcript diversity analysis:
+- Implements Shannon entropy (Laplace normalization) and Simpson index
+- Provides differential analysis (comparing diversity across groups)
+- Well-documented, accessible workflow
+- **Limitation**: Does not account for **measurement uncertainty in isoform counts**
+
+## TSENAT's Innovation: Empirical Bayes Precision Weighting
+
+**TSENAT** extends transcript diversity analysis with statistically principled improvements:
+
+### 1. **Generalized Framework (Tsallis Entropy)**
+- Encompasses Shannon (q=1), Simpson (q=2), and richness (q→0)
+- Parameterized approach: users select q based on question (rarity vs. dominance)
+
+### 2. **Empirical Bayes Precision Weighting**
+The core innovation: **Incorporates count-level uncertainty into significance testing**
+
+**The problem it solves**:
+- RNA-seq produces sparse, variable isoform counts
+- A gene with 10 reads split across 5 isoforms ≠ a gene with 10,000 reads split across 5 isoforms
+- Standard methods treat both equally; **both have uncertainty**, but the second is more reliable
+
+**The solution**:
+- Fit a Beta(α, β) prior on transcript proportions from actual data
+- Weight p-values inversely by posterior variance: high variance → low weight
+- Result: genes with uncertain measurements are downweighted
+- **Outcome**: fewer false positives, higher specificity
+
+### 3. **Robust Statistical Framework**
+- ARIMA(1,1,0) transformation handling for q-ordered diversity measurements
+- Heteroscedasticity detection and adaptive weighting
+- Multiple testing correction (Hochberg, Benjamini-Hochberg) accounting for correlation
+
+## This Appendix: What You'll Learn
+
+This benchmark appendix demonstrates:
+
+1. **Equivalence validation**: TSENAT Tsallis q=1 ≈ Shannon; q=2 ≈ Simpson
+2. **Standard analyses**: Direct comparison with SplicingFactory on real data (TCGA BRCA)
+3. **Precision weighting effects**: Why precision-weighted TSENAT is more conservative (and when that matters)
+4. **When to use each method**:
+   - **SplicingFactory (standard)**: Quick exploration, equal weighting of all genes
+   - **TSENAT Precision-Weighted**: Publication-quality analysis, prioritizing robustness
+
+## Dataset: TCGA Breast Cancer (BRCA)
+
+We use **TCGA BRCA RNA-seq data** (Cancer Genome Atlas) as a realistic, publicly available benchmark:
+- Multiple transcript isoforms per gene
+- Natural variation in sequencing depth and isoform abundance
+- Clear biological phenotypes (Normal vs. Tumor tissue)
+- Enables validation of method concordance on real biological signals
+
+---
+
 # Benchmarck
 
 ### Importing example data
@@ -49,6 +153,92 @@ tokeep <- rowSums(readcounts > 5) > 5
 
 readcounts <- readcounts[tokeep, ]
 genes      <- genes[tokeep]
+```
+
+### Helper Functions for Efficient Formatting
+
+```{r helper_functions, message=FALSE, warning=FALSE, include=FALSE}
+# Format top genes table with consistent styling
+format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
+                            select_cols = NULL, col_names = NULL) {
+  # Default columns to display
+  if (is.null(select_cols)) {
+    select_cols <- c(gene_col, "Normal_mean", "Tumor_mean", "mean_difference", 
+                    "log2_fold_change", "pvalue", padj_col)
+  }
+  
+  top_genes <- results_df %>%
+    arrange(across(all_of(padj_col))) %>%
+    slice(1:min(n_top, nrow(results_df))) %>%
+    select(all_of(intersect(select_cols, colnames(results_df)))) %>%
+    mutate(
+      across(where(is.numeric) & !matches("abundance|mean|fold|stat"), 
+             ~ format(., scientific = TRUE, digits = 3)),
+      across(matches("_mean$|mean_"), ~ round(., 4)),
+      across(matches("fold_change|difference"), ~ round(., 4))
+    )
+  
+  # Rename columns if provided
+  if (!is.null(col_names) && length(col_names) == ncol(top_genes)) {
+    colnames(top_genes) <- col_names
+  }
+  
+  top_genes
+}
+
+# Create summary statistics comparison table
+create_summary_stats <- function(method1_results, method2_results, 
+                               method1_name, method2_name,
+                               padj_col1 = "adjusted_p_values", 
+                               padj_col2 = "padj") {
+  data.frame(
+    Method = c(method1_name, method2_name),
+    Genes_Tested = c(nrow(method1_results), nrow(method2_results)),
+    Significant_padj_0.05 = c(
+      sum(method1_results[[padj_col1]] < 0.05, na.rm = TRUE),
+      sum(method2_results[[padj_col2]] < 0.05, na.rm = TRUE)
+    ),
+    Significant_padj_0.01 = c(
+      sum(method1_results[[padj_col1]] < 0.01, na.rm = TRUE),
+      sum(method2_results[[padj_col2]] < 0.01, na.rm = TRUE)
+    ),
+    Mean_log2FC = c(
+      round(mean(method1_results$log2_fold_change, na.rm = TRUE), 3),
+      round(mean(method2_results$log2_fold_change, na.rm = TRUE), 3)
+    ),
+    Median_log2FC = c(
+      round(median(method1_results$log2_fold_change, na.rm = TRUE), 3),
+      round(median(method2_results$log2_fold_change, na.rm = TRUE), 3)
+    ),
+    Min_padj = c(
+      format(min(method1_results[[padj_col1]], na.rm = TRUE), scientific = TRUE, digits = 3),
+      format(min(method2_results[[padj_col2]], na.rm = TRUE), scientific = TRUE, digits = 3)
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Calculate gene overlap statistics (both in padj < threshold)
+gene_overlap_stats <- function(results1, results2, gene_col1, gene_col2, 
+                              padj_col1, padj_col2, threshold = 0.05) {
+  sig1 <- results1[[gene_col1]][results1[[padj_col1]] < threshold]
+  sig2 <- results2[[gene_col2]][results2[[padj_col2]] < threshold]
+  
+  both <- length(intersect(sig1, sig2))
+  only1 <- length(setdiff(sig1, sig2))
+  only2 <- length(setdiff(sig2, sig1))
+  total <- length(union(sig1, sig2))
+  
+  data.frame(
+    Category = c("Detected by both methods", "Only by first method", "Only by second method"),
+    Count = c(both, only1, only2),
+    Percentage = c(
+      round(100 * both / total, 1),
+      round(100 * only1 / total, 1),
+      round(100 * only2 / total, 1)
+    )
+  )
+}
 ```
 
 ### Transcript diversity calculation
@@ -186,30 +376,11 @@ equivalence between these measures allows direct comparison:
 library(dplyr)
 library(knitr)
 
-# Overall summary statistics for Shannon
-shannon_summary <- data.frame(
-  Method = c("SplicingFactory (Laplace)", "TSENAT (Tsallis q=1)"),
-  Genes_Tested = c(nrow(entropy_significance), nrow(tsenat_shannon_diff)),
-  Significant_padj_0.05 = c(
-    sum(entropy_significance$adjusted_p_values < 0.05, na.rm = TRUE),
-    sum(tsenat_shannon_diff$padj < 0.05, na.rm = TRUE)
-  ),
-  Significant_padj_0.01 = c(
-    sum(entropy_significance$adjusted_p_values < 0.01, na.rm = TRUE),
-    sum(tsenat_shannon_diff$padj < 0.01, na.rm = TRUE)
-  ),
-  Mean_log2FC = c(
-    round(mean(entropy_significance$log2_fold_change, na.rm = TRUE), 3),
-    round(mean(tsenat_shannon_diff$log2_fold_change, na.rm = TRUE), 3)
-  ),
-  Median_log2FC = c(
-    round(median(entropy_significance$log2_fold_change, na.rm = TRUE), 3),
-    round(median(tsenat_shannon_diff$log2_fold_change, na.rm = TRUE), 3)
-  ),
-  Min_padj = c(
-    format(min(entropy_significance$adjusted_p_values, na.rm = TRUE), scientific = TRUE, digits = 3),
-    format(min(tsenat_shannon_diff$padj, na.rm = TRUE), scientific = TRUE, digits = 3)
-  )
+# Summary statistics using helper function
+shannon_summary <- create_summary_stats(
+  entropy_significance, tsenat_shannon_diff,
+  "SplicingFactory (Laplace)", "TSENAT (Tsallis q=1)",
+  padj_col1 = "adjusted_p_values", padj_col2 = "padj"
 )
 
 knitr::kable(shannon_summary, caption = "Shannon Entropy Analysis Summary Statistics")
@@ -217,39 +388,27 @@ knitr::kable(shannon_summary, caption = "Shannon Entropy Analysis Summary Statis
 
 #### Top 10 Significant Genes - SplicingFactory (Laplace)
 ```{r shannon_sf_top_genes, message=FALSE, warning=FALSE, echo=FALSE}
-shannon_sf_top <- entropy_significance %>%
-  arrange(adjusted_p_values) %>%
-  slice(1:10) %>%
-  select(genes, Normal_mean, Tumor_mean, mean_difference, log2_fold_change, raw_p_values, adjusted_p_values) %>%
-  mutate(
-    Normal_mean = round(Normal_mean, 4),
-    Tumor_mean = round(Tumor_mean, 4),
-    mean_difference = round(mean_difference, 4),
-    log2_fold_change = round(log2_fold_change, 4),
-    raw_p_values = format(raw_p_values, scientific = TRUE, digits = 3),
-    adjusted_p_values = format(adjusted_p_values, scientific = TRUE, digits = 3)
-  )
-
-colnames(shannon_sf_top) <- c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+shannon_sf_top <- format_top_genes(
+  entropy_significance %>% select(genes, Normal_mean, Tumor_mean, mean_difference, 
+                                  log2_fold_change, raw_p_values, adjusted_p_values),
+  gene_col = "genes",
+  padj_col = "adjusted_p_values",
+  n_top = 10,
+  col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+)
 knitr::kable(shannon_sf_top, row.names = FALSE, caption = "SplicingFactory (Laplace) - Top 10 Significant Genes")
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=1)
 ```{r shannon_tsenat_top_genes, message=FALSE, warning=FALSE, echo=FALSE}
-shannon_tsenat_top <- tsenat_shannon_diff %>%
-  arrange(padj) %>%
-  slice(1:10) %>%
-  select(gene_id, Normal_mean, Tumor_mean, mean_difference, log2_fold_change, pvalue, padj) %>%
-  mutate(
-    Normal_mean = round(Normal_mean, 4),
-    Tumor_mean = round(Tumor_mean, 4),
-    mean_difference = round(mean_difference, 4),
-    log2_fold_change = round(log2_fold_change, 4),
-    pvalue = format(pvalue, scientific = TRUE, digits = 3),
-    padj = format(padj, scientific = TRUE, digits = 3)
-  )
-
-colnames(shannon_tsenat_top) <- c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+shannon_tsenat_top <- format_top_genes(
+  tsenat_shannon_diff %>% select(gene_id, Normal_mean, Tumor_mean, mean_difference, 
+                                 log2_fold_change, pvalue, padj),
+  gene_col = "gene_id",
+  padj_col = "padj",
+  n_top = 10,
+  col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+)
 knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=1) - Top 10 Significant Genes")
 ```
 
@@ -258,33 +417,11 @@ knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q
 ### Simpson Index (SplicingFactory vs TSENAT Tsallis q=2)
 
 ```{r simpson_summary_stats, message=FALSE, warning=FALSE, echo=FALSE}
-library(dplyr)
-library(knitr)
-
-# Overall summary statistics for Simpson
-simpson_summary <- data.frame(
-  Method = c("SplicingFactory (Simpson)", "TSENAT (Tsallis q=2)"),
-  Genes_Tested = c(nrow(simpson_significance), nrow(tsenat_simpson_diff)),
-  Significant_padj_0.05 = c(
-    sum(simpson_significance$adjusted_p_values < 0.05, na.rm = TRUE),
-    sum(tsenat_simpson_diff$padj < 0.05, na.rm = TRUE)
-  ),
-  Significant_padj_0.01 = c(
-    sum(simpson_significance$adjusted_p_values < 0.01, na.rm = TRUE),
-    sum(tsenat_simpson_diff$padj < 0.01, na.rm = TRUE)
-  ),
-  Mean_log2FC = c(
-    round(mean(simpson_significance$log2_fold_change, na.rm = TRUE), 3),
-    round(mean(tsenat_simpson_diff$log2_fold_change, na.rm = TRUE), 3)
-  ),
-  Median_log2FC = c(
-    round(median(simpson_significance$log2_fold_change, na.rm = TRUE), 3),
-    round(median(tsenat_simpson_diff$log2_fold_change, na.rm = TRUE), 3)
-  ),
-  Min_padj = c(
-    format(min(simpson_significance$adjusted_p_values, na.rm = TRUE), scientific = TRUE, digits = 3),
-    format(min(tsenat_simpson_diff$padj, na.rm = TRUE), scientific = TRUE, digits = 3)
-  )
+# Summary statistics using helper function
+simpson_summary <- create_summary_stats(
+  simpson_significance, tsenat_simpson_diff,
+  "SplicingFactory (Simpson)", "TSENAT (Tsallis q=2)",
+  padj_col1 = "adjusted_p_values", padj_col2 = "padj"
 )
 
 knitr::kable(simpson_summary, caption = "Simpson Index Analysis Summary Statistics")
@@ -292,39 +429,27 @@ knitr::kable(simpson_summary, caption = "Simpson Index Analysis Summary Statisti
 
 #### Top 10 Significant Genes - SplicingFactory (Simpson)
 ```{r simpson_sf_top_genes, message=FALSE, warning=FALSE, echo=FALSE}
-simpson_sf_top <- simpson_significance %>%
-  arrange(adjusted_p_values) %>%
-  slice(1:10) %>%
-  select(genes, Normal_mean, Tumor_mean, mean_difference, log2_fold_change, raw_p_values, adjusted_p_values) %>%
-  mutate(
-    Normal_mean = round(Normal_mean, 4),
-    Tumor_mean = round(Tumor_mean, 4),
-    mean_difference = round(mean_difference, 4),
-    log2_fold_change = round(log2_fold_change, 4),
-    raw_p_values = format(raw_p_values, scientific = TRUE, digits = 3),
-    adjusted_p_values = format(adjusted_p_values, scientific = TRUE, digits = 3)
-  )
-
-colnames(simpson_sf_top) <- c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+simpson_sf_top <- format_top_genes(
+  simpson_significance %>% select(genes, Normal_mean, Tumor_mean, mean_difference, 
+                                  log2_fold_change, raw_p_values, adjusted_p_values),
+  gene_col = "genes",
+  padj_col = "adjusted_p_values",
+  n_top = 10,
+  col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+)
 knitr::kable(simpson_sf_top, row.names = FALSE, caption = "SplicingFactory (Simpson) - Top 10 Significant Genes")
 ```
 
 #### Top 10 Significant Genes - TSENAT (Tsallis q=2)
 ```{r simpson_tsenat_top_genes, message=FALSE, warning=FALSE, echo=FALSE}
-simpson_tsenat_top <- tsenat_simpson_diff %>%
-  arrange(padj) %>%
-  slice(1:10) %>%
-  select(gene_id, Normal_mean, Tumor_mean, mean_difference, log2_fold_change, pvalue, padj) %>%
-  mutate(
-    Normal_mean = round(Normal_mean, 4),
-    Tumor_mean = round(Tumor_mean, 4),
-    mean_difference = round(mean_difference, 4),
-    log2_fold_change = round(log2_fold_change, 4),
-    pvalue = format(pvalue, scientific = TRUE, digits = 3),
-    padj = format(padj, scientific = TRUE, digits = 3)
-  )
-
-colnames(simpson_tsenat_top) <- c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+simpson_tsenat_top <- format_top_genes(
+  tsenat_simpson_diff %>% select(gene_id, Normal_mean, Tumor_mean, mean_difference, 
+                                 log2_fold_change, pvalue, padj),
+  gene_col = "gene_id",
+  padj_col = "padj",
+  n_top = 10,
+  col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
+)
 knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=2) - Top 10 Significant Genes")
 ```
 
@@ -616,25 +741,17 @@ knitr::kable(shannon_eb_top, row.names = FALSE, caption = "Shannon (Empirical Ba
 ## Gene Overlap Analysis: Sets of Significant Genes
 
 ```{r shannon_gene_overlap_analysis, message=FALSE, warning=FALSE, echo=FALSE}
-# Significant genes at padj < 0.05
-standard_sig <- tsenat_shannon_diff$gene_id[tsenat_shannon_diff$padj < 0.05]
-eb_sig <- tsenat_shannon_eb$gene_id[tsenat_shannon_eb$padj < 0.05]
-
-# Calculate overlaps
-both_methods <- length(intersect(standard_sig, eb_sig))
-only_standard <- length(setdiff(standard_sig, eb_sig))
-only_eb <- length(setdiff(eb_sig, standard_sig))
-
-# Create summary
-overlap_summary <- data.frame(
-  Category = c("Detected by both methods", "Only by Standard", "Only by Empirical Bayes"),
-  Count = c(both_methods, only_standard, only_eb),
-  Percentage = c(
-    round(100 * both_methods / length(union(standard_sig, eb_sig)), 1),
-    round(100 * only_standard / length(union(standard_sig, eb_sig)), 1),
-    round(100 * only_eb / length(union(standard_sig, eb_sig)), 1)
-  )
+# Gene overlap using helper function
+overlap_summary <- gene_overlap_stats(
+  tsenat_shannon_diff, tsenat_shannon_eb,
+  gene_col1 = "gene_id", gene_col2 = "gene_id",
+  padj_col1 = "padj", padj_col2 = "padj",
+  threshold = 0.05
 )
+
+# Rename for display
+colnames(overlap_summary) <- c("Category", "Count", "Percentage")
+overlap_summary$Percentage <- paste0(overlap_summary$Percentage, "%")
 
 knitr::kable(overlap_summary, caption = "Gene Detection Overlap between Methods (padj < 0.05)")
 ```
@@ -1090,25 +1207,18 @@ knitr::kable(pw_tsenat_top, row.names = FALSE, caption = "TSENAT Precision-Weigh
 ## Gene Overlap Analysis: SplicingFactory vs Precision-Weighted
 
 ```{r shannon_pw_gene_overlap, message=FALSE, warning=FALSE, echo=FALSE}
-# Significant genes at padj < 0.05
-sf_sig <- entropy_significance$genes[entropy_significance$adjusted_p_values < 0.05]
-pw_sig <- tsenat_shannon_pw$gene_id[tsenat_shannon_pw$padj < 0.05]
-
-# Calculate overlaps
-both_pw <- length(intersect(sf_sig, pw_sig))
-only_sf <- length(setdiff(sf_sig, pw_sig))
-only_pw <- length(setdiff(pw_sig, sf_sig))
-
-# Create summary
-pw_overlap <- data.frame(
-  Category = c("Detected by both methods", "Only by SplicingFactory", "Only by TSENAT PW"),
-  Count = c(both_pw, only_sf, only_pw),
-  Percentage = c(
-    round(100 * both_pw / length(union(sf_sig, pw_sig)), 1),
-    round(100 * only_sf / length(union(sf_sig, pw_sig)), 1),
-    round(100 * only_pw / length(union(sf_sig, pw_sig)), 1)
-  )
+# Gene overlap using helper function
+pw_overlap <- gene_overlap_stats(
+  entropy_significance, tsenat_shannon_pw,
+  gene_col1 = "genes", gene_col2 = "gene_id",
+  padj_col1 = "adjusted_p_values", padj_col2 = "padj",
+  threshold = 0.05
 )
+
+# Rename for display
+colnames(pw_overlap) <- c("Category", "Count", "Percentage")
+pw_overlap$Category <- c("Detected by both methods", "Only by SplicingFactory", "Only by TSENAT PW")
+pw_overlap$Percentage <- paste0(pw_overlap$Percentage, "%")
 
 knitr::kable(pw_overlap, caption = "Gene Overlap Analysis: SplicingFactory vs Precision-Weighted (padj < 0.05)")
 ```
