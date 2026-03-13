@@ -260,8 +260,8 @@ test_that("Genes with insufficient observations are reported with NA p-values (s
 test_that("calculate_fc input validation and pseudocount behavior", {
     mat <- matrix(c(1, 0, -1), nrow = 1)
     samples <- c("A", "A", "B")
-    expect_error(calculate_fc(mat, samples = samples[-1], control = "A"), "Length of 'samples' must equal")
-    expect_error(calculate_fc(mat, samples = samples, control = "C"), "Control sample type not found")
+    expect_error(TSENAT:::calculate_fc(mat, samples = samples[-1], control = "A"), "Length of 'samples' must equal")
+    expect_error(TSENAT:::calculate_fc(mat, samples = samples, control = "C"), "Control sample type not found")
 
     # zero and negative values trigger pseudocount replacement when pseudocount <= 0
     mat2 <- matrix(c(0, 0, 0, 0), nrow = 1)

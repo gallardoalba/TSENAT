@@ -952,16 +952,7 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
 #' @details The function uses a matrix of splicing diversity values in order to
 #' calculate mean or median differences and log2 fold changes between two
 #' conditions.
-#' @export
-#' @examples
-#' # Simulate splicing diversity matrix (4 genes x 4 samples)
-#' mat <- matrix(c(
-#'   0.5, 0.6, 0.8, 0.9,  # gene1: low control, high treatment
-#'   0.7, 0.75, 0.6, 0.5  # gene2: high control, low treatment
-#' ), nrow = 2, byrow = TRUE)
-#' samples <- c('Normal', 'Normal', 'Tumor', 'Tumor')
-#' result <- calculate_fc(mat, samples, control = 'Normal', method = 'mean')
-#' head(result)
+#' @noRd
 calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0,
                          robust_loss_type = "huber", robust_scale_method = "mad",
                          verbose = FALSE) {

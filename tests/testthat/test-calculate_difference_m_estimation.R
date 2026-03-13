@@ -190,7 +190,7 @@ test_that("calculate_fc works with m_estimate method", {
     mat <- matrix(rnorm(5 * 6), nrow = 5)
     samples <- c("A", "A", "A", "B", "B", "B")
     
-    result <- calculate_fc(
+    result <- TSENAT:::calculate_fc(
         mat,
         samples = samples,
         control = "A",

@@ -252,8 +252,8 @@ test_that("fold change is scale invariant for log scale", {
   
   samples <- c("Normal", "Tumor", "Tumor")
   
-  result1 <- calculate_fc(mat1, samples, control = "Normal", pseudocount = 1e-6)
-  result2 <- calculate_fc(mat2, samples, control = "Normal", pseudocount = 1e-6)
+  result1 <- TSENAT:::calculate_fc(mat1, samples, control = "Normal", pseudocount = 1e-6)
+  result2 <- TSENAT:::calculate_fc(mat2, samples, control = "Normal", pseudocount = 1e-6)
   
   # Log2 FC should be identical
   expect_equal(result1[, 4], result2[, 4], 
@@ -324,7 +324,7 @@ test_that("pseudocount selection is data-driven and prevents negative log(0)", {
   samples <- c("A", "A", "B", "B")
   
   # Auto pseudocount (min/2 = 0.5)
-  result <- calculate_fc(mat, samples, control = "A", pseudocount = 0)
+  result <- TSENAT:::calculate_fc(mat, samples, control = "A", pseudocount = 0)
   
   # Should not produce NaN or Inf
   expect_true(!any(is.nan(result$log2_fold_change)))

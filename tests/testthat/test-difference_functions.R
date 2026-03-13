@@ -16,12 +16,12 @@ control <- "Healthy"
 
 test_that("Fold change calculation is correct", {
     for (method in c("mean", "median")) {
-        fold_change <- calculate_fc(diversity_1, samples, control, "mean")
+        fold_change <- TSENAT:::calculate_fc(diversity_1, samples, control, "mean")
 
         expect_length(fold_change, 4)
         expect_true(is.data.frame(fold_change))
 
-        fold_change <- calculate_fc(
+        fold_change <- TSENAT:::calculate_fc(
             as.matrix(diversity_2),
             samples,
             control,
@@ -189,8 +189,8 @@ test_that(".tsenat_permute_paired 'signflip' enumerates when randomizations larg
 test_that("calculate_fc errors on missing control or samples length mismatch", {
     x <- matrix(rnorm(8), nrow = 2)
     samples <- rep(c("A", "B"), length.out = ncol(x))
-    expect_error(calculate_fc(x, samples, control = NULL), "`control` must be provided")
-    expect_error(calculate_fc(x, samples[-1], control = "A"), "Length of 'samples' must equal number of columns in 'x'")
+    expect_error(TSENAT:::calculate_fc(x, samples, control = NULL), "`control` must be provided")
+    expect_error(TSENAT:::calculate_fc(x, samples[-1], control = "A"), "Length of 'samples' must equal number of columns in 'x'")
 })
 
 context("Wilcoxon Tests: Single Feature Implementation")
