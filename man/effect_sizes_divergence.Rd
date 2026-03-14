@@ -26,9 +26,11 @@ All divergence-related data is self-contained in this object.}
 \item{significance_threshold}{Numeric; p-value threshold for filtering significant
 genes (default: 0.05). Only genes with adj_p_interaction < threshold are included.}
 
-\item{enrich_per_q_pattern}{Logical; if TRUE, compute and return enrichment statistics
-for different q-patterns (rare vs. common isoforms dominated). When FALSE, only
-returns merged effect sizes without pattern enrichment (default: TRUE).}
+\item{enrich_per_q_pattern}{Logical; if TRUE (default), adds a 'per_q_pattern' column
+to the output data frame containing comma-separated divergence values across the
+q spectrum for each gene. This column enables visualization and classification
+of whether treatment effects are driven by rare (low-q) or abundant (high-q)
+isoforms. Set to FALSE to reduce output size if this annotation is not needed.}
 
 \item{verbose}{Logical; if TRUE, print detailed validation and merge statistics
 to console (default: TRUE). Shows counts of passed, skipped, and failed genes.}
