@@ -479,6 +479,11 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' (default: 1).
 #' @param assay_name Name of the assay in the SummarizedExperiment to use
 #' (default: 'diversity').
+#' @param pcorr P-value correction method applied to Wilcoxon rank test results 
+#' (default: 'BH'). Options: \code{c('BH', 'bonferroni', 'hochberg', 'holm')}.
+#' Note: This is distinct from `multicorr` which adjusts for correlation across 
+#' multiple q-values in the interaction test. `pcorr` is legacy and may not be 
+#' used in all methods. See `multicorr` for the primary multiple testing correction.
 #' @param verbose Logical; whether to print progress messages during execution
 #' (default: FALSE).
 #' @param corstr Correlation structure for GEE method: one of
@@ -515,6 +520,11 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' 'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
 #' Valid under any correlation structure. More conservative than Hochberg but makes fewer 
 #' power loss assumptions. Reference: Papers S190, S193.
+#' @param wy_randomizations Number of permutation randomizations for Westfall-Young 
+#' correction (default: 1000). Only used when `multicorr = 'westfall-young'`. 
+#' Higher values improve accuracy of empirical null distribution but increase computation time.
+#' Minimum: 100. Typical values: 500-2000. Note: Westfall-Young is computationally expensive 
+#' as it requires refitting models for each randomization.
 #' @param storey Logical; whether to apply Storey's adaptive FDR π₀ estimation after the 
 #' selected multicorr method (default: FALSE). When TRUE, adapts the error threshold based 
 #' on estimated proportion of true null hypotheses, increasing power when many true signals 
@@ -527,8 +537,26 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' more knots (max=10), improving model fit efficiency. When FALSE, uses fixed knot selection
 #' based on number of unique q-values. Reference: Wood (2017) Section 4.1.5 Basis dimension.
 #' This parameter only affects method='gam'.
-#' @return A data.frame with columns `gene`, `p_interaction`, and
-#' `adj_p_interaction`, ordered by ascending `p_interaction`.
+#' @param return_model_data Logical; whether to return model metadata alongside results
+#' (default: FALSE). When TRUE, returns a list with two elements:
+#' \itemize{
+#'   \item `$results`: The standard results data.frame (same as returned when FALSE)
+#'   \item `$model_data`: A list containing model metadata (method, q-values, sample info, 
+#'     test configuration, genes analyzed, etc.) useful for generating diagnostic plots and 
+#'     understanding model structure. Can be passed to plotting functions for visualization.
+#' }
+#' When FALSE, returns only the results data.frame (backward compatible with existing code).
+#' This enables users to access comprehensive model information for diagnostics and visualization
+#' while maintaining full backward compatibility.
+#' @return When `return_model_data = FALSE` (default): A data.frame with columns `gene`, 
+#' `p_interaction`, and `adj_p_interaction`, ordered by ascending `p_interaction`.
+#' 
+#' When `return_model_data = TRUE`: A list with components:
+#' \itemize{
+#'   \item `$results`: The standard results data.frame
+#'   \item `$model_data`: Metadata list containing method, q-values, sample names, test configuration,
+#'     and other information useful for downstream visualization and diagnostics
+#' }
 #' @references
 #' Kutner, M. H., Nachtsheim, C. J., Neter, J., & Li, W. (2005).
 #' \emph{Applied Linear Statistical Models} (5th ed.). McGraw-Hill.
@@ -586,7 +614,7 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE, 
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
     corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"),
-    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE) {
+    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE) {
     method <- match.arg(method)
     corstr <- match.arg(corstr)
     pvalue <- match.arg(pvalue)
@@ -921,6 +949,35 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
       res$gene_id <- res$gene
     }
 
+    # Optionally return model data alongside results
+    if (return_model_data) {
+        model_data <- list(
+            method = method,
+            n_genes = nrow(res),
+            n_q_values = length(unique(q_vals)),
+            q_values = sort(unique(q_vals)),
+            sample_names = unique(sample_names),
+            group_levels = levels(factor(group_vec)),
+            test_configuration = list(
+                method = method,
+                pvalue_method = pvalue,
+                multicorr = multicorr,
+                bias_correction = bias_correction,
+                regularization = regularization,
+                corstr = corstr,
+                adaptive_knots = adaptive_knots
+            ),
+            genes_analyzed = res$gene,
+            call_time = Sys.time(),
+            notes = "Use this model_data with plotting functions to visualize model fits and diagnostics"
+        )
+        
+        return(list(
+            results = res,
+            model_data = model_data
+        ))
+    }
+
     # Return the result data.frame (do not attach to or return a
     # SummarizedExperiment)
     return(res)
@@ -928,6 +985,29 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
 
 # small helper (replacement for `%||%`) to provide default when NULL
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+#' Extract Results from calculate_lm_interaction Output
+#'
+#' Helper function to extract results data.frame from calculate_lm_interaction output,
+#' which may be either a data.frame (when return_model_data=FALSE) or a list 
+#' (when return_model_data=TRUE). This ensures compatibility with plotting and 
+#' analysis functions regardless of return format.
+#'
+#' @param lm_result Result from calculate_lm_interaction(), either a data.frame or a list
+#'
+#' @return The results data.frame with columns gene, p_interaction, adj_p_interaction, etc.
+#'
+#' @keywords internal
+#' @noRd
+.extract_lm_results <- function(lm_result) {
+    if (is.data.frame(lm_result)) {
+        return(lm_result)
+    } else if (is.list(lm_result) && "results" %in% names(lm_result)) {
+        return(lm_result$results)
+    } else {
+        stop("lm_result must be either a data.frame or a list with 'results' component from calculate_lm_interaction()")
+    }
+}
 
 #' Calculate splicing diversity changes between two conditions.
 #'
@@ -1184,7 +1264,12 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #' When provided with \code{paired = TRUE}, samples are matched based on this 
 #' pairing information.
 #' @param nthreads Number of threads for parallel processing (default: 1).
-#' Set to > 1 to parallelize per-feature p-value computation.
+#'   Set to > 1 to parallelize per-feature p-value computation.
+#' @param robust_loss_type Character; loss function for M-estimation (Tukey, Huber, or other).
+#'   Used when non-parametric tests switch to robust parametric alternatives.
+#'   Default: "huber".
+#' @param robust_scale_method Character; scale selection method for M-estimation
+#'   (e.g., "mad" for median absolute deviation). Default: "mad".
 #' @return Raw and corrected p-values.
 #' @details
 #' \strong{S019 Implementation: Phipson & Smyth (2010) Bias Correction}

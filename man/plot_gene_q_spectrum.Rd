@@ -67,3 +67,6 @@ plot_gene_q_spectrum(divergence_results_se, target_gene = "CXCL12", verbose = FA
 }
 
 }
+\seealso{
+\code{\link{calculate_divergence}} for computing divergence values.
+}

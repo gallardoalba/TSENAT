@@ -65,7 +65,7 @@
 #' **Automatic data extraction from SummarizedExperiment:** When \code{ts_se} is provided:
 #' - Diversity values are extracted from the "diversity" assay
 #' - Sample group information is extracted from the "sample_type" column of colData
-#'   (created by \code{\link{map_metadata}}), or falls back to "condition" if available
+#'   (created by internal metadata mapping), or falls back to "condition" if available
 #' - Pairing information is automatically extracted from the "sample_base" column if available
 #'
 #' @references
@@ -81,6 +81,9 @@
 #' Nonparametric Statistics: Theory and Methods (3rd ed.).
 #' World Scientific Publishing Company.
 #' Reference: NP001
+#'
+#' @seealso
+#' See data preparation documentation for methods to add sample type information to colData.
 #'
 #' @export
 #' @examples

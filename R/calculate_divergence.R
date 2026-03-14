@@ -150,6 +150,7 @@
 #' - Transcript aggregation: Paper C105 validates gene-level aggregation
 #' - Divergence normalization: Papers C112, S196, S201 validate normalization
 #'   approaches for effect size comparability (S197 - DESeq2 independent filtering)
+#' @export
 
 # -------------------------------------------------------------------------
 # PRIVATE HELPER: Auto-detect group column and control group
@@ -443,10 +444,6 @@
 }
 
 
-#' @import methods
-#' @importFrom SummarizedExperiment SummarizedExperiment assay colData rowData
-#' @importFrom parallel detectCores makeCluster stopCluster clusterExport clusterCall parLapply
-#' @export
 calculate_divergence <- function(
     se,
     group_col = NULL,

@@ -386,6 +386,9 @@ extract_gene_names_from_gff3 <- function(gff3_file) {
 #' - TSV files are standard tab-separated format for fast parsing
 #' - Data.frame inputs have no I/O overhead
 #'
+#' @param metadata Optional list or named list of metadata to include in \code{metadata(se)}.
+#'   This is useful for storing additional experimental metadata alongside the SE object.
+#'
 #' @export
 #'
 #' @examples

@@ -53,6 +53,13 @@ Set to > 1 to parallelize per-feature p-value computation.}
 columns in the input dataset, specifying the pairing identifier for each sample. 
 When provided with \code{paired = TRUE}, samples are matched based on this 
 pairing information.}
+
+\item{robust_loss_type}{Character; loss function for M-estimation (Tukey, Huber, or other).
+Used when non-parametric tests switch to robust parametric alternatives.
+Default: "huber".}
+
+\item{robust_scale_method}{Character; scale selection method for M-estimation
+(e.g., "mad" for median absolute deviation). Default: "mad".}
 }
 \value{
 Raw and corrected p-values.

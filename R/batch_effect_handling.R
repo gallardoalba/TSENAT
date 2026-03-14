@@ -56,7 +56,7 @@
 #' @param n_components Integer; number of PCs to examine (default: 5)
 #' @param n_permutations Integer. Number of random batch permutations for significance testing (default 1000).
 #'   Higher values provide better p-value resolution. With 100 permutations, p-values can only be
-#'   {0.01, 0.02, ..., 1.0}. With 1000 permutations: {0.001, 0.002, ..., 1.0}.
+#'   \{0.01, 0.02, ..., 1.0\}. With 1000 permutations: \{0.001, 0.002, ..., 1.0\}.
 #' @param method Character. One of "pca" (default), "variance_partition", or "silhouette".
 #'
 #' @return List containing:

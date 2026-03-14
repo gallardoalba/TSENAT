@@ -63,6 +63,9 @@ If provided, stored in metadata as `salmon_effective_length` for `calculate_dive
 length-normalized entropy calculations. Vector length = number of transcripts.
 Typically obtained from SALMON quantification's EffectiveLength column (median across samples).
 Example: from preprocessing output `salmon_effective_length` or loaded via `load('readcounts.RData')`.}
+
+\item{metadata}{Optional list or named list of metadata to include in \code{metadata(se)}.
+This is useful for storing additional experimental metadata alongside the SE object.}
 }
 \value{
 A `SummarizedExperiment` with:

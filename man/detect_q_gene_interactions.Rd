@@ -55,8 +55,6 @@ increase accuracy but computational cost scales linearly.}
 
 \item{verbose}{Logical; if TRUE, print progress messages including Westfall-Young 
 permutation updates (default: FALSE)}
-
-\item{method}{Character: "kruskal.test" (default, rank-based) or "anova" (parametric)}
 }
 \value{
 Data frame with columns:

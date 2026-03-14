@@ -28,8 +28,15 @@ calculate_tsallis_entropy(
 numbers), or 'both'.}
 
 \item{log_base}{Base of the logarithm used for Shannon limits and
-normalization
-(default: \code{exp(1)}).}
+normalization (default: \code{exp(1)}).}
+
+\item{pseudocount}{Numeric scalar. Add this value to all transcript counts
+before computing proportions (default: 0). Useful for stability with
+zero-count features.}
+
+\item{effective_length}{Numeric vector of effective transcript lengths (length = length(x)).
+When provided, counts are normalized by length to remove length bias before
+entropy calculation. This implements SALMON's recommended isoform-level approach.}
 }
 \value{
 For `what = 'S'` or `what = 'D'`: a numeric vector

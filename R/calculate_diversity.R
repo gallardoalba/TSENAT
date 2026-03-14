@@ -46,7 +46,7 @@
 #' - "empirical_bayes": applies empirical Bayes shrinkage toward the global mean
 #'   entropy, borrowing strength across genes. Recommended for datasets with many
 #'   genes and variable isoform complexity. Particularly effective for genes with
-#'   < 5 expressed isoforms (Bayesian strength borrowing).#' 
+#'   < 5 expressed isoforms (Bayesian strength borrowing).
 #' @param effective_length Numeric vector or matrix of effective transcript lengths.
 #' If provided, transcript counts will be normalized by effective length before
 #' calculating proportions. This removes length bias from entropy calculations,
@@ -118,6 +118,7 @@
 #' gs <- readcounts[1:20, 1]
 #' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
 #' SummarizedExperiment::assay(se)[1:3, 1:3]
+#' @export
 
 # ============================================================================
 # Internal Helper Functions for Standardization/Normalization
@@ -289,7 +290,6 @@
   return(result)
 }
 
-#' @export
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
     verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
@@ -1843,8 +1843,13 @@ compute_posterior_credible_intervals <- function(counts_matrix, alpha, beta, ci 
 #' @param what Which quantity to return: 'S' (Tsallis entropy), 'D' (Hill
 #' numbers), or 'both'.
 #' @param log_base Base of the logarithm used for Shannon limits and
-#' normalization
-#' (default: \code{exp(1)}).
+#' normalization (default: \code{exp(1)}).
+#' @param pseudocount Numeric scalar. Add this value to all transcript counts
+#'   before computing proportions (default: 0). Useful for stability with
+#'   zero-count features.
+#' @param effective_length Numeric vector of effective transcript lengths (length = length(x)).
+#'   When provided, counts are normalized by length to remove length bias before
+#'   entropy calculation. This implements SALMON's recommended isoform-level approach.
 #' @export
 #' @return For `what = 'S'` or `what = 'D'`: a numeric vector
 #' (named when length(q) > 1). For `what = 'both'`: a list with

@@ -15,6 +15,9 @@ test_rankbased_assumptions(
 
 \item{checks}{Character vector of checks to perform
 (default: c("exchangeability", "monotonicity", "consistency"))}
+
+\item{alpha}{Numeric; significance level for hypothesis tests (default: 0.05).
+Used in permutation tests to assess exchangeability and other assumptions.}
 }
 \value{
 List with diagnostic results

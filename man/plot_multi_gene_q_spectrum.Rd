@@ -75,3 +75,6 @@ print(p)
 }
 
 }
+\seealso{
+\code{\link{calculate_divergence}} for computing divergence values.
+}

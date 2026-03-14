@@ -403,6 +403,8 @@ plot_rank_correlation_heatmap <- function(rank_corr_obj,
 #' @param data Matrix of expression values
 #' @param checks Character vector of checks to perform
 #'   (default: c("exchangeability", "monotonicity", "consistency"))
+#' @param alpha Numeric; significance level for hypothesis tests (default: 0.05).
+#'   Used in permutation tests to assess exchangeability and other assumptions.
 #'
 #' @return List with diagnostic results
 #' @export
@@ -1263,7 +1265,6 @@ recommend_q_range <- function(
 #'   Only used if data is a data frame. Ignored for SummarizedExperiment.
 #' @param gene_col Character name of gene column (default: "gene").
 #'   Only used if data is a data frame. Ignored for SummarizedExperiment.
-#' @param method Character: "kruskal.test" (default, rank-based) or "anova" (parametric)
 #' @param multicorr Method for adjusting p-values across multiple q-values to account for 
 #'   correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
 #'   p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
@@ -2147,7 +2148,13 @@ detect_q_gene_interactions <- function(
 #'
 #' This function enables the Appendix B vignette to use improved
 #' rank-based tests by wrapping conditional selection
-
+#'
+#' @param data Data frame with values and group indicators
+#' @param value_col Column name for values to test (default: "entropy")
+#' @param group_col Column name for group membership (default: "q")
+#'
+#' @keywords internal
+#' @noRd
 .tsenat_improved_kruskal_wallis <- function(data, value_col = "entropy", group_col = "q") {
     result <- .tsenat_apply_conditional_rank_test(data, value_col, group_col, verbose = FALSE)
     

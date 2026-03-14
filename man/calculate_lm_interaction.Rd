@@ -27,7 +27,8 @@ calculate_lm_interaction(
   multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"),
   storey = FALSE,
   wy_randomizations = 1000,
-  adaptive_knots = TRUE
+  adaptive_knots = TRUE,
+  return_model_data = FALSE
 )
 }
 \arguments{
@@ -72,6 +73,12 @@ column of `colData(se)`. If provided with `method = 'lmm'`, used as random effec
 
 \item{assay_name}{Name of the assay in the SummarizedExperiment to use
 (default: 'diversity').}
+
+\item{pcorr}{P-value correction method applied to Wilcoxon rank test results 
+(default: 'BH'). Options: \code{c('BH', 'bonferroni', 'hochberg', 'holm')}.
+Note: This is distinct from `multicorr` which adjusts for correlation across 
+multiple q-values in the interaction test. `pcorr` is legacy and may not be 
+used in all methods. See `multicorr` for the primary multiple testing correction.}
 
 \item{verbose}{Logical; whether to print progress messages during execution
 (default: FALSE).}
@@ -120,6 +127,12 @@ on estimated proportion of true null hypotheses, increasing power when many true
 are present. Can be applied to any multicorr method. Computationally light enhancement.
 Requires: estimate_storey_pi0() and compute_storey_qvalues() functions. Reference: Storey (2002).}
 
+\item{wy_randomizations}{Number of permutation randomizations for Westfall-Young 
+correction (default: 1000). Only used when `multicorr = 'westfall-young'`. 
+Higher values improve accuracy of empirical null distribution but increase computation time.
+Minimum: 100. Typical values: 500-2000. Note: Westfall-Young is computationally expensive 
+as it requires refitting models for each randomization.}
+
 \item{adaptive_knots}{Logical; whether to use adaptive spline knot selection for GAM method
 (default: TRUE). When TRUE, automatically adjusts the number of basis functions (k) per gene
 based on entropy curve complexity, measured as coefficient of variation of slopes across
@@ -127,10 +140,29 @@ ordered q-values. Simple curves get fewer knots (min=2), complex non-monotonic c
 more knots (max=10), improving model fit efficiency. When FALSE, uses fixed knot selection
 based on number of unique q-values. Reference: Wood (2017) Section 4.1.5 Basis dimension.
 This parameter only affects method='gam'.}
+
+\item{return_model_data}{Logical; whether to return model metadata alongside results
+(default: FALSE). When TRUE, returns a list with two elements:
+\itemize{
+  \item `$results`: The standard results data.frame (same as returned when FALSE)
+  \item `$model_data`: A list containing model metadata (method, q-values, sample info, 
+    test configuration, genes analyzed, etc.) useful for generating diagnostic plots and 
+    understanding model structure. Can be passed to plotting functions for visualization.
+}
+When FALSE, returns only the results data.frame (backward compatible with existing code).
+This enables users to access comprehensive model information for diagnostics and visualization
+while maintaining full backward compatibility.}
 }
 \value{
-A data.frame with columns `gene`, `p_interaction`, and
-`adj_p_interaction`, ordered by ascending `p_interaction`.
+When `return_model_data = FALSE` (default): A data.frame with columns `gene`, 
+`p_interaction`, and `adj_p_interaction`, ordered by ascending `p_interaction`.
+
+When `return_model_data = TRUE`: A list with components:
+\itemize{
+  \item `$results`: The standard results data.frame
+  \item `$model_data`: Metadata list containing method, q-values, sample names, test configuration,
+    and other information useful for downstream visualization and diagnostics
+}
 }
 \description{
 Linear-model interaction test for Tsallis entropy   For each gene, fit a

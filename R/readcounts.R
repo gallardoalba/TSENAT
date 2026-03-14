@@ -17,10 +17,12 @@
 #' @examples
 #' \dontrun{
 #'   data(readcounts, package = "TSENAT")
-#'   dim(readcounts)
-#'   head(readcounts[1:4, 1:3])
+#'   dim(salmon_dataset)
+#'   head(salmon_dataset[1:4, 1:3])
 #' }
 #'
 #' @name readcounts
+#' @aliases readcounts salmon_dataset salmon_tpm salmon_effective_length
 NULL
+
 

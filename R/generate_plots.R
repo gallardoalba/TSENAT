@@ -3245,6 +3245,8 @@ plot_q_spectrum <- function(per_q_div, gene_idx = 1, per_q_ci = NULL, gene_name 
 #' plot_gene_q_spectrum(divergence_results_se, target_gene = "CXCL12", verbose = FALSE)
 #' }
 #'
+#' @seealso \code{\link{calculate_divergence}} for computing divergence values.
+#'
 #' @export
 plot_gene_q_spectrum <- function(divergence_results_se, target_gene, verbose = TRUE) {
   
@@ -3396,6 +3398,8 @@ plot_gene_q_spectrum <- function(divergence_results_se, target_gene, verbose = T
 #' )
 #' print(p)
 #' }
+#'
+#' @seealso \code{\link{calculate_divergence}} for computing divergence values.
 #'
 #' @export
 plot_multi_gene_q_spectrum <- function(eff_res = NULL, 
