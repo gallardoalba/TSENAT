@@ -1367,6 +1367,9 @@ plot_top_transcripts <- function(
 #'   Only used if genes = NULL; filters lm_res to significant genes before selecting top n.
 #' @param assay_name Name of the assay in `se` to extract (default: "diversity").
 #' @param palette Color palette for group separation (default: "Set1").
+#' @param model_data Required list from `calculate_lm_interaction(..., return_model_data = TRUE)$model_data`
+#'   containing metadata (q_values, sample configuration, etc.). This is the preferred way to use
+#'   this function as it ensures all visualizations are based on the exact analysis configuration.
 #'
 #' @return A list of `ggplot` objects, one per selected gene, showing GAM-fitted
 #'   q-curves colored by sample group. If only one gene is requested, returns a 
@@ -1378,6 +1381,9 @@ plot_top_transcripts <- function(
 #' 2. Fits GAM models: entropy ~ s(q, k=...) independently for each group
 #' 3. Generates smooth predictions for visualization
 #' 4. Overlays predicted curves for each group with a distinct color
+#'
+#' By providing `model_data` from `calculate_lm_interaction()`, the function can directly
+#' access the q-values used in the original analysis for more accurate visualization.
 #'
 #' This complements FPCA by providing interpretable visualization of empirical
 #' q-curve shape differences that drive PC-level significance.
@@ -1394,21 +1400,18 @@ plot_top_transcripts <- function(
 #'     row.names = colnames(se)
 #' )
 #' # Run FPCA to identify significant genes
-#' lm_res <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca")
-#' # Plot GAM curves for top 3 genes
-#' if (nrow(lm_res) > 0) {
-#'   plot_lm_interaction_gam(se, lm_res, sample_type_col = "sample_type", n_top = 3)
-#' }
-#' # Or plot specific genes of interest
-#' if (nrow(lm_res) > 0) {
-#'   plot_lm_interaction_gam(se, lm_res, sample_type_col = "sample_type", 
-#'                            genes = c("g1", "g2", "g5"))
+#' lm_result <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca", 
+#'                                       return_model_data = TRUE)
+#' # Plot GAM curves for top 3 genes with model metadata
+#' if (nrow(lm_result$results) > 0) {
+#'   plot_lm_interaction_gam(se, lm_result$results, sample_type_col = "sample_type", 
+#'                           n_top = 3, model_data = lm_result$model_data)
 #' }
 #'
 #' @export
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n_top = 6,
-    sig_alpha = 0.05, assay_name = "diversity", palette = "Set1") {
+    sig_alpha = 0.05, assay_name = "diversity", palette = "Set1", model_data) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr"))
 
@@ -1425,6 +1428,24 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
     if (nrow(lm_res) == 0) {
         stop("lm_res has no rows; calculate_lm_interaction() returned no genes", call. = FALSE)
     }
+    
+    # Validate and extract metadata from model_data
+    if (is.null(model_data)) {
+        stop("model_data is required. Obtain it from calculate_lm_interaction(..., return_model_data = TRUE)$model_data",
+            call. = FALSE)
+    }
+    
+    if (!is.list(model_data)) {
+        stop("model_data must be a list from calculate_lm_interaction(..., return_model_data = TRUE)",
+            call. = FALSE)
+    }
+    
+    # Extract required metadata
+    q_values <- model_data$q_values
+    if (is.null(q_values)) {
+        stop("model_data must contain 'q_values' from the original analysis",
+            call. = FALSE)
+    }
 
     # Extract assay matrix and colData
     mat <- SummarizedExperiment::assay(se, assay_name)
@@ -1434,7 +1455,21 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         stop(sprintf("Column '%s' not found in colData(se)", sample_type_col), call. = FALSE)
     }
 
-    groups <- cdata[[sample_type_col]]
+    # Build sample-to-group mapping
+    # colData is duplicated for each q-value (one row per sample × q combination)
+    # We need a unique mapping of sample name to group value
+    coldata_rownames <- rownames(cdata)
+    coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
+    
+    # Get unique samples and their corresponding group values
+    unique_samples <- unique(coldata_sample_names)
+    sample_to_group <- character(length(unique_samples))
+    names(sample_to_group) <- unique_samples
+    
+    for (samp in unique_samples) {
+        idx <- which(coldata_sample_names == samp)[1]  # Get first occurrence
+        sample_to_group[samp] <- as.character(cdata[[sample_type_col]][idx])
+    }
 
     # Determine which genes to plot
     if (!is.null(genes)) {
@@ -1444,7 +1479,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         }
         top_genes <- genes
     } else {
-        # Select top genes by p-value (original logic)
+        # Select top genes by p-value
         if ("adj_p_interaction" %in% colnames(lm_res)) {
             sig_mask <- lm_res$adj_p_interaction <= sig_alpha
         } else if ("p_interaction" %in% colnames(lm_res)) {
@@ -1464,60 +1499,57 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         top_genes <- sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
     }
 
-    # Helper to build data.frame for a single gene
+    # Helper to build data.frame for a single gene using model_data
     make_gam_plot <- function(g) {
         if (!(g %in% rownames(mat))) {
             warning(sprintf("Gene '%s' not found in assay", g), call. = FALSE)
             return(NULL)
         }
 
-        # Extract data
-        gene_vals <- mat[g, ]
-        sample_names <- colnames(mat)
+        # Try to get human-readable gene name from rowData
+        gene_display_name <- g  # default to gene ID
+        tryCatch({
+            if (!is.null(rowData(se)) && "gene_name" %in% colnames(rowData(se))) {
+                # Use rowData directly with bracket notation
+                gene_name_val <- tryCatch({
+                    rowData(se)[g, "gene_name"]
+                }, error = function(e) NULL)
+                
+                if (!is.null(gene_name_val) && !is.na(gene_name_val) && 
+                    gene_name_val != "" && length(gene_name_val) > 0) {
+                    gene_display_name <- as.character(gene_name_val)
+                }
+            }
+        }, error = function(e) {
+            # If lookup fails, just use gene ID
+        })
 
-        # Get metadata: need q-values per sample
-        # Assume colnames have structure or we extract from rownames of mat
-        # For typical TSENAT workflow, q-values are stored in metadata or need to be inferred
-        # For now, we construct a long-format data.frame per sample
+        # Extract data for this gene across all columns (samples × q-values)
+        # CRITICAL: Extract gene_vals fresh for each gene!
+        gene_vals <- mat[g, ]
+        col_names_full <- colnames(mat)
         
-        # Try to extract q-values from colnames or metadata
-        # If not available, try to infer from number of samples
-        q_vals <- NULL
+        # Parse column names to extract sample and q-value
+        # Column names are expected to be format: "Sample_q=value"
+        col_sample_names <- sub("_q=.*", "", col_names_full)
+        col_q_values <- as.numeric(sub(".*_q=", "", col_names_full))
         
-        # Check if q-values are in colData under a standard name
-        for (q_col in c("q", "q_value", "q_values")) {
-            if (q_col %in% colnames(cdata)) {
-                q_vals <- cdata[[q_col]]
-                break
-            }
+        # Look up group for each column using the unique sample-to-group mapping
+        col_groups <- unname(sample_to_group[col_sample_names])
+        
+        # Check for unmapped columns
+        if (any(is.na(col_groups))) {
+            unmapped_idx <- which(is.na(col_groups))
+            warning(sprintf("Cannot map %d columns to groups for gene '%s'; columns not found in colData",
+                length(unmapped_idx), g), call. = FALSE)
+            return(NULL)
         }
         
-        # If q values not found, infer from data structure
-        # (assuming rows are unique q values per sample in order)
-        if (is.null(q_vals)) {
-            # For the typical build_se output where assays are concatenated
-            # across q values, we need to reconstruct q-values
-            # This is a heuristic: if we have metadata about diversity calculation
-            n_samples <- length(sample_names)
-            n_q <- length(gene_vals) / n_samples
-            
-            if (n_q != floor(n_q)) {
-                warning(sprintf("Cannot infer q-values for gene '%s'; inconsistent dimensions", g),
-                    call. = FALSE)
-                return(NULL)
-            }
-            
-            # Reconstruct assuming lexicographic ordering (q varies fastest or slowest)
-            # Standard TSENAT: rows are samples, columns are q-values within each sample
-            # For multi-q assays: columns are ordered by q within each sample
-            q_vals <- rep(seq_len(as.integer(n_q)), each = n_samples)
-        }
-        
-        # Build long-format data.frame
+        # Build long-format data.frame directly from column annotations
         plot_df <- data.frame(
-            sample = rep(sample_names, length.out = length(gene_vals)),
-            group = rep(groups, length.out = length(gene_vals)),
-            q = q_vals,
+            sample = col_sample_names,
+            group = col_groups,
+            q = col_q_values,
             entropy = as.numeric(gene_vals),
             stringsAsFactors = FALSE
         )
@@ -1532,6 +1564,9 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
 
         # Fit GAM per group
         unique_groups <- unique(plot_df$group)
+        cat("[DEBUG make_gam_plot] Gene:", g, "Unique groups:", paste(unique_groups, collapse=", "), "\n")
+        cat("[DEBUG make_gam_plot] Group distribution in plot_df:\n")
+        print(table(plot_df$group))
 
         if (length(unique_groups) < 2) {
             warning(sprintf("Less than 2 groups for gene '%s'", g), call. = FALSE)
@@ -1546,7 +1581,10 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         pred_list <- list()
         for (gr in unique_groups) {
             subset_data <- subset(plot_df, group == gr)
+            cat(sprintf("[DEBUG] Fitting GAM for group '%s': %d rows\n", gr, nrow(subset_data)))
+            
             if (nrow(subset_data) < 3) {
+                cat(sprintf("[DEBUG] Skipping group '%s': < 3 rows\n", gr))
                 next
             }
 
@@ -1560,20 +1598,24 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
                     pred_data <- data.frame(q = pred_q)
                     pred_vals <- stats::predict(gam_fit, newdata = pred_data, se.fit = TRUE)
                     
-                    pred_list[[gr]] <- data.frame(
+                    pred_list[[as.character(gr)]] <- data.frame(
                         group = gr,
                         q = pred_q,
                         entropy_fit = pred_vals$fit,
                         se = pred_vals$se.fit,
                         stringsAsFactors = FALSE
                     )
+                    cat(sprintf("[DEBUG] GAM fit succeeded for group '%s'\n", gr))
                 },
                 error = function(e) {
+                    cat(sprintf("[DEBUG] GAM fit FAILED for group '%s': %s\n", gr, e$message))
                     warning(sprintf("GAM fit failed for gene '%s' group '%s': %s", g, gr, e$message),
                         call. = FALSE)
                 }
             )
         }
+        
+        cat(sprintf("[DEBUG] pred_list has %d groups with predictions\n", length(pred_list)))
 
         if (length(pred_list) == 0) {
             warning(sprintf("No GAM fits succeeded for gene '%s'", g), call. = FALSE)
@@ -1581,6 +1623,9 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         }
 
         pred_df <- do.call(rbind, pred_list)
+        
+        # DEBUG: Check what's in pred_df
+        cat(sprintf("[DEBUG pred_df] Rows: %d, Groups: %s\n", nrow(pred_df), paste(unique(pred_df$group), collapse=", ")))
 
         # Create plot
         p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = entropy, color = group)) +
@@ -1592,7 +1637,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
             ggplot2::labs(
                 x = "q parameter",
                 y = "Tsallis entropy",
-                title = sprintf("Gene: %s", g),
+                title = sprintf("Gene: %s", gene_display_name),
                 subtitle = sprintf("GAM q-curve fit by group")
             ) +
             ggplot2::theme_minimal(base_size = 12) +
