@@ -378,9 +378,7 @@ Now we will compute Tsallis entropy.
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
-    q = qvec, norm = TRUE, metadata = metadata_df,
-    shrinkage = "empirical_bayes"
-)
+    q = qvec, norm = TRUE, metadata = metadata_df)
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
@@ -561,13 +559,15 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
         paired = TRUE,
         multicorr = "hochberg",
         nthreads = 3,
-        verbose = TRUE
+        verbose = TRUE,
+        return_model_data = TRUE
     )
 }
 ```
 ```{r kable-lm-interaction-before-qcurve, message=FALSE, echo = FALSE}
 # show the top entries with proper p-value formatting
-lm_res_display <- head(lm_res, 6)
+# Extract results dataframe from the list (calculate_lm_interaction now returns list with $results and $model_data)
+lm_res_display <- head(lm_res$results, 6)
 
 # Select only key columns that exist in the data, including Shapiro-Wilk normality test results
 col_select <- intersect(c("gene", "gene_name", "p_interaction", "adj_p_interaction", 
@@ -606,31 +606,17 @@ knitr::kable(
 )
 ```
 
-Now we will plot the q-curve profile for the top gene identified 
-by the linear-model interaction test. We will start with `CXCL12`.   
+Now we will plot the q-curve profile for the top genes identified 
+by the linear-model interaction test.
 
-```{r foxj2-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for the top 2 genes from lm_res with the most significant interactions
-# Pass lm_res directly to the function to let it extract genes by significance
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "CXCL12")
-print(plot_target)
-```
-
-Now let’s look at Now let’s look at `SH3PXD2A`.
-
-```{r pnpt1-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top Now let’s look at SH3PXD2A
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "SH3PXD2A")
-print(plot_target)
-```
-
-
-Finally, we can visualize the gene `PNRC2`.
-
-```{r gsr-gene-qprofile, fig.width=10, fig.height=6.5}
-# Plot q-curve profile for top PNRC2
-plot_target <- plot_tsallis_gene_profile(ts_se, gene = "PNRC2")
-print(plot_target)
+```{r top-gene-qprofile, fig.width=14, fig.height=12}
+# Plot q-curve profiles for the top 4 genes with the most significant q×group interactions
+combined_plot <- plot_lm_interaction_gam(
+    se = ts_se,
+    lm_res = lm_res,
+    n_top = 4  # Pass full lm_res list with $results and $model_data
+)
+print(combined_plot)
 ```
 
 ## Transcript Switching Across Diversity Scales
@@ -648,6 +634,7 @@ q_vector <- c(0.01, 0.5, 1.0, 1.5, 2.0)
 
 # Single call for all q values at once (vectorized approach)
 # Note: jackknife_isoform_switching now handles gene name to ID mapping automatically
+# Pass lm_res$results (the dataframe component, not the full list)
 multi_q_results <- jackknife_isoform_switching(
   se = se,
   condition_col = "sample_type",
@@ -659,7 +646,7 @@ multi_q_results <- jackknife_isoform_switching(
   n_bootstrap = 100,
   print_results = TRUE,
   threshold = 90,
-  lm_results = lm_res,
+  lm_results = lm_res$results,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE
 )
@@ -672,8 +659,9 @@ The tables below examine how transcript switching patterns vary across different
 ```{r multi-q-switching-table, echo=TRUE, results='hide'}
 # Use the helper function to prepare comparison tables across q-values
 # Limiting to top 2 genes with strongest switching patterns
+# Pass lm_res$results (the dataframe component, not the full list)
 tables_result <- prepare_gene_switching_tables(
-  lm_res = lm_res,
+  lm_res = lm_res$results,
   multi_q_results = multi_q_results,
   n_top_genes = 2,
   verbose = FALSE
@@ -724,10 +712,11 @@ scales) and transcripts (columns) for each gene.
 heatmap_file <- NA
 
 tryCatch({
+  # Pass lm_res$results (the dataframe component, not the full list)
   heatmap_file <- plot_multiq_delta_influence_heatmaps(
     switching_results = multi_q_results,
     n_genes = 4,
-    lm_results = lm_res
+    lm_results = lm_res$results
   )
 }, error = function(e) {
   cat("ERROR in plot_multiq_delta_influence_heatmaps: ", e$message, "\n")
@@ -790,13 +779,14 @@ treatment groups across all q-dependent scales.
 
 ```{r effect-size-multiq, message=FALSE, warning=FALSE, results='hide'}
 # Effect size multi-q plot
-if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res) > 0) {
+if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res$results) > 0) {
   # Compute divergence effect sizes from raw transcript counts
   # calculate_divergence handles transcript-to-gene aggregation internally
   # and matches genes from lm_res against rowData gene_names column
   
-  # Note: Set rownames of lm_res to gene names for later use in effect_sizes_divergence()
-  rownames(lm_res) <- lm_res$gene
+  # Note: Extract results dataframe for use in effect_sizes_divergence()
+  lm_res_results <- lm_res$results
+  rownames(lm_res_results) <- lm_res_results$gene
   
   # Calculate Tsallis divergence with bootstrap CIs (reduced iterations for speed)
   # divergence_results_se: SummarizedExperiment with divergence estimates for each gene-q combination
@@ -812,8 +802,8 @@ if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res)
       method = "percentile"
   )
   
-  # Note: effect_sizes_divergence() will merge lm_res results with divergence_results_se,
-  # automatically filtering lm_res to match genes in divergence_results_se
+  # Note: effect_sizes_divergence() will merge lm_res_results with divergence_results_se,
+  # automatically filtering to match genes in divergence_results_se
 }
 ```
 
@@ -844,8 +834,9 @@ if (exists("divergence_results_se") && nrow(divergence_results_se) > 0) {
 ```{r effect-size-merge, message=FALSE, warning=FALSE, results='hide'}
 # Merge LMM results with divergence effect sizes
 # The function automatically enriches results with per_q_pattern column
+# Pass lm_res_results (the extracted dataframe component)
 eff_res <- effect_sizes_divergence(
-    lm_res = lm_res,
+    lm_res = lm_res_results,
     divergence_results_se = divergence_results_se,
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE,
@@ -867,8 +858,8 @@ if (exists("divergence_results_se") && exists("lm_res")) {
                                      drop = FALSE]
     div_df$gene_name <- rownames(div_rd)[!is.na(div_rd$estimate)]
     
-    # Merge with lm_res to get LM p-values
-    lm_res_sub <- lm_res[, c("gene", "adj_p_interaction")]
+    # Merge with lm_res$results to get LM p-values
+    lm_res_sub <- lm_res$results[, c("gene", "adj_p_interaction")]
     colnames(lm_res_sub) <- c("gene_name", "padj_lm")
     div_df <- merge(div_df, lm_res_sub, by = "gene_name", all.x = TRUE)
     
