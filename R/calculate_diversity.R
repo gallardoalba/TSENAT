@@ -54,7 +54,26 @@
 #' assumes all transcripts have equal effective length. If a named vector, must have
 #' names matching x rownames. If a matrix (rows=transcripts, cols=samples), can be
 #' sample-specific. Typically obtained from salmon quantification (EffectiveLength column).
-#' Example: load(readcounts.RData'); calculate_diversity(salmon_dataset, effective_length=salmon_effective_length)#' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assays:
+#' Example: load(readcounts.RData'); calculate_diversity(salmon_dataset, effective_length=salmon_effective_length)
+#' @param bootstrap Logical; if TRUE, compute bootstrap confidence intervals around
+#' Tsallis entropy point estimates using \code{calculate_tsallis_entropy_bootstrap()}.
+#' Default: FALSE (disabled for backward compatibility). When TRUE, computes CIs for
+#' each gene and adds assays: ci_lower and ci_upper to output.
+#' @param bootstrap_nboot Integer; number of bootstrap replicates (default: NULL).
+#' If NULL, automatically suggests nboot based on number of genes using \code{suggest_nboot()}.
+#' For detailed inference on few genes (< 5), use 500-1000. For many genes (> 100),
+#' 250-500 is usually sufficient. Set explicitly to override auto-suggestion.
+#' @param bootstrap_method Character; bootstrap CI method: "percentile" (default, fast)
+#' or "bca" (bias-corrected and accelerated, more accurate but slower). BCa adjusts
+#' for bias and skewness, improving coverage in small samples.
+#' @param bootstrap_ci Numeric; confidence level for bootstrap CIs (default: 0.95 for 95%).
+#' Must be in (0, 1). Higher values (e.g., 0.99) yield wider CIs; lower values are narrower.
+#' @param bootstrap_include_diagnostics Logical; if TRUE (default), includes diagnostic
+#' fields in bootstrap results: effective_sample_size, skewness, bias, acceleration_factor
+#' (for BCa method). Diagnostics assess CI quality and reliability (papers S111, S114).
+#' Set to FALSE to reduce computation time for large datasets.
+#'
+#' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assays:
 #' - `diversity`: Per-gene Tsallis entropy values (if what="S")
 #' - `hill`: Per-gene Hill numbers (if what="D")
 #' - `counts`: Original raw transcript counts (preserved for downstream analysis)
@@ -273,7 +292,9 @@
 #' @export
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
     verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
-    min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL) {
+    min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
+    bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
     # Normalize norm parameter: coerce logical to character for backward compatibility
     if (is.logical(norm)) {
         norm <- if (norm) "range" else "none"
@@ -335,6 +356,71 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
         nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
         shrinkage = shrinkage, effective_length = effective_length)
+
+    # =========================================================================
+    # BOOTSTRAP CONFIDENCE INTERVALS (optional)
+    # =========================================================================
+    bootstrap_ci_results <- NULL
+    if (bootstrap) {
+        if (verbose) {
+            message("Computing bootstrap confidence intervals...")
+        }
+        
+        # Validate bootstrap parameters
+        if (!(bootstrap_method %in% c("percentile", "bca"))) {
+            stop("bootstrap_method must be 'percentile' or 'bca'", call. = FALSE)
+        }
+        if (!is.numeric(bootstrap_ci) || bootstrap_ci <= 0 || bootstrap_ci >= 1) {
+            stop("bootstrap_ci must be a probability in (0, 1)", call. = FALSE)
+        }
+        
+        # Auto-suggest nboot if not provided
+        if (is.null(bootstrap_nboot)) {
+            # Get number of genes that survived min_valid_frac filter
+            n_genes_filtered <- nrow(result) - 1  # First column is gene_id
+            bootstrap_nboot <- suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
+            if (verbose) {
+                message(sprintf("  → Auto-suggested nboot = %d for %d genes (method: %s)",
+                    bootstrap_nboot, n_genes_filtered, bootstrap_method))
+            }
+        }
+        
+        # Get filtered gene names (genes that survived min_valid_frac filter)
+        filtered_genes <- as.character(result[, 1])
+        
+        # Extract subset of se_assay_mat for filtered genes
+        gene_indices <- which(genes %in% filtered_genes)
+        counts_for_bootstrap <- as.matrix(se_assay_mat[gene_indices, , drop = FALSE])
+        
+        # Reorder to match result order
+        counts_for_bootstrap <- counts_for_bootstrap[match(filtered_genes, genes[gene_indices]), , drop = FALSE]
+        
+        # Ensure matrix has gene names as rownames
+        rownames(counts_for_bootstrap) <- filtered_genes
+        
+        # Compute bootstrap CIs for all genes (vectorized)
+        if (verbose) {
+            message(sprintf("  Computing bootstrap CIs for %d genes with nboot = %d, nthreads = %d",
+                nrow(counts_for_bootstrap), bootstrap_nboot, nthreads))
+        }
+        
+        bootstrap_ci_results <- calculate_tsallis_entropy_bootstrap(
+            x = counts_for_bootstrap,
+            q = q,
+            norm = TRUE,  # Match normalization used for point estimates
+            nboot = bootstrap_nboot,
+            ci = bootstrap_ci,
+            method = bootstrap_method,
+            pseudocount = pseudocount,
+            nthreads = nthreads,
+            print_results = FALSE,
+            include_diagnostics = bootstrap_include_diagnostics
+        )
+        
+        if (verbose) {
+            message(sprintf("  ✓ Bootstrap CIs computed successfully"))
+        }
+    }
 
     # Prepare assay and row/col data - convert data.frame to matrix
     result_assay <- as.matrix(result[, -1, drop = FALSE])
@@ -559,11 +645,85 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         }
     }
 
+    # =========================================================================
+    # EXTRACT BOOTSTRAP CONFIDENCE BOUNDS AND ADD AS ASSAYS
+    # =========================================================================
+    if (!is.null(bootstrap_ci_results)) {
+        # bootstrap_ci_results structure depends on whether q is scalar or vector:
+        # - Single q: list of tsenat_bootstrap_ci objects, one per gene
+        # - Multiple q: list where each element is a list of results per q value
+        
+        # Extract CI bounds for all genes
+        n_genes_ci <- length(bootstrap_ci_results)
+        n_samples <- ncol(result_assay)
+        
+        # Create matrices for CI bounds
+        ci_lower_matrix <- matrix(NA, nrow = n_genes_ci, ncol = n_samples)
+        ci_upper_matrix <- matrix(NA, nrow = n_genes_ci, ncol = n_samples)
+        
+        for (i in seq_len(n_genes_ci)) {
+            gene_result <- bootstrap_ci_results[[i]]
+            
+            # Check if this is a multi-q result (list of results) or single result
+            is_multikey_result <- is.list(gene_result) && !is.null(names(gene_result)) &&
+                                  !("estimate" %in% names(gene_result))
+            
+            if (is_multikey_result && length(q) > 1) {
+                # Multiple q values: need to extract per-q bounds
+                for (col_idx in seq_len(n_samples)) {
+                    # Determine which q value this column represents
+                    col_split <- do.call(rbind, strsplit(colnames(result_assay), "_q="))
+                    q_val <- as.numeric(col_split[col_idx, 2])
+                    q_key <- paste0("q=", q_val)
+                    
+                    if (q_key %in% names(gene_result)) {
+                        ci_lower_matrix[i, col_idx] <- gene_result[[q_key]]$lower_ci
+                        ci_upper_matrix[i, col_idx] <- gene_result[[q_key]]$upper_ci
+                    }
+                }
+            } else {
+                # Single q value OR single result object
+                # Try to get lower_ci and upper_ci directly
+                if ("lower_ci" %in% names(gene_result)) {
+                    lower_ci <- gene_result$lower_ci
+                    upper_ci <- gene_result$upper_ci
+                } else if (is.list(gene_result) && length(gene_result) > 0) {
+                    # Try first element if this is a nested list
+                    lower_ci <- gene_result[[1]]$lower_ci
+                    upper_ci <- gene_result[[1]]$upper_ci
+                } else {
+                    lower_ci <- NA_real_
+                    upper_ci <- NA_real_
+                }
+                
+                # Replicate CI across all columns (same for all samples in a gene)
+                ci_lower_matrix[i, ] <- lower_ci
+                ci_upper_matrix[i, ] <- upper_ci
+            }
+        }
+        
+        rownames(ci_lower_matrix) <- rownames(result_assay)
+        colnames(ci_lower_matrix) <- colnames(result_assay)
+        rownames(ci_upper_matrix) <- rownames(result_assay)
+        colnames(ci_upper_matrix) <- colnames(result_assay)
+        
+        assays_list$ci_lower <- ci_lower_matrix
+        assays_list$ci_upper <- ci_upper_matrix
+        
+        if (verbose) {
+            message(sprintf("  ✓ Added ci_lower and ci_upper assays to output SE"))
+        }
+    }
+
     # Build metadata including original SE reference for downstream functions like fit_empirical_beta_prior
     # This preserves the transcript-level SE so Beta prior estimation can access raw counts
     result_meta_list <- list(
         readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
-        tx2gene = tx2gene_map
+        tx2gene = tx2gene_map,
+        bootstrap = bootstrap,
+        bootstrap_nboot = if (!is.null(bootstrap_ci_results)) bootstrap_nboot else NULL,
+        bootstrap_method = if (!is.null(bootstrap_ci_results)) bootstrap_method else NULL,
+        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci else NULL
     )
     
     # Store original SE if input was a SummarizedExperiment (needed for precision weighting in vignette)
