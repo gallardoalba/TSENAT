@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(SummarizedExperiment)
   library(jsonlite)
   library(ggplot2)
+  library(cowplot)
 })
 
 cat("\n════════════════════════════════════════════════════════════\n")
@@ -43,21 +44,23 @@ lm_res <- list(
 
 cat("  ✓ Loaded model_data.json (metadata)\n")
 cat("  ✓ Loaded lm_interaction_results.csv (results)\n")
-cat("  - Results rows:", nrow(results_df), "\n")
+cat("  - Results rows:", nrow(lm_res$results), "\n")
 cat("  - Model groups:", paste(unlist(lm_res$model_data$group_levels), collapse=", "), "\n")
 cat("  - Sorted by adj_p_interaction (ascending)\n\n")
 
-# Display top genes
+# Display top genes from loaded results
 cat("  Top genes by significance:\n")
-for (i in 1:min(10, nrow(results_df))) {
-  cat(sprintf("    %d. %s (adj_p = %.3e)\n", i, results_df$gene[i], results_df$adj_p_interaction[i]))
+for (i in 1:min(10, nrow(lm_res$results))) {
+  cat(sprintf("    %d. %s (adj_p = %.3e)\n", i, lm_res$results$gene[i], lm_res$results$adj_p_interaction[i]))
 }
 cat("\n")
 
 # STEP 2: Quickly rebuild diversity SE (needed for plot_lm_interaction_gam)
 cat("[2] Rebuilding diversity SE (minimal steps)...\n")
 
+# Load the TSENAT example datasets
 data(readcounts)
+
 readcounts <- as.matrix(salmon_dataset)
 mode(readcounts) <- "numeric"
 
@@ -83,108 +86,61 @@ ts_se <- calculate_diversity(
 
 cat("  ✓ Diversity SE rebuilt\n\n")
 
-# STEP 2b: Subset diversity SE to only include genes in results
-cat("[2b] Subsetting diversity SE to match results CSV...\n")
+# STEP 3: Generate plots
+cat("[3] Generating plots with plot_lm_interaction_gam...\n")
+cat("  Note: Function automatically extracts model_data and handles gene matching\n\n")
 
-# After calculate_diversity, rownames(ts_se) are gene names
-# results_df$gene column also contains gene names
-# So we can match directly!
-gene_names_in_results <- results_df$gene
-gene_names_in_se <- rownames(ts_se)
+# Generate plots with error handling
+# Function will automatically:
+# - Extract model_data from lm_res if needed
+# - Match genes between SE and results
+# - Subset both to only available genes
+tryCatch({
+    plots <- plot_lm_interaction_gam(
+        se = ts_se,
+        lm_res = lm_res,  # Pass full lm_res list with $results and $model_data
+        sample_type_col = "sample_type",
+        genes = lm_res$results$gene[1:6],  # Top 6 genes to plot
+        palette = "Set1"
+    )
 
-cat("  Genes in results CSV:", length(unique(gene_names_in_results)), "\n")
-cat("  Genes in diversity SE:", length(gene_names_in_se), "\n")
-
-# Find genes that exist in both
-available_genes <- gene_names_in_se[gene_names_in_se %in% gene_names_in_results]
-cat("  Genes available in both:", length(available_genes), "\n")
-
-if (length(available_genes) > 0) {
-    # Subset SE to only genes in results
-    ts_se <- ts_se[available_genes, ]
-    cat("  ✓ Subsetted diversity SE to", nrow(ts_se), "genes\n")
-} else {
-    cat("  WARNING: No genes from results found in diversity SE!\n")
-    cat("  First genes in results:", paste(head(gene_names_in_results, 5), collapse=", "), "\n")
-    cat("  First genes in SE rownames:", paste(head(gene_names_in_se, 5), collapse=", "), "\n")
-}
-
-cat("\n")
-
-# STEP 3: Recreate model_data in proper R format
-cat("[3] Recreate model data...\n")
-
-# Extract model_data from lm_res (simulated return_model_data output)
-model_data <- list(
-  method = lm_res$model_data$method[[1]],
-  n_genes = lm_res$model_data$n_genes[[1]],
-  n_q_values = lm_res$model_data$n_q_values[[1]],
-  q_values = unlist(lm_res$model_data$q_values),
-  sample_names = unlist(lm_res$model_data$sample_names),
-  group_levels = unlist(lm_res$model_data$group_levels),
-  genes_analyzed = unlist(lm_res$model_data$genes_analyzed),
-  test_configuration = lm_res$model_data$test_configuration
-)
-
-cat("  ✓ Model data prepared\n\n")
-
-# STEP 4: Test plotting with loaded results
-cat("[4] Testing plot_lm_interaction_gam with loaded results...\n")
-
-# Filter results to only include genes that are in the SE
-results_df_available <- lm_res$results[lm_res$results$gene %in% rownames(ts_se), ]
-results_df_available <- results_df_available[order(results_df_available$adj_p_interaction), ]
-
-cat("  Results available in SE:", nrow(results_df_available), "of", nrow(results_df), "\n")
-
-# Show top genes
-if (nrow(results_df_available) > 0) {
-    cat("  Top genes by adj_p_interaction:\n")
-    for (i in 1:min(10, nrow(results_df_available))) {
-        cat(sprintf("    %d. %s (adj_p = %.3e)\n", i, results_df_available$gene[i], results_df_available$adj_p_interaction[i]))
-    }
-    cat("\n")
-    
-    # Get top 10 genes for plotting
-    top_genes <- results_df_available$gene[1:10]
-} else {
-    cat("  No genes from results found in subsetted SE!\n")
-    top_genes <- character(0)
-}
-
-if (length(top_genes) > 0) {
-    tryCatch({
-      plots <- plot_lm_interaction_gam(
-          se = ts_se,
-          lm_res = results_df_available,
-          sample_type_col = "sample_type",
-          genes = top_genes,
-          model_data = model_data,
-          palette = "Set1"
-      )
-      
-      if (is.list(plots)) {
+    if (is.list(plots) && length(plots) > 0) {
         cat("  ✓ Generated", length(plots), "plots\n")
         
-        # Save plots
-        for (i in seq_along(plots)) {
-          gene_id <- names(plots)[i]
-          output_file <- file.path(output_dir, sprintf("quick_test_plot_%d.png", i))
-          ggplot2::ggsave(output_file, plots[[i]], width = 10, height = 6, dpi = 300)
-          cat(sprintf("    ✓ Saved: %s\n", basename(output_file)))
-        }
-      } else {
+        # Arrange plots in a grid (max 2 cols per row)
+        n_plots <- length(plots)
+        n_cols <- min(2, n_plots)
+        n_rows <- ceiling(n_plots / n_cols)
+        
+        cat("  - Arranging", n_plots, "plots in", n_rows, "row(s) ×", n_cols, "column(s)\n")
+        
+        # Combine plots into grid
+        combined_plot <- cowplot::plot_grid(
+            plotlist = plots,
+            nrow = n_rows,
+            ncol = n_cols,
+            align = "hv",
+            axis = "lr"
+        )
+        
+        # Save combined grid plot
+        output_file <- file.path(output_dir, "quick_test_plot_grid.png")
+        ggplot2::ggsave(output_file, combined_plot, width = 14, height = 4 * n_rows, dpi = 300)
+        cat(sprintf("  ✓ Saved combined grid: %s\n", basename(output_file)))
+        
+    } else if (is.ggplot(plots)) {
         cat("  ✓ Generated single plot\n")
         output_file <- file.path(output_dir, "quick_test_plot_single.png")
         ggplot2::ggsave(output_file, plots, width = 10, height = 6, dpi = 300)
-        cat(sprintf("    ✓ Saved: %s\n", basename(output_file)))
-      }
-    }, error = function(e) {
-      cat("  ✗ Error:", e$message, "\n")
-    })
-} else {
-    cat("  ✗ No genes available for plotting\n")
-}
+        cat(sprintf("  ✓ Saved: %s\n", basename(output_file)))
+    } else {
+        cat("  ⚠ Unexpected plot format, skipping save\n")
+    }
+}, error = function(e) {
+    cat("  ✗ Error generating plots:", e$message, "\n")
+    # Uncomment for debugging:
+    # traceback()
+})
 
 cat("\n════════════════════════════════════════════════════════════\n")
 cat("COMPLETE: Loaded results from JSON and generated plots\n")

@@ -1411,7 +1411,7 @@ plot_top_transcripts <- function(
 #' @export
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n_top = 6,
-    sig_alpha = 0.05, assay_name = "diversity", palette = "Set1", model_data) {
+    sig_alpha = 0.05, assay_name = "diversity", palette = "Set1", model_data = NULL) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr"))
 
@@ -1420,8 +1420,29 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         stop("se must be a SummarizedExperiment", call. = FALSE)
     }
 
+    # Handle flexible input: lm_res can be either:
+    # 1. A data.frame with results (traditional usage)
+    # 2. A list with $results and $model_data (return_model_data = TRUE format)
+    if (is.list(lm_res) && !is.data.frame(lm_res)) {
+        # lm_res is a list with components
+        if ("results" %in% names(lm_res) && is.data.frame(lm_res$results)) {
+            # Extract results and model_data from the list
+            extracted_results <- lm_res$results
+            
+            # If model_data not provided, extract from lm_res
+            if (is.null(model_data) && "model_data" %in% names(lm_res)) {
+                model_data <- lm_res$model_data
+            }
+            
+            lm_res <- extracted_results
+        } else {
+            stop("lm_res is a list but does not contain 'results' data.frame component",
+                call. = FALSE)
+        }
+    }
+    
     if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) {
-        stop("lm_res must be a data.frame with 'gene' column from calculate_lm_interaction()",
+        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from calculate_lm_interaction()\n  2. A list with $results and $model_data from return_model_data = TRUE",
             call. = FALSE)
     }
 
@@ -1431,7 +1452,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
     
     # Validate and extract metadata from model_data
     if (is.null(model_data)) {
-        stop("model_data is required. Obtain it from calculate_lm_interaction(..., return_model_data = TRUE)$model_data",
+        stop("model_data is required. Provide it as a parameter or pass full lm_res list with $model_data component",
             call. = FALSE)
     }
     
@@ -1440,12 +1461,43 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
             call. = FALSE)
     }
     
-    # Extract required metadata
+    # Extract required metadata - handle both wrapped (from JSON) and unwrapped formats
+    # JSON returns arrays: method = [["gam"]], need [[1]]
+    # Direct list returns: method = "gam", no [[1]] needed
     q_values <- model_data$q_values
     if (is.null(q_values)) {
         stop("model_data must contain 'q_values' from the original analysis",
             call. = FALSE)
     }
+    
+    # Normalize q_values in case it's wrapped in list
+    if (is.list(q_values) && length(q_values) == 1) {
+        q_values <- unlist(q_values)
+    } else {
+        q_values <- unlist(q_values)
+    }
+
+    # Match and filter genes between SE and lm_res
+    # After calculate_diversity, rownames(SE) are gene names
+    # lm_res$gene column also contains gene names
+    gene_names_in_results <- lm_res$gene
+    gene_names_in_se <- rownames(se)
+
+    # Find genes that exist in both
+    available_genes <- gene_names_in_se[gene_names_in_se %in% gene_names_in_results]
+
+    if (length(available_genes) == 0) {
+        stop(sprintf("No genes from lm_res found in rownames(se). \n  Examples from lm_res: %s\n  Examples from SE: %s",
+            paste(head(gene_names_in_results, 3), collapse=", "),
+            paste(head(gene_names_in_se, 3), collapse=", ")),
+            call. = FALSE)
+    }
+
+    # Subset SE to only genes that are in results
+    se <- se[available_genes, ]
+
+    # Subset results to only genes that are in SE
+    lm_res <- lm_res[lm_res$gene %in% rownames(se), ]
 
     # Extract assay matrix and colData
     mat <- SummarizedExperiment::assay(se, assay_name)
