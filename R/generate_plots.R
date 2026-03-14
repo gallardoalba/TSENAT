@@ -1366,14 +1366,12 @@ plot_top_transcripts <- function(
 #' @param sig_alpha Significance threshold for adjusted p-values (default: 0.05).
 #'   Only used if genes = NULL; filters lm_res to significant genes before selecting top n.
 #' @param assay_name Name of the assay in `se` to extract (default: "diversity").
-#' @param palette Color palette for group separation (default: "Set1").
 #' @param model_data Required list from `calculate_lm_interaction(..., return_model_data = TRUE)$model_data`
 #'   containing metadata (q_values, sample configuration, etc.). This is the preferred way to use
 #'   this function as it ensures all visualizations are based on the exact analysis configuration.
 #'
-#' @return A list of `ggplot` objects, one per selected gene, showing GAM-fitted
-#'   q-curves colored by sample group. If only one gene is requested, returns a 
-#'   single `ggplot` object.
+#' @return A single `ggplot` object with all selected genes arranged in a grid layout 
+#'   (2 columns per row). Can be saved with `ggplot2::ggsave()`.
 #'
 #' @details
 #' For each selected gene, this function:
@@ -1402,18 +1400,20 @@ plot_top_transcripts <- function(
 #' # Run FPCA to identify significant genes
 #' lm_result <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca", 
 #'                                       return_model_data = TRUE)
-#' # Plot GAM curves for top 3 genes with model metadata
+#' # Plot GAM curves for top 3 genes with model metadata (returned as combined grid)
 #' if (nrow(lm_result$results) > 0) {
-#'   plot_lm_interaction_gam(se, lm_result$results, sample_type_col = "sample_type", 
+#'   grid_plot <- plot_lm_interaction_gam(se, lm_result$results, sample_type_col = "sample_type", 
 #'                           n_top = 3, model_data = lm_result$model_data)
+#'   # grid_plot is a combined ggplot object ready to save
 #' }
 #'
 #' @export
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
-plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n_top = 6,
-    sig_alpha = 0.05, assay_name = "diversity", palette = "Set1", model_data = NULL) {
+#' @importFrom cowplot plot_grid
+plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type", genes = NULL, n_top = 6,
+    sig_alpha = 0.05, assay_name = "diversity", model_data = NULL) {
 
-    require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr"))
+    require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr", "cowplot"))
 
     # Validate inputs
     if (!inherits(se, "SummarizedExperiment")) {
@@ -1575,8 +1575,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
             }
         }
         
-        cat(sprintf("[DEBUG gene_display_name] %s\n", gene_display_name))
-
         # Extract data for this gene across all columns (samples × q-values)
         # CRITICAL: Extract gene_vals fresh for each gene!
         gene_vals <- mat[g, ]
@@ -1617,9 +1615,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
 
         # Fit GAM per group
         unique_groups <- unique(plot_df$group)
-        cat("[DEBUG make_gam_plot] Gene:", g, "Unique groups:", paste(unique_groups, collapse=", "), "\n")
-        cat("[DEBUG make_gam_plot] Group distribution in plot_df:\n")
-        print(table(plot_df$group))
 
         if (length(unique_groups) < 2) {
             warning(sprintf("Less than 2 groups for gene '%s'", g), call. = FALSE)
@@ -1634,10 +1629,8 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         pred_list <- list()
         for (gr in unique_groups) {
             subset_data <- subset(plot_df, group == gr)
-            cat(sprintf("[DEBUG] Fitting GAM for group '%s': %d rows\n", gr, nrow(subset_data)))
             
             if (nrow(subset_data) < 3) {
-                cat(sprintf("[DEBUG] Skipping group '%s': < 3 rows\n", gr))
                 next
             }
 
@@ -1658,17 +1651,13 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
                         se = pred_vals$se.fit,
                         stringsAsFactors = FALSE
                     )
-                    cat(sprintf("[DEBUG] GAM fit succeeded for group '%s'\n", gr))
                 },
                 error = function(e) {
-                    cat(sprintf("[DEBUG] GAM fit FAILED for group '%s': %s\n", gr, e$message))
                     warning(sprintf("GAM fit failed for gene '%s' group '%s': %s", g, gr, e$message),
                         call. = FALSE)
                 }
             )
         }
-        
-        cat(sprintf("[DEBUG] pred_list has %d groups with predictions\n", length(pred_list)))
 
         if (length(pred_list) == 0) {
             warning(sprintf("No GAM fits succeeded for gene '%s'", g), call. = FALSE)
@@ -1676,9 +1665,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         }
 
         pred_df <- do.call(rbind, pred_list)
-        
-        # DEBUG: Check what's in pred_df
-        cat(sprintf("[DEBUG pred_df] Rows: %d, Groups: %s\n", nrow(pred_df), paste(unique(pred_df$group), collapse=", ")))
 
         # CRITICAL FIX: Ensure group is a factor with consistent levels across both dataframes
         group_levels <- sort(unique(c(as.character(plot_df$group), as.character(pred_df$group))))
@@ -1694,7 +1680,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         if ("tumor" %in% group_levels) color_mapping["tumor"] <- "#377EB8"    # blue
         if (length(group_levels) > 2) {
             # Add more colors if needed
-            extra_colors <- RColorBrewer::brewer.pal(length(group_levels), palette)
+            extra_colors <- RColorBrewer::brewer.pal(length(group_levels), "Set1")
             for (i in seq_along(group_levels)) {
                 if (!(group_levels[i] %in% names(color_mapping))) {
                     color_mapping[group_levels[i]] <- extra_colors[i]
@@ -1773,12 +1759,21 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         return(NULL)
     }
 
-    # Return as list (or single plot if n_top == 1)
-    if (length(plots) == 1) {
-        return(plots[[1]])
-    } else {
-        return(plots)
-    }
+    # Arrange plots in a grid and return single combined plot
+    n_plots <- length(plots)
+    n_cols <- 2
+    n_rows <- ceiling(n_plots / n_cols)
+    
+    # Arrange plots using cowplot
+    combined_plot <- cowplot::plot_grid(
+        plotlist = plots,
+        nrow = n_rows,
+        ncol = n_cols,
+        align = "hv",
+        axis = "lr"
+    )
+    
+    return(combined_plot)
 }
 
 #' Bootstrap Confidence Intervals for Q-curve with Statistical Testing

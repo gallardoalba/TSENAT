@@ -88,53 +88,32 @@ cat("  ✓ Diversity SE rebuilt\n\n")
 
 # STEP 3: Generate plots
 cat("[3] Generating plots with plot_lm_interaction_gam...\n")
-cat("  Note: Function automatically extracts model_data and handles gene matching\n\n")
+cat("  Note: Function automatically extracts model_data and handles gene matching\n")
+cat("  Note: grid=TRUE arranges plots automatically\n\n")
 
 # Generate plots with error handling
 # Function will automatically:
 # - Extract model_data from lm_res if needed
 # - Match genes between SE and results
 # - Subset both to only available genes
+# - If grid=TRUE, arrange in grid and return single combined plot
 tryCatch({
-    plots <- plot_lm_interaction_gam(
+    combined_plot <- plot_lm_interaction_gam(
         se = ts_se,
-        lm_res = lm_res,  # Pass full lm_res list with $results and $model_data
-        sample_type_col = "sample_type",
-        genes = lm_res$results$gene[1:6],  # Top 6 genes to plot
-        palette = "Set1"
+        lm_res = lm_res,
+        n_top = 4  # Pass full lm_res list with $results and $model_data
     )
 
-    if (is.list(plots) && length(plots) > 0) {
-        cat("  ✓ Generated", length(plots), "plots\n")
-        
-        # Arrange plots in a grid (max 2 cols per row)
-        n_plots <- length(plots)
-        n_cols <- min(2, n_plots)
-        n_rows <- ceiling(n_plots / n_cols)
-        
-        cat("  - Arranging", n_plots, "plots in", n_rows, "row(s) ×", n_cols, "column(s)\n")
-        
-        # Combine plots into grid
-        combined_plot <- cowplot::plot_grid(
-            plotlist = plots,
-            nrow = n_rows,
-            ncol = n_cols,
-            align = "hv",
-            axis = "lr"
-        )
+    if (!is.null(combined_plot)) {
+        cat("  ✓ Generated combined plot grid (2 cols × 3 rows)\n\n")
         
         # Save combined grid plot
         output_file <- file.path(output_dir, "quick_test_plot_grid.png")
-        ggplot2::ggsave(output_file, combined_plot, width = 14, height = 4 * n_rows, dpi = 300)
+        ggplot2::ggsave(output_file, combined_plot, width = 14, height = 12, dpi = 300)
         cat(sprintf("  ✓ Saved combined grid: %s\n", basename(output_file)))
         
-    } else if (is.ggplot(plots)) {
-        cat("  ✓ Generated single plot\n")
-        output_file <- file.path(output_dir, "quick_test_plot_single.png")
-        ggplot2::ggsave(output_file, plots, width = 10, height = 6, dpi = 300)
-        cat(sprintf("  ✓ Saved: %s\n", basename(output_file)))
     } else {
-        cat("  ⚠ Unexpected plot format, skipping save\n")
+        cat("  ⚠ plot_lm_interaction_gam returned NULL, skipping save\n")
     }
 }, error = function(e) {
     cat("  ✗ Error generating plots:", e$message, "\n")
