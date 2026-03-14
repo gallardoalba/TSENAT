@@ -376,9 +376,11 @@ Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
+# Using Bayesian pseudocount regularization for robust estimation of sparse data
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
-    q = qvec, norm = TRUE, metadata = metadata_df)
+    q = qvec, norm = TRUE,
+    metadata = metadata_df)
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
@@ -584,7 +586,7 @@ if ("gene_name" %in% colnames(lm_res_display) && "gene" %in% colnames(lm_res_dis
 }
 
 # Select key columns for display
-display_cols <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "shapiro_p_value", "residuals_normal", "n_observations", "n_subjects", "arima_transformation")
+display_cols <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "shapiro_p_value", "residuals_normal", "arima_transformation")
 lm_res_display <- lm_res_display[, intersect(display_cols, colnames(lm_res_display))]
 
 # Format p-values in scientific notation to show actual values
@@ -609,7 +611,7 @@ knitr::kable(
 Now we will plot the q-curve profile for the top genes identified 
 by the linear-model interaction test.
 
-```{r top-gene-qprofile, fig.width=14, fig.height=12}
+```{r top-gene-qprofile, fig.width=14, fig.height=12, message=FALSE}
 # Plot q-curve profiles for the top 4 genes with the most significant q×group interactions
 combined_plot <- plot_lm_interaction_gam(
     se = ts_se,
@@ -914,21 +916,31 @@ print(p)
 
 Once you have per-q divergence values from `effect_sizes_divergence()` (which merges LMM p-values with divergence estimates), you can classify each gene's isoform switching mechanism:
 
-```{r classify-pattern-compute, message=FALSE}
+```{r classify-pattern-compute, message=FALSE, warning=FALSE}
 # Extract classification table directly from eff_res
 # Function automatically handles NULL input and filters for valid per-q patterns
-classification_tbl <- extract_classification_table(eff_res, top_n = 10, sort_by = 'padj')
+classification_tbl <- tryCatch({
+  if (exists("eff_res") && !is.null(eff_res)) {
+    extract_classification_table(eff_res, top_n = 10, sort_by = 'padj')
+  } else {
+    NULL
+  }
+}, error = function(e) {
+  NULL
+})
 ```
 
 ```{r classify-pattern-table, results='asis', message=FALSE, echo = FALSE}
 # Display classification table if valid genes are present
-if (nrow(classification_tbl) > 0 && any(!is.na(classification_tbl$Pattern))) {
+if (!is.null(classification_tbl) && nrow(classification_tbl) > 0 && "Pattern" %in% colnames(classification_tbl) && any(!is.na(classification_tbl$Pattern))) {
   print(knitr::kable(
     classification_tbl,
     caption = "Classification of gene q-patterns and per-q divergence values (top 10 genes)",
     digits = 4,
     row.names = FALSE
   ))
+} else {
+  cat("No valid classification patterns available.\n")
 }
 ```
 

@@ -1670,8 +1670,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
         group_levels <- sort(unique(c(as.character(plot_df$group), as.character(pred_df$group))))
         plot_df$group <- factor(plot_df$group, levels = group_levels)
         pred_df$group <- factor(pred_df$group, levels = group_levels)
-        
-        cat(sprintf("[DEBUG] Group factor levels: %s\n", paste(levels(plot_df$group), collapse=", ")))
 
         # Create explicit color mapping
         # For Set1 palette: red, blue, green, yellow, purple, etc.
@@ -1687,8 +1685,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
                 }
             }
         }
-        
-        cat(sprintf("[DEBUG] Color mapping: %s\n", paste(names(color_mapping), "=", color_mapping, collapse="; ")))
 
         # Create plot with explicit color scale
         # Make sure both geoms explicitly get color aesthetic
@@ -1720,27 +1716,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
                 plot.title = ggplot2::element_text(face = "bold"),
                 legend.position = "bottom"
             )
-
-        # Debug: Check the plot structure
-        cat(sprintf("[DEBUG] Gene display name: %s\n", gene_display_name))
-        cat(sprintf("[DEBUG] plot_df groups: %s\n", paste(unique(plot_df$group), collapse=", ")))
-        cat(sprintf("[DEBUG] pred_df groups: %s\n", paste(unique(pred_df$group), collapse=", ")))
-        
-        p_built <- tryCatch({
-            ggplot2::ggplot_build(p)
-        }, error = function(e) {
-            cat(sprintf("[ERROR] ggplot_build failed: %s\n", e$message))
-            return(NULL)
-        })
-        
-        if (!is.null(p_built)) {
-            cat(sprintf("[DEBUG] Layers in ggplot: %d\n", length(p_built$data)))
-            if (length(p_built$data) > 0) {
-                for (i in seq_along(p_built$data)) {
-                    cat(sprintf("[DEBUG] Layer %d: %d rows\n", i, nrow(p_built$data[[i]])))
-                }
-            }
-        }
 
         return(p)
     }
