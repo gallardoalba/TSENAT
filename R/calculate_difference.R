@@ -951,6 +951,29 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
 
     # Optionally return model data alongside results
     if (return_model_data) {
+        # Extract per-group statistics from SE
+        per_group_stats <- list()
+        
+        mat <- SummarizedExperiment::assay(se, assay_name)
+        cdata <- SummarizedExperiment::colData(se)
+        
+        for (gr in unique(group_vec)) {
+            gr_idx <- which(group_vec == gr)
+            gr_mat <- mat[, gr_idx, drop = FALSE]
+            
+            per_group_stats[[gr]] <- list(
+                group = gr,
+                n_samples = length(unique(sample_names[gr_idx])),
+                n_observations = ncol(gr_mat),
+                entropy_mean = mean(as.numeric(gr_mat), na.rm = TRUE),
+                entropy_sd = sd(as.numeric(gr_mat), na.rm = TRUE),
+                entropy_min = min(as.numeric(gr_mat), na.rm = TRUE),
+                entropy_max = max(as.numeric(gr_mat), na.rm = TRUE),
+                entropy_median = median(as.numeric(gr_mat), na.rm = TRUE),
+                n_na = sum(is.na(gr_mat))
+            )
+        }
+        
         model_data <- list(
             method = method,
             n_genes = nrow(res),
@@ -958,6 +981,7 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
             q_values = sort(unique(q_vals)),
             sample_names = unique(sample_names),
             group_levels = levels(factor(group_vec)),
+            per_group_statistics = per_group_stats,
             test_configuration = list(
                 method = method,
                 pvalue_method = pvalue,
@@ -969,7 +993,7 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
             ),
             genes_analyzed = res$gene,
             call_time = Sys.time(),
-            notes = "Use this model_data with plotting functions to visualize model fits and diagnostics"
+            notes = "Use this model_data with plotting functions to visualize model fits and diagnostics. See per_group_statistics for condition-specific entropy summaries."
         )
         
         return(list(

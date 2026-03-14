@@ -378,7 +378,8 @@ Now we will compute Tsallis entropy.
 # compute Tsallis entropy for a sequence of values (normalized)
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
-    q = qvec, norm = TRUE, metadata = metadata_df
+    q = qvec, norm = TRUE, metadata = metadata_df,
+    shrinkage = "empirical_bayes"
 )
 ```
 

@@ -1499,30 +1499,31 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         top_genes <- sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
     }
 
+    # Create gene ID to display name mapping from lm_res
+    gene_name_map <- setNames(lm_res$gene, lm_res$gene)  # default: use gene ID
+    
+    # If lm_res has a gene_name column (e.g., from return_model_data), use it
+    if ("gene_name" %in% colnames(lm_res)) {
+        gene_name_map <- setNames(lm_res$gene_name, lm_res$gene)
+    }
+
     # Helper to build data.frame for a single gene using model_data
-    make_gam_plot <- function(g) {
+    make_gam_plot <- function(g, gene_display_name = NULL) {
         if (!(g %in% rownames(mat))) {
             warning(sprintf("Gene '%s' not found in assay", g), call. = FALSE)
             return(NULL)
         }
 
-        # Try to get human-readable gene name from rowData
-        gene_display_name <- g  # default to gene ID
-        tryCatch({
-            if (!is.null(rowData(se)) && "gene_name" %in% colnames(rowData(se))) {
-                # Use rowData directly with bracket notation
-                gene_name_val <- tryCatch({
-                    rowData(se)[g, "gene_name"]
-                }, error = function(e) NULL)
-                
-                if (!is.null(gene_name_val) && !is.na(gene_name_val) && 
-                    gene_name_val != "" && length(gene_name_val) > 0) {
-                    gene_display_name <- as.character(gene_name_val)
-                }
+        # Use provided gene name, or look it up from mapping, or default to gene ID
+        if (is.null(gene_display_name)) {
+            if (g %in% names(gene_name_map)) {
+                gene_display_name <- gene_name_map[[g]]
+            } else {
+                gene_display_name <- g
             }
-        }, error = function(e) {
-            # If lookup fails, just use gene ID
-        })
+        }
+        
+        cat(sprintf("[DEBUG gene_display_name] %s\n", gene_display_name))
 
         # Extract data for this gene across all columns (samples × q-values)
         # CRITICAL: Extract gene_vals fresh for each gene!
@@ -1627,12 +1628,48 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
         # DEBUG: Check what's in pred_df
         cat(sprintf("[DEBUG pred_df] Rows: %d, Groups: %s\n", nrow(pred_df), paste(unique(pred_df$group), collapse=", ")))
 
-        # Create plot
+        # CRITICAL FIX: Ensure group is a factor with consistent levels across both dataframes
+        group_levels <- sort(unique(c(as.character(plot_df$group), as.character(pred_df$group))))
+        plot_df$group <- factor(plot_df$group, levels = group_levels)
+        pred_df$group <- factor(pred_df$group, levels = group_levels)
+        
+        cat(sprintf("[DEBUG] Group factor levels: %s\n", paste(levels(plot_df$group), collapse=", ")))
+
+        # Create explicit color mapping
+        # For Set1 palette: red, blue, green, yellow, purple, etc.
+        color_mapping <- c()
+        if ("normal" %in% group_levels) color_mapping["normal"] <- "#E41A1C"  # red
+        if ("tumor" %in% group_levels) color_mapping["tumor"] <- "#377EB8"    # blue
+        if (length(group_levels) > 2) {
+            # Add more colors if needed
+            extra_colors <- RColorBrewer::brewer.pal(length(group_levels), palette)
+            for (i in seq_along(group_levels)) {
+                if (!(group_levels[i] %in% names(color_mapping))) {
+                    color_mapping[group_levels[i]] <- extra_colors[i]
+                }
+            }
+        }
+        
+        cat(sprintf("[DEBUG] Color mapping: %s\n", paste(names(color_mapping), "=", color_mapping, collapse="; ")))
+
+        # Create plot with explicit color scale
+        # Make sure both geoms explicitly get color aesthetic
         p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = entropy, color = group)) +
-            ggplot2::geom_point(alpha = 0.5, size = 2) +
-            ggplot2::geom_line(data = pred_df, ggplot2::aes(x = q, y = entropy_fit, color = group,
-                linetype = "GAM fit"), linewidth = 1, alpha = 0.9) +
-            ggplot2::scale_color_brewer(palette = palette, name = sample_type_col) +
+            ggplot2::geom_point(
+                data = plot_df, 
+                ggplot2::aes(x = q, y = entropy, color = group),
+                alpha = 0.5, size = 2
+            ) +
+            ggplot2::geom_line(
+                data = pred_df, 
+                ggplot2::aes(x = q, y = entropy_fit, color = group, linetype = "GAM fit"), 
+                linewidth = 1, alpha = 0.9
+            ) +
+            ggplot2::scale_color_manual(
+                values = color_mapping, 
+                name = sample_type_col,
+                breaks = group_levels
+            ) +
             ggplot2::scale_linetype_manual(values = c("GAM fit" = 1), name = "") +
             ggplot2::labs(
                 x = "q parameter",
@@ -1645,6 +1682,27 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col, genes = NULL, n
                 plot.title = ggplot2::element_text(face = "bold"),
                 legend.position = "bottom"
             )
+
+        # Debug: Check the plot structure
+        cat(sprintf("[DEBUG] Gene display name: %s\n", gene_display_name))
+        cat(sprintf("[DEBUG] plot_df groups: %s\n", paste(unique(plot_df$group), collapse=", ")))
+        cat(sprintf("[DEBUG] pred_df groups: %s\n", paste(unique(pred_df$group), collapse=", ")))
+        
+        p_built <- tryCatch({
+            ggplot2::ggplot_build(p)
+        }, error = function(e) {
+            cat(sprintf("[ERROR] ggplot_build failed: %s\n", e$message))
+            return(NULL)
+        })
+        
+        if (!is.null(p_built)) {
+            cat(sprintf("[DEBUG] Layers in ggplot: %d\n", length(p_built$data)))
+            if (length(p_built$data) > 0) {
+                for (i in seq_along(p_built$data)) {
+                    cat(sprintf("[DEBUG] Layer %d: %d rows\n", i, nrow(p_built$data[[i]])))
+                }
+            }
+        }
 
         return(p)
     }
