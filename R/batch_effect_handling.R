@@ -225,6 +225,95 @@ print.batch_detection <- function(x, ...) {
 # 2. BATCH CORRECTION FUNCTIONS - ComBat-seq
 # ============================================================================
 
+#' Adjust Batch Effects in RNA-seq Count Data (Unified Interface)
+#'
+#' Removes batch effects from count data using ComBat-seq algorithm (Zhang et al., 2020).
+#' Provides unified interface supporting standard correction and reference-batch preservation.
+#'
+#' @param se A SummarizedExperiment object with count matrix (genes * samples)
+#' @param batch Character; name of batch column in colData(se)
+#' @param method Character; one of "standard" (default) or "ref"
+#'   - "standard": Apply ComBat-seq to all batches (standard batch correction)
+#'   - "ref": Preserve reference batch, adjust others relative to it (ComBat-ref)
+#' @param ref_batch Character; identifier of reference batch (required if method="ref")
+#' @param group Character; optional biological group variable to preserve
+#' @param shrinkage Logical; use empirical Bayes shrinkage (default: TRUE, for "standard" only)
+#' @param par.prior Logical; parametric prior (default: TRUE, for "standard" only)
+#' @param mean.only Logical; adjust only mean, not dispersion (default: FALSE)
+#'
+#' @return SummarizedExperiment with batch-corrected counts in assay slot
+#' @export
+#' @references 
+#' Zhang, Y., et al. (2020). ComBat-seq: batch effect adjustment for 
+#' RNA-seq count data. NAR Genomics and Bioinformatics, 2(3), lqaa078.
+#' 
+#' Hornung, R., et al. (2024). ComBat-ref: Batch effect correction with 
+#' reference batch preservation. bioRxiv preprint.
+#'
+#' @examples
+#' \dontrun{
+#' # Standard batch correction (adjust all batches)
+#' corrected_standard <- adjust_batch_effects(
+#'   se = readcounts_se,
+#'   batch = "batch_id",
+#'   method = "standard"
+#' )
+#' 
+#' # Reference-batch correction (preserve primary batch)
+#' corrected_ref <- adjust_batch_effects(
+#'   se = readcounts_se,
+#'   batch = "batch_id",
+#'   method = "ref",
+#'   ref_batch = "primary_collection"
+#' )
+#' }
+adjust_batch_effects <- function(
+    se,
+    batch,
+    method = c("standard", "ref"),
+    ref_batch = NULL,
+    group = NULL,
+    shrinkage = TRUE,
+    par.prior = TRUE,
+    mean.only = FALSE) {
+  
+  method <- match.arg(method)
+  
+  # Validate inputs
+  if (!methods::is(se, "SummarizedExperiment")) {
+    stop("se must be a SummarizedExperiment object", call. = FALSE)
+  }
+  
+  if (!(batch %in% names(SummarizedExperiment::colData(se)))) {
+    stop("Batch column '", batch, "' not found in colData(se)", call. = FALSE)
+  }
+  
+  # Dispatch to appropriate method
+  if (method == "standard") {
+    # Use ComBat-seq (adjust all batches)
+    return(adjust_batch_effects_seq(
+      se = se,
+      batch = batch,
+      group = group,
+      shrinkage = shrinkage,
+      par.prior = par.prior,
+      mean.only = mean.only
+    ))
+  } else if (method == "ref") {
+    # Use ComBat-ref (preserve reference batch)
+    if (is.null(ref_batch)) {
+      stop("ref_batch must be provided when method='ref'", call. = FALSE)
+    }
+    return(adjust_batch_effects_ref(
+      se = se,
+      batch = batch,
+      ref_batch = ref_batch,
+      group = group,
+      mean.only = mean.only
+    ))
+  }
+}
+
 #' Adjust Batch Effects in RNA-seq Count Data (ComBat-seq)
 #'
 #' Applies ComBat-seq algorithm (Zhang et al., 2020) to remove batch effects 
@@ -239,18 +328,25 @@ print.batch_detection <- function(x, ...) {
 #' @param mean.only Logical; adjust only mean, not dispersion (default: FALSE)
 #'
 #' @return SummarizedExperiment with batch-corrected counts in assay slot
-#' @export
+#' 
+#' @details
+#' This function is called by adjust_batch_effects(..., method="standard").
+#' Users should prefer the unified adjust_batch_effects() interface.
+#' 
+#' @keywords internal
+#' @noRd
+#' 
 #' @references 
 #' Zhang, Y., et al. (2020). ComBat-seq: batch effect adjustment for 
 #' RNA-seq count data. NAR Genomics and Bioinformatics, 2(3), lqaa078.
 #'
 #' @examples
 #' \dontrun{
-#' # Correct batch effects in RNA-seq data
-#' corrected_se <- adjust_batch_effects_seq(
+#' # Standard batch correction - use adjust_batch_effects() instead
+#' corrected_se <- adjust_batch_effects(
 #'   se = readcounts_se,
 #'   batch = "batch_id",
-#'   group = "sample_type"
+#'   method = "standard"
 #' )
 #' }
 adjust_batch_effects_seq <- function(
@@ -450,19 +546,26 @@ estimate_batch_parameters_seq <- function(counts, batch, shrinkage = TRUE,
 #' @param mean.only Logical; adjust only mean (default: FALSE)
 #'
 #' @return SummarizedExperiment with corrected assay values
-#' @export
+#' 
+#' @details
+#' This function is called by adjust_batch_effects(..., method="ref").
+#' Users should prefer the unified adjust_batch_effects() interface.
+#' 
+#' @keywords internal
+#' @noRd
+#'
 #' @references
 #' Hornung, R., et al. (2024). ComBat-ref: Batch effect correction for RNA-seq 
 #' with reference batch preservation. bioRxiv preprint.
 #'
 #' @examples
 #' \dontrun{
-#' # Correct batch effects while preserving primary batch
-#' corrected <- adjust_batch_effects_ref(
+#' # Reference-batch correction - use adjust_batch_effects() instead
+#' corrected <- adjust_batch_effects(
 #'   se = readcounts_se,
 #'   batch = "collection_batch",
 #'   ref_batch = "primary",
-#'   group = "cell_type"
+#'   method = "ref"
 #' )
 #' }
 adjust_batch_effects_ref <- function(se, batch, ref_batch, group = NULL, 
@@ -797,27 +900,7 @@ print.batch_correction_comparison <- function(x, ...) {
 #' cat("Batch strength (F-stat):", result$batch_effect_strength, "\n")
 #' }
 #'
-#' @export
-#' @export
-detect_batch_structure_ranking <- function(
-    entropy_data,
-    sample_metadata = NULL,
-    n_pcs = 5,
-    color_by = "condition",
-    scale = TRUE) {
-  
-  # Call the underlying detect_batch_structure implementation defined in this file
-  result <- detect_batch_structure(
-    entropy_lists = entropy_data,
-    sample_metadata = sample_metadata,
-    n_pcs = n_pcs,
-    color_by = color_by
-  )
-  
-  return(result)
-}
 
-# ============================================================================
 # 3. RANK-BASED BATCH DETECTION AND CORRECTION (Entropy Framework)
 # ============================================================================
 # Core implementations: detect_batch_structure and apply_batch_correction_ranking
@@ -861,45 +944,10 @@ detect_batch_structure_ranking <- function(
 #'   \code{\link{apply_batch_correction_ranking_se}} for batch correction
 #'   \code{\link{detect_batch_structure}} (underlying implementation)
 #'
-#' @export
-#' @examples
-#' \dontrun{
-#' # Detect batch in entropy data
-#' batch_detection <- detect_batch_structure_from_se(
-#'   entropy_data = entropy_se,
-#'   batch_column = "batch",
-#'   condition_column = "condition",
-#'   color_by = "batch"
-#' )
-#' 
-#' cat(batch_detection$is_batch_confounded)  # TRUE if batch detected
-#' print(batch_detection)  # Shows F-statistic and variance explained
-#' }
-detect_batch_structure_from_se <- function(
-    entropy_data,
-    batch_column = NULL,
-    condition_column = NULL,
-    sample_metadata = NULL,
-    color_by = "condition",
-    n_pcs = 5) {
-  
-  # Extract metadata if entropy_data is SE and metadata not provided
-  if (methods::is(entropy_data, "SummarizedExperiment")) {
-    if (is.null(sample_metadata)) {
-      sample_metadata <- as.data.frame(SummarizedExperiment::colData(entropy_data))
-    }
-  }
-  
-  # Call the underlying detect_batch_structure implementation defined in this file
-  batch_pca_result <- detect_batch_structure(
-    entropy_lists = entropy_data,
-    sample_metadata = sample_metadata,
-    n_pcs = n_pcs,
-    color_by = color_by
-  )
-  
-  return(batch_pca_result)
-}
+
+# ============================================================================
+# 3. RANK-BASED BATCH CORRECTION (Entropy Framework)
+# ============================================================================
 
 #' Apply Rank-Based Batch Correction to SummarizedExperiment
 #'

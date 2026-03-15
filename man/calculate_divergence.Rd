@@ -10,7 +10,7 @@ calculate_divergence(
   control_group = NULL,
   q = 1,
   paired = FALSE,
-  bootstrap = TRUE,
+  bootstrap = FALSE,
   nboot = 1000,
   ci = 0.95,
   method = "percentile",
@@ -48,7 +48,7 @@ to preserve within-pair correlations (Papers C016, S102-S109).
 
 \item{bootstrap}{Logical; if TRUE, computes bootstrap confidence intervals (~2-3 sec/gene).
 If FALSE, computes point estimates only (~0.02-0.05 sec/gene).
-(default: TRUE)}
+(default: FALSE)}
 
 \item{nboot}{Number of bootstrap replicates (default: 1000)
 Note: ignored if bootstrap=FALSE}

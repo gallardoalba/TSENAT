@@ -44,13 +44,14 @@ test_that("detect_batch_effects runs without error", {
   expect_true(length(result$batch_variance_pct) == 3)
 })
 
-test_that("adjust_batch_effects_seq runs without error", {
+test_that("adjust_batch_effects runs standard method without error", {
   se <- .make_test_se()
   SummarizedExperiment::colData(se)$batch_id <- factor(c(rep("A", 8), rep("B", 8)))
   
-  result <- adjust_batch_effects_seq(
+  result <- adjust_batch_effects(
     se = se,
     batch = "batch_id",
+    method = "standard",
     shrinkage = TRUE,
     par.prior = TRUE
   )
@@ -61,13 +62,14 @@ test_that("adjust_batch_effects_seq runs without error", {
   expect_true(metadata(result)$batch_correction$method == "ComBat-seq")
 })
 
-test_that("adjust_batch_effects_ref runs without error", {
+test_that("adjust_batch_effects runs reference method without error", {
   se <- .make_test_se()
   SummarizedExperiment::colData(se)$batch_id <- factor(c(rep("A", 8), rep("B", 8)))
   
-  result <- adjust_batch_effects_ref(
+  result <- adjust_batch_effects(
     se = se,
     batch = "batch_id",
+    method = "ref",
     ref_batch = "A",
     mean.only = FALSE
   )
@@ -81,9 +83,10 @@ test_that("compare_batch_correction compares before/after", {
   se <- .make_test_se()
   SummarizedExperiment::colData(se)$batch_id <- factor(c(rep("A", 8), rep("B", 8)))
   
-  corrected <- adjust_batch_effects_seq(
+  corrected <- adjust_batch_effects(
     se = se,
-    batch = "batch_id"
+    batch = "batch_id",
+    method = "standard"
   )
   
   comparison <- compare_batch_correction(
@@ -106,7 +109,7 @@ test_that("invalid inputs raise errors", {
   
   SummarizedExperiment::colData(se)$batch_id <- factor(c(rep("A", 8), rep("B", 8)))
   expect_error(
-    adjust_batch_effects_ref(se, batch = "batch_id", ref_batch = "Z")
+    adjust_batch_effects(se, batch = "batch_id", method = "ref", ref_batch = "Z")
   )
 })
 
@@ -114,14 +117,14 @@ test_that("invalid inputs raise errors", {
 # Rank-Based Batch Effect Detection and Correction Tests
 # ============================================================================
 
-test_that("detect_batch_structure_ranking handles matrix input", {
+test_that("detect_batch_structure handles matrix input", {
   # Create test entropy matrix
   entropy_matrix <- matrix(rnorm(200), nrow = 40, ncol = 5)
   rownames(entropy_matrix) <- paste0("gene", 1:40)
   colnames(entropy_matrix) <- paste0("sample", 1:5)
   
-  result <- detect_batch_structure_ranking(
-    entropy_data = entropy_matrix,
+  result <- detect_batch_structure(
+    entropy_lists = entropy_matrix,
     sample_metadata = NULL,
     n_pcs = 3
   )
@@ -137,7 +140,7 @@ test_that("detect_batch_structure_ranking handles matrix input", {
   expect_true(sum(result$variance_explained) <= 1.01)  # Allow small numerical error
 })
 
-test_that("detect_batch_structure_ranking with sample metadata", {
+test_that("detect_batch_structure with sample metadata", {
   entropy_matrix <- matrix(rnorm(200), nrow = 40, ncol = 5)
   rownames(entropy_matrix) <- paste0("gene", 1:40)
   colnames(entropy_matrix) <- paste0("sample", 1:5)
@@ -148,8 +151,8 @@ test_that("detect_batch_structure_ranking with sample metadata", {
     condition = factor(c("normal", "tumor", "normal", "tumor", "normal"))
   )
   
-  result <- detect_batch_structure_ranking(
-    entropy_data = entropy_matrix,
+  result <- detect_batch_structure(
+    entropy_lists = entropy_matrix,
     sample_metadata = metadata,
     color_by = "batch"
   )
@@ -161,7 +164,7 @@ test_that("detect_batch_structure_ranking with sample metadata", {
   expect_true(is.numeric(result$batch_effect_strength))
 })
 
-test_that("detect_batch_structure_ranking handles list of matrices", {
+test_that("detect_batch_structure handles list of matrices", {
   # Create multiple entropy matrices for different q-values
   q01_matrix <- matrix(rnorm(200), nrow = 40, ncol = 5)
   q05_matrix <- matrix(rnorm(200), nrow = 40, ncol = 5)
@@ -176,8 +179,8 @@ test_that("detect_batch_structure_ranking handles list of matrices", {
   
   entropy_list <- list(q01 = q01_matrix, q05 = q05_matrix, q10 = q10_matrix)
   
-  result <- detect_batch_structure_ranking(
-    entropy_data = entropy_list,
+  result <- detect_batch_structure(
+    entropy_lists = entropy_list,
     n_pcs = 2
   )
   
@@ -189,7 +192,7 @@ test_that("detect_batch_structure_ranking handles list of matrices", {
   expect_equal(ncol(result$entropy_data), 5)
 })
 
-test_that("detect_batch_structure_ranking detects strong batch effects", {
+test_that("detect_batch_structure detects strong batch effects", {
   # Create data with strong batch signal
   set.seed(42)
   entropy_matrix <- matrix(rnorm(200, sd = 0.5), nrow = 40, ncol = 5)
@@ -205,8 +208,8 @@ test_that("detect_batch_structure_ranking detects strong batch effects", {
     batch = factor(c("A", "A", "A", "B", "B"))
   )
   
-  result <- detect_batch_structure_ranking(
-    entropy_data = entropy_matrix,
+  result <- detect_batch_structure(
+    entropy_lists = entropy_matrix,
     sample_metadata = metadata,
     color_by = "batch",
     n_pcs = 2
@@ -347,8 +350,8 @@ test_that("batch detection works with SummarizedExperiment input", {
     colData = col_data
   )
   
-  result <- detect_batch_structure_ranking(
-    entropy_data = se,
+  result <- detect_batch_structure(
+    entropy_lists = se,
     sample_metadata = as.data.frame(colData(se)),
     color_by = "batch"
   )
