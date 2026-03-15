@@ -7,12 +7,12 @@
 plot_lm_interaction_gam(
   se,
   lm_res,
-  sample_type_col,
+  sample_type_col = "sample_type",
   genes = NULL,
   n_top = 6,
   sig_alpha = 0.05,
   assay_name = "diversity",
-  palette = "Set1"
+  model_data = NULL
 )
 }
 \arguments{
@@ -39,12 +39,13 @@ Only used if genes = NULL; filters lm_res to significant genes before selecting 
 
 \item{assay_name}{Name of the assay in `se` to extract (default: "diversity").}
 
-\item{palette}{Color palette for group separation (default: "Set1").}
+\item{model_data}{Required list from `calculate_lm_interaction(..., return_model_data = TRUE)$model_data`
+containing metadata (q_values, sample configuration, etc.). This is the preferred way to use
+this function as it ensures all visualizations are based on the exact analysis configuration.}
 }
 \value{
-A list of `ggplot` objects, one per selected gene, showing GAM-fitted
-  q-curves colored by sample group. If only one gene is requested, returns a 
-  single `ggplot` object.
+A single `ggplot` object with all selected genes arranged in a grid layout 
+  (2 columns per row). Can be saved with `ggplot2::ggsave()`.
 }
 \description{
 Visualizes smooth q-curve profiles (GAM fits) for selected genes from
@@ -57,6 +58,9 @@ For each selected gene, this function:
 2. Fits GAM models: entropy ~ s(q, k=...) independently for each group
 3. Generates smooth predictions for visualization
 4. Overlays predicted curves for each group with a distinct color
+
+By providing `model_data` from `calculate_lm_interaction()`, the function can directly
+access the q-values used in the original analysis for more accurate visualization.
 
 This complements FPCA by providing interpretable visualization of empirical
 q-curve shape differences that drive PC-level significance.
@@ -73,15 +77,13 @@ SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
     row.names = colnames(se)
 )
 # Run FPCA to identify significant genes
-lm_res <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca")
-# Plot GAM curves for top 3 genes
-if (nrow(lm_res) > 0) {
-  plot_lm_interaction_gam(se, lm_res, sample_type_col = "sample_type", n_top = 3)
-}
-# Or plot specific genes of interest
-if (nrow(lm_res) > 0) {
-  plot_lm_interaction_gam(se, lm_res, sample_type_col = "sample_type", 
-                           genes = c("g1", "g2", "g5"))
+lm_result <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca", 
+                                      return_model_data = TRUE)
+# Plot GAM curves for top 3 genes with model metadata (returned as combined grid)
+if (nrow(lm_result$results) > 0) {
+  grid_plot <- plot_lm_interaction_gam(se, lm_result$results, sample_type_col = "sample_type", 
+                          n_top = 3, model_data = lm_result$model_data)
+  # grid_plot is a combined ggplot object ready to save
 }
 
 }

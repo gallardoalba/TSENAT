@@ -1599,7 +1599,7 @@
 # GAM interaction helper - enhanced with regularization and bias correction support
 .tsenat_gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL,
                                    regularization = c("pca", "gamsel", "spline"),
-                                   bias_correction = TRUE, adaptive_knots = TRUE) {
+                                   bias_correction = TRUE, adaptive_knots = TRUE, weights = NULL) {
     # GAMM with ARIMA(1,1,0) covariance structure for q-dependent entropy measurements
     # Paper S171 (Zimmerman & Harville, 1991): Validates generalized covariance structures.
     # Papers S168-S170: Theoretical foundation for time series correlation patterns.
@@ -1668,7 +1668,11 @@
     gam_weights <- NULL
     gam_weights_original <- NULL  # Will be used only if ARIMA NOT applied
     
-    if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+    # PHASE 1 WEIGHTING (March 2026): Use bootstrap CI weights if provided
+    # These take precedence over heteroscedasticity-estimated weights
+    if (!is.null(weights) && length(weights) == nrow(df)) {
+        gam_weights_original <- weights  # Bootstrap CI weights for Phase 1
+    } else if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
         weights_result <- .tsenat_estimate_variance_weights(df, q_vals, method = "power")
         if (!is.null(weights_result)) {
             gam_weights_original <- weights_result$weights  # Store original weights
@@ -1702,6 +1706,11 @@
     
     # Use original weights only if ARIMA was NOT applied
     gam_weights <- gam_weights_original
+    
+    # PHASE 1 WEIGHTING (March 2026): Set df$weight for ci_weighted flag tracking
+    if (!is.null(gam_weights)) {
+        df$weight <- gam_weights
+    }
     
     # Determine sample size for bias correction
     # For GAM, use actual number of observations (nrow(df)) not number of subjects
@@ -2263,6 +2272,9 @@
                      g, paste(colnames(result), collapse=", ")))
     }
     
+    # Add Phase 1 bootstrap CI weighting tracking (March 2026)
+    result$ci_weighted <- !is.null(df$weight)
+    
     return(result)
 }
 
@@ -2302,7 +2314,7 @@
 # - Stationarity is achieved via differencing; functional basis (smooth PCs) is appropriate for resulting stationary data
 #
 .tsenat_fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 10, subject = NULL, 
-                                    regularization = c("pca", "lasso", "elasticnet")) {
+                                    regularization = c("pca", "lasso", "elasticnet"), weights = NULL) {
     regularization <- match.arg(regularization)
     
     # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
@@ -2529,7 +2541,8 @@
         p_interaction <- min(p_interaction, 1.0)  # Cap at 1.0
         
         return(data.frame(gene = g, p_interaction = p_interaction, n_pcs_tested = n_pc_use,
-                         min_pc_pvalue = min(pc_pvals_valid), stringsAsFactors = FALSE))
+                         min_pc_pvalue = min(pc_pvals_valid), ci_weighted = !is.null(weights), 
+                         stringsAsFactors = FALSE))
     } else if (regularization %in% c("lasso", "elasticnet")) {
         # Regularized regression (LASSO/ElasticNet) on ordered curve matrix:
         # - Uses full curve (all q-values) to predict group membership
@@ -2614,7 +2627,8 @@
                 t_res <- try(stats::t.test(x1_by_subj, x2_by_subj, paired = TRUE), silent = TRUE)
                 if (!inherits(t_res, "try-error")) {
                     pval <- as.numeric(t_res$p.value)
-                    return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
+                    return(data.frame(gene = g, p_interaction = pval, ci_weighted = !is.null(weights), 
+                                     stringsAsFactors = FALSE))
                 }
             }
         }
@@ -2625,7 +2639,8 @@
             return(NULL)
         }
         pval <- as.numeric(t_res$p.value)
-        return(data.frame(gene = g, p_interaction = pval, stringsAsFactors = FALSE))
+        return(data.frame(gene = g, p_interaction = pval, ci_weighted = !is.null(weights), 
+                         stringsAsFactors = FALSE))
     } else {
         return(NULL)
     }
@@ -2714,11 +2729,25 @@
 .tsenat_fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec,
     method, pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings,
     progress, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
-    corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE) {
+    corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE, weights = NULL) {
     regularization <- match.arg(regularization)
     corstr <- match.arg(corstr)
     vals <- as.numeric(mat[g, ])
     df <- data.frame(entropy = vals, q = q_vals, group = factor(group_vec))
+    
+    # Add inverse-variance weights if provided (Phase 1: Bootstrap CI weighting)
+    if (!is.null(weights) && length(weights) == nrow(df)) {
+        df$weight <- weights
+        if (verbose) {
+            message(sprintf("[.tsenat_fit_one_interaction] Gene '%s': weights applied (n=%d, mean=%.4f, min=%.4f, max=%.4f)",
+                           g, length(weights), mean(weights, na.rm=TRUE), min(weights, na.rm=TRUE), max(weights, na.rm=TRUE)))
+        }
+    } else {
+        if (verbose && !is.null(weights)) {
+            message(sprintf("[.tsenat_fit_one_interaction] Gene '%s': weights NOT applied - length mismatch (weights=%d, df rows=%d)",
+                           g, length(weights), nrow(df)))
+        }
+    }
     
     if (sum(!is.na(df$entropy)) < min_obs) {
         return(NULL)
@@ -2922,10 +2951,13 @@
 
         # nlme always uses LRT for hypothesis testing
         p_interaction <- lrt_p
+        
+        # Add weighting information to results (Phase 1)
+        has_weights <- !is.null(df$weight)
 
         return(data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
             p_satterthwaite = NA_real_, fit_method = used_fit_method, singular = used_singular,
-            arima_transformation = use_arima, stringsAsFactors = FALSE))
+            arima_transformation = use_arima, ci_weighted = has_weights, stringsAsFactors = FALSE))
     }
 
     if (method == "gam") {
@@ -2963,10 +2995,10 @@
                 stop("paired = TRUE requires 'paired_samples' or 'sample_base' column in colData; supply subject_col explicitly or use map_metadata(...)")
             }
         }
-        # Pass subject info, regularization, bias correction, and adaptive knots parameters to GAM
+        # Pass subject info, regularization, bias correction, adaptive knots parameters, and weights to GAM
         return(.tsenat_gam_interaction(df, q_vals, g, min_obs = min_obs, subject = subject,
                                        regularization = regularization, bias_correction = bias_correction,
-                                       adaptive_knots = adaptive_knots))
+                                       adaptive_knots = adaptive_knots, weights = weights))
     }
 
     if (method == "fpca") {
@@ -3008,12 +3040,13 @@
         # This implicitly models AR(1) correlation: ρ(k) = φ^|k| across ordered q-values.
         # Test L.1.6 validates this AR(1) pattern for entropy across q-values.
         return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, g,
-            min_obs = min_obs, subject = subject, regularization = regularization))
+            min_obs = min_obs, subject = subject, regularization = regularization, weights = weights))
     }
 
     if (method == "gee") {
         # Extract subject info for GEE (clustered/repeated measures)
         subject <- NULL
+        # Note: weights are passed directly to the GEE helper, no need to prepare locally
         if (!is.null(subject_col)) {
             if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
                 stop(sprintf("subject_col '%s' not found in colData(se)", subject_col))
@@ -3050,7 +3083,7 @@
         }
         # Pass subject info to GEE helper with AR(1) correlation structure (default)
         return(.tsenat_gee_interaction(df, q_vals, g, subject = subject, min_obs = min_obs, 
-                                       corstr = corstr, bias_correction = bias_correction))
+                                       corstr = corstr, bias_correction = bias_correction, weights = weights))
     }
 
     return(NULL)
@@ -3171,8 +3204,13 @@
 
     # Strategy 3: Linear model with subject as fixed effect (treated as factor)
     # Use factor() to ensure proper dummy variable coding, not raw numeric
-    fit0_lm <- try(stats::lm(entropy ~ q + group + factor(subject), data = df), silent = TRUE)
-    fit1_lm <- try(stats::lm(entropy ~ q * group + factor(subject), data = df), silent = TRUE)
+    # Apply inverse-variance weights if available (Phase 1 weighting)
+    fit0_lm <- try(stats::lm(entropy ~ q + group + factor(subject), data = df,
+                             weights = if (!is.null(df$weight)) df$weight else NULL),
+                   silent = TRUE)
+    fit1_lm <- try(stats::lm(entropy ~ q * group + factor(subject), data = df,
+                             weights = if (!is.null(df$weight)) df$weight else NULL),
+                   silent = TRUE)
     if (!inherits(fit0_lm, "try-error") && !inherits(fit1_lm, "try-error")) {
         if (verbose) {
             message("[.tsenat_try_lm_fallbacks] Using fixed-effect lm with factor(subject)")
@@ -3181,8 +3219,12 @@
     }
 
     # Strategy 4: Last resort - drop subject entirely
-    fit0_lm2 <- try(stats::lm(entropy ~ q + group, data = df), silent = TRUE)
-    fit1_lm2 <- try(stats::lm(entropy ~ q * group, data = df), silent = TRUE)
+    fit0_lm2 <- try(stats::lm(entropy ~ q + group, data = df,
+                              weights = if (!is.null(df$weight)) df$weight else NULL),
+                    silent = TRUE)
+    fit1_lm2 <- try(stats::lm(entropy ~ q * group, data = df,
+                              weights = if (!is.null(df$weight)) df$weight else NULL),
+                    silent = TRUE)
     if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
         if (verbose) {
             message("[.tsenat_try_lm_fallbacks] Subject removed - reduced power expected")
@@ -3509,7 +3551,7 @@
 # @param bias_correction logical; apply Kenward-Roger correction for small clusters
 #
 # @return data.frame with gene, p_interaction, correlation_structure, and bias correction status
-.tsenat_gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 10, corstr = "auto", bias_correction = TRUE) {
+.tsenat_gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 10, corstr = "auto", bias_correction = TRUE, weights = NULL) {
     if (!requireNamespace("geepack", quietly = TRUE)) {
         stop("Package 'geepack' is required for method = 'gee'")
     }
@@ -3521,6 +3563,12 @@
     }
     
     # Validate inputs
+    # PHASE 1 WEIGHTING (March 2026): Use bootstrap CI weights if provided
+    # Add weights to df if available and valid
+    if (!is.null(weights) && length(weights) == nrow(df)) {
+        df$weight <- weights
+    }
+    
     if (sum(!is.na(df$entropy)) < min_obs) {
         return(NULL)
     }
@@ -3578,7 +3626,11 @@
     hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals = df$q, group_vec = df$group)
     gee_weights <- NULL
     
-    if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+    # PHASE 1 WEIGHTING (March 2026): Bootstrap CI weights take precedence over heteroscedasticity weights
+    if (!is.null(df$weight)) {
+        # Use bootstrap CI weights if provided
+        gee_weights <- df$weight
+    } else if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
         # Estimate variance weights using power-law model: Var ~ q^theta
         weights_result <- .tsenat_estimate_variance_weights(df, q_vals = df$q, method = "power")
         if (!is.null(weights_result) && !is.null(weights_result$weights)) {
@@ -3853,6 +3905,9 @@
         gee_result$residuals_normal <- NA
         gee_result$n_residuals_tested <- NA_integer_
     }
+    
+    # Add Phase 1 bootstrap CI weighting tracking (March 2026)
+    gee_result$ci_weighted <- !is.null(df$weight)
     
     return(gee_result)
 }

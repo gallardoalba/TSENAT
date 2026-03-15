@@ -3300,14 +3300,22 @@ plot_q_spectrum <- function(per_q_div, gene_idx = 1, per_q_ci = NULL, gene_name 
     )
   }
   
-  # Add region annotations (positioned at very top of plot area)
+  # Calculate max divergence for annotation positioning with padding
+  max_div <- max(plot_df$divergence, na.rm = TRUE)
+  if (!all(is.na(plot_df$ci_upper))) {
+    max_div <- max(c(max_div, plot_df$ci_upper), na.rm = TRUE)
+  }
+  annotation_y <- max_div * 1.15  # Add 15% padding above data
+  
+  # Add region annotations with computed padding
   p <- p +
-    ggplot2::annotate("text", x = 0.5, y = Inf, label = "Rare",
-                     size = 3.8, color = "darkred", fontface = "bold", vjust = 1.5, hjust = 0.5) +
-    ggplot2::annotate("text", x = 1.0, y = Inf, label = "Balanced",
-                     size = 3.8, color = "darkgreen", fontface = "bold", vjust = 1.5, hjust = 0.5) +
-    ggplot2::annotate("text", x = 1.5, y = Inf, label = "Abundant",
-                     size = 3.8, color = "darkblue", fontface = "bold", vjust = 1.5, hjust = 0.5)
+    ggplot2::expand_limits(y = annotation_y * 1.05) +  # Add small buffer for annotation
+    ggplot2::annotate("text", x = 0.5, y = annotation_y, label = "Rare",
+                     size = 3.8, color = "darkred", fontface = "bold", vjust = 0.5, hjust = 0.5) +
+    ggplot2::annotate("text", x = 1.0, y = annotation_y, label = "Balanced",
+                     size = 3.8, color = "darkgreen", fontface = "bold", vjust = 0.5, hjust = 0.5) +
+    ggplot2::annotate("text", x = 1.5, y = annotation_y, label = "Abundant",
+                     size = 3.8, color = "darkblue", fontface = "bold", vjust = 0.5, hjust = 0.5)
   
   return(p)
 }

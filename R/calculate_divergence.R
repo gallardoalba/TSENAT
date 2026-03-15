@@ -359,7 +359,7 @@
 #'               (default: FALSE)
 #' @param bootstrap Logical; if TRUE, computes bootstrap confidence intervals (~2-3 sec/gene).
 #'                  If FALSE, computes point estimates only (~0.02-0.05 sec/gene).
-#'                  (default: TRUE)
+#'                  (default: FALSE)
 #' @param nboot Number of bootstrap replicates (default: 1000)
 #'               Note: ignored if bootstrap=FALSE
 #' @param ci Confidence level (default: 0.95)
@@ -459,7 +459,7 @@ calculate_divergence <- function(
     control_group = NULL,
     q = 1,
     paired = FALSE,
-    bootstrap = TRUE,
+    bootstrap = FALSE,
     nboot = 1000,
     ci = 0.95,
     method = "percentile",

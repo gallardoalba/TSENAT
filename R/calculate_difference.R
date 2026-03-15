@@ -537,6 +537,15 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' more knots (max=10), improving model fit efficiency. When FALSE, uses fixed knot selection
 #' based on number of unique q-values. Reference: Wood (2017) Section 4.1.5 Basis dimension.
 #' This parameter only affects method='gam'.
+#' @param use_ci_weighting Logical; whether to apply inverse-variance weighting using bootstrap
+#' confidence intervals (Phase 1 improvement, default: FALSE). When TRUE, requires that input
+#' `se` was produced by `calculate_diversity(..., bootstrap=TRUE)` which generates `ci_lower` and
+#' `ci_upper` assays. Genes with narrower CIs (higher precision) receive higher weights in model
+#' fitting, while genes with wide CIs (high uncertainty) receive lower weights. This downweights
+#' noisy estimates and increases power for robust genes. The weighting scheme is: w_ij = 1/(CI_width_ij)^2,
+#' normalized per gene to mean=1.0 for interpretability. Output includes a `ci_weighted` column
+#' indicating whether weights were applied. Requires bootstrap CIs; if not available, a warning
+#' is issued and weighting is disabled.
 #' @param return_model_data Logical; whether to return model metadata alongside results
 #' (default: FALSE). When TRUE, returns a list with two elements:
 #' \itemize{
@@ -614,7 +623,8 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE, 
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
     corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"),
-    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE) {
+    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE,
+    use_ci_weighting = FALSE) {
     method <- match.arg(method)
     corstr <- match.arg(corstr)
     pvalue <- match.arg(pvalue)
@@ -704,13 +714,147 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     if (verbose && progress) {
         message("[calculate_lm_interaction] parsed samples and groups")
     }
+    
+    # ════════════════════════════════════════════════════════════════════════════════
+    # PHASE 1: INVERSE-VARIANCE WEIGHTING (NEW - March 2026)
+    # ════════════════════════════════════════════════════════════════════════════════
+    # Extract bootstrap CI information if available and weighting requested
+    weights_mat <- NULL
+    if (verbose) {
+        message(sprintf("[calculate_lm_interaction] PHASE 1: use_ci_weighting=%s", use_ci_weighting))
+    }
+    
+    if (use_ci_weighting) {
+        # Check for CI assays (produced by calculate_diversity with bootstrap=TRUE)
+        assay_names <- names(SummarizedExperiment::assays(se))
+        has_ci_lower <- "ci_lower" %in% assay_names
+        has_ci_upper <- "ci_upper" %in% assay_names
+        
+        if (verbose) {
+            message(sprintf("[calculate_lm_interaction] PHASE 1: Available assays: %s", 
+                           paste(assay_names, collapse=", ")))
+            message(sprintf("[calculate_lm_interaction] PHASE 1: ci_lower present? %s, ci_upper present? %s", 
+                           has_ci_lower, has_ci_upper))
+        }
+        
+        if (has_ci_lower && has_ci_upper) {
+            ci_lower <- SummarizedExperiment::assay(se, "ci_lower")
+            ci_upper <- SummarizedExperiment::assay(se, "ci_upper")
+            
+            if (verbose) {
+                message(sprintf("[calculate_lm_interaction] PHASE 1: CI matrices loaded: dims %d×%d", 
+                               nrow(ci_lower), ncol(ci_lower)))
+            }
+            
+            # Compute CI width (precision) for each observation
+            ci_width <- ci_upper - ci_lower
+            
+            # Handle zero/near-zero widths robustly (March 2026)
+            # Statistical approach: use quantile-based flooring to preserve variance structure
+            # This is more principled than arbitrary pseudocounts
+            positive_widths <- ci_width[ci_width > 0]
+            
+            if (length(positive_widths) == 0) {
+                # Edge case: all widths are ≤0 (bootstrap failed or sparse data)
+                # Use small pseudocount as last resort
+                ci_width[ci_width <= 0 | is.na(ci_width)] <- 0.001
+                if (verbose) {
+                    warning("[calculate_lm_interaction] PHASE 1: All CI widths were ≤0 or NA. ",
+                            "This suggests bootstrap may have failed or data is too sparse. ",
+                            "Consider: increasing n_boot, checking diversity estimates, or disabling use_ci_weighting",
+                            call. = FALSE)
+                }
+            } else {
+                # Normal case: use 5th percentile as floor (preserves observed variance structure)
+                # This is statistically more principled than arbitrary pseudocounts
+                floor_width <- quantile(positive_widths, 0.05, na.rm = TRUE)
+                
+                # Count zeros/NAs before replacement (for diagnostic message)
+                n_to_floor <- sum(ci_width <= 0 | is.na(ci_width), na.rm = FALSE)
+                
+                ci_width[ci_width <= 0 | is.na(ci_width)] <- floor_width
+                
+                if (verbose && n_to_floor > 0) {
+                    message(sprintf("[calculate_lm_interaction] PHASE 1: Floored %d zero/NA widths to 5th percentile (%.6f)", 
+                                   n_to_floor, floor_width))
+                }
+            }
+            
+            # Compute inverse-variance weights (narrower CI = higher precision = higher weight)
+            # Formula: w_ij = 1 / (CI_width_ij)^2
+            weights_mat <- 1 / (ci_width ^ 2)
+            
+            if (verbose) {
+                # Diagnostic: show CI width distribution
+                message(sprintf("[calculate_lm_interaction] PHASE 1: CI width statistics: min=%.6f, median=%.6f, max=%.6f, mean=%.6f",
+                               min(ci_width, na.rm=TRUE), median(ci_width, na.rm=TRUE), 
+                               max(ci_width, na.rm=TRUE), mean(ci_width, na.rm=TRUE)))
+                message(sprintf("[calculate_lm_interaction] PHASE 1: Weight statistics: min=%.4f, median=%.4f, max=%.4f",
+                               min(weights_mat, na.rm=TRUE), median(weights_mat, na.rm=TRUE), 
+                               max(weights_mat, na.rm=TRUE)))
+            }
+            
+            # Save gene names before apply() reorders dimensions
+            gene_names <- rownames(weights_mat)
+            
+            if (verbose) {
+                message(sprintf("[calculate_lm_interaction] PHASE 1: Before apply() - genes: %s", 
+                               paste(head(gene_names, 3), collapse=", ")))
+            }
+            
+            # Normalize weights per gene (mean = 1.0) for interpretability
+            weights_mat <- apply(weights_mat, 1, function(w_gene) {
+                mean_w <- mean(w_gene, na.rm = TRUE)
+                if (is.na(mean_w) || mean_w == 0) return(w_gene)
+                return(w_gene / mean_w)
+            })
+            weights_mat <- t(weights_mat)
+            
+            # CRITICAL FIX (March 2026): apply() + t() loses rownames; restore gene names
+            # After apply(matrix, 1, ...) + t(), matrix has: rownames=sample_names, colnames=gene_names
+            # We need: rownames=gene_names, colnames=sample_names for proper gene lookup in fit_one()
+            if (!is.null(gene_names)) {
+                rownames(weights_mat) <- gene_names
+            }
+            
+            if (verbose) {
+                message(sprintf("[calculate_lm_interaction] PHASE 1: After apply+restore - dims %d×%d, genes: %s", 
+                               nrow(weights_mat), ncol(weights_mat), 
+                               paste(head(rownames(weights_mat), 3), collapse=", ")))
+                message("[calculate_lm_interaction] Inverse-variance weighting ENABLED and weights computed")
+            }
+        } else {
+            if (verbose) {
+                warning("[calculate_lm_interaction] use_ci_weighting=TRUE but ci_lower/ci_upper assays not found. ",
+                        "Run calculate_diversity(..., bootstrap=TRUE) to get CI information.",
+                        call. = FALSE)
+            }
+            use_ci_weighting <- FALSE
+        }
+    }
+    
     all_results <- list()
     fit_one <- function(g) {
+        # Extract weights for this gene if available
+        gene_weights <- NULL
+        if (!is.null(weights_mat) && g %in% rownames(weights_mat)) {
+            gene_weights <- as.numeric(weights_mat[g, ])
+            if (verbose) {
+                message(sprintf("[fit_one] Gene '%s': weights found (length=%d, mean=%.4f)", 
+                               g, length(gene_weights), mean(gene_weights, na.rm=TRUE)))
+            }
+        } else {
+            if (verbose && !is.null(weights_mat)) {
+                message(sprintf("[fit_one] Gene '%s': weights NOT found (in rownames? %s)", 
+                               g, g %in% rownames(weights_mat)))
+            }
+        }
+        
         .tsenat_fit_one_interaction(g = g, se = se, mat = mat, q_vals = q_vals, sample_names = sample_names,
             group_vec = group_vec, method = method, pvalue = pvalue, subject_col = subject_col,
             paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings,
             progress = progress, bias_correction = bias_correction, regularization = regularization, corstr = corstr,
-            adaptive_knots = adaptive_knots)
+            adaptive_knots = adaptive_knots, weights = gene_weights)
     }
 
     if (nthreads > 1) {
@@ -751,6 +895,16 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
         }
         if (!"n_residuals_tested" %in% colnames(res)) {
             res$n_residuals_tested <- NA_integer_
+        }
+    }
+    
+    # Ensure ci_weighted column exists for all methods (Phase 1 tracking)
+    # This is set by all .tsenat_*_interaction helpers, but validate it's present
+    if (!"ci_weighted" %in% colnames(res)) {
+        res$ci_weighted <- NA  # Should not happen, but provide fallback
+        if (verbose) {
+            warning("[calculate_lm_interaction] ci_weighted column was missing; added as NAs. ",
+                    "This suggests a method helper did not properly set ci_weighted.", call. = FALSE)
         }
     }
     

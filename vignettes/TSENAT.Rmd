@@ -110,10 +110,10 @@ se <- build_se(readcounts, gff3_file, metadata = metadata_df)
 se <- filter_se(se, stringency = "medium")
 
 # Compute Tsallis entropy (using single q value for quick start)
-# Note: calculate_difference() only accepts single q values because 
-# entropies at different q are mathematically dependent (AR(1) structure).
-# For multi-q analysis accounting for correlation, use calculate_lm_interaction() instead.
-ts_se <- calculate_diversity(se, q = 1, norm = TRUE, metadata = metadata_df)
+ts_se <- calculate_diversity(se, 
+    q = 1, norm = TRUE, 
+    metadata = metadata_df
+    )
 ```
 
 ## Data Structure Overview
@@ -313,9 +313,6 @@ data (TPM and EffectiveLength) for improved analysis:
 
 ```{r build-se}
 ## Build a `SummarizedExperiment` from readcounts + GFF3.gz annotation
-# The gff3_dataset variable contains the path to annotation.gff3.gz
-# SALMON preprocessed data (salmon_tpm, salmon_effective_length) is auto-detected
-# Also map sample metadata for proper pairing detection in filtering
 se <- build_se(readcounts, gff3_dataset, metadata = metadata_df)
 ```
 
@@ -356,11 +353,6 @@ prefiltering on differential transcript usage, see
 
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
-# Use stringency = "medium" for balanced filtering:
-# - Keeps transcripts expressed in ≥50% of samples
-# - Uses median TPM threshold (Q2) as minimum abundance cutoff
-# - Ensures reliable entropy estimation across genes
-# Stringency options: "soft" (permissive), "medium" (balanced), "severe" (stringent)
 se <- filter_se(se, stringency = "medium")
 ```
 
@@ -566,6 +558,7 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
     )
 }
 ```
+
 ```{r kable-lm-interaction-before-qcurve, message=FALSE, echo = FALSE}
 # show the top entries with proper p-value formatting
 # Extract results dataframe from the list (calculate_lm_interaction now returns list with $results and $model_data)
@@ -574,7 +567,7 @@ lm_res_display <- head(lm_res$results, 6)
 # Select only key columns that exist in the data, including Shapiro-Wilk normality test results
 col_select <- intersect(c("gene", "gene_name", "p_interaction", "adj_p_interaction", 
                           "family_used", "shapiro_p_value", "residuals_normal",
-                          "n_observations", "n_subjects", "arima_transformation"), 
+                                                    "n_observations", "n_subjects", "arima_transformation"), 
                         colnames(lm_res_display))
 lm_res_display <- lm_res_display[, col_select]
 
@@ -586,7 +579,7 @@ if ("gene_name" %in% colnames(lm_res_display) && "gene" %in% colnames(lm_res_dis
 }
 
 # Select key columns for display
-display_cols <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "shapiro_p_value", "residuals_normal", "arima_transformation")
+display_cols <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "shapiro_p_value", "residuals_normal")
 lm_res_display <- lm_res_display[, intersect(display_cols, colnames(lm_res_display))]
 
 # Format p-values in scientific notation to show actual values
@@ -602,7 +595,7 @@ if ("shapiro_p_value" %in% colnames(lm_res_display)) {
 
 knitr::kable(
     lm_res_display,
-    caption = "Top q-interaction results from GAM analysis with conditional family selection (Gaussian/Gamma), Hochberg correction, and Shapiro-Wilk normality tests",
+    caption = "Top q-interaction results from GAM analysis with Hochberg correction, and Shapiro-Wilk normality tests",
     digits = 5,
     row.names = FALSE
 )
@@ -724,21 +717,8 @@ tryCatch({
   cat("ERROR in plot_multiq_delta_influence_heatmaps: ", e$message, "\n")
 })
 
-# Display the generated heatmap if valid data was found
-if (is.character(heatmap_file) && length(heatmap_file) > 0 && !is.na(heatmap_file)) {
-  if (file.exists(heatmap_file)) {
-    knitr::include_graphics(heatmap_file)
-  } else {
-    cat("⚠️  File was not created or path is invalid: ", heatmap_file, "\n")
-  }
-} else {
-  cat("⚠️  No valid heatmap data generated.\n")
-  cat("   Check the validation report above for details on which genes lack delta_influence data.\n")
-  cat("   Possible causes:\n")
-  cat("   - multi_q_results doesn't contain delta_influence values\n")
-  cat("   - lm_res has no significant genes to display\n")
-  cat("   - Data structure mismatch\n")
-}
+# Render the plot
+knitr::include_graphics(heatmap_file)
 ```
 
 Interpretation:
@@ -797,11 +777,7 @@ if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res$
       group_col = "sample_type",
       control_group = "normal",
       q = qvec,
-      paired = TRUE,
-      bootstrap = TRUE,
-      nboot = 50,
-      ci = 0.95,
-      method = "percentile"
+      paired = TRUE
   )
   
   # Note: effect_sizes_divergence() will merge lm_res_results with divergence_results_se,
@@ -959,9 +935,9 @@ This curve is the full biological signature of **isoform switching**—the patte
 abundance scales (rare vs. abundant) are affected.
 
 ```{r visualize-q-spectrum, fig.width=14, fig.height=6, results='hide'}
-# Generate q-spectrum plot for SNHG10 using the new plot_gene_q_spectrum function
+# Generate q-spectrum plot for LINC03040 using the new plot_gene_q_spectrum function
 # This gene was identified as one of the top candidates by the LMM interaction test
-plot_gene_q_spectrum(divergence_results_se, target_gene = "SNHG10", verbose = FALSE)
+plot_gene_q_spectrum(divergence_results_se, target_gene = "LINC03040", verbose = FALSE)
 ```
 
 **Interpreting the Q-Spectrum Curve:**
