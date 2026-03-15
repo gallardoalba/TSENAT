@@ -910,3 +910,101 @@ test_that("calculate_diversity handles sparse transcript counts", {
     # Diversity assay should exist
     expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
 })
+
+# =====================================================================
+# Bayesian Credible Intervals (Tier 1 Integration)
+# =====================================================================
+
+test_that("calculate_diversity adds Bayesian credible interval assays", {
+    # Create simple test data
+    x <- matrix(c(10, 5, 8, 12, 15, 10, 6, 4), nrow = 4, ncol = 2, byrow = TRUE)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1", "Gene2", "Gene2")
+    
+    # Call with bayesian_ci=TRUE
+    result <- calculate_diversity(
+        x, 
+        genes, 
+        q = 1, 
+        bayesian_ci = TRUE,
+        bayesian_ci_level = 0.95,
+        bayesian_alpha = 0.5,
+        bayesian_beta = 1e-6,
+        verbose = FALSE
+    )
+    
+    # Check that Bayesian CI assays are present
+    assay_names <- names(SummarizedExperiment::assays(result))
+    expect_true("bayesian_ci_lower" %in% assay_names)
+    expect_true("bayesian_ci_upper" %in% assay_names)
+    expect_true("diversity" %in% assay_names)
+    
+    # Check dimensions match
+    div_assay <- SummarizedExperiment::assay(result, "diversity")
+    ci_lower <- SummarizedExperiment::assay(result, "bayesian_ci_lower")
+    ci_upper <- SummarizedExperiment::assay(result, "bayesian_ci_upper")
+    
+    expect_equal(dim(div_assay), dim(ci_lower))
+    expect_equal(dim(div_assay), dim(ci_upper))
+})
+
+test_that("Bayesian CI bounds are valid (lower <= upper)", {
+    x <- matrix(c(10, 5, 8, 12, 15, 10, 6, 4), nrow = 4, ncol = 2, byrow = TRUE)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1", "Gene2", "Gene2")
+    
+    result <- calculate_diversity(
+        x, genes, q = 1, 
+        bayesian_ci = TRUE, 
+        bayesian_ci_level = 0.95,
+        bayesian_alpha = 0.5,
+        bayesian_beta = 1e-6,
+        verbose = FALSE
+    )
+    
+    ci_lower <- SummarizedExperiment::assay(result, "bayesian_ci_lower")
+    ci_upper <- SummarizedExperiment::assay(result, "bayesian_ci_upper")
+    
+    # All valid values should satisfy lower <= upper
+    valid_mask <- !is.na(ci_lower) & !is.na(ci_upper) & is.finite(ci_lower) & is.finite(ci_upper)
+    if (sum(valid_mask) > 0) {
+        expect_true(all(ci_lower[valid_mask] <= ci_upper[valid_mask]))
+    }
+})
+
+test_that("Bayesian CI metadata is stored correctly", {
+    x <- matrix(c(10, 5, 8, 12), nrow = 2, ncol = 2, byrow = TRUE)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1")
+    
+    bayesian_alpha <- 0.5
+    bayesian_beta <- 1e-6
+    bayesian_ci_level <- 0.95
+    
+    result <- calculate_diversity(
+        x, genes, q = 1,
+        bayesian_ci = TRUE,
+        bayesian_ci_level = bayesian_ci_level,
+        bayesian_alpha = bayesian_alpha,
+        bayesian_beta = bayesian_beta,
+        verbose = FALSE
+    )
+    
+    meta <- S4Vectors::metadata(result)
+    expect_true(meta$bayesian_ci == TRUE)
+    expect_equal(meta$bayesian_ci_level, bayesian_ci_level)
+    expect_equal(meta$bayesian_alpha, bayesian_alpha)
+    expect_equal(meta$bayesian_beta, bayesian_beta)
+})
+
+test_that("calculate_diversity with bayesian_ci=FALSE excludes CI assays", {
+    x <- matrix(c(10, 5, 8, 12), nrow = 2, ncol = 2, byrow = TRUE)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1")
+    
+    result <- calculate_diversity(x, genes, q = 1, bayesian_ci = FALSE, verbose = FALSE)
+    
+    assay_names <- names(SummarizedExperiment::assays(result))
+    expect_false("bayesian_ci_lower" %in% assay_names)
+    expect_false("bayesian_ci_upper" %in% assay_names)
+})

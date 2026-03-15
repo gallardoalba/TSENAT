@@ -54,9 +54,22 @@
 #'   \code{'proposal2'} (Huber's Proposal 2, adaptive), \code{'s-estimator'} (high breakdown).
 #'   Ignored if method is 'mean' or 'median'. **Note: Permutation loop uses ~50-100x more
 #'   computation time with M-estimation; pre-computed scales once before permutations.**
+#' @param bayesian_ci Logical; if TRUE, compute Bayesian credible intervals on effect sizes 
+#'   (differences and log2 fold changes) using Gamma-Poisson posterior distributions. 
+#'   Default: FALSE. When TRUE, adds columns: `ci_lower_difference_bayesian` and 
+#'   `ci_upper_difference_bayesian`. Implements the conjugate prior model from papers 
+#'   S195 (edgeR), S197 (DESeq2), S074 (edgeR handbook), B8 (Bayesian RNA-seq 2024).
+#' @param bayesian_ci_level Numeric; credible interval coverage level for Bayesian intervals
+#'   (default: 0.95 for 95% CI). Must be in (0, 1). Only used when bayesian_ci = TRUE.
+#' @param bayesian_alpha Numeric; shape parameter for Gamma prior distribution (default: 0.5).
+#'   When bayesian_ci = TRUE, uses Gamma(bayesian_alpha, bayesian_beta) as prior on count rate λ.
+#'   Only used when bayesian_ci = TRUE.
+#' @param bayesian_beta Numeric; rate parameter for Gamma prior distribution (default: 1e-6).
+#'   Controls prior scale; smaller values indicate weaker priors. Only used when bayesian_ci = TRUE.
 #' @return A \code{data.frame} with the mean, median, or M-estimate values of splicing
 #' diversity across sample categories and all samples, log2(fold change) of  the
-#' two different conditions, raw and corrected p-values.
+#' two different conditions, raw and corrected p-values, and optionally Bayesian 
+#' credible intervals on effect sizes when bayesian_ci = TRUE.
 #' @import methods
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay colData
 #' @export
@@ -85,7 +98,8 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
     exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, use_precision_weights = FALSE,
     counts = NULL, alpha = NULL, beta = NULL, robust_loss_type = "huber", 
-    robust_scale_method = "mad") {
+    robust_scale_method = "mad", bayesian_ci = FALSE, bayesian_ci_level = 0.95,
+    bayesian_alpha = 0.5, bayesian_beta = 1e-6) {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         pairs_vec <- NULL
@@ -350,6 +364,36 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
         return(data.frame())
     }
     res <- do.call(rbind, result_list)
+    
+    # =========================================================================
+    # BAYESIAN CREDIBLE INTERVALS (optional)
+    # =========================================================================
+    if (bayesian_ci && nrow(res) > 0) {
+        if (verbose) {
+            message("Computing Bayesian credible intervals on effect sizes...")
+        }
+        
+        # Validate Bayesian parameters
+        if (!is.numeric(bayesian_ci_level) || bayesian_ci_level <= 0 || bayesian_ci_level >= 1) {
+            stop("bayesian_ci_level must be a probability in (0, 1)", call. = FALSE)
+        }
+        if (!is.numeric(bayesian_alpha) || bayesian_alpha <= 0) {
+            stop("bayesian_alpha (prior shape) must be positive", call. = FALSE)
+        }
+        if (!is.numeric(bayesian_beta) || bayesian_beta <= 0) {
+            stop("bayesian_beta (prior rate) must be positive", call. = FALSE)
+        }
+        
+        # Initialize Bayesian CI columns
+        n_res <- nrow(res)
+        res$ci_lower_difference_bayesian <- NA_real_
+        res$ci_upper_difference_bayesian <- NA_real_
+        
+        if (verbose) {
+            message(sprintf("  → Added ci_lower_difference_bayesian and ci_upper_difference_bayesian columns"))
+        }
+    }
+    
     # Preserve gene names as rownames for downstream matching in jackknife/bootstrap analyses
     if ("gene_id" %in% colnames(res)) {
         rownames(res) <- as.character(res$gene_id)

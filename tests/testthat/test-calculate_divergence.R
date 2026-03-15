@@ -459,3 +459,132 @@ test_that("calculate_divergence norm parameter validation", {
         expect_equal(metadata(result)$normalization, valid_mode)
     }
 })
+
+# =====================================================================
+# Bayesian Credible Intervals (Tier 2 Integration)
+# =====================================================================
+
+test_that("calculate_divergence adds Bayesian credible interval assays when bayesian_ci=TRUE", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    set.seed(42)
+    
+    counts <- matrix(rpois(15 * 8, lambda = 100), nrow = 15, ncol = 8)
+    rownames(counts) <- paste0("Gene_", 1:15)
+    colnames(counts) <- paste0("Sample_", 1:8)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    result <- calculate_divergence(
+        se = se,
+        bootstrap = FALSE,
+        q = 1,
+        bayesian_ci = TRUE,
+        bayesian_ci_level = 0.95,
+        bayesian_alpha = 0.5,
+        bayesian_beta = 1e-6,
+        control_group = "Control",
+        progress = FALSE
+    )
+    
+    assay_names <- names(SummarizedExperiment::assays(result))
+    expect_true("bayesian_ci_lower" %in% assay_names)
+    expect_true("bayesian_ci_upper" %in% assay_names)
+    expect_true("divergence" %in% assay_names)
+    
+    # Check dimensions match
+    expect_equal(nrow(assay(result, "bayesian_ci_lower")), nrow(assay(result, "divergence")))
+    expect_equal(ncol(assay(result, "bayesian_ci_lower")), ncol(assay(result, "divergence")))
+})
+
+test_that("calculate_divergence Bayesian CI bounds are valid (lower <= upper)", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    set.seed(42)
+    
+    counts <- matrix(rpois(15 * 8, lambda = 100), nrow = 15, ncol = 8)
+    rownames(counts) <- paste0("Gene_", 1:15)
+    colnames(counts) <- paste0("Sample_", 1:8)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    result <- calculate_divergence(
+        se = se,
+        bootstrap = FALSE,
+        q = 1,
+        bayesian_ci = TRUE,
+        bayesian_ci_level = 0.95,
+        bayesian_alpha = 0.5,
+        bayesian_beta = 1e-6,
+        control_group = "Control",
+        progress = FALSE
+    )
+    
+    ci_lower <- SummarizedExperiment::assay(result, "bayesian_ci_lower")
+    ci_upper <- SummarizedExperiment::assay(result, "bayesian_ci_upper")
+    
+    # Check all finite CI bounds satisfy lower <= upper
+    lower_finite <- is.finite(ci_lower)
+    upper_finite <- is.finite(ci_upper)
+    valid_idx <- lower_finite & upper_finite
+    
+    if (any(valid_idx)) {
+        lower_valid <- ci_lower[valid_idx]
+        upper_valid <- ci_upper[valid_idx]
+        expect_true(all(lower_valid <= upper_valid))
+    }
+})
+
+test_that("calculate_divergence Bayesian CI metadata is stored correctly", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    set.seed(42)
+    
+    counts <- matrix(rpois(15 * 8, lambda = 100), nrow = 15, ncol = 8)
+    rownames(counts) <- paste0("Gene_", 1:15)
+    colnames(counts) <- paste0("Sample_", 1:8)
+    
+    metadata <- data.frame(
+        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
+        row.names = colnames(counts)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        colData = metadata
+    )
+    
+    result <- calculate_divergence(
+        se = se,
+        bootstrap = FALSE,
+        q = 1,
+        bayesian_ci = TRUE,
+        bayesian_ci_level = 0.99,
+        bayesian_alpha = 0.7,
+        bayesian_beta = 0.5,
+        control_group = "Control",
+        progress = FALSE
+    )
+    
+    meta <- S4Vectors::metadata(result)
+    expect_true(meta$bayesian_ci == TRUE)
+    expect_equal(meta$bayesian_ci_level, 0.99)
+    expect_equal(meta$bayesian_alpha, 0.7)
+    expect_equal(meta$bayesian_beta, 0.5)
+})

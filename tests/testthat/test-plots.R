@@ -1623,6 +1623,127 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
     expect_error(.ptt_prepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
 })
 
+# =====================================================================
+# Bayesian Credible Interval Plotting (Tier 2 Integration)
+# =====================================================================
+
+test_that("plot_tsallis_q_curve displays Bayesian CI bands from calculate_diversity", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    
+    set.seed(42)
+    
+    # Create simple test data
+    x <- matrix(c(10, 5, 8, 12, 15, 10, 6, 4), nrow = 4, ncol = 2, byrow = TRUE)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1", "Gene2", "Gene2")
+    
+    # Compute diversity with Bayesian CIs (Tier 2)
+    result <- calculate_diversity(
+        x = x,
+        genes = genes,
+        q = c(0.5, 1, 1.5, 2),
+        bayesian_ci = TRUE,
+        bayesian_ci_level = 0.95,
+        bayesian_alpha = 0.5,
+        bayesian_beta = 1e-6,
+        verbose = FALSE
+    )
+    
+    # Manually set colData with sample_type for plotting
+    col_names <- colnames(result)
+    sample_types <- rep(c("TypeA", "TypeB"), each = length(col_names) / 2)
+    
+    SummarizedExperiment::colData(result)$sample_type <- sample_types
+    
+    # Verify Bayesian assays created
+    assay_names <- names(SummarizedExperiment::assays(result))
+    expect_true("bayesian_ci_lower" %in% assay_names)
+    expect_true("bayesian_ci_upper" %in% assay_names)
+    
+    # Plot with bootstrap=TRUE should use Bayesian CIs
+    # Note: bootstrap=TRUE returns a qcurve_bootstrap object, not a ggplot
+    # Suppress warnings about ties in Wilcoxon test (expected with small datasets)
+    p <- suppressWarnings(plot_tsallis_q_curve(result, bootstrap = TRUE))
+    
+    # Check that plot is a list or qcurve_bootstrap object
+    expect_true(is.list(p))
+    # Should be a qcurve_bootstrap object
+    expect_true("qcurve_bootstrap" %in% class(p))
+})
+
+test_that("plot_tsallis_q_curve falls back to Bayesian CIs when bootstrap CIs missing", {
+    skip_if_not_installed("SummarizedExperiment")
+    skip_if_not_installed("ggplot2")
+    
+    set.seed(42)
+    
+    # Create simple test data
+    x <- matrix(c(10, 5, 8, 12, 15, 10), nrow = 3, ncol = 2, byrow = TRUE)
+    colnames(x) <- c("Sample1", "Sample2")
+    genes <- c("Gene1", "Gene1", "Gene2")
+    
+    # Compute with Bayesian CIs only (no bootstrap CIs)
+    result <- calculate_diversity(
+        x = x,
+        genes = genes,
+        q = c(1, 1.5),
+        bayesian_ci = TRUE,
+        verbose = FALSE
+    )
+    
+    # Manually set colData with sample_type for plotting
+    col_names <- colnames(result)
+    sample_types <- rep(c("TypeA", "TypeB"), each = length(col_names) / 2)
+    
+    SummarizedExperiment::colData(result)$sample_type <- sample_types
+    
+    # Should detect Bayesian CIs and create plot
+    # Note: bootstrap=TRUE returns a qcurve_bootstrap object, not a ggplot
+    # Suppress warnings about ties in Wilcoxon test (expected with small datasets)
+    p <- suppressWarnings(plot_tsallis_q_curve(result, bootstrap = TRUE))
+    
+    # Check that plot is a qcurve_bootstrap object
+    expect_true(is.list(p))
+    expect_true("qcurve_bootstrap" %in% class(p))
+})
+
+test_that("plot_q_spectrum displays Bayesian CI bands", {
+    skip_if_not_installed("ggplot2")
+    
+    # Simulated divergence data with Bayesian CIs
+    per_q_div <- c(0.15, 0.10, 0.08, 0.05)
+    names(per_q_div) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+    
+    # Add Bayesian CI bounds
+    per_q_bayesian_ci <- list(
+        lower = c(0.12, 0.08, 0.06, 0.03),
+        upper = c(0.18, 0.12, 0.10, 0.07)
+    )
+    
+    # Plot with Bayesian CIs
+    p <- plot_q_spectrum(per_q_div, per_q_ci = per_q_bayesian_ci, gene_name = "Test Gene")
+    
+    # Check that plot is a ggplot object
+    expect_is(p, "ggplot")
+    
+    # Check plot has layers (line + ribbon should be present)
+    expect_true(length(p$layers) >= 2)  # At least ribbon and line
+})
+
+test_that("plot_q_spectrum handles missing Bayesian CI bounds gracefully", {
+    skip_if_not_installed("ggplot2")
+    
+    per_q_div <- c(0.15, 0.10, 0.08, 0.05)
+    names(per_q_div) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+    
+    # Plot without CIs (should render successfully)
+    p <- plot_q_spectrum(per_q_div, per_q_ci = NULL, gene_name = "Test Gene")
+    
+    expect_is(p, "ggplot")
+    expect_true(length(p$layers) > 0)
+})
+
 # REMOVED: Correspondence Analysis plotting function tests
 # plot_ca_inertia, plot_ca_contributions, plot_ca_biplot, plot_ca_comprehensive
 # These functions were removed from generate_plots.R as CA/inertia decomposition

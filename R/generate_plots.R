@@ -768,9 +768,10 @@ plot_ma_expression_impl <- function(
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
 #' @param sample_type_col Character; column name in colData indicating group/sample type
 #'   (default: "sample_type").
-#' @param bootstrap Logical; if TRUE and SE contains bootstrap CI data (from
-#'   `calculate_diversity(..., bootstrap=TRUE)`), plot bootstrap confidence bands
-#'   and perform group comparison tests (default: FALSE).
+#' @param bootstrap Logical; if TRUE and SE contains CI data (from
+#'   `calculate_diversity(..., bootstrap=TRUE)` or `calculate_diversity(..., bayesian_ci=TRUE)`),
+#'   plot confidence bands and perform group comparison tests (default: FALSE).
+#'   Function automatically detects bootstrap or Bayesian CIs.
 #' @param n_bootstrap Integer; number of bootstrap replicates (used if bootstrap=TRUE
 #'   and CIs need recalculation; default: 1000).
 #' @param ci_level Numeric; confidence level (0-1) for bootstrap CIs (default: 0.95).
@@ -783,16 +784,23 @@ plot_ma_expression_impl <- function(
 #'   - `$ggplot`: The plot object
 #'   - `$plot_data`: Data frame with medians and CIs for each group/q
 #'   - `$significant_qranges`: Q-value ranges where groups differ significantly
-#'   - `$metadata`: Bootstrap parameters used
+#'   - `$metadata`: CI parameters and type (bootstrap or Bayesian)
 #'
 #' @details
 #' **Basic mode (bootstrap=FALSE)**:
 #' - Plots median entropy ± IQR for each group across q-values
 #' - Useful for exploratory visualization
 #'
-#' **Bootstrap mode (bootstrap=TRUE)**:
+#' **Bootstrap mode (bootstrap=TRUE) with Bootstrap CIs**:
 #' - Requires SE created with `calculate_diversity(..., bootstrap=TRUE)`
 #' - Plots bootstrap confidence bands (default: 95% CI)
+#'
+#' **Bootstrap mode (bootstrap=TRUE) with Bayesian CIs (Tier 2 Integration)**:
+#' - Requires SE created with `calculate_diversity(..., bayesian_ci=TRUE)`
+#' - Plots Bayesian credible interval bands (default: 95% level)
+#' - Automatically detected if bootstrap CIs not available
+#'
+#' **Common bootstrap/Bayesian mode features**:
 #' - Identifies q-ranges where groups differ significantly
 #' - Runs Wilcoxon or t-tests at each q-value
 #' - Returns structured output with significance regions highlighted in red
@@ -846,15 +854,24 @@ plot_tsallis_q_curve <- function(
   # BOOTSTRAP MODE
   # =========================================================================
   if (bootstrap) {
-    # Check if bootstrap CIs are available
+    # Check for bootstrap CIs first
     has_ci_lower <- "ci_lower" %in% SummarizedExperiment::assayNames(se)
     has_ci_upper <- "ci_upper" %in% SummarizedExperiment::assayNames(se)
     
+    # Check for Bayesian CIs as fallback (Tier 2 Integration)
+    has_bayesian_ci <- "bayesian_ci_lower" %in% SummarizedExperiment::assayNames(se) &&
+                        "bayesian_ci_upper" %in% SummarizedExperiment::assayNames(se)
+    
     if (!has_ci_lower || !has_ci_upper) {
-      warning("Bootstrap CI data not found in SE. Available assays: ",
-              paste(SummarizedExperiment::assayNames(se), collapse = ", "),
-              "\n  Falling back to basic (non-bootstrap) plot")
-      bootstrap <- FALSE
+      if (has_bayesian_ci) {
+        message("[plot_tsallis_q_curve] Bootstrap CIs not found, using Bayesian credible intervals")
+        bootstrap <- TRUE  # Continue with Bayesian CIs
+      } else {
+        warning("Bootstrap CI data not found in SE. Available assays: ",
+                paste(SummarizedExperiment::assayNames(se), collapse = ", "),
+                "\n  Falling back to basic (non-bootstrap) plot")
+        bootstrap <- FALSE
+      }
     }
   }
   
@@ -935,9 +952,19 @@ plot_tsallis_q_curve <- function(
     stop("Expected exactly 2 groups for bootstrap comparison, found ", length(groups))
   }
   
-  # Extract bootstrap CIs
-  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
-  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
+  # Extract bootstrap CIs (or Bayesian CIs if available)
+  if ("ci_lower" %in% SummarizedExperiment::assayNames(se)) {
+    ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
+    ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
+    ci_type <- "bootstrap"
+  } else if ("bayesian_ci_lower" %in% SummarizedExperiment::assayNames(se)) {
+    ci_lower_mat <- SummarizedExperiment::assay(se, "bayesian_ci_lower")
+    ci_upper_mat <- SummarizedExperiment::assay(se, "bayesian_ci_upper")
+    ci_type <- "bayesian"
+    message("[plot_tsallis_q_curve] Using Bayesian credible intervals for bands")
+  } else {
+    stop("No CI data found (bootstrap or Bayesian)")
+  }
   
   # Prepare plot data
   plot_df <- data.frame(
@@ -2614,7 +2641,8 @@ plot_multi_q_spectrum <- function(lmm_results, n_genes = 5) {
 #'   Ignored if per_q_div is a numeric vector.
 #'
 #' @param per_q_ci Optional list with components `$lower` and `$upper` containing
-#'   lower and upper bootstrap confidence interval bounds (same length as per_q_div).
+#'   lower and upper confidence interval bounds (same length as per_q_div).
+#'   Supports both bootstrap CIs and Bayesian credible intervals (Tier 2 Integration).
 #'   Only used if per_q_div is a numeric vector.
 #'
 #' @param gene_name Character. Name of the gene for plot title. Default is empty string or auto-detected.

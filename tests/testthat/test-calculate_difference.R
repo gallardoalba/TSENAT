@@ -1319,3 +1319,126 @@ test_that("calculate_difference accepts single q value (no error)", {
     expect_true(is.data.frame(result))
     expect_true(nrow(result) > 0)
 })
+
+# =====================================================================
+# Bayesian Credible Intervals (Tier 1 Integration)
+# =====================================================================
+
+test_that("calculate_difference adds Bayesian CI columns when bayesian_ci=TRUE", {
+    library(SummarizedExperiment)
+    
+    # Create test diversity data with sufficient sample size
+    x <- matrix(c(0.5, 0.6, 0.7, 0.55, 0.65, 0.75, 0.4, 0.45, 0.5, 0.48, 0.58, 0.68,
+                  0.52, 0.62, 0.72, 0.53, 0.63, 0.73, 0.42, 0.47, 0.52, 0.49, 0.59, 0.69),
+                nrow = 3, ncol = 8, byrow = TRUE)
+    rownames(x) <- c("Gene1", "Gene2", "Gene3")
+    # 5 Control, 3 Treated samples
+    colnames(x) <- c("C1_q=1", "C2_q=1", "C3_q=1", "C4_q=1", "C5_q=1", "T1_q=1", "T2_q=1", "T3_q=1")
+    
+    colData_df <- S4Vectors::DataFrame(
+        sample_type = c("Control", "Control", "Control", "Control", "Control", "Treated", "Treated", "Treated"),
+        row.names = colnames(x)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = S4Vectors::SimpleList(diversity = x),
+        colData = colData_df
+    )
+    
+    # Call calculate_difference with bayesian_ci=TRUE
+    result <- suppressWarnings(calculate_difference(
+        se,
+        control = "Control",
+        method = "mean",
+        test = "wilcoxon",
+        bayesian_ci = TRUE,
+        bayesian_ci_level = 0.95,
+        bayesian_alpha = 0.5,
+        bayesian_beta = 1e-6,
+        verbose = FALSE
+    ))
+    
+    # Check that result has Bayesian CI columns
+    col_names <- colnames(result)
+    expect_true("ci_lower_difference_bayesian" %in% col_names || any(grepl("bayesian", col_names, ignore.case = TRUE)))
+})
+
+test_that("calculate_difference accepts bayesian_ci parameters", {
+    library(SummarizedExperiment)
+    
+    # Increased sample size: 5 Control + 3 Treated
+    x <- matrix(runif(3 * 8), nrow = 3)
+    rownames(x) <- c("g1", "g2", "g3")
+    colnames(x) <- c("C1_q=1", "C2_q=1", "C3_q=1", "C4_q=1", "C5_q=1", "T1_q=1", "T2_q=1", "T3_q=1")
+    
+    colData_df <- S4Vectors::DataFrame(
+        sample_type = c("Control", "Control", "Control", "Control", "Control", "Treated", "Treated", "Treated"),
+        row.names = colnames(x)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = S4Vectors::SimpleList(diversity = x),
+        colData = colData_df
+    )
+    
+    # Should not error with valid Bayesian parameters
+    expect_no_error(
+        result <- suppressWarnings(calculate_difference(
+            se,
+            control = "Control",
+            method = "mean",
+            test = "wilcoxon",
+            bayesian_ci = TRUE,
+            bayesian_ci_level = 0.99,
+            bayesian_alpha = 1.0,
+            bayesian_beta = 0.1,
+            verbose = FALSE
+        ))
+    )
+    
+    expect_true(is.data.frame(result))
+    expect_true(nrow(result) > 0)
+})
+
+test_that("calculate_difference validates bayesian_ci parameters", {
+    library(SummarizedExperiment)
+    
+    # Increased sample size: 5 Control + 3 Treated
+    x <- matrix(runif(3 * 8), nrow = 3)
+    rownames(x) <- c("g1", "g2", "g3")
+    colnames(x) <- c("C1_q=1", "C2_q=1", "C3_q=1", "C4_q=1", "C5_q=1", "T1_q=1", "T2_q=1", "T3_q=1")
+    
+    colData_df <- S4Vectors::DataFrame(
+        sample_type = c("Control", "Control", "Control", "Control", "Control", "Treated", "Treated", "Treated"),
+        row.names = colnames(x)
+    )
+    
+    se <- SummarizedExperiment(
+        assays = S4Vectors::SimpleList(diversity = x),
+        colData = colData_df
+    )
+    
+    # Invalid CI level (not in (0,1))
+    expect_error(
+        calculate_difference(
+            se,
+            control = "Control",
+            bayesian_ci = TRUE,
+            bayesian_ci_level = 1.5,  # Invalid: > 1
+            verbose = FALSE
+        ),
+        "bayesian_ci_level must be a probability"
+    )
+    
+    # Invalid alpha (not positive)
+    expect_error(
+        calculate_difference(
+            se,
+            control = "Control",
+            bayesian_ci = TRUE,
+            bayesian_alpha = -0.5,  # Invalid: negative
+            verbose = FALSE
+        ),
+        "bayesian_alpha.*positive"
+    )
+})

@@ -243,6 +243,21 @@
 #' fields in bootstrap results: effective_sample_size, skewness, bias, acceleration_factor
 #' (for BCa method). Diagnostics assess CI quality and reliability (papers S111, S114).
 #' Set to FALSE to reduce computation time for large datasets.
+#' @param bayesian_ci Logical; if TRUE, compute Bayesian credible intervals using the 
+#' Gamma-Poisson posterior distribution (Negative Binomial model). Default: FALSE. When TRUE,
+#' adds assays `bayesian_ci_lower` and `bayesian_ci_upper` to output. Implements the
+#' conjugate prior model documented in papers S195 (edgeR), S197 (DESeq2), S074 (edgeR user guide),
+#' B8 (Bayesian RNA-seq 2024). Gamma-Poisson conjugacy properly accounts for overdispersion
+#' in transcript count data, providing principled uncertainty quantification.
+#' @param bayesian_ci_level Numeric; credible interval coverage level for Bayesian intervals
+#' (default: 0.95 for 95% CI). Must be in (0, 1). Only used when bayesian_ci = TRUE.
+#' @param bayesian_alpha Numeric; shape parameter for Gamma prior distribution (default: 0.5).
+#' When bayesian_ci = TRUE, uses Gamma(bayesian_alpha, bayesian_beta) as prior on count rate λ.
+#' Smaller values (e.g., 0.1) indicate weaker prior; default 0.5 is weakly informative.
+#' Only used when bayesian_ci = TRUE.
+#' @param bayesian_beta Numeric; rate parameter for Gamma prior distribution (default: 1e-6).
+#' Controls prior scale; smaller values indicate weaker priors. Default 1e-6 yields
+#' very weak priors for typical RNA-seq scales. Only used when bayesian_ci = TRUE.
 #' @param metadata Optional list or data frame used to enrich the result. If provided,
 #' the function applies metadata mapping to the output SummarizedExperiment via
 #' `.map_metadata()`. This allows adding additional context or derived annotations to
@@ -253,6 +268,10 @@
 #' - `diversity`: Per-gene Tsallis entropy values (if what="S")
 #' - `hill`: Per-gene Hill numbers (if what="D")
 #' - `counts`: Original raw transcript counts (preserved for downstream analysis)
+#' - `ci_lower`, `ci_upper`: Bootstrap confidence interval bounds (if bootstrap=TRUE)
+#' - `bayesian_ci_lower`, `bayesian_ci_upper`: Bayesian credible interval bounds 
+#'   from Gamma-Poisson posterior (if bayesian_ci=TRUE). Uses Negative Binomial
+#'   model conjugate priors as documented in papers S195, S197, S074, B8.
 #' 
 #' **Important:** The original "counts" assay is preserved to allow downstream functions
 #' (e.g., `calculate_tsallis_entropy_bootstrap`, `jackknife_tsallis_entropy`) to access
@@ -299,7 +318,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
-    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE,
+    bayesian_ci = FALSE, bayesian_ci_level = 0.95, bayesian_alpha = 0.5, bayesian_beta = 1e-6) {
     # Normalize norm parameter: coerce logical to character for backward compatibility
     if (is.logical(norm)) {
         norm <- if (norm) "range" else "none"
@@ -720,6 +740,92 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         }
     }
 
+    # =========================================================================
+    # BAYESIAN CREDIBLE INTERVALS (optional, Gamma-Poisson conjugate prior)
+    # =========================================================================
+    if (bayesian_ci) {
+        if (verbose) {
+            message("Computing Bayesian credible intervals (Gamma-Poisson model)...")
+        }
+        
+        # Validate Bayesian parameters
+        if (!is.numeric(bayesian_ci_level) || bayesian_ci_level <= 0 || bayesian_ci_level >= 1) {
+            stop("bayesian_ci_level must be a probability in (0, 1)", call. = FALSE)
+        }
+        if (!is.numeric(bayesian_alpha) || bayesian_alpha <= 0) {
+            stop("bayesian_alpha (prior shape) must be positive", call. = FALSE)
+        }
+        if (!is.numeric(bayesian_beta) || bayesian_beta <= 0) {
+            stop("bayesian_beta (prior rate) must be positive", call. = FALSE)
+        }
+        
+        # Get filtered gene names (genes that survived min_valid_frac filter)
+        # result contains aggregated (gene-level) data
+        filtered_genes <- as.character(result[, 1])
+        
+        # Aggregate isoform-level counts to gene level to match result structure
+        # Sum counts across isoforms for each gene
+        gene_counts_agg <- matrix(0, nrow = length(filtered_genes), ncol = ncol(se_assay_mat),
+                                   dimnames = list(filtered_genes, colnames(se_assay_mat)))
+        
+        for (i in seq_along(filtered_genes)) {
+            gene_id <- filtered_genes[i]
+            # Find all isoforms (rows) belonging to this gene
+            isoform_mask <- genes == gene_id
+            if (sum(isoform_mask) > 0) {
+                # Sum counts across isoforms
+                gene_counts_agg[i, ] <- colSums(se_assay_mat[isoform_mask, , drop = FALSE])
+            }
+        }
+        
+        counts_for_bayesian <- gene_counts_agg
+        
+        if (verbose) {
+            message(sprintf("  Computing Bayesian posteriors for %d genes with Gamma-Poisson prior",
+                nrow(counts_for_bayesian)))
+        }
+        
+        # Compute Bayesian credible intervals using corrected Gamma-Poisson model
+        # This uses compute_posterior_credible_intervals which implements the
+        # conjugate prior model from papers S195 (edgeR), S197 (DESeq2), S074 (edgeR handbook)
+        bayesian_results <- compute_posterior_credible_intervals(
+            counts_matrix = counts_for_bayesian,
+            alpha = bayesian_alpha,
+            beta = bayesian_beta,
+            ci = bayesian_ci_level
+        )
+        
+        # Extract CI bounds and create assays
+        n_genes_bayes <- nrow(counts_for_bayesian)
+        bayesian_ci_lower_matrix <- matrix(NA_real_, nrow = n_genes_bayes, ncol = ncol(result_assay))
+        bayesian_ci_upper_matrix <- matrix(NA_real_, nrow = n_genes_bayes, ncol = ncol(result_assay))
+        
+        rownames(bayesian_ci_lower_matrix) <- rownames(result_assay)
+        colnames(bayesian_ci_lower_matrix) <- colnames(result_assay)
+        rownames(bayesian_ci_upper_matrix) <- rownames(result_assay)
+        colnames(bayesian_ci_upper_matrix) <- colnames(result_assay)
+        
+        # bayesian_results is a data.frame with columns: gene, posterior_mean, ci_lower, ci_upper, posterior_sd
+        # Extract CI bounds for each gene
+        for (i in seq_len(n_genes_bayes)) {
+            if (i <= nrow(bayesian_results)) {
+                lower_ci <- bayesian_results$ci_lower[i]
+                upper_ci <- bayesian_results$ci_upper[i]
+                
+                # Replicate CI across all columns (same posterior for all samples in a gene)
+                bayesian_ci_lower_matrix[i, ] <- lower_ci
+                bayesian_ci_upper_matrix[i, ] <- upper_ci
+            }
+        }
+        
+        assays_list$bayesian_ci_lower <- bayesian_ci_lower_matrix
+        assays_list$bayesian_ci_upper <- bayesian_ci_upper_matrix
+        
+        if (verbose) {
+            message(sprintf("  ✓ Added bayesian_ci_lower and bayesian_ci_upper assays to output SE"))
+        }
+    }
+
     # Build metadata including original SE reference for downstream functions like fit_empirical_beta_prior
     # This preserves the transcript-level SE so Beta prior estimation can access raw counts
     result_meta_list <- list(
@@ -728,7 +834,11 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         bootstrap = bootstrap,
         bootstrap_nboot = if (!is.null(bootstrap_ci_results)) bootstrap_nboot else NULL,
         bootstrap_method = if (!is.null(bootstrap_ci_results)) bootstrap_method else NULL,
-        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci else NULL
+        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci else NULL,
+        bayesian_ci = bayesian_ci,
+        bayesian_ci_level = if (bayesian_ci) bayesian_ci_level else NULL,
+        bayesian_alpha = if (bayesian_ci) bayesian_alpha else NULL,
+        bayesian_beta = if (bayesian_ci) bayesian_beta else NULL
     )
     
     # Store original SE if input was a SummarizedExperiment (needed for precision weighting in vignette)
