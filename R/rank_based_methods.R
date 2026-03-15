@@ -206,6 +206,8 @@ apply_aligned_rank_transform <- function(data, factors, formula = NULL) {
 #' @param x Object of class "art_result"
 #' @param ... Additional arguments (ignored)
 #'
+#' @keywords internal
+#' @noRd
 print.art_result <- function(x, ...) {
   cat(x$summary)
   invisible(x)
@@ -223,17 +225,25 @@ print.art_result <- function(x, ...) {
 #' genes rank across different q-value settings.
 #'
 #' @param pvalues_list List of numeric vectors named by q-value (e.g., list(q01 = ..., q05 = ...)).
-#'   Can be either p-values or pre-ranked data, depending on \code{use_ranks} parameter.
-#' @param method Character; "spearman" (default) or "kendall" for rank correlation
-#' @param use_ranks Logical; if FALSE (default), input data are p-values that will be ranked;
-#'   if TRUE, input data are already gene ranks and will be used as-is
+#'   **IMPORTANT:** All vectors must have identical length. Can be either p-values or pre-ranked data,
+#'   depending on \code{use_ranks} parameter. Names should be q-value identifiers (e.g., "q0.1", "q0.5").
+#' @param method Character; "spearman" (default) or "kendall" for rank correlation method.
+#'   - spearman: Rank-based correlation (robust, recommended for effect rankings)
+#'   - kendall: Rank-invariant, less sensitive to outliers in rankings
+#' @param use_ranks Logical; if FALSE (default), input vectors are p-values/effect-sizes and will be ranked;
+#'   if TRUE, input vectors are already properly ranked (e.g., from rank function) and will be used directly.
+#'   **IMPORTANT:** When use_ranks=TRUE, ensure input vectors contain valid ranks (1, 2, 3, ..., n).
 #'
-#' @return List with:
+#' @return List with class "rank_correlation_multiq" containing:
 #'   \describe{
-#'     \item{correlation_matrix}{Pairwise correlations between q-value results}
-#'     \item{mean_correlation}{Average correlation across q-values}
-#'     \item{consistency_score}{Higher = more consistent ranking across q-values}
+#'     \item{correlation_matrix}{n_q × n_q matrix of pairwise rank correlations (symmetric)}
+#'     \item{mean_correlation}{Average off-diagonal correlation (0-1 scale)}
+#'     \item{consistency_score}{Identical to mean_correlation; higher values indicate stable rankings}
+#'     \item{method}{Correlation method used ("spearman" or "kendall")}
+#'     \item{q_values}{Names of q-value sets tested}
+#'     \item{summary}{Formatted text summary with interpretation guide}
 #'   }
+#'   Access individual rank vectors via \code{attr(result, 'ranking_data')}.
 #'
 #' @export
 #' @examples
@@ -262,13 +272,67 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
   
   method <- match.arg(method)
   
+  # ============================================================================
+  # INPUT VALIDATION (Critical for robustness)
+  # ============================================================================
+  
+  # Check that input is a non-empty list
+  if (!is.list(pvalues_list) || length(pvalues_list) == 0) {
+    stop("pvalues_list must be a non-empty list of numeric vectors. ",
+         "Received: ", class(pvalues_list)[1], call. = FALSE)
+  }
+  
+  # Verify all elements are numeric vectors
+  valid_elements <- sapply(pvalues_list, function(x) is.numeric(x) || is.integer(x))
+  if (!all(valid_elements)) {
+    invalid_idx <- which(!valid_elements)
+    stop("All elements in pvalues_list must be numeric. ",
+         "Non-numeric found at position(s): ", paste(invalid_idx, collapse=", "),
+         call. = FALSE)
+  }
+  
+  # Check all vectors have identical length (CRITICAL for proper correlation)
+  vec_lengths <- sapply(pvalues_list, length)
+  if (length(unique(vec_lengths)) > 1) {
+    stop("All vectors in pvalues_list must have identical length. ",
+         "Found lengths: ", paste(sort(unique(vec_lengths)), collapse=", "),
+         call. = FALSE)
+  }
+  
+  # Check for NAs and warn user
+  n_missing <- sum(sapply(pvalues_list, function(x) sum(is.na(x))))
+  if (n_missing > 0) {
+    warning("Found ", n_missing, " NA/NaN values across input vectors. ",
+            "These will be excluded from correlation computation via use='complete.obs'. ",
+            "Results may be less reliable with missing data.", call. = FALSE)
+  }
+  
+  # If use_ranks=TRUE, ensure input looks like valid ranks (basic heuristic check)
+  if (use_ranks) {
+    expected_max_rank <- vec_lengths[1]
+    for (i in seq_along(pvalues_list)) {
+      vec <- pvalues_list[[i]]
+      valid_finite <- vec[is.finite(vec)]
+      if (length(valid_finite) > 0) {
+        max_val <- max(valid_finite)
+        if (max_val > expected_max_rank + 1) {
+          warning("Vector '", names(pvalues_list)[i], "' contains value ", max_val,
+                  " but vector length is ", expected_max_rank, ". ",
+                  "This may not be valid rank data. ",
+                  "If use_ranks=TRUE, input should be from rank() function.",
+                  call. = FALSE)
+        }
+      }
+    }
+  }
+  
   # Implement use_ranks parameter:
-  # If use_ranks = FALSE (default): input is p-values, convert to ranks
+  # If use_ranks = FALSE (default): input is p-values/effects, convert to ranks
   # If use_ranks = TRUE: input is already ranks, use as-is
   if (use_ranks) {
     rank_list <- pvalues_list  # Data are already ranks
   } else {
-    rank_list <- lapply(pvalues_list, rank)  # Convert p-values to ranks
+    rank_list <- lapply(pvalues_list, rank)  # Convert p-values/effects to ranks
   }
   
   # Compute correlations
@@ -308,13 +372,24 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
   offdiag <- corr_matrix[lower.tri(corr_matrix)]
   consistency_score <- if (length(offdiag) > 0) mean(offdiag, na.rm = TRUE) else NA_real_
   
-  # Summary
+  # Summary with evidence-based interpretation guidance
+  interpretation_guide <- paste(
+    "Interpretation of Consistency Score (rank correlation):",
+    "  0.95-1.00: Excellent - nearly identical rankings across q-values",
+    "  0.80-0.94: Very good - slight variation but highly stable rankings",
+    "  0.60-0.79: Good - moderate variation, reasonable robustness",
+    "  0.40-0.59: Fair - substantial variation between q-values",
+    "  < 0.40: Poor - gene rankings diverge significantly across q-values",
+    sep = "\n"
+  )
+  
   summary_text <- sprintf(
-    "RANK CORRELATION ACROSS Q-VALUES\n%s\n\nMethod: %s rank correlation\nQ-values tested: %d\nMean correlation: %.4f\n\nInterpretation:\n  > 0.90: Very consistent ranking (all q-values find same genes)\n  0.70-0.90: Good robustness (effects stable across q-values)\n  < 0.70: Variable ranking (results q-value dependent)\n\nCorrelation Matrix:\n",
-    paste(rep("-", 50), collapse = ""),
+    "RANK CORRELATION CONSISTENCY ACROSS Q-VALUES\n%s\n\nMethod: %s rank correlation\nNumber of q-values: %d\nConsistency Score (mean pairwise correlation): %.4f\n\n%s\n\nNote: Consistency score is the mean of off-diagonal correlations.\nHigher values indicate that gene rankings are robust across q-parameter settings.\nThis supports robustness of findings to q-value choice.\n\nCorrelation Matrix (Pairwise Off-Diagonal Averages):\n",
+    paste(rep("-", 65), collapse = ""),
     toupper(method),
     n_q,
-    consistency_score
+    consistency_score,
+    interpretation_guide
   )
   
   structure(
@@ -336,6 +411,8 @@ compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman",
 #' @param x Object of class "rank_correlation_multiq"
 #' @param ... Additional arguments (ignored)
 #'
+#' @keywords internal
+#' @noRd
 print.rank_correlation_multiq <- function(x, ...) {
   cat(x$summary)
   print(round(x$correlation_matrix, 4))
@@ -344,52 +421,6 @@ print.rank_correlation_multiq <- function(x, ...) {
 }
 
 
-# ============================================================================
-# 4. VISUALIZATION OF RANK-BASED RESULTS
-# ============================================================================
-
-#' Plot Rank Correlation Across Q-values
-#'
-#' Visualize Spearman/Kendall correlations as heatmap showing consistency
-#' of gene ranking across different q-value thresholds.
-#'
-#' @param rank_corr_obj Object from compute_rank_correlation_multiq()
-#' @param title Character; plot title
-#'
-#' @return ggplot2 object (heatmap of correlation matrix)
-#' @export
-plot_rank_correlation_heatmap <- function(rank_corr_obj, 
-                                         title = "Rank Correlation Across Q-values") {
-  
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("ggplot2 required for visualization")
-  }
-  
-  # Prepare data for heatmap
-  corr_matrix <- rank_corr_obj$correlation_matrix
-  corr_long <- data.frame(
-    q_value_1 = rep(rownames(corr_matrix), ncol(corr_matrix)),
-    q_value_2 = rep(colnames(corr_matrix), each = nrow(corr_matrix)),
-    correlation = as.numeric(corr_matrix)
-  )
-  
-  # Create heatmap
-  # Bug #6 Fix: Use method variable instead of hardcoded "Spearman"
-  method_label <- sprintf("%s Correlation", toupper(rank_corr_obj$method))
-  
-  p <- ggplot2::ggplot(corr_long, 
-                       ggplot2::aes(x = q_value_2, y = q_value_1, 
-                                   fill = correlation)) +
-    ggplot2::geom_tile() +
-    ggplot2::scale_fill_gradient2(low = "red", mid = "white", high = "blue",
-                                   limits = c(-1, 1)) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)) +
-    ggplot2::labs(title = title, x = "Q-value 2", y = "Q-value 1",
-                 fill = method_label)
-  
-  p
-}
 
 
 # ============================================================================
@@ -587,6 +618,8 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
 #' @param x Object of class "rank_assumptions"
 #' @param ... Additional arguments (ignored)
 #'
+#' @keywords internal
+#' @noRd
 print.rank_assumptions <- function(x, ...) {
   cat("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)\n")
   cat(paste(rep("=", 60), collapse = ""), "\n\n")
@@ -934,6 +967,8 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
 #' @param x Object of class "rank_correlation_ci"
 #' @param ... Additional arguments (ignored)
 #'
+#' @keywords internal
+#' @noRd
 print.rank_correlation_ci <- function(x, ...) {
   cat("RANK CORRELATION CONFIDENCE INTERVALS\n")
   cat(paste(rep("=", 60), collapse = ""), "\n")
@@ -985,7 +1020,8 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
 #' - Strong: Substantial ranking changes (Cohen's large effect)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #' @examples
 #' \dontrun{
 #' results <- detect_q_gene_interactions(model_data)

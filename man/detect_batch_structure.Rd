@@ -2,7 +2,7 @@
 % Please edit documentation in R/batch_effect_handling.R
 \name{detect_batch_structure}
 \alias{detect_batch_structure}
-\title{Detect Batch Structure in Entropy Data via PCA}
+\title{Detect Batch Effects in Rank-Based Diversity Matrices}
 \usage{
 detect_batch_structure(
   entropy_lists,
@@ -19,8 +19,52 @@ detect_batch_structure(
 \item{n_pcs}{Integer. Number of principal components to compute (default: 5)}
 
 \item{color_by}{Character. Column name in sample_metadata to color samples (e.g., "condition", "batch", "sequencing_run").}
+
+\item{scale}{Logical; whether to scale the entropy data before PCA (default: TRUE).}
+
+\item{entropy_data}{SummarizedExperiment with entropy matrices, or list of
+entropy matrices, or a single entropy matrix}
+
+\item{se}{SummarizedExperiment containing entropy matrices in assays}
+
+\item{batch_column}{Character; name of batch factor column in colData(se)}
+
+\item{condition_column}{Character. Optional name of biological condition column in colData(se).}
+
+\item{assay}{Integer or character; which assay to correct (default: 1)}
 }
 \value{
+An object of class "batch_pca" containing:
+  \describe{
+    \item{pca_result}{prcomp object with sample scores and loadings}
+    \item{variance_explained}{Variance explained by each PC (as fraction)}
+    \item{cumulative_variance}{Cumulative variance explained}
+    \item{batch_pca_scores}{Data frame with PC1, PC2, sample_id and metadata columns}
+    \item{entropy_data}{The processed entropy matrix used for PCA}
+    \item{is_batch_confounded}{Logical; indicates if batch shows strong 
+      confounding (F-statistic > 3)}
+    \item{batch_effect_strength}{F-statistic value indicating batch strength 
+      on PC2}
+    \item{sample_metadata}{Original metadata provided (or NULL)}
+  }
+
+List with class "batch_pca" containing:
+  \describe{
+  \item{pca_result}{PCA fit object from prcomp}
+  \item{variance_explained}{Numeric vector of PC variance proportions}
+  \item{batch_pca_scores}{Data frame with PC scores and metadata}
+  \item{is_batch_confounded}{Logical; TRUE if batch affects PC2 (F > 3)}
+  \item{batch_effect_strength}{F-statistic from PC2 ~ batch ANOVA}
+  \item{entropy_data}{Filtered entropy matrix used for PCA}
+  }
+
+SummarizedExperiment with corrected entropy data in assays:
+  \describe{
+    \item{assay(result, 1)}{Batch-corrected entropy matrix}
+    \item{metadata(result)$batch_correction}{Full correction result from
+      apply_batch_correction_ranking}
+  }
+
 S3 object of class "batch_pca" containing:
   - pca_result: Result from prcomp()
   - variance_explained: Proportion of variance for each PC
@@ -33,15 +77,116 @@ S3 object of class "batch_pca" containing:
   - batch_effect_strength: PC2 separation by unsupervised clustering
 }
 \description{
-Performs Principal Component Analysis on entropy matrices to identify
-potential batch confounding effects. Analyzes whether samples cluster by
-sample type (biological) or by unexpected batch structure.
+Perform batch effect detection specifically designed for rank-based entropy
+and diversity matrices. Uses PCA to assess whether batch effects explain
+significant variance in the data while preserving the rank structure.
 }
 \details{
+This function is designed for rank-based diversity metrics (Tsallis entropy,
+Shannon diversity, etc.) where the rank structure must be preserved for
+subsequent permutation tests. It performs principal component analysis on
+standardized entropy matrices to visualize and quantify batch effects.
+
+The function detects batch confounding by testing whether the `color_by`
+variable explains significant variance in PC2. An F-statistic > 3 is
+considered indicative of confounding.
+
+When list input is provided (e.g., entropy across multiple q-values), the
+function averages the matrices before PCA while preserving column names
+to maintain sample identities.
+
+This function:
+1. Extracts entropy data from SummarizedExperiment if provided
+2. Handles multiple q-values by averaging entropy matrices
+3. Removes genes with NaN, Inf, or zero variance
+4. Performs PCA on sample-wise entropy patterns
+5. Detects batch signal in PC2: F-statistic > 3.0 indicates confounding
+6. Preserves exchangeability required for permutation tests
+
+Workflow:
+1. Extract entropy matrix and factor vectors from SE
+2. Fit linear model: Entropy[gene] ~ condition + batch
+3. Calculate per-gene batch effects
+4. Correct: Entropy_corrected = Entropy - batch_effect
+5. Return SE with corrected matrix + metadata
+
+Key assumption: Samples are interchangeable under null hypothesis.
+This is maintained because batch correction removes systematic patterns
+without altering the exchangeability structure.
+
 PCA reveals batch effects as:
 - Samples separating by sequencing batch instead of biology
 - Unexpected clustering patterns in PC1-PC2 space
 - High variance explained by non-biological factors
 
 Papers: C012, C013 (batch correction in RNA-seq)
+}
+\examples{
+\dontrun{
+# With entropy matrix and sample metadata
+entropy_matrix <- matrix(runif(200), nrow = 40, ncol = 5)
+rownames(entropy_matrix) <- paste0("gene", 1:40)
+colnames(entropy_matrix) <- paste0("sample", 1:5)
+
+metadata <- data.frame(
+  sample_id = paste0("sample", 1:5),
+  batch = factor(c("A", "A", "B", "B", "A")),
+  condition = factor(c("control", "case", "control", "case", "control"))
+)
+
+result <- detect_batch_structure_ranking(
+  entropy_data = entropy_matrix,
+  sample_metadata = metadata,
+  color_by = "batch"
+)
+
+# Visualize (if ggplot2 available)
+cat("Batch confounded:", result$is_batch_confounded, "\n")
+cat("Batch strength (F-stat):", result$batch_effect_strength, "\n")
+}
+
+Detect Batch Structure in Rank-Based Entropy Data
+
+Wrapper function that detects batch effects in Tsallis entropy matrices
+using PCA-based batch structure assessment. Designed for entropy/diversity
+data from rank-based methods (preserves exchangeability assumptions).
+
+\dontrun{
+# Correct batch effects in matrix
+result <- apply_batch_correction_ranking(
+  entropy_matrix = entropy_matrix,
+  batch_factor = batch_factor,
+  condition_factor = condition_factor
+)
+
+# Correct batch effects in SummarizedExperiment
+entropy_corrected <- apply_batch_correction_ranking(
+  entropy_matrix = entropy_se,
+  batch_column = "batch",
+  condition_column = "condition"
+)
+}
+
+Detect Batch Structure in Entropy Data via PCA
+
+Performs Principal Component Analysis on entropy matrices to identify
+potential batch confounding effects. Analyzes whether samples cluster by
+sample type (biological) or by unexpected batch structure.
+
+}
+\seealso{
+\code{\link{apply_batch_correction_ranking_se}} for batch correction
+  \code{\link{detect_batch_structure}} (underlying implementation)
+
+Apply Rank-Based Batch Correction to SummarizedExperiment
+
+Corrects batch effects in entropy/diversity data while preserving exchangeability
+assumption required for valid permutation tests. Uses residual method with linear
+model: Entropy ~ condition + batch, then extracts residuals.
+
+Critical property: Maintains exchangeability under null hypothesis (no biological
+signal), ensuring validity of rank-based permutation tests (Westfall-Young, etc.)
+
+\code{\link{detect_batch_structure_from_se}} for batch detection
+  \code{\link{apply_batch_correction_ranking}} (underlying function)
 }

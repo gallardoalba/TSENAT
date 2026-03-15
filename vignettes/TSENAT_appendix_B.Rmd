@@ -122,124 +122,7 @@ ts_se <- calculate_diversity(
 
 ```
 
----
-
-# Part 1: Flexible Parametric Approach (GAM)
-
-GAM analysis is computationally intensive:
-
-- Per-gene fitting: Each gene gets a smooth GAM model fitted across all q-values.
-- Model complexity: Generalized Additive Models use iterative smoothing optimization.
-- Scale: With ~500 genes × 39 q-values = 19,500 model evaluations.
-- Multiple testing correction: Additional computation for Hochberg adjustment.
-
-Expected runtime: 2-5 minutes for 500 genes with 3 threads. For faster iteration during development, reduce `n_genes_subset` in the setup chunk.
-
-```{r gam-analysis, message=FALSE}
-# Flexible parametric approach (GAM)
-
-gam_results_raw <- calculate_lm_interaction(
-    ts_se,
-    method = "gam",
-    paired = TRUE,
-    multicorr = "hochberg",
-    nthreads = 3,
-    verbose = FALSE
-)
-
-# Convert to data frame robustly
-gam_results <- as.data.frame(gam_results_raw, stringsAsFactors = FALSE)
-```
-
-```{r gam-summary, message=FALSE, echo=FALSE}
-# Create summary statistics table with additional metrics
-# Handle NA and NaN values properly
-mean_effect <- mean(gam_results$effect_size, na.rm = TRUE)
-median_effect <- median(gam_results$effect_size, na.rm = TRUE)
-
-summary_stats <- data.frame(
-  Metric = c(
-    "Genes tested", 
-    "Significant (p < 0.05)", 
-    "Concordant (p < 0.05 AND adj_p < 0.05)",
-    "NAs",
-    "Mean effect size",
-    "Median effect size",
-    "Strong effect genes (effect_size > 30%)",
-    "Model convergence rate"
-  ),
-  Value = c(
-    nrow(gam_results),
-    sum(gam_results$p_interaction < 0.05, na.rm = TRUE),
-    sum(gam_results$p_interaction < 0.05 & gam_results$adj_p_interaction < 0.05, na.rm = TRUE),
-    sum(is.na(gam_results$p_interaction)),
-    if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
-    if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
-    sum(gam_results$p_interaction < 0.05 & gam_results$effect_size > 0.30, na.rm = TRUE),
-    sprintf("%.1f%%", mean(gam_results$model_converged, na.rm = TRUE) * 100)
-  )
-)
-
-knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"))
-
-# Show top genes with additional information
-if ("p_interaction" %in% colnames(gam_results)) {
-  gam_sig <- gam_results[!is.na(gam_results$p_interaction), ]
-  
-  if (nrow(gam_sig) > 0) {
-    gam_sig <- gam_sig[order(gam_sig$p_interaction), ]
-    gam_sig <- gam_sig[1:min(10, nrow(gam_sig)), ]
-    
-    # Select columns for display: gene, p-values, effect size, test statistic, df
-    cols_to_show <- intersect(c("gene", "p_interaction", "adj_p_interaction", "effect_size", 
-                                "test_statistic", "df_residual"), 
-                              colnames(gam_sig))
-    if (length(cols_to_show) > 0) {
-      gam_display <- gam_sig[, cols_to_show, drop = FALSE]
-      
-      # Format p-values in scientific notation
-      for (col in c("p_interaction", "adj_p_interaction")) {
-        if (col %in% colnames(gam_display)) {
-          gam_display[[col]] <- sapply(gam_display[[col]], function(x) {
-            if (is.na(x)) "NA" else sprintf("%.3e", x)
-          })
-        }
-      }
-      
-      # Format effect size as percentage
-      if ("effect_size" %in% colnames(gam_display)) {
-        gam_display$effect_size <- sapply(gam_display$effect_size, function(x) {
-          if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
-        })
-      }
-      
-      # Format test statistic
-      if ("test_statistic" %in% colnames(gam_display)) {
-        gam_display$test_statistic <- sapply(gam_display$test_statistic, function(x) {
-          if (is.na(x)) "NA" else sprintf("%.2f", x)
-        })
-      }
-      
-      # Format df as integer
-      if ("df_residual" %in% colnames(gam_display)) {
-        gam_display$df_residual <- sapply(gam_display$df_residual, function(x) {
-          if (is.na(x)) "NA" else as.integer(x)
-        })
-      }
-      
-      knitr::kable(gam_display, 
-                   caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)",
-                   align = c("l", "r", "r", "r", "r", "r"))
-    }
-  }
-} else {
-  cat("WARNING: p_interaction column not found in results\n")
-  cat("Available columns:", paste(colnames(gam_results), collapse=", "), "\n")
-}
-```
-
-
-# Part 2: Rank-Based Approach (Kruskal-Wallis)
+# Rank-Based Approach (Kruskal-Wallis)
 
 ## Assumption Validation
 
@@ -406,9 +289,123 @@ if (nrow(kw_sig) > 0) {
 
 ---
 
+# Flexible Parametric Approach (GAM)
 
+GAM analysis is computationally intensive:
 
-# Part 3: Method Concordance Analysis
+- Per-gene fitting: Each gene gets a smooth GAM model fitted across all q-values.
+- Model complexity: Generalized Additive Models use iterative smoothing optimization.
+- Scale: With ~500 genes × 39 q-values = 19,500 model evaluations.
+- Multiple testing correction: Additional computation for Hochberg adjustment.
+
+Expected runtime: 2-5 minutes for 500 genes with 3 threads. For faster iteration during development, reduce `n_genes_subset` in the setup chunk.
+
+```{r gam-analysis, message=FALSE}
+# Flexible parametric approach (GAM)
+
+gam_results_raw <- calculate_lm_interaction(
+    ts_se,
+    method = "gam",
+    paired = TRUE,
+    multicorr = "hochberg",
+    nthreads = 3,
+    verbose = FALSE
+)
+
+# Convert to data frame robustly
+gam_results <- as.data.frame(gam_results_raw, stringsAsFactors = FALSE)
+```
+
+```{r gam-summary, message=FALSE, echo=FALSE}
+# Create summary statistics table with additional metrics
+# Handle NA and NaN values properly
+mean_effect <- mean(gam_results$effect_size, na.rm = TRUE)
+median_effect <- median(gam_results$effect_size, na.rm = TRUE)
+
+summary_stats <- data.frame(
+  Metric = c(
+    "Genes tested", 
+    "Significant (p < 0.05)", 
+    "Concordant (p < 0.05 AND adj_p < 0.05)",
+    "NAs",
+    "Mean effect size",
+    "Median effect size",
+    "Strong effect genes (effect_size > 30%)",
+    "Model convergence rate"
+  ),
+  Value = c(
+    nrow(gam_results),
+    sum(gam_results$p_interaction < 0.05, na.rm = TRUE),
+    sum(gam_results$p_interaction < 0.05 & gam_results$adj_p_interaction < 0.05, na.rm = TRUE),
+    sum(is.na(gam_results$p_interaction)),
+    if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
+    if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
+    sum(gam_results$p_interaction < 0.05 & gam_results$effect_size > 0.30, na.rm = TRUE),
+    sprintf("%.1f%%", mean(gam_results$model_converged, na.rm = TRUE) * 100)
+  )
+)
+
+knitr::kable(summary_stats, caption = "GAM Results Summary", align = c("l", "r"))
+
+# Show top genes with additional information
+if ("p_interaction" %in% colnames(gam_results)) {
+  gam_sig <- gam_results[!is.na(gam_results$p_interaction), ]
+  
+  if (nrow(gam_sig) > 0) {
+    gam_sig <- gam_sig[order(gam_sig$p_interaction), ]
+    gam_sig <- gam_sig[1:min(10, nrow(gam_sig)), ]
+    
+    # Select columns for display: gene, p-values, effect size, test statistic, df
+    cols_to_show <- intersect(c("gene", "p_interaction", "adj_p_interaction", "effect_size", 
+                                "test_statistic", "df_residual"), 
+                              colnames(gam_sig))
+    if (length(cols_to_show) > 0) {
+      gam_display <- gam_sig[, cols_to_show, drop = FALSE]
+      
+      # Format p-values in scientific notation
+      for (col in c("p_interaction", "adj_p_interaction")) {
+        if (col %in% colnames(gam_display)) {
+          gam_display[[col]] <- sapply(gam_display[[col]], function(x) {
+            if (is.na(x)) "NA" else sprintf("%.3e", x)
+          })
+        }
+      }
+      
+      # Format effect size as percentage
+      if ("effect_size" %in% colnames(gam_display)) {
+        gam_display$effect_size <- sapply(gam_display$effect_size, function(x) {
+          if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
+        })
+      }
+      
+      # Format test statistic
+      if ("test_statistic" %in% colnames(gam_display)) {
+        gam_display$test_statistic <- sapply(gam_display$test_statistic, function(x) {
+          if (is.na(x)) "NA" else sprintf("%.2f", x)
+        })
+      }
+      
+      # Format df as integer
+      if ("df_residual" %in% colnames(gam_display)) {
+        gam_display$df_residual <- sapply(gam_display$df_residual, function(x) {
+          if (is.na(x)) "NA" else as.integer(x)
+        })
+      }
+      
+      knitr::kable(gam_display, 
+                   caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)",
+                   align = c("l", "r", "r", "r", "r", "r"))
+    }
+  }
+} else {
+  cat("WARNING: p_interaction column not found in results\n")
+  cat("Available columns:", paste(colnames(gam_results), collapse=", "), "\n")
+}
+```
+
+---
+
+# Method Concordance Analysis
 
 ```{r concordance-summary, message=FALSE}
 # Compute concordance analysis using dedicated function
@@ -487,7 +484,7 @@ if (exists("comparison_df") && nrow(comparison_df) > 0) {
 
 ---
 
-# Part 5: Recommendations
+# Recommendations
 
 ## Best Practices for Analysis
 

@@ -7,18 +7,46 @@
 plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type"
+  sample_type_col = "sample_type",
+  bootstrap = FALSE,
+  n_bootstrap = 1000,
+  ci_level = 0.95,
+  test_method = c("wilcox", "ttest"),
+  alpha = 0.05
 )
 }
 \arguments{
-\item{se}{SummarizedExperiment from calculate_diversity().}
+\item{se}{A `SummarizedExperiment` returned by `calculate_diversity` with
+multiple q values (column names contain `_q=`).}
 
-\item{assay_name}{Character. Assay name (default "diversity").}
+\item{assay_name}{Character; name of the assay to plot (default: "diversity").}
 
-\item{sample_type_col}{Character. Column in colData(se) with sample types (default "sample_type").}
+\item{sample_type_col}{Character; column name in colData indicating group/sample type
+(default: "sample_type").}
+
+\item{bootstrap}{Logical; if TRUE and SE contains bootstrap CI data (from
+`calculate_diversity(..., bootstrap=TRUE)`), plot bootstrap confidence bands
+and perform group comparison tests (default: FALSE).}
+
+\item{n_bootstrap}{Integer; number of bootstrap replicates (used if bootstrap=TRUE
+and CIs need recalculation; default: 1000).}
+
+\item{ci_level}{Numeric; confidence level (0-1) for bootstrap CIs (default: 0.95).}
+
+\item{test_method}{Character; statistical test for group differences when bootstrap=TRUE.
+Options: "wilcox" (Wilcoxon rank-sum, default) or "ttest" (Welch's t-test).}
+
+\item{alpha}{Numeric; significance level for tests (default: 0.05).}
 }
 \value{
 A ggplot object with q-curves and IQR ribbons for each group.
+
+A `ggplot` object showing the q-curve. When `bootstrap=TRUE`, returns
+  an object of class "qcurve_bootstrap" with additional components:
+  - `$ggplot`: The plot object
+  - `$plot_data`: Data frame with medians and CIs for each group/q
+  - `$significant_qranges`: Q-value ranges where groups differ significantly
+  - `$metadata`: Bootstrap parameters used
 }
 \description{
 Visualize q-curve showing Tsallis entropy across diversity scales for each sample group.
@@ -27,6 +55,17 @@ Displays median entropy with IQR ribbons for comparison between groups.
 \details{
 Computes median Tsallis entropy and interquartile range (IQR) at each q-value
 for each sample group, displayed as median line with IQR ribbon.
+
+**Basic mode (bootstrap=FALSE)**:
+- Plots median entropy ± IQR for each group across q-values
+- Useful for exploratory visualization
+
+**Bootstrap mode (bootstrap=TRUE)**:
+- Requires SE created with `calculate_diversity(..., bootstrap=TRUE)`
+- Plots bootstrap confidence bands (default: 95% CI)
+- Identifies q-ranges where groups differ significantly
+- Runs Wilcoxon or t-tests at each q-value
+- Returns structured output with significance regions highlighted in red
 }
 \examples{
 data("readcounts", package = "TSENAT")
@@ -37,4 +76,23 @@ se <- calculate_diversity(rc, gs,
 )
 p <- plot_tsallis_q_curve(se)
 p
+Plot Tsallis Entropy q-Curve
+
+Visualize Tsallis entropy (S_q) as a function of the diversity parameter q.
+
+\dontrun{
+  data("readcounts", package = "TSENAT")
+  rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
+  gs <- readcounts[1:50, 1]
+  
+  # Basic q-curve
+  se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
+  p <- plot_tsallis_q_curve(se_basic)
+  
+  # With bootstrap confidence bands
+  se_boot <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5, 2.0), 
+                                 bootstrap = TRUE, bootstrap_nboot = 500)
+  p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
+}
+
 }

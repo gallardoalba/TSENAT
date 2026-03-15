@@ -259,7 +259,13 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
 #' n_sig_storey <- sum(qvalues < 0.05)
 #' n_sig_bh <- sum(qvalues_bh < 0.05)
 #' 
-#' @export
+#' @details
+#' This is an internal helper function primarily called by \code{calculate_lm_interaction()}
+#' when the \code{storey=TRUE} parameter is enabled. It is kept internal as it requires
+#' proper p-value input validation and correlation-aware preprocessing.
+#' 
+#' @keywords internal
+#' @noRd
 compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05, 
                                     robust = TRUE, na.rm = TRUE) {
   

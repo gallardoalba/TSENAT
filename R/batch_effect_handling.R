@@ -242,7 +242,15 @@ print.batch_detection <- function(x, ...) {
 #' @param mean.only Logical; adjust only mean, not dispersion (default: FALSE)
 #'
 #' @return SummarizedExperiment with batch-corrected counts in assay slot
-#' @export
+#' 
+#' @details
+#' This is the primary batch correction dispatcher, now called through the unified
+#' `correct_batch_effects()` interface. It is kept internal as it is primarily 
+#' intended for internal dispatch within the batch correction framework.
+#' 
+#' @keywords internal
+#' @noRd
+#' 
 #' @references 
 #' Zhang, Y., et al. (2020). ComBat-seq: batch effect adjustment for 
 #' RNA-seq count data. NAR Genomics and Bioinformatics, 2(3), lqaa078.
@@ -768,66 +776,6 @@ heatmap_batch <- function(se, batch, n_genes = 50, annotation_col = TRUE) {
 }
 
 
-# ============================================================================
-# 5. UTILITY FUNCTIONS
-# ============================================================================
-
-#' Summarize Batch Correction Results
-#'
-#' Compare batch effects before and after correction.
-#'
-#' @param se_original Original SummarizedExperiment
-#' @param se_corrected Batch-corrected SummarizedExperiment
-#' @param batch Character; batch column name
-#'
-#' @return List with before/after statistics
-#' @export
-#' @examples
-#' \dontrun{
-#' comparison <- compare_batch_correction(
-#'   se_original = readcounts_se,
-#'   se_corrected = corrected_se,
-#'   batch = "batch_id"
-#' )
-#' print(comparison)
-#' }
-compare_batch_correction <- function(se_original, se_corrected, batch) {
-  
-  # Detect batch effects before
-  detect_before <- detect_batch_effects(se_original, batch, method = "pca")
-  
-  # Detect batch effects after
-  detect_after <- detect_batch_effects(se_corrected, batch, method = "pca")
-  
-  # Summary
-  improvement <- 100 * (detect_before$batch_variance_mean - 
-                        detect_after$batch_variance_mean) / 
-                 detect_before$batch_variance_mean
-  
-  structure(
-    list(
-      variance_before = detect_before$batch_variance_mean,
-      variance_after = detect_after$batch_variance_mean,
-      improvement_pct = improvement,
-      pvalue_before = detect_before$pvalue,
-      pvalue_after = detect_after$pvalue,
-      summary = sprintf(
-        "Batch Correction Summary:\n%s\nBefore: %.2f%% variance explained by batch\nAfter:  %.2f%% variance explained by batch\nImprovement: %.1f%%",
-        paste(rep("-", 50), collapse = ""),
-        detect_before$batch_variance_mean,
-        detect_after$batch_variance_mean,
-        improvement
-      )
-    ),
-    class = "batch_correction_comparison"
-  )
-}
-
-#' @export
-print.batch_correction_comparison <- function(x, ...) {
-  cat(x$summary, "\n")
-  invisible(x)
-}
 
 # ============================================================================
 # 4. RANK-BASED BATCH EFFECT DETECTION AND CORRECTION
@@ -989,83 +937,21 @@ print.batch_correction_comparison <- function(x, ...) {
 #' @export
 #' @examples
 #' \dontrun{
-#' # Correct batch effects in entropy SE
-#' entropy_corrected <- apply_batch_correction_ranking_se(
-#'   se = entropy_se,
+#' # Correct batch effects in matrix
+#' result <- apply_batch_correction_ranking(
+#'   entropy_matrix = entropy_matrix,
+#'   batch_factor = batch_factor,
+#'   condition_factor = condition_factor
+#' )
+#'
+#' # Correct batch effects in SummarizedExperiment
+#' entropy_corrected <- apply_batch_correction_ranking(
+#'   entropy_matrix = entropy_se,
 #'   batch_column = "batch",
 #'   condition_column = "condition"
 #' )
-#'
-#' # Verify correction worked
-#' assay(entropy_corrected, 1)[1:5, ]  # Corrected entropy values
-#' metadata(entropy_corrected)$batch_correction$mean_r_squared
 #' }
-apply_batch_correction_ranking_se <- function(
-    se,
-    batch_column,
-    condition_column = NULL,
-    assay = 1) {
-  
-  # Input validation
-  if (!methods::is(se, "SummarizedExperiment")) {
-    stop("se must be a SummarizedExperiment object", call. = FALSE)
-  }
-  
-  if (!(batch_column %in% names(SummarizedExperiment::colData(se)))) {
-    stop("batch_column '", batch_column, "' not found in colData(se)", call. = FALSE)
-  }
-  
-  # Extract data
-  entropy_matrix <- SummarizedExperiment::assay(se, assay)
-  
-  # Validate entropy matrix is numeric and contains finite values
-  if (!is.numeric(entropy_matrix)) {
-    stop("Entropy matrix must be numeric. Found class: ", class(entropy_matrix)[1], call. = FALSE)
-  }
-  
-  n_non_finite <- sum(!is.finite(entropy_matrix))
-  if (n_non_finite > 0) {
-    stop("Entropy matrix contains ", n_non_finite, " non-finite values (NaN or Inf). ",
-         "Please clean data before batch correction.", call. = FALSE)
-  }
-  
-  batch_factor <- SummarizedExperiment::colData(se)[[batch_column]]
-  
-  condition_factor <- NULL
-  if (!is.null(condition_column)) {
-    if (!(condition_column %in% names(SummarizedExperiment::colData(se)))) {
-      stop("condition_column '", condition_column, "' not found in colData(se)", call. = FALSE)
-    } else {
-      condition_factor <- SummarizedExperiment::colData(se)[[condition_column]]
-    }
-  }
-  
-  # Apply batch correction via rank-based function
-  correction_result <- apply_batch_correction_ranking(
-    entropy_matrix = entropy_matrix,
-    batch_factor = batch_factor,
-    condition_factor = condition_factor
-  )
-  
-  # Create output SE with corrected matrix
-  se_corrected <- se
-  SummarizedExperiment::assay(se_corrected, assay) <- correction_result$entropy_corrected
-  
-  # Store correction details in metadata
-  SummarizedExperiment::metadata(se_corrected)$batch_correction <- list(
-    method = "rank_based_linear_model",
-    batch_column = batch_column,
-    condition_column = condition_column,
-    correction_result = correction_result,
-    mean_r_squared = correction_result$mean_r_squared,
-    batch_levels = correction_result$batch_levels,
-    n_genes_corrected = nrow(correction_result$entropy_corrected),
-    n_samples = ncol(correction_result$entropy_corrected)
-  )
-  
-  return(se_corrected)
-}
-
+#'
 ################################################################################
 #
 #' Detect Batch Structure in Entropy Data via PCA
@@ -1307,10 +1193,21 @@ print.batch_pca <- function(x, ...) {
 #' Papers: C012, C013 (ComBat-like batch correction)
 #'
 #' @export
-apply_batch_correction_ranking <- function(
+#' @export
+apply_batch_correction_ranking <- function(entropy_matrix, ...) {
+  UseMethod("apply_batch_correction_ranking", entropy_matrix)
+}
+
+#' @rdname apply_batch_correction_ranking
+#' @param entropy_matrix Numeric matrix with entropy values (genes × samples)
+#' @param batch_factor Factor or character vector indicating batch assignment (length = ncol(entropy_matrix))
+#' @param condition_factor Optional factor for biological condition (length = ncol(entropy_matrix))
+#' @export
+apply_batch_correction_ranking.default <- function(
     entropy_matrix,
     batch_factor,
-    condition_factor = NULL) {
+    condition_factor = NULL,
+    ...) {
   
   if (nrow(entropy_matrix) == 0 || ncol(entropy_matrix) == 0) {
     stop("Entropy matrix has zero dimensions", call. = FALSE)
@@ -1410,4 +1307,79 @@ apply_batch_correction_ranking <- function(
     batch_levels = levels(batch_factor),
     mean_r_squared = mean(r_squared_by_gene, na.rm = TRUE)
   )
+}
+
+#' @rdname apply_batch_correction_ranking
+#' @param se A SummarizedExperiment object
+#' @param batch_column Character; column name in colData(se) for batch assignment
+#' @param condition_column Optional character; column name in colData(se) for biological condition
+#' @param assay Numeric or character; which assay to use (default: 1)
+#' @export
+apply_batch_correction_ranking.SummarizedExperiment <- function(
+    entropy_matrix,
+    batch_column,
+    condition_column = NULL,
+    assay = 1,
+    ...) {
+  
+  se <- entropy_matrix  # First parameter is actually the SE object
+  
+  # Input validation
+  if (!methods::is(se, "SummarizedExperiment")) {
+    stop("entropy_matrix must be a SummarizedExperiment object", call. = FALSE)
+  }
+  
+  if (!(batch_column %in% names(SummarizedExperiment::colData(se)))) {
+    stop("batch_column '", batch_column, "' not found in colData(se)", call. = FALSE)
+  }
+  
+  # Extract data
+  entropy_matrix <- SummarizedExperiment::assay(se, assay)
+  
+  # Validate entropy matrix is numeric and contains finite values
+  if (!is.numeric(entropy_matrix)) {
+    stop("Entropy matrix must be numeric. Found class: ", class(entropy_matrix)[1], call. = FALSE)
+  }
+  
+  n_non_finite <- sum(!is.finite(entropy_matrix))
+  if (n_non_finite > 0) {
+    stop("Entropy matrix contains ", n_non_finite, " non-finite values (NaN or Inf). ",
+         "Please clean data before batch correction.", call. = FALSE)
+  }
+  
+  batch_factor <- SummarizedExperiment::colData(se)[[batch_column]]
+  
+  condition_factor <- NULL
+  if (!is.null(condition_column)) {
+    if (!(condition_column %in% names(SummarizedExperiment::colData(se)))) {
+      stop("condition_column '", condition_column, "' not found in colData(se)", call. = FALSE)
+    } else {
+      condition_factor <- SummarizedExperiment::colData(se)[[condition_column]]
+    }
+  }
+  
+  # Apply batch correction via rank-based function (calls .default method)
+  correction_result <- apply_batch_correction_ranking.default(
+    entropy_matrix = entropy_matrix,
+    batch_factor = batch_factor,
+    condition_factor = condition_factor
+  )
+  
+  # Create output SE with corrected matrix
+  se_corrected <- se
+  SummarizedExperiment::assay(se_corrected, assay) <- correction_result$entropy_corrected
+  
+  # Store correction details in metadata
+  S4Vectors::metadata(se_corrected)$batch_correction <- list(
+    method = "rank_based_linear_model",
+    batch_column = batch_column,
+    condition_column = condition_column,
+    correction_result = correction_result,
+    mean_r_squared = correction_result$mean_r_squared,
+    batch_levels = correction_result$batch_levels,
+    n_genes_corrected = nrow(correction_result$entropy_corrected),
+    n_samples = ncol(correction_result$entropy_corrected)
+  )
+  
+  return(se_corrected)
 }

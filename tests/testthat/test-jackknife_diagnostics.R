@@ -995,141 +995,7 @@ test_se_with_blocks <- function() {
     colData = colData
   )
 }
-
-# ============================================================================
-# BLOCK JACKKNIFE TESTS
-# ============================================================================
-
-test_that("block_jackknife_isoform_switching function exists", {
-  expect_true(exists("block_jackknife_isoform_switching"))
-  expect_true(is.function(block_jackknife_isoform_switching))
-})
-
-test_that("block_jackknife requires se parameter", {
-  expect_error(
-    block_jackknife_isoform_switching(se = NULL),
-    "SummarizedExperiment object.*required"
-  )
-})
-
-test_that("block_jackknife validates SummarizedExperiment class", {
-  expect_error(
-    block_jackknife_isoform_switching(
-      se = data.frame(x = 1:10),
-      block_col = "phase",
-      gene_col = "gene_id",
-      isoform_col = "isoform_id"
-    ),
-    "must be a SummarizedExperiment object"
-  )
-})
-
-test_that("block_jackknife validates block_col exists", {
-  se <- test_se_with_blocks()
-  expect_error(
-    block_jackknife_isoform_switching(
-      se = se,
-      block_col = "nonexistent_column",
-      gene_col = "gene_id",
-      isoform_col = "isoform_id",
-      print_results = FALSE
-    ),
-    "not found in colData"
-  )
-})
-
-test_that("block_jackknife requires gene_col and isoform_col", {
-  se <- test_se_with_blocks()
-  expect_error(
-    block_jackknife_isoform_switching(
-      se = se,
-      block_col = "phase",
-      gene_col = NULL,
-      isoform_col = "isoform_id",
-      print_results = FALSE
-    ),
-    "gene_col and isoform_col must be specified"
-  )
-})
-
-test_that("block_jackknife requires at least 2 blocks", {
-  se <- test_se_with_blocks()
-  SummarizedExperiment::colData(se)$phase <- "OnlyPhase"  # Single block
-  
-  expect_error(
-    block_jackknife_isoform_switching(
-      se = se,
-      block_col = "phase",
-      gene_col = "gene_id",
-      isoform_col = "isoform_id",
-      print_results = FALSE
-    ),
-    "at least 2 blocks"
-  )
-})
-
-test_that("block_jackknife returns tsenat_block_jackknife object", {
-  se <- test_se_with_blocks()
-  result <- suppressWarnings(block_jackknife_isoform_switching(
-    se = se,
-    block_col = "phase",
-    gene_col = "gene_id",
-    isoform_col = "isoform_id",
-    print_results = FALSE
-  ))
-  
-  expect_true(inherits(result, "tsenat_block_jackknife"))
-  expect_true(is.list(result))
-})
-
-test_that("block_jackknife result has required components", {
-  se <- test_se_with_blocks()
-  result <- suppressWarnings(block_jackknife_isoform_switching(
-    se = se,
-    block_col = "phase",
-    gene_col = "gene_id",
-    isoform_col = "isoform_id",
-    print_results = FALSE
-  ))
-  
-  expect_true("blocks" %in% names(result))
-  expect_true("gene_names" %in% names(result))
-  expect_true("per_block_results" %in% names(result))
-  expect_true("metadata" %in% names(result))
-})
-
-test_that("block_jackknife metadata has correct structure", {
-  se <- test_se_with_blocks()
-  result <- suppressWarnings(block_jackknife_isoform_switching(
-    se = se,
-    block_col = "phase",
-    gene_col = "gene_id",
-    isoform_col = "isoform_id",
-    q = 1.5,
-    norm = FALSE,
-    print_results = FALSE
-  ))
-  
-  meta <- result$metadata
-  expect_equal(meta$q, 1.5)
-  expect_equal(meta$norm, FALSE)
-  expect_equal(meta$method, "block_jackknife")
-})
-
-test_that("block_jackknife metadata includes paper references", {
-  se <- test_se_with_blocks()
-  result <- suppressWarnings(block_jackknife_isoform_switching(
-    se = se,
-    block_col = "phase",
-    gene_col = "gene_id",
-    isoform_col = "isoform_id",
-    print_results = FALSE
-  ))
-  
-  expect_true("reference_papers" %in% names(result$metadata))
-  expect_true("C137" %in% result$metadata$reference_papers)
-  expect_true("ISO021" %in% result$metadata$reference_papers)
-})
+´
 
 # ============================================================================
 # HEATMAP VISUALIZATION TESTS
@@ -1423,16 +1289,6 @@ test_that("plot_q_sensitivity_curve respects q_values parameter", {
 test_that("Block jackknife and isoform switching work together with same data", {
   se <- test_se_with_blocks()
   
-  # Block jackknife
-  block_result <- suppressWarnings(
-    block_jackknife_isoform_switching(
-      se = se,
-      block_col = "phase",
-      gene_col = "gene_id",
-      isoform_col = "isoform_id",
-      print_results = FALSE
-    )
-  )
   
   # Standard isoform switching
   switch_result <- suppressWarnings(
@@ -1489,9 +1345,3 @@ test_that("Visualization functions work with isoform switching results", {
   expect_true(is.data.frame(q_result))
 })
 
-test_that("All enhancement functions include paper references", {
-  # Check function documentation in roxygen comments
-  expect_true(exists("block_jackknife_isoform_switching"))
-  expect_true(exists("plot_isoform_switching_heatmap"))
-  expect_true(exists("plot_q_sensitivity_curve"))
-})

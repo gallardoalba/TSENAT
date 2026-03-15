@@ -483,7 +483,7 @@ test_that("filter_se stringency adjusts min_tx_per_gene based on stringency leve
 
 context("filter_se: Effect Size Filtering")
 
-test_that("filter_se_by_effect_size filters by eta2 threshold", {
+test_that("filter_se_by_interaction_effect_size filters by eta2 threshold", {
     # Create simple data
     mat <- matrix(sample(1:100, 30), nrow = 6, ncol = 5)
     rownames(mat) <- paste0("gene", 1:6)
@@ -499,7 +499,7 @@ test_that("filter_se_by_effect_size filters by eta2 threshold", {
     )
     
     # Filter with eta2 > 0.02 (threshold uses > operator, not >=)
-    res <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
+    res <- filter_se_by_interaction_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
     
     # Should keep genes with eta2 > 0.02 (gene1 with 0.05, gene2 with 0.03)
     # gene3 with 0.015 is not > 0.02, so it won't be kept
@@ -508,7 +508,7 @@ test_that("filter_se_by_effect_size filters by eta2 threshold", {
     expect_false("gene3" %in% rownames(res))
 })
 
-test_that("filter_se_by_effect_size handles NA effect sizes", {
+test_that("filter_se_by_interaction_effect_size handles NA effect sizes", {
     mat <- matrix(sample(1:30, 30), nrow = 6, ncol = 5)
     rownames(mat) <- paste0("gene", 1:6)
     
@@ -521,49 +521,49 @@ test_that("filter_se_by_effect_size handles NA effect sizes", {
     )
     
     # Filter with eta2 > 0.02
-    res <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
+    res <- filter_se_by_interaction_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
     
     # Should keep gene1 (0.05) and gene3 (0.025), both > 0.02
     expect_equal(nrow(res), 2)
     expect_true(all(c("gene1", "gene3") %in% rownames(res)))
 })
 
-test_that("filter_se_by_effect_size validates input parameters", {
+test_that("filter_se_by_interaction_effect_size validates input parameters", {
     mat <- matrix(1:30, nrow = 6, ncol = 5)
     se <- SummarizedExperiment(assays = list(counts = mat))
     
     # Non-SE input
     expect_error(
-        filter_se_by_effect_size(1:10, data.frame(gene = 1:6, eta2 = 0.05)),
+        filter_se_by_interaction_effect_size(1:10, data.frame(gene = 1:6, eta2 = 0.05)),
         "must be a SummarizedExperiment"
     )
     
     # Non-dataframe results
     expect_error(
-        filter_se_by_effect_size(se, list()),
+        filter_se_by_interaction_effect_size(se, list()),
         "must be a data frame"
     )
     
     # Missing gene column
     expect_error(
-        filter_se_by_effect_size(se, data.frame(eta2 = 0.05)),
+        filter_se_by_interaction_effect_size(se, data.frame(eta2 = 0.05)),
         "must contain 'gene' column"
     )
     
     # Missing effect size column
     expect_error(
-        filter_se_by_effect_size(se, data.frame(gene = "g1")),
+        filter_se_by_interaction_effect_size(se, data.frame(gene = "g1")),
         "must contain 'effect_size_eta2' or 'eta2' column"
     )
     
     # Invalid eta2 threshold
     expect_error(
-        filter_se_by_effect_size(se, data.frame(gene = "g1", eta2 = 0.05), eta2_threshold = -0.1),
+        filter_se_by_interaction_effect_size(se, data.frame(gene = "g1", eta2 = 0.05), eta2_threshold = -0.1),
         "must be a numeric value between 0 and 1"
     )
 })
 
-test_that("filter_se_by_effect_size works with eta2 column name", {
+test_that("filter_se_by_interaction_effect_size works with eta2 column name", {
     mat <- matrix(sample(1:30, 30), nrow = 6, ncol = 5)
     rownames(mat) <- paste0("gene", 1:6)
     
@@ -575,13 +575,13 @@ test_that("filter_se_by_effect_size works with eta2 column name", {
         eta2 = c(0.05, 0.03, 0.015, 0.01, 0.005, 0.001)
     )
     
-    res <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
+    res <- filter_se_by_interaction_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
     
     # eta2 > 0.02: genes 1 and 2 pass (0.05 and 0.03)
     expect_equal(nrow(res), 2)
 })
 
-test_that("filter_se_by_effect_size warns when all genes filtered", {
+test_that("filter_se_by_interaction_effect_size warns when all genes filtered", {
     mat <- matrix(sample(1:30, 30), nrow = 6, ncol = 5)
     rownames(mat) <- paste0("gene", 1:6)
     
@@ -594,14 +594,14 @@ test_that("filter_se_by_effect_size warns when all genes filtered", {
     )
     
     expect_warning(
-        res <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.01, verbose = FALSE),
+        res <- filter_se_by_interaction_effect_size(se, interaction_results, eta2_threshold = 0.01, verbose = FALSE),
         "removed all genes"
     )
     
     expect_equal(nrow(res), 0)
 })
 
-test_that("filter_se_by_effect_size preserves metadata", {
+test_that("filter_se_by_interaction_effect_size preserves metadata", {
     mat <- matrix(sample(1:30, 30), nrow = 6, ncol = 5)
     rownames(mat) <- paste0("gene", 1:6)
     
@@ -613,7 +613,7 @@ test_that("filter_se_by_effect_size preserves metadata", {
         eta2 = c(0.05, 0.03, 0.015, 0.01, 0.005, 0.001)
     )
     
-    res <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
+    res <- filter_se_by_interaction_effect_size(se, interaction_results, eta2_threshold = 0.02, verbose = FALSE)
     
     # Original metadata should be preserved
     expect_equal(S4Vectors::metadata(res)$original_count, 6)

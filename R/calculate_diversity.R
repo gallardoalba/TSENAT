@@ -1115,6 +1115,14 @@ fit_empirical_beta_prior <- function(x) {
 #'
 #' @return Numeric; gene-specific pseudocount (scalar in [0, 1] range typically).
 #'
+#' @details
+#' This is an internal helper function primarily called by \code{estimate_wlfc_pseudocounts()}.
+#' It is kept exported for advanced workflows, but most users should use the high-level
+#' \code{estimate_wlfc_pseudocounts()} wrapper instead.
+#' 
+#' @keywords internal
+#' @noRd
+#' 
 #' @references
 #' Erhard, F., Hense, B., Jafari, M., et al. (2018).
 #' Improved Ribo-seq puromycin target reliability using Bayesian nonparametrics.
@@ -1133,7 +1141,6 @@ fit_empirical_beta_prior <- function(x) {
 #' cat("WLFC pseudocount for gene 1:", gene1_pc, "\n")
 #' }
 #'
-#' @export
 compute_wlfc_pseudocounts <- function(counts, alpha, beta) {
     if (!is.numeric(counts) || length(counts) < 1) {
         stop("counts must be a non-empty numeric vector")
@@ -1338,8 +1345,17 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
 #' Lower = qbeta(α/2, posterior_α, posterior_β)
 #' Upper = qbeta(1 - α/2, posterior_α, posterior_β)
 #'
-#' These provide Bayesian confidence bounds: "probability that true proportion lies 
+#' These provide Bayesian confidence bounds: "probability that true parameter lies 
 #' in [Lower, Upper] is (1 - α)", assuming the prior is correct.
+#'
+#' **Statistical Model (Gamma-Poisson Conjugacy):**
+#' This function uses a Gamma-Poisson conjugate prior suitable for count data with overdispersion.
+#' - **Prior**: Gamma(α, β) on the rate parameter λ
+#' - **Likelihood**: Poisson(λ) for each transcript count  
+#' - **Posterior**: Gamma(α + Σcounts, β + n_samples)
+#' This model is used by industry-standard RNA-seq tools (DESeq2, edgeR) and is appropriate
+#' for overdispersed count data. See papers S195 (Robinson et al., 2010 - edgeR), 
+#' S197 (Love et al., 2014 - DESeq2), and S074 (edgeR 2023 guide).
 #'
 #' @examples
 #' # Fit empirical Bayes prior
@@ -1381,19 +1397,20 @@ get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
     }
 
     # Basic statistics
-    total_depth <- sum(counts)
+    n_samples <- length(counts)
+    total_count <- sum(counts)
     
-    # Posterior Beta parameters via conjugate Beta-Binomial update
-    posterior_alpha <- alpha + sum(counts)
-    posterior_beta <- beta + (total_depth - sum(counts))
+    # Posterior Gamma parameters via Gamma-Poisson conjugacy (Negative Binomial model)
+    # This is the conjugate model for count data with overdispersion
+    # See papers S195 (edgeR), S197 (DESeq2), S074 (edgeR handbook)
+    posterior_alpha <- alpha + total_count
+    posterior_beta <- beta + n_samples
 
-    # Posterior mean: E[θ | data]
-    posterior_mean <- posterior_alpha / (posterior_alpha + posterior_beta)
+    # Posterior mean: E[λ | data]
+    posterior_mean <- posterior_alpha / posterior_beta
 
-    # Posterior variance: Var[θ | data]
-    posterior_variance <- (posterior_alpha * posterior_beta) /
-        ((posterior_alpha + posterior_beta)^2 * 
-         (posterior_alpha + posterior_beta + 1))
+    # Posterior variance: Var[λ | data] for Gamma distribution
+    posterior_variance <- posterior_alpha / (posterior_beta^2)
 
     # Posterior standard deviation
     posterior_sd <- sqrt(posterior_variance)
@@ -1410,8 +1427,8 @@ get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
     # Compute credible interval if requested
     if (!is.null(ci)) {
         alpha_level <- 1 - ci
-        ci_lower <- stats::qbeta(alpha_level / 2, posterior_alpha, posterior_beta)
-        ci_upper <- stats::qbeta(1 - alpha_level / 2, posterior_alpha, posterior_beta)
+        ci_lower <- stats::qgamma(alpha_level / 2, posterior_alpha, posterior_beta)
+        ci_upper <- stats::qgamma(1 - alpha_level / 2, posterior_alpha, posterior_beta)
         
         result$ci_lower <- ci_lower
         result$ci_upper <- ci_upper
@@ -1427,9 +1444,12 @@ get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
 #' useful for visualizing uncertainty across the genome.
 #'
 #' @param counts_matrix Matrix or data.frame; genes (rows) * samples (columns).
-#' @param alpha Numeric; alpha parameter of Beta prior.
-#' @param beta Numeric; beta parameter of Beta prior.
+#' @param alpha Numeric; alpha parameter of Gamma prior (shape parameter).
+#' @param beta Numeric; beta parameter of Gamma prior (rate parameter).
 #' @param ci Numeric; credible interval width (default: 0.95).
+#' @details Uses Gamma-Poisson conjugate model for RNA-seq count data (accounts for overdispersion).
+#' This is the Bayesian equivalent of industry-standard models used in DESeq2 and edgeR.
+#' References: S195 (edgeR), S197 (DESeq2), S074 (edgeR 2023 guide).
 #'
 #' @return Data frame with columns:
 #'   \describe{
@@ -1855,7 +1875,8 @@ compute_posterior_credible_intervals <- function(counts_matrix, alpha, beta, ci 
 #' @param effective_length Numeric vector of effective transcript lengths (length = length(x)).
 #'   When provided, counts are normalized by length to remove length bias before
 #'   entropy calculation. This implements SALMON's recommended isoform-level approach.
-#' @export
+#' @keywords internal
+#' @noRd
 #' @return For `what = 'S'` or `what = 'D'`: a numeric vector
 #' (named when length(q) > 1). For `what = 'both'`: a list with
 #' components `$S` and `$D`.

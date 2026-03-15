@@ -1344,7 +1344,8 @@ calculate_divergence_bootstrap <- function(
 #'   correlation values below this threshold are classified as BALANCED (default: 0.5).
 #' @return Character scalar giving the pattern type, or NA if classification
 #'   cannot be performed.
-#' @export
+#' @keywords internal
+#' @noRd
 #' @examples
 #' per_q <- c(q_0.5=0.5, q_1=0.3, q_2=0.1)
 #' classify_q_pattern(per_q)

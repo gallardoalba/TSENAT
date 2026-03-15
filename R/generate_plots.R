@@ -759,63 +759,362 @@ plot_ma_expression_impl <- function(
 #' )
 #' p <- plot_tsallis_q_curve(se)
 #' p
+#' Plot Tsallis Entropy q-Curve
+#'
+#' Visualize Tsallis entropy (S_q) as a function of the diversity parameter q.
+#'
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
+#'   multiple q values (column names contain `_q=`).
+#' @param assay_name Character; name of the assay to plot (default: "diversity").
+#' @param sample_type_col Character; column name in colData indicating group/sample type
+#'   (default: "sample_type").
+#' @param bootstrap Logical; if TRUE and SE contains bootstrap CI data (from
+#'   `calculate_diversity(..., bootstrap=TRUE)`), plot bootstrap confidence bands
+#'   and perform group comparison tests (default: FALSE).
+#' @param n_bootstrap Integer; number of bootstrap replicates (used if bootstrap=TRUE
+#'   and CIs need recalculation; default: 1000).
+#' @param ci_level Numeric; confidence level (0-1) for bootstrap CIs (default: 0.95).
+#' @param test_method Character; statistical test for group differences when bootstrap=TRUE.
+#'   Options: "wilcox" (Wilcoxon rank-sum, default) or "ttest" (Welch's t-test).
+#' @param alpha Numeric; significance level for tests (default: 0.05).
+#'
+#' @return A `ggplot` object showing the q-curve. When `bootstrap=TRUE`, returns
+#'   an object of class "qcurve_bootstrap" with additional components:
+#'   - `$ggplot`: The plot object
+#'   - `$plot_data`: Data frame with medians and CIs for each group/q
+#'   - `$significant_qranges`: Q-value ranges where groups differ significantly
+#'   - `$metadata`: Bootstrap parameters used
+#'
+#' @details
+#' **Basic mode (bootstrap=FALSE)**:
+#' - Plots median entropy ± IQR for each group across q-values
+#' - Useful for exploratory visualization
+#'
+#' **Bootstrap mode (bootstrap=TRUE)**:
+#' - Requires SE created with `calculate_diversity(..., bootstrap=TRUE)`
+#' - Plots bootstrap confidence bands (default: 95% CI)
+#' - Identifies q-ranges where groups differ significantly
+#' - Runs Wilcoxon or t-tests at each q-value
+#' - Returns structured output with significance regions highlighted in red
+#'
+#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon geom_point theme_minimal
+#'   scale_color_manual scale_fill_manual labs theme element_text annotate
+#' @importFrom dplyr filter group_by summarise pull
+#' @importFrom SummarizedExperiment assayNames assay colData rowData
+#' @importFrom tidyr pivot_longer
+#'
+#' @examples
+#' \dontrun{
+#'   data("readcounts", package = "TSENAT")
+#'   rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
+#'   gs <- readcounts[1:50, 1]
+#'   
+#'   # Basic q-curve
+#'   se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
+#'   p <- plot_tsallis_q_curve(se_basic)
+#'   
+#'   # With bootstrap confidence bands
+#'   se_boot <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5, 2.0), 
+#'                                  bootstrap = TRUE, bootstrap_nboot = 500)
+#'   p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
+#' }
+#'
+#' @export
 plot_tsallis_q_curve <- function(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type"
+  sample_type_col = "sample_type",
+  bootstrap = FALSE,
+  n_bootstrap = 1000,
+  ci_level = 0.95,
+  test_method = c("wilcox", "ttest"),
+  alpha = 0.05
 ) {
-    # SE-first API: require a SummarizedExperiment with per-column sample
-    # type mapping in `colData(se)[, sample_type_col]` (or allow a single
-    # group dataset where `sample_type` is omitted).
-    if (inherits(se, "SummarizedExperiment")) {
-        require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
-        long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
-        y_label <- "Tsallis entropy (S_q)"
-        if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
-        # Ensure q is numeric; handle case where it might be a factor or character
-        long$q <- as.numeric(as.character(long$q))
-        
-        # Compute median and IQR at each q-value for each group
-        stats_df <- dplyr::summarise(dplyr::group_by(long, group, q),
-            median = median(tsallis, na.rm = TRUE),
-            IQR = stats::IQR(tsallis, na.rm = TRUE), .groups = "drop"
-        )
-        
-        # Create plot with IQR ribbons
-        p <- ggplot2::ggplot(
-            stats_df,
-            ggplot2::aes(x = q, y = median, color = group, fill = group)
-        ) +
-            ggplot2::geom_line(linewidth = 1.3) +
-            ggplot2::geom_ribbon(
-                ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
-                alpha = 0.2, color = NA
-            ) +
-            ggplot2::theme_minimal(base_size = 14) +
-            ggplot2::labs(
-                title = "Tsallis q-curve: median ± IQR",
-                x = "q value",
-                y = y_label,
-                color = "Group",
-                fill = "Group"
-            ) +
-            ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 16))
-        
-        # use default discrete ggplot2 colours (not viridis)
-        p <- p + ggplot2::scale_color_discrete(name = "Group") +
-            ggplot2::scale_fill_discrete(name = "Group")
-        # If there is only a single group present, hide the legend/Group label
-        if (length(unique(long$group)) == 1) {
-            p <- p + ggplot2::theme(legend.position = "none")
-        }
-
-        return(p)
+  require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
+  test_method <- match.arg(test_method)
+  
+  # Validate input
+  if (!inherits(se, "SummarizedExperiment")) {
+    stop("plot_tsallis_q_curve requires a SummarizedExperiment from calculate_diversity")
+  }
+  
+  if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
+    stop("Assay '", assay_name, "' not found in SummarizedExperiment")
+  }
+  
+  # =========================================================================
+  # BOOTSTRAP MODE
+  # =========================================================================
+  if (bootstrap) {
+    # Check if bootstrap CIs are available
+    has_ci_lower <- "ci_lower" %in% SummarizedExperiment::assayNames(se)
+    has_ci_upper <- "ci_upper" %in% SummarizedExperiment::assayNames(se)
+    
+    if (!has_ci_lower || !has_ci_upper) {
+      warning("Bootstrap CI data not found in SE. Available assays: ",
+              paste(SummarizedExperiment::assayNames(se), collapse = ", "),
+              "\n  Falling back to basic (non-bootstrap) plot")
+      bootstrap <- FALSE
     }
-
-    # Matrix/data.frame input is no longer supported for this plot function.
-    stop(
-        "plot_tsallis_q_curve requires a SummarizedExperiment from calculate_diversity."
+  }
+  
+  # =========================================================================
+  # BASIC MODE (no bootstrap or bootstrap CIs not available)
+  # =========================================================================
+  if (!bootstrap) {
+    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+    y_label <- "Tsallis entropy (S_q)"
+    if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
+    
+    # Ensure q is numeric
+    long$q <- as.numeric(as.character(long$q))
+    
+    # Compute median and IQR at each q-value for each group
+    stats_df <- dplyr::summarise(
+      dplyr::group_by(long, group, q),
+      median = median(tsallis, na.rm = TRUE),
+      IQR = stats::IQR(tsallis, na.rm = TRUE),
+      .groups = "drop"
     )
+    
+    # Create plot with IQR ribbons
+    p <- ggplot2::ggplot(
+      stats_df,
+      ggplot2::aes(x = q, y = median, color = group, fill = group)
+    ) +
+      ggplot2::geom_line(linewidth = 1.3) +
+      ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
+        alpha = 0.2, color = NA
+      ) +
+      ggplot2::theme_minimal(base_size = 14) +
+      ggplot2::labs(
+        title = "Tsallis q-curve: median ± IQR",
+        x = "q value",
+        y = y_label,
+        color = "Group",
+        fill = "Group"
+      ) +
+      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 16))
+    
+    # Use default discrete ggplot2 colours
+    p <- p + ggplot2::scale_color_discrete(name = "Group") +
+      ggplot2::scale_fill_discrete(name = "Group")
+    
+    # If only one group, hide legend
+    if (length(unique(long$group)) == 1) {
+      p <- p + ggplot2::theme(legend.position = "none")
+    }
+    
+    return(p)
+  }
+  
+  # =========================================================================
+  # BOOTSTRAP MODE (with CI data)
+  # =========================================================================
+  long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+  if (nrow(long) == 0) {
+    stop("No tsallis values found in SummarizedExperiment")
+  }
+  
+  long$q <- as.numeric(as.character(long$q))
+  unique_q <- sort(unique(long$q))
+  n_q <- length(unique_q)
+  
+  if (n_q < 2) {
+    stop("Need at least 2 q values for q-curve analysis")
+  }
+  
+  # Extract group information
+  if (!(sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+    stop("'", sample_type_col, "' not found in colData")
+  }
+  
+  groups <- unique(sort(long$group))
+  if (length(groups) != 2) {
+    stop("Expected exactly 2 groups for bootstrap comparison, found ", length(groups))
+  }
+  
+  # Extract bootstrap CIs
+  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
+  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
+  
+  # Prepare plot data
+  plot_df <- data.frame(
+    q = numeric(),
+    median = numeric(),
+    ci_lower = numeric(),
+    ci_upper = numeric(),
+    group = character(),
+    pvalue = numeric(),
+    significant = logical(),
+    stringsAsFactors = FALSE
+  )
+  
+  # For each q-value and group, extract median and CIs
+  for (group_val in groups) {
+    for (q_val in unique_q) {
+      # Filter data for this group and q-value
+      group_q_data <- long %>%
+        dplyr::filter(group == group_val, q == q_val)
+      
+      if (nrow(group_q_data) > 0) {
+        median_val <- median(group_q_data$tsallis, na.rm = TRUE)
+        # Use CI from first sample (CIs are per-gene, replicated across samples)
+        ci_lower_val <- mean(ci_lower_mat[, 1], na.rm = TRUE)
+        ci_upper_val <- mean(ci_upper_mat[, 1], na.rm = TRUE)
+        
+        # Perform statistical test
+        group1_data <- long %>%
+          dplyr::filter(group == groups[1], q == q_val) %>%
+          dplyr::pull(tsallis)
+        group2_data <- long %>%
+          dplyr::filter(group == groups[2], q == q_val) %>%
+          dplyr::pull(tsallis)
+        
+        if (length(group1_data) >= 2 && length(group2_data) >= 2) {
+          if (test_method == "wilcox") {
+            test_result <- wilcox.test(group1_data, group2_data, paired = FALSE)
+          } else {
+            test_result <- t.test(group1_data, group2_data, var.equal = FALSE)
+          }
+          pvalue <- test_result$p.value
+        } else {
+          pvalue <- NA_real_
+        }
+        
+        plot_df <- rbind(plot_df, data.frame(
+          q = q_val,
+          median = median_val,
+          ci_lower = ci_lower_val,
+          ci_upper = ci_upper_val,
+          group = group_val,
+          pvalue = pvalue,
+          significant = !is.na(pvalue) && pvalue < alpha,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+  }
+  
+  # Identify significant q-ranges
+  significant_q <- plot_df %>%
+    dplyr::filter(significant) %>%
+    dplyr::pull(q) %>%
+    unique() %>%
+    sort()
+  
+  significant_qranges <- data.frame(
+    q_min = numeric(),
+    q_max = numeric(),
+    n_tests = numeric(),
+    min_pvalue = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  if (length(significant_q) > 0) {
+    gaps <- which(diff(significant_q) > 0.01)
+    range_starts <- c(1, gaps + 1)
+    range_ends <- c(gaps, length(significant_q))
+    
+    for (i in seq_along(range_starts)) {
+      q_range <- significant_q[range_starts[i]:range_ends[i]]
+      min_pval <- min(plot_df$pvalue[plot_df$q %in% q_range], na.rm = TRUE)
+      
+      significant_qranges <- rbind(significant_qranges, data.frame(
+        q_min = min(q_range),
+        q_max = max(q_range),
+        n_tests = length(q_range),
+        min_pvalue = min_pval,
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+  
+  # Create ggplot
+  p <- ggplot2::ggplot(
+    plot_df,
+    ggplot2::aes(x = q, y = median, color = group, fill = group)
+  ) +
+    ggplot2::geom_line(linewidth = 1.2) +
+    ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
+      alpha = 0.15,
+      color = NA
+    ) +
+    ggplot2::theme_minimal(base_size = 13) +
+    ggplot2::labs(
+      title = "Tsallis q-curve with Bootstrap CIs",
+      subtitle = paste0(
+        "CI: ", round(ci_level * 100), "% bootstrap, ",
+        "Test: ", test_method, ", α = ", alpha
+      ),
+      x = "q value",
+      y = "Tsallis entropy (S_q)",
+      color = "Group",
+      fill = "Group"
+    ) +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11, color = "gray50")
+    )
+  
+  # Add significant region shading
+  if (nrow(significant_qranges) > 0) {
+    for (i in seq_len(nrow(significant_qranges))) {
+      p <- p +
+        ggplot2::annotate(
+          "rect",
+          xmin = significant_qranges$q_min[i],
+          xmax = significant_qranges$q_max[i],
+          ymin = -Inf, ymax = Inf,
+          alpha = 0.1,
+          fill = "red"
+        )
+    }
+  }
+  
+  # Finalize styling
+  p <- p +
+    ggplot2::scale_color_manual(values = c("#1B9E77", "#D95F02")) +
+    ggplot2::scale_fill_manual(values = c("#1B9E77", "#D95F02"))
+  
+  if (length(groups) == 1) {
+    p <- p + ggplot2::theme(legend.position = "none")
+  }
+  
+  # Prepare output with class for bootstrap results
+  result <- list(
+    plot_data = plot_df,
+    significant_qranges = significant_qranges,
+    metadata = list(
+      n_bootstrap = n_bootstrap,
+      ci_level = ci_level,
+      test_method = test_method,
+      alpha = alpha,
+      n_groups = length(groups),
+      n_q = n_q
+    ),
+    ggplot = p
+  )
+  
+  class(result) <- c("qcurve_bootstrap", "list")
+  
+  cat("✓ Bootstrap q-curve complete\n")
+  cat("  ", nrow(significant_qranges), "significant q-range(s) identified\n")
+  if (nrow(significant_qranges) > 0) {
+    cat("  Q-ranges with significant group differences (shaded in red):\n")
+    for (i in seq_len(nrow(significant_qranges))) {
+      cat(
+        "    [q = ", significant_qranges$q_min[i], " to ",
+        significant_qranges$q_max[i], "]: ",
+        "min p = ", formatC(significant_qranges$min_pvalue[i], format = "e", digits = 2),
+        "\n"
+      )
+    }
+  }
+  
+  return(result)
 }
 #' Violin plot of Tsallis entropy for multiple q values
 
@@ -1751,336 +2050,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     return(combined_plot)
 }
 
-#' Bootstrap Confidence Intervals for Q-curve with Statistical Testing
-#'
-#' Compute bootstrap confidence bands and perform statistical testing to identify
-#' q-ranges where groups significantly differ in Tsallis entropy. Supports both
-#' pointwise and simultaneous confidence intervals.
-#'
-#' @param se A \code{SummarizedExperiment} returned by \code{calculate_diversity}
-#'   with multiple q values (column names contain \code{_q=}).
-#' @param assay_name Name of the assay to use (default: "diversity").
-#' @param sample_type_col Column name in colData specifying group assignments
-#'   (default: "sample_type").
-#' @param n_bootstrap Number of bootstrap resamples (default: 1000).
-#' @param ci_level Confidence level for intervals (default: 0.95).
-#' @param ci_type Type of confidence interval: "pointwise" (independent at each q)
-#'   or "simultaneous" (controls family-wise error across all q). Default: "pointwise".
-#' @param test_method Statistical test for group differences: "wilcox" (Wilcoxon rank-sum)
-#'   or "ttest" (t-test). Default: "wilcox".
-#' @param alpha Significance level for identifying different q-ranges (default: 0.05).
-#' @param method Bootstrap method: "bca" (bias-corrected & accelerated), "percentile",
-#'   or "normal" approximation. Default: "percentile".
-#'
-#' @return A list with class "qcurve_bootstrap" containing:
-#'   \describe{
-#'     \item{plot_data}{Data frame with columns: q, median, ci_lower, ci_upper, group,
-#'       test_pvalue, significant}
-#'     \item{significant_qranges}{Data frame identifying q-ranges where groups differ significantly}
-#'     \item{metadata}{List with parameters: n_bootstrap, ci_level, ci_type, test_method}
-#'     \item{ggplot}{A \code{ggplot} object with confidence bands and significance annotations}
-#'   }
-#'
-#' @details
-#' **Bootstrap Procedure:**
-#' For each group and q-value:
-#' 1. Resample genome with replacement (whole genes, not individual transcripts)
-#' 2. Compute median Tsallis entropy across all genes in resample
-#' 3. Collect n_bootstrap replicates
-#' 4. Compute confidence intervals from percentiles (or BCa adjustment)
-#'
-#' **Statistical Testing:**
-#' At each q-value, test whether group distributions differ using:
-#' - Wilcoxon rank-sum test (non-parametric, recommended)
-#' - Welch's t-test (parametric alternative)
-#'
-#' **Confidence Interval Types:**
-#' - **Pointwise CI**: 95% at each q independently. Stricter for single comparisons,
-#'   but less conservative when examining many q values.
-#' - **Simultaneous CI** (not yet implemented): Controls family-wise error across all q,
-#'   useful for interpreting full q-curve differences. Would use Bonferroni or
-#'   Holm-Bonferroni correction.
-#'
-#' **Significance Shading:**
-#' Regions where p-value < alpha are colored differently, highlighting q-ranges
-#' where the two groups differ significantly.
-#'
-#' @references
-#' Efron, B., & Tibshirani, R. J. (1993). An introduction to the bootstrap.
-#' Chapman and Hall.
-#'
-#' Wood, S. N. (2017). Generalized additive models: an introduction with R (2nd ed.).
-#' Chapman and Hall/CRC.
-#'
-#' @import ggplot2
-#' @import tidyr
-#' @export
-#' @examples
-#' \dontrun{
-#' # Assuming 'se' has multiple q values from calculate_diversity()
-#' result <- plot_tsallis_q_curve_bootstrap(se, n_bootstrap = 500, ci_level = 0.95)
-#'
-#' # View the plot
-#' result$ggplot
-#'
-#' # Check which q-ranges show significant differences
-#' head(result$significant_qranges)
-#'
-#' # Extract the underlying data for custom plotting
-#' plot_data <- result$plot_data
-#' }
-plot_tsallis_q_curve_bootstrap <- function(se, assay_name = "diversity",
-                                           sample_type_col = "sample_type",
-                                           n_bootstrap = 1000, ci_level = 0.95,
-                                           ci_type = "pointwise", test_method = "wilcox",
-                                           alpha = 0.05, method = "percentile") {
-
-  require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
-
-  # Validate inputs
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("'se' must be a SummarizedExperiment object")
-  }
-
-  if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
-    stop("Assay '", assay_name, "' not found in SummarizedExperiment")
-  }
-
-  if (!(ci_type %in% c("pointwise", "simultaneous"))) {
-    stop("'ci_type' must be 'pointwise' or 'simultaneous'")
-  }
-
-  if (!(test_method %in% c("wilcox", "ttest"))) {
-    stop("'test_method' must be 'wilcox' or 'ttest'")
-  }
-
-  if (!(method %in% c("percentile", "bca", "normal"))) {
-    stop("'method' must be 'percentile', 'bca', or 'normal'")
-  }
-
-  # Prepare data in long format
-  long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
-  if (nrow(long) == 0) {
-    stop("No tsallis values found in SummarizedExperiment")
-  }
-
-  long$q <- as.numeric(as.character(long$q))
-  unique_q <- sort(unique(long$q))
-  n_q <- length(unique_q)
-
-  if (n_q < 2) {
-    stop("Need at least 2 q values for q-curve analysis")
-  }
-
-  # Extract group information
-  if (!(sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
-    stop("'", sample_type_col, "' not found in colData")
-  }
-
-  groups <- unique(sort(long$group))
-  if (length(groups) != 2) {
-    stop("Expected exactly 2 groups, found ", length(groups))
-  }
-
-  cat("Computing bootstrap confidence intervals...\n")
-  
-  # Use helper function to compute bootstrap CIs
-  bootstrap_results <- compute_bootstrap_qcurve_cis(
-    long = long,
-    unique_q = unique_q,
-    groups = groups,
-    ci_level = ci_level,
-    n_bootstrap = n_bootstrap
-  )
-
-  cat("Testing for group differences at each q-value...\n")
-
-  # Perform statistical tests at each q-value
-  test_results <- list()
-  for (q_val in unique_q) {
-    q_data_g1 <- long %>%
-      dplyr::filter(group == groups[1], q == q_val) %>%
-      dplyr::pull(tsallis)
-
-    q_data_g2 <- long %>%
-      dplyr::filter(group == groups[2], q == q_val) %>%
-      dplyr::pull(tsallis)
-
-    if (length(q_data_g1) < 2 || length(q_data_g2) < 2) {
-      test_results[[as.character(q_val)]] <- list(pvalue = NA_real_, significant = FALSE)
-      next
-    }
-
-    if (test_method == "wilcox") {
-      test_result <- wilcox.test(q_data_g1, q_data_g2, paired = FALSE)
-      pvalue <- test_result$p.value
-    } else {
-      # t-test
-      test_result <- t.test(q_data_g1, q_data_g2, var.equal = FALSE)
-      pvalue <- test_result$p.value
-    }
-
-    test_results[[as.character(q_val)]] <- list(
-      pvalue = pvalue,
-      significant = pvalue < alpha
-    )
-  }
-
-  # Build output data frame
-  plot_df <- data.frame(
-    q = numeric(),
-    median = numeric(),
-    ci_lower = numeric(),
-    ci_upper = numeric(),
-    group = character(),
-    pvalue = numeric(),
-    significant = logical(),
-    stringsAsFactors = FALSE
-  )
-
-  for (g in groups) {
-    for (q_val in unique_q) {
-      q_str <- as.character(q_val)
-      bt_res <- bootstrap_results[[g]][[q_str]]
-      test_res <- test_results[[q_str]]
-
-      plot_df <- rbind(plot_df, data.frame(
-        q = q_val,
-        median = bt_res$median,
-        ci_lower = bt_res$ci_lower,
-        ci_upper = bt_res$ci_upper,
-        group = g,
-        pvalue = test_res$pvalue,
-        significant = test_res$significant,
-        stringsAsFactors = FALSE
-      ))
-    }
-  }
-
-  # Identify significant q-ranges (consecutive q values with significant differences)
-  significant_q <- plot_df %>%
-    dplyr::filter(significant) %>%
-    dplyr::pull(q) %>%
-    unique() %>%
-    sort()
-
-  significant_qranges <- data.frame(
-    q_min = numeric(),
-    q_max = numeric(),
-    n_tests = numeric(),
-    min_pvalue = numeric(),
-    stringsAsFactors = FALSE
-  )
-
-  if (length(significant_q) > 0) {
-    # Find contiguous ranges
-    gaps <- which(diff(significant_q) > 0.01)  # Arbitrary threshold for gap detection
-    range_starts <- c(1, gaps + 1)
-    range_ends <- c(gaps, length(significant_q))
-
-    for (i in seq_along(range_starts)) {
-      q_range <- significant_q[range_starts[i]:range_ends[i]]
-      min_pval <- min(plot_df$pvalue[plot_df$q %in% q_range], na.rm = TRUE)
-
-      significant_qranges <- rbind(significant_qranges, data.frame(
-        q_min = min(q_range),
-        q_max = max(q_range),
-        n_tests = length(q_range),
-        min_pvalue = min_pval,
-        stringsAsFactors = FALSE
-      ))
-    }
-  }
-
-  # Create ggplot
-  p <- ggplot2::ggplot(
-    plot_df,
-    ggplot2::aes(x = q, y = median, color = group, fill = group)
-  ) +
-    ggplot2::geom_line(linewidth = 1.2) +
-    ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
-      alpha = 0.15,
-      color = NA
-    ) +
-    ggplot2::theme_minimal(base_size = 13) +
-    ggplot2::labs(
-      title = "Tsallis q-curve with Bootstrap Confidence Bands",
-      subtitle = paste0(
-        "CI: ", round(ci_level * 100), "% (", n_bootstrap, " bootstrap replicates), ",
-        "Test: ", test_method, ", α = ", alpha
-      ),
-      x = "q value",
-      y = "Tsallis entropy (S_q)",
-      color = "Group",
-      fill = "Group"
-    ) +
-    ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11, color = "gray50")
-    )
-
-  # Add significant region shading if there are significant q-ranges
-  if (nrow(significant_qranges) > 0) {
-    for (i in seq_len(nrow(significant_qranges))) {
-      p <- p +
-        ggplot2::annotate(
-          "rect",
-          xmin = significant_qranges$q_min[i],
-          xmax = significant_qranges$q_max[i],
-          ymin = -Inf, ymax = Inf,
-          alpha = 0.1,
-          fill = "red"
-        )
-    }
-  }
-
-  # Finalize plot styling
-  p <- p +
-    ggplot2::scale_color_manual(values = c("#1B9E77", "#D95F02")) +
-    ggplot2::scale_fill_manual(values = c("#1B9E77", "#D95F02"))
-
-  # If single group, hide legend
-  if (length(groups) == 1) {
-    p <- p + ggplot2::theme(legend.position = "none")
-  }
-
-  # Prepare output
-  result <- list(
-    plot_data = plot_df,
-    significant_qranges = significant_qranges,
-    metadata = list(
-      n_bootstrap = n_bootstrap,
-      ci_level = ci_level,
-      ci_type = ci_type,
-      test_method = test_method,
-      alpha = alpha,
-      method = method,
-      n_groups = length(groups),
-      n_q = n_q
-    ),
-    ggplot = p
-  )
-
-  class(result) <- c("qcurve_bootstrap", "list")
-
-  cat("✓ Bootstrap CI computation complete\n")
-  cat("  ", nrow(significant_qranges), "significant q-range(s) identified\n")
-  if (nrow(significant_qranges) > 0) {
-    cat("  Q-ranges with significant group differences:\n")
-    for (i in seq_len(nrow(significant_qranges))) {
-      cat(
-        "    [q = ", significant_qranges$q_min[i], " to ",
-        significant_qranges$q_max[i], "]: ",
-        "min p = ", formatC(significant_qranges$min_pvalue[i], format = "e", digits = 2),
-        "\n"
-      )
-    }
-  }
-
-  return(result)
-}
-
 #' @method print qcurve_bootstrap
 #' @export
 print.qcurve_bootstrap <- function(x, ...) {
@@ -2304,8 +2273,6 @@ if (getRversion() >= "2.15.1") {
   utils::globalVariables(
     c(
       "dimension",
-      "inertia",
-      "cumulative_inertia",
       "variable",
       "contribution",
       "dim1",
@@ -2318,474 +2285,6 @@ if (getRversion() >= "2.15.1") {
 }
 
 
-#' Plot Inertia (Variance Explained) by Dimension
-#'
-#' Visualizes the cumulative proportion of variance explained by successive
-#' dimensions in MCA. This helps determine which dimensions are important
-#' for understanding patterns in correspondence analysis (Abdi & Valentin 2007, 
-#' Khangar & Kamalja 2017).
-#'
-#' @param entropy_matrix Matrix of entropy values (genes * q-values)
-#' @param q_values Numeric vector of q values
-#' @param n_dims Integer; number of dimensions to plot (default: 5)
-#' @param title Character; plot title
-#'
-#' @return A `ggplot2` object showing inertia per dimension with cumulative line
-#'
-#' @details
-#' The inertia (measure of variance in CA) represents how much of the total
-#' association between genes and q-values is captured by each principal
-#' dimension. Typically, 2-3 dimensions capture 70-85% of inertia.
-#'
-#' @export
-plot_ca_inertia <- function(entropy_matrix,
-                             q_values,
-                             n_dims = 5,
-                             title = "Correspondence Analysis: Explained Inertia by Dimension") {
-  
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("Package ggplot2 required for plotting", call. = FALSE)
-  }
-  
-  # Require FactoMineR for proper CA computation
-  if (!requireNamespace("FactoMineR", quietly = TRUE)) {
-    warning("FactoMineR not available; returning simplified inertia plot", call. = FALSE)
-    
-    # Simplified fallback: compute variance from entropy directly
-    inertia_vals <- apply(entropy_matrix, 2, var)
-    inertia_vals <- inertia_vals / sum(inertia_vals)
-    inertia_vals <- utils::head(inertia_vals, n_dims)
-  } else {
-    # Categorize entropy values for MCA
-    entropy_cat <- apply(entropy_matrix, 2, function(x) {
-      cut(x, breaks = 3, labels = c("low", "med", "high"), include.lowest = TRUE)
-    })
-    
-    # Set column names - ensure they match entropy_cat dimensions
-    q_labels <- if (length(q_values) == ncol(entropy_cat)) {
-      paste0("q_", round(q_values, 2))
-    } else {
-      paste0("q_", seq_len(ncol(entropy_cat)))
-    }
-    colnames(entropy_cat) <- q_labels
-    
-    # Run MCA
-    mca_res <- tryCatch(
-      FactoMineR::MCA(entropy_cat, graph = FALSE, ncp = min(n_dims, nrow(entropy_cat) - 1)),
-      error = function(e) {
-        warning("MCA computation failed; using uniform inertia", call. = FALSE)
-        NULL
-      }
-    )
-    
-    if (is.null(mca_res)) {
-      inertia_vals <- rep(1/n_dims, n_dims)
-    } else {
-      inertia_vals <- mca_res$eig[, 1]  # Eigenvalues (inertia per dimension)
-      # Ensure we only have n_dims values
-      if (length(inertia_vals) > n_dims) {
-        inertia_vals <- inertia_vals[1:n_dims]
-      }
-    }
-  }
-  
-  # Ensure inertia_vals has correct length and non-zero
-  inertia_vals <- as.numeric(inertia_vals)
-  if (anyNA(inertia_vals) || all(inertia_vals == 0)) {
-    inertia_vals <- rep(1/n_dims, n_dims)
-  }
-  
-  if (length(inertia_vals) < n_dims) {
-    inertia_vals <- c(inertia_vals, rep(0, n_dims - length(inertia_vals)))
-  } else if (length(inertia_vals) > n_dims) {
-    inertia_vals <- inertia_vals[1:n_dims]
-  }
-  
-  # Compute cumulative inertia
-  cum_inertia <- cumsum(inertia_vals) / sum(inertia_vals)
-  
-  # Create plot data
-  plot_data <- data.frame(
-    dimension = seq_along(inertia_vals),
-    inertia = inertia_vals / sum(inertia_vals),
-    cumulative_inertia = cum_inertia
-  )
-  
-  # Create plot
-  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = dimension)) +
-    ggplot2::geom_col(ggplot2::aes(y = inertia),
-                      fill = "steelblue", alpha = 0.7) +
-    ggplot2::geom_point(ggplot2::aes(y = cumulative_inertia),
-                        color = "darkred", size = 3) +
-    ggplot2::geom_line(ggplot2::aes(y = cumulative_inertia),
-                       color = "darkred", linewidth = 1) +
-    ggplot2::scale_y_continuous(
-      name = "Proportion of Inertia",
-      limits = c(0, 1),
-      labels = scales::percent
-    ) +
-    ggplot2::scale_x_continuous(
-      name = "Dimension",
-      breaks = seq_along(inertia_vals)
-    ) +
-    ggplot2::labs(
-      title = title,
-      subtitle = "Bars: individual inertia | Line: cumulative inertia"
-    ) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 10, color = "gray60")
-    )
-  
-  return(p)
-}
-
-
-#' Plot Contribution of Variables to Principal Dimensions
-#'
-#' Creates a heatmap showing how much each variable (q-value) contributes
-#' to the first two principal dimensions. This reveals which q-values
-#' drive the main patterns (Khangar & Kamalja 2017).
-#'
-#' @param entropy_matrix Matrix of entropy values (genes * q-values)
-#' @param q_values Numeric vector of q values
-#' @param n_variables_labeled Integer; number of variables (q-values) to label in heatmap (default: 5)
-#' @param title Character; plot title
-#'
-#' @return A `ggplot2` object showing variable contributions as a heatmap
-#'   with q-values as columns (x-axis) and dimensions as rows (y-axis)
-#'
-#' @details
-#' The heatmap displays how much each q-value contributes to the first two
-#' CA dimensions. Q-values with high contributions (red cells) are the main
-#' drivers of the correspondence analysis dimensions.
-#'
-#' @export
-plot_ca_contributions <- function(entropy_matrix,
-                                  q_values,
-                                  n_variables_labeled = 5,
-                                  title = "Correspondence Analysis: Variable Contributions") {
-  
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("Package ggplot2 required for plotting", call. = FALSE)
-  }
-  
-  # Categorize entropy for MCA
-  entropy_cat <- apply(entropy_matrix, 2, function(x) {
-    cut(x, breaks = 3, labels = c("low", "med", "high"), include.lowest = TRUE)
-  })
-  colnames(entropy_cat) <- paste0("q_", round(q_values, 2))
-  
-  # Run MCA if available
-  if (requireNamespace("FactoMineR", quietly = TRUE)) {
-    mca_res <- tryCatch(
-      FactoMineR::MCA(entropy_cat, graph = FALSE, ncp = 2),
-      error = function(e) NULL
-    )
-    
-    if (!is.null(mca_res)) {
-      # Extract variable contributions
-      contrib <- mca_res$var$contrib
-      
-      # Prepare data for heatmap
-      contrib_data <- data.frame(
-        variable = rownames(contrib),
-        dim1 = contrib[, 1],
-        dim2 = contrib[, 2]
-      )
-    } else {
-      contrib_data <- NULL
-    }
-  } else {
-    contrib_data <- NULL
-  }
-  
-  # If MCA failed, compute simple contribution from entropy variance
-  if (is.null(contrib_data)) {
-    var_explained <- apply(entropy_matrix, 2, var)
-    var_explained <- 100 * var_explained / sum(var_explained)
-    
-    contrib_data <- data.frame(
-      variable = paste0("q_", round(q_values, 2)),
-      dim1 = var_explained,
-      dim2 = abs(scale(entropy_matrix[, 1])[, 1])
-    )
-  }
-  
-  # Reshape for heatmap - convert to long format without reshape2
-  contrib_long <- data.frame(
-    variable = c(contrib_data$variable, contrib_data$variable),
-    dimension = c(rep("Dim1", nrow(contrib_data)), rep("Dim2", nrow(contrib_data))),
-    contribution = c(contrib_data$dim1, contrib_data$dim2)
-  )
-  
-  # Create heatmap
-  p <- ggplot2::ggplot(contrib_long, ggplot2::aes(x = variable, y = dimension, fill = contribution)) +
-    ggplot2::geom_tile() +
-    ggplot2::scale_fill_gradient2(
-      low = "white", mid = "lightyellow", high = "darkred",
-      name = "Contribution (%)"
-    ) +
-    ggplot2::labs(
-      title = title,
-      x = "Q-values",
-      y = "Dimension"
-    ) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(
-      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = 9),
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold")
-    )
-  
-  return(p)
-}
-
-
-#' Plot Row-Column Biplot for Multiple Correspondence Analysis
-#'
-#' Creates an MCA biplot showing both genes (rows) and q-value categories (columns)
-#' in the same principal coordinate space. This allows visualization of how genes
-#' are associated with entropy categories (high/medium/low) at different q-values.
-#'
-#' **Important**: This function performs MCA on *categorized* entropy data (tertiles),
-#' not classical Correspondence Analysis on continuous values. Entropy values are
-#' automatically categorized into 3 levels (low, medium, high) before analysis.
-#'
-#' @param entropy_matrix Matrix of entropy values (genes * q-values)
-#' @param q_values Numeric vector of q values
-#' @param n_genes_labeled Integer; number of extreme genes to label (default: 8)
-#' @param title Character; plot title
-#' @param show_origin Logical; if TRUE, add origin lines (default: TRUE)
-#'
-#' @return ggplot2 object showing row-column biplot
-#'
-#' @details
-#' In this MCA biplot:
-#' - **Rows (genes)**: Positioned by entropy category associations at each q-value
-#' - **Columns (q-value categories)**: Named as "q_X_high", "q_X_low", "q_X_med" etc.
-#' - **Proximity**: Genes close together show similar entropy patterns across q-values
-#' - **Distance from origin**: Genes far from origin have distinctive entropy signatures
-#'
-#' Interpretation (Le Roux & Rouanet 2011, modified for categorical),
-#' - Genes clustered together: similar entropy category profiles across q-values
-#' - Q-value categories clustered: drive entropy similarly across genes
-#' - Separate clusters: represent distinct biological patterns
-#' - Note: This reflects entropy *categories*, not continuous values
-#'
-#' @export
-plot_ca_biplot <- function(entropy_matrix,
-                           q_values,
-                           n_genes_labeled = 8,
-                           title = "Correspondence Analysis: Gene-Q Biplot",
-                           show_origin = TRUE) {
-  
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("Package ggplot2 required for plotting", call. = FALSE)
-  }
-  
-  # Categorize entropy for MCA
-  entropy_cat <- apply(entropy_matrix, 2, function(x) {
-    cut(x, breaks = 3, labels = c("low", "med", "high"), include.lowest = TRUE)
-  })
-  colnames(entropy_cat) <- paste0("q_", round(q_values, 2))
-  rownames(entropy_cat) <- rownames(entropy_matrix)
-  
-  # Run MCA
-  if (!requireNamespace("FactoMineR", quietly = TRUE)) {
-    warning("FactoMineR required for proper biplot; using PCA-based approximation", call. = FALSE)
-    
-    # Fallback: use PCA on standardized entropy
-    entropy_std <- scale(entropy_matrix)
-    pca_res <- stats::prcomp(entropy_std, scale. = TRUE)
-    row_coords <- pca_res$x[, 1:2]
-    col_coords <- pca_res$rotation[, 1:2] * 2  # Scale for visibility
-    
-    row_df <- data.frame(
-      label = rownames(entropy_matrix),
-      dim1 = row_coords[, 1],
-      dim2 = row_coords[, 2],
-      type = "Gene"
-    )
-    col_df <- data.frame(
-      label = colnames(entropy_cat),
-      dim1 = col_coords[, 1],
-      dim2 = col_coords[, 2],
-      type = "Q-value"
-    )
-  } else {
-    mca_res <- tryCatch(
-      FactoMineR::MCA(entropy_cat, graph = FALSE, ncp = 2),
-      error = function(e) {
-        warning("MCA computation failed; using PCA approximation instead", call. = FALSE)
-        NULL
-      }
-    )
-    
-    if (is.null(mca_res)) {
-      # Fallback: use PCA on standardized entropy
-      entropy_std <- scale(entropy_matrix)
-      pca_res <- stats::prcomp(entropy_std, scale. = TRUE)
-      row_coords <- pca_res$x[, 1:2]
-      col_coords <- pca_res$rotation[, 1:2] * 2  # Scale for visibility
-      
-      row_df <- data.frame(
-        label = rownames(entropy_matrix),
-        dim1 = row_coords[, 1],
-        dim2 = row_coords[, 2],
-        type = "Gene"
-      )
-      col_df <- data.frame(
-        label = colnames(entropy_cat),
-        dim1 = col_coords[, 1],
-        dim2 = col_coords[, 2],
-        type = "Q-value"
-      )
-    } else {
-      # Extract row and column coordinates
-      row_coords <- mca_res$ind$coord
-      col_coords <- mca_res$var$coord
-      
-      # Ensure we have 2 dimensions
-      if (ncol(row_coords) < 2) {
-        row_coords <- cbind(row_coords, rep(0, nrow(row_coords)))
-      } else {
-        row_coords <- row_coords[, 1:2]
-      }
-      
-      if (ncol(col_coords) < 2) {
-        col_coords <- cbind(col_coords, rep(0, nrow(col_coords)))
-      } else {
-        col_coords <- col_coords[, 1:2]
-      }
-      
-      col_coords <- col_coords * 2  # Scale for visibility
-      
-      # Ensure row and column labels match matrix dimensions
-      row_labs <- if (!is.null(rownames(mca_res$ind$coord))) {
-        rownames(mca_res$ind$coord)
-      } else {
-        rownames(entropy_matrix)
-      }
-      
-      col_labs <- if (!is.null(rownames(mca_res$var$coord))) {
-        rownames(mca_res$var$coord)
-      } else {
-        colnames(entropy_cat)
-      }
-      
-      row_df <- data.frame(
-        label = row_labs,
-        dim1 = row_coords[, 1],
-        dim2 = row_coords[, 2],
-        type = "Gene",
-        stringsAsFactors = FALSE
-      )
-      
-      col_df <- data.frame(
-        label = col_labs,
-        dim1 = col_coords[, 1],
-        dim2 = col_coords[, 2],
-        type = "Q-value",
-        stringsAsFactors = FALSE
-      )
-    }
-  }
-  
-  # Combine and identify genes to label (edges of cloud)
-  all_points <- rbind(row_df, col_df)
-  
-  # Label genes at extremes
-  genes_to_label <- row_df[
-    order(sqrt(row_df$dim1^2 + row_df$dim2^2), decreasing = TRUE)[1:min(n_genes_labeled, nrow(row_df))],
-  ]
-  
-  # Create biplot
-  p <- ggplot2::ggplot(all_points, ggplot2::aes(x = dim1, y = dim2, color = type, shape = type)) +
-    ggplot2::geom_point(size = 3, alpha = 0.6) +
-    ggplot2::geom_text(
-      data = genes_to_label,
-      ggplot2::aes(label = label),
-      vjust = -1.2, size = 3, color = "black", fontface = "italic"
-    ) +
-    ggplot2::scale_color_manual(
-      values = c("Gene" = "steelblue", "Q-value" = "darkred"),
-      name = "Type"
-    ) +
-    ggplot2::scale_shape_manual(
-      values = c("Gene" = 16, "Q-value" = 17),
-      name = "Type"
-    )
-  
-  # Add origin lines if requested
-  if (show_origin) {
-    p <- p +
-      ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "gray70", linewidth = 0.5) +
-      ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "gray70", linewidth = 0.5)
-  }
-  
-  p <- p +
-    ggplot2::labs(
-      title = title,
-      x = paste0("Dimension 1 (", round(100 * var(all_points$dim1) / (var(all_points$dim1) + var(all_points$dim2)), 1), "%)"),
-      y = paste0("Dimension 2 (", round(100 * var(all_points$dim2) / (var(all_points$dim1) + var(all_points$dim2)), 1), "%)")
-    ) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"),
-      legend.position = "right"
-    )
-  
-  return(p)
-}
-
-
-#' Comprehensive Correspondence Analysis Visualization
-#'
-#' Creates a multi-panel visualization combining inertia, contributions, and biplot.
-#' Provides complete picture of CA results as recommended by leading references.
-#'
-#' @param entropy_matrix Matrix of entropy values (genes * q-values)
-#' @param q_values Numeric vector of q values
-#' @param include_biplot Logical; if TRUE, include the row-column biplot (default: TRUE)
-#' @param include_contributions Logical; if TRUE, include contribution heatmap (default: TRUE)
-#' @param main_title Character; overall title for the figure
-#'
-#' @return List of `ggplot2` objects (or combined patchwork if patchwork is available)
-#'
-#' @export
-plot_ca_comprehensive <- function(entropy_matrix,
-                                  q_values,
-                                  include_biplot = TRUE,
-                                  include_contributions = TRUE,
-                                  main_title = "Comprehensive Correspondence Analysis") {
-  
-  plots <- list()
-  
-  # Always include inertia plot
-  plots$inertia <- plot_ca_inertia(entropy_matrix, q_values)
-  
-  # Add other plots as requested
-  if (include_contributions) {
-    plots$contributions <- plot_ca_contributions(entropy_matrix, q_values)
-  }
-  
-  if (include_biplot) {
-    plots$biplot <- plot_ca_biplot(entropy_matrix, q_values)
-  }
-  
-  # Try to combine with patchwork if available
-  if (requireNamespace("patchwork", quietly = TRUE) && length(plots) > 1) {
-    combined <- Reduce(function(x, y) x + y, plots) +
-      patchwork::plot_annotation(
-        title = main_title,
-        theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14))
-      )
-    return(combined)
-  } else {
-    return(plots)
-  }
-}
 
 # Internal plot helpers
 
@@ -3711,8 +3210,8 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
       # Create base plot
       p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
         ggplot2::theme_minimal(base_size = 12) +
-        ggplot2::geom_line(color = "darkblue", linewidth = 1.2) +
-        ggplot2::geom_point(color = "darkblue", size = 2.8) +
+        ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
+        ggplot2::geom_point(color = "#2E86AB", size = 2.8, alpha = 0.8) +
         ggplot2::geom_vline(xintercept = 1, linetype = 3, color = "gray60", linewidth = 0.8, alpha = 0.7) +
         ggplot2::labs(
           title = sprintf("%s", gene_name),
@@ -4150,189 +3649,137 @@ plot_tsallis_divergence_profile <- function(se,
 #' @param variability_metric Character. Error bar type: "sd" (standard deviation) or "iqr" (interquartile range).
 #'   Default: "iqr".
 #'
-#' @return A single `ggplot` object showing the divergence q-curve.
+#' @return A `ggplot` object. Gene-specific calls return a line plot.
+#'   Global calls return an aggregated curve with variability bands.
 #'
 #' @details
-#' The plot shows:
-#' - X-axis: q value (from 0.1 to ~3, depending on SE)
-#' - Y-axis: Average divergence D_q across all genes
-#' - Ribbon: Variability bands (±1 SD or ±IQR/2) around the central estimate
-#' - Shape: Global divergence profile reveals:
-#'   - Low q (<1): Rare isoform divergence dominates
-#'   - q≈1: KL divergence region
-#'   - High q (>1): Dominant isoform divergence dominates
-#'   - Flat profile: Uniform divergence across scales
+#' **Gene-specific mode (gene provided)**:
+#' - Extracts divergence values for the specified gene across all q-values
+#' - Plots as a line chart with points
+#' - Reveals whether this gene shows q-dependent divergence patterns
+#'
+#' **Global mode (gene = NULL)**:
+#' - Aggregates divergence across all genes at each q-value
+#' - Shows which diversity scales (q-values) drive the most divergence on average
+#' - Useful for identifying dominant biological mechanisms (rare vs. abundant isoform driven)
 #'
 #' **Interpretation**: Compare with `plot_tsallis_q_curve` (entropy) to understand
 #' the relationship between entropy changes and divergence patterns.
 #'
-#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon labs theme_minimal
-#'   element_text scale_color_manual
-#' @importFrom dplyr group_by summarise
-#' @importFrom SummarizedExperiment colData assay
+#' @importFrom ggplot2 ggplot aes geom_line geom_point geom_ribbon labs theme_minimal element_text
+#' @importFrom SummarizedExperiment assay
 #'
 #' @examples
 #' \dontrun{
-#'   # Plot global divergence q-curve for all genes
-#'   p <- plot_divergence_q_curve(ts_se)
-#'   print(p)
-#'
-#'   # Compare entropy vs divergence patterns
-#'   p_entropy <- plot_tsallis_q_curve(ts_se)
-#'   p_div <- plot_divergence_q_curve(ts_se)
-#'   gridExtra::grid.arrange(p_entropy, p_div, ncol = 2)
+#'   # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
+#'   
+#'   # Global divergence curve (all genes aggregated)
+#'   p_global <- plot_divergence_spectrum(divergence_se)
+#'   
+#'   # Gene-specific divergence spectrum
+#'   p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
 #' }
 #'
 #' @export
-plot_divergence_q_curve <- function(se,
-                                    readcounts = NULL,
-                                    tx2gene_map = NULL,
-                                    group_col = "group",
-                                    assay_name = "diversity",
-                                    metric = c("median", "mean"),
-                                    variability_metric = c("iqr", "sd")) {
-    require_pkgs(c("ggplot2", "dplyr", "SummarizedExperiment"))
+plot_divergence_spectrum <- function(divergence_results_se,
+                                     gene = NULL,
+                                     metric = c("median", "mean"),
+                                     variability_metric = c("iqr", "sd")) {
+    require_pkgs("ggplot2")
     metric <- match.arg(metric)
     variability_metric <- match.arg(variability_metric)
-
-    # Validate SE
-    if (!inherits(se, "SummarizedExperiment")) stop("se must be a SummarizedExperiment")
-    if (!assay_name %in% names(SummarizedExperiment::assays(se))) {
-        stop("Assay '", assay_name, "' not found in se")
+    
+    # Validate input
+    if (!inherits(divergence_results_se, "SummarizedExperiment")) {
+        stop("divergence_results_se must be a SummarizedExperiment")
     }
-
-    # Extract metadata
-    col_data <- as.data.frame(SummarizedExperiment::colData(se))
-    if (!group_col %in% colnames(col_data)) {
-        stop("Column '", group_col, "' not found in colData(se)")
+    
+    # Extract divergence matrix
+    div_mat <- SummarizedExperiment::assay(divergence_results_se, 1)
+    if (is.null(div_mat) || ncol(div_mat) == 0) {
+        stop("divergence_results_se has no assays or is empty")
     }
-
-    # Parse column names to extract q values
-    col_names <- colnames(se)
-    extract_q <- function(name) {
-        if (grepl("_q=", name)) {
-            as.numeric(gsub(".*_q=", "", name))
-        } else {
-            NA
+    
+    # Extract q values from column names
+    col_names <- colnames(div_mat)
+    q_vals <- suppressWarnings(as.numeric(gsub(".*q[_=]?", "", col_names)))
+    
+    if (all(is.na(q_vals))) {
+        # Fallback: assume sequential q-values
+        q_vals <- seq(0.5, by = 0.5, length.out = ncol(div_mat))
+    }
+    
+    # Sort by q
+    sort_idx <- order(q_vals)
+    q_vals_sorted <- q_vals[sort_idx]
+    div_mat_sorted <- div_mat[, sort_idx]
+    
+    # =========================================================================
+    # Case 1: Gene-specific spectrum
+    # =========================================================================
+    if (!is.null(gene)) {
+        if (!gene %in% rownames(div_mat_sorted)) {
+            stop("Gene '", gene, "' not found in divergence_results_se")
         }
-    }
-    q_values <- sapply(col_names, extract_q)
-    unique_q <- sort(unique(q_values[!is.na(q_values)]))
-
-    if (length(unique_q) < 2) {
-        stop("SE must contain multiple q-values in column names (format: *_q=0.5)")
-    }
-
-    # Get group information
-    groups <- unique(col_data[[group_col]])
-    if (length(groups) != 2) {
-        stop("Exactly 2 groups required in '", group_col, "' column; found: ", 
-             paste(groups, collapse = ", "))
-    }
-
-    # Helper: calculate divergence for a single gene at a specific q
-    calc_div_for_gene_q <- function(gene_name, q_val) {
-        cols_q <- which(q_values == q_val)
-        if (length(cols_q) == 0) return(NA)
-
-        diversity_matrix <- SummarizedExperiment::assay(se, assay_name)
-        if (!gene_name %in% rownames(diversity_matrix)) return(NA)
-
-        entropy_vals <- diversity_matrix[gene_name, cols_q]
-        group_vals <- col_data[[group_col]][cols_q]
-
-        # TIER 1: True Tsallis divergence from isoform distributions
-        if (!is.null(readcounts) && !is.null(tx2gene_map)) {
-            tryCatch({
-                entropy_pred <- data.frame(
-                    entropy_pred = entropy_vals,
-                    q = q_val,
-                    group = group_vals,
-                    stringsAsFactors = FALSE
-                )
-
-                div <- calculate_tsallis_divergence_paired_gene(
-                    gene_name = gene_name,
-                    gene_data = data.frame(
-                        entropy = entropy_vals,
-                        q = q_val,
-                        group = group_vals,
-                        sample = colnames(se)[cols_q],
-                        stringsAsFactors = FALSE
-                    ),
-                    readcounts = readcounts,
-                    tx2gene_map = tx2gene_map,
-                    entropy_pred = entropy_pred,
-                    group_levels = groups
-                )
-                return(abs(div))
-            }, error = function(e) {
-                return(NA)
-            })
-        }
-
-        # TIER 2: Entropy-based approximation (fallback)
-        group1_vals <- entropy_vals[group_vals == groups[1]]
-        group2_vals <- entropy_vals[group_vals == groups[2]]
-
-        if (length(group1_vals) == 0 || length(group2_vals) == 0) return(NA)
-
-        mean1 <- mean(group1_vals, na.rm = TRUE)
-        mean2 <- mean(group2_vals, na.rm = TRUE)
-        div_approx <- max(0, abs(mean1 - mean2))
-
-        return(div_approx)
-    }
-
-    # Calculate divergence for all genes * q combinations
-    all_genes <- rownames(SummarizedExperiment::assay(se, assay_name))
-    divergence_data <- list()
-
-    for (gene_name in all_genes) {
-        divergences <- sapply(unique_q, function(q) calc_div_for_gene_q(gene_name, q))
-        for (i in seq_along(unique_q)) {
-            if (!is.na(divergences[i])) {
-                divergence_data[[length(divergence_data) + 1]] <- data.frame(
-                    gene = gene_name,
-                    q = unique_q[i],
-                    divergence = divergences[i],
-                    stringsAsFactors = FALSE
-                )
-            }
-        }
-    }
-
-    if (length(divergence_data) == 0) {
-        stop("No valid divergence values computed; check data structure or readcounts")
-    }
-
-    all_data <- do.call(rbind, divergence_data)
-    rownames(all_data) <- NULL
-
-    # Compute central tendency and variability at each q
-    if (variability_metric == "iqr") {
-        summary_stats <- all_data %>%
-            dplyr::group_by(q) %>%
-            dplyr::summarise(
-                central = if (metric == "median") median(divergence, na.rm = TRUE) else mean(divergence, na.rm = TRUE),
-                spread = stats::IQR(divergence, na.rm = TRUE),
-                .groups = "drop"
+        
+        gene_div <- as.numeric(div_mat_sorted[gene, ])
+        
+        plot_df <- data.frame(
+            q = q_vals_sorted,
+            divergence = gene_div,
+            stringsAsFactors = FALSE
+        )
+        
+        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
+            ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
+            ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
+            ggplot2::labs(
+                title = paste("Divergence Spectrum:", gene),
+                x = "q value (diversity scale parameter)",
+                y = "Tsallis Divergence D_q"
+            ) +
+            ggplot2::theme_minimal(base_size = 14) +
+            ggplot2::theme(
+                plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
+                panel.grid.minor = ggplot2::element_blank()
             )
+        
+        return(p)
+    }
+    
+    # =========================================================================
+    # Case 2: Global divergence curve (all genes)
+    # =========================================================================
+    
+    # Aggregate across genes at each q
+    if (variability_metric == "iqr") {
+        summary_stats <- data.frame(
+            q = q_vals_sorted,
+            central = apply(div_mat_sorted, 2, function(x) {
+                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+            }),
+            spread = apply(div_mat_sorted, 2, function(x) {
+                stats::IQR(x, na.rm = TRUE)
+            }),
+            stringsAsFactors = FALSE
+        )
         spread_factor <- 1/2  # IQR/2 for symmetric ribbon
         spread_label <- "IQR"
     } else {  # sd
-        summary_stats <- all_data %>%
-            dplyr::group_by(q) %>%
-            dplyr::summarise(
-                central = if (metric == "median") median(divergence, na.rm = TRUE) else mean(divergence, na.rm = TRUE),
-                spread = sqrt(stats::var(divergence, na.rm = TRUE)),
-                .groups = "drop"
-            )
-        spread_factor <- 1  # ±1 SD
+        summary_stats <- data.frame(
+            q = q_vals_sorted,
+            central = apply(div_mat_sorted, 2, function(x) {
+                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+            }),
+            spread = apply(div_mat_sorted, 2, function(x) {
+                sqrt(stats::var(x, na.rm = TRUE))
+            }),
+            stringsAsFactors = FALSE
+        )
+        spread_factor <- 1
         spread_label <- "SD"
     }
-
-    # Create plot
+    
     metric_label <- if (metric == "median") "Median" else "Mean"
     p <- ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
         ggplot2::geom_ribbon(
@@ -4345,10 +3792,10 @@ plot_divergence_q_curve <- function(se,
         ggplot2::geom_line(color = "#2E86AB", linewidth = 1.3) +
         ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
         ggplot2::labs(
-            title = "Global Divergence q-Curve: Average Divergence Across All Genes",
+            title = "Global Divergence Spectrum: Average D_q Across All Genes",
             x = "q value (diversity scale parameter)",
             y = "Tsallis Divergence D_q",
-            subtitle = paste0(metric_label, " ± ", spread_label, " across ", length(unique(all_data$gene)), " genes")
+            subtitle = paste0(metric_label, " ± ", spread_label, " (", nrow(div_mat_sorted), " genes)")
         ) +
         ggplot2::theme_minimal(base_size = 14) +
         ggplot2::theme(
@@ -4356,7 +3803,177 @@ plot_divergence_q_curve <- function(se,
             plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic"),
             panel.grid.minor = ggplot2::element_blank()
         )
+    
+    return(p)
+}
 
+#' Plot Divergence Spectrum (Gene-Specific or Global)
+#'
+#' Unified plotting function for Tsallis divergence D_q across the q-spectrum.
+#' When a gene is specified, shows gene-specific divergence spectrum.
+#' When no gene is specified, shows global divergence curve aggregated across all genes.
+#'
+#' @param divergence_results_se A `SummarizedExperiment` containing pre-computed divergence values.
+#'   Rows = genes, columns = q-values. Column names should indicate q-values (e.g., "q_0.5", "q_1.0").
+#' @param gene Optional character. If provided, plot divergence spectrum for this specific gene.
+#'   If NULL, plot global divergence curve (aggregated across all genes).
+#' @param metric Character. Summary statistic for global curve: "median" or "mean". Default: "median".
+#'   Only used when gene = NULL.
+#' @param variability_metric Character. Error bar type for global curve: "sd" or "iqr". Default: "iqr".
+#'   Only used when gene = NULL.
+#'
+#' @return A `ggplot` object. Gene-specific calls return a line plot.
+#'   Global calls return an aggregated curve with variability bands.
+#'
+#' @details
+#' **Gene-specific mode (gene provided)**:
+#' - Extracts divergence values for the specified gene across all q-values
+#' - Plots as a line chart with points
+#' - Reveals whether this gene shows q-dependent divergence patterns
+#'
+#' **Global mode (gene = NULL)**:
+#' - Aggregates divergence across all genes at each q-value
+#' - Shows which diversity scales (q-values) drive the most divergence on average
+#' - Useful for identifying dominant biological mechanisms (rare vs. abundant isoform driven)
+#'
+#' @examples
+#' \dontrun{
+#'   # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
+#'   
+#'   # Global divergence curve (all genes aggregated)
+#'   p_global <- plot_divergence_spectrum(divergence_se)
+#'   
+#'   # Gene-specific divergence spectrum
+#'   p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
+#' }
+#'
+#' @importFrom ggplot2 ggplot aes geom_line geom_point geom_ribbon labs theme_minimal element_text
+#' @importFrom SummarizedExperiment assay
+#'
+#' @export
+plot_divergence_spectrum <- function(divergence_results_se,
+                                     gene = NULL,
+                                     metric = c("median", "mean"),
+                                     variability_metric = c("iqr", "sd")) {
+    require_pkgs("ggplot2")
+    metric <- match.arg(metric)
+    variability_metric <- match.arg(variability_metric)
+    
+    # Validate input
+    if (!inherits(divergence_results_se, "SummarizedExperiment")) {
+        stop("divergence_results_se must be a SummarizedExperiment")
+    }
+    
+    # Extract divergence matrix
+    div_mat <- SummarizedExperiment::assay(divergence_results_se, 1)
+    if (is.null(div_mat) || ncol(div_mat) == 0) {
+        stop("divergence_results_se has no assays or is empty")
+    }
+    
+    # Extract q values from column names
+    col_names <- colnames(div_mat)
+    q_vals <- suppressWarnings(as.numeric(gsub(".*q[_=]?", "", col_names)))
+    
+    if (all(is.na(q_vals))) {
+        # Fallback: assume sequential q-values
+        q_vals <- seq(0.5, by = 0.5, length.out = ncol(div_mat))
+    }
+    
+    # Sort by q
+    sort_idx <- order(q_vals)
+    q_vals_sorted <- q_vals[sort_idx]
+    div_mat_sorted <- div_mat[, sort_idx]
+    
+    # =========================================================================
+    # Case 1: Gene-specific spectrum
+    # =========================================================================
+    if (!is.null(gene)) {
+        if (!gene %in% rownames(div_mat_sorted)) {
+            stop("Gene '", gene, "' not found in divergence_results_se")
+        }
+        
+        gene_div <- as.numeric(div_mat_sorted[gene, ])
+        
+        plot_df <- data.frame(
+            q = q_vals_sorted,
+            divergence = gene_div,
+            stringsAsFactors = FALSE
+        )
+        
+        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
+            ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
+            ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
+            ggplot2::labs(
+                title = paste("Divergence Spectrum:", gene),
+                x = "q value (diversity scale parameter)",
+                y = "Tsallis Divergence D_q"
+            ) +
+            ggplot2::theme_minimal(base_size = 14) +
+            ggplot2::theme(
+                plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
+                panel.grid.minor = ggplot2::element_blank()
+            )
+        
+        return(p)
+    }
+    
+    # =========================================================================
+    # Case 2: Global divergence curve (all genes)
+    # =========================================================================
+    
+    # Aggregate across genes at each q
+    if (variability_metric == "iqr") {
+        summary_stats <- data.frame(
+            q = q_vals_sorted,
+            central = apply(div_mat_sorted, 2, function(x) {
+                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+            }),
+            spread = apply(div_mat_sorted, 2, function(x) {
+                stats::IQR(x, na.rm = TRUE)
+            }),
+            stringsAsFactors = FALSE
+        )
+        spread_factor <- 1/2  # IQR/2 for symmetric ribbon
+        spread_label <- "IQR"
+    } else {  # sd
+        summary_stats <- data.frame(
+            q = q_vals_sorted,
+            central = apply(div_mat_sorted, 2, function(x) {
+                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+            }),
+            spread = apply(div_mat_sorted, 2, function(x) {
+                sqrt(stats::var(x, na.rm = TRUE))
+            }),
+            stringsAsFactors = FALSE
+        )
+        spread_factor <- 1
+        spread_label <- "SD"
+    }
+    
+    metric_label <- if (metric == "median") "Median" else "Mean"
+    p <- ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
+        ggplot2::geom_ribbon(
+            ggplot2::aes(ymin = central - spread * spread_factor, 
+                        ymax = central + spread * spread_factor),
+            alpha = 0.25,
+            fill = "#2E86AB",
+            color = NA
+        ) +
+        ggplot2::geom_line(color = "#2E86AB", linewidth = 1.3) +
+        ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
+        ggplot2::labs(
+            title = "Global Divergence Spectrum: Average D_q Across All Genes",
+            x = "q value (diversity scale parameter)",
+            y = "Tsallis Divergence D_q",
+            subtitle = paste0(metric_label, " ± ", spread_label, " (", nrow(div_mat_sorted), " genes)")
+        ) +
+        ggplot2::theme_minimal(base_size = 14) +
+        ggplot2::theme(
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
+            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic"),
+            panel.grid.minor = ggplot2::element_blank()
+        )
+    
     return(p)
 }
 
@@ -4822,3 +4439,205 @@ plot_multiq_delta_influence_heatmaps <- function(
   })
 }
 
+
+#' Plot Rank Correlation Across Q-values
+#'
+#' Visualize Spearman/Kendall correlations as heatmap showing consistency
+#' of gene/transcript ranking across different q-value thresholds.
+#'
+#' @param rank_corr_obj Object from compute_rank_correlation_multiq()
+#' @param title Character; plot title (default: "Rank Correlation Across Q-values")
+#' @param se Optional SummarizedExperiment object (from `build_se()`) to extract tx2gene
+#'   mapping automatically from rowData. If provided, tx2gene parameter is ignored.
+#' @param tx2gene Optional data.frame mapping transcripts to genes for gene-level aggregation.
+#'   Expected columns: "transcript_id"/"Transcript" and "gene_id"/"Gene"/"gene_name".
+#'   Ignored if `se` is provided. If neither `se` nor `tx2gene` is provided,
+#'   transcript-level heatmap is shown.
+#' @param agg_method Character; aggregation method when gene-level mapping provided.
+#'   - "mean" (default): Average correlation between all transcript pairs from two genes
+#'   - "median": Median correlation between transcript pairs
+#'
+#' @return ggplot2 object (heatmap of correlation matrix)
+#'
+#' @details
+#' The heatmap shows correlations between rankings at different q-values.
+#' **Blue**: high correlation (1), indicating stable/consistent rankings.
+#' **Red**: low correlation (-1), indicating divergent rankings.
+#'
+#' **Gene-level aggregation**: When gene-level mapping is provided (via `se` or `tx2gene`):
+#' 1. Transcripts are grouped by gene
+#' 2. For each gene pair, all pairwise transcript correlations are computed
+#' 3. Aggregated using specified method (mean or median) to gene level
+#'
+#' This provides a cleaner view of gene-level ranking stability across q-values.
+#'
+#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_gradient2 theme_minimal
+#'   element_text labs
+#' @importFrom SummarizedExperiment rowData
+#'
+#' @examples
+#' \dontrun{
+#'   # Transcript-level correlation heatmap
+#'   pvals_list <- list(q0.5 = runif(100), q1.0 = runif(100), q1.5 = runif(100))
+#'   rank_obj <- compute_rank_correlation_multiq(pvals_list, method = "spearman")
+#'   p <- plot_rank_correlation_heatmap(rank_obj)
+#'
+#'   # Gene-level correlation heatmap using SE object (preferred)
+#'   se <- build_se(counts, group = c("Control", "Treatment"), ...)
+#'   p_gene <- plot_rank_correlation_heatmap(rank_obj, se = se, agg_method = "mean")
+#'
+#'   # Gene-level correlation heatmap using explicit tx2gene mapping
+#'   tx2gene <- data.frame(
+#'     Transcript = names(pvals_list[[1]]),
+#'     Gene = rep(paste0("GENE", 1:20), each = 5)
+#'   )
+#'   p_gene2 <- plot_rank_correlation_heatmap(rank_obj, tx2gene = tx2gene)
+#' }
+#'
+#' @export
+plot_rank_correlation_heatmap <- function(rank_corr_obj, 
+                                         title = "Rank Correlation Across Q-values",
+                                         se = NULL,
+                                         tx2gene = NULL,
+                                         agg_method = c("mean", "median")) {
+  
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("ggplot2 required for visualization")
+  }
+  
+  agg_method <- match.arg(agg_method)
+  
+  # Prepare data for heatmap
+  corr_matrix <- rank_corr_obj$correlation_matrix
+  
+  # =========================================================================
+  # Extract tx2gene mapping from SE object if provided
+  # =========================================================================
+  if (!is.null(se)) {
+    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
+      stop("SummarizedExperiment package required to use se parameter")
+    }
+    
+    if (!inherits(se, "SummarizedExperiment")) {
+      stop("se must be a SummarizedExperiment object")
+    }
+    
+    # Extract tx2gene from rowData
+    rd <- SummarizedExperiment::rowData(se)
+    
+    # Try to find transcript and gene ID columns
+    tx_col <- NULL
+    if ("transcript_id" %in% colnames(rd)) {
+      tx_col <- "transcript_id"
+    } else if ("Transcript" %in% colnames(rd)) {
+      tx_col <- "Transcript"
+    } else if ("isoform_id" %in% colnames(rd)) {
+      tx_col <- "isoform_id"
+    }
+    
+    gene_col <- NULL
+    if ("gene_id" %in% colnames(rd)) {
+      gene_col <- "gene_id"
+    } else if ("Gene" %in% colnames(rd)) {
+      gene_col <- "Gene"
+    } else if ("gene_name" %in% colnames(rd)) {
+      gene_col <- "gene_name"
+    }
+    
+    if (is.null(tx_col) || is.null(gene_col)) {
+      stop("SE rowData must contain transcript columns ('transcript_id'/'Transcript'/'isoform_id') ",
+           "and gene columns ('gene_id'/'Gene'/'gene_name')")
+    }
+    
+    # Create tx2gene from SE
+    tx2gene <- as.data.frame(rd[, c(tx_col, gene_col)])
+    colnames(tx2gene) <- c("transcript_id", "gene_id")
+  }
+  
+  # =========================================================================
+  # Aggregate to gene level if tx2gene mapping provided
+  # =========================================================================
+  if (!is.null(tx2gene)) {
+    # Identify transcript/gene ID columns
+    if ("transcript_id" %in% colnames(tx2gene)) {
+      tx_col <- "transcript_id"
+    } else if ("Transcript" %in% colnames(tx2gene)) {
+      tx_col <- "Transcript"
+    } else {
+      stop("tx2gene must contain 'transcript_id' or 'Transcript' column")
+    }
+    
+    if ("gene_id" %in% colnames(tx2gene)) {
+      gene_col <- "gene_id"
+    } else if ("Gene" %in% colnames(tx2gene)) {
+      gene_col <- "Gene"
+    } else if ("gene_name" %in% colnames(tx2gene)) {
+      gene_col <- "gene_name"
+    } else {
+      stop("tx2gene must contain 'gene_id', 'Gene', or 'gene_name' column")
+    }
+    
+    # Map transcript rownames to genes
+    tx_list <- rownames(corr_matrix)
+    if (!all(tx_list %in% tx2gene[[tx_col]])) {
+      warning("Some transcripts in correlation matrix not found in tx2gene mapping")
+    }
+    
+    gene_map <- tx2gene[match(tx_list, tx2gene[[tx_col]]), gene_col]
+    gene_map <- as.character(gene_map)
+    
+    # Aggregate correlation matrix to gene level
+    unique_genes <- unique(gene_map[!is.na(gene_map)])
+    gene_corr_matrix <- matrix(NA, nrow = length(unique_genes), ncol = length(unique_genes),
+                               dimnames = list(unique_genes, unique_genes))
+    
+    agg_fn <- if (agg_method == "mean") mean else median
+    
+    for (i in seq_along(unique_genes)) {
+      for (j in seq_along(unique_genes)) {
+        gene_i <- unique_genes[i]
+        gene_j <- unique_genes[j]
+        
+        # Get transcripts for each gene
+        tx_i_idx <- which(gene_map == gene_i)
+        tx_j_idx <- which(gene_map == gene_j)
+        
+        if (length(tx_i_idx) > 0 && length(tx_j_idx) > 0) {
+          # Extract all pairwise correlations between gene i and j transcripts
+          corrs <- corr_matrix[tx_i_idx, tx_j_idx]
+          gene_corr_matrix[i, j] <- agg_fn(corrs, na.rm = TRUE)
+        }
+      }
+    }
+    
+    corr_matrix <- gene_corr_matrix
+    title <- paste(title, "(Gene-level)")
+  }
+  
+  # =========================================================================
+  # Create heatmap
+  # =========================================================================
+  corr_long <- data.frame(
+    q_value_1 = rep(rownames(corr_matrix), ncol(corr_matrix)),
+    q_value_2 = rep(colnames(corr_matrix), each = nrow(corr_matrix)),
+    correlation = as.numeric(corr_matrix),
+    stringsAsFactors = FALSE
+  )
+  
+  # Create heatmap
+  # Bug #6 Fix: Use method variable instead of hardcoded "Spearman"
+  method_label <- sprintf("%s Correlation", toupper(rank_corr_obj$method))
+  
+  p <- ggplot2::ggplot(corr_long, 
+                       ggplot2::aes(x = q_value_2, y = q_value_1, 
+                                   fill = correlation)) +
+    ggplot2::geom_tile() +
+    ggplot2::scale_fill_gradient2(low = "red", mid = "white", high = "blue",
+                                   limits = c(-1, 1)) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)) +
+    ggplot2::labs(title = title, x = "Q-value 2", y = "Q-value 1",
+                 fill = method_label)
+  
+  p
+}

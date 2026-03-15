@@ -79,27 +79,6 @@ test_that("adjust_batch_effects runs reference method without error", {
   expect_true(metadata(result)$batch_correction$method == "ComBat-ref")
 })
 
-test_that("compare_batch_correction compares before/after", {
-  se <- .make_test_se()
-  SummarizedExperiment::colData(se)$batch_id <- factor(c(rep("A", 8), rep("B", 8)))
-  
-  corrected <- adjust_batch_effects(
-    se = se,
-    batch = "batch_id",
-    method = "standard"
-  )
-  
-  comparison <- compare_batch_correction(
-    se_original = se,
-    se_corrected = corrected,
-    batch = "batch_id"
-  )
-  
-  expect_s3_class(comparison, "batch_correction_comparison")
-  expect_true(comparison$variance_after <= comparison$variance_before * 1.01)
-  expect_true(comparison$improvement_pct >= -1)
-})
-
 test_that("invalid inputs raise errors", {
   se <- .make_test_se()
   

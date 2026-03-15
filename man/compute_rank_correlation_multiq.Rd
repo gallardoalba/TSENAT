@@ -12,20 +12,28 @@ compute_rank_correlation_multiq(
 }
 \arguments{
 \item{pvalues_list}{List of numeric vectors named by q-value (e.g., list(q01 = ..., q05 = ...)).
-Can be either p-values or pre-ranked data, depending on \code{use_ranks} parameter.}
+**IMPORTANT:** All vectors must have identical length. Can be either p-values or pre-ranked data,
+depending on \code{use_ranks} parameter. Names should be q-value identifiers (e.g., "q0.1", "q0.5").}
 
-\item{method}{Character; "spearman" (default) or "kendall" for rank correlation}
+\item{method}{Character; "spearman" (default) or "kendall" for rank correlation method.
+- spearman: Rank-based correlation (robust, recommended for effect rankings)
+- kendall: Rank-invariant, less sensitive to outliers in rankings}
 
-\item{use_ranks}{Logical; if FALSE (default), input data are p-values that will be ranked;
-if TRUE, input data are already gene ranks and will be used as-is}
+\item{use_ranks}{Logical; if FALSE (default), input vectors are p-values/effect-sizes and will be ranked;
+if TRUE, input vectors are already properly ranked (e.g., from rank function) and will be used directly.
+**IMPORTANT:** When use_ranks=TRUE, ensure input vectors contain valid ranks (1, 2, 3, ..., n).}
 }
 \value{
-List with:
+List with class "rank_correlation_multiq" containing:
   \describe{
-    \item{correlation_matrix}{Pairwise correlations between q-value results}
-    \item{mean_correlation}{Average correlation across q-values}
-    \item{consistency_score}{Higher = more consistent ranking across q-values}
+    \item{correlation_matrix}{n_q × n_q matrix of pairwise rank correlations (symmetric)}
+    \item{mean_correlation}{Average off-diagonal correlation (0-1 scale)}
+    \item{consistency_score}{Identical to mean_correlation; higher values indicate stable rankings}
+    \item{method}{Correlation method used ("spearman" or "kendall")}
+    \item{q_values}{Names of q-value sets tested}
+    \item{summary}{Formatted text summary with interpretation guide}
   }
+  Access individual rank vectors via \code{attr(result, 'ranking_data')}.
 }
 \description{
 Compute Spearman correlation between results at different q-value thresholds

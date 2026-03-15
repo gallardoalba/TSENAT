@@ -187,7 +187,8 @@
 #' #   print_results = TRUE  # Auto-extracts and displays results with gene name
 #' # )
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL, top_n = 1,
     q = 2, norm = TRUE, nboot = 1000, ci = 0.95, method = c("percentile", "bca"),
     log_base = exp(1), pseudocount = 0, what = c("S", "D"), seed = NULL, gene_name = NULL,

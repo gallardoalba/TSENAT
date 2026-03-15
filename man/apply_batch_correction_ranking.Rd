@@ -2,20 +2,41 @@
 % Please edit documentation in R/batch_effect_handling.R
 \name{apply_batch_correction_ranking}
 \alias{apply_batch_correction_ranking}
+\alias{apply_batch_correction_ranking.default}
+\alias{apply_batch_correction_ranking.SummarizedExperiment}
 \title{Apply Batch Correction in Rank-Based Framework}
 \usage{
-apply_batch_correction_ranking(
+apply_batch_correction_ranking(entropy_matrix, ...)
+
+\method{apply_batch_correction_ranking}{default}(
   entropy_matrix,
   batch_factor,
-  condition_factor = NULL
+  condition_factor = NULL,
+  ...
+)
+
+\method{apply_batch_correction_ranking}{SummarizedExperiment}(
+  entropy_matrix,
+  batch_column,
+  condition_column = NULL,
+  assay = 1,
+  ...
 )
 }
 \arguments{
-\item{entropy_matrix}{Matrix of entropy values (genes * samples)}
+\item{entropy_matrix}{Numeric matrix with entropy values (genes × samples)}
 
-\item{batch_factor}{Factor indicating batch membership for each sample}
+\item{batch_factor}{Factor or character vector indicating batch assignment (length = ncol(entropy_matrix))}
 
-\item{condition_factor}{Factor indicating biological condition (normal/tumor)}
+\item{condition_factor}{Optional factor for biological condition (length = ncol(entropy_matrix))}
+
+\item{batch_column}{Character; column name in colData(se) for batch assignment}
+
+\item{condition_column}{Optional character; column name in colData(se) for biological condition}
+
+\item{assay}{Numeric or character; which assay to use (default: 1)}
+
+\item{se}{A SummarizedExperiment object}
 }
 \value{
 List containing:

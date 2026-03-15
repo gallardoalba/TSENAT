@@ -830,9 +830,9 @@ eff_res <- effect_sizes_divergence(
 if (exists("divergence_results_se") && exists("lm_res")) {
     div_rd <- SummarizedExperiment::rowData(divergence_results_se)
     
-    # Get divergence data with gene names
+    # Get divergence data with gene names and pattern classification
     div_df <- as.data.frame(div_rd)[!is.na(div_rd$estimate), 
-                                     c("estimate", "lower_ci", "upper_ci"), 
+                                     c("estimate", "per_q_pattern"), 
                                      drop = FALSE]
     div_df$gene_name <- rownames(div_rd)[!is.na(div_rd$estimate)]
     
@@ -849,21 +849,29 @@ if (exists("divergence_results_se") && exists("lm_res")) {
     
     if (nrow(div_df) > 0) {
         # Reorder columns to put gene_name first
-        div_df <- div_df[, c("gene_name", "estimate", "lower_ci", "upper_ci", "padj_lm")]
+        div_df <- div_df[, c("gene_name", "estimate", "per_q_pattern", "padj_lm")]
         # Format p-values in scientific notation
         div_df$padj_lm <- format(div_df$padj_lm, scientific = TRUE, digits = 3)
         # Format columns for display
-        colnames(div_df) <- c("Gene", "KL Divergence (D_q=1.0)", "Lower CI", "Upper CI", "LM adj. p-value")
+        colnames(div_df) <- c("Gene", "KL Divergence (D_q=1.0)", "Q-Pattern", "LM adj. p-value")
         
         knitr::kable(
             div_df,
-            caption = "Top 5 genes by LM interaction significance with Kullback-Leibler divergence estimates and bootstrap 95% confidence intervals",
+            caption = "Top 5 genes by LM interaction significance with Kullback-Leibler divergence estimates and isoform switching pattern classification",
             digits = 5,
             row.names = FALSE
         )
     }
 }
 ```
+
+Interpretation of Pattern Types:
+
+| Pattern Type | Signature | Biological Meaning |
+|--------------|-----------|-------------------|
+| Rare driven | D(q=0.5) >> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
+| Abundant driver | D(q=0.5) << D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
+| Balanced | D(q=0.5) ≈ D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
 
 The effect sizes reveal which genes show the most information-theoretic separation 
 across the q-spectrum **between paired treatment groups**. Genes with Tsallis divergence D > 0.1 show 
@@ -877,8 +885,6 @@ high entropy at low q (emphasizing rare isoforms) in one condition but low entro
 abundant isoforms) in another, revealing scale-dependent regulatory mechanisms. These genes are candidates 
 for investigation of condition-specific splicing architecture and dynamic isoform switching.
 
-### Visualization Functions
-
 
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
@@ -888,45 +894,6 @@ p <- plot_divergence_distribution(eff_res$interaction_results,
 print(p)
 ```
 
-### Classify Gene Pattern Type
-
-Once you have per-q divergence values from `effect_sizes_divergence()` (which merges LMM p-values with divergence estimates), you can classify each gene's isoform switching mechanism:
-
-```{r classify-pattern-compute, message=FALSE, warning=FALSE}
-# Extract classification table directly from eff_res
-# Function automatically handles NULL input and filters for valid per-q patterns
-classification_tbl <- tryCatch({
-  if (exists("eff_res") && !is.null(eff_res)) {
-    extract_classification_table(eff_res, top_n = 10, sort_by = 'padj')
-  } else {
-    NULL
-  }
-}, error = function(e) {
-  NULL
-})
-```
-
-```{r classify-pattern-table, results='asis', message=FALSE, echo = FALSE}
-# Display classification table if valid genes are present
-if (!is.null(classification_tbl) && nrow(classification_tbl) > 0 && "Pattern" %in% colnames(classification_tbl) && any(!is.na(classification_tbl$Pattern))) {
-  print(knitr::kable(
-    classification_tbl,
-    caption = "Classification of gene q-patterns and per-q divergence values (top 10 genes)",
-    digits = 4,
-    row.names = FALSE
-  ))
-} else {
-  cat("No valid classification patterns available.\n")
-}
-```
-
-**Interpretation of Pattern Types:**
-
-| Pattern Type | Signature | Biological Meaning |
-|--------------|-----------|-------------------|
-| Rare driven | D(q=0.5) >> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
-| Abundant driver | D(q=0.5) << D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
-| Balanced | D(q=0.5) ≈ D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
 
 ### Visualize Q-Spectrum Curve
 
@@ -934,10 +901,10 @@ The q-spectrum is a curve showing how divergence varies across Tsallis sensitivi
 This curve is the full biological signature of **isoform switching**—the pattern encodes which 
 abundance scales (rare vs. abundant) are affected.
 
-```{r visualize-q-spectrum, fig.width=14, fig.height=6, results='hide'}
-# Generate q-spectrum plot for LINC03040 using the new plot_gene_q_spectrum function
-# This gene was identified as one of the top candidates by the LMM interaction test
-plot_gene_q_spectrum(divergence_results_se, target_gene = "LINC03040", verbose = FALSE)
+```{r visualize-q-spectrum, fig.width=10, fig.height=6}
+# Generate global q-spectrum plot
+p <- plot_divergence_spectrum(divergence_results_se)
+print(p)
 ```
 
 **Interpreting the Q-Spectrum Curve:**

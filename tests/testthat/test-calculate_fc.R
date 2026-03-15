@@ -27,7 +27,7 @@ test_that("scale-aware pseudocount replaces non-positive group summaries", {
     ), byrow = TRUE, nrow = 2)
     rownames(mat) <- c("gene1", "gene2")
 
-    res_auto <- TSENAT:::calculate_fc(mat, samples, control = \"Normal\", method = \"mean\", pseudocount = 0)
+    res_auto <- TSENAT:::calculate_fc(mat, samples, control = "Normal", method = "mean", pseudocount = 0)
     # Note: `calculate_fc` returns log2(non-control / control). With
     # control = "Normal" the non-control (Tumor) values are 4 and 4.
     # After automatic pseudocount selection (half of smallest positive = 1),
@@ -44,7 +44,7 @@ test_that("explicit pseudocount is honored and differs from automatic choice", {
     ), byrow = TRUE, nrow = 2)
     rownames(mat) <- c("gene1", "gene2")
 
-    res_explicit <- TSENAT:::calculate_fc(mat, samples, control = \"Normal\", method = \"mean\", pseudocount = 1e-6)
+    res_explicit <- TSENAT:::calculate_fc(mat, samples, control = "Normal", method = "mean", pseudocount = 1e-6)
     # explicit tiny pseudocount should lead to a very large positive log2fc
     # (Tumor / near-zero Normal). Expect log2fc >> 10
     expect_true(as.numeric(res_explicit$log2_fold_change[1]) > 10)

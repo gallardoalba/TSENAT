@@ -401,10 +401,10 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
 #' @examples
 #' # After q*gene interaction testing:
 #' # interaction_results <- detect_q_gene_interactions(model_data)
-#' # se_filtered <- filter_se_by_effect_size(se, interaction_results, eta2_threshold = 0.02)
+#' # se_filtered <- filter_se_by_interaction_effect_size(se, interaction_results, eta2_threshold = 0.02)
 #'
 #' @export
-filter_se_by_effect_size <- function(se, interaction_results, eta2_threshold = 0.02,
+filter_se_by_interaction_effect_size <- function(se, interaction_results, eta2_threshold = 0.02,
                                       verbose = TRUE, keep_metadata = TRUE) {
     # Validate inputs
     if (!is(se, "SummarizedExperiment")) {
