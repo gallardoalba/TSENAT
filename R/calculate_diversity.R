@@ -1201,7 +1201,10 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
 #'   \describe{
 #'     \item{global_mean}{Named numeric vector of global mean entropy per q-value.}
 #'     \item{global_var}{Named numeric vector of variance per q-value.}
+#'     \item{var_trend}{List of loess fits per q-value (Law et al. 2014 voom).}
+#'     \item{outlier_genes}{List of detected outliers per q-value (>2SD from trend).}
 #'     \item{n_isoforms}{Vector of number of expressed isoforms per gene.}
+#'     \item{n_samples}{Number of samples (for sample-size weighting; Love et al. 2014).}
 #'   }
 #'
 #' @keywords internal
@@ -1231,10 +1234,99 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
   global_mean <- colMeans(entropy_matrix[, q_cols, drop = FALSE], na.rm = TRUE)
   global_var <- apply(entropy_matrix[, q_cols, drop = FALSE], 2, var, na.rm = TRUE)
   
+  # NEW (Law et al. 2014 voom): Per-q-value variance trend fitting
+  # Model variance as a function of mean entropy using loess regression
+  # This captures the expression-dependent variance relationship observed in RNA-seq
+  var_trend <- list()
+  outlier_genes <- list()
+  
+  for (col_idx in seq_along(q_cols)) {
+    col_name <- q_cols[col_idx]
+    
+    # Extract q value for reference
+    q_match <- gregexpr("_q=([0-9.]+)", col_name)
+    if (q_match[[1]][1] > 0) {
+      q_pos <- regmatches(col_name, q_match)[[1]]
+      q_val <- as.numeric(sub("_q=", "", q_pos))
+    } else {
+      q_val <- NA
+    }
+    
+    # Get mean entropy and variance for each gene from this column
+    entropy_vals <- entropy_matrix[, col_name]
+    gene_names <- rownames(entropy_matrix)
+    
+    # For each gene, calculate per-sample variance
+    # Map genes to their rows and compute row-wise variance
+    gene_variances <- sapply(gene_names, function(g_name) {
+      # Find the index of this gene
+      gene_idx <- which(rownames(entropy_matrix) == g_name)
+      if (length(gene_idx) > 0) {
+        # This gene has a single entropy value per sample-q combination
+        # We use the mean entropy value as a proxy for expression level
+        var(entropy_matrix[gene_idx, grep(paste0("_q=", q_val, "$"), colnames(entropy_matrix))], 
+            na.rm = TRUE)
+      } else {
+        NA
+      }
+    })
+    
+    # Fit loess trend: variance ~ mean entropy per q-value
+    # Only use genes with valid finite values for robust fitting
+    valid_idx <- is.finite(entropy_vals) & is.finite(gene_variances)
+    
+    # Require sufficient data points for stable loess fitting
+    # With n<6, loess becomes numerically unstable (degrees of freedom issues)
+    if (sum(valid_idx) >= 6) {  # Increased from 4 to 6 for stability
+      # Robust loess fitting (following Law et al. 2014 voom)
+      # family="symmetric" for robustness to outliers
+      # Adaptive span: smaller datasets get larger span for stability
+      n_valid <- sum(valid_idx)
+      span_adaptive <- min(0.5, max(0.2, 1.5 / n_valid))  # Adaptive span based on n
+      
+      tryCatch({
+        loess_fit <- loess(
+          gene_variances[valid_idx] ~ entropy_vals[valid_idx],
+          span = span_adaptive,  # Adaptive smoothing span
+          family = "symmetric",
+          control = loess.control(surface = "direct", iterations = 4)
+        )
+        var_trend[[col_name]] <- loess_fit
+        
+        # Predict variance from trend for all valid genes
+        # Note: predict(loess_fit) returns predictions on the original fitting data (valid subset)
+        predicted_var <- predict(loess_fit)
+        residuals <- gene_variances[valid_idx] - predicted_var
+        sd_resid <- sd(residuals, na.rm = TRUE)
+        
+        # Outlier detection: genes with variance >2SD from trend (Love et al. 2014 DESeq2)
+        outlier_threshold <- 2 * sd_resid
+        outliers <- gene_names[valid_idx][abs(residuals) > outlier_threshold]
+        outlier_genes[[col_name]] <- outliers
+        
+      }, error = function(e) {
+        # Fallback to global variance if loess fails (graceful degradation)
+        warning(sprintf(
+          "Loess trend fitting failed for q=%.2f; using global variance.",
+          q_val
+        ), call. = FALSE)
+        var_trend[[col_name]] <<- NULL
+        outlier_genes[[col_name]] <<- character(0)
+      })
+    } else {
+      # Insufficient data for loess fitting
+      var_trend[[col_name]] <- NULL
+      outlier_genes[[col_name]] <- character(0)
+    }
+  }
+  
   return(list(
     global_mean = global_mean,
     global_var = global_var,
-    n_isoforms = n_isoforms
+    var_trend = var_trend,           # NEW: Loess fits per q-value
+    outlier_genes = outlier_genes,   # NEW: Detected outliers (>2SD from trend)
+    n_isoforms = n_isoforms,
+    n_samples = ncol(x)  # Sample-size awareness (Love et al. 2014)
   ))
 }
 
@@ -1242,10 +1334,11 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
 #'
 #' Shrinks individual gene entropy estimates toward the global mean using empirical
 #' Bayes weights. Particularly effective for genes with few expressed isoforms.
+#' Outlier genes with extreme variance are protected (w=1, no shrinkage).
 #'
 #' @param entropy_matrix Matrix of raw entropy estimates (genes x assays).
 #' @param params List from \code{.tsenat_estimate_shrinkage_params()} with
-#'   global_mean, global_var, and n_isoforms.
+#'   global_mean, global_var, n_isoforms, n_samples, var_trend, and outlier_genes.
 #' @param gene_isoform_map Optional vector mapping row names of entropy_matrix
 #'   to n_isoforms (if names don't match indices).
 #'
@@ -1261,8 +1354,14 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
 #' The shrunk estimate is:
 #' \deqn{S_shrink = w_g \cdot S_g + (1 - w_g) \cdot \bar{S}}{S_shrink = w_g * S_g + (1 - w_g) * mean(S)}
 #'
+#' **Outlier Protection (Love et al. 2014 DESeq2):**
+#' Genes with variance >2SD from the expression-dependent trend (detected via loess)
+#' are treated as outliers and skip shrinkage (w=1), preserving biologically
+#' meaningful extreme variance genes.
+#'
 #' This borrows strength from the global distribution, stabilizing estimates for
-#' genes with small expression variance.
+#' genes with small expression variance, while protecting genes with genuine
+#' extreme variance signatures.
 #'
 #' @keywords internal
 #' @noRd
@@ -1272,6 +1371,9 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
   global_mean <- params$global_mean
   global_var <- params$global_var
   n_isoforms <- params$n_isoforms
+  n_samples <- params$n_samples  # Sample-size awareness (Love et al. 2014)
+  var_trend <- params$var_trend  # NEW: Loess trend fits per q-value
+  outlier_genes <- params$outlier_genes  # NEW: Outlier genes (>2SD from trend)
   
   # Map row names to n_isoforms indices if needed
   if (is.null(gene_isoform_map)) {
@@ -1283,6 +1385,12 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
   # Estimate prior strength from the data using empirical Bayes methodology
   # (following DESeq2/edgeR approach: prior DF based on average gene information content)
   mean_n_isoforms <- mean(n_isoforms, na.rm = TRUE)
+  
+  # Sample-size awareness (Love et al. 2014 DESeq2)
+  # With more samples, we have more confidence, so shrink less
+  # Formula: weight = n_min / n_samples (smaller weight = less shrinkage)
+  n_min <- max(2, floor(mean_n_isoforms))
+  sample_size_weight <- n_min / max(n_samples, n_min)
   
   # For each column (sample-q combination), apply shrinkage
   for (col_idx in seq_len(ncol(entropy_matrix))) {
@@ -1311,15 +1419,27 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
         mu <- global_mean[[mean_key]]
         sigma2_between <- global_var[[var_key]]
         
-        # Empirical Bayes prior strength estimation
+        # Empirical Bayes prior strength estimation with sample-size adjustment
         # df_prior represents the effective sample size of the prior distribution
         # Estimated conservatively from average gene information content
         df_prior <- max(1, mean_n_isoforms - 1)
+        
+        # Apply sample-size weighting: larger datasets get less shrinkage
+        df_prior_adjusted <- df_prior * sample_size_weight
+        
+        # Get list of outlier genes for this q-value (if available)
+        col_outliers <- outlier_genes[[col_name]]
+        if (is.null(col_outliers)) {
+          col_outliers <- character(0)
+        }
         
         # Compute shrinkage weights per gene
         for (row_idx in seq_len(nrow(entropy_matrix))) {
           # Try to get n_isoforms for this gene
           row_name <- rownames(entropy_matrix)[row_idx]
+          
+          # Check if this gene is an outlier (NEW: Outlier protection, Love et al. 2014)
+          is_outlier <- row_name %in% col_outliers
           
           # Handle both named and unnamed gene_isoform_map vectors
           if (is.null(names(gene_isoform_map)) || length(names(gene_isoform_map)) == 0) {
@@ -1331,27 +1451,36 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
           }
           
           if (!is.na(n_iso) && n_iso > 0) {
-            # Shrinkage parameter lambda: prior strength scaled by relative information content
-            # For genes with n_iso < mean_n_isoforms: lambda > df_prior (more shrinkage)
-            # For genes with n_iso > mean_n_isoforms: lambda < df_prior (less shrinkage)
-            # Formula: lambda = df_prior * (mean_n_isoforms / n_iso)
-            # This implements precision-weighted empirical Bayes shrinkage
-            lambda <- df_prior * (mean_n_isoforms / n_iso)
-            
-            # Shrinkage weight: w close to 1 trusts the observation more, w close to 0 trusts prior more
-            # From empirical Bayes theory: w = precision_obs / (precision_obs + precision_prior)
-            w <- n_iso / (n_iso + lambda)
+            # For outlier genes: skip shrinkage (w=1, maintain full observation)
+            # This preserves biologically meaningful extreme variance genes
+            if (is_outlier) {
+              w <- 1  # No shrinkage for outliers
+            } else {
+              # Standard shrinkage: prior strength scaled by relative information content
+              # For genes with n_iso < mean_n_isoforms: lambda > df_prior (more shrinkage)
+              # For genes with n_iso > mean_n_isoforms: lambda < df_prior (less shrinkage)
+              # Formula: lambda = df_prior_adjusted * (mean_n_isoforms / n_iso)
+              # This implements precision-weighted empirical Bayes shrinkage WITH sample-size awareness
+              lambda <- df_prior_adjusted * (mean_n_isoforms / n_iso)
+              
+              # Shrinkage weight: w close to 1 trusts the observation more, w close to 0 trusts prior more
+              # From empirical Bayes theory: w = precision_obs / (precision_obs + precision_prior)
+              w <- n_iso / (n_iso + lambda)
+            }
             
             # Apply shrinkage: for finite values use weighted average of observation and prior,
-            # for NA values (e.g., from undefined normalized entropy) use the prior estimate
-            if (is.na(entropy_matrix[row_idx, col_idx])) {
+            # for NA values (e.g., from undefined normalized entropy) use the prior estimate,
+            # and preserve NaN values as-is
+            if (is.nan(entropy_matrix[row_idx, col_idx])) {
+              # NaN values are preserved as-is (no modification)
+              # result already initialized to entropy_matrix, so NaN stays NaN
+            } else if (is.na(entropy_matrix[row_idx, col_idx])) {
               # NA values get shrunk to the prior (w=0 for completely missing data)
               result[row_idx, col_idx] <- mu
             } else if (is.finite(entropy_matrix[row_idx, col_idx])) {
               # Finite values get weighted average of observation and prior
               result[row_idx, col_idx] <- w * entropy_matrix[row_idx, col_idx] + (1 - w) * mu
             }
-            # NaN values are left as-is
           }
         }
       }

@@ -13,7 +13,7 @@ plot_tsallis_q_curve(
 }
 \arguments{
 \item{se}{A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
-For CI mode (bootstrap=TRUE), must contain pre-computed confidence intervals or Bayesian credible intervals.}
+For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.}
 
 \item{assay_name}{Character; name of the assay to plot (default: "diversity").}
 
@@ -27,7 +27,7 @@ Requires 2+ q values and exactly 2 groups (default: FALSE).}
 \value{
 **Basic mode (bootstrap=FALSE)**: A ggplot object showing median entropy with IQR ribbons for each group.
 
-**CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with confidence/credible interval bands for each group.
+**CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with bootstrap confidence interval bands for each group.
 }
 \description{
 Visualize Tsallis entropy (S_q) as a function of the diversity parameter q across sample groups.

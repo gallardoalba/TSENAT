@@ -110,11 +110,8 @@ se <- build_se(readcounts, gff3_file, metadata = metadata_df)
 se <- filter_se(se, stringency = "medium")
 
 # Compute Tsallis entropy (using single q value for quick start)
-# With Bayesian credible intervals via Beta-Binomial conjugacy
 ts_se <- calculate_diversity(se, 
-    q = 1, norm = TRUE, 
-    bayesian_ci = TRUE,
-    bayesian_ci_level = 0.95,
+    q = 1, norm = TRUE,
     metadata = metadata_df
     )
 ```
@@ -371,15 +368,10 @@ Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
-# Using Bayesian posterior credible intervals via Beta-Binomial conjugacy model
-# Beta prior hyperparameters are fitted automatically from the count data
-# using empirical Bayes method of moments (Erhard et al. 2018)
-# This models uncertainty in isoform proportions for each gene's entropy estimate
+
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
     q = qvec, norm = TRUE,
-    bayesian_ci = TRUE,
-    bayesian_ci_level = 0.95,
     metadata = metadata_df)
 ```
 
@@ -556,17 +548,13 @@ the q:group interaction with complex response shapes).
 if (requireNamespace("mgcv", quietly = TRUE)) {
     # Compute and show top hits (by adjusted p-value)
     # Using Hochberg for FWER control via closed-form procedure
-    # Phase 0: Hierarchical empirical Bayes prior for robust regularization
-    # Phase 1: Inverse-variance weighting using bootstrap credible intervals from calculate_diversity()
     lm_res <- calculate_lm_interaction(ts_se,
         method = "gam",
         paired = TRUE,
         multicorr = "hochberg",
         nthreads = 3,
         verbose = TRUE,
-        return_model_data = TRUE,
-        use_ci_weighting = TRUE,
-        use_hierarchical_prior = TRUE
+        return_model_data = TRUE
     )
 }
 ```

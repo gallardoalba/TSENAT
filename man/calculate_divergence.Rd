@@ -86,8 +86,6 @@ nthreads=NULL auto-detects available cores minus 1.}
 SummarizedExperiment object with:
   **assays** (genes * q matrices):
     - divergence: Divergence point estimates for each gene
-    - bayesian_ci_lower: Lower Bayesian CI bounds (if bayesian_ci=TRUE)
-    - bayesian_ci_upper: Upper Bayesian CI bounds (if bayesian_ci=TRUE)
   
   **rowData** (data frame with one row per gene):
     - gene_name: Gene identifier
