@@ -96,7 +96,7 @@ se <- tryCatch(
 
 ## Bayesian Pseudocount Regularization
 
-This analysis incorporates **WLFC (Weighted Likelihood Fold Change)** empirical Bayesian regularization to handle sparse count data. The `estimate_wlfc_pseudocounts()` function:
+For robust entropy estimation on sparse count data, we use **WLFC (Weighted Likelihood Fold Change)** empirical Bayesian regularization. The `estimate_wlfc_pseudocounts()` function:
 
 1. **Fits an empirical Beta prior** from the observed count data across all genes
 2. **Computes gene-specific WLFC pseudocounts** based on each gene's posterior distribution
@@ -105,16 +105,16 @@ This analysis incorporates **WLFC (Weighted Likelihood Fold Change)** empirical 
 This data-driven approach is more principled than fixed pseudocounts, as it learns the regularization strength from the actual data characteristics.
 
 ```{r bayesian-pseudocounts, message=FALSE}
-# Estimate WLFC pseudocounts integrated workflow
+# Estimate WLFC pseudocounts for robust entropy calculation
 result <- estimate_wlfc_pseudocounts(se, verbose = FALSE)
 scalar_pseudocount <- result$scalar_pseudocount
 
-# Calculate Tsallis entropy with Bayesian pseudocount regularization
+# Calculate Tsallis entropy across multiple q-values with regularization
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(
   se, 
   q = qvec, 
-  norm = TRUE, 
+  norm = TRUE,
   pseudocount = scalar_pseudocount,
   metadata = metadata_df,
   shrinkage = "empirical_bayes"
@@ -414,7 +414,54 @@ agreement_table <- concordance_result$agreement_table
 if (is.null(comparison_df)) {
   # Silently skip - no output
 } else {
-  # Create agreement summary table
+  # ========== GLOBAL CONCORDANCE METRICS ==========
+  # Create comprehensive global concordance metrics table
+  total_genes <- nrow(comparison_df)
+  both_sig <- sum(comparison_df$agreement == "Both significant")
+  gam_only <- sum(comparison_df$agreement == "GAM only")
+  kw_only <- sum(comparison_df$agreement == "K-W only")
+  neither_sig <- sum(comparison_df$agreement == "Neither significant")
+  
+  # Calculate concordance metrics
+  jaccard_overlap <- both_sig / total_genes  # Proportion of both-significant genes
+  gam_sig_total <- both_sig + gam_only
+  kw_sig_total <- both_sig + kw_only
+  gam_sensitivity <- if (gam_sig_total > 0) both_sig / gam_sig_total else NA_real_
+  kw_sensitivity <- if (kw_sig_total > 0) both_sig / kw_sig_total else NA_real_
+  
+  global_metrics <- data.frame(
+    Metric = c(
+      "Total genes analyzed",
+      "Spearman ρ (p-value correlation)",
+      "Both methods significant",
+      "GAM only significant",
+      "K-W only significant",
+      "Neither method significant",
+      "Jaccard overlap (both/total)",
+      "Agreement rate (both or neither)",
+      "Disagreement rate (one method only)"
+    ),
+    Value = c(
+      sprintf("%d", total_genes),
+      sprintf("%.4f", spearman_rho),
+      sprintf("%d (%.1f%%)", both_sig, 100 * both_sig / total_genes),
+      sprintf("%d (%.1f%%)", gam_only, 100 * gam_only / total_genes),
+      sprintf("%d (%.1f%%)", kw_only, 100 * kw_only / total_genes),
+      sprintf("%d (%.1f%%)", neither_sig, 100 * neither_sig / total_genes),
+      sprintf("%.1f%%", 100 * jaccard_overlap),
+      sprintf("%.1f%%", 100 * (both_sig + neither_sig) / total_genes),
+      sprintf("%.1f%%", 100 * (gam_only + kw_only) / total_genes)
+    ),
+    stringsAsFactors = FALSE
+  )
+  
+  knitr::kable(global_metrics, 
+               caption = "Global Concordance Metrics between GAM and K-W Methods",
+               align = c("l", "r"))
+  
+  cat("\n\n")
+  
+  # ========== DETAILED AGREEMENT BREAKDOWN ==========
   agreement_stats <- data.frame(
     Category = names(agreement_table),
     Count = as.numeric(agreement_table),
@@ -426,12 +473,12 @@ if (is.null(comparison_df)) {
   agreement_stats$Proportion <- sprintf("%.1f%%", agreement_stats$Proportion * 100)
   
   knitr::kable(agreement_stats, 
-               caption = "Agreement Summary between GAM and K-W Methods",
+               caption = "Agreement Category Breakdown",
                align = c("l", "r", "r"))
   
-  cat("\n")
+  cat("\n\n")
   
-  # High-confidence genes table
+  # ========== HIGH-CONFIDENCE GENES ==========
   if (nrow(high_conf) > 0) {
     high_conf_display <- high_conf[1:min(15, nrow(high_conf)), 
                                    c("gene", "padj_gam", "padj_kw", "effect_gam", "effect_kw")]
@@ -457,7 +504,7 @@ if (is.null(comparison_df)) {
     colnames(high_conf_display) <- c("Gene", "GAM padj", "K-W padj", "GAM Effect", "K-W Effect")
     
     knitr::kable(high_conf_display, 
-                 caption = "Top High-Confidence Genes Detected by Both Methods",
+                 caption = sprintf("Top High-Confidence Genes Detected by Both Methods (n=%d total)", nrow(high_conf)),
                  align = c("l", "r", "r", "r", "r"))
   }
 }
