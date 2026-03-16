@@ -1255,13 +1255,31 @@ classify_q_dependency <- function(
 #'   - interaction_class: Classification as "Robust across q", 
 #'     "Moderately q-dependent", or "Strongly q-dependent"
 #'
+#' @param paired Logical. If TRUE, applies Friedman test (paired alternative to K-W) 
+#'   that accounts for repeated measures across q-values within subjects. Requires
+#'   subject/pairing information in colData (e.g., "sample_id", "subject", "pair_id").
+#'   Default: FALSE (unpaired K-W test). (NEW - March 2026)
+#' @param subject_col Character. Name of colData column containing subject identifiers
+#'   for pairing. Only used if paired=TRUE. If NULL and paired=TRUE, attempts to use
+#'   default naming ("sample_id", "subject", or "pair_id"). (NEW - March 2026)
+#'
 #' @details
-#' Uses Kruskal-Wallis test (rank-based) by default, which is appropriate for
-#' non-normally distributed entropy data. Tests whether entropy values differ
-#' significantly across q-parameters for each gene.
+#' Uses Kruskal-Wallis test (rank-based) by default for independent samples, or
+#' Friedman test (paired alternative) if paired=TRUE. Both are appropriate for
+#' non-normally distributed entropy data.
+#'
+#' **Unpaired mode (paired=FALSE, default):**
+#'   Tests whether entropy values differ significantly across q-parameters for each 
+#'   gene, treating all samples as independent.
+#'
+#' **Paired mode (paired=TRUE):**
+#'   Uses Friedman test to remove between-subject variability and improve power 
+#'   for within-subject q-effects. Subject pairing information extracted from
+#'   colData. Each subject must have exactly one measurement per q-value.
+#'   (Song 2007; Saulsbury 2020; NEW - March 2026)
 #'
 #' Adaptive test selection (March 2026):
-#'   With method="kruskal.test" (default), applies conditional rank test selection:
+#'   With paired=FALSE, applies conditional rank test selection:
 #'   - Heteroscedasticity detected → Aligned Rank Transform + parametric test
 #'   - Extreme skewness detected → Mood's robust median test  
 #'   - Standard case → Kruskal-Wallis (rank-based)
@@ -1307,10 +1325,14 @@ detect_q_gene_interactions <- function(
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    paired = FALSE,
+    subject_col = NULL,
+    test = c("auto", "kruskal-wallis", "friedman", "art"),
     multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
     wy_randomizations = 100,
     verbose = FALSE) {
   
+  test <- match.arg(test)
   multicorr <- match.arg(multicorr)
   
   # Handle SummarizedExperiment input: convert to long-format data frame
