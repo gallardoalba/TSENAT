@@ -54,22 +54,9 @@
 #'   \code{'proposal2'} (Huber's Proposal 2, adaptive), \code{'s-estimator'} (high breakdown).
 #'   Ignored if method is 'mean' or 'median'. **Note: Permutation loop uses ~50-100x more
 #'   computation time with M-estimation; pre-computed scales once before permutations.**
-#' @param bayesian_ci Logical; if TRUE, compute Bayesian credible intervals on effect sizes 
-#'   (differences and log2 fold changes) using Gamma-Poisson posterior distributions. 
-#'   Default: FALSE. When TRUE, adds columns: `ci_lower_difference_bayesian` and 
-#'   `ci_upper_difference_bayesian`. Implements the conjugate prior model from papers 
-#'   S195 (edgeR), S197 (DESeq2), S074 (edgeR handbook), B8 (Bayesian RNA-seq 2024).
-#' @param bayesian_ci_level Numeric; credible interval coverage level for Bayesian intervals
-#'   (default: 0.95 for 95% CI). Must be in (0, 1). Only used when bayesian_ci = TRUE.
-#' @param bayesian_alpha Numeric; shape parameter for Gamma prior distribution (default: 0.5).
-#'   When bayesian_ci = TRUE, uses Gamma(bayesian_alpha, bayesian_beta) as prior on count rate λ.
-#'   Only used when bayesian_ci = TRUE.
-#' @param bayesian_beta Numeric; rate parameter for Gamma prior distribution (default: 1e-6).
-#'   Controls prior scale; smaller values indicate weaker priors. Only used when bayesian_ci = TRUE.
 #' @return A \code{data.frame} with the mean, median, or M-estimate values of splicing
 #' diversity across sample categories and all samples, log2(fold change) of  the
-#' two different conditions, raw and corrected p-values, and optionally Bayesian 
-#' credible intervals on effect sizes when bayesian_ci = TRUE.
+#' two different conditions, and raw and corrected p-values.
 #' @import methods
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay colData
 #' @export
@@ -98,8 +85,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
     exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, use_precision_weights = FALSE,
     counts = NULL, alpha = NULL, beta = NULL, robust_loss_type = "huber", 
-    robust_scale_method = "mad", bayesian_ci = FALSE, bayesian_ci_level = 0.95,
-    bayesian_alpha = 0.5, bayesian_beta = 1e-6) {
+    robust_scale_method = "mad") {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
         pairs_vec <- NULL
@@ -365,35 +351,6 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     }
     res <- do.call(rbind, result_list)
     
-    # =========================================================================
-    # BAYESIAN CREDIBLE INTERVALS (optional)
-    # =========================================================================
-    if (bayesian_ci && nrow(res) > 0) {
-        if (verbose) {
-            message("Computing Bayesian credible intervals on effect sizes...")
-        }
-        
-        # Validate Bayesian parameters
-        if (!is.numeric(bayesian_ci_level) || bayesian_ci_level <= 0 || bayesian_ci_level >= 1) {
-            stop("bayesian_ci_level must be a probability in (0, 1)", call. = FALSE)
-        }
-        if (!is.numeric(bayesian_alpha) || bayesian_alpha <= 0) {
-            stop("bayesian_alpha (prior shape) must be positive", call. = FALSE)
-        }
-        if (!is.numeric(bayesian_beta) || bayesian_beta <= 0) {
-            stop("bayesian_beta (prior rate) must be positive", call. = FALSE)
-        }
-        
-        # Initialize Bayesian CI columns
-        n_res <- nrow(res)
-        res$ci_lower_difference_bayesian <- NA_real_
-        res$ci_upper_difference_bayesian <- NA_real_
-        
-        if (verbose) {
-            message(sprintf("  → Added ci_lower_difference_bayesian and ci_upper_difference_bayesian columns"))
-        }
-    }
-    
     # Preserve gene names as rownames for downstream matching in jackknife/bootstrap analyses
     if ("gene_id" %in% colnames(res)) {
         rownames(res) <- as.character(res$gene_id)
@@ -590,6 +547,22 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' normalized per gene to mean=1.0 for interpretability. Output includes a `ci_weighted` column
 #' indicating whether weights were applied. Requires bootstrap CIs; if not available, a warning
 #' is issued and weighting is disabled.
+#' @param use_hierarchical_prior Logical; whether to apply hierarchical AR(1) prior estimation 
+#' (Phase 0 improvement, default: FALSE). When TRUE with corstr='ar1', stabilizes individual gene 
+#' AR(1) parameters via borrowing strength from the population distribution of φ parameters across 
+#' genes. Improves estimates for genes with sparse data. See estimate_hierarchical_ar1_prior() 
+#' and papers S168-S171 for details.
+#' @param ar1_method Character; AR(1) estimation method for hierarchical prior 
+#' (default: 'yule_walker'). Options: 'yule_walker' (fast, non-iterative) or 'mle' 
+#' (more accurate for small samples). Only used when use_hierarchical_prior=TRUE and corstr='ar1'.
+#' Reference: Yule-Walker equations in papers S168-S171.
+#' @param ar1_min_obs_per_gene Integer; minimum observations per gene required for trustworthy 
+#' φ estimate in hierarchical prior (default: 6). Genes with fewer observations are excluded 
+#' from prior estimation. Only used when use_hierarchical_prior=TRUE and corstr='ar1'.
+#' @param ar1_hyperprior_dist Character; distribution family for hyperprior on population 
+#' AR(1) parameters (default: 'normal'). Options: 'normal' (standard parametric assumption) or 
+#' 'uniform' (empirical quantile-based, more robust). Only used when use_hierarchical_prior=TRUE 
+#' and corstr='ar1'. Reference: Papers BY002-BY003 (empirical Bayes).
 #' @param return_model_data Logical; whether to return model metadata alongside results
 #' (default: FALSE). When TRUE, returns a list with two elements:
 #' \itemize{
@@ -668,13 +641,16 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
     corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"),
     storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE,
-    use_ci_weighting = FALSE) {
+    use_ci_weighting = FALSE, use_hierarchical_prior = FALSE, ar1_method = "yule_walker",
+    ar1_min_obs_per_gene = 6, ar1_hyperprior_dist = "normal") {
     method <- match.arg(method)
     corstr <- match.arg(corstr)
     pvalue <- match.arg(pvalue)
     regularization <- match.arg(regularization)
     pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg", "holm"))
     multicorr <- match.arg(multicorr)
+    ar1_method <- match.arg(ar1_method, c("yule_walker", "mle"))
+    ar1_hyperprior_dist <- match.arg(ar1_hyperprior_dist, c("normal", "uniform"))
     
     # Validate storey parameter
     if (!is.logical(storey)) {
@@ -769,21 +745,50 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     }
     
     if (use_ci_weighting) {
-        # Check for CI assays (produced by calculate_diversity with bootstrap=TRUE)
+        # Check for CI assays (produced by calculate_diversity with bootstrap=TRUE or bayesian_ci=TRUE)
         assay_names <- names(SummarizedExperiment::assays(se))
         has_ci_lower <- "ci_lower" %in% assay_names
         has_ci_upper <- "ci_upper" %in% assay_names
+        has_bayesian_ci_lower <- "bayesian_ci_lower" %in% assay_names
+        has_bayesian_ci_upper <- "bayesian_ci_upper" %in% assay_names
         
         if (verbose) {
             message(sprintf("[calculate_lm_interaction] PHASE 1: Available assays: %s", 
                            paste(assay_names, collapse=", ")))
-            message(sprintf("[calculate_lm_interaction] PHASE 1: ci_lower present? %s, ci_upper present? %s", 
-                           has_ci_lower, has_ci_upper))
+            message(sprintf("[calculate_lm_interaction] PHASE 1: Bootstrap CI available? %s, Bayesian CI available? %s", 
+                           has_ci_lower && has_ci_upper, has_bayesian_ci_lower && has_bayesian_ci_upper))
         }
         
+        # Use bootstrap CIs if available, otherwise fall back to Bayesian CIs
         if (has_ci_lower && has_ci_upper) {
             ci_lower <- SummarizedExperiment::assay(se, "ci_lower")
             ci_upper <- SummarizedExperiment::assay(se, "ci_upper")
+            ci_type <- "bootstrap"
+            
+            if (verbose) {
+                message(sprintf("[calculate_lm_interaction] PHASE 1: Using bootstrap CIs (dims %d×%d)", 
+                               nrow(ci_lower), ncol(ci_lower)))
+            }
+        } else if (has_bayesian_ci_lower && has_bayesian_ci_upper) {
+            ci_lower <- SummarizedExperiment::assay(se, "bayesian_ci_lower")
+            ci_upper <- SummarizedExperiment::assay(se, "bayesian_ci_upper")
+            ci_type <- "bayesian"
+            
+            if (verbose) {
+                message(sprintf("[calculate_lm_interaction] PHASE 1: Bootstrap CIs not found, using Bayesian CIs (dims %d×%d)", 
+                               nrow(ci_lower), ncol(ci_lower)))
+            }
+        } else {
+            if (verbose) {
+                warning("[calculate_lm_interaction] use_ci_weighting=TRUE but no CI assays found. ",
+                        "Run calculate_diversity(..., bootstrap=TRUE) or calculate_diversity(..., bayesian_ci=TRUE) ",
+                        "to get CI information.",
+                        call. = FALSE)
+            }
+            use_ci_weighting <- FALSE
+        }
+        
+        if (use_ci_weighting) {
             
             if (verbose) {
                 message(sprintf("[calculate_lm_interaction] PHASE 1: CI matrices loaded: dims %d×%d", 
@@ -867,13 +872,42 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
                                paste(head(rownames(weights_mat), 3), collapse=", ")))
                 message("[calculate_lm_interaction] Inverse-variance weighting ENABLED and weights computed")
             }
-        } else {
+        }
+    }
+    
+    # ════════════════════════════════════════════════════════════════════════════════
+    # PHASE 0: HIERARCHICAL AR(1) PRIOR ESTIMATION (NEW - March 2026)
+    # ════════════════════════════════════════════════════════════════════════════════
+    # Estimate population AR(1) distribution from all genes' q-curves
+    # This stabilizes individual gene φ estimates before LMM/GAM fitting
+    ar1_prior <- NULL
+    if (use_hierarchical_prior && corstr == "ar1") {
+        if (verbose) {
+            message("[calculate_lm_interaction] PHASE 0: Estimating hierarchical AR(1) prior...")
+        }
+        
+        ar1_prior <- tryCatch({
+            estimate_hierarchical_ar1_prior(
+                se = se,
+                method = ar1_method,
+                min_obs_per_gene = ar1_min_obs_per_gene,
+                hyperprior_dist = ar1_hyperprior_dist,
+                verbose = verbose
+            )
+        }, error = function(e) {
             if (verbose) {
-                warning("[calculate_lm_interaction] use_ci_weighting=TRUE but ci_lower/ci_upper assays not found. ",
-                        "Run calculate_diversity(..., bootstrap=TRUE) to get CI information.",
-                        call. = FALSE)
+                warning("[calculate_lm_interaction] Hierarchical prior estimation failed: ",
+                       conditionMessage(e), "; proceeding with standard AR(1)",
+                       call. = FALSE)
             }
-            use_ci_weighting <- FALSE
+            NULL
+        })
+        
+        if (!is.null(ar1_prior) && verbose) {
+            message(sprintf("[calculate_lm_interaction] PHASE 0 RESULT: μ_φ = %.3f, σ_φ = %.3f",
+                          ar1_prior$mu_phi, ar1_prior$sigma_phi))
+            message(sprintf("[calculate_lm_interaction] PHASE 0: %d genes analyzed for population structure",
+                          ar1_prior$diagnostics$n_genes_with_valid_phi))
         }
     }
     
@@ -898,7 +932,7 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
             group_vec = group_vec, method = method, pvalue = pvalue, subject_col = subject_col,
             paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings,
             progress = progress, bias_correction = bias_correction, regularization = regularization, corstr = corstr,
-            adaptive_knots = adaptive_knots, weights = gene_weights)
+            adaptive_knots = adaptive_knots, weights = gene_weights, ar1_prior = ar1_prior)
     }
 
     if (nthreads > 1) {
@@ -1534,7 +1568,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #'
 #' Good, P. I. (2005). Permutation, Parametric and Bootstrap Tests of Hypotheses
 #' (3rd ed.). Springer Series in Statistics.
-#' @export
+#' @noRd
 #' @examples
 #' set.seed(123)
 #' # Create a matrix of splicing diversity values (2 genes x 4 samples)

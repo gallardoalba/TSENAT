@@ -752,6 +752,30 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         if (!is.numeric(bayesian_ci_level) || bayesian_ci_level <= 0 || bayesian_ci_level >= 1) {
             stop("bayesian_ci_level must be a probability in (0, 1)", call. = FALSE)
         }
+        
+        # Fit empirical Bayes priors from data if using defaults
+        # If user explicitly provided bayesian_alpha and bayesian_beta, use those
+        # Otherwise, fit them from the count data using method of moments
+        if (bayesian_alpha == 0.5 && bayesian_beta == 1e-6) {
+            # These are the default values, so fit empirical priors instead
+            if (verbose) {
+                message("  Fitting empirical Beta prior from count data (Erhard et al. 2018)...")
+            }
+            empirical_prior <- fit_empirical_beta_prior(se_assay_mat)
+            bayesian_alpha <- empirical_prior$alpha
+            bayesian_beta <- empirical_prior$beta
+            if (verbose) {
+                message(sprintf("    α (alpha):  %.6f", bayesian_alpha))
+                message(sprintf("    β (beta):   %.6f", bayesian_beta))
+            }
+        } else {
+            if (verbose) {
+                message("  Using user-specified Bayesian prior parameters")
+                message(sprintf("    α (alpha):  %.6f", bayesian_alpha))
+                message(sprintf("    β (beta):   %.6f", bayesian_beta))
+            }
+        }
+        
         if (!is.numeric(bayesian_alpha) || bayesian_alpha <= 0) {
             stop("bayesian_alpha (prior shape) must be positive", call. = FALSE)
         }
@@ -1075,7 +1099,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' # prior_params <- fit_empirical_beta_prior(ts_se)
 #' }
 #'
-#' @export
+#' @noRd
 fit_empirical_beta_prior <- function(x) {
     # Handle SummarizedExperiment (typically from calculate_diversity)
     if (is(x, "SummarizedExperiment")) {
@@ -1431,6 +1455,8 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
 #' @param ci Numeric; credible interval width (default: 0.95 for 95% CI).
 #'    Set to \code{NULL} to skip CI computation.
 #'
+#' @noRd
+#'
 #' @return List with components:
 #'   \describe{
 #'     \item{posterior_alpha}{Posterior alpha parameter: α + sum(counts)}
@@ -1487,8 +1513,6 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
 #' cat("95% credible interval: [",
 #'     round(posterior$ci_lower, 4), ", ",
 #'     round(posterior$ci_upper, 4), "]\n", sep = "")
-#'
-#' @export
 get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
     if (!is.numeric(counts) || length(counts) < 1) {
         stop("counts must be a non-empty numeric vector")
@@ -1561,6 +1585,8 @@ get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
 #' This is the Bayesian equivalent of industry-standard models used in DESeq2 and edgeR.
 #' References: S195 (edgeR), S197 (DESeq2), S074 (edgeR 2023 guide).
 #'
+#' @noRd
+#'
 #' @return Data frame with columns:
 #'   \describe{
 #'     \item{gene}{Gene name (from rownames of counts_matrix)}
@@ -1584,8 +1610,6 @@ get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
 #'
 #' # View top genes by posterior mean
 #' head(all_cis[order(-all_cis$posterior_mean), ], 10)
-#'
-#' @export
 compute_posterior_credible_intervals <- function(counts_matrix, alpha, beta, ci = 0.95) {
     if (!is.matrix(counts_matrix) && !is.data.frame(counts_matrix)) {
         stop("counts_matrix must be a matrix or data.frame")
@@ -1593,10 +1617,28 @@ compute_posterior_credible_intervals <- function(counts_matrix, alpha, beta, ci 
 
     counts_matrix <- as.matrix(counts_matrix)
     n_genes <- nrow(counts_matrix)
+    
+    # Handle edge case: no genes
+    if (n_genes == 0) {
+        return(data.frame(
+            gene = character(),
+            posterior_mean = numeric(),
+            ci_lower = numeric(),
+            ci_upper = numeric(),
+            posterior_sd = numeric(),
+            row.names = NULL,
+            stringsAsFactors = FALSE
+        ))
+    }
 
     # Preallocate result vectors
     gene_names <- rownames(counts_matrix)
     if (is.null(gene_names)) {
+        gene_names <- paste0("Gene_", seq_len(n_genes))
+    }
+    
+    # Ensure gene_names has correct length
+    if (length(gene_names) != n_genes) {
         gene_names <- paste0("Gene_", seq_len(n_genes))
     }
 

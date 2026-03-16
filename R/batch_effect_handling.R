@@ -485,7 +485,7 @@ adjust_batch_effects_seq <- function(
 #' @param par.prior Logical; parametric prior
 #'
 #' @return List with mean and dispersion estimates per batch
-#' @keywords internal
+#' @noRd
 estimate_batch_parameters_seq <- function(counts, batch, shrinkage = TRUE, 
                                          par.prior = TRUE) {
   
@@ -1192,17 +1192,13 @@ print.batch_pca <- function(x, ...) {
 #'
 #' Papers: C012, C013 (ComBat-like batch correction)
 #'
-#' @export
-#' @export
+#' @noRd
 apply_batch_correction_ranking <- function(entropy_matrix, ...) {
   UseMethod("apply_batch_correction_ranking", entropy_matrix)
 }
 
-#' @rdname apply_batch_correction_ranking
-#' @param entropy_matrix Numeric matrix with entropy values (genes × samples)
-#' @param batch_factor Factor or character vector indicating batch assignment (length = ncol(entropy_matrix))
-#' @param condition_factor Optional factor for biological condition (length = ncol(entropy_matrix))
-#' @export
+#' @noRd
+#' @keywords internal
 apply_batch_correction_ranking.default <- function(
     entropy_matrix,
     batch_factor,
@@ -1309,12 +1305,8 @@ apply_batch_correction_ranking.default <- function(
   )
 }
 
-#' @rdname apply_batch_correction_ranking
-#' @param se A SummarizedExperiment object
-#' @param batch_column Character; column name in colData(se) for batch assignment
-#' @param condition_column Optional character; column name in colData(se) for biological condition
-#' @param assay Numeric or character; which assay to use (default: 1)
-#' @export
+#' @noRd
+#' @keywords internal
 apply_batch_correction_ranking.SummarizedExperiment <- function(
     entropy_matrix,
     batch_column,

@@ -88,7 +88,7 @@
 #' pi0_est <- estimate_storey_pi0(pvalues)
 #' print(pi0_est)  # Should be close to 0.9 (450/500)
 #' 
-#' @export
+#' @noRd
 estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda", 
                                  na.rm = TRUE) {
   

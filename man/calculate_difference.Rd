@@ -106,7 +106,7 @@ computation time with M-estimation; pre-computed scales once before permutations
 \value{
 A \code{data.frame} with the mean, median, or M-estimate values of splicing
 diversity across sample categories and all samples, log2(fold change) of  the
-two different conditions, raw and corrected p-values.
+two different conditions, and raw and corrected p-values.
 }
 \description{
 Calculate splicing diversity changes between two conditions.

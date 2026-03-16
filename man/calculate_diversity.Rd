@@ -23,7 +23,11 @@ calculate_diversity(
   bootstrap_nboot = NULL,
   bootstrap_method = "percentile",
   bootstrap_ci = 0.95,
-  bootstrap_include_diagnostics = TRUE
+  bootstrap_include_diagnostics = TRUE,
+  bayesian_ci = FALSE,
+  bayesian_ci_level = 0.95,
+  bayesian_alpha = 0.5,
+  bayesian_beta = 1e-06
 )
 }
 \arguments{
@@ -122,12 +126,35 @@ Must be in (0, 1). Higher values (e.g., 0.99) yield wider CIs; lower values are 
 fields in bootstrap results: effective_sample_size, skewness, bias, acceleration_factor
 (for BCa method). Diagnostics assess CI quality and reliability (papers S111, S114).
 Set to FALSE to reduce computation time for large datasets.}
+
+\item{bayesian_ci}{Logical; if TRUE, compute Bayesian credible intervals using the 
+Gamma-Poisson posterior distribution (Negative Binomial model). Default: FALSE. When TRUE,
+adds assays `bayesian_ci_lower` and `bayesian_ci_upper` to output. Implements the
+conjugate prior model documented in papers S195 (edgeR), S197 (DESeq2), S074 (edgeR user guide),
+B8 (Bayesian RNA-seq 2024). Gamma-Poisson conjugacy properly accounts for overdispersion
+in transcript count data, providing principled uncertainty quantification.}
+
+\item{bayesian_ci_level}{Numeric; credible interval coverage level for Bayesian intervals
+(default: 0.95 for 95% CI). Must be in (0, 1). Only used when bayesian_ci = TRUE.}
+
+\item{bayesian_alpha}{Numeric; shape parameter for Gamma prior distribution (default: 0.5).
+When bayesian_ci = TRUE, uses Gamma(bayesian_alpha, bayesian_beta) as prior on count rate λ.
+Smaller values (e.g., 0.1) indicate weaker prior; default 0.5 is weakly informative.
+Only used when bayesian_ci = TRUE.}
+
+\item{bayesian_beta}{Numeric; rate parameter for Gamma prior distribution (default: 1e-6).
+Controls prior scale; smaller values indicate weaker priors. Default 1e-6 yields
+very weak priors for typical RNA-seq scales. Only used when bayesian_ci = TRUE.}
 }
 \value{
 A \link[SummarizedExperiment]{SummarizedExperiment} with assays:
 - `diversity`: Per-gene Tsallis entropy values (if what="S")
 - `hill`: Per-gene Hill numbers (if what="D")
 - `counts`: Original raw transcript counts (preserved for downstream analysis)
+- `ci_lower`, `ci_upper`: Bootstrap confidence interval bounds (if bootstrap=TRUE)
+- `bayesian_ci_lower`, `bayesian_ci_upper`: Bayesian credible interval bounds 
+  from Gamma-Poisson posterior (if bayesian_ci=TRUE). Uses Negative Binomial
+  model conjugate priors as documented in papers S195, S197, S074, B8.
 
 **Important:** The original "counts" assay is preserved to allow downstream functions
 (e.g., `calculate_tsallis_entropy_bootstrap`, `jackknife_tsallis_entropy`) to access

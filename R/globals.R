@@ -5,6 +5,7 @@
 #' filter, lag, and select need to take precedence over stats equivalents.
 #'
 #' @name package_imports
+#' @noRd
 #' @importFrom dplyr arrange filter group_by mutate pull select summarise
 #' @importFrom stats IQR aggregate anova formula median model.frame p.adjust predict prcomp quantile t.test var
 NULL

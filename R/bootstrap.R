@@ -737,8 +737,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
 #'
 #' @return Invisibly returns the object.
 #'
-#' @export
-#' @keywords internal
+#' @noRd
 summary.tsenat_bootstrap_ci <- function(object, ...) {
     cat("=== Tsallis Entropy Bootstrap Confidence Interval ===\n")
     cat("Method: ", object$method, "\n")
@@ -771,7 +770,7 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
 }
 
 #' @rdname summary.tsenat_bootstrap_ci
-#' @export
+#' @noRd
 print.tsenat_bootstrap_ci <- function(x, ...) {
     summary(x, ...)
 }

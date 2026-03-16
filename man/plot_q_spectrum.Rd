@@ -16,7 +16,8 @@ q values from 0.5 to 2.0 in 0.5 increments.}
 Ignored if per_q_div is a numeric vector.}
 
 \item{per_q_ci}{Optional list with components `$lower` and `$upper` containing
-lower and upper bootstrap confidence interval bounds (same length as per_q_div).
+lower and upper confidence interval bounds (same length as per_q_div).
+Supports both bootstrap CIs and Bayesian credible intervals (Tier 2 Integration).
 Only used if per_q_div is a numeric vector.}
 
 \item{gene_name}{Character. Name of the gene for plot title. Default is empty string or auto-detected.}

@@ -76,6 +76,7 @@
 #' tx2gene <- extract_tx2gene_from_gff3(tf)
 #' head(tx2gene)
 #' }
+#' @noRd
 extract_tx2gene_from_gff3 <- function(gff3_file) {
     # Handle both .gff3 and .gff3.gz files
     if (grepl("\\.gff3\\.gz$", gff3_file)) {

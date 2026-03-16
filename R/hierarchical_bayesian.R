@@ -123,7 +123,8 @@
 #' - BY010-BY017: Posterior predictive checks and model diagnostics
 #' - Morris & Carroll (2006): Functional mixed models for curves
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 estimate_hierarchical_ar1_prior <- function(
     se,
     q = NULL,
@@ -371,34 +372,3 @@ estimate_hierarchical_ar1_prior <- function(
     return(result)
 }
 
-
-#' Print Method for Hierarchical AR(1) Prior
-#'
-#' @param x Object of class `ar1_hierarchical_prior`
-#' @param ... Additional arguments (unused)
-#'
-#' @export
-print.ar1_hierarchical_prior <- function(x, ...) {
-    cat("\n=== HIERARCHICAL AR(1) PRIOR ===\n")
-    cat(sprintf("Population mean (μ_φ):  %.4f\n", x$mu_phi))
-    cat(sprintf("Population std (σ_φ):   %.4f\n", x$sigma_phi))
-    cat(sprintf("Method: %s\n", x$method))
-    cat(sprintf("Hyperprior: %s\n\n", x$hyperprior_dist))
-    
-    cat("DIAGNOSTICS:\n")
-    cat(sprintf("  Genes with valid φ: %d\n", x$diagnostics$n_genes_with_valid_phi))
-    cat(sprintf("  Mean obs/gene: %.1f\n", x$diagnostics$mean_obs_per_gene))
-    cat(sprintf("  Proportion |φ|>0.8: %.1f%%\n", x$diagnostics$proportion_high_phi * 100))
-    cat(sprintf("  Mean shrinkage factor: %.3f\n", x$diagnostics$mean_shrinkage_factor))
-    cat(sprintf("  Shrinkage (1-w): %.1f%%\n", (1 - x$diagnostics$mean_shrinkage_factor) * 100))
-    cat(sprintf("  Raw φ range: [%.3f, %.3f]\n", 
-                x$diagnostics$range_phi_raw[1], x$diagnostics$range_phi_raw[2]))
-    cat(sprintf("  Shrunk φ range: [%.3f, %.3f]\n", 
-                x$diagnostics$range_phi_shrunk[1], x$diagnostics$range_phi_shrunk[2]))
-    cat("\n")
-    cat("PAPERS CITED:\n")
-    for (i in seq_along(x$papers_validation)) {
-        cat(sprintf("  %s: %s\n", names(x$papers_validation)[i], x$papers_validation[i]))
-    }
-    cat("\n")
-}

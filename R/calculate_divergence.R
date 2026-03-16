@@ -383,15 +383,6 @@
 #'                 nthreads=NULL auto-detects available cores minus 1.
 #' @param progress Logical; show progress bar and timing (default: TRUE)
 #' @param seed Random seed (optional; NULL for non-reproducible)
-#' @param bayesian_ci Logical; if TRUE, computes Bayesian credible intervals via Gamma-Poisson conjugacy.
-#'                    Uses the point divergence estimate to construct posterior quantiles.
-#'                    (default: FALSE, Tier 1 Integration Feature)
-#' @param bayesian_ci_level Confidence level for Bayesian CIs (default: 0.95).
-#'                          Must be in (0, 1). Controls posterior quantile computation.
-#' @param bayesian_alpha Shape hyperparameter for Gamma prior (default: 0.5).
-#'                       Must be positive. Controls prior influence on posterior.
-#' @param bayesian_beta Rate hyperparameter for Gamma prior (default: 1e-6).
-#'                      Must be positive. Larger values increase prior precision.
 #'
 #' @return SummarizedExperiment object with:
 #'   **assays** (genes * q matrices):
@@ -479,11 +470,7 @@ calculate_divergence <- function(
     pseudocount = 0.5,
     nthreads = 1,
     progress = TRUE,
-    seed = NULL,
-    bayesian_ci = FALSE,
-    bayesian_ci_level = 0.95,
-    bayesian_alpha = 0.5,
-    bayesian_beta = 1e-6) {
+    seed = NULL) {
 
   # =========================================================================
   # INPUT VALIDATION
@@ -497,19 +484,6 @@ calculate_divergence <- function(
   # Validate norm parameter
   norm <- match.arg(norm, choices = c("none", "range", "zscore", 
                                       "log_odds_ratio", "relative_reference"))
-
-  # Validate Bayesian CI parameters (Tier 1 Integration)
-  if (bayesian_ci) {
-    if (!is.numeric(bayesian_ci_level) || bayesian_ci_level <= 0 || bayesian_ci_level >= 1) {
-      stop("bayesian_ci_level must be a probability in (0, 1), got: ", bayesian_ci_level)
-    }
-    if (!is.numeric(bayesian_alpha) || bayesian_alpha <= 0) {
-      stop("bayesian_alpha must be positive, got: ", bayesian_alpha)
-    }
-    if (!is.numeric(bayesian_beta) || bayesian_beta <= 0) {
-      stop("bayesian_beta must be positive, got: ", bayesian_beta)
-    }
-  }
 
   # BUGFIX #4: Auto-sort q parameter for consistent output and q-spectrum analysis
   # Sorts q values in ascending order (rare → abundant: 0.5 → 2)
@@ -1132,60 +1106,6 @@ calculate_divergence <- function(
   # Initialize assays list with divergence
   assays_list <- list(divergence = assay_matrix)
 
-  # Compute Bayesian credible intervals if requested (Tier 1 Integration)
-  if (bayesian_ci) {
-    if (progress) {
-      cat("Computing Bayesian credible intervals for divergence estimates...\n")
-    }
-    
-    # Initialize matrices for Bayesian CIs
-    bayesian_ci_lower_matrix <- matrix(NA_real_, nrow = nrow(assay_matrix), ncol = ncol(assay_matrix),
-                                       dimnames = dimnames(assay_matrix))
-    bayesian_ci_upper_matrix <- matrix(NA_real_, nrow = nrow(assay_matrix), ncol = ncol(assay_matrix),
-                                       dimnames = dimnames(assay_matrix))
-    
-    # Compute Bayesian CIs for each gene
-    for (i in seq_len(nrow(assay_matrix))) {
-      gene_name <- row_data_df$gene_name[i]
-      
-      # Skip if computation failed for this gene
-      if (!is.na(row_data_df$error[i])) {
-        next
-      }
-      
-      # Get estimates for this gene across q values
-      gene_estimate <- assay_matrix[i, ]
-      
-      # For each q value, compute Bayesian CI
-      for (j in seq_along(q)) {
-        est <- gene_estimate[j]
-        
-        # Skip if estimate is NA
-        if (is.na(est)) {
-          next
-        }
-        
-        # Compute posterior using Gamma-Poisson conjugacy
-        # For divergence, we use the point estimate as the observed summary
-        # Posterior shape: α + obs_shape, rate: β + scale
-        posterior_shape <- bayesian_alpha + abs(est) * 100  # Scale to counts
-        posterior_rate <- bayesian_beta + 100
-        
-        # Compute quantiles from posterior Gamma distribution
-        lower <- qgamma((1 - bayesian_ci_level) / 2, shape = posterior_shape, rate = posterior_rate)
-        upper <- qgamma(1 - (1 - bayesian_ci_level) / 2, shape = posterior_shape, rate = posterior_rate)
-        
-        # Normalize back to divergence scale
-        bayesian_ci_lower_matrix[i, j] <- lower / 100
-        bayesian_ci_upper_matrix[i, j] <- upper / 100
-      }
-    }
-    
-    # Add Bayesian CI assays to list
-    assays_list$bayesian_ci_lower <- bayesian_ci_lower_matrix
-    assays_list$bayesian_ci_upper <- bayesian_ci_upper_matrix
-  }
-
   # Create colData for each q value column in the assay
   col_data_output <- data.frame(
     q_value = q,
@@ -1212,11 +1132,7 @@ calculate_divergence <- function(
         method = method
       ),
       normalization = norm,
-      computation_mode = if (use_parallel) "parallel" else "sequential",
-      bayesian_ci = bayesian_ci,
-      bayesian_ci_level = bayesian_ci_level,
-      bayesian_alpha = bayesian_alpha,
-      bayesian_beta = bayesian_beta
+      computation_mode = if (use_parallel) "parallel" else "sequential"
     )
   )
 

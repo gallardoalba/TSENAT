@@ -1070,96 +1070,6 @@ classify_q_dependency <- function(
   return(classifications)
 }
 
-
-#' Recommend Q-Value Range Based on Interaction Analysis
-#'
-#' Provides data-driven recommendations for q-value selection in multi-q
-#' Tsallis entropy analysis based on detected interactions.
-#'
-#' @param interaction_results Data frame from detect_q_gene_interactions().
-#' @param robust_threshold Numeric. Threshold for robust genes (default 0.70).
-#' @param strong_threshold Numeric. Threshold for strong dependency (default 0.05).
-#'
-#' @return List with elements:
-#'   - recommendation: Character string with recommended q-range
-#'   - rationale: Explanation of recommendation
-#'   - robust_pct: Percentage of robust genes
-#'   - moderate_pct: Percentage of moderately q-dependent genes
-#'   - strong_pct: Percentage of strongly q-dependent genes
-#'   - suggested_q_values: Numeric vector of suggested q-values
-#'   - sample_sizes: Approximate number of genes in each category
-#'
-#' @details Provides classification-based recommendations: If >5% strong q-dependency, use full spectrum {0.1, 0.5, 1.0, 1.5, 2.0, 2.5}. If >10% moderate q-dependency, use standard range {0.5, 1.0, 1.5, 2.0}. Otherwise, use focused range {0.9, 1.0, 1.1} or fixed q=1.0 (Shannon).
-#'
-#' @export
-#' @examples
-#' \dontrun{
-#' results <- detect_q_gene_interactions(model_data)
-#' recommendation <- recommend_q_range(results)
-#' cat(recommendation$recommendation, "\n")
-#' cat(recommendation$rationale, "\n")
-#' }
-recommend_q_range <- function(
-    interaction_results,
-    robust_threshold = 0.70,
-    strong_threshold = 0.05) {
-  
-  # Count genes in each category
-  class_table <- table(interaction_results$interaction_class)
-  total_genes <- nrow(interaction_results)
-  
-  robust_count <- as.numeric(ifelse(is.na(class_table["Robust across q"]), 0, class_table["Robust across q"]))
-  moderate_count <- as.numeric(ifelse(is.na(class_table["Moderately q-dependent"]), 0, class_table["Moderately q-dependent"]))
-  strong_count <- as.numeric(ifelse(is.na(class_table["Strongly q-dependent"]), 0, class_table["Strongly q-dependent"]))
-  
-  robust_pct <- robust_count / total_genes
-  moderate_pct <- moderate_count / total_genes
-  strong_pct <- strong_count / total_genes
-  
-  # Determine recommendation (check robust threshold first, before moderate)
-  if (strong_pct > strong_threshold) {
-    recommendation <- "FULL q-spectrum: q ∈ {0.1, 0.5, 1.0, 1.5, 2.0, 2.5}"
-    rationale <- sprintf(
-      "Strong q*gene interactions detected in %.1f%% of genes (%d genes). These genes' rankings change substantially with q-parameter. Single q-value selection would miss critical signals. Full spectrum captures complete parametric space for diversity measurement.",
-      strong_pct * 100, strong_count
-    )
-    suggested_q <- c(0.1, 0.5, 1.0, 1.5, 2.0, 2.5)
-  } else if (robust_pct > robust_threshold) {
-    recommendation <- "FOCUSED or FIXED approach: q ∈ {0.9, 1.0, 1.1} or q = 1.0 (Shannon)"
-    rationale <- sprintf(
-      "Primarily q-robust genes detected (%.1f%%, %d genes). Gene rankings stable across parameter values. Simplified approach justified by data. Shannon entropy (q=1.0) captures core diversity patterns.",
-      robust_pct * 100, robust_count
-    )
-    suggested_q <- c(0.9, 1.0, 1.1)
-  } else if (moderate_pct > 0.10) {
-    recommendation <- "STANDARD q-range: q ∈ {0.5, 1.0, 1.5, 2.0}"
-    rationale <- sprintf(
-      "Moderate q*gene interactions detected in %.1f%% of genes (%d genes). Most genes rank similarly, but noticeable variation exists. Standard range balances statistical power and computational efficiency.",
-      moderate_pct * 100, moderate_count
-    )
-    suggested_q <- c(0.5, 1.0, 1.5, 2.0)
-  } else {
-    recommendation <- "STANDARD q-range: q ∈ {0.5, 1.0, 1.5, 2.0}"
-    rationale <- "Mixed q-dependency pattern observed. Standard range provides balanced coverage of diversity space with manageable multiple testing burden."
-    suggested_q <- c(0.5, 1.0, 1.5, 2.0)
-  }
-  
-  list(
-    recommendation = recommendation,
-    rationale = rationale,
-    robust_pct = robust_pct,
-    moderate_pct = moderate_pct,
-    strong_pct = strong_pct,
-    suggested_q_values = suggested_q,
-    sample_sizes = list(
-      robust = robust_count,
-      moderate = moderate_count,
-      strong = strong_count,
-      total = total_genes
-    )
-  )
-}
-
 ################################################################################
 #
 # Internal Helper Functions for Multiple Testing Correction (March 2026)
@@ -1987,6 +1897,7 @@ detect_q_gene_interactions <- function(
 #' - p_value: Minimum p-value across quantiles (Bonferroni adjusted)
 #' - method: "Quantile-based test"
 #'
+#' @noRd
 .tsenat_apply_quantile_test <- function(data, value_col = "entropy", group_col = "q",
                                        quantiles = c(0.25, 0.50, 0.75)) {
     
@@ -2139,6 +2050,7 @@ detect_q_gene_interactions <- function(
 #' - test_type: "standard", "art_adjusted", "quantile_adjusted", "median_robust"
 #' - characteristics: Data characteristics detected
 #'
+#' @noRd
 .tsenat_apply_conditional_rank_test <- function(data, value_col = "entropy", group_col = "q",
                                                verbose = FALSE) {
     

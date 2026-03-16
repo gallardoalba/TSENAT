@@ -735,75 +735,39 @@ plot_ma_expression_impl <- function(
 }
 
 
-#' Plot Tsallis Q-curve Profile
-#'
-#' Visualize q-curve showing Tsallis entropy across diversity scales for each sample group.
-#' Displays median entropy with IQR ribbons for comparison between groups.
-#'
-#' @param se SummarizedExperiment from calculate_diversity().
-#' @param assay_name Character. Assay name (default "diversity").
-#' @param sample_type_col Character. Column in colData(se) with sample types (default "sample_type").
-#'
-#' @return A ggplot object with q-curves and IQR ribbons for each group.
-#'
-#' @details Computes median Tsallis entropy and interquartile range (IQR) at each q-value
-#' for each sample group, displayed as median line with IQR ribbon.
-#'
-#' @export
-#' @examples
-#' data("readcounts", package = "TSENAT")
-#' rc <- as.matrix(readcounts[1:40, -1, drop = FALSE])
-#' gs <- readcounts[1:40, 1]
-#' se <- calculate_diversity(rc, gs,
-#'     q = seq(0.01, 0.1, by = 0.03), norm = FALSE
-#' )
-#' p <- plot_tsallis_q_curve(se)
-#' p
 #' Plot Tsallis Entropy q-Curve
 #'
-#' Visualize Tsallis entropy (S_q) as a function of the diversity parameter q.
+#' Visualize Tsallis entropy (S_q) as a function of the diversity parameter q across sample groups.
+#' Supports two visualization modes: basic median/IQR plots or confidence interval bands with significance testing.
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
-#'   multiple q values (column names contain `_q=`).
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
+#'   For CI mode (bootstrap=TRUE), must contain pre-computed confidence intervals or Bayesian credible intervals.
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
 #' @param sample_type_col Character; column name in colData indicating group/sample type
-#'   (default: "sample_type").
-#' @param bootstrap Logical; if TRUE and SE contains CI data (from
-#'   `calculate_diversity(..., bootstrap=TRUE)` or `calculate_diversity(..., bayesian_ci=TRUE)`),
-#'   plot confidence bands and perform group comparison tests (default: FALSE).
-#'   Function automatically detects bootstrap or Bayesian CIs.
-#' @param n_bootstrap Integer; number of bootstrap replicates (used if bootstrap=TRUE
-#'   and CIs need recalculation; default: 1000).
-#' @param ci_level Numeric; confidence level (0-1) for bootstrap CIs (default: 0.95).
-#' @param test_method Character; statistical test for group differences when bootstrap=TRUE.
-#'   Options: "wilcox" (Wilcoxon rank-sum, default) or "ttest" (Welch's t-test).
-#' @param alpha Numeric; significance level for tests (default: 0.05).
+#'   (default: "sample_type"). Only used in basic mode; CI mode requires exactly 2 groups.
+#' @param bootstrap Logical; if TRUE, plots bootstrap confidence interval bands.
+#'   Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
+#'   Requires 2+ q values and exactly 2 groups (default: FALSE).
 #'
-#' @return A `ggplot` object showing the q-curve. When `bootstrap=TRUE`, returns
-#'   an object of class "qcurve_bootstrap" with additional components:
-#'   - `$ggplot`: The plot object
-#'   - `$plot_data`: Data frame with medians and CIs for each group/q
-#'   - `$significant_qranges`: Q-value ranges where groups differ significantly
-#'   - `$metadata`: CI parameters and type (bootstrap or Bayesian)
+#' @return
+#' **Basic mode (bootstrap=FALSE)**: A ggplot object showing median entropy with IQR ribbons for each group.
+#'
+#' **CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with confidence/credible interval bands for each group.
 #'
 #' @details
 #' **Basic mode (bootstrap=FALSE)**:
-#' - Plots median entropy ± IQR for each group across q-values
-#' - Useful for exploratory visualization
+#' - Plots median Tsallis entropy ± IQR for each group across q-values
+#' - Works with any SummarizedExperiment from calculate_diversity()
+#' - Supports single or multiple q values
+#' - Supports any number of groups
+#' - No CI data required, no significance testing
 #'
-#' **Bootstrap mode (bootstrap=TRUE) with Bootstrap CIs**:
-#' - Requires SE created with `calculate_diversity(..., bootstrap=TRUE)`
-#' - Plots bootstrap confidence bands (default: 95% CI)
-#'
-#' **Bootstrap mode (bootstrap=TRUE) with Bayesian CIs (Tier 2 Integration)**:
-#' - Requires SE created with `calculate_diversity(..., bayesian_ci=TRUE)`
-#' - Plots Bayesian credible interval bands (default: 95% level)
-#' - Automatically detected if bootstrap CIs not available
-#'
-#' **Common bootstrap/Bayesian mode features**:
-#' - Identifies q-ranges where groups differ significantly
-#' - Runs Wilcoxon or t-tests at each q-value
-#' - Returns structured output with significance regions highlighted in red
+#' **CI mode (bootstrap=TRUE)**:
+#' - Displays bootstrap confidence interval bands for each group across q-values
+#' - Requires exactly 2 groups for comparison
+#' - Requires 2+ q values for q-curve visualization
+#' - Requires pre-computed bootstrap CIs from `calculate_diversity(..., bootstrap=TRUE)`
+#' - Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
 #'
 #' @importFrom ggplot2 ggplot aes geom_line geom_ribbon geom_point theme_minimal
 #'   scale_color_manual scale_fill_manual labs theme element_text annotate
@@ -817,13 +781,12 @@ plot_ma_expression_impl <- function(
 #'   rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
 #'   gs <- readcounts[1:50, 1]
 #'   
-#'   # Basic q-curve
+#'   # Basic mode: median ± IQR
 #'   se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
-#'   p <- plot_tsallis_q_curve(se_basic)
+#'   p_basic <- plot_tsallis_q_curve(se_basic)
 #'   
-#'   # With bootstrap confidence bands
-#'   se_boot <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5, 2.0), 
-#'                                  bootstrap = TRUE, bootstrap_nboot = 500)
+#'   # CI mode with bootstrap CIs
+#'   se_boot <- calculate_diversity(rc, gs, q = seq(0.1, 2, by = 0.2), bootstrap = TRUE)
 #'   p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
 #' }
 #'
@@ -832,14 +795,9 @@ plot_tsallis_q_curve <- function(
   se,
   assay_name = "diversity",
   sample_type_col = "sample_type",
-  bootstrap = FALSE,
-  n_bootstrap = 1000,
-  ci_level = 0.95,
-  test_method = c("wilcox", "ttest"),
-  alpha = 0.05
+  bootstrap = FALSE
 ) {
   require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
-  test_method <- match.arg(test_method)
   
   # Validate input
   if (!inherits(se, "SummarizedExperiment")) {
@@ -851,29 +809,27 @@ plot_tsallis_q_curve <- function(
   }
   
   # =========================================================================
-  # BOOTSTRAP MODE
+  # CONFIDENCE INTERVAL MODE (Bootstrap only)
   # =========================================================================
-  if (bootstrap) {
-    # Check for bootstrap CIs first
-    has_ci_lower <- "ci_lower" %in% SummarizedExperiment::assayNames(se)
-    has_ci_upper <- "ci_upper" %in% SummarizedExperiment::assayNames(se)
-    
-    # Check for Bayesian CIs as fallback (Tier 2 Integration)
-    has_bayesian_ci <- "bayesian_ci_lower" %in% SummarizedExperiment::assayNames(se) &&
-                        "bayesian_ci_upper" %in% SummarizedExperiment::assayNames(se)
-    
-    if (!has_ci_lower || !has_ci_upper) {
-      if (has_bayesian_ci) {
-        message("[plot_tsallis_q_curve] Bootstrap CIs not found, using Bayesian credible intervals")
-        bootstrap <- TRUE  # Continue with Bayesian CIs
-      } else {
-        warning("Bootstrap CI data not found in SE. Available assays: ",
-                paste(SummarizedExperiment::assayNames(se), collapse = ", "),
-                "\n  Falling back to basic (non-bootstrap) plot")
-        bootstrap <- FALSE
-      }
-    }
+  # Only bootstrap CIs are suitable for entropy visualization.
+  # Bayesian CIs computed on count scale don't propagate properly through
+  # the non-linear entropy transformation.
+  has_bootstrap_ci <- "ci_lower" %in% SummarizedExperiment::assayNames(se) &&
+                       "ci_upper" %in% SummarizedExperiment::assayNames(se)
+  
+  use_ci_mode <- FALSE
+  
+  if (bootstrap && has_bootstrap_ci) {
+    use_ci_mode <- TRUE
+  } else if (bootstrap && !has_bootstrap_ci) {
+    # User requested bootstrap but not available
+    warning("bootstrap=TRUE but bootstrap CIs not found in SE. ",
+            "Available assays: ", paste(SummarizedExperiment::assayNames(se), collapse = ", "),
+            "\n  Run calculate_diversity(..., bootstrap=TRUE) to generate CI data.",
+            "\n  Falling back to basic (non-bootstrap) plot")
   }
+  
+  bootstrap <- use_ci_mode  # Update bootstrap flag for downstream code
   
   # =========================================================================
   # BASIC MODE (no bootstrap or bootstrap CIs not available)
@@ -952,33 +908,32 @@ plot_tsallis_q_curve <- function(
     stop("Expected exactly 2 groups for bootstrap comparison, found ", length(groups))
   }
   
-  # Extract bootstrap CIs (or Bayesian CIs if available)
-  if ("ci_lower" %in% SummarizedExperiment::assayNames(se)) {
-    ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
-    ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
-    ci_type <- "bootstrap"
-  } else if ("bayesian_ci_lower" %in% SummarizedExperiment::assayNames(se)) {
-    ci_lower_mat <- SummarizedExperiment::assay(se, "bayesian_ci_lower")
-    ci_upper_mat <- SummarizedExperiment::assay(se, "bayesian_ci_upper")
-    ci_type <- "bayesian"
-    message("[plot_tsallis_q_curve] Using Bayesian credible intervals for bands")
-  } else {
-    stop("No CI data found (bootstrap or Bayesian)")
+  # Extract bootstrap CIs
+  if (!("ci_lower" %in% SummarizedExperiment::assayNames(se) &&
+        "ci_upper" %in% SummarizedExperiment::assayNames(se))) {
+    stop("No bootstrap CI data found (ci_lower/ci_upper assays required)")
   }
   
-  # Prepare plot data
+  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
+  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
+  
+  # Prepare plot data with CI bands
+  # Get sample names and their indices in the CI matrices
+  sample_names <- colnames(ci_lower_mat)
+  if (is.null(sample_names)) {
+    sample_names <- paste0("Sample", 1:ncol(ci_lower_mat))
+  }
+  
   plot_df <- data.frame(
     q = numeric(),
     median = numeric(),
     ci_lower = numeric(),
     ci_upper = numeric(),
     group = character(),
-    pvalue = numeric(),
-    significant = logical(),
     stringsAsFactors = FALSE
   )
   
-  # For each q-value and group, extract median and CIs
+  # For each q-value and group, extract median diversity and aggregate CI bounds
   for (group_val in groups) {
     for (q_val in unique_q) {
       # Filter data for this group and q-value
@@ -987,78 +942,49 @@ plot_tsallis_q_curve <- function(
       
       if (nrow(group_q_data) > 0) {
         median_val <- median(group_q_data$tsallis, na.rm = TRUE)
-        # Use CI from first sample (CIs are per-gene, replicated across samples)
-        ci_lower_val <- mean(ci_lower_mat[, 1], na.rm = TRUE)
-        ci_upper_val <- mean(ci_upper_mat[, 1], na.rm = TRUE)
         
-        # Perform statistical test
-        group1_data <- long %>%
-          dplyr::filter(group == groups[1], q == q_val) %>%
-          dplyr::pull(tsallis)
-        group2_data <- long %>%
-          dplyr::filter(group == groups[2], q == q_val) %>%
-          dplyr::pull(tsallis)
+        # Get unique samples in this group for this q
+        group_samples <- unique(group_q_data$sample)
         
-        if (length(group1_data) >= 2 && length(group2_data) >= 2) {
-          if (test_method == "wilcox") {
-            test_result <- wilcox.test(group1_data, group2_data, paired = FALSE)
-          } else {
-            test_result <- t.test(group1_data, group2_data, var.equal = FALSE)
+        # For each sample, find the CI bounds (average across genes)
+        all_ci_lower <- c()
+        all_ci_upper <- c()
+        
+        for (samp in group_samples) {
+          # Find column index for this sample in CI matrices
+          samp_idx <- which(sample_names == samp)
+          if (length(samp_idx) > 0) {
+            # Average CI bounds across genes for this sample
+            ci_lower_val_samp <- mean(ci_lower_mat[, samp_idx], na.rm = TRUE)
+            ci_upper_val_samp <- mean(ci_upper_mat[, samp_idx], na.rm = TRUE)
+            all_ci_lower <- c(all_ci_lower, ci_lower_val_samp)
+            all_ci_upper <- c(all_ci_upper, ci_upper_val_samp)
           }
-          pvalue <- test_result$p.value
+        }
+        
+        # Use median CI bounds across samples in the group
+        if (length(all_ci_lower) > 0) {
+          ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
+          ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
         } else {
-          pvalue <- NA_real_
+          # Fallback: use overall CI from all genes and samples
+          ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
+          ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
         }
         
         plot_df <- rbind(plot_df, data.frame(
           q = q_val,
           median = median_val,
-          ci_lower = ci_lower_val,
-          ci_upper = ci_upper_val,
+          ci_lower = ci_lower_final,
+          ci_upper = ci_upper_final,
           group = group_val,
-          pvalue = pvalue,
-          significant = !is.na(pvalue) && pvalue < alpha,
           stringsAsFactors = FALSE
         ))
       }
     }
   }
   
-  # Identify significant q-ranges
-  significant_q <- plot_df %>%
-    dplyr::filter(significant) %>%
-    dplyr::pull(q) %>%
-    unique() %>%
-    sort()
-  
-  significant_qranges <- data.frame(
-    q_min = numeric(),
-    q_max = numeric(),
-    n_tests = numeric(),
-    min_pvalue = numeric(),
-    stringsAsFactors = FALSE
-  )
-  
-  if (length(significant_q) > 0) {
-    gaps <- which(diff(significant_q) > 0.01)
-    range_starts <- c(1, gaps + 1)
-    range_ends <- c(gaps, length(significant_q))
-    
-    for (i in seq_along(range_starts)) {
-      q_range <- significant_q[range_starts[i]:range_ends[i]]
-      min_pval <- min(plot_df$pvalue[plot_df$q %in% q_range], na.rm = TRUE)
-      
-      significant_qranges <- rbind(significant_qranges, data.frame(
-        q_min = min(q_range),
-        q_max = max(q_range),
-        n_tests = length(q_range),
-        min_pvalue = min_pval,
-        stringsAsFactors = FALSE
-      ))
-    }
-  }
-  
-  # Create ggplot
+  # Create ggplot with CI bands
   p <- ggplot2::ggplot(
     plot_df,
     ggplot2::aes(x = q, y = median, color = group, fill = group)
@@ -1071,38 +997,15 @@ plot_tsallis_q_curve <- function(
     ) +
     ggplot2::theme_minimal(base_size = 13) +
     ggplot2::labs(
-      title = "Tsallis q-curve with Bootstrap CIs",
-      subtitle = paste0(
-        "CI: ", round(ci_level * 100), "% bootstrap, ",
-        "Test: ", test_method, ", α = ", alpha
-      ),
+      title = "Tsallis q-curve with confidence/credible intervals",
       x = "q value",
       y = "Tsallis entropy (S_q)",
       color = "Group",
       fill = "Group"
     ) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11, color = "gray50")
-    )
-  
-  # Add significant region shading
-  if (nrow(significant_qranges) > 0) {
-    for (i in seq_len(nrow(significant_qranges))) {
-      p <- p +
-        ggplot2::annotate(
-          "rect",
-          xmin = significant_qranges$q_min[i],
-          xmax = significant_qranges$q_max[i],
-          ymin = -Inf, ymax = Inf,
-          alpha = 0.1,
-          fill = "red"
-        )
-    }
-  }
-  
-  # Finalize styling
-  p <- p +
+      plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 14)
+    ) +
     ggplot2::scale_color_manual(values = c("#1B9E77", "#D95F02")) +
     ggplot2::scale_fill_manual(values = c("#1B9E77", "#D95F02"))
   
@@ -1110,38 +1013,7 @@ plot_tsallis_q_curve <- function(
     p <- p + ggplot2::theme(legend.position = "none")
   }
   
-  # Prepare output with class for bootstrap results
-  result <- list(
-    plot_data = plot_df,
-    significant_qranges = significant_qranges,
-    metadata = list(
-      n_bootstrap = n_bootstrap,
-      ci_level = ci_level,
-      test_method = test_method,
-      alpha = alpha,
-      n_groups = length(groups),
-      n_q = n_q
-    ),
-    ggplot = p
-  )
-  
-  class(result) <- c("qcurve_bootstrap", "list")
-  
-  cat("✓ Bootstrap q-curve complete\n")
-  cat("  ", nrow(significant_qranges), "significant q-range(s) identified\n")
-  if (nrow(significant_qranges) > 0) {
-    cat("  Q-ranges with significant group differences (shaded in red):\n")
-    for (i in seq_len(nrow(significant_qranges))) {
-      cat(
-        "    [q = ", significant_qranges$q_min[i], " to ",
-        significant_qranges$q_max[i], "]: ",
-        "min p = ", formatC(significant_qranges$min_pvalue[i], format = "e", digits = 2),
-        "\n"
-      )
-    }
-  }
-  
-  return(result)
+  return(p)
 }
 #' Violin plot of Tsallis entropy for multiple q values
 
@@ -2075,26 +1947,6 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     )
     
     return(combined_plot)
-}
-
-#' @method print qcurve_bootstrap
-#' @export
-print.qcurve_bootstrap <- function(x, ...) {
-  cat("Tsallis Q-Curve Bootstrap Result:\n")
-  cat("  Bootstrap replicates: ", x$metadata$n_bootstrap, "\n")
-  cat("  CI level: ", x$metadata$ci_level * 100, "%\n")
-  cat("  Test method: ", x$metadata$test_method, "\n")
-  cat("  Significance level (α): ", x$metadata$alpha, "\n")
-  cat("  Q-values tested: ", x$metadata$n_q, "\n")
-  cat("  Groups: ", x$metadata$n_groups, "\n")
-  cat("  Significant q-ranges: ", nrow(x$significant_qranges), "\n")
-
-  if (nrow(x$significant_qranges) > 0) {
-    cat("\n  Ranges where groups differ significantly:\n")
-    print(x$significant_qranges)
-  } else {
-    cat("\n  No significant differences detected at the current α level.\n")
-  }
 }
 
 # Helpers for plot_top_transcripts internals
@@ -4379,7 +4231,7 @@ plot_multiq_delta_influence_heatmaps <- function(
         fontsize_row = 16,
         fontsize_col = 16,
         fontsize_number = 13,
-        margins = c(11, 10),
+        margins = c(11, 18),
         show_rownames = TRUE,
         show_colnames = TRUE,
         silent = TRUE
