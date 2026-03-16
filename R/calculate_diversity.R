@@ -725,7 +725,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
 
 
-    # Build metadata including original SE reference for downstream functions like estimate_wlfc_pseudocounts
+    # Build metadata including original SE reference for downstream functions like estimate_pseudocount
     # This preserves the transcript-level SE so pseudocount estimation can access raw counts
     result_meta_list <- list(
         readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
@@ -921,7 +921,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
 #' Estimate Pseudocounts for Tsallis Entropy Calculation
 #'
-#' Computes size-factor adjusted pseudocounts using library size normalization,
+#' Computes library size-adjusted pseudocounts using size-factor normalization,
 #' a principled approach recommended in edgeR (Robinson et al. 2010) and DESeq2
 #' (Love et al. 2014) for regularization of count-based diversity analysis.
 #'
@@ -935,7 +935,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #'   \item{diagnostics}{List with data quality checks: n_genes, n_samples, total_counts}.
 #'
 #' @details
-#' This function implements Option B pseudocount estimation via size-factor adjustment:
+#' This function computes pseudocounts via size-factor adjustment:
 #'
 #' 1. Computes library size factors: `size_factors = colSums(counts) / mean(colSums(counts))`
 #' 2. Calculates mean library size: `mean_lib_size = mean(colSums(counts))`
@@ -943,6 +943,9 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #'
 #' The pseudocount scales with the overall sequencing depth, ensuring appropriate
 #' regularization regardless of the count magnitude (e.g., RNA-seq vs. ribo-seq data).
+#'
+#' This approach is widely used in differential expression analysis and provides
+#' a heuristic but effective way to normalize pseudocount strength across datasets.
 #'
 #' **References for this approach:**
 #' - Robinson et al. (2010, edgeR): Method of using compositional invariants for normalization
@@ -955,7 +958,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' library(TSENAT)
 #' data(readcounts)
 #' se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
-#' result <- estimate_wlfc_pseudocounts(se, verbose = TRUE)
+#' result <- estimate_pseudocount(se, verbose = TRUE)
 #' pseudocount <- result$scalar_pseudocount
 #'
 #' # Use with calculate_diversity
@@ -972,7 +975,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' *Genome Biology*, 15(12), 550.
 #'
 #' @export
-estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
+estimate_pseudocount <- function(se, verbose = TRUE) {
     # Extract raw counts
     if (methods::is(se, "SummarizedExperiment")) {
         raw_counts <- SummarizedExperiment::assay(se)

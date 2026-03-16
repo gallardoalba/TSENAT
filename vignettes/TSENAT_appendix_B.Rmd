@@ -70,13 +70,6 @@ data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
 mode(readcounts) <- "numeric"
 
-# Subset for faster analysis (set to NULL for all genes)
-n_genes_subset <- 200
-if (!is.null(n_genes_subset) && nrow(readcounts) > n_genes_subset) {
-  readcounts <- readcounts[1:n_genes_subset, ]
-  cat("NOTE: Analyzing", n_genes_subset, "genes for speed. Set n_genes_subset=NULL for all genes.\n\n")
-}
-
 # Load metadata
 metadata_df <- read.table(
     system.file("extdata", "metadata.tsv", package = "TSENAT"),
@@ -88,25 +81,25 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 # Build SummarizedExperiment and filter
 se <- build_se(readcounts, gff3_dataset, metadata = metadata_df)
 se <- tryCatch(
-  filter_se(se, stringency = "loose"),
+  filter_se(se, stringency = "medium"),
   error = function(e) se
 )
 
 ```
 
-## Bayesian Pseudocount Regularization
+## Library Size Normalization for Pseudocounts
 
-For robust entropy estimation on sparse count data, we use **WLFC (Weighted Likelihood Fold Change)** empirical Bayesian regularization. The `estimate_wlfc_pseudocounts()` function:
+For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. The `estimate_pseudocount()` function:
 
-1. **Fits an empirical Beta prior** from the observed count data across all genes
-2. **Computes gene-specific WLFC pseudocounts** based on each gene's posterior distribution
-3. **Returns a scalar pseudocount** (mean of per-gene estimates) for entropy regularization
+1. **Computes library size factors** from total counts per sample
+2. **Normalizes by mean library size** to account for sequencing depth variation
+3. **Returns a scalar pseudocount** scaled appropriately for the data
 
-This data-driven approach is more principled than fixed pseudocounts, as it learns the regularization strength from the actual data characteristics.
+This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
 
-```{r bayesian-pseudocounts, message=FALSE}
-# Estimate WLFC pseudocounts for robust entropy calculation
-result <- estimate_wlfc_pseudocounts(se, verbose = FALSE)
+```{r library-pseudocounts, message=FALSE}
+# Estimate library size-normalized pseudocount
+result <- estimate_pseudocount(se, verbose = FALSE)
 scalar_pseudocount <- result$scalar_pseudocount
 
 # Calculate Tsallis entropy across multiple q-values with regularization
@@ -115,9 +108,7 @@ ts_se <- calculate_diversity(
   se, 
   q = qvec, 
   norm = TRUE,
-  pseudocount = scalar_pseudocount,
-  metadata = metadata_df,
-  shrinkage = "empirical_bayes"
+  pseudocount = scalar_pseudocount
 )
 
 ```
@@ -480,30 +471,30 @@ if (is.null(comparison_df)) {
   
   # ========== HIGH-CONFIDENCE GENES ==========
   if (nrow(high_conf) > 0) {
-    high_conf_display <- high_conf[1:min(15, nrow(high_conf)), 
-                                   c("gene", "padj_gam", "padj_kw", "effect_gam", "effect_kw")]
-    rownames(high_conf_display) <- NULL
+    # Create comprehensive display with additional metrics
+    high_conf_display <- high_conf[1:min(15, nrow(high_conf)), ]
     
-    # Format p-values
-    high_conf_display$padj_gam <- sapply(high_conf_display$padj_gam, function(x) {
-      if (is.na(x)) "NA" else sprintf("%.3e", x)
-    })
-    high_conf_display$padj_kw <- sapply(high_conf_display$padj_kw, function(x) {
-      if (is.na(x)) "NA" else sprintf("%.3e", x)
-    })
+    # Build display dataframe with selected columns and formatted values
+    display_cols <- data.frame(
+      Gene = high_conf_display$gene,
+      GAM_padj = sapply(high_conf_display$padj_gam, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.3e", x)
+      }),
+      KW_padj = sapply(high_conf_display$padj_kw, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.3e", x)
+      }),
+      GAM_Effect_pct = sapply(high_conf_display$effect_gam, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
+      }),
+      KW_Effect_eta2 = sapply(high_conf_display$effect_kw, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.3f", x)
+      }),
+      stringsAsFactors = FALSE
+    )
     
-    # Format effect sizes
-    high_conf_display$effect_gam <- sapply(high_conf_display$effect_gam, function(x) {
-      if (is.na(x)) "NA" else sprintf("%.3f", x)
-    })
-    high_conf_display$effect_kw <- sapply(high_conf_display$effect_kw, function(x) {
-      if (is.na(x)) "NA" else sprintf("%.3f", x)
-    })
+    rownames(display_cols) <- NULL
     
-    # Rename columns for display
-    colnames(high_conf_display) <- c("Gene", "GAM padj", "K-W padj", "GAM Effect", "K-W Effect")
-    
-    knitr::kable(high_conf_display, 
+    knitr::kable(display_cols,
                  caption = sprintf("Top High-Confidence Genes Detected by Both Methods (n=%d total)", nrow(high_conf)),
                  align = c("l", "r", "r", "r", "r"))
   }
@@ -531,7 +522,7 @@ We recommend a **complementary two-method approach** for robust detection of q-v
 
 **Primary analysis:** Start with GAM (flexible parametric method) as it offers superior power for detecting nonlinear q-entropy patterns. Use the default Hochberg multiple testing correction for stringent FWER control. **Validation step:** Confirm findings with rank-based Kruskal-Wallis analysis to ensure robustness against parametric assumptions. The conditional test selection automatically adapts to data characteristics (heteroscedasticity, boundary clustering, skewness), providing distribution-free validation without requiring assumptions about data normality.
 
-**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q-value × group interactions and are recommended for downstream biological validation. Additionally, use **Bayesian pseudocount regularization (WLFC)** for robust entropy estimation on sparse count data, and leverage **multiple testing correction that accounts for AR(1) correlation** in q-value sequences (available via Hochberg or Benjamini-Yekutieli methods depending on whether you prioritize FWER or FDR control).
+**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q-value × group interactions and are recommended for downstream biological validation. Additionally, use **library size-normalized pseudocounts** for robust entropy estimation on sparse count data (via `estimate_pseudocount()`), and leverage **multiple testing correction that accounts for AR(1) correlation** in q-value sequences (available via Hochberg or Benjamini-Yekutieli methods depending on whether you prioritize FWER or FDR control).
 
 ---
 
