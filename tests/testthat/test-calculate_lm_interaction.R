@@ -1479,8 +1479,8 @@ test_that("Different methods produce different adjustments", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res_hoch <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "hochberg", min_obs = 15)
-    res_by <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 15)
+    res_hoch <- suppressWarnings(calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "hochberg", min_obs = 15))
+    res_by <- suppressWarnings(calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 15))
     
     if (is.data.frame(res_hoch)) {
         df_hoch <- as.data.frame(res_hoch)
@@ -1671,11 +1671,11 @@ test_that("Shapiro-Wilk results have expected data types and ranges", {
     )
     
     res <- tryCatch({
-        calculate_lm_interaction(se,
+        suppressWarnings(calculate_lm_interaction(se,
             sample_type_col = "samples",
             method = "gam",
             min_obs = 4
-        )
+        ))
     }, error = function(e) NULL)
     
     skip_if(is.null(res), "calculate_lm_interaction failed")

@@ -110,7 +110,7 @@ se <- build_se(readcounts, gff3_file, metadata = metadata_df)
 se <- filter_se(se, stringency = "medium")
 
 # Compute Tsallis entropy (using single q value for quick start)
-# With Bayesian credible intervals via Gamma-Poisson conjugacy
+# With Bayesian credible intervals via Beta-Binomial conjugacy
 ts_se <- calculate_diversity(se, 
     q = 1, norm = TRUE, 
     bayesian_ci = TRUE,
@@ -371,10 +371,10 @@ Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
-# Using Bayesian posterior credible intervals via Gamma-Poisson conjugacy model
+# Using Bayesian posterior credible intervals via Beta-Binomial conjugacy model
 # Beta prior hyperparameters are fitted automatically from the count data
 # using empirical Bayes method of moments (Erhard et al. 2018)
-# This provides uncertainty quantification for each entropy estimate
+# This models uncertainty in isoform proportions for each gene's entropy estimate
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(se,
     q = qvec, norm = TRUE,

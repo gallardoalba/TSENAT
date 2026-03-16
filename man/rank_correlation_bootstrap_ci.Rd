@@ -9,10 +9,11 @@ rank_correlation_bootstrap_ci(
   method = c("spearman", "kendall"),
   ci = c("percentile", "bca", "permutation"),
   ci_level = 0.95,
-  n_bootstrap = 5000,
+  n_bootstrap = "auto",
   n_permutations = 5000,
   seed = 42,
-  return_distribution = FALSE
+  return_distribution = FALSE,
+  nthreads = 1
 )
 }
 \arguments{

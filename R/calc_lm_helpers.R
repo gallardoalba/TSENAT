@@ -2729,7 +2729,7 @@
 .tsenat_fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec,
     method, pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings,
     progress, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
-    corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE, weights = NULL, ar1_prior = NULL) {
+    corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE, weights = NULL) {
     regularization <- match.arg(regularization)
     corstr <- match.arg(corstr)
     vals <- as.numeric(mat[g, ])
@@ -2891,17 +2891,6 @@
         # AR(1) model: Cov(Y_t, Y_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
         # *** CRITICAL: Now applied to differenced entropy ΔH_q, not raw H_q ***
         # HETEROSCEDASTICITY: Add varPower() structure if heteroscedasticity detected
-        # HIERARCHICAL PRIOR: If ar1_prior is provided, report shrunk gene-level φ estimate
-        
-        if (!is.null(ar1_prior) && verbose && g %in% names(ar1_prior$phi_shrunk)) {
-            gene_phi_raw <- ar1_prior$phi_individual[g]
-            gene_phi_shrunk <- ar1_prior$phi_shrunk[g]
-            shrinkage_factor <- ar1_prior$shrinkage_factors[g]
-            if (!is.na(gene_phi_shrunk)) {
-                message(sprintf("[.tsenat_fit_one_interaction] Gene '%s': Hierarchical AR(1) φ = %.3f (raw=%.3f, shrinkage=%.1f%%)",
-                               g, gene_phi_shrunk, gene_phi_raw, (1 - shrinkage_factor) * 100))
-            }
-        }
         
         if (use_var_structure) {
             # Include variance power model: Var(Y) ~ q^θ

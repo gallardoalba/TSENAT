@@ -19,10 +19,6 @@ calculate_difference(
   pseudocount = 0,
   nthreads = 1,
   seed = NULL,
-  use_precision_weights = FALSE,
-  counts = NULL,
-  alpha = NULL,
-  beta = NULL,
   robust_loss_type = "huber",
   robust_scale_method = "mad"
 )
@@ -79,19 +75,6 @@ Set to > 1 to parallelize per-feature statistical tests.}
 
 \item{seed}{Integer seed for label shuffling reproducibility (default: NULL).
 When provided, ensures reproducible permutation test results.}
-
-\item{use_precision_weights}{Logical; if \code{TRUE}, apply empirical Bayes
-precision weighting to p-values (default: \code{FALSE}). When enabled,
-requires \code{counts}, \code{alpha}, and \code{beta} parameters.}
-
-\item{counts}{Optional numeric matrix of raw counts (rows = genes, columns = samples)
-used for precision weighting. Required when \code{use_precision_weights = TRUE}.}
-
-\item{alpha}{Numeric; prior shape parameter for empirical Bayes (default: NULL).
-Required when \code{use_precision_weights = TRUE}. Must be positive.}
-
-\item{beta}{Numeric; prior rate parameter for empirical Bayes (default: NULL).
-Required when \code{use_precision_weights = TRUE}. Must be positive.}
 
 \item{robust_loss_type}{Character; loss function for M-estimation when \code{method = "m_estimate"}.
 Options: \code{'huber'} (default, robust), \code{'tukey'} (more aggressive),

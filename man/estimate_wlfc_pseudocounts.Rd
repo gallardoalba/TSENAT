@@ -2,7 +2,7 @@
 % Please edit documentation in R/calculate_diversity.R
 \name{estimate_wlfc_pseudocounts}
 \alias{estimate_wlfc_pseudocounts}
-\title{Compute WLFC Pseudocounts with Prior Estimation and Diagnostics}
+\title{Estimate Pseudocounts for Tsallis Entropy Calculation}
 \usage{
 estimate_wlfc_pseudocounts(se, verbose = TRUE)
 }
@@ -14,27 +14,29 @@ If SummarizedExperiment, assay(se) is extracted.}
 }
 \value{
 List with elements:
-  \item{pseudocounts}{Named numeric vector of WLFC pseudocounts (one per gene)}.
-  \item{scalar_pseudocount}{Numeric; mean of pseudocount vector (recommended for regularization)}.
-  \item{prior}{List with estimated Beta prior parameters: $alpha, $beta}.
-  \item{diagnostics}{List with data quality checks: unique_rownames, duplicate_genes, n_genes_filtered}.
+  \item{scalar_pseudocount}{Numeric; recommended pseudocount value for use in \code{calculate_diversity()}}.
+  \item{size_factors}{Named numeric vector of library size factors (one per sample)}.
+  \item{diagnostics}{List with data quality checks: n_genes, n_samples, total_counts}.
 }
 \description{
-High-level wrapper that orchestrates the complete workflow:
-validates input, estimates empirical Beta prior, computes per-gene WLFC pseudocounts,
-and returns comprehensive diagnostics.
+Computes size-factor adjusted pseudocounts using library size normalization,
+a principled approach recommended in edgeR (Robinson et al. 2010) and DESeq2
+(Love et al. 2014) for regularization of count-based diversity analysis.
 }
 \details{
-This function performs the following steps:
-1. **Input validation:** Checks for duplicate rownames and reports data structure
-2. **Prior estimation:** Fits empirical Beta prior using \code{fit_empirical_beta_prior()}
-3. **Per-gene pseudocounts:** Computes WLFC pseudocounts using conjugate Bayesian update
-4. **Diagnostics:** Returns summary statistics and data quality metrics
+This function implements Option B pseudocount estimation via size-factor adjustment:
 
-Expected output (typical RNA-seq data):
-- Mean WLFC pseudocount: 0.05-0.15 (depends on count magnitude)
-- Range: [0, ~0.5]
-- Median: Often near 0 (most genes sparse in many samples)
+1. Computes library size factors: `size_factors = colSums(counts) / mean(colSums(counts))`
+2. Calculates mean library size: `mean_lib_size = mean(colSums(counts))`
+3. Returns pseudocount: `log2(mean_lib_size / 1e6 + 1)`
+
+The pseudocount scales with the overall sequencing depth, ensuring appropriate
+regularization regardless of the count magnitude (e.g., RNA-seq vs. ribo-seq data).
+
+**References for this approach:**
+- Robinson et al. (2010, edgeR): Method of using compositional invariants for normalization
+- Love et al. (2014, DESeq2): Size-factor adjustment for count-based analysis
+- Chen et al. (2023, edgeR User Guide): Current best practices in library normalization
 }
 \examples{
 \dontrun{
@@ -43,14 +45,19 @@ library(TSENAT)
 data(readcounts)
 se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
 result <- estimate_wlfc_pseudocounts(se, verbose = TRUE)
-scalar_pc <- result$scalar_pseudocount
+pseudocount <- result$scalar_pseudocount
 
-# From raw count matrix
-counts_matrix <- matrix(rpois(300, lambda=10), nrow=30, ncol=10)
-result <- estimate_wlfc_pseudocounts(counts_matrix, verbose = TRUE)
+# Use with calculate_diversity
+ts_se <- calculate_diversity(se, q = 1, pseudocount = pseudocount)
 }
 
 }
 \references{
-Bayesian Beta-Binomial conjugacy used for posterior parameter estimation.
+Robinson, M.D., McCarthy, D.J., Smyth, G.K. (2010).
+edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.
+*Bioinformatics*, 26(1), 139-140.
+
+Love, M.I., Huber, W., Anders, S. (2014).
+Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
+*Genome Biology*, 15(12), 550.
 }

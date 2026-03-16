@@ -755,10 +755,11 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
                                           method = c("spearman", "kendall"),
                                           ci = c("percentile", "bca", "permutation"),
                                           ci_level = 0.95,
-                                          n_bootstrap = 5000,
+                                          n_bootstrap = "auto",
                                           n_permutations = 5000,
                                           seed = 42,
-                                          return_distribution = FALSE) {
+                                          return_distribution = FALSE,
+                                          nthreads = 1) {
   
   method <- match.arg(method)
   ci <- match.arg(ci)
@@ -771,6 +772,13 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
   }
   if (length(pvalues_or_ranks) < 2) {
     stop("At least 2 q-value results required for correlation")
+  }
+  
+  # AUTO-SELECT N_BOOTSTRAP WHEN "auto"
+  if (identical(n_bootstrap, "auto")) {
+    n_features <- length(pvalues_or_ranks[[1]])  # Number of genes/features
+    use_bca <- ci == "bca"
+    n_bootstrap <- suggest_nboot(n_features, use_bca = use_bca, nthreads = nthreads)
   }
   
   # Convert to ranks internally

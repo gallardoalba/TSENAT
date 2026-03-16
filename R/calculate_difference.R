@@ -37,15 +37,6 @@
 #'   Set to > 1 to parallelize per-feature statistical tests.
 #' @param seed Integer seed for label shuffling reproducibility (default: NULL).
 #'   When provided, ensures reproducible permutation test results.
-#' @param use_precision_weights Logical; if \code{TRUE}, apply empirical Bayes
-#'   precision weighting to p-values (default: \code{FALSE}). When enabled,
-#'   requires \code{counts}, \code{alpha}, and \code{beta} parameters.
-#' @param counts Optional numeric matrix of raw counts (rows = genes, columns = samples)
-#'   used for precision weighting. Required when \code{use_precision_weights = TRUE}.
-#' @param alpha Numeric; prior shape parameter for empirical Bayes (default: NULL).
-#'   Required when \code{use_precision_weights = TRUE}. Must be positive.
-#' @param beta Numeric; prior rate parameter for empirical Bayes (default: NULL).
-#'   Required when \code{use_precision_weights = TRUE}. Must be positive.
 #' @param robust_loss_type Character; loss function for M-estimation when \code{method = "m_estimate"}.
 #'   Options: \code{'huber'} (default, robust), \code{'tukey'} (more aggressive),
 #'   \code{'lsq'} (least squares). Ignored if method is 'mean' or 'median'.
@@ -83,8 +74,7 @@
 #' )
 calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
-    exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, use_precision_weights = FALSE,
-    counts = NULL, alpha = NULL, beta = NULL, robust_loss_type = "huber", 
+    exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber", 
     robust_scale_method = "mad") {
     # internal small helpers (kept here to avoid adding new files)
     .tsenat_prepare_df <- function(x, samples, assayno) {
@@ -144,67 +134,6 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     if (!(is.data.frame(x) || inherits(x, "RangedSummarizedExperiment") || inherits(x,
         "SummarizedExperiment"))) {
         stop("Input data type not supported; see ?calculate_difference.", call. = FALSE)
-    }
-    
-    # Validate precision weighting parameters
-    if (use_precision_weights) {
-        if (is.null(alpha) || is.null(beta)) {
-            stop("When use_precision_weights = TRUE, must provide alpha and beta",
-                 call. = FALSE)
-        }
-        if (!is.numeric(alpha) || alpha <= 0 || !is.numeric(beta) || beta <= 0) {
-            stop("alpha and beta must be positive numeric values", call. = FALSE)
-        }
-        
-        # If counts not provided, try to aggregate from metadata
-        if (is.null(counts)) {
-            if (!(inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment"))) {
-                stop("When use_precision_weights = TRUE and counts = NULL, x must be a SummarizedExperiment with transcript-level data in metadata",
-                     call. = FALSE)
-            }
-            
-            metadata <- S4Vectors::metadata(x)
-            if (is.null(metadata$readcounts) || is.null(metadata$tx2gene)) {
-                stop("When use_precision_weights = TRUE and counts = NULL, metadata must contain 'readcounts' (transcript-level counts) and 'tx2gene' (transcript-to-gene mapping)",
-                     call. = FALSE)
-            }
-            
-            # Aggregate transcript counts to gene level
-            gene_counts <- as.matrix(metadata$readcounts)
-            tx2gene_df <- metadata$tx2gene
-            gene_names <- rownames(x)
-            
-            if (is.null(gene_names) || length(gene_names) == 0) {
-                stop("SummarizedExperiment has no row names (gene names) for aggregation",
-                     call. = FALSE)
-            }
-            
-            counts <- matrix(0, nrow = length(gene_names), ncol = ncol(gene_counts),
-                            dimnames = list(gene_names, colnames(gene_counts)))
-            
-            for (i in seq_along(gene_names)) {
-                gene_name <- gene_names[i]
-                gene_col <- if ("Gene" %in% colnames(tx2gene_df)) "Gene" else colnames(tx2gene_df)[2]
-                tx_col <- if ("Transcript" %in% colnames(tx2gene_df)) "Transcript" else colnames(tx2gene_df)[1]
-                
-                matches <- tx2gene_df[[gene_col]] == gene_name
-                matches[is.na(matches)] <- FALSE
-                matching_tx_ids <- tx2gene_df[[tx_col]][matches]
-                
-                if (length(matching_tx_ids) > 0) {
-                    matching_idx <- match(matching_tx_ids, rownames(gene_counts))
-                    matching_idx <- matching_idx[!is.na(matching_idx)]
-                    
-                    if (length(matching_idx) > 0) {
-                        counts[i, ] <- colSums(gene_counts[matching_idx, , drop = FALSE])
-                    }
-                }
-            }
-        }
-        
-        if (nrow(counts) != nrow(x)) {
-            stop("counts must have same number of rows as x", call. = FALSE)
-        }
     }
 
     # prepare data.frame and sample vector (handles SummarizedExperiment)
@@ -285,52 +214,6 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
                 samples, control, method, pseudocount = pseudocount,
                 robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
                 verbose = verbose), ptab, stringsAsFactors = FALSE)
-        }
-        
-        # Apply precision weighting if requested
-        if (use_precision_weights) {
-            # Extract counts for tested genes
-            # df_keep[, 1] contains gene identifiers
-            gene_ids <- df_keep[, 1]
-            
-            # STRICT: Only accept rowname matching - numeric fallback is ambiguous and error-prone
-            # Reason: test_results rows come from filtered df_keep, so row indices don't correspond
-            # to original counts matrix rows. Must use explicit rowname matching.
-            
-            if (is.null(rownames(counts))) {
-                stop("When use_precision_weights = TRUE, counts matrix must have rownames ",
-                     "that match gene identifiers in the diversity data. ",
-                     "Received counts with NULL rownames.", call. = FALSE)
-            }
-            
-            if (!all(gene_ids %in% rownames(counts))) {
-                missing_genes <- setdiff(gene_ids, rownames(counts))
-                stop("When use_precision_weights = TRUE, gene IDs from tested genes must match ",
-                     "rownames(counts). Missing genes:\n  ",
-                     paste(head(missing_genes, 5), collapse = ", "),
-                     if (length(missing_genes) > 5) "..." else "",
-                     "\n Expected rownames sample: ", paste(head(rownames(counts), 5), collapse = ", "),
-                     call. = FALSE)
-            }
-            
-            # Index by rowname (safe, unambiguous)
-            counts_tested <- counts[as.character(gene_ids), , drop = FALSE]
-            
-            # Sanity check: verify alignment
-            if (nrow(counts_tested) != nrow(test_results)) {
-                stop("Row count mismatch after subsetting counts: expected ", nrow(test_results),
-                     " tested genes, got ", nrow(counts_tested), " from counts matrix. ",
-                     "This suggests counts and test_results are misaligned.", call. = FALSE)
-            }
-            
-            test_results <- .apply_precision_weighting_to_test(
-                test_results = test_results,
-                counts = counts_tested,
-                samples = samples,
-                alpha = alpha,
-                beta = beta,
-                pcorr = pcorr
-            )
         }
         
         result_list$tested <- test_results
@@ -538,31 +421,6 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' more knots (max=10), improving model fit efficiency. When FALSE, uses fixed knot selection
 #' based on number of unique q-values. Reference: Wood (2017) Section 4.1.5 Basis dimension.
 #' This parameter only affects method='gam'.
-#' @param use_ci_weighting Logical; whether to apply inverse-variance weighting using bootstrap
-#' confidence intervals (Phase 1 improvement, default: FALSE). When TRUE, requires that input
-#' `se` was produced by `calculate_diversity(..., bootstrap=TRUE)` which generates `ci_lower` and
-#' `ci_upper` assays. Genes with narrower CIs (higher precision) receive higher weights in model
-#' fitting, while genes with wide CIs (high uncertainty) receive lower weights. This downweights
-#' noisy estimates and increases power for robust genes. The weighting scheme is: w_ij = 1/(CI_width_ij)^2,
-#' normalized per gene to mean=1.0 for interpretability. Output includes a `ci_weighted` column
-#' indicating whether weights were applied. Requires bootstrap CIs; if not available, a warning
-#' is issued and weighting is disabled.
-#' @param use_hierarchical_prior Logical; whether to apply hierarchical AR(1) prior estimation 
-#' (Phase 0 improvement, default: FALSE). When TRUE with corstr='ar1', stabilizes individual gene 
-#' AR(1) parameters via borrowing strength from the population distribution of φ parameters across 
-#' genes. Improves estimates for genes with sparse data. See estimate_hierarchical_ar1_prior() 
-#' and papers S168-S171 for details.
-#' @param ar1_method Character; AR(1) estimation method for hierarchical prior 
-#' (default: 'yule_walker'). Options: 'yule_walker' (fast, non-iterative) or 'mle' 
-#' (more accurate for small samples). Only used when use_hierarchical_prior=TRUE and corstr='ar1'.
-#' Reference: Yule-Walker equations in papers S168-S171.
-#' @param ar1_min_obs_per_gene Integer; minimum observations per gene required for trustworthy 
-#' φ estimate in hierarchical prior (default: 6). Genes with fewer observations are excluded 
-#' from prior estimation. Only used when use_hierarchical_prior=TRUE and corstr='ar1'.
-#' @param ar1_hyperprior_dist Character; distribution family for hyperprior on population 
-#' AR(1) parameters (default: 'normal'). Options: 'normal' (standard parametric assumption) or 
-#' 'uniform' (empirical quantile-based, more robust). Only used when use_hierarchical_prior=TRUE 
-#' and corstr='ar1'. Reference: Papers BY002-BY003 (empirical Bayes).
 #' @param return_model_data Logical; whether to return model metadata alongside results
 #' (default: FALSE). When TRUE, returns a list with two elements:
 #' \itemize{
@@ -640,17 +498,13 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE, 
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
     corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"),
-    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE,
-    use_ci_weighting = FALSE, use_hierarchical_prior = FALSE, ar1_method = "yule_walker",
-    ar1_min_obs_per_gene = 6, ar1_hyperprior_dist = "normal") {
+    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE) {
     method <- match.arg(method)
     corstr <- match.arg(corstr)
     pvalue <- match.arg(pvalue)
     regularization <- match.arg(regularization)
     pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg", "holm"))
     multicorr <- match.arg(multicorr)
-    ar1_method <- match.arg(ar1_method, c("yule_walker", "mle"))
-    ar1_hyperprior_dist <- match.arg(ar1_hyperprior_dist, c("normal", "uniform"))
     
     # Validate storey parameter
     if (!is.logical(storey)) {
@@ -736,203 +590,18 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     }
     
     # ════════════════════════════════════════════════════════════════════════════════
-    # PHASE 1: INVERSE-VARIANCE WEIGHTING (NEW - March 2026)
-    # ════════════════════════════════════════════════════════════════════════════════
-    # Extract bootstrap CI information if available and weighting requested
-    weights_mat <- NULL
-    if (verbose) {
-        message(sprintf("[calculate_lm_interaction] PHASE 1: use_ci_weighting=%s", use_ci_weighting))
-    }
-    
-    if (use_ci_weighting) {
-        # Check for CI assays (produced by calculate_diversity with bootstrap=TRUE or bayesian_ci=TRUE)
-        assay_names <- names(SummarizedExperiment::assays(se))
-        has_ci_lower <- "ci_lower" %in% assay_names
-        has_ci_upper <- "ci_upper" %in% assay_names
-        has_bayesian_ci_lower <- "bayesian_ci_lower" %in% assay_names
-        has_bayesian_ci_upper <- "bayesian_ci_upper" %in% assay_names
-        
-        if (verbose) {
-            message(sprintf("[calculate_lm_interaction] PHASE 1: Available assays: %s", 
-                           paste(assay_names, collapse=", ")))
-            message(sprintf("[calculate_lm_interaction] PHASE 1: Bootstrap CI available? %s, Bayesian CI available? %s", 
-                           has_ci_lower && has_ci_upper, has_bayesian_ci_lower && has_bayesian_ci_upper))
-        }
-        
-        # Use bootstrap CIs if available, otherwise fall back to Bayesian CIs
-        if (has_ci_lower && has_ci_upper) {
-            ci_lower <- SummarizedExperiment::assay(se, "ci_lower")
-            ci_upper <- SummarizedExperiment::assay(se, "ci_upper")
-            ci_type <- "bootstrap"
-            
-            if (verbose) {
-                message(sprintf("[calculate_lm_interaction] PHASE 1: Using bootstrap CIs (dims %d×%d)", 
-                               nrow(ci_lower), ncol(ci_lower)))
-            }
-        } else if (has_bayesian_ci_lower && has_bayesian_ci_upper) {
-            ci_lower <- SummarizedExperiment::assay(se, "bayesian_ci_lower")
-            ci_upper <- SummarizedExperiment::assay(se, "bayesian_ci_upper")
-            ci_type <- "bayesian"
-            
-            if (verbose) {
-                message(sprintf("[calculate_lm_interaction] PHASE 1: Bootstrap CIs not found, using Bayesian CIs (dims %d×%d)", 
-                               nrow(ci_lower), ncol(ci_lower)))
-            }
-        } else {
-            if (verbose) {
-                warning("[calculate_lm_interaction] use_ci_weighting=TRUE but no CI assays found. ",
-                        "Run calculate_diversity(..., bootstrap=TRUE) or calculate_diversity(..., bayesian_ci=TRUE) ",
-                        "to get CI information.",
-                        call. = FALSE)
-            }
-            use_ci_weighting <- FALSE
-        }
-        
-        if (use_ci_weighting) {
-            
-            if (verbose) {
-                message(sprintf("[calculate_lm_interaction] PHASE 1: CI matrices loaded: dims %d×%d", 
-                               nrow(ci_lower), ncol(ci_lower)))
-            }
-            
-            # Compute CI width (precision) for each observation
-            ci_width <- ci_upper - ci_lower
-            
-            # Handle zero/near-zero widths robustly (March 2026)
-            # Statistical approach: use quantile-based flooring to preserve variance structure
-            # This is more principled than arbitrary pseudocounts
-            positive_widths <- ci_width[ci_width > 0]
-            
-            if (length(positive_widths) == 0) {
-                # Edge case: all widths are ≤0 (bootstrap failed or sparse data)
-                # Use small pseudocount as last resort
-                ci_width[ci_width <= 0 | is.na(ci_width)] <- 0.001
-                if (verbose) {
-                    warning("[calculate_lm_interaction] PHASE 1: All CI widths were ≤0 or NA. ",
-                            "This suggests bootstrap may have failed or data is too sparse. ",
-                            "Consider: increasing n_boot, checking diversity estimates, or disabling use_ci_weighting",
-                            call. = FALSE)
-                }
-            } else {
-                # Normal case: use 5th percentile as floor (preserves observed variance structure)
-                # This is statistically more principled than arbitrary pseudocounts
-                floor_width <- quantile(positive_widths, 0.05, na.rm = TRUE)
-                
-                # Count zeros/NAs before replacement (for diagnostic message)
-                n_to_floor <- sum(ci_width <= 0 | is.na(ci_width), na.rm = FALSE)
-                
-                ci_width[ci_width <= 0 | is.na(ci_width)] <- floor_width
-                
-                if (verbose && n_to_floor > 0) {
-                    message(sprintf("[calculate_lm_interaction] PHASE 1: Floored %d zero/NA widths to 5th percentile (%.6f)", 
-                                   n_to_floor, floor_width))
-                }
-            }
-            
-            # Compute inverse-variance weights (narrower CI = higher precision = higher weight)
-            # Formula: w_ij = 1 / (CI_width_ij)^2
-            weights_mat <- 1 / (ci_width ^ 2)
-            
-            if (verbose) {
-                # Diagnostic: show CI width distribution
-                message(sprintf("[calculate_lm_interaction] PHASE 1: CI width statistics: min=%.6f, median=%.6f, max=%.6f, mean=%.6f",
-                               min(ci_width, na.rm=TRUE), median(ci_width, na.rm=TRUE), 
-                               max(ci_width, na.rm=TRUE), mean(ci_width, na.rm=TRUE)))
-                message(sprintf("[calculate_lm_interaction] PHASE 1: Weight statistics: min=%.4f, median=%.4f, max=%.4f",
-                               min(weights_mat, na.rm=TRUE), median(weights_mat, na.rm=TRUE), 
-                               max(weights_mat, na.rm=TRUE)))
-            }
-            
-            # Save gene names before apply() reorders dimensions
-            gene_names <- rownames(weights_mat)
-            
-            if (verbose) {
-                message(sprintf("[calculate_lm_interaction] PHASE 1: Before apply() - genes: %s", 
-                               paste(head(gene_names, 3), collapse=", ")))
-            }
-            
-            # Normalize weights per gene (mean = 1.0) for interpretability
-            weights_mat <- apply(weights_mat, 1, function(w_gene) {
-                mean_w <- mean(w_gene, na.rm = TRUE)
-                if (is.na(mean_w) || mean_w == 0) return(w_gene)
-                return(w_gene / mean_w)
-            })
-            weights_mat <- t(weights_mat)
-            
-            # CRITICAL FIX (March 2026): apply() + t() loses rownames; restore gene names
-            # After apply(matrix, 1, ...) + t(), matrix has: rownames=sample_names, colnames=gene_names
-            # We need: rownames=gene_names, colnames=sample_names for proper gene lookup in fit_one()
-            if (!is.null(gene_names)) {
-                rownames(weights_mat) <- gene_names
-            }
-            
-            if (verbose) {
-                message(sprintf("[calculate_lm_interaction] PHASE 1: After apply+restore - dims %d×%d, genes: %s", 
-                               nrow(weights_mat), ncol(weights_mat), 
-                               paste(head(rownames(weights_mat), 3), collapse=", ")))
-                message("[calculate_lm_interaction] Inverse-variance weighting ENABLED and weights computed")
-            }
-        }
-    }
-    
-    # ════════════════════════════════════════════════════════════════════════════════
-    # PHASE 0: HIERARCHICAL AR(1) PRIOR ESTIMATION (NEW - March 2026)
-    # ════════════════════════════════════════════════════════════════════════════════
-    # Estimate population AR(1) distribution from all genes' q-curves
-    # This stabilizes individual gene φ estimates before LMM/GAM fitting
-    ar1_prior <- NULL
-    if (use_hierarchical_prior && corstr == "ar1") {
-        if (verbose) {
-            message("[calculate_lm_interaction] PHASE 0: Estimating hierarchical AR(1) prior...")
-        }
-        
-        ar1_prior <- tryCatch({
-            estimate_hierarchical_ar1_prior(
-                se = se,
-                method = ar1_method,
-                min_obs_per_gene = ar1_min_obs_per_gene,
-                hyperprior_dist = ar1_hyperprior_dist,
-                verbose = verbose
-            )
-        }, error = function(e) {
-            if (verbose) {
-                warning("[calculate_lm_interaction] Hierarchical prior estimation failed: ",
-                       conditionMessage(e), "; proceeding with standard AR(1)",
-                       call. = FALSE)
-            }
-            NULL
-        })
-        
-        if (!is.null(ar1_prior) && verbose) {
-            message(sprintf("[calculate_lm_interaction] PHASE 0 RESULT: μ_φ = %.3f, σ_φ = %.3f",
-                          ar1_prior$mu_phi, ar1_prior$sigma_phi))
-            message(sprintf("[calculate_lm_interaction] PHASE 0: %d genes analyzed for population structure",
-                          ar1_prior$diagnostics$n_genes_with_valid_phi))
-        }
-    }
     
     all_results <- list()
     fit_one <- function(g) {
-        # Extract weights for this gene if available
+        # CI weighting removed (March 2026) - not supported by literature
+        # See: CI_WEIGHTING_VALIDATION_REPORT.txt, BY020 (Kotzen), BY021 (Kleijn), S232 (Bayarri & Berger)
         gene_weights <- NULL
-        if (!is.null(weights_mat) && g %in% rownames(weights_mat)) {
-            gene_weights <- as.numeric(weights_mat[g, ])
-            if (verbose) {
-                message(sprintf("[fit_one] Gene '%s': weights found (length=%d, mean=%.4f)", 
-                               g, length(gene_weights), mean(gene_weights, na.rm=TRUE)))
-            }
-        } else {
-            if (verbose && !is.null(weights_mat)) {
-                message(sprintf("[fit_one] Gene '%s': weights NOT found (in rownames? %s)", 
-                               g, g %in% rownames(weights_mat)))
-            }
-        }
         
         .tsenat_fit_one_interaction(g = g, se = se, mat = mat, q_vals = q_vals, sample_names = sample_names,
             group_vec = group_vec, method = method, pvalue = pvalue, subject_col = subject_col,
             paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings,
             progress = progress, bias_correction = bias_correction, regularization = regularization, corstr = corstr,
-            adaptive_knots = adaptive_knots, weights = gene_weights, ar1_prior = ar1_prior)
+            adaptive_knots = adaptive_knots, weights = gene_weights)
     }
 
     if (nthreads > 1) {
@@ -1810,104 +1479,6 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
 }
 
 
-# ============================================================================
-# Helper: Apply Empirical Bayes Precision Weighting to Test Results
-# ============================================================================
-
-#' Apply Precision Weighting to Test Results
-#'
-#' Internal helper function that adjusts p-values and statistics from 
-#' differential tests by weighting them with empirical Bayes precision estimates.
-#' Genes with uncertain estimates (low precision) have their p-values penalized;
-#' genes with precise estimates retain or improve their significance status.
-#'
-#' @param test_results Data frame with columns `pvalue`, `padj`, `statistic`, `method`.
-#' @param counts Numeric matrix; raw count data (rows = genes, columns = samples).
-#' @param samples Character vector; sample group labels.
-#' @param alpha,beta Numeric; empirical Bayes prior parameters.
-#' @param pcorr Character; p-value adjustment method for recomputed padj.
-#'
-#' @return Data frame with same structure as input, with precision-weighted columns:
-#'   - `pvalue_original`: Original pre-weighted p-value
-#'   - `pvalue`: Precision-weighted p-value
-#'   - `padj`: Recomputed adjusted p-values
-#'   - `precision`: Precision weight (inverse variance) for each gene
-#'
-#' @keywords internal
-#' @noRd
-.apply_precision_weighting_to_test <- function(test_results, counts, samples, 
-                                                alpha, beta, pcorr) {
-    n_genes <- nrow(test_results)
-    
-    # Compute precision weights from empirical Bayes posteriors
-    precision_weights <- numeric(n_genes)
-    n_valid <- 0
-    
-    for (i in seq_len(n_genes)) {
-        tryCatch({
-            # Get posterior for this gene
-            posterior <- get_posterior_distribution(
-                counts = counts[i, ],
-                alpha = alpha,
-                beta = beta,
-                ci = NULL  # We only need variance, not CI
-            )
-            
-            # Validate posterior variance before using as precision
-            if (is.null(posterior$posterior_variance) || 
-                !is.numeric(posterior$posterior_variance) ||
-                posterior$posterior_variance <= 0) {
-                precision_weights[i] <- NA_real_
-            } else {
-                # Precision = inverse variance
-                precision_weights[i] <- 1 / posterior$posterior_variance
-                n_valid <- n_valid + 1
-            }
-        }, error = function(e) {
-            # Mark as NA for this gene if posterior computation fails
-            if (i <= 5) {  # Only warn on first few failures
-                message("[.apply_precision_weighting_to_test] Gene ", i, 
-                       " posterior computation failed: ", conditionMessage(e))
-            }
-            precision_weights[i] <<- NA_real_
-        })
-    }
-    
-    # Check if any valid weights computed
-    if (n_valid == 0) {
-        warning("[.apply_precision_weighting_to_test] No genes had valid posterior variance estimates; ",
-                "returning unweighted p-values", call. = FALSE)
-        return(test_results)
-    }
-    
-    # Normalize precision weights to [0, 1] for interpretability
-    precision_weights_norm <- precision_weights / max(precision_weights, na.rm = TRUE)
-    precision_weights_norm[is.na(precision_weights)] <- NA_real_
-    
-    # Convert original p-values to z-scores (two-tailed)
-    z_scores <- stats::qnorm(1 - test_results$pvalue / 2)
-    
-    # Weight z-scores by precision (high precision strengthens signal)
-    # Handle NAs: set to 0 weight for genes with no precision estimate
-    z_weighted <- z_scores * sqrt(ifelse(is.na(precision_weights_norm), 0, precision_weights_norm))
-    
-    # Convert back to p-values
-    pvalue_weighted <- 2 * (1 - stats::pnorm(abs(z_weighted)))
-    pvalue_weighted[is.na(test_results$pvalue)] <- NA_real_  # Preserve original NAs
-    
-    # Adjust weighted p-values
-    padj_weighted <- stats::p.adjust(pvalue_weighted, method = pcorr)
-    
-    # Return results with precision weighting info
-    # Preserve original p-values and add weighted versions
-    results <- test_results
-    results$pvalue_original <- test_results$pvalue  # Preserve original p-values
-    results$pvalue <- pvalue_weighted
-    results$padj <- padj_weighted
-    results$precision <- precision_weights_norm
-    
-    return(results)
-}
 
 # Helper utilities for calculate_difference
 

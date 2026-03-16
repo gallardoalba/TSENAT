@@ -387,8 +387,6 @@
 #' @return SummarizedExperiment object with:
 #'   **assays** (genes * q matrices):
 #'     - divergence: Divergence point estimates for each gene
-#'     - bayesian_ci_lower: Lower Bayesian CI bounds (if bayesian_ci=TRUE)
-#'     - bayesian_ci_upper: Upper Bayesian CI bounds (if bayesian_ci=TRUE)
 #'   
 #'   **rowData** (data frame with one row per gene):
 #'     - gene_name: Gene identifier
@@ -462,7 +460,7 @@ calculate_divergence <- function(
     q = 1,
     paired = FALSE,
     bootstrap = FALSE,
-    nboot = 1000,
+    nboot = "auto",
     ci = 0.95,
     method = "percentile",
     norm = TRUE,
@@ -583,7 +581,16 @@ calculate_divergence <- function(
     nboot <- 0
   }
 
-  # =========================================================================
+  # AUTO-SELECT NBOOT WHEN "auto"
+  if (bootstrap && identical(nboot, "auto")) {
+    num_genes <- nrow(se)
+    use_bca <- method == "bca"
+    nboot <- suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
+    if (progress) {
+      cat("Auto-selected nboot =", nboot, "for", num_genes, "genes\n")
+    }
+  }
+
   # THREAD CONFIGURATION
   # =========================================================================
 

@@ -190,12 +190,26 @@
 #' @keywords internal
 #' @noRd
 calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL, top_n = 1,
-    q = 2, norm = TRUE, nboot = 1000, ci = 0.95, method = c("percentile", "bca"),
+    q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile", "bca"),
     log_base = exp(1), pseudocount = 0, what = c("S", "D"), seed = NULL, gene_name = NULL,
     print_results = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE) {
 
     method <- match.arg(method)
     what <- match.arg(what)
+    
+    # AUTO-SELECT NBOOT WHEN "auto"
+    if (identical(nboot, "auto")) {
+      # Detect n_genes from input
+      n_genes <- if (!is.null(x) && is.matrix(x)) {
+        nrow(x)
+      } else if (!is.null(se)) {
+        nrow(se)
+      } else {
+        1  # Default to single gene if no matrix/SE provided
+      }
+      use_bca <- method == "bca"
+      nboot <- suggest_nboot(n_genes, use_bca = use_bca, nthreads = nthreads)
+    }
     
     # Handle matrix input for vectorized processing (paper C017)
     # Genes as rows, samples as columns
@@ -1057,29 +1071,53 @@ compute_bootstrap_qcurve_cis <- function(long, unique_q, groups,
 #'
 #' @examples
 #' suggest_nboot(1, use_bca = FALSE)   # Single gene, percentile: 1000
-#' suggest_nboot(1, use_bca = TRUE)    # Single gene, BCa: 2000
+#' suggest_nboot(1, use_bca = TRUE)    # Single gene, BCa: 1500
 #' suggest_nboot(3, use_bca = FALSE)   # 3 genes, percentile: 500
 #' suggest_nboot(15, use_bca = FALSE)  # 15 genes, percentile: 250
 #'
-#' @export
-suggest_nboot <- function(n_genes, use_bca = FALSE) {
+#' @noRd
+suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
+  
   # Input validation
   if (!is.numeric(n_genes) || n_genes < 1 || n_genes != as.integer(n_genes)) {
     stop("'n_genes' must be a positive integer")
   }
-
-  # Return recommendations based on gene count and method
+  if (!is.logical(use_bca)) {
+    stop("'use_bca' must be logical")
+  }
+  if (nthreads < 1 || nthreads != as.integer(nthreads)) {
+    stop("'nthreads' must be a positive integer")
+  }
+  
+  # Base recommendations with smooth scaling (avoids discontinuous jumps)
   # Recommendations follow C017 (Bootstrap computational methods) efficiency guidelines
-  if (n_genes == 1) {
+  base_nboot <- if (n_genes == 1) {
     # Single gene: detailed inference justified
-    return(if (use_bca) 2000 else 1000)
+    1000
   } else if (n_genes <= 5) {
     # Small gene set: balance accuracy and speed
-    return(if (use_bca) 1000 else 500)
+    500
+  } else if (n_genes <= 20) {
+    # Medium gene set: smooth interpolation (500 → 250 as genes 5 → 20)
+    round(500 - (n_genes - 5) * 16.67)
   } else {
     # Large gene set: prioritize speed
-    return(if (use_bca) 500 else 250)
+    250
   }
+  
+  # Adjust for BCa (bias-corrected and accelerated method)
+  # BCa requires jackknife calculations, approximately 50% more replicates needed
+  if (use_bca) {
+    base_nboot <- round(base_nboot * 1.5)
+  }
+  
+  # Account for parallelization (more threads = less need for huge sample sizes)
+  # Diminishing returns after ~4 threads, floor at 0.75x
+  parallel_factor <- max(0.75, 1 - log(nthreads) / 12)
+  base_nboot <- round(base_nboot * parallel_factor)
+  
+  # Enforce minimum (need ≥ 100 for meaningful percentile CIs)
+  max(100, base_nboot)
 }
 
 # Internal helper: Compute Skewness of Bootstrap Distribution
@@ -1755,18 +1793,27 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     cat("  Min:", round(min(object$bootstrap_dist, na.rm=TRUE), 4), "\n")
     cat("  Max:", round(max(object$bootstrap_dist, na.rm=TRUE), 4), "\n")
     
+    # Diagnostics section
+    cat("\nDiagnostics:\n")
+    
     # Simple skewness calculation
     m <- mean(object$bootstrap_dist)
     s <- stats::sd(object$bootstrap_dist)
     if (s > 0) {
         n <- length(object$bootstrap_dist)
         skew <- (sum((object$bootstrap_dist - m)^3) / n) / s^3
-        cat("  Skewness:", round(skew, 4), "\n\n")
+        cat("  Skewness:", round(skew, 4), "\n")
     } else {
-        cat("  Skewness: N/A (no variation)\n\n")
+        cat("  Skewness: N/A (no variation)\n")
     }
     
-    cat("Stability metrics:\n")
+    # Effective sample size (ESS) - simplified as ratio of bootstrap replicates with unique values
+    n_unique <- length(unique(round(object$bootstrap_dist, 6)))
+    n_total <- length(object$bootstrap_dist)
+    ess <- (n_unique / n_total) * 100
+    cat("  Effective sample size:", round(ess, 1), "%\n")
+    
+    cat("\nStability metrics:\n")
     cat("  CI width to estimate ratio:", 
         round((object$upper_ci - object$lower_ci) / pmax(object$estimate, 0.01), 2), "\n")
     

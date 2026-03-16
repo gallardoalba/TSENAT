@@ -11,7 +11,7 @@ calculate_divergence(
   q = 1,
   paired = FALSE,
   bootstrap = FALSE,
-  nboot = 1000,
+  nboot = "auto",
   ci = 0.95,
   method = "percentile",
   norm = TRUE,

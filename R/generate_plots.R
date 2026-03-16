@@ -741,7 +741,7 @@ plot_ma_expression_impl <- function(
 #' Supports two visualization modes: basic median/IQR plots or confidence interval bands with significance testing.
 #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
-#'   For CI mode (bootstrap=TRUE), must contain pre-computed confidence intervals or Bayesian credible intervals.
+#'   For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
 #' @param sample_type_col Character; column name in colData indicating group/sample type
 #'   (default: "sample_type"). Only used in basic mode; CI mode requires exactly 2 groups.
@@ -752,7 +752,7 @@ plot_ma_expression_impl <- function(
 #' @return
 #' **Basic mode (bootstrap=FALSE)**: A ggplot object showing median entropy with IQR ribbons for each group.
 #'
-#' **CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with confidence/credible interval bands for each group.
+#' **CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with bootstrap confidence interval bands for each group.
 #'
 #' @details
 #' **Basic mode (bootstrap=FALSE)**:
@@ -811,9 +811,6 @@ plot_tsallis_q_curve <- function(
   # =========================================================================
   # CONFIDENCE INTERVAL MODE (Bootstrap only)
   # =========================================================================
-  # Only bootstrap CIs are suitable for entropy visualization.
-  # Bayesian CIs computed on count scale don't propagate properly through
-  # the non-linear entropy transformation.
   has_bootstrap_ci <- "ci_lower" %in% SummarizedExperiment::assayNames(se) &&
                        "ci_upper" %in% SummarizedExperiment::assayNames(se)
   
@@ -997,7 +994,7 @@ plot_tsallis_q_curve <- function(
     ) +
     ggplot2::theme_minimal(base_size = 13) +
     ggplot2::labs(
-      title = "Tsallis q-curve with confidence/credible intervals",
+      title = "Tsallis q-curve with confidence intervals",
       x = "q value",
       y = "Tsallis entropy (S_q)",
       color = "Group",
@@ -2493,8 +2490,7 @@ plot_multi_q_spectrum <- function(lmm_results, n_genes = 5) {
 #'   Ignored if per_q_div is a numeric vector.
 #'
 #' @param per_q_ci Optional list with components `$lower` and `$upper` containing
-#'   lower and upper confidence interval bounds (same length as per_q_div).
-#'   Supports both bootstrap CIs and Bayesian credible intervals (Tier 2 Integration).
+#'   lower and upper bootstrap confidence interval bounds (same length as per_q_div).
 #'   Only used if per_q_div is a numeric vector.
 #'
 #' @param gene_name Character. Name of the gene for plot title. Default is empty string or auto-detected.

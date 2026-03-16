@@ -243,21 +243,7 @@
 #' fields in bootstrap results: effective_sample_size, skewness, bias, acceleration_factor
 #' (for BCa method). Diagnostics assess CI quality and reliability (papers S111, S114).
 #' Set to FALSE to reduce computation time for large datasets.
-#' @param bayesian_ci Logical; if TRUE, compute Bayesian credible intervals using the 
-#' Gamma-Poisson posterior distribution (Negative Binomial model). Default: FALSE. When TRUE,
-#' adds assays `bayesian_ci_lower` and `bayesian_ci_upper` to output. Implements the
-#' conjugate prior model documented in papers S195 (edgeR), S197 (DESeq2), S074 (edgeR user guide),
-#' B8 (Bayesian RNA-seq 2024). Gamma-Poisson conjugacy properly accounts for overdispersion
-#' in transcript count data, providing principled uncertainty quantification.
-#' @param bayesian_ci_level Numeric; credible interval coverage level for Bayesian intervals
-#' (default: 0.95 for 95% CI). Must be in (0, 1). Only used when bayesian_ci = TRUE.
-#' @param bayesian_alpha Numeric; shape parameter for Gamma prior distribution (default: 0.5).
-#' When bayesian_ci = TRUE, uses Gamma(bayesian_alpha, bayesian_beta) as prior on count rate λ.
-#' Smaller values (e.g., 0.1) indicate weaker prior; default 0.5 is weakly informative.
-#' Only used when bayesian_ci = TRUE.
-#' @param bayesian_beta Numeric; rate parameter for Gamma prior distribution (default: 1e-6).
-#' Controls prior scale; smaller values indicate weaker priors. Default 1e-6 yields
-#' very weak priors for typical RNA-seq scales. Only used when bayesian_ci = TRUE.
+
 #' @param metadata Optional list or data frame used to enrich the result. If provided,
 #' the function applies metadata mapping to the output SummarizedExperiment via
 #' `.map_metadata()`. This allows adding additional context or derived annotations to
@@ -269,9 +255,7 @@
 #' - `hill`: Per-gene Hill numbers (if what="D")
 #' - `counts`: Original raw transcript counts (preserved for downstream analysis)
 #' - `ci_lower`, `ci_upper`: Bootstrap confidence interval bounds (if bootstrap=TRUE)
-#' - `bayesian_ci_lower`, `bayesian_ci_upper`: Bayesian credible interval bounds 
-#'   from Gamma-Poisson posterior (if bayesian_ci=TRUE). Uses Negative Binomial
-#'   model conjugate priors as documented in papers S195, S197, S074, B8.
+
 #' 
 #' **Important:** The original "counts" assay is preserved to allow downstream functions
 #' (e.g., `calculate_tsallis_entropy_bootstrap`, `jackknife_tsallis_entropy`) to access
@@ -318,8 +302,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
-    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE,
-    bayesian_ci = FALSE, bayesian_ci_level = 0.95, bayesian_alpha = 0.5, bayesian_beta = 1e-6) {
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
     # Normalize norm parameter: coerce logical to character for backward compatibility
     if (is.logical(norm)) {
         norm <- if (norm) "range" else "none"
@@ -740,129 +723,17 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         }
     }
 
-    # =========================================================================
-    # BAYESIAN CREDIBLE INTERVALS (optional, Gamma-Poisson conjugate prior)
-    # =========================================================================
-    if (bayesian_ci) {
-        if (verbose) {
-            message("Computing Bayesian credible intervals (Gamma-Poisson model)...")
-        }
-        
-        # Validate Bayesian parameters
-        if (!is.numeric(bayesian_ci_level) || bayesian_ci_level <= 0 || bayesian_ci_level >= 1) {
-            stop("bayesian_ci_level must be a probability in (0, 1)", call. = FALSE)
-        }
-        
-        # Fit empirical Bayes priors from data if using defaults
-        # If user explicitly provided bayesian_alpha and bayesian_beta, use those
-        # Otherwise, fit them from the count data using method of moments
-        if (bayesian_alpha == 0.5 && bayesian_beta == 1e-6) {
-            # These are the default values, so fit empirical priors instead
-            if (verbose) {
-                message("  Fitting empirical Beta prior from count data (Erhard et al. 2018)...")
-            }
-            empirical_prior <- fit_empirical_beta_prior(se_assay_mat)
-            bayesian_alpha <- empirical_prior$alpha
-            bayesian_beta <- empirical_prior$beta
-            if (verbose) {
-                message(sprintf("    α (alpha):  %.6f", bayesian_alpha))
-                message(sprintf("    β (beta):   %.6f", bayesian_beta))
-            }
-        } else {
-            if (verbose) {
-                message("  Using user-specified Bayesian prior parameters")
-                message(sprintf("    α (alpha):  %.6f", bayesian_alpha))
-                message(sprintf("    β (beta):   %.6f", bayesian_beta))
-            }
-        }
-        
-        if (!is.numeric(bayesian_alpha) || bayesian_alpha <= 0) {
-            stop("bayesian_alpha (prior shape) must be positive", call. = FALSE)
-        }
-        if (!is.numeric(bayesian_beta) || bayesian_beta <= 0) {
-            stop("bayesian_beta (prior rate) must be positive", call. = FALSE)
-        }
-        
-        # Get filtered gene names (genes that survived min_valid_frac filter)
-        # result contains aggregated (gene-level) data
-        filtered_genes <- as.character(result[, 1])
-        
-        # Aggregate isoform-level counts to gene level to match result structure
-        # Sum counts across isoforms for each gene
-        gene_counts_agg <- matrix(0, nrow = length(filtered_genes), ncol = ncol(se_assay_mat),
-                                   dimnames = list(filtered_genes, colnames(se_assay_mat)))
-        
-        for (i in seq_along(filtered_genes)) {
-            gene_id <- filtered_genes[i]
-            # Find all isoforms (rows) belonging to this gene
-            isoform_mask <- genes == gene_id
-            if (sum(isoform_mask) > 0) {
-                # Sum counts across isoforms
-                gene_counts_agg[i, ] <- colSums(se_assay_mat[isoform_mask, , drop = FALSE])
-            }
-        }
-        
-        counts_for_bayesian <- gene_counts_agg
-        
-        if (verbose) {
-            message(sprintf("  Computing Bayesian posteriors for %d genes with Gamma-Poisson prior",
-                nrow(counts_for_bayesian)))
-        }
-        
-        # Compute Bayesian credible intervals using corrected Gamma-Poisson model
-        # This uses compute_posterior_credible_intervals which implements the
-        # conjugate prior model from papers S195 (edgeR), S197 (DESeq2), S074 (edgeR handbook)
-        bayesian_results <- compute_posterior_credible_intervals(
-            counts_matrix = counts_for_bayesian,
-            alpha = bayesian_alpha,
-            beta = bayesian_beta,
-            ci = bayesian_ci_level
-        )
-        
-        # Extract CI bounds and create assays
-        n_genes_bayes <- nrow(counts_for_bayesian)
-        bayesian_ci_lower_matrix <- matrix(NA_real_, nrow = n_genes_bayes, ncol = ncol(result_assay))
-        bayesian_ci_upper_matrix <- matrix(NA_real_, nrow = n_genes_bayes, ncol = ncol(result_assay))
-        
-        rownames(bayesian_ci_lower_matrix) <- rownames(result_assay)
-        colnames(bayesian_ci_lower_matrix) <- colnames(result_assay)
-        rownames(bayesian_ci_upper_matrix) <- rownames(result_assay)
-        colnames(bayesian_ci_upper_matrix) <- colnames(result_assay)
-        
-        # bayesian_results is a data.frame with columns: gene, posterior_mean, ci_lower, ci_upper, posterior_sd
-        # Extract CI bounds for each gene
-        for (i in seq_len(n_genes_bayes)) {
-            if (i <= nrow(bayesian_results)) {
-                lower_ci <- bayesian_results$ci_lower[i]
-                upper_ci <- bayesian_results$ci_upper[i]
-                
-                # Replicate CI across all columns (same posterior for all samples in a gene)
-                bayesian_ci_lower_matrix[i, ] <- lower_ci
-                bayesian_ci_upper_matrix[i, ] <- upper_ci
-            }
-        }
-        
-        assays_list$bayesian_ci_lower <- bayesian_ci_lower_matrix
-        assays_list$bayesian_ci_upper <- bayesian_ci_upper_matrix
-        
-        if (verbose) {
-            message(sprintf("  ✓ Added bayesian_ci_lower and bayesian_ci_upper assays to output SE"))
-        }
-    }
 
-    # Build metadata including original SE reference for downstream functions like fit_empirical_beta_prior
-    # This preserves the transcript-level SE so Beta prior estimation can access raw counts
+
+    # Build metadata including original SE reference for downstream functions like estimate_wlfc_pseudocounts
+    # This preserves the transcript-level SE so pseudocount estimation can access raw counts
     result_meta_list <- list(
         readcounts = if (exists("se_assay_mat")) se_assay_mat else NULL,
         tx2gene = tx2gene_map,
         bootstrap = bootstrap,
         bootstrap_nboot = if (!is.null(bootstrap_ci_results)) bootstrap_nboot else NULL,
         bootstrap_method = if (!is.null(bootstrap_ci_results)) bootstrap_method else NULL,
-        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci else NULL,
-        bayesian_ci = bayesian_ci,
-        bayesian_ci_level = if (bayesian_ci) bayesian_ci_level else NULL,
-        bayesian_alpha = if (bayesian_ci) bayesian_alpha else NULL,
-        bayesian_beta = if (bayesian_ci) bayesian_beta else NULL
+        bootstrap_ci = if (!is.null(bootstrap_ci_results)) bootstrap_ci else NULL
     )
     
     # Store original SE if input was a SummarizedExperiment (needed for precision weighting in vignette)
@@ -1048,300 +919,35 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     list(x = x, genes = genes, se_assay_mat = se_assay_mat)
 }
 
-#' Fit Empirical Beta Prior from Count Data
+#' Estimate Pseudocounts for Tsallis Entropy Calculation
 #'
-#' Estimates Beta prior hyperparameters (α, β) from a count matrix or SummarizedExperiment using method of moments.
-#' This implements the empirical Bayes approach from Erhard et al. (2018), which can be
-#' used to compute data-adaptive pseudocounts for entropy calculations.
-#'
-#' @param x Either a numeric matrix (genes * samples) with non-negative counts,
-#'   or a SummarizedExperiment object (typically the output of \code{calculate_diversity()}).
-#'   If SummarizedExperiment, transcript-level counts will be extracted and aggregated
-#'   to gene level using the tx2gene mapping stored in metadata.
-#'
-#' @details
-#' The method implements empirical Bayes fitting via method of moments:
-#' 1. Normalizes each gene to relative abundance (0-1 range)
-#' 2. Estimates mean and variance of abundances across samples
-#' 3. Solves for Beta(α, β) parameters using method of moments
-#'
-#' For a Beta(α, β) distribution, the relationship between parameters and moments is:
-#'
-#' \deqn{\mu = \frac{\alpha}{\alpha + \beta}}{mu = alpha / (alpha + beta)}
-#'
-#' \deqn{\sigma^2 = \frac{\mu(1-\mu)}{\alpha + \beta + 1}}{sigma^2 = mu(1-mu) / (alpha + beta + 1)}
-#'
-#' Given observed mean \eqn{\hat{\mu}}{mu_hat} and variance \eqn{\hat{\sigma}^2}{sigma2_hat},
-#' the method solves for \eqn{\alpha}{alpha} and \eqn{\beta}{beta} by inverting these relationships.
-#'
-#' @return List with components:
-#'   \describe{
-#'     \item{alpha}{Alpha parameter of Beta prior}
-#'     \item{beta}{Beta parameter of Beta prior}
-#'   }
-#'
-#' @references
-#' Erhard, F., Hense, B., Jafari, M., et al. (2018).
-#' Improved Ribo-seq puromycin target reliability using Bayesian nonparametrics.
-#' \emph{Bioinformatics}, 34(12), 2096-2102. doi:10.1093/bioinformatics/bty056
-#'
-#' @examples
-#' \dontrun{
-#' # Example with gene-level count matrix
-#' counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow=3, ncol=3)
-#' prior_params <- fit_empirical_beta_prior(counts)
-#' cat("Alpha:", prior_params$alpha, "Beta:", prior_params$beta, "\n")
-#' 
-#' # Example with SummarizedExperiment from calculate_diversity
-#' # data(readcounts)
-#' # se <- build_se(readcounts, gff3_file)
-#' # ts_se <- calculate_diversity(se, q = 2, norm = TRUE)
-#' # prior_params <- fit_empirical_beta_prior(ts_se)
-#' }
-#'
-#' @noRd
-fit_empirical_beta_prior <- function(x) {
-    # Handle SummarizedExperiment (typically from calculate_diversity)
-    if (is(x, "SummarizedExperiment")) {
-        metadata <- S4Vectors::metadata(x)
-        
-        # Check if we have transcript-level counts and tx2gene mapping in metadata
-        if (!is.null(metadata$readcounts) && !is.null(metadata$tx2gene)) {
-            # Extract transcript-level counts and tx2gene from metadata
-            counts_tx <- as.matrix(metadata$readcounts)
-            tx2gene_df <- metadata$tx2gene
-            gene_names <- rownames(x)  # Target genes (from the gene-level SE after filtering)
-            
-            if (is.null(gene_names) || length(gene_names) == 0) {
-                stop("SummarizedExperiment has no row names (gene names).")
-            }
-            
-            # Aggregate transcript counts to gene level
-            counts_matrix <- matrix(0, 
-                nrow = length(gene_names), 
-                ncol = ncol(counts_tx),
-                dimnames = list(gene_names, colnames(counts_tx))
-            )
-            
-            for (i in seq_along(gene_names)) {
-                gene_name <- gene_names[i]
-                # Find transcripts for this gene using tx2gene mapping
-                # Handle both 'Gene' and 'Gen' column names
-                gene_col <- if ("Gene" %in% colnames(tx2gene_df)) "Gene" else colnames(tx2gene_df)[2]
-                tx_col <- if ("Transcript" %in% colnames(tx2gene_df)) "Transcript" else colnames(tx2gene_df)[1]
-                
-                # Find matching transcripts, handling NA values in the matching
-                matches <- tx2gene_df[[gene_col]] == gene_name
-                matches[is.na(matches)] <- FALSE  # Convert NA to FALSE
-                matching_tx_ids <- tx2gene_df[[tx_col]][matches]
-                
-                if (length(matching_tx_ids) > 0) {
-                    # Find indices in transcript-level count matrix
-                    tx_rownames <- rownames(counts_tx)
-                    if (!is.null(tx_rownames)) {
-                        matching_idx <- match(matching_tx_ids, tx_rownames)
-                        matching_idx <- matching_idx[!is.na(matching_idx)]
-                    } else {
-                        # Fallback if no rownames
-                        matching_idx <- integer(0)
-                    }
-                    
-                    if (length(matching_idx) > 0) {
-                        # Sum transcript counts to get gene counts
-                        counts_matrix[i, ] <- colSums(counts_tx[matching_idx, , drop = FALSE])
-                    }
-                }
-            }
-        } else {
-            # Fallback: try to use the assay directly (for gene-level SE without transcript data)
-            counts_matrix <- SummarizedExperiment::assay(x)
-            if (is.null(counts_matrix) || nrow(counts_matrix) == 0) {
-                stop("Cannot extract counts from SummarizedExperiment. ",
-                     "Ensure metadata contains 'readcounts' (transcript counts) and 'tx2gene' (mapping).")
-            }
-        }
-    } else if (is.matrix(x) || is.data.frame(x)) {
-        # Handle plain matrix/data.frame input
-        counts_matrix <- as.matrix(x)
-    } else {
-        stop("x must be a matrix or data.frame")
-    }
-
-    # Validate counts_matrix
-    if (is.null(counts_matrix) || nrow(counts_matrix) == 0) {
-        stop("counts_matrix is empty or NULL")
-    }
-
-    # Remove rows with zero total counts to avoid division by zero
-    row_sums <- rowSums(counts_matrix)
-    nonzero_rows <- row_sums > 0
-    if (any(nonzero_rows)) {
-        counts_matrix <- counts_matrix[nonzero_rows, , drop = FALSE]
-        row_sums <- row_sums[nonzero_rows]
-    }
-    
-    # Convert counts to proportions and extract non-zero values
-    # Normalize counts to proportions for each gene (row)
-    abundances <- sweep(counts_matrix, 1, row_sums, "/")
-    abundances_nonzero <- abundances[abundances > 0]
-
-    if (length(abundances_nonzero) < 2) {
-        warning("Insufficient non-zero abundances for parameter estimation. ",
-                "Returning Jeffreys prior (alpha=0.5, beta=0.5).")
-        result <- list(alpha = 0.5, beta = 0.5)
-        return(result)
-    }
-
-    # Estimate mean and variance
-    mean_p <- mean(abundances_nonzero)
-    var_p <- var(abundances_nonzero)
-
-    # Avoid numerical issues if variance is very small or NaN
-    if (is.na(var_p) || var_p < 1e-10) {
-        warning("Variance near zero. Returning uniform prior (alpha=1, beta=1).")
-        result <- list(alpha = 1, beta = 1)
-        return(result)
-    }
-
-    # Solve for α and β using method of moments
-    # For Beta(α, β): α + β = μ(1-μ)/sigma^2 - 1
-    alpha_beta_sum <- (mean_p * (1 - mean_p) / var_p) - 1
-
-    # Ensure positive parameters
-    if (alpha_beta_sum <= 0) {
-        warning("Method of moments yielded non-positive sum. ",
-                "Returning Jeffreys prior (alpha=0.5, beta=0.5).")
-        result <- list(alpha = 0.5, beta = 0.5)
-        return(result)
-    }
-
-    alpha <- mean_p * alpha_beta_sum
-    beta <- (1 - mean_p) * alpha_beta_sum
-
-    # Ensure both are positive
-    if (alpha <= 0 || beta <= 0) {
-        warning("Method of moments yielded non-positive parameters. ",
-                "Returning Jeffreys prior (alpha=0.5, beta=0.5).")
-        return(list(alpha = 0.5, beta = 0.5))
-    }
-
-    return(list(alpha = alpha, beta = beta))
-}
-
-#' Compute Weighted Likelihood Fold Change (WLFC) Pseudocounts
-#'
-#' Calculates gene-specific pseudocounts using the empirical Bayes WLFC approach
-#' from Erhard et al. (2018). Uses posterior Beta distribution to derive
-#' precision-weighted pseudocounts.
-#'
-#' @param counts Numeric vector of counts for a single gene across samples.
-#' @param alpha Numeric; alpha parameter of Beta prior (from \code{fit_empirical_beta_prior()}).
-#' @param beta Numeric; beta parameter of Beta prior (from \code{fit_empirical_beta_prior()}).
-#'
-#' @details
-#' The method:
-#' 1. Computes posterior Beta(α + counts, β + depth - counts) distribution
-#' 2. Calculates posterior mean: (α + sum(counts)) / (α + β + total_depth)
-#' 3. Weights by precision: (posterior_α * posterior_β) / ((α+β+depth)^2 * (α+β+depth+1))
-#' 4. Returns posterior_mean * precision_weight as gene-specific pseudocount
-#'
-#' The resulting pseudocount can be passed to \code{calculate_tsallis_entropy()}.
-#'
-#' @return Numeric; gene-specific pseudocount (scalar in [0, 1] range typically).
-#'
-#' @details
-#' This is an internal helper function primarily called by \code{estimate_wlfc_pseudocounts()}.
-#' It is kept exported for advanced workflows, but most users should use the high-level
-#' \code{estimate_wlfc_pseudocounts()} wrapper instead.
-#' 
-#' @keywords internal
-#' @noRd
-#' 
-#' @references
-#' Erhard, F., Hense, B., Jafari, M., et al. (2018).
-#' Improved Ribo-seq puromycin target reliability using Bayesian nonparametrics.
-#' \emph{Bioinformatics}, 34(12), 2096-2102. doi:10.1093/bioinformatics/bty056
-#'
-#' @examples
-#' \dontrun{
-#' # Estimate empirical prior and compute per-gene pseudocounts
-#' counts_matrix <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow=3, ncol=3)
-#' prior_params <- fit_empirical_beta_prior(counts_matrix)
-#'
-#' # For first gene
-#' gene1_pc <- compute_wlfc_pseudocounts(counts_matrix[1,], 
-#'                                       prior_params$alpha, 
-#'                                       prior_params$beta)
-#' cat("WLFC pseudocount for gene 1:", gene1_pc, "\n")
-#' }
-#'
-compute_wlfc_pseudocounts <- function(counts, alpha, beta) {
-    if (!is.numeric(counts) || length(counts) < 1) {
-        stop("counts must be a non-empty numeric vector")
-    }
-
-    if (!is.numeric(alpha) || alpha <= 0) {
-        stop("alpha must be a positive numeric value")
-    }
-
-    if (!is.numeric(beta) || beta <= 0) {
-        stop("beta must be a positive numeric value")
-    }
-
-    # Basic statistics
-    total_depth <- sum(counts)
-    n_samples <- length(counts)
-
-    # Handle edge case: all zeros
-    if (total_depth <= 0) {
-        return(0.5)  # Default Jeffreys prior
-    }
-
-    # Posterior Beta parameters via conjugate Beta-Binomial update
-    posterior_alpha <- alpha + sum(counts)
-    posterior_beta <- beta + (total_depth - sum(counts))
-
-    # Posterior mean: E[θ | data]
-    posterior_mean <- posterior_alpha / (posterior_alpha + posterior_beta)
-
-    # Precision (inverse variance) of posterior
-    posterior_precision <- (posterior_alpha * posterior_beta) /
-        ((posterior_alpha + posterior_beta)^2 * 
-         (posterior_alpha + posterior_beta + 1))
-
-    # WLFC: Scale posterior mean by precision
-    wlfc_pseudocount <- posterior_mean * posterior_precision
-
-    return(wlfc_pseudocount)
-}
-
-#' Compute WLFC Pseudocounts with Prior Estimation and Diagnostics
-#'
-#' High-level wrapper that orchestrates the complete workflow:
-#' validates input, estimates empirical Beta prior, computes per-gene WLFC pseudocounts,
-#' and returns comprehensive diagnostics.
+#' Computes size-factor adjusted pseudocounts using library size normalization,
+#' a principled approach recommended in edgeR (Robinson et al. 2010) and DESeq2
+#' (Love et al. 2014) for regularization of count-based diversity analysis.
 #'
 #' @param se SummarizedExperiment or Matrix; raw count matrix (genes × samples).
 #'            If SummarizedExperiment, assay(se) is extracted.
 #' @param verbose Logical; if TRUE, print diagnostic information (default: TRUE).
 #'
 #' @return List with elements:
-#'   \item{pseudocounts}{Named numeric vector of WLFC pseudocounts (one per gene)}.
-#'   \item{scalar_pseudocount}{Numeric; mean of pseudocount vector (recommended for regularization)}.
-#'   \item{prior}{List with estimated Beta prior parameters: $alpha, $beta}.
-#'   \item{diagnostics}{List with data quality checks: unique_rownames, duplicate_genes, n_genes_filtered}.
+#'   \item{scalar_pseudocount}{Numeric; recommended pseudocount value for use in \code{calculate_diversity()}}.
+#'   \item{size_factors}{Named numeric vector of library size factors (one per sample)}.
+#'   \item{diagnostics}{List with data quality checks: n_genes, n_samples, total_counts}.
 #'
 #' @details
-#' This function performs the following steps:
-#' 1. **Input validation:** Checks for duplicate rownames and reports data structure
-#' 2. **Prior estimation:** Fits empirical Beta prior using \code{fit_empirical_beta_prior()}
-#' 3. **Per-gene pseudocounts:** Computes WLFC pseudocounts using conjugate Bayesian update
-#' 4. **Diagnostics:** Returns summary statistics and data quality metrics
+#' This function implements Option B pseudocount estimation via size-factor adjustment:
 #'
-#' Expected output (typical RNA-seq data):
-#' - Mean WLFC pseudocount: 0.05-0.15 (depends on count magnitude)
-#' - Range: [0, ~0.5]
-#' - Median: Often near 0 (most genes sparse in many samples)
+#' 1. Computes library size factors: `size_factors = colSums(counts) / mean(colSums(counts))`
+#' 2. Calculates mean library size: `mean_lib_size = mean(colSums(counts))`
+#' 3. Returns pseudocount: `log2(mean_lib_size / 1e6 + 1)`
+#'
+#' The pseudocount scales with the overall sequencing depth, ensuring appropriate
+#' regularization regardless of the count magnitude (e.g., RNA-seq vs. ribo-seq data).
+#'
+#' **References for this approach:**
+#' - Robinson et al. (2010, edgeR): Method of using compositional invariants for normalization
+#' - Love et al. (2014, DESeq2): Size-factor adjustment for count-based analysis
+#' - Chen et al. (2023, edgeR User Guide): Current best practices in library normalization
 #'
 #' @examples
 #' \dontrun{
@@ -1350,15 +956,20 @@ compute_wlfc_pseudocounts <- function(counts, alpha, beta) {
 #' data(readcounts)
 #' se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
 #' result <- estimate_wlfc_pseudocounts(se, verbose = TRUE)
-#' scalar_pc <- result$scalar_pseudocount
+#' pseudocount <- result$scalar_pseudocount
 #'
-#' # From raw count matrix
-#' counts_matrix <- matrix(rpois(300, lambda=10), nrow=30, ncol=10)
-#' result <- estimate_wlfc_pseudocounts(counts_matrix, verbose = TRUE)
+#' # Use with calculate_diversity
+#' ts_se <- calculate_diversity(se, q = 1, pseudocount = pseudocount)
 #' }
 #'
 #' @references
-#' Bayesian Beta-Binomial conjugacy used for posterior parameter estimation.
+#' Robinson, M.D., McCarthy, D.J., Smyth, G.K. (2010).
+#' edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.
+#' *Bioinformatics*, 26(1), 139-140.
+#'
+#' Love, M.I., Huber, W., Anders, S. (2014).
+#' Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
+#' *Genome Biology*, 15(12), 550.
 #'
 #' @export
 estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
@@ -1371,308 +982,51 @@ estimate_wlfc_pseudocounts <- function(se, verbose = TRUE) {
         stop("se must be a SummarizedExperiment or matrix")
     }
 
-    # Data validation
-    if (verbose) cat("Diagnostic: Input structure\n")
+    # Data validation and diagnostics
+    if (verbose) cat("Pseudocount Estimation (Size-Factor Adjustment, Option B)\n")
     
     n_genes <- nrow(raw_counts)
     n_samples <- ncol(raw_counts)
-    unique_names <- length(unique(rownames(raw_counts)))
     
     if (verbose) {
-        cat("  Rows (genes):", n_genes, "\n")
-        cat("  Columns (samples):", n_samples, "\n")
-        cat("  Unique rownames:", unique_names, "\n")
+        cat("  Genes:", n_genes, "\n")
+        cat("  Samples:", n_samples, "\n")
     }
 
-    # Check for duplicates
-    dup_genes <- NULL
-    if (unique_names < n_genes) {
-        dup_genes <- names(table(rownames(raw_counts))[table(rownames(raw_counts)) > 1])
-        if (verbose) {
-            cat("  WARNING: Duplicate genes found:", 
-                paste(head(dup_genes, 5), collapse = ", "), "\n")
-        }
-    }
-
-    # Fit empirical Beta prior
-    if (verbose) cat("\nEmpirical Beta prior estimation:\n")
-    prior_params <- fit_empirical_beta_prior(raw_counts)
-    alpha_prior <- prior_params$alpha
-    beta_prior <- prior_params$beta
-
+    # Compute library sizes (column sums)
+    lib_sizes <- colSums(raw_counts)
+    mean_lib_size <- mean(lib_sizes)
+    
+    # Compute size factors (Robinson et al. 2010 method)
+    size_factors <- lib_sizes / mean_lib_size
+    names(size_factors) <- colnames(raw_counts)
+    
     if (verbose) {
-        cat(sprintf("  α (alpha):  %.4f\n", alpha_prior))
-        cat(sprintf("  β (beta):   %.4f\n", beta_prior))
+        cat(sprintf("\n  Mean Library Size: %.0f\n", mean_lib_size))
+        cat(sprintf("  Size Factors Range: [%.3f, %.3f]\n", min(size_factors), max(size_factors)))
     }
 
-    # Compute WLFC pseudocounts for all genes
-    wlfc_pseudocounts <- numeric(n_genes)
-    names(wlfc_pseudocounts) <- rownames(raw_counts)
-
-    for (i in seq_len(n_genes)) {
-        gene_counts <- raw_counts[i, ]
-        wlfc_pseudocounts[i] <- compute_wlfc_pseudocounts(
-            counts = gene_counts,
-            alpha = alpha_prior,
-            beta = beta_prior
-        )
-    }
-
-    # Compute scalar pseudocount (mean for regularization)
-    scalar_pseudocount <- mean(wlfc_pseudocounts)
-
-    # Summary statistics
+    # Calculate pseudocount using log2 scale (edgeR/DESeq2 convention)
+    # Formula: log2(mean_library_size / 1e6 + 1)
+    # This ensures pseudocount scales with sequencing depth
+    scalar_pseudocount <- log2(mean_lib_size / 1e6 + 1)
+    
     if (verbose) {
-        cat("\nWLFC Pseudocount Distribution:\n")
-        cat(sprintf("  Mean:       %.6f\n", mean(wlfc_pseudocounts)))
-        cat(sprintf("  Median:     %.6f\n", median(wlfc_pseudocounts)))
-        cat(sprintf("  Range:      [%.6f, %.6f]\n", 
-                    min(wlfc_pseudocounts), max(wlfc_pseudocounts)))
+        cat(sprintf("  Calculated Pseudocount: %.6f\n", scalar_pseudocount))
     }
 
     # Return results with diagnostics
     list(
-        pseudocounts = wlfc_pseudocounts,
         scalar_pseudocount = scalar_pseudocount,
-        prior = list(alpha = alpha_prior, beta = beta_prior),
+        size_factors = size_factors,
         diagnostics = list(
-            unique_rownames = unique_names,
-            duplicate_genes = dup_genes,
-            n_genes_filtered = n_genes,
-            n_samples = n_samples
+            n_genes = n_genes,
+            n_samples = n_samples,
+            mean_lib_size = mean_lib_size,
+            min_lib_size = min(lib_sizes),
+            max_lib_size = max(lib_sizes)
         )
     )
-}
-
-#' Extract Posterior Distribution Parameters
-#'
-#' Computes posterior Beta distribution parameters and credible intervals 
-#' for a single gene based on empirical Bayes prior.
-#'
-#' @param counts Numeric vector; read counts for a gene across samples.
-#' @param alpha Numeric; alpha parameter of Beta prior (from \code{fit_empirical_beta_prior()}).
-#' @param beta Numeric; beta parameter of Beta prior (from \code{fit_empirical_beta_prior()}).
-#' @param ci Numeric; credible interval width (default: 0.95 for 95% CI).
-#'    Set to \code{NULL} to skip CI computation.
-#'
-#' @noRd
-#'
-#' @return List with components:
-#'   \describe{
-#'     \item{posterior_alpha}{Posterior alpha parameter: α + sum(counts)}
-#'     \item{posterior_beta}{Posterior beta parameter: β + total_depth - sum(counts)}
-#'     \item{posterior_mean}{Posterior mean estimate (point estimate): α' / (α' + β')}
-#'     \item{posterior_variance}{Posterior variance: (α'β') / ((α'+β')^2 (α'+β'+1))}
-#'     \item{posterior_sd}{Posterior standard deviation (square root of variance)}
-#'     \item{ci_lower}{Lower credible interval bound (if ci != NULL)}
-#'     \item{ci_upper}{Upper credible interval bound (if ci != NULL)}
-#'     \item{ci_level}{Credible interval level requested (e.g., 0.95)}
-#'   }
-#'
-#' @details
-#' For a gene with count vector, this function updates the empirical Bayes prior 
-#' Beta(α, β) using the Beta-Binomial conjugate update to produce the posterior 
-#' Beta(α + sum(counts), β + total_depth - sum(counts)).
-#'
-#' The posterior distribution represents uncertainty in the true transcript proportion,
-#' accounting for both the prior belief and observed data.
-#'
-#' Credible intervals are computed using Beta quantile function (\code{qbeta()}):
-#' Lower = qbeta(α/2, posterior_α, posterior_β)
-#' Upper = qbeta(1 - α/2, posterior_α, posterior_β)
-#'
-#' These provide Bayesian confidence bounds: "probability that true parameter lies 
-#' in [Lower, Upper] is (1 - α)", assuming the prior is correct.
-#'
-#' **Statistical Model (Gamma-Poisson Conjugacy):**
-#' This function uses a Gamma-Poisson conjugate prior suitable for count data with overdispersion.
-#' - **Prior**: Gamma(α, β) on the rate parameter λ
-#' - **Likelihood**: Poisson(λ) for each transcript count  
-#' - **Posterior**: Gamma(α + Σcounts, β + n_samples)
-#' This model is used by industry-standard RNA-seq tools (DESeq2, edgeR) and is appropriate
-#' for overdispersed count data. See papers S195 (Robinson et al., 2010 - edgeR), 
-#' S197 (Love et al., 2014 - DESeq2), and S074 (edgeR 2023 guide).
-#'
-#' @examples
-#' # Fit empirical Bayes prior
-#' prior_params <- fit_empirical_beta_prior(counts)
-#' alpha <- prior_params$alpha
-#' beta <- prior_params$beta
-#'
-#' # Extract posterior for first gene
-#' gene1_counts <- counts[1, ]
-#' posterior <- get_posterior_distribution(
-#'   counts = gene1_counts,
-#'   alpha = alpha,
-#'   beta = beta,
-#'   ci = 0.95
-#' )
-#'
-#' # Inspect posterior
-#' cat("Gene 1 posterior mean:", posterior$posterior_mean, "\n")
-#' cat("95% credible interval: [",
-#'     round(posterior$ci_lower, 4), ", ",
-#'     round(posterior$ci_upper, 4), "]\n", sep = "")
-get_posterior_distribution <- function(counts, alpha, beta, ci = 0.95) {
-    if (!is.numeric(counts) || length(counts) < 1) {
-        stop("counts must be a non-empty numeric vector")
-    }
-
-    if (!is.numeric(alpha) || alpha <= 0) {
-        stop("alpha must be a positive numeric value")
-    }
-
-    if (!is.numeric(beta) || beta <= 0) {
-        stop("beta must be a positive numeric value")
-    }
-
-    if (!is.null(ci) && (!is.numeric(ci) || ci <= 0 || ci >= 1)) {
-        stop("ci must be NULL or a numeric value between 0 and 1")
-    }
-
-    # Basic statistics
-    n_samples <- length(counts)
-    total_count <- sum(counts)
-    
-    # Posterior Gamma parameters via Gamma-Poisson conjugacy (Negative Binomial model)
-    # This is the conjugate model for count data with overdispersion
-    # See papers S195 (edgeR), S197 (DESeq2), S074 (edgeR handbook)
-    posterior_alpha <- alpha + total_count
-    posterior_beta <- beta + n_samples
-
-    # Posterior mean: E[λ | data]
-    posterior_mean <- posterior_alpha / posterior_beta
-
-    # Posterior variance: Var[λ | data] for Gamma distribution
-    posterior_variance <- posterior_alpha / (posterior_beta^2)
-
-    # Posterior standard deviation
-    posterior_sd <- sqrt(posterior_variance)
-
-    # Build result list
-    result <- list(
-        posterior_alpha = posterior_alpha,
-        posterior_beta = posterior_beta,
-        posterior_mean = posterior_mean,
-        posterior_variance = posterior_variance,
-        posterior_sd = posterior_sd
-    )
-
-    # Compute credible interval if requested
-    if (!is.null(ci)) {
-        alpha_level <- 1 - ci
-        ci_lower <- stats::qgamma(alpha_level / 2, posterior_alpha, posterior_beta)
-        ci_upper <- stats::qgamma(1 - alpha_level / 2, posterior_alpha, posterior_beta)
-        
-        result$ci_lower <- ci_lower
-        result$ci_upper <- ci_upper
-        result$ci_level <- ci
-    }
-
-    return(result)
-}
-
-#' Compute Posterior Credible Intervals for Multiple Genes
-#'
-#' Extracts posterior credible intervals for all genes in a count matrix,
-#' useful for visualizing uncertainty across the genome.
-#'
-#' @param counts_matrix Matrix or data.frame; genes (rows) * samples (columns).
-#' @param alpha Numeric; alpha parameter of Gamma prior (shape parameter).
-#' @param beta Numeric; beta parameter of Gamma prior (rate parameter).
-#' @param ci Numeric; credible interval width (default: 0.95).
-#' @details Uses Gamma-Poisson conjugate model for RNA-seq count data (accounts for overdispersion).
-#' This is the Bayesian equivalent of industry-standard models used in DESeq2 and edgeR.
-#' References: S195 (edgeR), S197 (DESeq2), S074 (edgeR 2023 guide).
-#'
-#' @noRd
-#'
-#' @return Data frame with columns:
-#'   \describe{
-#'     \item{gene}{Gene name (from rownames of counts_matrix)}
-#'     \item{posterior_mean}{Point estimate}
-#'     \item{ci_lower}{Lower CI bound}
-#'     \item{ci_upper}{Upper CI bound}
-#'     \item{posterior_sd}{Standard deviation}
-#'   }
-#'
-#' @examples
-#' # Fit prior
-#' prior_params <- fit_empirical_beta_prior(counts)
-#'
-#' # Compute CIs for all genes
-#' all_cis <- compute_posterior_credible_intervals(
-#'   counts_matrix = counts,
-#'   alpha = prior_params$alpha,
-#'   beta = prior_params$beta,
-#'   ci = 0.95
-#' )
-#'
-#' # View top genes by posterior mean
-#' head(all_cis[order(-all_cis$posterior_mean), ], 10)
-compute_posterior_credible_intervals <- function(counts_matrix, alpha, beta, ci = 0.95) {
-    if (!is.matrix(counts_matrix) && !is.data.frame(counts_matrix)) {
-        stop("counts_matrix must be a matrix or data.frame")
-    }
-
-    counts_matrix <- as.matrix(counts_matrix)
-    n_genes <- nrow(counts_matrix)
-    
-    # Handle edge case: no genes
-    if (n_genes == 0) {
-        return(data.frame(
-            gene = character(),
-            posterior_mean = numeric(),
-            ci_lower = numeric(),
-            ci_upper = numeric(),
-            posterior_sd = numeric(),
-            row.names = NULL,
-            stringsAsFactors = FALSE
-        ))
-    }
-
-    # Preallocate result vectors
-    gene_names <- rownames(counts_matrix)
-    if (is.null(gene_names)) {
-        gene_names <- paste0("Gene_", seq_len(n_genes))
-    }
-    
-    # Ensure gene_names has correct length
-    if (length(gene_names) != n_genes) {
-        gene_names <- paste0("Gene_", seq_len(n_genes))
-    }
-
-    posterior_means <- numeric(n_genes)
-    ci_lowers <- numeric(n_genes)
-    ci_uppers <- numeric(n_genes)
-    posterior_sds <- numeric(n_genes)
-
-    # Compute posterior for each gene
-    for (i in seq_len(n_genes)) {
-        posterior <- get_posterior_distribution(
-            counts = counts_matrix[i, ],
-            alpha = alpha,
-            beta = beta,
-            ci = ci
-        )
-        posterior_means[i] <- posterior$posterior_mean
-        ci_lowers[i] <- posterior$ci_lower
-        ci_uppers[i] <- posterior$ci_upper
-        posterior_sds[i] <- posterior$posterior_sd
-    }
-
-    # Return as data frame
-    result_df <- data.frame(
-        gene = gene_names,
-        posterior_mean = posterior_means,
-        ci_lower = ci_lowers,
-        ci_upper = ci_uppers,
-        posterior_sd = posterior_sds,
-        row.names = NULL,
-        stringsAsFactors = FALSE
-    )
-
-    return(result_df)
 }
 
 # ============================================================================

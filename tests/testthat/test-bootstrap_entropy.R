@@ -439,9 +439,10 @@ test_that("suggest_nboot() single gene, percentile method", {
     expect_is(nboot_rec, "numeric")
 })
 
-test_that("suggest_nboot() single gene, BCa method", {
+test_that("suggest_nboot() single gene, BCa method (50% adjustment)", {
     nboot_rec <- suggest_nboot(n_genes = 1, use_bca = TRUE)
-    expect_equal(nboot_rec, 2000)
+    # BCa: 1000 * 1.5 = 1500
+    expect_equal(nboot_rec, 1500)
 })
 
 test_that("suggest_nboot() small gene set (3 genes), percentile", {
@@ -449,9 +450,10 @@ test_that("suggest_nboot() small gene set (3 genes), percentile", {
     expect_equal(nboot_rec, 500)
 })
 
-test_that("suggest_nboot() small gene set (3 genes), BCa", {
+test_that("suggest_nboot() small gene set (3 genes), BCa (50% adjustment)", {
     nboot_rec <- suggest_nboot(n_genes = 3, use_bca = TRUE)
-    expect_equal(nboot_rec, 1000)
+    # BCa: 500 * 1.5 = 750
+    expect_equal(nboot_rec, 750)
 })
 
 test_that("suggest_nboot() boundary: 5 genes (max of small set)", {
@@ -459,26 +461,66 @@ test_that("suggest_nboot() boundary: 5 genes (max of small set)", {
     nboot_rec_bca <- suggest_nboot(n_genes = 5, use_bca = TRUE)
     
     expect_equal(nboot_rec_pct, 500)
-    expect_equal(nboot_rec_bca, 1000)
+    expect_equal(nboot_rec_bca, 750)  # 500 * 1.5
 })
 
-test_that("suggest_nboot() large gene set (15 genes), percentile", {
-    nboot_rec <- suggest_nboot(n_genes = 15, use_bca = FALSE)
-    expect_equal(nboot_rec, 250)
+test_that("suggest_nboot() medium gene set (6-9 genes, smooth scaling)", {
+    # Smooth interpolation: 500 - (n_genes-5)*16.67
+    rec_6 <- suggest_nboot(n_genes = 6, use_bca = FALSE)
+    rec_10 <- suggest_nboot(n_genes = 10, use_bca = FALSE)
+    rec_15 <- suggest_nboot(n_genes = 15, use_bca = FALSE)
+    
+    # Check that values are between boundaries and decreasing
+    expect_true(rec_6 < 500 && rec_6 > 250)    # 500 - 1*16.67 ≈ 483
+    expect_true(rec_10 < 500 && rec_10 > 250)  # 500 - 5*16.67 ≈ 417
+    expect_true(rec_15 < rec_10)                 # Decreasing with gene count
+    expect_true(rec_15 > 250)                    # Still above minimum
+})
+
+test_that("suggest_nboot() boundary at 20 genes (transitions to fixed 250)", {
+    nboot_rec_19 <- suggest_nboot(n_genes = 19, use_bca = FALSE)
+    nboot_rec_20 <- suggest_nboot(n_genes = 20, use_bca = FALSE)
+    nboot_rec_21 <- suggest_nboot(n_genes = 21, use_bca = FALSE)
+    
+    # 19 genes: 500 - (19-5)*16.67 = 500 - 233.8 = 266.2 → 266
+    # 20 genes: 500 - (20-5)*16.67 = 500 - 250 = 250
+    # 21 genes: fixed 250
+    expect_equal(nboot_rec_20, 250)
+    expect_equal(nboot_rec_21, 250)
+    expect_gt(nboot_rec_19, 250)  # Above threshold
 })
 
 test_that("suggest_nboot() large gene set (50 genes), BCa", {
     nboot_rec <- suggest_nboot(n_genes = 50, use_bca = TRUE)
-    expect_equal(nboot_rec, 500)
+    # >20 genes: 250, then BCa: 250 * 1.5 = 375
+    expect_equal(nboot_rec, 375)
 })
 
 test_that("suggest_nboot() very large gene set (1000 genes)", {
     nboot_rec_pct <- suggest_nboot(n_genes = 1000, use_bca = FALSE)
     nboot_rec_bca <- suggest_nboot(n_genes = 1000, use_bca = TRUE)
     
-    # Still large gene set category
+    # Still large gene set category: 250, then BCa: 375
     expect_equal(nboot_rec_pct, 250)
-    expect_equal(nboot_rec_bca, 500)
+    expect_equal(nboot_rec_bca, 375)
+})
+
+test_that("suggest_nboot() nthreads parameter reduces recommendations", {
+    # Single thread (baseline)
+    rec_1thread <- suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 1)
+    
+    # Multiple threads reduce nboot
+    rec_4threads <- suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 4)
+    rec_8threads <- suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 8)
+    
+    # More threads should give smaller or equal nboot
+    expect_lte(rec_4threads, rec_1thread)
+    expect_lte(rec_8threads, rec_4threads)
+    
+    # All should be >= 100 (minimum)
+    expect_gte(rec_1thread, 100)
+    expect_gte(rec_4threads, 100)
+    expect_gte(rec_8threads, 100)
 })
 
 test_that("suggest_nboot() input validation: n_genes must be positive integer", {
@@ -486,6 +528,17 @@ test_that("suggest_nboot() input validation: n_genes must be positive integer", 
     expect_error(suggest_nboot(n_genes = -5))
     expect_error(suggest_nboot(n_genes = 1.5))
     expect_error(suggest_nboot(n_genes = "not_numeric"))
+})
+
+test_that("suggest_nboot() input validation: use_bca must be logical", {
+    expect_error(suggest_nboot(n_genes = 10, use_bca = "yes"))
+    expect_error(suggest_nboot(n_genes = 10, use_bca = 1))
+})
+
+test_that("suggest_nboot() input validation: nthreads must be positive integer", {
+    expect_error(suggest_nboot(n_genes = 10, nthreads = 0))
+    expect_error(suggest_nboot(n_genes = 10, nthreads = -4))
+    expect_error(suggest_nboot(n_genes = 10, nthreads = 4.5))
 })
 
 test_that("suggest_nboot() returns numeric integer-like values", {
@@ -505,14 +558,22 @@ test_that("suggest_nboot() BCa always >= percentile for same n_genes", {
     }
 })
 
-test_that("suggest_nboot() recommendations decrease with gene count", {
+test_that("suggest_nboot() recommendations decrease smoothly with gene count", {
     # For percentile method, recommendations should decrease as n_genes increases
     rec_1 <- suggest_nboot(n_genes = 1, use_bca = FALSE)
     rec_5 <- suggest_nboot(n_genes = 5, use_bca = FALSE)
+    rec_10 <- suggest_nboot(n_genes = 10, use_bca = FALSE)
     rec_20 <- suggest_nboot(n_genes = 20, use_bca = FALSE)
     
     expect_gt(rec_1, rec_5)
-    expect_gte(rec_5, rec_20)
+    expect_gte(rec_5, rec_10)  # Smooth decrease
+    expect_gte(rec_10, rec_20)  # Smooth decrease
+})
+
+test_that("suggest_nboot() enforces minimum of 100 replicates", {
+    # With many threads and many genes, should still return >= 100
+    result <- suggest_nboot(n_genes = 1000, use_bca = FALSE, nthreads = 16)
+    expect_gte(result, 100)
 })
 
 test_that("suggest_nboot() function is exported and accessible", {
@@ -542,11 +603,13 @@ test_that("suggest_nboot() boundaries between categories", {
     rec_2 <- suggest_nboot(2, use_bca = FALSE)
     expect_gt(rec_1, rec_2)
     
-    # Boundary between 5 and 6
+    # Boundary: 5 genes stays at 500, 6 genes starts smooth interpolation
     rec_5 <- suggest_nboot(5, use_bca = FALSE)
     rec_6 <- suggest_nboot(6, use_bca = FALSE)
     expect_equal(rec_5, 500)
-    expect_equal(rec_6, 250)
+    # rec_6 uses smooth scaling: 500 - (6-5)*16.67 ≈ 483
+    expect_true(rec_6 < 500 && rec_6 > 250)
+    expect_gt(rec_5, rec_6)
 })
 
 # ============================================================================

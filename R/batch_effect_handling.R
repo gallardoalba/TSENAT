@@ -1192,13 +1192,22 @@ print.batch_pca <- function(x, ...) {
 #'
 #' Papers: C012, C013 (ComBat-like batch correction)
 #'
+#' @export
 #' @noRd
-apply_batch_correction_ranking <- function(entropy_matrix, ...) {
+apply_batch_correction_ranking <- function(
+    entropy_matrix,
+    batch_factor = NULL,
+    batch_column = NULL,
+    condition_factor = NULL,
+    condition_column = NULL,
+    assay = 1,
+    ...) {
   UseMethod("apply_batch_correction_ranking", entropy_matrix)
 }
 
+
+#' @export
 #' @noRd
-#' @keywords internal
 apply_batch_correction_ranking.default <- function(
     entropy_matrix,
     batch_factor,
@@ -1305,8 +1314,24 @@ apply_batch_correction_ranking.default <- function(
   )
 }
 
+#' @export
 #' @noRd
-#' @keywords internal
+apply_batch_correction_ranking.matrix <- function(
+    entropy_matrix,
+    batch_factor,
+    condition_factor = NULL,
+    ...) {
+  # Delegate to default method
+  apply_batch_correction_ranking.default(
+    entropy_matrix = entropy_matrix,
+    batch_factor = batch_factor,
+    condition_factor = condition_factor,
+    ...
+  )
+}
+
+#' @export
+#' @noRd
 apply_batch_correction_ranking.SummarizedExperiment <- function(
     entropy_matrix,
     batch_column,

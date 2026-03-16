@@ -28,12 +28,7 @@ calculate_lm_interaction(
   storey = FALSE,
   wy_randomizations = 1000,
   adaptive_knots = TRUE,
-  return_model_data = FALSE,
-  use_ci_weighting = FALSE,
-  use_hierarchical_prior = FALSE,
-  ar1_method = "yule_walker",
-  ar1_min_obs_per_gene = 6,
-  ar1_hyperprior_dist = "normal"
+  return_model_data = FALSE
 )
 }
 \arguments{
@@ -157,36 +152,6 @@ This parameter only affects method='gam'.}
 When FALSE, returns only the results data.frame (backward compatible with existing code).
 This enables users to access comprehensive model information for diagnostics and visualization
 while maintaining full backward compatibility.}
-
-\item{use_ci_weighting}{Logical; whether to apply inverse-variance weighting using bootstrap
-confidence intervals (Phase 1 improvement, default: FALSE). When TRUE, requires that input
-`se` was produced by `calculate_diversity(..., bootstrap=TRUE)` which generates `ci_lower` and
-`ci_upper` assays. Genes with narrower CIs (higher precision) receive higher weights in model
-fitting, while genes with wide CIs (high uncertainty) receive lower weights. This downweights
-noisy estimates and increases power for robust genes. The weighting scheme is: w_ij = 1/(CI_width_ij)^2,
-normalized per gene to mean=1.0 for interpretability. Output includes a `ci_weighted` column
-indicating whether weights were applied. Requires bootstrap CIs; if not available, a warning
-is issued and weighting is disabled.}
-
-\item{use_hierarchical_prior}{Logical; whether to apply hierarchical AR(1) prior estimation 
-(Phase 0 improvement, default: FALSE). When TRUE with corstr='ar1', stabilizes individual gene 
-AR(1) parameters via borrowing strength from the population distribution of φ parameters across 
-genes. Improves estimates for genes with sparse data. See estimate_hierarchical_ar1_prior() 
-and papers S168-S171 for details.}
-
-\item{ar1_method}{Character; AR(1) estimation method for hierarchical prior 
-(default: 'yule_walker'). Options: 'yule_walker' (fast, non-iterative) or 'mle' 
-(more accurate for small samples). Only used when use_hierarchical_prior=TRUE and corstr='ar1'.
-Reference: Yule-Walker equations in papers S168-S171.}
-
-\item{ar1_min_obs_per_gene}{Integer; minimum observations per gene required for trustworthy 
-φ estimate in hierarchical prior (default: 6). Genes with fewer observations are excluded 
-from prior estimation. Only used when use_hierarchical_prior=TRUE and corstr='ar1'.}
-
-\item{ar1_hyperprior_dist}{Character; distribution family for hyperprior on population 
-AR(1) parameters (default: 'normal'). Options: 'normal' (standard parametric assumption) or 
-'uniform' (empirical quantile-based, more robust). Only used when use_hierarchical_prior=TRUE 
-and corstr='ar1'. Reference: Papers BY002-BY003 (empirical Bayes).}
 }
 \value{
 When `return_model_data = FALSE` (default): A data.frame with columns `gene`, 

@@ -995,7 +995,6 @@ test_se_with_blocks <- function() {
     colData = colData
   )
 }
-´
 
 # ============================================================================
 # HEATMAP VISUALIZATION TESTS
