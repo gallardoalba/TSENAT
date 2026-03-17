@@ -701,7 +701,7 @@ the **jackknife** delta influence (a measure of transcript switching robustness)
 across different q-values (rows: 0.01 to 2.0, representing increasing diversity
 scales) and transcripts (columns) for each gene.
 
-```{r multi-q-heatmap, echo=TRUE, fig.width=18, fig.height=20}
+```{r multi-q-heatmap, echo=TRUE, fig.width=24, fig.height=20}
 # Generate multi-Q heatmaps using the dedicated function
 # The function extracts all needed information from the multi_q_results object
 heatmap_file <- NA

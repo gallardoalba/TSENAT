@@ -1,15 +1,15 @@
-#' Generate Concordance Comparison Plots for GAM vs Kruskal-Wallis Methods
+#' Generate Concordance Comparison Plots for GAM vs Friedman Test Methods
 #'
 #' Creates a two-panel visualization comparing p-value results and distributions
-#' from GAM and Kruskal-Wallis statistical tests, highlighting agreement between methods.
+#' from GAM and Friedman statistical tests, highlighting agreement between methods.
 #'
 #' @param comparison_df A data.frame with columns:
 #'   \itemize{
 #'     \item \code{gene}: Gene names
 #'     \item \code{p_gam}: GAM p-values
-#'     \item \code{p_kw}: Kruskal-Wallis p-values
+#'     \item \code{p_friedman}: Friedman test p-values
 #'     \item \code{agreement}: Categorical variable indicating agreement type
-#'       (e.g., "Both significant", "GAM only", "K-W only", "Neither significant")
+#'       (e.g., "Both significant", "GAM only", "Friedman only", "Neither significant")
 #'   }
 #'
 #' @return A gridExtra grob object containing the combined two-panel plot.
@@ -24,12 +24,13 @@
 #'
 #' @examples
 #' \dontrun{
-#'   # Assuming comparison_df has been created with GAM and K-W results
+#'   # Assuming comparison_df has been created with GAM and Friedman results
 #'   plot <- plot_method_concordance(comparison_df)
 #'   plot(plot)
 #' }
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 plot_method_concordance <- function(comparison_df) {
   
   # Check if data is valid
@@ -38,7 +39,7 @@ plot_method_concordance <- function(comparison_df) {
   }
   
   # Check required columns
-  required_cols <- c("p_gam", "p_kw", "agreement")
+  required_cols <- c("p_gam", "p_friedman", "agreement")
   if (!all(required_cols %in% colnames(comparison_df))) {
     missing <- setdiff(required_cols, colnames(comparison_df))
     stop("comparison_df missing required columns: ", paste(missing, collapse = ", "))
@@ -47,7 +48,7 @@ plot_method_concordance <- function(comparison_df) {
   # Create comparison plot
   p1 <- ggplot2::ggplot(comparison_df, 
                         ggplot2::aes(x = -log10(p_gam), 
-                                     y = -log10(p_kw), 
+                                     y = -log10(p_friedman), 
                                      color = agreement)) +
     ggplot2::geom_point(size = 2.5, alpha = 0.6) +
     ggplot2::geom_vline(xintercept = -log10(0.05), linetype = "dashed", color = "gray50") +
@@ -55,14 +56,14 @@ plot_method_concordance <- function(comparison_df) {
     ggplot2::scale_color_manual(
       values = c("Both significant" = "#2ecc71", 
                  "GAM only" = "#3498db",
-                 "K-W only" = "#e74c3c",
+                 "Friedman only" = "#e74c3c",
                  "Neither significant" = "#95a5a6"),
-      breaks = c("Both significant", "GAM only", "K-W only", "Neither significant")
+      breaks = c("Both significant", "GAM only", "Friedman only", "Neither significant")
     ) +
     ggplot2::labs(
-      title = "GAM vs Kruskal-Wallis: Method Concordance",
+      title = "GAM vs Friedman Test: Method Concordance",
       x = "-log10(p-value, GAM)",
-      y = "-log10(p-value, K-W)",
+      y = "-log10(p-value, Friedman)",
       color = "Significance"
     ) +
     ggplot2::theme_minimal() +
@@ -74,14 +75,14 @@ plot_method_concordance <- function(comparison_df) {
   
   # P-value distribution comparison
   p_long <- data.frame(
-    p_value = c(comparison_df$p_gam, comparison_df$p_kw),
-    method = c(rep("GAM", nrow(comparison_df)), rep("K-W", nrow(comparison_df))),
+    p_value = c(comparison_df$p_gam, comparison_df$p_friedman),
+    method = c(rep("GAM", nrow(comparison_df)), rep("Friedman", nrow(comparison_df))),
     stringsAsFactors = FALSE
   )
   
   p2 <- ggplot2::ggplot(p_long, ggplot2::aes(x = p_value, fill = method)) +
     ggplot2::geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
-    ggplot2::scale_fill_manual(values = c("GAM" = "#3498db", "K-W" = "#e74c3c")) +
+    ggplot2::scale_fill_manual(values = c("GAM" = "#3498db", "Friedman" = "#e74c3c")) +
     ggplot2::labs(
       title = "P-value Distributions",
       x = "P-value",
@@ -110,31 +111,31 @@ plot_method_concordance <- function(comparison_df) {
 #'     \item \code{effect_size}: Effect size estimate (optional)
 #'   }
 #'
-#' @param kw_results A data.frame from Kruskal-Wallis analysis with columns:
+#' @param kw_results A data.frame from Friedman test analysis with columns:
 #'   \itemize{
 #'     \item \code{gene}: Gene identifiers (must match gam_results$gene)
-#'     \item \code{p_value}: Kruskal-Wallis p-values
-#'     \item \code{adj_p_value}: Adjusted K-W p-values (optional)
+#'     \item \code{p_value}: Friedman test p-values
+#'     \item \code{adj_p_value}: Adjusted Friedman p-values (optional)
 #'     \item \code{effect_size_eta2}: Effect size estimate (optional)
 #'   }
 #'
 #' @return A list with elements:
 #'   \itemize{
 #'     \item \code{comparison_df}: Data frame with merged results and agreement classification
-#'       Contains columns: gene, p_gam, padj_gam, effect_gam, p_kw, padj_kw, effect_kw,
-#'       gam_sig, kw_sig, agreement
-#'     \item \code{spearman_rho}: Spearman correlation between GAM and K-W p-values
+#'       Contains columns: gene, p_gam, padj_gam, effect_gam, p_friedman, padj_friedman, effect_friedman,
+#'       gam_sig, friedman_sig, agreement
+#'     \item \code{spearman_rho}: Spearman correlation between GAM and Friedman p-values
 #'     \item \code{high_conf}: Subset of comparison_df for genes significant in both methods,
 #'       ordered by minimum p-value
 #'     \item \code{agreement_table}: Table of agreement categories with counts
 #'   }
 #'
 #' @details
-#' Agreement categories are defined based on significance at p < 0.05:
+#' Agreement categories are defined based on significance at adj_p < 0.05:
 #' \itemize{
-#'   \item "Both significant": Significant in both GAM and K-W (most reliable)
+#'   \item "Both significant": Significant in both GAM and Friedman (most reliable)
 #'   \item "GAM only": Significant only in GAM
-#'   \item "K-W only": Significant only in Kruskal-Wallis
+#'   \item "Friedman only": Significant only in Friedman test
 #'   \item "Neither significant": Not significant in either method
 #' }
 #'
@@ -156,7 +157,8 @@ plot_method_concordance <- function(comparison_df) {
 #'   cat("Spearman ρ =", concordance_result$spearman_rho)
 #' }
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 compute_method_concordance <- function(gam_results, kw_results) {
   
   # Initialize outputs
@@ -202,13 +204,13 @@ compute_method_concordance <- function(gam_results, kw_results) {
       } else {
         rep(NA_real_, length(gam_idx))
       },
-      p_kw = kw_results$p_value[kw_idx],
-      padj_kw = if ("adj_p_value" %in% colnames(kw_results)) {
+      p_friedman = kw_results$p_value[kw_idx],
+      padj_friedman = if ("adj_p_value" %in% colnames(kw_results)) {
         kw_results$adj_p_value[kw_idx]
       } else {
         rep(NA_real_, length(kw_idx))
       },
-      effect_kw = if ("effect_size_eta2" %in% colnames(kw_results)) {
+      effect_friedman = if ("effect_size_eta2" %in% colnames(kw_results)) {
         kw_results$effect_size_eta2[kw_idx]
       } else {
         rep(NA_real_, length(kw_idx))
@@ -216,18 +218,18 @@ compute_method_concordance <- function(gam_results, kw_results) {
       stringsAsFactors = FALSE
     )
     
-    # Calculate Spearman correlation on p-values
-    spearman_rho <- stats::cor(comparison_df$p_gam, comparison_df$p_kw,
+    # Calculate Spearman correlation on ADJUSTED p-values (for consistency with significance threshold)
+    spearman_rho <- stats::cor(comparison_df$padj_gam, comparison_df$padj_friedman,
                                method = "spearman", use = "complete.obs")
     
-    # Categorize agreement based on significance (p < 0.05)
-    comparison_df$gam_sig <- comparison_df$p_gam < 0.05
-    comparison_df$kw_sig <- comparison_df$p_kw < 0.05
+    # Categorize agreement based on adjusted p-value significance (adj_p < 0.05)
+    comparison_df$gam_sig <- comparison_df$padj_gam < 0.05
+    comparison_df$friedman_sig <- comparison_df$padj_friedman < 0.05
     
     comparison_df$agreement <- ifelse(
-      comparison_df$gam_sig & comparison_df$kw_sig, "Both significant",
-      ifelse(comparison_df$gam_sig & !comparison_df$kw_sig, "GAM only",
-             ifelse(!comparison_df$gam_sig & comparison_df$kw_sig, "K-W only",
+      comparison_df$gam_sig & comparison_df$friedman_sig, "Both significant",
+      ifelse(comparison_df$gam_sig & !comparison_df$friedman_sig, "GAM only",
+             ifelse(!comparison_df$gam_sig & comparison_df$friedman_sig, "Friedman only",
                     "Neither significant"))
     )
     
@@ -235,11 +237,11 @@ compute_method_concordance <- function(gam_results, kw_results) {
     agreement_table <- table(comparison_df$agreement)
     
     # Extract high-confidence genes (significant in both methods)
-    high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$kw_sig, ]
+    high_conf <- comparison_df[comparison_df$gam_sig & comparison_df$friedman_sig, ]
     
     # Sort by minimum p-value across methods
     if (nrow(high_conf) > 0) {
-      high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_kw)), ]
+      high_conf <- high_conf[order(pmax(high_conf$p_gam, high_conf$p_friedman)), ]
     }
   }
   

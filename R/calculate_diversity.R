@@ -484,6 +484,31 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             2]), row.names = col_ids, stringsAsFactors = FALSE)
         colnames(result_assay) <- col_ids
         rownames(result_assay) <- row_ids
+        
+        # Preserve original colData columns from input SE for multi-q data
+        # For multiple q-values, we have one row per (sample, q) pair
+        # Map original metadata based on sample names and repeat for each q-value
+        if ((is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment"))) {
+            orig_coldata <- try(SummarizedExperiment::colData(original_x), silent = TRUE)
+            if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) > 0) {
+                # Map sample names in col_split[, 1] to original colData rows
+                # Try matching by rownames first, then by Sample column if available
+                sample_indices <- NA
+                if (length(rownames(orig_coldata)) > 0 && rownames(orig_coldata)[1] != "") {
+                    sample_indices <- match(col_split[, 1], rownames(orig_coldata))
+                } else if ("Sample" %in% colnames(orig_coldata)) {
+                    sample_indices <- match(col_split[, 1], as.character(orig_coldata$Sample))
+                }
+                
+                # Add original colData columns if mapping was successful
+                if (!all(is.na(sample_indices))) {
+                    for (col in colnames(orig_coldata)) {
+                        result_colData[[col]] <- orig_coldata[[col]][sample_indices]
+                    }
+                }
+            }
+        }
+        
         # Update rowData with gene names if available
         if (!is.null(gene_names)) {
             result_rowData <- data.frame(gene_id = result[, 1], gene_name = gene_names, row.names = row_ids)
@@ -974,7 +999,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
 #' *Genome Biology*, 15(12), 550.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 estimate_pseudocount <- function(se, verbose = TRUE) {
     # Extract raw counts
     if (methods::is(se, "SummarizedExperiment")) {

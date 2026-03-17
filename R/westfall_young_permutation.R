@@ -354,14 +354,19 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
 # RETURNS:
 #   List with:
 #   - perm_minima: numeric vector of length wy_randomizations (minimum p-value per permutation)
+#   - n_permutations: integer (wy_randomizations)
 #   - message: character string (if verbose=TRUE)
 #
-# PHIPSON-SMYTH CORRECTION:
-#   Applied by caller as: (sum(perm_minima <= p_obs) + 1) / (wy_randomizations + 1)
-#   This adjusts for finite permutation sample and ensures 0 < p_adj <= 1
+# WESTFALL-YOUNG STEP-DOWN PROCEDURE (applied by caller):
+#   For each gene's observed p-value p_obs:
+#     adj_p_value = (count of permutations where min_p_value <= p_obs) + 1) / (wy_randomizations + 1)
+#   This implements step-down FWER control via Phipson-Smyth correction.
+#   Note: If signal is very strong, all permutation minima may be >>observed p-values,
+#   leading to identical adjusted p-values = (0+1)/(B+1). This is CORRECT behavior!
 #
 .tsenat_westfall_young_permutation <- function(n_genes, wy_randomizations,
                                                permute_fn, refit_fn,
+                                               nthreads = 1,
                                                verbose = FALSE) {
     # Args:
     #   n_genes: Total number of genes (for verbose output)
@@ -370,6 +375,8 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
     #     Should return group/sample assignment for permuted data
     #   refit_fn: Callback function (permutation_assignment) → p_values_vector
     #     Should refit model with permuted assignment, return vector of p-values (length n_genes)
+    #   nthreads: Number of threads for parallel permutation (default: 1 = serial)
+    #     If > 1, uses parallel::mclapply() for distributed permutations
     #   verbose: If TRUE, print progress messages
     # 
     # Returns:
@@ -379,26 +386,61 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
         stop("wy_randomizations must be >= 1")
     }
     
-    # Initialize storage for minimum p-values across genes for each permutation
-    perm_minima <- numeric(wy_randomizations)
+    nthreads <- as.integer(nthreads)
+    if (nthreads < 1) nthreads <- 1
     
-    # Permutation loop: for each of wy_randomizations random assignments
-    for (perm_idx in seq_len(wy_randomizations)) {
-        # Call permutation function to get this permutation's assignment
-        perm_assignment <- permute_fn()
+    # Determine if parallel execution is possible and beneficial
+    use_parallel <- (nthreads > 1) && (wy_randomizations > 1)
+    
+    if (use_parallel) {
+        # Parallel execution: distribute permutations across nthreads cores
+        if (verbose) {
+            message(sprintf("[WY Permutation] Using %d threads for %d permutations", 
+                          nthreads, wy_randomizations))
+        }
         
-        # Call model-specific refit function with permuted assignment
-        # Expected return: numeric vector of p-values (length n_genes)
-        perm_pvalues <- refit_fn(perm_assignment)
+        # Function to compute one permutation (suitable for lapply/mclapply)
+        compute_permutation <- function(perm_idx) {
+            perm_assignment <- permute_fn()
+            perm_pvalues <- refit_fn(perm_assignment)
+            min_pval <- min(perm_pvalues, na.rm = TRUE)
+            
+            # Report progress if verbose (approximate, may be out of order)
+            if (verbose && perm_idx %% max(1, ceiling(wy_randomizations / 10)) == 0) {
+                message(sprintf("[WY Permutation] Completed ~%d/%d permutations", 
+                              perm_idx, wy_randomizations))
+            }
+            
+            return(min_pval)
+        }
         
-        # Track minimum p-value across all genes for this permutation
-        # This is the WY "multiple comparison" correction: using min pval distribution
-        perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
+        # Use parallel::mclapply for distributed computation
+        # mc.cores limits to nthreads; automatically falls back to serial on Windows
+        perm_minima <- unlist(parallel::mclapply(
+            X = seq_len(wy_randomizations),
+            FUN = compute_permutation,
+            mc.cores = min(nthreads, parallel::detectCores()),
+            mc.preschedule = TRUE,
+            mc.set.seed = TRUE
+        ))
         
-        # Verbose output: report progress at reasonable intervals
-        if (verbose && perm_idx %% max(1, ceiling(wy_randomizations / 10)) == 0) {
-            message(sprintf("[WY Permutation] Completed %d/%d permutations", 
-                          perm_idx, wy_randomizations))
+    } else {
+        # Serial execution: standard for loop
+        if (verbose && nthreads > 1) {
+            message("[WY Permutation] nthreads > 1 but parallel execution not available; using serial mode")
+        }
+        
+        perm_minima <- numeric(wy_randomizations)
+        
+        for (perm_idx in seq_len(wy_randomizations)) {
+            perm_assignment <- permute_fn()
+            perm_pvalues <- refit_fn(perm_assignment)
+            perm_minima[perm_idx] <- min(perm_pvalues, na.rm = TRUE)
+            
+            if (verbose && perm_idx %% max(1, ceiling(wy_randomizations / 10)) == 0) {
+                message(sprintf("[WY Permutation] Completed %d/%d permutations", 
+                              perm_idx, wy_randomizations))
+            }
         }
     }
     
@@ -413,7 +455,140 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
         perm_minima = perm_minima,
         n_permutations = wy_randomizations,
         message = if (verbose) 
-            sprintf("Westfall-Young permutation test: %d permutations on %d genes completed",
+            sprintf("Westfall-Young permutation test: %d permutations on %d genes completed (nthreads=%d)",
+                   wy_randomizations, n_genes, nthreads)
+            else NULL
+    )
+    
+    return(result)
+}
+
+# ════════════════════════════════════════════════════════════════════════════════
+# NEW (March 2026): Rank-Based Westfall-Young Permutation Using TEST STATISTICS
+# ════════════════════════════════════════════════════════════════════════════════
+#
+# Problem: Standard WY using p-values loses precision when all p-values are extreme
+# Solution: Track test statistics (H, W, etc.) instead for better effect size differentiation
+#
+
+.tsenat_westfall_young_permutation_rank <- function(n_genes, wy_randomizations,
+                                                     permute_fn, refit_fn,
+                                                     nthreads = 1,
+                                                     verbose = FALSE) {
+    # Args (same as regular version, but refit_fn returns list with $statistics):
+    #   n_genes: Total number of genes (for verbose output)
+    #   wy_randomizations: Number of permutations to perform
+    #   permute_fn: Callback function () → permutation_assignment
+    #   refit_fn: Callback function () → list(statistics=vector, p_values=vector)
+    #     Returns list with test statistics (one per gene)
+    #   nthreads: Number of threads for parallel permutation
+    #   verbose: If TRUE, print progress messages
+    # 
+    # Returns:
+    #   List with: perm_stats_matrix (n_genes × wy_randomizations matrix of test statistics),
+    #              n_permutations, message
+    #   Note: Each row = gene, each column = permutation
+    #         Allows per-gene p-value computation via Westfall-Young step-down
+    
+    if (wy_randomizations < 1) {
+        stop("wy_randomizations must be >= 1")
+    }
+    
+    nthreads <- as.integer(nthreads)
+    if (nthreads < 1) nthreads <- 1
+    
+    # Determine if parallel execution is possible and beneficial
+    use_parallel <- (nthreads > 1) && (wy_randomizations > 1)
+    
+    if (use_parallel) {
+        # Parallel execution: distribute permutations across nthreads cores
+        if (verbose) {
+            message(sprintf("[WY Permutation (Rank)] Using %d threads for %d permutations (using test statistics)", 
+                          nthreads, wy_randomizations))
+        }
+        
+        # Function to compute one permutation (suitable for lapply/mclapply)
+        # FIXED: Return FULL statistics vector, not just minimum
+        compute_permutation <- function(perm_idx) {
+            perm_assignment <- permute_fn()
+            perm_results <- refit_fn(perm_assignment)
+            
+            # Extract test statistics (not p-values for rank tests)
+            if (is.list(perm_results) && !is.null(perm_results$statistics)) {
+                perm_stats <- perm_results$statistics
+            } else if (is.numeric(perm_results)) {
+                # Fallback: if refit_fn returns just vector, treat as p-values
+                perm_stats <- -log(perm_results + 1e-300)  # Convert to monotonic scale
+            } else {
+                stop("refit_fn must return numeric vector or list with $statistics")
+            }
+            
+            # Report progress if verbose
+            if (verbose && perm_idx %% max(1, ceiling(wy_randomizations / 10)) == 0) {
+                message(sprintf("[WY Permutation (Rank)] Completed ~%d/%d permutations", 
+                              perm_idx, wy_randomizations))
+            }
+            
+            return(perm_stats)  # Return FULL vector, not min
+        }
+        
+        # Use parallel::mclapply for distributed computation
+        # FIXED: Collect as list of vectors (one per permutation), not just minima
+        perm_stats_list <- parallel::mclapply(
+            X = seq_len(wy_randomizations),
+            FUN = compute_permutation,
+            mc.cores = min(nthreads, parallel::detectCores()),
+            mc.preschedule = TRUE,
+            mc.set.seed = TRUE
+        )
+        
+        # Convert list of vectors to matrix (genes × permutations)
+        perm_stats_matrix <- do.call(cbind, perm_stats_list)
+        
+    } else {
+        # Serial execution: standard for loop
+        if (verbose && nthreads > 1) {
+            message("[WY Permutation (Rank)] nthreads > 1 but parallel execution not available; using serial mode")
+        }
+        
+        perm_stats_list <- list()  # FIXED: Collect full statistics, not minima
+        
+        for (perm_idx in seq_len(wy_randomizations)) {
+            perm_assignment <- permute_fn()
+            perm_results <- refit_fn(perm_assignment)
+            
+            # Extract test statistics (not p-values for rank tests)
+            if (is.list(perm_results) && !is.null(perm_results$statistics)) {
+                perm_stats <- perm_results$statistics
+            } else if (is.numeric(perm_results)) {
+                # Fallback: if refit_fn returns just vector, treat as p-values
+                perm_stats <- -log(perm_results + 1e-300)
+            } else {
+                stop("refit_fn must return numeric vector or list with $statistics")
+            }
+            
+            perm_stats_list[[perm_idx]] <- perm_stats  # Store full vector
+            
+            if (verbose && perm_idx %% max(1, ceiling(wy_randomizations / 10)) == 0) {
+                message(sprintf("[WY Permutation (Rank)] Completed %d/%d permutations", 
+                              perm_idx, wy_randomizations))
+            }
+        }
+        
+        # Convert list of vectors to matrix (genes × permutations)
+        perm_stats_matrix <- do.call(cbind, perm_stats_list)
+    }
+    
+    # Ensure non-negative (test statistics should be non-negative)
+    perm_stats_matrix <- pmax(perm_stats_matrix, 0)
+    
+    # Return results in format expected by callers
+    # FIXED: Return full statistics matrix (genes × permutations), not just minima
+    result <- list(
+        perm_stats_matrix = perm_stats_matrix,  # Matrix: each row = gene, each column = permutation
+        n_permutations = wy_randomizations,
+        message = if (verbose) 
+            sprintf("Westfall-Young permutation test (rank-based): %d permutations on %d genes (using test statistics)",
                    wy_randomizations, n_genes)
             else NULL
     )

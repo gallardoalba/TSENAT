@@ -517,24 +517,27 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     }
     
     # Auto-detect subject_col from colData if paired=TRUE and subject_col=NULL
-    # Prioritize 'paired_samples' or 'sample_base' columns (created by map_metadata),
-    # which contain the actual pairing information, not the condition variable at position 3
+    # Prioritize 'paired_samples' or 'sample_base' columns (created by calculate_diversity or map_metadata)
     if (paired && is.null(subject_col)) {
         cd_colnames <- colnames(SummarizedExperiment::colData(se))
         
-        # Check for paired_samples or sample_base columns first
+        # Check for paired_samples or sample_base columns
         if ("paired_samples" %in% cd_colnames) {
             subject_col <- "paired_samples"
+            if (verbose) {
+                message("[calculate_lm_interaction] paired=TRUE detected; auto-using subject_col='paired_samples'")
+            }
         } else if ("sample_base" %in% cd_colnames) {
             subject_col <- "sample_base"
-        } else if (length(cd_colnames) >= 3) {
-            # Fallback to position 3 if no pairing columns exist
-            subject_col <- cd_colnames[3]
-        }
-        
-        if (!is.null(subject_col) && verbose) {
-            message("[calculate_lm_interaction] paired=TRUE detected; auto-using subject_col='", 
-                    subject_col, "'")
+            if (verbose) {
+                message("[calculate_lm_interaction] paired=TRUE detected; auto-using subject_col='sample_base'")
+            }
+        } else {
+            # Error if paired=TRUE but no recognized pairing column found
+            stop("paired=TRUE requires either 'paired_samples' or 'sample_base' column in colData. ",
+                 "Available columns: ", paste(cd_colnames, collapse = ", "),
+                 ". Ensure calculate_diversity() or map_metadata() was called with appropriate metadata.",
+                 call. = FALSE)
         }
     }
 
@@ -716,6 +719,7 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
                 
                 return(perm_pvalues)
             },
+            nthreads = nthreads,
             verbose = verbose
         )
         

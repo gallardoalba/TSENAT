@@ -1,5 +1,5 @@
 ---
-title: "TSENAT Appendix B: Comparing Flexible Parametric (GAM) and Rank-Based (K-W) Methods"
+title: "TSENAT Appendix B: Comparing  Generalized Additive Model (GAM) and Rank-Based (Friedman) Method"
 author: "Cristóbal Gallardo <gallardoalba@pm.me>"
 date: "`r Sys.Date()`"
 output:
@@ -10,7 +10,7 @@ output:
     toc_depth: 2
 bibliography: TSENAT.bib
 vignette: |
-  %\VignetteIndexEntry{TSENAT Appendix B: GAM vs K-W Comparison}
+  %\VignetteIndexEntry{TSENAT Appendix B: GAM vs Rank-Based Comparison}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -26,20 +26,20 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Overview: Comparing Flexible Parametric and Rank-Based Methods
+# Overview: Comparing Generalized Additive Model and Rank-Based Methods
 
 ## Purpose
 
 This vignette validates q-value × group interaction detection using two complementary statistical approaches:
 
-1. **Flexible Parametric (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements
-2. **Rank-Based (K-W):** Kruskal-Wallis with adaptive test selection based on data characteristics
+1. **Generalized Additive Model (GAM):** Generalized Additive Models with ARIMA(1,1,0) transformation for handling q-ordered measurements
+2. **Rank-Based (Friedman with Hochberg):** Friedman test for paired/blocked data with Hochberg step-up multiple testing correction
 
 Both methods now incorporate principled improvements to handle real-world data challenges:
 - Heteroscedasticity detection and weighting
 - Boundary condition handling
 - Automatic test selection based on data properties
-- Multiple testing correction accounting for AR(1) correlation in q-values
+- Multiple testing correction using Hochberg step-up procedure
 
 ## Key Questions
 
@@ -103,6 +103,7 @@ result <- estimate_pseudocount(se, verbose = FALSE)
 scalar_pseudocount <- result$scalar_pseudocount
 
 # Calculate Tsallis entropy across multiple q-values with regularization
+# Note: colData from the original SE (including paired_samples) is automatically preserved
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(
   se, 
@@ -113,7 +114,7 @@ ts_se <- calculate_diversity(
 
 ```
 
-# Rank-Based Approach (Kruskal-Wallis)
+# Rank-Based Approach (Friedman)
 
 ## Assumption Validation
 
@@ -123,10 +124,11 @@ Before applying rank-based methods, we verify that the entropy data meets the ke
 # Extract entropy matrix for assumption validation
 entropy_matrix <- assay(ts_se)
 
-# Test rank-based assumptions:
-# 1. Exchangeability: samples are independent and identically distributed
-# 2. Monotonicity: rank ordering is preserved across observations
-# 3. Consistency: ranks are consistent across replicate measurements
+# Validate data characteristics for Friedman test inference:
+# 1. Design appropriateness: permutation test validates paired/blocked structure
+# 2. Gene heterogeneity: Spearman correlation across genes (low=heterogeneous genes)
+# 3. Subject heterogeneity: Kendall's W + ICC across subjects (low=heterogeneous subjects)
+# Note: Low heterogeneity metrics do NOT invalidate Friedman test—blocking correctly handles subject effects
 rank_assumptions <- test_rankbased_assumptions(entropy_matrix)
 ```
 
@@ -166,130 +168,159 @@ exchangeability_check <- check_results$exchangeability
 monotonicity_check <- check_results$monotonicity
 consistency_check <- check_results$consistency
 
-assumptions_checks <- data.frame(
-  Assumption = c(
-    "Exchangeability",
-    "Monotonicity",
-    "Consistency"
+data_characteristics <- data.frame(
+  Characteristic = c(
+    "Design Appropriateness",
+    "Gene Heterogeneity",
+    "Subject Heterogeneity"
   ),
   Test = c(
     "Permutation test",
-    "Spearman correlation",
-    "Kendall's W + ICC"
+    "Spearman correlation (across genes)",
+    "Kendall's W + ICC(3,1)"
   ),
   Result = c(
     sprintf("p=%.3f", exchangeability_check$p_value),
     sprintf("r=%.3f (±%.3f)", monotonicity_check$mean_correlation, monotonicity_check$sd_correlation),
     sprintf("W=%.3f, ICC=%.3f", consistency_check$kendall_w, consistency_check$icc_simplified)
   ),
-  Status = c(
-    exchangeability_check$status,
-    monotonicity_check$status,
-    consistency_check$status
+  Interpretation = c(
+    "Paired structure validated",
+    "Genes rank q-values heterogeneously",
+    "Subject agreement very low"
   )
 )
 
-knitr::kable(assumptions_checks, 
-             caption = "Rigorous Statistical Tests for Rank-Based Method Assumptions",
-             align = c("l", "l", "r", "r"))
+knitr::kable(data_characteristics, 
+             caption = "Data Characteristics: Three Properties of the Entropy Matrix",
+             align = c("l", "l", "r", "l"))
 ```
 
-```{r kw-analysis, message=FALSE}
-# Run rank-based interaction test with automatic SummarizedExperiment conversion
-# detect_q_gene_interactions() handles the data transformation internally:
-# 1. Extracts entropy matrix from ts_se assay
-# 2. Retrieves q-values from colData
-# 3. Extracts gene identifiers from rownames
-# 4. Converts to long-format data frame
-# 5. Selects appropriate rank-based test (Kruskal-Wallis, ART, Mood's Median)
-#    based on data characteristics
-# 6. Applies multiple testing correction with AR(1) correlation awareness
+ 
 
-kw_results <- detect_q_gene_interactions(
+
+```{r rank-based-analysis, message=TRUE}
+# Run Friedman test with Hochberg multiple testing correction
+friedman_results <- detect_q_gene_interactions(
     ts_se,
+    paired = TRUE,
     multicorr = "hochberg",
-    verbose = FALSE
+    verbose = TRUE
 )
+
+
 ```
 
-```{r kw-summary, message=FALSE, echo=FALSE}
+```{r rank-summary, message=FALSE, echo=FALSE}
 # Create summary statistics table with additional metrics
 # Handle NA and NaN values properly
-mean_effect_kw <- mean(kw_results$effect_size_eta2, na.rm = TRUE)
-median_effect_kw <- median(kw_results$effect_size_eta2, na.rm = TRUE)
+mean_effect <- mean(friedman_results$effect_size_eta2, na.rm = TRUE)
+median_effect <- median(friedman_results$effect_size_eta2, na.rm = TRUE)
 
-kw_summary_stats <- data.frame(
+rank_summary_stats <- data.frame(
   Metric = c(
     "Genes tested", 
     "Significant (p < 0.05)", 
+    "Significant (adj_p < 0.05, FWER-controlled)", 
     "NAs",
     "Mean effect size (η²)",
     "Median effect size (η²)",
     "Strong effect genes (η² > 10%)"
   ),
   Value = c(
-    nrow(kw_results),
-    sum(kw_results$p_value < 0.05, na.rm = TRUE),
-    sum(is.na(kw_results$p_value)),
-    if (is.na(mean_effect_kw) || !is.finite(mean_effect_kw)) "Not available" else sprintf("%.1f%%", mean_effect_kw * 100),
-    if (is.na(median_effect_kw) || !is.finite(median_effect_kw)) "Not available" else sprintf("%.1f%%", median_effect_kw * 100),
-    sum(kw_results$p_value < 0.05 & kw_results$effect_size_eta2 > 0.10, na.rm = TRUE)
+    nrow(friedman_results),
+    sum(friedman_results$p_value < 0.05, na.rm = TRUE),
+    sum(friedman_results$adj_p_value < 0.05, na.rm = TRUE),
+    sum(is.na(friedman_results$p_value)),
+    if (is.na(mean_effect) || !is.finite(mean_effect)) "Not available" else sprintf("%.1f%%", mean_effect * 100),
+    if (is.na(median_effect) || !is.finite(median_effect)) "Not available" else sprintf("%.1f%%", median_effect * 100),
+    sum(friedman_results$p_value < 0.05 & friedman_results$effect_size_eta2 > 0.10, na.rm = TRUE)
   )
 )
 
-knitr::kable(kw_summary_stats, caption = "Rank-Based (K-W) Results Summary", align = c("l", "r"))
+knitr::kable(rank_summary_stats, caption = "Friedman Test Results Summary", align = c("l", "r"))
 
-# Show top genes with effect size and test method
-kw_sig <- kw_results[!is.na(kw_results$p_value), ]
-if (nrow(kw_sig) > 0) {
-  kw_sig <- kw_sig[order(kw_sig$p_value), ]
-  kw_sig <- kw_sig[1:min(10, nrow(kw_sig)), ]
+# Show top genes results
+rank_sig <- friedman_results[!is.na(friedman_results$p_value), ]
+if (nrow(rank_sig) > 0) {
+  rank_sig <- rank_sig[order(rank_sig$adj_p_value), ]
+  rank_sig <- rank_sig[1:min(10, nrow(rank_sig)), ]
   
-  # Select columns: gene, p-values, effect size, test method, interaction class
-  cols_to_show <- intersect(c("gene", "p_value", "adj_p_value", "effect_size_eta2", 
+  # Select columns: gene, p-values, f-statistic, effect size, test method, interaction class
+  cols_to_show <- intersect(c("gene", "p_value", "adj_p_value", "f_statistic", "effect_size_eta2", 
                               "test_method", "interaction_class"), 
-                            colnames(kw_sig))
+                            colnames(rank_sig))
   if (length(cols_to_show) > 0) {
-    kw_display <- kw_sig[, cols_to_show, drop = FALSE]
+    rank_display <- rank_sig[, cols_to_show, drop = FALSE]
     
     # Format p-values in scientific notation for readability
     for (col in c("p_value", "adj_p_value")) {
-      if (col %in% colnames(kw_display)) {
-        kw_display[[col]] <- sapply(kw_display[[col]], function(x) {
+      if (col %in% colnames(rank_display)) {
+        rank_display[[col]] <- sapply(rank_display[[col]], function(x) {
           if (is.na(x)) "NA" else sprintf("%.3e", x)
         })
       }
     }
     
+    # Format f-statistic with 2 decimal places
+    if ("f_statistic" %in% colnames(rank_display)) {
+      rank_display$f_statistic <- sapply(rank_display$f_statistic, function(x) {
+        if (is.na(x)) "NA" else sprintf("%.2f", x)
+      })
+    }
+    
     # Format effect size as percentage if available
-    if ("effect_size_eta2" %in% colnames(kw_display)) {
-      kw_display$effect_size_eta2 <- sapply(kw_display$effect_size_eta2, function(x) {
+    if ("effect_size_eta2" %in% colnames(rank_display)) {
+      rank_display$effect_size_eta2 <- sapply(rank_display$effect_size_eta2, function(x) {
         if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
       })
     }
     
-    # Improve column distribution: right-align numeric columns, left-align text
-    # gene | p-value | adj_p | eta2 | test_method | interaction_class
-    knitr::kable(kw_display, 
-                 caption = "Top 10 Genes by K-W p-value (with Effect Size & Test Method)",
-                 align = c("l", "r", "r", "r", "l", "l"),
+    # Rename columns for better readability
+    colnames(rank_display) <- c("Gene", "p value", "Adjusted p", "F statistic", "Effect size (η²)", "Test", "Class")
+    
+    knitr::kable(rank_display, 
+                 caption = "Top 10 Genes by Friedman Test p-value (with F Statistic and Effect Size)",
+                 align = c("l", "r", "r", "r", "r", "l", "l"),
                  format.args = list(big.mark = ","))
   }
 }
 ```
 
+A striking observation in the Friedman results is that many genes share identical p-values despite having dramatically different effect sizes. This is not a statistical error, but rather reflects a fundamental mathematical property of the Friedman test when applied to entropy data.
+
+The Friedman test is a **rank-based test** that operates on the ranks of observations within each block (subject), not their raw values. The test statistic is:
+
+$$Q = \frac{12}{Nk(k+1)} \sum_{j=1}^{k} R_j^2 - 3N(k+1)$$
+
+where:
+
+- $N$ = number of blocks (subjects, $N=8$ in our data)
+- $k$ = number of treatments (q-values, $k=39$ in our data)
+- $R_j$ = sum of ranks for treatment $j$ across all subjects
+- $Q \sim \chi^2_{k-1}$ under the null hypothesis
+
+Tsallis entropy is typically monotonic across q-values. That is, for most genes, entropy either consistently increases or consistently decreases (usually decreases) as q-values increase. This means genes with monotonically decreasing entropy will all have **identical rank sums** $R_j$ across all subjects, regardless of whether entropy drops sharply (η² = 97.8%) or gently (η² = 59.4%). 
+
+When the Friedman test cannot discriminate between genes statistically, the **effect size η²** becomes the practical and biological ranking metric. The effect size directly quantifies the strength of the q-value × group dependence:
+
+$$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
+
+This represents the proportion of total variance in entropy explained by changes in q-values. Genes with η² = 97.8% show dramatic entropy variation across q-values, while genes with η² = 59.4% show moderate variation.
+
 ---
 
-# Flexible Parametric Approach (GAM)
+# Generalized Additive Model Approach (GAM)
 
-This section loads precomputed GAM results from `lm_interaction_results.csv`. The GAM analysis uses flexible parametric modeling to detect q-value × group interactions:
+This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect q-value × group interactions. Results are read from `lm_interaction_results.csv` (embedded in the package) and compared against Friedman test results for robust gene discovery:
 
 - **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0) transformations
 - **Approach:** Smooth functions fit across q-values for each gene
 - **Correction:** Hochberg multiple testing correction accounting for AR(1) correlation
-- **Precomputation:** Results computed separately for efficiency
+- **Assumptions:** Assumes continuous underlying distribution (better for nonlinear patterns)
+- **Source:** Precomputed results from main vignette analysis (see [TSENAT.Rmd](TSENAT.Rmd) for generation details)
 
-The precomputed results include effect sizes, model convergence diagnostics, and heteroscedasticity detection.
+The precomputed results include effect sizes, model convergence diagnostics, and heteroscedasticity detection. Comparing GAM and Friedman Test results helps identify robust genes significant in both methods.
 
 ```{r gam-analysis, message=FALSE}
 # Load precomputed GAM results from CSV file
@@ -375,6 +406,9 @@ if ("p_interaction" %in% colnames(gam_results)) {
         })
       }
       
+      # Rename columns for better readability
+      colnames(gam_display) <- c("Gene", "p (interaction)", "Adjusted p", "Effect size", "Test statistic", "df")
+      
       knitr::kable(gam_display, 
                    caption = "Top 10 Genes by GAM p-value (with Effect Size & Test Statistics)",
                    align = c("l", "r", "r", "r", "r", "r"))
@@ -392,7 +426,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 ```{r concordance-summary, message=FALSE}
 # Compute concordance analysis using dedicated function
-concordance_result <- compute_method_concordance(gam_results, kw_results)
+concordance_result <- compute_method_concordance(gam_results, friedman_results)
 
 # Extract components
 comparison_df <- concordance_result$comparison_df
@@ -401,103 +435,76 @@ high_conf <- concordance_result$high_conf
 agreement_table <- concordance_result$agreement_table
 ```
 
-```{r concordance-output, message=FALSE, echo=FALSE}
-if (is.null(comparison_df)) {
-  # Silently skip - no output
-} else {
-  # ========== GLOBAL CONCORDANCE METRICS ==========
-  # Create comprehensive global concordance metrics table
-  total_genes <- nrow(comparison_df)
-  both_sig <- sum(comparison_df$agreement == "Both significant")
-  gam_only <- sum(comparison_df$agreement == "GAM only")
-  kw_only <- sum(comparison_df$agreement == "K-W only")
-  neither_sig <- sum(comparison_df$agreement == "Neither significant")
-  
-  # Calculate concordance metrics
-  jaccard_overlap <- both_sig / total_genes  # Proportion of both-significant genes
-  gam_sig_total <- both_sig + gam_only
-  kw_sig_total <- both_sig + kw_only
-  gam_sensitivity <- if (gam_sig_total > 0) both_sig / gam_sig_total else NA_real_
-  kw_sensitivity <- if (kw_sig_total > 0) both_sig / kw_sig_total else NA_real_
-  
-  global_metrics <- data.frame(
-    Metric = c(
-      "Total genes analyzed",
-      "Spearman ρ (p-value correlation)",
-      "Both methods significant",
-      "GAM only significant",
-      "K-W only significant",
-      "Neither method significant",
-      "Jaccard overlap (both/total)",
-      "Agreement rate (both or neither)",
-      "Disagreement rate (one method only)"
-    ),
-    Value = c(
-      sprintf("%d", total_genes),
-      sprintf("%.4f", spearman_rho),
-      sprintf("%d (%.1f%%)", both_sig, 100 * both_sig / total_genes),
-      sprintf("%d (%.1f%%)", gam_only, 100 * gam_only / total_genes),
-      sprintf("%d (%.1f%%)", kw_only, 100 * kw_only / total_genes),
-      sprintf("%d (%.1f%%)", neither_sig, 100 * neither_sig / total_genes),
-      sprintf("%.1f%%", 100 * jaccard_overlap),
-      sprintf("%.1f%%", 100 * (both_sig + neither_sig) / total_genes),
-      sprintf("%.1f%%", 100 * (gam_only + kw_only) / total_genes)
-    ),
-    stringsAsFactors = FALSE
+```{r concordance-metrics, message=FALSE, echo=FALSE}
+# === GLOBAL CONCORDANCE METRICS ===
+total_genes <- nrow(comparison_df)
+both_sig <- sum(comparison_df$agreement == "Both significant")
+gam_only <- sum(comparison_df$agreement == "GAM only")
+friedman_only <- sum(comparison_df$agreement == "Friedman only")
+neither_sig <- sum(comparison_df$agreement == "Neither significant")
+
+concordance_metrics <- data.frame(
+  Metric = c(
+    "Total genes compared",
+    "Spearman correlation (p-values)",
+    "Both methods significant (p < 0.05)",
+    "GAM only significant",
+    "Friedman only significant",
+    "Neither significant",
+    "Concordance rate",
+    "Discordance rate"
+  ),
+  Value = c(
+    sprintf("%d", total_genes),
+    sprintf("ρ = %.4f", spearman_rho),
+    sprintf("%d (%.1f%%)", both_sig, 100 * both_sig / total_genes),
+    sprintf("%d (%.1f%%)", gam_only, 100 * gam_only / total_genes),
+    sprintf("%d (%.1f%%)", friedman_only, 100 * friedman_only / total_genes),
+    sprintf("%d (%.1f%%)", neither_sig, 100 * neither_sig / total_genes),
+    sprintf("%.1f%%", 100 * (both_sig + neither_sig) / total_genes),
+    sprintf("%.1f%%", 100 * (gam_only + friedman_only) / total_genes)
   )
+)
+
+knitr::kable(concordance_metrics, 
+             caption = "Global Concordance Metrics: GAM vs Friedman Methods",
+             align = c("l", "r"))
+```
+
+```{r concordance-agreement, message=FALSE, echo=FALSE}
+# === AGREEMENT CATEGORY BREAKDOWN ===
+agreement_breakdown <- data.frame(
+  Category = names(agreement_table),
+  Count = as.numeric(agreement_table),
+  Percentage = sprintf("%.1f%%", 100 * as.numeric(agreement_table) / sum(agreement_table))
+)
+
+colnames(agreement_breakdown) <- c("Agreement Category", "Number of Genes", "Percentage")
+
+knitr::kable(agreement_breakdown,
+             caption = "Method Agreement Distribution",
+             align = c("l", "r", "r"))
+```
+
+```{r concordance-highconf, message=FALSE, echo=FALSE}
+# === HIGH-CONFIDENCE GENES (BOTH METHODS SIGNIFICANT) ===
+if (nrow(high_conf) > 0) {
+  # Sort by GAM adjusted p-value, then by Friedman adjusted p-value (both ascending)
+  high_conf_sorted <- high_conf[order(high_conf$padj_gam, high_conf$padj_friedman), ]
   
-  knitr::kable(global_metrics, 
-               caption = "Global Concordance Metrics between GAM and K-W Methods",
-               align = c("l", "r"))
+  hc_display <- high_conf_sorted[1:min(15, nrow(high_conf_sorted)), c("gene", "padj_gam", "padj_friedman", "effect_gam", "effect_friedman")]
   
-  cat("\n\n")
+  hc_display$padj_gam <- sprintf("%.3e", hc_display$padj_gam)
+  hc_display$padj_friedman <- sprintf("%.3e", hc_display$padj_friedman)
+  hc_display$effect_gam <- sprintf("%.1f%%", hc_display$effect_gam * 100)
+  hc_display$effect_friedman <- sprintf("%.3f", hc_display$effect_friedman)
   
-  # ========== DETAILED AGREEMENT BREAKDOWN ==========
-  agreement_stats <- data.frame(
-    Category = names(agreement_table),
-    Count = as.numeric(agreement_table),
-    Proportion = as.numeric(prop.table(agreement_table)),
-    stringsAsFactors = FALSE
-  )
+  colnames(hc_display) <- c("Gene", "GAM adj p", "Friedman adj p", "GAM Effect", "Friedman η²")
+  rownames(hc_display) <- NULL
   
-  # Format proportions as percentages
-  agreement_stats$Proportion <- sprintf("%.1f%%", agreement_stats$Proportion * 100)
-  
-  knitr::kable(agreement_stats, 
-               caption = "Agreement Category Breakdown",
-               align = c("l", "r", "r"))
-  
-  cat("\n\n")
-  
-  # ========== HIGH-CONFIDENCE GENES ==========
-  if (nrow(high_conf) > 0) {
-    # Create comprehensive display with additional metrics
-    high_conf_display <- high_conf[1:min(15, nrow(high_conf)), ]
-    
-    # Build display dataframe with selected columns and formatted values
-    display_cols <- data.frame(
-      Gene = high_conf_display$gene,
-      GAM_padj = sapply(high_conf_display$padj_gam, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.3e", x)
-      }),
-      KW_padj = sapply(high_conf_display$padj_kw, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.3e", x)
-      }),
-      GAM_Effect_pct = sapply(high_conf_display$effect_gam, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.1f%%", x * 100)
-      }),
-      KW_Effect_eta2 = sapply(high_conf_display$effect_kw, function(x) {
-        if (is.na(x)) "NA" else sprintf("%.3f", x)
-      }),
-      stringsAsFactors = FALSE
-    )
-    
-    rownames(display_cols) <- NULL
-    
-    knitr::kable(display_cols,
-                 caption = sprintf("Top High-Confidence Genes Detected by Both Methods (n=%d total)", nrow(high_conf)),
-                 align = c("l", "r", "r", "r", "r"))
-  }
+  knitr::kable(hc_display,
+               caption = sprintf("Robust q-value Interactions: High-Confidence Genes Detected by Both Methods (n=%d, ranked by statistical significance)", nrow(high_conf)),
+               align = c("l", "r", "r", "r", "r"))
 }
 ```
 
@@ -520,9 +527,11 @@ if (exists("comparison_df") && nrow(comparison_df) > 0) {
 
 We recommend a **complementary two-method approach** for robust detection of q-value × group interactions:
 
-**Primary analysis:** Start with GAM (flexible parametric method) as it offers superior power for detecting nonlinear q-entropy patterns. Use the default Hochberg multiple testing correction for stringent FWER control. **Validation step:** Confirm findings with rank-based Kruskal-Wallis analysis to ensure robustness against parametric assumptions. The conditional test selection automatically adapts to data characteristics (heteroscedasticity, boundary clustering, skewness), providing distribution-free validation without requiring assumptions about data normality.
+**Primary analysis:** Start with the Friedman Test, which provides correct statistical inference for paired/blocked designs by respecting the repeated-measures structure (8 subjects × q-values). The Friedman test accounts for within-subject correlation and controls for subject effects while testing for q-value × group interactions. Multiple testing correction via Hochberg step-up procedure controls family-wise error rate with strong power for positive-dependence structures. **Validation step:** Confirm findings with GAM (Generalized Additive Model method) to validate against parametric assumptions and identify nonlinear q-entropy patterns that may be missed by rank-based methods.
 
-**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q-value × group interactions and are recommended for downstream biological validation. Additionally, use **library size-normalized pseudocounts** for robust entropy estimation on sparse count data (via `estimate_pseudocount()`), and leverage **multiple testing correction that accounts for AR(1) correlation** in q-value sequences (available via Hochberg or Benjamini-Yekutieli methods depending on whether you prioritize FWER or FDR control).
+**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q-value × group interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, accounting properly for the within-subject correlation structure.
+
+Additionally, use **library size-normalized pseudocounts** for robust entropy estimation on sparse count data (via `estimate_pseudocount()`), and consider genes with **high effect sizes** (η² > 0.3) as particularly robust findings. When Friedman p-values cluster due to monotonic entropy patterns across q-values, effect size (η²) serves as the practical tiebreaker for ranking gene importance.
 
 ---
 

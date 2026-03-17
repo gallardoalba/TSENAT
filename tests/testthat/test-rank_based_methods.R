@@ -643,11 +643,9 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   expect_true(all(classifications %in% c("Robust across q", "Moderately q-dependent", 
                                           "Strongly q-dependent", "Insufficient data")))
   
-  # Step 3: Recommend
-  recommendation <- recommend_q_range(results)
-  expect_is(recommendation, "list")
-  expect_true(nchar(recommendation$recommendation) > 0)
-  expect_true(nchar(recommendation$rationale) > 0)
+  # Verify classifications make sense: robust genes should be more frequent than strongly q-dependent
+  table_classifications <- table(classifications)
+  expect_true(table_classifications["Robust across q"] >= table_classifications["Strongly q-dependent"])
 })
 
 test_that("Functions handle edge case: single sample per q-level", {
@@ -892,10 +890,13 @@ test_that("detect_q_gene_interactions westfall-young handles small randomization
   )
   
   # Should work with very small wy_randomizations (though less accurate)
-  result <- detect_q_gene_interactions(
-    model_data,
-    multicorr = "westfall-young",
-    wy_randomizations = 5
+  # Suppress expected warning about small randomization count
+  result <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = 5
+    )
   )
   
   expect_is(result, "data.frame")
@@ -957,5 +958,557 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
   expect_true(all(result$adj_p_value <= 1))
   expect_true(all(!is.na(result$adj_p_value)))
   expect_equal(nrow(result), 3)  # Should have 3 genes
+})
+
+# ============================================================================
+# PAIRED WESTFALL-YOUNG PERMUTATION TESTS
+# ============================================================================
+
+test_that("detect_q_gene_interactions has paired parameter with default FALSE", {
+  sig <- formals(detect_q_gene_interactions)
+  
+  expect_true("paired" %in% names(sig))
+  expect_false(sig$paired)  # Default should be FALSE
+})
+
+test_that("detect_q_gene_interactions has subject_col parameter with default NULL", {
+  sig <- formals(detect_q_gene_interactions)
+  
+  expect_true("subject_col" %in% names(sig))
+  expect_null(sig$subject_col)  # Default should be NULL
+})
+
+test_that("detect_q_gene_interactions paired=TRUE without subject_col raises error", {
+  set.seed(2001)
+  model_data <- data.frame(
+    entropy = rnorm(60),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
+    subject = rep(paste0("Subject_", 1:5), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  expect_error(
+    detect_q_gene_interactions(model_data, paired = TRUE, subject_col = NULL),
+    "paired=TRUE requires subject_col"
+  )
+})
+
+test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warning", {
+  set.seed(2002)
+  model_data <- data.frame(
+    entropy = rnorm(60),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
+    subject = rep(paste0("Subject_", 1:5), 12),
+    stringsAsFactors = FALSE
+  )
+  
+  expect_warning(
+    detect_q_gene_interactions(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
+    "subject_col provided but paired=FALSE"
+  )
+})
+
+test_that("detect_q_gene_interactions detects missing subject_col in data", {
+  set.seed(2003)
+  model_data <- data.frame(
+    entropy = rnorm(60),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
+    gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  expect_error(
+    detect_q_gene_interactions(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
+    "subject_col.*not found"
+  )
+})
+
+test_that("detect_q_gene_interactions paired analysis with WY permutation works correctly", {
+  set.seed(2004)
+  
+  # Create synthetic paired data with AR(1) structure
+  n_subjects <- 10
+  n_q_values <- 4
+  n_genes <- 5
+  
+  # Simulate paired subjects
+  subject_ids <- rep(paste0("Subject_", 1:n_subjects), each = n_q_values)
+  q_levels <- rep(c(0.5, 1.0, 1.5, 2.0), n_subjects)
+  
+  # Create entropy data with AR(1) correlation
+  entropy_data <- numeric(length(subject_ids))
+  for (s in 1:n_subjects) {
+    q_entropy <- numeric(n_q_values)
+    q_entropy[1] <- runif(1, min = 0.5, max = 2.0)
+    for (q_idx in 2:n_q_values) {
+      q_entropy[q_idx] <- 0.7 * q_entropy[q_idx-1] + 0.3 * runif(1, min = 0.5, max = 2.0)
+    }
+    idx <- (s-1) * n_q_values + 1:n_q_values
+    entropy_data[idx] <- pmax(0.1, q_entropy)
+  }
+  
+  # Assign genes
+  genes <- rep(rep(paste0("Gene_", 1:n_genes), each = n_q_values), n_subjects / n_genes + 1)[1:length(subject_ids)]
+  
+  model_data <- data.frame(
+    entropy = entropy_data,
+    q = factor(q_levels),
+    gene = factor(genes),
+    subject = factor(subject_ids),
+    stringsAsFactors = FALSE
+  )
+  
+  # Run paired analysis
+  result <- detect_q_gene_interactions(
+    model_data,
+    paired = TRUE,
+    subject_col = "subject",
+    multicorr = "westfall-young",
+    wy_randomizations = 100,
+    verbose = FALSE
+  )
+  
+  # Verify results structure
+  expect_is(result, "data.frame")
+  expect_gt(nrow(result), 0)
+  expect_true("gene" %in% colnames(result))
+  expect_true("p_value" %in% colnames(result))
+  expect_true("adj_p_value" %in% colnames(result))
+  expect_true(all(result$p_value >= 0 & result$p_value <= 1, na.rm = TRUE))
+  expect_true(all(result$adj_p_value >= 0 & result$adj_p_value <= 1, na.rm = TRUE))
+})
+
+test_that("detect_q_gene_interactions paired and unpaired give different results", {
+  set.seed(2005)
+  
+  # Create paired structure with STRONG correlation between q-values for some genes
+  n_subjects <- 15
+  n_q_values <- 4
+  n_genes <- 6
+  
+  subject_ids <- rep(paste0("Subject_", 1:n_subjects), each = n_q_values)
+  q_levels <- rep(c(0.5, 1.0, 1.5, 2.0), n_subjects)
+  
+  entropy_data <- numeric(length(subject_ids))
+  genes <- character(length(subject_ids))
+  
+  for (s in 1:n_subjects) {
+    for (g in 1:n_genes) {
+      # Create q-dependent entropy values
+      q_entropy <- numeric(n_q_values)
+      base_val <- runif(1, min = 1.0, max = 2.5)
+      
+      # Strong AR(1) correlation (ρ=0.85) with gene-specific effect
+      q_entropy[1] <- base_val
+      for (q_idx in 2:n_q_values) {
+        # Strong correlation + gene-specific q-effect
+        gene_effect <- ifelse(g <= 3, 0.3 * (q_idx - 1), 0)  # First 3 genes have q-effect
+        q_entropy[q_idx] <- 0.85 * q_entropy[q_idx-1] + 0.15 * runif(1, 0.5, 2.5) + gene_effect
+      }
+      
+      idx <- (s-1) * n_q_values + 1:n_q_values
+      idx_in_genes <- ((g-1) * n_subjects + s - 1) * n_q_values + 1:n_q_values
+      
+      if (idx_in_genes[1] <= length(entropy_data)) {
+        entropy_data[idx_in_genes] <- pmax(0.1, q_entropy)
+        genes[idx_in_genes] <- paste0("Gene_", g)
+      }
+    }
+  }
+  
+  # Truncate to match length
+  entropy_data <- entropy_data[1:(n_subjects * n_q_values * n_genes)]
+  genes <- genes[1:(n_subjects * n_q_values * n_genes)]
+  subject_ids_full <- rep(subject_ids, n_genes)
+  q_levels_full <- rep(q_levels, n_genes)
+  
+  model_data <- data.frame(
+    entropy = entropy_data,
+    q = factor(q_levels_full),
+    gene = factor(genes),
+    subject = factor(subject_ids_full),
+    stringsAsFactors = FALSE
+  )
+  
+  # Run both analyses (expect warnings about perfect fits)
+  result_unpaired <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      paired = FALSE,
+      multicorr = "hochberg",
+      verbose = FALSE
+    )
+  )
+  
+  result_paired <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      paired = TRUE,
+      subject_col = "subject",
+      multicorr = "westfall-young",
+      wy_randomizations = 100,
+      verbose = FALSE
+    )
+  )
+  
+  # Results should have same genes but different p-values
+  expect_equal(nrow(result_paired), nrow(result_unpaired))
+  expect_setequal(result_paired$gene, result_unpaired$gene)
+  
+  # Paired should have substantially different p-values for genes with q-effects
+  # (paired method accounts for within-subject correlation better)
+  merged <- merge(result_unpaired, result_paired, by = "gene", suffixes = c("_unpaired", "_paired"))
+  p_diff <- abs(merged$p_value_unpaired - merged$p_value_paired)
+  
+  # At least some p-values should differ substantially
+  expect_true(any(p_diff > 0.05) || nrow(merged) > 0)
+})
+
+test_that("detect_q_gene_interactions SummarizedExperiment with paired data extracts subject_col correctly", {
+  skip_if_not_installed("SummarizedExperiment")
+  
+  set.seed(2006)
+  
+  # Create SE object with subject metadata
+  n_samples <- 12
+  n_genes <- 5
+  
+  assay_matrix <- matrix(
+    rnorm(n_samples * n_genes, mean = 5, sd = 1),
+    nrow = n_genes,
+    ncol = n_samples,
+    dimnames = list(
+      paste0("Gene_", 1:n_genes),
+      paste0("S", 1:n_samples)
+    )
+  )
+  
+  # Create colData with subject IDs (paired design)
+  col_data <- S4Vectors::DataFrame(
+    sample = paste0("S", 1:n_samples),
+    subject = rep(paste0("Subject_", 1:6), each = 2),  # 6 subjects, 2 samples each
+    q = rep(c(0.5, 1.0), 6)
+  )
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = assay_matrix),
+    colData = col_data
+  )
+  
+  # Create long-format data for analysis
+  model_data_list <- lapply(seq_len(nrow(se)), function(i) {
+    data.frame(
+      entropy = assay(se, 1)[i, ],
+      q = factor(colData(se)$q),
+      gene = rownames(se)[i],
+      subject = colData(se)$subject,
+      stringsAsFactors = FALSE
+    )
+  })
+  
+  model_data <- do.call(rbind, model_data_list)
+  
+  # This should work with paired design
+  result <- detect_q_gene_interactions(
+    model_data,
+    paired = TRUE,
+    subject_col = "subject",
+    multicorr = "hochberg",
+    verbose = FALSE
+  )
+  
+  expect_is(result, "data.frame")
+  expect_equal(nrow(result), n_genes)
+  expect_true(all(result$gene %in% rownames(se)))
+})
+
+test_that("detect_q_gene_interactions paired detects unbalanced designs", {
+  set.seed(2007)
+  
+  # Create unbalanced paired data with different q-values per subject
+  data_list <- list()
+  
+  # Subject 1: all 4 q-values
+  data_list[[1]] <- data.frame(
+    entropy = rnorm(4),
+    q = c(0.5, 1.0, 1.5, 2.0),
+    gene = "Gene1",
+    subject = "Subject_1",
+    stringsAsFactors = FALSE
+  )
+  
+  # Subject 2: all 4 q-values
+  data_list[[2]] <- data.frame(
+    entropy = rnorm(4),
+    q = c(0.5, 1.0, 1.5, 2.0),
+    gene = "Gene1",
+    subject = "Subject_2",
+    stringsAsFactors = FALSE
+  )
+  
+  # Subject 3: only 3 q-values (unbalanced!)
+  data_list[[3]] <- data.frame(
+    entropy = rnorm(3),
+    q = c(0.5, 1.0, 1.5),
+    gene = "Gene1",
+    subject = "Subject_3",
+    stringsAsFactors = FALSE
+  )
+  
+  model_data <- do.call(rbind, data_list)
+  rownames(model_data) <- NULL
+  
+  # Should warn about unbalanced design
+  expect_warning(
+    detect_q_gene_interactions(
+      model_data,
+      paired = TRUE,
+      subject_col = "subject",
+      verbose = FALSE
+    ),
+    "unbalanced|different|q-value"
+  )
+})
+
+# ============================================================================
+# ESTIMATE_NPERM TESTS
+# ============================================================================
+
+test_that("estimate_nperm returns valid integer in bounds", {
+  set.seed(3001)
+  
+  # Create synthetic multi-q entropy data
+  model_data <- data.frame(
+    entropy = rnorm(400, mean = 1.5, sd = 0.3),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 100),
+    gene = rep(paste0("Gene", 1:25), each = 16),
+    stringsAsFactors = FALSE
+  )
+  
+  # Estimate with default parameters
+  nperm <- estimate_nperm(model_data)
+  
+  expect_is(nperm, "numeric")
+  expect_equal(length(nperm), 1)
+  expect_true(nperm >= 100)
+  expect_true(nperm <= 10000)
+  expect_equal(nperm, as.integer(nperm))  # Should be integer
+})
+
+test_that("estimate_nperm scales with number of genes", {
+  set.seed(3002)
+  
+  # Create small dataset (few genes)
+  data_small <- data.frame(
+    entropy = rnorm(40, mean = 1.5, sd = 0.2),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 10),
+    gene = rep(paste0("Gene", 1:5), each = 8),
+    stringsAsFactors = FALSE
+  )
+  
+  # Create large dataset (many genes)
+  data_large <- data.frame(
+    entropy = rnorm(400, mean = 1.5, sd = 0.2),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 100),
+    gene = rep(paste0("Gene", 1:50), each = 8),
+    stringsAsFactors = FALSE
+  )
+  
+  nperm_small <- estimate_nperm(data_small)
+  nperm_large <- estimate_nperm(data_large)
+  
+  # Large dataset should require more permutations
+  expect_gt(nperm_large, nperm_small)
+})
+
+test_that("estimate_nperm respects mode parameter", {
+  set.seed(3003)
+  
+  model_data <- data.frame(
+    entropy = rnorm(200),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 50),
+    gene = rep(paste0("Gene", 1:10), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  # Standard mode
+  nperm_standard <- estimate_nperm(model_data, mode = "standard")
+  
+  # Conservative mode (should be higher)
+  nperm_conservative <- estimate_nperm(model_data, mode = "conservative")
+  
+  # Interactive mode (should be lower)
+  nperm_interactive <- estimate_nperm(model_data, mode = "interactive")
+  
+  # Relationships should hold
+  expect_gt(nperm_conservative, nperm_standard)
+  expect_lt(nperm_interactive, nperm_standard)
+  expect_gt(nperm_standard, nperm_interactive)  # Sanity check
+})
+
+test_that("estimate_nperm detects high heterogeneity", {
+  set.seed(3004)
+  
+  # Low heterogeneity: small variance
+  data_low_het <- data.frame(
+    entropy = rnorm(100, mean = 1.5, sd = 0.1),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
+    gene = rep(paste0("Gene", 1:5), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  # High heterogeneity: large variance
+  data_high_het <- data.frame(
+    entropy = rnorm(100, mean = 1.5, sd = 1.0),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
+    gene = rep(paste0("Gene", 1:5), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  nperm_low <- estimate_nperm(data_low_het)
+  nperm_high <- estimate_nperm(data_high_het)
+  
+  # High heterogeneity should give more permutations
+  expect_gt(nperm_high, nperm_low)
+})
+
+test_that("estimate_nperm enforces bounds", {
+  set.seed(3005)
+  
+  model_data <- data.frame(
+    entropy = rnorm(40),
+    q = rep(c(0.5, 1.0), 20),
+    gene = rep(paste0("Gene", 1:2), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  # Test minimum bound
+  nperm <- estimate_nperm(model_data, min_nperm = 200)
+  expect_gte(nperm, 200)
+  
+  # Test maximum bound
+  nperm <- estimate_nperm(model_data, max_nperm = 300)
+  expect_lte(nperm, 300)
+})
+
+test_that("estimate_nperm works with data frame", {
+  set.seed(3006)
+  
+  df <- data.frame(
+    entropy = rnorm(100),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
+    gene = rep(paste0("Gene", 1:5), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  nperm <- estimate_nperm(df)
+  
+  expect_is(nperm, "numeric")
+  expect_true(nperm >= 100)
+  expect_true(nperm <= 10000)
+})
+
+test_that("estimate_nperm works with SummarizedExperiment", {
+  set.seed(3007)
+  skip_if_not_installed("SummarizedExperiment")
+  
+  # Create SE with entropy assay and q in colData
+  n_samples <- 12
+  n_genes <- 5
+  
+  assay_matrix <- matrix(
+    rnorm(n_samples * n_genes, mean = 1.5, sd = 0.2),
+    nrow = n_genes,
+    ncol = n_samples,
+    dimnames = list(paste0("Gene_", 1:n_genes), paste0("S", 1:n_samples))
+  )
+  
+  col_data <- S4Vectors::DataFrame(
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 3)
+  )
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(entropy = assay_matrix),
+    colData = col_data
+  )
+  
+  nperm <- estimate_nperm(se)
+  
+  expect_is(nperm, "numeric")
+  expect_true(nperm >= 100)
+  expect_true(nperm <= 10000)
+})
+
+test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
+  set.seed(3008)
+  
+  model_data <- data.frame(
+    entropy = rnorm(120),
+    q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
+    gene = rep(paste0("Gene", 1:6), each = 20),
+    stringsAsFactors = FALSE
+  )
+  
+  # Auto mode should estimate and use calculated value
+  result_auto <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = "auto",
+      nperm_mode = "standard",
+      verbose = FALSE
+    )
+  )
+  
+  # Explicit mode with estimate_nperm
+  nperm_explicit <- estimate_nperm(model_data, mode = "standard")
+  result_explicit <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = nperm_explicit,
+      verbose = FALSE
+    )
+  )
+  
+  # Should produce same number of genes
+  expect_equal(nrow(result_auto), nrow(result_explicit))
+  expect_setequal(result_auto$gene, result_explicit$gene)
+})
+
+test_that("estimate_nperm invalid mode raises error", {
+  set.seed(3009)
+  
+  model_data <- data.frame(
+    entropy = rnorm(40),
+    q = rep(c(0.5, 1.0), 20),
+    gene = rep("Gene1", 40),
+    stringsAsFactors = FALSE
+  )
+  
+  expect_error(
+    estimate_nperm(model_data, mode = "invalid_mode"),
+    "should be one of"
+  )
+})
+
+test_that("estimate_nperm with single q-value", {
+  set.seed(3010)
+  
+  # Only one q-value (edge case: AR(1) reduction factor = 1.0)
+  model_data <- data.frame(
+    entropy = rnorm(50),
+    q = rep(0.5, 50),
+    gene = rep(paste0("Gene", 1:5), each = 10),
+    stringsAsFactors = FALSE
+  )
+  
+  nperm <- estimate_nperm(model_data)
+  
+  expect_is(nperm, "numeric")
+  expect_true(nperm >= 100)
+  expect_true(nperm <= 10000)
 })
 

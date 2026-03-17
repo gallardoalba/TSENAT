@@ -727,55 +727,6 @@ plot_batch_pca <- function(se, batch, biological_group = NULL,
 }
 
 
-#' Create Heatmap of Batch Effects
-#'
-#' Visualize expression patterns across batches via hierarchical clustered heatmap.
-#'
-#' @param se A SummarizedExperiment object (typically top genes by variance)
-#' @param batch Character; batch column name
-#' @param n_genes Integer; number of top-variance genes to plot (default: 50)
-#' @param annotation_col Logical; add batch annotation (default: TRUE)
-#'
-#' @return Heatmap (from pheatmap)
-#' @export
-#' @examples
-#' \dontrun{
-#' heatmap_batch(readcounts_se, batch = "batch_id", n_genes = 100)
-#' }
-heatmap_batch <- function(se, batch, n_genes = 50, annotation_col = TRUE) {
-  
-  # Get top variance genes
-  counts <- as.matrix(SummarizedExperiment::assay(se))
-  gene_vars <- apply(counts, 1, stats::var, na.rm = TRUE)
-  top_genes <- order(gene_vars, decreasing = TRUE)[seq_len(min(n_genes, nrow(counts)))]
-  
-  # Prepare matrix
-  counts_log <- log2(counts[top_genes, ] + 1)
-  counts_scaled <- t(scale(t(counts_log), center = TRUE, scale = TRUE))
-  
-  # Create annotation
-  batch_vector <- SummarizedExperiment::colData(se)[[batch]]
-  
-  if (requireNamespace("pheatmap", quietly = TRUE)) {
-    annotation_df <- data.frame(Batch = batch_vector)
-    rownames(annotation_df) <- colnames(counts_scaled)
-    
-    pheatmap::pheatmap(
-      counts_scaled,
-      annotation_col = if (annotation_col) annotation_df else NULL,
-      main = paste("Batch Effects: Top", n_genes, "Genes"),
-      scale = "none",
-      clustering_distance_cols = "euclidean",
-      clustering_distance_rows = "euclidean"
-    )
-  } else {
-    warning("pheatmap package required for heatmap visualization. ",
-            "Install with: install.packages('pheatmap')")
-    invisible(counts_scaled)
-  }
-}
-
-
 
 # ============================================================================
 # 4. RANK-BASED BATCH EFFECT DETECTION AND CORRECTION
