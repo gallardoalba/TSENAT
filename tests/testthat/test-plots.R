@@ -1,121 +1,11 @@
 # Comprehensive testing of all plotting functions
-# Tests plot_diversity_density, plot_mean_violin, plot_ma,
-# plot_top_transcripts, plot_volcano, plot_tsallis_q_curve,
+# Tests plot_ma, plot_top_transcripts, plot_volcano, plot_tsallis_q_curve,
 # plot_tsallis_gene_profile, plot_tsallis_density_multq, plot_tsallis_violin_multq
 
 library(TSENAT)
 skip_on_bioc()
 
 context("plots: Visualization and Data Exploration")
-
-test_that("plot_diversity_density returns ggplot object with valid data", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    skip_if_not_installed("tidyr")
-    skip_if_not_installed("dplyr")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    # construct minimal SummarizedExperiment with sample_type in colData
-    mat <- matrix(runif(20), nrow = 5, ncol = 4)
-    colnames(mat) <- c("S1_N", "S2_T", "S3_N", "S4_T")
-    rownames(mat) <- paste0("G", 1:5)
-    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(
-        samples = colnames(mat),
-        sample_type = c("N", "T", "N", "T")
-    )
-    se <- SummarizedExperiment(
-        assays = list(diversity = mat),
-        rowData = rowData_df,
-        colData = colData_df
-    )
-
-    p <- plot_diversity_density(se, sample_type_col = "sample_type")
-    expect_s3_class(p, "gg")
-    expect_s3_class(p, "ggplot")
-})
-
-test_that("plot_diversity_density errors when sample_type column is missing", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    skip_if_not_installed("tidyr")
-    skip_if_not_installed("dplyr")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    # construct SummarizedExperiment without sample_type information
-    mat <- matrix(runif(20), nrow = 5, ncol = 4)
-    colnames(mat) <- c("S1", "S2", "S3", "S4")
-    rownames(mat) <- paste0("G", 1:5)
-    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(samples = colnames(mat))
-    se <- SummarizedExperiment(
-        assays = list(diversity = mat),
-        rowData = rowData_df,
-        colData = colData_df
-    )
-
-    expect_error(
-        plot_diversity_density(se),
-        "sample_type column not found in data"
-    )
-})
-
-test_that("plot_diversity_density errors when all sample_type values are NA", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    skip_if_not_installed("tidyr")
-    skip_if_not_installed("dplyr")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    # construct SummarizedExperiment with all NA sample_type
-    mat <- matrix(runif(20), nrow = 5, ncol = 4)
-    colnames(mat) <- c("S1", "S2", "S3", "S4")
-    rownames(mat) <- paste0("G", 1:5)
-    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(
-        samples = colnames(mat),
-        sample_type = c(NA, NA, NA, NA)
-    )
-    se <- SummarizedExperiment(
-        assays = list(diversity = mat),
-        rowData = rowData_df,
-        colData = colData_df
-    )
-
-    expect_error(
-        plot_diversity_density(se),
-        "All sample_type values are NA"
-    )
-})
-
-test_that("plot_mean_violin returns ggplot object", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    mat <- matrix(runif(20), nrow = 5, ncol = 4)
-    colnames(mat) <- c("S1_N", "S2_T", "S3_N", "S4_T")
-    rownames(mat) <- paste0("G", 1:5)
-    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(samples = colnames(mat))
-    se <- SummarizedExperiment(
-        assays = list(diversity = mat),
-        rowData = rowData_df,
-        colData = colData_df
-    )
-
-    p <- plot_mean_violin(se)
-    expect_s3_class(p, "gg")
-    expect_s3_class(p, "ggplot")
-})
 
 test_that("plot_ma returns ggplot object with mean columns", {
     skip_if_not_installed("ggplot2")
@@ -376,33 +266,6 @@ test_that("plot_tsallis_violin_multq returns ggplot", {
     expect_s3_class(p, "ggplot")
 })
 
-test_that("All plot functions produce buildable ggplot objects", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    # Create test data with sample_type for plot_diversity_density
-    mat <- matrix(runif(15), nrow = 5, ncol = 3)
-    colnames(mat) <- c("S1_N", "S2_T", "S3_N")
-    rownames(mat) <- paste0("G", 1:5)
-    rowData_df <- S4Vectors::DataFrame(genes = rownames(mat))
-    colData_df <- S4Vectors::DataFrame(
-        samples = colnames(mat),
-        sample_type = c("N", "T", "N")
-    )
-    se <- SummarizedExperiment(
-        assays = list(diversity = mat),
-        rowData = rowData_df,
-        colData = colData_df
-    )
-
-    # Test that plots can be built without error
-    expect_no_error(ggplot_build(plot_diversity_density(se)))
-    expect_no_error(ggplot_build(plot_mean_violin(se)))
-})
-
 library(SummarizedExperiment)
 
 test_that("infer_samples_from_se finds sample_type column and falls back", {
@@ -588,20 +451,6 @@ test_that("plot_tsallis_gene_profile returns ggplot for simple SE", {
     expect_s3_class(p, "ggplot")
 })
 
-test_that("plot_diversity_density and plot_mean_violin return ggplot", {
-    skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
-    mat <- matrix(rnorm(20), nrow = 5)
-    rownames(mat) <- paste0("g", 1:5)
-    colnames(mat) <- paste0("S", 1:4)
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
-    cd <- S4Vectors::DataFrame(sample_type = c("A", "A", "B", "B"))
-    rownames(cd) <- colnames(mat)
-    SummarizedExperiment::colData(se) <- cd
-    d1 <- TSENAT::plot_diversity_density(se)
-    d2 <- TSENAT::plot_mean_violin(se)
-    expect_s3_class(d1, "ggplot")
-    expect_s3_class(d2, "ggplot")
-})
 
 test_that("plot_ma_tsallis and plot_ma_expression_impl handle simple inputs", {
     skip_if_not_installed("ggplot2")

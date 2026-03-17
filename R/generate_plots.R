@@ -620,31 +620,53 @@ plot_ma_expression_impl <- function(
 #' Plot Tsallis Entropy q-Curve
 #'
 #' Visualize Tsallis entropy (S_q) as a function of the diversity parameter q across sample groups.
-#' Supports two visualization modes: basic median/IQR plots or confidence interval bands with significance testing.
+#' Supports three modes: aggregate q-curves (default), gene-specific q-curves (when `gene` provided),
+#' or bootstrap confidence interval bands.
 #'
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
 #'   For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
 #' @param sample_type_col Character; column name in colData indicating group/sample type
-#'   (default: "sample_type"). Only used in basic mode; CI mode requires exactly 2 groups.
-#' @param bootstrap Logical; if TRUE, plots bootstrap confidence interval bands.
+#'   (default: "sample_type"). Only used in aggregate and CI modes.
+#' @param bootstrap Logical; if TRUE, plots bootstrap confidence interval bands for aggregate mode.
 #'   Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
 #'   Requires 2+ q values and exactly 2 groups (default: FALSE).
+#' @param gene Character vector (optional); if provided, plot q-curves for specified gene(s).
+#'   Overrides default aggregate behavior. When provided, uses median ± SD for each gene.
+#' @param lm_res Data frame (optional); gene interaction test results with `gene` column and
+#'   p-value column. Accepts either:
+#'   - Results from `calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
+#'   - Results from `detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
+#'   If provided (and `gene` is NULL), plots top `n_top` genes ranked by p-value.
+#'   Useful for plotting significant genes from any interaction analysis.
+#' @param n_top Integer or NULL; number of top genes to select from `lm_res` when `gene` is NULL
+#'   (default: NULL). When NULL, defaults to showing the single most significant gene (n_top=1),
+#'   providing a conservative view of the strongest effect. Set to a numeric value to show that many top genes.
 #'
 #' @return
-#' **Basic mode (bootstrap=FALSE)**: A ggplot object showing median entropy with IQR ribbons for each group.
+#' **Aggregate mode (gene=NULL, lm_res=NULL)**:
+#' - With bootstrap=FALSE: A ggplot object showing median entropy with IQR ribbons.
+#' - With bootstrap=TRUE: A ggplot object with bootstrap confidence interval bands.
 #'
-#' **CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with bootstrap confidence interval bands for each group.
+#' **Gene-specific mode (gene or lm_res provided)**:
+#' - Single gene: A ggplot object showing median entropy ± SD for that gene.
+#' - Multiple genes: A named list of ggplot objects (one per gene).
 #'
 #' @details
-#' **Basic mode (bootstrap=FALSE)**:
-#' - Plots median Tsallis entropy ± IQR for each group across q-values
+#' **Aggregate mode (default, gene=NULL, lm_res=NULL)**:
+#' - Plots median Tsallis entropy ± IQR across all genes for each group
 #' - Works with any SummarizedExperiment from calculate_diversity()
-#' - Supports single or multiple q values
-#' - Supports any number of groups
-#' - No CI data required, no significance testing
+#' - Supports single or multiple q values and any number of groups
+#' - No CI data required for basic plots; bootstrap CIs optional
 #'
-#' **CI mode (bootstrap=TRUE)**:
+#' **Gene-specific mode (gene or lm_res provided)**:
+#' - Plots q-curve separately for each selected gene
+#' - Shows median entropy ± SD (variance) for each gene across q-values and groups
+#' - When `lm_res` provided: automatically ranks genes and selects top `n_top` by p-value
+#' - Useful for highlighting specific genes of interest or significant discoveries
+#' - Bootstrap mode not supported in gene-specific mode
+#'
+#' **Bootstrap CI mode (bootstrap=TRUE in aggregate mode)**:
 #' - Displays bootstrap confidence interval bands for each group across q-values
 #' - Requires exactly 2 groups for comparison
 #' - Requires 2+ q values for q-curve visualization
@@ -663,11 +685,28 @@ plot_ma_expression_impl <- function(
 #'   rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
 #'   gs <- readcounts[1:50, 1]
 #'   
-#'   # Basic mode: median ± IQR
+#'   # Aggregate mode: median ± IQR across all genes
 #'   se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
 #'   p_basic <- plot_tsallis_q_curve(se_basic)
 #'   
-#'   # CI mode with bootstrap CIs
+#'   # Gene-specific mode: q-curve for specific genes
+#'   p_gene <- plot_tsallis_q_curve(se_basic, gene = c("gene1", "gene2"))
+#'   
+#'   # Gene-specific mode with lm_res from calculate_lm_interaction
+#'   lm_results <- data.frame(
+#'     gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
+#'     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2)
+#'   )
+#'   p_top <- plot_tsallis_q_curve(se_basic, lm_res = lm_results, n_top = 3)
+#'   
+#'   # Gene-specific mode with results from detect_q_gene_interactions (Friedman/Wilcoxon)
+#'   wy_results <- data.frame(
+#'     gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
+#'     adj_p_value = c(0.001, 0.01, 0.05, 0.1, 0.2)
+#'   )
+#'   p_wy <- plot_tsallis_q_curve(se_basic, lm_res = wy_results, n_top = 2)
+#'   
+#'   # CI mode with bootstrap CIs (aggregate)
 #'   se_boot <- calculate_diversity(rc, gs, q = seq(0.1, 2, by = 0.2), bootstrap = TRUE)
 #'   p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
 #' }
@@ -677,7 +716,10 @@ plot_tsallis_q_curve <- function(
   se,
   assay_name = "diversity",
   sample_type_col = "sample_type",
-  bootstrap = FALSE
+  bootstrap = FALSE,
+  gene = NULL,
+  lm_res = NULL,
+  n_top = NULL
 ) {
   require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
   
@@ -689,6 +731,88 @@ plot_tsallis_q_curve <- function(
   if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
     stop("Assay '", assay_name, "' not found in SummarizedExperiment")
   }
+  
+  # =========================================================================
+  # GENE-SPECIFIC MODE (when gene or lm_res is provided)
+  # =========================================================================
+  if (!is.null(gene) || !is.null(lm_res)) {
+    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+    if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
+    
+    # Resolve genes to plot
+    if (is.null(gene)) {
+      if (is.null(lm_res)) stop("Either 'gene' or 'lm_res' must be provided")
+      if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) stop("'lm_res' must be a data.frame with a 'gene' column")
+      
+      # Determine p-value column: handle both calculate_lm_interaction and detect_q_gene_interactions formats
+      pcol <- NULL
+      if ("adj_p_interaction" %in% colnames(lm_res)) {
+        # calculate_lm_interaction format
+        pcol <- "adj_p_interaction"
+      } else if ("p_interaction" %in% colnames(lm_res)) {
+        pcol <- "p_interaction"
+      } else if ("adj_p_value" %in% colnames(lm_res)) {
+        # detect_q_gene_interactions format (from Friedman/Wilcoxon)
+        pcol <- "adj_p_value"
+      } else if ("p_value" %in% colnames(lm_res)) {
+        pcol <- "p_value"
+      }
+      
+      if (is.null(pcol)) stop("'lm_res' must contain one of: 'adj_p_interaction', 'p_interaction', 'adj_p_value', or 'p_value' columns")
+      
+      genes_ordered <- unique(as.character(lm_res$gene[order(lm_res[[pcol]])]))
+      # If n_top is NULL, default to top 1 gene
+      n_genes_to_plot <- if (is.null(n_top)) 1 else n_top
+      genes <- head(genes_ordered, n_genes_to_plot)
+    } else {
+      genes <- as.character(unlist(gene))
+    }
+    
+    if (length(genes) == 0) stop("No genes selected for plotting")
+    
+    # Helper to build single plot for a gene (uses median and variance by default)
+    make_plot_for_gene <- function(sel) {
+      long_g <- long[as.character(long$Gene) == sel, , drop = FALSE]
+      if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
+      long_g$qnum <- as.numeric(as.character(long_g$q))
+      
+      # Compute median ± SD (variance)
+      stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
+        central = median(tsallis, na.rm = TRUE),
+        spread = sqrt(stats::var(tsallis, na.rm = TRUE)),
+        .groups = "drop"
+      )
+      
+      # Build plot
+      p <- ggplot2::ggplot() +
+        ggplot2::theme_minimal(base_size = 14)
+      
+      # Median ± SD ribbon
+      p <- p +
+        ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = central - spread, ymax = central + spread, fill = group), alpha = 0.2, inherit.aes = FALSE) +
+        ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central, color = group), linewidth = 1.3) +
+        ggplot2::labs(title = paste0(sel, ": Tsallis entropy q-curve profile (Median ± SD)"), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
+        ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
+        ggplot2::theme(plot.title = ggplot2::element_text(
+          hjust = 0.5, size = 16,
+          margin = ggplot2::margin(b = 10)
+        ))
+      p
+    }
+    
+    # Return single ggplot for single gene, or a named list of ggplots for multiple genes
+    if (length(genes) == 1) {
+      return(make_plot_for_gene(genes))
+    }
+    
+    plots <- lapply(genes, make_plot_for_gene)
+    names(plots) <- genes
+    return(plots)
+  }
+  
+  # =========================================================================
+  # AGGREGATE MODE (when gene and lm_res are NULL)
+  # =========================================================================
   
   # =========================================================================
   # CONFIDENCE INTERVAL MODE (Bootstrap only)
@@ -3739,7 +3863,7 @@ plot_multiq_delta_influence_heatmaps <- function(
         fontsize_row = 16,
         fontsize_col = 16,
         fontsize_number = 13,
-        margins = c(11, 28),
+        margins = c(11, 35),
         show_rownames = TRUE,
         show_colnames = TRUE,
         silent = TRUE
@@ -3772,7 +3896,7 @@ plot_multiq_delta_influence_heatmaps <- function(
     
     # Increase height to accommodate spacing between rows
     heatmap_height <- 9 * n_rows + 2 * (n_rows - 1)  # Add 2 inches per gap between rows
-    grDevices::png(combined_png_file, width = 20, height = heatmap_height, 
+    grDevices::png(combined_png_file, width = 22, height = heatmap_height, 
                    units = "in", res = 96)
     
     grid::grid.newpage()

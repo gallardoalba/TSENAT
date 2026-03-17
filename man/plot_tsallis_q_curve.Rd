@@ -8,7 +8,10 @@ plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
   sample_type_col = "sample_type",
-  bootstrap = FALSE
+  bootstrap = FALSE,
+  gene = NULL,
+  lm_res = NULL,
+  n_top = NULL
 )
 }
 \arguments{
@@ -18,30 +21,55 @@ For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence int
 \item{assay_name}{Character; name of the assay to plot (default: "diversity").}
 
 \item{sample_type_col}{Character; column name in colData indicating group/sample type
-(default: "sample_type"). Only used in basic mode; CI mode requires exactly 2 groups.}
+(default: "sample_type"). Only used in aggregate and CI modes.}
 
-\item{bootstrap}{Logical; if TRUE, plots bootstrap confidence interval bands.
+\item{bootstrap}{Logical; if TRUE, plots bootstrap confidence interval bands for aggregate mode.
 Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
 Requires 2+ q values and exactly 2 groups (default: FALSE).}
+
+\item{gene}{Character vector (optional); if provided, plot q-curves for specified gene(s).
+Overrides default aggregate behavior. When provided, uses median ± SD for each gene.}
+
+\item{lm_res}{Data frame (optional); gene interaction test results with `gene` column and
+p-value column. Accepts either:
+- Results from `calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
+- Results from `detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
+If provided (and `gene` is NULL), plots top `n_top` genes ranked by p-value.
+Useful for plotting significant genes from any interaction analysis.}
+
+\item{n_top}{Integer or NULL; number of top genes to select from `lm_res` when `gene` is NULL
+(default: NULL). When NULL, defaults to showing the single most significant gene (n_top=1),
+providing a conservative view of the strongest effect. Set to a numeric value to show that many top genes.}
 }
 \value{
-**Basic mode (bootstrap=FALSE)**: A ggplot object showing median entropy with IQR ribbons for each group.
+**Aggregate mode (gene=NULL, lm_res=NULL)**:
+- With bootstrap=FALSE: A ggplot object showing median entropy with IQR ribbons.
+- With bootstrap=TRUE: A ggplot object with bootstrap confidence interval bands.
 
-**CI mode (bootstrap=TRUE)**: A ggplot object showing entropy with bootstrap confidence interval bands for each group.
+**Gene-specific mode (gene or lm_res provided)**:
+- Single gene: A ggplot object showing median entropy ± SD for that gene.
+- Multiple genes: A named list of ggplot objects (one per gene).
 }
 \description{
 Visualize Tsallis entropy (S_q) as a function of the diversity parameter q across sample groups.
-Supports two visualization modes: basic median/IQR plots or confidence interval bands with significance testing.
+Supports three modes: aggregate q-curves (default), gene-specific q-curves (when `gene` provided),
+or bootstrap confidence interval bands.
 }
 \details{
-**Basic mode (bootstrap=FALSE)**:
-- Plots median Tsallis entropy ± IQR for each group across q-values
+**Aggregate mode (default, gene=NULL, lm_res=NULL)**:
+- Plots median Tsallis entropy ± IQR across all genes for each group
 - Works with any SummarizedExperiment from calculate_diversity()
-- Supports single or multiple q values
-- Supports any number of groups
-- No CI data required, no significance testing
+- Supports single or multiple q values and any number of groups
+- No CI data required for basic plots; bootstrap CIs optional
 
-**CI mode (bootstrap=TRUE)**:
+**Gene-specific mode (gene or lm_res provided)**:
+- Plots q-curve separately for each selected gene
+- Shows median entropy ± SD (variance) for each gene across q-values and groups
+- When `lm_res` provided: automatically ranks genes and selects top `n_top` by p-value
+- Useful for highlighting specific genes of interest or significant discoveries
+- Bootstrap mode not supported in gene-specific mode
+
+**Bootstrap CI mode (bootstrap=TRUE in aggregate mode)**:
 - Displays bootstrap confidence interval bands for each group across q-values
 - Requires exactly 2 groups for comparison
 - Requires 2+ q values for q-curve visualization
@@ -54,11 +82,28 @@ Supports two visualization modes: basic median/IQR plots or confidence interval 
   rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
   gs <- readcounts[1:50, 1]
   
-  # Basic mode: median ± IQR
+  # Aggregate mode: median ± IQR across all genes
   se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
   p_basic <- plot_tsallis_q_curve(se_basic)
   
-  # CI mode with bootstrap CIs
+  # Gene-specific mode: q-curve for specific genes
+  p_gene <- plot_tsallis_q_curve(se_basic, gene = c("gene1", "gene2"))
+  
+  # Gene-specific mode with lm_res from calculate_lm_interaction
+  lm_results <- data.frame(
+    gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
+    adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2)
+  )
+  p_top <- plot_tsallis_q_curve(se_basic, lm_res = lm_results, n_top = 3)
+  
+  # Gene-specific mode with results from detect_q_gene_interactions (Friedman/Wilcoxon)
+  wy_results <- data.frame(
+    gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
+    adj_p_value = c(0.001, 0.01, 0.05, 0.1, 0.2)
+  )
+  p_wy <- plot_tsallis_q_curve(se_basic, lm_res = wy_results, n_top = 2)
+  
+  # CI mode with bootstrap CIs (aggregate)
   se_boot <- calculate_diversity(rc, gs, q = seq(0.1, 2, by = 0.2), bootstrap = TRUE)
   p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
 }

@@ -203,7 +203,7 @@ knitr::kable(data_characteristics,
 # Run Friedman test with Hochberg multiple testing correction
 friedman_results <- detect_q_gene_interactions(
     ts_se,
-    paired = TRUE,
+    paired = FALSE,
     multicorr = "hochberg",
     verbose = TRUE
 )
@@ -286,6 +286,37 @@ if (nrow(rank_sig) > 0) {
   }
 }
 ```
+
+## Visualizing Top Genes from Friedman Test
+
+Now let's visualize the q-curves for the top 4 genes identified by the Friedman test using the integrated gene-specific plotting functionality:
+
+```{r friedman-top-genes-qcurve, fig.width=14, fig.height=10, message=FALSE}
+# Plot q-curves for top 4 genes from Friedman test
+# The function automatically ranks genes by adjusted p-value and shows the most significant ones
+top_genes_plot <- plot_tsallis_q_curve(
+  se = ts_se,
+  lm_res = friedman_results,
+  n_top = 4,
+  assay_name = "diversity",
+  sample_type_col = "sample_type"
+)
+
+# If multiple genes are plotted, the result is a list; display all plots
+if (is.list(top_genes_plot) && !inherits(top_genes_plot, "ggplot")) {
+  for (i in seq_along(top_genes_plot)) {
+    cat("\n**Gene", i, ":**\n\n")
+    print(top_genes_plot[[i]])
+    cat("\n")
+  }
+} else {
+  print(top_genes_plot)
+}
+```
+
+These q-curve profiles show how Tsallis entropy changes across the diversity parameter q for the most significant genes identified by the Friedman test. The median line represents the central tendency, while the shaded IQR ribbon indicates the variability across samples within each group.
+
+---
 
 A striking observation in the Friedman results is that many genes share identical p-values despite having dramatically different effect sizes. This is not a statistical error, but rather reflects a fundamental mathematical property of the Friedman test when applied to entropy data.
 
