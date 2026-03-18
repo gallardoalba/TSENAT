@@ -232,8 +232,8 @@ test_that(".tsenat_compute_skewness handles constant data", {
 test_that("detect_q_gene_interactions produces adj_p_value column", {
   set.seed(100)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
-                rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
+    diversity = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
+                  rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep(c("Gene1", "Gene2"), each = 30),
     sample = rep(paste0("S", 1:10), 6),
@@ -249,8 +249,8 @@ test_that("detect_q_gene_interactions produces adj_p_value column", {
 test_that("detect_q_gene_interactions multicorr=hochberg adjusts p-values correctly", {
   set.seed(101)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
-                rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
+    diversity = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
+                  rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep(c("Gene1", "Gene2"), each = 30),
     sample = rep(paste0("S", 1:10), 6),
@@ -268,8 +268,8 @@ test_that("detect_q_gene_interactions multicorr=hochberg adjusts p-values correc
 test_that("detect_q_gene_interactions multicorr=benjamini-yekutieli produces adj_p_values", {
   set.seed(102)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
-                rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
+    diversity = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
+                  rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep(c("Gene1", "Gene2"), each = 30),
     sample = rep(paste0("S", 1:10), 6),
@@ -285,8 +285,8 @@ test_that("detect_q_gene_interactions multicorr=benjamini-yekutieli produces adj
 test_that("detect_q_gene_interactions multicorr=none returns raw p-values as adj_p_value", {
   set.seed(103)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
-                rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
+    diversity = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
+                  rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep(c("Gene1", "Gene2"), each = 30),
     sample = rep(paste0("S", 1:10), 6),
@@ -302,8 +302,8 @@ test_that("detect_q_gene_interactions multicorr=none returns raw p-values as adj
 test_that("detect_q_gene_interactions default multicorr is hochberg", {
   set.seed(104)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
-                rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
+    diversity = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),
+                  rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0)),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep(c("Gene1", "Gene2"), each = 30),
     sample = rep(paste0("S", 1:10), 6),
@@ -320,10 +320,10 @@ test_that("detect_q_gene_interactions default multicorr is hochberg", {
 test_that("detect_q_gene_interactions output is sorted by adj_p_value", {
   set.seed(105)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 1.0),  # Gene1: not different
-                rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),  # Gene2: very different
-                rnorm(10, 1.0), rnorm(10, 1.05), rnorm(10, 1.1)),  # Gene3: slightly different
-    q = rep(c(0.5, 1.0, 1.5), times = c(10, 30, 30)),  # Match entropy structure: 10+30+30=70
+    diversity = c(rnorm(10, 1.0),  # Gene1: not different
+                  rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),  # Gene2: very different
+                  rnorm(10, 1.0), rnorm(10, 1.05), rnorm(10, 1.1)),  # Gene3: slightly different
+    q = rep(c(0.5, 1.0, 1.5), times = c(10, 30, 30)),  # Match diversity structure: 10+30+30=70
     gene = c(rep("Gene1", 10), rep("Gene2", 30), rep("Gene3", 30)),
     sample = rep(paste0("S", 1:10), 7),
     stringsAsFactors = FALSE
@@ -341,7 +341,7 @@ test_that("detect_q_gene_interactions output is sorted by adj_p_value", {
 test_that("detect_q_gene_interactions respects multicorr parameter passing", {
   set.seed(106)
   model_data <- data.frame(
-    entropy = rnorm(60),
+    diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5), each = 20),
     gene = rep(paste0("Gene", 1:4), each = 15),
     sample = rep(paste0("S", 1:20), 3),
@@ -364,7 +364,7 @@ test_that("detect_q_gene_interactions respects multicorr parameter passing", {
 
 test_that("detect_q_gene_interactions invalid multicorr parameter raises error", {
   model_data <- data.frame(
-    entropy = rnorm(30),
+    diversity = rnorm(30),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("Gene1", 30),
     sample = rep(paste0("S", 1:10), 3),
@@ -382,7 +382,7 @@ test_that("detect_q_gene_interactions multicorr handles NA p-values correctly", 
   
   # Create data where one gene will have NA p-value (insufficient data)
   model_data <- data.frame(
-    entropy = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5)),
+    diversity = c(rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5)),
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = c(rep("Gene1", 10), rep("Gene1", 10), rep("Gene2", 10)),
     sample = rep(paste0("S", 1:10), 3),
@@ -406,7 +406,7 @@ test_that("detect_q_gene_interactions more genes = more deflation with Hochberg"
   # Create 5-gene dataset with same p-value
   base_gene <- rnorm(30, 1.0, 0.05)  # Non-significant p-value
   model_data_5 <- data.frame(
-    entropy = rep(base_gene, 5),
+    diversity = rep(base_gene, 5),
     q = rep(c(0.5, 1.0, 1.5), 50),
     gene = rep(paste0("Gene", 1:5), each = 30),
     sample = rep(paste0("S", 1:10), 15),
@@ -415,7 +415,7 @@ test_that("detect_q_gene_interactions more genes = more deflation with Hochberg"
   
   # Create 10-gene dataset with same p-value per gene
   model_data_10 <- data.frame(
-    entropy = rep(base_gene, 10),
+    diversity = rep(base_gene, 10),
     q = rep(c(0.5, 1.0, 1.5), 100),
     gene = rep(paste0("Gene", 1:10), each = 30),
     sample = rep(paste0("S", 1:10), 30),
@@ -441,7 +441,7 @@ test_that("detect_q_gene_interactions Benjamini-Yekutieli is less deflating than
   
   # Create dataset with varying p-values
   model_data <- data.frame(
-    entropy = c(
+    diversity = c(
       rnorm(10, 0.5), rnorm(10, 1.5), rnorm(10, 2.5),  # Gene1: significant
       rnorm(10, 1.0), rnorm(10, 1.0), rnorm(10, 1.0),  # Gene2: not significant
       rnorm(10, 0.5), rnorm(10, 1.3), rnorm(10, 2.1)   # Gene3: significant

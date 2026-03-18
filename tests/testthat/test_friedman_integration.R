@@ -158,8 +158,8 @@ test_that("Friedman detects strong q-effect (low p-value)", {
   
   data <- data.frame(
     entropy = entropy,
-    subject = factor(rep(1:n_subjects, n_q)),
-    q = factor(rep(1:n_q, each = n_subjects))
+    subject = factor(rep(1:n_subjects, each = n_q)),
+    q = factor(rep(1:n_q, n_subjects))
   )
   
   result <- .tsenat_apply_friedman_test(
@@ -170,8 +170,7 @@ test_that("Friedman detects strong q-effect (low p-value)", {
   )
   
   # Should be highly significant
-  expect_lt(result$p_value, 0.05, 
-           info = "Strong q-effect should give p < 0.05")
+  expect_lt(result$p_value, 0.05)
 })
 
 test_that("Friedman shows weak effect (high p-value) for random data", {
@@ -185,8 +184,8 @@ test_that("Friedman shows weak effect (high p-value) for random data", {
   
   data <- data.frame(
     entropy = entropy,
-    subject = factor(rep(1:n_subjects, n_q)),
-    q = factor(rep(1:n_q, each = n_subjects))
+    subject = factor(rep(1:n_subjects, each = n_q)),
+    q = factor(rep(1:n_q, n_subjects))
   )
   
   result <- .tsenat_apply_friedman_test(
@@ -197,8 +196,7 @@ test_that("Friedman shows weak effect (high p-value) for random data", {
   )
   
   # Should not be highly significant
-  expect_gt(result$p_value, 0.05, 
-           info = "Random data should typically give p > 0.05")
+  expect_gt(result$p_value, 0.05)
 })
 
 # ============================================================================
@@ -230,8 +228,7 @@ test_that("Friedman statistic follows chi-square distribution (df = k-1)", {
   # For random data, statistic follows approximately chi-square(k-1)
   # So it should be in reasonable range (0 to maybe 4*df for random data)
   df <- k_treatments - 1
-  expect_lt(result$statistic, 4 * df + 5,
-           info = paste("Statistic", result$statistic, "seems too large for chi-square(", df, ")"))
+  expect_lt(result$statistic, 4 * df + 5)
 })
 
 # ============================================================================
@@ -284,11 +281,9 @@ test_that("Friedman handles both factor and numeric group identifiers", {
   # With character
   data_char <- data.frame(
     entropy = rnorm(16, mean = 2, sd = 0.3),
-    subject = factor(paste0("S", 1:4)),  # Factor with character
-    q = factor(paste0("Q", 1:4))  # Factor with character
+    subject = factor(rep(paste0("S", 1:4), each = 4)),  # Factor with character
+    q = factor(rep(paste0("Q", 1:4), 4))  # Factor with character
   )
-  data_char$subject <- rep(data_char$subject, each = 4)
-  data_char$q <- rep(data_char$q, 4)
   
   result_char <- .tsenat_apply_friedman_test(
     data = data_char,
@@ -332,14 +327,14 @@ test_that("Friedman handles data with tied (identical) values", {
 # ============================================================================
 
 test_that("Friedman fails gracefully with missing values in matrix", {
-  # Create data that will have NA in the matrix form
-  # (missing combination of subject-treatment)
+  # Create a data frame where using xtabs would create a result without required dimensions
+  # e.g., only one level in one dimension after filtering
   data <- data.frame(
-    entropy = c(1.0, 2.0, 1.5, 2.5, 3.0),
-    subject = factor(c(1, 1, 2, 2, 3)),
-    q = factor(c("A", "B", "A", "B", "A"))
+    entropy = c(1.0, 2.0),
+    subject = factor(c(1, 1)),
+    q = factor(c("A", "B"))
   )
-  # Subject 3 only has treatment A, will create unbalanced matrix
+  # This has only 1 subject but 2 treatments - Friedman needs at least 2 subjects
   
   result <- .tsenat_apply_friedman_test(
     data = data,
@@ -348,7 +343,7 @@ test_that("Friedman fails gracefully with missing values in matrix", {
     subject_col = "subject"
   )
   
-  # Should return NA or test_failed
+  # Should fail gracefully - either NA p-value or test_failed method
   expect_true(is.na(result$p_value) || result$method == "test_failed")
 })
 

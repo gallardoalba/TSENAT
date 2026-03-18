@@ -2249,11 +2249,13 @@ detect_q_gene_interactions <- function(
         test_result <- test_func(data, value_col, group_col, subject_col)
         
         # Return with metadata indicating paired test was used and which one
+        # Add pairing_used flag to characteristics
+        characteristics_with_pairing <- c(selection$characteristics, list(pairing_used = TRUE))
         return(c(
             test_result,
             list(
                 test_type = selection$test_selected,
-                characteristics = selection$characteristics
+                characteristics = characteristics_with_pairing
             )
         ))
     }

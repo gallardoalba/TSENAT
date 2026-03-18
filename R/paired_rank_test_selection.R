@@ -37,7 +37,7 @@
 #'
 #' **Extreme skewness detection:**
 #' - Compute skewness of values pooled across all treatments
-#' - Threshold: |skewness| > 1 indicates heavy tails
+#' - Threshold: |skewness| > 2 indicates extreme heavy tails
 #' - Robust median test appropriate when normality assumption strongly violated
 #'
 #' @keywords internal
@@ -135,7 +135,7 @@
   
   skewness_val <- .tsenat_compute_skewness(values)
   
-  if (abs(skewness_val) > 1) {
+  if (abs(skewness_val) > 2) {
     characteristics$highly_skewed <- TRUE
     reasons <- c(reasons, sprintf(
       "Extreme skewness: |skew|=%.3f",
