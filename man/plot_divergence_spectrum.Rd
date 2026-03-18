@@ -8,8 +8,8 @@ plot_divergence_spectrum(
   divergence_results_se,
   gene = NULL,
   lm_res = NULL,
-  n_genes = 6,
-  ncol = 3,
+  n_genes = 4,
+  ncol = 2,
   metric = c("median", "mean"),
   variability_metric = c("iqr", "sd")
 )
