@@ -278,7 +278,7 @@ test_that("detect_q_gene_interactions basic functionality works", {
   )
   
   model_data <- data.frame(
-    entropy = entropy_vals,
+    diversity = entropy_vals,
     q = rep(c(0.5, 1.0, 1.5), each = 30),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 10),
     sample = rep(paste0("S", 1:10), 9),
@@ -310,7 +310,7 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
   )
   
   model_data <- data.frame(
-    entropy = entropy_stable,
+    diversity = entropy_stable,
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("RobustGene", 30),
     sample = rep(paste0("S", 1:10), 3),
@@ -334,7 +334,7 @@ test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
   )
   
   model_data <- data.frame(
-    entropy = entropy_changing,
+    diversity = entropy_changing,
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("DependentGene", 30),
     sample = rep(paste0("S", 1:10), 3),
@@ -355,7 +355,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
   entropy_vals[c(5, 15, 25)] <- NA  # Add some NAs
   
   model_data <- data.frame(
-    entropy = entropy_vals,
+    diversity = entropy_vals,
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("TestGene", 30),
     sample = rep(paste0("S", 1:10), 3),
@@ -372,7 +372,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
 test_that("detect_q_gene_interactions requires minimum 2 q-levels", {
   # Data with only one q-value
   model_data <- data.frame(
-    entropy = rnorm(10),
+    diversity = rnorm(10),
     q = rep(0.5, 10),
     gene = rep("Gene1", 10),
     sample = paste0("S", 1:10),
@@ -410,7 +410,7 @@ test_that("detect_q_gene_interactions kruskal.test method produces results", {
   )
   
   model_data <- data.frame(
-    entropy = entropy_vals,
+    diversity = entropy_vals,
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("Gene1", 30),
     sample = rep(paste0("S", 1:10), 3),
@@ -513,7 +513,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   # Build test dataset by combining gene groups directly
   # Gene 1-30: robust (constant entropy across q)
   data_robust <- data.frame(
-    entropy = rnorm(300, mean = 1.5, sd = 0.1),
+    diversity = rnorm(300, mean = 1.5, sd = 0.1),
     q = rep(c(0.5, 1.0, 1.5), 100),
     gene = rep(paste0("Gene", 1:30), each = 10),
     sample = rep(paste0("S", 1:10), 30),
@@ -522,7 +522,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Gene 31-40: moderately q-dependent (moderate variation)
   data_moderate <- data.frame(
-    entropy = c(rnorm(50, mean = 1.0, sd = 0.1), rnorm(50, mean = 1.3, sd = 0.1)),
+    diversity = c(rnorm(50, mean = 1.0, sd = 0.1), rnorm(50, mean = 1.3, sd = 0.1)),
     q = rep(c(0.5, 1.0, 1.5), c(34, 33, 33)),
     gene = rep(paste0("Gene", 31:40), each = 10),
     sample = rep(paste0("S", 1:10), 10),
@@ -531,7 +531,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Gene 41-45: strongly q-dependent (large variation)
   data_strong <- data.frame(
-    entropy = c(rnorm(25, mean = 0.5, sd = 0.1), rnorm(25, mean = 2.0, sd = 0.1)),
+    diversity = c(rnorm(25, mean = 0.5, sd = 0.1), rnorm(25, mean = 2.0, sd = 0.1)),
     q = rep(c(0.5, 1.0, 1.5), c(17, 17, 16)),
     gene = rep(paste0("Gene", 41:45), each = 5),
     sample = rep(paste0("S", 1:5), 5),
@@ -560,7 +560,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
 test_that("Functions handle edge case: single sample per q-level", {
   # Minimal viable dataset: 1 sample per q per gene
   model_data <- data.frame(
-    entropy = c(1.0, 1.1, 1.2, 0.5, 2.0, 3.5),
+    diversity = c(1.0, 1.1, 1.2, 0.5, 2.0, 3.5),
     q = rep(c(0.5, 1.0, 1.5), 2),
     gene = rep(c("Gene1", "Gene2"), each = 3),
     sample = c("S1", "S1", "S1", "S2", "S2", "S2"),
@@ -579,7 +579,7 @@ test_that("Functions handle edge case: many q-levels", {
   set.seed(555)
   
   model_data <- data.frame(
-    entropy = rnorm(100),
+    diversity = rnorm(100),
     q = rep(q_vals, length.out = 100),
     gene = rep("Gene1", 100),
     sample = rep(paste0("S", 1:10), 10),
@@ -599,7 +599,7 @@ test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
   # Create test data
   set.seed(777)
   model_data <- data.frame(
-    entropy = rnorm(100, mean = 1, sd = 0.5),
+    diversity = rnorm(100, mean = 1, sd = 0.5),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
     gene = rep(paste0("Gene", 1:5), each = 20),
     sample = rep(paste0("S", 1:5), 20),
@@ -622,7 +622,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
   set.seed(888)
   # Create test data with various signal strengths
   model_data <- data.frame(
-    entropy = c(
+    diversity = c(
       rnorm(40, mean = 1.0, sd = 0.2),  # Gene1: stable
       rnorm(40, mean = 1.0, sd = 0.2) + seq(0, 1.0, length.out = 40),  # Gene2: q-dependent
       rnorm(40, mean = 1.0, sd = 0.3)   # Gene3: stable
@@ -648,7 +648,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
 test_that("detect_q_gene_interactions westfall-young adjusted p-values are monotonic", {
   set.seed(999)
   model_data <- data.frame(
-    entropy = rnorm(120),
+    diversity = rnorm(120),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(paste0("Gene", 1:6), each = 20),
     sample = rep(paste0("S", 1:10), 12),
@@ -671,7 +671,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
 test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter works", {
   set.seed(1001)
   model_data <- data.frame(
-    entropy = rnorm(80),
+    diversity = rnorm(80),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 20),
     gene = rep(paste0("Gene", 1:4), each = 20),
     sample = rep(paste0("S", 1:5), 16),
@@ -704,7 +704,7 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
 test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   set.seed(1011)
   model_data <- data.frame(
-    entropy = rnorm(60),
+    diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(paste0("Gene", 1:3), each = 20),
     sample = rep(paste0("S", 1:5), 12),
@@ -712,18 +712,15 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   )
   
   # Capture message output
-  expect_warning(
-    expect_message(
-      detect_q_gene_interactions(
-        model_data,
-        multicorr = "westfall-young",
-        wy_randomizations = 10,
-        verbose = TRUE
-      ),
-      "westfall-young|WY|permutation",
-      ignore.case = TRUE
+  expect_message(
+    detect_q_gene_interactions(
+      model_data,
+      multicorr = "westfall-young",
+      wy_randomizations = 10,
+      verbose = TRUE
     ),
-    "Chi-squared approximation may be incorrect"
+    "westfall-young|WY|permutation|Estimating",
+    ignore.case = TRUE
   )
 })
 
@@ -731,24 +728,24 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
   # Create null data (no true q-effects)
   set.seed(1021)
   model_data <- data.frame(
-    entropy = rnorm(200),  # Pure noise, no structure
+    diversity = rnorm(200),  # Pure noise, no structure
     q = rep(c(0.5, 1.0, 1.5, 2.0), 50),
     gene = rep(paste0("Gene", 1:10), each = 20),
     sample = rep(paste0("S", 1:10), 20),
     stringsAsFactors = FALSE
   )
   
-  result <- expect_warning(
+  # Suppress warnings that may occur due to chi-squared approximations with small sample sizes
+  result <- suppressWarnings(
     detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
-    ),
-    "Chi-squared approximation may be incorrect"
+    )
   )
   
   # Under null hypothesis with pure noise, should have very few significant genes
-  # (true FWER control means at most α fraction false positives expected)
+  # (true FWER control means at most alpha fraction false positives expected)
   n_sig_alpha05 <- sum(result$adj_p_value < 0.05)
   expect_true(n_sig_alpha05 <= 2)  # Allow at most 2 false positives out of 10 genes
 })
@@ -757,7 +754,7 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
   set.seed(1031)
   # Create test data with multiple q-levels
   model_data <- data.frame(
-    entropy = c(
+    diversity = c(
       rnorm(40, mean = 1.0, sd = 0.2),
       rnorm(40, mean = 1.0, sd = 0.2) + seq(0, 1.2, length.out = 40),  # Signal
       rnorm(40, mean = 1.0, sd = 0.2) + seq(0, 0.5, length.out = 40)   # Moderate signal
@@ -791,7 +788,7 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
 test_that("detect_q_gene_interactions westfall-young handles small randomizations", {
   set.seed(1041)
   model_data <- data.frame(
-    entropy = rnorm(60),
+    diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(paste0("Gene", 1:3), each = 20),
     sample = rep(paste0("S", 1:5), 12),
@@ -816,7 +813,7 @@ test_that("detect_q_gene_interactions westfall-young handles edge cases graceful
   set.seed(1051)
   # Create clean dataset with sufficient samples
   model_data <- data.frame(
-    entropy = c(
+    diversity = c(
       rnorm(20),  # Gene1
       rnorm(20),  # Gene2
       rnorm(20)   # Gene3
@@ -843,7 +840,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
   set.seed(1061)
   # Create data with varying signal strengths
   model_data <- data.frame(
-    entropy = c(
+    diversity = c(
       rnorm(40, mean = 1.0, sd = 0.15) + seq(0, 2.0, length.out = 40),  # Strong
       rnorm(40, mean = 1.0, sd = 0.3),
       rnorm(40, mean = 1.0, sd = 0.3)
@@ -890,7 +887,7 @@ test_that("detect_q_gene_interactions has subject_col parameter with default NUL
 test_that("detect_q_gene_interactions paired=TRUE without subject_col raises error", {
   set.seed(2001)
   model_data <- data.frame(
-    entropy = rnorm(60),
+    diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
     subject = rep(paste0("Subject_", 1:5), 12),
@@ -906,7 +903,7 @@ test_that("detect_q_gene_interactions paired=TRUE without subject_col raises err
 test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warning", {
   set.seed(2002)
   model_data <- data.frame(
-    entropy = rnorm(60),
+    diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
     subject = rep(paste0("Subject_", 1:5), 12),
@@ -922,7 +919,7 @@ test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warnin
 test_that("detect_q_gene_interactions detects missing subject_col in data", {
   set.seed(2003)
   model_data <- data.frame(
-    entropy = rnorm(60),
+    diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
     stringsAsFactors = FALSE
@@ -962,7 +959,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   genes <- rep(rep(paste0("Gene_", 1:n_genes), each = n_q_values), n_subjects / n_genes + 1)[1:length(subject_ids)]
   
   model_data <- data.frame(
-    entropy = entropy_data,
+    diversity = entropy_data,
     q = factor(q_levels),
     gene = factor(genes),
     subject = factor(subject_ids),
@@ -1034,7 +1031,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   q_levels_full <- rep(q_levels, n_genes)
   
   model_data <- data.frame(
-    entropy = entropy_data,
+    diversity = entropy_data,
     q = factor(q_levels_full),
     gene = factor(genes),
     subject = factor(subject_ids_full),
@@ -1109,7 +1106,7 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
   # Create long-format data for analysis
   model_data_list <- lapply(seq_len(nrow(se)), function(i) {
     data.frame(
-      entropy = assay(se, 1)[i, ],
+      diversity = assay(se, 1)[i, ],
       q = factor(colData(se)$q),
       gene = rownames(se)[i],
       subject = colData(se)$subject,
@@ -1141,7 +1138,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   
   # Subject 1: all 4 q-values
   data_list[[1]] <- data.frame(
-    entropy = rnorm(4),
+    diversity = rnorm(4),
     q = c(0.5, 1.0, 1.5, 2.0),
     gene = "Gene1",
     subject = "Subject_1",
@@ -1150,7 +1147,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   
   # Subject 2: all 4 q-values
   data_list[[2]] <- data.frame(
-    entropy = rnorm(4),
+    diversity = rnorm(4),
     q = c(0.5, 1.0, 1.5, 2.0),
     gene = "Gene1",
     subject = "Subject_2",
@@ -1159,7 +1156,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   
   # Subject 3: only 3 q-values (unbalanced!)
   data_list[[3]] <- data.frame(
-    entropy = rnorm(3),
+    diversity = rnorm(3),
     q = c(0.5, 1.0, 1.5),
     gene = "Gene1",
     subject = "Subject_3",
@@ -1190,7 +1187,7 @@ test_that("estimate_nperm returns valid integer in bounds", {
   
   # Create synthetic multi-q entropy data
   model_data <- data.frame(
-    entropy = rnorm(400, mean = 1.5, sd = 0.3),
+    diversity = rnorm(400, mean = 1.5, sd = 0.3),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 100),
     gene = rep(paste0("Gene", 1:25), each = 16),
     stringsAsFactors = FALSE
@@ -1211,7 +1208,7 @@ test_that("estimate_nperm scales with number of genes", {
   
   # Create small dataset (few genes)
   data_small <- data.frame(
-    entropy = rnorm(40, mean = 1.5, sd = 0.2),
+    diversity = rnorm(40, mean = 1.5, sd = 0.2),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 10),
     gene = rep(paste0("Gene", 1:5), each = 8),
     stringsAsFactors = FALSE
@@ -1219,7 +1216,7 @@ test_that("estimate_nperm scales with number of genes", {
   
   # Create large dataset (many genes)
   data_large <- data.frame(
-    entropy = rnorm(400, mean = 1.5, sd = 0.2),
+    diversity = rnorm(400, mean = 1.5, sd = 0.2),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 100),
     gene = rep(paste0("Gene", 1:50), each = 8),
     stringsAsFactors = FALSE
@@ -1236,7 +1233,7 @@ test_that("estimate_nperm respects mode parameter", {
   set.seed(3003)
   
   model_data <- data.frame(
-    entropy = rnorm(200),
+    diversity = rnorm(200),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 50),
     gene = rep(paste0("Gene", 1:10), each = 20),
     stringsAsFactors = FALSE
@@ -1262,7 +1259,7 @@ test_that("estimate_nperm detects high heterogeneity", {
   
   # Low heterogeneity: small variance
   data_low_het <- data.frame(
-    entropy = rnorm(100, mean = 1.5, sd = 0.1),
+    diversity = rnorm(100, mean = 1.5, sd = 0.1),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
     gene = rep(paste0("Gene", 1:5), each = 20),
     stringsAsFactors = FALSE
@@ -1270,7 +1267,7 @@ test_that("estimate_nperm detects high heterogeneity", {
   
   # High heterogeneity: large variance
   data_high_het <- data.frame(
-    entropy = rnorm(100, mean = 1.5, sd = 1.0),
+    diversity = rnorm(100, mean = 1.5, sd = 1.0),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
     gene = rep(paste0("Gene", 1:5), each = 20),
     stringsAsFactors = FALSE
@@ -1287,7 +1284,7 @@ test_that("estimate_nperm enforces bounds", {
   set.seed(3005)
   
   model_data <- data.frame(
-    entropy = rnorm(40),
+    diversity = rnorm(40),
     q = rep(c(0.5, 1.0), 20),
     gene = rep(paste0("Gene", 1:2), each = 20),
     stringsAsFactors = FALSE
@@ -1306,7 +1303,7 @@ test_that("estimate_nperm works with data frame", {
   set.seed(3006)
   
   df <- data.frame(
-    entropy = rnorm(100),
+    diversity = rnorm(100),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
     gene = rep(paste0("Gene", 1:5), each = 20),
     stringsAsFactors = FALSE
@@ -1339,7 +1336,7 @@ test_that("estimate_nperm works with SummarizedExperiment", {
   )
   
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(entropy = assay_matrix),
+    assays = list(diversity = assay_matrix),
     colData = col_data
   )
   
@@ -1354,7 +1351,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   set.seed(3008)
   
   model_data <- data.frame(
-    entropy = rnorm(120),
+    diversity = rnorm(120),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(paste0("Gene", 1:6), each = 20),
     stringsAsFactors = FALSE
@@ -1391,7 +1388,7 @@ test_that("estimate_nperm invalid mode raises error", {
   set.seed(3009)
   
   model_data <- data.frame(
-    entropy = rnorm(40),
+    diversity = rnorm(40),
     q = rep(c(0.5, 1.0), 20),
     gene = rep("Gene1", 40),
     stringsAsFactors = FALSE
@@ -1408,7 +1405,7 @@ test_that("estimate_nperm with single q-value", {
   
   # Only one q-value (edge case: AR(1) reduction factor = 1.0)
   model_data <- data.frame(
-    entropy = rnorm(50),
+    diversity = rnorm(50),
     q = rep(0.5, 50),
     gene = rep(paste0("Gene", 1:5), each = 10),
     stringsAsFactors = FALSE

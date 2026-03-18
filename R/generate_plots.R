@@ -2249,14 +2249,16 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     nrow <- ceiling(length(grobs) / ncol)
     
     # Create heights: title (0.5cm) + plot rows with gaps + legend (0.7cm)
-    plot_heights <- c()
+    plot_heights <- list()
     for (i in 1:nrow) {
-        plot_heights <- c(plot_heights, grid::unit(1, "null"))
+        plot_heights[[length(plot_heights) + 1]] <- grid::unit(1, "null")
         if (i < nrow) {  # Add gap after each row except the last (reduced by half)
-            plot_heights <- c(plot_heights, grid::unit(0.17, "cm"))
+            plot_heights[[length(plot_heights) + 1]] <- grid::unit(0.17, "cm")
         }
     }
-    heights <- grid::unit.c(grid::unit(0.55, "cm"), do.call(grid::unit.c, as.list(plot_heights)), grid::unit(0.7, "cm"))
+    # Combine all heights properly using do.call
+    all_heights <- c(list(grid::unit(0.55, "cm")), plot_heights, list(grid::unit(0.7, "cm")))
+    heights <- do.call(grid::unit.c, all_heights)
     
     if (!is.null(output_file)) {
         # Adjust PNG dimensions based on layout

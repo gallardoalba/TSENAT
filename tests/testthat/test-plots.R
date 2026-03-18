@@ -68,10 +68,13 @@ test_that("plot_top_transcripts returns ggplot for synthetic data", {
         stringsAsFactors = FALSE
     )
 
-    p <- plot_top_transcripts(counts,
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        rowData = S4Vectors::DataFrame(genes = tx2$Gen),
+        colData = S4Vectors::DataFrame(sample_type = samples)
+    )
+    p <- plot_top_transcripts(se,
         gene = "GENE1",
-        samples = samples,
-        tx2gene = tx2,
         top_n = 2
     )
     expect_s3_class(p, "ggplot")
@@ -95,7 +98,12 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
 
     res <- data.frame(genes = paste0("G", 1:3), adjusted_p_values = c(0.01, 0.05, 0.2), stringsAsFactors = FALSE)
 
-    p <- plot_top_transcripts(counts, res = res, tx2gene = tx2, samples = samples, top_n = 2)
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        rowData = S4Vectors::DataFrame(genes = tx2$Gen),
+        colData = S4Vectors::DataFrame(sample_type = samples)
+    )
+    p <- plot_top_transcripts(se, res = res, top_n = 2)
     expect_s3_class(p, "ggplot")
 })
 
@@ -259,15 +267,20 @@ test_that("plot_top_transcripts works on simple matrix input", {
     tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
     samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
 
-    p <- plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
+    se <- SummarizedExperiment(
+        assays = list(counts = tx_counts),
+        rowData = S4Vectors::DataFrame(genes = tx2gene$Gen),
+        colData = S4Vectors::DataFrame(sample_type = samples)
+    )
+    p <- plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2)
     expect_true(!is.null(p))
     # expect ggplot object or patchwork
     expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
 })
 
-test_that("plot_top_transcripts errors when counts lack rownames", {
+test_that("plot_top_transcripts errors when se is not SummarizedExperiment", {
     mat <- matrix(1:6, nrow = 2)
-    expect_error(plot_top_transcripts(mat, gene = "G1", tx2gene = data.frame(Transcript = c("a", "b"), Gen = c("G1", "G1"))), "counts.*rownames")
+    expect_error(plot_top_transcripts(mat, gene = "G1"), "se must be a SummarizedExperiment")
 })
 
 context("Visualization: Generate Plots Additional Tests")
@@ -468,12 +481,18 @@ test_that("plot_top_transcripts writes output files for single and multiple gene
     samples <- c("N", "N", "T", "T")
     tx2 <- data.frame(Transcript = rownames(counts), Gen = rep(c("G1", "G2"), each = 3), stringsAsFactors = FALSE)
 
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        rowData = S4Vectors::DataFrame(genes = tx2$Gen),
+        colData = S4Vectors::DataFrame(sample_type = samples)
+    )
+
     tf1 <- tempfile(fileext = ".png")
-    plot_top_transcripts(counts, gene = "G1", samples = samples, tx2gene = tx2, output_file = tf1)
+    plot_top_transcripts(se, gene = "G1", output_file = tf1)
     expect_true(file.exists(tf1) && file.info(tf1)$size > 0)
 
     tf2 <- tempfile(fileext = ".png")
-    plot_top_transcripts(counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2, output_file = tf2)
+    plot_top_transcripts(se, gene = c("G1", "G2"), output_file = tf2)
     expect_true(file.exists(tf2) && file.info(tf2)$size > 0)
 })
 
@@ -487,7 +506,12 @@ test_that("plot_top_transcripts supports metric 'iqr'", {
     samples <- c("N", "N", "T", "T")
     tx2 <- data.frame(Transcript = rownames(counts), Gen = rep("G1", 3), stringsAsFactors = FALSE)
 
-    p <- plot_top_transcripts(counts, gene = "G1", samples = samples, tx2gene = tx2, metric = "iqr")
+    se <- SummarizedExperiment(
+        assays = list(counts = counts),
+        rowData = S4Vectors::DataFrame(genes = tx2$Gen),
+        colData = S4Vectors::DataFrame(sample_type = samples)
+    )
+    p <- plot_top_transcripts(se, gene = "G1", metric = "iqr")
     expect_s3_class(p, "ggplot")
 })
 

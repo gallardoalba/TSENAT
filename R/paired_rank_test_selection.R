@@ -255,9 +255,12 @@
   
   # For robustness: Use exact or simulated p-value (Fisher's exact not practical for large tables)
   # Fallback: Chi-squared test
-  chi_test <- try(chisq.test(above_median_matrix), silent = TRUE)
+  chi_test <- tryCatch(
+    chisq.test(above_median_matrix),
+    error = function(e) NULL
+  )
   
-  if (inherits(chi_test, "try-error")) {
+  if (is.null(chi_test)) {
     # If chi-squared fails, use simpler Friedman-like approach
     # Compute sum of squared deviations of treatment medians from overall median
     treat_medians <- colMedians(block_ranks)

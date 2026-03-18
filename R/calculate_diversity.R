@@ -1516,13 +1516,9 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
             }
             
             # Apply shrinkage: for finite values use weighted average of observation and prior,
-            # for NA values (e.g., from undefined normalized entropy) use the prior estimate,
-            # and preserve NaN values as-is
-            if (is.nan(entropy_matrix[row_idx, col_idx])) {
-              # NaN values are preserved as-is (no modification)
-              # result already initialized to entropy_matrix, so NaN stays NaN
-            } else if (is.na(entropy_matrix[row_idx, col_idx])) {
-              # NA values get shrunk to the prior (w=0 for completely missing data)
+            # for NA/NaN values (e.g., from undefined normalized entropy) use the prior estimate
+            if (is.na(entropy_matrix[row_idx, col_idx]) || is.nan(entropy_matrix[row_idx, col_idx])) {
+              # NA and NaN values get shrunk to the prior (w=0 for completely missing data)
               result[row_idx, col_idx] <- mu
             } else if (is.finite(entropy_matrix[row_idx, col_idx])) {
               # Finite values get weighted average of observation and prior

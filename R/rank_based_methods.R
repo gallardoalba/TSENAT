@@ -1244,7 +1244,7 @@ detect_q_gene_interactions <- function(
     q_col = "q",
     gene_col = "gene",
     paired = FALSE,
-    subject_col = "paired_samples",
+    subject_col = NULL,
     test = c("auto", "kruskal-wallis", "friedman", "art"),
     multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
     wy_randomizations = 500,
@@ -1287,8 +1287,13 @@ detect_q_gene_interactions <- function(
   }
   
   # Validate paired parameters
-  # subject_col defaults to "paired_samples" but user can override or explicitly set
-  if (!paired && !is.null(subject_col) && subject_col != "paired_samples") {
+  # subject_col is now NULL by default and must be explicitly provided if paired=TRUE
+  if (paired && is.null(subject_col)) {
+    stop("paired=TRUE requires subject_col to be specified (e.g., subject_col='subject')", 
+         call. = FALSE)
+  }
+  
+  if (!paired && !is.null(subject_col)) {
     warning("subject_col provided but paired=FALSE; subject_col will be ignored")
   }
   
@@ -2100,12 +2105,12 @@ detect_q_gene_interactions <- function(
     }
     
     # 3. Chi-square test on contingency table
-    chisq_result <- try(
+    chisq_result <- tryCatch(
         chisq.test(contingency_table),
-        silent = TRUE
+        error = function(e) NULL
     )
     
-    if (!inherits(chisq_result, "try-error")) {
+    if (!is.null(chisq_result)) {
         return(list(
             statistic = as.numeric(chisq_result$statistic),
             p_value = as.numeric(chisq_result$p.value),
