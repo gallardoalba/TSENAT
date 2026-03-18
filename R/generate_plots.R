@@ -1524,7 +1524,7 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 32, face = "bold"))
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 32, face = "bold", margin = ggplot2::margin(b = 5)))
             pp
         })
 
@@ -2141,8 +2141,8 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     combined <- (spacer + patchwork::plot_spacer()) / combined_plots_section &
         ggplot2::theme(legend.position = "bottom")
     combined <- combined + patchwork::plot_annotation(title = agg_label_unique, theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.6,
-        size = 48, margin = ggplot2::margin(t = 30, b = 3)))) +
-        patchwork::plot_layout(heights = c(0.12, 1), guides = "collect")
+        size = 48, margin = ggplot2::margin(t = 30, b = 0.8)))) +
+        patchwork::plot_layout(heights = c(0.085, 1), guides = "collect")
     combined
 }
 
@@ -2160,8 +2160,8 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
         x = 0.6, hjust = 0.5, size = 48)
     # Add spacer between title and plots
     spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
-    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.18,
-        0.008, 1, 0.08))
+    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.13,
+        0.003, 1, 0.08))
     if (!is.null(output_file)) {
         ggplot2::ggsave(output_file, result_plot)
         invisible(NULL)
@@ -2185,7 +2185,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     ncol <- min(2, length(grobs))
     nrow <- ceiling(length(grobs) / ncol)
     
-    # Create heights: title (0.8cm) + plot rows with gaps + legend (0.7cm)
+    # Create heights: title (0.5cm) + plot rows with gaps + legend (0.7cm)
     plot_heights <- c()
     for (i in 1:nrow) {
         plot_heights <- c(plot_heights, grid::unit(1, "null"))
@@ -2193,7 +2193,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
             plot_heights <- c(plot_heights, grid::unit(0.17, "cm"))
         }
     }
-    heights <- grid::unit.c(grid::unit(0.8, "cm"), do.call(grid::unit.c, as.list(plot_heights)), grid::unit(0.7, "cm"))
+    heights <- grid::unit.c(grid::unit(0.55, "cm"), do.call(grid::unit.c, as.list(plot_heights)), grid::unit(0.7, "cm"))
     
     if (!is.null(output_file)) {
         # Adjust PNG dimensions based on layout

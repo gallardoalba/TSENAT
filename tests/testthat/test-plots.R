@@ -909,7 +909,6 @@ test_that(".ptt_combine_grid writes a PNG file when output_file is given", {
 context("Visualization: Gene Profile Plotting (Edge Cases)")
 
 library(testthat)
-´
 
 context("Visualization: generate_plots.R Comprehensive Coverage")
 
