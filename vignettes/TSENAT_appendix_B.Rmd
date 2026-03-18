@@ -194,6 +194,7 @@ knitr::kable(data_characteristics,
 friedman_results <- detect_q_gene_interactions(
     ts_se,
     paired = TRUE,
+    subject_col = "paired_samples",
     multicorr = "hochberg",
     verbose = TRUE
 )

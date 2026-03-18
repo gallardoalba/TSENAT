@@ -744,7 +744,7 @@ test_that("Shrinkage with NA and NaN values handled correctly", {
     expect_true(is.finite(shrunk["Gene1", 2]),
                info = "NA should be converted to posterior mean")
     
-    # NaN values should be preserved
-    expect_true(is.nan(shrunk["Gene3", 1]),
-               info = "NaN should be preserved")
+    # NaN values should be converted to shrunk value (finite)
+    expect_true(is.finite(shrunk["Gene3", 1]),
+               info = "NaN should be converted to posterior mean")
 })

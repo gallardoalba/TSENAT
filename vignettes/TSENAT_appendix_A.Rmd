@@ -625,10 +625,6 @@ This appendix has demonstrated that TSENAT's implementation of transcript divers
 sessionInfo()
 ```
 
----
-
-Detach SplicingFactory before next vignette to prevent function masking:
-
 ```{r cleanup, include=FALSE}
 if ("package:SplicingFactory" %in% search()) {
     detach("package:SplicingFactory", unload = TRUE)

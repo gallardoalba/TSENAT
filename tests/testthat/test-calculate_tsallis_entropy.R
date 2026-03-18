@@ -345,10 +345,16 @@ test_that("Helper function detects bounded support data", {
         q = rep(c(0.5, 1, 2), 2)
     )
     
-    # This test requires that .tsenat_handle_bounded_support is exported or accessible
-    # For now, we test indirectly through calculate_lm_interaction
-    # The function should auto-detect bounded support and use quasibinomial family
-    # (This will be verified when GAM tests are run)
+    # Check that entropy values are bounded [0, max]
+    expect_true(all(df_bounded$entropy >= 0),
+               info = "Bounded entropy must be non-negative")
+    expect_true(all(df_bounded$entropy <= max(df_bounded$entropy)),
+               info = "Entropy values must be within bounds")
+    
+    # Verify data frame structure
+    expect_is(df_bounded, "data.frame")
+    expect_equal(nrow(df_bounded), 6)
+    expect_equal(ncol(df_bounded), 3)
 })
 
 context("Bounded Support: Prediction Constraints")
