@@ -89,27 +89,17 @@ se <- tryCatch(
 
 ## Library Size Normalization for Pseudocounts
 
-For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. The `estimate_pseudocount()` function:
+For robust entropy estimation on sparse count data, we use automatic pseudocount estimation that normalizes by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
 
-1. **Computes library size factors** from total counts per sample
-2. **Normalizes by mean library size** to account for sequencing depth variation
-3. **Returns a scalar pseudocount** scaled appropriately for the data
-
-This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
-
-```{r library-pseudocounts, message=FALSE}
-# Estimate library size-normalized pseudocount
-result <- estimate_pseudocount(se, verbose = FALSE)
-scalar_pseudocount <- result$scalar_pseudocount
-
-# Calculate Tsallis entropy across multiple q-values with regularization
+```{r calculate-tsallis, message=FALSE}
+# Calculate Tsallis entropy across multiple q-values with automatic pseudocount estimation
 # Note: colData from the original SE (including paired_samples) is automatically preserved
 qvec <- seq(0.1, 2, by = 0.05)
 ts_se <- calculate_diversity(
   se, 
   q = qvec, 
   norm = TRUE,
-  pseudocount = scalar_pseudocount
+  pseudocount = "auto"  # Automatically estimates library size-adjusted pseudocount
 )
 
 ```
@@ -203,7 +193,7 @@ knitr::kable(data_characteristics,
 # Run Friedman test with Hochberg multiple testing correction
 friedman_results <- detect_q_gene_interactions(
     ts_se,
-    paired = FALSE,
+    paired = TRUE,
     multicorr = "hochberg",
     verbose = TRUE
 )
@@ -276,24 +266,35 @@ if (nrow(rank_sig) > 0) {
       })
     }
     
+    # Format test_method with descriptive labels
+    if ("test_method" %in% colnames(rank_display)) {
+      rank_display$test_method <- sapply(rank_display$test_method, function(x) {
+        if (is.na(x)) "NA" else switch(x,
+          "friedman" = "Standard Friedman",
+          "art_friedman" = "Aligned Rank Transform",
+          "robust_friedman" = "Robust Median",
+          x  # Return original if no match
+        )
+      })
+    }
+    
     # Rename columns for better readability
-    colnames(rank_display) <- c("Gene", "p value", "Adjusted p", "F statistic", "Effect size (η²)", "Test", "Class")
+    colnames(rank_display) <- c("Gene", "p value", "Adjusted p", "F statistic", "Effect size (η²)", "Test Method", "Class")
     
     knitr::kable(rank_display, 
-                 caption = "Top 10 Genes by Friedman Test p-value (with F Statistic and Effect Size)",
+                 caption = "Top 10 Genes by Friedman Test p-value (with Test Variant and Effect Size)",
                  align = c("l", "r", "r", "r", "r", "l", "l"),
                  format.args = list(big.mark = ","))
   }
 }
 ```
 
-## Visualizing Top Genes from Friedman Test
-
 Now let's visualize the q-curves for the top 4 genes identified by the Friedman test using the integrated gene-specific plotting functionality:
 
 ```{r friedman-top-genes-qcurve, fig.width=14, fig.height=10, message=FALSE}
 # Plot q-curves for top 4 genes from Friedman test
 # The function automatically ranks genes by adjusted p-value and shows the most significant ones
+# When multiple genes are plotted, they are automatically arranged in a 2x2 grid
 top_genes_plot <- plot_tsallis_q_curve(
   se = ts_se,
   lm_res = friedman_results,
@@ -302,19 +303,41 @@ top_genes_plot <- plot_tsallis_q_curve(
   sample_type_col = "sample_type"
 )
 
-# If multiple genes are plotted, the result is a list; display all plots
-if (is.list(top_genes_plot) && !inherits(top_genes_plot, "ggplot")) {
-  for (i in seq_along(top_genes_plot)) {
-    cat("\n**Gene", i, ":**\n\n")
-    print(top_genes_plot[[i]])
-    cat("\n")
-  }
-} else {
-  print(top_genes_plot)
-}
+# Print the grid of plots
+print(top_genes_plot)
 ```
 
 These q-curve profiles show how Tsallis entropy changes across the diversity parameter q for the most significant genes identified by the Friedman test. The median line represents the central tendency, while the shaded IQR ribbon indicates the variability across samples within each group.
+
+## Why Similar-Looking Curves Can Have Large Statistical Differences
+
+A striking feature of the q-curve plots is that visually similar entropy curves can have dramatically different statistical significance levels and effect sizes. For example:
+
+- Gene A: Entropy normal = 2.5, entropy tumor = 2.8 (difference: 0.3) → η² = 97.8%, p < 0.0001
+- Gene B: Entropy normal = 2.6, entropy tumor = 2.8 (difference: 0.2) → η² = 59.4%, p < 0.0001
+- Gene C: Entropy normal = 2.5, entropy tumor = 2.7 (difference: 0.2) → η² = 34.2%, p < 0.0001
+
+The curves appear visually similar (all show modest increases from normal to tumor), yet their effect sizes differ by nearly 3-fold. This occurs because the **Friedman test is sensitive to the consistency of the ranking pattern across subjects, not just the magnitude of the difference.**
+
+### How Consistency Drives Effect Size
+
+The Friedman test ranks entropy values **within each subject** separately. When a gene shows a **consistent monotonic pattern** across subjects (e.g., entropy is always higher in tumor than in normal for every subject), the test detects this with high statistical power.
+
+The effect size η² quantifies the strength of this monotonic pattern:
+
+- **η² = 97.8%**: Nearly all variance in entropy is explained by the normal/tumor distinction. Entropy change is steep or consistent across subjects with minimal within-group variability.
+- **η² = 59.4%**: About 60% of entropy variance is explained by normal/tumor. More variability exists within groups, but the average difference is still substantial.
+- **η² = 34.2%**: About 34% of entropy variance is explained by normal/tumor. The within-group variability limits how much of the overall variation is due to the condition difference.
+
+### Ranking by Effect Size When P-values Cluster
+
+When multiple genes show identical p-values (all < 0.0001), they represent genes with similarly consistent monotonic patterns across subjects. The **effect size becomes the practical ranking metric** distinguishing:
+
+- How much entropy change across conditions is "true signal" vs. random noise
+- Which genes show the most reliable, reproducible q-value dependence
+- Which genes warrant highest priority for downstream validation
+
+**Bottom line:** Two genes can look visually similar yet have very different effect sizes because effect size captures the **proportion of variance explained** by the condition effect, accounting for the within-subject and between-subject variability at each condition level.
 
 ---
 
@@ -338,6 +361,31 @@ When the Friedman test cannot discriminate between genes statistically, the **ef
 $$\eta^2 = \frac{SS_\text{between}}{SS_\text{total}}$$
 
 This represents the proportion of total variance in entropy explained by changes in q-values. Genes with η² = 97.8% show dramatic entropy variation across q-values, while genes with η² = 59.4% show moderate variation.
+
+## Interpreting Identical p-values and Effect Size Ranking
+
+A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the Friedman test:
+
+**Why identical p-values occur:**
+The Friedman test statistic Q depends only on the **ranks** of observations within blocks (subjects), not their actual values. When entropy monotonically changes across q-values (the typical pattern), genes with the same rank pattern will have:
+- Identical test statistic Q
+- Identical p-value (all get p < 0.0001)
+- Identical rank sum $R_j$ for each treatment
+
+For example, if genes A and B both have monotonically decreasing entropy across all q-values and subjects, they have identical rank sums despite different magnitudes of entropy change.
+
+**How to rank genes when p-values cluster:**
+In this scenario, **effect size (η²) becomes the practical ranking metric** because it directly quantifies the strength of the q-value × entropy dependence:
+- η² captures the proportion of variance explained by q-values
+- Higher η² = stronger biological effect for that gene
+- Effect size properly reflects the magnitude of entropy change across q-values
+
+The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker. This strategy ensures that statistically significant genes are listed first, with effect size distinguishing between genes with identical statistical significance.
+
+**Recommendations:**
+- Focus on genes with η² > 0.3 for robust biological findings
+- Cross-validate significant genes using complementary methods (e.g., GAM section below)
+- Remember that statistical significance (p-value) indicates q-dependence exists, while effect size says how strong it is
 
 ---
 

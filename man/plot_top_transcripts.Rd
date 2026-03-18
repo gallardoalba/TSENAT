@@ -5,56 +5,54 @@
 \title{Plot top transcripts for a gene}
 \usage{
 plot_top_transcripts(
-  counts,
-  readcounts = NULL,
+  se,
   gene = NULL,
-  samples = NULL,
-  coldata = NULL,
   sample_type_col = "sample_type",
-  tx2gene = NULL,
   res = NULL,
   top_n = 3,
-  pseudocount = 1e-06,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr")
 )
 }
 \arguments{
-\item{counts}{Matrix or data.frame of transcript counts. Rows are transcripts and columns are samples.}
+\item{se}{A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
+Must have a "genes" column in rowData specifying which gene each transcript belongs to.}
 
-\item{readcounts}{Optional matrix or data.frame of raw read counts. Used for transcript-level quantification if provided.}
+\item{gene}{Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
+top genes are selected by p-value.}
 
-\item{gene}{Character; gene symbol to inspect.}
+\item{sample_type_col}{Character; column name in colData(se) to use for sample grouping 
+(default: "sample_type").}
 
-\item{samples}{Character vector of sample group labels (length = ncol(counts)).}
-
-\item{coldata}{Optional data.frame or file path containing sample metadata. Used to infer sample groups if `samples` is not provided.}
-
-\item{sample_type_col}{Character; column name in `coldata` or `SummarizedExperiment` colData to use for sample grouping. Default is "sample_type".}
-
-\item{tx2gene}{Path or data.frame mapping transcripts to genes. Must contain columns `Transcript` and `Gen`.}
-
-\item{res}{Optional result data.frame from a differential analysis. If provided and `gene` is NULL, top genes are selected by adjusted p-value.}
+\item{res}{Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
+Supported sources:
+- `calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
+- `calculate_lm_interaction(..., return_model_data = FALSE)` returns a data.frame with adj_p_interaction column
+- `detect_q_gene_interactions()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
+If provided and `gene` is NULL, top genes are selected by adjusted p-value.}
 
 \item{top_n}{Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.}
 
-\item{pseudocount}{Numeric pseudocount added before log2 (default = 1e-6) to avoid division by zero.}
-
 \item{output_file}{Optional file path to save the plot. If `NULL`, the `ggplot` object is returned.}
 
-\item{metric}{Aggregation metric used to summarize transcript expression per group when plotting. One of c("median", "mean", "variance", "iqr"). Use "iqr" to compute the interquartile range. Defaults to "median".}
+\item{metric}{Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").}
 }
 \value{
-If \code{output_file} is \code{NULL}, returns a \code{ggplot} object. Otherwise, the plot is saved to the specified file and the function returns \code{NULL} invisibly.
+If `output_file` is `NULL`, returns a `ggplot` object. Otherwise saves to file and returns NULL invisibly.
 }
 \description{
 Plot top transcripts for a gene
 }
 \examples{
-tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
-rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
-samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
+library(SummarizedExperiment)
+library(S4Vectors)
+# Create example SummarizedExperiment
+counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+rownames(counts) <- paste0("tx", 1:6)
+rowData_df <- DataFrame(genes = rep(paste0("G", 1:3), each = 2))
+colData_df <- DataFrame(sample_type = rep(c("Normal", "Tumor"), 3))
+se <- SummarizedExperiment(assays = list(counts = counts), 
+                          rowData = rowData_df, colData = colData_df)
+# Plot top transcripts
+plot_top_transcripts(se, gene = "G1", top_n = 2)
 }

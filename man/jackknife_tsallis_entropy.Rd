@@ -131,7 +131,6 @@ For programmatic access without display, set print_results=FALSE.
 
 **Relationship to other functions:**
 - \code{\link{calculate_tsallis_entropy}}: computes entropy (stability as background)
-- \code{\link{calculate_effect_sizes}}: measures group differences (jackknife diagnoses robustness)
 - \code{\link{calculate_difference}}: tests if differences are significant (jackknife validates stability)
 
 **IMPORTANT - Raw Count Requirement:**

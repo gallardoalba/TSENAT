@@ -1,6 +1,6 @@
 # Comprehensive testing of all plotting functions
 # Tests plot_ma, plot_top_transcripts, plot_volcano, plot_tsallis_q_curve,
-# plot_tsallis_gene_profile, plot_tsallis_density_multq, plot_tsallis_violin_multq
+# plot_tsallis_violin_multq
 
 library(TSENAT)
 skip_on_bioc()
@@ -170,101 +170,6 @@ test_that("plot_tsallis_q_curve returns ggplot with valid SE", {
     expect_true(inherits(p, "ggplot"))
 })
 
-test_that("plot_tsallis_gene_profile returns ggplot for single gene", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    skip_if_not_installed("tidyr")
-    skip_if_not_installed("dplyr")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    set.seed(123)
-    readcounts <- matrix(rpois(30 * 4, lambda = 15), nrow = 30, ncol = 4)
-    colnames(readcounts) <- c("S1_N", "S2_N", "S3_T", "S4_T")
-    genes <- rep(paste0("G", 1:10), length.out = nrow(readcounts))
-
-    qvals <- seq(0.01, 0.05, by = 0.02)
-    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
-
-    coldata_df <- data.frame(
-        Sample = c("S1_N", "S2_N", "S3_T", "S4_T"),
-        Condition = c("Normal", "Normal", "Tumor", "Tumor"),
-        stringsAsFactors = FALSE
-    )
-
-    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
-
-    p <- plot_tsallis_gene_profile(ts_se, gene = "G1")
-    expect_s3_class(p, "ggplot")
-
-    # exercise gene = NULL + lm_res selection path
-    lm_res <- data.frame(gene = c("G1", "G2"), adj_p_interaction = c(0.01, 0.2), stringsAsFactors = FALSE)
-    p2 <- plot_tsallis_gene_profile(ts_se, gene = NULL, lm_res = lm_res, n_top = 1)
-    expect_s3_class(p2, "ggplot")
-
-    # show_samples = TRUE branch
-    p3 <- plot_tsallis_gene_profile(ts_se, gene = "G1", show_samples = TRUE)
-    expect_s3_class(p3, "ggplot")
-})
-
-test_that("plot_tsallis_density_multq returns ggplot", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    skip_if_not_installed("tidyr")
-    skip_if_not_installed("dplyr")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    set.seed(456)
-    readcounts <- matrix(rpois(25 * 4, lambda = 12), nrow = 25, ncol = 4)
-    colnames(readcounts) <- c("S1_N", "S2_N", "S3_T", "S4_T")
-    genes <- rep(paste0("G", 1:5), length.out = nrow(readcounts))
-
-    qvals <- seq(0.01, 0.1, by = 0.03)
-    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
-
-    coldata_df <- data.frame(
-        Sample = c("S1_N", "S2_N", "S3_T", "S4_T"),
-        Condition = c("Normal", "Normal", "Tumor", "Tumor"),
-        stringsAsFactors = FALSE
-    )
-
-    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
-
-    p <- plot_tsallis_density_multq(ts_se)
-    expect_s3_class(p, "ggplot")
-})
-
-test_that("plot_tsallis_violin_multq returns ggplot", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-    skip_if_not_installed("tidyr")
-    skip_if_not_installed("dplyr")
-
-    library(SummarizedExperiment)
-    library(ggplot2)
-
-    set.seed(789)
-    readcounts <- matrix(rpois(20 * 4, lambda = 18), nrow = 20, ncol = 4)
-    colnames(readcounts) <- c("S1_N", "S2_N", "S3_T", "S4_T")
-    genes <- rep(paste0("G", 1:4), length.out = nrow(readcounts))
-
-    qvals <- c(0.01, 0.05, 0.1)
-    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
-
-    coldata_df <- data.frame(
-        Sample = c("S1_N", "S2_N", "S3_T", "S4_T"),
-        Condition = c("Normal", "Normal", "Tumor", "Tumor"),
-        stringsAsFactors = FALSE
-    )
-
-    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
-
-    p <- plot_tsallis_violin_multq(ts_se)
-    expect_s3_class(p, "ggplot")
-})
 
 library(SummarizedExperiment)
 
@@ -332,26 +237,6 @@ test_that("validate_control_in_samples picks 'Normal' when present or first leve
     expect_message(chosen <- validate_control_in_samples(NULL, samples2))
     expect_true(chosen %in% samples2)
     expect_equal(validate_control_in_samples("B", samples2), "B")
-})
-
-test_that("plot_ma_expression_impl works with precomputed fc df and SummarizedExperiment counts", {
-    skip_if_not_installed("ggplot2")
-    # Prepare x (diff results)
-    x <- data.frame(genes = paste0("g", 1:5), mean = runif(5), log2_fold_change = rnorm(5), adjusted_p_values = runif(5))
-    # precomputed fc as matrix/data.frame
-    fc <- data.frame(genes = paste0("g", 1:5), log2_fold_change = rnorm(5), stringsAsFactors = FALSE)
-    p1 <- plot_ma_expression_impl(x, se = fc)
-    expect_s3_class(p1, "ggplot")
-
-    # Now using SummarizedExperiment counts
-    counts <- matrix(rpois(15, 10), nrow = 5)
-    rownames(counts) <- paste0("g", 1:5)
-    colnames(counts) <- paste0("S", 1:3)
-    colData_df <- S4Vectors::DataFrame(sample = colnames(counts), sample_type = c("Normal", "Tumor", "Normal"))
-    se <- SummarizedExperiment(assays = list(readcounts = counts), rowData = S4Vectors::DataFrame(genes = rownames(counts)), colData = colData_df)
-    x2 <- data.frame(genes = rownames(counts), mean = runif(5), adjusted_p_values = runif(5))
-    p2 <- plot_ma_expression_impl(x2, se = se, samples = c("Normal", "Tumor", "Normal"))
-    expect_s3_class(p2, "ggplot")
 })
 
 test_that(".plot_ma_core errors when fold-change column missing or x axis missing", {
@@ -437,49 +322,13 @@ library(SummarizedExperiment)
 
 skip_on_bioc()
 
-test_that("plot_tsallis_gene_profile returns ggplot for simple SE", {
-    skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
-    mat <- matrix(runif(6), nrow = 2)
-    rownames(mat) <- c("g1", "g2")
-    colnames(mat) <- c("S1_q=0.1", "S1_q=1", "S2_q=0.1")
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
-    # align colData to assay columns (length must match)
-    cd <- S4Vectors::DataFrame(sample_type = c("A", "A", "B"))
-    rownames(cd) <- colnames(mat)
-    SummarizedExperiment::colData(se) <- cd
-    p <- TSENAT::plot_tsallis_gene_profile(se, gene = "g1")
-    expect_s3_class(p, "ggplot")
-})
-
-
-test_that("plot_ma_tsallis and plot_ma_expression_impl handle simple inputs", {
+test_that("plot_ma_tsallis handles simple inputs", {
     skip_if_not_installed("ggplot2")
     x <- data.frame(genes = paste0("g", 1:6), mean = runif(6), log2_fold_change = rnorm(6))
     p1 <- TSENAT::plot_ma_tsallis(x)
     expect_s3_class(p1, "ggplot")
-
-    # precomputed fold-change data.frame
-    fc <- data.frame(genes = paste0("g", 1:6), log2_fold_change = rnorm(6), stringsAsFactors = FALSE)
-    p2 <- TSENAT:::plot_ma_expression_impl(x = x, se = fc)
-    expect_s3_class(p2, "ggplot")
 })
 
-test_that("plot_tsallis_q_curve and multq plots return ggplot", {
-    skip_if_not_installed(c("ggplot2", "SummarizedExperiment"))
-    mat <- matrix(runif(12), nrow = 3)
-    rownames(mat) <- paste0("g", 1:3)
-    colnames(mat) <- c("S1_q=0.1", "S1_q=1", "S2_q=0.1", "S2_q=1")
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
-    cd <- S4Vectors::DataFrame(sample_type = c("A", "A", "B", "B"))
-    rownames(cd) <- colnames(mat)
-    SummarizedExperiment::colData(se) <- cd
-    pq <- TSENAT:::plot_tsallis_q_curve(se)
-    expect_s3_class(pq, "ggplot")
-    pv <- TSENAT::plot_tsallis_violin_multq(se)
-    pd <- TSENAT::plot_tsallis_density_multq(se)
-    expect_s3_class(pv, "ggplot")
-    expect_s3_class(pd, "ggplot")
-})
 
 test_that("plot_tsallis_q_curve correctly handles multiple groups with different entropy values", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
@@ -607,25 +456,6 @@ skip_on_bioc()
 context("Visualization: Generate Plots Extended Tests")
 
 library(TSENAT)
-
-# plot_ma_expression errors when provided precomputed se missing 'log2_fold_change'
-
-test_that("plot_ma_expression errors when precomputed se lacks log2_fold_change", {
-    x <- data.frame(genes = paste0("g", seq_len(3)), mean = runif(3), stringsAsFactors = FALSE)
-    bad_se <- data.frame(genes = paste0("g", seq_len(3)), other = rnorm(3), stringsAsFactors = FALSE)
-    expect_error(plot_ma_expression(x, se = bad_se), "`se` data.frame must contain 'log2_fold_change'")
-})
-
-# plot_ma_expression accepts precomputed fold changes provided as data.frame/matrix with rownames
-
-test_that("plot_ma_expression accepts precomputed fold changes with rownames", {
-    x <- data.frame(genes = paste0("g", seq_len(4)), mean = runif(4), stringsAsFactors = FALSE)
-    fc <- data.frame(log2_fold_change = rnorm(4))
-    rownames(fc) <- paste0("g", seq_len(4))
-    p <- plot_ma_expression(x, se = fc)
-    expect_s3_class(p, "gg")
-    expect_s3_class(p, "ggplot")
-})
 
 # plot_top_transcripts writes output_file for single and multiple genes
 
@@ -1079,86 +909,7 @@ test_that(".ptt_combine_grid writes a PNG file when output_file is given", {
 context("Visualization: Gene Profile Plotting (Edge Cases)")
 
 library(testthat)
-
-# vector-of-genes input returns a named list of ggplots
-test_that("plot_tsallis_gene_profile accepts vector of genes and returns list of ggplots", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-
-    set.seed(101)
-    readcounts <- matrix(rpois(30 * 4, lambda = 15), nrow = 30, ncol = 4)
-    colnames(readcounts) <- c("S1_N", "S2_N", "S3_T", "S4_T")
-    genes <- rep(paste0("G", 1:10), length.out = nrow(readcounts))
-
-    qvals <- seq(0.01, 0.05, by = 0.02)
-    ts_se <- calculate_diversity(readcounts, genes, q = qvals, norm = TRUE)
-
-    coldata_df <- data.frame(
-        Sample = c("S1_N", "S2_N", "S3_T", "S4_T"),
-        Condition = c("Normal", "Normal", "Tumor", "Tumor"),
-        stringsAsFactors = FALSE
-    )
-
-    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
-
-    plots <- plot_tsallis_gene_profile(ts_se, gene = c("G1", "G2"))
-    expect_type(plots, "list")
-    expect_equal(length(plots), 2)
-    expect_true(all(c("G1", "G2") %in% names(plots)))
-    lapply(plots, function(p) expect_s3_class(p, "ggplot"))
-})
-
-# lm_res supplied with gene = NULL picks top n_top genes
-test_that("plot_tsallis_gene_profile uses lm_res when gene is NULL and returns up to n_top plots", {
-    skip_if_not_installed("SummarizedExperiment")
-    skip_if_not_installed("ggplot2")
-
-    set.seed(202)
-    # Build a SummarizedExperiment with a controlled interaction for first few genes
-    base_samples <- paste0("S", 1:6)
-    qvals <- c(0.1, 0.5)
-    # column names like S1_q=0.1, S1_q=0.5, S2_q=0.1, S2_q=0.5, ...
-    sample_cols <- as.character(t(outer(base_samples, qvals, function(s, q) paste0(s, "_q=", q))))
-
-    n_genes <- 50
-    mat <- matrix(rnorm(n_genes * length(sample_cols), sd = 0.1), nrow = n_genes, ncol = length(sample_cols))
-    rownames(mat) <- paste0("G", seq_len(n_genes))
-    colnames(mat) <- sample_cols
-
-    # create a strong q:group interaction for first 5 genes: tumor samples have slope with q
-    conds <- rep(c("Normal", "Tumor"), length.out = length(base_samples))
-    for (g in 1:5) {
-        for (j in seq_along(sample_cols)) {
-            base_idx <- ((j - 1) %/% length(qvals)) + 1
-            qv <- qvals[((j - 1) %% length(qvals)) + 1]
-            cond <- conds[base_idx]
-            mat[g, j] <- 0.2 + (cond == "Tumor") * (1.0 * qv) + rnorm(1, 0, 0.05)
-        }
-    }
-
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
-    coldata_df <- data.frame(
-        Sample = base_samples,
-        Condition = conds,
-        stringsAsFactors = FALSE
-    )
-    ts_se <- TSENAT:::.map_metadata(se, coldata_df)
-
-    # Run lmm lm interaction (fast) to get lm_res
-    lm_res <- calculate_lm_interaction(ts_se, sample_type_col = "sample_type", method = "lmm", pvalue = "lrt", min_obs = 2)
-    if (nrow(lm_res) == 0) {
-        # fallback synthetic lm_res: ensure top genes exist for plotting
-        pvals <- runif(50, min = 0.01, max = 1)
-        pvals[1:5] <- runif(5, min = 0, max = 1e-6)
-        lm_res <- data.frame(gene = paste0("G", seq_len(50)), p_interaction = pvals, adj_p_interaction = stats::p.adjust(pvals, method = "BH"), stringsAsFactors = FALSE)
-    }
-    # request top 5 instead of default 10 for speed/stability
-    plots <- plot_tsallis_gene_profile(ts_se, gene = NULL, lm_res = lm_res, n_top = 5)
-    expect_type(plots, "list")
-    expect_lte(length(plots), 5)
-    # each element must be ggplot
-    lapply(plots, function(p) expect_s3_class(p, "ggplot"))
-})
+´
 
 context("Visualization: generate_plots.R Comprehensive Coverage")
 
@@ -1248,67 +999,6 @@ test_that("get_tx2gene_from_se fallback works", {
     expect_equal(res2$mapping, c("g1", "g1"))
 })
 
-test_that("plot_tsallis_gene_profile handles errors", {
-    mat <- matrix(1:4, nrow = 2, dimnames = list(NULL, c("s1", "s2")))
-    se <- SummarizedExperiment(assays = list(diversity = mat))
-    colData(se) <- DataFrame(sample_type = c("a", "b"), row.names = c("s1", "s2"))
-    expect_error(TSENAT::plot_tsallis_gene_profile(se, gene = "g1"), "Gene not found in assay: g1")
-
-    # Create a SE where prepare_tsallis_long will return a Gene 'g1' so
-    # plotting a different gene errors as expected.
-    mat2 <- matrix(1, nrow = 1, ncol = 1, dimnames = list(NULL, c("s1_q=0.5")))
-    se2 <- SummarizedExperiment(assays = list(diversity = mat2))
-    SummarizedExperiment::rowData(se2)$genes <- "g1"
-    SummarizedExperiment::colData(se2) <- DataFrame(sample_type = "A", row.names = "s1")
-    expect_error(TSENAT::plot_tsallis_gene_profile(se2, gene = "g2"), "Gene not found in assay: g2")
-
-    # gene is NULL, lm_res is not a data.frame
-    expect_error(TSENAT::plot_tsallis_gene_profile(se, lm_res = "not a dataframe"), "'lm_res' must be a data.frame with a 'gene' column")
-
-    # lm_res is a data.frame but without a 'gene' column
-    lm_res_no_gene <- data.frame(p = c(0.1, 0.2))
-    expect_error(TSENAT::plot_tsallis_gene_profile(se, lm_res = lm_res_no_gene), "'lm_res' must be a data.frame with a 'gene' column")
-
-    # lm_res is a data.frame with 'gene' column but no p-value column
-    lm_res_no_p <- data.frame(gene = c("g1", "g2"))
-    expect_error(TSENAT::plot_tsallis_gene_profile(se, lm_res = lm_res_no_p), "'lm_res' must contain 'adj_p_interaction' or 'p_interaction' columns")
-})
-
-# Additional tests to exercise plotting branches
-test_that("plot_tsallis_gene_profile plotting branches", {
-    mat_full <- matrix(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8), nrow = 2)
-    colnames(mat_full) <- c("s1_q=0.1", "s2_q=0.1", "s1_q=1", "s2_q=1")
-    rownames(mat_full) <- c("g1", "g2")
-    se_full <- SummarizedExperiment(assays = list(diversity = mat_full))
-    SummarizedExperiment::rowData(se_full)$genes <- rownames(mat_full)
-    # colData must have one row per column in the assay matrix
-    SummarizedExperiment::colData(se_full) <- DataFrame(sample_type = c("A", "B", "A", "B"))
-
-    # Single gene plot with sample lines shown (skip sample_type mapping)
-    p_single <- TSENAT::plot_tsallis_gene_profile(se_full, gene = "g1", show_samples = TRUE, sample_type_col = NULL)
-    expect_s3_class(p_single, "ggplot")
-    has_line <- any(vapply(p_single$layers, function(l) {
-        if (!is.null(l$geom) && is.character(l$geom$geom_name)) {
-            l$geom$geom_name == "line"
-        } else {
-            inherits(l$geom, "GeomLine")
-        }
-    }, logical(1)))
-    expect_true(has_line)
-
-    # Multi-gene via lm_res using adj_p_interaction
-    lm_res <- data.frame(gene = c("g2", "g1", "g3"), adj_p_interaction = c(0.01, 0.1, 0.2))
-    plots_list <- TSENAT::plot_tsallis_gene_profile(se_full, gene = NULL, lm_res = lm_res, n_top = 2, sample_type_col = NULL)
-    expect_true(is.list(plots_list))
-    expect_equal(names(plots_list), c("g2", "g1"))
-
-    # lm_res with only p_interaction (no adj) should also work
-    lm_res2 <- data.frame(gene = c("g1", "g2"), p_interaction = c(0.05, 0.01))
-    plots_list2 <- TSENAT::plot_tsallis_gene_profile(se_full, gene = NULL, lm_res = lm_res2, n_top = 2, sample_type_col = NULL)
-    expect_true(is.list(plots_list2))
-    expect_equal(names(plots_list2), c("g2", "g1"))
-})
-
 test_that(".plot_ma_core handles more edge cases", {
     # No genes column, but rownames are present
     df <- data.frame(mean = runif(5), log2_fold_change = rnorm(5))
@@ -1323,20 +1013,6 @@ test_that(".plot_ma_core handles more edge cases", {
     # y_label_formatted branch
     p2 <- TSENAT:::.plot_ma_core(df, y_label = "log2")
     expect_s3_class(p2, "ggplot")
-})
-
-test_that("plot_ma_expression_impl handles errors", {
-    x <- data.frame(genes = paste0("g", 1:5), mean = runif(5))
-    # create a SummarizedExperiment with an assay but no colData so infer_samples_from_se returns NULL
-    se <- SummarizedExperiment(assays = list(counts = matrix(1:4, nrow = 2, dimnames = list(c("tx1", "tx2"), c("s1", "s2")))))
-    expect_error(TSENAT:::plot_ma_expression_impl(x, se = se), "Could not infer 'samples' from SummarizedExperiment; provide `samples`")
-
-    # se as a matrix without log2_fold_change
-    fc_mat_bad <- matrix(1:5)
-    expect_error(TSENAT:::plot_ma_expression_impl(x, se = fc_mat_bad), "`se` data.frame must contain 'log2_fold_change' column")
-
-    # Unsupported 'se' argument
-    expect_error(TSENAT:::plot_ma_expression_impl(x, se = 123), "Unsupported 'se' argument")
 })
 
 test_that("plot_tsallis_q_curve handles single group and empty long df", {

@@ -182,153 +182,6 @@ validate_control_in_samples <- function(control, samples) {
     chosen
 }
 
-#' Plot q-curve profile for a single gene comparing groups
-#'
-#' For a selected gene, plot per-sample Tsallis entropy across q values and
-#' overlay per-group centrality estimates with variability ribbons so group-level
-#' differences are easy to compare. Expects a `SummarizedExperiment` produced by
-#' `calculate_diversity()` with `_q=` suffixes in column names.
-#'
-#' @param se A `SummarizedExperiment` from `calculate_diversity()`.
-#' @param gene Character scalar or vector; gene symbol(s) to plot. If NULL and
-#'   `lm_res` is supplied, the top `n_top` genes from `lm_res` (by
-#'   `adj_p_interaction` or `p_interaction`) are used.
-#' @param lm_res Optional data.frame result from `calculate_lm_interaction()`.
-#'   When supplied and `gene` is NULL, the top `n_top` significant genes will
-#'   be plotted.
-#' @param n_top Number of top genes to plot when `lm_res` is provided (default: 10).
-#' @param assay_name Name of the assay to use (default: "diversity").
-#' @param sample_type_col Column name in `colData(se)` with sample type labels
-#'   (default: "sample_type"). If missing, a single-group fallback is used.
-#' @param show_samples Logical; if TRUE, draw per-sample lines in the
-#'   background (default: FALSE).
-#' @param metric Central tendency metric to use (default: "median"). Options are
-#'   "median" or "mean".
-#' @param variability_metric Variability metric to display as ribbon (default: "IQR").
-#'   Options are "IQR" (interquartile range, shows ±IQR/2 around the central value) or
-#'   "variance" (shows ±1 standard deviation around the central value).
-#' @return A `ggplot` object when a single gene is requested, or a named list
-#'   of `ggplot` objects when multiple genes are requested.
-#' @examples
-#' mat <- matrix(runif(8), nrow = 2, dimnames = list(c("g1", "g2"), c("s1_q=0.1", "s1_q=1", "s2_q=0.1", "s2_q=1")))
-#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat))
-#' plot_tsallis_gene_profile(se, gene = "g1")
-#' plot_tsallis_gene_profile(se, gene = "g1", metric = "mean", variability_metric = "variance")
-#' @export
-plot_tsallis_gene_profile <- function(se,
-                                      gene = NULL,
-                                      lm_res = NULL,
-                                      n_top = 10,
-                                      assay_name = "diversity",
-                                      sample_type_col = "sample_type",
-                                      show_samples = FALSE,
-                                      metric = c("median", "mean"),
-                                      variability_metric = c("IQR", "variance")) {
-    if (!requireNamespace("ggplot2", quietly = TRUE)) stop("ggplot2 required")
-    require_pkgs(c("dplyr", "tidyr", "SummarizedExperiment"))
-
-    # Validate metric parameters
-    metric <- match.arg(metric)
-    variability_metric <- match.arg(variability_metric)
-
-    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
-    if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
-
-    # Resolve genes to plot: accept NULL (use lm_res), a single name, or a vector/list
-    if (is.null(gene)) {
-        if (is.null(lm_res)) stop("Either 'gene' or 'lm_res' must be provided")
-        if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) stop("'lm_res' must be a data.frame with a 'gene' column")
-        # prefer adj_p_interaction if present
-        pcol <- if ("adj_p_interaction" %in% colnames(lm_res)) "adj_p_interaction" else if ("p_interaction" %in% colnames(lm_res)) "p_interaction" else NULL
-        if (is.null(pcol)) stop("'lm_res' must contain 'adj_p_interaction' or 'p_interaction' columns")
-        genes_ordered <- unique(as.character(lm_res$gene[order(lm_res[[pcol]])]))
-        genes <- head(genes_ordered, n_top)
-    } else {
-        genes <- as.character(unlist(gene))
-    }
-
-    if (length(genes) == 0) stop("No genes selected for plotting")
-
-    # helper to build single plot for a gene
-    make_plot_for_gene <- function(sel) {
-        long_g <- long[as.character(long$Gene) == sel, , drop = FALSE]
-        if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
-        long_g$qnum <- as.numeric(as.character(long_g$q))
-
-        # Compute central tendency and variability based on selected metrics
-        if (variability_metric == "IQR") {
-            # Central tendency + IQR
-            if (metric == "median") {
-                stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
-                    central = median(tsallis, na.rm = TRUE),
-                    spread = stats::IQR(tsallis, na.rm = TRUE),
-                    .groups = "drop"
-                )
-                spread_factor <- 1/2  # IQR/2 for symmetric ribbon
-                spread_label <- "IQR"
-            } else {  # mean
-                stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
-                    central = mean(tsallis, na.rm = TRUE),
-                    spread = stats::IQR(tsallis, na.rm = TRUE),
-                    .groups = "drop"
-                )
-                spread_factor <- 1/2  # IQR/2 for symmetric ribbon
-                spread_label <- "IQR"
-            }
-        } else {  # variance
-            # Central tendency + Standard Deviation (sqrt of variance)
-            if (metric == "median") {
-                stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
-                    central = median(tsallis, na.rm = TRUE),
-                    spread = sqrt(stats::var(tsallis, na.rm = TRUE)),
-                    .groups = "drop"
-                )
-            } else {  # mean
-                stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
-                    central = mean(tsallis, na.rm = TRUE),
-                    spread = sqrt(stats::var(tsallis, na.rm = TRUE)),
-                    .groups = "drop"
-                )
-            }
-            spread_factor <- 1  # ±1 SD for variance ribbon
-            spread_label <- "SD"
-        }
-
-        # Build plot
-        p <- ggplot2::ggplot() +
-            ggplot2::theme_minimal(base_size = 14)
-
-        if (isTRUE(show_samples)) {
-            p <- p + ggplot2::geom_line(data = long_g, ggplot2::aes(x = qnum, y = tsallis, group = sample, color = group), alpha = 0.25)
-        }
-
-        # Create descriptive title showing metric and variability choices
-        metric_label <- if (metric == "median") "Median" else "Mean"
-        variability_label <- if (variability_metric == "IQR") "IQR" else "SD"
-        title_suffix <- sprintf(" (%s ± %s)", metric_label, variability_label)
-
-        p <- p +
-            ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = central - spread * spread_factor, ymax = central + spread * spread_factor, fill = group), alpha = 0.2, inherit.aes = FALSE) +
-            ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central, color = group), linewidth = 1.3) +
-            ggplot2::labs(title = paste0(sel, ": Tsallis entropy q-curve profile", title_suffix), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
-            ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
-            ggplot2::theme(plot.title = ggplot2::element_text(
-                hjust = 0.5, size = 16,
-                margin = ggplot2::margin(b = 10)
-            ))
-        p
-    }
-
-    # Return single ggplot for single gene, or a named list of ggplots for multiple genes
-    if (length(genes) == 1) {
-        return(make_plot_for_gene(genes))
-    }
-
-    plots <- lapply(genes, make_plot_for_gene)
-    names(plots) <- genes
-    plots
-}
-
 
 # Core MA plotting implementation documentation moved to internal block
 #' Plot MA using Tsallis-based fold changes
@@ -343,10 +196,8 @@ plot_tsallis_gene_profile <- function(se,
 #' @param title Optional plot title passed to `plot_ma`.
 #' @param ... Additional arguments passed to `plot_ma()`.
 #' @return A `ggplot2` object representing the MA plot.
-#' @examples
-#' x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5), log2_fold_change = rnorm(5))
-#' plot_ma_tsallis(x)
-#' @export
+#' @noRd
+#' @keywords internal
 plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL, title = NULL, ...) {
     title_use <- title %||% "Tsallis-based MA plot"
     x_label_use <- x_label %||% "mean_difference"
@@ -355,59 +206,6 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 }
 
 
-#' Plot MA using expression/readcount-based fold changes
-#'
-#' Wrapper around `plot_ma(..., type = "expression")` that accepts a
-#' `SummarizedExperiment` or precomputed fold-change `data.frame`.
-#'
-#' @param x Data.frame from `calculate_difference()`.
-#' @param se A `SummarizedExperiment` or data.frame supplying readcounts or precomputed fold changes.
-#' @param samples Optional sample grouping vector (passed to `plot_ma`).
-#' @param control Control level name (passed to `plot_ma`).
-#' @param fc_method Aggregation method for fold-change calculation (passed to `plot_ma`).
-#' @param pseudocount Pseudocount added when computing log ratios (passed to `plot_ma`).
-#' @param sig_alpha Numeric significance threshold for adjusted p-values (default: 0.05).
-#' @param x_label Optional x-axis label passed to `plot_ma`.
-#' @param y_label Optional y-axis label passed to `plot_ma`.
-#' @param title Optional plot title passed to `plot_ma`.
-#' @param ... Additional arguments passed to `plot_ma()`.
-#' @return A `ggplot2` object representing the MA plot.
-#' @examples
-#' x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5))
-#' fc <- data.frame(genes = paste0("g", seq_len(5)), log2_fold_change = rnorm(5))
-#' plot_ma_expression(x, se = fc)
-#' @export
-plot_ma_expression <- function(
-  x,
-  se,
-  samples = NULL,
-  control = NULL,
-  fc_method = "median",
-  pseudocount = 0,
-  sig_alpha = 0.05,
-  x_label = NULL,
-  y_label = NULL,
-  title = NULL,
-  ...
-) {
-    title_use <- title %||% "Readcounts-based MA plot"
-    x_label_use <- x_label %||% "Mean difference"
-    y_label_use <- y_label %||% "Log10 fold-change of counts"
-    plot_ma_expression_impl(
-        x,
-        se = se,
-        samples = samples,
-        control = control,
-        fc_method = fc_method,
-        pseudocount = pseudocount,
-        sig_alpha = sig_alpha,
-        x_label = x_label_use,
-        y_label = y_label_use,
-        title = title_use,
-        ...
-    )
-}
-
 
 # Core MA plotting implementation used by wrappers above. Accepts a
 # differential results `x` (data.frame) and an optional `fc_df` with
@@ -415,9 +213,8 @@ plot_ma_expression <- function(
 # `ggplot` MA-plot.
 #' Core MA plotting implementation (internal)
 #'
-#' This is an internal helper used by `plot_ma_tsallis()` and
-#' `plot_ma_expression()`. It is documented here for developers but
-#' is not exported.
+#' This is an internal helper used by `plot_ma_tsallis()`.
+#' It is documented here for developers but is not exported.
 #' @noRd
 .plot_ma_core <- function(x,
                           fc_df = NULL,
@@ -540,83 +337,6 @@ plot_ma_expression <- function(
 }
 
 
-# Implementation that computes fold-changes from expression/readcounts
-# stored in a `SummarizedExperiment` (or matrix) and forwards to core plotter.
-plot_ma_expression_impl <- function(
-  x,
-  se,
-  samples = NULL,
-  control = NULL,
-  fc_method = "median",
-  pseudocount = 0,
-  sig_alpha = 0.05,
-  x_label = NULL,
-  y_label = NULL,
-  title = NULL,
-  ...
-) {
-    require_pkgs(c("SummarizedExperiment"))
-
-    # extract/readcounts
-    if (inherits(se, "SummarizedExperiment")) {
-        counts <- get_readcounts_from_se(se)
-        samples <- infer_samples_from_se(se, samples)
-        if (is.null(samples)) stop("Could not infer 'samples' from SummarizedExperiment; provide `samples`")
-        control <- validate_control_in_samples(control, samples)
-
-        # attempt to map transcripts -> genes and aggregate counts per gene
-        tx2g <- get_tx2gene_from_se(se, readcounts_mat = counts)
-        if (!is.null(tx2g) && tx2g$type == "vector") {
-            mapping <- tx2g$mapping
-            # ensure mapping length matches rows
-            if (length(mapping) == nrow(counts)) {
-                # aggregate transcript-level counts to gene-level using rowsum
-                agg <- rowsum(counts, group = mapping)
-                counts_gene <- as.matrix(agg)
-            } else {
-                counts_gene <- counts
-            }
-        } else {
-            counts_gene <- counts
-        }
-
-        # compute fold-changes using calculate_fc (aggregates per-group)
-        fc_res <- calculate_fc(
-            counts_gene,
-            samples,
-            control,
-            method = fc_method,
-            pseudocount = pseudocount
-        )
-        # ensure genes column exists
-        if (is.null(rownames(fc_res))) {
-            fc_res$genes <- seq_len(nrow(fc_res))
-        } else {
-            fc_res$genes <- rownames(fc_res)
-        }
-        return(.plot_ma_core(
-            x,
-            fc_df = fc_res,
-            sig_alpha = sig_alpha,
-            x_label = x_label,
-            y_label = y_label,
-            title = title,
-            ...
-        ))
-    }
-
-    # If se is provided as a matrix/data.frame of precomputed fold changes
-    if (is.matrix(se) || is.data.frame(se)) {
-        fc_res <- as.data.frame(se, stringsAsFactors = FALSE)
-        if (!("log2_fold_change" %in% colnames(fc_res))) stop("`se` data.frame must contain 'log2_fold_change' column when providing precomputed fold changes")
-        if (!("genes" %in% colnames(fc_res)) && !is.null(rownames(fc_res))) fc_res$genes <- rownames(fc_res)
-        return(.plot_ma_core(x, fc_df = fc_res, sig_alpha = sig_alpha, x_label = x_label, y_label = y_label, title = title, ...))
-    }
-
-    stop("Unsupported 'se' argument for plot_ma_expression_impl")
-}
-
-
 #' Plot Tsallis Entropy q-Curve
 #'
 #' Visualize Tsallis entropy (S_q) as a function of the diversity parameter q across sample groups.
@@ -650,7 +370,8 @@ plot_ma_expression_impl <- function(
 #'
 #' **Gene-specific mode (gene or lm_res provided)**:
 #' - Single gene: A ggplot object showing median entropy ± SD for that gene.
-#' - Multiple genes: A named list of ggplot objects (one per gene).
+#' - Multiple genes: A grid plot object arranged in 2 rows × 2 columns with a shared legend at the bottom.
+#'   The legend appears once beneath the grid, avoiding repetition across subplots.
 #'
 #' @details
 #' **Aggregate mode (default, gene=NULL, lm_res=NULL)**:
@@ -663,6 +384,8 @@ plot_ma_expression_impl <- function(
 #' - Plots q-curve separately for each selected gene
 #' - Shows median entropy ± SD (variance) for each gene across q-values and groups
 #' - When `lm_res` provided: automatically ranks genes and selects top `n_top` by p-value
+#' - Single gene: returns a ggplot object; multiple genes: returns a grid plot (2 rows × 2 columns) with shared legend
+#' - For multiple genes: legend appears once at the bottom of the grid to avoid repetition and save space
 #' - Useful for highlighting specific genes of interest or significant discoveries
 #' - Bootstrap mode not supported in gene-specific mode
 #'
@@ -721,7 +444,7 @@ plot_tsallis_q_curve <- function(
   lm_res = NULL,
   n_top = NULL
 ) {
-  require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment"))
+  require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment", "cowplot"))
   
   # Validate input
   if (!inherits(se, "SummarizedExperiment")) {
@@ -800,14 +523,41 @@ plot_tsallis_q_curve <- function(
       p
     }
     
-    # Return single ggplot for single gene, or a named list of ggplots for multiple genes
+    # Return single ggplot for single gene, or a gridded arrangement for multiple genes
     if (length(genes) == 1) {
       return(make_plot_for_gene(genes))
     }
     
     plots <- lapply(genes, make_plot_for_gene)
     names(plots) <- genes
-    return(plots)
+    
+    # For multiple genes: create grid with shared legend at bottom using cowplot
+    require_pkgs(c("cowplot", "gridExtra"))
+    
+    # Use cowplot::plot_grid for cleaner handling of shared legends
+    # Extract legend from first plot
+    legend_obj <- cowplot::get_legend(plots[[1]])
+    
+    # Remove legends from all plots
+    plots_no_legend <- lapply(plots, function(p) {
+      p + ggplot2::theme(legend.position = "none")
+    })
+    
+    # Arrange plots in 2x2 grid without legend
+    grid_with_plots <- do.call(cowplot::plot_grid, c(
+      plots_no_legend,
+      list(nrow = 2, ncol = 2, align = "hv", axis = "lrtb")
+    ))
+    
+    # Add legend at bottom
+    grid_with_legend <- cowplot::plot_grid(
+      grid_with_plots,
+      legend_obj,
+      nrow = 2,
+      rel_heights = c(1, 0.08)
+    )
+    
+    return(grid_with_legend)
   }
   
   # =========================================================================
@@ -1018,96 +768,233 @@ plot_tsallis_q_curve <- function(
   
   return(p)
 }
-#' Violin plot of Tsallis entropy for multiple q values
 
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
-#' multiple q values (column names contain `_q=`).
+
+#' Violin plot of Tsallis entropy for a single q value
+#'
+#' Creates a violin plot showing the distribution of Tsallis entropy for a specific q value,
+#' with groups (conditions) displayed side by side.
+#'
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` containing
+#'   entropy values at one or more q values.
+#' @param q_value The specific q value to plot (numeric, e.g., 1, 2, 0.5).
 #' @param assay_name Name of the assay to use (default: "diversity").
-#' @return A `ggplot` violin plot object faceted/colored by group and q.
-#' @export
-#' @examples
-#' data("readcounts", package = "TSENAT")
-#' rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-#' gs <- readcounts[1:20, 1]
-#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
-#' plot_tsallis_violin_multq(se)
-plot_tsallis_violin_multq <- function(se, assay_name = "diversity") {
+#' @param title Optional plot title. If NULL, auto-generated based on q value.
+#'
+#' @return A `ggplot2` object showing a violin plot with groups on the x-axis.
+#'  
+#' @noRd
+#' @keywords internal
+plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NULL) {
     require_pkgs(c("ggplot2", "tidyr", "dplyr"))
+    
+    # Try to extract q from SE metadata first (best source for single-q SE)
+    q_val <- NA
+    if (!is.null(metadata(se)$q) && length(metadata(se)$q) > 0) {
+        q_vals <- unique(as.numeric(metadata(se)$q))
+        if (length(q_vals) > 0 && !all(is.na(q_vals))) {
+            q_val <- q_vals[1]
+        }
+    }
+    
+    # Fallback: use prepare_tsallis_long for data transformation
     long <- prepare_tsallis_long(se, assay_name = assay_name)
-    # Ensure q is numeric first
-    long$q <- as.numeric(as.character(long$q))
-    # Convert q to factor for proper categorical plotting in violin plot
-    long$q_label <- factor(paste0("q = ", long$q), 
-                           levels = paste0("q = ", sort(unique(long$q))))
-
+    
+    if (nrow(long) == 0) stop("No data found in the long format dataframe")
+    
+    # If still no q, extract from data
+    if (is.na(q_val)) {
+        q_values <- unique(long$q)
+        q_values <- q_values[!is.na(q_values)]
+        if (length(q_values) > 0) {
+            q_val <- q_values[1]
+        }
+    }
+    
+    # Set title
+    title_use <- title %||% sprintf("Violin plot: Tsallis entropy at q = %g", q_val)
+    
+    # Create violin plot
     ggplot2::ggplot(
         long,
-        ggplot2::aes(x = q_label, y = tsallis, fill = group)
+        ggplot2::aes(x = group, y = tsallis, fill = group)
     ) +
         ggplot2::geom_violin(
-            alpha = 0.5, width = 0.9,
+            alpha = 0.5, width = 0.7,
             position = ggplot2::position_dodge(width = 0.8)
         ) +
         ggplot2::geom_boxplot(
-            width = 0.15,
+            width = 0.2,
             position = ggplot2::position_dodge(width = 0.8),
-            outlier.shape = NA
+            outlier.shape = NA,
+            alpha = 0.8
         ) +
         ggplot2::theme_minimal(base_size = 14) +
-        ggplot2::scale_fill_discrete(name = "Group") +
+        ggplot2::scale_fill_discrete(name = "Group", guide = "none") +
         ggplot2::labs(
-            title = "Violin plot: Tsallis entropy distribution across multiple q values",
-            x = "q value",
+            title = title_use,
+            x = "Group",
             y = "Tsallis entropy",
             fill = "Group"
         ) +
-        ggplot2::theme(plot.title = ggplot2::element_text(
-            hjust = 0.5, size = 16, face = "plain",
-            margin = ggplot2::margin(b = 10)
-        ))
+        ggplot2::theme(
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain"),
+            axis.title = ggplot2::element_text(size = 12)
+        )
 }
-#' Density plot of Tsallis entropy for multiple q values
 
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
-#' multiple q values (column names contain `_q=`).
+
+#' Density plot of Tsallis entropy for a single q value
+#'
+#' Creates a density plot showing the distribution of Tsallis entropy for a specific q value,
+#' with different groups (conditions) represented by different colors.
+#'
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` containing
+#'   entropy values at one or more q values.
+#' @param q_value The specific q value to plot (numeric, e.g., 1, 2, 0.5).
 #' @param assay_name Name of the assay to use (default: "diversity").
-#' @return A `ggplot` density plot object faceted by q and colored by group.
-#' @export
-#' @examples
-#' data("readcounts", package = "TSENAT")
-#' rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-#' gs <- readcounts[1:20, 1]
-#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = FALSE)
-#' plot_tsallis_density_multq(se)
-plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
+#' @param title Optional plot title. If NULL, auto-generated based on q value.
+#'
+#' @return A `ggplot2` object showing a density plot colored by group.
+#'
+#' @noRd
+#' @keywords internal
+plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = NULL) {
     require_pkgs(c("ggplot2", "tidyr", "dplyr"))
+    
+    # Try to extract q from SE metadata first (best source for single-q SE)
+    q_val <- NA
+    if (!is.null(metadata(se)$q) && length(metadata(se)$q) > 0) {
+        q_vals <- unique(as.numeric(metadata(se)$q))
+        if (length(q_vals) > 0 && !all(is.na(q_vals))) {
+            q_val <- q_vals[1]
+        }
+    }
+    
+    # Fallback: use prepare_tsallis_long for data transformation
     long <- prepare_tsallis_long(se, assay_name = assay_name)
-    # Ensure q is numeric; handle case where it might be a factor or character
-    long$q <- as.numeric(as.character(long$q))
-    # Create a proper factor with levels sorted numerically for consistent faceting
-    long$q_label <- paste0("q = ", long$q)
-    long$q_label <- factor(long$q_label, levels = paste0("q = ", sort(unique(long$q))))
-
+    
+    if (nrow(long) == 0) stop("No data found in the long format dataframe")
+    
+    # If still no q, extract from data
+    if (is.na(q_val)) {
+        q_values <- unique(long$q)
+        q_values <- q_values[!is.na(q_values)]
+        if (length(q_values) > 0) {
+            q_val <- q_values[1]
+        }
+    }
+    
+    # Set title
+    title_use <- title %||% sprintf("Density plot: Tsallis entropy at q = %g", q_val)
+    
+    # Create density plot
     ggplot2::ggplot(
         long,
         ggplot2::aes(x = tsallis, color = group, fill = group)
     ) +
-        ggplot2::geom_density(alpha = 0.3) +
-        ggplot2::facet_wrap(~q_label, scales = "free_y") +
+        ggplot2::geom_density(alpha = 0.3, linewidth = 1) +
         ggplot2::theme_minimal(base_size = 14) +
         ggplot2::scale_color_discrete(name = "Group") +
         ggplot2::scale_fill_discrete(name = "Group") +
         ggplot2::labs(
-            title = "Density plot: Tsallis entropy distribution across multiple q values",
+            title = title_use,
             x = "Tsallis entropy",
             y = "Density",
             color = "Group",
             fill = "Group"
         ) +
-        ggplot2::theme(plot.title = ggplot2::element_text(
-            hjust = 0.5, size = 16, face = "plain",
-            margin = ggplot2::margin(b = 10)
-        ))
+        ggplot2::theme(
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain"),
+            axis.title = ggplot2::element_text(size = 12)
+        )
+}
+
+
+#' Combined Violin and Density Plot Grid for Single q Value
+#'
+#' Creates a side-by-side grid layout with a violin plot on the left and a density plot
+#' on the right, both showing Tsallis entropy distribution for the q value in the provided
+#' SummarizedExperiment (which should contain a single q value).
+#'
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` containing
+#'   entropy values at a single q value.
+#' @param assay_name Name of the assay to use (default: "diversity").
+#' @param title Optional base title. If NULL, auto-generated based on q value.
+#'
+#' @return A `ggplot2` object showing a 1×2 grid with violin plot on the left and
+#'   density plot on the right.
+#'
+#' @export
+#' @examples
+#' data("readcounts", package = "TSENAT")
+#' rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
+#' gs <- readcounts[1:20, 1]
+#' # Calculate diversity for single q value
+#' se <- calculate_diversity(rc, gs, q = 1, norm = TRUE)
+#' plot_tsallis_violin_density_grid(se)
+plot_tsallis_violin_density_grid <- function(se, assay_name = "diversity", title = NULL) {
+    # Require cowplot for grid arrangement
+    if (!requireNamespace("cowplot", quietly = TRUE)) {
+        stop("cowplot package required for plot_tsallis_violin_density_grid()")
+    }
+    
+    # Try to extract q from SE metadata first (best source for single-q SE)
+    q_val <- NA
+    if (!is.null(metadata(se)$q) && length(metadata(se)$q) > 0) {
+        q_vals <- unique(as.numeric(metadata(se)$q))
+        if (length(q_vals) > 0 && !all(is.na(q_vals))) {
+            q_val <- q_vals[1]
+        }
+    }
+    
+    # Fallback: use prepare_tsallis_long for data transformation
+    long <- prepare_tsallis_long(se, assay_name = assay_name)
+    
+    # If still no q, extract from data
+    if (is.na(q_val)) {
+        q_values <- unique(long$q)
+        q_values <- q_values[!is.na(q_values)]
+        if (length(q_values) > 0) {
+            q_val <- q_values[1]
+        }
+    }
+    
+    # Generate base title
+    base_title <- title %||% sprintf("Tsallis entropy at q = %g", q_val)
+    
+    # Create individual plots
+    p_violin <- plot_tsallis_violin_singleq(
+        se = se,
+        assay_name = assay_name,
+        title = "Violin"
+    )
+    
+    p_density <- plot_tsallis_density_singleq(
+        se = se,
+        assay_name = assay_name,
+        title = "Density"
+    )
+    
+    # Arrange plots side by side: violin on left, density on right
+    grid <- cowplot::plot_grid(
+        p_violin,
+        p_density,
+        nrow = 1,
+        ncol = 2,
+        align = "h",
+        axis = "b"
+    )
+    
+    # Add overall title above the grid
+    grid_with_title <- cowplot::plot_grid(
+        cowplot::ggdraw() + cowplot::draw_label(base_title, fontface = "plain", size = 16),
+        grid,
+        nrow = 2,
+        rel_heights = c(0.06, 1)
+    )
+    
+    return(grid_with_title)
 }
 
 
@@ -1129,14 +1016,8 @@ plot_tsallis_density_multq <- function(se, assay_name = "diversity") {
 #' @param title Optional plot title; if `NULL` a default title is used.
 #'
 #' @return A `ggplot2` object.
-#' @export
-#' @examples
-#' df <- data.frame(
-#'     gene = paste0("g", seq_len(10)),
-#'     mean_difference = runif(10),
-#'     padj = runif(10)
-#' )
-#' # plot_volcano(df, x_col = "mean_difference", padj_col = "padj")
+#' @noRd
+#' @keywords internal
 plot_volcano <- function(
   diff_df,
   x_col = NULL,
@@ -1190,6 +1071,84 @@ plot_volcano <- function(
         )
 
     p
+}
+
+
+#' Combine Volcano and MA-Tsallis Plots in a Grid Layout
+#'
+#' Creates a side-by-side grid layout with a volcano plot on the left and an MA-Tsallis plot on the right.
+#' Both plots are generated from differential analysis results data.
+#'
+#' @param diff_df Data.frame from differential analysis containing required columns for both volcano and MA plots.
+#' @param x_col Column name for x-axis in volcano plot (e.g., "mean_difference"). Auto-detected if NULL.
+#' @param padj_col Column name for adjusted p-values (default: "padj").
+#' @param label_thresh Threshold for volcano plot labels (default: 0.1).
+#' @param sig_alpha Numeric significance threshold for adjusted p-values (default: 0.05).
+#' @param top_n Number of top genes to annotate in volcano plot (default: 5).
+#' @param title_volcano Title for volcano plot. If NULL, auto-generated.
+#' @param title_ma Title for MA plot (default: "Tsallis-based MA plot").
+#' @param ... Additional arguments passed to plotting functions.
+#'
+#' @return A `ggplot2` object showing a 1×2 grid with volcano plot on the left and MA plot on the right.
+#'
+#' @examples
+#' # Simulate differential analysis results
+#' x <- data.frame(
+#'   genes = paste0("g", seq_len(20)),
+#'   mean_difference = rnorm(20, sd = 1),
+#'   padj = runif(20, 1e-5, 0.1),
+#'   log2_fold_change = rnorm(20, sd = 0.8)
+#' )
+#' # Placeholder: actual usage would require valid differential results
+#' # plot_volcano_ma_grid(x, sig_alpha = 0.05)
+#'
+#' @export
+plot_volcano_ma_grid <- function(
+  diff_df,
+  x_col = NULL,
+  padj_col = "padj",
+  label_thresh = 0.1,
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = NULL,
+  title_ma = "Tsallis-based MA plot",
+  ...
+) {
+    # Require cowplot for grid arrangement
+    if (!requireNamespace("cowplot", quietly = TRUE)) {
+        stop("cowplot package required for plot_volcano_ma_grid()")
+    }
+
+    # Create volcano plot
+    p_volcano <- plot_volcano(
+        diff_df = diff_df,
+        x_col = x_col,
+        padj_col = padj_col,
+        label_thresh = label_thresh,
+        sig_alpha = sig_alpha,
+        top_n = top_n,
+        title = title_volcano
+    )
+
+    # Create MA plot
+    p_ma <- plot_ma_tsallis(
+        x = diff_df,
+        sig_alpha = sig_alpha,
+        title = title_ma,
+        ...
+    )
+
+    # Arrange plots side by side: volcano on left, MA on right
+    grid <- cowplot::plot_grid(
+        p_volcano,
+        p_ma,
+        nrow = 1,
+        ncol = 2,
+        align = "h",
+        axis = "b"
+    )
+
+    return(grid)
 }
 
 
@@ -1252,7 +1211,7 @@ plot_volcano <- function(
     # Title row
     vp_title <- grid::viewport(layout.pos.row = 1, layout.pos.col = seq_len(ncol))
     grid::pushViewport(vp_title)
-    grid::grid.text(title, x = 0.5, gp = grid::gpar(fontsize = 12))
+    grid::grid.text(title, x = 0.5, gp = grid::gpar(fontsize = 40))
     grid::upViewport()
     # Plot rows
     for (i in seq_along(grobs)) {
@@ -1280,7 +1239,7 @@ plot_volcano <- function(
 ## Create per-gene plot and combine multiple gene plots into final output
 .ptt_make_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL) {
     require_pkgs(c("ggplot2", "tidyr"))
-    built <- .ptt_build_tx_long(gene_single, mapping, counts, samples, top_n)
+    built <- .ptt_build_tx_long(gene_single, mapping, counts, samples, NULL)
     df_summary <- .ptt_aggregate_df_long(built$df_long, agg_fun, pseudocount)
     .ptt_build_plot_from_summary(df_summary, agg_label_unique, fill_limits)
 }
@@ -1391,120 +1350,158 @@ plot_volcano <- function(
 }
 
 #' Plot top transcripts for a gene
-#' @param counts Matrix or data.frame of transcript counts. Rows are transcripts and columns are samples.
-#' @param readcounts Optional matrix or data.frame of raw read counts. Used for transcript-level quantification if provided.
-#' @param gene Character; gene symbol to inspect.
-#' @param samples Character vector of sample group labels (length = ncol(counts)).
-#' @param coldata Optional data.frame or file path containing sample metadata. Used to infer sample groups if `samples` is not provided.
-#' @param sample_type_col Character; column name in `coldata` or `SummarizedExperiment` colData to use for sample grouping. Default is "sample_type".
-#' @param tx2gene Path or data.frame mapping transcripts to genes. Must contain columns `Transcript` and `Gen`.
-#' @param res Optional result data.frame from a differential analysis. If provided and `gene` is NULL, top genes are selected by adjusted p-value.
+#' @param se A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
+#'   Must have a "genes" column in rowData specifying which gene each transcript belongs to.
+#' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
+#'   top genes are selected by p-value.
+#' @param sample_type_col Character; column name in colData(se) to use for sample grouping 
+#'   (default: "sample_type").
+#' @param res Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
+#'   Supported sources:
+#'   - `calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
+#'   - `calculate_lm_interaction(..., return_model_data = FALSE)` returns a data.frame with adj_p_interaction column
+#'   - `detect_q_gene_interactions()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
+#'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
-#' @param pseudocount Numeric pseudocount added before log2 (default = 1e-6) to avoid division by zero.
 #' @param output_file Optional file path to save the plot. If `NULL`, the `ggplot` object is returned.
-#' @param metric Aggregation metric used to summarize transcript expression per group when plotting. One of c("median", "mean", "variance", "iqr"). Use "iqr" to compute the interquartile range. Defaults to "median".
-#' @return If \code{output_file} is \code{NULL}, returns a \code{ggplot} object. Otherwise, the plot is saved to the specified file and the function returns \code{NULL} invisibly.
+#' @param metric Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").
+#' @return If `output_file` is `NULL`, returns a `ggplot` object. Otherwise saves to file and returns NULL invisibly.
 #' @examples
-#' tx_counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
-#' rownames(tx_counts) <- paste0("tx", seq_len(nrow(tx_counts)))
-#' colnames(tx_counts) <- paste0("S", seq_len(ncol(tx_counts)))
-#' tx2gene <- data.frame(Transcript = rownames(tx_counts), Gen = rep(paste0("G", seq_len(3)), each = 2), stringsAsFactors = FALSE)
-#' samples <- rep(c("Normal", "Tumor"), length.out = ncol(tx_counts))
-#' plot_top_transcripts(tx_counts, gene = c("G1", "G2"), samples = samples, tx2gene = tx2gene, top_n = 2)
+#' library(SummarizedExperiment)
+#' library(S4Vectors)
+#' # Create example SummarizedExperiment
+#' counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+#' rownames(counts) <- paste0("tx", 1:6)
+#' rowData_df <- DataFrame(genes = rep(paste0("G", 1:3), each = 2))
+#' colData_df <- DataFrame(sample_type = rep(c("Normal", "Tumor"), 3))
+#' se <- SummarizedExperiment(assays = list(counts = counts), 
+#'                           rowData = rowData_df, colData = colData_df)
+#' # Plot top transcripts
+#' plot_top_transcripts(se, gene = "G1", top_n = 2)
 #' @export
 plot_top_transcripts <- function(
-  counts,
-  readcounts = NULL, # Optional matrix or data.frame of raw read counts. Used for transcript-level quantification if provided.
+  se,
   gene = NULL,
-  samples = NULL,
-  coldata = NULL, # Optional data.frame or file path containing sample metadata. Used to infer sample groups if `samples` is not provided.
-  sample_type_col = "sample_type", # Column name in `coldata` or `SummarizedExperiment` colData to use for sample grouping. Default is "sample_type".
-  tx2gene = NULL,
-  res = NULL, # Optional result data.frame from a differential analysis. If provided and `gene` is NULL, top genes are selected by adjusted p-value.
+  sample_type_col = "sample_type",
+  res = NULL,
   top_n = 3,
-  pseudocount = 1e-6,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr")
 ) {
-    # If counts is a SummarizedExperiment and res is provided, extract components intelligently
-    if (inherits(counts, "SummarizedExperiment") && !is.null(res)) {
-        se <- counts
-        
-        # Extract rowData to identify gene name column
-        rd <- SummarizedExperiment::rowData(se)
-        gene_names_col <- if ("gene_names" %in% colnames(rd)) "gene_names" else if ("gene_name" %in% colnames(rd)) "gene_name" else "genes"
-        se_gene_names <- unique(as.character(rd[[gene_names_col]]))
-        se_gene_names <- se_gene_names[!is.na(se_gene_names) & nzchar(se_gene_names)]
-        
-        # Filter results to only genes present in filtered SE
-        res_gene_col <- if ("genes" %in% colnames(res)) "genes" else if ("gene" %in% colnames(res)) "gene" else "gene_id"
-        if (!(res_gene_col %in% colnames(res))) {
-            stop("Provided 'res' must contain a 'genes', 'gene', or 'gene_id' column", call. = FALSE)
+    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+    
+    # Validate input
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
+    }
+    
+    # Extract components from SE
+    counts <- as.matrix(SummarizedExperiment::assay(se))
+    rd <- SummarizedExperiment::rowData(se)
+    cd <- SummarizedExperiment::colData(se)
+    
+    # Identify gene column (prefer "genes", then "gene_name", then "gene_id")
+    gene_col <- if ("genes" %in% colnames(rd)) {
+        "genes"
+    } else if ("gene_name" %in% colnames(rd)) {
+        "gene_name"
+    } else if ("gene_id" %in% colnames(rd)) {
+        "gene_id"
+    } else {
+        stop("rowData(se) must contain a 'genes', 'gene_name', or 'gene_id' column", call. = FALSE)
+    }
+    
+    # Build tx2gene mapping
+    tx2gene <- data.frame(
+        Transcript = rownames(counts),
+        Gen = as.character(rd[[gene_col]]),
+        stringsAsFactors = FALSE
+    )
+    
+    # Extract sample groups
+    if (!sample_type_col %in% colnames(cd)) {
+        stop("Column '", sample_type_col, "' not found in colData(se)", call. = FALSE)
+    }
+    samples <- as.character(cd[[sample_type_col]])
+    
+    # Handle gene selection from results if needed
+    if (is.null(gene) && !is.null(res)) {
+        # Extract data.frame if res is a list (from calculate_lm_interaction with return_model_data = TRUE)
+        if (is.list(res) && !is.data.frame(res) && "results" %in% names(res)) {
+            res <- res$results
         }
-        res_filtered <- res[as.character(res[[res_gene_col]]) %in% se_gene_names, ]
-        res_filtered <- res_filtered[!is.na(res_filtered[[res_gene_col]]), ]
         
-        if (nrow(res_filtered) > 0) {
-            # Prepare parameters for the plot function
-            if (is.null(gene)) {
-                # Sort genes by adjusted p-value
-                if ("padj" %in% colnames(res_filtered)) {
-                    ord <- order(res_filtered$padj, na.last = NA)
-                } else if ("adjusted_p_values" %in% colnames(res_filtered)) {
-                    ord <- order(res_filtered$adjusted_p_values, na.last = NA)
-                } else if ("pvalue" %in% colnames(res_filtered)) {
-                    ord <- order(res_filtered$pvalue, na.last = NA)
-                } else if ("raw_p_values" %in% colnames(res_filtered)) {
-                    ord <- order(res_filtered$raw_p_values, na.last = NA)
-                } else {
-                    ord <- seq_len(nrow(res_filtered))
-                }
-                gene <- head(as.character(res_filtered[[res_gene_col]][ord]), top_n)
-            }
-            
-            # Build tx2gene mapping
-            if (is.null(tx2gene)) {
-                tx2gene <- data.frame(
-                    Transcript = rownames(se),
-                    Gen = as.character(rd[[gene_names_col]]),
-                    stringsAsFactors = FALSE
-                )
-            }
-            
-            # Extract counts matrix
-            counts <- SummarizedExperiment::assay(se)
-            
-            # Extract samples if not provided
-            if (is.null(samples) && is.null(coldata)) {
-                cd <- SummarizedExperiment::colData(se)
-                if (!is.null(cd) && nrow(cd) > 0) {
-                    sample_cols <- c(sample_type_col, "sample_type", "condition", "group", "sample_group", "class", "status", "phenotype")
-                    # Remove NULL values from sample_cols
-                    sample_cols <- sample_cols[!is.na(sample_cols)]
-                    for (col in sample_cols) {
-                        if (!is.na(col) && col %in% colnames(cd)) {
-                            samples <- as.character(cd[[col]])
-                            break
-                        }
-                    }
-                }
-            }
-            
-            # Clear res after extracting genes to avoid downstream re-filtering
-            res <- NULL
+        if (!is.data.frame(res)) {
+            stop("res must be a data.frame or a list with $results component from calculate_lm_interaction() or similar analysis function", call. = FALSE)
+        }
+        
+        # Normalize p-value column name for compatibility across sources:
+        # - calculate_lm_interaction uses: adj_p_interaction
+        # - detect_q_gene_interactions uses: adj_p_value
+        # Standardize to a common column for downstream use
+        if ("adj_p_interaction" %in% colnames(res) && "adj_p_value" %in% colnames(res) == FALSE) {
+            # From calculate_lm_interaction (LMM/GAM method)
+            colnames(res)[colnames(res) == "adj_p_interaction"] <- "adj_p_value"
+        }
+        
+        # Find gene column in results
+        res_gene_col <- if ("gene" %in% colnames(res)) {
+            "gene"
+        } else if ("genes" %in% colnames(res)) {
+            "genes"
+        } else if ("gene_id" %in% colnames(res)) {
+            "gene_id"
+        } else {
+            stop("res must contain 'gene', 'genes', or 'gene_id' column", call. = FALSE)
+        }
+        
+        # Find adjusted p-value column (supports multiple naming conventions)
+        # Priority: adj_p_value (from both calculate_lm_interaction and detect_q_gene_interactions)
+        #         padj (legacy support)
+        #         adjusted_p_values (legacy support)
+        p_col <- if ("adj_p_value" %in% colnames(res)) {
+            "adj_p_value"
+        } else if ("padj" %in% colnames(res)) {
+            "padj"
+        } else if ("adjusted_p_values" %in% colnames(res)) {
+            "adjusted_p_values"
+        } else {
+            stop("res must contain adjusted p-value column. Expected: 'adj_p_value' (from calculate_lm_interaction or detect_q_gene_interactions), 'padj', or 'adjusted_p_values'", call. = FALSE)
+        }
+        
+        # Sort by p-value and select top genes
+        res_sorted <- res[order(res[[p_col]], na.last = NA), ]
+        gene <- head(as.character(res_sorted[[res_gene_col]]), top_n)
+        
+        # Filter to genes present in SE
+        se_genes <- unique(tx2gene$Gen)
+        gene <- gene[gene %in% se_genes]
+        
+        if (length(gene) == 0) {
+            stop("No genes from res found in rowData of SE", call. = FALSE)
         }
     }
     
-    # If `gene` is not provided, select top genes from `res` using `top_n`.
     if (is.null(gene)) {
-        gene <- .ptt_select_genes_from_res(res, top_n)
+        stop("gene must be provided or derivable from res", call. = FALSE)
     }
-    per_gene_top_n <- top_n
 
     ## Prepare inputs and normalization via helper
-    prep <- .ptt_prepare_inputs(counts = counts, readcounts = readcounts, samples = samples, coldata = coldata, sample_type_col = sample_type_col, tx2gene = tx2gene, res = res, top_n = per_gene_top_n, pseudocount = pseudocount, output_file = output_file, metric = metric)
+    prep <- .ptt_prepare_inputs(
+        counts = counts, 
+        readcounts = NULL, 
+        samples = samples, 
+        coldata = NULL, 
+        sample_type_col = sample_type_col, 
+        tx2gene = tx2gene, 
+        res = NULL,
+        top_n = top_n, 
+        pseudocount = 1e-6, 
+        output_file = output_file, 
+        metric = metric
+    )
 
-    # if prep returned without gene selection, caller will check `gene`
+    # Extract prepared data
     counts <- prep$counts
     samples <- prep$samples
     mapping <- prep$mapping
@@ -1519,8 +1516,7 @@ plot_top_transcripts <- function(
         .ptt_make_plot_for_gene(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits)
     }
 
-    # Produce plots (single or multiple). Do not save inside helper - save once
-    # below.
+    # Produce plots (single or multiple)
     if (length(gene) > 1) {
         fill_limits <- .compute_transcript_fill_limits(gene, mapping, counts, samples, top_n, agg_fun, pseudocount)
 
@@ -1528,7 +1524,7 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16))
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 32, face = "bold"))
             pp
         })
 
@@ -2072,23 +2068,81 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
 
 .ptt_build_plot_from_summary <- function(df_summary, agg_label_unique, fill_limits = NULL) {
     p <- ggplot2::ggplot(df_summary, ggplot2::aes(x = group, y = tx, fill = log2expr)) +
-        ggplot2::geom_tile(color = "white", width = 0.95, height = 0.95) + ggplot2::scale_fill_viridis_c(option = "viridis",
-        direction = -1, na.value = "grey80", limits = fill_limits) + ggplot2::theme_minimal(base_size = 14) +
+        ggplot2::geom_tile(color = NA, width = 0.95, height = 0.92) + 
+        ggplot2::geom_vline(xintercept = 1.5, color = "white", linewidth = 1.5) +
+        ggplot2::scale_x_discrete(expand = c(0, 0)) +
+        ggplot2::scale_y_discrete(expand = c(0, 0)) +
+        ggplot2::scale_fill_viridis_c(
+            na.value = "lightgray", 
+            limits = fill_limits,
+            name = "log2(expr)"
+        ) + 
+        ggplot2::theme_minimal(base_size = 26) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
-        ggplot2::theme(axis.text.y = ggplot2::element_text(size = 12), axis.text.x = ggplot2::element_text(size = 12),
-            plot.title = ggplot2::element_text(size = 16, hjust = 0.6), legend.position = "bottom",
-            legend.key.width = ggplot2::unit(1.2, "cm"), plot.margin = ggplot2::margin(4,
-                4, 4, 4)) + ggplot2::guides(fill = ggplot2::guide_colorbar(title.position = "top",
-        barwidth = 6, barheight = 0.35))
+        ggplot2::theme(
+            axis.text.y = ggplot2::element_text(size = 26), 
+            axis.text.x = ggplot2::element_text(size = 26),
+            plot.title = ggplot2::element_text(size = 26, hjust = 0.5, face = "bold"), 
+            legend.position = "bottom",
+            legend.key.width = ggplot2::unit(2, "cm"), 
+            legend.text = ggplot2::element_text(size = 24),
+            plot.margin = ggplot2::margin(4, 4, 4, 4)
+        ) + 
+        ggplot2::guides(fill = ggplot2::guide_colorbar(
+            title.position = "top",
+            barwidth = 10, 
+            barheight = 0.5,
+            title.theme = ggplot2::element_text(size = 26)
+        ))
     p
 }
 
 .ptt_combine_patchwork <- function(plots, agg_label_unique) {
-    # Use 3 columns, let patchwork auto-calculate rows
-    combined <- Reduce(`+`, plots) + patchwork::plot_layout(ncol = 3, guides = "collect") &
+    # Use 2 columns (2 genes per row) with controlled spacing between rows
+    n_cols <- 2
+    n_rows <- ceiling(length(plots) / n_cols)
+    
+    # Build rows of 2 plots each with spacing between columns
+    plot_rows <- list()
+    for (row in 1:n_rows) {
+        start_idx <- (row - 1) * n_cols + 1
+        end_idx <- min(row * n_cols, length(plots))
+        row_plots <- plots[start_idx:end_idx]
+        # Add right margin to first plot to create column spacing
+        if (length(row_plots) >= 1) {
+            row_plots[[1]] <- row_plots[[1]] + ggplot2::theme(plot.margin = ggplot2::margin(r = 1.0, unit = "cm"))
+        }
+        row_combined <- Reduce(`+`, row_plots) + patchwork::plot_layout(ncol = 2)
+        plot_rows[[row]] <- row_combined
+    }
+    
+    # Combine rows with spacers between them
+    combined_elements <- list()
+    heights_spec <- c()
+    
+    for (i in seq_along(plot_rows)) {
+        combined_elements[[length(combined_elements) + 1]] <- plot_rows[[i]]
+        heights_spec <- c(heights_spec, 1)
+        
+        if (i < length(plot_rows)) {
+            # Add spacer between rows
+            spacer <- ggplot2::ggplot() + ggplot2::theme_void()
+            combined_elements[[length(combined_elements) + 1]] <- spacer
+            heights_spec <- c(heights_spec, 0.17)  # Space between rows (reduced by half)
+        }
+    }
+    
+    # Combine all elements
+    combined_plots_section <- Reduce(`/`, combined_elements) +
+        patchwork::plot_layout(heights = heights_spec)
+    
+    # Add title spacer above plots
+    spacer <- ggplot2::ggplot() + ggplot2::theme_void()
+    combined <- (spacer + patchwork::plot_spacer()) / combined_plots_section &
         ggplot2::theme(legend.position = "bottom")
     combined <- combined + patchwork::plot_annotation(title = agg_label_unique, theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.6,
-        size = 16, margin = ggplot2::margin(b = 10))))
+        size = 48, margin = ggplot2::margin(t = 30, b = 3)))) +
+        patchwork::plot_layout(heights = c(0.12, 1), guides = "collect")
     combined
 }
 
@@ -2097,15 +2151,17 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     legend <- cowplot::get_legend(p_for_legend)
     plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
     
-    # Use 3 columns, auto-calculate rows
-    ncol <- 3
+    # Use 2 columns (2 genes per row), auto-calculate rows
+    ncol <- 2
     nrow_val <- ceiling(length(plots_nolegend) / ncol)
     
     grid <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow_val, align = "hv")
     title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = "plain",
-        x = 0.6, hjust = 0.5, size = 16)
-    result_plot <- cowplot::plot_grid(title_grob, grid, legend, ncol = 1, rel_heights = c(0.08,
-        1, 0.08))
+        x = 0.6, hjust = 0.5, size = 48)
+    # Add spacer between title and plots
+    spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
+    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.18,
+        0.008, 1, 0.08))
     if (!is.null(output_file)) {
         ggplot2::ggsave(output_file, result_plot)
         invisible(NULL)
@@ -2125,13 +2181,19 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
         legend_grob <- NULL
     }
     
-    # Default to 3 columns, adjust for smaller numbers
-    ncol <- min(3, length(grobs))
+    # Default to 2 columns (2 genes per row), adjust for smaller numbers
+    ncol <- min(2, length(grobs))
     nrow <- ceiling(length(grobs) / ncol)
     
-    # Create heights: title (0.6cm) + plot rows (1 null each) + legend (0.7cm)
-    plot_heights <- rep(grid::unit(1, "null"), nrow)
-    heights <- grid::unit.c(grid::unit(0.6, "cm"), plot_heights, grid::unit(0.7, "cm"))
+    # Create heights: title (0.8cm) + plot rows with gaps + legend (0.7cm)
+    plot_heights <- c()
+    for (i in 1:nrow) {
+        plot_heights <- c(plot_heights, grid::unit(1, "null"))
+        if (i < nrow) {  # Add gap after each row except the last (reduced by half)
+            plot_heights <- c(plot_heights, grid::unit(0.17, "cm"))
+        }
+    }
+    heights <- grid::unit.c(grid::unit(0.8, "cm"), do.call(grid::unit.c, as.list(plot_heights)), grid::unit(0.7, "cm"))
     
     if (!is.null(output_file)) {
         # Adjust PNG dimensions based on layout
@@ -2370,116 +2432,6 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
   return(p_effect)
 }
 
-
-#' Plot Multi-Gene Q-Spectrum Comparison
-#'
-#' Generate a multi-panel plot comparing q-spectra (per-q divergence profiles) 
-#' across the top N significant genes by effect size.
-#'
-#' @param lmm_results A list returned by [effect_sizes_divergence()], containing:
-#'   - `$interaction_results`: Data frame with per-q divergence columns and `per_q_pattern` column
-#'   Other list elements are ignored.
-#'
-#' @param n_genes Numeric. Number of top genes to display. Default is 5.
-#'
-#' @return Invisibly returns NULL. Side effect: plots the multi-panel q-spectrum comparison to the current graphics device.
-#'
-#' @details
-#' Each panel shows one gene's q-spectrum from q=0.5 (rare isoforms) to q=2.0 (abundant isoforms),
-#' with a vertical reference line at q=1.0 (Shannon entropy / Kullback-Leibler divergence).
-#'
-#' Genes are sorted by the median q effect size (typically near q=1.0).
-#'
-#' @export
-plot_multi_q_spectrum <- function(lmm_results, n_genes = 5) {
-  
-  # Check for required data structure
-  if (!is.list(lmm_results) || is.null(lmm_results$interaction_results)) {
-    cat("plot_multi_q_spectrum requires a list with $interaction_results component.\n")
-    cat("Typically the output from effect_sizes_divergence().\n")
-    return(invisible(NULL))
-  }
-  
-  interaction_results <- lmm_results$interaction_results
-  
-  # Additional safety check
-  if (!is.data.frame(interaction_results) || nrow(interaction_results) == 0) {
-    cat("No valid genes in interaction_results.\n")
-    return(invisible(NULL))
-  }
-  
-  # Get top genes by effect size (using median q effect size)
-  effect_cols <- grep("^effect_size_D_q", colnames(interaction_results), value = TRUE)
-  
-  # Check if effect columns were found
-  if (length(effect_cols) == 0) {
-    cat("No effect_size columns found in LMM results.\n")
-    return(invisible(NULL))
-  }
-  
-  median_idx <- ceiling(length(effect_cols) / 2)
-  median_col <- effect_cols[median_idx]
-  
-  # Sort and get top genes
-  sort_order <- order(interaction_results[[median_col]], decreasing = TRUE, na.last = TRUE)
-  top_genes <- head(interaction_results[sort_order, , drop = FALSE], n_genes)
-  
-  # Set up multi-panel plot
-  n_panels <- nrow(top_genes)
-  
-  # Check if there are genes to plot
-  if (n_panels == 0) {
-    cat("No genes with valid data found.\n")
-    return(invisible(NULL))
-  }
-  
-  # Check that we have at least 1 panel
-  if (n_panels < 1) {
-    cat("Error: n_panels is less than 1.\n")
-    return(invisible(NULL))
-  }
-  
-  old_par <- par(mfrow = c(1, n_panels), mar = c(4, 4, 3, 1))
-  on.exit(par(old_par), add = TRUE)  # Ensure par is reset even on error
-  
-  # Plot each gene
-  for (i in 1:n_panels) {
-    gene_data <- top_genes[i, ]
-    gene_name <- gene_data$gene
-    per_q_str <- gene_data$per_q_pattern
-    
-    if (!is.na(per_q_str) && is.character(per_q_str) && nchar(per_q_str) > 0) {
-      tryCatch({
-        per_q_vals <- as.numeric(strsplit(per_q_str, ",")[[1]])
-        
-        if (length(per_q_vals) > 0 && all(is.finite(per_q_vals))) {
-          # Create simplified plot for multi-panel
-          q_vals <- c(0.5, 1.0, 1.5, 2.0)
-          
-          # Ensure q_vals and per_q_vals have compatible lengths
-          if (length(q_vals) == length(per_q_vals)) {
-            y_max <- max(per_q_vals, na.rm = TRUE)
-            y_range <- c(0, max(y_max * 1.1, 0.1))  # Avoid zero range
-            
-            plot(q_vals, per_q_vals,
-                 main = gene_name,
-                 xlab = "q",
-                 ylab = "D_q",
-                 type = "b", pch = 19, lwd = 2,
-                 ylim = y_range)
-            abline(v = 1, lty = 3, col = "gray")
-          }
-        }
-      }, error = function(e) {
-        # Silently skip this gene on error
-        plot(1, 1, type = "n", axes = FALSE, xlab = "", ylab = "")
-        text(0.5, 0.5, "Plot error", cex = 0.8, adj = c(0.5, 0.5))
-      })
-    }
-  }
-  
-  return(invisible(NULL))
-}
 
 
 
@@ -3859,11 +3811,11 @@ plot_multiq_delta_influence_heatmaps <- function(
         color = grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(100),
         cellwidth = 65,
         cellheight = 65,
-        fontsize = 16,
-        fontsize_row = 16,
-        fontsize_col = 16,
-        fontsize_number = 13,
-        margins = c(11, 35),
+        fontsize = 26,
+        fontsize_row = 26,
+        fontsize_col = 26,
+        fontsize_number = 20,
+        margins = c(11, 180),
         show_rownames = TRUE,
         show_colnames = TRUE,
         silent = TRUE
@@ -3881,7 +3833,7 @@ plot_multiq_delta_influence_heatmaps <- function(
           children = grid::gList(
             grid::rectGrob(gp = grid::gpar(fill = "white", col = "lightgray", lwd = 2)),
             grid::textGrob("No data available", x = 0.5, y = 0.5, 
-                          gp = grid::gpar(col = "gray50", fontsize = 14))
+                          gp = grid::gpar(col = "gray50", fontsize = 18))
           )
         )
         heatmap_plots[[gene_idx]] <- placeholder_grob
@@ -3895,24 +3847,24 @@ plot_multiq_delta_influence_heatmaps <- function(
     n_rows <- ceiling(n_genes / n_cols)
     
     # Increase height to accommodate spacing between rows
-    heatmap_height <- 9 * n_rows + 2 * (n_rows - 1)  # Add 2 inches per gap between rows
-    grDevices::png(combined_png_file, width = 22, height = heatmap_height, 
+    heatmap_height <- 9 * n_rows + 2 * (n_rows - 1) + 5  # Add 2 inches per gap between rows + 5 extra inches at bottom
+    grDevices::png(combined_png_file, width = 28, height = heatmap_height, 
                    units = "in", res = 96)
     
     grid::grid.newpage()
     
     # Add main title (positioned to create more space before first row)
     grid::grid.text("Delta Influence Across Diversity Scales", 
-                    x = 0.5, y = 0.97, 
+                    x = 0.5, y = 0.98, 
                     just = "top",
-                    gp = grid::gpar(fontsize = 24, fontface = "bold"))
+                    gp = grid::gpar(fontsize = 48, fontface = "bold"))
     
     # Create viewport layout with spacing between rows
     # Alternate between content rows and gap rows with larger gaps
     n_layout_rows <- n_rows * 2 - 1  # n_rows for content + (n_rows-1) for gaps
-    row_heights <- rep(c(1, 0.25), n_rows)[1:n_layout_rows]  # Larger gap height (0.25) for more row separation
+    row_heights <- rep(c(1, 0.20), n_rows)[1:n_layout_rows]  # Gap height (0.20) reduced for less row separation
     
-    grid::pushViewport(grid::viewport(x = 0.5, y = 0.47, width = 1, height = 0.85,
+    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 1, height = 0.80,
                                       layout = grid::grid.layout(
       n_layout_rows, 
       n_cols, 
@@ -3952,204 +3904,3 @@ plot_multiq_delta_influence_heatmaps <- function(
 }
 
 
-#' Plot Rank Correlation Across Q-values
-#'
-#' Visualize Spearman/Kendall correlations as heatmap showing consistency
-#' of gene/transcript ranking across different q-value thresholds.
-#'
-#' @param rank_corr_obj Object from compute_rank_correlation_multiq()
-#' @param title Character; plot title (default: "Rank Correlation Across Q-values")
-#' @param se Optional SummarizedExperiment object (from `build_se()`) to extract tx2gene
-#'   mapping automatically from rowData. If provided, tx2gene parameter is ignored.
-#' @param tx2gene Optional data.frame mapping transcripts to genes for gene-level aggregation.
-#'   Expected columns: "transcript_id"/"Transcript" and "gene_id"/"Gene"/"gene_name".
-#'   Ignored if `se` is provided. If neither `se` nor `tx2gene` is provided,
-#'   transcript-level heatmap is shown.
-#' @param agg_method Character; aggregation method when gene-level mapping provided.
-#'   - "mean" (default): Average correlation between all transcript pairs from two genes
-#'   - "median": Median correlation between transcript pairs
-#'
-#' @return ggplot2 object (heatmap of correlation matrix)
-#'
-#' @details
-#' The heatmap shows correlations between rankings at different q-values.
-#' **Blue**: high correlation (1), indicating stable/consistent rankings.
-#' **Red**: low correlation (-1), indicating divergent rankings.
-#'
-#' **Gene-level aggregation**: When gene-level mapping is provided (via `se` or `tx2gene`):
-#' 1. Transcripts are grouped by gene
-#' 2. For each gene pair, all pairwise transcript correlations are computed
-#' 3. Aggregated using specified method (mean or median) to gene level
-#'
-#' This provides a cleaner view of gene-level ranking stability across q-values.
-#'
-#' @importFrom ggplot2 ggplot aes geom_tile scale_fill_gradient2 theme_minimal
-#'   element_text labs
-#' @importFrom SummarizedExperiment rowData
-#'
-#' @examples
-#' \dontrun{
-#'   # Transcript-level correlation heatmap
-#'   pvals_list <- list(q0.5 = runif(100), q1.0 = runif(100), q1.5 = runif(100))
-#'   rank_obj <- compute_rank_correlation_multiq(pvals_list, method = "spearman")
-#'   p <- plot_rank_correlation_heatmap(rank_obj)
-#'
-#'   # Gene-level correlation heatmap using SE object (preferred)
-#'   se <- build_se(counts, group = c("Control", "Treatment"), ...)
-#'   p_gene <- plot_rank_correlation_heatmap(rank_obj, se = se, agg_method = "mean")
-#'
-#'   # Gene-level correlation heatmap using explicit tx2gene mapping
-#'   tx2gene <- data.frame(
-#'     Transcript = names(pvals_list[[1]]),
-#'     Gene = rep(paste0("GENE", 1:20), each = 5)
-#'   )
-#'   p_gene2 <- plot_rank_correlation_heatmap(rank_obj, tx2gene = tx2gene)
-#' }
-#'
-#' @export
-plot_rank_correlation_heatmap <- function(rank_corr_obj, 
-                                         title = "Rank Correlation Across Q-values",
-                                         se = NULL,
-                                         tx2gene = NULL,
-                                         agg_method = c("mean", "median")) {
-  
-  if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("ggplot2 required for visualization")
-  }
-  
-  agg_method <- match.arg(agg_method)
-  
-  # Prepare data for heatmap
-  corr_matrix <- rank_corr_obj$correlation_matrix
-  
-  # =========================================================================
-  # Extract tx2gene mapping from SE object if provided
-  # =========================================================================
-  if (!is.null(se)) {
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
-      stop("SummarizedExperiment package required to use se parameter")
-    }
-    
-    if (!inherits(se, "SummarizedExperiment")) {
-      stop("se must be a SummarizedExperiment object")
-    }
-    
-    # Extract tx2gene from rowData
-    rd <- SummarizedExperiment::rowData(se)
-    
-    # Try to find transcript and gene ID columns
-    tx_col <- NULL
-    if ("transcript_id" %in% colnames(rd)) {
-      tx_col <- "transcript_id"
-    } else if ("Transcript" %in% colnames(rd)) {
-      tx_col <- "Transcript"
-    } else if ("isoform_id" %in% colnames(rd)) {
-      tx_col <- "isoform_id"
-    }
-    
-    gene_col <- NULL
-    if ("gene_id" %in% colnames(rd)) {
-      gene_col <- "gene_id"
-    } else if ("Gene" %in% colnames(rd)) {
-      gene_col <- "Gene"
-    } else if ("gene_name" %in% colnames(rd)) {
-      gene_col <- "gene_name"
-    }
-    
-    if (is.null(tx_col) || is.null(gene_col)) {
-      stop("SE rowData must contain transcript columns ('transcript_id'/'Transcript'/'isoform_id') ",
-           "and gene columns ('gene_id'/'Gene'/'gene_name')")
-    }
-    
-    # Create tx2gene from SE
-    tx2gene <- as.data.frame(rd[, c(tx_col, gene_col)])
-    colnames(tx2gene) <- c("transcript_id", "gene_id")
-  }
-  
-  # =========================================================================
-  # Aggregate to gene level if tx2gene mapping provided
-  # =========================================================================
-  if (!is.null(tx2gene)) {
-    # Identify transcript/gene ID columns
-    if ("transcript_id" %in% colnames(tx2gene)) {
-      tx_col <- "transcript_id"
-    } else if ("Transcript" %in% colnames(tx2gene)) {
-      tx_col <- "Transcript"
-    } else {
-      stop("tx2gene must contain 'transcript_id' or 'Transcript' column")
-    }
-    
-    if ("gene_id" %in% colnames(tx2gene)) {
-      gene_col <- "gene_id"
-    } else if ("Gene" %in% colnames(tx2gene)) {
-      gene_col <- "Gene"
-    } else if ("gene_name" %in% colnames(tx2gene)) {
-      gene_col <- "gene_name"
-    } else {
-      stop("tx2gene must contain 'gene_id', 'Gene', or 'gene_name' column")
-    }
-    
-    # Map transcript rownames to genes
-    tx_list <- rownames(corr_matrix)
-    if (!all(tx_list %in% tx2gene[[tx_col]])) {
-      warning("Some transcripts in correlation matrix not found in tx2gene mapping")
-    }
-    
-    gene_map <- tx2gene[match(tx_list, tx2gene[[tx_col]]), gene_col]
-    gene_map <- as.character(gene_map)
-    
-    # Aggregate correlation matrix to gene level
-    unique_genes <- unique(gene_map[!is.na(gene_map)])
-    gene_corr_matrix <- matrix(NA, nrow = length(unique_genes), ncol = length(unique_genes),
-                               dimnames = list(unique_genes, unique_genes))
-    
-    agg_fn <- if (agg_method == "mean") mean else median
-    
-    for (i in seq_along(unique_genes)) {
-      for (j in seq_along(unique_genes)) {
-        gene_i <- unique_genes[i]
-        gene_j <- unique_genes[j]
-        
-        # Get transcripts for each gene
-        tx_i_idx <- which(gene_map == gene_i)
-        tx_j_idx <- which(gene_map == gene_j)
-        
-        if (length(tx_i_idx) > 0 && length(tx_j_idx) > 0) {
-          # Extract all pairwise correlations between gene i and j transcripts
-          corrs <- corr_matrix[tx_i_idx, tx_j_idx]
-          gene_corr_matrix[i, j] <- agg_fn(corrs, na.rm = TRUE)
-        }
-      }
-    }
-    
-    corr_matrix <- gene_corr_matrix
-    title <- paste(title, "(Gene-level)")
-  }
-  
-  # =========================================================================
-  # Create heatmap
-  # =========================================================================
-  corr_long <- data.frame(
-    q_value_1 = rep(rownames(corr_matrix), ncol(corr_matrix)),
-    q_value_2 = rep(colnames(corr_matrix), each = nrow(corr_matrix)),
-    correlation = as.numeric(corr_matrix),
-    stringsAsFactors = FALSE
-  )
-  
-  # Create heatmap
-  # Bug #6 Fix: Use method variable instead of hardcoded "Spearman"
-  method_label <- sprintf("%s Correlation", toupper(rank_corr_obj$method))
-  
-  p <- ggplot2::ggplot(corr_long, 
-                       ggplot2::aes(x = q_value_2, y = q_value_1, 
-                                   fill = correlation)) +
-    ggplot2::geom_tile() +
-    ggplot2::scale_fill_gradient2(low = "red", mid = "white", high = "blue",
-                                   limits = c(-1, 1)) +
-    ggplot2::theme_minimal() +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)) +
-    ggplot2::labs(title = title, x = "Q-value 2", y = "Q-value 1",
-                 fill = method_label)
-  
-  p
-}

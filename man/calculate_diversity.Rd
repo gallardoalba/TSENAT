@@ -64,10 +64,13 @@ numbers.}
 \item{nthreads}{Number of threads for parallel processing (default: 1).
 Set to > 1 to parallelize per-gene entropy calculations.}
 
-\item{pseudocount}{Numeric scalar. Add this value to all transcript counts
+\item{pseudocount}{Numeric scalar or "auto". Add this value to all transcript counts
 before calculating proportions (default: 0). Useful for handling genes with
 zero counts in some samples. Values like 0.5 or 1 are commonly used to avoid
-zero-division issues and NaN results.}
+zero-division issues and NaN results. When set to "auto", pseudocount is
+automatically estimated using library size adjustment via `estimate_pseudocount()`
+(recommended for sparse count data where regularization strength should adapt
+to sequencing depth).}
 
 \item{min_valid_frac}{Numeric scalar in [0, 1]; minimum fraction of valid
 (finite) values required per gene to be retained in results (default: 0.75).

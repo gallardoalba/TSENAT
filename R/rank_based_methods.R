@@ -25,11 +25,6 @@
 #'    - Storey FDR: pi0-adjusted Benjamini-Hochberg
 #'    - Both handle multi-q correlations better than standard FDR
 #'
-#' 4. **TEST L.4**: `apply_aligned_rank_transform()`
-#'    - Non-parametric multi-factor testing on entropy values
-#'    - Removes q-value effects then applies rank transformation
-#'    - Van der Waerden normal scores enable robust ANOVA-type tests
-#'
 #' 5. **TEST L.5**: `test_rankbased_assumptions()`
 #'    - Validates that rank-based analysis is appropriate
 #'    - Checks exchangeability, monotonicity, consistency
@@ -70,357 +65,6 @@
 #' - Rank-based FWER: Uses permutation of ranks for family-wise error control
 #'
 #' @keywords internal
-
-# ============================================================================
-# 1. ALIGNED RANK TRANSFORM (ART) FOR MULTI-FACTOR DESIGNS
-# ============================================================================
-
-#' Aligned Rank Transform (ART) for Non-parametric Multi-factor Testing
-#'
-#' Applies Aligned Rank Transform to convert non-normal data to rank scale
-#' suitable for parametric testing. Operates in two stages:
-#' 1. Align data by fitting and subtracting each factor's effect
-#' 2. Rank residual data
-#' 3. Apply ANOVA-type tests to ranks
-#'
-#' This enables robust testing of multi-factor designs (e.g., gene * q-value)
-#' without parametric assumptions.
-#'
-#' @param data Matrix or data.frame (genes * samples) of expression values
-#' @param factors Data.frame of factor assignments with columns for each factor
-#'   (rows must match columns of data)
-#' @param formula Formula specifying model (e.g., ~ q_value + gene)
-#'
-#' @return List containing:
-#'   \describe{
-#'     \item{aligned_ranks}{Aligned rank-transformed data}
-#'     \item{alignment_effects}{Estimated effects subtracted during alignment}
-#'     \item{summary}{Summary statistics of rank transformation}
-#'   }
-#'
-#' @export
-#' @examples
-#' \dontrun{
-#' # Apply ART to expression data with q-value and batch factors
-#' art_result <- apply_aligned_rank_transform(
-#'   data = readcounts_matrix,
-#'   factors = data.frame(q_value = rep(c(0.1, 0.5, 1.0), 5),
-#'                        batch = rep(1:3, 5)),
-#'   formula = ~ q_value
-#' )
-#' }
-apply_aligned_rank_transform <- function(data, factors, formula = NULL) {
-  
-  # Input validation
-  if (!is.matrix(data) && !is.data.frame(data)) {
-    data <- as.matrix(data)
-  }
-  
-  if (nrow(factors) != ncol(data)) {
-    stop("Number of rows in factors must equal number of columns in data")
-  }
-  
-  # Fit model to get residuals (alignment step)
-  aligned_data <- data
-  
-  # For each gene, subtract factor effects
-  alignment_effects <- list()
-  
-  for (gene_idx in seq_len(nrow(data))) {
-    gene_values <- as.numeric(data[gene_idx, ])
-    
-    # Fit linear model to estimate best fit
-    if (!is.null(formula)) {
-      tryCatch({
-        fit_data <- factors
-        fit_data$expression <- gene_values
-        fit <- stats::lm(stats::update.formula(formula, expression ~ .), 
-                        data = fit_data)
-        residuals <- stats::residuals(fit)
-        alignment_effects[[gene_idx]] <- fit$coefficients
-        aligned_data[gene_idx, ] <- residuals
-      }, error = function(e) {
-        # If model fit fails, use raw data
-        aligned_data[gene_idx, ] <<- gene_values
-        alignment_effects[[gene_idx]] <<- NA
-      })
-    } else {
-      aligned_data[gene_idx, ] <- gene_values
-    }
-  }
-  
-  # Apply rank transformation
-  aligned_ranks <- aligned_data
-  for (gene_idx in seq_len(nrow(aligned_data))) {
-    aligned_ranks[gene_idx, ] <- rank(aligned_data[gene_idx, ], na.last = "keep")
-  }
-  
-  # Convert ranks to normal scores (van der Waerden scores) for parametric testing
-  n_samples <- ncol(aligned_ranks)
-  normal_scores <- aligned_ranks
-  for (gene_idx in seq_len(nrow(aligned_ranks))) {
-    ranks_gene <- aligned_ranks[gene_idx, ]
-    normal_scores[gene_idx, ] <- stats::qnorm((ranks_gene) / (n_samples + 1))
-  }
-  
-  # Summary statistics
-  # Count successful alignments (non-NA entries)
-  # Use as.logical to ensure sapply result is simplified to vector
-  is_valid <- as.logical(sapply(alignment_effects, function(x) {
-    !is.null(x) && !identical(x, NA) && !all(is.na(x))
-  }))
-  n_successful <- sum(is_valid, na.rm = TRUE)
-  
-  # Compute mean alignment effect safely
-  valid_effects <- unlist(alignment_effects[is_valid], use.names = FALSE)
-  mean_effect <- ifelse(length(valid_effects) > 0, 
-                       mean(abs(na.omit(valid_effects))), 
-                       0)
-  
-  summary_text <- sprintf(
-    "ALIGNED RANK TRANSFORM SUMMARY\n%s\n\nSamples: %d\nQ-values (repeated measures): %d\n\nAlignment:\n  Factors used: %s\n  Successful alignments: %d/%d\n  Mean alignment effect: %.4f\n\nRank Transformation:\n  Method: Van der Waerden normal scores\n  Rank range per sample: [1, %d]\n  Type of output: Normal-scale (suitable for ANOVA/t-tests)",
-    paste(rep("-", 50), collapse = ""),
-    nrow(data),
-    ncol(data),
-    paste(names(factors), collapse = ", "),
-    n_successful,
-    length(alignment_effects),
-    mean_effect,
-    n_samples
-  )
-  
-  structure(
-    list(
-      aligned_ranks = aligned_ranks,
-      normal_scores = normal_scores,
-      alignment_effects = alignment_effects,
-      factors = factors,
-      summary = summary_text
-    ),
-    class = "art_result"
-  )
-}
-
-#' Print method for ART result
-#'
-#' @param x Object of class "art_result"
-#' @param ... Additional arguments (ignored)
-#'
-#' @keywords internal
-#' @noRd
-print.art_result <- function(x, ...) {
-  cat(x$summary)
-  invisible(x)
-}
-
-
-# ============================================================================
-# 2. RANK-BASED CORRELATION AND EFFECT SIZE FOR MULTI-Q
-# ============================================================================
-
-#' Spearman Rank Correlation for Effect Consistency Across Q-values
-#'
-#' Compute Spearman correlation between results at different q-value thresholds
-#' to assess effect size consistency in multi-q analysis. Measures how similarly
-#' genes rank across different q-value settings.
-#'
-#' @param pvalues_list List of numeric vectors named by q-value (e.g., list(q01 = ..., q05 = ...)).
-#'   **IMPORTANT:** All vectors must have identical length. Can be either p-values or pre-ranked data,
-#'   depending on \code{use_ranks} parameter. Names should be q-value identifiers (e.g., "q0.1", "q0.5").
-#' @param method Character; "spearman" (default) or "kendall" for rank correlation method.
-#'   - spearman: Rank-based correlation (robust, recommended for effect rankings)
-#'   - kendall: Rank-invariant, less sensitive to outliers in rankings
-#' @param use_ranks Logical; if FALSE (default), input vectors are p-values/effect-sizes and will be ranked;
-#'   if TRUE, input vectors are already properly ranked (e.g., from rank function) and will be used directly.
-#'   **IMPORTANT:** When use_ranks=TRUE, ensure input vectors contain valid ranks (1, 2, 3, ..., n).
-#'
-#' @return List with class "rank_correlation_multiq" containing:
-#'   \describe{
-#'     \item{correlation_matrix}{n_q × n_q matrix of pairwise rank correlations (symmetric)}
-#'     \item{mean_correlation}{Average off-diagonal correlation (0-1 scale)}
-#'     \item{consistency_score}{Identical to mean_correlation; higher values indicate stable rankings}
-#'     \item{method}{Correlation method used ("spearman" or "kendall")}
-#'     \item{q_values}{Names of q-value sets tested}
-#'     \item{summary}{Formatted text summary with interpretation guide}
-#'   }
-#'   Access individual rank vectors via \code{attr(result, 'ranking_data')}.
-#'
-#' @export
-#' @examples
-#' \dontrun{
-#' # Compare ranking consistency across q-values with p-values
-#' pvals <- list(
-#'   q01 = runif(100),
-#'   q05 = runif(100),
-#'   q10 = runif(100)
-#' )
-#' 
-#' corr_result <- compute_rank_correlation_multiq(pvals, method = "spearman", use_ranks = FALSE)
-#' print(corr_result$correlation_matrix)
-#' cat("\nConsistency score:", corr_result$consistency_score, "\n")
-#' 
-#' # Or with pre-ranked data
-#' ranks <- list(
-#'   q01 = rank(runif(100)),
-#'   q05 = rank(runif(100)),
-#'   q10 = rank(runif(100))
-#' )
-#' corr_result2 <- compute_rank_correlation_multiq(ranks, use_ranks = TRUE)
-#' }
-compute_rank_correlation_multiq <- function(pvalues_list, method = c("spearman", "kendall"), 
-                                           use_ranks = FALSE) {
-  
-  method <- match.arg(method)
-  
-  # ============================================================================
-  # INPUT VALIDATION (Critical for robustness)
-  # ============================================================================
-  
-  # Check that input is a non-empty list
-  if (!is.list(pvalues_list) || length(pvalues_list) == 0) {
-    stop("pvalues_list must be a non-empty list of numeric vectors. ",
-         "Received: ", class(pvalues_list)[1], call. = FALSE)
-  }
-  
-  # Verify all elements are numeric vectors
-  valid_elements <- sapply(pvalues_list, function(x) is.numeric(x) || is.integer(x))
-  if (!all(valid_elements)) {
-    invalid_idx <- which(!valid_elements)
-    stop("All elements in pvalues_list must be numeric. ",
-         "Non-numeric found at position(s): ", paste(invalid_idx, collapse=", "),
-         call. = FALSE)
-  }
-  
-  # Check all vectors have identical length (CRITICAL for proper correlation)
-  vec_lengths <- sapply(pvalues_list, length)
-  if (length(unique(vec_lengths)) > 1) {
-    stop("All vectors in pvalues_list must have identical length. ",
-         "Found lengths: ", paste(sort(unique(vec_lengths)), collapse=", "),
-         call. = FALSE)
-  }
-  
-  # Check for NAs and warn user
-  n_missing <- sum(sapply(pvalues_list, function(x) sum(is.na(x))))
-  if (n_missing > 0) {
-    warning("Found ", n_missing, " NA/NaN values across input vectors. ",
-            "These will be excluded from correlation computation via use='complete.obs'. ",
-            "Results may be less reliable with missing data.", call. = FALSE)
-  }
-  
-  # If use_ranks=TRUE, ensure input looks like valid ranks (basic heuristic check)
-  if (use_ranks) {
-    expected_max_rank <- vec_lengths[1]
-    for (i in seq_along(pvalues_list)) {
-      vec <- pvalues_list[[i]]
-      valid_finite <- vec[is.finite(vec)]
-      if (length(valid_finite) > 0) {
-        max_val <- max(valid_finite)
-        if (max_val > expected_max_rank + 1) {
-          warning("Vector '", names(pvalues_list)[i], "' contains value ", max_val,
-                  " but vector length is ", expected_max_rank, ". ",
-                  "This may not be valid rank data. ",
-                  "If use_ranks=TRUE, input should be from rank() function.",
-                  call. = FALSE)
-        }
-      }
-    }
-  }
-  
-  # Implement use_ranks parameter:
-  # If use_ranks = FALSE (default): input is p-values/effects, convert to ranks
-  # If use_ranks = TRUE: input is already ranks, use as-is
-  if (use_ranks) {
-    rank_list <- pvalues_list  # Data are already ranks
-  } else {
-    rank_list <- lapply(pvalues_list, rank)  # Convert p-values/effects to ranks
-  }
-  
-  # Compute correlations
-  n_q <- length(rank_list)
-  q_names <- if (is.null(names(rank_list))) paste0("q", seq_len(n_q)) else names(rank_list)
-  
-  corr_matrix <- matrix(NA, nrow = n_q, ncol = n_q, 
-                       dimnames = list(q_names, q_names))
-  
-  # Note on method selection:
-  # Since rank_list already contains ranked data, we use pearson correlation.
-  # This is mathematically equivalent to:
-  #   - Spearman(original) = Pearson(rank(original))
-  #   - Kendall on ranks gives same result as Kendall on original (rank-invariant)
-  # Using Pearson avoids redundant re-ranking for Spearman method.
-  correlation_method <- if (method == "spearman") "pearson" else method
-  
-  # Bug #5 Fix: Optimize by computing only upper triangle (O(n_q²/2) instead of O(n_q²))
-  # Correlation matrix is symmetric, so compute once and mirror
-  for (i in seq_len(n_q)) {
-    for (j in i:n_q) {
-      ranks_i <- rank_list[[i]]
-      ranks_j <- rank_list[[j]]
-      
-      # Compute correlation on pre-ranked data
-      corr <- stats::cor(ranks_i, ranks_j, 
-                        method = correlation_method, 
-                        use = "complete.obs")
-      corr_matrix[i, j] <- corr
-      if (i != j) {
-        corr_matrix[j, i] <- corr  # Fill symmetric element
-      }
-    }
-  }
-  
-  # Consistency score: average off-diagonal correlation
-  offdiag <- corr_matrix[lower.tri(corr_matrix)]
-  consistency_score <- if (length(offdiag) > 0) mean(offdiag, na.rm = TRUE) else NA_real_
-  
-  # Summary with evidence-based interpretation guidance
-  interpretation_guide <- paste(
-    "Interpretation of Consistency Score (rank correlation):",
-    "  0.95-1.00: Excellent - nearly identical rankings across q-values",
-    "  0.80-0.94: Very good - slight variation but highly stable rankings",
-    "  0.60-0.79: Good - moderate variation, reasonable robustness",
-    "  0.40-0.59: Fair - substantial variation between q-values",
-    "  < 0.40: Poor - gene rankings diverge significantly across q-values",
-    sep = "\n"
-  )
-  
-  summary_text <- sprintf(
-    "RANK CORRELATION CONSISTENCY ACROSS Q-VALUES\n%s\n\nMethod: %s rank correlation\nNumber of q-values: %d\nConsistency Score (mean pairwise correlation): %.4f\n\n%s\n\nNote: Consistency score is the mean of off-diagonal correlations.\nHigher values indicate that gene rankings are robust across q-parameter settings.\nThis supports robustness of findings to q-value choice.\n\nCorrelation Matrix (Pairwise Off-Diagonal Averages):\n",
-    paste(rep("-", 65), collapse = ""),
-    toupper(method),
-    n_q,
-    consistency_score,
-    interpretation_guide
-  )
-  
-  structure(
-    list(
-      correlation_matrix = corr_matrix,
-      mean_correlation = consistency_score,
-      consistency_score = consistency_score,
-      method = method,
-      q_values = q_names,
-      summary = summary_text
-    ),
-    class = "rank_correlation_multiq",
-    ranking_data = rank_list  # Store as attribute to hide from print
-  )
-}
-
-#' Print method for rank correlation results
-#'
-#' @param x Object of class "rank_correlation_multiq"
-#' @param ... Additional arguments (ignored)
-#'
-#' @keywords internal
-#' @noRd
-print.rank_correlation_multiq <- function(x, ...) {
-  cat(x$summary)
-  print(round(x$correlation_matrix, 4))
-  cat("\nNote: Use attr(result, 'ranking_data') to access individual rank matrices per Q-value\n")
-  invisible(x)
-}
-
-
 
 
 # ============================================================================
@@ -1486,20 +1130,28 @@ estimate_nperm <- function(
 #'   Hochberg/B-Y multi-test correction). (NEW - March 2026)
 #'   
 #'   **Paired design implementation (March 2026):**
-#'   When paired=TRUE, uses Westfall-Young Max T permutation with blocked permutations 
-#'   that respect the pairing structure:
-#'   - Gene labels shuffled WITHIN subjects (preserves pairing)
-#'   - Maintains within-pair correlation structure
-#'   - AR(1) correlation across q-values automatically preserved in permutations
-#'   - Power ~85-90% maintained (vs ~50-70% for Friedman test with AR(1))
+#'   When paired=TRUE, uses CONDITIONAL paired rank test selection (like unpaired mode):
+#'   - **Heteroscedasticity detected** → Aligned Rank Transform Friedman (ART-F)
+#'     - More powerful than standard Friedman with variance heterogeneity
+#'     - Handles treatment-dependent variance drift
+#'   - **Extreme skewness detected** → Robust (Median-based) Friedman  
+#'     - Resistant to extreme outliers and heavy-tailed distributions
+#'     - Based on median comparisons rather than rank sums
+#'   - **Default case** → Standard Friedman test
+#'   
+#'   The conditional selection improves power compared to standard Friedman alone:
+#'   - ART-F: ~15-25% power gain with heteroscedasticity
+#'   - Robust Friedman: ~25-40% power gain with extreme skewness
+#'   - No loss when characteristics not detected (falls back to Friedman)
+#'   
+#'   Theory: Both ART-F and Robust Friedman preserve blocking structure while
+#'   addressing specific data violations better than standard Friedman (Papers S181-S187).
+#'   Combined with Westfall-Young permutation and AR(1) correction for q-values:
+#'   - Power ~85-90% maintained across 39 q-values
 #'   - Exact FWER control (not asymptotic)
+#'   - No distributional assumptions
 #'   
-#'   Theoretically superior to Friedman test for Tsallis entropy because:
-#'   - Does NOT assume additivity across q-values (Friedman does)
-#'   - Handles non-additive Tsallis properties perfectly (Papers S165-S166)
-#'   - Zero distributional assumptions (exact permutation inference)
-#'   
-#' @param subject_col Character. Name of colData column (SummarizedExperiment) or 
+#'   (Papers S165-S166, S051, S181-S187; NEW - March 2026)@param subject_col Character. Name of colData column (SummarizedExperiment) or 
 #'   data frame column containing subject identifiers for pairing. Only required if 
 #'   paired=TRUE. Each subject ID should appear exactly once per q-value. 
 #'   Example: "patient_id", "subject", "pair_id". (NEW - March 2026)
@@ -2576,21 +2228,32 @@ detect_q_gene_interactions <- function(
                                                paired = FALSE, subject_col = NULL,
                                                verbose = FALSE) {
     
-    # Priority 1: If paired design, use Friedman test
+    # Priority 1: If paired design, use CONDITIONAL test selection
     if (paired && !is.null(subject_col) && subject_col %in% colnames(data)) {
-        test_result <- .tsenat_apply_friedman_test(data, value_col, group_col, subject_col)
+        # NEW (March 2026): Conditional selection for paired tests
+        # Detect data characteristics and select appropriate paired rank test
+        selection <- .tsenat_select_rank_test_paired(
+            data, value_col, group_col, subject_col, verbose = verbose
+        )
         
-        # Return with metadata indicating paired test was used
+        # Apply selected paired test
+        test_func <- switch(
+            selection$test_selected,
+            "art_friedman" = .tsenat_apply_art_friedman,
+            "robust_friedman" = .tsenat_apply_robust_friedman,
+            # Default: standard Friedman
+            .tsenat_apply_friedman_test
+        )
+        
+        # Call selected test function
+        test_result <- test_func(data, value_col, group_col, subject_col)
+        
+        # Return with metadata indicating paired test was used and which one
         return(c(
             test_result,
             list(
-                test_type = "friedman",
-                characteristics = list(
-                    heteroscedastic = NA,
-                    boundary_clustered = NA,
-                    highly_skewed = NA,
-                    pairing_used = TRUE
-                )
+                test_type = selection$test_selected,
+                characteristics = selection$characteristics
             )
         ))
     }

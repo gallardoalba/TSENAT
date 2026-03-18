@@ -199,10 +199,13 @@
 #' numbers.
 #' @param nthreads Number of threads for parallel processing (default: 1).
 #' Set to > 1 to parallelize per-gene entropy calculations.
-#' @param pseudocount Numeric scalar. Add this value to all transcript counts
+#' @param pseudocount Numeric scalar or "auto". Add this value to all transcript counts
 #' before calculating proportions (default: 0). Useful for handling genes with
 #' zero counts in some samples. Values like 0.5 or 1 are commonly used to avoid
-#' zero-division issues and NaN results.
+#' zero-division issues and NaN results. When set to "auto", pseudocount is
+#' automatically estimated using library size adjustment via `estimate_pseudocount()`
+#' (recommended for sparse count data where regularization strength should adapt
+#' to sequencing depth).
 #' @param min_valid_frac Numeric scalar in [0, 1]; minimum fraction of valid
 #' (finite) values required per gene to be retained in results (default: 0.75).
 #' Genes with fewer valid values are excluded from output. This is a
@@ -311,6 +314,21 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     # Validate norm parameter
     norm <- match.arg(norm, choices = c("none", "range", "zscore", 
                                         "log_odds_ratio", "relative_reference"))
+    
+    # Handle pseudocount = "auto": compute library size-adjusted pseudocount internally
+    if (is.character(pseudocount) && tolower(pseudocount) == "auto") {
+        if (verbose) {
+            message("Computing pseudocount automatically via estimate_pseudocount()...")
+        }
+        # Call estimate_pseudocount on original input (before matrix extraction)
+        pc_result <- estimate_pseudocount(x, verbose = FALSE)
+        pseudocount <- pc_result$scalar_pseudocount
+        if (verbose) {
+            message(sprintf("  → Estimated pseudocount = %.4f", pseudocount))
+        }
+    } else if (!is.numeric(pseudocount)) {
+        stop("pseudocount must be numeric or 'auto'", call. = FALSE)
+    }
     
     # Keep reference to original input for metadata extraction
     original_x <- x

@@ -2,64 +2,6 @@ library(TSENAT)
 
 context("rank_based_methods: Rank-Based Nonparametric Methods")
 
-test_that("compute_rank_correlation_multiq computes spearman correlations", {
-  # Create test p-value lists
-  pvalues <- list(
-    q01 = runif(50),
-    q05 = runif(50),
-    q10 = runif(50)
-  )
-  
-  result <- compute_rank_correlation_multiq(pvalues, method = "spearman")
-  
-  expect_s3_class(result, "rank_correlation_multiq")
-  expect_equal(nrow(result$correlation_matrix), 3)
-  expect_equal(ncol(result$correlation_matrix), 3)
-  expect_true(all(diag(result$correlation_matrix) == 1.0))  # Diagonal is 1
-  expect_true(result$mean_correlation >= -1 && result$mean_correlation <= 1)
-})
-
-test_that("compute_rank_correlation_multiq handles kendall correlation", {
-  pvalues <- list(
-    q01 = runif(50),
-    q05 = runif(50)
-  )
-  
-  result <- compute_rank_correlation_multiq(pvalues, method = "kendall")
-  
-  expect_equal(result$method, "kendall")
-  expect_true(!is.na(result$mean_correlation))
-})
-
-test_that("apply_aligned_rank_transform produces valid output", {
-  # Create synthetic expression data
-  set.seed(123)
-  expr_data <- matrix(
-    rnorm(160),  # 16 genes x 10 samples
-    nrow = 16,
-    ncol = 10,
-    dimnames = list(
-      paste0("Gene", 1:16),
-      paste0("Sample", 1:10)
-    )
-  )
-  
-  factors <- data.frame(
-    batch = factor(c(rep("A", 5), rep("B", 5))),
-    row.names = colnames(expr_data)
-  )
-  
-  result <- apply_aligned_rank_transform(
-    data = expr_data,
-    factors = factors,
-    formula = ~ batch
-  )
-  
-  expect_s3_class(result, "art_result")
-  expect_equal(dim(result$aligned_ranks), dim(expr_data))
-  expect_equal(dim(result$normal_scores), dim(expr_data))
-  expect_true(all(!is.na(result$normal_scores)))
-})
 
 test_that("test_rankbased_assumptions validates assumptions", {
   # Create synthetic expression data
@@ -85,39 +27,6 @@ test_that("test_rankbased_assumptions validates assumptions", {
   expect_true(length(result) > 0)
 })
 
-test_that("rank correlation matrix is symmetric", {
-  pvalues <- list(
-    q01 = c(0.01, 0.05, 0.1, 0.5, 0.9),
-    q05 = c(0.02, 0.04, 0.12, 0.48, 0.88),
-    q10 = c(0.015, 0.055, 0.09, 0.51, 0.92)
-  )
-  
-  result <- compute_rank_correlation_multiq(pvalues)
-  
-  # Check symmetry
-  expect_true(all(result$correlation_matrix == 
-                  t(result$correlation_matrix), na.rm = TRUE))
-})
-
-test_that("ART handles edge cases gracefully", {
-  # Create simple test data
-  expr_data <- matrix(rnorm(50), nrow = 5, ncol = 10)
-  rownames(expr_data) <- paste0("gene", 1:5)
-  colnames(expr_data) <- paste0("sample", 1:10)
-  
-  factors <- data.frame(
-    batch = factor(rep(c("A", "B"), 5)),
-    row.names = paste0("sample", 1:10)
-  )
-  
-  result <- apply_aligned_rank_transform(
-    data = expr_data,
-    factors = factors
-  )
-  
-  expect_s3_class(result, "art_result")
-  expect_true(!any(is.infinite(result$normal_scores)))
-})
 
 # ============================================================================
 # Permutation-Based Rank Correlation Confidence Intervals Tests

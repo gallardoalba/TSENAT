@@ -85,6 +85,7 @@ Analysis pipeline:
 
 ```{r setup, message=FALSE, warning=FALSE}
 library("SplicingFactory")
+library(TSENAT)
 library("SummarizedExperiment")
 
 # Load dataset
@@ -101,7 +102,6 @@ readcounts <- tcga_brca_luma_dataset[, -1]
 
 ```{r readfilter}
 tokeep <- rowSums(readcounts > 5) > 5
-
 readcounts <- readcounts[tokeep, ]
 genes      <- genes[tokeep]
 
@@ -204,9 +204,6 @@ gene_overlap_stats <- function(results1, results2, gene_col1, gene_col2,
 To calculate transcript diversity measures (Shannon entropy, Simpson index, and Tsallis entropy at q=1 and q=2), use:
 
 ```{r diversity_calculations}
-library(TSENAT)
-
-# Both packages accept SummarizedExperiment objects natively
 # SplicingFactory: Shannon entropy (Laplace method)
 # Note: SplicingFactory extracts genes from rownames(se_data) automatically
 shannon_entropy <- SplicingFactory::calculate_diversity(
@@ -216,17 +213,18 @@ shannon_entropy <- SplicingFactory::calculate_diversity(
   verbose = FALSE
 )
 
-# SplicingFactory: Simpson index
-simpson_index <- SplicingFactory::calculate_diversity(
-  x = se_data,
-  method = "simpson",
-  verbose = FALSE
-)
-
 # TSENAT: Tsallis entropy at q=1 (equals Shannon entropy)
 tsenat_q1_values <- TSENAT::calculate_diversity(
   x = se_data,
   q = 1,
+  norm = TRUE,
+  verbose = FALSE
+)
+
+# SplicingFactory: Simpson index
+simpson_index <- SplicingFactory::calculate_diversity(
+  x = se_data,
+  method = "simpson",
   norm = TRUE,
   verbose = FALSE
 )
@@ -307,6 +305,65 @@ tsenat_simpson_diff <- TSENAT::calculate_difference(
   test = "wilcoxon",
   verbose = FALSE
 )
+```
+
+```{r volcano_ma_plots, fig.width=16, fig.height=6, message=FALSE, warning=FALSE}
+# Visualize differential analysis results using combined volcano and MA plots
+library(cowplot)
+
+# SplicingFactory Shannon entropy: Volcano + MA grid
+shannon_grid <- TSENAT::plot_volcano_ma_grid(
+  diff_df = entropy_significance,
+  x_col = "mean_difference",
+  padj_col = "adjusted_p_values",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "SplicingFactory Shannon Entropy - Volcano",
+  title_ma = "SplicingFactory Shannon Entropy - MA Plot"
+)
+
+# TSENAT Tsallis q=1: Volcano + MA grid
+tsenat_q1_grid <- TSENAT::plot_volcano_ma_grid(
+  diff_df = tsenat_shannon_diff,
+  x_col = "mean_difference",
+  padj_col = "padj",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "TSENAT Tsallis q=1 - Volcano",
+  title_ma = "TSENAT Tsallis q=1 - MA Plot"
+)
+
+# SplicingFactory Simpson index: Volcano + MA grid
+simpson_grid <- TSENAT::plot_volcano_ma_grid(
+  diff_df = simpson_significance,
+  x_col = "mean_difference",
+  padj_col = "adjusted_p_values",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "SplicingFactory Simpson Index - Volcano",
+  title_ma = "SplicingFactory Simpson Index - MA Plot"
+)
+
+# TSENAT Tsallis q=2: Volcano + MA grid
+tsenat_q2_grid <- TSENAT::plot_volcano_ma_grid(
+  diff_df = tsenat_simpson_diff,
+  x_col = "mean_difference",
+  padj_col = "padj",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "TSENAT Tsallis q=2 - Volcano",
+  title_ma = "TSENAT Tsallis q=2 - MA Plot"
+)
+
+# Display Shannon entropy comparison
+print(shannon_grid)
+cat("\n\n")
+print(tsenat_q1_grid)
+
+# Display Simpson index comparison
+print(simpson_grid)
+cat("\n\n")
+print(tsenat_q2_grid)
 ```
 
 

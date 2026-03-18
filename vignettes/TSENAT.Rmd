@@ -703,19 +703,11 @@ scales) and transcripts (columns) for each gene.
 
 ```{r multi-q-heatmap, echo=TRUE, fig.width=24, fig.height=20}
 # Generate multi-Q heatmaps using the dedicated function
-# The function extracts all needed information from the multi_q_results object
-heatmap_file <- NA
-
-tryCatch({
-  # Pass lm_res$results (the dataframe component, not the full list)
-  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+heatmap_file <- plot_multiq_delta_influence_heatmaps(
     switching_results = multi_q_results,
     n_genes = 4,
     lm_results = lm_res$results
-  )
-}, error = function(e) {
-  cat("ERROR in plot_multiq_delta_influence_heatmaps: ", e$message, "\n")
-})
+)
 
 # Render the plot
 knitr::include_graphics(heatmap_file)
@@ -729,6 +721,14 @@ Interpretation:
 - Blue cells: Transcript more influential in the second condition
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
+```{r reads-transcripts-median, echo=TRUE, fig.width=26, fig.height=22}
+# Generate multi-Q heatmaps using the dedicated function
+p <- plot_top_transcripts(se, 
+  res = lm_res, top_n = 4,
+  metric = "median")
+
+print(p)
+```
 
 ### Effect size analysis
 

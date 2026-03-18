@@ -48,7 +48,8 @@ providing a conservative view of the strongest effect. Set to a numeric value to
 
 **Gene-specific mode (gene or lm_res provided)**:
 - Single gene: A ggplot object showing median entropy ± SD for that gene.
-- Multiple genes: A named list of ggplot objects (one per gene).
+- Multiple genes: A grid plot object arranged in 2 rows × 2 columns with a shared legend at the bottom.
+  The legend appears once beneath the grid, avoiding repetition across subplots.
 }
 \description{
 Visualize Tsallis entropy (S_q) as a function of the diversity parameter q across sample groups.
@@ -66,6 +67,8 @@ or bootstrap confidence interval bands.
 - Plots q-curve separately for each selected gene
 - Shows median entropy ± SD (variance) for each gene across q-values and groups
 - When `lm_res` provided: automatically ranks genes and selects top `n_top` by p-value
+- Single gene: returns a ggplot object; multiple genes: returns a grid plot (2 rows × 2 columns) with shared legend
+- For multiple genes: legend appears once at the bottom of the grid to avoid repetition and save space
 - Useful for highlighting specific genes of interest or significant discoveries
 - Bootstrap mode not supported in gene-specific mode
 
