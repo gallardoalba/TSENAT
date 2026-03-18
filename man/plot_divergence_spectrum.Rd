@@ -15,22 +15,26 @@ plot_divergence_spectrum(
 )
 }
 \arguments{
-\item{metric}{Character. Summary statistic to display: "mean" or "median". Default: "median".}
+\item{divergence_results_se}{A `SummarizedExperiment` containing pre-computed divergence values.
+Rows = genes, columns = q-values. Column names should indicate q-values (e.g., "q_0.5", "q_1.0").}
 
-\item{variability_metric}{Character. Error bar type: "sd" (standard deviation) or "iqr" (interquartile range).
-Default: "iqr".}
+\item{gene}{Optional character. If provided, plot divergence spectrum for this specific gene.
+If NULL, plot global divergence curve (aggregated across all genes).}
 
-\item{se}{A `SummarizedExperiment` returned by `calculate_diversity` with multiple q-values.}
+\item{lm_res}{Optional data.frame with columns for gene identifiers and p-values. Used to select
+top genes when gene = NULL and lm_res is provided. Default: NULL.}
 
-\item{readcounts}{Optional matrix of raw read counts (genes * transcripts) for computing
-true Tsallis divergence from isoform distributions. If NULL, uses entropy-based approximation.}
+\item{n_genes}{Integer; number of top genes to plot when showing multi-gene spectra (default: 4).
+Genes are sorted by p-value significance (lowest p-values first).}
 
-\item{tx2gene_map}{Optional data.frame mapping transcripts to genes (columns: "transcript", "gene").}
+\item{ncol}{Integer; number of columns in grid layout for multi-gene plots (default: 2).
+Number of rows is automatically calculated as ceiling(n_genes / ncol).}
 
-\item{group_col}{Character name of the column in colData(se) indicating group assignment.
-Default: "group".}
+\item{metric}{Character. Summary statistic for global curve: "median" or "mean". Default: "median".
+Only used when gene = NULL.}
 
-\item{assay_name}{Character name of the assay containing diversity measures. Default: "diversity".}
+\item{variability_metric}{Character. Error bar type for global curve: "sd" or "iqr". Default: "iqr".
+Only used when gene = NULL.}
 }
 \value{
 A `ggplot` object. Gene-specific calls return a line plot.
@@ -57,14 +61,22 @@ complementing gene-specific divergence profiles.
 the relationship between entropy changes and divergence patterns.
 }
 \examples{
-\dontrun{
-  # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
-  
-  # Global divergence curve (all genes aggregated)
-  p_global <- plot_divergence_spectrum(divergence_se)
-  
-  # Gene-specific divergence spectrum
-  p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
-}
+# Create synthetic divergence data
+set.seed(123)
+divergence_matrix <- matrix(
+  rnorm(80, mean = 0.5, sd = 0.1),
+  nrow = 20, ncol = 4
+)
+rownames(divergence_matrix) <- paste0("gene_", 1:20)
+colnames(divergence_matrix) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+divergence_se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(divergence = divergence_matrix)
+)
+
+# Global divergence curve (all genes aggregated)
+p_global <- plot_divergence_spectrum(divergence_se)
+
+# Gene-specific divergence spectrum
+p_gene <- plot_divergence_spectrum(divergence_se, gene = "gene_1")
 
 }

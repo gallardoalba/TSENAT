@@ -47,7 +47,7 @@ Ignored if `stringency` is specified; when stringency is provided, `min_tpm` is
 auto-estimated from data using quantile-based approach (Law et al. limma-voom methodology).}
 
 \item{tpm_assay_name}{Character; name of assay containing TPM data (default: NULL).
-If NULL, function searches for TPM data in: metadata$salmon_tpm → metadata$tpm → assay named "tpm" → metadata lookup.
+If NULL, function searches for TPM data in: metadata$salmon_tpm -> metadata$tpm -> assay named "tpm" -> metadata lookup.
 Set explicitly (e.g., `tpm_assay_name = "tpm"`) to use a specific assay by name.
 Example from preprocessing: tpm_assay_name = "abundance" for tximport objects.}
 

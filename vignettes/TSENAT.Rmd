@@ -461,7 +461,7 @@ signals differences in dominant isoforms.
 
 ```{r tsallis-q-curve, fig.width=10, fig.height=5.2}
 # Plot overall q-curve with median ± IQR bands
-p_qcurve <- plot_tsallis_q_curve(ts_se)
+p_qcurve <- plot_tsallis_q_curve(ts_se, condition_col = "sample_type")
 print(p_qcurve)
 ```
 
@@ -479,7 +479,7 @@ Samples with high influence scores exert disproportionate leverage on entropy es
 # - Flagging samples based on influence_threshold (default: 0.75 = 75th percentile)
 # Returns: Sample names, influence scores, and QC status
 
-sample_qc <- m_estimate(ts_se, samples = "sample_type", 
+sample_qc <- m_estimate(ts_se, condition_col = "sample_type", 
                         loss_type = "huber", 
                         q_combine_method = "mean",
                         influence_threshold = 0.75,
@@ -582,6 +582,7 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
         # Compute and show top hits (by adjusted p-value)
         # Using Hochberg for FWER control via closed-form procedure
         lm_res <- calculate_lm_interaction(ts_se,
+            condition_col = "sample_type",
             method = "gam",
             paired = TRUE,
             multicorr = "hochberg",
@@ -645,6 +646,7 @@ by the linear-model interaction test.
 combined_plot <- plot_lm_interaction_gam(
     se = ts_se,
     lm_res = lm_res,
+    condition_col = "sample_type",
     n_top = 4  # Pass full lm_res list with $results and $model_data
 )
 print(combined_plot)

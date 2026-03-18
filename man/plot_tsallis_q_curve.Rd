@@ -7,7 +7,7 @@
 plot_tsallis_q_curve(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type",
+  condition_col = "sample_type",
   bootstrap = FALSE,
   gene = NULL,
   lm_res = NULL,
@@ -20,7 +20,7 @@ For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence int
 
 \item{assay_name}{Character; name of the assay to plot (default: "diversity").}
 
-\item{sample_type_col}{Character; column name in colData indicating group/sample type
+\item{condition_col}{Character; column name in colData indicating group/sample type
 (default: "sample_type"). Only used in aggregate and CI modes.}
 
 \item{bootstrap}{Logical; if TRUE, plots bootstrap confidence interval bands for aggregate mode.
@@ -28,7 +28,7 @@ Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
 Requires 2+ q values and exactly 2 groups (default: FALSE).}
 
 \item{gene}{Character vector (optional); if provided, plot q-curves for specified gene(s).
-Overrides default aggregate behavior. When provided, uses median ± SD for each gene.}
+Overrides default aggregate behavior. When provided, uses median +/- SD for each gene.}
 
 \item{lm_res}{Data frame (optional); gene interaction test results with `gene` column and
 p-value column. Accepts either:
@@ -47,8 +47,8 @@ providing a conservative view of the strongest effect. Set to a numeric value to
 - With bootstrap=TRUE: A ggplot object with bootstrap confidence interval bands.
 
 **Gene-specific mode (gene or lm_res provided)**:
-- Single gene: A ggplot object showing median entropy ± SD for that gene.
-- Multiple genes: A grid plot object arranged in 2 rows × 2 columns with a shared legend at the bottom.
+- Single gene: A ggplot object showing median entropy +/- SD for that gene.
+- Multiple genes: A grid plot object arranged in 2 rows x 2 columns with a shared legend at the bottom.
   The legend appears once beneath the grid, avoiding repetition across subplots.
 }
 \description{
@@ -58,16 +58,16 @@ or bootstrap confidence interval bands.
 }
 \details{
 **Aggregate mode (default, gene=NULL, lm_res=NULL)**:
-- Plots median Tsallis entropy ± IQR across all genes for each group
+- Plots median Tsallis entropy +/- IQR across all genes for each group
 - Works with any SummarizedExperiment from calculate_diversity()
 - Supports single or multiple q values and any number of groups
 - No CI data required for basic plots; bootstrap CIs optional
 
 **Gene-specific mode (gene or lm_res provided)**:
 - Plots q-curve separately for each selected gene
-- Shows median entropy ± SD (variance) for each gene across q-values and groups
+- Shows median entropy +/- SD (variance) for each gene across q-values and groups
 - When `lm_res` provided: automatically ranks genes and selects top `n_top` by p-value
-- Single gene: returns a ggplot object; multiple genes: returns a grid plot (2 rows × 2 columns) with shared legend
+- Single gene: returns a ggplot object; multiple genes: returns a grid plot (2 rows x 2 columns) with shared legend
 - For multiple genes: legend appears once at the bottom of the grid to avoid repetition and save space
 - Useful for highlighting specific genes of interest or significant discoveries
 - Bootstrap mode not supported in gene-specific mode
@@ -80,35 +80,13 @@ or bootstrap confidence interval bands.
 - Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
 }
 \examples{
-\dontrun{
-  data("readcounts", package = "TSENAT")
-  rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
-  gs <- readcounts[1:50, 1]
-  
-  # Aggregate mode: median ± IQR across all genes
-  se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
-  p_basic <- plot_tsallis_q_curve(se_basic)
-  
-  # Gene-specific mode: q-curve for specific genes
-  p_gene <- plot_tsallis_q_curve(se_basic, gene = c("gene1", "gene2"))
-  
-  # Gene-specific mode with lm_res from calculate_lm_interaction
-  lm_results <- data.frame(
-    gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
-    adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2)
-  )
-  p_top <- plot_tsallis_q_curve(se_basic, lm_res = lm_results, n_top = 3)
-  
-  # Gene-specific mode with results from detect_q_gene_interactions (Friedman/Wilcoxon)
-  wy_results <- data.frame(
-    gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
-    adj_p_value = c(0.001, 0.01, 0.05, 0.1, 0.2)
-  )
-  p_wy <- plot_tsallis_q_curve(se_basic, lm_res = wy_results, n_top = 2)
-  
-  # CI mode with bootstrap CIs (aggregate)
-  se_boot <- calculate_diversity(rc, gs, q = seq(0.1, 2, by = 0.2), bootstrap = TRUE)
-  p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
-}
+# Create synthetic diversity data
+set.seed(123)
+rc <- matrix(sample(1:100, 250, replace = TRUE), nrow = 50, ncol = 5)
+gs <- rep(paste0("gene_", 1:10), length.out = 50)
+
+# Aggregate mode: median +/- IQR across all genes
+se_basic <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5))
+p_basic <- plot_tsallis_q_curve(se_basic)
 
 }

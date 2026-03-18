@@ -7,7 +7,7 @@
 plot_top_transcripts(
   se,
   gene = NULL,
-  sample_type_col = "sample_type",
+  condition_col = "sample_type",
   res = NULL,
   top_n = 3,
   output_file = NULL,
@@ -21,7 +21,7 @@ Must have a "genes" column in rowData specifying which gene each transcript belo
 \item{gene}{Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
 top genes are selected by p-value.}
 
-\item{sample_type_col}{Character; column name in colData(se) to use for sample grouping 
+\item{condition_col}{Character; column name in colData(se) to use for sample grouping 
 (default: "sample_type").}
 
 \item{res}{Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
@@ -47,7 +47,7 @@ Plot top transcripts for a gene
 library(SummarizedExperiment)
 library(S4Vectors)
 # Create example SummarizedExperiment
-counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 6, ncol = 6)
 rownames(counts) <- paste0("tx", 1:6)
 rowData_df <- DataFrame(genes = rep(paste0("G", 1:3), each = 2))
 colData_df <- DataFrame(sample_type = rep(c("Normal", "Tumor"), 3))

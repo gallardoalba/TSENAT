@@ -1,6 +1,6 @@
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # PAIRED RANK TEST CONDITIONAL SELECTION (March 2026)
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # Conditional logic to choose between paired rank tests based on data characteristics:
 # - Standard Friedman test (default)
 # - Aligned Rank Transform Friedman (heteroscedastic): Better power with variance drift
@@ -8,7 +8,7 @@
 # 
 # Mathematical basis: Same characteristic detection as unpaired (Breusch-Pagan,
 # skewness) but adapted for paired design with blocking structure preservation.
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 
 #' Select appropriate paired rank test based on data characteristics
 #'
@@ -32,7 +32,7 @@
 #' **Heteroscedasticity detection (Breusch-Pagan adapted for blocks):**
 #' 1. Fit additive model: value ~ subject + treatment
 #' 2. Extract residuals
-#' 3. Test: residuals² ~ fitted values (parametric heteroscedasticity)
+#' 3. Test: residuals2 ~ fitted values (parametric heteroscedasticity)
 #' 4. Detect if variance differs by treatment (typical in entropy data)
 #'
 #' **Extreme skewness detection:**
@@ -72,9 +72,9 @@
   
   reasons <- character(0)
   
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
   # 1. HETEROSCEDASTICITY DETECTION (Breusch-Pagan adapted for blocking)
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
   
   # Fit additive model with blocking
   additive_mod <- try(lm(values ~ subjects + groups), silent = TRUE)
@@ -129,9 +129,9 @@
     }
   }
   
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
   # 2. EXTREME SKEWNESS DETECTION
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
   
   skewness_val <- .tsenat_compute_skewness(values)
   
@@ -143,20 +143,20 @@
     ))
   }
   
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
   # TEST SELECTION LOGIC FOR PAIRED DESIGNS
-  # ─────────────────────────────────────────────────────────────────────────────
+  # -----------------------------------------------------------------------------
   
   # Priority: Handle extreme skewness first (robust test needed)
   if (characteristics$highly_skewed) {
     test_selected <- "robust_friedman"
-    reasons <- c(reasons, "→ Using robust (median-based) Friedman test")
+    reasons <- c(reasons, "-> Using robust (median-based) Friedman test")
   } else if (characteristics$heteroscedastic) {
     test_selected <- "art_friedman"
-    reasons <- c(reasons, "→ Using Aligned Rank Transform + parametric test (paired)")
+    reasons <- c(reasons, "-> Using Aligned Rank Transform + parametric test (paired)")
   } else {
     test_selected <- "friedman"
-    reasons <- c(reasons, "→ Using standard Friedman test (no special characteristics)")
+    reasons <- c(reasons, "-> Using standard Friedman test (no special characteristics)")
   }
   
   if (verbose && length(reasons) > 0) {
@@ -250,7 +250,7 @@
   }
   
   # Compute chi-squared test for independence
-  # H₀: Probability of being above median is same for all treatments
+  # H0: Probability of being above median is same for all treatments
   contingency_table <- table(above_median_matrix)
   
   # For robustness: Use exact or simulated p-value (Fisher's exact not practical for large tables)

@@ -1,6 +1,6 @@
-context("Friedman Test Integration and Edge Cases")
+library(TSENAT)
 
-source("../../R/rank_based_methods.R", local = TRUE)
+context("Friedman Test Integration and Edge Cases")
 
 # ============================================================================
 # Test: Paired vs Unpaired Comparison on Same Dataset

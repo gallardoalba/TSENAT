@@ -15,7 +15,7 @@ entropy values at a single q value.}
 \item{title}{Optional base title. If NULL, auto-generated based on q value.}
 }
 \value{
-A `ggplot2` object showing a 1×2 grid with violin plot on the left and
+A `ggplot2` object showing a 1x2 grid with violin plot on the left and
   density plot on the right.
 }
 \description{
@@ -24,9 +24,10 @@ on the right, both showing Tsallis entropy distribution for the q value in the p
 SummarizedExperiment (which should contain a single q value).
 }
 \examples{
-data("readcounts", package = "TSENAT")
-rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-gs <- readcounts[1:20, 1]
+# Create synthetic count data
+set.seed(123)
+rc <- matrix(sample(1:100, 100, replace = TRUE), nrow = 20, ncol = 5)
+gs <- rep(paste0("gene_", 1:4), length.out = 20)
 # Calculate diversity for single q value
 se <- calculate_diversity(rc, gs, q = 1, norm = TRUE)
 plot_tsallis_violin_density_grid(se)

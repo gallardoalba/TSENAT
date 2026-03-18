@@ -27,7 +27,7 @@
 #'   Ignored if `stringency` is specified; when stringency is provided, `min_tpm` is
 #'   auto-estimated from data using quantile-based approach (Law et al. limma-voom methodology).
 #' @param tpm_assay_name Character; name of assay containing TPM data (default: NULL).
-#'   If NULL, function searches for TPM data in: metadata$salmon_tpm → metadata$tpm → assay named "tpm" → metadata lookup.
+#'   If NULL, function searches for TPM data in: metadata$salmon_tpm -> metadata$tpm -> assay named "tpm" -> metadata lookup.
 #'   Set explicitly (e.g., `tpm_assay_name = "tpm"`) to use a specific assay by name.
 #'   Example from preprocessing: tpm_assay_name = "abundance" for tximport objects.
 #' @param min_samples Integer minimum number of samples exceeding
@@ -228,7 +228,7 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
         min_tpm <- min_tpm_estimated
         
         if (verbose) {
-            message(sprintf("Stringency: '%s' (n_pairs=%d, n_samples=%d) → min_samples=%d, min_tx_per_gene=%d",
+            message(sprintf("Stringency: '%s' (n_pairs=%d, n_samples=%d) -> min_samples=%d, min_tx_per_gene=%d",
                             stringency, n_pairs, n_samples, min_samples, min_tx_per_gene))
             message(sprintf("Auto-estimated min_tpm from data: %.3f (%s of mean TPM distribution)", 
                            min_tpm, quant_label))

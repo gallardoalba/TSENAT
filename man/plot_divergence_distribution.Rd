@@ -27,10 +27,17 @@ The function visualizes the distribution of effect sizes using the median q-valu
 information-theoretic significance threshold of D=0.1.
 }
 \examples{
-\dontrun{
-  # Assuming lmm_results from effect_sizes_divergence()
-  plot_divergence_distribution(lmm_results$interaction_results, threshold = 0.1)
-}
+# Create example interaction results with divergence effect sizes
+set.seed(123)
+interaction_results <- data.frame(
+  gene = paste0("gene_", 1:20),
+  effect_size_D_q0_5 = runif(20, 0, 0.3),
+  effect_size_D_q1_0 = runif(20, 0, 0.2),
+  effect_size_D_q1_5 = runif(20, 0, 0.25)
+)
+
+# Plot divergence distribution
+plot_divergence_distribution(interaction_results, threshold = 0.1)
 
 }
 \references{

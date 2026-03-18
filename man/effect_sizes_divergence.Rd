@@ -59,14 +59,14 @@ A list with two elements:
 \description{
 Combines LMM interaction test p-values with pre-computed Tsallis divergence
 effect sizes and bootstrap confidence intervals across ALL q values. This is a 
-**data merger**, not a model fitter—all statistical computation happens upstream in:
-- `calculate_lm_interaction()` → LMM p-values
-- `calculate_divergence()` → Divergence estimates and CIs for multiple q
+**data merger**, not a model fitter--all statistical computation happens upstream in:
+- `calculate_lm_interaction()` -> LMM p-values
+- `calculate_divergence()` -> Divergence estimates and CIs for multiple q
 }
 \details{
 This function merges the results into a single data frame for downstream
 interpretation. When multiple q values are present, effect sizes are computed
-for each q to capture the full biological spectrum (rare→abundant isoforms).
+for each q to capture the full biological spectrum (rare->abundant isoforms).
 
 **Architecture:**
 ```

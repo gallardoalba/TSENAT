@@ -7,7 +7,7 @@
 #' **Usage in TSENAT Appendix L:**
 #' The comprehensive rank-based methods test (TSENAT_Appendix_L_RankBased_test.R)
 #' demonstrates all four key rank-based functions working together on real RNA-seq
-#' entropy data (3514 → 517 → 106 genes after filtering):
+#' entropy data (3514 -> 517 -> 106 genes after filtering):
 #'
 #' 2. **TEST L.2**: `compute_rank_correlation_multiq()` 
 #'    - Measures consistency of gene rankings across 6 q-values (0.1 to 2.5)
@@ -139,7 +139,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
       method = "Permutation test (row mean autocorrelation)",
       test_statistic = original_acf,
       p_value = p_exchangeability,
-      status = if (p_exchangeability > alpha) "✓ PASS" else "⚠ FAIL",
+      status = if (p_exchangeability > alpha) "[OK] PASS" else "? FAIL",
       details = sprintf("Autocorr=%.3f, p=%.3f (permutation test, 99 replicates)", 
                         original_acf, p_exchangeability)
     )
@@ -165,11 +165,11 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
     
     # Status: high and stable correlations indicate good monotonicity
     status <- if (mean_cor > 0.7 && sd_cor < 0.2) {
-      "✓ PASS"
+      "[OK] PASS"
     } else if (mean_cor > 0.4) {
-      "⚠ ACCEPTABLE"
+      "? ACCEPTABLE"
     } else {
-      "⚠ VARIABLE"
+      "? VARIABLE"
     }
     
     results$monotonicity <- list(
@@ -179,7 +179,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
       sd_correlation = sd_cor,
       min_correlation = min_cor,
       status = status,
-      details = sprintf("Mean r=%.3f (±%.3f), Min r=%.3f", mean_cor, sd_cor, min_cor)
+      details = sprintf("Mean r=%.3f (+/-%.3f), Min r=%.3f", mean_cor, sd_cor, min_cor)
     )
   }
   
@@ -220,11 +220,11 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
       icc_simplified <- between_col_var / (between_col_var + within_var)
       
       status <- if (!is.na(kendall_w) && kendall_w > 0.7) {
-        "✓ PASS"
+        "[OK] PASS"
       } else if (!is.na(kendall_w) && kendall_w > 0.4) {
-        "⚠ ACCEPTABLE"
+        "? ACCEPTABLE"
       } else {
-        "⚠ LOW CONSISTENCY"
+        "? LOW CONSISTENCY"
       }
       
       results$consistency <- list(
@@ -233,7 +233,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
         kendall_w = kendall_w,
         icc_simplified = icc_simplified,
         status = status,
-        details = sprintf("Kendall W=%.3f, ICC≈%.3f", 
+        details = sprintf("Kendall W=%.3f, ICC~=%.3f", 
                           if (is.na(kendall_w)) 0 else kendall_w,
                           if (is.na(icc_simplified)) 0 else icc_simplified)
       )
@@ -241,7 +241,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
       results$consistency <- list(
         description = "Rank consistency evaluation",
         method = "Insufficient data for consistency test",
-        status = "⚠ SKIP",
+        status = "? SKIP",
         details = "Requires at least 2 samples and 2 genes"
       )
     }
@@ -363,7 +363,7 @@ print.rank_assumptions <- function(x, ...) {
 #' Efron, B., & Tibshirani, R. J. (1993). An Introduction to the Bootstrap.
 #' Chapman and Hall/CRC. Reference: S006
 #'
-#' Meinshausen, N., Maathuis, M. H., & Bühlmann, P. (2011).
+#' Meinshausen, N., Maathuis, M. H., & Buhlmann, P. (2011).
 #' Asymptotic optimality of the Westfall-Young permutation procedure for multiple testing
 #' under dependence. The Annals of Statistics, 39(6), 3369-3391. Reference: S166
 #'
@@ -864,7 +864,7 @@ classify_q_dependency <- function(
 #'   - "conservative": Assumes high heterogeneity, adds 50% to estimate
 #'   - "interactive": Quick mode for screening, subtracts 20% for speed
 #' @param min_nperm Integer; minimum permutations to guarantee p-value validity
-#'   (default: 100, which gives p_min = 1/101 ≈ 0.0099)
+#'   (default: 100, which gives p_min = 1/101 ~= 0.0099)
 #' @param max_nperm Integer; maximum permutations as computational cutoff
 #'   (default: 10000 for practical efficiency)
 #'
@@ -874,10 +874,10 @@ classify_q_dependency <- function(
 #' **Estimation Formula:**
 #' 
 #' Base = 500 (standard for Westfall-Young from literature)
-#'   + n_genes × 10                    (scale with multiple hypothesis testing burden)
-#'   + n_q_values × 5                  (AR(1) reduces effective multiple tests; smaller than genes)
-#'   + (heterogeneity_factor × 100)    (high variance = need more power)
-#'   × (effective_tests / nominal_tests) (AR(1) correlation reduction factor)
+#'   + n_genes x 10                    (scale with multiple hypothesis testing burden)
+#'   + n_q_values x 5                  (AR(1) reduces effective multiple tests; smaller than genes)
+#'   + (heterogeneity_factor x 100)    (high variance = need more power)
+#'   x (effective_tests / nominal_tests) (AR(1) correlation reduction factor)
 #'
 #' **Heterogeneity Assessment:**
 #' Measured as CV (coefficient of variation) of entropy values:
@@ -889,12 +889,12 @@ classify_q_dependency <- function(
 #' Estimates from correlation matrix of q-values:
 #'   - Computes mean absolute correlation between adjacent q-values
 #'   - reduction_factor = 1 - (mean_correlation / 2)
-#'   - With ρ=0.70 typical: reduction_factor ≈ 0.65 (35% reduction)
+#'   - With rho=0.70 typical: reduction_factor ~= 0.65 (35% reduction)
 #'
 #' **Literature Basis:**
 #' - Phipson & Smyth (2010): p-value precision formula and minimum B
 #' - Westfall & Young (1993): Permutation method for multiple testing
-#' - Meinshausen, Maathuis, Bühlmann (2012): Optimality under dependence
+#' - Meinshausen, Maathuis, Buhlmann (2012): Optimality under dependence
 #' - TSENAT Database Papers S165-S175: AR(1) in multi-q entropy tests
 #'
 #' @examples
@@ -1014,12 +1014,12 @@ estimate_nperm <- function(
   # ========================================================================
   
   # Compute AR(1) reduction factor based on q-value correlation
-  # Literature: with ρ=0.70 typical AR(1), effective_tests ≈ 60% of nominal
+  # Literature: with rho=0.70 typical AR(1), effective_tests ~= 60% of nominal
   # Simple heuristic: estimate from data heterogeneity and q count
   # More q-values and higher CV = stronger correlation structure
   if (n_q_values > 1) {
     # Use simple heuristic: AR(1) reduction factor
-    # With 4-6 q-values and CV ~0.3: reduction ≈ 0.75 (25% reduction)
+    # With 4-6 q-values and CV ~0.3: reduction ~= 0.75 (25% reduction)
     # More q-values = stronger correlation structure
     q_reduction <- 1 - (n_q_values / 100)  # Scales with number of q-values
     cv_factor <- ifelse(cv > 0.5, 0.85, 0.90)  # Higher CV = stronger dependency
@@ -1082,14 +1082,14 @@ estimate_nperm <- function(
 #'   p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
 #'   of the same gene (Papers S168-S175). This parameter selects the multiple testing
 #'   correction method:
-#'   'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
+#'   'hochberg': Hochberg stepup procedure (FWER <= alpha under positive regression dependence). 
 #'   Closed-form, computationally efficient. Recommended for strong signal detection with 
 #'   family-wise error control.
-#'   'westfall-young': Westfall-Young permutation stepdown (FWER <= α via empirical null). 
+#'   'westfall-young': Westfall-Young permutation stepdown (FWER <= alpha via empirical null). 
 #'   Non-parametric, accounts for multi-q correlation via permutation distribution. More 
 #'   powerful than Hochberg but slower (requires wy_randomizations model refits). Newly 
-#'   added March 2026 to match GEE method. Cost: O(genes × wy_randomizations).
-#'   'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
+#'   added March 2026 to match GEE method. Cost: O(genes x wy_randomizations).
+#'   'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= alpha under arbitrary dependence). 
 #'   Valid under any correlation structure. More conservative than Hochberg but appropriate
 #'   for exploratory analysis. Reference: Papers S190, S193.
 #'   'none': No adjustment (returns raw p-values). Use for exploratory analysis only.
@@ -1128,16 +1128,35 @@ estimate_nperm <- function(
 #'   for repeated measures (within-subject pairing) across q-values. Requires subject/
 #'   pairing information via subject_col parameter. Default: FALSE (unpaired K-W + 
 #'   Hochberg/B-Y multi-test correction). (NEW - March 2026)
+#'
+#' @param subject_col Character. Name of colData column (SummarizedExperiment) or 
+#'   data frame column containing subject identifiers for pairing. Only required if 
+#'   paired=TRUE. Each subject ID should appear exactly once per q-value. 
+#'   Example: "patient_id", "subject", "pair_id". (NEW - March 2026)
+#'
+#' @param condition_col Character. Name of colData column (SummarizedExperiment) or
+#'   data frame column containing sample group/condition labels. Used as reference 
+#'   when processing SummarizedExperiment objects. Default: NULL.
+#'
+#' @param test Character; test selection method (default: "auto"). Options:
+#'   - "auto": Automatically select appropriate rank test based on data characteristics
+#'   - "kruskal-wallis": Kruskal-Wallis H test for unpaired designs
+#'   - "friedman": Friedman test for paired designs (requires subject_col)
+#'   - "art": Aligned Rank Transform test for designs with heteroscedasticity
+#'
+#' @param nthreads Integer; number of parallel threads for computation (default: 1).
+#'   Use nthreads > 1 for faster processing on multi-core systems. Particularly
+#'   beneficial when multicorr='westfall-young' with high wy_randomizations.
 #'   
 #'   **Paired design implementation (March 2026):**
 #'   When paired=TRUE, uses CONDITIONAL paired rank test selection (like unpaired mode):
-#'   - **Heteroscedasticity detected** → Aligned Rank Transform Friedman (ART-F)
+#'   - **Heteroscedasticity detected** -> Aligned Rank Transform Friedman (ART-F)
 #'     - More powerful than standard Friedman with variance heterogeneity
 #'     - Handles treatment-dependent variance drift
-#'   - **Extreme skewness detected** → Robust (Median-based) Friedman  
+#'   - **Extreme skewness detected** -> Robust (Median-based) Friedman  
 #'     - Resistant to extreme outliers and heavy-tailed distributions
 #'     - Based on median comparisons rather than rank sums
-#'   - **Default case** → Standard Friedman test
+#'   - **Default case** -> Standard Friedman test
 #'   
 #'   The conditional selection improves power compared to standard Friedman alone:
 #'   - ART-F: ~15-25% power gain with heteroscedasticity
@@ -1178,7 +1197,7 @@ estimate_nperm <- function(
 #'   
 #'   Mathematically optimal for Tsallis entropy because:
 #'   (a) Non-additivity: Permutation test doesn't assume additivity (Friedman does)
-#'   (b) Tsallis non-additivity: H_q ≠ H_q' + constant naturally preserved 
+#'   (b) Tsallis non-additivity: H_q != H_q' + constant naturally preserved 
 #'   (c) AR(1) correlation: Automatically handled by block-respecting permutation
 #'   (d) Bounded data: Rank transformation handles [0, log(m)] boundaries perfectly
 #'   (e) Distributional: Zero assumptions beyond exchangeability (Papers S165-S166)
@@ -1187,9 +1206,9 @@ estimate_nperm <- function(
 #'
 #' Adaptive test selection (unpaired mode only, March 2026):
 #'   With paired=FALSE, applies conditional rank test selection:
-#'   - Heteroscedasticity detected → Aligned Rank Transform + parametric test
-#'   - Extreme skewness detected → Mood's robust median test  
-#'   - Standard case → Kruskal-Wallis (rank-based)
+#'   - Heteroscedasticity detected -> Aligned Rank Transform + parametric test
+#'   - Extreme skewness detected -> Mood's robust median test  
+#'   - Standard case -> Kruskal-Wallis (rank-based)
 #'   
 #'   **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity metrics,
 #'   since these are mathematically bounded by definition [0, log(m)] and boundary
@@ -1198,8 +1217,8 @@ estimate_nperm <- function(
 #'
 #' Classification:
 #'   - Robust: p >= 0.05 (no significant q-effect)
-#'   - Moderately dependent: p < 0.05 AND η^2 <= 0.10
-#'   - Strongly dependent: p < 0.05 AND η^2 > 0.10
+#'   - Moderately dependent: p < 0.05 AND ?^2 <= 0.10
+#'   - Strongly dependent: p < 0.05 AND ?^2 > 0.10
 #'
 #' @section Sample Metadata Parameters (Unified Naming Convention):
 #' TSENAT functions use consistent parameter names for sample grouping and subject identification:
@@ -1221,37 +1240,43 @@ estimate_nperm <- function(
 #'
 #' @export
 #' @examples
-#' \dontrun{
-#' # Method 1: From SummarizedExperiment - UNPAIRED (recommended)
-#' library(TSENAT)
-#' data(readcounts)
-#' se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
-#' ts_se <- calculate_diversity(se, q = seq(0.1, 2, by = 0.05))
+#' # Create example data with multiple q values
+#' set.seed(123)
+#' counts <- matrix(
+#'   sample(1:100, 120, replace = TRUE),
+#'   nrow = 20, ncol = 6
+#' )
+#' rownames(counts) <- paste0("tx_", 1:20)
+#' colnames(counts) <- paste0("sample_", 1:6)
+#' genes <- rep(paste0("gene_", 1:4), each = 5)
+#' 
+#' # Calculate diversity across multiple q values
+#' ts_se <- calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by = 0.25))
 #' 
 #' # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-#' results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg")
+#' results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg", test = "kruskal-wallis")
 #' head(results)
 #' 
-#' # Paired analysis (NEW - March 2026): Westfall-Young with blocked permutations
-#' # Requires subject_col in colData (e.g., "patient_id" or "sample_id")
+#' # Paired analysis with metadata
+#' # After diversity calculation with 6 samples and 5 q-values: 30 columns total
+#' # Create colData with patient_id for each sample-q combination
+#' coldata <- S4Vectors::DataFrame(
+#'   patient_id = rep(rep(1:3, each = 2), each = 5),  # 3 patients, 2 samples each, 5 q-levels
+#'   q = rep(seq(0.5, 1.5, by = 0.25), times = 6)     # q values repeated for all samples
+#' )
+#' rownames(coldata) <- colnames(ts_se)
+#' SummarizedExperiment::colData(ts_se) <- coldata
+#' 
+#' # Paired analysis with blocked permutations
 #' results_paired <- detect_q_gene_interactions(
 #'   ts_se, 
 #'   paired = TRUE,
-#'   subject_col = "patient_id",  # New parameter for paired designs
-#'   multicorr = "westfall-young",
-#'   wy_randomizations = 1000
+#'   subject_col = "patient_id",
+#'   multicorr = "hochberg",
+#'   wy_randomizations = 100,
+#'   verbose = FALSE
 #' )
 #' head(results_paired)
-#' 
-#' # Method 2: From long-format data frame (for custom data)
-#' model_data <- data.frame(
-#'   entropy = rnorm(600),
-#'   q = rep(c(0.5, 1.0, 1.5, 2.0), 150),
-#'   gene = rep(rep(paste0("Gene", 1:25), each = 4), 6)
-#' )
-#' results <- detect_q_gene_interactions(model_data)
-#' head(results)
-#' }
 detect_q_gene_interactions <- function(
     data,
     entropy_col = "diversity",
@@ -1524,7 +1549,7 @@ detect_q_gene_interactions <- function(
     if (paired) {
       # Paired design: permute q-value assignments WITHIN each subject
       # This preserves the pairing structure while testing for q-effects under null
-      # Under H₀ (no q-effect): within-subject q assignments are exchangeable
+      # Under H0 (no q-effect): within-subject q assignments are exchangeable
       permute_fn_paired <- function() {
         data_perm <- data_orig
         subject_levels <- unique(data_orig[[subject_col]])
@@ -1541,7 +1566,7 @@ detect_q_gene_interactions <- function(
       permute_function <- permute_fn_paired
     } else {
       # Unpaired design: permute q-value assignments globally
-      # Under H₀ (no q-effect): q assignments are exchangeable across all observations
+      # Under H0 (no q-effect): q assignments are exchangeable across all observations
       # This destroys the q-entropy relationship while preserving other structure
       permute_fn_unpaired <- function() {
         data_perm <- data_orig
@@ -1650,9 +1675,9 @@ detect_q_gene_interactions <- function(
   return(interaction_results)
 }
 
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # RANK-BASED TEST IMPROVEMENTS (March 2026)
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # Conditional test selection for Kruskal-Wallis and related rank tests
 # Equivalent improvements to LM interaction tests (heteroscedasticity, bounded support)
 #
@@ -1662,11 +1687,11 @@ detect_q_gene_interactions <- function(
 # 3. Alternative test methods with better properties for detected conditions
 #
 # IMPROVEMENTS:
-# • Heteroscedasticity detection → Aligned Rank Transform (ART) instead of K-W
-# • Boundary clustering detection → Quantile-based comparison
-# • Extreme skewness detection → Robust median test
-# • Default → Standard Kruskal-Wallis (already robust)
-# ════════════════════════════════════════════════════════════════════════════════
+# * Heteroscedasticity detection -> Aligned Rank Transform (ART) instead of K-W
+# * Boundary clustering detection -> Quantile-based comparison
+# * Extreme skewness detection -> Robust median test
+# * Default -> Standard Kruskal-Wallis (already robust)
+# ================================================================================
 
 # Internal helper: Compute skewness for data quality assessment
 .tsenat_compute_skewness <- function(x, na.rm = TRUE) {
@@ -1722,9 +1747,9 @@ detect_q_gene_interactions <- function(
     
     reasons <- character(0)
     
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     # 1. HETEROSCEDASTICITY DETECTION (Breusch-Pagan test)
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     
     # Fit linear model to get residuals
     lin_mod <- try(lm(values ~ groups), silent = TRUE)
@@ -1784,12 +1809,12 @@ detect_q_gene_interactions <- function(
         }
     }
     
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     # 2. BOUNDARY CLUSTERING DETECTION (Skip for inherently bounded metrics)
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     
     # IMPORTANT (March 2026): Entropy and diversity metrics are MATHEMATICALLY BOUNDED
-    # by definition (entropy ∈ [0, log(m)]), not by measurement artifacts.
+    # by definition (entropy in [0, log(m)]), not by measurement artifacts.
     # Boundary clustering is therefore EXPECTED and NOT a statistical problem.
     # Skip detection for entropy/diversity metrics to avoid false positives.
     #
@@ -1830,9 +1855,9 @@ detect_q_gene_interactions <- function(
         }
     }
     
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     # 3. EXTREME SKEWNESS DETECTION
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     
     skewness_val <- .tsenat_compute_skewness(values)
     
@@ -1847,23 +1872,23 @@ detect_q_gene_interactions <- function(
         ))
     }
     
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     # TEST SELECTION LOGIC
-    # ─────────────────────────────────────────────────────────────────────────────
+    # -----------------------------------------------------------------------------
     
     test_selected <- "kruskal.test"  # Default
     
     if (characteristics$highly_skewed) {
         test_selected <- "robust_median_test"
-        reasons <- c(reasons, "→ Using robust median test")
+        reasons <- c(reasons, "-> Using robust median test")
     } else if (characteristics$boundary_clustered) {
         test_selected <- "quantile_test"
-        reasons <- c(reasons, "→ Using quantile-based test")
+        reasons <- c(reasons, "-> Using quantile-based test")
     } else if (characteristics$heteroscedastic) {
         test_selected <- "art_kw"
-        reasons <- c(reasons, "→ Using Aligned Rank Transform + parametric test")
+        reasons <- c(reasons, "-> Using Aligned Rank Transform + parametric test")
     } else {
-        reasons <- c(reasons, "→ Using standard Kruskal-Wallis (no special characteristics)")
+        reasons <- c(reasons, "-> Using standard Kruskal-Wallis (no special characteristics)")
     }
     
     if (verbose && length(reasons) > 0) {

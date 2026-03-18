@@ -10,7 +10,8 @@ detect_q_gene_interactions(
   q_col = "q",
   gene_col = "gene",
   paired = FALSE,
-  subject_col = "paired_samples",
+  subject_col = NULL,
+  condition_col = NULL,
   test = c("auto", "kruskal-wallis", "friedman", "art"),
   multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
   wy_randomizations = 500,
@@ -40,48 +41,36 @@ Only used if data is a data frame. Ignored for SummarizedExperiment.}
 \item{paired}{Logical. If TRUE, applies Westfall-Young permutation test that accounts 
 for repeated measures (within-subject pairing) across q-values. Requires subject/
 pairing information via subject_col parameter. Default: FALSE (unpaired K-W + 
-Hochberg/B-Y multi-test correction). (NEW - March 2026)
+Hochberg/B-Y multi-test correction). (NEW - March 2026)}
 
-**Paired design implementation (March 2026):**
-When paired=TRUE, uses CONDITIONAL paired rank test selection (like unpaired mode):
-- **Heteroscedasticity detected** → Aligned Rank Transform Friedman (ART-F)
-  - More powerful than standard Friedman with variance heterogeneity
-  - Handles treatment-dependent variance drift
-- **Extreme skewness detected** → Robust (Median-based) Friedman  
-  - Resistant to extreme outliers and heavy-tailed distributions
-  - Based on median comparisons rather than rank sums
-- **Default case** → Standard Friedman test
-
-The conditional selection improves power compared to standard Friedman alone:
-- ART-F: ~15-25% power gain with heteroscedasticity
-- Robust Friedman: ~25-40% power gain with extreme skewness
-- No loss when characteristics not detected (falls back to Friedman)
-
-Theory: Both ART-F and Robust Friedman preserve blocking structure while
-addressing specific data violations better than standard Friedman (Papers S181-S187).
-Combined with Westfall-Young permutation and AR(1) correction for q-values:
-- Power ~85-90% maintained across 39 q-values
-- Exact FWER control (not asymptotic)
-- No distributional assumptions
-
-(Papers S165-S166, S051, S181-S187; NEW - March 2026)@param subject_col Character. Name of colData column (SummarizedExperiment) or 
+\item{subject_col}{Character. Name of colData column (SummarizedExperiment) or 
 data frame column containing subject identifiers for pairing. Only required if 
 paired=TRUE. Each subject ID should appear exactly once per q-value. 
 Example: "patient_id", "subject", "pair_id". (NEW - March 2026)}
+
+\item{condition_col}{Character. Name of colData column (SummarizedExperiment) or
+data frame column containing sample group/condition labels. Used as reference 
+when processing SummarizedExperiment objects. Default: NULL.}
+
+\item{test}{Character; test selection method (default: "auto"). Options:
+- "auto": Automatically select appropriate rank test based on data characteristics
+- "kruskal-wallis": Kruskal-Wallis H test for unpaired designs
+- "friedman": Friedman test for paired designs (requires subject_col)
+- "art": Aligned Rank Transform test for designs with heteroscedasticity}
 
 \item{multicorr}{Method for adjusting p-values across multiple q-values to account for 
 correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
 p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
 of the same gene (Papers S168-S175). This parameter selects the multiple testing
 correction method:
-'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
+'hochberg': Hochberg stepup procedure (FWER <= alpha under positive regression dependence). 
 Closed-form, computationally efficient. Recommended for strong signal detection with 
 family-wise error control.
-'westfall-young': Westfall-Young permutation stepdown (FWER <= α via empirical null). 
+'westfall-young': Westfall-Young permutation stepdown (FWER <= alpha via empirical null). 
 Non-parametric, accounts for multi-q correlation via permutation distribution. More 
 powerful than Hochberg but slower (requires wy_randomizations model refits). Newly 
-added March 2026 to match GEE method. Cost: O(genes × wy_randomizations).
-'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
+added March 2026 to match GEE method. Cost: O(genes x wy_randomizations).
+'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= alpha under arbitrary dependence). 
 Valid under any correlation structure. More conservative than Hochberg but appropriate
 for exploratory analysis. Reference: Papers S190, S193.
 'none': No adjustment (returns raw p-values). Use for exploratory analysis only.}
@@ -101,6 +90,37 @@ Higher values (500-10000) increase p-value precision but scale computational cos
 - "conservative": Assumes high heterogeneity, adds 50% margin
 - "interactive": Quick screening mode, reduces estimate by 20%
 See estimate_nperm() for details. (NEW - March 2026)}
+
+\item{nthreads}{Integer; number of parallel threads for computation (default: 1).
+Use nthreads > 1 for faster processing on multi-core systems. Particularly
+beneficial when multicorr='westfall-young' with high wy_randomizations.
+
+**Paired design implementation (March 2026):**
+When paired=TRUE, uses CONDITIONAL paired rank test selection (like unpaired mode):
+- **Heteroscedasticity detected** -> Aligned Rank Transform Friedman (ART-F)
+  - More powerful than standard Friedman with variance heterogeneity
+  - Handles treatment-dependent variance drift
+- **Extreme skewness detected** -> Robust (Median-based) Friedman  
+  - Resistant to extreme outliers and heavy-tailed distributions
+  - Based on median comparisons rather than rank sums
+- **Default case** -> Standard Friedman test
+
+The conditional selection improves power compared to standard Friedman alone:
+- ART-F: ~15-25% power gain with heteroscedasticity
+- Robust Friedman: ~25-40% power gain with extreme skewness
+- No loss when characteristics not detected (falls back to Friedman)
+
+Theory: Both ART-F and Robust Friedman preserve blocking structure while
+addressing specific data violations better than standard Friedman (Papers S181-S187).
+Combined with Westfall-Young permutation and AR(1) correction for q-values:
+- Power ~85-90% maintained across 39 q-values
+- Exact FWER control (not asymptotic)
+- No distributional assumptions
+
+(Papers S165-S166, S051, S181-S187; NEW - March 2026)@param subject_col Character. Name of colData column (SummarizedExperiment) or 
+data frame column containing subject identifiers for pairing. Only required if 
+paired=TRUE. Each subject ID should appear exactly once per q-value. 
+Example: "patient_id", "subject", "pair_id". (NEW - March 2026)}
 
 \item{verbose}{Logical; if TRUE, print progress messages including Westfall-Young 
 permutation updates (default: FALSE)}
@@ -147,7 +167,7 @@ non-normally distributed entropy data.
   
   Mathematically optimal for Tsallis entropy because:
   (a) Non-additivity: Permutation test doesn't assume additivity (Friedman does)
-  (b) Tsallis non-additivity: H_q ≠ H_q' + constant naturally preserved 
+  (b) Tsallis non-additivity: H_q != H_q' + constant naturally preserved 
   (c) AR(1) correlation: Automatically handled by block-respecting permutation
   (d) Bounded data: Rank transformation handles [0, log(m)] boundaries perfectly
   (e) Distributional: Zero assumptions beyond exchangeability (Papers S165-S166)
@@ -156,9 +176,9 @@ non-normally distributed entropy data.
 
 Adaptive test selection (unpaired mode only, March 2026):
   With paired=FALSE, applies conditional rank test selection:
-  - Heteroscedasticity detected → Aligned Rank Transform + parametric test
-  - Extreme skewness detected → Mood's robust median test  
-  - Standard case → Kruskal-Wallis (rank-based)
+  - Heteroscedasticity detected -> Aligned Rank Transform + parametric test
+  - Extreme skewness detected -> Mood's robust median test  
+  - Standard case -> Kruskal-Wallis (rank-based)
   
   **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity metrics,
   since these are mathematically bounded by definition [0, log(m)] and boundary
@@ -167,41 +187,63 @@ Adaptive test selection (unpaired mode only, March 2026):
 
 Classification:
   - Robust: p >= 0.05 (no significant q-effect)
-  - Moderately dependent: p < 0.05 AND η^2 <= 0.10
-  - Strongly dependent: p < 0.05 AND η^2 > 0.10
+  - Moderately dependent: p < 0.05 AND ?^2 <= 0.10
+  - Strongly dependent: p < 0.05 AND ?^2 > 0.10
 }
+\section{Sample Metadata Parameters (Unified Naming Convention)}{
+
+TSENAT functions use consistent parameter names for sample grouping and subject identification:
+\itemize{
+  \item{\code{condition_col}: Character string specifying the colData column 
+        containing sample group/condition labels. Currently used as reference when processing
+        SummarizedExperiment objects. Default: NULL.}
+  \item{\code{subject_col}: For paired/blocked designs, character string specifying 
+        the colData column with subject/individual/patient identifiers. 
+        Required when \code{paired = TRUE}.}
+}
+All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+across the TSENAT package.
+}
+
 \examples{
-\dontrun{
-# Method 1: From SummarizedExperiment - UNPAIRED (recommended)
-library(TSENAT)
-data(readcounts)
-se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
-ts_se <- calculate_diversity(se, q = seq(0.1, 2, by = 0.05))
+# Create example data with multiple q values
+set.seed(123)
+counts <- matrix(
+  sample(1:100, 120, replace = TRUE),
+  nrow = 20, ncol = 6
+)
+rownames(counts) <- paste0("tx_", 1:20)
+colnames(counts) <- paste0("sample_", 1:6)
+genes <- rep(paste0("gene_", 1:4), each = 5)
+
+# Calculate diversity across multiple q values
+ts_se <- calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by = 0.25))
 
 # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg")
+results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg", test = "kruskal-wallis")
 head(results)
 
-# Paired analysis (NEW - March 2026): Westfall-Young with blocked permutations
-# Requires subject_col in colData (e.g., "patient_id" or "sample_id")
+# Paired analysis with metadata
+# After diversity calculation with 6 samples and 5 q-values: 30 columns total
+# Create colData with patient_id for each sample-q combination
+coldata <- S4Vectors::DataFrame(
+  patient_id = rep(rep(1:3, each = 2), each = 5),  # 3 patients, 2 samples each, 5 q-levels
+  q = rep(seq(0.5, 1.5, by = 0.25), times = 6)     # q values repeated for all samples
+)
+rownames(coldata) <- colnames(ts_se)
+SummarizedExperiment::colData(ts_se) <- coldata
+
+# Paired analysis with blocked permutations
 results_paired <- detect_q_gene_interactions(
   ts_se, 
   paired = TRUE,
-  subject_col = "patient_id",  # New parameter for paired designs
-  multicorr = "westfall-young",
-  wy_randomizations = 1000
+  subject_col = "patient_id",
+  multicorr = "hochberg",
+  wy_randomizations = 100,
+  verbose = FALSE
 )
 head(results_paired)
-
-# Method 2: From long-format data frame (for custom data)
-model_data <- data.frame(
-  entropy = rnorm(600),
-  q = rep(c(0.5, 1.0, 1.5, 2.0), 150),
-  gene = rep(rep(paste0("Gene", 1:25), each = 4), 6)
-)
-results <- detect_q_gene_interactions(model_data)
-head(results)
-}
 }
 \references{
 Papers S041, S042: Interaction testing in genomic designs

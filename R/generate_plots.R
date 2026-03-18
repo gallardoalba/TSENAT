@@ -352,7 +352,7 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #'   Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
 #'   Requires 2+ q values and exactly 2 groups (default: FALSE).
 #' @param gene Character vector (optional); if provided, plot q-curves for specified gene(s).
-#'   Overrides default aggregate behavior. When provided, uses median ± SD for each gene.
+#'   Overrides default aggregate behavior. When provided, uses median +/- SD for each gene.
 #' @param lm_res Data frame (optional); gene interaction test results with `gene` column and
 #'   p-value column. Accepts either:
 #'   - Results from `calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
@@ -369,22 +369,22 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' - With bootstrap=TRUE: A ggplot object with bootstrap confidence interval bands.
 #'
 #' **Gene-specific mode (gene or lm_res provided)**:
-#' - Single gene: A ggplot object showing median entropy ± SD for that gene.
-#' - Multiple genes: A grid plot object arranged in 2 rows × 2 columns with a shared legend at the bottom.
+#' - Single gene: A ggplot object showing median entropy +/- SD for that gene.
+#' - Multiple genes: A grid plot object arranged in 2 rows x 2 columns with a shared legend at the bottom.
 #'   The legend appears once beneath the grid, avoiding repetition across subplots.
 #'
 #' @details
 #' **Aggregate mode (default, gene=NULL, lm_res=NULL)**:
-#' - Plots median Tsallis entropy ± IQR across all genes for each group
+#' - Plots median Tsallis entropy +/- IQR across all genes for each group
 #' - Works with any SummarizedExperiment from calculate_diversity()
 #' - Supports single or multiple q values and any number of groups
 #' - No CI data required for basic plots; bootstrap CIs optional
 #'
 #' **Gene-specific mode (gene or lm_res provided)**:
 #' - Plots q-curve separately for each selected gene
-#' - Shows median entropy ± SD (variance) for each gene across q-values and groups
+#' - Shows median entropy +/- SD (variance) for each gene across q-values and groups
 #' - When `lm_res` provided: automatically ranks genes and selects top `n_top` by p-value
-#' - Single gene: returns a ggplot object; multiple genes: returns a grid plot (2 rows × 2 columns) with shared legend
+#' - Single gene: returns a ggplot object; multiple genes: returns a grid plot (2 rows x 2 columns) with shared legend
 #' - For multiple genes: legend appears once at the bottom of the grid to avoid repetition and save space
 #' - Useful for highlighting specific genes of interest or significant discoveries
 #' - Bootstrap mode not supported in gene-specific mode
@@ -403,42 +403,20 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @importFrom tidyr pivot_longer
 #'
 #' @examples
-#' \dontrun{
-#'   data("readcounts", package = "TSENAT")
-#'   rc <- as.matrix(readcounts[1:50, -1, drop = FALSE])
-#'   gs <- readcounts[1:50, 1]
-#'   
-#'   # Aggregate mode: median ± IQR across all genes
-#'   se_basic <- calculate_diversity(rc, gs, q = c(0.1, 0.5, 1.0, 1.5, 2.0))
-#'   p_basic <- plot_tsallis_q_curve(se_basic)
-#'   
-#'   # Gene-specific mode: q-curve for specific genes
-#'   p_gene <- plot_tsallis_q_curve(se_basic, gene = c("gene1", "gene2"))
-#'   
-#'   # Gene-specific mode with lm_res from calculate_lm_interaction
-#'   lm_results <- data.frame(
-#'     gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
-#'     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2)
-#'   )
-#'   p_top <- plot_tsallis_q_curve(se_basic, lm_res = lm_results, n_top = 3)
-#'   
-#'   # Gene-specific mode with results from detect_q_gene_interactions (Friedman/Wilcoxon)
-#'   wy_results <- data.frame(
-#'     gene = c("gene1", "gene2", "gene3", "gene4", "gene5"),
-#'     adj_p_value = c(0.001, 0.01, 0.05, 0.1, 0.2)
-#'   )
-#'   p_wy <- plot_tsallis_q_curve(se_basic, lm_res = wy_results, n_top = 2)
-#'   
-#'   # CI mode with bootstrap CIs (aggregate)
-#'   se_boot <- calculate_diversity(rc, gs, q = seq(0.1, 2, by = 0.2), bootstrap = TRUE)
-#'   p_boot <- plot_tsallis_q_curve(se_boot, bootstrap = TRUE)
-#' }
+#' # Create synthetic diversity data
+#' set.seed(123)
+#' rc <- matrix(sample(1:100, 250, replace = TRUE), nrow = 50, ncol = 5)
+#' gs <- rep(paste0("gene_", 1:10), length.out = 50)
+#' 
+#' # Aggregate mode: median +/- IQR across all genes
+#' se_basic <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5))
+#' p_basic <- plot_tsallis_q_curve(se_basic)
 #'
 #' @export
 plot_tsallis_q_curve <- function(
   se,
   assay_name = "diversity",
-  sample_type_col = "sample_type",
+  condition_col = "sample_type",
   bootstrap = FALSE,
   gene = NULL,
   lm_res = NULL,
@@ -459,7 +437,7 @@ plot_tsallis_q_curve <- function(
   # GENE-SPECIFIC MODE (when gene or lm_res is provided)
   # =========================================================================
   if (!is.null(gene) || !is.null(lm_res)) {
-    long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = sample_type_col)
+    long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
     if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
     
     # Resolve genes to plot
@@ -499,7 +477,7 @@ plot_tsallis_q_curve <- function(
       if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
       long_g$qnum <- as.numeric(as.character(long_g$q))
       
-      # Compute median ± SD (variance)
+      # Compute median +/- SD (variance)
       stats_df <- dplyr::summarise(dplyr::group_by(long_g, group, qnum),
         central = median(tsallis, na.rm = TRUE),
         spread = sqrt(stats::var(tsallis, na.rm = TRUE)),
@@ -510,7 +488,7 @@ plot_tsallis_q_curve <- function(
       p <- ggplot2::ggplot() +
         ggplot2::theme_minimal(base_size = 14)
       
-      # Median ± SD ribbon
+      # Median +/- SD ribbon
       p <- p +
         ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = central - spread, ymax = central + spread, fill = group), alpha = 0.2, inherit.aes = FALSE) +
         ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central, color = group), linewidth = 1.3) +
@@ -559,7 +537,7 @@ plot_tsallis_q_curve <- function(
     title_plot <- cowplot::ggdraw() + 
       cowplot::draw_label("Tsallis Entropy q-Curve Profile", 
                          fontface = "bold", size = 18, x = 0.5, y = 0.7) +
-      cowplot::draw_label("Top genes ranked by statistical significance (Median ± SD)", 
+      cowplot::draw_label("Top genes ranked by statistical significance (Median +/- SD)", 
                          fontface = "italic", size = 14, x = 0.5, y = 0.35, color = "gray40")
     
     # Add legend at bottom
@@ -602,7 +580,7 @@ plot_tsallis_q_curve <- function(
   # BASIC MODE (no bootstrap or bootstrap CIs not available)
   # =========================================================================
   if (!bootstrap) {
-    long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = sample_type_col)
+    long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
     y_label <- expression("Tsallis entropy (" * S[q] * ")")
     if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
     
@@ -630,7 +608,7 @@ plot_tsallis_q_curve <- function(
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::labs(
         title = "Group Comparison: Tsallis Entropy Across Diversity Scales (q-spectrum)",
-        subtitle = "Median ± IQR across samples",
+        subtitle = "Median +/- IQR across samples",
         x = "q value (diversity scale parameter)",
         y = y_label,
         color = "Group",
@@ -654,7 +632,7 @@ plot_tsallis_q_curve <- function(
   # =========================================================================
   # BOOTSTRAP MODE (with CI data)
   # =========================================================================
-  long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = sample_type_col)
+  long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
   if (nrow(long) == 0) {
     stop("No tsallis values found in SummarizedExperiment")
   }
@@ -668,8 +646,8 @@ plot_tsallis_q_curve <- function(
   }
   
   # Extract group information
-  if (!(sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
-    stop("'", sample_type_col, "' not found in colData")
+  if (!(condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
+    stop("'", condition_col, "' not found in colData")
   }
   
   groups <- unique(sort(long$group))
@@ -940,14 +918,15 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @param title Optional base title. If NULL, auto-generated based on q value.
 #'
-#' @return A `ggplot2` object showing a 1×2 grid with violin plot on the left and
+#' @return A `ggplot2` object showing a 1x2 grid with violin plot on the left and
 #'   density plot on the right.
 #'
 #' @export
 #' @examples
-#' data("readcounts", package = "TSENAT")
-#' rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-#' gs <- readcounts[1:20, 1]
+#' # Create synthetic count data
+#' set.seed(123)
+#' rc <- matrix(sample(1:100, 100, replace = TRUE), nrow = 20, ncol = 5)
+#' gs <- rep(paste0("gene_", 1:4), length.out = 20)
 #' # Calculate diversity for single q value
 #' se <- calculate_diversity(rc, gs, q = 1, norm = TRUE)
 #' plot_tsallis_violin_density_grid(se)
@@ -1107,7 +1086,7 @@ plot_volcano <- function(
 #' @param title_ma Title for MA plot (default: "Tsallis-based MA plot").
 #' @param ... Additional arguments passed to plotting functions.
 #'
-#' @return A `ggplot2` object showing a 1×2 grid with volcano plot on the left and MA plot on the right.
+#' @return A `ggplot2` object showing a 1x2 grid with volcano plot on the left and MA plot on the right.
 #'
 #' @examples
 #' # Simulate differential analysis results
@@ -1389,7 +1368,7 @@ plot_volcano_ma_grid <- function(
 #' library(SummarizedExperiment)
 #' library(S4Vectors)
 #' # Create example SummarizedExperiment
-#' counts <- matrix(sample(1:100, 24, replace = TRUE), nrow = 6)
+#' counts <- matrix(sample(1:100, 36, replace = TRUE), nrow = 6, ncol = 6)
 #' rownames(counts) <- paste0("tx", 1:6)
 #' rowData_df <- DataFrame(genes = rep(paste0("G", 1:3), each = 2))
 #' colData_df <- DataFrame(sample_type = rep(c("Normal", "Tumor"), 3))
@@ -1401,7 +1380,7 @@ plot_volcano_ma_grid <- function(
 plot_top_transcripts <- function(
   se,
   gene = NULL,
-  sample_type_col = "sample_type",
+  condition_col = "sample_type",
   res = NULL,
   top_n = 3,
   output_file = NULL,
@@ -1438,10 +1417,10 @@ plot_top_transcripts <- function(
     )
     
     # Extract sample groups
-    if (!sample_type_col %in% colnames(cd)) {
-        stop("Column '", sample_type_col, "' not found in colData(se)", call. = FALSE)
+    if (!condition_col %in% colnames(cd)) {
+        stop("Column '", condition_col, "' not found in colData(se)", call. = FALSE)
     }
-    samples <- as.character(cd[[sample_type_col]])
+    samples <- as.character(cd[[condition_col]])
     
     # Handle gene selection from results if needed
     if (is.null(gene) && !is.null(res)) {
@@ -1511,7 +1490,7 @@ plot_top_transcripts <- function(
         readcounts = NULL, 
         samples = samples, 
         coldata = NULL, 
-        condition_col = sample_type_col, 
+        condition_col = condition_col, 
         tx2gene = tx2gene, 
         res = NULL,
         top_n = top_n, 
@@ -1603,30 +1582,39 @@ plot_top_transcripts <- function(
 #' q-curve shape differences that drive PC-level significance.
 #'
 #' @examples
-#' data("readcounts", package = "TSENAT")
-#' rc <- as.matrix(readcounts[1:100, -1, drop = FALSE])
-#' gs <- readcounts[1:100, 1]
-#' # Create q-sequence
-#' se <- calculate_diversity(rc, gs, q = seq(0.5, 2, by = 0.25), norm = TRUE)
-#' # Add sample type to colData
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'     sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
-#'     row.names = colnames(se)
+#' # Create example data with multiple q values
+#' set.seed(123)
+#' counts <- matrix(
+#'   sample(1:100, 60, replace = TRUE),
+#'   nrow = 15, ncol = 4
 #' )
-#' # Run FPCA to identify significant genes
-#' lm_result <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca", 
+#' rownames(counts) <- paste0("tx_", 1:15)
+#' colnames(counts) <- paste0("sample_", 1:4)
+#' genes <- rep(paste0("gene_", 1:5), each = 3)
+#' 
+#' # Calculate diversity across multiple q values
+#' se <- calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by = 0.5), norm = TRUE)
+#' 
+#' # Add sample metadata
+#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   condition = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
+#'   row.names = colnames(se)
+#' )
+#' 
+#' # Run linear model analysis with model_data  
+#' lm_result <- calculate_lm_interaction(se, condition_col = "condition", method = "gam",
 #'                                       return_model_data = TRUE)
-#' # Plot GAM curves for top 3 genes with model metadata (returned as combined grid)
+#' 
+#' # Plot GAM curves for top genes
 #' if (nrow(lm_result$results) > 0) {
-#'   grid_plot <- plot_lm_interaction_gam(se, lm_result$results, sample_type_col = "sample_type", 
-#'                           n_top = 3, model_data = lm_result$model_data)
-#'   # grid_plot is a combined ggplot object ready to save
+#'   grid_plot <- plot_lm_interaction_gam(se, lm_result$results, condition_col = "condition", 
+#'                                         n_top = 2, model_data = lm_result$model_data)
 #' }
 #'
 #' @export
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
-plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type", genes = NULL, n_top = 6,
+plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
     sig_alpha = 0.05, assay_name = "diversity", model_data = NULL) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr", "cowplot"))
@@ -1719,12 +1707,12 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     mat <- SummarizedExperiment::assay(se, assay_name)
     cdata <- SummarizedExperiment::colData(se)
 
-    if (!sample_type_col %in% colnames(cdata)) {
-        stop(sprintf("Column '%s' not found in colData(se)", sample_type_col), call. = FALSE)
+    if (!condition_col %in% colnames(cdata)) {
+        stop(sprintf("Column '%s' not found in colData(se)", condition_col), call. = FALSE)
     }
 
     # Build sample-to-group mapping
-    # colData is duplicated for each q-value (one row per sample × q combination)
+    # colData is duplicated for each q-value (one row per sample x q combination)
     # We need a unique mapping of sample name to group value
     coldata_rownames <- rownames(cdata)
     coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
@@ -1736,7 +1724,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     
     for (samp in unique_samples) {
         idx <- which(coldata_sample_names == samp)[1]  # Get first occurrence
-        sample_to_group[samp] <- as.character(cdata[[sample_type_col]][idx])
+        sample_to_group[samp] <- as.character(cdata[[condition_col]][idx])
     }
 
     # Determine which genes to plot
@@ -1791,7 +1779,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
             }
         }
         
-        # Extract data for this gene across all columns (samples × q-values)
+        # Extract data for this gene across all columns (samples x q-values)
         # CRITICAL: Extract gene_vals fresh for each gene!
         gene_vals <- mat[g, ]
         col_names_full <- colnames(mat)
@@ -1917,7 +1905,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
             ) +
             ggplot2::scale_color_manual(
                 values = color_mapping, 
-                name = sample_type_col,
+                name = condition_col,
                 breaks = group_levels
             ) +
             ggplot2::scale_linetype_manual(values = c("GAM fit" = 1), name = "") +
@@ -2440,10 +2428,17 @@ if (getRversion() >= "2.15.1") {
 #' - Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs Statistics. *Journal of Statistical Physics*, 52(1), 479-487.
 #'
 #' @examples
-#' \dontrun{
-#'   # Assuming lmm_results from effect_sizes_divergence()
-#'   plot_divergence_distribution(lmm_results$interaction_results, threshold = 0.1)
-#' }
+#' # Create example interaction results with divergence effect sizes
+#' set.seed(123)
+#' interaction_results <- data.frame(
+#'   gene = paste0("gene_", 1:20),
+#'   effect_size_D_q0_5 = runif(20, 0, 0.3),
+#'   effect_size_D_q1_0 = runif(20, 0, 0.2),
+#'   effect_size_D_q1_5 = runif(20, 0, 0.25)
+#' )
+#' 
+#' # Plot divergence distribution
+#' plot_divergence_distribution(interaction_results, threshold = 0.1)
 #'
 #' @export
 plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
@@ -2543,23 +2538,34 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #' - Title shows: gene name and adjusted p-value (q-value format)
 #' - Per-q divergence curve with point estimates and 95% bootstrap CI bands
 #' - Vertical reference line at q=1 (Kullback-Leibler divergence point)
-#' - Region labels: "Rare Isoforms" (q<1), "Balanced" (q≈1), "Abundant Isoforms" (q>1)
+#' - Region labels: "Rare Isoforms" (q<1), "Balanced" (q~=1), "Abundant Isoforms" (q>1)
 #' - All plots use consistent ggplot2 styling matching plot_q_spectrum
 #'
 #' @examples
-#' \dontrun{
-#' # Mode 1: Using eff_res
-#' p <- plot_multi_gene_q_spectrum(eff_res = eff_res, n_genes = 9)
-#' print(p)
-#'
-#' # Mode 2: Using lm_res + divergence_results_se
-#' p <- plot_multi_gene_q_spectrum(
-#'   lm_res = lm_res,
-#'   divergence_results_se = divergence_results_se,
-#'   n_genes = 6, ncol = 2
+#' # Create simplified example showing divergence data
+#' # For a full multi-gene plot, use output from effect_sizes_divergence()
+#' set.seed(123)
+#' divergence_matrix <- matrix(
+#'   rnorm(180, mean = 0.5, sd = 0.1),
+#'   nrow = 20, ncol = 9
 #' )
-#' print(p)
-#' }
+#' rownames(divergence_matrix) <- paste0("gene_", 1:20)
+#' divergence_se <- SummarizedExperiment::SummarizedExperiment(
+#'   assays = list(divergence = divergence_matrix)
+#' )
+#' lm_results <- data.frame(
+#'   gene = paste0("gene_", 1:20),
+#'   adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2,
+#'                        0.3, 0.4, 0.5, 0.6, 0.7,
+#'                        0.75, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 1)
+#' )
+#' 
+#' # Create plot of top 4 genes
+#' p <- plot_multi_gene_q_spectrum(
+#'   lm_res = lm_results,
+#'   divergence_results_se = divergence_se,
+#'   n_genes = 4
+#' )
 #'
 #' @seealso \code{\link{calculate_divergence}} for computing divergence values.
 #'
@@ -2815,7 +2821,7 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
   combined_plot <- Reduce(function(x, y) x / y, layout_plots) +
                    patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect")
   
-  if (verbose) cat(sprintf("✓ Multi-gene q-spectrum plot created with %d genes\n", length(plot_list)))
+  if (verbose) cat(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes\n", length(plot_list)))
   
   return(combined_plot)
 }
@@ -2854,7 +2860,7 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
 #' - Y-axis: Tsallis divergence D_q between control and treatment groups
 #' - Shape: Profile reveals which q-ranges drive divergence:
 #'   - Low q (<1): rare isoform divergence
-#'   - q≈1: KL divergence region
+#'   - q~=1: KL divergence region
 #'   - High q (>1): dominant isoform divergence
 #'
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal
@@ -3001,7 +3007,7 @@ plot_tsallis_divergence_profile <- function(se,
         }
 
         # TIER 2: Entropy-based approximation (fallback)
-        # Divergence ≈ difference in mean entropy between groups
+        # Divergence ~= difference in mean entropy between groups
         group1_vals <- entropy_vals[group_vals == groups[1]]
         group2_vals <- entropy_vals[group_vals == groups[2]]
 
@@ -3168,16 +3174,20 @@ plot_tsallis_divergence_profile <- function(se,
 #' (rare vs. abundant isoforms) drive the most divergence on average across the dataset,
 #' complementing gene-specific divergence profiles.
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with multiple q-values.
-#' @param readcounts Optional matrix of raw read counts (genes * transcripts) for computing
-#'   true Tsallis divergence from isoform distributions. If NULL, uses entropy-based approximation.
-#' @param tx2gene_map Optional data.frame mapping transcripts to genes (columns: "transcript", "gene").
-#' @param group_col Character name of the column in colData(se) indicating group assignment.
-#'   Default: "group".
-#' @param assay_name Character name of the assay containing diversity measures. Default: "diversity".
-#' @param metric Character. Summary statistic to display: "mean" or "median". Default: "median".
-#' @param variability_metric Character. Error bar type: "sd" (standard deviation) or "iqr" (interquartile range).
-#'   Default: "iqr".
+#' @param divergence_results_se A `SummarizedExperiment` containing pre-computed divergence values.
+#'   Rows = genes, columns = q-values. Column names should indicate q-values (e.g., "q_0.5", "q_1.0").
+#' @param gene Optional character. If provided, plot divergence spectrum for this specific gene.
+#'   If NULL, plot global divergence curve (aggregated across all genes).
+#' @param lm_res Optional data.frame with columns for gene identifiers and p-values. Used to select
+#'   top genes when gene = NULL and lm_res is provided. Default: NULL.
+#' @param n_genes Integer; number of top genes to plot when showing multi-gene spectra (default: 4).
+#'   Genes are sorted by p-value significance (lowest p-values first).
+#' @param ncol Integer; number of columns in grid layout for multi-gene plots (default: 2).
+#'   Number of rows is automatically calculated as ceiling(n_genes / ncol).
+#' @param metric Character. Summary statistic for global curve: "median" or "mean". Default: "median".
+#'   Only used when gene = NULL.
+#' @param variability_metric Character. Error bar type for global curve: "sd" or "iqr". Default: "iqr".
+#'   Only used when gene = NULL.
 #'
 #' @return A `ggplot` object. Gene-specific calls return a line plot.
 #'   Global calls return an aggregated curve with variability bands.
@@ -3200,15 +3210,23 @@ plot_tsallis_divergence_profile <- function(se,
 #' @importFrom SummarizedExperiment assay
 #'
 #' @examples
-#' \dontrun{
-#'   # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
-#'   
-#'   # Global divergence curve (all genes aggregated)
-#'   p_global <- plot_divergence_spectrum(divergence_se)
-#'   
-#'   # Gene-specific divergence spectrum
-#'   p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
-#' }
+#' # Create synthetic divergence data
+#' set.seed(123)
+#' divergence_matrix <- matrix(
+#'   rnorm(80, mean = 0.5, sd = 0.1),
+#'   nrow = 20, ncol = 4
+#' )
+#' rownames(divergence_matrix) <- paste0("gene_", 1:20)
+#' colnames(divergence_matrix) <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+#' divergence_se <- SummarizedExperiment::SummarizedExperiment(
+#'   assays = list(divergence = divergence_matrix)
+#' )
+#' 
+#' # Global divergence curve (all genes aggregated)
+#' p_global <- plot_divergence_spectrum(divergence_se)
+#' 
+#' # Gene-specific divergence spectrum
+#' p_gene <- plot_divergence_spectrum(divergence_se, gene = "gene_1")
 #'
 #' @export
 plot_divergence_spectrum <- function(divergence_results_se,
@@ -3498,7 +3516,7 @@ plot_divergence_spectrum <- function(divergence_results_se,
             title = expression("Global Divergence Spectrum: Average " * D[q] * " Across All Genes"),
             x = "q value (diversity scale parameter)",
             y = expression("Divergence D[q]"),
-            subtitle = paste0(metric_label, " ± ", spread_label, " (", nrow(div_mat_sorted), " genes)")
+            subtitle = paste0(metric_label, " +/- ", spread_label, " (", nrow(div_mat_sorted), " genes)")
         ) +
         ggplot2::theme_minimal(base_size = 16) +
         ggplot2::theme(
@@ -3513,50 +3531,8 @@ plot_divergence_spectrum <- function(divergence_results_se,
     return(p)
 }
 
-#' Plot Divergence Spectrum (Gene-Specific or Global)
+#' Plot Divergence Spectrum Heatmaps (Multi-q Transcript Switching)
 #'
-#' Unified plotting function for Tsallis divergence D_q across the q-spectrum.
-#' When a gene is specified, shows gene-specific divergence spectrum.
-#' When no gene is specified, shows global divergence curve aggregated across all genes.
-#'
-#' @param divergence_results_se A `SummarizedExperiment` containing pre-computed divergence values.
-#'   Rows = genes, columns = q-values. Column names should indicate q-values (e.g., "q_0.5", "q_1.0").
-#' @param gene Optional character. If provided, plot divergence spectrum for this specific gene.
-#'   If NULL, plot global divergence curve (aggregated across all genes).
-#' @param metric Character. Summary statistic for global curve: "median" or "mean". Default: "median".
-#'   Only used when gene = NULL.
-#' @param variability_metric Character. Error bar type for global curve: "sd" or "iqr". Default: "iqr".
-#'   Only used when gene = NULL.
-#'
-#' @return A `ggplot` object. Gene-specific calls return a line plot.
-#'   Global calls return an aggregated curve with variability bands.
-#'
-#' @details
-#' **Gene-specific mode (gene provided)**:
-#' - Extracts divergence values for the specified gene across all q-values
-#' - Plots as a line chart with points
-#' - Reveals whether this gene shows q-dependent divergence patterns
-#'
-#' **Global mode (gene = NULL)**:
-#' - Aggregates divergence across all genes at each q-value
-#' - Shows which diversity scales (q-values) drive the most divergence on average
-#' - Useful for identifying dominant biological mechanisms (rare vs. abundant isoform driven)
-#'
-#' @examples
-#' \dontrun{
-#'   # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
-#'   
-#'   # Global divergence curve (all genes aggregated)
-#'   p_global <- plot_divergence_spectrum(divergence_se)
-#'   
-#'   # Gene-specific divergence spectrum
-#'   p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
-#' }
-#'
-#' @importFrom ggplot2 ggplot aes geom_line geom_point geom_ribbon labs theme_minimal element_text
-#' @importFrom SummarizedExperiment assay
-#'
-#' @description
 #' Creates combined heatmap panels showing delta influence (transcript switching magnitude)
 #' across multiple q-values (diversity scales) for selected genes. Each heatmap shows
 #' how transcript importance differs between conditions (delta_influence) across the
@@ -3600,14 +3576,32 @@ plot_divergence_spectrum <- function(divergence_results_se,
 #' switching driven by rare vs. abundant isoforms.
 #'
 #' @examples
-#' \dontrun{
-#' # After running multi-q jackknife analysis
-#' heatmap_file <- plot_multiq_delta_influence_heatmaps(
-#'   switching_results = multi_q_results,
-#'   n_genes = 4
+#' # Example: Create synthetic multi-q switching results
+#' # For real analysis, use jackknife_isoform_switching() output
+#' set.seed(123)
+#' gene_names <- paste0("gene_", 1:4)
+#' names(gene_names) <- 1:4
+#' 
+#' # Create multi-q results structure
+#' q_values <- c(0.5, 1.0, 1.5)
+#' switching_results <- structure(
+#'   list(
+#'     q_0_50 = list(
+#'       gene_ids = 1:4,
+#'       gene_name_map = gene_names,
+#'       switching_results = list(
+#'         list(gene_id = 1, delta_influence = matrix(rnorm(30, 0, 0.2), 5, 6)),
+#'         list(gene_id = 2, delta_influence = matrix(rnorm(30, 0, 0.2), 5, 6)),
+#'         list(gene_id = 3, delta_influence = matrix(rnorm(30, 0, 0.2), 5, 6)),
+#'         list(gene_id = 4, delta_influence = matrix(rnorm(30, 0, 0.2), 5, 6))
+#'       )
+#'     )
+#'   ),
+#'   class = "tsenat_isoform_switching_multiq"
 #' )
-#' knitr::include_graphics(heatmap_file)
-#' }
+#' 
+#' # Create heatmap visualization
+#' heatmap_file <- plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
 #'
 #' @import grid
 #' @import pheatmap
@@ -3790,7 +3784,7 @@ plot_multiq_delta_influence_heatmaps <- function(
           }
           
           # Transpose: q-values as rows, transcripts as columns
-          # This converts from (transcripts × q-values) to (q-values × transcripts)
+          # This converts from (transcripts x q-values) to (q-values x transcripts)
           heatmap_matrix <- t(heatmap_matrix)
           
           # Verify we have the expected dimensions (q-values as rows)
@@ -3851,7 +3845,7 @@ plot_multiq_delta_influence_heatmaps <- function(
     cat("\n=== Data Validation Report ===\n")
     for (i in seq_along(data_validity_report)) {
       report <- data_validity_report[[i]]
-      status <- if (!is.na(report$reason_skipped)) "❌ SKIPPED" else "✓ VALID"
+      status <- if (!is.na(report$reason_skipped)) "? SKIPPED" else "[OK] VALID"
       cat("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ") - ", status, "\n", sep = "")
       cat("  - Has heatmap data: ", report$has_heatmap_data, "\n", sep = "")
       cat("  - Has valid rows: ", report$has_valid_rows, "\n", sep = "")

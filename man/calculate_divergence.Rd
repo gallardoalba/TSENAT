@@ -111,7 +111,7 @@ SummarizedExperiment object with:
     - computation_mode: "sequential" or "parallel"
 }
 \description{
-**NEW ARCHITECTURE: Transcript-level counts → Gene-level aggregation → Tsallis divergence**
+**NEW ARCHITECTURE: Transcript-level counts -> Gene-level aggregation -> Tsallis divergence**
 }
 \details{
 Computes bootstrap confidence intervals for Tsallis divergence comparing
@@ -130,7 +130,7 @@ Returns a SummarizedExperiment object containing:
 calculate_divergence(se, res=NULL, ...)  
   Input:  SummarizedExperiment (raw TRANSCRIPT-level counts)
           Each row is a transcript; rowData must have gene_names/gene_name column
-  Step 1: Auto-aggregates transcripts → genes via colSums
+  Step 1: Auto-aggregates transcripts -> genes via colSums
   Step 2: Computes divergence for each gene across q values
   Output: SummarizedExperiment with:
           - assay: genes * q_values matrix (divergence estimates)
@@ -138,7 +138,7 @@ calculate_divergence(se, res=NULL, ...)
           - colData: one row per q value
           - metadata: parameters, timing, sample sizes
 ```
-Matches `calculate_diversity()` input/output pattern: transcript counts SE → gene-level derivative SE
+Matches `calculate_diversity()` input/output pattern: transcript counts SE -> gene-level derivative SE
 
 **DESIGN PRINCIPLE - Transcript-to-Gene Aggregation:**
 Following Paper I033 ("Application of information theoretical approaches to assess diversity 

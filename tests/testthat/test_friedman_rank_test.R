@@ -1,7 +1,6 @@
-context("Friedman Test for Paired Rank-Based Analysis")
+library(TSENAT)
 
-# Setup: Load necessary functions
-source("../../R/rank_based_methods.R", local = TRUE)
+context("Friedman Test for Paired Rank-Based Analysis")
 
 # ============================================================================
 # Test 1: Basic Friedman Test Function

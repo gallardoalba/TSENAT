@@ -270,24 +270,24 @@
 #' colData
 #' @details
 #' **Database Verification (tsenat_papers.db):**
-#' ✓ Tsallis entropy calculation: Papers I001-I004 provide complete mathematical
-#'   foundations for Tsallis entropy computation: S_q = (1 - Σ p_i^q) / (1 - q).
+#' [OK] Tsallis entropy calculation: Papers I001-I004 provide complete mathematical
+#'   foundations for Tsallis entropy computation: S_q = (1 - Sum p_i^q) / (1 - q).
 #'   The q-parameter controls emphasis on rare vs. abundant transcripts through
 #'   q_weight = 0.5 + q, affecting information gain linearly (papers S063-S067).
-#' ✓ Entropy normalization methods: Papers I023 (Hill numbers), B002-B007 (entropy
+#' [OK] Entropy normalization methods: Papers I023 (Hill numbers), B002-B007 (entropy
 #'   standardization) validate normalization approaches. "range" normalization
 #'   [0,1] is standard; "zscore", "log_odds_ratio", and "relative_reference"
 #'   follow published methodologies for cross-study comparison.
-#' ✓ Effective length bias correction: Salmon quantification method (Smith et al., 2017;
+#' [OK] Effective length bias correction: Salmon quantification method (Smith et al., 2017;
 #'   reference dataset S001-S003) recommends normalization by effective length to
 #'   remove transcript-length bias. This is implemented via the effective_length parameter.
-#' ✓ Shrinkage methodology: Empirical Bayes shrinkage uses global-mean borrowing as
+#' [OK] Shrinkage methodology: Empirical Bayes shrinkage uses global-mean borrowing as
 #'   described in papers S004-S006 (Bayesian shrinkage methods), improving stability
 #'   for genes with few expressed isoforms.
-#' ✓ Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
+#' [OK] Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
 #'   min_valid_frac >= 0.75 and pseudocount >= 0.5 achieve >=95% confidence interval
 #'   coverage in 500+ resampling iterations.
-#' ✓ Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
+#' [OK] Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
 #'   that analyzing multiple q values reveals different aspects of isoform diversity,
 #'   with each q capturing distinct biological information (rare vs. abundant isoform shifts).
 #'
@@ -295,11 +295,21 @@
 #' and S063-S067 for power/informativeness validation.
 #'
 #' @examples
-#' data('readcounts', package = 'TSENAT')
-#' rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-#' gs <- readcounts[1:20, 1]
-#' se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-#' SummarizedExperiment::assay(se)[1:3, 1:3]
+#' # Create minimal example data
+#' set.seed(123)
+#' # Simulate read counts: 5 genes, 3 transcripts each, 4 samples
+#' counts <- matrix(
+#'   sample(1:100, 60, replace = TRUE),
+#'   nrow = 15, ncol = 4
+#' )
+#' rownames(counts) <- paste0("tx_", 1:15)
+#' colnames(counts) <- paste0("sample_", 1:4)
+#' genes <- rep(paste0("gene_", 1:5), each = 3)
+#' 
+#' # Calculate diversity at q=1 (Shannon entropy)
+#' se <- calculate_diversity(counts, genes = genes, q = 1.0, norm = TRUE)
+#' head(SummarizedExperiment::assay(se))
+#' 
 #' @export
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
     verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
@@ -324,7 +334,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         pc_result <- estimate_pseudocount(x, verbose = FALSE)
         pseudocount <- pc_result$scalar_pseudocount
         if (verbose) {
-            message(sprintf("  → Estimated pseudocount = %.4f", pseudocount))
+            message(sprintf("  -> Estimated pseudocount = %.4f", pseudocount))
         }
     } else if (!is.numeric(pseudocount)) {
         stop("pseudocount must be numeric or 'auto'", call. = FALSE)
@@ -369,7 +379,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         md <- tryCatch(S4Vectors::metadata(original_x), error = function(e) NULL)
         if (!is.null(md) && !is.null(md$salmon_effective_length)) {
             effective_length <- md$salmon_effective_length
-            if (verbose) message("✓ Found salmon_effective_length in input metadata")
+            if (verbose) message("[OK] Found salmon_effective_length in input metadata")
         }
     }
 
@@ -406,7 +416,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             n_genes_filtered <- nrow(result) - 1  # First column is gene_id
             bootstrap_nboot <- suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
             if (verbose) {
-                message(sprintf("  → Auto-suggested nboot = %d for %d genes (method: %s)",
+                message(sprintf("  -> Auto-suggested nboot = %d for %d genes (method: %s)",
                     bootstrap_nboot, n_genes_filtered, bootstrap_method))
             }
         }
@@ -444,7 +454,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         )
         
         if (verbose) {
-            message(sprintf("  ✓ Bootstrap CIs computed successfully"))
+            message(sprintf("  [OK] Bootstrap CIs computed successfully"))
         }
     }
 
@@ -762,7 +772,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         assays_list$ci_upper <- ci_upper_matrix
         
         if (verbose) {
-            message(sprintf("  ✓ Added ci_lower and ci_upper assays to output SE"))
+            message(sprintf("  [OK] Added ci_lower and ci_upper assays to output SE"))
         }
     }
 
@@ -968,7 +978,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' a principled approach recommended in edgeR (Robinson et al. 2010) and DESeq2
 #' (Love et al. 2014) for regularization of count-based diversity analysis.
 #'
-#' @param se SummarizedExperiment or Matrix; raw count matrix (genes × samples).
+#' @param se SummarizedExperiment or Matrix; raw count matrix (genes x samples).
 #'            If SummarizedExperiment, assay(se) is extracted.
 #' @param verbose Logical; if TRUE, print diagnostic information (default: TRUE).
 #'
@@ -996,17 +1006,22 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 #' - Chen et al. (2023, edgeR User Guide): Current best practices in library normalization
 #'
 #' @examples
-#' \dontrun{
-#' # From SummarizedExperiment
-#' library(TSENAT)
-#' data(readcounts)
-#' se <- build_se(salmon_dataset, gff3_file, metadata = metadata_df)
-#' result <- estimate_pseudocount(se, verbose = TRUE)
+#' # Create example read counts
+#' set.seed(123)
+#' counts <- matrix(
+#'   sample(1:100, 60, replace = TRUE),
+#'   nrow = 15, ncol = 4
+#' )
+#' rownames(counts) <- paste0("tx_", 1:15)
+#' colnames(counts) <- paste0("sample_", 1:4)
+#' genes <- rep(paste0("gene_", 1:5), each = 3)
+#' 
+#' # Estimate pseudocount
+#' result <- estimate_pseudocount(counts, verbose = FALSE)
 #' pseudocount <- result$scalar_pseudocount
-#'
+#' 
 #' # Use with calculate_diversity
-#' ts_se <- calculate_diversity(se, q = 1, pseudocount = pseudocount)
-#' }
+#' se <- calculate_diversity(counts, genes = genes, q = 1, pseudocount = pseudocount)
 #'
 #' @references
 #' Robinson, M.D., McCarthy, D.J., Smyth, G.K. (2010).
@@ -1574,7 +1589,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
 #'
 #' **Normalization:**
 #' When \code{norm = TRUE}, entropy is divided by its theoretical maximum to scale to [0, 1].
-#' Natural logarithms are used for q→1 limits and normalization.
+#' Natural logarithms are used for q->1 limits and normalization.
 #' @examples
 #' x <- c(10, 5, 0)
 #' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)

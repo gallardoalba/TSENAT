@@ -23,14 +23,20 @@
 #' between the two methods.
 #'
 #' @examples
-#' \dontrun{
-#'   # Assuming comparison_df has been created with GAM and Friedman results
-#'   plot <- plot_method_concordance(comparison_df)
-#'   plot(plot)
-#' }
+#' # Create synthetic comparison data
+#' set.seed(123)
+#' comparison_df <- data.frame(
+#'   gene = paste0("gene_", 1:50),
+#'   p_gam = runif(50, 0, 0.5),
+#'   p_friedman = runif(50, 0, 0.5),
+#'   agreement = sample(c("Both significant", "GAM only", "Friedman only", "Neither significant"),
+#'                      size = 50, replace = TRUE)
+#' )
+#' 
+#' # Create concordance plot
+#' plot <- plot_method_concordance(comparison_df)
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 plot_method_concordance <- function(comparison_df) {
   
   # Check if data is valid
@@ -169,10 +175,9 @@ plot_method_concordance <- function(comparison_df) {
 #'   
 #'   # Check correlation
 #'   cat("Spearman ρ =", concordance_result$spearman_rho)
-#' }
+#' }  
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 compute_method_concordance <- function(gam_results, kw_results) {
   
   # Initialize outputs

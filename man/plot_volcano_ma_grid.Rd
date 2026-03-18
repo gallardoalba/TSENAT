@@ -36,7 +36,7 @@ plot_volcano_ma_grid(
 \item{...}{Additional arguments passed to plotting functions.}
 }
 \value{
-A `ggplot2` object showing a 1×2 grid with volcano plot on the left and MA plot on the right.
+A `ggplot2` object showing a 1x2 grid with volcano plot on the left and MA plot on the right.
 }
 \description{
 Creates a side-by-side grid layout with a volcano plot on the left and an MA-Tsallis plot on the right.

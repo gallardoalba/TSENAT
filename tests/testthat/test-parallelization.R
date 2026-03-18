@@ -18,7 +18,7 @@ test_that("wilcoxon serial and parallel produce identical results", {
     res_parallel_2 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 2)
     
     # Run parallel version with 3 threads
-    res_parallel_4 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 3)
+    res_parallel_4 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = min(3, parallel::detectCores()))
     
     # All versions should produce identical results
     expect_equal(as.data.frame(res_serial), as.data.frame(res_parallel_2), tolerance = 1e-10)
@@ -129,7 +129,7 @@ test_that("calculate_method serial and parallel produce identical results", {
     # Single q value
     res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
     res_parallel_2 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 2)
-    res_parallel_4 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 3)
+    res_parallel_4 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = min(3, parallel::detectCores()))
     
     # Should produce identical results
     expect_equal(res_serial, res_parallel_2, tolerance = 1e-10)
@@ -188,7 +188,7 @@ test_that("calculate_difference serial and parallel produce identical results", 
     
     res_wilcox_par_4 <- calculate_difference(data_df, samples = samples,
                                              control = "Normal", test = "wilcoxon",
-                                             nthreads = 3, verbose = FALSE)
+                                             nthreads = min(3, parallel::detectCores()), verbose = FALSE)
     
     # Should produce identical results
     expect_equal(res_wilcox_serial, res_wilcox_par_2, tolerance = 1e-10)
@@ -252,7 +252,7 @@ test_that("Large dataset parallelization produces valid results", {
     # Wilcoxon with different thread counts
     res_1 <- wilcoxon(mat, samples, nthreads = 1)
     res_2 <- wilcoxon(mat, samples, nthreads = 2)
-    res_4 <- wilcoxon(mat, samples, nthreads = 3)
+    res_4 <- wilcoxon(mat, samples, nthreads = min(3, parallel::detectCores()))
     
     # All should match
     expect_equal(res_1, res_2, tolerance = 1e-10)
@@ -276,7 +276,7 @@ test_that("Large calculate_method dataset with single q value", {
     res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
     
     # Parallel execution
-    res_parallel <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 3)
+    res_parallel <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = min(3, parallel::detectCores()))
     
     # Should produce identical results
     expect_equal(res_serial, res_parallel, tolerance = 1e-10)
@@ -490,7 +490,7 @@ test_that(".tsenat_bplapply parallel execution with nthreads=3", {
     FUN.VALUE <- numeric(1)
     
     result_parallel_2 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_parallel_4 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 3, FUN.VALUE = FUN.VALUE)
+    result_parallel_4 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = min(3, parallel::detectCores()), FUN.VALUE = FUN.VALUE)
     result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     # All should be equal
@@ -849,7 +849,7 @@ test_that("calculate_divergence multiple thread levels produce consistent nrows"
     
     result_3t <- calculate_divergence(
         se = se, q = 1, nboot = 100,
-        nthreads = 3, progress = FALSE, seed = 99
+        nthreads = min(3, parallel::detectCores()), progress = FALSE, seed = 99
     )
     
     # All should return SummarizedExperiment with all genes
@@ -899,7 +899,7 @@ test_that("calculate_divergence handles small gene count correctly", {
         se = se,
         q = 1,
         nboot = 100,
-        nthreads = 3,  # Request parallel
+        nthreads = min(3, parallel::detectCores()),  # Request parallel
         progress = FALSE,
         seed = 55
     )

@@ -119,7 +119,7 @@ test_that("plot_volcano returns a ggplot and annotates top genes", {
         adjusted_p_values = p.adjust(runif(n))
     )
 
-    p <- plot_volcano(df,
+    p <- TSENAT:::plot_volcano(df,
         x_col = "mean_difference",
         padj_col = "adjusted_p_values",
         top_n = 3
@@ -141,7 +141,7 @@ test_that("plot_volcano with custom columns", {
         pval = p.adjust(runif(n))
     )
 
-    p <- plot_volcano(df,
+    p <- TSENAT:::plot_volcano(df,
         x_col = "logFC",
         padj_col = "pval",
         top_n = 2
@@ -338,7 +338,7 @@ skip_on_bioc()
 test_that("plot_ma_tsallis handles simple inputs", {
     skip_if_not_installed("ggplot2")
     x <- data.frame(genes = paste0("g", 1:6), mean = runif(6), log2_fold_change = rnorm(6))
-    p1 <- TSENAT::plot_ma_tsallis(x)
+    p1 <- TSENAT:::plot_ma_tsallis(x)
     expect_s3_class(p1, "ggplot")
 })
 
@@ -384,7 +384,7 @@ test_that("plot_tsallis_q_curve correctly handles multiple groups with different
     SummarizedExperiment::colData(se) <- cd
     
     # Generate plot
-    p <- TSENAT:::plot_tsallis_q_curve(se, sample_type_col = "sample_type")
+    p <- TSENAT:::plot_tsallis_q_curve(se, condition_col = "sample_type")
     
     # Verify plot is ggplot
     expect_s3_class(p, "ggplot")
@@ -440,7 +440,7 @@ test_that("plot_tsallis_q_curve preserves decimal q-values correctly", {
     SummarizedExperiment::colData(se) <- cd
     
     # Generate plot
-    p <- TSENAT:::plot_tsallis_q_curve(se, sample_type_col = "sample_type")
+    p <- TSENAT:::plot_tsallis_q_curve(se, condition_col = "sample_type")
     
     # Verify plot data q values are numeric
     plot_data <- p$data
@@ -460,7 +460,7 @@ test_that("plot_tsallis_q_curve preserves decimal q-values correctly", {
 test_that("plot_volcano auto-detects x_col and returns ggplot", {
     skip_if_not_installed("ggplot2")
     df <- data.frame(gene = paste0("g", 1:10), mean_difference = rnorm(10), padj = runif(10))
-    p <- TSENAT::plot_volcano(df)
+    p <- TSENAT:::plot_volcano(df)
     expect_s3_class(p, "ggplot")
 })
 
@@ -525,7 +525,7 @@ test_that("plot_volcano auto-detects a numeric x column when x_col is NULL", {
         adjusted_p_values = p.adjust(runif(10)),
         stringsAsFactors = FALSE
     )
-    p <- plot_volcano(df, x_col = NULL, padj_col = "adjusted_p_values")
+    p <- TSENAT:::plot_volcano(df, x_col = NULL, padj_col = "adjusted_p_values")
     expect_s3_class(p, "ggplot")
 })
 
@@ -1088,7 +1088,7 @@ test_that(".draw_transcript_grid creates a temporary pdf in non-interactive sess
 
 test_that("plot_volcano handles errors", {
     df <- data.frame(gene = c("a", "b"), p = c(0.1, 0.01))
-    expect_error(plot_volcano(df), "Column 'padj' not found in diff_df")
+    expect_error(TSENAT:::plot_volcano(df), "Column 'padj' not found in diff_df")
 })
 
 test_that(".ptt_combine_plots fallbacks work", {

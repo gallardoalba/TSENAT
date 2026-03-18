@@ -11,7 +11,7 @@ names contain `_q=`).}
 \usage{
 calculate_lm_interaction(
   se,
-  sample_type_col = "sample_type",
+  condition_col = "condition",
   min_obs = 10,
   method = c("lmm", "gam", "fpca", "gee"),
   pvalue = c("satterthwaite", "lrt", "both"),
@@ -35,7 +35,7 @@ calculate_lm_interaction(
 \item{se}{A `SummarizedExperiment` containing a `diversity` assay produced
 by `calculate_diversity(..., q = <vector>)`.}
 
-\item{sample_type_col}{Optional column name in `colData(se)` that contains
+\item{condition_col}{Column name in `colData(se)` that contains
 a grouping factor for samples (character). If `NULL`, the function will
 attempt to infer group from column names (suffix `_N` interpreted as
 'Normal').}
@@ -111,17 +111,17 @@ correlation structure in Tsallis entropy (default: 'hochberg'). The interaction
 p-values from linear models naturally exhibit AR(1) correlation for different q-values 
 of the same gene (Papers S168-S175). This parameter selects the primary multiple testing
 correction method:
-'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
+'hochberg': Hochberg stepup procedure (FWER <= alpha under positive regression dependence). 
 Closed-form, computationally efficient. Recommended for strong signal detection with 
 family-wise error control.
-'westfall-young': True Westfall-Young permutation procedure (FWER <= α). Uses resampling 
+'westfall-young': True Westfall-Young permutation procedure (FWER <= alpha). Uses resampling 
 to empirically control FWER by tracking the minima across all tests. More powerful than 
 Hochberg under dependence but computationally expensive (refits LMM for each permutation).
-'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
+'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= alpha under arbitrary dependence). 
 Valid under any correlation structure. More conservative than Hochberg but makes fewer 
 power loss assumptions. Reference: Papers S190, S193.}
 
-\item{storey}{Logical; whether to apply Storey's adaptive FDR π₀ estimation after the 
+\item{storey}{Logical; whether to apply Storey's adaptive FDR ?0 estimation after the 
 selected multicorr method (default: FALSE). When TRUE, adapts the error threshold based 
 on estimated proportion of true null hypotheses, increasing power when many true signals 
 are present. Can be applied to any multicorr method. Computationally light enhancement.
@@ -172,18 +172,45 @@ function expects a `SummarizedExperiment`  produced by
 `calculate_diversity()` when multiple `q` values have been  computed (column
 names contain `_q=`).
 }
+\section{Sample Metadata Parameters (Unified Naming Convention)}{
+
+TSENAT functions use consistent parameter names for sample grouping and subject identification:
+\itemize{
+  \item{\code{condition_col}: Character string specifying the colData column 
+        containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
+        Default: "condition". Map your grouping variable into this column before calling TSENAT functions.}
+  \item{\code{subject_col}: For paired/blocked/repeated-measures designs, character string specifying 
+        the colData column with subject/individual/patient identifiers. Default: NULL. 
+        Required when \code{paired = TRUE}.}
+}
+All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+across the TSENAT package.
+}
+
 \examples{
-data('readcounts', package = 'TSENAT')
-rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-gs <- readcounts[1:20, 1]
-se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
-# Provide a minimal sample-type mapping so the example runs during checks
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-    sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
-    row.names = colnames(se)
+# Create example data
+set.seed(123)
+# Simulate read counts: 5 genes, 3 transcripts each, 4 samples
+counts <- matrix(
+  sample(1:100, 60, replace = TRUE),
+  nrow = 15, ncol = 4
 )
-# sample_type_col defaults to "sample_type"
-calculate_lm_interaction(se)
+rownames(counts) <- paste0("tx_", 1:15)
+colnames(counts) <- paste0("sample_", 1:4)
+genes <- rep(paste0("gene_", 1:5), each = 3)
+
+# Calculate diversity at multiple q values
+se <- calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5), norm = TRUE)
+
+# Add sample metadata
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
+  row.names = colnames(se)
+)
+
+# Run linear model interaction analysis
+results <- calculate_lm_interaction(se, condition_col = "condition")
 }
 \references{
 Kutner, M. H., Nachtsheim, C. J., Neter, J., & Li, W. (2005).
@@ -222,6 +249,6 @@ multicorr='benjamini-yekutieli' option.
 
 Storey, J. D. (2002). A direct approach to false discovery rates. 
 \emph{Journal of the Royal Statistical Society}, Series B, 64(3), 479-498. 
-Adaptive FDR estimation via π₀ proportion (used in multicorr='westfall-young-storey').
+Adaptive FDR estimation via ?0 proportion (used in multicorr='westfall-young-storey').
 More powerful than Hochberg when substantial proportion of nulls are true.
 }

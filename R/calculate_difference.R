@@ -395,13 +395,13 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' p-values from linear models naturally exhibit AR(1) correlation for different q-values 
 #' of the same gene (Papers S168-S175). This parameter selects the primary multiple testing
 #' correction method:
-#' 'hochberg': Hochberg stepup procedure (FWER <= α under positive regression dependence). 
+#' 'hochberg': Hochberg stepup procedure (FWER <= alpha under positive regression dependence). 
 #' Closed-form, computationally efficient. Recommended for strong signal detection with 
 #' family-wise error control.
-#' 'westfall-young': True Westfall-Young permutation procedure (FWER <= α). Uses resampling 
+#' 'westfall-young': True Westfall-Young permutation procedure (FWER <= alpha). Uses resampling 
 #' to empirically control FWER by tracking the minima across all tests. More powerful than 
 #' Hochberg under dependence but computationally expensive (refits LMM for each permutation).
-#' 'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= α under arbitrary dependence). 
+#' 'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= alpha under arbitrary dependence). 
 #' Valid under any correlation structure. More conservative than Hochberg but makes fewer 
 #' power loss assumptions. Reference: Papers S190, S193.
 #' @param wy_randomizations Number of permutation randomizations for Westfall-Young 
@@ -409,7 +409,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' Higher values improve accuracy of empirical null distribution but increase computation time.
 #' Minimum: 100. Typical values: 500-2000. Note: Westfall-Young is computationally expensive 
 #' as it requires refitting models for each randomization.
-#' @param storey Logical; whether to apply Storey's adaptive FDR π₀ estimation after the 
+#' @param storey Logical; whether to apply Storey's adaptive FDR ?0 estimation after the 
 #' selected multicorr method (default: FALSE). When TRUE, adapts the error threshold based 
 #' on estimated proportion of true null hypotheses, increasing power when many true signals 
 #' are present. Can be applied to any multicorr method. Computationally light enhancement.
@@ -493,21 +493,32 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' 
 #' Storey, J. D. (2002). A direct approach to false discovery rates. 
 #' \emph{Journal of the Royal Statistical Society}, Series B, 64(3), 479-498. 
-#' Adaptive FDR estimation via π₀ proportion (used in multicorr='westfall-young-storey').
+#' Adaptive FDR estimation via ?0 proportion (used in multicorr='westfall-young-storey').
 #' More powerful than Hochberg when substantial proportion of nulls are true.
 #' @export
 #' @examples
-#' data('readcounts', package = 'TSENAT')
-#' rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-#' gs <- readcounts[1:20, 1]
-#' se <- calculate_diversity(rc, gs, q = c(0.1, 1), norm = TRUE)
-#' # Provide a minimal sample-type mapping so the example runs during checks
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'     sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
-#'     row.names = colnames(se)
+#' # Create example data
+#' set.seed(123)
+#' # Simulate read counts: 5 genes, 3 transcripts each, 4 samples
+#' counts <- matrix(
+#'   sample(1:100, 60, replace = TRUE),
+#'   nrow = 15, ncol = 4
 #' )
-#' # condition_col defaults to "condition"
-#' calculate_lm_interaction(se)
+#' rownames(counts) <- paste0("tx_", 1:15)
+#' colnames(counts) <- paste0("sample_", 1:4)
+#' genes <- rep(paste0("gene_", 1:5), each = 3)
+#' 
+#' # Calculate diversity at multiple q values
+#' se <- calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5), norm = TRUE)
+#' 
+#' # Add sample metadata
+#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   condition = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
+#'   row.names = colnames(se)
+#' )
+#' 
+#' # Run linear model interaction analysis
+#' results <- calculate_lm_interaction(se, condition_col = "condition")
 calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 10, method = c("lmm",
     "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE, 
@@ -607,7 +618,7 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
         message("[calculate_lm_interaction] parsed samples and groups")
     }
     
-    # ════════════════════════════════════════════════════════════════════════════════
+    # ================================================================================
     
     all_results <- list()
     fit_one <- function(g) {
@@ -764,7 +775,7 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
             tryCatch({
                 res$adj_p_interaction <- compute_storey_qvalues(res$adj_p_interaction)
                 if (verbose) {
-                    message("[calculate_lm_interaction] Applied Storey adaptive FDR π₀ correction to ", 
+                    message("[calculate_lm_interaction] Applied Storey adaptive FDR ?0 correction to ", 
                             multicorr, " p-values")
                 }
             }, error = function(e) {
@@ -1231,7 +1242,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #' - \strong{Proper Calibration:} The pseudocount ensures valid Type I error control
 #'   and proper coverage properties, especially important with small permutation counts.
 #' - \strong{Minimum P-Value:} With m permutations, p_min = 1/(m+1), not 0.
-#'   Example: With m = 1000, p_min ≈ 0.000999 (not 0).
+#'   Example: With m = 1000, p_min ~= 0.000999 (not 0).
 #' - \strong{Standard Practice:} This correction is now implemented in limma, edgeR,
 #'   DESeq2, and other standard bioinformatics packages.
 #'
@@ -1642,12 +1653,12 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             # Pass pre-computed scales to IRLS, skipping scale computation inside the function
             est1 <- .irls_estimate_location(group1_vals, 
                                             loss_type = robust_loss_type,
-                                            scale = scale1,  # ← PRE-COMPUTED, avoids recomputation!
+                                            scale = scale1,  # <- PRE-COMPUTED, avoids recomputation!
                                             max_iter = 20,
                                             tol = 1e-4)
             est2 <- .irls_estimate_location(group2_vals,
                                             loss_type = robust_loss_type,
-                                            scale = scale2,  # ← PRE-COMPUTED, avoids recomputation!
+                                            scale = scale2,  # <- PRE-COMPUTED, avoids recomputation!
                                             max_iter = 20,
                                             tol = 1e-4)
             
@@ -1746,12 +1757,12 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         # Apply location estimation to each feature using pre-computed scales
         g1_val <- apply(x[, group1_idx, drop = FALSE], 1, function(row) {
             .irls_estimate_location(row, loss_type = robust_loss_type,
-                                    scale = scale1,  # ← Use pre-computed scale!
+                                    scale = scale1,  # <- Use pre-computed scale!
                                     max_iter = 20, tol = 1e-4)
         })
         g2_val <- apply(x[, group2_idx, drop = FALSE], 1, function(row) {
             .irls_estimate_location(row, loss_type = robust_loss_type,
-                                    scale = scale2,  # ← Use pre-computed scale!
+                                    scale = scale2,  # <- Use pre-computed scale!
                                     max_iter = 20, tol = 1e-4)
         })
     } else {

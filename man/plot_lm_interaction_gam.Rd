@@ -7,7 +7,7 @@
 plot_lm_interaction_gam(
   se,
   lm_res,
-  sample_type_col = "sample_type",
+  condition_col = "sample_type",
   genes = NULL,
   n_top = 6,
   sig_alpha = 0.05,
@@ -24,7 +24,7 @@ with multiple q (e.g., q = seq(0.1, 2, by = 0.1)).}
 `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method="fpca"
 or method="gam".}
 
-\item{sample_type_col}{Column name in `colData(se)` specifying group
+\item{condition_col}{Column name in `colData(se)` specifying group
 assignments for samples (e.g., "sample_type").}
 
 \item{genes}{Optional character vector of specific gene names to plot. If provided,
@@ -66,24 +66,33 @@ This complements FPCA by providing interpretable visualization of empirical
 q-curve shape differences that drive PC-level significance.
 }
 \examples{
-data("readcounts", package = "TSENAT")
-rc <- as.matrix(readcounts[1:100, -1, drop = FALSE])
-gs <- readcounts[1:100, 1]
-# Create q-sequence
-se <- calculate_diversity(rc, gs, q = seq(0.5, 2, by = 0.25), norm = TRUE)
-# Add sample type to colData
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-    sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
-    row.names = colnames(se)
+# Create example data with multiple q values
+set.seed(123)
+counts <- matrix(
+  sample(1:100, 60, replace = TRUE),
+  nrow = 15, ncol = 4
 )
-# Run FPCA to identify significant genes
-lm_result <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca", 
+rownames(counts) <- paste0("tx_", 1:15)
+colnames(counts) <- paste0("sample_", 1:4)
+genes <- rep(paste0("gene_", 1:5), each = 3)
+
+# Calculate diversity across multiple q values
+se <- calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by = 0.5), norm = TRUE)
+
+# Add sample metadata
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
+  row.names = colnames(se)
+)
+
+# Run linear model analysis with model_data  
+lm_result <- calculate_lm_interaction(se, condition_col = "condition", method = "gam",
                                       return_model_data = TRUE)
-# Plot GAM curves for top 3 genes with model metadata (returned as combined grid)
+
+# Plot GAM curves for top genes
 if (nrow(lm_result$results) > 0) {
-  grid_plot <- plot_lm_interaction_gam(se, lm_result$results, sample_type_col = "sample_type", 
-                          n_top = 3, model_data = lm_result$model_data)
-  # grid_plot is a combined ggplot object ready to save
+  grid_plot <- plot_lm_interaction_gam(se, lm_result$results, condition_col = "condition", 
+                                        n_top = 2, model_data = lm_result$model_data)
 }
 
 }

@@ -31,7 +31,7 @@ rank-based effect sizes, and robust multi-testing procedures.
 **Usage in TSENAT Appendix L:**
 The comprehensive rank-based methods test (TSENAT_Appendix_L_RankBased_test.R)
 demonstrates all four key rank-based functions working together on real RNA-seq
-entropy data (3514 → 517 → 106 genes after filtering):
+entropy data (3514 -> 517 -> 106 genes after filtering):
 
 2. **TEST L.2**: `compute_rank_correlation_multiq()` 
    - Measures consistency of gene rankings across 6 q-values (0.1 to 2.5)

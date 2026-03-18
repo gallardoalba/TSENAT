@@ -302,7 +302,7 @@
 
 #' Calculate Bootstrap Divergence Confidence Intervals Across Genes
 #'
-#' **NEW ARCHITECTURE: Transcript-level counts → Gene-level aggregation → Tsallis divergence**
+#' **NEW ARCHITECTURE: Transcript-level counts -> Gene-level aggregation -> Tsallis divergence**
 #' 
 #' Computes bootstrap confidence intervals for Tsallis divergence comparing
 #' two groups across multiple genes. Automatically aggregates transcript-level counts
@@ -320,7 +320,7 @@
 #' calculate_divergence(se, res=NULL, ...)  
 #'   Input:  SummarizedExperiment (raw TRANSCRIPT-level counts)
 #'           Each row is a transcript; rowData must have gene_names/gene_name column
-#'   Step 1: Auto-aggregates transcripts → genes via colSums
+#'   Step 1: Auto-aggregates transcripts -> genes via colSums
 #'   Step 2: Computes divergence for each gene across q values
 #'   Output: SummarizedExperiment with:
 #'           - assay: genes * q_values matrix (divergence estimates)
@@ -328,7 +328,7 @@
 #'           - colData: one row per q value
 #'           - metadata: parameters, timing, sample sizes
 #' ```
-#' Matches `calculate_diversity()` input/output pattern: transcript counts SE → gene-level derivative SE
+#' Matches `calculate_diversity()` input/output pattern: transcript counts SE -> gene-level derivative SE
 #'
 #' **DESIGN PRINCIPLE - Transcript-to-Gene Aggregation:**
 #' Following Paper I033 ("Application of information theoretical approaches to assess diversity 
@@ -484,7 +484,7 @@ calculate_divergence <- function(
                                       "log_odds_ratio", "relative_reference"))
 
   # BUGFIX #4: Auto-sort q parameter for consistent output and q-spectrum analysis
-  # Sorts q values in ascending order (rare → abundant: 0.5 → 2)
+  # Sorts q values in ascending order (rare -> abundant: 0.5 -> 2)
   q <- sort(as.numeric(q))
   if (any(q <= 0)) {
     stop("q parameter must be positive. ",
@@ -776,7 +776,7 @@ calculate_divergence <- function(
       envir = environment())
 
     parallel::clusterCall(cl, function() {
-      library(SummarizedExperiment, quietly = TRUE)
+      requireNamespace("SummarizedExperiment", quietly = TRUE)
     })
 
     results_list <- parallel::parLapply(cl, seq_along(gene_indices), function(i) {
@@ -1475,13 +1475,13 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
 #'
 #' Combines LMM interaction test p-values with pre-computed Tsallis divergence
 #' effect sizes and bootstrap confidence intervals across ALL q values. This is a 
-#' **data merger**, not a model fitter—all statistical computation happens upstream in:
-#' - `calculate_lm_interaction()` → LMM p-values
-#' - `calculate_divergence()` → Divergence estimates and CIs for multiple q
+#' **data merger**, not a model fitter--all statistical computation happens upstream in:
+#' - `calculate_lm_interaction()` -> LMM p-values
+#' - `calculate_divergence()` -> Divergence estimates and CIs for multiple q
 #'
 #' This function merges the results into a single data frame for downstream
 #' interpretation. When multiple q values are present, effect sizes are computed
-#' for each q to capture the full biological spectrum (rare→abundant isoforms).
+#' for each q to capture the full biological spectrum (rare->abundant isoforms).
 #'
 #' **Architecture:**
 #' ```
@@ -1794,7 +1794,7 @@ effect_sizes_divergence <- function(
     }
 
     if (verbose && i <= min(3, length(significant_genes))) {
-      cat(" → found ", nrow(div_row), " row(s)\n", sep="")
+      cat(" -> found ", nrow(div_row), " row(s)\n", sep="")
     }
 
     if (nrow(div_row) == 0) {

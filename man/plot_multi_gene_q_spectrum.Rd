@@ -56,23 +56,34 @@ have valid data, the function returns all available genes.
 - Title shows: gene name and adjusted p-value (q-value format)
 - Per-q divergence curve with point estimates and 95% bootstrap CI bands
 - Vertical reference line at q=1 (Kullback-Leibler divergence point)
-- Region labels: "Rare Isoforms" (q<1), "Balanced" (q≈1), "Abundant Isoforms" (q>1)
+- Region labels: "Rare Isoforms" (q<1), "Balanced" (q~=1), "Abundant Isoforms" (q>1)
 - All plots use consistent ggplot2 styling matching plot_q_spectrum
 }
 \examples{
-\dontrun{
-# Mode 1: Using eff_res
-p <- plot_multi_gene_q_spectrum(eff_res = eff_res, n_genes = 9)
-print(p)
-
-# Mode 2: Using lm_res + divergence_results_se
-p <- plot_multi_gene_q_spectrum(
-  lm_res = lm_res,
-  divergence_results_se = divergence_results_se,
-  n_genes = 6, ncol = 2
+# Create simplified example showing divergence data
+# For a full multi-gene plot, use output from effect_sizes_divergence()
+set.seed(123)
+divergence_matrix <- matrix(
+  rnorm(180, mean = 0.5, sd = 0.1),
+  nrow = 20, ncol = 9
 )
-print(p)
-}
+rownames(divergence_matrix) <- paste0("gene_", 1:20)
+divergence_se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(divergence = divergence_matrix)
+)
+lm_results <- data.frame(
+  gene = paste0("gene_", 1:20),
+  adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2,
+                       0.3, 0.4, 0.5, 0.6, 0.7,
+                       0.75, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 1)
+)
+
+# Create plot of top 4 genes
+p <- plot_multi_gene_q_spectrum(
+  lm_res = lm_results,
+  divergence_results_se = divergence_se,
+  n_genes = 4
+)
 
 }
 \seealso{

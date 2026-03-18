@@ -144,24 +144,24 @@ Calculate Tsallis diversity per gene across samples
 }
 \details{
 **Database Verification (tsenat_papers.db):**
-✓ Tsallis entropy calculation: Papers I001-I004 provide complete mathematical
-  foundations for Tsallis entropy computation: S_q = (1 - Σ p_i^q) / (1 - q).
+[OK] Tsallis entropy calculation: Papers I001-I004 provide complete mathematical
+  foundations for Tsallis entropy computation: S_q = (1 - Sum p_i^q) / (1 - q).
   The q-parameter controls emphasis on rare vs. abundant transcripts through
   q_weight = 0.5 + q, affecting information gain linearly (papers S063-S067).
-✓ Entropy normalization methods: Papers I023 (Hill numbers), B002-B007 (entropy
+[OK] Entropy normalization methods: Papers I023 (Hill numbers), B002-B007 (entropy
   standardization) validate normalization approaches. "range" normalization
   [0,1] is standard; "zscore", "log_odds_ratio", and "relative_reference"
   follow published methodologies for cross-study comparison.
-✓ Effective length bias correction: Salmon quantification method (Smith et al., 2017;
+[OK] Effective length bias correction: Salmon quantification method (Smith et al., 2017;
   reference dataset S001-S003) recommends normalization by effective length to
   remove transcript-length bias. This is implemented via the effective_length parameter.
-✓ Shrinkage methodology: Empirical Bayes shrinkage uses global-mean borrowing as
+[OK] Shrinkage methodology: Empirical Bayes shrinkage uses global-mean borrowing as
   described in papers S004-S006 (Bayesian shrinkage methods), improving stability
   for genes with few expressed isoforms.
-✓ Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
+[OK] Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
   min_valid_frac >= 0.75 and pseudocount >= 0.5 achieve >=95% confidence interval
   coverage in 500+ resampling iterations.
-✓ Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
+[OK] Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
   that analyzing multiple q values reveals different aspects of isoform diversity,
   with each q capturing distinct biological information (rare vs. abundant isoform shifts).
 
@@ -169,9 +169,19 @@ Users testing genes at multiple q values can cite papers I001-I004 for theory
 and S063-S067 for power/informativeness validation.
 }
 \examples{
-data('readcounts', package = 'TSENAT')
-rc <- as.matrix(readcounts[1:20, -1, drop = FALSE])
-gs <- readcounts[1:20, 1]
-se <- calculate_diversity(rc, gs, q = 0.1, norm = TRUE)
-SummarizedExperiment::assay(se)[1:3, 1:3]
+# Create minimal example data
+set.seed(123)
+# Simulate read counts: 5 genes, 3 transcripts each, 4 samples
+counts <- matrix(
+  sample(1:100, 60, replace = TRUE),
+  nrow = 15, ncol = 4
+)
+rownames(counts) <- paste0("tx_", 1:15)
+colnames(counts) <- paste0("sample_", 1:4)
+genes <- rep(paste0("gene_", 1:5), each = 3)
+
+# Calculate diversity at q=1 (Shannon entropy)
+se <- calculate_diversity(counts, genes = genes, q = 1.0, norm = TRUE)
+head(SummarizedExperiment::assay(se))
+
 }

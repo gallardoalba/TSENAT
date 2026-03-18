@@ -1,50 +1,50 @@
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # BIAS CORRECTION STRATEGY IN TSENAT
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 #
 # IMPLEMENTATION SUMMARY (Phase 8-14):
 #
-# ✓ GEE: IMPLEMENTED - K-C bias correction for sandwich variance (R/effect_size.R)
-#   • Addresses: Sandwich variance underestimation in small samples with GEE
-#   • Method: Kenward-Roger/HC1 correction
-#   • Literature support: 34 papers recommend K-C for GEE sandwich variance estimation
-#   • When: Applied when using GEE models with small clusters (n < 30)
+# [OK] GEE: IMPLEMENTED - K-C bias correction for sandwich variance (R/effect_size.R)
+#   * Addresses: Sandwich variance underestimation in small samples with GEE
+#   * Method: Kenward-Roger/HC1 correction
+#   * Literature support: 34 papers recommend K-C for GEE sandwich variance estimation
+#   * When: Applied when using GEE models with small clusters (n < 30)
 #
-# ✓ GAM: IMPLEMENTED - Smoothing bias correction for small samples (this file, lines 80-121)
-#   • Addresses: Type I error inflation from smoothing splines when n_samples < 20
-#   • Method: Conservative p-value adjustment (factor = 1 + (20-n)/20)
-#   • Literature support: 10+ papers discuss smoothing bias in GAM
-#   • When: Applied when using GAM method with bias_correction=TRUE and n < 20
-#   • Test file: tests/testthat/test-gam_bias_correction.R (31 tests passing)
+# [OK] GAM: IMPLEMENTED - Smoothing bias correction for small samples (this file, lines 80-121)
+#   * Addresses: Type I error inflation from smoothing splines when n_samples < 20
+#   * Method: Conservative p-value adjustment (factor = 1 + (20-n)/20)
+#   * Literature support: 10+ papers discuss smoothing bias in GAM
+#   * When: Applied when using GAM method with bias_correction=TRUE and n < 20
+#   * Test file: tests/testthat/test-gam_bias_correction.R (31 tests passing)
 #
-# ✗ LMM: NOT IMPLEMENTED - Not literature-supported for hypothesis testing
-#   • Analysis: Papers S160-S164 (Phase 12 integration) address ESTIMATION bias
-#   • Finding: These papers discuss bias in parameter estimation (coefficients, variance components)
-#   • NOT discussed: Bias in hypothesis testing (p-values) for linear mixed models
-#   • Reason: Satterthwaite/Kenward-Roger t-distribution inherently accounts for small-sample effects
-#   • Type I error: Already controlled in LMM hypothesis testing even with n < 20
-#   • Potential future work: Parameter estimation bias correction (not currently needed)
-#   • Test file: tests/testthat/test-lmm_bias_correction_analysis.R (8 tests documenting this decision)
+# [X] LMM: NOT IMPLEMENTED - Not literature-supported for hypothesis testing
+#   * Analysis: Papers S160-S164 (Phase 12 integration) address ESTIMATION bias
+#   * Finding: These papers discuss bias in parameter estimation (coefficients, variance components)
+#   * NOT discussed: Bias in hypothesis testing (p-values) for linear mixed models
+#   * Reason: Satterthwaite/Kenward-Roger t-distribution inherently accounts for small-sample effects
+#   * Type I error: Already controlled in LMM hypothesis testing even with n < 20
+#   * Potential future work: Parameter estimation bias correction (not currently needed)
+#   * Test file: tests/testthat/test-lmm_bias_correction_analysis.R (8 tests documenting this decision)
 #
 # LITERATURE BASIS:
 # Papers confirming this strategy:
-#   • S160: Selection bias in linear mixed models (bias in parameter estimation context)
-#   • S161: Bias Correction in GLMM (focus: variance component and coefficient estimation)
-#   • S163-S164: Bias correction for parameter estimation, not test statistics
-#   • Phase 11 validation: Database analysis confirming GEE/GAM bias corrections needed
+#   * S160: Selection bias in linear mixed models (bias in parameter estimation context)
+#   * S161: Bias Correction in GLMM (focus: variance component and coefficient estimation)
+#   * S163-S164: Bias correction for parameter estimation, not test statistics
+#   * Phase 11 validation: Database analysis confirming GEE/GAM bias corrections needed
 #
 # KEY DISTINCTION:
-# • Parameter Estimation Bias: Average value of estimator differs from true parameter
-#   → Addressed in papers S160-S164 for LMM/GLMM
-#   → Could affect confidence intervals if severe
-#   → Not currently affecting HYPOTHESIS TESTING in TSENAT (Satterthwaite is sufficient)
+# * Parameter Estimation Bias: Average value of estimator differs from true parameter
+#   -> Addressed in papers S160-S164 for LMM/GLMM
+#   -> Could affect confidence intervals if severe
+#   -> Not currently affecting HYPOTHESIS TESTING in TSENAT (Satterthwaite is sufficient)
 #
-# • Hypothesis Testing Bias: Type I error rate differs from nominal α
-#   → Addressed in TSENAT for GEE (sandwich variance bias)
-#   → Addressed in TSENAT for GAM (smoothing bias)
-#   → NOT needed for LMM (Satterthwaite inherently conservative)
+# * Hypothesis Testing Bias: Type I error rate differs from nominal alpha
+#   -> Addressed in TSENAT for GEE (sandwich variance bias)
+#   -> Addressed in TSENAT for GAM (smoothing bias)
+#   -> NOT needed for LMM (Satterthwaite inherently conservative)
 #
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 
 # Summary reporting helper
 .tsenat_report_fit_summary <- function(res, verbose = TRUE) {
@@ -130,16 +130,16 @@
 # designed for exchangeable correlation (ICC), but TSENAT uses AR(1) correlation
 # after ARIMA(1,1,0) differencing. These are fundamentally different.
 # 
-# For AR(1) correlation with autocorrelation coefficient φ:
-#   D_eff = (1 + φ) / (1 - φ)  [for large m: m >> 1]
+# For AR(1) correlation with autocorrelation coefficient phi:
+#   D_eff = (1 + phi) / (1 - phi)  [for large m: m >> 1]
 #   
 # For moderate m (typical in multi-q designs where m = q-values per subject):
-#   D_eff = (1 + φ) / (1 - φ) * [1 - φ^m] / [m - (m-1)φ^m]
+#   D_eff = (1 + phi) / (1 - phi) * [1 - phi^m] / [m - (m-1)phi^m]
 #   
 # This formula assumes:
-#   - ρ applied to DIFFERENCED entropy (ARIMA(1,1,0) applied first)
+#   - rho applied to DIFFERENCED entropy (ARIMA(1,1,0) applied first)
 #   - m = cluster_size = observations per subject (typically q-values)
-#   - φ = autocorrelation on differenced data (0 < φ < 1)
+#   - phi = autocorrelation on differenced data (0 < phi < 1)
 #
 # Reference:
 #   Diggle et al. (2002) "Analysis of Longitudinal Data" Section 4.3
@@ -147,18 +147,18 @@
 #   Liang & Zeger (1986) "Longitudinal data analysis using GEE"
 #
 # COMPARISON: Why AR(1) formula differs from Kish:
-#   Kish formula 1 + (m-1)ρ: Assumes exchangeable correlation (ICC)
-#     - All pairs equally correlated with ICC ρ
+#   Kish formula 1 + (m-1)rho: Assumes exchangeable correlation (ICC)
+#     - All pairs equally correlated with ICC rho
 #     - Appropriate for clusters with homogeneous correlation
-#   AR(1) formula (1+φ)/(1-φ): Assumes geometric correlation decay
-#     - Correlation decreases as lag k increases: Corr(t, t+k) = φ^k
+#   AR(1) formula (1+phi)/(1-phi): Assumes geometric correlation decay
+#     - Correlation decreases as lag k increases: Corr(t, t+k) = phi^k
 #     - Appropriate for ordered measurements (like q-values)
 #     - Applied to differenced data (ARIMA(1,1,0) stationarity)
 #
 .tsenat_ar1_design_effect <- function(rho, cluster_size) {
     # Compute design effect for AR(1) correlation
     # Args:
-    #   rho: autocorrelation coefficient φ on differenced data (0 <= φ <= 1)
+    #   rho: autocorrelation coefficient phi on differenced data (0 <= phi <= 1)
     #   cluster_size: m = observations per subject (e.g., number of q-values)
     # Returns:
     #   D_eff = design effect to adjust effective sample size as n_eff = n_subjects / D_eff
@@ -173,7 +173,7 @@
         return(as.numeric(cluster_size))
     }
     
-    # AR(1) design effect: D_eff = 1 + 2*Σ_{k=1}^{m-1} (1 - k/m)*ρ^k
+    # AR(1) design effect: D_eff = 1 + 2*Sum_{k=1}^{m-1} (1 - k/m)*rho^k
     # This accounts for geometric correlation decay and edge effects
     # Reference: Diggle et al. (2002), Crowder (1995)
     
@@ -191,10 +191,10 @@
 }
 
 .tsenat_estimate_ar1_rho <- function(entropy_diff, subject_vec = NULL) {
-    # Estimate first-order autocorrelation ρ from differenced entropy
-    # Input: entropy_diff = first-differenced entropy values ΔH_q = H_q - H_{q-1}
-    # Returns: ρ estimate in [0, 1], or NULL if insufficient data
-    # Issues warning if ρ is very high (GAMM convergence risk)
+    # Estimate first-order autocorrelation rho from differenced entropy
+    # Input: entropy_diff = first-differenced entropy values DeltaH_q = H_q - H_{q-1}
+    # Returns: rho estimate in [0, 1], or NULL if insufficient data
+    # Issues warning if rho is very high (GAMM convergence risk)
     
     if (is.null(entropy_diff) || length(na.omit(entropy_diff)) < 3) {
         return(NULL)
@@ -208,7 +208,7 @@
     }
     
     # Compute ACF at lag 1
-    # Manual calculation: ρ = Cov(X_t, X_{t-1}) / Var(X_t)
+    # Manual calculation: rho = Cov(X_t, X_{t-1}) / Var(X_t)
     n <- length(entropy_clean)
     mean_x <- mean(entropy_clean, na.rm = TRUE)
     
@@ -227,7 +227,7 @@
     # ACF at lag 1
     rho_est <- cov_lag1 / var_x
     
-    # Ensure ρ is in [0, 1] (sometimes numerical errors give slight negative values)
+    # Ensure rho is in [0, 1] (sometimes numerical errors give slight negative values)
     rho_est <- max(0, min(1, rho_est))
     
     # OPTIMIZATION (March 2026): Add tolerance checks for edge cases
@@ -266,7 +266,7 @@
         stop("must supply either 'n_observations' or 'n_samples'", call. = FALSE)
     }
     # For Tsallis multi-q design with ARIMA(1,1,0) covariance:
-    # - First differences ΔH_q = H_q - H_{q-1} are modeled as AR(1) [IMPLEMENTED]
+    # - First differences DeltaH_q = H_q - H_{q-1} are modeled as AR(1) [IMPLEMENTED]
     # - Differencing removes monotone trend in Tsallis entropy (dH/dq < 0) [VERIFIED]
     # - True independent units are subjects, not observations
     # - Bias correction threshold should use n_subjects, not n_observations
@@ -288,10 +288,10 @@
     # CRITICAL FIX March 2026: Use AR(1)-specific design effect formula (NOT Kish exchangeable formula)
     # 
     # Background:
-    # - Previous code used: D_eff = 1 + (m-1)ρ [Kish formula for ICC/exchangeable]
-    # - Correct for AR(1): D_eff = (1+φ)/(1-φ) [Diggle et al. 2002]
+    # - Previous code used: D_eff = 1 + (m-1)rho [Kish formula for ICC/exchangeable]
+    # - Correct for AR(1): D_eff = (1+phi)/(1-phi) [Diggle et al. 2002]
     # - These formulas apply to VERY different correlation structures
-    # - AR(1) is appropriate for ordered q-values with geometric decay: Corr(t,t+k) = φ^k
+    # - AR(1) is appropriate for ordered q-values with geometric decay: Corr(t,t+k) = phi^k
     
     if (ar1_correlation && n_observations > n_subjects && n_observations > 0) {
         # Compute intra-subject cluster size
@@ -311,13 +311,13 @@
         
         if (is.null(rho_avg)) {
             # ARIMA(1,1,0) average correlation on first differences (trend-removed)
-            # Conservative default: ρ = 0.35 based on AR(1) applied to differenced data
+            # Conservative default: rho = 0.35 based on AR(1) applied to differenced data
             # SENSITIVITY ANALYSIS for AR(1) design effect:
-            #   - ρ = 0.20: D_eff = (1.2)/(0.8) = 1.5, n_eff = n_subjects / 1.5
-            #   - ρ = 0.35: D_eff = (1.35)/(0.65) = 2.08, n_eff = n_subjects / 2.08
-            #   - ρ = 0.50: D_eff = (1.5)/(0.5) = 3.0, n_eff = n_subjects / 3.0
+            #   - rho = 0.20: D_eff = (1.2)/(0.8) = 1.5, n_eff = n_subjects / 1.5
+            #   - rho = 0.35: D_eff = (1.35)/(0.65) = 2.08, n_eff = n_subjects / 2.08
+            #   - rho = 0.50: D_eff = (1.5)/(0.5) = 3.0, n_eff = n_subjects / 3.0
             # (Accounting for finite-m corrections depending on cluster_size)
-            # Note: Much higher D_eff than Kish (which gave 1.2-1.6 for same ρ)
+            # Note: Much higher D_eff than Kish (which gave 1.2-1.6 for same rho)
             # This demonstrates importance of using AR(1)-specific formula
             rho_avg <- 0.35
             data_driven_rho <- FALSE
@@ -337,11 +337,11 @@
     }
     
     # Bias correction decision: use raw observation count rather than
-    # ARIMA‑adjusted effective units.  Historical tests (and published C071
+    # ARIMA-adjusted effective units.  Historical tests (and published C071
     # guidance) trigger correction when the number of samples is small
     # (<20); the original implementation compared against n_eff, which
     # under AR(1) dependency could fall below 20 even for reasonably large
-    # datasets and therefore caused over‑conservative adjustments.  To keep
+    # datasets and therefore caused over-conservative adjustments.  To keep
     # behaviour compatible with existing user expectations we now only
     # suppress bias correction when the *observed* sample size is large.
     if (!bias_correction || n_observations >= 20) {
@@ -441,7 +441,7 @@
 # This monotonicity makes the series NON-STATIONARY (systematic/deterministic trend)
 # 
 # AR(1) models assume stationarity (constant mean/variance around trend)
-# Solution: ARIMA(1,1,0) = Apply AR(1) to FIRST DIFFERENCES ΔH_q = H_q - H_{q-1}
+# Solution: ARIMA(1,1,0) = Apply AR(1) to FIRST DIFFERENCES DeltaH_q = H_q - H_{q-1}
 # This removes the trend (differencing) allowing AR(1) to model residual correlation
 #
 # VALIDATION FRAMEWORK: Four complementary tests to validate assumptions
@@ -473,11 +473,11 @@
 #
 # DECISION LOGIC FOR ARIMA(1,1,0):
 #   Use ARIMA(1,1,0) if ALL conditions met:
-#   ✓ Raw data is NON-monotone (>5% violations) OR fails stationarity tests
-#   ✓ ADF test FAILs to reject H0 on raw data (has unit root)
-#   ✓ KPSS test REJECTs H0 on raw data (non-stationary)
-#   ✓ ADF test REJECTs H0 on differenced data (stationary)
-#   ✓ KPSS test FAILs to reject H0 on differenced data (stationary)
+#   [OK] Raw data is NON-monotone (>5% violations) OR fails stationarity tests
+#   [OK] ADF test FAILs to reject H0 on raw data (has unit root)
+#   [OK] KPSS test REJECTs H0 on raw data (non-stationary)
+#   [OK] ADF test REJECTs H0 on differenced data (stationary)
+#   [OK] KPSS test FAILs to reject H0 on differenced data (stationary)
 #
 # REFERENCES:
 #   Dickey, D. A., & Fuller, W. A. (1979). Distribution of the estimators for
@@ -497,26 +497,26 @@
 # Reference: Null hypothesis tests for time series stationarity (Dickey-Fuller, KPSS)
 # 
 # For Tsallis entropy in ordered q-values:
-# - Raw data: H_q is monotone decreasing → SHOULD BE NON-STATIONARY
-# - Differenced: ΔH_q = H_q - H_{q-1} → SHOULD BE STATIONARY
+# - Raw data: H_q is monotone decreasing -> SHOULD BE NON-STATIONARY
+# - Differenced: DeltaH_q = H_q - H_{q-1} -> SHOULD BE STATIONARY
 # 
 # These tests VALIDATE the ARIMA(1,1,0) modeling approach
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # RESIDUAL DIAGNOSTICS: Shapiro-Wilk Normality Testing
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # 
 # DATABASE EVIDENCE (March 2026):
-# • B001 (2001) - Foundations of Systems Biology
-# • B004 (2008) - LINEAR MODELS IN [Systems Biology]
-# • C017 (2006) - Springer Handbook of Statistical Methods
+# * B001 (2001) - Foundations of Systems Biology
+# * B004 (2008) - LINEAR MODELS IN [Systems Biology]
+# * C017 (2006) - Springer Handbook of Statistical Methods
 #
 # Purpose: Verify that residuals from GAM/LMM/GEE models satisfy normality assumption
 # Method: Shapiro-Wilk test on model residuals (tests H0: residuals are normal)
 # Standard Practice: Applied universally in statistical modeling literature
 # Interpretation:
-#   • p > 0.05: Fail to reject H0 → Residuals appear normal ✓
-#   • p ≤ 0.05: Reject H0 → Residuals show significant departure from normality ⚠
+#   * p > 0.05: Fail to reject H0 -> Residuals appear normal [OK]
+#   * p <= 0.05: Reject H0 -> Residuals show significant departure from normality ?
 #
 # Implementation: Extract residuals from fitted model, apply shapiro.test()
 
@@ -624,7 +624,7 @@
             residuals_normal = NA,
             n_residuals = n_res,
             test_status = "error",
-            report = sprintf("Insufficient residuals for Shapiro-Wilk test (n=%d, need ≥3)", n_res)
+            report = sprintf("Insufficient residuals for Shapiro-Wilk test (n=%d, need >=3)", n_res)
         ))
     }
     
@@ -647,10 +647,10 @@
     
     # Extract test statistics
     p_value <- test_result$p.value
-    is_normal <- p_value > 0.05  # Fail to reject H0 at α=0.05
+    is_normal <- p_value > 0.05  # Fail to reject H0 at alpha=0.05
     
     if (verbose) {
-        status_text <- if (is_normal) "PASS ✓" else "FAIL ⚠"
+        status_text <- if (is_normal) "PASS [OK]" else "FAIL ?"
         message(sprintf("[.tsenat_test_residual_normality] %s (p=%.4f, n=%d residuals)",
                        status_text, p_value, n_res))
     }
@@ -734,8 +734,8 @@
     #   List with: test_stat, p_value, lag_used, conclusion, report (string)
     # 
     # H0: Unit root present (non-stationary)
-    # Reject H0 → series is stationary
-    # Fail to reject H0 → series is non-stationary (may have unit root)
+    # Reject H0 -> series is stationary
+    # Fail to reject H0 -> series is non-stationary (may have unit root)
     
     if (is.null(time_series) || length(na.omit(time_series)) < 5) {
         return(list(
@@ -762,9 +762,9 @@
         ))
     }
     
-    # Simplified ADF: regress Δy_t on y_{t-1} and lagged differences
-    # y_t = c + β*y_{t-1} + Σ α_i*Δy_{t-i} + ε_t
-    # Test: H0: β = 0 (unit root, non-stationary)
+    # Simplified ADF: regress Deltay_t on y_{t-1} and lagged differences
+    # y_t = c + beta*y_{t-1} + Sum alpha_i*Deltay_{t-i} + ?_t
+    # Test: H0: beta = 0 (unit root, non-stationary)
     
     n <- length(ts_clean)
     y <- ts_clean
@@ -775,13 +775,13 @@
     lag_order <- min(max_lag, max(1, floor(sqrt(n))))
     
     # Build regression matrix
-    # Dependent variable: dy[2:n] (Δy_t for t=2,...,n)
+    # Dependent variable: dy[2:n] (Deltay_t for t=2,...,n)
     # Predictor 1: y[1:(n-1)] (y_{t-1})
     # Predictor 2+: lagged differences dy[1:(n-lag_order-1)], etc.
     
     y_lag1 <- y[1:(n-1)]
-    dy_response <- dy[2:length(dy)]  # Δy_t for t=2
-    y_lag1_response <- y_lag1[2:length(y_lag1)]  # y_{t-1} aligned with Δy_t
+    dy_response <- dy[2:length(dy)]  # Deltay_t for t=2
+    y_lag1_response <- y_lag1[2:length(y_lag1)]  # y_{t-1} aligned with Deltay_t
     
     # Simple regression: just use y_{t-1} without augmentation for stability
     valid_idx <- !is.na(dy_response) & !is.na(y_lag1_response)
@@ -799,7 +799,7 @@
     dy_model <- dy_response[valid_idx]
     y_lag_model <- y_lag1_response[valid_idx]
     
-    # Fit: Δy_t = β * y_{t-1} + ε_t
+    # Fit: Deltay_t = beta * y_{t-1} + ?_t
     fit <- try(lm(dy_model ~ y_lag_model), silent = TRUE)
     if (inherits(fit, "try-error")) {
         return(list(
@@ -812,7 +812,7 @@
         ))
     }
     
-    # Extract t-statistic for β (coefficient on y_lag_model)
+    # Extract t-statistic for beta (coefficient on y_lag_model)
     coef_table <- tryCatch(coef(summary(fit)), error = function(e) NULL)
     if (is.null(coef_table) || nrow(coef_table) < 2) {
         return(list(
@@ -854,7 +854,7 @@
         stationary = stationary,
         conclusion = if(is.na(stationary)) "FAILED" else if(stationary) "REJECT_H0:_STATIONARY" else "FAIL_REJECT_H0:_NON-STATIONARY",
         report = sprintf(
-            "ADF test (lag=%d): t=%.3f, crit=%.3f. %s → %s",
+            "ADF test (lag=%d): t=%.3f, crit=%.3f. %s -> %s",
             lag_order, t_stat, critical_value,
             if(is.na(stationary)) "FAILED" else if(t_stat < critical_value) "REJECT H0" else "FAIL REJECT H0",
             if(is.na(stationary)) "inconclusive" else if(stationary) "STATIONARY (rejects unit root)" else "NON-STATIONARY (has unit root)"
@@ -873,8 +873,8 @@
     #   List with: test_stat, p_value, conclusion, report (string)
     # 
     # H0: Series is stationary
-    # Reject H0 → series is NON-stationary
-    # Fail to reject H0 → series is stationary
+    # Reject H0 -> series is NON-stationary
+    # Fail to reject H0 -> series is stationary
     
     if (is.null(time_series) || length(na.omit(time_series)) < 5) {
         return(list(
@@ -969,7 +969,7 @@
         stationary = stationary,
         conclusion = if(reject_h0) "REJECT_H0:_NON-STATIONARY" else "FAIL_REJECT_H0:_STATIONARY",
         report = sprintf(
-            "KPSS test (trend=%s): LM=%.3f, crit=%.3f. %s → %s",
+            "KPSS test (trend=%s): LM=%.3f, crit=%.3f. %s -> %s",
             trend, kpss_stat, crit_5pct,
             if(reject_h0) "REJECT H0" else "FAIL REJECT H0",
             if(stationary) "STATIONARY" else "NON-STATIONARY"
@@ -1045,15 +1045,15 @@
         ),
         arima_justified = arima_justified,
         recommendation = if(arima_justified)
-            "✓ Use ARIMA(1,1,0): differencing removes trend, AR(1) appropriate for residuals" else
-            "⚠ REVIEW: Stationarity assumptions may not hold, consider alternative modeling",
+            "[OK] Use ARIMA(1,1,0): differencing removes trend, AR(1) appropriate for residuals" else
+            "? REVIEW: Stationarity assumptions may not hold, consider alternative modeling",
         report = sprintf(
             "STATIONARITY VALIDATION for %s:\n%s\nRaw: %s, %s\nDiff: %s, %s\n%s",
             gene_name,
             mono_check$report,
             adf_raw$report, kpss_raw$report,
             adf_diff$report, kpss_diff$report,
-            if(arima_justified) "✓ ARIMA(1,1,0) assumptions validated" else "⚠ Issues detected"
+            if(arima_justified) "[OK] ARIMA(1,1,0) assumptions validated" else "? Issues detected"
         )
     ))
 }
@@ -1064,7 +1064,7 @@
     # Background:
     # - Tsallis entropy H_q is monotone decreasing in q (non-stationary)
     # - AR(1) assumes stationarity (constant mean, variance)
-    # - Solution: Apply AR(1) to first differences ΔH_q = H_q - H_{q-1}
+    # - Solution: Apply AR(1) to first differences DeltaH_q = H_q - H_{q-1}
     # - Result: ARIMA(1,1,0) = Integrated AR(1) = AR(1) on differenced data
     #
     # Implementation notes:
@@ -1114,11 +1114,11 @@
         # Extract subject data (should already be sorted by q)
         subj_data <- df_full[subj_idx, ]
         
-        # Compute differences: ΔH_q = H_q - H_{q-1}
+        # Compute differences: DeltaH_q = H_q - H_{q-1}
         n_diff <- nrow(subj_data) - 1
         
         df_diff_list[[subj]] <- data.frame(
-            entropy_diff = diff(subj_data$entropy),  # ΔH_q
+            entropy_diff = diff(subj_data$entropy),  # DeltaH_q
             q = subj_data$q[-1],                      # q indices for differences
             q_prev = subj_data$q[-nrow(subj_data)],   # q_{q-1} for reference
             group = subj_data$group[-nrow(subj_data)],  # Group for first q in pair
@@ -1207,15 +1207,15 @@
 # Priority: Beta (if [0,1] bounded) > Gamma (if heteroscedastic) > Gaussian (default)
 # Tsallis entropy is mathematically bounded [0, log(m)], but Beta is ideal for [0,1]
 .tsenat_select_gam_family <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     # INDICATOR 1: Check if data is [0,1] bounded (ideal for Beta regression)
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     entropy_vals <- na.omit(df$entropy)
     is_bounded_01 <- .tsenat_is_bounded_0_1(entropy_vals)
     
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     # INDICATOR 2: Heteroscedasticity detection
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     hetero_result <- try(
         .tsenat_detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
         silent = TRUE
@@ -1231,9 +1231,9 @@
         var_ratio_group <- if (is.null(hetero_result$var_ratio_group)) 1 else hetero_result$var_ratio_group
     }
     
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     # INDICATOR 3: Boundary clustering (values near 0 or 1)
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     n_total <- length(entropy_vals)
     
     # Find actual bounds from data
@@ -1247,17 +1247,17 @@
     n_near_max <- sum(entropy_vals >= entropy_max - boundary_threshold)
     pct_boundary_clustering <- 100 * (n_near_min + n_near_max) / n_total
     
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     # INDICATOR 4: Skewness (asymmetry indicates non-Gaussian behavior)
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     # Skewness = (mean - median) / sd * constant; values > 1 or < -1 indicate strong asymmetry
     skewness_val <- .tsenat_compute_skewness(entropy_vals)
     has_strong_skew <- abs(skewness_val) > 1.0
     
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     # DECISION LOGIC (NEW - March 2026)
     # Priority: Beta > Gamma > Gaussian
-    # ─────────────────────────────────────────────────────────────────────
+    # ---------------------------------------------------------------------
     use_beta <- FALSE
     use_gamma <- FALSE
     family_choice <- "gaussian"
@@ -1358,7 +1358,7 @@
         # Beta regression respects bounds and handles skewness naturally
         #
         # CRITICAL: For continuous data in (0,1), use quasibinomial NOT binomial
-        # - binomial() expects count/binary data → gives warnings for continuous values
+        # - binomial() expects count/binary data -> gives warnings for continuous values
         # - quasibinomial() is designed for continuous proportions in (0,1)
         # - Alternatively, mgcv::betar() (v1.8.41+) is specialized for beta regression
         #
@@ -1410,9 +1410,9 @@
     }
 }
 
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (March 2026)
-# ════════════════════════════════════════════════════════════════════════════════
+# ================================================================================
 # Tsallis entropy often exhibits variance that depends on:
 #   1. Mean entropy level (mean-variance relationship)
 #   2. q-value (variance changes across diversity orders)
@@ -1497,11 +1497,11 @@
 # Estimate variance weights for heteroscedasticity adjustment
 .tsenat_estimate_variance_weights <- function(df, q_vals, method = "power", verbose = FALSE) {
     # Estimate weights to model variance heterogeneity
-    # method = "power": Model Var ~ q^θ, compute weights w_i = q_i^(-θ)
+    # method = "power": Model Var ~ q^?, compute weights w_i = q_i^(-?)
     # method = "residual": Use residual variance from OLS as observation weights
     
     if (method == "power") {
-        # Estimate power parameter θ via regression: log(residuals_sq) ~ q
+        # Estimate power parameter ? via regression: log(residuals_sq) ~ q
         # First, fit OLS to get residuals
         fit_ols <- try(
             lm(entropy ~ q + group, data = df),
@@ -1523,9 +1523,9 @@
         residuals_ols <- residuals(fit_ols)
         residuals_sq <- residuals_ols^2
         
-        # This gives: log(Var) = log(σ²) + θ * log(q)
-        # So: Var ~ σ² * q^θ
-        # Weights: w_i = 1 / (σ² * q_i^θ) ∝ q_i^(-θ)
+        # This gives: log(Var) = log(sigma2) + ? * log(q)
+        # So: Var ~ sigma2 * q^?
+        # Weights: w_i = 1 / (sigma2 * q_i^?) ? q_i^(-?)
         
         w <- 1 / (residuals_sq + 1e-8)
         wfit <- try(
@@ -1542,7 +1542,7 @@
                 weights <- weights / mean(weights, na.rm = TRUE)  # Standardize
                 
                 if (verbose) {
-                    message(sprintf("[Variance Weighting] Estimated power parameter θ = %.3f", theta_est))
+                    message(sprintf("[Variance Weighting] Estimated power parameter ? = %.3f", theta_est))
                 }
                 
                 return(list(
@@ -1603,7 +1603,7 @@
     # GAMM with ARIMA(1,1,0) covariance structure for q-dependent entropy measurements
     # Paper S171 (Zimmerman & Harville, 1991): Validates generalized covariance structures.
     # Papers S168-S170: Theoretical foundation for time series correlation patterns.
-    # TEST L.1.6: Confirms first differences ΔH_q follow AR(1) pattern via ARIMA(1,1,0).
+    # TEST L.1.6: Confirms first differences DeltaH_q follow AR(1) pattern via ARIMA(1,1,0).
     #
     # Adaptive knot selection (ENHANCED - March 2026):
     # - automatic_knots = TRUE: per-gene adaptivity based on entropy curve complexity
@@ -1623,16 +1623,16 @@
         df$group <- factor(df$group)
     }
     
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     # BOUNDED SUPPORT HANDLING (CRITICAL FIX - March 2026)
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     # MUST be done BEFORE ARIMA differencing to:
     # 1. Detect bounds on ORIGINAL entropy (not differenced)
     # 2. Stabilize entropy before any transformations
     # 3. Preserve ARIMA structure for differenced data
     # 
     # Bug fix: Was previously done AFTER ARIMA differencing, which:
-    # - Checked bounds on differences ΔH_q (can be negative, so bounds check always failed)
+    # - Checked bounds on differences DeltaH_q (can be negative, so bounds check always failed)
     # - Tried to stabilize differences (clamping negatives to 1e-7, destroying AR(1) structure)
     bounded_result <- .tsenat_handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
     use_bounded_family <- bounded_result$use_gamma
@@ -1654,11 +1654,11 @@
         df <- bounded_result$stabilized_df
     }
     
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (FIXED - March 2026)
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     # CRITICAL FIX: Detect heteroscedasticity on ORIGINAL entropy BEFORE ARIMA differencing
-    # BUG #5 FIX: Was previously called after ARIMA, so it tested variance of differences ΔH_q
+    # BUG #5 FIX: Was previously called after ARIMA, so it tested variance of differences DeltaH_q
     #             Now properly analyzes variance pattern of original entropy
     # 
     # Weights are computed on original data; if ARIMA is applied later, they will NOT be used
@@ -1787,8 +1787,8 @@
         }
         
         # Fit GAMM with ARIMA(1,1,0) covariance structure for q-measurements within subjects
-        # ARIMA(1,1,0): First difference ΔH_q modeled as AR(1) to handle monotone trend
-        # Cov(ΔY_t, ΔY_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
+        # ARIMA(1,1,0): First difference DeltaH_q modeled as AR(1) to handle monotone trend
+        # Cov(DeltaY_t, DeltaY_s) = sigma^2 phi^|t-s| where t,s are q-ordered indices
         # This separates trend (differencing) from autocorrelation, validated in TEST L.1.6
         # BOUNDED SUPPORT: Use quasibinomial(logit) if entropy is bounded [0, log(m)]
         # HETEROSCEDASTICITY: Use weights parameter to model variance heterogeneity
@@ -2246,10 +2246,10 @@
     # Add fit method tag
     result$fit_method <- ifelse(use_arima, "mgcv::gamm_arima(1,1,0)", "mgcv::gamm")
     
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     # RESIDUAL NORMALITY TESTING (NEW - March 2026)
     # Database Evidence: B001, B004, C017 (Normality testing in regression)
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     shapiro_result <- .tsenat_test_residual_normality(
         model = fit_alt,
         model_type = if (!is.null(subject)) "gamm" else "gam",
@@ -2294,8 +2294,8 @@
 #
 # How FPCA respects ordering and stationarity:
 # 1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix) ensures stationarity
-#    - Removes monotone trend by differencing: ΔH_q = H_q - H_{q-1}
-#    - AR(1) correlation model fits to ΔH_q (differenced data), not raw H_q
+#    - Removes monotone trend by differencing: DeltaH_q = H_q - H_{q-1}
+#    - AR(1) correlation model fits to DeltaH_q (differenced data), not raw H_q
 # 2. Curve matrix has q-values as columns (preserves sequential order)
 # 3. PCA on differenced curves decomposes VARIANCE around mean (centered data)
 #    - PC1 captures primary mode of shape variation (e.g., steepness of decrease)
@@ -2310,7 +2310,7 @@
 # - AR(1) correlation structure is modeled in differenced data (before PCA)
 # - PCA does NOT model AR(1) structure; it decomposes centered variance
 # - FPCA testing detects curve SHAPE differences between groups
-# - TEST L.1.6 Validation confirms differenced data follow AR(1) pattern: ρ(k) = φ^|k|
+# - TEST L.1.6 Validation confirms differenced data follow AR(1) pattern: rho(k) = phi^|k|
 # - Stationarity is achieved via differencing; functional basis (smooth PCs) is appropriate for resulting stationary data
 #
 .tsenat_fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 10, subject = NULL, 
@@ -2319,7 +2319,7 @@
     
     # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
     # Apply differencing BEFORE curve matrix construction to ensure PCA respects stationarity
-    # Tsallis entropy is monotone decreasing in q → apply AR(1) to ΔH_q instead of H_q
+    # Tsallis entropy is monotone decreasing in q -> apply AR(1) to DeltaH_q instead of H_q
     df_for_diff <- data.frame(
         entropy = as.numeric(mat[g, ]),
         q = as.numeric(q_vals),
@@ -2373,7 +2373,7 @@
     # Create curve matrix: rows = samples, columns = sorted unique q-values (ORDERED structure)
     # This preserves the fundamental property of Tsallis entropy: q-values are ORDERED measurements
     # The ordering is critical: PCA on adjacent q-values captures smooth functional dependence
-    # that respects the AR(1) pattern validated in TEST L.1.6 (ρ(k) = φ^|k|)
+    # that respects the AR(1) pattern validated in TEST L.1.6 (rho(k) = phi^|k|)
     uq <- sort(unique(q_vals_work))
     samples_u <- unique(sample_names_work)
     curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
@@ -2762,11 +2762,11 @@
         # Paper S171 (Zimmerman & Harville, 1991): "Linear Models with Generalized AR(1) 
         # Covariance Structure for Longitudinal and Spatial Data" validates this approach.
         # Papers S168-S170: Theoretical foundation and empirical estimation of AR(1) parameters.
-        # TEST L.1.6: Confirms q-value correlation follows AR(1) pattern (ρ(k) = φ^|k|).
+        # TEST L.1.6: Confirms q-value correlation follows AR(1) pattern (rho(k) = phi^|k|).
         #
         # CRITICAL FIX (March 2026): Implements true ARIMA(1,1,0) by:
-        # 1. Computing first differences ΔH_q = H_q - H_{q-1} within each subject
-        # 2. Ensuring stationarity: ΔH_q has constant mean (unlike monotone H_q)
+        # 1. Computing first differences DeltaH_q = H_q - H_{q-1} within each subject
+        # 2. Ensuring stationarity: DeltaH_q has constant mean (unlike monotone H_q)
         # 3. Applying AR(1) to differenced data (not raw entropy)
         # 4. Fitting all models (null and alt) on differenced entropy
         #
@@ -2835,7 +2835,7 @@
             df_model <- arima_result$df
             use_arima <- TRUE
             if (verbose) {
-                message(sprintf("[calculate_lm_interaction] ARIMA(1,1,0): %d observations → %d after differencing", 
+                message(sprintf("[calculate_lm_interaction] ARIMA(1,1,0): %d observations -> %d after differencing", 
                     arima_result$n_observations_original, arima_result$n_observations_differenced))
             }
         }
@@ -2871,9 +2871,9 @@
             }
         }
         
-        # ═══════════════════════════════════════════════════════════════════════════════
+        # ===============================================================================
         # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (NEW - March 2026)
-        # ═══════════════════════════════════════════════════════════════════════════════
+        # ===============================================================================
         # Detect q-dependent and group-dependent variance heterogeneity
         # Apply nlme::varPower() to model variance heterogeneity if detected
         hetero_result <- .tsenat_detect_heteroscedasticity(df_model, df_model$q, df_model$group)
@@ -2888,12 +2888,12 @@
         }
         
         # Fit nlme models with AR(1) covariance structure for q-measurements within subjects
-        # AR(1) model: Cov(Y_t, Y_s) = sigma^2 φ^|t-s| where t,s are q-ordered indices
-        # *** CRITICAL: Now applied to differenced entropy ΔH_q, not raw H_q ***
+        # AR(1) model: Cov(Y_t, Y_s) = sigma^2 phi^|t-s| where t,s are q-ordered indices
+        # *** CRITICAL: Now applied to differenced entropy DeltaH_q, not raw H_q ***
         # HETEROSCEDASTICITY: Add varPower() structure if heteroscedasticity detected
         
         if (use_var_structure) {
-            # Include variance power model: Var(Y) ~ q^θ
+            # Include variance power model: Var(Y) ~ q^?
             fit0 <- try(
                 nlme::lme(formula_null, random = ~1 | subject, data = df_model, method = "ML",
                          correlation = nlme::corAR1(form = ~1 | subject),
@@ -3037,7 +3037,7 @@
         }
         # FPCA respects q-value ordering: creates curve matrix with q-values as columns (ordered),
         # then applies PCA which naturally captures smooth functional dependence structure (S168-S171).
-        # This implicitly models AR(1) correlation: ρ(k) = φ^|k| across ordered q-values.
+        # This implicitly models AR(1) correlation: rho(k) = phi^|k| across ordered q-values.
         # Test L.1.6 validates this AR(1) pattern for entropy across q-values.
         return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, g,
             min_obs = min_obs, subject = subject, regularization = regularization, weights = weights))
@@ -3343,7 +3343,7 @@
 # Covariance Structure for Longitudinal and Spatial Data" validates AR(1) for 
 # ordered covariate structures (like q-values).
 # Papers S168-S170: Theoretical foundation and empirical estimation of AR(1) parameters.
-# TEST L.1.6: Confirms q-value correlation follows AR(1) pattern (ρ(k) = φ^|k|).
+# TEST L.1.6: Confirms q-value correlation follows AR(1) pattern (rho(k) = phi^|k|).
 #
 # @param df data.frame with columns: entropy, q, group, subject (if paired)
 # @param q_vals numeric vector of q values used  
@@ -3355,8 +3355,8 @@
 # Lower QIC = better model
 #
 # Correlation structures tested:
-#   - AR(1): Geometric decay Corr(i,j) = φ^|i-j| [for ordered measurements]
-#   - Exchangeable: Equal correlation Corr(i,j) = ρ [for unordered clusters]
+#   - AR(1): Geometric decay Corr(i,j) = phi^|i-j| [for ordered measurements]
+#   - Exchangeable: Equal correlation Corr(i,j) = rho [for unordered clusters]
 #   - Independence: No correlation [null/reference model]
 #
 # Reference:
@@ -3584,7 +3584,7 @@
     }
     
     # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
-    # Tsallis entropy is monotone decreasing in q → apply AR(1) to ΔH_q instead of H_q
+    # Tsallis entropy is monotone decreasing in q -> apply AR(1) to DeltaH_q instead of H_q
     use_arima <- FALSE
     df_orig_nrows <- nrow(df)
     
@@ -3649,7 +3649,7 @@
     # Log differencing information if applied
     if (use_arima && nrow(df) < df_orig_nrows) {
         # ARIMA(1,1,0) was applied: note observation loss in result metadata
-        arima_note <- sprintf("ARIMA(1,1,0): %d observations → %d after differencing", df_orig_nrows, nrow(df))
+        arima_note <- sprintf("ARIMA(1,1,0): %d observations -> %d after differencing", df_orig_nrows, nrow(df))
     } else {
         arima_note <- NULL
     }
@@ -3874,10 +3874,10 @@
         }
     }
     
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     # RESIDUAL NORMALITY TESTING (NEW - March 2026)
     # Database Evidence: B001, B004, C017 (Normality testing in regression)
-    # ═══════════════════════════════════════════════════════════════════════════════
+    # ===============================================================================
     shapiro_result <- .tsenat_test_residual_normality(
         model = fit_alt,
         model_type = "gee",

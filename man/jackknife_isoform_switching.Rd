@@ -81,3 +81,18 @@ Detects isoform/transcript switches between conditions using condition-stratifie
 jackknife analysis on Tsallis entropy. Identifies which transcripts change
 importance between conditions (e.g., condition A vs B).
 }
+\section{Sample Metadata Parameters (Unified Naming Convention)}{
+
+TSENAT functions use consistent parameter names for sample grouping and subject identification:
+\itemize{
+  \item{\code{condition_col}: Character string specifying the colData column 
+        containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
+        Default: "condition". Required for identifying the two conditions to compare.}
+  \item{\code{pair_col} or \code{subject_col}: For paired/blocked designs, character string specifying 
+        the colData column with subject/individual/patient identifiers. Default: NULL.}
+}
+All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+across the TSENAT package.
+}
+

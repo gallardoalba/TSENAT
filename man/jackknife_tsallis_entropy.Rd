@@ -130,7 +130,7 @@ For programmatic access without display, set print_results=FALSE.
 - Compare stability across genes or conditions
 
 **Relationship to other functions:**
-- \code{\link{calculate_tsallis_entropy}}: computes entropy (stability as background)
+- \code{calculate_tsallis_entropy()}: computes entropy (stability as background)
 - \code{\link{calculate_difference}}: tests if differences are significant (jackknife validates stability)
 
 **IMPORTANT - Raw Count Requirement:**
@@ -151,17 +151,17 @@ jack_result <- jackknife_tsallis_entropy(se = se, res = res, ...)
 ```
 
 **Database Verification (tsenat_papers.db):**
-✓ Jackknife methodology: Papers C016, C030 (and foundational Efron & Tibshirani 1993)
+[OK] Jackknife methodology: Papers C016, C030 (and foundational Efron & Tibshirani 1993)
   validate leave-one-out jackknife for entropy/divergence estimates. Standard error
   estimation via jackknife is confirmed for these measures.
-✓ q-parameter effects: Papers I001-I004 establish that q-parameter controls weight
+[OK] q-parameter effects: Papers I001-I004 establish that q-parameter controls weight
   distribution (q_weight = 0.5 + q). Papers S111, I004 specifically validate that
-  q ∈ [0.5, 2] is the recommended range for balanced sensitivity (mentioned in
+  q in [0.5, 2] is the recommended range for balanced sensitivity (mentioned in
   function documentation above). Lower q emphasizes abundant isoforms; higher q
   emphasizes rare isoforms.
-✓ Influence patterns: Paper I004 (validation) confirms that jackknife-derived influence
+[OK] Influence patterns: Paper I004 (validation) confirms that jackknife-derived influence
   metrics correctly reflect transcript contribution to entropy across q-values.
-✓ Bootstrap confidence: Papers C030, S018 show that 500-1000 resampling iterations
+[OK] Bootstrap confidence: Papers C030, S018 show that 500-1000 resampling iterations
   (as in jackknife) achieve >=95% CI coverage for entropy estimates, validating the
   standard error estimates computed here.
 
@@ -219,7 +219,7 @@ Efron, B., & Tibshirani, R. J. (1993). An introduction to the bootstrap.
 Chapman and Hall.
 }
 \seealso{
-\code{\link{calculate_tsallis_entropy}} for entropy calculation,
+\code{calculate_tsallis_entropy()} for entropy calculation,
 \code{\link{calculate_diversity}} for computing diversity across genes,
 \code{\link{calculate_difference}} for testing differences between groups.
 }

@@ -96,7 +96,7 @@
 #' - Compare stability across genes or conditions
 #'
 #' **Relationship to other functions:**
-#' - \code{\link{calculate_tsallis_entropy}}: computes entropy (stability as background)
+#' - \code{calculate_tsallis_entropy()}: computes entropy (stability as background)
 #' - \code{\link{calculate_difference}}: tests if differences are significant (jackknife validates stability)
 #'
 #' **IMPORTANT - Raw Count Requirement:**
@@ -117,17 +117,17 @@
 #' ```
 #'
 #' **Database Verification (tsenat_papers.db):**
-#' ✓ Jackknife methodology: Papers C016, C030 (and foundational Efron & Tibshirani 1993)
+#' [OK] Jackknife methodology: Papers C016, C030 (and foundational Efron & Tibshirani 1993)
 #'   validate leave-one-out jackknife for entropy/divergence estimates. Standard error
 #'   estimation via jackknife is confirmed for these measures.
-#' ✓ q-parameter effects: Papers I001-I004 establish that q-parameter controls weight
+#' [OK] q-parameter effects: Papers I001-I004 establish that q-parameter controls weight
 #'   distribution (q_weight = 0.5 + q). Papers S111, I004 specifically validate that
-#'   q ∈ [0.5, 2] is the recommended range for balanced sensitivity (mentioned in
+#'   q in [0.5, 2] is the recommended range for balanced sensitivity (mentioned in
 #'   function documentation above). Lower q emphasizes abundant isoforms; higher q
 #'   emphasizes rare isoforms.
-#' ✓ Influence patterns: Paper I004 (validation) confirms that jackknife-derived influence
+#' [OK] Influence patterns: Paper I004 (validation) confirms that jackknife-derived influence
 #'   metrics correctly reflect transcript contribution to entropy across q-values.
-#' ✓ Bootstrap confidence: Papers C030, S018 show that 500-1000 resampling iterations
+#' [OK] Bootstrap confidence: Papers C030, S018 show that 500-1000 resampling iterations
 #'   (as in jackknife) achieve >=95% CI coverage for entropy estimates, validating the
 #'   standard error estimates computed here.
 #'
@@ -142,7 +142,7 @@
 #' Chapman and Hall.
 #'
 #' @seealso
-#' \code{\link{calculate_tsallis_entropy}} for entropy calculation,
+#' \code{calculate_tsallis_entropy()} for entropy calculation,
 #' \code{\link{calculate_diversity}} for computing diversity across genes,
 #' \code{\link{calculate_difference}} for testing differences between groups.
 #'
@@ -417,24 +417,24 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
   if (q < 0.5) {
     message(
       "Low q (", q, ") heavily underweights rare isoforms and emphasizes common ones.\n",
-      "  → Jackknife results may have large influence from abundant transcripts.\n",
-      "  → Better for detecting changes in dominant isoforms (papers S111, I004)."
+      "  -> Jackknife results may have large influence from abundant transcripts.\n",
+      "  -> Better for detecting changes in dominant isoforms (papers S111, I004)."
     )
   }
   if (q > 2) {
     message(
       "High q (", q, ") may be insensitive to rare isoform diversity.\n",
-      "  → Jackknife results focus on most abundant transcripts only.\n",
-      "  → May miss important rare transcript contributions (papers S111, I004).\n",
-      "  → Consider q in [0.5, 2] for balanced diversity assessment."
+      "  -> Jackknife results focus on most abundant transcripts only.\n",
+      "  -> May miss important rare transcript contributions (papers S111, I004).\n",
+      "  -> Consider q in [0.5, 2] for balanced diversity assessment."
     )
   }
   if (q >= 0.5 && q <= 2) {
     if (verbose) {
       message(
         "q = ", q, " is in the recommended range [0.5, 2].\n",
-        "  → Balanced sensitivity to rare and abundant isoforms.\n",
-        "  → Jackknife results should be reliable for diversity assessment (papers S111, I004)."
+        "  -> Balanced sensitivity to rare and abundant isoforms.\n",
+        "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004)."
       )
     }
   }
@@ -504,7 +504,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
   n <- length(p)
 
   if (abs(q - 1) < 1e-6) {
-    # Shannon entropy as q → 1
+    # Shannon entropy as q -> 1
     # Filter out zeros to avoid 0 * log(0) = NaN
     p_nonzero <- p[p > 0]
     if (length(p_nonzero) > 0) {
@@ -738,13 +738,13 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
   ci_lower <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, alpha / 2, na.rm = TRUE))
   ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha / 2, na.rm = TRUE))
   
-  # Para cada transcrito, calcular p-value basado en cuántos bootstrap samples
+  # Para cada transcrito, calcular p-value basado en cuantos bootstrap samples
   # tienen signo opuesto al delta_influence observado
   pvalues <- numeric(n_tx)
   for (i in 1:n_tx) {
     boot_signs <- sign(bootstrap_deltas_matrix[, i])
     obs_sign <- sign(delta_influence[i])
-    # P-value: proporción de muestras bootstrap con signo opuesto
+    # P-value: proporcion de muestras bootstrap con signo opuesto
     pvalues[i] <- mean(boot_signs != obs_sign, na.rm = TRUE)
     pvalues[i] <- max(pvalues[i], 1 / n_bootstrap)  # Minimum p-value
   }
@@ -939,8 +939,8 @@ jackknife_isoform_switching <- function(
           cat("  Genes with switching:", sum(res$summary_table$n_switching_transcripts > 0), "\n\n")
         }
       }
-      cat("✓ Access results$q_<value>$results_per_gene$<gene> for per-q, per-gene details\n")
-      cat("✓ Compare q values to assess scale-dependent isoform switching patterns\n\n")
+      cat("[OK] Access results$q_<value>$results_per_gene$<gene> for per-q, per-gene details\n")
+      cat("[OK] Compare q values to assess scale-dependent isoform switching patterns\n\n")
     }
     
     return(invisible(results_list))
@@ -1447,13 +1447,13 @@ jackknife_isoform_switching <- function(
     cat("Summary Table:\n")
     print(summary_table)
     
-    cat("\n✓ Use results$results_per_gene$'GeneName' to access per-gene switching details\n")
-    cat("✓ Use results$summary_table for overview across genes\n")
-    cat("✓ Use results$all_transcript_stats for FDR-corrected p-values per transcript\n")
-    cat("✓ Use results$metadata$is_paired to check if paired design was applied\n")
+    cat("\n[OK] Use results$results_per_gene$'GeneName' to access per-gene switching details\n")
+    cat("[OK] Use results$summary_table for overview across genes\n")
+    cat("[OK] Use results$all_transcript_stats for FDR-corrected p-values per transcript\n")
+    cat("[OK] Use results$metadata$is_paired to check if paired design was applied\n")
     
     if (!is.null(lm_results)) {
-      cat("✓ Access lm_p_interaction in each gene$lm_p_interaction for LM test results\n")
+      cat("[OK] Access lm_p_interaction in each gene$lm_p_interaction for LM test results\n")
     }
     cat("\n")
   }

@@ -193,6 +193,7 @@ knitr::kable(data_characteristics,
 # Run Friedman test with Hochberg multiple testing correction
 friedman_results <- detect_q_gene_interactions(
     ts_se,
+    condition_col = "sample_type",
     paired = TRUE,
     subject_col = "paired_samples",
     multicorr = "hochberg",

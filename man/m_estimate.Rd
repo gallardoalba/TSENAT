@@ -6,7 +6,7 @@
 \usage{
 m_estimate(
   x,
-  samples,
+  condition_col,
   loss_type = "huber",
   scale = NULL,
   max_iter = 50,
@@ -22,7 +22,7 @@ m_estimate(
 \item{x}{Matrix of values (rows = features, columns = samples), or a
 SummarizedExperiment object with multi-q entropy data}
 
-\item{samples}{Character vector indicating group membership. If x is a
+\item{condition_col}{Character vector indicating group membership. If x is a
 SummarizedExperiment, this should be a column name in colData.
 For multi-q data, can also specify "multi_q_analysis" to automatically
 handle q-value collapsing and leave-one-out influence analysis.}
@@ -98,6 +98,21 @@ For multi-q SummarizedExperiment data, the function automatically:
   More robust to extreme contamination than M-estimation (~25%).
   Recommended when data contamination is suspected.
 }
+\section{Sample Metadata Parameters (Unified Naming Convention)}{
+
+TSENAT functions use consistent parameter names for sample grouping and subject identification:
+\itemize{
+  \item{\code{condition_col}: Character string specifying the colData column 
+        containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
+        For multi-q analysis on SummarizedExperiment, this should be the column with condition assignments.}
+  \item{\code{subject_col}: For paired/blocked/repeated-measures designs, character string specifying 
+        the colData column with subject/individual/patient identifiers.}
+}
+All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+across the TSENAT package.
+}
+
 \references{
 Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
 Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).

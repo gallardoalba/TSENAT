@@ -1427,7 +1427,7 @@ test_that("nthreads parameter validation", {
     # Large nthreads should work (will cap at available)
     result <- calculate_tsallis_entropy_bootstrap(
         x = counts_matrix,
-        nthreads = 3,
+        nthreads = min(3, parallel::detectCores()),
         nboot = 100,
         seed = 2002,
         print_results = FALSE
