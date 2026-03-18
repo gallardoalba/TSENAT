@@ -274,6 +274,12 @@ suppressPackageStartupMessages({
     library(ggplot2)
     library(SummarizedExperiment)
 })
+
+# Setup intermediate file storage
+extdata_dir <- system.file("extdata", package = "TSENAT")
+if (!dir.exists(extdata_dir)) {
+    dir.create(extdata_dir, recursive = TRUE)
+}
 ```
 
 Now we will load the example dataset and associated metadata:
@@ -353,7 +359,17 @@ prefiltering on differential transcript usage, see
 
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
-se <- filter_se(se, stringency = "medium")
+# Check if filtered SE already exists
+filtered_se_file <- file.path(extdata_dir, "se_filtered_medium.rds")
+
+if (file.exists(filtered_se_file)) {
+    se <- readRDS(filtered_se_file)
+    cat("Loaded filtered SummarizedExperiment from", filtered_se_file, "\n")
+} else {
+    se <- filter_se(se, stringency = "medium")
+    saveRDS(se, filtered_se_file)
+    cat("Saved filtered SummarizedExperiment to", filtered_se_file, "\n")
+}
 ```
 
 The `stringency = "medium"` parameter automatically determines filtering thresholds
@@ -368,11 +384,21 @@ Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
 # compute Tsallis entropy for a sequence of values (normalized)
+# Check if diversity results already exist
 
 qvec <- seq(0.1, 2, by = 0.05)
-ts_se <- calculate_diversity(se,
-    q = qvec, norm = TRUE,
-    metadata = metadata_df)
+diversity_file <- file.path(extdata_dir, "ts_se_diversity.rds")
+
+if (file.exists(diversity_file)) {
+    ts_se <- readRDS(diversity_file)
+    cat("Loaded Tsallis diversity results from", diversity_file, "\n")
+} else {
+    ts_se <- calculate_diversity(se,
+        q = qvec, norm = TRUE,
+        metadata = metadata_df)
+    saveRDS(ts_se, diversity_file)
+    cat("Saved Tsallis diversity results to", diversity_file, "\n")
+}
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
@@ -546,16 +572,26 @@ the q:group interaction with complex response shapes).
 ## Linear-model interaction test across q values: detect q x group interaction
 ## with Hochberg FWER control (fast, closed-form procedure)
 if (requireNamespace("mgcv", quietly = TRUE)) {
-    # Compute and show top hits (by adjusted p-value)
-    # Using Hochberg for FWER control via closed-form procedure
-    lm_res <- calculate_lm_interaction(ts_se,
-        method = "gam",
-        paired = TRUE,
-        multicorr = "hochberg",
-        nthreads = 3,
-        verbose = TRUE,
-        return_model_data = TRUE
-    )
+    # Check if LM interaction results already exist
+    lm_res_file <- file.path(extdata_dir, "lm_res_interaction.rds")
+    
+    if (file.exists(lm_res_file)) {
+        lm_res <- readRDS(lm_res_file)
+        cat("Loaded LM interaction results from", lm_res_file, "\n")
+    } else {
+        # Compute and show top hits (by adjusted p-value)
+        # Using Hochberg for FWER control via closed-form procedure
+        lm_res <- calculate_lm_interaction(ts_se,
+            method = "gam",
+            paired = TRUE,
+            multicorr = "hochberg",
+            nthreads = 3,
+            verbose = TRUE,
+            return_model_data = TRUE
+        )
+        saveRDS(lm_res, lm_res_file)
+        cat("Saved LM interaction results to", lm_res_file, "\n")
+    }
 }
 ```
 
@@ -627,24 +663,34 @@ analysis.
 # Multi-Q analysis: Test switching at different q values
 q_vector <- c(0.01, 0.5, 1.0, 1.5, 2.0)
 
-# Single call for all q values at once (vectorized approach)
-# Note: jackknife_isoform_switching now handles gene name to ID mapping automatically
-# Pass lm_res$results (the dataframe component, not the full list)
-multi_q_results <- jackknife_isoform_switching(
-  se = se,
-  condition_col = "sample_type",
-  pair_col = "paired_samples",
-  gene_col = "gene_id",
-  isoform_col = "transcript_id",
-  q = q_vector,
-  norm = TRUE,
-  n_bootstrap = 100,
-  print_results = TRUE,
-  threshold = 90,
-  lm_results = lm_res$results,
-  lm_p_threshold = 0.05,
-  use_lm_fdr = TRUE
-)
+# Check if multi-Q switching results already exist
+multi_q_file <- file.path(extdata_dir, "multi_q_switching_results.rds")
+
+if (file.exists(multi_q_file)) {
+    multi_q_results <- readRDS(multi_q_file)
+    cat("Loaded multi-Q switching results from", multi_q_file, "\n")
+} else {
+    # Single call for all q values at once (vectorized approach)
+    # Note: jackknife_isoform_switching now handles gene name to ID mapping automatically
+    # Pass lm_res$results (the dataframe component, not the full list)
+    multi_q_results <- jackknife_isoform_switching(
+      se = se,
+      condition_col = "sample_type",
+      pair_col = "paired_samples",
+      gene_col = "gene_id",
+      isoform_col = "transcript_id",
+      q = q_vector,
+      norm = TRUE,
+      n_bootstrap = 100,
+      print_results = TRUE,
+      threshold = 90,
+      lm_results = lm_res$results,
+      lm_p_threshold = 0.05,
+      use_lm_fdr = TRUE
+    )
+    saveRDS(multi_q_results, multi_q_file)
+    cat("Saved multi-Q switching results to", multi_q_file, "\n")
+}
 
 ```
 
@@ -733,12 +779,12 @@ print(p)
 ### Effect size analysis
 
 To understand which diversity scales show the most pronounced biological differences 
-between groups, we compute effect size metrics (Tsallis divergence D_q) across the q-spectrum while respecting the paired sample design. This reveals whether group differences are driven by rare 
+between groups, we compute effect size metrics (Tsallis divergence $D_q$) across the q-spectrum while respecting the paired sample design. This reveals whether group differences are driven by rare 
 isoforms (low q), dominant isoforms (high q), or uniformly across scales.
 
 The approach uses linear mixed-effects regression (LMM) with q as continuous predictor to assess 
 slope differences in entropy change across q-spectrum between treatment groups, with effect size computed 
-as Tsallis divergence D_q(control||treatment) [@I002; @I003; @I004]. This information-theoretic measure 
+as Tsallis divergence $D_q$(control||treatment) [@I002; @I003; @I004]. This information-theoretic measure 
 automatically respects Tsallis entropy properties and adapts to each q value.
 
 Theoretical Justification: **Tsallis entropy** theory [@I002, @I004] demonstrates that 
@@ -749,7 +795,7 @@ abundant isoforms. Computing effect sizes independently at each q value thus cap
 which diversity scales (rare vs. dominant isoforms) show the strongest biological 
 differentiation between conditions.
 
-Effect Size Interpretation: **Tsallis divergence** D_q quantifies the information-theoretic distance between 
+Effect Size Interpretation: **Tsallis divergence** $D_q$ quantifies the information-theoretic distance between 
 two distributions' entropy patterns across the q-spectrum. For paired designs, divergence is computed 
 separately for each pair and then averaged, accounting for within-pair correlation and reducing noise from 
 between-pair variation. The mean divergence across q values serves as the effect size, automatically 
@@ -762,23 +808,33 @@ treatment groups across all q-dependent scales.
 ```{r effect-size-multiq, message=FALSE, warning=FALSE, results='hide'}
 # Effect size multi-q plot
 if (requireNamespace("mgcv", quietly = TRUE) && exists("lm_res") && nrow(lm_res$results) > 0) {
-  # Compute divergence effect sizes from raw transcript counts
-  # calculate_divergence handles transcript-to-gene aggregation internally
-  # and matches genes from lm_res against rowData gene_names column
+  # Check if divergence results already exist
+  divergence_file <- file.path(extdata_dir, "divergence_results_se.rds")
   
-  # Note: Extract results dataframe for use in effect_sizes_divergence()
-  lm_res_results <- lm_res$results
-  rownames(lm_res_results) <- lm_res_results$gene
-  
-  # Calculate Tsallis divergence with bootstrap CIs (reduced iterations for speed)
-  # divergence_results_se: SummarizedExperiment with divergence estimates for each gene-q combination
-  divergence_results_se <- calculate_divergence(
-      se = se,
-      group_col = "sample_type",
-      control_group = "normal",
-      q = qvec,
-      paired = TRUE
-  )
+  if (file.exists(divergence_file)) {
+      divergence_results_se <- readRDS(divergence_file)
+      cat("Loaded divergence results from", divergence_file, "\n")
+  } else {
+      # Compute divergence effect sizes from raw transcript counts
+      # calculate_divergence handles transcript-to-gene aggregation internally
+      # and matches genes from lm_res against rowData gene_names column
+      
+      # Note: Extract results dataframe for use in effect_sizes_divergence()
+      lm_res_results <- lm_res$results
+      rownames(lm_res_results) <- lm_res_results$gene
+      
+      # Calculate Tsallis divergence with bootstrap CIs (reduced iterations for speed)
+      # divergence_results_se: SummarizedExperiment with divergence estimates for each gene-q combination
+      divergence_results_se <- calculate_divergence(
+          se = se,
+          group_col = "sample_type",
+          control_group = "normal",
+          q = qvec,
+          paired = TRUE
+      )
+      saveRDS(divergence_results_se, divergence_file)
+      cat("Saved divergence results to", divergence_file, "\n")
+  }
   
   # Note: effect_sizes_divergence() will merge lm_res_results with divergence_results_se,
   # automatically filtering to match genes in divergence_results_se
@@ -811,15 +867,25 @@ if (exists("divergence_results_se") && nrow(divergence_results_se) > 0) {
 
 ```{r effect-size-merge, message=FALSE, warning=FALSE, results='hide'}
 # Merge LMM results with divergence effect sizes
-# The function automatically enriches results with per_q_pattern column
-# Pass lm_res_results (the extracted dataframe component)
-eff_res <- effect_sizes_divergence(
-    lm_res = lm_res_results,
-    divergence_results_se = divergence_results_se,
-    significance_threshold = 0.05,
-    enrich_per_q_pattern = TRUE,
-    verbose = FALSE
-)
+# Check if effect size results already exist
+eff_res_file <- file.path(extdata_dir, "eff_res_effect_sizes.rds")
+
+if (file.exists(eff_res_file)) {
+    eff_res <- readRDS(eff_res_file)
+    cat("Loaded effect size results from", eff_res_file, "\n")
+} else {
+    # The function automatically enriches results with per_q_pattern column
+    # Pass lm_res_results (the extracted dataframe component)
+    eff_res <- effect_sizes_divergence(
+        lm_res = lm_res_results,
+        divergence_results_se = divergence_results_se,
+        significance_threshold = 0.05,
+        enrich_per_q_pattern = TRUE,
+        verbose = FALSE
+    )
+    saveRDS(eff_res, eff_res_file)
+    cat("Saved effect size results to", eff_res_file, "\n")
+}
 ```
 
 ```{r divergence-results-table, results='asis', echo = FALSE}
@@ -853,7 +919,7 @@ if (exists("divergence_results_se") && exists("lm_res")) {
         # Format p-values in scientific notation
         div_df$padj_lm <- format(div_df$padj_lm, scientific = TRUE, digits = 3)
         # Format columns for display
-        colnames(div_df) <- c("Gene", "KL Divergence (D_q=1.0)", "Q-Pattern", "LM adj. p-value")
+        colnames(div_df) <- c("Gene", "Divergence ($D_q$=1.0)", "Q-Pattern", "LM adj. p-value")
         
         knitr::kable(
             div_df,
@@ -897,17 +963,17 @@ print(p)
 
 ### Visualize Q-Spectrum Curve
 
-The q-spectrum is a curve showing how divergence varies across Tsallis sensitivity parameters. 
-This curve is the full biological signature of **isoform switching**—the pattern encodes which 
-abundance scales (rare vs. abundant) are affected.
 
-```{r visualize-q-spectrum, fig.width=10, fig.height=6}
-# Generate global q-spectrum plot
-p <- plot_divergence_spectrum(divergence_results_se)
-print(p)
+```{r compare-q-spectra-plot, fig.width=10, fig.height=10, message=FALSE, warning=FALSE}
+# Compare q-spectra across multiple significant genes
+p_multi <- plot_divergence_spectrum(
+  divergence_results_se = divergence_results_se,
+  lm_res = lm_res$results
+)
+print(p_multi)
 ```
 
-**Interpreting the Q-Spectrum Curve:**
+Interpreting the Q-Spectrum Curve:
 
 - Shape matters more than single value: The **q-spectrum** curve is the complete biological story. 
   A flat curve (BALANCED) vs. declining curve (RARE_DRIVEN) vs. rising curve (ABUNDANT_DRIVEN) 
@@ -925,17 +991,16 @@ print(p)
 - Bootstrap CI bands: Shaded region shows 95% confidence limits on per-q estimates. Narrow 
   bands indicate robust estimates; wide bands suggest noisy data or small sample sizes.
 
-**Advanced Visualization: Multiple Gene Comparison**
 
-```{r compare-q-spectra-plot, fig.width=10, fig.height=10, message=FALSE, warning=FALSE}
-# Compare q-spectra across multiple significant genes
-p_multi <- plot_multi_gene_q_spectrum(
-  eff_res = eff_res, 
-  n_genes = 6, 
-  ncol = 3,
-  verbose = TRUE
-)
-print(p_multi)
+
+Whe can also plot the global divergence spectrum across all genes. 
+This curve is the full biological signature of **isoform switching**—the pattern encodes which 
+abundance scales (rare vs. abundant) are affected.
+
+```{r visualize-q-spectrum, fig.width=10, fig.height=6}
+# Generate global q-spectrum plot
+p <- plot_divergence_spectrum(divergence_results_se)
+print(p)
 ```
 
 **Statistical Validation During Interpretation:**

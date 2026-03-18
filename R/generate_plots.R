@@ -328,7 +328,7 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
             y = y_label_formatted
         ) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain"),
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
             axis.title = ggplot2::element_text(size = 14),
             axis.text = ggplot2::element_text(size = 12)
         )
@@ -514,10 +514,10 @@ plot_tsallis_q_curve <- function(
       p <- p +
         ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = central - spread, ymax = central + spread, fill = group), alpha = 0.2, inherit.aes = FALSE) +
         ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central, color = group), linewidth = 1.3) +
-        ggplot2::labs(title = paste0(sel, ": Tsallis entropy q-curve profile (Median ± SD)"), x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
+        ggplot2::labs(title = sel, x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
         ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
         ggplot2::theme(plot.title = ggplot2::element_text(
-          hjust = 0.5, size = 16,
+          hjust = 0.5, size = 14,
           margin = ggplot2::margin(b = 10)
         ))
       p
@@ -535,8 +535,14 @@ plot_tsallis_q_curve <- function(
     require_pkgs(c("cowplot", "gridExtra"))
     
     # Use cowplot::plot_grid for cleaner handling of shared legends
-    # Extract legend from first plot
-    legend_obj <- cowplot::get_legend(plots[[1]])
+    # Extract legend from first plot with horizontal layout
+    legend_obj <- cowplot::get_legend(
+      plots[[1]] + ggplot2::theme(
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.justification = "center"
+      )
+    )
     
     # Remove legends from all plots
     plots_no_legend <- lapply(plots, function(p) {
@@ -549,12 +555,20 @@ plot_tsallis_q_curve <- function(
       list(nrow = 2, ncol = 2, align = "hv", axis = "lrtb")
     ))
     
+    # Create title and subtitle
+    title_plot <- cowplot::ggdraw() + 
+      cowplot::draw_label("Tsallis Entropy q-Curve Profile", 
+                         fontface = "bold", size = 18, x = 0.5, y = 0.7) +
+      cowplot::draw_label("Top genes ranked by statistical significance (Median ± SD)", 
+                         fontface = "italic", size = 14, x = 0.5, y = 0.35, color = "gray40")
+    
     # Add legend at bottom
     grid_with_legend <- cowplot::plot_grid(
+      title_plot,
       grid_with_plots,
       legend_obj,
-      nrow = 2,
-      rel_heights = c(1, 0.08)
+      nrow = 3,
+      rel_heights = c(0.12, 1, 0.08)
     )
     
     return(grid_with_legend)
@@ -589,7 +603,7 @@ plot_tsallis_q_curve <- function(
   # =========================================================================
   if (!bootstrap) {
     long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
-    y_label <- "Tsallis entropy (S_q)"
+    y_label <- expression("Tsallis entropy (" * S[q] * ")")
     if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
     
     # Ensure q is numeric
@@ -615,13 +629,15 @@ plot_tsallis_q_curve <- function(
       ) +
       ggplot2::theme_minimal(base_size = 14) +
       ggplot2::labs(
-        title = "Tsallis q-curve: median ± IQR",
-        x = "q value",
+        title = "Group Comparison: Tsallis Entropy Across Diversity Scales (q-spectrum)",
+        subtitle = "Median ± IQR across samples",
+        x = "q value (diversity scale parameter)",
         y = y_label,
         color = "Group",
         fill = "Group"
       ) +
-      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 16))
+      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14),
+                     plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 14))
     
     # Use default discrete ggplot2 colours
     p <- p + ggplot2::scale_color_discrete(name = "Group") +
@@ -750,14 +766,16 @@ plot_tsallis_q_curve <- function(
     ) +
     ggplot2::theme_minimal(base_size = 13) +
     ggplot2::labs(
-      title = "Tsallis q-curve with confidence intervals",
-      x = "q value",
-      y = "Tsallis entropy (S_q)",
+      title = "Group Comparison: Tsallis Entropy Across Diversity Scales (q-spectrum)",
+      subtitle = "Median with 95% confidence intervals",
+      x = "q value (diversity scale parameter)",
+      y = expression("Tsallis entropy (" * S[q] * ")"),
       color = "Group",
       fill = "Group"
     ) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "plain", size = 14)
+      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 20),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 14)
     ) +
     ggplot2::scale_color_manual(values = c("#1B9E77", "#D95F02")) +
     ggplot2::scale_fill_manual(values = c("#1B9E77", "#D95F02"))
@@ -1211,7 +1229,8 @@ plot_volcano_ma_grid <- function(
     # Title row
     vp_title <- grid::viewport(layout.pos.row = 1, layout.pos.col = seq_len(ncol))
     grid::pushViewport(vp_title)
-    grid::grid.text(title, x = 0.5, gp = grid::gpar(fontsize = 40))
+    grid::grid.text("Transcript level expression", x = 0.5, y = 0.6, gp = grid::gpar(fontsize = 26, fontface = "bold"))
+    grid::grid.text(paste0("Top genes with metric ", title), x = 0.5, y = 0.2, gp = grid::gpar(fontsize = 20, fontface = "italic", col = "gray40"))
     grid::upViewport()
     # Plot rows
     for (i in seq_along(grobs)) {
@@ -1341,7 +1360,7 @@ plot_volcano_ma_grid <- function(
         iqr = function(x) stats::IQR(x, na.rm = TRUE)
     )
     agg_label_metric <- if (metric_choice == "iqr") "IQR" else metric_choice
-    agg_label <- sprintf("Transcript-level expression with metric %s", agg_label_metric)
+    agg_label <- agg_label_metric
     .cnt <- as.integer(getOption("TSENAT.plot_top_counter", 0)) + 1L
     options(TSENAT.plot_top_counter = .cnt)
     agg_label_unique <- agg_label
@@ -1524,7 +1543,7 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 32, face = "bold", margin = ggplot2::margin(b = 5)))
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 31, face = "plain", margin = ggplot2::margin(b = 5)))
             pp
         })
 
@@ -1905,13 +1924,16 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
             ggplot2::labs(
                 x = "q parameter",
                 y = "Tsallis entropy",
-                title = sprintf("Gene: %s", gene_display_name),
-                subtitle = sprintf("GAM q-curve fit by group")
+                title = ifelse(gene_display_name != g, sprintf("%s (%s)", gene_display_name, g), gene_display_name)
             ) +
-            ggplot2::theme_minimal(base_size = 12) +
+            ggplot2::theme_minimal(base_size = 14) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(face = "bold"),
-                legend.position = "bottom"
+                plot.title = ggplot2::element_text(hjust = 0.5, size = 17, face = "bold"),
+                axis.title = ggplot2::element_text(size = 15),
+                axis.text = ggplot2::element_text(size = 13),
+                legend.position = "none",
+                legend.title = ggplot2::element_text(size = 13),
+                legend.text = ggplot2::element_text(size = 12)
             )
 
         return(p)
@@ -1936,16 +1958,48 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     n_cols <- 2
     n_rows <- ceiling(n_plots / n_cols)
     
-    # Arrange plots using cowplot
+    # Add margins to plots for spacing, particularly between rows
+    plots_with_margins <- lapply(seq_along(plots), function(i) {
+        p <- plots[[i]]
+        # Add larger bottom margin for plots in the first row to create space before second row
+        if (i <= n_cols) {
+            p <- p + ggplot2::theme(plot.margin = ggplot2::margin(b = 15, unit = "pt"))
+        }
+        p
+    })
+    
+    # Extract legend from first plot
+    legend <- cowplot::get_legend(plots[[1]] + 
+        ggplot2::theme(legend.position = "bottom",
+                      legend.title = ggplot2::element_text(size = 13),
+                      legend.text = ggplot2::element_text(size = 12)))
+    
+    # Create grid without legends
     combined_plot <- cowplot::plot_grid(
-        plotlist = plots,
+        plotlist = plots_with_margins,
         nrow = n_rows,
         ncol = n_cols,
         align = "hv",
         axis = "lr"
     )
     
-    return(combined_plot)
+    # Add main title and subtitle above the grid
+    title_plot <- cowplot::ggdraw() + 
+        cowplot::draw_label("GAM q-curve: Top genes with group interaction", 
+                           fontface = "bold", size = 20, x = 0.5, y = 0.7) +
+        cowplot::draw_label("Fitted smooth curves by group", 
+                           fontface = "italic", size = 16, x = 0.5, y = 0.5, color = "gray40")
+    
+    # Combine title, plots, and single legend at bottom
+    final_plot <- cowplot::plot_grid(
+        title_plot,
+        combined_plot,
+        legend,
+        nrow = 3,
+        rel_heights = c(0.12, 1, 0.08)
+    )
+    
+    return(final_plot)
 }
 
 # Helpers for plot_top_transcripts internals
@@ -2068,31 +2122,33 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
 
 .ptt_build_plot_from_summary <- function(df_summary, agg_label_unique, fill_limits = NULL) {
     p <- ggplot2::ggplot(df_summary, ggplot2::aes(x = group, y = tx, fill = log2expr)) +
-        ggplot2::geom_tile(color = NA, width = 0.95, height = 0.92) + 
+        ggplot2::geom_tile(color = "black", linewidth = 0.3, width = 0.95, height = 0.92) + 
         ggplot2::geom_vline(xintercept = 1.5, color = "white", linewidth = 1.5) +
         ggplot2::scale_x_discrete(expand = c(0, 0)) +
         ggplot2::scale_y_discrete(expand = c(0, 0)) +
-        ggplot2::scale_fill_viridis_c(
+        ggplot2::scale_fill_distiller(
+            palette = "Blues",
             na.value = "lightgray", 
             limits = fill_limits,
             name = "log2(expr)"
         ) + 
-        ggplot2::theme_minimal(base_size = 26) +
+        ggplot2::theme_minimal(base_size = 28) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 26), 
-            axis.text.x = ggplot2::element_text(size = 26),
-            plot.title = ggplot2::element_text(size = 26, hjust = 0.5, face = "bold"), 
+            axis.text.y = ggplot2::element_text(size = 15, face = "plain"), 
+            axis.text.x = ggplot2::element_text(size = 24),
+            plot.title = ggplot2::element_text(size = 28, hjust = 0.5, face = "bold"), 
             legend.position = "bottom",
+            legend.justification = "center",
             legend.key.width = ggplot2::unit(2, "cm"), 
-            legend.text = ggplot2::element_text(size = 24),
+            legend.text = ggplot2::element_text(size = 20),
             plot.margin = ggplot2::margin(4, 4, 4, 4)
         ) + 
         ggplot2::guides(fill = ggplot2::guide_colorbar(
             title.position = "top",
             barwidth = 10, 
             barheight = 0.5,
-            title.theme = ggplot2::element_text(size = 26)
+            title.theme = ggplot2::element_text(size = 28)
         ))
     p
 }
@@ -2140,9 +2196,14 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     spacer <- ggplot2::ggplot() + ggplot2::theme_void()
     combined <- (spacer + patchwork::plot_spacer()) / combined_plots_section &
         ggplot2::theme(legend.position = "bottom")
-    combined <- combined + patchwork::plot_annotation(title = agg_label_unique, theme = ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.6,
-        size = 48, margin = ggplot2::margin(t = 30, b = 0.8)))) +
-        patchwork::plot_layout(heights = c(0.085, 1), guides = "collect")
+    combined <- combined + patchwork::plot_annotation(
+        title = "Transcript level expression",
+        subtitle = paste0("Top genes with metric ", agg_label_unique),
+        theme = ggplot2::theme(
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 41, face = "bold", margin = ggplot2::margin(t = 30, b = 0)),
+            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 31, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4))
+        )) +
+        patchwork::plot_layout(heights = c(0.045, 1), guides = "collect")
     combined
 }
 
@@ -2156,12 +2217,14 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     nrow_val <- ceiling(length(plots_nolegend) / ncol)
     
     grid <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow_val, align = "hv")
-    title_grob <- cowplot::ggdraw() + cowplot::draw_label(agg_label_unique, fontface = "plain",
-        x = 0.6, hjust = 0.5, size = 48)
+    title_grob <- cowplot::ggdraw() + cowplot::draw_label("Transcript level expression", fontface = "bold",
+        x = 0.5, hjust = 0.5, size = 41)
+    subtitle_grob <- cowplot::ggdraw() + cowplot::draw_label(paste0("Top genes with metric ", agg_label_unique), fontface = "italic",
+        x = 0.5, hjust = 0.5, size = 31, color = "gray40")
     # Add spacer between title and plots
     spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
-    result_plot <- cowplot::plot_grid(title_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.13,
-        0.003, 1, 0.08))
+    result_plot <- cowplot::plot_grid(title_grob, subtitle_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.05, 0.04,
+        0.0015, 1, 0.08), align = "h", axis = "l")
     if (!is.null(output_file)) {
         ggplot2::ggsave(output_file, result_plot)
         invisible(NULL)
@@ -2413,16 +2476,17 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
     ggplot2::geom_histogram(binwidth = 0.02, fill = "steelblue", alpha = 0.7, color = "black") +
     ggplot2::geom_vline(xintercept = threshold, linetype = "dashed", color = "red", linewidth = 1) +
     ggplot2::labs(
-      title = "Distribution of Tsallis Divergence (D_q) effect sizes across genes",
+      title = expression("Distribution of Tsallis Divergence (" ~ D[q] ~ ") effect sizes across genes"),
       subtitle = "Information-theoretic measure respecting Tsallis multi-q entropy properties",
-      x = paste("Effect size (Tsallis Divergence D_q; D >", threshold, "= meaningful information separation)"),
+      x = bquote("Effect size (Tsallis Divergence" ~ D[q] ~ "; D >" ~ .(threshold) ~ "= meaningful information separation)"),
       y = "Number of genes",
       caption = paste("Red dashed line: D =", threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")
     ) +
     ggplot2::theme_minimal() +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "bold", size = 14),
-      plot.subtitle = ggplot2::element_text(size = 11, color = "gray40"),
+      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 18, color = "black"),
+      plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 12),
+      plot.margin = ggplot2::margin(t = 20, b = 5, unit = "pt"),
       panel.grid.major = ggplot2::element_line(color = "gray90")
     ) +
     ggplot2::annotate("text", x = threshold, y = Inf, 
@@ -2681,7 +2745,7 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
           title = sprintf("%s", gene_name),
           subtitle = sprintf("adj p = %.2e", adj_p),
           x = "q (Tsallis parameter)",
-          y = "Tsallis divergence D_q"
+          y = "Tsallis Divergence D[q]"
         ) +
         ggplot2::theme(
           plot.title = ggplot2::element_text(
@@ -3000,7 +3064,7 @@ plot_tsallis_divergence_profile <- function(se,
             ggplot2::labs(
                 title = "Tsallis Divergence Profile: Directional (Signed)",
                 x = "q value (diversity scale parameter)",
-                y = "Tsallis Divergence D_q (Positive = Right Group Higher, Negative = Left Group Higher)"
+                y = "Divergence D[q] (Positive = Right Group Higher, Negative = Left Group Higher)"
             ) +
             ggplot2::theme_minimal(base_size = 14) +
             ggplot2::theme(
@@ -3015,7 +3079,7 @@ plot_tsallis_divergence_profile <- function(se,
             ggplot2::labs(
                 title = "Tsallis Divergence Profile Across q-Spectrum",
                 x = "q value (diversity scale parameter)",
-                y = "Tsallis Divergence D_q (Absolute)",
+                y = "Divergence D[q] (Absolute)",
                 color = "Gene"
             ) +
             ggplot2::theme_minimal(base_size = 14) +
@@ -3062,7 +3126,7 @@ plot_tsallis_divergence_profile <- function(se,
                         ggplot2::labs(
                             title = paste("Divergence Profile (Signed):", gene_name),
                             x = "q value",
-                            y = "Tsallis Divergence D_q",
+                            y = expression("Divergence D[q]"),
                             subtitle = paste0("Red = ", groups[1], " higher | Blue = ", groups[2], " higher")
                         ) +
                         ggplot2::theme_minimal(base_size = 12) +
@@ -3078,7 +3142,7 @@ plot_tsallis_divergence_profile <- function(se,
                         ggplot2::labs(
                             title = paste("Divergence Profile:", gene_name),
                             x = "q value",
-                            y = "Tsallis Divergence D_q (Absolute)"
+                            y = "Divergence D[q] (Absolute)"
                         ) +
                         ggplot2::theme_minimal(base_size = 12) +
                         ggplot2::theme(
@@ -3147,9 +3211,12 @@ plot_tsallis_divergence_profile <- function(se,
 #' @export
 plot_divergence_spectrum <- function(divergence_results_se,
                                      gene = NULL,
+                                     lm_res = NULL,
+                                     n_genes = 4,
+                                     ncol = 2,
                                      metric = c("median", "mean"),
                                      variability_metric = c("iqr", "sd")) {
-    require_pkgs("ggplot2")
+    require_pkgs(c("ggplot2", "patchwork", "SummarizedExperiment"))
     metric <- match.arg(metric)
     variability_metric <- match.arg(variability_metric)
     
@@ -3158,10 +3225,18 @@ plot_divergence_spectrum <- function(divergence_results_se,
         stop("divergence_results_se must be a SummarizedExperiment")
     }
     
-    # Extract divergence matrix
+    # Extract divergence matrix and get gene names
     div_mat <- SummarizedExperiment::assay(divergence_results_se, 1)
     if (is.null(div_mat) || ncol(div_mat) == 0) {
         stop("divergence_results_se has no assays or is empty")
+    }
+    
+    # Get gene names from rowData if available
+    rd <- SummarizedExperiment::rowData(divergence_results_se)
+    gene_names <- if (!is.null(rd) && "gene_name" %in% colnames(rd)) {
+        rd$gene_name
+    } else {
+        rownames(div_mat)
     }
     
     # Extract q values from column names
@@ -3179,14 +3254,21 @@ plot_divergence_spectrum <- function(divergence_results_se,
     div_mat_sorted <- div_mat[, sort_idx]
     
     # =========================================================================
-    # Case 1: Gene-specific spectrum
+    # Case 1: Gene-specific spectrum (single gene)
     # =========================================================================
     if (!is.null(gene)) {
-        if (!gene %in% rownames(div_mat_sorted)) {
+        if (!gene %in% c(gene_names, rownames(div_mat_sorted))) {
             stop("Gene '", gene, "' not found in divergence_results_se")
         }
         
-        gene_div <- as.numeric(div_mat_sorted[gene, ])
+        # Find index of gene
+        if (gene %in% gene_names) {
+            gene_idx <- which(gene_names == gene)[1]
+        } else {
+            gene_idx <- which(rownames(div_mat_sorted) == gene)[1]
+        }
+        
+        gene_div <- as.numeric(div_mat_sorted[gene_idx, ])
         
         plot_df <- data.frame(
             q = q_vals_sorted,
@@ -3204,7 +3286,7 @@ plot_divergence_spectrum <- function(divergence_results_se,
             ) +
             ggplot2::theme_minimal(base_size = 14) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
+                plot.title = ggplot2::element_text(hjust = 0.5, size = 20, face = "bold"),
                 panel.grid.minor = ggplot2::element_blank()
             )
         
@@ -3212,7 +3294,162 @@ plot_divergence_spectrum <- function(divergence_results_se,
     }
     
     # =========================================================================
-    # Case 2: Global divergence curve (all genes)
+    # Case 2: Top N genes spectra (multi-gene faceted plot)
+    # =========================================================================
+    if (!is.null(lm_res)) {
+        # Get top genes ranked by interaction p-value
+        if (!is.data.frame(lm_res)) {
+            stop("lm_res must be a data.frame with gene and p-value columns")
+        }
+        
+        # Find gene identifier column
+        gene_col <- if ("gene" %in% colnames(lm_res)) {
+            "gene"
+        } else if ("gene_name" %in% colnames(lm_res)) {
+            "gene_name"
+        } else if ("gene_id" %in% colnames(lm_res)) {
+            "gene_id"
+        } else {
+            stop("lm_res must have 'gene', 'gene_name', or 'gene_id' column")
+        }
+        
+        # Find p-value column
+        p_col <- if ("adj_p_interaction" %in% colnames(lm_res)) {
+            "adj_p_interaction"
+        } else if ("p_interaction" %in% colnames(lm_res)) {
+            "p_interaction"
+        } else if ("adj_p_value" %in% colnames(lm_res)) {
+            "adj_p_value"
+        } else if ("p_value" %in% colnames(lm_res)) {
+            "p_value"
+        } else {
+            stop("lm_res must have a p-value column (adj_p_interaction, p_interaction, etc.)")
+        }
+        
+        # Sort by p-value and get top genes
+        lm_sorted <- lm_res[order(lm_res[[p_col]], na.last = TRUE), ]
+        top_genes_vec <- head(lm_sorted[[gene_col]], n_genes)
+        
+        # Match to divergence matrix
+        gene_indices <- match(top_genes_vec, c(gene_names, rownames(div_mat_sorted)))
+        gene_indices <- gene_indices[!is.na(gene_indices)]
+        
+        if (length(gene_indices) == 0) {
+            warning("No genes from lm_res found in divergence_results_se. Falling back to global spectrum.")
+            top_genes_vec <- NULL
+        } else {
+            # Build multi-gene plotting data frame
+            plot_list <- list()
+            
+            for (i in seq_along(gene_indices)) {
+                gene_idx <- gene_indices[i]
+                gene_name_i <- gene_names[gene_idx]
+                gene_div <- as.numeric(div_mat_sorted[gene_idx, ])
+                p_val <- lm_sorted[[p_col]][i]
+                
+                plot_list[[i]] <- data.frame(
+                    q = q_vals_sorted,
+                    divergence = gene_div,
+                    gene = gene_name_i,
+                    p_value = p_val,
+                    stringsAsFactors = FALSE
+                )
+            }
+            
+            multi_gene_df <- do.call(rbind, plot_list)
+            
+            # Extract confidence intervals from rowData for each gene at each q-value
+            rd <- SummarizedExperiment::rowData(divergence_results_se)
+            ci_data_list <- list()
+            
+            for (idx in seq_along(gene_indices)) {
+                gene_idx <- gene_indices[idx]
+                gene_name_i <- gene_names[gene_idx]
+                
+                # Extract CIs for this gene across all q-values
+                ci_lower <- numeric(length(q_vals_sorted))
+                ci_upper <- numeric(length(q_vals_sorted))
+                
+                for (j in seq_along(q_vals_sorted)) {
+                    q_val <- q_vals_sorted[j]
+                    lower_col <- paste0("lower_ci_q", q_val)
+                    upper_col <- paste0("upper_ci_q", q_val)
+                    
+                    if (!is.null(rd) && lower_col %in% colnames(rd) && upper_col %in% colnames(rd)) {
+                        ci_lower[j] <- rd[[lower_col]][gene_idx]
+                        ci_upper[j] <- rd[[upper_col]][gene_idx]
+                    } else {
+                        ci_lower[j] <- NA_real_
+                        ci_upper[j] <- NA_real_
+                    }
+                }
+                
+                ci_data_list[[idx]] <- data.frame(
+                    q = q_vals_sorted,
+                    lower = ci_lower,
+                    upper = ci_upper,
+                    gene = gene_name_i,
+                    stringsAsFactors = FALSE
+                )
+            }
+            
+            if (length(ci_data_list) > 0) {
+                ci_df <- do.call(rbind, ci_data_list)
+                rownames(ci_df) <- NULL
+            } else {
+                ci_df <- NULL
+            }
+            
+            # Sort genes by p-value for proper facet order (most significant first)
+            gene_p_values <- multi_gene_df[!duplicated(multi_gene_df$gene), c("gene", "p_value")]
+            gene_p_values <- gene_p_values[order(gene_p_values$p_value), ]
+            gene_order <- gene_p_values$gene
+            multi_gene_df$gene <- factor(multi_gene_df$gene, levels = gene_order)
+            
+            # Create faceted plot with individual gene confidence intervals
+            p <- ggplot2::ggplot(multi_gene_df, ggplot2::aes(x = q, y = divergence)) +
+                ggplot2::facet_wrap(~ gene, ncol = ncol, scales = "free_y")
+            
+            # Add CI ribbons if available
+            if (!is.null(ci_df)) {
+                ci_df$gene <- factor(ci_df$gene, levels = gene_order)
+                p <- p + ggplot2::geom_ribbon(
+                    data = ci_df,
+                    ggplot2::aes(x = q, ymin = lower, ymax = upper),
+                    inherit.aes = FALSE,
+                    alpha = 0.15,
+                    fill = "#2E86AB",
+                    color = NA
+                )
+            }
+            
+            p <- p +
+                ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2, alpha = 0.8) +
+                ggplot2::geom_point(color = "#2E86AB", size = 3, alpha = 0.8) +
+                ggplot2::labs(
+                    title = "Divergence Spectra: Per-gene Comparisons",
+                    subtitle = paste0("Ranked by interaction significance (", metric, ")"),
+                    x = "q value (diversity scale parameter)",
+                    y = expression("Divergence D[q]")
+                ) +
+                ggplot2::theme_minimal(base_size = 14) +
+                ggplot2::theme(
+                    plot.title = ggplot2::element_text(hjust = 0.5, size = 19, face = "bold", margin = ggplot2::margin(b = 10)),
+                    plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 14, face = "italic", margin = ggplot2::margin(b = 20)),
+                    axis.title = ggplot2::element_text(size = 13),
+                    axis.text = ggplot2::element_text(size = 11),
+                    plot.margin = ggplot2::margin(t = 30, b = 5, unit = "pt"),
+                    panel.grid.minor = ggplot2::element_blank(),
+                    panel.spacing = ggplot2::unit(1.5, "lines"),
+                    strip.text = ggplot2::element_text(face = "bold", size = 14)
+                )
+            
+            return(p)
+        }
+    }
+    
+    # =========================================================================
+    # Case 3: Global divergence curve (all genes aggregated)
     # =========================================================================
     
     # Aggregate across genes at each q
@@ -3249,22 +3486,25 @@ plot_divergence_spectrum <- function(divergence_results_se,
         ggplot2::geom_ribbon(
             ggplot2::aes(ymin = central - spread * spread_factor, 
                         ymax = central + spread * spread_factor),
-            alpha = 0.25,
+            alpha = 0.1,
             fill = "#2E86AB",
             color = NA
         ) +
         ggplot2::geom_line(color = "#2E86AB", linewidth = 1.3) +
         ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
         ggplot2::labs(
-            title = "Global Divergence Spectrum: Average D_q Across All Genes",
+            title = expression("Global Divergence Spectrum: Average " * D[q] * " Across All Genes"),
             x = "q value (diversity scale parameter)",
-            y = "Tsallis Divergence D_q",
+            y = expression("Divergence D[q]"),
             subtitle = paste0(metric_label, " ± ", spread_label, " (", nrow(div_mat_sorted), " genes)")
         ) +
-        ggplot2::theme_minimal(base_size = 14) +
+        ggplot2::theme_minimal(base_size = 16) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
-            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic"),
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 19, face = "bold", color = "black"),
+            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11, face = "italic"),
+            axis.title = ggplot2::element_text(size = 13),
+            axis.text = ggplot2::element_text(size = 11),
+            plot.margin = ggplot2::margin(t = 30, b = 5, unit = "pt"),
             panel.grid.minor = ggplot2::element_blank()
         )
     
@@ -3314,135 +3554,7 @@ plot_divergence_spectrum <- function(divergence_results_se,
 #' @importFrom ggplot2 ggplot aes geom_line geom_point geom_ribbon labs theme_minimal element_text
 #' @importFrom SummarizedExperiment assay
 #'
-#' @export
-plot_divergence_spectrum <- function(divergence_results_se,
-                                     gene = NULL,
-                                     metric = c("median", "mean"),
-                                     variability_metric = c("iqr", "sd")) {
-    require_pkgs("ggplot2")
-    metric <- match.arg(metric)
-    variability_metric <- match.arg(variability_metric)
-    
-    # Validate input
-    if (!inherits(divergence_results_se, "SummarizedExperiment")) {
-        stop("divergence_results_se must be a SummarizedExperiment")
-    }
-    
-    # Extract divergence matrix
-    div_mat <- SummarizedExperiment::assay(divergence_results_se, 1)
-    if (is.null(div_mat) || ncol(div_mat) == 0) {
-        stop("divergence_results_se has no assays or is empty")
-    }
-    
-    # Extract q values from column names
-    col_names <- colnames(div_mat)
-    q_vals <- suppressWarnings(as.numeric(gsub(".*q[_=]?", "", col_names)))
-    
-    if (all(is.na(q_vals))) {
-        # Fallback: assume sequential q-values
-        q_vals <- seq(0.5, by = 0.5, length.out = ncol(div_mat))
-    }
-    
-    # Sort by q
-    sort_idx <- order(q_vals)
-    q_vals_sorted <- q_vals[sort_idx]
-    div_mat_sorted <- div_mat[, sort_idx]
-    
-    # =========================================================================
-    # Case 1: Gene-specific spectrum
-    # =========================================================================
-    if (!is.null(gene)) {
-        if (!gene %in% rownames(div_mat_sorted)) {
-            stop("Gene '", gene, "' not found in divergence_results_se")
-        }
-        
-        gene_div <- as.numeric(div_mat_sorted[gene, ])
-        
-        plot_df <- data.frame(
-            q = q_vals_sorted,
-            divergence = gene_div,
-            stringsAsFactors = FALSE
-        )
-        
-        p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-            ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
-            ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
-            ggplot2::labs(
-                title = paste("Divergence Spectrum:", gene),
-                x = "q value (diversity scale parameter)",
-                y = "Tsallis Divergence D_q"
-            ) +
-            ggplot2::theme_minimal(base_size = 14) +
-            ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
-                panel.grid.minor = ggplot2::element_blank()
-            )
-        
-        return(p)
-    }
-    
-    # =========================================================================
-    # Case 2: Global divergence curve (all genes)
-    # =========================================================================
-    
-    # Aggregate across genes at each q
-    if (variability_metric == "iqr") {
-        summary_stats <- data.frame(
-            q = q_vals_sorted,
-            central = apply(div_mat_sorted, 2, function(x) {
-                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
-            }),
-            spread = apply(div_mat_sorted, 2, function(x) {
-                stats::IQR(x, na.rm = TRUE)
-            }),
-            stringsAsFactors = FALSE
-        )
-        spread_factor <- 1/2  # IQR/2 for symmetric ribbon
-        spread_label <- "IQR"
-    } else {  # sd
-        summary_stats <- data.frame(
-            q = q_vals_sorted,
-            central = apply(div_mat_sorted, 2, function(x) {
-                if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
-            }),
-            spread = apply(div_mat_sorted, 2, function(x) {
-                sqrt(stats::var(x, na.rm = TRUE))
-            }),
-            stringsAsFactors = FALSE
-        )
-        spread_factor <- 1
-        spread_label <- "SD"
-    }
-    
-    metric_label <- if (metric == "median") "Median" else "Mean"
-    p <- ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
-        ggplot2::geom_ribbon(
-            ggplot2::aes(ymin = central - spread * spread_factor, 
-                        ymax = central + spread * spread_factor),
-            alpha = 0.25,
-            fill = "#2E86AB",
-            color = NA
-        ) +
-        ggplot2::geom_line(color = "#2E86AB", linewidth = 1.3) +
-        ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
-        ggplot2::labs(
-            title = "Global Divergence Spectrum: Average D_q Across All Genes",
-            x = "q value (diversity scale parameter)",
-            y = "Tsallis Divergence D_q",
-            subtitle = paste0(metric_label, " ± ", spread_label, " (", nrow(div_mat_sorted), " genes)")
-        ) +
-        ggplot2::theme_minimal(base_size = 14) +
-        ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
-            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic"),
-            panel.grid.minor = ggplot2::element_blank()
-        )
-    
-    return(p)
-}
-
-#' Plot Multi-Q Delta Influence Heatmaps
-#'
+#' @description
 #' Creates combined heatmap panels showing delta influence (transcript switching magnitude)
 #' across multiple q-values (diversity scales) for selected genes. Each heatmap shows
 #' how transcript importance differs between conditions (delta_influence) across the
@@ -3779,7 +3891,7 @@ plot_multiq_delta_influence_heatmaps <- function(
       if (is.na(gene_name) || gene_name == "") {
         header_text <- gene_id
       } else {
-        header_text <- paste0(gene_name, " (", gene_id, ")")
+        header_text <- gene_name
       }
       
       # Apply outlier capping (safely handle if all values are NA)
@@ -3858,6 +3970,12 @@ plot_multiq_delta_influence_heatmaps <- function(
                     x = 0.5, y = 0.98, 
                     just = "top",
                     gp = grid::gpar(fontsize = 48, fontface = "bold"))
+    
+    # Add subtitle
+    grid::grid.text("Jackknife weights across q-spectrum for selected genes", 
+                    x = 0.5, y = 0.945, 
+                    just = "top",
+                    gp = grid::gpar(fontsize = 32, fontface = "italic", col = "gray40"))
     
     # Create viewport layout with spacing between rows
     # Alternate between content rows and gap rows with larger gaps

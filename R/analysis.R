@@ -61,14 +61,14 @@ plot_method_concordance <- function(comparison_df) {
       breaks = c("Both significant", "GAM only", "Friedman only", "Neither significant")
     ) +
     ggplot2::labs(
-      title = "GAM vs Friedman Test: Method Concordance",
+      title = "Method Concordance",
       x = "-log10(p-value, GAM)",
       y = "-log10(p-value, Friedman)",
       color = "Significance"
     ) +
     ggplot2::theme_minimal() +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(face = "bold", size = 12),
+      plot.title = ggplot2::element_text(face = "plain", size = 14),
       legend.position = "bottomright",
       panel.grid.major = ggplot2::element_line(color = "gray90")
     )
@@ -90,10 +90,24 @@ plot_method_concordance <- function(comparison_df) {
       fill = "Method"
     ) +
     ggplot2::theme_minimal() +
-    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 12))
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "plain", size = 12))
   
-  # Combine and return
-  gridExtra::grid.arrange(p1, p2, ncol = 2)
+  # Combine plots with global title using cowplot approach
+  main_grid <- gridExtra::arrangeGrob(p1, p2, ncol = 2)
+  
+  # Add global title with subtitle using cowplot
+  title_grob <- cowplot::ggdraw() + 
+    cowplot::draw_label("Comparing interaction detection across two statistical methods",
+                       fontface = "bold", size = 16, x = 0.5, y = 0.75) +
+    cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
+                       fontface = "italic", size = 12, x = 0.5, y = 0.45, color = "gray40")
+  
+  cowplot::plot_grid(
+    title_grob,
+    main_grid,
+    nrow = 2,
+    rel_heights = c(0.15, 1)
+  )
 }
 
 

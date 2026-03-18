@@ -7,29 +7,18 @@
 plot_divergence_spectrum(
   divergence_results_se,
   gene = NULL,
-  metric = c("median", "mean"),
-  variability_metric = c("iqr", "sd")
-)
-
-plot_divergence_spectrum(
-  divergence_results_se,
-  gene = NULL,
+  lm_res = NULL,
+  n_genes = 6,
+  ncol = 3,
   metric = c("median", "mean"),
   variability_metric = c("iqr", "sd")
 )
 }
 \arguments{
-\item{divergence_results_se}{A `SummarizedExperiment` containing pre-computed divergence values.
-Rows = genes, columns = q-values. Column names should indicate q-values (e.g., "q_0.5", "q_1.0").}
+\item{metric}{Character. Summary statistic to display: "mean" or "median". Default: "median".}
 
-\item{gene}{Optional character. If provided, plot divergence spectrum for this specific gene.
-If NULL, plot global divergence curve (aggregated across all genes).}
-
-\item{metric}{Character. Summary statistic for global curve: "median" or "mean". Default: "median".
-Only used when gene = NULL.}
-
-\item{variability_metric}{Character. Error bar type for global curve: "sd" or "iqr". Default: "iqr".
-Only used when gene = NULL.}
+\item{variability_metric}{Character. Error bar type: "sd" (standard deviation) or "iqr" (interquartile range).
+Default: "iqr".}
 
 \item{se}{A `SummarizedExperiment` returned by `calculate_diversity` with multiple q-values.}
 
@@ -46,19 +35,12 @@ Default: "group".}
 \value{
 A `ggplot` object. Gene-specific calls return a line plot.
   Global calls return an aggregated curve with variability bands.
-
-A `ggplot` object. Gene-specific calls return a line plot.
-  Global calls return an aggregated curve with variability bands.
 }
 \description{
 Visualizes the average (mean/median) Tsallis divergence D_q across all genes
 as a function of q-value. This provides a **global view** of which diversity scales
 (rare vs. abundant isoforms) drive the most divergence on average across the dataset,
 complementing gene-specific divergence profiles.
-
-Unified plotting function for Tsallis divergence D_q across the q-spectrum.
-When a gene is specified, shows gene-specific divergence spectrum.
-When no gene is specified, shows global divergence curve aggregated across all genes.
 }
 \details{
 **Gene-specific mode (gene provided)**:
@@ -73,28 +55,8 @@ When no gene is specified, shows global divergence curve aggregated across all g
 
 **Interpretation**: Compare with `plot_tsallis_q_curve` (entropy) to understand
 the relationship between entropy changes and divergence patterns.
-
-**Gene-specific mode (gene provided)**:
-- Extracts divergence values for the specified gene across all q-values
-- Plots as a line chart with points
-- Reveals whether this gene shows q-dependent divergence patterns
-
-**Global mode (gene = NULL)**:
-- Aggregates divergence across all genes at each q-value
-- Shows which diversity scales (q-values) drive the most divergence on average
-- Useful for identifying dominant biological mechanisms (rare vs. abundant isoform driven)
 }
 \examples{
-\dontrun{
-  # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
-  
-  # Global divergence curve (all genes aggregated)
-  p_global <- plot_divergence_spectrum(divergence_se)
-  
-  # Gene-specific divergence spectrum
-  p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
-}
-
 \dontrun{
   # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
   

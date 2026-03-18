@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate_plots.R
 \name{plot_multiq_delta_influence_heatmaps}
 \alias{plot_multiq_delta_influence_heatmaps}
-\title{Plot Multi-Q Delta Influence Heatmaps}
+\title{Plot Divergence Spectrum (Gene-Specific or Global)}
 \usage{
 plot_multiq_delta_influence_heatmaps(
   switching_results,
@@ -23,8 +23,23 @@ Otherwise, selects the first n genes from results.}
 containing gene interaction statistics. Should have columns for gene identifiers
 ('gene_name' or 'gene_id') and p-values ('p_interaction' or 'adj_p_interaction').
 If provided, genes are ranked by p-value significance for selection of top genes.}
+
+\item{divergence_results_se}{A `SummarizedExperiment` containing pre-computed divergence values.
+Rows = genes, columns = q-values. Column names should indicate q-values (e.g., "q_0.5", "q_1.0").}
+
+\item{gene}{Optional character. If provided, plot divergence spectrum for this specific gene.
+If NULL, plot global divergence curve (aggregated across all genes).}
+
+\item{metric}{Character. Summary statistic for global curve: "median" or "mean". Default: "median".
+Only used when gene = NULL.}
+
+\item{variability_metric}{Character. Error bar type for global curve: "sd" or "iqr". Default: "iqr".
+Only used when gene = NULL.}
 }
 \value{
+A `ggplot` object. Gene-specific calls return a line plot.
+  Global calls return an aggregated curve with variability bands.
+
 Character path to saved PNG file containing the combined heatmaps.
   The plot is automatically saved to a temporary file and can be displayed
   in R Markdown with \code{knitr::include_graphics()}.
@@ -36,6 +51,23 @@ how transcript importance differs between conditions (delta_influence) across th
 q-spectrum from 0.01 to 2.0.
 }
 \details{
+Unified plotting function for Tsallis divergence D_q across the q-spectrum.
+When a gene is specified, shows gene-specific divergence spectrum.
+When no gene is specified, shows global divergence curve aggregated across all genes.
+
+
+**Gene-specific mode (gene provided)**:
+- Extracts divergence values for the specified gene across all q-values
+- Plots as a line chart with points
+- Reveals whether this gene shows q-dependent divergence patterns
+
+**Global mode (gene = NULL)**:
+- Aggregates divergence across all genes at each q-value
+- Shows which diversity scales (q-values) drive the most divergence on average
+- Useful for identifying dominant biological mechanisms (rare vs. abundant isoform driven)
+
+
+
 **Heatmap interpretation:**
 
 - \bold{Rows}: Different q-values from 0.01 (rare isoforms) to 2.0 (dominant isoforms)
@@ -58,6 +90,16 @@ isoform shifts; genes with varying patterns across q indicate q-dependent
 switching driven by rare vs. abundant isoforms.
 }
 \examples{
+\dontrun{
+  # Assume divergence_se is a SummarizedExperiment with pre-computed divergence
+  
+  # Global divergence curve (all genes aggregated)
+  p_global <- plot_divergence_spectrum(divergence_se)
+  
+  # Gene-specific divergence spectrum
+  p_gene <- plot_divergence_spectrum(divergence_se, gene = "BRCA1")
+}
+
 \dontrun{
 # After running multi-q jackknife analysis
 heatmap_file <- plot_multiq_delta_influence_heatmaps(
