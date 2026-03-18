@@ -803,6 +803,19 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #'   element is a complete tsenat_isoform_switching result for that q value. Keys are
 #'   formatted as "q_X_XX" for ease of iteration (e.g., q_0_01, q_1_00, q_2_00).
 #'
+#' @section Sample Metadata Parameters (Unified Naming Convention):
+#' TSENAT functions use consistent parameter names for sample grouping and subject identification:
+#' \itemize{
+#'   \item{\code{condition_col}: Character string specifying the colData column 
+#'         containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
+#'         Default: "condition". Required for identifying the two conditions to compare.}
+#'   \item{\code{pair_col} or \code{subject_col}: For paired/blocked designs, character string specifying 
+#'         the colData column with subject/individual/patient identifiers. Default: NULL.}
+#' }
+#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+#' across the TSENAT package.
+#'
 #' @export
 jackknife_isoform_switching <- function(
   se = NULL,

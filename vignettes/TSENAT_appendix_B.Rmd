@@ -301,7 +301,7 @@ top_genes_plot <- plot_tsallis_q_curve(
   lm_res = friedman_results,
   n_top = 4,
   assay_name = "diversity",
-  sample_type_col = "sample_type"
+  condition_col = "sample_type"
 )
 
 # Print the grid of plots

@@ -269,7 +269,7 @@ test_that("m_estimate with SummarizedExperiment includes all QC metrics", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber", paired = TRUE)
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber", paired = TRUE)
   
   # Check all expected columns present
   expected_cols <- c("Sample", "Condition", "Proportion_Affected", "Genes_Affected",
@@ -296,7 +296,7 @@ test_that("Robustness_Weight values are between 0 and 1", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   expect_true(all(result$Robustness_Weight >= 0))
   expect_true(all(result$Robustness_Weight <= 1))
@@ -320,7 +320,7 @@ test_that("Entropy_Mean and Entropy_SD are positive or zero", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   expect_true(all(result$Entropy_Mean >= 0))
   expect_true(all(result$Entropy_SD >= 0))
@@ -344,7 +344,7 @@ test_that("Distance_from_Centroid is non-negative", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   expect_true(all(result$Distance_from_Centroid >= 0))
   expect_true(all(is.finite(result$Distance_from_Centroid)))
@@ -378,7 +378,7 @@ test_that("Samples closer to centroid have lower distances", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   # All samples should have finite, non-negative distances
   expect_true(all(result$Distance_from_Centroid >= 0))
@@ -402,7 +402,7 @@ test_that("Distance_from_Centroid varies across samples (typical data)", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   # For typical data, distances should vary (not all identical)
   # Or at minimum should all be finite and non-negative
@@ -430,7 +430,7 @@ test_that("Proportion_Affected and Genes_Affected are consistent", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   # Genes_Affected should equal Proportion_Affected * nrow
   expected_genes <- round(result$Proportion_Affected * 100, 1)
@@ -458,7 +458,7 @@ test_that("Entropy_Mean within reasonable bounds for data", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   # Entropy_Mean should be within range of data (approximately)
   expect_true(all(result$Entropy_Mean >= 0.5))  # Lower bound with margin
@@ -486,9 +486,9 @@ test_that("Paired parameter propagates through recursive calls", {
   )
   colnames(se) <- col_names
   
-  result_paired <- m_estimate(se, samples = "sample_type", 
+  result_paired <- m_estimate(se, condition_col = "sample_type", 
                               loss_type = "huber", paired = TRUE)
-  result_unpaired <- m_estimate(se, samples = "sample_type", 
+  result_unpaired <- m_estimate(se, condition_col = "sample_type", 
                                 loss_type = "huber", paired = FALSE)
   
   # Both should return valid results
@@ -518,7 +518,7 @@ test_that("QC Status correctly flags high-influence samples", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber", 
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber", 
                        influence_threshold = 0.75)
   
   # Check Status column contains only "OK" or "Flag for QC"
@@ -551,9 +551,9 @@ test_that("Different influence thresholds produce different flagging", {
   )
   colnames(se) <- col_names
   
-  result_75 <- m_estimate(se, samples = "sample_type", 
+  result_75 <- m_estimate(se, condition_col = "sample_type", 
                           loss_type = "huber", influence_threshold = 0.75)
-  result_90 <- m_estimate(se, samples = "sample_type", 
+  result_90 <- m_estimate(se, condition_col = "sample_type", 
                           loss_type = "huber", influence_threshold = 0.90)
   
   # Lower threshold (0.75) should flag more samples than higher threshold (0.90)
@@ -581,9 +581,9 @@ test_that("Robustness metrics work with different loss types", {
   )
   colnames(se) <- col_names
   
-  result_huber <- m_estimate(se, samples = "sample_type", loss_type = "huber")
-  result_tukey <- m_estimate(se, samples = "sample_type", loss_type = "tukey")
-  result_lsq <- m_estimate(se, samples = "sample_type", loss_type = "lsq")
+  result_huber <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
+  result_tukey <- m_estimate(se, condition_col = "sample_type", loss_type = "tukey")
+  result_lsq <- m_estimate(se, condition_col = "sample_type", loss_type = "lsq")
   
   # All should have the new metrics
   for (result in list(result_huber, result_tukey, result_lsq)) {
@@ -615,7 +615,7 @@ test_that("Pair information is correctly extracted when available", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se, condition_col = "sample_type", loss_type = "huber")
   
   # Pair_ID should be extracted
   expect_true("Pair_ID" %in% colnames(result))
@@ -653,8 +653,8 @@ test_that("Entropy statistics reflect data variance", {
   )
   colnames(se_high) <- col_names
   
-  result_low <- m_estimate(se_low, samples = "sample_type", loss_type = "huber")
-  result_high <- m_estimate(se_high, samples = "sample_type", loss_type = "huber")
+  result_low <- m_estimate(se_low, condition_col = "sample_type", loss_type = "huber")
+  result_high <- m_estimate(se_high, condition_col = "sample_type", loss_type = "huber")
   
   # High variance data should have higher Entropy_SD on average
   mean_sd_low <- mean(result_low$Entropy_SD)
@@ -683,7 +683,7 @@ test_that("m_estimate SummarizedExperiment path with various data sizes", {
   colnames(se_simple) <- col_names
   
   # Basic test: should return valid results without crashing
-  result <- m_estimate(se_simple, samples = "sample_type", loss_type = "huber")
+  result <- m_estimate(se_simple, condition_col = "sample_type", loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_true(nrow(result) > 0)

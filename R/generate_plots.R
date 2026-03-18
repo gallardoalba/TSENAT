@@ -55,7 +55,7 @@ if (getRversion() >= "2.15.1") {
 # samples, readcounts and tx->gene mappings from a
 # SummarizedExperiment. Keeping these as focused helpers improves
 # readability of the longer plotting functions below.
-infer_samples_from_se <- function(se, samples = NULL, sample_type_col = "sample_type") {
+infer_samples_from_se <- function(se, samples = NULL, condition_col = "sample_type") {
     if (!is.null(samples)) {
         return(as.character(samples))
     }
@@ -67,7 +67,7 @@ infer_samples_from_se <- function(se, samples = NULL, sample_type_col = "sample_
 
     # Common column names to try
     candidates <- c(
-        sample_type_col,
+        condition_col,
         "condition",
         "group",
         "sample_group",
@@ -346,7 +346,7 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
 #'   For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
-#' @param sample_type_col Character; column name in colData indicating group/sample type
+#' @param condition_col Character; column name in colData indicating group/sample type
 #'   (default: "sample_type"). Only used in aggregate and CI modes.
 #' @param bootstrap Logical; if TRUE, plots bootstrap confidence interval bands for aggregate mode.
 #'   Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
@@ -459,7 +459,7 @@ plot_tsallis_q_curve <- function(
   # GENE-SPECIFIC MODE (when gene or lm_res is provided)
   # =========================================================================
   if (!is.null(gene) || !is.null(lm_res)) {
-    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+    long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = sample_type_col)
     if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
     
     # Resolve genes to plot
@@ -602,7 +602,7 @@ plot_tsallis_q_curve <- function(
   # BASIC MODE (no bootstrap or bootstrap CIs not available)
   # =========================================================================
   if (!bootstrap) {
-    long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+    long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = sample_type_col)
     y_label <- expression("Tsallis entropy (" * S[q] * ")")
     if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
     
@@ -654,7 +654,7 @@ plot_tsallis_q_curve <- function(
   # =========================================================================
   # BOOTSTRAP MODE (with CI data)
   # =========================================================================
-  long <- prepare_tsallis_long(se, assay_name = assay_name, sample_type_col = sample_type_col)
+  long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = sample_type_col)
   if (nrow(long) == 0) {
     stop("No tsallis values found in SummarizedExperiment")
   }
@@ -1281,7 +1281,7 @@ plot_volcano_ma_grid <- function(
 }
 
 ## Prepare and validate inputs for `plot_top_transcripts`
-.ptt_prepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, sample_type_col = "sample_type", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
+.ptt_prepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
     # handle selecting genes from `res` is left to caller; this function focuses
     # on normalizing counts, samples and tx2gene mapping and preparing agg functions
     if (inherits(counts, "SummarizedExperiment")) {
@@ -1289,7 +1289,7 @@ plot_volcano_ma_grid <- function(
         se <- counts
         counts_mat <- get_readcounts_from_se(se, readcounts)
         counts <- as.matrix(counts_mat)
-        samples <- infer_samples_from_se(se, samples, sample_type_col = sample_type_col)
+        samples <- infer_samples_from_se(se, samples, condition_col = condition_col)
 
         if (is.null(tx2gene)) {
             txres <- get_tx2gene_from_se(se, counts)
@@ -1317,7 +1317,7 @@ plot_volcano_ma_grid <- function(
             }
 
             if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
-                samples <- as.character(cdf[colnames(counts), sample_type_col])
+                samples <- as.character(cdf[colnames(counts), condition_col])
             } else {
                 sample_id_cols <- c("sample", "Sample", "sample_id", "id")
                 sid <- intersect(sample_id_cols, colnames(cdf))
@@ -1325,7 +1325,7 @@ plot_volcano_ma_grid <- function(
                     sid <- sid[1]
                     if (!all(colnames(counts) %in% as.character(cdf[[sid]]))) stop("coldata sample id column does not match column names of counts")
                     row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
-                    samples <- as.character(cdf[[sample_type_col]][row_ix])
+                    samples <- as.character(cdf[[condition_col]][row_ix])
                 } else {
                     stop("Could not match `coldata` rows to `counts` columns. Provide `samples` or a row-named `coldata`.")
                 }
@@ -1373,7 +1373,7 @@ plot_volcano_ma_grid <- function(
 #'   Must have a "genes" column in rowData specifying which gene each transcript belongs to.
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
 #'   top genes are selected by p-value.
-#' @param sample_type_col Character; column name in colData(se) to use for sample grouping 
+#' @param condition_col Character; column name in colData(se) to use for sample grouping 
 #'   (default: "sample_type").
 #' @param res Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
 #'   Supported sources:
@@ -1511,7 +1511,7 @@ plot_top_transcripts <- function(
         readcounts = NULL, 
         samples = samples, 
         coldata = NULL, 
-        sample_type_col = sample_type_col, 
+        condition_col = sample_type_col, 
         tx2gene = tx2gene, 
         res = NULL,
         top_n = top_n, 
@@ -1572,7 +1572,7 @@ plot_top_transcripts <- function(
 #' @param lm_res A `data.frame` from `calculate_lm_interaction()` with columns
 #'   `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method="fpca"
 #'   or method="gam".
-#' @param sample_type_col Column name in `colData(se)` specifying group
+#' @param condition_col Column name in `colData(se)` specifying group
 #'   assignments for samples (e.g., "sample_type").
 #' @param genes Optional character vector of specific gene names to plot. If provided,
 #'   these genes are plotted directly regardless of significance or n_top. If NULL
@@ -2028,7 +2028,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     head(genes_sel, top_n)
 }
 
-.ptt_infer_samples_from_coldata <- function(coldata, counts, sample_type_col) {
+.ptt_infer_samples_from_coldata <- function(coldata, counts, condition_col) {
     if (is.character(coldata) && length(coldata) == 1) {
         if (!file.exists(coldata)) {
             stop("coldata file not found: ", coldata)
@@ -2041,7 +2041,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
     }
 
     if (!is.null(rownames(cdf)) && all(colnames(counts) %in% rownames(cdf))) {
-        as.character(cdf[colnames(counts), sample_type_col])
+        as.character(cdf[colnames(counts), condition_col])
     } else {
         sample_id_cols <- c("sample", "Sample", "sample_id", "id")
         sid <- intersect(sample_id_cols, colnames(cdf))
@@ -2051,7 +2051,7 @@ plot_lm_interaction_gam <- function(se, lm_res, sample_type_col = "sample_type",
                 stop("coldata sample id column does not match column names of counts")
             }
             row_ix <- match(colnames(counts), as.character(cdf[[sid]]))
-            as.character(cdf[[sample_type_col]][row_ix])
+            as.character(cdf[[condition_col]][row_ix])
         } else {
             stop("Could not match `coldata` rows to `counts` columns. Provide `samples` or a row-named `coldata`.")
         }

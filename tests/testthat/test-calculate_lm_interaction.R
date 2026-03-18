@@ -43,7 +43,7 @@ test_that("calculate_lm_interaction returns expected columns and filters genes",
     )
 
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         min_obs = 8
     )
 
@@ -85,7 +85,7 @@ test_that("column names without _q= are rejected", {
     cd <- data.frame(samples = c("A", "A", "B"), row.names = colnames(mat), stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    expect_error(calculate_lm_interaction(se, sample_type_col = "samples"), "Could not parse q values", fixed = FALSE)
+    expect_error(calculate_lm_interaction(se, condition_col = "samples"), "Could not parse q values", fixed = FALSE)
 })
 
 test_that("invalid method and pvalue arguments produce errors", {
@@ -99,8 +99,8 @@ test_that("invalid method and pvalue arguments produce errors", {
     cd <- data.frame(samples = rep(c("Normal", "Tumor"), each = length(qvec)), row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    expect_error(calculate_lm_interaction(se, sample_type_col = "samples", method = "nope"), "should be one of", fixed = FALSE)
-    expect_error(calculate_lm_interaction(se, sample_type_col = "samples", method = "lmm", pvalue = "nope"), "should be one of", fixed = FALSE)
+    expect_error(calculate_lm_interaction(se, condition_col = "samples", method = "nope"), "should be one of", fixed = FALSE)
+    expect_error(calculate_lm_interaction(se, condition_col = "samples", method = "lmm", pvalue = "nope"), "should be one of", fixed = FALSE)
 })
 
 test_that("lmm fallback used when lmer fails (stubbed)", {
@@ -122,7 +122,7 @@ test_that("lmm fallback used when lmer fails (stubbed)", {
     assignInNamespace(".tsenat_try_lmer", stub, ns = "TSENAT")
     on.exit(assignInNamespace(".tsenat_try_lmer", orig, ns = "TSENAT"), add = TRUE)
 
-    res_se <- calculate_lm_interaction(se, sample_type_col = "samples", method = "lmm", subject_col = "sample_base", min_obs = 3)
+    res_se <- calculate_lm_interaction(se, condition_col = "samples", method = "lmm", subject_col = "sample_base", min_obs = 3)
     # function may return a SummarizedExperiment (writing into rowData) or a data.frame fallback
     if (is.data.frame(res_se)) {
         # accept any data.frame fallback (presence indicates graceful handling)
@@ -170,7 +170,7 @@ test_that("lmm returns LRT p-values (nlme with AR(1) does not support Satterthwa
 
     # LMM with pvalue="both" returns p_lrt (Satterthwaite not available for nlme AR(1))
     res_both <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "lmm", pvalue = "both", min_obs = 8
     )
 
@@ -184,7 +184,7 @@ test_that("lmm returns LRT p-values (nlme with AR(1) does not support Satterthwa
 
     # LMM with pvalue="lrt" (pvalue argument is used for forward compatibility but LMM always uses LRT)
     res_lrt <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "lmm", pvalue = "lrt", min_obs = 8
     )
 
@@ -223,7 +223,7 @@ test_that("gam method attaches p_interaction to rowData when mgcv available", {
 
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    res <- suppressWarnings(calculate_lm_interaction(se, sample_type_col = "sample_type", method = "gam", min_obs = 8))
+    res <- suppressWarnings(calculate_lm_interaction(se, condition_col = "sample_type", method = "gam", min_obs = 8))
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -252,7 +252,7 @@ test_that("fpca method attaches p_interaction to rowData", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
     # lower min_obs so test is robust; 4 samples with full q coverage should pass
-    res <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "fpca", min_obs = 2)
+    res <- calculate_lm_interaction(se, condition_col = "sample_type", method = "fpca", min_obs = 2)
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -281,7 +281,7 @@ test_that("paired lmm with subject_col attaches results when lme4 available", {
 
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    res <- calculate_lm_interaction(se, sample_type_col = "sample_type", method = "lmm", subject_col = "sample_base", min_obs = 3)
+    res <- calculate_lm_interaction(se, condition_col = "sample_type", method = "lmm", subject_col = "sample_base", min_obs = 3)
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
     } else {
@@ -333,14 +333,14 @@ test_that("calculate_lm_interaction with nthreads > 1 uses .tsenat_bplapply", {
 
     # Run with nthreads = 1 (serial)
     res_serial <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         min_obs = 8,
         nthreads = 1
     )
 
     # Run with nthreads = 2 (parallel, uses .tsenat_bplapply)
     res_parallel <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         min_obs = 8,
         nthreads = 2
     )
@@ -667,7 +667,7 @@ test_that("gee method attaches p_interaction to rowData when geepack available",
     
     res <- calculate_lm_interaction(
         se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         paired = TRUE,
         subject_col = "sample_base",
@@ -717,7 +717,7 @@ test_that("gee method produces results with unpaired data", {
     
     res <- calculate_lm_interaction(
         se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         paired = FALSE,
         min_obs = 8
@@ -768,7 +768,7 @@ test_that("gee method filters genes with insufficient observations", {
     
     res <- calculate_lm_interaction(
         se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         paired = TRUE,
         subject_col = "sample_base",
@@ -819,7 +819,7 @@ test_that("gee method produces different p-values for genes with vs without inte
     
     res <- calculate_lm_interaction(
         se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         paired = TRUE,
         subject_col = "sample_base",
@@ -872,7 +872,7 @@ test_that("multicorr parameter accepts valid values", {
     
     # Test each valid multicorr value
     for (method in c("hochberg", "benjamini-yekutieli", "westfall-young")) {
-        res <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = method, min_obs = 8)
+        res <- calculate_lm_interaction(se, condition_col = "samples", multicorr = method, min_obs = 8)
         
         if (is.data.frame(res)) {
             rd_out <- as.data.frame(res)
@@ -901,7 +901,7 @@ test_that("multicorr parameter rejects invalid values", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # Invalid method should raise error
-    expect_error(calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "invalid_method", min_obs = 8),
+    expect_error(calculate_lm_interaction(se, condition_col = "samples", multicorr = "invalid_method", min_obs = 8),
                  "should be one of|one of \"hochberg\"", ignore.case = TRUE)
 })
 
@@ -923,21 +923,21 @@ test_that("storey parameter is logical TRUE/FALSE", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # Test storey = FALSE (default)
-    res_false <- calculate_lm_interaction(se, sample_type_col = "samples", storey = FALSE, min_obs = 8)
+    res_false <- calculate_lm_interaction(se, condition_col = "samples", storey = FALSE, min_obs = 8)
     if (!is.data.frame(res_false)) {
         res_false <- as.data.frame(SummarizedExperiment::rowData(res_false))
     }
     expect_true("adj_p_interaction" %in% colnames(res_false))
     
     # Test storey = TRUE
-    res_true <- calculate_lm_interaction(se, sample_type_col = "samples", storey = TRUE, min_obs = 8)
+    res_true <- calculate_lm_interaction(se, condition_col = "samples", storey = TRUE, min_obs = 8)
     if (!is.data.frame(res_true)) {
         res_true <- as.data.frame(SummarizedExperiment::rowData(res_true))
     }
     expect_true("adj_p_interaction" %in% colnames(res_true))
     
     # Test invalid storey value
-    expect_error(calculate_lm_interaction(se, sample_type_col = "samples", storey = "yes", min_obs = 8),
+    expect_error(calculate_lm_interaction(se, condition_col = "samples", storey = "yes", min_obs = 8),
                  "storey|logical", ignore.case = TRUE)
 })
 
@@ -955,14 +955,14 @@ test_that("wy_randomizations parameter validates minimum value", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # wy_randomizations < 100 should error
-    expect_error(calculate_lm_interaction(se, sample_type_col = "samples", 
+    expect_error(calculate_lm_interaction(se, condition_col = "samples", 
                                         multicorr = "westfall-young", 
                                         wy_randomizations = 50,
                                         min_obs = 8),
                  "wy_randomizations|100", ignore.case = TRUE)
     
     # wy_randomizations >= 100 should work
-    res_valid <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res_valid <- calculate_lm_interaction(se, condition_col = "samples",
                                         multicorr = "westfall-young",
                                         wy_randomizations = 100,
                                         min_obs = 8)
@@ -991,7 +991,7 @@ test_that("Hochberg method produces valid adjusted p-values", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "hochberg", min_obs = 8)
+    res <- calculate_lm_interaction(se, condition_col = "samples", multicorr = "hochberg", min_obs = 8)
     
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
@@ -1037,7 +1037,7 @@ test_that("Hochberg method monotonicity: no ascending then descending", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "hochberg", min_obs = 30)
+    res <- calculate_lm_interaction(se, condition_col = "samples", multicorr = "hochberg", min_obs = 30)
     
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
@@ -1078,7 +1078,7 @@ test_that("Benjamini-Yekutieli method produces valid adjusted p-values", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 15)
+    res <- calculate_lm_interaction(se, condition_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 15)
     
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
@@ -1134,8 +1134,8 @@ test_that("Benjamini-Yekutieli is more conservative than Hochberg", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res_hoch <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "hochberg", min_obs = 30)
-    res_by <- calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 30)
+    res_hoch <- calculate_lm_interaction(se, condition_col = "samples", multicorr = "hochberg", min_obs = 30)
+    res_by <- calculate_lm_interaction(se, condition_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 30)
     
     if (is.data.frame(res_hoch)) {
         df_hoch <- as.data.frame(res_hoch)
@@ -1208,7 +1208,7 @@ test_that("Westfall-Young permutation method produces adjusted p-values", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # Use small number of permutations for speed
-    res <- calculate_lm_interaction(se, sample_type_col = "samples", 
+    res <- calculate_lm_interaction(se, condition_col = "samples", 
                                    multicorr = "westfall-young",
                                    wy_randomizations = 100,
                                    min_obs = 8)
@@ -1254,12 +1254,12 @@ test_that("Westfall-Young uses wy_randomizations parameter correctly", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # Run with two different randomization counts
-    res_100 <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res_100 <- calculate_lm_interaction(se, condition_col = "samples",
                                        multicorr = "westfall-young",
                                        wy_randomizations = 100,
                                        min_obs = 8)
     
-    res_200 <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res_200 <- calculate_lm_interaction(se, condition_col = "samples",
                                        multicorr = "westfall-young",
                                        wy_randomizations = 200,
                                        min_obs = 8)
@@ -1305,7 +1305,7 @@ test_that("storey=FALSE produces base method adjustments", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res <- calculate_lm_interaction(se, condition_col = "samples",
                                    multicorr = "hochberg",
                                    storey = FALSE,
                                    min_obs = 12)
@@ -1339,13 +1339,13 @@ test_that("storey=TRUE works with hochberg method", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # With storey=TRUE
-    res_storey <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res_storey <- calculate_lm_interaction(se, condition_col = "samples",
                                          multicorr = "hochberg",
                                          storey = TRUE,
                                          min_obs = 8)
     
     # With storey=FALSE for comparison
-    res_no_storey <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res_no_storey <- calculate_lm_interaction(se, condition_col = "samples",
                                             multicorr = "hochberg",
                                             storey = FALSE,
                                             min_obs = 8)
@@ -1388,7 +1388,7 @@ test_that("storey=TRUE works with benjamini-yekutieli method", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res <- calculate_lm_interaction(se, sample_type_col = "samples",
+    res <- calculate_lm_interaction(se, condition_col = "samples",
                                    multicorr = "benjamini-yekutieli",
                                    storey = TRUE,
                                    min_obs = 8)
@@ -1425,12 +1425,12 @@ test_that("storey parameter is orthogonal: all multicorr methods benefit", {
     
     # Test with all three methods, both with and without Storey
     for (method in c("hochberg", "benjamini-yekutieli")) {
-        res_no_storey <- calculate_lm_interaction(se, sample_type_col = "samples",
+        res_no_storey <- calculate_lm_interaction(se, condition_col = "samples",
                                                  multicorr = method,
                                                  storey = FALSE,
                                                  min_obs = 15)
         
-        res_with_storey <- calculate_lm_interaction(se, sample_type_col = "samples",
+        res_with_storey <- calculate_lm_interaction(se, condition_col = "samples",
                                                    multicorr = method,
                                                    storey = TRUE,
                                                    min_obs = 15)
@@ -1479,8 +1479,8 @@ test_that("Different methods produce different adjustments", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    res_hoch <- suppressWarnings(calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "hochberg", min_obs = 15))
-    res_by <- suppressWarnings(calculate_lm_interaction(se, sample_type_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 15))
+    res_hoch <- suppressWarnings(calculate_lm_interaction(se, condition_col = "samples", multicorr = "hochberg", min_obs = 15))
+    res_by <- suppressWarnings(calculate_lm_interaction(se, condition_col = "samples", multicorr = "benjamini-yekutieli", min_obs = 15))
     
     if (is.data.frame(res_hoch)) {
         df_hoch <- as.data.frame(res_hoch)
@@ -1564,7 +1564,7 @@ test_that("calculate_lm_interaction includes Shapiro-Wilk results for GAM method
     # Run with GAM method
     res <- tryCatch({
         suppressWarnings(calculate_lm_interaction(se,
-            sample_type_col = "samples",
+            condition_col = "samples",
             method = "gam",
             min_obs = 4
         ))
@@ -1626,7 +1626,7 @@ test_that("calculate_lm_interaction includes Shapiro-Wilk results for GEE method
     
     # Run with GEE method
     res <- calculate_lm_interaction(se,
-        sample_type_col = "condition",
+        condition_col = "condition",
         method = "gee",
         min_obs = 4
     )
@@ -1672,7 +1672,7 @@ test_that("Shapiro-Wilk results have expected data types and ranges", {
     
     res <- tryCatch({
         suppressWarnings(calculate_lm_interaction(se,
-            sample_type_col = "samples",
+            condition_col = "samples",
             method = "gam",
             min_obs = 4
         ))

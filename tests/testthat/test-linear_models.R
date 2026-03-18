@@ -71,7 +71,7 @@ test_that("GAM with PCA mode (no regularization) works", {
     # Test with PCA regularization (should be equivalent to no regularization)
     result <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "pca",
         subject_col = "sample_base",
@@ -100,7 +100,7 @@ test_that("GAM with spline regularization works", {
     # Test with spline regularization
     result <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "spline",
         subject_col = "sample_base",
@@ -127,7 +127,7 @@ test_that("GAM with GAMSEL regularization works", {
     # Test with GAMSEL regularization
     result <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "gamsel",
         subject_col = "sample_base",
@@ -190,7 +190,7 @@ test_that("GAM regularization handles small sample sizes gracefully", {
     # Apply spline regularization with small samples
     result <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "spline",
         subject_col = "sample_base",
@@ -213,7 +213,7 @@ test_that("Regularization parameter validation works for GAM", {
     expect_error(
         calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "invalid_method",
             subject_col = "sample_base",
@@ -231,7 +231,7 @@ test_that("GAM regularization consistency across multiple runs", {
     set.seed(123)
     result1 <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "spline",
         subject_col = "sample_base",
@@ -242,7 +242,7 @@ test_that("GAM regularization consistency across multiple runs", {
     set.seed(123)
     result2 <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "spline",
         subject_col = "sample_base",
@@ -268,7 +268,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
         # Run both with and without regularization
         result_no_reg <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "pca",  # No regularization
             subject_col = "sample_base",
@@ -278,7 +278,7 @@ test_that("GAM regularization vs non-regularized gives comparable results", {
         
         result_spline <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "spline",  # With spline regularization
             subject_col = "sample_base",
@@ -319,7 +319,7 @@ test_that("GAM regularization works with paired samples", {
     # Test with paired data
     result <- suppressWarnings(calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "spline",
         subject_col = "sample_base",
@@ -373,7 +373,7 @@ test_that("GAM works with continuous q-value patterns", {
     
     result <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "gam",
         regularization = "spline",
         subject_col = "sample_base",
@@ -433,14 +433,14 @@ test_that("FPCA with regularization='pca' (default) works correctly", {
     
     # Default method should be "pca"
     res_default <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         min_obs = 2
     )
     
     # Explicit "pca" method should give same result
     res_pca <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
         min_obs = 2
@@ -501,7 +501,7 @@ test_that("FPCA with regularization='lasso' produces valid results", {
     )
     
     res_lasso <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
         min_obs = 2
@@ -556,7 +556,7 @@ test_that("FPCA with regularization='elasticnet' produces valid results", {
     )
     
     res_elasticnet <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
         min_obs = 2
@@ -611,21 +611,21 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
     
     # Compare all three methods
     res_pca <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
         min_obs = 2
     )
     
     res_lasso <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "lasso",
         min_obs = 2
     )
     
     res_elasticnet <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "elasticnet",
         min_obs = 2
@@ -703,7 +703,7 @@ test_that(".tsenat_fpca_interaction works with all regularization methods", {
     
     # Test PCA regularization
     res_pca <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         regularization = "pca",
         min_obs = 2
@@ -712,7 +712,7 @@ test_that(".tsenat_fpca_interaction works with all regularization methods", {
     # Test LASSO regularization
     res_lasso <- suppressWarnings({
         calculate_lm_interaction(se,
-            sample_type_col = "sample_type",
+            condition_col = "sample_type",
             method = "fpca",
             regularization = "lasso",
             min_obs = 2
@@ -722,7 +722,7 @@ test_that(".tsenat_fpca_interaction works with all regularization methods", {
     # Test Elastic Net regularization
     res_elasticnet <- suppressWarnings({
         calculate_lm_interaction(se,
-            sample_type_col = "sample_type",
+            condition_col = "sample_type",
             method = "fpca",
             regularization = "elasticnet",
             min_obs = 2
@@ -797,7 +797,7 @@ test_that("FPCA regularization with paired design works correctly", {
     
     # Test regularization with paired design (with sufficient observations for glmnet)
     res <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "fpca",
         subject_col = "sample_base",
         paired = TRUE,
@@ -868,7 +868,7 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
     
     # Test that bias_correction parameter doesn't cause errors
     res_with_correction <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         bias_correction = TRUE,
@@ -876,7 +876,7 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
     )
     
     res_without_correction <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         bias_correction = FALSE,
@@ -956,7 +956,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     
     # Run with small clusters
     res_small <- calculate_lm_interaction(se_small,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         bias_correction = TRUE,
@@ -1001,7 +1001,7 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     
     # Run with large clusters
     res_large <- calculate_lm_interaction(se_large,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         bias_correction = TRUE,
@@ -1056,7 +1056,7 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         bias_correction = TRUE,
@@ -1134,7 +1134,7 @@ test_that("LASSO regularization on LMM is properly called", {
     # Test with LASSO regularization
     result <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "lasso",
         subject_col = "sample_base",
@@ -1165,7 +1165,7 @@ test_that("Ridge regularization on LMM works correctly", {
     # Test with Elastic Net (Ridge-like with alpha=0.5)
     result <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "elasticnet",
         subject_col = "sample_base",
@@ -1192,7 +1192,7 @@ test_that("PCA mode disables LMM regularization", {
     # Compare PCA mode (no regularization) vs LASSO (with regularization)
     result_pca <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "pca",
         subject_col = "sample_base",
@@ -1243,7 +1243,7 @@ test_that("LMM regularization handles small sample sizes gracefully", {
     # Apply minimum observation filter to create small sample scenario
     result <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "lasso",
         subject_col = "sample_base",
@@ -1266,7 +1266,7 @@ test_that("Regularization parameter validation works", {
     expect_error(
         calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "lmm",
             regularization = "invalid_method",
             subject_col = "sample_base",
@@ -1284,7 +1284,7 @@ test_that("LMM regularization consistency across multiple runs", {
     set.seed(123)
     result1 <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "lasso",
         subject_col = "sample_base",
@@ -1295,7 +1295,7 @@ test_that("LMM regularization consistency across multiple runs", {
     set.seed(123)
     result2 <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "lasso",
         subject_col = "sample_base",
@@ -1320,7 +1320,7 @@ test_that("LMM regularization vs non-regularized gives comparable results", {
     # Run both with and without regularization
     result_no_reg <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "pca",  # No regularization
         subject_col = "sample_base",
@@ -1330,7 +1330,7 @@ test_that("LMM regularization vs non-regularized gives comparable results", {
     
     result_lasso <- calculate_lm_interaction(
         se,
-        sample_type_col = "group",
+        condition_col = "group",
         method = "lmm",
         regularization = "lasso",  # With LASSO
         subject_col = "sample_base",
@@ -1630,7 +1630,7 @@ test_that("GAM bias correction is disabled when bias_correction=FALSE", {
         # Test with bias_correction=FALSE
         result <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "pca",
             subject_col = "sample_base",
@@ -1657,7 +1657,7 @@ test_that("GAM bias correction is applied for small samples", {
         # Test with bias_correction=TRUE (default)
         result <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "pca",
             subject_col = "sample_base",
@@ -1760,7 +1760,7 @@ test_that("Bias correction with GAM spline regularization", {
         # Test combining spline regularization with bias correction
         result <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "spline",
             subject_col = "sample_base",
@@ -1782,7 +1782,7 @@ test_that("Large samples ignore bias correction threshold (n >= 20)", {
         # Even with bias_correction=TRUE, large samples shouldn't trigger it
         result_large <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "pca",
             subject_col = "sample_base",
@@ -1806,7 +1806,7 @@ test_that("Bias correction consistency with paired GAM", {
         # Test with paired design
         result <- calculate_lm_interaction(
             se,
-            sample_type_col = "group",
+            condition_col = "group",
             method = "gam",
             regularization = "pca",
             subject_col = "sample_base",

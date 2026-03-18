@@ -268,10 +268,10 @@ test_that("map_samples_to_group uses colData mapping and errors on missing", {
     se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
     SummarizedExperiment::colData(se)$sample_type <- c("A", "B")
     # valid mapping
-    mapped <- TSENAT:::map_samples_to_group(c("S1", "S2"), se = se, sample_type_col = "sample_type", mat = NULL)
+    mapped <- TSENAT:::map_samples_to_group(c("S1", "S2"), se = se, condition_col = "sample_type", mat = NULL)
     expect_equal(mapped, c("A", "B"))
     # missing sample should error
-    expect_error(TSENAT:::map_samples_to_group(c("S1", "S3"), se = se, sample_type_col = "sample_type", mat = NULL), "Missing sample_type mapping")
+    expect_error(TSENAT:::map_samples_to_group(c("S1", "S3"), se = se, condition_col = "sample_type", mat = NULL), "Missing sample_type mapping")
 })
 
 test_that("get_assay_long returns long df and respects sample_type_col", {
@@ -281,7 +281,7 @@ test_that("get_assay_long returns long df and respects sample_type_col", {
     se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
     rowData(se)$genes <- c("G1", "G2")
     SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(sample_type = c("N", "T"), row.names = colnames(mat))
-    long <- TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = "sample_type")
+    long <- TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", condition_col = "sample_type")
     expect_true(all(c("Gene", "sample", "val", "sample_type") %in% colnames(long)))
     expect_equal(unique(as.character(long$sample_type)), c("N", "T"))
 })
@@ -293,7 +293,7 @@ test_that("prepare_tsallis_long parses _q= suffixes and maps groups", {
     se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
     rowData(se)$genes <- c("G1", "G2", "G3")
     SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(sample_type = c("A", "A"), row.names = colnames(mat))
-    long <- TSENAT:::prepare_tsallis_long(se, assay_name = "diversity", sample_type_col = "sample_type")
+    long <- TSENAT:::prepare_tsallis_long(se, assay_name = "diversity", condition_col = "sample_type")
     # q should be numeric (bug fix: was converting to factor)
     expect_true("q" %in% colnames(long))
     expect_true(is.numeric(long$q))
@@ -322,7 +322,7 @@ test_that("prepare_tsallis_long preserves decimal q-values as numeric", {
         row.names = colnames(mat)
     )
     
-    long <- TSENAT:::prepare_tsallis_long(se, assay_name = "diversity", sample_type_col = "sample_type")
+    long <- TSENAT:::prepare_tsallis_long(se, assay_name = "diversity", condition_col = "sample_type")
     
     # Verify q is numeric, not factor
     expect_true(is.numeric(long$q))
@@ -400,7 +400,7 @@ test_that("map_tx_to_readcounts accepts file path input", {
 test_that("map_samples_to_group with mat provided returns single group when no mapping", {
     mat <- matrix(1:4, nrow = 2)
     colnames(mat) <- c("A_q=1", "B_q=1")
-    res <- TSENAT:::map_samples_to_group(c("A", "B"), se = NULL, sample_type_col = NULL, mat = mat)
+    res <- TSENAT:::map_samples_to_group(c("A", "B"), se = NULL, condition_col = NULL, mat = mat)
     expect_equal(res, c("Group", "Group"))
 })
 
@@ -419,7 +419,7 @@ test_that("get_assay_long errors when all values are NA", {
     SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(sample_type = c("N", "T", "N"), row.names = colnames(mat))
     
     expect_error(
-        TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = "sample_type"),
+        TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", condition_col = "sample_type"),
         "No non-NA values found in assay 'diversity'. All values are NA."
     )
 })
@@ -433,7 +433,7 @@ test_that("get_assay_long filters out NA values but errors when all are NA", {
     rowData(se)$genes <- c("G1", "G2")
     SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(sample_type = c("N", "T", "N"), row.names = colnames(mat))
     
-    long <- TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = "sample_type")
+    long <- TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", condition_col = "sample_type")
     
     # Should have filtered out NA values but kept valid ones
     expect_true(all(!is.na(long$val)))
@@ -448,7 +448,7 @@ test_that("get_assay_long with default sample_type when column missing", {
     se <- SummarizedExperiment(assays = SimpleList(diversity = mat))
     rowData(se)$genes <- c("G1", "G2")
     
-    long <- TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", sample_type_col = NULL)
+    long <- TSENAT:::get_assay_long(se, assay_name = "diversity", value_name = "val", condition_col = NULL)
     
     expect_true("sample_type" %in% colnames(long))
     expect_true(all(long$sample_type == "Group"))
@@ -462,7 +462,7 @@ test_that("prepare_tsallis_long handles no _q suffix and default group", {
     rownames(mat) <- c("g1", "g2")
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(diversity = mat))
     rowData(se)$genes <- c("G1", "G2")
-    long <- TSENAT:::prepare_tsallis_long(se, assay_name = "diversity", sample_type_col = NULL)
+    long <- TSENAT:::prepare_tsallis_long(se, assay_name = "diversity", condition_col = NULL)
     expect_true(all(long$group == "Group"))
     expect_true(all(is.na(long$q)))
 })

@@ -332,7 +332,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' names contain `_q=`).
 #' @param se A `SummarizedExperiment` containing a `diversity` assay produced
 #' by `calculate_diversity(..., q = <vector>)`.
-#' @param sample_type_col Optional column name in `colData(se)` that contains
+#' @param condition_col Column name in `colData(se)` that contains
 #' a grouping factor for samples (character). If `NULL`, the function will
 #' attempt to infer group from column names (suffix `_N` interpreted as
 #' 'Normal').
@@ -441,6 +441,21 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #'   \item `$model_data`: Metadata list containing method, q-values, sample names, test configuration,
 #'     and other information useful for downstream visualization and diagnostics
 #' }
+#'
+#' @section Sample Metadata Parameters (Unified Naming Convention):
+#' TSENAT functions use consistent parameter names for sample grouping and subject identification:
+#' \itemize{
+#'   \item{\code{condition_col}: Character string specifying the colData column 
+#'         containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
+#'         Default: "condition". Map your grouping variable into this column before calling TSENAT functions.}
+#'   \item{\code{subject_col}: For paired/blocked/repeated-measures designs, character string specifying 
+#'         the colData column with subject/individual/patient identifiers. Default: NULL. 
+#'         Required when \code{paired = TRUE}.}
+#' }
+#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+#' across the TSENAT package.
+#'
 #' @references
 #' Kutner, M. H., Nachtsheim, C. J., Neter, J., & Li, W. (2005).
 #' \emph{Applied Linear Statistical Models} (5th ed.). McGraw-Hill.
@@ -491,9 +506,9 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #'     sample_type = rep(c('Normal', 'Tumor'), length.out = ncol(se)),
 #'     row.names = colnames(se)
 #' )
-#' # sample_type_col defaults to "sample_type"
+#' # condition_col defaults to "condition"
 #' calculate_lm_interaction(se)
-calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_obs = 10, method = c("lmm",
+calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 10, method = c("lmm",
     "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
     paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE, 
     bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
@@ -575,15 +590,15 @@ calculate_lm_interaction <- function(se, sample_type_col = "sample_type", min_ob
     q_vals <- as.numeric(sub(".*_q=", "", sample_q))
 
     # determine group for each sample
-    sample_type_in_coldata <- !is.null(sample_type_col) && sample_type_col %in% colnames(SummarizedExperiment::colData(se))
-    if (sample_type_in_coldata) {
-        st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
+    condition_in_coldata <- !is.null(condition_col) && condition_col %in% colnames(SummarizedExperiment::colData(se))
+    if (condition_in_coldata) {
+        st <- as.character(SummarizedExperiment::colData(se)[, condition_col])
         names(st) <- rownames(SummarizedExperiment::colData(se))
-        # when user provides a sample_type_col, index by the FULL column names (sample_q)
+        # when user provides a condition_col, index by the FULL column names (sample_q)
         # not by sample_names (which lose the q-value information)
         group_vec <- unname(st[sample_q])
     } else {
-        stop("No sample grouping found: please supply `sample_type_col` or map sample",
+        stop("No sample grouping found: please supply `condition_col` or map sample",
             "types into `colData(se)` before calling calculate_lm_interaction().",
             call. = FALSE)
     }

@@ -1201,6 +1201,20 @@ estimate_nperm <- function(
 #'   - Moderately dependent: p < 0.05 AND η^2 <= 0.10
 #'   - Strongly dependent: p < 0.05 AND η^2 > 0.10
 #'
+#' @section Sample Metadata Parameters (Unified Naming Convention):
+#' TSENAT functions use consistent parameter names for sample grouping and subject identification:
+#' \itemize{
+#'   \item{\code{condition_col}: Character string specifying the colData column 
+#'         containing sample group/condition labels. Currently used as reference when processing
+#'         SummarizedExperiment objects. Default: NULL.}
+#'   \item{\code{subject_col}: For paired/blocked designs, character string specifying 
+#'         the colData column with subject/individual/patient identifiers. 
+#'         Required when \code{paired = TRUE}.}
+#' }
+#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
+#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+#' across the TSENAT package.
+#'
 #' @references
 #' Papers S041, S042: Interaction testing in genomic designs
 #' Papers S181-S187: Aligned Rank Transform for multi-factor analysis
@@ -1245,6 +1259,7 @@ detect_q_gene_interactions <- function(
     gene_col = "gene",
     paired = FALSE,
     subject_col = NULL,
+    condition_col = NULL,
     test = c("auto", "kruskal-wallis", "friedman", "art"),
     multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
     wy_randomizations = 500,

@@ -294,7 +294,7 @@ test_that(".ptt_prepare_inputs errors when tx2gene missing", {
     counts <- matrix(1:6, nrow = 3)
     rownames(counts) <- paste0("tx", seq_len(nrow(counts)))
     colnames(counts) <- c("S1", "S2")
-    expect_error(TSENAT:::.ptt_prepare_inputs(counts = counts, readcounts = NULL, samples = c("S1", "S2"), coldata = NULL, sample_type_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 2, pseudocount = 1e-6, output_file = NULL), "tx2gene")
+    expect_error(TSENAT:::.ptt_prepare_inputs(counts = counts, readcounts = NULL, samples = c("S1", "S2"), coldata = NULL, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 2, pseudocount = 1e-6, output_file = NULL), "tx2gene")
 })
 
 test_that(".ptt_prepare_inputs returns list with mapping when provided", {
@@ -303,7 +303,7 @@ test_that(".ptt_prepare_inputs returns list with mapping when provided", {
     rownames(counts) <- paste0("tx", 1:3)
     colnames(counts) <- c("S1", "S2")
     tx2 <- data.frame(Transcript = rownames(counts), Gen = c("G1", "G1", "G2"), stringsAsFactors = FALSE)
-    prep <- TSENAT:::.ptt_prepare_inputs(counts = counts, readcounts = NULL, samples = c("S1", "S2"), coldata = NULL, sample_type_col = "sample_type", tx2gene = tx2, res = NULL, top_n = 2, pseudocount = 1e-6, output_file = NULL)
+    prep <- TSENAT:::.ptt_prepare_inputs(counts = counts, readcounts = NULL, samples = c("S1", "S2"), coldata = NULL, condition_col = "sample_type", tx2gene = tx2, res = NULL, top_n = 2, pseudocount = 1e-6, output_file = NULL)
     expect_type(prep, "list")
     expect_true(all(c("counts", "samples", "mapping", "agg_fun") %in% names(prep)))
 })
@@ -834,7 +834,7 @@ test_that(".ptt_infer_samples_from_coldata infers samples from data.frame and fi
     cdf <- data.frame(sample_type = c("N", "T", "N", "T"), stringsAsFactors = FALSE)
     rownames(cdf) <- colnames(counts)
 
-    samp <- TSENAT:::.ptt_infer_samples_from_coldata(cdf, counts, sample_type_col = "sample_type")
+    samp <- TSENAT:::.ptt_infer_samples_from_coldata(cdf, counts, condition_col = "sample_type")
     expect_equal(as.character(samp), as.character(cdf[colnames(counts), "sample_type"]))
 
     # write as file with sample id column
@@ -842,12 +842,12 @@ test_that(".ptt_infer_samples_from_coldata infers samples from data.frame and fi
     dff <- data.frame(sample = colnames(counts), sample_type = c("N", "T", "N", "T"), stringsAsFactors = FALSE)
     utils::write.table(dff, file = tf, sep = "\t", quote = FALSE, row.names = FALSE)
 
-    samp2 <- TSENAT:::.ptt_infer_samples_from_coldata(tf, counts, sample_type_col = "sample_type")
+    samp2 <- TSENAT:::.ptt_infer_samples_from_coldata(tf, counts, condition_col = "sample_type")
     expect_equal(as.character(samp2), as.character(dff$sample_type))
 
     # mismatch
     badcdf <- data.frame(other = c("a", "b"))
-    expect_error(TSENAT:::.ptt_infer_samples_from_coldata(badcdf, counts, sample_type_col = "sample_type"))
+    expect_error(TSENAT:::.ptt_infer_samples_from_coldata(badcdf, counts, condition_col = "sample_type"))
 })
 
 # .ptt_read_tx2gene
@@ -1122,7 +1122,7 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
     t2g_file <- tempfile()
     write.table(data.frame(Transcript = c("tx1", "tx2"), Gen = c("g1", "g1")), t2g_file, sep = "\t", row.names = F)
 
-    prep <- .ptt_prepare_inputs(counts, samples = NULL, coldata = cd_file, sample_type_col = "sample_type", tx2gene = t2g_file, res = NULL, top_n = 1, pseudocount = 1)
+    prep <- .ptt_prepare_inputs(counts, samples = NULL, coldata = cd_file, condition_col = "sample_type", tx2gene = t2g_file, res = NULL, top_n = 1, pseudocount = 1)
     expect_equal(prep$samples, c("a", "b"))
 
     # bad coldata (no sample_id-like columns)
@@ -1164,7 +1164,7 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
     S4Vectors::metadata(se) <- list(tx2gene = data.frame(Transcript = c("tx1", "tx2"), Gen = c("g1", "g1"), stringsAsFactors = FALSE))
     cd_file2 <- tempfile()
     write.table(data.frame(sample_id = c("s1", "s2"), sample_type = c("a", "b")), cd_file2, sep = "\t", row.names = FALSE)
-    prep2 <- .ptt_prepare_inputs(se, readcounts = NULL, samples = NULL, coldata = cd_file2, sample_type_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 1, pseudocount = 1, output_file = NULL)
+    prep2 <- .ptt_prepare_inputs(se, readcounts = NULL, samples = NULL, coldata = cd_file2, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = 1, pseudocount = 1, output_file = NULL)
     expect_equal(prep2$mapping$Gen, c("g1", "g1"))
 
     # no samples or coldata

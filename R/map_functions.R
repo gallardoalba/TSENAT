@@ -236,10 +236,10 @@
 
 # Map sample names (without '_q=...') to group labels using `colData(se)`.
 # Mapping must be provided via `colData(se)`; no inference fallback is used.
-map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL,
+map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
     mat = NULL) {
-    # Prefer explicit mapping from colData(se)[, sample_type_col] when
-    # provided. If `sample_type_col` is not provided, allow a single- condition
+    # Prefer explicit mapping from colData(se)[, condition_col] when
+    # provided. If `condition_col` is not provided, allow a single- condition
     # dataset by assigning a single default group 'Group' to all samples (this
     # permits plotting single-condition q-curves).
     
@@ -253,8 +253,8 @@ map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL
         return(setNames(rep("Group", length(sample_names)), sample_names))
     }
 
-    if (!is.null(se) && !is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
-        st_vec <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
+    if (!is.null(se) && !is.null(condition_col) && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
+        st_vec <- as.character(SummarizedExperiment::colData(se)[, condition_col])
         names(st_vec) <- base_names
         st_map <- st_vec[!duplicated(names(st_vec))]
     } else {
@@ -273,7 +273,7 @@ map_samples_to_group <- function(sample_names, se = NULL, sample_type_col = NULL
 
 # Prepare a long-format data.frame for a simple assay (one value per sample)
 get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
-    sample_type_col = NULL) {
+    condition_col = NULL) {
     if (!requireNamespace("tidyr", quietly = TRUE)) {
         stop("tidyr required")
     }
@@ -299,8 +299,8 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
     # sample_type: prefer explicit colData mapping when available. If not
     # provided, assume a single-group dataset and set `sample_type` to 'Group'
     # for all samples.
-    if (!is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
-        st <- as.character(SummarizedExperiment::colData(se)[, sample_type_col])
+    if (!is.null(condition_col) && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
+        st <- as.character(SummarizedExperiment::colData(se)[, condition_col])
         names(st) <- colnames(mat)
         st_map <- st[!duplicated(names(st))]
         sample_base <- sub("_q=.*", "", long$sample)
@@ -328,7 +328,7 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
 
 # Internal small helper: prepare long-format tsallis data from a
 # SummarizedExperiment
-prepare_tsallis_long <- function(se, assay_name = "diversity", sample_type_col = "sample_type") {
+prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "sample_type") {
     if (!requireNamespace("tidyr", quietly = TRUE)) {
         stop("tidyr required")
     }
@@ -363,10 +363,10 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", sample_type_col =
         long$q <- NA
     }
 
-    if (!is.null(sample_type_col) && (sample_type_col %in% colnames(SummarizedExperiment::colData(se)))) {
+    if (!is.null(condition_col) && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
         # Get colData which should have been populated by map_metadata()
         col_data <- SummarizedExperiment::colData(se)
-        col_st <- as.character(col_data[, sample_type_col])
+        col_st <- as.character(col_data[, condition_col])
         col_rownames <- rownames(col_data)
         
         # Create a mapping from unique sample names (without _q=) to sample type

@@ -36,7 +36,7 @@ test_that("gee method returns expected columns (basic functionality)", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -91,7 +91,7 @@ test_that("gee method with paired design and subject_col", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         min_obs = 3
@@ -140,7 +140,7 @@ test_that("gee method with paired=TRUE uses sample_base", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         paired = TRUE,
         min_obs = 3
@@ -191,7 +191,7 @@ test_that("gee method filters genes with min_obs", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 15  # strict cutoff
     )
@@ -241,7 +241,7 @@ test_that("gee method handles missing subject_col gracefully", {
     # GEE should warn or use fallback when subject_col not provided for paired design
     # Should not crash
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -288,7 +288,7 @@ test_that("gee with exchangeable correlation structure", {
     # Test that exchangeable correlation structure can be used
     # Note: This requires an additional parameter 'corstr' in the function
     res <- calculate_lm_interaction(se,
-        sample_type_col = "sample_type",
+        condition_col = "sample_type",
         method = "gee",
         subject_col = "sample_base",
         min_obs = 3
@@ -335,7 +335,7 @@ test_that("gee method produces p-values in valid range [0,1]", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -387,14 +387,14 @@ test_that("gee method returns consistent results (reproducibility)", {
     # Run the same analysis twice
     set.seed(999)
     res1 <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
     
     set.seed(999)
     res2 <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -452,7 +452,7 @@ test_that("gee requires geepack package", {
         # geepack is available: the function should run without error
         expect_silent(
             calculate_lm_interaction(se,
-                sample_type_col = "samples",
+                condition_col = "samples",
                 method = "gee",
                 min_obs = 8
             )
@@ -461,7 +461,7 @@ test_that("gee requires geepack package", {
         # geepack missing: expect an informative error
         expect_error(
             calculate_lm_interaction(se,
-                sample_type_col = "samples",
+                condition_col = "samples",
                 method = "gee",
                 min_obs = 8
             ),
@@ -504,7 +504,7 @@ test_that("gee produces lower p-values for strong interactions", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -566,13 +566,13 @@ test_that("gee produces reasonable results compared to linear method", {
     
     # Run both methods
     res_lmm <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "lmm",
         min_obs = 8
     )
     
     res_gee <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -629,7 +629,7 @@ test_that("GEE method returns Shapiro-Wilk normality test results", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
@@ -680,7 +680,7 @@ test_that("GEE Shapiro-Wilk test correctly flags non-normal residuals", {
     )
     
     res <- calculate_lm_interaction(se,
-        sample_type_col = "samples",
+        condition_col = "samples",
         method = "gee",
         min_obs = 8
     )
