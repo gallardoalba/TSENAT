@@ -79,7 +79,7 @@ Analysis pipeline:
 
 ---
 
-# Benchmarck
+# Benchmarking
 
 ### Importing example data
 
@@ -116,7 +116,19 @@ rownames(se_data) <- genes
 
 
 ```{r helper_functions, message=FALSE, warning=FALSE, include=FALSE}
-# Format top genes table with consistent styling
+#' Format Top Genes Table
+#' 
+#' @description Extract and format top differentially expressed genes for display,
+#' with consistent column naming and numerical formatting.
+#'
+#' @param results_df Data frame containing differential analysis results
+#' @param gene_col Column name containing gene identifiers
+#' @param padj_col Column name containing adjusted p-values
+#' @param n_top Number of top genes to extract (default: 10)
+#' @param select_cols Vector of column names to select (default: standard columns)
+#' @param col_names Vector of display names for columns (for knitr::kable)
+#'
+#' @return Data frame with formatted top genes, ready for display
 format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10, 
                             select_cols = NULL, col_names = NULL) {
   # Default columns to display
@@ -145,6 +157,19 @@ format_top_genes <- function(results_df, gene_col, padj_col, n_top = 10,
 }
 
 # Create summary statistics comparison table
+#' Create Summary Statistics Comparison
+#'
+#' @description Compare differential analysis results between two methods,
+#' computing concordance metrics and statistical thresholds.
+#'
+#' @param method1_results Data frame with first method's results
+#' @param method2_results Data frame with second method's results
+#' @param method1_name Display name for first method
+#' @param method2_name Display name for second method
+#' @param padj_col1 Adjusted p-value column name in method1 results
+#' @param padj_col2 Adjusted p-value column name in method2 results
+#'
+#' @return Data frame summarizing comparison statistics
 create_summary_stats <- function(method1_results, method2_results, 
                                method1_name, method2_name,
                                padj_col1 = "adjusted_p_values", 
@@ -177,6 +202,20 @@ create_summary_stats <- function(method1_results, method2_results,
 }
 
 # Calculate gene overlap statistics (both in padj < threshold)
+#' Calculate Gene Overlap Statistics
+#'
+#' @description Quantify agreement between two differential analysis methods,
+#' showing genes detected by both, only by first, or only by second method.
+#'
+#' @param results1 Data frame with first method's results
+#' @param results2 Data frame with second method's results
+#' @param gene_col1 Column name for genes in results1
+#' @param gene_col2 Column name for genes in results2
+#' @param padj_col1 Adjusted p-value column in results1
+#' @param padj_col2 Adjusted p-value column in results2
+#' @param threshold Significance threshold (default: 0.05)
+#'
+#' @return Data frame showing overlap statistics with counts and percentages
 gene_overlap_stats <- function(results1, results2, gene_col1, gene_col2, 
                               padj_col1, padj_col2, threshold = 0.05) {
   sig1 <- results1[[gene_col1]][results1[[padj_col1]] < threshold]
@@ -244,27 +283,16 @@ Both packages return a `SummarizedExperiment` object, that you can investigate f
 ### Differential analysis
 
 ```{r differential_analysis}
-# Create group metadata for TSENAT objects
-group_metadata <- data.frame(
-  sample = colnames(assay(se_data, "counts")),
-  group = ifelse(grepl("_N", colnames(assay(se_data, "counts"))), "Normal", "Tumor")
-)
+# Create sample group classification
+sample_group <- ifelse(grepl("_N$", colnames(shannon_entropy)), "Normal", "Tumor")
 
-# Add sample type metadata to SplicingFactory objects
-colData(shannon_entropy) <- cbind(colData(shannon_entropy),
-                                  sample_type = ifelse(grepl("_N", colnames(shannon_entropy)),
-                                                       "Normal", "Tumor"))
+# Add metadata to SplicingFactory objects
+colData(shannon_entropy)$sample_type <- sample_group
+colData(simpson_index)$sample_type <- sample_group
 
-colData(simpson_index) <- cbind(colData(simpson_index),
-                             sample_type = ifelse(grepl("_N", colnames(simpson_index)),
-                                                   "Normal", "Tumor"))
-
-# Add sample group metadata to TSENAT objects
-colData(tsenat_q1_values) <- cbind(colData(tsenat_q1_values),
-                                    group = group_metadata$group)
-
-colData(tsenat_q2_values) <- cbind(colData(tsenat_q2_values),
-                                    group = group_metadata$group)
+# Add metadata to TSENAT objects
+colData(tsenat_q1_values)$group <- sample_group
+colData(tsenat_q2_values)$group <- sample_group
 
 # SplicingFactory: Differential analysis for Shannon entropy
 entropy_significance <- SplicingFactory::calculate_difference(
@@ -307,67 +335,6 @@ tsenat_simpson_diff <- TSENAT::calculate_difference(
 )
 ```
 
-```{r volcano_ma_plots, fig.width=16, fig.height=6, message=FALSE, warning=FALSE}
-# Visualize differential analysis results using combined volcano and MA plots
-library(cowplot)
-
-# SplicingFactory Shannon entropy: Volcano + MA grid
-shannon_grid <- TSENAT::plot_volcano_ma_grid(
-  diff_df = entropy_significance,
-  x_col = "mean_difference",
-  padj_col = "adjusted_p_values",
-  sig_alpha = 0.05,
-  top_n = 5,
-  title_volcano = "SplicingFactory Shannon Entropy - Volcano",
-  title_ma = "SplicingFactory Shannon Entropy - MA Plot"
-)
-
-# TSENAT Tsallis q=1: Volcano + MA grid
-tsenat_q1_grid <- TSENAT::plot_volcano_ma_grid(
-  diff_df = tsenat_shannon_diff,
-  x_col = "mean_difference",
-  padj_col = "padj",
-  sig_alpha = 0.05,
-  top_n = 5,
-  title_volcano = "TSENAT Tsallis q=1 - Volcano",
-  title_ma = "TSENAT Tsallis q=1 - MA Plot"
-)
-
-# SplicingFactory Simpson index: Volcano + MA grid
-simpson_grid <- TSENAT::plot_volcano_ma_grid(
-  diff_df = simpson_significance,
-  x_col = "mean_difference",
-  padj_col = "adjusted_p_values",
-  sig_alpha = 0.05,
-  top_n = 5,
-  title_volcano = "SplicingFactory Simpson Index - Volcano",
-  title_ma = "SplicingFactory Simpson Index - MA Plot"
-)
-
-# TSENAT Tsallis q=2: Volcano + MA grid
-tsenat_q2_grid <- TSENAT::plot_volcano_ma_grid(
-  diff_df = tsenat_simpson_diff,
-  x_col = "mean_difference",
-  padj_col = "padj",
-  sig_alpha = 0.05,
-  top_n = 5,
-  title_volcano = "TSENAT Tsallis q=2 - Volcano",
-  title_ma = "TSENAT Tsallis q=2 - MA Plot"
-)
-
-# Display Shannon entropy comparison
-print(shannon_grid)
-cat("\n\n")
-print(tsenat_q1_grid)
-
-# Display Simpson index comparison
-print(simpson_grid)
-cat("\n\n")
-print(tsenat_q2_grid)
-```
-
-
-
 
 For the benchmark comparison with TSENAT, we will compute Tsallis entropy 
 at q=1 (equivalent to Shannon) and q=2 (equivalent to Simpson). This 
@@ -401,6 +368,8 @@ shannon_summary <- create_summary_stats(
 knitr::kable(shannon_summary, caption = "Shannon Entropy Analysis Summary Statistics", align = c("l", "r", "r", "r", "r", "r", "r"))
 ```
 
+**Interpretation**: Both methods similarly identify significantly different transcript diversity between Normal and Tumor samples. The comparable number of significant genes (padj<0.05) and mean log₂FC values demonstrate equivalent statistical power and effect size detection.
+
 #### Top 10 Significant Genes - SplicingFactory (Laplace)
 ```{r shannon_sf_top_genes, message=FALSE, warning=FALSE, echo=FALSE}
 shannon_sf_top <- format_top_genes(
@@ -409,6 +378,7 @@ shannon_sf_top <- format_top_genes(
   gene_col = "genes",
   padj_col = "adjusted_p_values",
   n_top = 10,
+  select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_sf_top, row.names = FALSE, caption = "SplicingFactory (Laplace) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
@@ -422,9 +392,61 @@ shannon_tsenat_top <- format_top_genes(
   gene_col = "gene_id",
   padj_col = "padj",
   n_top = 10,
+  select_cols = c("gene_id", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "pvalue", "padj"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=1) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
+```
+
+```{r comparison_volcano_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE}
+# Create comparison plots: Volcano and MA plots side-by-side for each method
+library(cowplot)
+
+# Create individual volcano and MA plots for Shannon/q=1
+shannon_sf <- TSENAT::plot_volcano_ma_grid(
+  diff_df = entropy_significance,
+  x_col = "mean_difference",
+  padj_col = "adjusted_p_values",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "",
+  title_ma = ""
+)
+
+shannon_tsenat <- TSENAT::plot_volcano_ma_grid(
+  diff_df = tsenat_shannon_diff,
+  x_col = "mean_difference",
+  padj_col = "padj",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "",
+  title_ma = ""
+)
+
+# Create title labels for each grid
+shannon_sf_title <- cowplot::ggdraw() + 
+  cowplot::draw_label("Shannon (SplicingFactory)",
+                     fontface = "bold", size = 16, x = 0.5, y = 0.5)
+
+shannon_tsenat_title <- cowplot::ggdraw() + 
+  cowplot::draw_label("Tsallis q=1 (TSENAT)",
+                     fontface = "bold", size = 16, x = 0.5, y = 0.5)
+
+# Create and combine all Shannon comparison plots
+shannon_comparison <- cowplot::plot_grid(
+  cowplot::ggdraw() + 
+    cowplot::draw_label("Volcano and MA plot Comparison: SplicingFactory vs TSENAT",
+                       fontface = "bold", size = 20, x = 0.5, y = 0.5),
+  cowplot::plot_grid(
+    cowplot::plot_grid(shannon_sf_title, shannon_sf, nrow = 2, rel_heights = c(0.12, 1)),
+    cowplot::plot_grid(shannon_tsenat_title, shannon_tsenat, nrow = 2, rel_heights = c(0.12, 1)),
+    ncol = 2
+  ),
+  nrow = 2,
+  rel_heights = c(0.08, 1)
+)
+
+print(shannon_comparison)
 ```
 
 ---
@@ -442,6 +464,8 @@ simpson_summary <- create_summary_stats(
 knitr::kable(simpson_summary, caption = "Simpson Index Analysis Summary Statistics", align = c("l", "r", "r", "r", "r", "r", "r"))
 ```
 
+**Interpretation**: Simpson index results parallel Shannon entropy findings, with both methods identifying similar numbers of significantly different isoform dominance patterns. The agreement across both diversity measures provides strong evidence for TSENAT's mathematical and statistical equivalence to SplicingFactory.
+
 #### Top 10 Significant Genes - SplicingFactory (Simpson)
 ```{r simpson_sf_top_genes, message=FALSE, warning=FALSE, echo=FALSE}
 simpson_sf_top <- format_top_genes(
@@ -450,6 +474,7 @@ simpson_sf_top <- format_top_genes(
   gene_col = "genes",
   padj_col = "adjusted_p_values",
   n_top = 10,
+  select_cols = c("genes", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "raw_p_values", "adjusted_p_values"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(simpson_sf_top, row.names = FALSE, caption = "SplicingFactory (Simpson) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
@@ -463,9 +488,59 @@ simpson_tsenat_top <- format_top_genes(
   gene_col = "gene_id",
   padj_col = "padj",
   n_top = 10,
+  select_cols = c("gene_id", "Normal_mean", "Tumor_mean", "mean_difference", "log2_fold_change", "pvalue", "padj"),
   col_names = c("Gene", "Normal Mean", "Tumor Mean", "Mean Diff", "log2FC", "p-value", "adj p-value")
 )
 knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q=2) - Top 10 Significant Genes", align = c("l", "r", "r", "r", "r", "r", "r"))
+```
+
+
+```{r comparison_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE}
+# Create individual volcano and MA plots for Simpson/q=2
+simpson_sf <- TSENAT::plot_volcano_ma_grid(
+  diff_df = simpson_significance,
+  x_col = "mean_difference",
+  padj_col = "adjusted_p_values",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "",
+  title_ma = ""
+)
+
+simpson_tsenat <- TSENAT::plot_volcano_ma_grid(
+  diff_df = tsenat_simpson_diff,
+  x_col = "mean_difference",
+  padj_col = "padj",
+  sig_alpha = 0.05,
+  top_n = 5,
+  title_volcano = "",
+  title_ma = ""
+)
+
+# Create title labels for each grid
+simpson_sf_title <- cowplot::ggdraw() + 
+  cowplot::draw_label("Simpson (SplicingFactory)",
+                     fontface = "bold", size = 16, x = 0.5, y = 0.5)
+
+simpson_tsenat_title <- cowplot::ggdraw() + 
+  cowplot::draw_label("Tsallis q=2 (TSENAT)",
+                     fontface = "bold", size = 16, x = 0.5, y = 0.5)
+
+# Create and combine all Simpson comparison plots
+simpson_comparison <- cowplot::plot_grid(
+  cowplot::ggdraw() + 
+    cowplot::draw_label("Volcano and MA plot Comparison: SplicingFactory vs TSENAT",
+                       fontface = "bold", size = 20, x = 0.5, y = 0.5),
+  cowplot::plot_grid(
+    cowplot::plot_grid(simpson_sf_title, simpson_sf, nrow = 2, rel_heights = c(0.12, 1)),
+    cowplot::plot_grid(simpson_tsenat_title, simpson_tsenat, nrow = 2, rel_heights = c(0.12, 1)),
+    ncol = 2
+  ),
+  nrow = 2,
+  rel_heights = c(0.08, 1)
+)
+
+print(simpson_comparison)
 ```
 
 ---
@@ -478,9 +553,7 @@ $$Simpson = Tsallis_{q=2} = 1 - \sum_{i=1}^n p_i^2$$
 
 where $p_i = \frac{x_i}{\sum_i x_i}$ (transcript proportions).
 
-### Normalization Difference
-
-SplicingFactory returns raw values, while TSENAT normalizes by the theoretical maximum $(1-1/n)$:
+Howerver, SplicingFactory returns raw values, while TSENAT normalizes by the theoretical maximum $(1-1/n)$:
 
 | | SplicingFactory | TSENAT |
 |---|---|---|
@@ -488,11 +561,7 @@ SplicingFactory returns raw values, while TSENAT normalizes by the theoretical m
 | Range | 0 to ~1 | 0 to 1 |
 | Scale difference | Raw | ~2x for 2-isoform genes |
 
-This explains observed differences like C1orf213 Normal: 0.3852 (SplicingFactory) vs 0.7703 (TSENAT). The calculation: $0.3852 / 0.5 = 0.7704$ confirms the scaling.
-
-### Why Results Remain Identical
-
-Despite raw value differences, statistical analysis yields identical results:
+This explains observed differences like *C1orf213* Normal: 0.3852 (SplicingFactory) vs 0.7703 (TSENAT). Since C1orf213 has 2 expressed isoforms, the normalization factor is $1 - 1/2 = 0.5$. The calculation: $0.3852 / 0.5 = 0.7704$ confirms this scaling factor. Despite raw value differences, statistical analysis yields identical results:
 
 1. log2 fold changes: Normalization factor cancels in ratios: $\log_2\left(\frac{S_{norm,t}}{S_{norm,n}}\right) = \log_2\left(\frac{S_{raw,t}/K}{S_{raw,n}/K}\right) = \log_2\left(\frac{S_{raw,t}}{S_{raw,n}}\right)$
 
@@ -500,22 +569,13 @@ Despite raw value differences, statistical analysis yields identical results:
 
 3. Statistical validity: Both approaches are correct—SplicingFactory favors unbounded diversity, TSENAT favors interpretable [0,1] scaling
 
-### When to Use Each Method
-
-- SplicingFactory: Legacy benchmarking, established study comparisons
-- TSENAT: Multi-q sensitivity analysis, q-spectrum exploration, normalized comparisons across genes with different isoform counts
-
 ---
 
 ## Technical Note: Gene Filtering Difference
 
 The 1-gene difference between SplicingFactory (214 genes tested) and TSENAT (213 genes tested) is due to a subtle but important difference in how the two packages filter genes before statistical testing.
 
-### Wilcoxon Test Sample Size Requirement
-
-Both packages apply the same statistical principle: genes must have at least 3 samples in each condition AND at least 8 total observations across both conditions to be included in Wilcoxon testing.
-
-### Implementation Difference
+Implementation Difference:
 
 SplicingFactory's Implementation:
 ```{r, eval=FALSE}
@@ -528,7 +588,7 @@ x$cond_2 <- apply(x[grep(unique(samples)[2], samples) + 1], 1,
 if (test == "wilcoxon") {
     y <- x[x$cond_1 >= 3 & x$cond_2 >= 3 & sum(x$cond_1, x$cond_2) >= 8, ]
     #                                         ^^^^^^^^^^^^^^^^^^^^^^
-    #                                         BUG: This computes a SCALAR
+    #                                         This computes a SCALAR
 }
 ```
 
@@ -543,79 +603,29 @@ df$cond_2 <- rowSums(!is.na(df[, idx2 + 1, drop = FALSE]))
 if (test == "wilcoxon") {
     keep_mask <- (df$cond_1 >= 3 & df$cond_2 >= 3 & (df$cond_1 + df$cond_2) >= 8)
     #                                                 ^^^^^^^^^^^^^^^^
-    #                                                 CORRECT: Element-wise addition per gene
+    #                                                 Element-wise addition per gene
 }
 ```
 
-TSENAT correctly uses `(df$cond_1 + df$cond_2)`, which performs element-wise addition to check each individual gene's total observation count.
+TSENAT uses `(df$cond_1 + df$cond_2)`, which performs element-wise addition to check each individual gene's total observation count.
 
-### Consequence
-
-TSENAT's filter is stricter and correct: it requires each gene individually to have at least 8 total observations (3 in one group, 3 in the other, plus 2 more from either group). SplicingFactory's filter effectively doesn't work for the Wilcoxon test because the global sum condition is almost never FALSE.
-
-This bug in SplicingFactory should be corrected by changing line 163 from:
-```r
-y <- x[x$cond_1 >= 3 & x$cond_2 >= 3 & sum(x$cond_1, x$cond_2) >= 8, ]
-```
-to:
-```r
-y <- x[x$cond_1 >= 3 & x$cond_2 >= 3 & (x$cond_1 + x$cond_2) >= 8, ]
-```
-
-Notably, SplicingFactory's shuffle test (line 169) already uses the correct syntax: `y <- x[x$cond_1 + x$cond_2 >= 5, ]`.
+The consequence is that TSENAT's filter is stricter: it requires each gene individually to have at least 8 total observations (3 in one group, 3 in the other, plus 2 more from either group). SplicingFactory's filter effectively doesn't work for the Wilcoxon test because the global sum condition is almost never FALSE.
 
 ---
 
 # Conclusion: Equivalence Validation Summary
 
-This appendix has demonstrated that **TSENAT's implementation of transcript diversity measures is mathematically and statistically equivalent to SplicingFactory's established methods** for both Shannon entropy and Simpson index calculations.
-
-## Key Findings
-
-### Shannon Entropy (Tsallis q=1) Equivalence
-
-TSENAT's Tsallis entropy with q=1 produces **identical results** to SplicingFactory's Laplace-smoothed Shannon entropy:
-
-- **Correlation**: Diversity values are perfectly correlated (Spearman ρ ≈ 1.0)
-- **Effect sizes**: Differential analysis yields matching log2-fold changes across all genes
-- **Rankings**: Gene significance rankings are identical—same genes are identified as differentially expressed
-- **P-values**: Statistical significance assessments are concordant
-
-### Simpson Index (Tsallis q=2) Equivalence
-
-TSENAT's Tsallis entropy with q=2 is **mathematically equivalent** to SplicingFactory's Simpson index:
-
-- **Theoretical basis**: The Tsallis framework generalizes classical information-theoretic measures; setting q=2 recovers Simpson's formula exactly
-- **Practical validation**: Gene-level diversity values match SplicingFactory's implementation
-- **Differential analysis**: Both methods identify the same biologically significant isoform switches
-
-### Practical Implications
-
-Users can now:
-
-- **Confidently switch between TSENAT and SplicingFactory** without concern for method-driven differences in results
-- **Combine analyses** from projects using either package, knowing findings are directly comparable
-- **Leverage TSENAT's flexibility**: The Tsallis framework enables sensitivity analysis across the q continuum (q ∈ [0, ∞)), while maintaining perfect backward compatibility with established q=1 and q=2 methods
-- **Benefit from TSENAT's features**: Improved gene filtering logic (demonstrated in Technical Note section), additional entropy variants, and seamless integration with standard Bioconductor workflows
-
-### Limitations and Considerations
-
-1. **Gene filtering differences**: TSENAT applies stricter, more correct filtering for the Wilcoxon test compared to SplicingFactory (see Technical Note). This may result in slightly fewer genes passing filtering, but those that remain are more likely to have sufficient statistical power.
-
-2. **Assumptions**: Both TSENAT and SplicingFactory assume:
-   - Read counts follow appropriate probabilistic models for the chosen statistical tests
-   - Transcript abundance changes reflect genuine biological differences, not technical artifacts
-   - Sample group definitions are biologically meaningful
-
-3. **Experimental design**: Equivalence validation was performed on TCGA BRCA data with clear phenotypic differences. Performance on other datasets (smaller sample sizes, different phenotypes, non-human species) may vary.
-
-## Conclusion
-
-This appendix provides confidence that TSENAT's mathematical foundation is sound and that its results are trustworthy for bioinformatics practitioners. The demonstration of equivalence with SplicingFactory validates both the correctness of TSENAT's implementation and the mathematical properties of the Tsallis entropy framework.
+This appendix has demonstrated that TSENAT's implementation of transcript diversity measures is mathematically and statistically equivalent to SplicingFactory's established methods for both Shannon entropy and Simpson index calculations.
 
 ---
 
-## Cleanup namespace
+## Session Information
+
+```{r session_info, include=TRUE}
+sessionInfo()
+```
+
+---
 
 Detach SplicingFactory before next vignette to prevent function masking:
 
@@ -625,8 +635,3 @@ if ("package:SplicingFactory" %in% search()) {
 }
 ```
 
-## Session info
-```{r}
-
-sessionInfo()
-```
