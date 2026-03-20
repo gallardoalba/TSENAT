@@ -13,7 +13,7 @@ test_that("M-estimation method is recognized and validated", {
     # M-estimation with wilcoxon test should work
     result <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "wilcoxon"
@@ -37,7 +37,7 @@ test_that("M-estimation method works with shuffle permutation test", {
     # Test with shuffle
     result <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",
@@ -66,7 +66,7 @@ test_that("M-estimation is robust to outliers", {
     
     result_mean <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "mean",
         test = "wilcoxon"
@@ -74,7 +74,7 @@ test_that("M-estimation is robust to outliers", {
     
     result_mest <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "wilcoxon"
@@ -100,7 +100,7 @@ test_that("Robust loss and scale parameters are accepted", {
     # Test with huber loss and MAD scale
     result_huber <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         robust_loss_type = "huber",
@@ -112,7 +112,7 @@ test_that("Robust loss and scale parameters are accepted", {
     # Test with tukey loss and proposal2 scale
     result_tukey <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         robust_loss_type = "tukey",
@@ -135,7 +135,7 @@ test_that("M-estimation produces consistent log2 fold changes", {
     # Same data should produce identical log2 fold changes
     result1 <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",
@@ -145,7 +145,7 @@ test_that("M-estimation produces consistent log2 fold changes", {
     
     result2 <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",
@@ -170,7 +170,7 @@ test_that("All three location estimators produce valid results", {
     for (method in c("mean", "median", "m_estimate")) {
         result <- suppressWarnings(calculate_difference(
             df,
-            samples = samples,
+            condition_col = samples,
             control = "A",
             method = method,
             test = "wilcoxon"
@@ -220,7 +220,7 @@ test_that("M-estimation handles NA values gracefully", {
     
     result <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "wilcoxon"
@@ -242,7 +242,7 @@ test_that("M-estimation works with paired samples", {
     
     result <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",
@@ -268,7 +268,7 @@ test_that("M-estimation works with multiple genes", {
     
     result <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",
@@ -301,7 +301,7 @@ test_that("M-estimation works with SummarizedExperiment input", {
     
     result <- suppressWarnings(calculate_difference(
         se,
-        samples = "sample_type",
+        condition_col = "sample_type",
         control = "A",
         method = "m_estimate",
         test = "wilcoxon"
@@ -323,7 +323,7 @@ test_that("Different seeds produce consistent log2 fold changes", {
     
     result1 <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",
@@ -333,7 +333,7 @@ test_that("Different seeds produce consistent log2 fold changes", {
     
     result2 <- suppressWarnings(calculate_difference(
         df,
-        samples = samples,
+        condition_col = samples,
         control = "A",
         method = "m_estimate",
         test = "shuffle",

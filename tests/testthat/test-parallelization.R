@@ -181,18 +181,18 @@ test_that("calculate_difference serial and parallel produce identical results", 
     samples <- rep(c("Normal", "Tumor"), each = nsamp / 2)
     
     # Wilcoxon test, serial
-    res_wilcox_serial <- calculate_difference(data_df, samples = samples, 
+    res_wilcox_serial <- calculate_difference(data_df, condition_col = samples, 
                                               control = "Normal", test = "wilcoxon",
                                               nthreads = 1, verbose = FALSE)
     
     # Wilcoxon test, parallel
-    res_wilcox_par_2 <- calculate_difference(data_df, samples = samples,
+    res_wilcox_par_2 <- calculate_difference(data_df, condition_col = samples,
                                              control = "Normal", test = "wilcoxon",
                                              nthreads = 2, verbose = FALSE)
     
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_wilcox_par_4 <- calculate_difference(data_df, samples = samples,
+    res_wilcox_par_4 <- calculate_difference(data_df, condition_col = samples,
                                              control = "Normal", test = "wilcoxon",
                                              nthreads = max_threads, verbose = FALSE)
     
@@ -219,7 +219,7 @@ test_that("calculate_difference label_shuffling produces valid results", {
     
     # Label shuffling, serial
     res_shuffle_serial <- suppressWarnings(
-        calculate_difference(data_df, samples = samples,
+        calculate_difference(data_df, condition_col = samples,
                            control = "Ctrl", test = "shuffle",
                            randomizations = 30, nthreads = 1,
                            verbose = FALSE)
@@ -227,7 +227,7 @@ test_that("calculate_difference label_shuffling produces valid results", {
     
     # Label shuffling, parallel
     res_shuffle_par <- suppressWarnings(
-        calculate_difference(data_df, samples = samples,
+        calculate_difference(data_df, condition_col = samples,
                             control = "Ctrl", test = "shuffle",
                             randomizations = 30, nthreads = 2,
                             verbose = FALSE)

@@ -770,7 +770,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #'
 #' @param se A SummarizedExperiment object with transcript-level counts.
 #' @param condition_col Character: column name in colData for condition labels.
-#' @param pair_col Character: optional column name for paired design (individual IDs).
+#' @param subject_col Character: optional column name for paired design (subject/individual IDs).
 #' @param gene_col Character: column name in rowData for gene IDs.
 #' @param isoform_col Character: column name in rowData for transcript/isoform IDs.
 #' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy). Can be a vector
@@ -810,7 +810,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #'   \item{\code{condition_col}: Character string specifying the colData column 
 #'         containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
 #'         Default: "condition". Required for identifying the two conditions to compare.}
-#'   \item{\code{pair_col} or \code{subject_col}: For paired/blocked designs, character string specifying 
+#'   \item{\code{subject_col}: For paired/blocked designs, character string specifying 
 #'         the colData column with subject/individual/patient identifiers. Default: NULL.}
 #' }
 #' All functions use \code{SummarizedExperiment::colData()} as the single source of truth
@@ -822,7 +822,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 jackknife_isoform_switching <- function(
   se = NULL,
   condition_col = "condition",
-  pair_col = NULL,
+  subject_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
   q = 1,
@@ -854,7 +854,7 @@ jackknife_isoform_switching <- function(
       jackknife_isoform_switching(
         se = se,
         condition_col = condition_col,
-        pair_col = pair_col,
+        subject_col = subject_col,
         gene_col = gene_col,
         isoform_col = isoform_col,
         q = q_val,
@@ -978,13 +978,13 @@ jackknife_isoform_switching <- function(
   is_paired <- FALSE
   pair_info <- NULL
   
-  if (!is.null(pair_col)) {
-    if (!(pair_col %in% colnames(colData(se)))) {
-      stop("pair_col '", pair_col, "' not found in colData")
+  if (!is.null(subject_col)) {
+    if (!(subject_col %in% colnames(colData(se)))) {
+      stop("subject_col '", subject_col, "' not found in colData")
     }
     
     # Check if pairing is valid (50% threshold)
-    pairs <- colData(se)[[pair_col]]
+    pairs <- colData(se)[[subject_col]]
     conds <- colData(se)[[condition_col]]
     pair_conds <- table(pairs, conds)
     paired_ratio <- sum(apply(pair_conds > 0, 1, sum) == 2) / nrow(pair_conds)
@@ -993,7 +993,7 @@ jackknife_isoform_switching <- function(
       is_paired <- TRUE
       paired_indices <- apply(pair_conds > 0, 1, sum) == 2
       pair_info <- list(
-        pair_col = pair_col,
+        subject_col = subject_col,
         n_pairs = sum(paired_indices),
         matched_pairs = names(which(paired_indices))
       )
@@ -1122,9 +1122,9 @@ jackknife_isoform_switching <- function(
     counts_B_all <- counts_matrix[, cond_mask_B, drop = FALSE]
     
     # Handle paired design: use matched pairs only
-    if (is_paired && !is.null(pair_col)) {
-      pairs_A <- colData(se)[cond_mask_A, pair_col]
-      pairs_B <- colData(se)[cond_mask_B, pair_col]
+    if (is_paired && !is.null(subject_col)) {
+      pairs_A <- colData(se)[cond_mask_A, subject_col]
+      pairs_B <- colData(se)[cond_mask_B, subject_col]
       
       matched_pairs <- intersect(pairs_A, pairs_B)
       
@@ -1385,7 +1385,7 @@ jackknife_isoform_switching <- function(
   metadata <- list(
     q = q,
     is_paired = is_paired,
-    pair_col = if (is_paired) pair_col else NULL,
+    subject_col = if (is_paired) subject_col else NULL,
     pair_info = pair_info,
     norm = norm,
     log_base = log_base,
@@ -1433,7 +1433,7 @@ jackknife_isoform_switching <- function(
     cat("Conditions: '", conditions[1], "' vs. '", conditions[2], "'\n", sep = "")
     
     if (is_paired && !is.null(pair_info)) {
-      cat("Design: PAIRED (", pair_col, ") - ", pair_info$n_pairs, " matched pairs\n", sep = "")
+      cat("Design: PAIRED (", subject_col, ") - ", pair_info$n_pairs, " matched pairs\n", sep = "")
     } else {
       cat("Design: UNPAIRED\n")
     }

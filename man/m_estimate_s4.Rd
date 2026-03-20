@@ -6,7 +6,7 @@
 \usage{
 m_estimate_s4(
   analysis,
-  samples = NULL,
+  condition_col = NULL,
   loss_type = "huber",
   scale = NULL,
   max_iter = 50,
@@ -23,8 +23,8 @@ m_estimate_s4(
 \item{analysis}{\code{TSENATAnalysis} object with diversity results
 (typically via \code{\link{calculate_diversity_s4}}).}
 
-\item{samples}{\code{character}. Column name in sample metadata indicating
-sample/sample_type grouping. Auto-detected from \code{@config$condition_col}
+\item{condition_col}{\code{character}. Column name in sample metadata indicating
+condition/sample grouping. Auto-detected from \code{@config$condition_col}
 if available.}
 
 \item{loss_type}{\code{character}. Type of loss function: "huber" (default),
@@ -95,7 +95,7 @@ unusual diversity patterns.
   # Run M-estimation with sample grouping
   analysis <- m_estimate_s4(
       analysis,
-      samples = "sample_type",
+      condition_col = "sample_type",
       loss_type = "huber",
       influence_threshold = 0.75
   )

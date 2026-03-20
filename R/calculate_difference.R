@@ -2,14 +2,14 @@
 #' @param x A \code{SummarizedExperiment} with splicing diversity values for
 #' each gene in each sample or a \code{data.frame} with gene names in the  first
 #' column and splicing diversity values for each sample in additional  columns.
-#' @param samples A vector of length one, specifying the column name of the
+#' @param condition_col A vector of length one, specifying the column name of the
 #' \code{colData} annotation column from the \code{SummarizedExperiment}
 #' object, that should be used as the category column or a character vector
 #' with an equal length to the number of columns in the input dataset,
 #' specifying the category of each sample in the case of a \code{data.frame}
 #' input.
 #' @param control Name of the control sample category, defined in the
-#' \code{samples} vector, e.g. \code{control = 'Normal'} or \code{control =
+#' \code{condition_col} vector, e.g. \code{control = 'Normal'} or \code{control =
 #' 'WT'}.
 #' @param method Method to use for calculating the average splicing diversity
 #' value in a condition. Can be \code{'mean'}, \code{'median'}, or \code{'m_estimate'}
@@ -68,40 +68,40 @@
 #' which statistical test is applied.
 #' @examples
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
-#' samples <- c(rep('Healthy', 4), rep('Pathogenic', 4))
-#' calculate_difference(x, samples,
+#' condition_col <- c(rep('Healthy', 4), rep('Pathogenic', 4))
+#' calculate_difference(x, condition_col,
 #'     control = 'Healthy', method = 'mean', test =
 #'         'wilcoxon'
 #' )
-calculate_difference <- function(x, samples = NULL, control, method = "mean", test = "wilcoxon",
+calculate_difference <- function(x, condition_col = NULL, control, method = "mean", test = "wilcoxon",
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
     exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber", 
     robust_scale_method = "mad") {
     # internal small helpers (kept here to avoid adding new files)
-    .tsenat_prepare_df <- function(x, samples, assayno) {
+    .tsenat_prepare_df <- function(x, condition_col, assayno) {
         pairs_vec <- NULL
         if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
-            # allow samples to be NULL (use default 'sample_type' col)
-            if (is.null(samples)) {
+            # allow condition_col to be NULL (use default 'sample_type' col)
+            if (is.null(condition_col)) {
                 if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
                   samples_col <- "sample_type"
                 } else {
-                  stop("When providing a SummarizedExperiment, supply 'samples' as a colData column name or call map_metadata() to populate 'sample_type'",
+                  stop("When providing a SummarizedExperiment, supply 'condition_col' as a colData column name or call map_metadata() to populate 'sample_type'",
                     call. = FALSE)
                 }
             } else {
-                if (length(samples) != 1) {
-                  stop("'samples' must be a single colData column.", call. = FALSE)
+                if (length(condition_col) != 1) {
+                  stop("'condition_col' must be a single colData column.", call. = FALSE)
                 }
                 # Check if the requested column exists; if not, try 'sample_type' as fallback
                 # (map_metadata stores condition info in sample_type column)
-                if (samples %in% colnames(SummarizedExperiment::colData(x))) {
-                    samples_col <- samples
+                if (condition_col %in% colnames(SummarizedExperiment::colData(x))) {
+                    samples_col <- condition_col
                 } else if ("sample_type" %in% colnames(SummarizedExperiment::colData(x))) {
                     samples_col <- "sample_type"
                 } else {
                     stop(sprintf("Column '%s' not found in colData, and fallback 'sample_type' is also missing. Call map_metadata() first.",
-                        samples), call. = FALSE)
+                        condition_col), call. = FALSE)
                 }
             }
             samples_vec <- SummarizedExperiment::colData(x)[[samples_col]]
@@ -119,7 +119,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
             list(df = df, samples = samples_vec, pairs = pairs_vec)
         } else {
             df <- as.data.frame(x)
-            list(df = df, samples = samples, pairs = NULL)
+            list(df = df, samples = condition_col, pairs = NULL)
         }
     }
 
@@ -138,7 +138,7 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
     }
 
     # prepare data.frame and sample vector (handles SummarizedExperiment)
-    pd <- .tsenat_prepare_df(x, samples, assayno)
+    pd <- .tsenat_prepare_df(x, condition_col, assayno)
     df <- pd$df
     samples <- pd$samples
     pairs <- pd$pairs

@@ -1231,7 +1231,7 @@ test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results
   multi_q_results <- jackknife_isoform_switching(
     se = se,
     condition_col = "sample_type",
-    pair_col = "paired_samples",
+    subject_col = "paired_samples",
     gene_col = "gene_id",
     isoform_col = "transcript_id",
     q = c(0.5, 1.0),
@@ -1279,7 +1279,7 @@ test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
   multi_q_results <- jackknife_isoform_switching(
     se = se,
     condition_col = "sample_type",
-    pair_col = "paired_samples",
+    subject_col = "paired_samples",
     gene_col = "gene_id",
     isoform_col = "transcript_id",
     q = c(0.5, 1.0),
@@ -1327,7 +1327,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles n_genes > available gene
   multi_q_results <- jackknife_isoform_switching(
     se = se,
     condition_col = "sample_type",
-    pair_col = "paired_samples",
+    subject_col = "paired_samples",
     gene_col = "gene_id",
     isoform_col = "transcript_id",
     q = c(0.5, 1.0),
@@ -1373,7 +1373,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
   multi_q_results <- jackknife_isoform_switching(
     se = se,
     condition_col = "sample_type",
-    pair_col = "paired_samples",
+    subject_col = "paired_samples",
     gene_col = "gene_id",
     isoform_col = "transcript_id",
     q = c(0.5, 1.0, 1.5),
@@ -1423,7 +1423,7 @@ test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
   multi_q_results <- jackknife_isoform_switching(
     se = se,
     condition_col = "sample_type",
-    pair_col = "paired_samples",
+    subject_col = "paired_samples",
     gene_col = "gene_id",
     isoform_col = "transcript_id",
     q = c(0.5, 1.0),

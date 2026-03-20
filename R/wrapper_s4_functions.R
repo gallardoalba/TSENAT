@@ -1709,8 +1709,8 @@ plot_volcano_ma_grid_s4 <- function(
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results
 #'   (typically via \code{\link{calculate_diversity_s4}}).
-#' @param samples \code{character}. Column name in sample metadata indicating
-#'   sample/sample_type grouping. Auto-detected from \code{@config$condition_col}
+#' @param condition_col \code{character}. Column name in sample metadata indicating
+#'   condition/sample grouping. Auto-detected from \code{@config$condition_col}
 #'   if available.
 #' @param loss_type \code{character}. Type of loss function: "huber" (default),
 #'   "tukey", or "lsq". Determines robustness vs efficiency trade-off.
@@ -1766,7 +1766,7 @@ plot_volcano_ma_grid_s4 <- function(
 #'   # Run M-estimation with sample grouping
 #'   analysis <- m_estimate_s4(
 #'       analysis,
-#'       samples = "sample_type",
+#'       condition_col = "sample_type",
 #'       loss_type = "huber",
 #'       influence_threshold = 0.75
 #'   )
@@ -1783,7 +1783,7 @@ plot_volcano_ma_grid_s4 <- function(
 #' @export
 m_estimate_s4 <- function(
     analysis,
-    samples = NULL,
+    condition_col = NULL,
     loss_type = "huber",
     scale = NULL,
     max_iter = 50,
@@ -1812,23 +1812,23 @@ m_estimate_s4 <- function(
          call. = FALSE)
   }
 
-  # Auto-detect samples column if not provided
-  if (is.null(samples)) {
+  # Auto-detect condition_col if not provided
+  if (is.null(condition_col)) {
     if ("condition_col" %in% names(analysis@config)) {
-      samples <- analysis@config$condition_col
-      if (is.null(samples) || !is.character(samples) || samples == "") {
+      condition_col <- analysis@config$condition_col
+      if (is.null(condition_col) || !is.character(condition_col) || condition_col == "") {
         stop("@config$condition_col must be a non-empty character value",
              call. = FALSE)
       }
       if (verbose) {
-        cat("Auto-detected 'samples' column from config:", samples, "\n")
+        cat("Auto-detected 'condition_col' from config:", condition_col, "\n")
       }
     } else {
-      stop("'samples' parameter must be specified or set in @config$condition_col",
+      stop("'condition_col' parameter must be specified or set in @config$condition_col",
            call. = FALSE)
     }
-  } else if (!is.character(samples) || length(samples) != 1) {
-    stop("'samples' must be a single character value", call. = FALSE)
+  } else if (!is.character(condition_col) || length(condition_col) != 1) {
+    stop("'condition_col' must be a single character value", call. = FALSE)
   }
 
   # Extract diversity results - get first SE to access sample metadata
@@ -1838,10 +1838,10 @@ m_estimate_s4 <- function(
     stop("Diversity SummarizedExperiment is empty", call. = FALSE)
   }
 
-  # Verify samples column exists
+  # Verify condition_col exists
   sample_info <- SummarizedExperiment::colData(diversity_se)
-  if (!(samples %in% colnames(sample_info))) {
-    stop(sprintf("Column '%s' not found in sample metadata", samples), call. = FALSE)
+  if (!(condition_col %in% colnames(sample_info))) {
+    stop(sprintf("Column '%s' not found in sample metadata", condition_col), call. = FALSE)
   }
 
   # Combine all q-value diversity results into a single matrix
@@ -1884,7 +1884,7 @@ m_estimate_s4 <- function(
   m_est_results <- tryCatch({
     m_estimate(
       x = combined_se,
-      samples = samples,
+      condition_col = condition_col,
       loss_type = loss_type,
       scale = scale,
       max_iter = max_iter,
@@ -1905,7 +1905,7 @@ m_estimate_s4 <- function(
   # Track function call
   analysis@metadata$function_calls <- c(
     analysis@metadata$function_calls,
-    paste0("m_estimate_s4[samples=", samples, ",loss_type=", loss_type, "]")
+    paste0("m_estimate_s4[condition_col=", condition_col, ",loss_type=", loss_type, "]")
   )
 
   if (verbose) {
@@ -2887,7 +2887,7 @@ plot_divergence_distribution_s4 <- function(
 #' @param condition_col \code{character}. Column name in colData(se) specifying 
 #'   group assignments (default: "sample_type"). If NULL, attempts auto-detection.
 #'
-#' @param pair_col \code{character}. Optional column for paired/repeated measures design.
+#' @param subject_col \code{character}. Optional column for paired/repeated measures design.
 #'   If provided, enables paired analysis. Default: NULL (unpaired).
 #'
 #' @param gene_col \code{character}. Column name in rowData(se) or metadata identifying genes.
@@ -2977,7 +2977,7 @@ plot_divergence_distribution_s4 <- function(
 jackknife_isoform_switching_s4 <- function(
   analysis,
   condition_col = NULL,
-  pair_col = NULL,
+  subject_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
   q = 1,
@@ -3130,7 +3130,7 @@ jackknife_isoform_switching_s4 <- function(
     jackknife_isoform_switching(
       se = se,
       condition_col = condition_col,
-      pair_col = pair_col,
+      subject_col = subject_col,
       gene_col = gene_col,
       isoform_col = isoform_col,
       q = q,

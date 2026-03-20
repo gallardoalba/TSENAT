@@ -66,7 +66,7 @@ test_that("calculate_difference forwards pseudocount to calculate_fc", {
     # call calculate_difference which should forward pseudocount
     # small sample sizes trigger a warning; assert it and capture the result
     res <- testthat::expect_warning(
-        calculate_difference(df, samples = samples, control = "Normal", method = "mean", test = "wilcoxon", paired = FALSE, pseudocount = 0),
+        calculate_difference(df, condition_col = samples, control = "Normal", method = "mean", test = "wilcoxon", paired = FALSE, pseudocount = 0),
         "Low sample size for wilcoxon"
     )
     # find matching rows and compare log2_fold_change

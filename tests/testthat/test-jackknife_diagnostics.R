@@ -389,7 +389,7 @@ test_that("all_transcript_stats has required columns", {
 })
 
 # Test 7: Paired design parameter is accepted
-test_that("jackknife_isoform_switching accepts pair_col parameter", {
+test_that("jackknife_isoform_switching accepts subject_col parameter", {
   suppressPackageStartupMessages({
     library(SummarizedExperiment)
   })
@@ -413,7 +413,7 @@ test_that("jackknife_isoform_switching accepts pair_col parameter", {
   result <- suppressWarnings(jackknife_isoform_switching(
     se = se_paired,
     condition_col = "condition",
-    pair_col = "individual_id",
+    subject_col = "individual_id",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     n_bootstrap = 5,
