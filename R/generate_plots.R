@@ -1797,6 +1797,17 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         stop("lm_res has no rows; calculate_lm_interaction() returned no genes", call. = FALSE)
     }
     
+    # =========================================================================
+    # VALIDATE DATA COMPATIBILITY (NEW: Issue #5 validation)
+    # =========================================================================
+    # Check that SE and LM results have compatible gene sets before processing
+    data_validation <- validate_plot_data(
+        se = se,
+        lm_results = lm_res,
+        stop_on_error = TRUE,
+        verbose = FALSE  # Suppress verbose; we'll only see output if validation fails
+    )
+    
     # Validate and extract metadata from model_data
     if (is.null(model_data)) {
         stop("model_data is required. Provide it as a parameter or pass full lm_res list with $model_data component",
@@ -2875,7 +2886,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       cat("  - lm_res provided:", !is.null(lm_res), "\n")
       cat("  - divergence_results_se provided:", !is.null(divergence_results_se), "\n")
     }
-    return(invisible(NULL))
+    # Return NULL visibly (no invisible) for consistency
+    return(NULL)
   }
   
   n_genes_actual <- length(genes_to_plot)
@@ -2957,7 +2969,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       cat("  - All genes had parsing errors in tryCatch blocks\n")
       cat("  - Sample size or q-value count was too small\n")
     }
-    return(invisible(NULL))
+    # Return NULL visibly (no invisible) for consistency
+    return(NULL)
   }
   
   nrow <- ceiling(length(plot_list) / ncol)

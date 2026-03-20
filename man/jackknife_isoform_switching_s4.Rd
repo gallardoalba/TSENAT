@@ -85,7 +85,7 @@ lm_results (default: 0.05).}
   slot. Results are keyed by q-value (e.g., "q_1.00"). For multi-q analysis, multiple
   calls will accumulate results in the slot.
 
-  The analysis object is returned invisibly to support method chaining:
+  The analysis object is returned visibly to support method chaining:
   \preformatted{
     analysis <- jackknife_isoform_switching_s4(analysis, q = 0.5)
     analysis <- jackknife_isoform_switching_s4(analysis, q = 1.0)
@@ -95,7 +95,7 @@ lm_results (default: 0.05).}
   slot. Results are keyed by q-value (e.g., "q_1.00"). For multi-q analysis, multiple
   calls will accumulate results in the slot.
 
-  The analysis object is returned invisibly to support method chaining:
+  The analysis object is returned visibly to support method chaining:
   \preformatted{
     analysis <- jackknife_isoform_switching_s4(analysis, q = 0.5)
     analysis <- jackknife_isoform_switching_s4(analysis, q = 1.0)

@@ -572,7 +572,7 @@ calculate_divergence <- function(
     log_base = exp(1),
     pseudocount = 0.5,
     nthreads = 1,
-    progress = TRUE,
+    progress = FALSE,
     seed = NULL) {
 
   # =========================================================================

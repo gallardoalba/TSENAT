@@ -177,32 +177,14 @@
     }
     
     SummarizedExperiment::colData(ts_se) <- col_data_final
-    # Attach transcript-level readcounts and tx->gene mapping to metadata if
-    # they are available in the calling environment or globalenv and not
-    # already present in the SummarizedExperiment metadata. This simplifies
-    # downstream plotting helpers that expect these objects.
+    # Note: readcounts and tx2gene mapping should be explicitly provided via
+    # function parameters or stored in the TSENATAnalysis @config slot.
+    # We no longer look in parent environment or globalenv() to ensure
+    # reproducible, self-contained analysis workflows.
     if (requireNamespace("S4Vectors", quietly = TRUE)) {
         md <- S4Vectors::metadata(ts_se)
-        # prefer existing metadata values; otherwise try common names
-        if (is.null(md$readcounts)) {
-            if (exists("readcounts", envir = parent.frame())) {
-                md$readcounts <- get("readcounts", envir = parent.frame())
-            } else if (exists("readcounts", envir = globalenv())) {
-                md$readcounts <- get("readcounts", envir = globalenv())
-            }
-        }
-        if (is.null(md$tx2gene)) {
-            # vignette uses 'txmap' variable name; also accept 'tx2gene'
-            if (exists("txmap", envir = parent.frame())) {
-                md$tx2gene <- get("txmap", envir = parent.frame())
-            } else if (exists("tx2gene", envir = parent.frame())) {
-                md$tx2gene <- get("tx2gene", envir = parent.frame())
-            } else if (exists("txmap", envir = globalenv())) {
-                md$tx2gene <- get("txmap", envir = globalenv())
-            } else if (exists("tx2gene", envir = globalenv())) {
-                md$tx2gene <- get("tx2gene", envir = globalenv())
-            }
-        }
+        # Only preserve metadata that was explicitly provided
+        # Do not attempt to fetch from calling environment
         S4Vectors::metadata(ts_se) <- md
     }
     # If a diversity assay is present, prepare a simple diversity data.frame

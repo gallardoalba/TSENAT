@@ -298,6 +298,10 @@ data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
 mode(readcounts) <- "numeric"
 
+# Explicitly load TPM and effective length
+salmon_tpm <- salmon_tpm  # TPM-normalized values
+salmon_effective_length <- salmon_effective_length  # Length-corrected values
+
 # Load sample metadata
 metadata_df <- read.table(
     system.file("extdata", "metadata.tsv", package = "TSENAT"),
@@ -321,7 +325,26 @@ improved analysis:
 
 ```{r build-analysis}
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
-analysis <- build_analysis(readcounts, gff3_dataset, metadata = metadata_df)
+## Include TPM and effective length for filtering and QC purposes
+analysis <- build_analysis(
+  readcounts, 
+  gff3_dataset, 
+  metadata = metadata_df,
+  tpm = salmon_tpm,
+  effective_length = salmon_effective_length
+)
+
+## Configure analysis parameters once (best practice for reproducibility)
+## This eliminates the need to pass condition_col, subject_col, etc. to each function
+analysis <- setConfig(analysis, list(
+  condition_col = "sample_type",
+  subject_col = "paired_samples",
+  q_values = seq(0.1, 2, by = 0.05),
+  nthreads = 2,
+  paired = TRUE,
+  control = "control",
+  metadata = metadata_df
+))
 
 ```
 
@@ -371,7 +394,13 @@ if (file.exists(filtered_se_file)) {
     analysis@se <- readRDS(filtered_se_file)
     cat("Loaded filtered SummarizedExperiment from", filtered_se_file, "\n")
 } else {
-    analysis <- filter_analysis(analysis, stringency = "medium", verbose = TRUE)
+    # Filter analysis using stringency parameter
+    # Medium stringency keeps transcripts present in ≥50% of samples
+    analysis <- filter_analysis(
+        analysis, 
+        stringency = "medium", 
+        verbose = TRUE
+    )
     saveRDS(analysis@se, filtered_se_file)
     cat("Saved filtered SummarizedExperiment to", filtered_se_file, "\n")
 }
@@ -382,45 +411,6 @@ based on your paired study design. It keeps transcripts present in at least 50% 
 samples with TPM values above the median of mean gene TPM. This balanced approach 
 filters out low-abundance transcripts that contribute noise while retaining sufficient 
 isoform diversity for meaningful entropy calculations.
-
-## S4 Workflow: Unified Analysis via TSENATAnalysis Objects
-
-TSENAT provides an integrated S4-based workflow for coordinated analysis. The recommended approach:
-
-1. **Configure once**: Use `tsenat_config()` to specify analysis parameters (q-values, metadata columns)
-2. **Run pipeline**: Use `tsenat()` to orchestrate all analysis steps
-3. **Access results**: Use S4 accessor methods (`diversity()`, `lmResults()`, `divergence()`, etc.)
-
-This approach ensures metadata consistency, reduces boilerplate, and provides type-safe result access.
-
-```{r s4-workflow-demo, include = TRUE, echo = TRUE, eval = FALSE}
-# Configure analysis parameters once (best practice for reproducibility)
-tsenat_config <- tsenat_config(
-  q_values = seq(0.1, 2, by = 0.05),
-  sample_type_col = "sample_type",
-  subject_col = "paired_samples"
-)
-
-# Run complete pipeline with one function call
-analysis <- tsenat(
-  se = se,
-  config = tsenat_config,
-  methods = c("diversity", "lm_interaction", "jackknife", "divergence"),
-  verbose = TRUE
-)
-
-# Access results via consistent S4 methods (instead of nested list indexing)
-diversity_results <- diversity(analysis)      # Get diversity across q values
-lm_table <- lmResults(analysis)                # Get LM interaction results
-jackknife_results <- jackKnife(analysis)       # Get jackknife diagnostics
-divergence_table <- divergence(analysis)       # Get divergence metrics
-
-# Generic visualization method (dispatched to appropriate plot function)
-plot(analysis, type = "q_curve")               # Generic q-curve plot
-plot(analysis, type = "lm_interaction")        # LM diagnostics
-```
-
-For detailed workflow examples and troubleshooting, see the vignette sections below. This section demonstrates the implementation step-by-step for didactic purposes.
 
 ## Compute Tsallis entropy
 
@@ -440,15 +430,15 @@ if (file.exists(analysis_file)) {
     # Compute diversity using S4 wrapper
     # Pass metadata to ensure .map_metadata() is applied to results (same as OLD vignette)
     analysis <- calculate_diversity_s4(analysis,
-        q = qvec, norm = TRUE, metadata = metadata_df)
+        q = qvec, norm = TRUE)
     saveRDS(analysis, analysis_file)
     cat("Saved TSENATAnalysis with diversity results to", analysis_file, "\n")
 }
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
-# Extract diversity results from TSENATAnalysis object
-div_results <- analysis@diversity_results
+# Extract diversity results using S4 accessor method
+div_results <- diversity(analysis)
 se_rowdata <- rowData(analysis@se)
 
 # Get diversity data from results - handle both matrix and SE formats
@@ -537,9 +527,9 @@ groups indicate **scale-dependent** **diversity** differences: separation at low
 signals differences in dominant isoforms.
 
 ```{r tsallis-q-curve, fig.width=10, fig.height=5.2}
-# Plot overall q-curve with median ± IQR bands using diversity from TSENATAnalysis
-p_qcurve <- plot_tsallis_q_curve_s4(se = analysis,
-                                 condition_col = "sample_type")
+# Plot overall q-curve with median ± IQR bands using S4 wrapper function
+# Uses condition_col from @config (no need to specify explicitly)
+p_qcurve <- plot_tsallis_q_curve_s4(se = analysis)
 print(p_qcurve)
 ```
 
@@ -558,14 +548,12 @@ Samples with high influence scores exert disproportionate leverage on entropy es
 # - Stores results in @metadata$m_estimate_results
 
 tryCatch({
-  # Use S4 wrapper - handles all multi-q combination internally
+  # Use S4 wrapper - auto-detects condition_col from @config
   analysis <- m_estimate_s4(
     analysis,
-    samples = "sample_type",
     loss_type = "huber",
     q_combine_method = "mean",
     influence_threshold = 0.75,
-    paired = TRUE,
     verbose = FALSE
   )
   
@@ -669,13 +657,13 @@ This method flexibly captures nonlinear q-response patterns and is particularly
 useful when the relationship between q and entropy is not linear (for example,
 the q:group interaction with complex response shapes).
 
-```{r lm-interaction-before-qcurve, message=FALSE}
+```{r lm-interaction-before-qcurve}
 ## Linear-model interaction test across q values using S4 wrapper: detect q x group interaction
 ## with Hochberg FWER control (fast, closed-form procedure)
 if (requireNamespace("mgcv", quietly = TRUE)) {
     # Compute LM interaction using S4 wrapper
+    # Uses condition_col from @config
     analysis <- calculate_lm_interaction_s4(analysis,
-        condition_col = "sample_type",
         method = "gam",
         paired = TRUE,
         multicorr = "hochberg",
@@ -685,20 +673,10 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
 }
 ```
 
-```{r kable-lm-interaction-before-qcurve, message=FALSE, echo = FALSE}
+```{r kable-lm-interaction-before-qcurve, echo = FALSE}
 # show the top entries with proper p-value formatting
-# Extract results from TSENATAnalysis lm_results slot
-lm_res <- if (!is.null(analysis@lm_results) && is.list(analysis@lm_results)) {
-    if ("lm_interaction" %in% names(analysis@lm_results)) {
-        analysis@lm_results$lm_interaction
-    } else if (length(analysis@lm_results) > 0) {
-        analysis@lm_results[[1]]
-    } else {
-        NULL
-    }
-} else {
-    NULL
-}
+# Extract results from TSENATAnalysis using S4 accessor method
+lm_res <- lmResults(analysis, component = "lm_interaction")
 
 if (!is.null(lm_res) && is.list(lm_res) && length(lm_res) > 0) {
     # lm_results from calculate_lm_interaction_s4 should be a data frame
@@ -749,12 +727,12 @@ if (nrow(lm_res_display) > 0) {
 Now we will plot the q-curve profile for the top genes identified 
 by the linear-model interaction test.
 
-```{r top-gene-qprofile, fig.width=14, fig.height=12, message=FALSE}
+```{r top-gene-qprofile, fig.width=14, fig.height=12}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
+# Uses condition_col from @config
 combined_plot <- plot_lm_interaction_gam_s4(
     analysis,
-    n_top = 4,
-    condition_col = "sample_type"
+    n_top = 4
 )
 print(combined_plot)
 ```
@@ -774,7 +752,6 @@ analysis.
 analysis <- tryCatch({
   jackknife_isoform_switching_s4(
     analysis,
-    q = c(0.01, 0.5, 1.0, 1.5, 2.0),
     n_bootstrap = 100,
     lm_p_threshold = 0.05,
     threshold = 90
@@ -790,9 +767,9 @@ The tables below examine how transcript switching patterns vary across different
 
 
 ```{r multi-q-switching-table, echo=TRUE, results='hide'}
-# Prepare comparison tables for top genes across q-values using S4 wrapper
+# Prepare comparison tables for top genes across q-values using S4 accessor
 tables_result <- tryCatch({
-  if (!is.null(analysis@jackknife_results) && length(analysis@jackknife_results) > 0) {
+  if (!is.null(jackKnife(analysis)) && length(jackKnife(analysis)) > 0) {
     prepare_gene_switching_tables_s4(analysis, n_top_genes = 2)
   } else {
     NULL
@@ -923,7 +900,7 @@ thresholds. Genes with D > 0.1 demonstrate significant information-theoretic sep
 revealing that isoform complexity patterns (captured by multi-q Tsallis entropy) fundamentally differ between 
 treatment groups across all q-dependent scales.
 
-```{r effect-size-multiq, message=FALSE, warning=FALSE, results='hide'}
+```{r effect-size-multiq}
 if (requireNamespace("mgcv", quietly = TRUE) && exists("analysis")) {
   analysis <- calculate_divergence_s4(analysis, q = qvec, paired = TRUE)
 }
@@ -931,9 +908,9 @@ if (requireNamespace("mgcv", quietly = TRUE) && exists("analysis")) {
 
 
 ```{r divergence-assay-display, echo = FALSE}
-# Display the raw divergence computation results from TSENATAnalysis object
-if (exists("analysis") && length(analysis@divergence_results) > 0) {
-    div_results <- analysis@divergence_results
+# Display the raw divergence computation results using S4 accessor method
+if (exists("analysis")) {
+    div_results <- divergence(analysis)
     
     # Extract divergence data - format depends on how it's stored in divergence_results slot
     if (is.matrix(div_results) && nrow(div_results) > 0) {
@@ -962,7 +939,7 @@ if (exists("analysis") && length(analysis@divergence_results) > 0) {
 }
 ```
 
-```{r effect-size-merge, message=FALSE, warning=FALSE, results='hide'}
+```{r effect-size-merge}
 # Compute effect sizes for divergence results
 analysis <- effect_sizes_divergence_s4(
     analysis,
@@ -985,11 +962,9 @@ if (exists("analysis") && !is.null(analysis@metadata$effect_sizes_divergence)) {
     }
 }
 
-# Also extract raw divergence SE for reference (optional)
-if (exists("analysis") && !is.null(analysis@divergence_results)) {
-    if (is(analysis@divergence_results, "SummarizedExperiment")) {
-        divergence_results_se <- analysis@divergence_results
-    }
+# Also extract raw divergence using S4 accessor method (optional)
+if (exists("analysis")) {
+    divergence_results_se <- divergence(analysis)
 }
 ```
 
@@ -1113,9 +1088,9 @@ print(p)
 ### Visualize Q-Spectrum Curve
 
 
-```{r compare-q-spectra-plot, fig.width=10, fig.height=10, message=FALSE, warning=FALSE}
+```{r compare-q-spectra-plot, fig.width=10, fig.height=10}
 # Visualize q-spectrum curves for top 4 genes by significance
-p_multi <- plot_divergence_spectrum_s4(analysis, n_genes = 4, ncol = 2, use_pvalue_ranking = TRUE)
+p_multi <- plot_divergence_spectrum_s4(analysis, n_genes = 4, use_pvalue_ranking = TRUE)
 print(p_multi)
 ```
 
@@ -1161,6 +1136,42 @@ print(p)
 
 3. **Comparison with genome-wide patterns**: Compute q-spectra for housekeeping genes (GAPDH, 
    ACTB, etc.). These should show BALANCED patterns. If not, revisit normalization parameters.
+
+## S4 Workflow: Unified Analysis via TSENATAnalysis Objects
+
+TSENAT provides an integrated S4-based workflow for coordinated analysis. The recommended approach:
+
+1. **Configure once**: Use `tsenat_config()` to specify analysis parameters (q-values, metadata columns)
+2. **Run pipeline**: Use `tsenat()` to orchestrate all analysis steps
+3. **Access results**: Use S4 accessor methods (`diversity()`, `lmResults()`, `divergence()`, etc.)
+
+This approach ensures metadata consistency, reduces boilerplate, and provides type-safe result access.
+
+```{r s4-workflow-demo, include = TRUE, echo = TRUE, eval = FALSE}
+# Configure analysis parameters once (best practice for reproducibility)
+tsenat_config <- tsenat_config(
+  q_values = seq(0.1, 2, by = 0.05),
+  sample_type_col = "sample_type",
+  subject_col = "paired_samples"
+)
+
+# Run complete pipeline with one function call
+analysis <- tsenat(
+  se = se,
+  config = tsenat_config,
+  methods = c("diversity", "lm_interaction", "jackknife", "divergence"),
+  verbose = TRUE
+)
+
+# Access results via consistent S4 methods (instead of nested list indexing)
+diversity_results <- diversity(analysis)      # Get diversity across q values
+lm_table <- lmResults(analysis)                # Get LM interaction results
+jackknife_results <- jackKnife(analysis)       # Get jackknife diagnostics
+divergence_table <- divergence(analysis)       # Get divergence metrics
+```
+
+For detailed workflow examples and troubleshooting, see the vignette sections below. This section demonstrates the implementation step-by-step for didactic purposes.
+
 
 
 ## References

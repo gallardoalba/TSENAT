@@ -804,13 +804,7 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
     gene_name_col <- if ("gene_name" %in% colnames(rd)) "gene_name" else NULL
     
     if (verbose) {
-      message("[calculate_lm_interaction] Attempting gene name mapping:")
-      message("  - rowData columns: ", paste(colnames(rd), collapse=", "))
-      message("  - gene_name col found: ", "gene_name" %in% colnames(rd))
-      message("  - genes col found: ", "genes" %in% colnames(rd))
-      message("  - gene_id col found: ", "gene_id" %in% colnames(rd))
-      if (!is.null(gene_name_col)) message("  - Will use: ", gene_name_col)
-      message("  - res$gene (first 5): ", paste(head(res$gene, 5), collapse=", "))
+      message("[calculate_lm_interaction] Gene annotations: ", paste(colnames(rd), collapse=", "))
     }
     
     if (!is.null(gene_name_col)) {
@@ -846,11 +840,6 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
         as.character(rownames(rd))
       )
       
-      if (verbose) {
-        message("  - Using gene ID from: ", if (is.na(id_col)) "rownames" else id_col)
-        message("  - Using gene names from: ", gene_name_col)
-      }
-      
       # Vectorized lookup: map res$gene (rownames) to gene_id and gene_name
       res$gene_id <- unname(rowname_to_id[as.character(res$gene)])
       res$gene_name <- unname(rowname_to_name[as.character(res$gene)])
@@ -860,17 +849,13 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
       n_mapped <- sum(!unmapped_idx)
       n_unmapped <- sum(unmapped_idx)
       
-      if (verbose) {
-        message("  - Mapping result: ", n_mapped, " mapped, ", n_unmapped, " unmapped")
-        message("  - res$gene_name (first 5): ", paste(head(res$gene_name, 5), collapse=", "))
-      }
-      
       if (any(unmapped_idx)) {
         res$gene_name[unmapped_idx] <- res$gene[unmapped_idx]
-        if (verbose) {
-          message("[calculate_lm_interaction] Gene name mapping: ", 
-                  n_mapped, " mapped, ", n_unmapped, " unmapped (used gene ID as fallback)")
-        }
+      }
+      
+      if (verbose && n_unmapped > 0) {
+        message("[calculate_lm_interaction] Gene mapping: ", n_mapped, " mapped, ", 
+                n_unmapped, " used ID as fallback")
       }
     } else if (verbose) {
       message("[calculate_lm_interaction] WARNING: gene_name column not found in rowData - downstream matching may fail!")

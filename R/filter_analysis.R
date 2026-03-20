@@ -90,6 +90,6 @@ filter_analysis <- function(analysis, stringency = NULL, min_samples = 5L, verbo
   # Store filtered SE back in analysis object
   analysis@se <- se_filtered
 
-  # Return analysis invisibly
-  invisible(analysis)
+  # Return modified analysis object
+  analysis
 }

@@ -30,6 +30,13 @@ and stores results in the \code{lm_results} slot.
 This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
 not the raw input data in \code{@se}. This ensures you're comparing diversity values
 between control and treatment groups, not raw abundance data.
+
+**Parameter resolution priority** (explicit > @config > auto-detect > error):
+\itemize{
+  \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
+  \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
+    else auto-detects from colData columns: "group", "sample_type", "condition"
+}
 }
 \examples{
 \dontrun{

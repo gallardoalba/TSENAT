@@ -162,6 +162,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
   # Extract metadata parameter (for .map_metadata() application to results)
   metadata <- if ("metadata" %in% names(dots)) {
     dots$metadata
+  } else if ("metadata" %in% names(analysis@config)) {
+    analysis@config$metadata
   } else {
     NULL
   }
@@ -539,6 +541,14 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
     paired <- analysis@config$paired
   }
   
+  # Number of threads for parallel computation
+  nthreads <- NULL
+  if ("nthreads" %in% names(list(...))) {
+    nthreads <- list(...)$nthreads
+  } else if ("nthreads" %in% names(analysis@config)) {
+    nthreads <- analysis@config$nthreads
+  }
+  
   # Subject column (for paired/hierarchical designs)
   subject_col <- NULL
   if ("subject_col" %in% names(list(...))) {
@@ -650,6 +660,10 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   
   if (!is.null(subject_col) && !("subject_col" %in% names(list(...)))) {
     args$subject_col <- subject_col
+  }
+
+  if (!is.null(nthreads) && !("nthreads" %in% names(list(...)))) {
+    args$nthreads <- nthreads
   }
 
   # Request model_data for plotting compatibility (unless explicitly disabled)
@@ -992,13 +1006,20 @@ calculate_divergence_s4 <- function(analysis, q = NULL, ...) {
 #' Detect q-dependent gene interactions
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q_values \code{numeric}. Q-values to test across spectrum.
+#' @param q_values \code{numeric} or \code{NULL}. Q-values to test across spectrum.
+#'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
 #' @param ... Additional arguments passed to \code{\link{detect_q_gene_interactions}}.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
 #' @details
 #' Analyzes how gene interactions change across q-value spectrum.
+#'
+#' **Parameter resolution priority** (explicit > @config > extract from results):
+#' \itemize{
+#'   \item \code{q_values}: Uses explicit arg, else \code{@config$q_values},
+#'     else extracts from diversity_results keys
+#' }
 #'
 #' @examples
 #' \dontrun{
@@ -1018,6 +1039,17 @@ detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
   if (length(analysis@diversity_results) == 0) {
     stop("Diversity results required. Run calculate_diversity_s4() first.",
          call. = FALSE)
+  }
+
+  # =========================================================================
+  # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > extract from results)
+  # =========================================================================
+  # If q_values not provided, check @config
+  if (is.null(q_values)) {
+    if ("q_values" %in% names(analysis@config)) {
+      q_values <- analysis@config$q_values
+    }
+    # Otherwise, will extract from diversity_results keys below
   }
 
   # =========================================================================
@@ -1227,6 +1259,13 @@ detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
 #' not the raw input data in \code{@se}. This ensures you're comparing diversity values
 #' between control and treatment groups, not raw abundance data.
 #'
+#' **Parameter resolution priority** (explicit > @config > auto-detect > error):
+#' \itemize{
+#'   \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
+#'   \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
+#'     else auto-detects from colData columns: "group", "sample_type", "condition"
+#' }
+#'
 #' @export
 #' @seealso \code{\link{calculate_difference}} for the underlying implementation.
 #'
@@ -1285,22 +1324,36 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, ...) {
   # Run difference calculation on diversity results (not raw input @se)
   result <- tryCatch({
     # Determine samples column from colData
-    # Use analysis@se's colData if available, otherwise use diversity_se's colData
-    if ("group" %in% colnames(SummarizedExperiment::colData(analysis@se))) {
-      samples_col <- "group"
-    } else if ("sample_type" %in% colnames(SummarizedExperiment::colData(analysis@se))) {
-      samples_col <- "sample_type"
-    } else if ("condition" %in% colnames(SummarizedExperiment::colData(analysis@se))) {
-      samples_col <- "condition"
-    } else {
-      stop("No sample grouping column found in colData. ",
-           "Expected: 'group', 'sample_type', or 'condition'",
-           call. = FALSE)
+    # Priority 1: Check @config$condition_col
+    # Priority 2: Auto-detect from common column names
+    samples_col <- NULL
+    
+    if ("condition_col" %in% names(analysis@config)) {
+      samples_col <- analysis@config$condition_col
+    }
+    
+    # Fallback to auto-detection if not in config
+    if (is.null(samples_col)) {
+      cd_cols <- colnames(SummarizedExperiment::colData(analysis@se))
+      if ("group" %in% cd_cols) {
+        samples_col <- "group"
+      } else if ("sample_type" %in% cd_cols) {
+        samples_col <- "sample_type"
+      } else if ("condition" %in% cd_cols) {
+        samples_col <- "condition"
+      } else {
+        stop(
+          "Could not determine sample grouping column:\n",
+          "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
+          "SOLUTION: Set @config$condition_col with the correct column name\n",
+          "  Example: analysis@config$condition_col <- 'sample_type'\n",
+          call. = FALSE)
+      }
     }
 
     calculate_difference(
       x = diversity_se,
-      samples = samples_col,
+      condition_col = samples_col,
       control = control,
       ...
     )
@@ -1597,6 +1650,16 @@ plot_volcano_ma_grid_s4 <- function(
     verbose = TRUE,
     ...) {
 
+  # Auto-detect verbose from config if not explicitly provided
+  if (isTRUE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -1732,7 +1795,6 @@ plot_volcano_ma_grid_s4 <- function(
 #' Modified TSENATAnalysis object with M-estimation results stored in
 #' \code{analysis@metadata$m_estimate_results}. Contains data frame with
 #' influence scores, robustness weights, entropy statistics, and QC classifications.
-#' Returned invisibly.
 #'
 #' @details
 #' This wrapper extracts diversity results from \code{analysis@diversity_results},
@@ -1795,6 +1857,17 @@ m_estimate_s4 <- function(
     scale_method = "mad",
     verbose = TRUE) {
 
+  # Auto-detect verbose from config if not explicitly provided
+  if (isTRUE(verbose)) {
+    # Check if verbose is set in @config but argument is still default TRUE
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -1829,6 +1902,20 @@ m_estimate_s4 <- function(
     }
   } else if (!is.character(condition_col) || length(condition_col) != 1) {
     stop("'condition_col' must be a single character value", call. = FALSE)
+  }
+
+  # Auto-detect paired if not explicitly provided
+  if (isFALSE(paired)) {
+    # Check if paired is set in @config but argument is still default FALSE
+    if ("paired" %in% names(analysis@config)) {
+      config_paired <- analysis@config$paired
+      if (is.logical(config_paired) && length(config_paired) == 1) {
+        paired <- config_paired
+        if (verbose) {
+          cat("Auto-detected 'paired' from config:", paired, "\n")
+        }
+      }
+    }
   }
 
   # Extract diversity results - get first SE to access sample metadata
@@ -1884,7 +1971,7 @@ m_estimate_s4 <- function(
   m_est_results <- tryCatch({
     m_estimate(
       x = combined_se,
-      condition_col = condition_col,
+      samples = condition_col,
       loss_type = loss_type,
       scale = scale,
       max_iter = max_iter,
@@ -1912,7 +1999,7 @@ m_estimate_s4 <- function(
     cat("✓ M-estimation complete. Results stored in @metadata$m_estimate_results\n")
   }
 
-  invisible(analysis)
+  analysis
 }
 
 # ============================================================================
@@ -2163,6 +2250,16 @@ plot_divergence_spectrum_s4 <- function(
     verbose = TRUE,
     ...) {
 
+  # Auto-detect verbose from config if not explicitly provided
+  if (isTRUE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -2367,11 +2464,11 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' @param ... Additional arguments passed to \code{\link{effect_sizes_divergence}}.
 #'
 #' @return Modified TSENATAnalysis with effect size results stored in
-#'   \code{@metadata$effect_sizes_divergence}. Returns the analysis object invisibly
+#'   \code{@metadata$effect_sizes_divergence}. Returns the analysis object visibly
 #'   to support piping and method chaining.
 #'
 #' @details
-#' This wrapper:
+#' **Workflow steps:**
 #' \describe{
 #'   \item{Extracting}{Divergence SE from \code{@divergence_results} and LM results
 #'     from \code{@lm_results$lm_interaction}}
@@ -2379,6 +2476,15 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'   \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
 #'     \code{validation_stats}}
 #'   \item{Tracking}{Function call in \code{@metadata$function_calls}}
+#' }
+#'
+#' **Parameter resolution priority** (explicit > @config > default):
+#' \itemize{
+#'   \item \code{significance_threshold}: Uses explicit arg, else \code{@config$significance_threshold},
+#'     else 0.05
+#'   \item \code{enrich_per_q_pattern}: Uses explicit arg, else \code{@config$enrich_per_q_pattern},
+#'     else TRUE
+#'   \item \code{verbose}: Uses explicit arg, else \code{@config$verbose}, else TRUE
 #' }
 #'
 #' Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
@@ -2405,6 +2511,16 @@ effect_sizes_divergence_s4 <- function(
     verbose = TRUE,
     ...) {
 
+  # Auto-detect verbose from config if not explicitly provided
+  if (isTRUE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # =========================================================================
   # INPUT VALIDATION
   # =========================================================================
@@ -2421,6 +2537,39 @@ effect_sizes_divergence_s4 <- function(
   if (is.null(analysis@lm_results) || length(analysis@lm_results) == 0) {
     stop("LM results required. Run calculate_lm_interaction_s4() first.",
          call. = FALSE)
+  }
+
+  # =========================================================================
+  # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > default)
+  # =========================================================================
+  # Extract parameters from @config if not provided as arguments
+  dots <- list(...)
+  
+  # significance_threshold parameter
+  if (is.null(significance_threshold) || identical(significance_threshold, 0.05)) {
+    if ("significance_threshold" %in% names(dots)) {
+      significance_threshold <- dots$significance_threshold
+    } else if ("significance_threshold" %in% names(analysis@config)) {
+      significance_threshold <- analysis@config$significance_threshold
+    }
+  }
+  
+  # enrich_per_q_pattern parameter
+  if (isTRUE(enrich_per_q_pattern)) {
+    if ("enrich_per_q_pattern" %in% names(dots)) {
+      enrich_per_q_pattern <- dots$enrich_per_q_pattern
+    } else if ("enrich_per_q_pattern" %in% names(analysis@config)) {
+      enrich_per_q_pattern <- analysis@config$enrich_per_q_pattern
+    }
+  }
+  
+  # verbose parameter
+  if (isTRUE(verbose)) {
+    if ("verbose" %in% names(dots)) {
+      verbose <- dots$verbose
+    } else if ("verbose" %in% names(analysis@config)) {
+      verbose <- analysis@config$verbose
+    }
   }
 
   # =========================================================================
@@ -2510,7 +2659,7 @@ effect_sizes_divergence_s4 <- function(
     }
   }
 
-  invisible(analysis)
+  analysis
 }
 
 #' Plot Top Transcripts from TSENATAnalysis Object
@@ -2585,6 +2734,16 @@ plot_top_transcripts_s4 <- function(
     output_file = NULL,
     metric = c("median", "mean", "variance", "iqr"),
     verbose = FALSE) {
+
+  # Auto-detect verbose from config if not explicitly provided
+  if (isFALSE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
 
   # =========================================================================
   # INPUT VALIDATION
@@ -2798,6 +2957,16 @@ plot_divergence_distribution_s4 <- function(
     verbose = TRUE,
     ...) {
 
+  # Auto-detect verbose from config if not explicitly provided
+  if (isTRUE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -2924,7 +3093,7 @@ plot_divergence_distribution_s4 <- function(
 #'   slot. Results are keyed by q-value (e.g., "q_1.00"). For multi-q analysis, multiple
 #'   calls will accumulate results in the slot.
 #'
-#'   The analysis object is returned invisibly to support method chaining:
+#'   The analysis object is returned visibly to support method chaining:
 #'   \preformatted{
 #'     analysis <- jackknife_isoform_switching_s4(analysis, q = 0.5)
 #'     analysis <- jackknife_isoform_switching_s4(analysis, q = 1.0)
@@ -2989,6 +3158,30 @@ jackknife_isoform_switching_s4 <- function(
   use_lm_fdr = TRUE,
   verbose = FALSE
 ) {
+  # Auto-detect verbose from config if not explicitly provided
+  if (isFALSE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
+  # Auto-detect q-values from config if using default
+  if (length(q) == 1 && q == 1) {
+    if ("q_values" %in% names(analysis@config)) {
+      config_q <- analysis@config$q_values
+      if (!is.null(config_q) && is.numeric(config_q)) {
+        q <- config_q
+        if (verbose) {
+          cat("[jackknife_isoform_switching_s4] Using q-values from config: ",
+              paste(q, collapse = ", "), "\n")
+        }
+      }
+    }
+  }
+
   # =========================================================================
   # INPUT VALIDATION
   # =========================================================================
@@ -3198,8 +3391,8 @@ jackknife_isoform_switching_s4 <- function(
     )
   }
   
-  # Return modified analysis object (invisibly for chaining)
-  invisible(analysis)
+  # Return modified analysis object
+  analysis
 }
 
 #' Prepare Gene Switching Tables from TSENATAnalysis Object
@@ -3263,6 +3456,16 @@ prepare_gene_switching_tables_s4 <- function(
     n_transcripts_per_gene = 10,
     verbose = FALSE) {
   
+  # Auto-detect verbose from config if not explicitly provided
+  if (isFALSE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # Validation
   if (!is(analysis, "TSENATAnalysis")) {
     stop("analysis must be a TSENATAnalysis object")
@@ -3419,6 +3622,16 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     lm_results = NULL,
     verbose = FALSE) {
   
+  # Auto-detect verbose from config if not explicitly provided
+  if (isFALSE(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      config_verbose <- analysis@config$verbose
+      if (is.logical(config_verbose) && length(config_verbose) == 1) {
+        verbose <- config_verbose
+      }
+    }
+  }
+
   # Validation
   if (!is(analysis, "TSENATAnalysis")) {
     stop("analysis must be a TSENATAnalysis object", call. = FALSE)
@@ -3486,23 +3699,14 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     cat("✓ Heatmap plot generated successfully\n")
     cat("  Saved to:", heatmap_file, "\n")
   }
-  
-  invisible(heatmap_file)
+
+  # Return result visibly (consistent with other S4 wrappers)
+  heatmap_file
 }
 
 #' Plot GAM q-curves from TSENATAnalysis object
 #'
 #' S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve plots
-#' for top genes identified by LM interaction analysis. Automatically extracts required
-#' data from object slots.
-#'
-#' @param analysis \code{TSENATAnalysis} object containing:
-#'   \itemize{
-#'     \item \code{@se}: SummarizedExperiment with diversity values
-#'     \item \code{@lm_results$lm_interaction}: Results from calculate_lm_interaction()
-#'     \item \code{@config}: Configuration including condition_col if available
-#'   }
-#'
 #' @param n_top \code{integer}. Number of top genes (by adjusted p-value) to plot 
 #'   (default: 6). Only used if genes = NULL.
 #'

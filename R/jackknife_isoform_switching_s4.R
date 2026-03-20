@@ -50,7 +50,7 @@
 #'   slot. Results are keyed by q-value (e.g., "q_1.00"). For multi-q analysis, multiple
 #'   calls will accumulate results in the slot.
 #'
-#'   The analysis object is returned invisibly to support method chaining:
+#'   The analysis object is returned visibly to support method chaining:
 #'   \preformatted{
 #'     analysis <- jackknife_isoform_switching_s4(analysis, q = 0.5)
 #'     analysis <- jackknife_isoform_switching_s4(analysis, q = 1.0)
@@ -159,9 +159,14 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (is.null(condition_col)) {
-      stop("[jackknife_isoform_switching_s4] Cannot auto-detect condition_col. ",
-           "Provide explicitly or ensure @se has colData with sample groupings.",
-           call. = FALSE)
+      cd_cols <- colnames(colData(se))
+      stop(
+        "[jackknife_isoform_switching_s4] Cannot auto-detect condition_col.\n",
+        "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
+        "SOLUTION: Set @config$condition_col or pass explicit parameter\n",
+        "  Example: analysis@config$condition_col <- 'sample_type'\n",
+        "  Or:      jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
+        call. = FALSE)
     }
     
     if (verbose) {
@@ -171,10 +176,13 @@ jackknife_isoform_switching_s4 <- function(
   
   # Validate condition_col exists
   if (!(condition_col %in% colnames(colData(se)))) {
-    stop("[jackknife_isoform_switching_s4] Specified condition_col='", condition_col,
-         "' not found in colData. Available columns: ",
-         paste(colnames(colData(se)), collapse = ", "),
-         call. = FALSE)
+    stop(
+      "[jackknife_isoform_switching_s4] Specified condition_col='", condition_col,
+      "' not found in colData.\n",
+      "Available columns: ", paste(colnames(colData(se)), collapse = ", "), "\n\n",
+      "SOLUTION: Use a valid column name\n",
+      "  Example: jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
+      call. = FALSE)
   }
   
   # =========================================================================

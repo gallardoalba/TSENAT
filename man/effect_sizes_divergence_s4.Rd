@@ -29,7 +29,7 @@ divergence patterns (default: TRUE).}
 }
 \value{
 Modified TSENATAnalysis with effect size results stored in
-  \code{@metadata$effect_sizes_divergence}. Returns the analysis object invisibly
+  \code{@metadata$effect_sizes_divergence}. Returns the analysis object visibly
   to support piping and method chaining.
 }
 \description{
@@ -37,7 +37,7 @@ S4 wrapper for \code{effect_sizes_divergence()} that extracts divergence and LM
 results directly from a TSENATAnalysis object.
 }
 \details{
-This wrapper:
+**Workflow steps:**
 \describe{
   \item{Extracting}{Divergence SE from \code{@divergence_results} and LM results
     from \code{@lm_results$lm_interaction}}
@@ -45,6 +45,15 @@ This wrapper:
   \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
     \code{validation_stats}}
   \item{Tracking}{Function call in \code{@metadata$function_calls}}
+}
+
+**Parameter resolution priority** (explicit > @config > default):
+\itemize{
+  \item \code{significance_threshold}: Uses explicit arg, else \code{@config$significance_threshold},
+    else 0.05
+  \item \code{enrich_per_q_pattern}: Uses explicit arg, else \code{@config$enrich_per_q_pattern},
+    else TRUE
+  \item \code{verbose}: Uses explicit arg, else \code{@config$verbose}, else TRUE
 }
 
 Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}

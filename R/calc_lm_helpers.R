@@ -52,18 +52,39 @@
         total_genes <- nrow(res)
         fallback_mask <- !is.na(res$fit_method) & res$fit_method != "lmer"
         n_fallback <- sum(fallback_mask)
+        
+        # Report model convergence and fit quality
+        message(sprintf("[calculate_lm_interaction] Analyzed %d genes | Primary fits: %d | Alternative method: %d",
+                        total_genes, total_genes - n_fallback, n_fallback))
+        
         if (n_fallback > 0) {
             tab <- table(res$fit_method[fallback_mask])
             tab_str <- paste(sprintf("%s=%d", names(tab), as.integer(tab)), collapse = ", ")
-            message(sprintf("[calculate_lm_interaction] fallback fits used: %d/%d genes (%s)",
-                n_fallback, total_genes, tab_str))
+            message(sprintf("[calculate_lm_interaction]   Methods: %s", tab_str))
         }
+        
+        # Report numerical/convergence issues
         if ("singular" %in% colnames(res)) {
             n_sing <- sum(as.logical(res$singular), na.rm = TRUE)
             if (n_sing > 0) {
-                message(sprintf("[calculate_lm_interaction] singular fits detected: %d/%d genes",
-                  n_sing, total_genes))
+                message(sprintf("[calculate_lm_interaction]   Singular fits (collinear effects): %d genes", n_sing))
             }
+        }
+        
+        # Report effect size range (q-interaction magnitude)
+        if ("f_statistic" %in% colnames(res)) {
+            f_vals <- res$f_statistic[!is.na(res$f_statistic)]
+            if (length(f_vals) > 0) {
+                message(sprintf("[calculate_lm_interaction] q×condition interaction strength: F-stat range [%.2f, %.2f]",
+                                min(f_vals), max(f_vals)))
+            }
+        }
+        
+        # Report significance summary
+        if ("adj_p_interaction" %in% colnames(res)) {
+            sig_p <- sum(res$adj_p_interaction < 0.05, na.rm = TRUE)
+            message(sprintf("[calculate_lm_interaction] Significant results (adj.p < 0.05): %d/%d genes (%.1f%%)",
+                            sig_p, total_genes, 100 * sig_p / total_genes))
         }
     }
 }
