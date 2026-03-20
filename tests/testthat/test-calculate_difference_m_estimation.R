@@ -286,10 +286,6 @@ context("M-Estimation Integration Tests")
 # ============================================================================
 
 test_that("M-estimation works with SummarizedExperiment input", {
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
-        skip("SummarizedExperiment not available")
-    }
-    
     # Create a simple SummarizedExperiment
     genes <- paste0("g", seq_len(8))
     mat <- matrix(rnorm(8 * 8), nrow = 8)

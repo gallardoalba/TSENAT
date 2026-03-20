@@ -791,9 +791,11 @@ test_that("calculate_diversity counts assay exists and has right structure", {
     
     counts <- SummarizedExperiment::assay(result, "counts")
     
-    # Check structure: should have samples as columns
+    # Check structure: should have samples as columns with q-suffix to match colnames of SE
     expect_equal(ncol(counts), 2)  # 2 samples
-    expect_equal(colnames(counts), c("Sample1", "Sample2"))
+    # Columns should have q-suffix format to match entropy results in the SE
+    expect_match(colnames(counts)[1], "Sample1_q=")
+    expect_match(colnames(counts)[2], "Sample2_q=")
     
     # Counts should be numeric and non-negative
     expect_true(all(counts >= 0))

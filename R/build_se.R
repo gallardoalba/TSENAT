@@ -390,7 +390,8 @@ extract_gene_names_from_gff3 <- function(gff3_file) {
 #' @param metadata Optional list or named list of metadata to include in \code{metadata(se)}.
 #'   This is useful for storing additional experimental metadata alongside the SE object.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' # Example 1: Using data.frame (in-memory mapping)

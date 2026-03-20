@@ -42,7 +42,7 @@ if (getRversion() >= "2.15.1") {
 #' }
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 DEPENDENCIES <- list(
   diversity = character(0),              # No dependencies
   jackknife = "diversity",               # Requires diversity
@@ -59,6 +59,6 @@ DEPENDENCIES <- list(
 #' @format Character vector with methods in dependency order.
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_interactions")
 

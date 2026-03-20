@@ -185,10 +185,11 @@
 #' #     top_n = 5,
 #' #     q = 0.5,
 #' #     norm = TRUE,
-#' #     print_results = TRUE  # Auto-extracts top 5 genes and displays summary
+#' #     print_results = TRUE  # Auto-extracts top 5 genes and displays summary                                                # Auto-extracts top 5 genes and displays summary
 #' # )
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
                                        q = 1, norm = TRUE, log_base = exp(1),
                                        pseudocount = 0, threshold = 90, seed = NULL,
@@ -812,11 +813,12 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
 #'   \item{\code{pair_col} or \code{subject_col}: For paired/blocked designs, character string specifying 
 #'         the colData column with subject/individual/patient identifiers. Default: NULL.}
 #' }
-#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
-#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth
+#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability
 #' across the TSENAT package.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 jackknife_isoform_switching <- function(
   se = NULL,
   condition_col = "condition",
@@ -1492,7 +1494,7 @@ jackknife_isoform_switching <- function(
 #' 6. Cleans NaN/Inf values for display
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 prepare_gene_switching_tables <- function(
     lm_res,
     multi_q_results,

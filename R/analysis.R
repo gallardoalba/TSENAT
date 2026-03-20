@@ -36,7 +36,8 @@
 #' # Create concordance plot
 #' plot <- plot_method_concordance(comparison_df)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 plot_method_concordance <- function(comparison_df) {
   
   # Check if data is valid
@@ -177,7 +178,8 @@ plot_method_concordance <- function(comparison_df) {
 #'   cat("Spearman ρ =", concordance_result$spearman_rho)
 #' }  
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 compute_method_concordance <- function(gam_results, kw_results) {
   
   # Initialize outputs

@@ -302,8 +302,8 @@ Now let's visualize the q-curves for the top 4 genes identified by the Friedman 
 
 ```{r friedman-top-genes-qcurve, fig.width=14, fig.height=10, message=FALSE}
 # Plot q-curves for top 4 genes from Friedman test
-# plot_tsallis_q_curve accepts TSENATAnalysis objects and extracts diversity_results
-top_genes_plot <- plot_tsallis_q_curve(
+# plot_tsallis_q_curve_s4 accepts TSENATAnalysis objects and extracts diversity_results
+top_genes_plot <- plot_tsallis_q_curve_s4(
     analysis,
     condition_col = "sample_type",
     lm_res = friedman_results,
@@ -623,7 +623,7 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 | `calculate_diversity_s4()` | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with `@diversity_results` |
 | `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Attributes: summary_stats, checks |
 | `detect_q_gene_interactions_s4()` | Run Friedman test for q×group interactions | TSENATAnalysis + design params | Updated analysis with `@lm_results$q_interactions` |
-| `plot_tsallis_q_curve()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
+| `plot_tsallis_q_curve_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
 | `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with both methods in `@lm_results` | Updated analysis with `@metadata$method_concordance` |
 | `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
 
@@ -674,7 +674,7 @@ analysis <- compute_method_concordance_s4(
 plot_method_concordance_s4(analysis, verbose = TRUE)
 
 # 8. Plot top genes (optional)
-plot_tsallis_q_curve(
+plot_tsallis_q_curve_s4(
     analysis,
     condition_col = "sample_type",
     lm_res = analysis@lm_results$q_interactions,

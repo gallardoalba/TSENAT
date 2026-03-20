@@ -82,7 +82,8 @@
 #'   Used in permutation tests to assess exchangeability and other assumptions.
 #'
 #' @return List with diagnostic results
-#' @export
+#' @keywords internal
+#' @noRd
 test_rankbased_assumptions <- function(data, checks = c("exchangeability", 
                                                        "monotonicity", 
                                                        "consistency"),
@@ -1238,7 +1239,6 @@ estimate_nperm <- function(
 #' Papers S041, S042: Interaction testing in genomic designs
 #' Papers S181-S187: Aligned Rank Transform for multi-factor analysis
 #'
-#' @export
 #' @examples
 #' # Create example data with multiple q values
 #' set.seed(123)
@@ -1277,6 +1277,8 @@ estimate_nperm <- function(
 #'   verbose = FALSE
 #' )
 #' head(results_paired)
+#' @keywords internal
+#' @noRd
 detect_q_gene_interactions <- function(
     data,
     entropy_col = "diversity",

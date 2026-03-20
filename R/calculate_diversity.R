@@ -310,7 +310,8 @@
 #' se <- calculate_diversity(counts, genes = genes, q = 1.0, norm = TRUE)
 #' head(SummarizedExperiment::assay(se))
 #' 
-#' @export
+#' @keywords internal
+#' @noRd
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
     verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,

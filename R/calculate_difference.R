@@ -50,7 +50,8 @@
 #' two different conditions, and raw and corrected p-values.
 #' @import methods
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay colData
-#' @export
+#' @keywords internal
+#' @noRd
 #' @details The function calculates diversity changes between two sample
 #' conditions. It uses the output of the diversity calculation function, which
 #' is a \code{SummarizedExperiment} object of splicing diversity values.
@@ -493,9 +494,10 @@ calculate_difference <- function(x, samples = NULL, control, method = "mean", te
 #' 
 #' Storey, J. D. (2002). A direct approach to false discovery rates. 
 #' \emph{Journal of the Royal Statistical Society}, Series B, 64(3), 479-498. 
-#' Adaptive FDR estimation via ?0 proportion (used in multicorr='westfall-young-storey').
+#' Adaptive FDR estimation via λ0 proportion (used in multicorr='westfall-young-storey').
 #' More powerful than Hochberg when substantial proportion of nulls are true.
-#' @export
+#' @keywords internal
+#' @noRd
 #' @examples
 #' # Create example data
 #' set.seed(123)

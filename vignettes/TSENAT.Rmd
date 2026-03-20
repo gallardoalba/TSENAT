@@ -538,7 +538,7 @@ signals differences in dominant isoforms.
 
 ```{r tsallis-q-curve, fig.width=10, fig.height=5.2}
 # Plot overall q-curve with median ± IQR bands using diversity from TSENATAnalysis
-p_qcurve <- plot_tsallis_q_curve(se = analysis,
+p_qcurve <- plot_tsallis_q_curve_s4(se = analysis,
                                  condition_col = "sample_type")
 print(p_qcurve)
 ```

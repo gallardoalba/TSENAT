@@ -253,7 +253,8 @@ NULL
 #' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine equivariant 
 #' estimators of multivariate location and covariance matrices. Annals of Statistics, 19(1), 229-248.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #' @details
 #' M-estimation uses the Huber loss function by default:
 #' L(u) = u^2/2 if |u| <= k (quadratic, like LSQ)

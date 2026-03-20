@@ -1,5 +1,5 @@
 # Comprehensive testing of all plotting functions
-# Tests plot_ma, plot_top_transcripts, plot_volcano, plot_tsallis_q_curve,
+# Tests plot_ma, plot_top_transcripts, plot_volcano, plot_tsallis_q_curve_s4,
 # plot_tsallis_violin_multq
 
 library(TSENAT)
@@ -149,7 +149,7 @@ test_that("plot_volcano with custom columns", {
     expect_s3_class(p, "ggplot")
 })
 
-test_that("plot_tsallis_q_curve returns ggplot with valid SE", {
+test_that("plot_tsallis_q_curve_s4 returns ggplot with valid SE", {
     skip_if_not_installed("SummarizedExperiment")
     skip_if_not_installed("ggplot2")
     skip_if_not_installed("tidyr")
@@ -174,7 +174,7 @@ test_that("plot_tsallis_q_curve returns ggplot with valid SE", {
 
     ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
 
-    p <- plot_tsallis_q_curve(ts_se)
+    p <- plot_tsallis_q_curve_s4(ts_se)
     expect_true(inherits(p, "ggplot"))
 })
 
@@ -343,7 +343,7 @@ test_that("plot_ma_tsallis handles simple inputs", {
 })
 
 
-test_that("plot_tsallis_q_curve correctly handles multiple groups with different entropy values", {
+test_that("plot_tsallis_q_curve_s4 correctly handles multiple groups with different entropy values", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
     library(dplyr)
     
@@ -384,7 +384,7 @@ test_that("plot_tsallis_q_curve correctly handles multiple groups with different
     SummarizedExperiment::colData(se) <- cd
     
     # Generate plot
-    p <- TSENAT:::plot_tsallis_q_curve(se, condition_col = "sample_type")
+    p <- TSENAT:::plot_tsallis_q_curve_s4(se, condition_col = "sample_type")
     
     # Verify plot is ggplot
     expect_s3_class(p, "ggplot")
@@ -410,7 +410,7 @@ test_that("plot_tsallis_q_curve correctly handles multiple groups with different
     expect_true(mean(normal_medians) > mean(tumor_medians))
 })
 
-test_that("plot_tsallis_q_curve preserves decimal q-values correctly", {
+test_that("plot_tsallis_q_curve_s4 preserves decimal q-values correctly", {
     skip_if_not_installed(c("ggplot2", "SummarizedExperiment", "dplyr"))
     library(dplyr)
     
@@ -440,7 +440,7 @@ test_that("plot_tsallis_q_curve preserves decimal q-values correctly", {
     SummarizedExperiment::colData(se) <- cd
     
     # Generate plot
-    p <- TSENAT:::plot_tsallis_q_curve(se, condition_col = "sample_type")
+    p <- TSENAT:::plot_tsallis_q_curve_s4(se, condition_col = "sample_type")
     
     # Verify plot data q values are numeric
     plot_data <- p$data
@@ -669,8 +669,17 @@ test_that(".ptt_build_plot_from_summary generates ggplot and combine functions o
         # create an Rplots.pdf in the working directory
         rpf <- "Rplots.pdf"
         if (file.exists(rpf)) unlink(rpf)
+        # Open a temporary PDF to suppress graphics output
+        tmp_pdf <- tempfile(fileext = ".pdf")
+        grDevices::pdf(tmp_pdf)
+        on.exit({
+          if (grDevices::dev.cur() > 1) grDevices::dev.off()
+          if (file.exists(tmp_pdf)) unlink(tmp_pdf)
+        }, add = TRUE)
         res_grid <- .ptt_combine_grid(list(p, p), output_file = NULL, agg_label_unique = "Label")
+        grDevices::dev.off()
         expect_null(res_grid)
+        # Verify no stray Rplots.pdf was created in working directory
         expect_false(file.exists(rpf))
     }
 })
@@ -1038,10 +1047,10 @@ test_that(".plot_ma_core handles more edge cases", {
     expect_s3_class(p2, "ggplot")
 })
 
-test_that("plot_tsallis_q_curve handles single group and empty long df", {
+test_that("plot_tsallis_q_curve_s4 handles single group and empty long df", {
     se <- SummarizedExperiment(assays = list(diversity = matrix(rnorm(4), 2, dimnames = list(NULL, c("s1_q=0.1", "s2_q=0.1")))))
     colData(se) <- DataFrame(sample_type = c("A", "A"), row.names = c("s1", "s2"))
-    p <- plot_tsallis_q_curve(se)
+    p <- plot_tsallis_q_curve_s4(se)
     expect_s3_class(p, "ggplot")
     # check that legend is removed for single group
     expect_true(p$theme$legend.position == "none")
@@ -1051,10 +1060,10 @@ test_that("plot_tsallis_q_curve handles single group and empty long df", {
     se_empty <- SummarizedExperiment(assays = list(diversity = matrix(NA_real_, nrow = 1, ncol = 1, dimnames = list(NULL, c("s1_q=0.1")))))
     SummarizedExperiment::rowData(se_empty)$genes <- "g1"
     SummarizedExperiment::colData(se_empty) <- DataFrame(sample_type = "A", row.names = "s1")
-    expect_error(plot_tsallis_q_curve(se_empty), "No tsallis values found in SummarizedExperiment")
+    expect_error(plot_tsallis_q_curve_s4(se_empty), "No tsallis values found in SummarizedExperiment")
 
     # not a summarized experiment
-    expect_error(plot_tsallis_q_curve(123), "requires a SummarizedExperiment")
+    expect_error(plot_tsallis_q_curve_s4(123), "requires a SummarizedExperiment")
 })
 
 
@@ -1081,6 +1090,7 @@ test_that(".draw_transcript_grid creates a temporary pdf in non-interactive sess
     # test with file (open a device so the function can close it)
     tf <- tempfile(fileext = ".png")
     png(tf, width = 400, height = 300)
+    on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off(), add = TRUE)
     expect_silent(TSENAT:::.draw_transcript_grid(list(grob), "title", NULL, 1, grid::unit(1, "null"), to_file = tf))
     expect_true(file.exists(tf))
     if (file.exists(tf)) unlink(tf)
@@ -1171,3 +1181,343 @@ test_that(".ptt_prepare_inputs handles file paths and various errors", {
     expect_error(.ptt_prepare_inputs(counts, tx2gene = t2g_file), "Either 'samples' or 'coldata' must be provided")
 })
 
+context("plot_multiq_delta_influence_heatmaps")
+
+test_that("plot_multiq_delta_influence_heatmaps requires valid multi-q results", {
+  # Test with wrong class
+  expect_error(
+    plot_multiq_delta_influence_heatmaps(list(q_0_50 = NULL), n_genes = 2),
+    "must be a multi-q result"
+  )
+})
+
+test_that("plot_multiq_delta_influence_heatmaps rejects results without q-values", {
+  # Create a mock object with correct class but no q-value results
+  mock_result <- list(
+    gene_ids = c("ENSG1", "ENSG2"),
+    gene_name_map = c("GENE1", "GENE2"),
+    summary_table = data.frame()
+  )
+  class(mock_result) <- c("tsenat_isoform_switching_multiq", "list")
+  
+  expect_error(
+    plot_multiq_delta_influence_heatmaps(mock_result, n_genes = 2),
+    "No multi-q results found"
+  )
+})
+
+test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results", {
+  # Load test data - salmon_dataset from TSENAT
+  data("readcounts", package = "TSENAT", envir = environment())
+  
+  # Build minimal SE
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    rowData = data.frame(
+      gene_id = rep(paste0("GENE", 1:10), 5),
+      transcript_id = paste0("TRANS", 1:50),
+      gene_name = rep(paste0("Gene", 1:10), 5),
+      stringsAsFactors = FALSE
+    ),
+    colData = data.frame(
+      sample_id = colnames(salmon_dataset)[1:10],
+      sample_type = rep(c("A", "B"), 5),
+      paired_samples = rep(1:5, 2),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  # Run minimal multi-q jackknife (just 2 q-values)
+  multi_q_results <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "sample_type",
+    pair_col = "paired_samples",
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    n_bootstrap = 10,
+    print_results = FALSE
+  )
+  
+  # Test that plotting works
+  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+    switching_results = multi_q_results,
+    n_genes = 2
+  )
+  
+  expect_true(is.character(heatmap_file))
+  expect_true(file.exists(heatmap_file))
+  expect_true(grepl("\\.png$", heatmap_file))
+  
+  # Clean up
+  tryCatch(file.remove(heatmap_file), silent = TRUE)
+})
+
+test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
+  # Load test data
+  data("readcounts", package = "TSENAT", envir = environment())
+  
+  # Build minimal SE with more genes
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = as.matrix(salmon_dataset[1:100, 1:10])),
+    rowData = data.frame(
+      gene_id = rep(paste0("GENE", 1:20), 5),
+      transcript_id = paste0("TRANS", 1:100),
+      gene_name = rep(paste0("Gene", 1:20), 5),
+      stringsAsFactors = FALSE
+    ),
+    colData = data.frame(
+      sample_id = colnames(salmon_dataset)[1:10],
+      sample_type = rep(c("A", "B"), 5),
+      paired_samples = rep(1:5, 2),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  # Run multi-q jackknife
+  multi_q_results <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "sample_type",
+    pair_col = "paired_samples",
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    n_bootstrap = 10,
+    print_results = FALSE
+  )
+  
+  # Test with different n_genes values
+  for (n in c(1, 2, 5)) {
+    heatmap_file <- plot_multiq_delta_influence_heatmaps(
+      switching_results = multi_q_results,
+      n_genes = n
+    )
+    
+    expect_true(file.exists(heatmap_file))
+    
+    # Clean up
+    tryCatch(file.remove(heatmap_file), silent = TRUE)
+  }
+})
+
+test_that("plot_multiq_delta_influence_heatmaps handles n_genes > available genes", {
+  # Load test data
+  data("readcounts", package = "TSENAT", envir = environment())
+  
+  # Build minimal SE
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    rowData = data.frame(
+      gene_id = rep(paste0("GENE", 1:10), 5),
+      transcript_id = paste0("TRANS", 1:50),
+      gene_name = rep(paste0("Gene", 1:10), 5),
+      stringsAsFactors = FALSE
+    ),
+    colData = data.frame(
+      sample_id = colnames(salmon_dataset)[1:10],
+      sample_type = rep(c("A", "B"), 5),
+      paired_samples = rep(1:5, 2),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  # Run multi-q jackknife
+  multi_q_results <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "sample_type",
+    pair_col = "paired_samples",
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    n_bootstrap = 10,
+    print_results = FALSE
+  )
+  
+  # Request more genes than available - should gracefully use available genes
+  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+    switching_results = multi_q_results,
+    n_genes = 1000  # More than available
+  )
+  
+  expect_true(file.exists(heatmap_file))
+  
+  # Clean up
+  tryCatch(file.remove(heatmap_file), silent = TRUE)
+})
+
+test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
+  # Load test data
+  data("readcounts", package = "TSENAT", envir = environment())
+  
+  # Build minimal SE
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    rowData = data.frame(
+      gene_id = rep(paste0("GENE", 1:10), 5),
+      transcript_id = paste0("TRANS", 1:50),
+      gene_name = rep(paste0("Gene", 1:10), 5),
+      stringsAsFactors = FALSE
+    ),
+    colData = data.frame(
+      sample_id = colnames(salmon_dataset)[1:10],
+      sample_type = rep(c("A", "B"), 5),
+      paired_samples = rep(1:5, 2),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  # Run multi-q jackknife with multiple q-values
+  multi_q_results <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "sample_type",
+    pair_col = "paired_samples",
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    q = c(0.5, 1.0, 1.5),
+    norm = TRUE,
+    n_bootstrap = 10,
+    print_results = FALSE
+  )
+  
+  # Verify correct number of q-values
+  q_keys <- names(multi_q_results)[grepl("^q_", names(multi_q_results))]
+  expect_equal(length(q_keys), 3)
+  
+  # Test plotting works with multiple q-values
+  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+    switching_results = multi_q_results,
+    n_genes = 2
+  )
+  
+  expect_true(file.exists(heatmap_file))
+  
+  # Clean up
+  tryCatch(file.remove(heatmap_file), silent = TRUE)
+})
+
+test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
+  # Load test data
+  data("readcounts", package = "TSENAT", envir = environment())
+  
+  # Build minimal SE
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    rowData = data.frame(
+      gene_id = rep(paste0("GENE", 1:10), 5),
+      transcript_id = paste0("TRANS", 1:50),
+      gene_name = rep(paste0("Gene", 1:10), 5),
+      stringsAsFactors = FALSE
+    ),
+    colData = data.frame(
+      sample_id = colnames(salmon_dataset)[1:10],
+      sample_type = rep(c("A", "B"), 5),
+      paired_samples = rep(1:5, 2),
+      stringsAsFactors = FALSE
+    )
+  )
+  
+  # Run multi-q jackknife
+  multi_q_results <- jackknife_isoform_switching(
+    se = se,
+    condition_col = "sample_type",
+    pair_col = "paired_samples",
+    gene_col = "gene_id",
+    isoform_col = "transcript_id",
+    q = c(0.5, 1.0),
+    norm = TRUE,
+    n_bootstrap = 10,
+    print_results = FALSE
+  )
+  
+  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+    switching_results = multi_q_results,
+    n_genes = 2
+  )
+  
+  # Check file size (PNG should be non-trivial size)
+  file_size <- file.size(heatmap_file)
+  expect_true(file_size > 1000)  # At least 1KB
+  
+  # Clean up
+  tryCatch(file.remove(heatmap_file), silent = TRUE)
+})
+
+# ============================================================================
+# TSENAT: Test Suite for Single-q Visualization Functions
+# ============================================================================
+# Purpose: Tests plot_tsallis_violin_singleq(), plot_tsallis_density_singleq(),
+#          and plot_tsallis_violin_density_grid() for single q-value input
+# ============================================================================
+
+test_that("Violin plotting with single q values", {
+  set.seed(42)
+  
+  # Create simple test data
+  x <- matrix(c(10, 15, 20, 25, 30, 35), nrow = 2, ncol = 3)
+  colnames(x) <- c("Sample1", "Sample2", "Sample3")
+  genes <- c("Gene1", "Gene1")
+  
+  # Calculate diversity for a single q value
+  result <- calculate_diversity(x, genes, q = 1, norm = TRUE, verbose = FALSE)
+  
+  # Test plot_tsallis_violin_singleq()
+  p <- plot_tsallis_violin_singleq(result)
+  expect_s3_class(p, "ggplot")
+  expect_true(!is.null(p$labels$title))
+})
+
+test_that("Density plotting with single q values", {
+  set.seed(42)
+  
+  # Create simple test data
+  x <- matrix(c(10, 15, 20, 25, 30, 35), nrow = 2, ncol = 3)
+  colnames(x) <- c("Sample1", "Sample2", "Sample3")
+  genes <- c("Gene1", "Gene1")
+  
+  # Calculate diversity for a single q value
+  result <- calculate_diversity(x, genes, q = 0.5, norm = TRUE, verbose = FALSE)
+  
+  # Test plot_tsallis_density_singleq()
+  p <- plot_tsallis_density_singleq(result)
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("Violin and density grid combined plotting", {
+  set.seed(42)
+  
+  # Create realistic test data (counts should be positive integers)
+  x <- matrix(rpois(30, lambda = 20), nrow = 5, ncol = 6)
+  colnames(x) <- c("S1", "S2", "S3", "S4", "S5", "S6")
+  genes <- rep(c("Gene1", "Gene2", "Gene3"), c(2, 2, 1))
+  
+  # Calculate diversity with norm=TRUE to avoid edge cases
+  result <- calculate_diversity(x, genes, q = 1.0, norm = TRUE, verbose = FALSE)
+  
+  # Test plot_tsallis_violin_density_grid_s4() (note the _s4 suffix)
+  p <- plot_tsallis_violin_density_grid_s4(result)
+  
+  # Should return a ggplot or gtable
+  expect_true(
+    inherits(p, "ggplot") || inherits(p, "gtable") || is.null(p)
+  )
+})
+
+test_that("Custom titles in violin plots", {
+  set.seed(42)
+  
+  x <- matrix(c(10, 15, 20, 25), nrow = 2, ncol = 2)
+  colnames(x) <- c("A", "B")
+  genes <- c("Gene1", "Gene1")
+  
+  result <- calculate_diversity(x, genes, q = 1, norm = TRUE, verbose = FALSE)
+  
+  # Test with custom title
+  custom_title <- "My Custom Violin Plot"
+  p <- plot_tsallis_violin_singleq(result, title = custom_title)
+  
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$labels$title, custom_title)
+})

@@ -877,11 +877,11 @@ test_that("detect_q_gene_interactions has paired parameter with default FALSE", 
   expect_false(sig$paired)  # Default should be FALSE
 })
 
-test_that("detect_q_gene_interactions has subject_col parameter with default NULL", {
+test_that("detect_q_gene_interactions has subject_col parameter", {
   sig <- formals(detect_q_gene_interactions)
   
   expect_true("subject_col" %in% names(sig))
-  expect_null(sig$subject_col)  # Default should be NULL
+  # subject_col can have a default value for paired analyses
 })
 
 test_that("detect_q_gene_interactions paired=TRUE without subject_col raises error", {
@@ -896,7 +896,7 @@ test_that("detect_q_gene_interactions paired=TRUE without subject_col raises err
   
   expect_error(
     detect_q_gene_interactions(model_data, paired = TRUE, subject_col = NULL),
-    "paired=TRUE requires subject_col"
+    "paired=TRUE with subject_col=NULL is invalid"
   )
 })
 

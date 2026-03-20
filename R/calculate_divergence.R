@@ -555,7 +555,8 @@
 #' - Transcript aggregation: Paper C105 validates gene-level aggregation
 #' - Divergence normalization: Papers C112, S196, S201 validate normalization
 #'   approaches for effect size comparability (S197 - DESeq2 independent filtering)
-#' @export
+#' @keywords internal
+#' @noRd
 
 calculate_divergence <- function(
     se,
@@ -1670,7 +1671,8 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
 #' - Papers C016: Bootstrap CI computation respecting data structure
 #' - Papers S197: Quality filtering and effect size thresholds
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 effect_sizes_divergence <- function(
     lm_res,
     divergence_results_se,

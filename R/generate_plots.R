@@ -410,10 +410,10 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' 
 #' # Aggregate mode: median +/- IQR across all genes
 #' se_basic <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5))
-#' p_basic <- plot_tsallis_q_curve(se_basic)
+#' p_basic <- plot_tsallis_q_curve_s4(se_basic)
 #'
 #' @export
-plot_tsallis_q_curve <- function(
+plot_tsallis_q_curve_s4 <- function(
   se,
   assay_name = "diversity",
   condition_col = "sample_type",
@@ -1055,11 +1055,20 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
 #' gs <- rep(paste0("gene_", 1:4), length.out = 20)
 #' # Calculate diversity for single q value
 #' se <- calculate_diversity(rc, gs, q = 1, norm = TRUE)
-#' plot_tsallis_violin_density_grid(se)
-plot_tsallis_violin_density_grid <- function(se, assay_name = "diversity", title = NULL) {
+#' plot_tsallis_violin_density_grid_s4(se)
+plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL) {
     # Require cowplot for grid arrangement
     if (!requireNamespace("cowplot", quietly = TRUE)) {
-        stop("cowplot package required for plot_tsallis_violin_density_grid()")
+        stop("cowplot package required for plot_tsallis_violin_density_grid_s4()")
+    }
+    
+    # Handle TSENATAnalysis objects - extract first diversity result
+    if (methods::is(se, "TSENATAnalysis")) {
+        if (length(se@diversity_results) == 0) {
+            stop("No diversity results found in TSENATAnalysis object. Run calculate_diversity_s4() first.")
+        }
+        # Extract first diversity result
+        se <- se@diversity_results[[1]]
     }
     
     # Try to extract q from SE metadata first (best source for single-q SE)
@@ -1225,7 +1234,8 @@ plot_volcano <- function(
 #' # Placeholder: actual usage would require valid differential results
 #' # plot_volcano_ma_grid(x, sig_alpha = 0.05)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 plot_volcano_ma_grid <- function(
   diff_df,
   x_col = NULL,
@@ -1502,7 +1512,8 @@ plot_volcano_ma_grid <- function(
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
 #' plot_top_transcripts(se, gene = "G1", top_n = 2)
-#' @export
+#' @keywords internal
+#' @noRd
 plot_top_transcripts <- function(
   se,
   gene = NULL,
@@ -1738,11 +1749,12 @@ plot_top_transcripts <- function(
 #' 
 #' # Plot GAM curves for top genes
 #' if (nrow(lm_result$results) > 0) {
-#'   grid_plot <- plot_lm_interaction_gam(se, lm_result$results, condition_col = "condition", 
+#'   grid_plot <- plot_lm_interaction_gam(se, lm_result$results, condition_col = "condition",
 #'                                         n_top = 2, model_data = lm_result$model_data)
 #' }
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
@@ -2570,7 +2582,8 @@ if (getRversion() >= "2.15.1") {
 #' # Plot divergence distribution
 #' plot_divergence_distribution(interaction_results, threshold = 0.1)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
   
   # Check for ggplot2
@@ -2691,23 +2704,47 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #' )
 #' 
 #' # Create plot of top 4 genes
-#' p <- plot_multi_gene_q_spectrum(
+#' p <- plot_multi_gene_q_spectrum_s4(
 #'   lm_res = lm_results,
 #'   divergence_results_se = divergence_se,
 #'   n_genes = 4
 #' )
 #'
-#' @seealso \code{\link{calculate_divergence}} for computing divergence values.
+#' @seealso \code{\link{calculate_divergence_s4}} for computing divergence values.
 #'
 #' @export
-plot_multi_gene_q_spectrum <- function(eff_res = NULL, 
-                                        lm_res = NULL, 
-                                        divergence_results_se = NULL,
-                                        n_genes = 9, 
-                                        ncol = 3, 
-                                        verbose = TRUE) {
+plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, 
+                                           lm_res = NULL, 
+                                           divergence_results_se = NULL,
+                                           n_genes = 9, 
+                                           ncol = 3, 
+                                           verbose = TRUE) {
   
   require_pkgs(c("ggplot2", "patchwork", "SummarizedExperiment"))
+  
+  # Handle TSENATAnalysis S4 object
+  if (methods::is(eff_res, "TSENATAnalysis")) {
+    if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Detected TSENATAnalysis object, extracting lm_results and divergence_results...\n")
+    
+    # Extract lm_results (contains interaction results)
+    if (length(eff_res@lm_results) > 0) {
+      lm_res <- eff_res@lm_results[[1]]
+      if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with", nrow(lm_res), "rows\n")
+    } else {
+      stop("TSENATAnalysis object has no lm_results. Run calculate_lm_interaction_s4() first.")
+    }
+    
+    # Extract first divergence result as divergence_results_se
+    if (length(eff_res@diversity_results) > 0) {
+      divergence_results_se <- eff_res@diversity_results[[1]]
+      if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Extracted divergence_results with", nrow(divergence_results_se), "rows\n")
+    } else {
+      stop("TSENATAnalysis object has no diversity_results. Run calculate_divergence_s4() first.")
+    }
+    
+    # For S4 mode, set eff_res to NULL so we use lm_res + divergence_results_se
+    eff_res <- NULL
+  }
   
   # ============================================================================
   # Step 1: Extract gene data from either eff_res or (lm_res + divergence_results_se)
@@ -2754,13 +2791,13 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
           per_q_patterns <- int_res_subset$per_q_pattern[valid_patterns]
           adj_p_values <- int_res_subset[[p_col]][valid_patterns]
           
-          if (verbose) cat(sprintf("[plot_multi_gene_q_spectrum] Mode 1: Using eff_res with %s column (%d valid genes)\n", p_col, length(genes_to_plot)))
+          if (verbose) cat(sprintf("[plot_multi_gene_q_spectrum_s4] Mode 1: Using eff_res with %s column (%d valid genes)\n", p_col, length(genes_to_plot)))
         } else {
-          if (verbose) cat("[plot_multi_gene_q_spectrum] Mode 1 failed: per_q_pattern values are empty or invalid\n")
+          if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: per_q_pattern values are empty or invalid\n")
         }
       } else {
         if (verbose) {
-          cat("[plot_multi_gene_q_spectrum] Mode 1 failed: Missing required columns\n")
+          cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: Missing required columns\n")
           cat("  - has 'gene':", has_gene, "\n")
           cat("  - has 'per_q_pattern':", has_per_q, "\n")
           cat("  - has 'adj_p_interaction':", has_p_adj, "\n")
@@ -2768,10 +2805,10 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
         }
       }
     } else {
-      if (verbose) cat("[plot_multi_gene_q_spectrum] Mode 1 failed: eff_res$interaction_results is NULL or empty\n")
+      if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res$interaction_results is NULL or empty\n")
     }
   } else {
-    if (verbose) cat("[plot_multi_gene_q_spectrum] Mode 1 failed: eff_res is NULL or not a list\n")
+    if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res is NULL or not a list\n")
   }
   
   # Mode 2: Fallback to lm_res + divergence_results_se
@@ -2813,7 +2850,7 @@ plot_multi_gene_q_spectrum <- function(eff_res = NULL,
               }
             }
             
-            if (verbose) cat("[plot_multi_gene_q_spectrum] Mode 2 (fallback): Using lm_res + divergence_results_se\n")
+            if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 2 (fallback): Using lm_res + divergence_results_se\n")
           }
         }
       }
@@ -3358,7 +3395,8 @@ plot_tsallis_divergence_profile <- function(se,
 #' # Gene-specific divergence spectrum
 #' p_gene <- plot_divergence_spectrum(divergence_se, gene = "gene_1")
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 plot_divergence_spectrum <- function(divergence_results_se,
                                      gene = NULL,
                                      lm_res = NULL,
@@ -3736,7 +3774,8 @@ plot_divergence_spectrum <- function(divergence_results_se,
 #' @import grid
 #' @import pheatmap
 #' @importFrom grDevices png dev.off colorRampPalette
-#' @export
+#' @keywords internal
+#' @noRd
 plot_multiq_delta_influence_heatmaps <- function(
     switching_results,
   n_genes = 4,

@@ -173,9 +173,6 @@ testthat::test_that("LRT p extraction returns numeric p-value for nested lm mode
 
 
 testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv available", {
-    if (!rlang::is_installed("mgcv")) {
-        testthat::skip("mgcv not installed")
-    }
     set.seed(4)
     n <- 80
     q <- runif(n)
@@ -192,7 +189,6 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
 })
 
 testthat::test_that("try_lmer returns an lmer object when lme4 available", {
-    if (!rlang::is_installed("lme4")) testthat::skip("lme4 not installed")
     set.seed(5)
     n <- 48
     subject <- rep(1:12, each = 4)
@@ -323,7 +319,6 @@ test_that(".tsenat_prepare_fpca_matrix returns NULL when min_obs larger than ava
 
 # .tsenat_try_lmer sets 'singular' attribute (when lme4 present and fit succeeded)
 test_that(".tsenat_try_lmer sets singular attribute when fitting succeeds", {
-    if (!rlang::is_installed("lme4")) skip("lme4 not installed")
     set.seed(7)
     nsub <- 10
     nper <- 3

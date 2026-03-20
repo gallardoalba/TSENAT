@@ -411,7 +411,8 @@ knitr::kable(shannon_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q
 library(cowplot)
 
 # Create individual volcano and MA plots for Shannon/q=1
-shannon_sf <- TSENAT::plot_volcano_ma_grid(
+# SplicingFactory method for comparison
+shannon_sf <- TSENAT:::plot_volcano_ma_grid(
   diff_df = entropy_significance,
   x_col = "mean_difference",
   padj_col = "adjusted_p_values",
@@ -421,6 +422,7 @@ shannon_sf <- TSENAT::plot_volcano_ma_grid(
   title_ma = ""
 )
 
+# TSENAT S4 wrapper method
 shannon_tsenat <- plot_volcano_ma_grid_s4(
   analysis = tsenat_analysis_q1,
   x_col = "mean_difference",
@@ -506,7 +508,8 @@ knitr::kable(simpson_tsenat_top, row.names = FALSE, caption = "TSENAT (Tsallis q
 
 ```{r comparison_ma_plots, fig.width=14, fig.height=7, message=FALSE, warning=FALSE}
 # Create individual volcano and MA plots for Simpson/q=2
-simpson_sf <- TSENAT::plot_volcano_ma_grid(
+# SplicingFactory method for comparison
+simpson_sf <- TSENAT:::plot_volcano_ma_grid(
   diff_df = simpson_significance,
   x_col = "mean_difference",
   padj_col = "adjusted_p_values",
@@ -516,6 +519,7 @@ simpson_sf <- TSENAT::plot_volcano_ma_grid(
   title_ma = ""
 )
 
+# TSENAT S4 wrapper method
 simpson_tsenat <- plot_volcano_ma_grid_s4(
   analysis = tsenat_analysis_q2,
   x_col = "mean_difference",

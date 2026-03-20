@@ -57,7 +57,8 @@
 #'   which is incorrect. Use `tpm_assay_name` to specify TPM assay.
 #' @param verbose Logical; print before/after counts and filtering parameters when TRUE.
 #' @return A filtered `SummarizedExperiment`.
-#' @export
+#' @keywords internal
+#' @noRd
 #' @examples
 #' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0('tx', 1:3), paste0('S', 1:2)))
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))

@@ -1800,7 +1800,8 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 #' Displays bootstrap distribution summary (mean, median, SD, min, max),
 #' diagnostics (skewness, effective sample size), and stability metrics.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #' @method summary tsenat_divergence_bootstrap_ci
 summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     cat("\n=== Summary of Divergence Bootstrap ===\n")

@@ -2786,6 +2786,16 @@
         df$subject <- factor(subject)
         # require at least two subjects and at least two groups represented
         n_subjects <- length(unique(na.omit(df$subject)))
+        
+        # Check minimum observation requirement
+        if (nrow(df) < min_obs) {
+            return(NULL)
+        }
+        
+        # Check minimum subject requirement for mixed models
+        if (n_subjects < 2) {
+            return(NULL)
+        }
                 
         # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
         # Differencing removes monotone trend from Tsallis entropy, enabling valid AR(1) inference
