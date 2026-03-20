@@ -1850,7 +1850,6 @@ effect_sizes_divergence <- function(
     cat("\n")
   }
 
-  # DEBUG: Show merge attempt (only if verbose)
   if (verbose) {
     cat("\n[effect_sizes_divergence] MERGE STARTING\n")
     cat("  - significant_genes count:", length(significant_genes), "\n")
@@ -1883,7 +1882,6 @@ effect_sizes_divergence <- function(
       NA_real_
     }
 
-    # Debug: show first few matches
     if (verbose && i <= min(3, length(significant_genes))) {
       cat("  [Gene ", i, "] gene_id='", gene_id, "' match_name='", match_name, "'", sep="")
     }

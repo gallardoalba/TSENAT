@@ -356,12 +356,6 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
 
     long <- tidyr::pivot_longer(df, -Gene, names_to = "sample_q", values_to = "tsallis")
     
-    # DEBUG: Check column naming patterns
-    # cat("[DEBUG prepare_tsallis_long] sample_q unique values (first 10):\n")
-    # cat("  ", paste(head(unique(long$sample_q), 10), collapse=", "), "\n")
-    # cat("[DEBUG prepare_tsallis_long] Checking for _q= pattern:", any(grepl("_q=", long$sample_q)), "\n")
-    # cat("[DEBUG prepare_tsallis_long] Checking for _qX pattern:", any(grepl("_q[0-9]", long$sample_q)), "\n")
-    
     # Handle different column naming conventions
     # Convention 1: Old format "sample_q=X.X" (from calculate_diversity multi-q)
     # Convention 2: New format "sample_qX.X" (from TSENATAnalysis S4 wrapper)

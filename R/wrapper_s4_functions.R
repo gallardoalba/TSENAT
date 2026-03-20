@@ -197,12 +197,6 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
   
   result_df <- do.call(calculate_diversity, calc_args)
 
-  # Debug: Check result structure
-  if (verbose && nrow(result_df) == 0) {
-    cat("[DEBUG] calculate_diversity returned empty result (0 rows)\n")
-    cat("[DEBUG] result_df class:", class(result_df), "\n")
-    cat("[DEBUG] result_df colnames:", paste(colnames(result_df), collapse=", "), "\n")
-  }
 
   # Extract and store results for each q-value
   
@@ -625,22 +619,12 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
     # Ensure colnames of assay match rownames of colData
     colnames(combined_assay) <- rownames(combined_coldata)
     
-    # DEBUG
-    cat("[DEBUG combine_diversity] combined_assay dims:", nrow(combined_assay), "x", ncol(combined_assay), "\n")
-    cat("[DEBUG combine_diversity] combined_assay colnames (first 5):", paste(head(colnames(combined_assay), 5), collapse=", "), "\n")
-    cat("[DEBUG combine_diversity] combined_coldata rows:", nrow(combined_coldata), "\n")
-    cat("[DEBUG combine_diversity] combined_coldata rownames (first 5):", paste(head(rownames(combined_coldata), 5), collapse=", "), "\n")
-    
     # Create combined SE
     se_combined <- SummarizedExperiment::SummarizedExperiment(
       assays = list(diversity = combined_assay),
       colData = combined_coldata,
       rowData = rowdata_first
     )
-    
-    cat("[DEBUG combine_diversity] SE created with", length(SummarizedExperiment::assays(se_combined)), "assays\n")
-    cat("[DEBUG combine_diversity] SE assay names:", paste(names(SummarizedExperiment::assays(se_combined)), collapse=", "), "\n")
-    cat("[DEBUG combine_diversity] SE dims:", nrow(se_combined), "x", ncol(se_combined), "\n")
     
     se_combined
   }, error = function(e) {
@@ -680,7 +664,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   result <- tryCatch({
     do.call(calculate_lm_interaction, args)
   }, error = function(e) {
-    cat("[DEBUG calculate_lm_interaction_s4] ERROR in calculate_lm_interaction:\n")
     cat("  Message:", conditionMessage(e), "\n")
     cat("  Call:", paste(deparse(e$call), collapse="\n"), "\n")
     stop(paste0("Error in lm_interaction calculation:\n", conditionMessage(e)),
@@ -1226,9 +1209,11 @@ detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
 #' Calculate Difference Between Control and Treatment Groups (S4 Wrapper)
 #'
 #' S4 wrapper for \code{\link{calculate_difference}} that operates on TSENATAnalysis objects.
-#' Stores results in the \code{lm_results} slot and updates metadata.
+#' Uses diversity results from \code{@diversity_results} slot (from \code{calculate_diversity_s4()})
+#' and stores results in the \code{lm_results} slot.
 #'
-#' @param analysis A \code{TSENATAnalysis} object containing normalized data in \code{@se} slot.
+#' @param analysis A \code{TSENATAnalysis} object with diversity results in \code{@diversity_results}.
+#' @param q \code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.
 #' @param control Character string specifying the control group identifier. If \code{NULL},
 #'   attempts to retrieve from \code{analysis@config$control}.
 #' @param ... Additional arguments passed to \code{\link{calculate_difference}}.
@@ -1236,17 +1221,32 @@ detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
 #' @return Returns the modified \code{analysis} object invisibly with results stored in
 #'   \code{analysis@lm_results$difference}.
 #'
+#' @details
+#' **IMPORTANT:** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
+#' This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
+#' not the raw input data in \code{@se}. This ensures you're comparing diversity values
+#' between control and treatment groups, not raw abundance data.
+#'
 #' @export
 #' @seealso \code{\link{calculate_difference}} for the underlying implementation.
 #'
 #' @examples
 #' \dontrun{
-#'   # After running tsenat() to create analysis object
-#'   analysis <- calculate_difference_s4(analysis, control = "ctrl")
+#'   # First compute diversity
+#'   analysis <- calculate_diversity_s4(analysis, q = 1.0)
+#'   
+#'   # Then compute differences
+#'   analysis <- calculate_difference_s4(analysis, control = "Normal")
 #' }
-calculate_difference_s4 <- function(analysis, control = NULL, ...) {
+calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+  }
+
+  # Check prerequisites: diversity results must exist
+  if (length(analysis@diversity_results) == 0) {
+    stop("Diversity results required. Run calculate_diversity_s4() first.",
+         call. = FALSE)
   }
 
   # Priority 1: Use explicit parameter
@@ -1260,10 +1260,47 @@ calculate_difference_s4 <- function(analysis, control = NULL, ...) {
     }
   }
 
-  # Run difference calculation
+  # Determine which diversity result to use
+  # Priority: explicit q > first q in diversity_results
+  if (is.null(q)) {
+    # Use first diversity result
+    div_keys <- names(analysis@diversity_results)
+    if (length(div_keys) == 0) {
+      stop("No diversity results found in @diversity_results", call. = FALSE)
+    }
+    diversity_se <- analysis@diversity_results[[div_keys[1]]]
+    q_used <- sub("^q_", "", div_keys[1])
+  } else {
+    # Find diversity result for specified q
+    q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
+    if (!(q_key %in% names(analysis@diversity_results))) {
+      stop("Diversity not calculated for q=", q, 
+           ". Available: ", paste(names(analysis@diversity_results), collapse = ", "),
+           call. = FALSE)
+    }
+    diversity_se <- analysis@diversity_results[[q_key]]
+    q_used <- q
+  }
+
+  # Run difference calculation on diversity results (not raw input @se)
   result <- tryCatch({
+    # Determine samples column from colData
+    # Use analysis@se's colData if available, otherwise use diversity_se's colData
+    if ("group" %in% colnames(SummarizedExperiment::colData(analysis@se))) {
+      samples_col <- "group"
+    } else if ("sample_type" %in% colnames(SummarizedExperiment::colData(analysis@se))) {
+      samples_col <- "sample_type"
+    } else if ("condition" %in% colnames(SummarizedExperiment::colData(analysis@se))) {
+      samples_col <- "condition"
+    } else {
+      stop("No sample grouping column found in colData. ",
+           "Expected: 'group', 'sample_type', or 'condition'",
+           call. = FALSE)
+    }
+
     calculate_difference(
-      x = analysis@se,
+      x = diversity_se,
+      samples = samples_col,
       control = control,
       ...
     )
@@ -1282,7 +1319,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, ...) {
   # Track metadata
   analysis@metadata$function_calls <- c(
     analysis@metadata$function_calls,
-    paste0("calculate_difference[control=", control[1], "]")
+    paste0("calculate_difference_s4[q=", q_used, ", control=", control, "]")
   )
 
   analysis

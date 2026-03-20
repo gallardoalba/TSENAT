@@ -510,7 +510,6 @@ plot_tsallis_q_curve <- function(
       unique_colnames <- paste0(clean_colnames, "_q=", formatC(q_val, format="f", digits=3))
       
       # Fill in the combined assay
-      # DEBUG: Check dimensions before assignment
       if (col_idx + ncol(mat) - 1 > total_cols) {
         stop(paste0("Dimension mismatch in plot_tsallis_q_curve: ",
                     "Trying to assign to columns ", col_idx, " to ", col_idx + ncol(mat) - 1,

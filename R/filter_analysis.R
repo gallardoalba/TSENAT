@@ -8,15 +8,11 @@
 #'   \code{SummarizedExperiment} to be filtered.
 #'
 #' @param stringency Character. Filtering stringency level:
-#'   \describe{
-#'     \item{"strict"}{Most stringent filtering (default for unpaired designs).
-#'       Keeps transcripts present in all samples with TPM >= median gene TPM.}
-#'     \item{"medium"}{Moderate filtering (default for paired designs).
-#'       Keeps transcripts present in at least 50% of samples with TPM >= median gene TPM.}
-#'     \item{"lenient"}{Least stringent filtering. Keeps transcripts present
-#'       in at least 25% of samples with TPM >= median gene TPM.}
-#'   }
-#'   Default: determined by study design (paired vs unpaired).
+#'   "strict" (most stringent, default for unpaired designs),
+#'   "medium" (moderate, default for paired designs), or
+#'   "lenient" (least stringent).
+#'   Each keeps transcripts present in different percentages of samples with TPM >= median.
+#'   Default is determined by study design (paired vs unpaired).
 #'
 #' @param min_samples Numeric. Minimum number of samples in which a transcript
 #'   must be present (default: 5). Used as a secondary filter.

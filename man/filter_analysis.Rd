@@ -10,6 +10,13 @@ filter_analysis(analysis, stringency = NULL, min_samples = 5L, verbose = FALSE)
 \item{analysis}{A \code{TSENATAnalysis} S4 object containing the
 \code{SummarizedExperiment} to be filtered.}
 
+\item{stringency}{Character. Filtering stringency level:
+"strict" (most stringent, default for unpaired designs),
+"medium" (moderate, default for paired designs), or
+"lenient" (least stringent).
+Each keeps transcripts present in different percentages of samples with TPM >= median.
+Default is determined by study design (paired vs unpaired).}
+
 \item{min_samples}{Numeric. Minimum number of samples in which a transcript
 must be present (default: 5). Used as a secondary filter.}
 
@@ -40,6 +47,26 @@ the TSENATAnalysis object. The function:
 divergence, or LM interaction results. If called after analysis results
 have been computed, those results will be based on unfiltered data and
 may not align with the filtered SE dimensions.
+}
+\examples{
+\dontrun{
+# Load transcript counts
+data("readcounts", package = "TSENAT")
+
+# Create analysis object
+analysis <- build_analysis(
+  readcounts = readcounts,
+  tx2gene = "annotation.gff3.gz",
+  metadata = metadata_df
+)
+
+# Filter low-abundance transcripts before computing diversity
+analysis <- filter_analysis(analysis, stringency = "medium", verbose = TRUE)
+
+# Now safe to compute diversity
+analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.1))
+}
+
 }
 \seealso{
 \code{\link{filter_se}} for the underlying filtering function

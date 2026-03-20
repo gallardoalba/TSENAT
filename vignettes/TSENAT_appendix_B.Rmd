@@ -106,7 +106,7 @@ analysis <- calculate_diversity_s4(
   analysis, 
   q = qvec, 
   norm = TRUE,
-  pseudocount = scalar_pseudocount
+  pseudocount = "auto"
 )
 ```
 

@@ -682,7 +682,6 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
         nthreads = 3,
         verbose = TRUE
     )
-    cat("=================================================\n\n")
 }
 ```
 
@@ -1106,7 +1105,7 @@ for investigation of condition-specific splicing architecture and dynamic isofor
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
-p <- plot_divergence_distribution_s4(analysis, threshold = 0.1)
+p <- plot_divergence_distribution_s4(analysis, threshold = 0.05)
 print(p)
 ```
 

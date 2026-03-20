@@ -2040,12 +2040,6 @@
         } else {
             p_interaction <- NA_real_
             if (nrow(an) >= 2) {
-                # DEBUG: Uncomment to see anova extraction
-                if (FALSE) {  # Change to TRUE for debug
-                    cat("[DEBUG] Anova colnames:", paste(colnames(an), collapse=", "), "\n")
-                    cat("[DEBUG] Anova nrow:", nrow(an), "\n")
-                    print(an)
-                }
                 if ("Pr(F)" %in% colnames(an)) {
                     p_interaction <- an[2, "Pr(F)"]
                 } else if ("Pr(>F)" %in% colnames(an)) {
@@ -2100,20 +2094,6 @@
                 }, error = function(e) { NULL })
             }
         }
-        
-        # DEBUG: Log p-value BEFORE bias correction (gene 'g' will be used as identifier)
-        if (FALSE && g == "g1") {  # Change to TRUE to enable debug output
-            cat(sprintf("[GAM DEBUG] Gene %s: p_interaction BEFORE bias correction = %.20e\n", g, p_interaction))
-            cat(sprintf("[GAM DEBUG] use_arima = %s\n", use_arima))
-            cat(sprintf("[GAM DEBUG] use_bounded_family = %s, family_gam = %s\n", use_bounded_family, family_gam))
-            cat(sprintf("[GAM DEBUG] df entropy range: [%.6f, %.6f]\n", min(df$entropy, na.rm=T), max(df$entropy, na.rm=T)))
-            cat(sprintf("[GAM DEBUG] df nrow = %d\n", nrow(df)))
-            cat(sprintf("[GAM DEBUG] Anova result:\n"))
-            print(an)
-            cat(sprintf("[GAM DEBUG] n_samples = %d\n", n_samples))
-            cat(sprintf("[GAM DEBUG] fit_null deviance: %.20e\n", summary(fit_null)$dev.expl))
-            cat(sprintf("[GAM DEBUG] fit_alt deviance: %.20e\n", summary(fit_alt)$dev.expl))
-        }
     }
     
     # Apply GAM-specific bias correction for small samples (C071)
@@ -2126,15 +2106,7 @@
                                           bias_correction = bias_correction,
                                           entropy_data = df$entropy,
                                           subject_data = df$subject)
-    
-    # DEBUG: Log p-value AFTER bias correction
-    if (FALSE && g == "g1") {  # Change to TRUE to enable debug output
-        cat(sprintf("[GAM DEBUG] Gene %s: p_interaction AFTER bias correction = %.20e\n", g, bc_result$p_value))
-        if (!is.na(bc_result$bias_correction_applied) && bc_result$bias_correction_applied) {
-            cat(sprintf("[GAM DEBUG]   Adjustment factor applied: %.4f\n", bc_result$adjustment_factor))
-        }
-    }
-    
+        
     # Extract test statistic and effect size from anova if available
     test_statistic <- NA_real_
     effect_size <- NA_real_
@@ -2735,19 +2707,6 @@
     vals <- as.numeric(mat[g, ])
     df <- data.frame(entropy = vals, q = q_vals, group = factor(group_vec))
     
-    # DEBUG for first few genes
-    if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-      debug_msg <- paste0(
-        "\n[DEBUG .tsenat_fit_one_interaction] Gene '", g, "':\n",
-        "  vals length: ", length(vals), "\n",
-        "  q_vals length: ", length(q_vals), "\n",
-        "  group_vec length: ", length(group_vec), "\n",
-        "  df rows: ", nrow(df), "\n",
-        "  valid entropy (non-NA): ", sum(!is.na(df$entropy)), "\n",
-        "  samples_n: ", length(unique(sample_names)), "\n"
-      )
-      cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-    }
     
     # Add inverse-variance weights if provided (Phase 1: Bootstrap CI weighting)
     if (!is.null(weights) && length(weights) == nrow(df)) {
@@ -2763,19 +2722,6 @@
         }
     }
     
-    # CRITICAL FILTERS
-    if (sum(!is.na(df$entropy)) < min_obs) {
-        debug_msg <- paste0("[DEBUG] Gene '", g, "' FILTERED: insufficient observations (", sum(!is.na(df$entropy)), " < min_obs=", min_obs, ")\n")
-        cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-        return(NULL)
-    }
-    
-    n_groups <- length(unique(na.omit(df$group)))
-    if (n_groups < 2) {
-        debug_msg <- paste0("[DEBUG] Gene '", g, "' FILTERED: insufficient groups (", n_groups, " < 2)\n")
-        cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-        return(NULL)
-    }
 
     if (method == "lmm") {
         # LMM with AR(1) covariance structure for q-dependent entropy measurements
@@ -2829,22 +2775,7 @@
                 sample_names_expanded <- sub("_q=.*", "", rownames(coldata))
                 names(subject_ids) <- sample_names_expanded
                 subject <- unname(subject_ids[sample_names])  # sample_names passed from calculate_lm_interaction
-                
-                # DEBUG for first gene
-                if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-                  debug_msg <- paste0(
-                    "[DEBUG] Gene '", g, "' - Subject extraction:\n",
-                    "  subject_col_name: ", subject_col_name, "\n",
-                    "  subject_ids length: ", length(subject_ids), "\n",
-                    "  names(subject_ids) unique: ", length(unique(names(subject_ids))), "\n",
-                    "  sample_names length: ", length(sample_names), "\n",
-                    "  sample_names unique: ", length(unique(sample_names)), "\n",
-                    "  subject result length: ", length(subject), "\n",
-                    "  subject result (first 20): ", paste(head(subject, 20), collapse=", "), "\n",
-                    "  NAs in subject: ", sum(is.na(subject)), "\n"
-                  )
-                  cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-                }
+
             } else {
                 stop("paired = TRUE requires 'paired_samples' or 'sample_base' column in colData; supply subject_col explicitly or use map_metadata(...)")
             }
@@ -2855,29 +2786,7 @@
         df$subject <- factor(subject)
         # require at least two subjects and at least two groups represented
         n_subjects <- length(unique(na.omit(df$subject)))
-        
-        # DEBUG: Log for first genes
-        if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-          debug_msg <- paste0(
-            "[DEBUG] Gene '", g, "' after subject assignment:\n",
-            "  df$subject unique: ", n_subjects, "\n",
-            "  df$subject values (first 20): ", paste(head(df$subject, 20), collapse=", "), "\n",
-            "  NAs in df$subject: ", sum(is.na(df$subject)), "\n"
-          )
-          cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-        }
-        
-        if (n_subjects < 2) {
-            debug_msg <- paste0("[DEBUG] Gene '", g, "' FILTERED: insufficient subjects (", n_subjects, " < 2). subject values: ", paste(head(as.character(df$subject), 5), collapse=", "), "\n")
-            cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-            return(NULL)
-        }
-        if (length(unique(na.omit(df$group))) < 2) {
-            debug_msg <- paste0("[DEBUG] Gene '", g, "' FILTERED: insufficient groups after subject check\n")
-            cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-            return(NULL)
-        }
-        
+                
         # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
         # Differencing removes monotone trend from Tsallis entropy, enabling valid AR(1) inference
         # BONUS: First differencing of bounded [0, log(m)] data helps normalize distribution
@@ -3024,11 +2933,6 @@
         # Extract subject info for paired/repeated measures (same as LMM)
 
         subject <- NULL
-        # DEBUG
-        if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-          debug_msg <- paste0("[DEBUG GAM] Gene '", g, "' - Enter GAM block. subject_col=", (!is.null(subject_col)), ", paired=", paired, "\n")
-          cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-        }
         
         if (!is.null(subject_col)) {
             if (!(subject_col %in% colnames(SummarizedExperiment::colData(se)))) {
@@ -3045,25 +2949,8 @@
             names(subj_full) <- col_names_for_indexing
             subject <- unname(subj_full[sample_names])
             
-            # DEBUG
-            if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-              debug_msg <- paste0(
-                "[DEBUG GAM] Gene '", g, "' - Via subject_col branch:\n",
-                "  subject_col: ", subject_col, "\n",
-                "  subj_full length: ", length(subj_full), "\n",
-                "  names(subj_full) unique: ", length(unique(names(subj_full))), "\n",
-                "  sample_names length: ", length(sample_names), "\n",
-                "  subject result length: ", length(subject), "\n",
-                "  subject result (first 20): ", paste(head(subject, 20), collapse=", "), "\n",
-                "  NAs in subject: ", sum(is.na(subject)), "\n"
-              )
-              cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-            }
         } else if (paired) {
-            if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-              debug_msg <- paste0("[DEBUG GAM] Gene '", g, "' - In paired block\n")
-              cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-            }
+        
             coldata <- SummarizedExperiment::colData(se)
             coldata_cols <- colnames(coldata)
             
@@ -3083,30 +2970,12 @@
                 sample_names_expanded <- sub("_q=.*", "", rownames(coldata))
                 names(subject_ids) <- sample_names_expanded
                 subject <- unname(subject_ids[sample_names])  # sample_names passed from calculate_lm_interaction
-                
-                # DEBUG for first gene
-                if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-                  debug_msg <- paste0(
-                    "[DEBUG GAM] Gene '", g, "' - Subject extraction (paired=TRUE, method=gam):\n",
-                    "  subject result length: ", length(subject), "\n",
-                    "  subject result (first 20): ", paste(head(subject, 20), collapse=", "), "\n",
-                    "  NAs in subject: ", sum(is.na(subject)), "\n"
-                  )
-                  cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-                }
+
             } else {
                 stop("paired = TRUE requires 'paired_samples' or 'sample_base' column in colData; supply subject_col explicitly or use map_metadata(...)")
             }
         }
-        # DEBUG: Show what's being passed to gam
-        if (g %in% c(rownames(mat)[1], rownames(mat)[2])) {
-          debug_msg <- paste0(
-            "[DEBUG GAM] Gene '", g, "' - About to call .tsenat_gam_interaction:\n",
-            "  df rows: ", nrow(df), "\n",
-            "  subject: ", ifelse(is.null(subject), "NULL", paste("length", length(subject))), "\n"
-          )
-          cat(debug_msg, file="/tmp/lm_interaction_debug.txt", append=TRUE)
-        }
+
         # Pass subject info, regularization, bias correction, adaptive knots parameters, and weights to GAM
         return(.tsenat_gam_interaction(df, q_vals, g, min_obs = min_obs, subject = subject,
                                        regularization = regularization, bias_correction = bias_correction,

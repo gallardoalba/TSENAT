@@ -4,13 +4,15 @@
 \alias{calculate_difference_s4}
 \title{Calculate Difference Between Control and Treatment Groups (S4 Wrapper)}
 \usage{
-calculate_difference_s4(analysis, control = NULL, ...)
+calculate_difference_s4(analysis, control = NULL, q = NULL, ...)
 }
 \arguments{
-\item{analysis}{A \code{TSENATAnalysis} object containing normalized data in \code{@se} slot.}
+\item{analysis}{A \code{TSENATAnalysis} object with diversity results in \code{@diversity_results}.}
 
 \item{control}{Character string specifying the control group identifier. If \code{NULL},
 attempts to retrieve from \code{analysis@config$control}.}
+
+\item{q}{\code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.}
 
 \item{...}{Additional arguments passed to \code{\link{calculate_difference}}.}
 }
@@ -20,12 +22,22 @@ Returns the modified \code{analysis} object invisibly with results stored in
 }
 \description{
 S4 wrapper for \code{\link{calculate_difference}} that operates on TSENATAnalysis objects.
-Stores results in the \code{lm_results} slot and updates metadata.
+Uses diversity results from \code{@diversity_results} slot (from \code{calculate_diversity_s4()})
+and stores results in the \code{lm_results} slot.
+}
+\details{
+**IMPORTANT:** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
+This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
+not the raw input data in \code{@se}. This ensures you're comparing diversity values
+between control and treatment groups, not raw abundance data.
 }
 \examples{
 \dontrun{
-  # After running tsenat() to create analysis object
-  analysis <- calculate_difference_s4(analysis, control = "ctrl")
+  # First compute diversity
+  analysis <- calculate_diversity_s4(analysis, q = 1.0)
+  
+  # Then compute differences
+  analysis <- calculate_difference_s4(analysis, control = "Normal")
 }
 }
 \seealso{

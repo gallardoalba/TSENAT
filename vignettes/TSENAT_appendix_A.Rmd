@@ -243,19 +243,18 @@ gene_overlap_stats <- function(results1, results2, gene_col1, gene_col2,
 To calculate transcript diversity measures (Shannon entropy, Simpson index, and Tsallis entropy at q=1 and q=2), use:
 
 ```{r diversity_calculations}
+# Create sample group classification based on sample names
+# (Normal samples end with _N, Tumor samples don't)
+sample_group <- ifelse(grepl("_N$", colnames(se_data)), "Normal", "Tumor")
+
+# Add group metadata to se_data for all downstream analyses
+colData(se_data)$group <- sample_group
+
 # SplicingFactory: Shannon entropy (Laplace method)
 # Note: SplicingFactory extracts genes from rownames(se_data) automatically
 shannon_entropy <- SplicingFactory::calculate_diversity(
   x = se_data,
   method = "naive",
-  norm = TRUE,
-  verbose = FALSE
-)
-
-# TSENAT: Tsallis entropy at q=1 (equals Shannon entropy)
-tsenat_q1_values <- TSENAT::calculate_diversity(
-  x = se_data,
-  q = 1,
   norm = TRUE,
   verbose = FALSE
 )
@@ -268,13 +267,32 @@ simpson_index <- SplicingFactory::calculate_diversity(
   verbose = FALSE
 )
 
-# TSENAT: Tsallis entropy at q=2 (equals Simpson)
-tsenat_q2_values <- TSENAT::calculate_diversity(
-  x = se_data,
+# Add sample_type metadata to SplicingFactory objects (matches their naming)
+colData(shannon_entropy)$sample_type <- sample_group
+colData(simpson_index)$sample_type <- sample_group
+
+# TSENAT: Create TSENATAnalysis objects for S4 wrapper approach
+# This maintains consistent workflow with S4 infrastructure
+tsenat_analysis_q1 <- TSENATAnalysis(se_data)
+tsenat_analysis_q2 <- TSENATAnalysis(se_data)
+
+# TSENAT: Tsallis entropy at q=1 (equals Shannon entropy) - using S4 wrapper
+tsenat_analysis_q1 <- calculate_diversity_s4(
+  analysis = tsenat_analysis_q1,
+  q = 1,
+  norm = TRUE,
+  verbose = FALSE
+)
+tsenat_q1_values <- diversity(tsenat_analysis_q1, q = 1)
+
+# TSENAT: Tsallis entropy at q=2 (equals Simpson) - using S4 wrapper
+tsenat_analysis_q2 <- calculate_diversity_s4(
+  analysis = tsenat_analysis_q2,
   q = 2,
   norm = TRUE,
   verbose = FALSE
 )
+tsenat_q2_values <- diversity(tsenat_analysis_q2, q = 2)
 ```
 
 Both packages return a `SummarizedExperiment` object, that you can investigate further with the `assay` function.
@@ -283,17 +301,6 @@ Both packages return a `SummarizedExperiment` object, that you can investigate f
 ### Differential analysis
 
 ```{r differential_analysis}
-# Create sample group classification
-sample_group <- ifelse(grepl("_N$", colnames(shannon_entropy)), "Normal", "Tumor")
-
-# Add metadata to SplicingFactory objects
-colData(shannon_entropy)$sample_type <- sample_group
-colData(simpson_index)$sample_type <- sample_group
-
-# Add metadata to TSENAT objects
-colData(tsenat_q1_values)$group <- sample_group
-colData(tsenat_q2_values)$group <- sample_group
-
 # SplicingFactory: Differential analysis for Shannon entropy
 entropy_significance <- SplicingFactory::calculate_difference(
   x = shannon_entropy,
@@ -314,25 +321,26 @@ simpson_significance <- SplicingFactory::calculate_difference(
   verbose = FALSE
 )
 
-# TSENAT: Differential analysis for Tsallis q=1
-tsenat_shannon_diff <- TSENAT::calculate_difference(
-  x = tsenat_q1_values,
-  samples = "group",
+# TSENAT: Differential analysis for Tsallis q=1 - using S4 wrapper
+# The "group" metadata is already available in colData from diversity calculations
+tsenat_analysis_q1 <- calculate_difference_s4(
+  analysis = tsenat_analysis_q1,
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
   verbose = FALSE
 )
+tsenat_shannon_diff <- tsenat_analysis_q1@lm_results$difference
 
-# TSENAT: Differential analysis for Tsallis q=2
-tsenat_simpson_diff <- TSENAT::calculate_difference(
-  x = tsenat_q2_values,
-  samples = "group",
+# TSENAT: Differential analysis for Tsallis q=2 - using S4 wrapper
+tsenat_analysis_q2 <- calculate_difference_s4(
+  analysis = tsenat_analysis_q2,
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
   verbose = FALSE
 )
+tsenat_simpson_diff <- tsenat_analysis_q2@lm_results$difference
 ```
 
 
@@ -413,14 +421,15 @@ shannon_sf <- TSENAT::plot_volcano_ma_grid(
   title_ma = ""
 )
 
-shannon_tsenat <- TSENAT::plot_volcano_ma_grid(
-  diff_df = tsenat_shannon_diff,
+shannon_tsenat <- plot_volcano_ma_grid_s4(
+  analysis = tsenat_analysis_q1,
   x_col = "mean_difference",
   padj_col = "padj",
   sig_alpha = 0.05,
   top_n = 5,
   title_volcano = "",
-  title_ma = ""
+  title_ma = "",
+  verbose = FALSE
 )
 
 # Create title labels for each grid
@@ -507,14 +516,15 @@ simpson_sf <- TSENAT::plot_volcano_ma_grid(
   title_ma = ""
 )
 
-simpson_tsenat <- TSENAT::plot_volcano_ma_grid(
-  diff_df = tsenat_simpson_diff,
+simpson_tsenat <- plot_volcano_ma_grid_s4(
+  analysis = tsenat_analysis_q2,
   x_col = "mean_difference",
   padj_col = "padj",
   sig_alpha = 0.05,
   top_n = 5,
   title_volcano = "",
-  title_ma = ""
+  title_ma = "",
+  verbose = FALSE
 )
 
 # Create title labels for each grid
