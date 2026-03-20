@@ -10,7 +10,7 @@ detect_q_gene_interactions(
   q_col = "q",
   gene_col = "gene",
   paired = FALSE,
-  subject_col = NULL,
+  subject_col = "paired_samples",
   condition_col = NULL,
   test = c("auto", "kruskal-wallis", "friedman", "art"),
   multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),

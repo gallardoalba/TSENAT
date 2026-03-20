@@ -297,6 +297,110 @@
 
 
 # =========================================================================
+# PRIVATE HELPER: Classify Q-Pattern
+# =========================================================================
+
+#' Classify a per-q divergence spectrum into biological pattern types
+#'
+#' When Tsallis divergence has been computed across multiple q values
+#' for a gene, the resulting vector can be summarised by its trend across the
+#' spectrum. This helper compares divergence in the rare-region (q < 1) vs
+#' abundant-region (q >= 1).
+#'
+#' \describe{
+#'   \item{RARE_DRIVEN}{Divergence higher at low q (q < 1);
+#'     indicates changes driven by low-abundance isoforms.}
+#'   \item{ABUNDANT_DRIVEN}{Divergence higher at high q (q >= 1);
+#'     indicates shifts among the most abundant transcripts.}
+#'   \item{BALANCED}{Similar divergence across rare and abundant regions.}
+#' }
+#'
+#' If the input vector is too short, contains only NAs, or classification
+#' cannot be performed, NA is returned.
+#'
+#' @param per_q_divs Named numeric vector of divergences. Names should be of form
+#'   "q_0.01", "q_0.5", "q_1.0", etc.
+#' @param ratio_threshold Numeric; ratio threshold for classification (default: 1.3).
+#'   RARE_DRIVEN if rare_median / abundant_median > threshold.
+#'
+#' @return Character scalar: "RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED", or NA.
+#'
+#' @keywords internal
+#' @noRd
+.classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
+  # Input validation
+  if (!is.numeric(per_q_divs) || length(per_q_divs) < 2) {
+    return(NA_character_)
+  }
+  
+  # Get names
+  nm <- names(per_q_divs)
+  if (is.null(nm) || any(is.na(nm))) {
+    return(NA_character_)
+  }
+  
+  # Extract q values from names: try "q_0.5", "q_0_5", etc.
+  q_vals <- NA
+  
+  # Try format: "q_0.5" (standard with dot)
+  if (all(grepl("^q_", nm))) {
+    q_vals <- suppressWarnings(as.numeric(gsub("^q_", "", nm)))
+  } else if (all(grepl("^q", nm))) {
+    # Try other formats
+    q_vals <- suppressWarnings(as.numeric(gsub("^q[_.]", "", nm)))
+  }
+  
+  # If we still can't extract numeric q values, return NA
+  if (any(is.na(q_vals))) {
+    return(NA_character_)
+  }
+  
+  # Check if all divergence values are NA
+  if (all(is.na(per_q_divs))) {
+    return(NA_character_)
+  }
+  
+  # Need at least 2 non-NA pairs for comparison
+  valid_pairs <- !is.na(per_q_divs)
+  if (sum(valid_pairs) < 2) {
+    return(NA_character_)
+  }
+  
+  # Split into rare-region (q < 1) and abundant-region (q >= 1)
+  rare_mask <- q_vals < 1
+  abund_mask <- q_vals >= 1
+  
+  # Calculate median divergence in each region
+  rare_div_median <- NA
+  abund_div_median <- NA
+  
+  if (sum(rare_mask & valid_pairs) > 0) {
+    rare_div_median <- median(per_q_divs[rare_mask & valid_pairs], na.rm = TRUE)
+  }
+  
+  if (sum(abund_mask & valid_pairs) > 0) {
+    abund_div_median <- median(per_q_divs[abund_mask & valid_pairs], na.rm = TRUE)
+  }
+  
+  # If we have both regions, compare them
+  if (!is.na(rare_div_median) && !is.na(abund_div_median) && abund_div_median > 0) {
+    ratio <- rare_div_median / abund_div_median
+    
+    if (ratio > ratio_threshold) {
+      return("RARE_DRIVEN")
+    } else if (ratio < 1 / ratio_threshold) {
+      return("ABUNDANT_DRIVEN")
+    } else {
+      return("BALANCED")
+    }
+  }
+  
+  # Fallback: if only one region available, can't classify
+  return(NA_character_)
+}
+
+
+# =========================================================================
 # MAIN FUNCTION: Calculate Bootstrap Divergence
 # =========================================================================
 
@@ -1957,17 +2061,27 @@ effect_sizes_divergence <- function(
         rownames(div_assay)
       }
 
-      # Create per_q_pattern column: comma-separated numeric divergence values
+      # Create per_q_pattern column: classify divergence patterns
+      # RARE_DRIVEN = divergence higher at low q (rare isoforms drive changes)
+      # ABUNDANT_DRIVEN = divergence higher at high q (abundant isoforms drive changes)  
+      # BALANCED = similar divergence across diversity scales
       per_q_patterns <- character(nrow(interaction_results))
       for (i in seq_len(nrow(interaction_results))) {
         gene_name <- interaction_results$gene[i]
         gene_idx <- which(div_gene_names == gene_name)
 
         if (length(gene_idx) > 0) {
-          # Get divergence VALUES (numeric) for this gene across q values
+          # Get divergence values for this gene across q values
           divs <- div_assay[gene_idx[1], ]
-          # Convert to comma-separated string, excluding NAs
-          per_q_patterns[i] <- paste(divs[!is.na(divs)], collapse = ",")
+          
+          # Create named vector for classify_q_pattern
+          # Column names in divs should be like "q_0.01", "q_0.5", "q_1.0", etc.
+          per_q_patterns[i] <- .classify_q_pattern(divs)
+          
+          # If classification failed, return "UNCLASSIFIED"
+          if (is.na(per_q_patterns[i])) {
+            per_q_patterns[i] <- "UNCLASSIFIED"
+          }
         }
       }
       interaction_results$per_q_pattern <- per_q_patterns

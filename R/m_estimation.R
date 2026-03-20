@@ -214,7 +214,7 @@ NULL
 #'
 #' @param x Matrix of values (rows = features, columns = samples), or a
 #'   SummarizedExperiment object with multi-q entropy data
-#' @param condition_col Character vector indicating group membership. If x is a
+#' @param samples Character vector indicating group membership. If x is a
 #'   SummarizedExperiment, this should be a column name in colData.
 #'   For multi-q data, can also specify "multi_q_analysis" to automatically
 #'   handle q-value collapsing and leave-one-out influence analysis.
@@ -245,19 +245,6 @@ NULL
 #'   
 #'   For multi-q analysis on SummarizedExperiment, returns sample-level
 #'   influence scores (proportion of genes with >2% change when sample removed).
-#'
-#' @section Sample Metadata Parameters (Unified Naming Convention):
-#' TSENAT functions use consistent parameter names for sample grouping and subject identification:
-#' \itemize{
-#'   \item{\code{condition_col}: Character string specifying the colData column 
-#'         containing sample group/condition labels (e.g., "Normal", "Tumor", "control", "treatment"). 
-#'         For multi-q analysis on SummarizedExperiment, this should be the column with condition assignments.}
-#'   \item{\code{subject_col}: For paired/blocked/repeated-measures designs, character string specifying 
-#'         the colData column with subject/individual/patient identifiers.}
-#' }
-#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
-#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
-#' across the TSENAT package.
 #'
 #' @references
 #' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
@@ -296,7 +283,7 @@ NULL
 #'   More robust to extreme contamination than M-estimation (~25%).
 #'   Recommended when data contamination is suspected.
 #'
-m_estimate <- function(x, condition_col, loss_type = "huber", scale = NULL,
+m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
                        max_iter = 50, tol = 1e-6, paired = FALSE, pcorr = "BH",
                        q_combine_method = "mean", influence_threshold = 0.75,
                        scale_method = "mad") {
@@ -306,10 +293,10 @@ m_estimate <- function(x, condition_col, loss_type = "huber", scale = NULL,
     sample_info <- SummarizedExperiment::colData(x)
     
     # Get group assignment
-    if (!(condition_col %in% colnames(sample_info))) {
-      stop(sprintf("Column '%s' not found in colData", condition_col))
+    if (!(samples %in% colnames(sample_info))) {
+      stop(sprintf("Column '%s' not found in colData", samples))
     }
-    group_assignment <- as.vector(sample_info[[condition_col]])
+    group_assignment <- as.vector(sample_info[[samples]])
     
     col_names <- colnames(entropy_matrix)
     sample_names_full <- sub("_q=.*$", "", col_names)
@@ -338,7 +325,7 @@ m_estimate <- function(x, condition_col, loss_type = "huber", scale = NULL,
     
     # Perform leave-one-out influence analysis
     # First, calculate M-estimate with ALL samples as the baseline
-    m_est_full <- m_estimate(entropy_by_sample, condition_col = group_assignment_unique,
+    m_est_full <- m_estimate(entropy_by_sample, samples = group_assignment_unique,
                              loss_type = loss_type, scale = scale,
                              max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
                              scale_method = scale_method)
@@ -373,7 +360,7 @@ m_estimate <- function(x, condition_col, loss_type = "huber", scale = NULL,
       }
       
       # Call m_estimate recursively on matrix data WITHOUT sample i
-      m_est_subset <- m_estimate(entropy_subset, condition_col = group_subset,
+      m_est_subset <- m_estimate(entropy_subset, samples = group_subset,
                                  loss_type = loss_type, scale = scale,
                                  max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
                                  scale_method = scale_method)
@@ -496,11 +483,11 @@ m_estimate <- function(x, condition_col, loss_type = "huber", scale = NULL,
     x <- as.matrix(x)
   }
 
-  if (length(condition_col) != ncol(x)) {
-    stop("Length of condition_col must equal number of columns in x")
+  if (length(samples) != ncol(x)) {
+    stop("Length of samples must equal number of columns in x")
   }
 
-  groups <- unique(condition_col)
+  groups <- unique(samples)
   if (length(groups) != 2) {
     stop("Must have exactly 2 groups")
   }
@@ -519,8 +506,8 @@ m_estimate <- function(x, condition_col, loss_type = "huber", scale = NULL,
   # Process each feature
   for (i in seq_len(n_features)) {
     feature_vals <- as.numeric(x[i, ])
-    group1_idx <- which(condition_col == groups[1])
-    group2_idx <- which(condition_col == groups[2])
+    group1_idx <- which(samples == groups[1])
+    group2_idx <- which(samples == groups[2])
 
     group1 <- feature_vals[group1_idx]
     group2 <- feature_vals[group2_idx]

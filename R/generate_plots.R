@@ -424,9 +424,136 @@ plot_tsallis_q_curve <- function(
 ) {
   require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment", "cowplot"))
   
+  # Handle TSENATAnalysis objects - extract diversity_results
+  if (methods::is(se, "TSENATAnalysis")) {
+    # Convert diversity_results list to combined SummarizedExperiment
+    div_list <- se@diversity_results
+    
+    # Combine all q-values into one SE with single assay containing all q-value columns
+    assay_list <- list()
+    first_se <- NULL
+    combined_assays_dict <- list()
+    
+    for (q_name in names(div_list)) {
+      obj <- div_list[[q_name]]
+      if (methods::is(obj, "SummarizedExperiment")) {
+        mat <- SummarizedExperiment::assay(obj, 1)
+        if (is.null(first_se)) {
+          first_se <- obj  # Save first SE for rowData template
+        }
+      } else {
+        mat <- as.matrix(obj)
+      }
+      
+      # Store with q-value appended to column names
+      q_val <- as.numeric(sub("^q_", "", q_name))
+      combined_assays_dict[[q_name]] <- list(
+        matrix = mat,
+        q_val = q_val
+      )
+    }
+    
+    # Ensure first_se is not NULL
+    if (is.null(first_se)) {
+      stop("No valid SummarizedExperiment found in analysis@diversity_results")
+    }
+    
+    # Get target dimensions
+    target_genes <- rownames(first_se)
+    target_n_cols <- ncol(first_se)
+    target_n_qs <- length(combined_assays_dict)
+    
+    # Create combined assay and colData
+    total_cols <- target_n_cols * target_n_qs
+    combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
+    rownames(combined_assay) <- target_genes
+    
+    # Build combined colData
+    combined_coldata_list <- list()
+    col_idx <- 1
+    
+    for (q_name in names(combined_assays_dict)) {
+      mat <- combined_assays_dict[[q_name]]$matrix
+      q_val <- combined_assays_dict[[q_name]]$q_val
+      
+      # Safety check: ensure matrix has the expected number of columns
+      if (ncol(mat) != target_n_cols) {
+        cat("[WARNING plot_tsallis_q_curve] q=", q_val, ": Expected ", target_n_cols, 
+            " columns but got ", ncol(mat), ". Adjusting...\n", sep="")
+        # If mat has more columns, take only first target_n_cols
+        if (ncol(mat) > target_n_cols) {
+          mat <- mat[, seq_len(target_n_cols), drop=FALSE]
+        } else {
+          # If mat has fewer columns, pad with zeros (shouldn't happen)
+          mat <- cbind(mat, matrix(0, nrow=nrow(mat), ncol=target_n_cols-ncol(mat)))
+        }
+      }
+      
+      # Reorder to match first_se if needed
+      mat <- mat[target_genes, , drop = FALSE]
+      
+      # Get original colnames
+      orig_colnames <- colnames(mat)
+      if (is.null(orig_colnames)) {
+        orig_colnames <- paste0("sample_", seq_len(ncol(mat)))
+      }
+      
+      # Strip any existing _q= suffix before re-adding it (avoid double suffixes)
+      # The columns from diversity results may already have _q=X format
+      clean_colnames <- sub("_q=.*$", "", orig_colnames)
+      if (is.na(clean_colnames[1]) || identical(clean_colnames, orig_colnames)) {
+        # If no _q pattern found, use originals as-is
+        clean_colnames <- orig_colnames
+      }
+      
+      # Add q-value suffix for uniqueness (use _q= format with 3 decimal precision)
+      unique_colnames <- paste0(clean_colnames, "_q=", formatC(q_val, format="f", digits=3))
+      
+      # Fill in the combined assay
+      # DEBUG: Check dimensions before assignment
+      if (col_idx + ncol(mat) - 1 > total_cols) {
+        stop(paste0("Dimension mismatch in plot_tsallis_q_curve: ",
+                    "Trying to assign to columns ", col_idx, " to ", col_idx + ncol(mat) - 1,
+                    ", but combined_assay only has ", total_cols, " columns.\n",
+                    "Matrix dimensions: ", nrow(mat), " x ", ncol(mat), "\n",
+                    "target_genes: ", length(target_genes), ", target_n_cols: ", target_n_cols,
+                    ", target_n_qs: ", target_n_qs))
+      }
+      
+      for (i in seq_len(ncol(mat))) {
+        combined_assay[, col_idx] <- mat[, i]
+        col_idx <- col_idx + 1
+      }
+      
+      # Build colData for this q-value
+      if (is(div_list[[q_name]], "SummarizedExperiment")) {
+        cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
+      } else {
+        cd <- data.frame(row.names = unique_colnames)
+      }
+      cd$q <- q_val
+      rownames(cd) <- unique_colnames
+      combined_coldata_list[[q_name]] <- cd
+    }
+    
+    # Set colnames on combined assay to match colData
+    combined_coldata_df <- do.call(rbind, combined_coldata_list)
+    colnames(combined_assay) <- rownames(combined_coldata_df)
+    
+    # Create combined SE
+    se <- SummarizedExperiment::SummarizedExperiment(
+      assays = list(diversity = combined_assay),
+      colData = combined_coldata_df,
+      rowData = SummarizedExperiment::rowData(first_se)
+    )
+    
+    # Use the single assay name
+    assay_name <- "diversity"
+  }
+  
   # Validate input
-  if (!inherits(se, "SummarizedExperiment")) {
-    stop("plot_tsallis_q_curve requires a SummarizedExperiment from calculate_diversity")
+  if (!methods::is(se, "SummarizedExperiment")) {
+    stop("plot_tsallis_q_curve requires a SummarizedExperiment or TSENATAnalysis object")
   }
   
   if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
@@ -1532,8 +1659,13 @@ plot_top_transcripts <- function(
     }
 
     if (!is.null(output_file)) {
+        # Create directory if it doesn't exist
+        output_dir <- dirname(output_file)
+        if (!dir.exists(output_dir) && nzchar(output_dir) && output_dir != ".") {
+            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+        }
         ggplot2::ggsave(output_file, result_plot)
-        invisible(NULL)
+        invisible(output_file)
     } else {
         result_plot
     }
@@ -1875,19 +2007,18 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         plot_df$group <- factor(plot_df$group, levels = group_levels)
         pred_df$group <- factor(pred_df$group, levels = group_levels)
 
-        # Create explicit color mapping
-        # For Set1 palette: red, blue, green, yellow, purple, etc.
+        # Create explicit color mapping for all groups
+        # Generate enough colors for all unique groups using Set1 palette
         color_mapping <- c()
-        if ("normal" %in% group_levels) color_mapping["normal"] <- "#E41A1C"  # red
-        if ("tumor" %in% group_levels) color_mapping["tumor"] <- "#377EB8"    # blue
-        if (length(group_levels) > 2) {
-            # Add more colors if needed
-            extra_colors <- RColorBrewer::brewer.pal(length(group_levels), "Set1")
-            for (i in seq_along(group_levels)) {
-                if (!(group_levels[i] %in% names(color_mapping))) {
-                    color_mapping[group_levels[i]] <- extra_colors[i]
-                }
-            }
+        
+        # Use RColorBrewer Set1 for consistent, distinct colors
+        # Ensure we have at least 3 colors (Set1 minimum)
+        n_colors <- max(3, length(group_levels))
+        palette_colors <- RColorBrewer::brewer.pal(n_colors, "Set1")
+        
+        # Map each group to a color from the palette
+        for (i in seq_along(group_levels)) {
+            color_mapping[group_levels[i]] <- palette_colors[i]
         }
 
         # Create plot with explicit color scale

@@ -1283,7 +1283,7 @@ detect_q_gene_interactions <- function(
     q_col = "q",
     gene_col = "gene",
     paired = FALSE,
-    subject_col = NULL,
+    subject_col = "paired_samples",
     condition_col = NULL,
     test = c("auto", "kruskal-wallis", "friedman", "art"),
     multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
@@ -1327,13 +1327,13 @@ detect_q_gene_interactions <- function(
   }
   
   # Validate paired parameters
-  # subject_col is now NULL by default and must be explicitly provided if paired=TRUE
+  # subject_col defaults to "paired_samples" but user can override or explicitly set to NULL
   if (paired && is.null(subject_col)) {
-    stop("paired=TRUE requires subject_col to be specified (e.g., subject_col='subject')", 
+    stop("paired=TRUE with subject_col=NULL is invalid. Provide a valid subject_col or set paired=FALSE", 
          call. = FALSE)
   }
   
-  if (!paired && !is.null(subject_col)) {
+  if (!paired && !is.null(subject_col) && subject_col != "paired_samples") {
     warning("subject_col provided but paired=FALSE; subject_col will be ignored")
   }
   

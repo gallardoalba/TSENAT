@@ -1,0 +1,449 @@
+# Unified TSENAT Analysis Orchestration
+# Main entry point and configuration for TSENAT pipeline. Coordinates
+# analysis workflow from raw counts to results and visualizations.
+#
+
+# ============================================================================
+# CONFIG BUILDER
+# ============================================================================
+
+#' Create and return TSENAT configuration
+#'
+#' Builds a configuration list for use with \code{\link{tsenat}}().
+#' Allows specifying analysis parameters once and reusing across multiple
+#' analyses.
+#'
+#' @param q_values \code{numeric}. Q-values for Tsallis entropy spectrum.
+#'   Default: \code{seq(0.5, 2.0, by = 0.5)}.
+#' @param q_range \code{numeric}. Alternative to q_values: lower and upper bounds.
+#' @param filter_genome \code{logical}. Remove zero rows before analysis.
+#'   Default: TRUE.
+#' @param formula \code{formula}. Model formula for LM interactions (e.g., \code{~ treatment}).
+#' @param p_threshold \code{numeric}. P-value threshold for significance.
+#'   Default: 0.05.
+#' @param fdr_threshold \code{numeric}. FDR threshold (Benjamini-Hochberg).
+#'   Default: 0.05.
+#' @param methods \code{character}. Analysis methods to run. Options:
+#'   "diversity", "lm_interaction", "jackknife", "divergence",
+#'   "q_interactions", "difference". Default: all methods.
+#' @param generate_plots \code{logical}. Generate visualizations.
+#'   Default: TRUE.
+#' @param plot_types \code{character}. Specific plots to generate.
+#'   Default: all available types.
+#' @param seed \code{numeric}. Random seed for reproducibility.
+#' @param ... Additional configuration parameters (stored as-is).
+#'
+#' @return \code{list} with class \code{TSENATConfig} containing all
+#'   specified parameters.
+#'
+#' @details
+#' Configuration is stored in the TSENATAnalysis@config slot and used
+#' by wrapper functions to configure analysis behavior.
+#'
+#' @examples
+#' # Default config with standard parameters
+#' cfg <- tsenat_config()
+#'
+#' # Custom spectrum and formula
+#' cfg <- tsenat_config(
+#'   q_values = c(0.5, 1.0, 1.5, 2.0),
+#'   formula = ~ treatment + batch,
+#'   fdr_threshold = 0.01
+#' )
+#'
+#' # Use with tsenat()
+#' \dontrun{
+#'   analysis <- tsenat(se, config = cfg)
+#' }
+#'
+#' @export
+tsenat_config <- function(
+  q_values = NULL,
+  q_range = NULL,
+  filter_genome = TRUE,
+  formula = NULL,
+  p_threshold = 0.05,
+  fdr_threshold = 0.05,
+  methods = NULL,
+  generate_plots = TRUE,
+  plot_types = NULL,
+  seed = NULL,
+  ...
+) {
+  # Build q_values if range specified
+  if (!is.null(q_range)) {
+    if (length(q_range) != 2) {
+      stop("'q_range' must be c(lower, upper)", call. = FALSE)
+    }
+    q_values <- seq(q_range[1], q_range[2], by = 0.5)
+  }
+
+  # Default q_values
+  if (is.null(q_values)) {
+    q_values <- seq(0.5, 2.0, by = 0.5)
+  }
+
+  # Default methods
+  if (is.null(methods)) {
+    methods <- c(
+      "diversity", "lm_interaction", "jackknife", "divergence",
+      "q_interactions"
+    )
+  }
+
+  # Validate methods
+  valid_methods <- c(
+    "diversity", "lm_interaction", "jackknife", "divergence",
+    "q_interactions", "difference"
+  )
+  invalid_methods <- setdiff(methods, valid_methods)
+  if (length(invalid_methods) > 0) {
+    stop(
+      "Invalid methods: ", paste(invalid_methods, collapse = ", "), "\n",
+      "Valid: ", paste(valid_methods, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  # Build config list
+  config <- list(
+    q_values = q_values,
+    filter_genome = filter_genome,
+    p_threshold = p_threshold,
+    fdr_threshold = fdr_threshold,
+    methods = methods,
+    generate_plots = generate_plots
+  )
+
+  # Add optional parameters
+  if (!is.null(formula)) config$formula <- formula
+  if (!is.null(plot_types)) config$plot_types <- plot_types
+  if (!is.null(seed)) config$seed <- seed
+
+  # Add any additional parameters
+  extra_args <- list(...)
+  if (length(extra_args) > 0) {
+    config <- c(config, extra_args)
+  }
+
+  # Mark as TSENATConfig (but keep as list for S4 slot)
+  attr(config, "class") <- c("TSENATConfig", "list")
+  config
+}
+
+# ============================================================================
+# MAIN ORCHESTRATION FUNCTION
+# ============================================================================
+
+#' Run complete TSENAT analysis pipeline
+#'
+#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM interactions ->
+#' divergence -> gene interactions -> visualizations.
+#'
+#' @param se \code{SummarizedExperiment} containing expression counts.
+#' @param config \code{list} or \code{TSENATConfig}. Configuration from
+#'   \code{\link{tsenat_config}}. If NULL, uses defaults.
+#' @param methods \code{character}. Specific methods to run (overrides config).
+#' @param q_values \code{numeric}. Specific q-values (overrides config).
+#' @param generate_plots \code{logical}. Create visualizations. Default: TRUE.
+#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#' @param parallel \code{logical}. Run independent q-values in parallel.
+#'   Default: FALSE.
+#' @param ... Additional arguments passed to individual wrapper functions.
+#'
+#' @return \code{TSENATAnalysis} object containing complete analysis results,
+#'   plots, and metadata.
+#'
+#' @details
+#' Pipeline execution order (enforced):
+#' \enumerate{
+#'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
+#'   \item \code{jackknife_tsallis_entropy_s4()} - Confidence intervals
+#'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
+#'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
+#'   \item \code{detect_q_gene_interactions_s4()} - Q-dependent interactions
+#'   \item Plot generation (if enabled)
+#' }
+#'
+#' Metadata automatically tracks:
+#' - Analysis start/end time
+#' - TSENAT version
+#' - Function execution sequence
+#' - Parameter settings
+#'
+#' @examples
+#' \dontrun{
+#'   # Load data
+#'   data(readcounts, package = "TSENAT")
+#'   se <- build_se(readcounts)
+#'
+#'   # Run with defaults
+#'   analysis <- tsenat(se)
+#'
+#'   # Run with custom config
+#'   cfg <- tsenat_config(
+#'     q_values = c(0.5, 1.0, 2.0),
+#'     formula = ~ treatment,
+#'     generate_plots = TRUE
+#'   )
+#'   analysis <- tsenat(se, config = cfg)
+#'
+#'   # Access results
+#'   show(analysis)
+#'   summary(analysis)
+#'   div_q1 <- diversity(analysis, q = 1.0)
+#'   lm_res <- lmResults(analysis)
+#'   p <- getPlot(analysis, type = "q_curve")
+#' }
+#'
+#' @export
+tsenat <- function(
+  se,
+  config = NULL,
+  methods = NULL,
+  q_values = NULL,
+  generate_plots = TRUE,
+  verbose = TRUE,
+  parallel = FALSE,
+  ...
+) {
+  # Validate input
+  if (!is(se, "SummarizedExperiment")) {
+    stop("'se' must be a SummarizedExperiment object", call. = FALSE)
+  }
+
+  if (nrow(se) == 0) {
+    stop("SummarizedExperiment is empty (0 genes)", call. = FALSE)
+  }
+
+  # Helper for null coalescing
+  `%||%` <- function(x, y) if (is.null(x)) y else x
+
+  # Initialize TSENATAnalysis object
+  analysis <- TSENATAnalysis(se = se, config = config)
+
+  # Merge/override config
+  if (!is.null(methods)) analysis@config$methods <- methods
+  if (!is.null(q_values)) analysis@config$q_values <- q_values
+
+  # Extract parameters from config with defaults
+  methods_to_run <- analysis@config$methods %||% c("diversity", "lm_interaction", "jackknife", "divergence", "q_interactions")
+  q_vals <- analysis@config$q_values %||% seq(0.5, 2.0, by = 0.5)
+  do_plots <- generate_plots && (analysis@config$generate_plots %||% TRUE)
+  do_parallel <- parallel && ("parallel" %in% rownames(utils::installed.packages()))
+
+  # Validate method dependencies (Gap 10A improvement)
+  validate_method_dependencies <- function(methods_requested) {
+    dependencies <- list(
+      jackknife = "diversity",
+      divergence = "diversity",
+      q_interactions = "diversity",
+      lm_interaction = "diversity"
+    )
+    
+    for (method in methods_requested) {
+      if (method %in% names(dependencies)) {
+        required <- dependencies[[method]]
+        if (!(required %in% methods_requested)) {
+          stop("Method '", method, "' requires '", required, 
+               "' to be in methods list.\n",
+               "Add '", required, "' to methods parameter or remove '", method, "'.",
+               call. = FALSE)
+        }
+      }
+    }
+  }
+  
+  # Validate requested methods
+  validate_method_dependencies(methods_to_run)
+
+  # Log start
+  if (verbose) {
+    cat("TSENAT Pipeline\n")
+    cat("===============\n")
+    cat("Genes:  ", nrow(se), "\n")
+    cat("Samples:", ncol(se), "\n")
+    cat("Methods:", paste(methods_to_run, collapse = ", "), "\n")
+    cat("Q-values:", paste(q_vals, collapse = ", "), "\n")
+    cat("\n")
+  }
+
+  # ========== STEP 1: DIVERSITY ==========
+  if ("diversity" %in% methods_to_run) {
+    if (verbose) cat("Step 1: Calculating diversity...\n")
+
+    tryCatch({
+      analysis <- calculate_diversity_s4(
+        analysis,
+        q = q_vals,
+        ...
+      )
+      if (verbose) cat("  \u2713 Diversity calculated for q = ", paste(q_vals, collapse = ", "), "\n\n", sep = "")
+    }, error = function(e) {
+      stop("Diversity calculation failed:\n", e$message, call. = FALSE)
+    })
+  }
+
+  # ========== STEP 2: JACKKNIFE ==========
+  if ("jackknife" %in% methods_to_run) {
+    if (length(analysis@diversity_results) == 0) {
+      if (verbose) cat("Step 2: Skipping jackknife (requires diversity)\n\n")
+    } else {
+      if (verbose) cat("Step 2: Running jackknife resampling...\n")
+
+      tryCatch({
+        analysis <- jackknife_tsallis_entropy_s4(
+          analysis,
+          q = q_vals,
+          ...
+        )
+        if (verbose) cat("  \u2713 Jackknife CIs computed\n\n")
+      }, error = function(e) {
+        warning("Jackknife failed:\n", e$message, call. = FALSE)
+      })
+    }
+  }
+
+  # ========== STEP 3: LM INTERACTIONS ==========
+  if ("lm_interaction" %in% methods_to_run) {
+    if (verbose) cat("Step 3: Testing LM interactions...\n")
+
+    tryCatch({
+      analysis <- calculate_lm_interaction_s4(
+        analysis,
+        fdr_threshold = analysis@config$fdr_threshold %||% 0.05,
+        ...
+      )
+      if (verbose) cat("  \u2713 LM analysis complete\n\n")
+    }, error = function(e) {
+      warning("LM interaction calculation failed:\n", e$message, call. = FALSE)
+    })
+  }
+
+  # ========== STEP 4: DIVERGENCE ==========
+  if ("divergence" %in% methods_to_run) {
+    if (length(analysis@diversity_results) == 0) {
+      if (verbose) cat("Step 4: Skipping divergence (requires diversity)\n\n")
+    } else {
+      if (verbose) cat("Step 4: Calculating divergence metrics...\n")
+
+      tryCatch({
+        analysis <- calculate_divergence_s4(
+          analysis,
+          q = q_vals[1],  # Use first q-value
+          ...
+        )
+         if (verbose) cat("  \u2713 Divergence metrics computed\n\n")
+      }, error = function(e) {
+        warning("Divergence calculation failed:\n", e$message, call. = FALSE)
+      })
+    }
+  }
+
+  # ========== STEP 5: Q-DEPENDENT INTERACTIONS ==========
+  if ("q_interactions" %in% methods_to_run) {
+    if (length(analysis@diversity_results) == 0) {
+      if (verbose) cat("Step 5: Skipping Q-interactions (requires diversity)\n\n")
+    } else {
+      if (verbose) cat("Step 5: Detecting Q-dependent interactions...\n")
+
+      tryCatch({
+        analysis <- detect_q_gene_interactions_s4(
+          analysis,
+          q_values = q_vals,
+          ...
+        )
+         if (verbose) cat("  \u2713 Q-interactions detected\n\n")
+      }, error = function(e) {
+        warning("Q-interaction detection failed:\n", e$message, call. = FALSE)
+      })
+    }
+  }
+
+  # ========== STEP 6: PLOT GENERATION ==========
+  if (do_plots && length(analysis@diversity_results) > 0) {
+    if (verbose) cat("Step 6: Generating plots...\n")
+
+    tryCatch({
+      # Plot types from config or auto-detect
+      plot_types <- analysis@config$plot_types %||% c(
+        "q_curve", "lm_interaction", "divergence_distribution",
+        "divergence_spectrum", "influence_heatmap", "volcano"
+      )
+
+      for (ptype in plot_types) {
+        tryCatch({
+          # Dispatch to appropriate plot function based on type
+          plot_obj <- switch(ptype,
+            q_curve = plot_tsallis_q_curve(analysis@se, analysis@diversity_results),
+            lm_interaction = if ("lm_interaction" %in% names(analysis@lm_results)) {
+              plot_lm_interaction_gam(analysis@lm_results$lm_interaction)
+            } else NULL,
+            divergence_distribution = if (length(analysis@divergence_results) > 0) {
+              plot_divergence_distribution(analysis@divergence_results)
+            } else NULL,
+            divergence_spectrum = if (length(analysis@divergence_results) > 0) {
+              plot_divergence_spectrum(analysis@divergence_results)
+            } else NULL,
+            influence_heatmap = if ("q_interactions" %in% names(analysis@lm_results)) {
+              plot_multiq_delta_influence_heatmaps(analysis@lm_results$q_interactions)
+            } else NULL,
+            volcano = if ("lm_interaction" %in% names(analysis@lm_results)) {
+              plot_volcano_ma_grid(
+                analysis@lm_results$lm_interaction,
+                analysis@divergence_results
+              )
+            } else NULL,
+            NULL
+          )
+
+          if (!is.null(plot_obj)) {
+            analysis <- addPlot(analysis, type = ptype, plot = plot_obj, replace = TRUE)
+          }
+        }, error = function(e) {
+          if (verbose) {
+             cat("  \u26A0 Plot '", ptype, "' failed: ", e$message, "\n", sep = "")
+          }
+        })
+      }
+
+      if (verbose) {
+         cat("  \u2713 ", length(analysis@plots), " plot(s) generated\n\n", sep = "")
+      }
+    }, error = function(e) {
+      warning("Plot generation failed:\n", e$message, call. = FALSE)
+    })
+  }
+
+  # ========== FINALIZE ==========
+  if (verbose) {
+    cat("Analysis Complete\n")
+    cat("=================\n")
+    cat("Results summary:\n")
+    if (length(analysis@diversity_results) > 0) cat("  \u2713 Diversity\n")
+    if (length(analysis@lm_results) > 0) cat("  \u2713 LM results\n")
+    if (length(analysis@jackknife_results) > 0) cat("  \u2713 Jackknife CIs\n")
+    if (length(analysis@divergence_results) > 0) cat("  \u2713 Divergence\n")
+    if (length(analysis@plots) > 0) cat("  \u2713 Plots (", length(analysis@plots), ")\n", sep = "")
+    cat("\nUse show(analysis) or summary(analysis) for details\n\n")
+  }
+
+  # Add final timing
+  analysis@metadata$ended_at <- Sys.time()
+
+  analysis
+}
+
+# ============================================================================
+# UTILITY FUNCTION
+# ============================================================================
+
+#' `%||%` operator for default values
+#'
+#' Returns left operand if not NULL, otherwise right operand.
+#'
+#' @keywords internal
+#' @noRd
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
+}

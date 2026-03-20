@@ -78,30 +78,36 @@ metadata_df <- read.table(
 
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
-# Build SummarizedExperiment and filter
-se <- build_se(readcounts, gff3_dataset, metadata = metadata_df)
-se <- tryCatch(
-  filter_se(se, stringency = "medium"),
-  error = function(e) se
+# Build analysis object: creates SummarizedExperiment and initializes TSENATAnalysis
+analysis <- build_analysis(
+    readcounts = readcounts,
+    tx2gene = gff3_dataset,
+    metadata = metadata_df
 )
 
+# Apply filtering for quality control
+analysis <- tryCatch(
+  filter_analysis(analysis, stringency = "medium"),
+  error = function(e) analysis
+)
 ```
 
 ## Library Size Normalization for Pseudocounts
 
-For robust entropy estimation on sparse count data, we use automatic pseudocount estimation that normalizes by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
+For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
 
 ```{r calculate-tsallis, message=FALSE}
-# Calculate Tsallis entropy across multiple q-values with automatic pseudocount estimation
+# Calculate Tsallis entropy across multiple q-values using S4 wrapper
 # Note: colData from the original SE (including paired_samples) is automatically preserved
 qvec <- seq(0.1, 2, by = 0.05)
-ts_se <- calculate_diversity(
-  se, 
+
+# Compute diversity using S4 wrapper
+analysis <- calculate_diversity_s4(
+  analysis, 
   q = qvec, 
   norm = TRUE,
-  pseudocount = "auto"  # Automatically estimates library size-adjusted pseudocount
+  pseudocount = scalar_pseudocount
 )
-
 ```
 
 # Rank-Based Approach (Friedman)
@@ -111,15 +117,15 @@ ts_se <- calculate_diversity(
 Before applying rank-based methods, we verify that the entropy data meets the key assumptions for robust non-parametric inference.
 
 ```{r rank-assumptions-calculation, message=FALSE}
-# Extract entropy matrix for assumption validation
-entropy_matrix <- assay(ts_se)
+# Validate Friedman test assumptions using S4 wrapper
+# By default, tests the first q-value in diversity results
+# (For testing across all q-values at once, specify q=NULL and pre-combine results)
+analysis <- test_rankbased_assumptions_s4(
+    analysis
+)
 
-# Validate data characteristics for Friedman test inference:
-# 1. Design appropriateness: permutation test validates paired/blocked structure
-# 2. Gene heterogeneity: Spearman correlation across genes (low=heterogeneous genes)
-# 3. Subject heterogeneity: Kendall's W + ICC across subjects (low=heterogeneous subjects)
-# Note: Low heterogeneity metrics do NOT invalidate Friedman test—blocking correctly handles subject effects
-rank_assumptions <- test_rankbased_assumptions(entropy_matrix)
+# Extract the result object from metadata
+rank_assumptions <- analysis@metadata$rankbased_assumptions$result
 ```
 
 ```{r rank-assumptions-output, message=FALSE, echo=FALSE}
@@ -191,16 +197,17 @@ knitr::kable(data_characteristics,
 
 ```{r rank-based-analysis, message=TRUE}
 # Run Friedman test with Hochberg multiple testing correction
-friedman_results <- detect_q_gene_interactions(
-    ts_se,
-    condition_col = "sample_type",
+# Uses the cached combined diversity result from above
+# paired=TRUE for repeated-measures design (subject_col="paired_samples" by default)
+analysis <- detect_q_gene_interactions_s4(
+    analysis,
     paired = TRUE,
-    subject_col = "paired_samples",
     multicorr = "hochberg",
     verbose = TRUE
 )
 
-
+# Extract results from S4 object
+friedman_results <- analysis@lm_results$q_interactions
 ```
 
 ```{r rank-summary, message=FALSE, echo=FALSE}
@@ -291,25 +298,22 @@ if (nrow(rank_sig) > 0) {
 }
 ```
 
-Now let's visualize the q-curves for the top 4 genes identified by the Friedman test using the integrated gene-specific plotting functionality:
+Now let's visualize the q-curves for the top 4 genes identified by the Friedman test:
 
 ```{r friedman-top-genes-qcurve, fig.width=14, fig.height=10, message=FALSE}
 # Plot q-curves for top 4 genes from Friedman test
-# The function automatically ranks genes by adjusted p-value and shows the most significant ones
-# When multiple genes are plotted, they are automatically arranged in a 2x2 grid
+# plot_tsallis_q_curve accepts TSENATAnalysis objects and extracts diversity_results
 top_genes_plot <- plot_tsallis_q_curve(
-  se = ts_se,
-  lm_res = friedman_results,
-  n_top = 4,
-  assay_name = "diversity",
-  condition_col = "sample_type"
+    analysis,
+    condition_col = "sample_type",
+    lm_res = friedman_results,
+    n_top = 4
 )
-
-# Print the grid of plots
 print(top_genes_plot)
 ```
 
 These q-curve profiles show how Tsallis entropy changes across the diversity parameter q for the most significant genes identified by the Friedman test. The median line represents the central tendency, while the shaded IQR ribbon indicates the variability across samples within each group.
+
 
 ## Why Similar-Looking Curves Can Have Large Statistical Differences
 
@@ -393,7 +397,7 @@ The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker.
 
 # Generalized Additive Model Approach (GAM)
 
-This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect q-value × group interactions. Results are read from `lm_interaction_results.csv` (embedded in the package) and compared against Friedman test results for robust gene discovery:
+This section loads precomputed GAM results **generated in the main vignette** ([TSENAT.Rmd](TSENAT.Rmd)). The GAM analysis provides a complementary parametric approach to detect q-value × group interactions. Results are integrated into the TSENATAnalysis object for S4 workflow consistency:
 
 - **Model:** Generalized Additive Models (GAM) with ARIMA(1,1,0) transformations
 - **Approach:** Smooth functions fit across q-values for each gene
@@ -506,13 +510,23 @@ if ("p_interaction" %in% colnames(gam_results)) {
 # Method Concordance Analysis
 
 ```{r concordance-summary, message=FALSE}
-# Compute concordance analysis using dedicated function
-concordance_result <- compute_method_concordance(gam_results, friedman_results)
+# Compute concordance analysis using S4 wrapper
+# Store GAM results in the analysis object
+analysis@lm_results$gam_results <- gam_results
 
-# Extract components
+# Compute concordance using S4 wrapper
+analysis_with_concordance <- compute_method_concordance_s4(
+    analysis,
+    gam_method = "gam_results",
+    friedman_method = "q_interactions",
+    verbose = TRUE
+)
+
+# Extract components from S4 results
+concordance_result <- analysis_with_concordance@metadata$method_concordance
 comparison_df <- concordance_result$comparison_df
 spearman_rho <- concordance_result$spearman_rho
-high_conf <- concordance_result$high_conf
+high_conf <- concordance_result$high_confidence
 agreement_table <- concordance_result$agreement_table
 ```
 
@@ -592,17 +606,95 @@ if (nrow(high_conf) > 0) {
 ## Visualization: Method Comparison
 
 ```{r concordance-plot, fig.width=10, fig.height=8}
-# Create comparison plot only if we have valid comparison data
-if (exists("comparison_df") && nrow(comparison_df) > 0) {
-  plot_method_concordance(comparison_df)
-} else {
-  cat("Visualization skipped: No valid comparison data available\n")
-}
+# Create comparison plot using S4 wrapper
+plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
+```
+
+---
+
+# Complete S4 Workflow Guide
+
+This vignette demonstrates the modern S4-based analysis workflow for method comparison. The following functions are used in their S4 wrapper forms for consistent class-based integration:
+
+## S4 Functions Used in This Vignette
+
+| Function | Purpose | Input | Output |
+|----------|---------|-------|--------|
+| `calculate_diversity_s4()` | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with `@diversity_results` |
+| `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Attributes: summary_stats, checks |
+| `detect_q_gene_interactions_s4()` | Run Friedman test for q×group interactions | TSENATAnalysis + design params | Updated analysis with `@lm_results$q_interactions` |
+| `plot_tsallis_q_curve()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
+| `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with both methods in `@lm_results` | Updated analysis with `@metadata$method_concordance` |
+| `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
+
+## Workflow Advantages
+
+- **Consistent class structure:** All results integrated into TSENATAnalysis object
+- **Automatic metadata tracking:** No global variables polluting environment
+- **Seamless integration:** Methods pass results through `@metadata` and `@lm_results` slots
+- **Reproducibility:** Clear, standardized workflow for complex multi-method analyses
+- **Documentation:** S4 methods maintain Roxygen documentation and inheritance
+
+## Workflow Reconstruction
+
+If needed, this complete workflow can be recreated step-by-step:
+
+```{r workflow-reconstruction, eval=FALSE}
+# 1. Initialize analysis
+analysis <- TSENATAnalysis(se = se, config = list())
+
+# 2. Calculate diversity
+analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.05), norm = TRUE)
+
+# 3. Validate assumptions
+rank_assumptions <- test_rankbased_assumptions_s4(analysis, verbose = TRUE)
+
+# 4. Friedman test (rank-based)
+analysis <- detect_q_gene_interactions_s4(
+    analysis,
+    condition_col = "sample_type",
+    paired = TRUE,
+    subject_col = "paired_samples",
+    multicorr = "hochberg",
+    verbose = TRUE
+)
+
+# 5. Load GAM results and store
+analysis@lm_results$gam_results <- read.csv("lm_interaction_results.csv")
+
+# 6. Compare methods
+analysis <- compute_method_concordance_s4(
+    analysis,
+    gam_method = "gam_results",
+    friedman_method = "q_interactions",
+    verbose = TRUE
+)
+
+# 7. Visualize concordance
+plot_method_concordance_s4(analysis, verbose = TRUE)
+
+# 8. Plot top genes (optional)
+plot_tsallis_q_curve(
+    analysis,
+    condition_col = "sample_type",
+    lm_res = analysis@lm_results$q_interactions,
+    n_top = 4
+)
 ```
 
 ---
 
 # Recommendations
+
+## S4 Wrapper Integration Overview
+
+This vignette demonstrates the modern S4 wrapper approach for method concordance analysis:
+
+- **`compute_method_concordance_s4()`**: Integrates seamlessly with TSENATAnalysis objects, storing results in `@metadata$method_concordance`
+- **`plot_method_concordance_s4()`**: Creates publication-ready concordance visualizations from S4-stored results
+- **Benefits**: Consistent class structure, automatic metadata tracking, reduced variable proliferation in global environment
+
+For standard (non-S4) analyses, the original functions (`compute_method_concordance()` and `plot_method_concordance()`) remain available and fully supported.
 
 ## Best Practices for Analysis
 

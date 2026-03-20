@@ -1788,7 +1788,20 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     invisible(x)
 }
 
+#' Summary method for divergence bootstrap CI results
+#'
+#' Provides summary statistics and diagnostic information for divergence
+#' bootstrap confidence interval objects.
+#'
+#' @param object An object of class \code{tsenat_divergence_bootstrap_ci}.
+#' @param ... Additional arguments (ignored).
+#'
+#' @return Invisibly returns the object after printing summary statistics.
+#' Displays bootstrap distribution summary (mean, median, SD, min, max),
+#' diagnostics (skewness, effective sample size), and stability metrics.
+#'
 #' @export
+#' @method summary tsenat_divergence_bootstrap_ci
 summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     cat("\n=== Summary of Divergence Bootstrap ===\n")
     cat("Bootstrap distribution:\n")

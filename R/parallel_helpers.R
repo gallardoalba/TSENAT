@@ -1,9 +1,30 @@
 # Helper functions for parallel processing using BiocParallel and parallel
 # package
 
+# Get effective number of threads, respecting environment constraints
+.tsenat_get_effective_nthreads <- function(nthreads = 1) {
+    if (nthreads <= 1) {
+        return(1)
+    }
+
+    # Check for _R_CHECK_LIMIT_CORES_ environment variable (used by R CMD check)
+    core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)
+    if (!is.na(core_limit)) {
+        core_limit <- as.integer(core_limit)
+        if (is.finite(core_limit) && core_limit > 0) {
+            nthreads <- min(nthreads, core_limit)
+        }
+    }
+
+    return(max(1, nthreads))
+}
+
 # Select and initialize parallel backend @param nthreads Number of threads to
 # use (default: 1) @return BiocParallel BPPARAM object
 .tsenat_get_bpparam <- function(nthreads = 1) {
+    # Apply environment variable constraints
+    nthreads <- .tsenat_get_effective_nthreads(nthreads)
+
     if (nthreads <= 1) {
         return(BiocParallel::SerialParam())
     }

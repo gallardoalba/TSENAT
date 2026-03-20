@@ -542,19 +542,25 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             result_rowData <- data.frame(gene_id = result[, 1], gene_name = gene_names, row.names = row_ids)
         }
     } else {
-        col_ids <- colnames(x)
-        # synthesize sample ids when names missing
-        if (is.null(col_ids) || any(col_ids == "")) {
-            col_ids <- paste0("Sample", seq_len(ncol(x)))
+        # Single q-value: also include _q= suffix for consistency
+        base_col_ids <- colnames(x)
+        if (is.null(base_col_ids) || any(base_col_ids == "")) {
+            base_col_ids <- paste0("Sample", seq_len(ncol(x)))
         }
+        # Add _q= suffix for single q-value to match multi-q behavior
+        # Use 3 decimal places for consistency with multi-q formatting
+        q_formatted <- formatC(q, format = "f", digits = 3)
+        col_ids <- paste0(base_col_ids, "_q=", q_formatted)
+        
         # Use gene names as rownames if available, otherwise use gene IDs
         row_ids <- if (!is.null(gene_names)) gene_names else as.character(result[, 1])
-        result_colData <- data.frame(samples = col_ids, row.names = col_ids, stringsAsFactors = FALSE)
+        result_colData <- data.frame(samples = base_col_ids, q = rep(q, length(base_col_ids)), 
+                                     row.names = col_ids, stringsAsFactors = FALSE)
         
         # Preserve original colData columns from input SE if available
         if ((is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment"))) {
             orig_coldata <- try(SummarizedExperiment::colData(original_x), silent = TRUE)
-            if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) == length(col_ids)) {
+            if (!inherits(orig_coldata, "try-error") && nrow(orig_coldata) == length(base_col_ids)) {
                 # Add original colData columns (except rownames)
                 for (col in colnames(orig_coldata)) {
                     result_colData[[col]] <- orig_coldata[[col]]
@@ -564,9 +570,11 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         
         colnames(result_assay) <- col_ids
         rownames(result_assay) <- row_ids
-        # Update rowData with gene names if available
+        
+        # Update rowData with correct rownames to match result_assay  
+        result_rowData <- data.frame(gene_id = result[, 1], row.names = row_ids)
         if (!is.null(gene_names)) {
-            result_rowData <- data.frame(gene_id = result[, 1], gene_name = gene_names, row.names = row_ids)
+            result_rowData$gene_name <- gene_names
         }
     }
 
@@ -702,6 +710,9 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             
             assays_list$counts <- counts_replicated
         } else {
+            # Single q-value: also need to update rownames/colnames to match result_assay
+            rownames(counts_subset) <- rownames(result_assay)
+            colnames(counts_subset) <- colnames(result_assay)
             assays_list$counts <- counts_subset
         }
     }

@@ -17,8 +17,10 @@ test_that("wilcoxon serial and parallel produce identical results", {
     # Run parallel version with 2 threads
     res_parallel_2 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 2)
     
-    # Run parallel version with 3 threads
-    res_parallel_4 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = min(3, parallel::detectCores()))
+    # Run parallel version with max available threads (respecting environment limits)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    res_parallel_4 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = max_threads)
     
     # All versions should produce identical results
     expect_equal(as.data.frame(res_serial), as.data.frame(res_parallel_2), tolerance = 1e-10)
@@ -129,7 +131,9 @@ test_that("calculate_method serial and parallel produce identical results", {
     # Single q value
     res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
     res_parallel_2 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 2)
-    res_parallel_4 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = min(3, parallel::detectCores()))
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    res_parallel_4 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
     
     # Should produce identical results
     expect_equal(res_serial, res_parallel_2, tolerance = 1e-10)
@@ -186,9 +190,11 @@ test_that("calculate_difference serial and parallel produce identical results", 
                                              control = "Normal", test = "wilcoxon",
                                              nthreads = 2, verbose = FALSE)
     
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
     res_wilcox_par_4 <- calculate_difference(data_df, samples = samples,
                                              control = "Normal", test = "wilcoxon",
-                                             nthreads = min(3, parallel::detectCores()), verbose = FALSE)
+                                             nthreads = max_threads, verbose = FALSE)
     
     # Should produce identical results
     expect_equal(res_wilcox_serial, res_wilcox_par_2, tolerance = 1e-10)
@@ -252,7 +258,9 @@ test_that("Large dataset parallelization produces valid results", {
     # Wilcoxon with different thread counts
     res_1 <- wilcoxon(mat, samples, nthreads = 1)
     res_2 <- wilcoxon(mat, samples, nthreads = 2)
-    res_4 <- wilcoxon(mat, samples, nthreads = min(3, parallel::detectCores()))
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    res_4 <- wilcoxon(mat, samples, nthreads = max_threads)
     
     # All should match
     expect_equal(res_1, res_2, tolerance = 1e-10)
@@ -276,7 +284,9 @@ test_that("Large calculate_method dataset with single q value", {
     res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
     
     # Parallel execution
-    res_parallel <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = min(3, parallel::detectCores()))
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    res_parallel <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
     
     # Should produce identical results
     expect_equal(res_serial, res_parallel, tolerance = 1e-10)
@@ -490,7 +500,9 @@ test_that(".tsenat_bplapply parallel execution with nthreads=3", {
     FUN.VALUE <- numeric(1)
     
     result_parallel_2 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_parallel_4 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = min(3, parallel::detectCores()), FUN.VALUE = FUN.VALUE)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    result_parallel_4 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = max_threads, FUN.VALUE = FUN.VALUE)
     result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     # All should be equal
@@ -594,7 +606,9 @@ test_that(".tsenat_bpmapply parallel with nthreads=3 uses MulticoreParam", {
     Y <- c(1, 2, 3, 4)
     FUN <- function(x, y) rep(x, y)
     
-    result_parallel_4 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 3)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    result_parallel_4 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = max_threads)
     result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_equal(result_parallel_4, result_serial)
@@ -657,7 +671,9 @@ test_that(".tsenat_bpmapply parallel executes correctly with different nthreads 
     FUN <- function(x, y) c(x, y)
     
     result_parallel_2 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
-    result_parallel_4 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 3)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
+    result_parallel_4 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = max_threads)
     result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
     
     # All should be equal
@@ -847,9 +863,11 @@ test_that("calculate_divergence multiple thread levels produce consistent nrows"
         nthreads = 2, progress = FALSE, seed = 99
     )
     
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
     result_3t <- calculate_divergence(
         se = se, q = 1, nboot = 100,
-        nthreads = min(3, parallel::detectCores()), progress = FALSE, seed = 99
+        nthreads = max_threads, progress = FALSE, seed = 99
     )
     
     # All should return SummarizedExperiment with all genes
@@ -935,13 +953,15 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
         colData = metadata
     )
     
-    # Run with max 3 threads
+    # Run with max 2 threads (respecting environment limits)
     set.seed(77)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
     result_auto <- calculate_divergence(
         se = se,
         q = 1,
         nboot = 100,
-        nthreads = min(3, parallel::detectCores()),  # Cap at 3 cores
+        nthreads = max_threads,
         progress = FALSE,
         seed = 77
     )

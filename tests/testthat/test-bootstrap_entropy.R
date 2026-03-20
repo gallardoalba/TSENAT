@@ -1425,9 +1425,11 @@ test_that("nthreads parameter validation", {
     )
     
     # Large nthreads should work (will cap at available)
+    core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
+    max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
     result <- calculate_tsallis_entropy_bootstrap(
         x = counts_matrix,
-        nthreads = min(3, parallel::detectCores()),
+        nthreads = max_threads,
         nboot = 100,
         seed = 2002,
         print_results = FALSE

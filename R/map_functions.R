@@ -355,12 +355,38 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
     df <- cbind(df, Gene = genes_col)
 
     long <- tidyr::pivot_longer(df, -Gene, names_to = "sample_q", values_to = "tsallis")
+    
+    # DEBUG: Check column naming patterns
+    # cat("[DEBUG prepare_tsallis_long] sample_q unique values (first 10):\n")
+    # cat("  ", paste(head(unique(long$sample_q), 10), collapse=", "), "\n")
+    # cat("[DEBUG prepare_tsallis_long] Checking for _q= pattern:", any(grepl("_q=", long$sample_q)), "\n")
+    # cat("[DEBUG prepare_tsallis_long] Checking for _qX pattern:", any(grepl("_q[0-9]", long$sample_q)), "\n")
+    
+    # Handle different column naming conventions
+    # Convention 1: Old format "sample_q=X.X" (from calculate_diversity multi-q)
+    # Convention 2: New format "sample_qX.X" (from TSENATAnalysis S4 wrapper)
     if (any(grepl("_q=", long$sample_q))) {
-        long <- tidyr::separate(long, sample_q, into = c("sample", "q"), sep = "_q=")
+      # Old format with _q=
+      long <- tidyr::separate(long, sample_q, into = c("sample", "q"), sep = "_q=", extra = "merge")
+      # Debug: Check for values that can't be converted
+      suppressWarnings({
         long$q <- as.numeric(long$q)
+      })
+      # Check for NAs introduced by coercion
+      na_count <- sum(is.na(long$q))
+      if (na_count > 0) {
+        # Find which values failed to convert
+        non_numeric_q <- unique(long$q[is.na(long$q)])
+        # Remove NA entries since they indicate malformed column names
+        long <- long[!is.na(long$q), ]
+      }
+    } else if (any(grepl("_q[0-9]", long$sample_q))) {
+      # New format with _qX.X - extract sample and q
+      long$sample <- sub("_q[0-9].*$", "", long$sample_q)
+      long$q <- as.numeric(sub("^.*_q", "", long$sample_q))
     } else {
-        long$sample <- long$sample_q
-        long$q <- NA
+      long$sample <- long$sample_q
+      long$q <- NA
     }
 
     if (!is.null(condition_col) && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
@@ -369,20 +395,21 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
         col_st <- as.character(col_data[, condition_col])
         col_rownames <- rownames(col_data)
         
-        # Create a mapping from unique sample names (without _q=) to sample type
-        assay_cols_unique <- unique(sub("_q=.*", "", colnames(mat)))
+        # Create a mapping from unique sample names to sample type
+        # Handle both "_q=" format (old) and "_qX.X" format (new)
+        assay_cols_unique <- unique(sub("_q[=0-9].*", "", colnames(mat)))
         st_map <- setNames(rep(NA_character_, length(assay_cols_unique)), assay_cols_unique)
         
-        # Strategy 1: If colData has rownames set (by map_metadata), use them to build mapping
+        # Strategy 1: If colData has rownames set, use them to build mapping
         if (!is.null(col_rownames) && length(col_rownames) > 0 && !all(is.na(col_rownames))) {
-            # colData rownames should be the full assay column names (with _q= suffixes if present)
+            # colData rownames should be the full assay column names (with _q suffixes)
             # Extract unique sample names from colData rownames
-            col_rownames_unique <- unique(sub("_q=.*", "", col_rownames))
+            col_rownames_unique <- unique(sub("_q[=0-9].*", "", col_rownames))
             
             # For each unique sample in colData rownames, find its sample type
             for (sname in col_rownames_unique) {
                 # Find first row matching this sample name
-                matching_idx <- which(sub("_q=.*", "", col_rownames) == sname)[1]
+                matching_idx <- which(sub("_q[=0-9].*", "", col_rownames) == sname)[1]
                 if (!is.na(matching_idx)) {
                     st_map[sname] <- col_st[matching_idx]
                 }
@@ -395,7 +422,7 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
             # Create mapping by extracting unique sample from each column
             for (i in seq_along(assay_cols_unique)) {
                 # Find first occurrence of this sample in assay columns
-                first_col_idx <- which(sub("_q=.*", "", colnames(mat)) == assay_cols_unique[i])[1]
+                first_col_idx <- which(sub("_q[=0-9].*", "", colnames(mat)) == assay_cols_unique[i])[1]
                 if (!is.na(first_col_idx) && first_col_idx <= nrow(col_data)) {
                     st_map[assay_cols_unique[i]] <- col_st[first_col_idx]
                 }

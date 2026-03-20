@@ -22,3 +22,43 @@ if (getRversion() >= "2.15.1") {
         "agreement", "p_value", "method", "direction", "calculate_tsallis_divergence_paired_gene"))
 }
 
+# ============================================================================
+# METHOD DEPENDENCIES MAP (Gap 2: Explicit dependency declarations)
+# ============================================================================
+
+#' Method Dependencies for TSENAT Orchestration
+#'
+#' Defines explicit dependencies between analysis methods.
+#' Used by \code{\link{tsenat}} to validate method combinations and 
+#' prevent invalid execution orders.
+#'
+#' @format Named list mapping method names to their required dependencies:
+#' \describe{
+#'   \item{\code{diversity}}{No dependencies}
+#'   \item{\code{jackknife}}{Requires diversity}
+#'   \item{\code{divergence}}{Requires diversity}
+#'   \item{\code{q_interactions}}{Requires diversity}
+#'   \item{\code{lm_interaction}}{Requires diversity}
+#' }
+#'
+#' @keywords internal
+#' @export
+DEPENDENCIES <- list(
+  diversity = character(0),              # No dependencies
+  jackknife = "diversity",               # Requires diversity
+  divergence = "diversity",              # Requires diversity
+  q_interactions = "diversity",          # Requires diversity
+  lm_interaction = "diversity"           # Requires diversity
+)
+
+#' Method Execution Order
+#'
+#' Recommended execution order for TSENAT methods.
+#' Respects the dependency graph defined in \code{\link{DEPENDENCIES}}.
+#'
+#' @format Character vector with methods in dependency order.
+#'
+#' @keywords internal
+#' @export
+METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_interactions")
+
