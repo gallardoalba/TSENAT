@@ -752,6 +752,7 @@ analysis.
 analysis <- tryCatch({
   jackknife_isoform_switching_s4(
     analysis,
+    q = c(0.01, 0.5, 1.0, 1.5, 2),
     n_bootstrap = 100,
     lm_p_threshold = 0.05,
     threshold = 90
