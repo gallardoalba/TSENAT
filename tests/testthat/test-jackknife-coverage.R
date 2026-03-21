@@ -329,19 +329,35 @@ test_that("jackknife_isoform_switching with SummarizedExperiment", {
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
+  # Create SE with proper structure: multiple samples per condition, multiple transcripts per gene
+  counts_matrix <- matrix(
+    c(100, 150, 80, 50, 75, 60,    # Gene1 transcripts: 3 transcripts x 2 samples condition A
+      120, 140, 70, 60, 85, 65,    # Gene1 transcripts: 3 transcripts x 2 samples condition B
+      200, 180, 90, 100, 110, 95,   # Gene2 transcripts: 3 transcripts x 2 samples
+      215, 195, 105, 120, 130, 100), # Gene2 condition B
+    nrow = 6, ncol = 4
+  )
+  
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(c(100, 50, 75, 200, 80, 120, 110, 60, 85), nrow = 3, ncol = 3)),
-    rowData = data.frame(gene_id = c("g1", "g2", "g3"),
-                        gene_name = c("GENE1", "GENE2", "GENE3")),
-    colData = data.frame(sample = c("s1", "s2", "s3"), condition = c("A", "A", "B"))
+    assays = list(counts = counts_matrix),
+    rowData = data.frame(
+      transcript_id = c("tx1", "tx2", "tx3", "tx4", "tx5", "tx6"),
+      gene_id = c("g1", "g1", "g1", "g2", "g2", "g2"),
+      gene_name = c("GENE1", "GENE1", "GENE1", "GENE2", "GENE2", "GENE2")
+    ),
+    colData = data.frame(
+      sample = c("s1", "s2", "s3", "s4"),
+      condition = c("A", "A", "B", "B")
+    )
   )
   
   result <- jackknife_isoform_switching(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
-    isoform_col = "gene_id",
-    q = 1
+    isoform_col = "transcript_id",
+    q = 1,
+    print_results = FALSE
   )
   
   expect_true(is.list(result) || inherits(result, "tsenat_isoform_switching"))
@@ -352,19 +368,35 @@ test_that("jackknife_isoform_switching with multiple q", {
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
+  # Create SE with proper structure for multi-condition analysis
+  counts_matrix <- matrix(
+    c(100, 150, 80, 50, 75, 60,    # Gene1 tx1,tx2,tx3: cond A (2 samples)
+      120, 140, 70, 60, 85, 65,    # Gene1 tx1,tx2,tx3: cond B (2 samples)
+      200, 180, 90, 100, 110, 95,   # Gene2 tx4,tx5,tx6: all samples
+      215, 195, 105, 120, 130, 100), # Gene2 condition B
+    nrow = 6, ncol = 4
+  )
+  
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(c(100, 50, 75, 200, 80, 120, 110, 60, 85, 90, 70, 95), nrow = 3, ncol = 4)),
-    rowData = data.frame(gene_id = c("g1", "g2", "g3"),
-                        gene_name = c("GENE1", "GENE2", "GENE3")),
-    colData = data.frame(sample = c("s1", "s2", "s3", "s4"), condition = c("A", "A", "B", "B"))
+    assays = list(counts = counts_matrix),
+    rowData = data.frame(
+      transcript_id = c("tx1", "tx2", "tx3", "tx4", "tx5", "tx6"),
+      gene_id = c("g1", "g1", "g1", "g2", "g2", "g2"),
+      gene_name = c("GENE1", "GENE1", "GENE1", "GENE2", "GENE2", "GENE2")
+    ),
+    colData = data.frame(
+      sample = c("s1", "s2", "s3", "s4"),
+      condition = c("A", "A", "B", "B")
+    )
   )
   
   result <- jackknife_isoform_switching(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
-    isoform_col = "gene_id",
-    q = c(1.0, 1.5)
+    isoform_col = "transcript_id",
+    q = c(1.0, 1.5),
+    print_results = FALSE
   )
   
   expect_true(is.list(result))

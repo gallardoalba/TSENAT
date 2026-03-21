@@ -3146,7 +3146,7 @@ jackknife_isoform_switching_s4 <- function(
   subject_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
-  q = c(0.01, 0.5, 1, 1.5, 2),
+  q = NULL,
   norm = TRUE,
   threshold = 90,
   n_bootstrap = 500,
@@ -3165,9 +3165,9 @@ jackknife_isoform_switching_s4 <- function(
     }
   }
 
-  # Auto-detect q-values from config if using default
-  default_q <- c(0.01, 0.5, 1, 1.5, 2)
-  if (identical(q, default_q)) {
+  # Auto-detect q-values from config if not explicitly provided
+  # By using NULL as default, we can now distinguish between "user passed values" vs "user didn't pass q"
+  if (is.null(q)) {
     if ("q_values" %in% names(analysis@config)) {
       config_q <- analysis@config$q_values
       if (!is.null(config_q) && is.numeric(config_q)) {
@@ -3176,7 +3176,13 @@ jackknife_isoform_switching_s4 <- function(
           cat("[jackknife_isoform_switching_s4] Using q-values from config: ",
               paste(q, collapse = ", "), "\n")
         }
+      } else {
+        # Fall back to default if config is empty or invalid
+        q <- c(0.01, 0.5, 1, 1.5, 2)
       }
+    } else {
+      # No config q-values, use default
+      q <- c(0.01, 0.5, 1, 1.5, 2)
     }
   }
 

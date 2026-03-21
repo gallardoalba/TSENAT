@@ -539,11 +539,30 @@ plot_tsallis_q_curve_s4 <- function(
     combined_coldata_df <- do.call(rbind, combined_coldata_list)
     colnames(combined_assay) <- rownames(combined_coldata_df)
     
+    # Ensure rowData is present (fallback to rownames as gene names if needed)
+    rd_combined <- tryCatch({
+      rd_temp <- SummarizedExperiment::rowData(first_se)
+      if (!is.null(rd_temp) && nrow(rd_temp) > 0) {
+        rd_temp
+      } else {
+        NULL
+      }
+    }, error = function(e) NULL)
+    
+    # If no rowData, create one with gene identifiers
+    if (is.null(rd_combined) || nrow(rd_combined) == 0) {
+      rd_combined <- data.frame(
+        gene_id = rownames(combined_assay),
+        row.names = rownames(combined_assay),
+        stringsAsFactors = FALSE
+      )
+    }
+    
     # Create combined SE
     se <- SummarizedExperiment::SummarizedExperiment(
       assays = list(diversity = combined_assay),
       colData = combined_coldata_df,
-      rowData = SummarizedExperiment::rowData(first_se)
+      rowData = rd_combined
     )
     
     # Use the single assay name
@@ -564,7 +583,32 @@ plot_tsallis_q_curve_s4 <- function(
   # =========================================================================
   if (!is.null(gene) || !is.null(lm_res)) {
     long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
-    if (!("Gene" %in% colnames(long))) stop("prepare_tsallis_long did not return Gene column")
+    
+    # Diagnostic: check what columns were created
+    if (!("Gene" %in% colnames(long))) {
+      # Try to create Gene column if missing - fallback for robustness
+      if ("gene" %in% colnames(long)) {
+        long$Gene <- long$gene
+        long$gene <- NULL
+      } else {
+        # Last resort: reconstruct from SE rownames
+        se_rownames <- rownames(se)
+        if (!is.null(se_rownames) && length(se_rownames) > 0) {
+          # Each gene should appear the same number of times in long format
+          n_per_gene <- nrow(long) / length(se_rownames)
+          if (is.integer(n_per_gene) && n_per_gene > 0) {
+            long$Gene <- rep(se_rownames, each = n_per_gene)
+          } else {
+            stop("prepare_tsallis_long did not return Gene column and reconstruction failed.\n",
+                 "  long nrow=", nrow(long), ", se nrow=", length(se_rownames), "\n",
+                 "  Available columns: ", paste(colnames(long), collapse = ", "))
+          }
+        } else {
+          stop("prepare_tsallis_long did not return Gene column and SE has no rownames.\n",
+               "  Available columns: ", paste(colnames(long), collapse = ", "))
+        }
+      }
+    }
     
     # Resolve genes to plot
     if (is.null(gene)) {
@@ -4090,6 +4134,9 @@ plot_multiq_delta_influence_heatmaps <- function(
         }
       }
       
+      # Create symmetric breaks centered at zero for proper diverging color mapping
+      # Use global breaks calculated across all genes for consistent coloring
+      
       # Create pheatmap (returns a grob object)
       p <- pheatmap::pheatmap(
         mat_viz,
@@ -4137,8 +4184,8 @@ plot_multiq_delta_influence_heatmaps <- function(
     n_rows <- ceiling(n_genes / n_cols)
     
     # Increase height to accommodate spacing between rows
-    heatmap_height <- 9 * n_rows + 2 * (n_rows - 1) + 5  # Add 2 inches per gap between rows + 5 extra inches at bottom
-    grDevices::png(combined_png_file, width = 28, height = heatmap_height, 
+    heatmap_height <- 9 * n_rows + 2 * (n_rows - 1)  # Add 2 inches per gap between rows
+    grDevices::png(combined_png_file, width = 28, height = heatmap_height + 5, 
                    units = "in", res = 96)
     
     grid::grid.newpage()

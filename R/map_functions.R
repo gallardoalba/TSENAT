@@ -326,15 +326,37 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
         stop("Assay not found: ", assay_name)
     }
     df <- as.data.frame(mat)
+    
     # Prefer gene names if available in rowData, otherwise use gene IDs, then fall back to rownames
     rd <- SummarizedExperiment::rowData(se)
-    genes_col <- if (!is.null(rd) && "gene_name" %in% colnames(rd) && !is.null(rd$gene_name)) {
+    genes_col <- if (!is.null(rd) && nrow(rd) > 0 && "gene_name" %in% colnames(rd)) {
         rd$gene_name
     } else {
         gene_ids <- .get_gene_ids(se)
-        if (is.null(gene_ids)) rownames(df) else gene_ids
+        if (is.null(gene_ids)) {
+            rn <- rownames(se)
+            if (is.null(rn) || all(is.na(rn))) {
+                # Fallback: generate names if rownames don't exist
+                paste0("gene_", seq_len(nrow(df)))
+            } else {
+                rn
+            }
+        } else {
+            gene_ids
+        }
     }
-    df <- cbind(df, Gene = genes_col)
+    
+    # Ensure genes_col has correct length and proper format
+    if (is.null(genes_col)) {
+        genes_col <- paste0("gene_", seq_len(nrow(df)))
+    } else if (length(genes_col) != nrow(df)) {
+        genes_col <- paste0("gene_", seq_len(nrow(df)))
+    } else {
+        genes_col <- as.character(genes_col)
+    }
+    
+    # Create Gene column explicitly as first column for pivot_longer
+    df <- data.frame(Gene = genes_col, df, row.names = NULL, stringsAsFactors = FALSE, check.names = FALSE)
 
     long <- tidyr::pivot_longer(df, -Gene, names_to = "sample_q", values_to = "tsallis")
     

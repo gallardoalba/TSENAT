@@ -238,6 +238,37 @@ jackknife_isoform_switching_s4 <- function(
   }
   
   # =========================================================================
+  # CHECK Q-VALUES AVAILABILITY IN DIVERSITY RESULTS
+  # =========================================================================
+  if (!is.null(analysis@diversity_results) && length(analysis@diversity_results) > 0) {
+    available_q_keys <- names(analysis@diversity_results)
+    available_q <- as.numeric(sub("^q_", "", available_q_keys))
+    available_q <- sort(unique(available_q))
+    
+    # Check if requested q-values are available
+    q_vals <- if (is.numeric(q)) q else c(q)
+    missing_q <- setdiff(q_vals, available_q)
+    
+    if (length(missing_q) > 0) {
+      warning(
+        "[jackknife_isoform_switching_s4] Requested q-values not in @diversity_results:\n",
+        "  Requested: ", paste(q_vals, collapse = ", "), "\n",
+        "  Available: ", paste(available_q, collapse = ", "), "\n",
+        "  Missing:   ", paste(missing_q, collapse = ", "), "\n\n",
+        "SOLUTION: Recompute diversity with all desired q-values before calling jackknife_isoform_switching_s4:\n",
+        "  analysis <- calculate_diversity_s4(analysis, q = c(", paste(q_vals, collapse = ", "), 
+        "), norm = TRUE)\n",
+        "  analysis <- jackknife_isoform_switching_s4(analysis, q = c(", paste(q_vals, collapse = ", "), "))\n",
+        call. = FALSE
+      )
+    }
+    
+    if (verbose && length(missing_q) == 0) {
+      cat("[jackknife_isoform_switching_s4] All requested q-values available in diversity results\n")
+    }
+  }
+  
+  # =========================================================================
   # CALL BASE FUNCTION
   # =========================================================================
   result <- tryCatch({

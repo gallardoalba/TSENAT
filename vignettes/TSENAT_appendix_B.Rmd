@@ -99,6 +99,8 @@ For robust entropy estimation on sparse count data, we normalize pseudocounts by
 ```{r calculate-tsallis, message=FALSE}
 # Calculate Tsallis entropy across multiple q-values using S4 wrapper
 # Note: colData from the original SE (including paired_samples) is automatically preserved
+# IMPORTANT: These q-values will be used for all subsequent analyses (Friedman test, GAM, etc.)
+# If you need different q-values for jackknife_isoform_switching, recompute diversity with those values
 qvec <- seq(0.1, 2, by = 0.05)
 
 # Compute diversity using S4 wrapper
@@ -108,6 +110,10 @@ analysis <- calculate_diversity_s4(
   norm = TRUE,
   pseudocount = "auto"
 )
+
+# Note: For isoform switching analysis with specific q-values like c(0.01, 0.5, 1.0, 1.5, 2),
+# uncomment the line below to precompute those specific q-values:
+# analysis <- calculate_diversity_s4(analysis, q = c(0.01, 0.5, 1.0, 1.5, 2), norm = TRUE, pseudocount = "auto")
 ```
 
 # Rank-Based Approach (Friedman)

@@ -339,7 +339,7 @@ analysis <- build_analysis(
 analysis <- setConfig(analysis, list(
   condition_col = "sample_type",
   subject_col = "paired_samples",
-  q_values = seq(0.1, 2, by = 0.05),
+  q_values = seq(0.01, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
   control = "control",
@@ -387,12 +387,12 @@ prefiltering on differential transcript usage, see
 
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
-# Check if filtered SE already exists
-filtered_se_file <- file.path(extdata_dir, "se_filtered_medium.rds")
+# Check if filtered analysis object already exists
+filtered_analysis_file <- file.path(extdata_dir, "analysis_filtered_medium.rds")
 
-if (file.exists(filtered_se_file)) {
-    analysis@se <- readRDS(filtered_se_file)
-    cat("Loaded filtered SummarizedExperiment from", filtered_se_file, "\n")
+if (file.exists(filtered_analysis_file)) {
+    analysis <- readRDS(filtered_analysis_file)
+    cat("Loaded filtered TSENATAnalysis object from", filtered_analysis_file, "\n")
 } else {
     # Filter analysis using stringency parameter
     # Medium stringency keeps transcripts present in ≥50% of samples
@@ -401,8 +401,8 @@ if (file.exists(filtered_se_file)) {
         stringency = "medium", 
         verbose = TRUE
     )
-    saveRDS(analysis@se, filtered_se_file)
-    cat("Saved filtered SummarizedExperiment to", filtered_se_file, "\n")
+    saveRDS(analysis, filtered_analysis_file)
+    cat("Saved filtered TSENATAnalysis object to", filtered_analysis_file, "\n")
 }
 ```
 
@@ -420,7 +420,7 @@ Now we will compute Tsallis entropy.
 # Compute Tsallis entropy for a sequence of q values using S4 wrapper
 # Check if analysis object with diversity results already exists
 
-qvec <- seq(0.1, 2, by = 0.05)
+qvec <- seq(0.11, 2, by = 0.05)
 analysis_file <- file.path(extdata_dir, "analysis_diversity.rds")
 
 if (file.exists(analysis_file)) {
@@ -752,7 +752,7 @@ analysis.
 analysis <- tryCatch({
   jackknife_isoform_switching_s4(
     analysis,
-    q = c(0.01, 0.5, 1.0, 1.5, 2),
+    q = c(0.01, 0.50, 1.00, 1.50, 2.00),
     n_bootstrap = 100,
     lm_p_threshold = 0.05,
     threshold = 90
