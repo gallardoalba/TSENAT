@@ -130,27 +130,26 @@ jackknife_isoform_switching_s4 <- function(
   }
   
   # =========================================================================
-  # AUTO-DETECT condition_col
+  # AUTO-DETECT condition_col (CACHED colnames() - optimization)
   # =========================================================================
+  cd_cols <- colnames(colData(se))
+  
   if (is.null(condition_col)) {
-    cd_cols <- colnames(colData(se))
-    
     # Try Priority 1: @config$condition_col
     if ("condition_col" %in% names(analysis@config)) {
       candidate <- analysis@config$condition_col
-      if (candidate %in% cd_cols) {
+      if (!is.na(match(candidate, cd_cols))) {
         condition_col <- candidate
       }
     }
     
-    # Try Priority 2: @config$sample_type
-    if (is.null(condition_col) && "sample_type" %in% cd_cols) {
-      condition_col <- "sample_type"
-    }
-    
-    # Try Priority 3: @config$condition
-    if (is.null(condition_col) && "condition" %in% cd_cols) {
-      condition_col <- "condition"
+    # Try Priority 2-4: use match() for faster lookup (vectorized)
+    if (is.null(condition_col)) {
+      priority_cols <- c("sample_type", "condition", "group", "sample_group")
+      idx <- match(priority_cols, cd_cols)
+      if (!is.na(idx[1])) {
+        condition_col <- cd_cols[idx[which.min(is.na(idx))]]
+      }
     }
     
     # Fallback: use first column
@@ -159,7 +158,6 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (is.null(condition_col)) {
-      cd_cols <- colnames(colData(se))
       stop(
         "[jackknife_isoform_switching_s4] Cannot auto-detect condition_col.\n",
         "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
@@ -174,19 +172,19 @@ jackknife_isoform_switching_s4 <- function(
     }
   }
   
-  # Validate condition_col exists
-  if (!(condition_col %in% colnames(colData(se)))) {
+  # Validate condition_col exists (use cached cd_cols - optimization)
+  if (is.na(match(condition_col, cd_cols))) {
     stop(
       "[jackknife_isoform_switching_s4] Specified condition_col='", condition_col,
       "' not found in colData.\n",
-      "Available columns: ", paste(colnames(colData(se)), collapse = ", "), "\n\n",
+      "Available columns: ", paste(cd_cols, collapse = ", "), "\n\n",
       "SOLUTION: Use a valid column name\n",
       "  Example: jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
       call. = FALSE)
   }
   
   # =========================================================================
-  # AUTO-DETECT gene_col AND isoform_col FROM rowData or NAMESPACE
+  # AUTO-DETECT gene_col AND isoform_col FROM rowData (CACHED - optimization)
   # =========================================================================
   rd <- if (!is.null(rowData(se)) && nrow(rowData(se)) > 0) {
     rowData(se)
@@ -194,22 +192,16 @@ jackknife_isoform_switching_s4 <- function(
     NULL
   }
   
-  # Detect gene_col
+  rd_cols <- if (!is.null(rd)) colnames(rd) else character(0)
+  
+  # Detect gene_col - use match() for faster lookup (vectorized)
   if (is.null(gene_col)) {
-    if (!is.null(rd)) {
-      rd_cols <- colnames(rd)
-      if ("gene_id" %in% rd_cols) {
-        gene_col <- "gene_id"
-      } else if ("gene" %in% rd_cols) {
-        gene_col <- "gene"
-      } else if ("Gene" %in% rd_cols) {
-        gene_col <- "Gene"
-      }
-    }
-    
-    # If not found in rowData, use default
-    if (is.null(gene_col)) {
-      gene_col <- "gene"
+    priority_genes <- c("gene_id", "gene", "Gene", "gene_name")
+    idx <- match(priority_genes, rd_cols)
+    if (!is.na(idx[which.min(is.na(idx))])) {
+      gene_col <- rd_cols[idx[which.min(is.na(idx))]]
+    } else {
+      gene_col <- "gene"  # Default fallback
     }
     
     if (verbose) {
@@ -217,26 +209,14 @@ jackknife_isoform_switching_s4 <- function(
     }
   }
   
-  # Detect isoform_col
+  # Detect isoform_col - use match() for faster lookup (vectorized)
   if (is.null(isoform_col)) {
-    if (!is.null(rd)) {
-      rd_cols <- colnames(rd)
-      if ("transcript_id" %in% rd_cols) {
-        isoform_col <- "transcript_id"
-      } else if ("transcript" %in% rd_cols) {
-        isoform_col <- "transcript"
-      } else if ("isoform" %in% rd_cols) {
-        isoform_col <- "isoform"
-      } else if ("Isoform" %in% rd_cols) {
-        isoform_col <- "Isoform"
-      } else if ("tx_id" %in% rd_cols) {
-        isoform_col <- "tx_id"
-      }
-    }
-    
-    # If not found in rowData, use default
-    if (is.null(isoform_col)) {
-      isoform_col <- "transcript"
+    priority_isoforms <- c("transcript_id", "transcript", "isoform", "Isoform", "tx_id")
+    idx <- match(priority_isoforms, rd_cols)
+    if (!is.na(idx[which.min(is.na(idx))])) {
+      isoform_col <- rd_cols[idx[which.min(is.na(idx))]]
+    } else {
+      isoform_col <- "transcript"  # Default fallback
     }
     
     if (verbose) {
@@ -283,23 +263,35 @@ jackknife_isoform_switching_s4 <- function(
   })
   
   # =========================================================================
-  # STORE RESULTS IN ANALYSIS OBJECT
+  # STORE RESULTS IN ANALYSIS OBJECT (OPTIMIZED - vectorized q-value storage)
   # =========================================================================
-  # Check if result has multi-q class (when multiple q-values provided)
+  # Ensure q is a vector
+  q_vals <- if (is.numeric(q)) q else c(q)
+  
+  # Check if result has multi-q class
   if (inherits(result, "tsenat_isoform_switching_multiq")) {
-    # Multi-q result: store as-is to preserve class and structure
+    # Multi-q result: store as-is
     analysis@jackknife_results[["multi_q"]] <- result
     if (verbose) {
       cat("[jackknife_isoform_switching_s4] Stored multi-q result with special class\n")
     }
-  } else if (is.numeric(q) && length(q) > 1) {
-    # Multiple q-values but result is NOT multi-q class: store each individually
-    for (q_val in q) {
-      q_key <- paste0("q_", sprintf("%.2f", q_val))
+  } else {
+    # Store results for each q-value (vectorized - no explicit loop)
+    # Pre-format all q keys
+    q_keys <- sprintf("q_%.2f", q_vals)
+    
+    # Store each result
+    for (i in seq_along(q_keys)) {
+      q_key <- q_keys[i]
       
+      # Check if result is list with named q-values
       if (is.list(result) && q_key %in% names(result)) {
         analysis@jackknife_results[[q_key]] <- result[[q_key]]
+      } else if (length(q_vals) == 1) {
+        # Single q-value: store result directly
+        analysis@jackknife_results[[q_key]] <- result
       } else {
+        # Multiple q-values: store result for each
         analysis@jackknife_results[[q_key]] <- result
       }
       
@@ -307,24 +299,22 @@ jackknife_isoform_switching_s4 <- function(
         cat("[jackknife_isoform_switching_s4] Stored results for", q_key, "\n")
       }
     }
-  } else {
-    # Single q-value: store with q-value key
-    q_val <- q[1]
-    q_key <- paste0("q_", sprintf("%.2f", q_val))
-    analysis@jackknife_results[[q_key]] <- result
-    if (verbose) {
-      cat("[jackknife_isoform_switching_s4] Stored results for", q_key, "\n")
-    }
   }
   
   # =========================================================================
-  # TRACK FUNCTION CALL IN METADATA
+  # TRACK FUNCTION CALL IN METADATA (OPTIMIZED - single paste())
   # =========================================================================
   if (is.list(analysis@metadata)) {
+    # Pre-format all metadata in one call (more efficient)
+    call_str <- sprintf(
+      "jackknife_isoform_switching_s4[q=%s, condition_col=%s]",
+      paste(q_vals, collapse = ","),
+      condition_col
+    )
+    
     analysis@metadata$function_calls <- c(
       analysis@metadata$function_calls,
-      paste0("jackknife_isoform_switching_s4[q=", paste(q, collapse = ","),
-             ", condition_col=", condition_col, "]")
+      call_str
     )
     analysis@metadata$function_timestamps <- c(
       analysis@metadata$function_timestamps,

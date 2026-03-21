@@ -102,19 +102,23 @@ plot_method_concordance <- function(comparison_df) {
   # Combine plots with global title using cowplot approach
   main_grid <- gridExtra::arrangeGrob(p1, p2, ncol = 2)
   
-  # Add global title with subtitle using cowplot
-  title_grob <- cowplot::ggdraw() + 
+  # Add global title with subtitle
+  title_gg <- cowplot::ggdraw() + 
     cowplot::draw_label("Comparing interaction detection across two statistical methods",
                        fontface = "bold", size = 16, x = 0.5, y = 0.75) +
     cowplot::draw_label("Concordance analysis between GAM and Friedman tests",
                        fontface = "italic", size = 12, x = 0.5, y = 0.45, color = "gray40")
   
-  cowplot::plot_grid(
-    title_grob,
+  # Combine all elements and convert to grob
+  final_plot <- cowplot::plot_grid(
+    title_gg,
     main_grid,
     nrow = 2,
     rel_heights = c(0.15, 1)
   )
+  
+  # Convert to grob to ensure consistent return type
+  gridExtra::arrangeGrob(final_plot)
 }
 
 

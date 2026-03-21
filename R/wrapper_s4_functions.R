@@ -770,7 +770,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' }
 #'
 #' @export
-jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, ...) {
+jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -806,14 +806,28 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, ...) {
            call. = FALSE)
     }
 
-    # Get diversity result
+    # Get diversity result (SummarizedExperiment with diversity assay)
     div_result <- analysis@diversity_results[[div_key]]
+    
+    # Extract diversity matrix from the SummarizedExperiment
+    if (is(div_result, "SummarizedExperiment")) {
+      # Get the diversity assay (should be named "diversity" from calculate_diversity_s4)
+      if (length(SummarizedExperiment::assays(div_result)) > 0) {
+        div_matrix <- as.matrix(SummarizedExperiment::assay(div_result, 1))
+      } else {
+        stop("Diversity SE for q=", q_val, " has no assays", call. = FALSE)
+      }
+    } else {
+      # If not a SE, assume it's already a matrix
+      div_matrix <- as.matrix(div_result)
+    }
 
-    # Run jackknife
+    # Run jackknife - pass the diversity matrix as x
     tryCatch({
       result <- jackknife_tsallis_entropy(
-        se = analysis@se,
+        x = div_matrix,
         q = q_val,
+        print_results = print_results,
         ...
       )
 

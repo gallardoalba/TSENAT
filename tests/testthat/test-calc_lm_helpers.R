@@ -5,8 +5,8 @@ library(testthat)
 # Report summary messages
 test_that(".tsenat_report_fit_summary prints fallback and singular messages", {
     df <- data.frame(fit_method = c("lm_nosubject", "lmer", NA), singular = c(TRUE, FALSE, NA), stringsAsFactors = FALSE)
-    expect_message(.tsenat_report_fit_summary(df, verbose = TRUE), "fallback fits used")
-    expect_message(.tsenat_report_fit_summary(df, verbose = TRUE), "singular fits detected")
+    expect_message(.tsenat_report_fit_summary(df, verbose = TRUE), "Alternative method")
+    expect_message(.tsenat_report_fit_summary(df, verbose = TRUE), "Singular fits")
 })
 
 # GAM interaction: skip if mgcv not available

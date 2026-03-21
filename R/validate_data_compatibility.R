@@ -271,6 +271,12 @@ validate_lm_results <- function(
         lm_results <- lm_results$results
       } else {
         issues <- c(issues, "LM results must be data.frame or list with 'results' element")
+        return(list(
+          is_valid = FALSE,
+          n_results = 0,
+          columns_present = c(),
+          issues = issues
+        ))
       }
     } else {
       issues <- c(issues, "LM results must be data.frame or list")
@@ -329,8 +335,7 @@ validate_lm_results <- function(
     
     if (!is.null(result_genes)) {
       unmatched <- setdiff(expected_genes, result_genes)
-      if (length(unmatched) > 0 && length(unmatched) > length(expected_genes) * 0.5) {
-        # Only warn if > 50% of genes don't match
+      if (length(unmatched) > 0) {
         issues <- c(issues,
           paste0("Gene mismatch: ", length(unmatched), "/", length(expected_genes), " genes not in results"))
       }

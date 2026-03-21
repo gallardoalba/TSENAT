@@ -483,7 +483,10 @@ test_that("map_metadata with pairing column in coldata validates pairs", {
 context("Metadata Mapping: Environment-Based Transcript Lookups")
 
 test_that("map_metadata finds txmap in parent.frame", {
-    # This test covers: if (exists("txmap", envir = parent.frame())) { md$tx2gene <- get("txmap", envir = parent.frame()) }
+    # This test covers environment-based lookup behavior
+    # Note: as of recent changes, .map_metadata() no longer looks up txmap from parent.frame
+    # to ensure reproducible, self-contained workflows. This test verifies the function
+    # still works without errors, and that tx2gene metadata is not auto-populated.
     wrapper_func <- function() {
         # Define txmap in this function's environment
         txmap <- data.frame(
@@ -502,13 +505,16 @@ test_that("map_metadata finds txmap in parent.frame", {
         colnames(mat) <- c("S1_q=0.5", "S2_q=0.5")
         se <- SummarizedExperiment(assays = S4Vectors::SimpleList(assay1 = mat))
         
-        # Call map_metadata - it should find txmap in parent.frame
+        # Call map_metadata - function runs without error
         result <- TSENAT:::.map_metadata(se, coldata)
         
-        # Verify that tx2gene was set in metadata
+        # Verify that function completed successfully
+        expect_true(inherits(result, "SummarizedExperiment"))
+        
+        # Verify that tx2gene is NOT automatically populated from parent frame
+        # (this behavior was deliberately removed for reproducibility)
         md <- S4Vectors::metadata(result)
-        expect_true(!is.null(md$tx2gene))
-        expect_equal(nrow(md$tx2gene), 3)
+        expect_true(is.null(md$tx2gene) || is.na(md$tx2gene))
     }
     wrapper_func()
 })

@@ -295,6 +295,7 @@ tsenat <- function(
         analysis <- jackknife_tsallis_entropy_s4(
           analysis,
           q = q_vals,
+          print_results = FALSE,
           ...
         )
         if (verbose) cat("  \u2713 Jackknife CIs computed\n\n")
