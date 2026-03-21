@@ -8,6 +8,12 @@ output:
     fig_width: 10
     fig_height: 6.5
     toc_depth: 2
+  rmarkdown::pdf_document:
+    toc: true
+    fig_width: 10
+    fig_height: 6.5
+    toc_depth: 2
+    latex_engine: xelatex
 bibliography: TSENAT.bib
 suppress-bibliography: true
 vignette: |
@@ -168,7 +174,7 @@ of isoform complexity.
 
 Tsallis entropy exhibits several important mathematical limits and special cases:
 
-- q→1 (Shannon entropy): \(\lim_{q\to1} S_q(p) = H(p) = -\sum_i p_i\log p_i\)
+- q->1 (Shannon entropy): \(\lim_{q\to1} S_q(p) = H(p) = -\sum_i p_i\log p_i\)
   - Classical information entropy (measured in bits if log base 2, or nats if natural log)
   - Treats all isoforms with equal weight regardless of abundance
 
@@ -395,7 +401,7 @@ if (file.exists(filtered_analysis_file)) {
     cat("Loaded filtered TSENATAnalysis object from", filtered_analysis_file, "\n")
 } else {
     # Filter analysis using stringency parameter
-    # Medium stringency keeps transcripts present in ≥50% of samples
+    # Medium stringency keeps transcripts present in >= 50% of samples
     analysis <- filter_analysis(
         analysis, 
         stringency = "medium", 
@@ -885,8 +891,8 @@ automatically respects Tsallis entropy properties and adapts to each q value.
 
 Theoretical Justification: **Tsallis entropy** theory [@I002, @I004] demonstrates that 
 different q values reveal fundamentally different aspects of the isoform distribution. 
-As documented in the foundational divergence literature [@I004], D₀.₅(P||Q) often differs 
-substantially from D₂(P||Q), with q=0.5 emphasizing rare variants and q=2 emphasizing 
+As documented in the foundational divergence literature [@I004], $D_{0.5}(P||Q)$ often differs 
+substantially from $D_{2}(P||Q)$, with q=0.5 emphasizing rare variants and q=2 emphasizing 
 abundant isoforms. Computing effect sizes independently at each q value thus captures 
 which diversity scales (rare vs. dominant isoforms) show the strongest biological 
 differentiation between conditions.
@@ -1063,7 +1069,7 @@ Interpretation of Pattern Types:
 |--------------|-----------|-------------------|
 | Rare driven | D(q=0.5) >> D(q=2.0) | Low-abundance isoforms are condition-specific; treatment group preferentially expresses rare transcripts not seen in control |
 | Abundant driver | D(q=0.5) << D(q=2.0) | High-abundance isoforms shift between conditions; treatment remodels the dominant transcript landscape without rare variants changing |
-| Balanced | D(q=0.5) ≈ D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
+| Balanced | D(q=0.5) ~= D(q=2.0) | All isoforms shift proportionally; no preferential weighting to rare or abundant forms; suggests systematic rebalancing |
 
 The effect sizes reveal which genes show the most information-theoretic separation 
 across the q-spectrum **between paired treatment groups**. Genes with Tsallis divergence D > 0.1 show 
@@ -1072,7 +1078,7 @@ across the full q-spectrum.
 
 **Biological Interpretation:** Following Tsallis entropy theory and information-theoretic principles [@I002; @I003; @I004], 
 genes with large D values are those where isoform complexity distributions differ qualitatively between conditions 
-when examined at all sensitivity scales (q = rare → abundant isoforms). For example, a gene might show 
+when examined at all sensitivity scales (q = rare -> abundant isoforms). For example, a gene might show 
 high entropy at low q (emphasizing rare isoforms) in one condition but low entropy at high q (emphasizing 
 abundant isoforms) in another, revealing scale-dependent regulatory mechanisms. These genes are candidates 
 for investigation of condition-specific splicing architecture and dynamic isoform switching.
