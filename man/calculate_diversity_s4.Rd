@@ -10,7 +10,7 @@ calculate_diversity_s4(analysis, q = NULL, ...)
 \item{analysis}{\code{TSENATAnalysis} object.}
 
 \item{q}{\code{numeric}. Q-value(s) for Tsallis entropy.
-If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to 1.0.}
+If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).}
 
 \item{...}{Additional arguments passed to \code{\link{calculate_diversity}},
 including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.}
@@ -29,7 +29,7 @@ results as SummarizedExperiment objects. It extracts key parameters from
 
 **Parameter Priority Resolution:**
 \describe{
-  \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default: 1.0)\cr
+  \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default: seq(0.01, 2, by = 0.05))\cr
     **Note:** If explicit q AND \code{@config$q_values} both provided, explicit wins.}
   \item{verbose}{Priority: explicit > \code{@config$verbose} > TRUE}
   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}

@@ -11,7 +11,8 @@ plot_top_transcripts_s4(
   top_n = 3,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ One of "median", "mean", "variance", or "iqr" (default: "median").}
 
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plotting (default: FALSE).}
+
+\item{...}{Additional arguments passed to \code{\link{plot_top_transcripts}}.}
 }
 \value{
 A file path (character) to the saved plot PNG file, invisibly.

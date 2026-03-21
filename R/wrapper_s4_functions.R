@@ -12,7 +12,7 @@
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for Tsallis entropy.
-#'   If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to 1.0.
+#'   If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).
 #' @param ... Additional arguments passed to \code{\link{calculate_diversity}},
 #'   including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.
 #'
@@ -26,7 +26,7 @@
 #'
 #' **Parameter Priority Resolution:**
 #' \describe{
-#'   \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default: 1.0)\cr
+#'   \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default: seq(0.01, 2, by = 0.05))\cr
 #'     **Note:** If explicit q AND \code{@config$q_values} both provided, explicit wins.}
 #'   \item{verbose}{Priority: explicit > \code{@config$verbose} > TRUE}
 #'   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}
@@ -85,12 +85,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
 
   # Priority 1: Use explicit parameter if provided
   # Priority 2: Use @config$q_values if set
-  # Priority 3: Default to 1.0
+  # Priority 3: Default to seq(0.01, 2, by = 0.05)
   if (is.null(q)) {
     if ("q_values" %in% names(analysis@config)) {
       q <- analysis@config$q_values
     } else {
-      q <- 1.0
+      q <- seq(0.01, 2, by = 0.05)
     }
   }
 
@@ -887,7 +887,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' }
 #'
 #' @export
-calculate_divergence_s4 <- function(analysis, q = NULL, ...) {
+calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -950,7 +950,8 @@ calculate_divergence_s4 <- function(analysis, q = NULL, ...) {
   # Run divergence calculation with extracted parameters
   args <- list(
     se = analysis@se,
-    q = q
+    q = q,
+    verbose = verbose
   )
   
   # Add parameters from @config if not already in ...
@@ -1020,7 +1021,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, ...) {
 #' Detect q-dependent gene interactions
 #'
 #' @param analysis \code{TSENATAnalysis} object.
-#' @param q_values \code{numeric} or \code{NULL}. Q-values to test across spectrum.
+#' @param q \code{numeric} or \code{NULL}. Q-values to test across spectrum.
 #'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
 #' @param ... Additional arguments passed to \code{\link{detect_q_gene_interactions}}.
 #'
@@ -1031,7 +1032,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, ...) {
 #'
 #' **Parameter resolution priority** (explicit > @config > extract from results):
 #' \itemize{
-#'   \item \code{q_values}: Uses explicit arg, else \code{@config$q_values},
+#'   \item \code{q}: Uses explicit arg, else \code{@config$q_values},
 #'     else extracts from diversity_results keys
 #' }
 #'
@@ -1039,12 +1040,12 @@ calculate_divergence_s4 <- function(analysis, q = NULL, ...) {
 #' \dontrun{
 #'   analysis <- detect_q_gene_interactions_s4(
 #'     analysis,
-#'     q_values = seq(0.5, 2.0, by = 0.5)
+#'     q = seq(0.5, 2.0, by = 0.5)
 #'   )
 #' }
 #'
 #' @export
-detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
+detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1058,10 +1059,10 @@ detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
   # =========================================================================
   # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > extract from results)
   # =========================================================================
-  # If q_values not provided, check @config
-  if (is.null(q_values)) {
+  # If q not provided, check @config
+  if (is.null(q)) {
     if ("q_values" %in% names(analysis@config)) {
-      q_values <- analysis@config$q_values
+      q <- analysis@config$q_values
     }
     # Otherwise, will extract from diversity_results keys below
   }
@@ -1077,14 +1078,12 @@ detect_q_gene_interactions_s4 <- function(analysis, q_values = NULL, ...) {
       is.list(analysis@metadata$diversity_combined) &&
       !is.null(analysis@metadata$diversity_combined$combined_se)) {
     
-    cat("[detect_q_gene_interactions_s4] Using cached combined diversity result (OPTIMIZATION)\n")
     
     # Use cached combined SE directly - it has correct structure and metadata
     se_multi_q <- analysis@metadata$diversity_combined$combined_se
     
     # Verify it's valid
     if (!is(se_multi_q, "SummarizedExperiment") || ncol(se_multi_q) == 0) {
-      cat("[detect_q_gene_interactions_s4] Cached SE invalid, falling back to per-q recombination\n")
       se_multi_q <- NULL
     }
   } else {
@@ -1661,7 +1660,7 @@ plot_volcano_ma_grid_s4 <- function(
     top_n = 5,
     title_volcano = NULL,
     title_ma = "Tsallis-based MA plot",
-    verbose = TRUE,
+    verbose = FALSE,
     ...) {
 
   # Auto-detect verbose from config if not explicitly provided
@@ -1696,11 +1695,6 @@ plot_volcano_ma_grid_s4 <- function(
     stop("Difference results are empty or not a data frame", call. = FALSE)
   }
 
-  if (verbose) {
-    cat("[plot_volcano_ma_grid_s4] Found", nrow(diff_df), "genes in difference results\n")
-    cat("[plot_volcano_ma_grid_s4] Columns available:", paste(colnames(diff_df), collapse = ", "), "\n")
-  }
-
   # Validate padj_col exists
   # Handle both "padj" and "adjusted_p_values" column names
   actual_padj_col <- padj_col
@@ -1708,15 +1702,9 @@ plot_volcano_ma_grid_s4 <- function(
     # Try alternative column name
     if ("adjusted_p_values" %in% colnames(diff_df) && padj_col == "padj") {
       actual_padj_col <- "adjusted_p_values"
-      if (verbose) {
-        cat("[plot_volcano_ma_grid_s4] Using 'adjusted_p_values' instead of 'padj'\n")
-      }
     } else if ("pvalue" %in% colnames(diff_df) && padj_col == "padj") {
       # Fallback to raw p-values if adjusted not available
       actual_padj_col <- "pvalue"
-      if (verbose) {
-        cat("[plot_volcano_ma_grid_s4] Using 'pvalue' as padj_col (adjusted p-values not found)\n")
-      }
     } else {
       stop("Column '", padj_col, "' not found in difference results. ",
            "Available columns: ", paste(colnames(diff_df), collapse = ", "),
@@ -1729,29 +1717,13 @@ plot_volcano_ma_grid_s4 <- function(
   if (is.null(x_col)) {
     if ("mean_difference" %in% colnames(diff_df)) {
       x_col <- "mean_difference"
-      if (verbose) {
-        cat("[plot_volcano_ma_grid_s4] Using 'mean_difference' for x-axis\n")
-      }
     } else if ("log2_fold_change" %in% colnames(diff_df)) {
       x_col <- "log2_fold_change"
-      if (verbose) {
-        cat("[plot_volcano_ma_grid_s4] Using 'log2_fold_change' for x-axis\n")
-      }
     } else {
       warning("Could not auto-detect x_col. Available numeric columns: ",
               paste(colnames(diff_df)[sapply(diff_df, is.numeric)], collapse = ", "),
               call. = FALSE)
     }
-  }
-
-  # Create the plot
-  if (verbose) {
-    cat("[plot_volcano_ma_grid_s4] Creating volcano and MA plot grid...\n")
-    cat("  x_col:", x_col, "\n")
-    cat("  padj_col:", actual_padj_col, "\n")
-    cat("  sig_alpha:", sig_alpha, "\n")
-    cat("  label_thresh:", label_thresh, "\n")
-    cat("  top_n:", top_n, "\n")
   }
 
   plot_obj <- tryCatch({
@@ -2705,6 +2677,8 @@ effect_sizes_divergence_s4 <- function(
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
+#' @param ... Additional arguments passed to \code{\link{plot_top_transcripts}}.
+#'
 #' @return A file path (character) to the saved plot PNG file, invisibly.
 #'
 #' @details
@@ -2747,7 +2721,8 @@ plot_top_transcripts_s4 <- function(
     top_n = 3,
     output_file = NULL,
     metric = c("median", "mean", "variance", "iqr"),
-    verbose = FALSE) {
+    verbose = FALSE,
+    ...) {
 
   # Auto-detect verbose from config if not explicitly provided
   if (isFALSE(verbose)) {
@@ -2891,7 +2866,8 @@ plot_top_transcripts_s4 <- function(
       res = lm_results_df,
       top_n = top_n,
       output_file = output_file,
-      metric = metric[1]  # Use first metric if multiple provided
+      metric = metric[1],  # Use first metric if multiple provided
+      ...
     )
   }, error = function(e) {
     stop("[plot_top_transcripts_s4] Error in plotting:\n",
@@ -3080,7 +3056,7 @@ plot_divergence_distribution_s4 <- function(
 #'   isoforms/transcripts. Default: "transcript" or "isoform".
 #'
 #' @param q \code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
-#'   or vector for multi-q analysis (default: 1).
+#'   or vector for multi-q analysis (default: c(0.01, 0.5, 1, 1.5, 2)).
 #'
 #' @param norm \code{logical}. Whether to use normalized diversity values 
 #'   (default: TRUE).
@@ -3090,7 +3066,8 @@ plot_divergence_distribution_s4 <- function(
 #'   as "switching".
 #'
 #' @param n_bootstrap \code{integer}. Number of bootstrap resamples for confidence 
-#'   intervals (default: 1000).
+#'   intervals (default: 500). Values below 50 are accepted but will trigger a warning, 
+#'   as results may have high variance and unstable p-values. Minimum recommended: 50.
 #'
 #' @param lm_results \code{data.frame}. Optional LM interaction results to filter genes.
 #'   If provided, only genes in lm_results are analyzed.
@@ -3131,14 +3108,20 @@ plot_divergence_distribution_s4 <- function(
 #'
 #' @examples
 #' \dontrun{
-#'   # Basic usage with single q-value
+#'   # Default multi-q analysis (q = c(0.01, 0.5, 1, 1.5, 2))
+#'   results <- jackknife_isoform_switching_s4(
+#'     analysis,
+#'     condition_col = "sample_type"
+#'   )
+#'   
+#'   # Single q-value analysis
 #'   results <- jackknife_isoform_switching_s4(
 #'     analysis,
 #'     condition_col = "sample_type",
 #'     q = 1
 #'   )
 #'   
-#'   # Multi-q analysis across diversity scales
+#'   # Custom multi-q analysis across diversity scales
 #'   results <- jackknife_isoform_switching_s4(
 #'     analysis,
 #'     condition_col = "sample_type",
@@ -3163,10 +3146,10 @@ jackknife_isoform_switching_s4 <- function(
   subject_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
-  q = 1,
+  q = c(0.01, 0.5, 1, 1.5, 2),
   norm = TRUE,
   threshold = 90,
-  n_bootstrap = 1000,
+  n_bootstrap = 500,
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
@@ -3183,7 +3166,8 @@ jackknife_isoform_switching_s4 <- function(
   }
 
   # Auto-detect q-values from config if using default
-  if (length(q) == 1 && q == 1) {
+  default_q <- c(0.01, 0.5, 1, 1.5, 2)
+  if (identical(q, default_q)) {
     if ("q_values" %in% names(analysis@config)) {
       config_q <- analysis@config$q_values
       if (!is.null(config_q) && is.numeric(config_q)) {
@@ -3208,6 +3192,20 @@ jackknife_isoform_switching_s4 <- function(
   if (!inherits(se, "SummarizedExperiment")) {
     stop("[jackknife_isoform_switching_s4] @se must be a SummarizedExperiment object",
          call. = FALSE)
+  }
+  
+  # Validate n_bootstrap parameter
+  if (!is.numeric(n_bootstrap) || n_bootstrap < 1 || n_bootstrap != as.integer(n_bootstrap)) {
+    stop("[jackknife_isoform_switching_s4] n_bootstrap must be a positive integer",
+         call. = FALSE)
+  }
+  
+  if (n_bootstrap < 50) {
+    warning("[jackknife_isoform_switching_s4] n_bootstrap = ", n_bootstrap, 
+            " is less than the recommended minimum of 50. ",
+            "Results may have high variance and unstable p-values. ",
+            "Consider using n_bootstrap >= 50 for more robust estimates.",
+            call. = FALSE)
   }
   
   # =========================================================================
@@ -3428,6 +3426,8 @@ jackknife_isoform_switching_s4 <- function(
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during table preparation.
 #'
+#' @param ... Additional arguments passed to \code{\link{prepare_gene_switching_tables}}.
+#'
 #' @return A list containing:
 #'   \describe{
 #'     \item{\code{$summary_table}}{Gene-level summary with LM p-values and
@@ -3468,7 +3468,8 @@ prepare_gene_switching_tables_s4 <- function(
     analysis,
     n_top_genes = NULL,
     n_transcripts_per_gene = 10,
-    verbose = FALSE) {
+    verbose = FALSE,
+    ...) {
   
   # Auto-detect verbose from config if not explicitly provided
   if (isFALSE(verbose)) {
@@ -3560,7 +3561,8 @@ prepare_gene_switching_tables_s4 <- function(
     multi_q_results = multi_q_results,
     n_top_genes = n_top_genes,
     n_transcripts_per_gene = n_transcripts_per_gene,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   
   if (verbose) cat("✓ Gene switching tables prepared successfully\n")
@@ -3593,6 +3595,8 @@ prepare_gene_switching_tables_s4 <- function(
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plot generation (default: FALSE).
+#'
+#' @param ... Additional arguments passed to \code{\link{plot_multiq_delta_influence_heatmaps}}.
 #'
 #' @return A file path (character) to the saved heatmap PNG file, invisibly.
 #'
@@ -3634,7 +3638,8 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     analysis,
     n_genes = 4,
     lm_results = NULL,
-    verbose = FALSE) {
+    verbose = FALSE,
+    ...) {
   
   # Auto-detect verbose from config if not explicitly provided
   if (isFALSE(verbose)) {
@@ -3706,7 +3711,8 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
   heatmap_file <- plot_multiq_delta_influence_heatmaps(
     switching_results = switching_results,
     n_genes = n_genes,
-    lm_results = lm_results
+    lm_results = lm_results,
+    ...
   )
   
   if (verbose) {

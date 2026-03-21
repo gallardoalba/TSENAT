@@ -11,10 +11,10 @@ jackknife_isoform_switching_s4(
   subject_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
-  q = 1,
+  q = c(0.01, 0.5, 1, 1.5, 2),
   norm = TRUE,
   threshold = 90,
-  n_bootstrap = 1000,
+  n_bootstrap = 500,
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
@@ -27,10 +27,10 @@ jackknife_isoform_switching_s4(
   subject_col = NULL,
   gene_col = NULL,
   isoform_col = NULL,
-  q = 1,
+  q = c(0.01, 0.5, 1, 1.5, 2),
   norm = TRUE,
   threshold = 90,
-  n_bootstrap = 1000,
+  n_bootstrap = 500,
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
@@ -57,7 +57,7 @@ Default: "gene".}
 isoforms/transcripts. Default: "transcript" or "isoform".}
 
 \item{q}{\code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
-or vector for multi-q analysis (default: 1).}
+or vector for multi-q analysis (default: c(0.01, 0.5, 1, 1.5, 2)).}
 
 \item{norm}{\code{logical}. Whether to use normalized diversity values 
 (default: TRUE).}
@@ -67,7 +67,8 @@ or vector for multi-q analysis (default: 1).}
 as "switching".}
 
 \item{n_bootstrap}{\code{integer}. Number of bootstrap resamples for confidence 
-intervals (default: 1000).}
+intervals (default: 500). Values below 50 are accepted but will trigger a warning, 
+as results may have high variance and unstable p-values. Minimum recommended: 50.}
 
 \item{lm_results}{\code{data.frame}. Optional LM interaction results to filter genes.
 If provided, only genes in lm_results are analyzed.}
@@ -163,14 +164,20 @@ This wrapper automatically:
 }
 
 \dontrun{
-  # Basic usage with single q-value
+  # Default multi-q analysis (q = c(0.01, 0.5, 1, 1.5, 2))
+  results <- jackknife_isoform_switching_s4(
+    analysis,
+    condition_col = "sample_type"
+  )
+  
+  # Single q-value analysis
   results <- jackknife_isoform_switching_s4(
     analysis,
     condition_col = "sample_type",
     q = 1
   )
   
-  # Multi-q analysis across diversity scales
+  # Custom multi-q analysis across diversity scales
   results <- jackknife_isoform_switching_s4(
     analysis,
     condition_col = "sample_type",

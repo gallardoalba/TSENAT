@@ -8,7 +8,8 @@ prepare_gene_switching_tables_s4(
   analysis,
   n_top_genes = NULL,
   n_transcripts_per_gene = 10,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -24,6 +25,8 @@ to display per gene in the output tables (default: 10).}
 
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during table preparation.}
+
+\item{...}{Additional arguments passed to \code{\link{prepare_gene_switching_tables}}.}
 }
 \value{
 A list containing:

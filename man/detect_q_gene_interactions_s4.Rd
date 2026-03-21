@@ -4,12 +4,12 @@
 \alias{detect_q_gene_interactions_s4}
 \title{Detect q-dependent gene interactions}
 \usage{
-detect_q_gene_interactions_s4(analysis, q_values = NULL, ...)
+detect_q_gene_interactions_s4(analysis, q = NULL, ...)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
 
-\item{q_values}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
+\item{q}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
 If NULL, auto-detects from \code{@config$q_values} or diversity results.}
 
 \item{...}{Additional arguments passed to \code{\link{detect_q_gene_interactions}}.}
@@ -25,7 +25,7 @@ Analyzes how gene interactions change across q-value spectrum.
 
 **Parameter resolution priority** (explicit > @config > extract from results):
 \itemize{
-  \item \code{q_values}: Uses explicit arg, else \code{@config$q_values},
+  \item \code{q}: Uses explicit arg, else \code{@config$q_values},
     else extracts from diversity_results keys
 }
 }
@@ -33,7 +33,7 @@ Analyzes how gene interactions change across q-value spectrum.
 \dontrun{
   analysis <- detect_q_gene_interactions_s4(
     analysis,
-    q_values = seq(0.5, 2.0, by = 0.5)
+    q = seq(0.5, 2.0, by = 0.5)
   )
 }
 

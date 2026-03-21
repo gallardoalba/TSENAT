@@ -573,6 +573,7 @@ calculate_divergence <- function(
     pseudocount = 0.5,
     nthreads = 1,
     progress = FALSE,
+    verbose = TRUE,
     seed = NULL) {
 
   # =========================================================================

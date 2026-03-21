@@ -22,6 +22,34 @@ setup_test_genes <- function(n_genes = 1000) {
   paste0("GENE_", seq_len(n_genes))
 }
 
+# Helper function for consistent benchmark reporting
+.report_benchmark <- function(test_name, times_ns, threshold_ms = NULL) {
+  median_ms <- median(times_ns) / 1e6
+  min_ms <- min(times_ns) / 1e6
+  max_ms <- max(times_ns) / 1e6
+  mean_ms <- mean(times_ns) / 1e6
+  sd_ms <- sd(times_ns) / 1e6
+  
+  # Calculate percentiles
+  p25_ms <- quantile(times_ns, 0.25) / 1e6
+  p75_ms <- quantile(times_ns, 0.75) / 1e6
+  
+  cat("\n✓", test_name, ":\n")
+  cat("  Median:    ", round(median_ms, 1), " ms\n", sep = "")
+  cat("  Mean:      ", round(mean_ms, 1), " ms\n", sep = "")
+  cat("  StdDev:    ", round(sd_ms, 1), " ms\n", sep = "")
+  cat("  Range:     ", round(min_ms, 1), " - ", round(max_ms, 1), " ms\n", sep = "")
+  cat("  IQR:       ", round(p25_ms, 1), " - ", round(p75_ms, 1), " ms\n", sep = "")
+  
+  if (!is.null(threshold_ms)) {
+    status <- if (median_ms < threshold_ms) "✓ PASS" else "✗ FAIL"
+    usage_pct <- round((median_ms / threshold_ms) * 100, 1)
+    cat("  Threshold: ", round(threshold_ms, 1), " ms (", usage_pct, "% usage) - ", status, "\n", sep = "")
+  }
+  
+  invisible(list(median = median_ms, mean = mean_ms, sd = sd_ms, min = min_ms, max = max_ms))
+}
+
 # ============================================================================
 # TEST 1: DIVERSITY CALCULATION - ABSOLUTE PERFORMANCE
 # ============================================================================
@@ -40,19 +68,13 @@ test_that("calculate_diversity completes in acceptable time", {
     calculate_diversity(counts, genes, q = q_values, norm = FALSE)
   )
   
-  median_ms <- median(bench$time) / 1e6
-  min_ms <- min(bench$time) / 1e6
-  max_ms <- max(bench$time) / 1e6
+  # REQUIREMENT: Must complete with tight bound to catch regressions
+  # Observed: ~1137.7 ms; threshold = 1300 ms (tightened for better regression detection)
+  expect_lt(median(bench$time) / 1e6, 1300)
   
-  # REQUIREMENT: Must complete in 2.5 seconds
-  # Observed: ~1018 ms; threshold = 2.5x median for variance tolerance
-  expect_lt(median_ms, 2500)
-  
-  # Print benchmark results for CI logs
-  cat("\n✓ calculate_diversity(1000 genes, 10 samples, 16 q-values):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Range:  ", round(min_ms, 1), " - ", round(max_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 3000 ms)\n")
+  # Enhanced benchmark reporting
+  .report_benchmark("calculate_diversity(1000 genes, 10 samples, 16 q-values)",
+                    bench$time, threshold_ms = 1300)
 })
 
 # ============================================================================
@@ -72,15 +94,12 @@ test_that("calculate_diversity with normalization is efficient", {
     calculate_diversity(counts, genes, q = q_values, norm = TRUE)
   )
   
-  median_ms <- median(bench$time) / 1e6
-  
   # Normalized should be only slightly slower than raw (adds z-score computation)
-  # Observed: ~1063 ms; threshold = 2.5x median
-  expect_lt(median_ms, 2500)
+  # Observed: ~1198.8 ms; threshold = 1350 ms (tightened for better regression detection)
+  expect_lt(median(bench$time) / 1e6, 1350)
   
-  cat("\n✓ calculate_diversity(1000 genes, 10 samples, norm=TRUE):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 4000 ms)\n")
+  .report_benchmark("calculate_diversity(1000 genes, 10 samples, norm=TRUE)",
+                    bench$time, threshold_ms = 1350)
 })
 
 # ============================================================================
@@ -98,15 +117,12 @@ test_that("zscore normalization is fast enough (internal bottleneck)", {
     .tsenat_normalize_zscore(entropy_matrix, per_q = TRUE)
   )
   
-  median_ms <- median(bench$time) / 1e6
+  # Internal helper should be very fast - tighten threshold for regression detection
+  # Observed: ~2.3 ms; threshold = 3 ms (~77% usage)
+  expect_lt(median(bench$time) / 1e6, 3)
   
-  # Internal helper should be very fast
-  # Observed: ~1.7 ms; threshold = 100x median for safety
-  expect_lt(median_ms, 200)
-  
-  cat("\n✓ .tsenat_normalize_zscore(1000 rows × 50 cols):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 500 ms)\n")
+  .report_benchmark(".tsenat_normalize_zscore(1000 rows × 50 cols)",
+                    bench$time, threshold_ms = 3)
 })
 
 # ============================================================================
@@ -247,15 +263,12 @@ test_that("calculate_lm_interaction_s4 completes efficiently", {
     calculate_lm_interaction(se, condition_col = "condition")
   )
   
-  median_ms <- median(bench$time) / 1e6
+  # LM fitting should be reasonably fast - tighter threshold for regression tracking
+  # Observed: ~112.4 ms; threshold = 150 ms (~75% usage)
+  expect_lt(median(bench$time) / 1e6, 150)
   
-  # LM fitting should be reasonably fast
-  # Observed: ~98.7 ms; threshold = 2.5x median
-  expect_lt(median_ms, 250)
-  
-  cat("\n✓ calculate_lm_interaction (50 genes, 6 samples with 3 q-values):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 5000 ms)\n")
+  .report_benchmark("calculate_lm_interaction (50 genes, 6 samples with 3 q-values)",
+                    bench$time, threshold_ms = 150)
 })
 
 # ============================================================================
@@ -304,13 +317,12 @@ test_that("jackknife_isoform_switching_s4 completes in reasonable time", {
   
   median_ms <- median(bench$time) / 1e6
   
-  # Jackknife is computationally expensive
-  # Observed: ~1298.8 ms; threshold = 3x median
-  expect_lt(median_ms, 4000)
+  # Jackknife is computationally expensive - tighter threshold for regression tracking
+  # Observed: ~1490.9 ms; threshold = 2000 ms (~75% usage)
+  expect_lt(median_ms, 2000)
   
-  cat("\n✓ jackknife_isoform_switching_s4 (150 transcripts, 40 genes, nboot=100):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 10000 ms)\n")
+  .report_benchmark("jackknife_isoform_switching_s4 (150 transcripts, 40 genes, nboot=100)",
+                    bench$time, threshold_ms = 2000)
 })
 
 # ============================================================================
@@ -341,18 +353,15 @@ test_that("detect_q_gene_interactions_s4 completes efficiently", {
   # Benchmark q-gene interaction detection
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    detect_q_gene_interactions_s4(analysis, q_values = q_vals)
+    detect_q_gene_interactions_s4(analysis, q = q_vals)
   )
   
-  median_ms <- median(bench$time) / 1e6
+  # Should complete quickly - threshold = 1.3x median (320 ms) for tighter regression tracking
+  # Observed: ~243.7 ms; threshold = 320 ms (tightened for better detection)
+  expect_lt(median(bench$time) / 1e6, 320)
   
-  # Should complete quickly
-  # Observed: ~228.6 ms; threshold = 2.5x median
-  expect_lt(median_ms, 600)
-  
-  cat("\n✓ detect_q_gene_interactions_s4 (200 transcripts, 50 genes, 4 q-values):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 3000 ms)\n")
+  .report_benchmark("detect_q_gene_interactions_s4 (200 transcripts, 50 genes, 4 q-values)",
+                    bench$time, threshold_ms = 320)
 })
 
 # ============================================================================
@@ -375,15 +384,12 @@ test_that("filter_se is efficient", {
     filter_se(se, min_tpm = 1.0, min_samples = 5, tpm_assay_name = "tpm")
   )
   
-  median_ms <- median(bench$time) / 1e6
+  # Filtering should be very fast - tighter threshold for regression detection
+  # Observed: ~13.4 ms; threshold = 18 ms (~74% usage)
+  expect_lt(median(bench$time) / 1e6, 18)
   
-  # Filtering should be very fast
-  # Observed: ~11.7 ms; threshold = 100x median
-  expect_lt(median_ms, 1200)
-  
-  cat("\n✓ filter_se on 2000×20 matrix:\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 500 ms)\n")
+  .report_benchmark("filter_se on 2000×20 matrix",
+                    bench$time, threshold_ms = 18)
 })
 
 # ============================================================================
@@ -424,15 +430,12 @@ test_that("calculate_divergence_s4 completes efficiently", {
     calculate_divergence_s4(analysis, group_col = "condition")
   )
   
-  median_ms <- median(bench$time) / 1e6
+  # Divergence calculation should be efficient - tighter threshold for regression detection
+  # Observed: ~417.9 ms; threshold = 550 ms (tightened to ~1.3x median)
+  expect_lt(median(bench$time) / 1e6, 550)
   
-  # Divergence calculation should be efficient
-  # Observed: ~384 ms; threshold = 2.5x median
-  expect_lt(median_ms, 1000)
-  
-  cat("\n✓ calculate_divergence_s4 (500 transcripts, 100 genes, 4 q-values):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 5000 ms)\n")
+  .report_benchmark("calculate_divergence_s4 (500 transcripts, 100 genes, 4 q-values)",
+                    bench$time, threshold_ms = 550)
 })
 
 # ============================================================================
@@ -461,15 +464,12 @@ test_that("build_se construction is efficient", {
     build_se(readcounts = counts, tx2gene = tx2gene, skip = TRUE)
   )
   
-  median_ms <- median(bench$time) / 1e6
+  # Object construction should be very fast - tighter threshold for regression detection
+  # Observed: ~9.6 ms; threshold = 13 ms (~74% usage)
+  expect_lt(median(bench$time) / 1e6, 13)
   
-  # Object construction should be very fast
-  # Observed: ~7.9 ms; threshold = 100x median
-  expect_lt(median_ms, 800)
-  
-  cat("\n✓ build_se(1000×20 matrix):\n")
-  cat("  Median: ", round(median_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 500 ms)\n")
+  .report_benchmark("build_se(1000×20 matrix)",
+                    bench$time, threshold_ms = 13)
 })
 
 # ============================================================================
@@ -503,13 +503,12 @@ test_that("full orchestration pipeline completes in acceptable time", {
   
   total_ms <- median(bench$time) / 1e6
   
-  # Full build_analysis should be fast
-  # Observed: ~9.7 ms; threshold = 100x median
-  expect_lt(total_ms, 1000)
+  # Full build_analysis should be fast - tighter threshold for regression tracking
+  # Observed: ~11.1 ms; threshold = 15 ms (~74% usage)
+  expect_lt(total_ms, 15)
   
-  cat("\n✓ Full build_analysis (300 transcripts, 100 genes, 10 samples):\n")
-  cat("  Total time: ", round(total_ms, 1), " ms\n", sep = "")
-  cat("  Status: PASS (< 5000 ms)\n")
+  .report_benchmark("Full build_analysis (300 transcripts, 100 genes, 10 samples)",
+                    bench$time, threshold_ms = 15)
 })
 
 # ============================================================================
@@ -536,34 +535,42 @@ test_that("large analysis doesn't cause memory explosion", {
   # Check object size of results
   results_size <- object.size(list(counts = counts, results = div_results))
   
-  # Memory should not balloon
-  # Observed: ~0.4 MB; allow 50 MB for unexpected overhead (125x margin)
-  expect_lt(results_size, 50 * 1024^2)  # 50 MB limit
+  # Memory should not balloon - track memory efficiency
+  # Observed: ~0.37 MB; threshold = 0.5 MB (~74% usage)
+  expect_lt(results_size, 0.5 * 1024^2)  # 0.5 MB limit
   
+  # Enhanced memory reporting
   cat("\n✓ Memory efficiency (3000 genes, 15 samples, 4 q-values):\n")
-  cat("  Input counts:    ", round(initial_obj_size / 1024^2, 1), " MB\n", sep = "")
-  cat("  Total with results: ", round(results_size / 1024^2, 1), " MB\n", sep = "")
-  cat("  Status: PASS (< 500 MB)\n")
+  cat("  Input counts:       ", round(initial_obj_size / 1024^2, 2), " MB\n", sep = "")
+  cat("  Total with results: ", round(results_size / 1024^2, 2), " MB\n", sep = "")
+  cat("  Memory ratio:       ", round(results_size / initial_obj_size, 1), "x\n", sep = "")
+  cat("  Threshold:          0.5 MB (", round((results_size / (0.5 * 1024^2)) * 100, 1), "% usage)\n", sep = "")
+  cat("  Status: PASS (< 0.5 MB)\n")
 })
 
 # ============================================================================
 # SUMMARY
 # ============================================================================
-# Performance test checklist:
+# Performance test checklist with TIGHTENED thresholds optimized for 70-80% usage:
 #
-# ✓ TEST 1: Diversity calculation - <3s for 1K genes
-# ✓ TEST 2: Normalized diversity - <4s  
-# ✓ TEST 3: Internal normalization (zscore) - <500ms
-# ✓ TEST 4: Scaling with q-values - sublinear behavior verified
-# ✓ TEST 5: Scaling with gene count - linear behavior verified
-# ✓ TEST 6: LM interaction fitting - <5s for 50 genes × 6 samples
-# ✓ TEST 7: Jackknife isoform switching - <10s for 150 transcripts
-# ✓ TEST 7B: Detect q-gene interactions - <3s
-# ✓ TEST 8: Filter SE operations - <500ms
-# ✓ TEST 9: Calculate divergence - <5s
-# ✓ TEST 10: Build SE construction - <500ms
-# ✓ TEST 11: Full build_analysis pipeline - <5s
-# ✓ TEST 12: Memory efficiency - <500 MB for 3000 genes × 15 samples
+# ✓ TEST 1: Diversity calculation (1K genes, 16 q-values) - <1300ms (~90% usage)
+# ✓ TEST 2: Normalized diversity (1K genes, 16 q-values) - <1350ms (~94% usage)
+# ✓ TEST 3: Internal normalization (zscore) - <3ms (~77% usage)
+# ✓ TEST 4: Scaling with q-values - sublinear behavior verified (5x q → <6x time)
+# ✓ TEST 5: Scaling with gene count - linear behavior verified (2x genes → 0.5-3.5x time)
+# ✓ TEST 6: LM interaction fitting (50 genes) - <150ms (~75% usage)
+# ✓ TEST 7: Jackknife isoform switching (150 TX) - <2000ms (~75% usage)
+# ✓ TEST 7B: Detect q-gene interactions (200 TX, 4 q-values) - <320ms (~81% usage)
+# ✓ TEST 8: Filter SE operations (2K×20) - <18ms (~74% usage)
+# ✓ TEST 9: Calculate divergence (500 TX, 4 q-values) - <550ms (~82% usage)
+# ✓ TEST 10: Build SE construction (1K×20) - <13ms (~74% usage)
+# ✓ TEST 11: Full build_analysis pipeline - <15ms (~74% usage)
+# ✓ TEST 12: Memory efficiency (3K genes, 15 samples) - <0.5 MB (~74% usage)
+#
+# Threshold Strategy (optimized for regression detection):
+#   - All thresholds target 70-85% usage of median runtime
+#   - Provides good balance: sensitive to regressions, resistant to system noise
+#   - If a test fails, median runtime likely increased >15-25% from baseline
 #
 # Key Functions Tested:
 #   - calculate_diversity() / calculate_diversity_s4()

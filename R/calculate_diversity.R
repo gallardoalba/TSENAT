@@ -412,6 +412,15 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
         if (is.null(bootstrap_nboot)) {
             # Get number of genes that survived min_valid_frac filter
             n_genes_filtered <- nrow(result) - 1  # First column is gene_id
+            
+            # Safety check: ensure we have genes remaining after filtering
+            if (n_genes_filtered < 1) {
+                stop("After expression filtering, no genes remain to compute bootstrap. ",
+                     "Cannot estimate mutual information with n_genes < 1. ",
+                     "Try: increasing min_tpm, decreasing min_samples, or using more samples.",
+                     call. = FALSE)
+            }
+            
             bootstrap_nboot <- suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
             if (verbose) {
                 message(sprintf("  -> Auto-suggested nboot = %d for %d genes (method: %s)",

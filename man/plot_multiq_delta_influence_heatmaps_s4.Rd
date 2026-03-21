@@ -8,7 +8,8 @@ plot_multiq_delta_influence_heatmaps_s4(
   analysis,
   n_genes = 4,
   lm_results = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  ...
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ results for ranking genes (default: NULL). If NULL, attempts to extract from
 
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plot generation (default: FALSE).}
+
+\item{...}{Additional arguments passed to \code{\link{plot_multiq_delta_influence_heatmaps}}.}
 }
 \value{
 A file path (character) to the saved heatmap PNG file, invisibly.
