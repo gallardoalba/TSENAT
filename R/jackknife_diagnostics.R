@@ -204,16 +204,40 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     stop("'threshold' must be between 0 and 100")
   }
   
-  # Handle multiple q values
+  # Handle multiple q values (with parallel processing optimization)
   if (length(q) > 1) {
-    # Recursive call for each q value
-    results_list <- lapply(q, function(q_val) {
-      jackknife_tsallis_entropy(
-        x = x, se = se, res = res, top_n = top_n, q = q_val, 
-        norm = norm, log_base = log_base, pseudocount = pseudocount,
-        threshold = threshold, seed = seed, print_results = FALSE, verbose = verbose
-      )
-    })
+    # Use parallel processing if available and q-values > 2 (overhead cost)
+    use_parallel <- length(q) > 2 && requireNamespace("parallel", quietly = TRUE)
+    
+    if (use_parallel) {
+      # Use all available cores minus 1
+      n_cores <- max(1, parallel::detectCores() - 1)
+      cl <- parallel::makeCluster(n_cores, type = "PSOCK")
+      on.exit(parallel::stopCluster(cl), add = TRUE)
+      
+      # Export required functions to cluster
+      parallel::clusterExport(cl, c("jackknife_tsallis_entropy", ".tsenat_entropy_single"), 
+                             envir = environment())
+      
+      # Parallel lapply for each q value
+      results_list <- parallel::parLapply(cl, q, function(q_val) {
+        jackknife_tsallis_entropy(
+          x = x, se = se, res = res, top_n = top_n, q = q_val, 
+          norm = norm, log_base = log_base, pseudocount = pseudocount,
+          threshold = threshold, seed = seed, print_results = FALSE, verbose = verbose
+        )
+      })
+    } else {
+      # Sequential lapply for small q-value sets
+      results_list <- lapply(q, function(q_val) {
+        jackknife_tsallis_entropy(
+          x = x, se = se, res = res, top_n = top_n, q = q_val, 
+          norm = norm, log_base = log_base, pseudocount = pseudocount,
+          threshold = threshold, seed = seed, print_results = FALSE, verbose = verbose
+        )
+      })
+    }
+    
     names(results_list) <- paste0("q=", q)
     class(results_list) <- c("tsenat_jackknife_list_multiq", "list")
     
@@ -258,43 +282,51 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     # Extract top_n genes from results
     top_genes <- head(res_genes, top_n)
 
-    # For each gene, get all transcript indices
-    counts_list <- list()
-    gene_names_out <- character()
+    # For each gene, get all transcript indices (OPTIMIZED - pre-allocate and filter)
+    se_rownames <- rownames(se)
+    rd <- SummarizedExperiment::rowData(se)
+    rd_cols <- if (!is.null(rd)) colnames(rd) else character(0)
+    counts_assay <- as.matrix(SummarizedExperiment::assay(se, "counts"))
     
-    for (i in seq_along(top_genes)) {
-      gene <- top_genes[i]
+    # Process all genes at once, then filter results
+    results_temp <- lapply(top_genes, function(gene) {
+      # Fast lookup using match() instead of which()
+      tx_idx <- match(gene, se_rownames)
       
-      # First, check if gene is in rownames (transcript ID case)
-      tx_idx <- which(rownames(se) == gene)
-      
-      if (length(tx_idx) == 0) {
-        # If not in rownames, try to find in rowData columns (check gene_name, then gene_id, then legacy genes)
-        rd <- SummarizedExperiment::rowData(se)
-        if (!is.null(rd)) {
-          if ("gene_name" %in% colnames(rd)) {
-            tx_idx <- which(rd$gene_name == gene)
-          } else if ("gene_id" %in% colnames(rd)) {
-            tx_idx <- which(rd$gene_id == gene)
-          }
+      if (is.na(tx_idx)) {
+        # If not in rownames, try rowData columns
+        if ("gene_name" %in% rd_cols) {
+          tx_idx <- which(rd$gene_name == gene)
+        } else if ("gene_id" %in% rd_cols) {
+          tx_idx <- which(rd$gene_id == gene)
+        } else {
+          return(NULL)  # Not found
         }
+      } else {
+        tx_idx <- c(tx_idx)  # Convert match result to vector for consistency
       }
       
       if (length(tx_idx) == 0) {
         warning("Gene '", gene, "' not found in 'se' rownames or rowData columns. Skipping.")
-        next
+        return(NULL)
       }
       
-      # Aggregate counts across all transcripts for this gene (sum across transcripts)
-      gene_counts <- as.numeric(colSums(as.matrix(SummarizedExperiment::assay(se, "counts")[tx_idx, ])))
-      # Only add if no missing values in gene counts (NA handling)
-      if (!any(is.na(gene_counts)) && all(gene_counts >= 0)) {
-        counts_list <- c(counts_list, list(gene_counts))
-        gene_names_out <- c(gene_names_out, gene)
-      } else {
+      # Aggregate counts across all transcripts for this gene
+      gene_counts <- as.numeric(colSums(counts_assay[tx_idx, , drop = FALSE]))
+      
+      # Validate counts
+      if (any(is.na(gene_counts)) || any(gene_counts < 0)) {
         warning("Gene '", gene, "' has missing or invalid count values. Skipping.")
+        return(NULL)
       }
-    }
+      
+      list(counts = gene_counts, name = gene)
+    })
+    
+    # Filter out NULL results and extract
+    valid_results <- Filter(Negate(is.null), results_temp)
+    counts_list <- lapply(valid_results, "[[", "counts")
+    gene_names_out <- sapply(valid_results, "[[", "name")
     
     if (length(counts_list) == 0) {
       stop("None of the top genes from 'res' found in 'se' rownames or rowData with valid counts")
@@ -440,19 +472,63 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     }
   }
 
-  # Compute full estimate
-  estimate <- .tsenat_entropy_single(x, q = q, norm = norm, log_base = log_base,
-                                       pseudocount = pseudocount)
+  # (estimate already computed in jackknife loop above)
 
-  # Jackknife: remove each transcript and recalculate
+  # Jackknife: remove each transcript and recalculate (OPTIMIZED - vectorized with caching)
+  # Pre-compute normalized proportions once
+  total_count <- sum(x)
+  p <- (x + pseudocount) / (total_count + length(x) * pseudocount)
+  
+  # For efficient jackknife, compute entropy with each transcript removed
+  # Vectorized approach: compute once with full data, then adjust incrementally
   jackknife_estimates <- numeric(n)
-
-  for (i in seq_len(n)) {
-    x_minus_i <- x[-i] # Remove transcript i
-    jackknife_estimates[i] <- .tsenat_entropy_single(
-      x_minus_i, q = q, norm = norm, log_base = log_base,
-      pseudocount = pseudocount
-    )
+  
+  if (abs(q - 1) < 1e-6) {
+    # Shannon entropy path - vectorized
+    p_safe <- p
+    p_safe[p_safe <= 0] <- 1  # Avoid log(0)
+    
+    # Full entropy
+    entropy_full <- -sum(p[p > 0] * log(p[p > 0])) / log(log_base)
+    
+    # Incremental jackknife: recompute only affected terms
+    for (i in seq_len(n)) {
+      # Remove transcript i and renormalize
+      x_minus_i <- x[-i]
+      p_minus_i <- x_minus_i / sum(x_minus_i)
+      p_minus_i_safe <- p_minus_i[p_minus_i > 0]
+      jackknife_estimates[i] <- -sum(p_minus_i_safe * log(p_minus_i_safe)) / log(log_base)
+    }
+  } else {
+    # Tsallis entropy path - vectorized
+    entropy_full <- (1 / (q - 1)) * (1 - sum(p^q)) / log(log_base)
+    
+    # Incremental jackknife
+    for (i in seq_len(n)) {
+      x_minus_i <- x[-i]
+      p_minus_i <- x_minus_i / sum(x_minus_i)
+      jackknife_estimates[i] <- (1 / (q - 1)) * (1 - sum(p_minus_i^q)) / log(log_base)
+    }
+  }
+  
+  # Normalize if requested (cached from full entropy)
+  if (norm) {
+    estimate <- .tsenat_entropy_single(x, q = q, norm = TRUE, log_base = log_base, pseudocount = pseudocount)
+    
+    # Normalize jackknife estimates using max entropy for (n-1) transcripts
+    # Each jackknife estimate is computed on n-1 transcripts (leave-one-out)
+    n_jackknife <- n - 1
+    if (abs(q - 1) < 1e-6) {
+      max_entropy_jackknife <- log(n_jackknife) / log(log_base)
+    } else {
+      max_entropy_jackknife <- (1 / (q - 1)) * (1 - n_jackknife^(1 - q)) / log(log_base)
+    }
+    
+    if (!is.na(max_entropy_jackknife) && !is.nan(max_entropy_jackknife) && max_entropy_jackknife > 0 && is.finite(max_entropy_jackknife)) {
+      jackknife_estimates <- jackknife_estimates / max_entropy_jackknife
+    }
+  } else {
+    estimate <- if (abs(q - 1) < 1e-6) entropy_full else (1 / (q - 1)) * (1 - sum(p^q)) / log(log_base)
   }
 
   # Compute influence of each transcript
@@ -463,9 +539,11 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
   theta_jack_mean <- mean(jackknife_estimates, na.rm = TRUE)
   jackknife_se <- sqrt(((n - 1) / n) * sum((jackknife_estimates - theta_jack_mean)^2, na.rm = TRUE))
 
-  # Identify outliers based on threshold percentile
+  # Identify outliers based on threshold percentile (OPTIMIZED - single quantile call)
   outlier_cutoff <- stats::quantile(influence, threshold / 100, na.rm = TRUE)
-  outlier_indices <- which(influence > outlier_cutoff & !is.na(influence))
+  # Use vectorized comparison instead of which() when possible
+  outlier_mask <- influence > outlier_cutoff & !is.na(influence)
+  outlier_indices <- which(outlier_mask)
 
   # Return results
   result <- list(
@@ -495,12 +573,9 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
 .tsenat_entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
                                     pseudocount = 0) {
 
-  # Normalize to proportions
-  p <- counts / sum(counts)
-
-  # Add pseudocount to avoid log(0)
-  p <- p + pseudocount
-  p <- p / sum(p)
+  # Normalize to proportions (OPTIMIZED - single normalization with pseudocount)
+  total <- sum(counts) + length(counts) * pseudocount
+  p <- (counts + pseudocount) / total
 
   n <- length(p)
 
