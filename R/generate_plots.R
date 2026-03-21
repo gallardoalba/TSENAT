@@ -1388,8 +1388,8 @@ plot_volcano_ma_grid <- function(
     # Title row
     vp_title <- grid::viewport(layout.pos.row = 1, layout.pos.col = seq_len(ncol))
     grid::pushViewport(vp_title)
-    grid::grid.text("Transcript level expression", x = 0.5, y = 0.6, gp = grid::gpar(fontsize = 26, fontface = "bold"))
-    grid::grid.text(paste0("Top genes with metric ", title), x = 0.5, y = 0.2, gp = grid::gpar(fontsize = 20, fontface = "italic", col = "gray40"))
+    grid::grid.text("Transcript level expression", x = 0.5, y = 0.6, gp = grid::gpar(fontsize = 18, fontface = "bold"))
+    grid::grid.text(paste0("Top genes with metric ", title), x = 0.5, y = 0.2, gp = grid::gpar(fontsize = 14, fontface = "italic", col = "gray40"))
     grid::upViewport()
     # Plot rows
     for (i in seq_along(grobs)) {
@@ -1703,7 +1703,7 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 31, face = "plain", margin = ggplot2::margin(b = 5)))
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 22, face = "plain", margin = ggplot2::margin(b = 5)))
             pp
         })
 
@@ -2317,23 +2317,23 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
             limits = fill_limits,
             name = "log2(expr)"
         ) + 
-        ggplot2::theme_minimal(base_size = 28) +
+        ggplot2::theme_minimal(base_size = 20) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 15, face = "plain"), 
-            axis.text.x = ggplot2::element_text(size = 24),
-            plot.title = ggplot2::element_text(size = 28, hjust = 0.5, face = "bold"), 
+            axis.text.y = ggplot2::element_text(size = 11, face = "plain"), 
+            axis.text.x = ggplot2::element_text(size = 17),
+            plot.title = ggplot2::element_text(size = 20, hjust = 0.5, face = "bold"), 
             legend.position = "bottom",
             legend.justification = "center",
             legend.key.width = ggplot2::unit(2, "cm"), 
-            legend.text = ggplot2::element_text(size = 20),
+            legend.text = ggplot2::element_text(size = 14),
             plot.margin = ggplot2::margin(4, 4, 4, 4)
         ) + 
         ggplot2::guides(fill = ggplot2::guide_colorbar(
             title.position = "top",
             barwidth = 10, 
             barheight = 0.5,
-            title.theme = ggplot2::element_text(size = 28)
+            title.theme = ggplot2::element_text(size = 20)
         ))
     p
 }
@@ -2403,9 +2403,9 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     
     grid <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow_val, align = "hv")
     title_grob <- cowplot::ggdraw() + cowplot::draw_label("Transcript level expression", fontface = "bold",
-        x = 0.5, hjust = 0.5, size = 41)
+        x = 0.5, hjust = 0.5, size = 29)
     subtitle_grob <- cowplot::ggdraw() + cowplot::draw_label(paste0("Top genes with metric ", agg_label_unique), fontface = "italic",
-        x = 0.5, hjust = 0.5, size = 31, color = "gray40")
+        x = 0.5, hjust = 0.5, size = 22, color = "gray40")
     # Add spacer between title and plots
     spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
     result_plot <- cowplot::plot_grid(title_grob, subtitle_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.05, 0.04,
