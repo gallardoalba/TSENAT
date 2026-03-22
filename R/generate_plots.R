@@ -506,8 +506,8 @@ plot_tsallis_q_curve_s4 <- function(
       
       # Safety check: ensure matrix has the expected number of columns
       if (ncol(mat) != target_n_cols) {
-        cat("[WARNING plot_tsallis_q_curve] q=", q_val, ": Expected ", target_n_cols, 
-            " columns but got ", ncol(mat), ". Adjusting...\n", sep="")
+        message("[plot_tsallis_q_curve] q=", q_val, ": Expected ", target_n_cols, 
+            " columns but got ", ncol(mat), ". Adjusting...")
         # If mat has more columns, take only first target_n_cols
         if (ncol(mat) > target_n_cols) {
           mat <- mat[, seq_len(target_n_cols), drop=FALSE]
@@ -866,7 +866,7 @@ plot_tsallis_q_curve_s4 <- function(
   # Get sample names and their indices in the CI matrices
   sample_names <- colnames(ci_lower_mat)
   if (is.null(sample_names)) {
-    sample_names <- paste0("Sample", 1:ncol(ci_lower_mat))
+    sample_names <- paste0("Sample", seq_len(ncol(ci_lower_mat)))
   }
   
   plot_df <- data.frame(
@@ -2392,7 +2392,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     
     # Build rows of 2 plots each with spacing between columns
     plot_rows <- list()
-    for (row in 1:n_rows) {
+    for (row in seq_len(n_rows)) {
         start_idx <- (row - 1) * n_cols + 1
         end_idx <- min(row * n_cols, length(plots))
         row_plots <- plots[start_idx:end_idx]
@@ -2482,7 +2482,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     
     # Create heights: title (0.5cm) + plot rows with gaps + legend (0.7cm)
     plot_heights <- list()
-    for (i in 1:nrow) {
+    for (i in seq_len(nrow)) {
         plot_heights[[length(plot_heights) + 1]] <- grid::unit(1, "null")
         if (i < nrow) {  # Add gap after each row except the last (reduced by half)
             plot_heights[[length(plot_heights) + 1]] <- grid::unit(0.17, "cm")
@@ -2690,13 +2690,13 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
   
   # Check for ggplot2
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    cat("ggplot2 package required for plotting. Please install: install.packages('ggplot2')\n")
+    message("ggplot2 package required for plotting. Please install: install.packages('ggplot2')")
     return(invisible(NULL))
   }
   
   # Validate input
   if (is.null(interaction_results) || nrow(interaction_results) == 0) {
-    cat("Plot not generated: interaction_results is empty or NULL.\n")
+    message("Plot not generated: interaction_results is empty or NULL.")
     return(invisible(NULL))
   }
   
@@ -2704,8 +2704,8 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
   effect_cols <- grep("^effect_size_D_q", colnames(interaction_results), value = TRUE)
   
   if (length(effect_cols) == 0) {
-    cat("Plot not generated: no per-q effect size columns found in interaction_results.\n")
-    cat("Expected columns like 'effect_size_D_q0_5', 'effect_size_D_q1_0', etc.\n")
+    message("Plot not generated: no per-q effect size columns found in interaction_results.")
+    message("Expected columns like 'effect_size_D_q0_5', 'effect_size_D_q1_0', etc.")
     return(invisible(NULL))
   }
   
@@ -2826,12 +2826,12 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   # Handle TSENATAnalysis S4 object
   if (methods::is(eff_res, "TSENATAnalysis")) {
-    if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Detected TSENATAnalysis object, extracting lm_results and divergence_results...\n")
+    if (verbose) message("[plot_multi_gene_q_spectrum_s4] Detected TSENATAnalysis object, extracting lm_results and divergence_results...")
     
     # Extract lm_results (contains interaction results)
     if (length(eff_res@lm_results) > 0) {
       lm_res <- eff_res@lm_results[[1]]
-      if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with", nrow(lm_res), "rows\n")
+      if (verbose) message("[plot_multi_gene_q_spectrum_s4] Extracted lm_results with ", nrow(lm_res), " rows")
     } else {
       stop("TSENATAnalysis object has no lm_results. Run calculate_lm_interaction_s4() first.")
     }
@@ -2839,7 +2839,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
     # Extract first divergence result as divergence_results_se
     if (length(eff_res@diversity_results) > 0) {
       divergence_results_se <- eff_res@diversity_results[[1]]
-      if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Extracted divergence_results with", nrow(divergence_results_se), "rows\n")
+      if (verbose) message("[plot_multi_gene_q_spectrum_s4] Extracted divergence_results with ", nrow(divergence_results_se), " rows")
     } else {
       stop("TSENATAnalysis object has no diversity_results. Run calculate_divergence_s4() first.")
     }
@@ -2893,24 +2893,24 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
           per_q_patterns <- int_res_subset$per_q_pattern[valid_patterns]
           adj_p_values <- int_res_subset[[p_col]][valid_patterns]
           
-          if (verbose) cat(sprintf("[plot_multi_gene_q_spectrum_s4] Mode 1: Using eff_res with %s column (%d valid genes)\n", p_col, length(genes_to_plot)))
+          if (verbose) message(sprintf("[plot_multi_gene_q_spectrum_s4] Mode 1: Using eff_res with %s column (%d valid genes)", p_col, length(genes_to_plot)))
         } else {
-          if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: per_q_pattern values are empty or invalid\n")
+          if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: per_q_pattern values are empty or invalid")
         }
       } else {
         if (verbose) {
-          cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: Missing required columns\n")
-          cat("  - has 'gene':", has_gene, "\n")
-          cat("  - has 'per_q_pattern':", has_per_q, "\n")
-          cat("  - has 'adj_p_interaction':", has_p_adj, "\n")
-          cat("  - has 'p_value_interaction':", has_p_raw, "\n")
+          message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: Missing required columns")
+          message("  - has 'gene':", has_gene)
+          message("  - has 'per_q_pattern':", has_per_q)
+          message("  - has 'adj_p_interaction':", has_p_adj)
+          message("  - has 'p_value_interaction':", has_p_raw)
         }
       }
     } else {
-      if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res$interaction_results is NULL or empty\n")
+      if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res$interaction_results is NULL or empty")
     }
   } else {
-    if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res is NULL or not a list\n")
+    if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 1 failed: eff_res is NULL or not a list")
   }
   
   # Mode 2: Fallback to lm_res + divergence_results_se
@@ -2965,24 +2965,24 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   if (is.null(genes_to_plot) || length(genes_to_plot) == 0) {
     if (verbose) {
-      cat("ERROR: No valid genes to plot. Check input data:\n")
-      cat("  - eff_res provided:", !is.null(eff_res), "\n")
+      message("ERROR: No valid genes to plot. Check input data:")
+      message("  - eff_res provided:", !is.null(eff_res))
       if (!is.null(eff_res)) {
-        cat("  - eff_res$interaction_results exists:", !is.null(eff_res$interaction_results), "\n")
+        message("  - eff_res$interaction_results exists:", !is.null(eff_res$interaction_results))
         if (!is.null(eff_res$interaction_results)) {
-          cat("  - Number of rows:", nrow(eff_res$interaction_results), "\n")
-          cat("  - Has 'per_q_pattern' column:", "per_q_pattern" %in% colnames(eff_res$interaction_results), "\n")
+          message("  - Number of rows:", nrow(eff_res$interaction_results))
+          message("  - Has 'per_q_pattern' column:", "per_q_pattern" %in% colnames(eff_res$interaction_results))
         }
       }
-      cat("  - lm_res provided:", !is.null(lm_res), "\n")
-      cat("  - divergence_results_se provided:", !is.null(divergence_results_se), "\n")
+      message("  - lm_res provided:", !is.null(lm_res))
+      message("  - divergence_results_se provided:", !is.null(divergence_results_se))
     }
     # Return NULL visibly (no invisible) for consistency
     return(NULL)
   }
   
   n_genes_actual <- length(genes_to_plot)
-  if (verbose) cat(sprintf("Plotting %d genes in %d-column grid\n", n_genes_actual, ncol))
+  if (verbose) message(sprintf("Plotting %d genes in %d-column grid", n_genes_actual, ncol))
   
   # ============================================================================
   # Step 3: Create individual q-spectrum plots for each gene
@@ -3000,7 +3000,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       per_q_vals <- as.numeric(strsplit(pattern_str, ",")[[1]])
       
       if (length(per_q_vals) == 0 || all(is.na(per_q_vals))) {
-        if (verbose) cat(sprintf("  Skipping %s: no valid per-q values\n", gene_name))
+        if (verbose) message(sprintf("  Skipping %s: no valid per-q values", gene_name))
         next
       }
       
@@ -3044,7 +3044,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       plot_list[[i]] <- p
       
     }, error = function(e) {
-      if (verbose) cat(sprintf("  Error plotting %s: %s\n", gene_name, e$message))
+      if (verbose) message(sprintf("  Error plotting %s: %s", gene_name, e$message))
     })
   }
   
@@ -3054,11 +3054,11 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   if (length(plot_list) == 0) {
     if (verbose) {
-      cat("ERROR: No valid plots were created.\n")
-      cat("This may occur if:\n")
-      cat("  - per_q_pattern values cannot be parsed as numeric comma-separated strings\n")
-      cat("  - All genes had parsing errors in tryCatch blocks\n")
-      cat("  - Sample size or q-value count was too small\n")
+      message("ERROR: No valid plots were created.")
+      message("This may occur if:")
+      message("  - per_q_pattern values cannot be parsed as numeric comma-separated strings")
+      message("  - All genes had parsing errors in tryCatch blocks")
+      message("  - Sample size or q-value count was too small")
     }
     # Return NULL visibly (no invisible) for consistency
     return(NULL)
@@ -3068,7 +3068,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   # Build layout with spacers between rows to prevent overlap
   layout_plots <- list()
-  for (row_idx in 1:nrow) {
+  for (row_idx in seq_len(nrow)) {
     row_start <- (row_idx - 1) * ncol + 1
     row_end <- min(row_idx * ncol, length(plot_list))
     row_plots <- plot_list[row_start:row_end]
@@ -3092,7 +3092,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   combined_plot <- Reduce(function(x, y) x / y, layout_plots) +
                    patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect")
   
-  if (verbose) cat(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes\n", length(plot_list)))
+  if (verbose) message(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes", length(plot_list)))
   
   return(combined_plot)
 }
@@ -4268,8 +4268,8 @@ plot_multiq_delta_influence_heatmaps <- function(
     # Skip over gap rows (every odd row in expanded layout)
     plot_idx <- 1
     layout_row <- 1
-    for (row in 1:n_rows) {
-      for (col in 1:n_cols) {
+    for (row in seq_len(n_rows)) {
+      for (col in seq_len(n_cols)) {
         if (plot_idx <= length(heatmap_plots)) {
           grid::pushViewport(grid::viewport(layout.pos.row = layout_row, layout.pos.col = col))
           grid::grid.draw(heatmap_plots[[plot_idx]])

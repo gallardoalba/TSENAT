@@ -825,14 +825,14 @@ classify_q_dependency <- function(
     order_idx <- order(valid_p)
     sorted_p <- valid_p[order_idx]
     
-    c_m <- sum(1 / (1:valid_m))
-    ranks <- 1:valid_m
+    c_m <- sum(1 / seq_len(valid_m))
+    ranks <- seq_len(valid_m)
     # Benjamini-Yekutieli: multiply BH by harmonic constant c_m
     adjusted <- pmin(1, (valid_m * c_m / ranks) * sorted_p)
     
     # Ensure monotone increasing (cumulative minimum from the back)
     # For sorted p-values, adjusted p-values should be non-decreasing
-    for (i in (valid_m-1):1) {
+    for (i in seq(valid_m - 1, 1, -1)) {
         adjusted[i] <- min(adjusted[i], adjusted[i+1], na.rm = TRUE)
     }
     

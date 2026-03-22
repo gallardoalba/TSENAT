@@ -1484,7 +1484,7 @@ calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = 
         # Need to track original counts
         if (is.null(counts_gene)) {
             # This shouldn't happen as counts_gene is set above
-            stop("Internal error: counts_gene not available for paired bootstrap")
+            stop("counts_gene not available for paired bootstrap")
         }
         
         # Build pairs list with indices

@@ -1529,7 +1529,7 @@ setMethod(
         alpha = alpha
       )
     }, error = function(e) {
-      stop("Error in rankbased assumptions test:\n", e$message,
+      stop("Rankbased assumptions test failed:\n", e$message,
            call. = FALSE)
     })
     
@@ -1741,7 +1741,7 @@ plot_volcano_ma_grid_s4 <- function(
       ...
     )
   }, error = function(e) {
-    stop("[plot_volcano_ma_grid_s4] Error creating plot:\n", conditionMessage(e),
+    stop("[plot_volcano_ma_grid_s4]", conditionMessage(e),
          call. = FALSE)
   })
 
@@ -1970,7 +1970,7 @@ m_estimate_s4 <- function(
       scale_method = scale_method
     )
   }, error = function(e) {
-    stop("Error in M-estimation:\n", e$message, call. = FALSE)
+    stop("M-estimation", e$message, call. = FALSE)
   })
 
   # Store results in metadata
@@ -2102,8 +2102,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   concordance_result <- tryCatch({
     compute_method_concordance(gam_results, friedman_results)
   }, error = function(e) {
-    stop("[compute_method_concordance_s4] Error computing concordance:\n",
-                conditionMessage(e), call. = FALSE)
+    stop("[compute_method_concordance_s4]", conditionMessage(e), call. = FALSE)
   })
   
   # ===================================================================
@@ -2618,7 +2617,7 @@ effect_sizes_divergence_s4 <- function(
       ...
     )
   }, error = function(e) {
-    stop("Error in effect_sizes_divergence:\n", e$message,
+    stop("effect_sizes_divergence", e$message,
          call. = FALSE)
   })
 
@@ -2870,8 +2869,7 @@ plot_top_transcripts_s4 <- function(
       ...
     )
   }, error = function(e) {
-    stop("[plot_top_transcripts_s4] Error in plotting:\n",
-         conditionMessage(e), call. = FALSE)
+    stop("[plot_top_transcripts_s4]", conditionMessage(e), call. = FALSE)
   })
 
   if (verbose) {
@@ -3354,8 +3352,7 @@ jackknife_isoform_switching_s4 <- function(
       use_lm_fdr = use_lm_fdr
     )
   }, error = function(e) {
-    stop("[jackknife_isoform_switching_s4] Error in jackknife analysis:\n",
-                conditionMessage(e), call. = FALSE)
+    stop("[jackknife_isoform_switching_s4]", conditionMessage(e), call. = FALSE)
   })
   
   # =========================================================================
@@ -3937,8 +3934,7 @@ plot_lm_interaction_gam_s4 <- function(
       ...
     )
   }, error = function(e) {
-    stop("[plot_lm_interaction_gam_s4] Error in plot generation:\n", 
-                conditionMessage(e),
+    stop("[plot_lm_interaction_gam_s4]", conditionMessage(e),
          call. = FALSE)
   })
   

@@ -796,7 +796,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
     h_full <- .calculate_tsallis(counts, q, norm, log_base, pseudocount, n_transcripts_fixed)
     influences <- numeric(n_tx)
     
-    for (i in 1:n_tx) {
+    for (i in seq_len(n_tx)) {
       h_leave_i <- .calculate_tsallis(counts[-i, , drop = FALSE], q, norm, log_base, pseudocount, n_transcripts_fixed)
       influences[i] <- mean(abs(h_full - h_leave_i), na.rm = TRUE)
     }
@@ -807,9 +807,9 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
   # Seed handling left to caller for Bioconductor compliance
   bootstrap_deltas_matrix <- matrix(nrow = n_bootstrap, ncol = n_tx)
   
-  for (b in 1:n_bootstrap) {
-    idx_A <- sample(1:ncol(counts_A), size = ncol(counts_A), replace = TRUE)
-    idx_B <- sample(1:ncol(counts_B), size = ncol(counts_B), replace = TRUE)
+  for (b in seq_len(n_bootstrap)) {
+    idx_A <- sample(seq_len(ncol(counts_A)), size = ncol(counts_A), replace = TRUE)
+    idx_B <- sample(seq_len(ncol(counts_B)), size = ncol(counts_B), replace = TRUE)
     
     boot_A <- counts_A[, idx_A, drop = FALSE]
     boot_B <- counts_B[, idx_B, drop = FALSE]
@@ -829,7 +829,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
   # Para cada transcrito, calcular p-value basado en cuantos bootstrap samples
   # tienen signo opuesto al delta_influence observado
   pvalues <- numeric(n_tx)
-  for (i in 1:n_tx) {
+  for (i in seq_len(n_tx)) {
     boot_signs <- sign(bootstrap_deltas_matrix[, i])
     obs_sign <- sign(delta_influence[i])
     # P-value: proporcion de muestras bootstrap con signo opuesto
@@ -1304,7 +1304,7 @@ jackknife_isoform_switching <- function(
         return(influences)
       }
       
-      for (i in 1:n_tx) {
+      for (i in seq_len(n_tx)) {
         counts_leave_i <- counts[-i, , drop = FALSE]
         h_leave_i <- .tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed)
         # Compute mean absolute difference across samples
@@ -1660,7 +1660,7 @@ prepare_gene_switching_tables <- function(
   
   # Get top genes by matching summary_df gene_name to available gene IDs
   top_genes_list <- list()
-  for (i in 1:min(n_top_genes, nrow(summary_df))) {
+  for (i in seq_len(min(n_top_genes, nrow(summary_df)))) {
     gene_name <- summary_df$gene_name[i]
     if (gene_name %in% names(gene_name_to_id)) {
       gene_id <- gene_name_to_id[gene_name]

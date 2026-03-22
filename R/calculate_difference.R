@@ -310,12 +310,12 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
     order_idx <- order(pvalues)
     sorted_p <- pvalues[order_idx]
     
-    c_m <- sum(1 / (1:m))
-    ranks <- 1:m
+    c_m <- sum(1 / seq_len(m))
+    ranks <- seq_len(m)
     adjusted <- (m / (ranks * c_m)) * sorted_p
     adjusted <- pmin(1, adjusted)
     
-    for (i in (m-1):1) {
+    for (i in seq(m - 1, 1, -1)) {
         if (adjusted[i] > adjusted[i+1]) adjusted[i] <- adjusted[i+1]
     }
     
@@ -856,7 +856,7 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
                 n_unmapped, " used ID as fallback")
       }
     } else if (verbose) {
-      message("[calculate_lm_interaction] WARNING: gene_name column not found in rowData - downstream matching may fail!")
+      message("[calculate_lm_interaction] gene_name column not found in rowData - downstream matching may fail")
     }
     
     # Ensure gene_id column is always present and populated
@@ -1291,7 +1291,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     # observed log2 fold changes and group-wise means
     fc_result <- calculate_fc(x, samples, control, method)
     log2_fc <- fc_result[, 4]
-    group_means <- fc_result[, 1:2]
+    group_means <- fc_result[, seq_len(2)]
     
     # ========================================================================
     # OPTIMIZATION: Pre-compute group indices and pseudocount once
@@ -1302,7 +1302,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     
     # Extract pseudocount from the initial result
     # (calculated based on observed group summaries)
-    pos_vals <- as.matrix(fc_result[, 1:2])
+    pos_vals <- as.matrix(fc_result[, seq_len(2)])
     pos_vals <- pos_vals[!is.na(pos_vals) & pos_vals > 0]
     if (length(pos_vals) > 0) {
         pseudocount_val <- min(pos_vals, na.rm = TRUE) / 2

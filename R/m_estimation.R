@@ -42,7 +42,7 @@ NULL
   # Step 2: Huber's Proposal 2 iteration
   # Find k such that E[rho(y/k)] ≈ 0.5 (Huber's requirement)
   # Using 4-point iteration
-  for (iter in 1:10) {
+  for (iter in seq_len(10)) {
     # Weight using Huber function
     weights <- ifelse(abs(y/k0) <= 1, 1, 1/pmax(abs(y/k0), 0.01))
     
@@ -70,7 +70,7 @@ NULL
   if (s0 == 0) s0 <- 1
   
   # Minimize s such that mean Huber rho = b
-  for (iter in 1:max_iter) {
+  for (iter in seq_len(max_iter)) {
     # Residuals standardized by current scale
     u <- y / s0
     

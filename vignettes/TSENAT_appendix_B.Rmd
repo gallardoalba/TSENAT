@@ -518,7 +518,9 @@ if ("p_interaction" %in% colnames(gam_results)) {
 ```{r concordance-summary, message=FALSE}
 # Compute concordance analysis using S4 wrapper
 # Store GAM results in the analysis object
-analysis@lm_results$gam_results <- gam_results
+lm_res <- lmResults(analysis)
+lm_res$gam_results <- gam_results
+analysis <- setConfig(analysis, list(lm_results = lm_res))
 
 # Compute concordance using S4 wrapper
 analysis_with_concordance <- compute_method_concordance_s4(
@@ -666,7 +668,9 @@ analysis <- detect_q_gene_interactions_s4(
 )
 
 # 5. Load GAM results and store
-analysis@lm_results$gam_results <- read.csv("lm_interaction_results.csv")
+lm_res <- lmResults(analysis)
+lm_res$gam_results <- read.csv("lm_interaction_results.csv")
+analysis <- setConfig(analysis, list(lm_results = lm_res))
 
 # 6. Compare methods
 analysis <- compute_method_concordance_s4(

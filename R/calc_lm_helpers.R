@@ -200,7 +200,7 @@
     
     # Compute sum efficiently
     summed <- 0
-    for (k in 1:(cluster_size - 1)) {
+    for (k in seq_len(cluster_size - 1)) {
         lambda_k <- 1 - k / cluster_size  # Edge effect weight
         summed <- summed + lambda_k * (rho ^ k)
     }

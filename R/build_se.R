@@ -525,12 +525,12 @@ build_se <- function(readcounts, tx2gene, assay_name = "counts", skip = FALSE,
         unmapped_txs <- tx_ids[unmapped_idx]
         
         if (!skip) {
-            message("ERROR: ", length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
+            message(length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
             message("Unmapped transcripts: ", paste(head(unmapped_txs, 10), collapse = ", "),
                     if (length(unmapped_txs) > 10) paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
             stop("Unmapped transcripts detected. Set skip=TRUE to remove them and continue.", call. = FALSE)
         } else {
-            message("WARNING: ", length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
+            message(length(unmapped_txs), " transcript IDs were not found in tx2gene mapping.")
             message("Unmapped transcripts: ", paste(head(unmapped_txs, 10), collapse = ", "),
                     if (length(unmapped_txs) > 10) paste0(" ... and ", length(unmapped_txs) - 10, " more") else "")
             

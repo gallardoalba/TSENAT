@@ -738,8 +738,8 @@ calculate_divergence <- function(
       }
     } else {
       if (paired == TRUE && progress) {
-        message("WARNING: paired=TRUE but no pair ID column detected in colData.\n",
-            "         Using independent bootstrap resampling instead.")
+        message("paired=TRUE but no pair ID column detected in colData.",
+            " Using independent bootstrap resampling instead.")
       }
     }
   }
@@ -752,9 +752,8 @@ calculate_divergence <- function(
     }
 
     mode_str <- if (use_parallel) "Parallel" else "Sequential"
-    message(mode_str, " mode: ", num_genes, " genes", 
-        if (use_parallel) paste0(" on ", nthreads, " threads") else "",
-        " [", mode_desc, "]")
+    thread_desc <- if (use_parallel) paste0(" on ", nthreads, " threads") else ""
+    message(mode_str, " mode: ", num_genes, " genes", thread_desc, " [", mode_desc, "]")
   }
 
   # =========================================================================
@@ -1735,7 +1734,7 @@ effect_sizes_divergence <- function(
     }
   } else {
     if (verbose) {
-      message("[effect_sizes_divergence] WARNING: No matching genes found between lm_res and divergence_results_se")
+      message("[effect_sizes_divergence] No matching genes found between lm_res and divergence_results_se")
     }
   }
   
@@ -2030,14 +2029,14 @@ effect_sizes_divergence <- function(
           if (div_col %in% colnames(interaction_results)) {
             valid_vals <- interaction_results[[div_col]][!is.na(interaction_results[[div_col]])]
             if (length(valid_vals) > 0) {
-              cat("- q=", q_val, ": mean=", round(mean(valid_vals, na.rm = TRUE), 4),
-                  ", median=", round(median(valid_vals, na.rm = TRUE), 4), "\n")
+              message("- q=", q_val, ": mean=", round(mean(valid_vals, na.rm = TRUE), 4),
+                  ", median=", round(median(valid_vals, na.rm = TRUE), 4))
             }
           }
         }
       }
       
-      cat("- Interpretation: D > 0.05 = small, D > 0.1 = medium, D > 0.2 = large\n\n")
+      message("- Interpretation: D > 0.05 = small, D > 0.1 = medium, D > 0.2 = large")
     }
   }
 

@@ -359,11 +359,11 @@ counts and gene annotations extracted from the GFF3 file. Let's examine its inte
 
 ```{r examine-se-structure, include = FALSE}
 # Display the structure of the SummarizedExperiment
-se <- analysis@se
+se <- se(analysis)
 cat("SummarizedExperiment dimensions:\n")
 cat("  Transcripts (rows):", nrow(se), "\n")
 cat("  Samples (columns):", ncol(se), "\n")
-cat("  Assay (counts):", nrow(assay(se, "counts")), "×", ncol(assay(se, "counts")), "\n")
+cat("  Assay (counts):", nrow(assay(se(analysis), "counts")), "×", ncol(assay(se(analysis), "counts")), "\n")
 cat("\nRowData columns:", paste(colnames(rowData(se)), collapse = ", "), "\n")
 cat("Sample metadata available:", exists("metadata_df"), "\n\n")
 
@@ -445,7 +445,7 @@ if (file.exists(analysis_file)) {
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
 # Extract diversity results using S4 accessor method
 div_results <- diversity(analysis)
-se_rowdata <- rowData(analysis@se)
+se_rowdata <- rowData(se(analysis))
 
 # Get diversity data from results - handle both matrix and SE formats
 if (is.list(div_results) && length(div_results) > 0) {
@@ -478,7 +478,7 @@ if (is.list(div_results) && length(div_results) > 0) {
     if (!is.null(table_data) && nrow(table_data) > 0) {
             
             # Get gene names by mapping transcript IDs to gene names
-            se_rowdata <- rowData(analysis@se)
+            se_rowdata <- rowData(se(analysis))
             
             # Get the transcript IDs from the table (first 4 rows)
             transcript_ids <- rownames(table_data)
@@ -564,7 +564,7 @@ tryCatch({
   )
   
   # Extract results from metadata
-  sample_qc <- analysis@metadata$m_estimate_results
+  sample_qc <- metadata(analysis)$m_estimate_results
   
   cat("Sample QC assessment completed\n")
   cat("Total samples:", nrow(sample_qc), "\n")
@@ -961,9 +961,9 @@ analysis <- effect_sizes_divergence_s4(
 divergence_results_se <- NULL
 lm_res_results <- NULL
 
-if (exists("analysis") && !is.null(analysis@metadata$effect_sizes_divergence)) {
+if (exists("analysis") && !is.null(metadata(analysis)$effect_sizes_divergence)) {
     # Extract from effect sizes results (which contains merged LM + divergence data)
-    effect_res <- analysis@metadata$effect_sizes_divergence
+    effect_res <- metadata(analysis)$effect_sizes_divergence
     if (!is.null(effect_res$interaction_results)) {
         lm_res_results <- effect_res$interaction_results
     }

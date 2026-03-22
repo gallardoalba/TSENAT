@@ -1065,14 +1065,14 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     }
 
     # Data validation and diagnostics
-    if (verbose) cat("Pseudocount Estimation (Size-Factor Adjustment, Option B)\n")
+    if (verbose) message("Pseudocount Estimation (Size-Factor Adjustment, Option B)")
     
     n_genes <- nrow(raw_counts)
     n_samples <- ncol(raw_counts)
     
     if (verbose) {
-        cat("  Genes:", n_genes, "\n")
-        cat("  Samples:", n_samples, "\n")
+        message("  Genes: ", n_genes)
+        message("  Samples: ", n_samples)
     }
 
     # Compute library sizes (column sums)
@@ -1084,8 +1084,8 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     names(size_factors) <- colnames(raw_counts)
     
     if (verbose) {
-        cat(sprintf("\n  Mean Library Size: %.0f\n", mean_lib_size))
-        cat(sprintf("  Size Factors Range: [%.3f, %.3f]\n", min(size_factors), max(size_factors)))
+        message("\n  Mean Library Size: ", sprintf("%.0f", mean_lib_size))
+        message("  Size Factors Range: [", sprintf("%.3f", min(size_factors)), ", ", sprintf("%.3f", max(size_factors)), "]")
     }
 
     # Calculate pseudocount using log2 scale (edgeR/DESeq2 convention)
@@ -1094,7 +1094,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     scalar_pseudocount <- log2(mean_lib_size / 1e6 + 1)
     
     if (verbose) {
-        cat(sprintf("  Calculated Pseudocount: %.6f\n", scalar_pseudocount))
+        message("  Calculated Pseudocount: ", sprintf("%.6f", scalar_pseudocount))
     }
 
     # Return results with diagnostics
