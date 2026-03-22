@@ -338,7 +338,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     # Filter out NULL results and extract
     valid_results <- Filter(Negate(is.null), results_temp)
     counts_list <- lapply(valid_results, "[[", "counts")
-    gene_names_out <- sapply(valid_results, "[[", "name")
+    gene_names_out <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
     
     if (length(counts_list) == 0) {
       stop("None of the top genes from 'res' found in 'se' rownames or rowData with valid counts")
@@ -1385,7 +1385,7 @@ jackknife_isoform_switching <- function(
   
   # Global FDR correction (Benjamini-Hochberg)
   if (length(all_pvalues) > 0) {
-    pvals_vec <- sapply(all_pvalues, function(x) x$pvalue)
+    pvals_vec <- vapply(all_pvalues, function(x) x$pvalue, FUN.VALUE = numeric(1))
     fdr_vec <- p.adjust(pvals_vec, method = "BH")
     
     for (i in seq_along(all_pvalues)) {

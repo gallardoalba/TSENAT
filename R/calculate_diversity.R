@@ -598,7 +598,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             result_genes <- as.character(result[, 1])
             gene_levels <- unique(result_genes)
             
-            n_isoforms <- sapply(setNames(gene_levels, gene_levels), function(g) {
+            n_isoforms <- vapply(setNames(gene_levels, gene_levels), function(g) {
                 # Count unique isoforms (rows) for this gene in original data
                 gene_mask <- genes == g
                 if (sum(gene_mask) == 0) return(1)  # Single gene/isoform case
@@ -1293,8 +1293,8 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
   gene_levels <- unique(genes)
   
   # Count expressed isoforms per gene (non-zero after filtering)
-  # Use sapply with named input to preserve gene names in output
-  n_isoforms <- sapply(setNames(gene_levels, gene_levels), function(g) {
+  # Use vapply with named input to preserve gene names in output
+  n_isoforms <- vapply(setNames(gene_levels, gene_levels), function(g) {
     gene_mask <- genes == g
     gene_counts <- rowSums(x[gene_mask, , drop = FALSE])
     sum(gene_counts > min_count)
@@ -1338,7 +1338,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     
     # For each gene, calculate per-sample variance
     # Map genes to their rows and compute row-wise variance
-    gene_variances <- sapply(gene_names, function(g_name) {
+    gene_variances <- vapply(gene_names, function(g_name) {
       # Find the index of this gene
       gene_idx <- which(rownames(entropy_matrix) == g_name)
       if (length(gene_idx) > 0) {

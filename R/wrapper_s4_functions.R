@@ -296,7 +296,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
         
         # Fallback 3: for single q-value
         if (length(q_cols) == 0 && length(q) == 1) {
-          numeric_cols <- sapply(result_df, is.numeric)
+          numeric_cols <- vapply(result_df, is.numeric, FUN.VALUE = logical(1))
           q_cols <- which(numeric_cols)
         }
       }
@@ -314,7 +314,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
       # Convert data.frame to SummarizedExperiment (Gap 10B)
       if (is.data.frame(result_subset)) {
         # Extract numeric columns for diversity assay
-        numeric_cols <- sapply(result_subset, is.numeric)
+        numeric_cols <- vapply(result_subset, is.numeric, FUN.VALUE = logical(1))
         if (!any(numeric_cols)) {
           # If no numeric columns, store as-is
           result_se <- result_subset
@@ -1723,7 +1723,7 @@ plot_volcano_ma_grid_s4 <- function(
       x_col <- "log2_fold_change"
     } else {
       warning("Could not auto-detect x_col. Available numeric columns: ",
-              paste(colnames(diff_df)[sapply(diff_df, is.numeric)], collapse = ", "),
+              paste(colnames(diff_df)[vapply(diff_df, is.numeric, FUN.VALUE = logical(1))], collapse = ", "),
               call. = FALSE)
     }
   }

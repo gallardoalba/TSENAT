@@ -1983,10 +1983,10 @@ effect_sizes_divergence <- function(
         }
       } else {
         # Show summary across q values
-        div_vals <- sapply(q_values, function(q) {
+        div_vals <- vapply(q_values, function(q) {
           estimate_col <- paste0("estimate_q", q)
           div_row[[estimate_col]][1]
-        })
+        }, FUN.VALUE = numeric(1))
         div_summary <- paste(sprintf("%.3f", abs(div_vals)), collapse = ", ")
         div_val <- max(abs(div_vals), na.rm = TRUE)
         ci_text <- ""

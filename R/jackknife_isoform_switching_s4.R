@@ -147,7 +147,9 @@ jackknife_isoform_switching_s4 <- function(
     if (is.null(condition_col)) {
       priority_cols <- c("sample_type", "condition", "group", "sample_group")
       idx <- match(priority_cols, cd_cols)
-      if (!is.na(idx[1])) {
+      # FIX: Check if ANY priority column exists, not just first one
+      if (any(!is.na(idx))) {
+        # Get first matching column by priority order
         condition_col <- cd_cols[idx[which.min(is.na(idx))]]
       }
     }
@@ -196,12 +198,24 @@ jackknife_isoform_switching_s4 <- function(
   
   # Detect gene_col - use match() for faster lookup (vectorized)
   if (is.null(gene_col)) {
-    priority_genes <- c("gene_id", "gene", "Gene", "gene_name")
-    idx <- match(priority_genes, rd_cols)
-    if (!is.na(idx[which.min(is.na(idx))])) {
-      gene_col <- rd_cols[idx[which.min(is.na(idx))]]
-    } else {
-      gene_col <- "gene"  # Default fallback
+    # Try Priority 1: @config$gene_col
+    if ("gene_col" %in% names(analysis@config)) {
+      candidate <- analysis@config$gene_col
+      if (!is.na(match(candidate, rd_cols)) || candidate %in% c("gene", "gene_id", "Gene", "gene_name")) {
+        gene_col <- candidate
+      }
+    }
+    
+    # Try Priority 2-5: standard column names
+    if (is.null(gene_col)) {
+      priority_genes <- c("gene_id", "gene", "Gene", "gene_name")
+      idx <- match(priority_genes, rd_cols)
+      # FIX: Check if ANY priority column exists, not just assuming match worked
+      if (any(!is.na(idx))) {
+        gene_col <- rd_cols[idx[which.min(is.na(idx))]]
+      } else {
+        gene_col <- "gene"  # Default fallback
+      }
     }
     
     if (verbose) {
@@ -211,12 +225,24 @@ jackknife_isoform_switching_s4 <- function(
   
   # Detect isoform_col - use match() for faster lookup (vectorized)
   if (is.null(isoform_col)) {
-    priority_isoforms <- c("transcript_id", "transcript", "isoform", "Isoform", "tx_id")
-    idx <- match(priority_isoforms, rd_cols)
-    if (!is.na(idx[which.min(is.na(idx))])) {
-      isoform_col <- rd_cols[idx[which.min(is.na(idx))]]
-    } else {
-      isoform_col <- "transcript"  # Default fallback
+    # Try Priority 1: @config$isoform_col
+    if ("isoform_col" %in% names(analysis@config)) {
+      candidate <- analysis@config$isoform_col
+      if (!is.na(match(candidate, rd_cols)) || candidate %in% c("transcript", "transcript_id", "isoform", "Isoform", "tx_id")) {
+        isoform_col <- candidate
+      }
+    }
+    
+    # Try Priority 2-6: standard column names
+    if (is.null(isoform_col)) {
+      priority_isoforms <- c("transcript_id", "transcript", "isoform", "Isoform", "tx_id")
+      idx <- match(priority_isoforms, rd_cols)
+      # FIX: Check if ANY priority column exists, not just assuming match worked
+      if (any(!is.na(idx))) {
+        isoform_col <- rd_cols[idx[which.min(is.na(idx))]]
+      } else {
+        isoform_col <- "transcript"  # Default fallback
+      }
     }
     
     if (verbose) {
@@ -296,8 +322,11 @@ jackknife_isoform_switching_s4 <- function(
   # =========================================================================
   # STORE RESULTS IN ANALYSIS OBJECT (OPTIMIZED - vectorized q-value storage)
   # =========================================================================
-  # Ensure q is a vector
-  q_vals <- if (is.numeric(q)) q else c(q)
+  # Ensure q is a vector and validate
+  if (!is.numeric(q) && !(is.vector(q) && all(vapply(q, is.numeric, FUN.VALUE = logical(1))))) {
+    stop("[jackknife_isoform_switching_s4] 'q' must be numeric or numeric vector", call. = FALSE)
+  }
+  q_vals <- if (is.numeric(q)) q else as.numeric(c(q))
   
   # Check if result has multi-q class
   if (inherits(result, "tsenat_isoform_switching_multiq")) {
@@ -308,8 +337,8 @@ jackknife_isoform_switching_s4 <- function(
     }
   } else {
     # Store results for each q-value (vectorized - no explicit loop)
-    # Pre-format all q keys
-    q_keys <- sprintf("q_%.2f", q_vals)
+    # Pre-format all q keys with 3 decimal places (consistent with codebase convention - see wrapper_s4_functions.R:169)
+    q_keys <- sprintf("q_%.3f", q_vals)
     
     # Store each result
     for (i in seq_along(q_keys)) {
@@ -321,8 +350,15 @@ jackknife_isoform_switching_s4 <- function(
       } else if (length(q_vals) == 1) {
         # Single q-value: store result directly
         analysis@jackknife_results[[q_key]] <- result
+      } else if (is.list(result)) {
+        # Multiple q-values with list result: only store if this q-value is in result
+        # Otherwise skip (avoid storing the entire result multiple times)
+        if (!any(grepl(paste0("^q_", gsub("\\.", "\\\\.", q_vals[i])), names(result)))) {
+          warning("[jackknife_isoform_switching_s4] Result for q=", q_vals[i], 
+                  " not found in multi-q result. Skipping.", call. = FALSE)
+        }
       } else {
-        # Multiple q-values: store result for each
+        # Single result object with multiple q-values: assign same result to all keys
         analysis@jackknife_results[[q_key]] <- result
       }
       
@@ -353,6 +389,6 @@ jackknife_isoform_switching_s4 <- function(
     )
   }
   
-  # Return modified analysis object (invisibly for chaining)
-  invisible(analysis)
+  # Return modified analysis object (visibly for method chaining as documented)
+  analysis
 }

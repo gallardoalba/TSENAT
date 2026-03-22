@@ -3216,7 +3216,7 @@ plot_tsallis_divergence_profile <- function(se,
             NA
         }
     }
-    q_values <- sapply(col_names, extract_q)
+    q_values <- vapply(col_names, extract_q, FUN.VALUE = numeric(1))
     unique_q <- sort(unique(q_values[!is.na(q_values)]))
 
     if (length(unique_q) < 2) {
@@ -3300,7 +3300,7 @@ plot_tsallis_divergence_profile <- function(se,
     # Calculate divergence for all genes * q combinations
     plot_data_list <- list()
     for (gene_name in genes) {
-        divergences <- sapply(unique_q, function(q) calc_div_for_gene_q(gene_name, q))
+        divergences <- vapply(unique_q, function(q) calc_div_for_gene_q(gene_name, q), FUN.VALUE = numeric(1))
         df_gene <- data.frame(
             gene = gene_name,
             q = unique_q,

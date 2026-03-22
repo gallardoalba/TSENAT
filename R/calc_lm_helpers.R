@@ -2497,15 +2497,15 @@
                 unique_subj <- unique(as.character(subj_1))
                 
                 # Aggregate PC scores to subject level (mean across q-values within each subject)
-                pc_g1_by_subj <- sapply(unique_subj, function(s) {
+                pc_g1_by_subj <- vapply(unique_subj, function(s) {
                     idx_g1 <- grp_vals == g1 & as.character(subj_vals) == s
                     mean(pc_vals[idx_g1], na.rm = TRUE)
-                })
+                }, FUN.VALUE = numeric(1))
                 
-                pc_g2_by_subj <- sapply(unique_subj, function(s) {
+                pc_g2_by_subj <- vapply(unique_subj, function(s) {
                     idx_g2 <- grp_vals == g2 & as.character(subj_vals) == s
                     mean(pc_vals[idx_g2], na.rm = TRUE)
-                })
+                }, FUN.VALUE = numeric(1))
                 
                 # Only proceed with paired test if we have valid subject-aggregated data
                 if (length(pc_g1_by_subj) >= 2 && length(pc_g2_by_subj) >= 2 && 
@@ -2625,15 +2625,15 @@
             unique_subj <- unique(as.character(subj_1))
             
             # Aggregate reduction values to subject level (mean across q-values within each subject)
-            x1_by_subj <- sapply(unique_subj, function(s) {
+            x1_by_subj <- vapply(unique_subj, function(s) {
                 idx_x1 <- x1_idx & as.character(subj_vals) == s
                 mean(reduction_vals[idx_x1], na.rm = TRUE)
-            })
+            }, FUN.VALUE = numeric(1))
             
-            x2_by_subj <- sapply(unique_subj, function(s) {
+            x2_by_subj <- vapply(unique_subj, function(s) {
                 idx_x2 <- x2_idx & as.character(subj_vals) == s
                 mean(reduction_vals[idx_x2], na.rm = TRUE)
-            })
+            }, FUN.VALUE = numeric(1))
             
             # Only proceed with paired test if we have valid subject-aggregated data
             if (length(x1_by_subj) >= 2 && length(x2_by_subj) >= 2 &&
@@ -3579,12 +3579,12 @@
     # Create comparison table
     qic_table <- data.frame(
         correlation_structure = corstr_options,
-        fit_status = sapply(corstr_options, function(cs) results_list[[cs]]$fit_status),
+        fit_status = vapply(corstr_options, function(cs) results_list[[cs]]$fit_status, FUN.VALUE = character(1)),
         qic = qic_values,
-        corr_estimate = sapply(corstr_options, function(cs) {
+        corr_estimate = vapply(corstr_options, function(cs) {
             est <- corr_estimates[[cs]]
             if (is.na(est)) "NA" else sprintf("%.4f", est)
-        }),
+        }, FUN.VALUE = character(1)),
         selected = ifelse(corstr_options == best_corstr, "YES", ""),
         stringsAsFactors = FALSE
     )
@@ -3687,7 +3687,7 @@
             df <- do.call(rbind, df_diff_list)
             rownames(df) <- NULL
             # Rebuild subject factor for differenced data
-            subject <- rep(names(df_diff_list), sapply(df_diff_list, nrow))
+            subject <- rep(names(df_diff_list), vapply(df_diff_list, nrow, FUN.VALUE = integer(1)))
             use_arima <- TRUE
         }
     }

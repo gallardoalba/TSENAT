@@ -756,9 +756,9 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
         
         # Adjust p-values based on permutation distribution
         # For each observed p-value, compute proportion of permutations with min_perm <= p_obs
-        res$adj_p_interaction <- sapply(res$p_interaction, function(p_obs) {
+        res$adj_p_interaction <- vapply(res$p_interaction, function(p_obs) {
             pmin(1.0, (sum(perm_result$perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
-        })
+        }, FUN.VALUE = numeric(1))
         
         if (verbose) {
             message("[calculate_lm_interaction] Applied true Westfall-Young (permutation) adjustment")
@@ -1131,9 +1131,9 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
     test_results <- .tsenat_bplapply(seq_len(nrow(x)), .wilcox_one, nthreads = nthreads)
 
     # Extract components
-    raw_p_values <- sapply(test_results, function(r) if(is.na(r$p.value)) 1 else r$p.value)
-    u_statistics <- sapply(test_results, function(r) r$statistic)
-    n_samples <- sapply(test_results, function(r) r$n)
+    raw_p_values <- vapply(test_results, function(r) if(is.na(r$p.value)) 1 else r$p.value, FUN.VALUE = numeric(1))
+    u_statistics <- vapply(test_results, function(r) r$statistic, FUN.VALUE = numeric(1))
+    n_samples <- vapply(test_results, function(r) r$n, FUN.VALUE = integer(1))
     
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     
@@ -1473,8 +1473,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     
     # Compute effect sizes in parallel
     effect_sizes <- .tsenat_bplapply(seq_len(nrow(x)), .compute_effect_sizes, nthreads = nthreads)
-    u_statistics <- sapply(effect_sizes, function(es) es["U"])
-    r_values <- sapply(effect_sizes, function(es) es["r"])
+    u_statistics <- vapply(effect_sizes, function(es) es["U"], FUN.VALUE = numeric(1))
+    r_values <- vapply(effect_sizes, function(es) es["r"], FUN.VALUE = numeric(1))
     
     # Build output data frame with p-values, fold changes, group means, and effect sizes
     out <- data.frame(
@@ -1595,19 +1595,19 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         if (robust_scale_method == "proposal2") {
             # PROPOSAL 2: Use Huber's Proposal 2 scale on aggregate statistics
             # Compute across all features in each group
-            group1_medians <- sapply(seq_len(nrow(x)), function(feat) 
-                median(x[feat, group1_idx], na.rm = TRUE))
-            group2_medians <- sapply(seq_len(nrow(x)), function(feat)
-                median(x[feat, group2_idx], na.rm = TRUE))
+            group1_medians <- vapply(seq_len(nrow(x)), function(feat) 
+                median(x[feat, group1_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
+            group2_medians <- vapply(seq_len(nrow(x)), function(feat)
+                median(x[feat, group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
             
             scale1 <- .huber_proposal2_scale(group1_medians)
             scale2 <- .huber_proposal2_scale(group2_medians)
         } else if (robust_scale_method == "s-estimator") {
             # S-ESTIMATOR: Similar aggregate approach
-            group1_medians <- sapply(seq_len(nrow(x)), function(feat)
-                median(x[feat, group1_idx], na.rm = TRUE))
-            group2_medians <- sapply(seq_len(nrow(x)), function(feat)
-                median(x[feat, group2_idx], na.rm = TRUE))
+            group1_medians <- vapply(seq_len(nrow(x)), function(feat)
+                median(x[feat, group1_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
+            group2_medians <- vapply(seq_len(nrow(x)), function(feat)
+                median(x[feat, group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
             
             scale1 <- .s_estimator_scale(group1_medians)
             scale2 <- .s_estimator_scale(group2_medians)

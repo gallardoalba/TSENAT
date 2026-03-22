@@ -34,7 +34,7 @@ This appendix validates that **TSENAT's transcript diversity measures (Shannon e
 
 **Who needs this appendix?** Anyone evaluating TSENAT for transcript diversity analysis or validating cross-package comparisons.
 
----
+***
 
 ## Document Structure
 
@@ -45,7 +45,7 @@ This appendix validates that **TSENAT's transcript diversity measures (Shannon e
 - Technical Note: Gene filtering implementation difference
 - Conclusion: Summary and recommendations
 
----
+***
 
 ## Background: Transcript Diversity Concepts
 
@@ -60,7 +60,7 @@ TSENAT's approach: Generalized Tsallis entropy framework where q=1 gives Shannon
 
 
 
----
+***
 
 ## Dataset and Methods
 
@@ -77,7 +77,7 @@ Analysis pipeline:
 4. Statistical testing (Wilcoxon rank-sum) for group differences
 5. Compare results (concordance, effect sizes, rankings)
 
----
+***
 
 # Benchmarking
 
@@ -460,7 +460,7 @@ shannon_comparison <- cowplot::plot_grid(
 print(shannon_comparison)
 ```
 
----
+***
 
 ### Simpson Index (SplicingFactory vs TSENAT Tsallis q=2)
 
@@ -557,7 +557,7 @@ simpson_comparison <- cowplot::plot_grid(
 print(simpson_comparison)
 ```
 
----
+***
 
 ## Analysis: Simpson Index and Tsallis Entropy at q=2
 
@@ -583,7 +583,7 @@ This explains observed differences like *C1orf213* Normal: 0.3852 (SplicingFacto
 
 3. Statistical validity: Both approaches are correct—SplicingFactory favors unbounded diversity, TSENAT favors interpretable [0,1] scaling
 
----
+***
 
 ## Technical Note: Gene Filtering Difference
 
@@ -592,7 +592,7 @@ The 1-gene difference between SplicingFactory (214 genes tested) and TSENAT (213
 Implementation Difference:
 
 SplicingFactory's Implementation:
-```{r, eval=FALSE}
+```{r sf_gene_filtering, eval=FALSE}
 # SplicingFactory/R/calculate_difference.R (lines 163-164)
 x$cond_1 <- apply(x[grep(unique(samples)[1], samples) + 1], 1, 
                    function(x) sum(!is.na(x)))
@@ -609,7 +609,7 @@ if (test == "wilcoxon") {
 The problematic line uses `sum(x$cond_1, x$cond_2)`, which sums ALL values in both column vectors together, producing a single scalar (approximately 1,040 in our case). Since this global sum is always ≥ 8, the condition is essentially always TRUE, and the filtering is ineffective.
 
 TSENAT's Implementation:
-```{r, eval=FALSE}
+```{r tsenat_gene_filtering, eval=FALSE}
 # TSENAT/R/difference_helpers.R (lines 57-58)
 df$cond_1 <- rowSums(!is.na(df[, idx1 + 1, drop = FALSE]))
 df$cond_2 <- rowSums(!is.na(df[, idx2 + 1, drop = FALSE]))
@@ -625,13 +625,13 @@ TSENAT uses `(df$cond_1 + df$cond_2)`, which performs element-wise addition to c
 
 The consequence is that TSENAT's filter is stricter: it requires each gene individually to have at least 8 total observations (3 in one group, 3 in the other, plus 2 more from either group). SplicingFactory's filter effectively doesn't work for the Wilcoxon test because the global sum condition is almost never FALSE.
 
----
+***
 
 # Conclusion: Equivalence Validation Summary
 
 This appendix has demonstrated that TSENAT's implementation of transcript diversity measures is mathematically and statistically equivalent to SplicingFactory's established methods for both Shannon entropy and Simpson index calculations.
 
----
+***
 
 ## Session Information
 

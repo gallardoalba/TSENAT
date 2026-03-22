@@ -48,7 +48,7 @@ Both methods now incorporate principled improvements to handle real-world data c
 3. Which genes are truly robust (significant in both methods)?
 4. What data characteristics drive method disagreement?
 
----
+***
 
 # Setup
 
@@ -351,7 +351,7 @@ When multiple genes show identical p-values (all < 0.0001), they represent genes
 
 **Bottom line:** Two genes can look visually similar yet have very different effect sizes because effect size captures the **proportion of variance explained** by the condition effect, accounting for the within-subject and between-subject variability at each condition level.
 
----
+***
 
 A striking observation in the Friedman results is that many genes share identical p-values despite having dramatically different effect sizes. This is not a statistical error, but rather reflects a fundamental mathematical property of the Friedman test when applied to entropy data.
 
@@ -399,7 +399,7 @@ The vignette table sorts genes by (1) p-value and (2) effect size as tiebreaker.
 - Cross-validate significant genes using complementary methods (e.g., GAM section below)
 - Remember that statistical significance (p-value) indicates q-dependence exists, while effect size says how strong it is
 
----
+***
 
 # Generalized Additive Model Approach (GAM)
 
@@ -511,7 +511,7 @@ if ("p_interaction" %in% colnames(gam_results)) {
 }
 ```
 
----
+***
 
 # Method Concordance Analysis
 
@@ -616,7 +616,7 @@ if (nrow(high_conf) > 0) {
 plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
 ```
 
----
+***
 
 # Complete S4 Workflow Guide
 
@@ -688,7 +688,7 @@ plot_tsallis_q_curve_s4(
 )
 ```
 
----
+***
 
 # Recommendations
 
@@ -712,7 +712,7 @@ We recommend a **complementary two-method approach** for robust detection of q-v
 
 Additionally, use **library size-normalized pseudocounts** for robust entropy estimation on sparse count data (via `estimate_pseudocount()`), and consider genes with **high effect sizes** (η² > 0.3) as particularly robust findings. When Friedman p-values cluster due to monotonic entropy patterns across q-values, effect size (η²) serves as the practical tiebreaker for ranking gene importance.
 
----
+***
 
 # Session Information
 
@@ -720,6 +720,6 @@ Additionally, use **library size-normalized pseudocounts** for robust entropy es
 sessionInfo()
 ```
 
----
+***
 
 # References

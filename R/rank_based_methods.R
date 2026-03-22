@@ -1637,7 +1637,7 @@ detect_q_gene_interactions <- function(
     max_stats_per_perm <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
     
     # For each gene, compute p-value based on max-T procedure
-    interaction_results$adj_p_value <- sapply(seq_len(nrow(interaction_results)), function(g_idx) {
+    interaction_results$adj_p_value <- vapply(seq_len(nrow(interaction_results)), function(g_idx) {
         H_obs <- interaction_results$f_statistic[g_idx]
         if (is.na(H_obs)) {
             return(NA)

@@ -265,7 +265,7 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
         result_subset <- combined_result[, q_cols, drop = FALSE]
         
         # Convert to SummarizedExperiment
-        assay_matrix <- as.matrix(result_subset[, sapply(result_subset, is.numeric)])
+        assay_matrix <- as.matrix(result_subset[, vapply(result_subset, is.numeric, FUN.VALUE = logical(1))])
         result_se <- SummarizedExperiment(assays = list(diversity = assay_matrix))
         rownames(result_se) <- rownames(result_subset)
         
