@@ -1297,18 +1297,18 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' # Example 1: Direct vector input (two distributions)
 #' x <- c(100, 50, 25, 10, 5)      # Reference group counts
 #' y <- c(60, 80, 15, 20, 25)      # Comparison group counts
-#' result <- calculate_divergence_bootstrap(x, y, q = 1, nboot = 500)
+#' result <- .bootstrap_divergence_with_results(x, y, q = 1, nboot = 500)
 #' result
 #'
 #' # Example 2: With gene name and automatic display
-#' result2 <- calculate_divergence_bootstrap(
+#' result2 <- .bootstrap_divergence_with_results(
 #'   x, y, q = 1, nboot = 500,
 #'   gene_name = "GENE_TOP_1",
 #'   print_results = TRUE
 #' )
 #'
 #' # Example 3: Multiple q values for robustness
-#' result3 <- calculate_divergence_bootstrap(
+#' result3 <- .bootstrap_divergence_with_results(
 #'   x, y, q = c(0.5, 1.0, 1.5, 2.0), nboot = 500,
 #'   gene_name = "GENE_TOP_1",
 #'   print_results = TRUE
@@ -1317,7 +1317,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' # Example 4: Paired design (with SummarizedExperiment)
 #' # Assumes se has colData with pair_id column and res contains test results
 #' \dontrun{
-#'   result_paired <- calculate_divergence_bootstrap(
+#'   result_paired <- .bootstrap_divergence_with_results(
 #'     se = se, res = res, top_n = 1,
 #'     paired = TRUE,  # Resample pairs as units
 #'     group_col = "group", control_group = "Control",
@@ -1326,7 +1326,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' }
 #'
 #' @noRd
-calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = NULL,
+.bootstrap_divergence_with_results <- function(x = NULL, y = NULL, se = NULL, res = NULL,
     top_n = 1, group_col = "group", control_group = "Normal", q = 1, norm = FALSE,
     nboot = 1000, ci = 0.95, method = c("percentile", "bca"), log_base = exp(1),
     pseudocount = 0.5, seed = NULL, gene_name = NULL, print_results = TRUE, paired = FALSE, pair_id_col = NULL) {
@@ -1417,7 +1417,7 @@ calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = 
     
     if (length(q) > 1) {
         results_list <- lapply(q, function(qi) {
-            calculate_divergence_bootstrap(
+            .bootstrap_divergence_with_results(
                 x = x, y = y, se = NULL, res = NULL,
                 q = qi, norm = norm, nboot = nboot, ci = ci, method = method,
                 log_base = log_base, pseudocount = pseudocount, seed = seed,

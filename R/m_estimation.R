@@ -22,11 +22,27 @@ NULL
 #' provides a compromise between least squares (sensitive to outliers)
 #' and absolute deviations (less efficient).
 #'
+#' **Influence Diagnostics (DFBETA Standardization):**
+#' Identifies samples that have disproportionate influence on the fitted model.
+#' Uses leave-one-out (LOO) analysis with standardized DFBETA statistics:
+#'   DFBETA_i = (coef_full - coef_{-i}) / SE(coef_full)
+#' 
+#' This approach standardizes influence by the precision of the estimate,
+#' allowing meaningful comparison across genes with different levels of 
+#' variability. Samples with |DFBETA| > 2/sqrt(n) are flagged as problematic.
+#' 
+#' This is analogous to classical regression diagnostics (Cook's distance,
+#' DFBETA) but applied in the robust M-estimation context.
+#'
 #' @references
 #' Wilkinson, L. (2005). The grammar of graphics. Springer.
 #' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
 #' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
 #' Robust Statistics: Theory and Methods. John Wiley & Sons.
+#' Cook, R. D., & Weisberg, S. (1982). Residuals and influence in regression.
+#' Chapman & Hall.
+#' Fox, J. (2016). Applied regression analysis and generalized linear models
+#' (3rd ed.). SAGE Publications.
 
 #' Helper function: Huber's Proposal 2 scale
 #' @keywords internal
@@ -287,11 +303,19 @@ NULL
 m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
                        max_iter = 50, tol = 1e-6, paired = FALSE, pcorr = "BH",
                        q_combine_method = "mean", influence_threshold = 0.75,
-                       scale_method = "mad") {
+                       scale_method = "mad", verbose = FALSE) {
   # Handle SummarizedExperiment input with multi-q analysis
   if (inherits(x, "SummarizedExperiment")) {
     entropy_matrix <- SummarizedExperiment::assay(x)
     sample_info <- SummarizedExperiment::colData(x)
+    
+    # Auto-detect paired from SE metadata if paired parameter is default FALSE
+    if (!isTRUE(paired) && length(metadata(x)) > 0 && "paired" %in% names(metadata(x))) {
+      paired_meta <- metadata(x)$paired
+      if (is.logical(paired_meta) && length(paired_meta) == 1) {
+        paired <- paired_meta
+      }
+    }
     
     # Get group assignment
     if (!(samples %in% colnames(sample_info))) {
@@ -326,32 +350,18 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     
     # Perform leave-one-out influence analysis
     # First, calculate M-estimate with ALL samples as the baseline
-    # OPTIMIZATION (March 2026): Cache baseline weights for delta-only updates
-    # Speedup: 30-50% by avoiding recursive m_estimate calls
-    # Strategy: Compute full fit once, then use Sherman-Morrison rank-1 updates for leave-one-out
-    #   - Reuse baseline weights instead of recomputing IRLS for each sample removal
-    #   - Compute delta in group-level differences using pre-cached weights
-    #   - Maintains exact numerical equivalence for influence scores
+    # NOTE: Use paired mode for full fit to leverage any pairing in the design
     m_est_full <- m_estimate(entropy_by_sample, samples = group_assignment_unique,
                              loss_type = loss_type, scale = scale,
                              max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
                              scale_method = scale_method)
     
-    # Extract and cache baseline weights from full fit for delta computation
-    # These weights represent which samples/genes are downweighted (outliers)
-    baseline_weights <- if (is.data.frame(m_est_full)) {
-      # Matrix-based SummarizedExperiment mode
-      if ("weights" %in% colnames(m_est_full)) {
-        m_est_full$weights  # Return matrix of per-gene weights
-      } else {
-        # Fallback: compute from max_weight column
-        rep(1.0, length(unique_samples))  # Assume all equal if not available
-      }
-    } else if (is.list(m_est_full) && "weights" %in% names(m_est_full)) {
-      m_est_full$weights  # Vector of weights from basic m_estimate
-    } else {
-      NULL  # No cached weights available
-    }
+    # DEBUG: Check what m_est_full looks like
+    # cat("[m_estimate DEBUG] m_est_full structure:\n")
+    # cat("  Rows:", nrow(m_est_full), "\n")
+    # cat("  Cols:", ncol(m_est_full), "\n")
+    # cat("  First col:", colnames(m_est_full)[1], "\n")
+    # cat("  Has location_diff?", "location_diff" %in% colnames(m_est_full), "\n")
 
     sample_influence <- numeric(length(unique_samples))
     sample_robustness_weights <- numeric(length(unique_samples))
@@ -362,11 +372,13 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     names(entropy_means) <- unique_samples
     names(entropy_sds) <- unique_samples
     
-    # OPTIMIZATION: Pre-compute reusable quantities
-    # Compute sum and sum-of-squares once for all genes
-    group_weights <- as.numeric(factor(group_assignment_unique))  # 1, 2, ...
-    n_groups <- length(unique(group_assignment_unique))
-    design_matrix <- model.matrix(~ factor(group_assignment_unique) - 1)  # Per-sample design
+    # Store gene-level location_diff for debugging: list with one entry per sample
+    gene_level_changes <- list()
+    
+    # Calculate DFBETA threshold based on sample size (standard regression diagnostics)
+    # Threshold of 2/sqrt(n) is commonly used (see Fox 2016, Regression Diagnostics)
+    n_samples <- length(unique_samples)
+    dfbeta_threshold <- 2 / sqrt(max(n_samples, 2))
     
     for (i in seq_along(unique_samples)) {
       # Calculate entropy statistics for this sample FIRST (before any skips)
@@ -385,52 +397,54 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
         sample_influence[i] <- 1.0
         # For high-influence samples, use maximum observed robustness weight variation
         sample_robustness_weights[i] <- NA  # Mark as NA to handle separately later
+        # Record that this sample's removal breaks group structure
+        gene_level_changes[[unique_samples[i]]] <- data.frame(
+          gene = rownames(entropy_by_sample),
+          full_location_diff = NA_real_,
+          loo_location_diff = NA_real_,
+          dfbeta = NA_real_,
+          reason = "Only one group remains after removing sample"
+        )
         next
       }
       
-      # OPTIMIZATION: Compute delta-only update instead of full refit
-      # Strategy: Use Sherman-Morrison formula for quick rank-1 update to weighted regression
-      # Removes sample i from the full fit using matrix algebra (not refit from scratch)
+      # Call m_estimate recursively on matrix data WITHOUT sample i
+      # IMPORTANT: Use paired=FALSE for leave-one-out diagnostics
+      # REASON: Removing one observation breaks paired structure. Influence diagnostics
+      # must work on data as-is. The FULL fit uses paired=TRUE; comparison vs LOO is valid.
+      # Bibliography reference: Standard statistical practice (Fox 2016, Cook & Weisberg 1982)
+      m_est_subset <- m_estimate(entropy_subset, samples = group_subset,
+                                 loss_type = loss_type, scale = scale,
+                                 max_iter = max_iter, tol = tol, paired = FALSE, pcorr = pcorr,
+                                 scale_method = scale_method)
       
-      if (!is.null(baseline_weights) && is.matrix(baseline_weights)) {
-        # Matrix mode: use vectorized delta computation
-        # Remove row i (sample i) and recompute group differences
-        design_subset <- design_matrix[-i, , drop = FALSE]
-        entropy_vals_subset <- entropy_by_sample[, -i, drop = FALSE]
-        
-        # Quick delta: Recompute location_diff for each gene WITHOUT sample i
-        # Using: coef(lm(entropy ~ group)) on subset = fast without full IRLS refitting
-        location_diff_delta <- numeric(nrow(entropy_by_sample))
-        for (gene_idx in seq_len(nrow(entropy_by_sample))) {
-          y_gene <- entropy_vals_subset[gene_idx, ]
-          # Weighted least squares with cached baseline weights (without IRLS refitting)
-          weights_gene <- baseline_weights[gene_idx, -i]
-          
-          # Quick delta-update: assume outlier weights unchanged, compute difference only
-          numerator_g1 <- sum(weights_gene[group_subset == 0] * y_gene[group_subset == 0], na.rm = TRUE)
-          numerator_g2 <- sum(weights_gene[group_subset == 1] * y_gene[group_subset == 1], na.rm = TRUE)
-          denom_g1 <- sum(weights_gene[group_subset == 0], na.rm = TRUE) + 1e-10
-          denom_g2 <- sum(weights_gene[group_subset == 1], na.rm = TRUE) + 1e-10
-          
-          location_diff_delta[gene_idx] <- (numerator_g2 / denom_g2) - (numerator_g1 / denom_g1)
-        }
-        
-        abs_change_delta <- abs(m_est_full$location_diff - location_diff_delta) / 
-                            (abs(m_est_full$location_diff) + 1e-6)
-        sample_influence[i] <- mean(abs_change_delta > 0.01, na.rm = TRUE)
-        
-      } else {
-        # Fallback: Use full recursive m_estimate call if weights not cached
-        # This is the ORIGINAL behavior, kept for safety if optimization assumptions fail
-        m_est_subset <- m_estimate(entropy_subset, samples = group_subset,
-                                   loss_type = loss_type, scale = scale,
-                                   max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
-                                   scale_method = scale_method)
-        
-        abs_change <- abs(m_est_full$location_diff - m_est_subset$location_diff) / 
-                      (abs(m_est_full$location_diff) + 1e-6)
-        sample_influence[i] <- mean(abs_change > 0.01, na.rm = TRUE)
-      }
+      # Calculate standardized influence (DFBETA) for each gene
+      # DFBETA = (coef_full - coef_loo) / SE(coef_full)
+      # This scales the change by the precision/uncertainty of the estimate
+      # See: Fox (2016), Regression Diagnostics; Cook & Weisberg (1982)
+      dfbeta <- (m_est_full$location_diff - m_est_subset$location_diff) / 
+                pmax(m_est_full$se_diff, 1e-6)  # Use full model's SE for standardization
+      
+      # Store gene-level changes for this sample
+      gene_level_changes[[unique_samples[i]]] <- data.frame(
+        gene = rownames(entropy_by_sample),
+        full_location_diff = m_est_full$location_diff,
+        loo_location_diff = m_est_subset$location_diff,
+        full_se_diff = m_est_full$se_diff,
+        dfbeta = dfbeta,
+        exceeds_threshold = abs(dfbeta) > dfbeta_threshold,
+        removed_sample_idx = i,
+        removed_sample_name = unique_samples[i],
+        full_n_normal = sum(group_assignment_unique == "normal"),
+        full_n_tumor = sum(group_assignment_unique == "tumor"),
+        loo_n_normal = sum(group_subset == "normal"),
+        loo_n_tumor = sum(group_subset == "tumor"),
+        stringsAsFactors = FALSE
+      )
+      
+      # Influence = proportion of genes with problematic DFBETA values
+      # DFBETA > threshold indicates substantive influence on that gene
+      sample_influence[i] <- mean(abs(dfbeta) > dfbeta_threshold, na.rm = TRUE)
     }
     
     # Extract robustness weights from baseline M-estimate 
@@ -532,6 +546,9 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       result_df$Pair_ID <- paired_sample_info
     }
     
+    # Attach gene-level influence data as attribute for debugging
+    attr(result_df, "gene_level_influences") <- gene_level_changes
+    
     return(result_df)
   }
   
@@ -610,6 +627,25 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       scale_local <- scale
     }
     
+    # GUARD: If scale is NA or infinite (but allow scale <= 0 to fallback to 1)
+    if (is.na(scale_local) || !is.finite(scale_local)) {
+      results_list[[i]] <- data.frame(
+        location_diff = NA_real_,
+        se_diff = NA_real_,
+        t_stat = NA_real_,
+        pvalue = NA_real_,
+        n_down_weighted = NA_integer_,
+        max_weight = NA_real_,
+        row.names = rownames(x)[i]
+      )
+      next
+    }
+    
+    # Final safeguard: if scale is still 0, set to 1
+    if (scale_local == 0) {
+      scale_local <- 1
+    }
+    
     # Initialize regression coefficients
     if (use_intercept) {
       # Start with group medians
@@ -635,6 +671,21 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       
       # Residuals
       residuals <- y - fitted
+      
+      # GUARD: If all residuals are NA, skip this gene
+      if (all(is.na(residuals))) {
+        results_list[[i]] <- data.frame(
+          location_diff = NA_real_,
+          se_diff = NA_real_,
+          t_stat = NA_real_,
+          pvalue = NA_real_,
+          n_down_weighted = NA_integer_,
+          max_weight = NA_real_,
+          row.names = rownames(x)[i]
+        )
+        break
+      }
+      
       standardized_resid <- residuals / scale_local
       
       # Compute weights based on loss function
@@ -644,6 +695,21 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
         weights <- ifelse(abs(standardized_resid) <= 1, (1 - standardized_resid^2)^2, 0)
       } else if (loss_type == "lsq") {
         weights <- rep(1, n_obs)
+      }
+      
+      # SAFEGUARD: If all weights are NA or non-finite, skip this gene
+      if (all(is.na(weights)) || all(!is.finite(weights))) {
+        # This gene has no valid residuals/scale - skip to next gene
+        results_list[[i]] <- data.frame(
+          location_diff = NA_real_,
+          se_diff = NA_real_,
+          t_stat = NA_real_,
+          pvalue = NA_real_,
+          n_down_weighted = NA_integer_,
+          max_weight = NA_real_,
+          row.names = rownames(x)[i]
+        )
+        next
       }
       
       # Update coefficients using weighted least squares

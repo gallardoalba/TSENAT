@@ -390,7 +390,7 @@ setGeneric("jackKnife", function(object, q = NULL) {
 #' @export
 setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
   if (length(object@jackknife_results) == 0) {
-    warning("No jackknife results found. Run jackknife_tsallis_entropy_s4() first.")
+    warning("No jackknife results found. Run jackknife_isoform_switching_s4() first.")
     return(NULL)
   }
 
@@ -399,8 +399,9 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
     return(object@jackknife_results)
   }
 
-  # Format q-value key - ensure numeric precision
-  q_key <- paste0("q_", formatC(q, format = "f", digits = 1))
+  # Format q-value key - must match storage format used by base jackknife_isoform_switching()
+  # Uses paste0("q_", gsub("\\.", "_", sprintf("%.2f", q))) to store (e.g., "q_0_01", "q_1_00")
+  q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
 
   if (!(q_key %in% names(object@jackknife_results))) {
     stop("Q-value ", q, " not found in jackknife_results.\n",

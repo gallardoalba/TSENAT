@@ -113,7 +113,9 @@ jackknife_isoform_switching_s4 <- function(
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
-  verbose = FALSE
+  output_file = NULL,
+  verbose = FALSE,
+  ...
 ) {
   # =========================================================================
   # INPUT VALIDATION
@@ -330,36 +332,32 @@ jackknife_isoform_switching_s4 <- function(
   
   # Check if result has multi-q class
   if (inherits(result, "tsenat_isoform_switching_multiq")) {
-    # Multi-q result: store as-is
-    analysis@jackknife_results[["multi_q"]] <- result
+    # Multi-q result: store as-is (already has correct underscore-format keys from base function)
+    for (q_key in names(result)) {
+      analysis@jackknife_results[[q_key]] <- result[[q_key]]
+    }
     if (verbose) {
-      cat("[jackknife_isoform_switching_s4] Stored multi-q result with special class\n")
+      cat("[jackknife_isoform_switching_s4] Stored multi-q result with keys:", paste(names(result), collapse = ", "), "\n")
     }
   } else {
     # Store results for each q-value (vectorized - no explicit loop)
-    # Pre-format all q keys with 3 decimal places (consistent with codebase convention - see wrapper_s4_functions.R:169)
-    q_keys <- sprintf("q_%.3f", q_vals)
+    # Use underscore format to match base function: paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
+    q_keys <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q_vals)))
     
     # Store each result
     for (i in seq_along(q_keys)) {
       q_key <- q_keys[i]
       
-      # Check if result is list with named q-values
+      # Check if result is list with named q-values (should have underscore format now)
       if (is.list(result) && q_key %in% names(result)) {
         analysis@jackknife_results[[q_key]] <- result[[q_key]]
       } else if (length(q_vals) == 1) {
         # Single q-value: store result directly
         analysis@jackknife_results[[q_key]] <- result
-      } else if (is.list(result)) {
-        # Multiple q-values with list result: only store if this q-value is in result
-        # Otherwise skip (avoid storing the entire result multiple times)
-        if (!any(grepl(paste0("^q_", gsub("\\.", "\\\\.", q_vals[i])), names(result)))) {
-          warning("[jackknife_isoform_switching_s4] Result for q=", q_vals[i], 
-                  " not found in multi-q result. Skipping.", call. = FALSE)
-        }
       } else {
-        # Single result object with multiple q-values: assign same result to all keys
-        analysis@jackknife_results[[q_key]] <- result
+        # Multiple q-values: log warning if not found
+        warning("[jackknife_isoform_switching_s4] Result for q=", q_vals[i], 
+                " (key: ", q_key, ") not found in base function result.", call. = FALSE)
       }
       
       if (verbose) {
