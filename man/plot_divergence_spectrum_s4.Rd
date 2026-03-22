@@ -113,6 +113,5 @@ This wrapper extracts the divergence SummarizedExperiment from
 
 }
 \seealso{
-\code{\link{plot_divergence_spectrum}} for the base function.
 \code{\link{calculate_divergence_s4}} for computing divergence.
 }

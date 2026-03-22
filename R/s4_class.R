@@ -217,15 +217,13 @@ TSENATAnalysis <- function(se, config = list()) {
 #'   div_at_q1 <- diversity(analysis, q = 1.0)  # Specific q-value
 #' }
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 setGeneric("diversity", function(object, q = NULL) {
   standardGeneric("diversity")
 })
 
 #' @rdname diversity
-#' @keywords internal
-#' @noRd
+#' @export
 setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
   if (length(object@diversity_results) == 0) {
     warning("No diversity results found. Run calculate_diversity_s4() first.")
@@ -319,15 +317,13 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'   all_lm <- lmResults(analysis)
 #' }
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 setGeneric("lmResults", function(object, component = NULL) {
   standardGeneric("lmResults")
 })
 
 #' @rdname lmResults
-#' @keywords internal
-#' @noRd
+#' @export
 setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
   if (length(object@lm_results) == 0) {
     warning("No LM results found. Run calculate_lm_interaction_s4() first.")
@@ -385,15 +381,13 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
 #'   ci <- jk_q1$confidence_intervals
 #' }
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 setGeneric("jackKnife", function(object, q = NULL) {
   standardGeneric("jackKnife")
 })
 
 #' @rdname jackKnife
-#' @keywords internal
-#' @noRd
+#' @export
 setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
   if (length(object@jackknife_results) == 0) {
     warning("No jackknife results found. Run jackknife_tsallis_entropy_s4() first.")
@@ -435,15 +429,13 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #'   effect_sizes <- divergence(analysis, component = "effect_sizes")
 #' }
 #'
-#' @keywords internal
-#' @noRd
+#' @export
 setGeneric("divergence", function(object, component = NULL) {
   standardGeneric("divergence")
 })
 
 #' @rdname divergence
-#' @keywords internal
-#' @noRd
+#' @export
 setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
   if (length(object@divergence_results) == 0) {
     warning("No divergence results found. Run calculate_divergence_s4() first.")

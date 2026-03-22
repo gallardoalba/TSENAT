@@ -18,6 +18,21 @@ m_estimate_s4(
   scale_method = "mad",
   verbose = TRUE
 )
+
+m_estimate_s4(
+  analysis,
+  condition_col = NULL,
+  loss_type = "huber",
+  scale = NULL,
+  max_iter = 50,
+  tol = 1e-06,
+  paired = FALSE,
+  pcorr = "BH",
+  q_combine_method = "mean",
+  influence_threshold = 0.75,
+  scale_method = "mad",
+  verbose = TRUE
+)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object with diversity results
@@ -67,9 +82,9 @@ S4 wrapper for \code{m_estimate} that performs robust M-estimation
 on diversity results stored in a TSENATAnalysis object and stores results
 back into the object.
 
-S4 wrapper for \code{\link{m_estimate}} that performs robust M-estimation
-on diversity results stored in a TSENATAnalysis object and stores results
-back into the object.
+S4 wrapper that performs robust M-estimation on diversity results stored 
+in a TSENATAnalysis object and stores results back into the object.
+This wrapper calls the base M-estimation function internally.
 }
 \details{
 This wrapper extracts diversity results from \code{analysis@diversity_results},
@@ -162,6 +177,7 @@ unusual diversity patterns.
 
 }
 \seealso{
-\code{\link{m_estimate}} for the underlying M-estimation function.
+\code{\link{calculate_diversity_s4}} for computing diversity
+
 \code{\link{calculate_diversity_s4}} for computing diversity.
 }

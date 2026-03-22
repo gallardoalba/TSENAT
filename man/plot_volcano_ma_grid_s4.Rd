@@ -118,6 +118,5 @@ This wrapper extracts the difference results data frame from
 
 }
 \seealso{
-\code{\link{plot_volcano_ma_grid}} for the base function.
 \code{\link{calculate_difference_s4}} for computing differential analysis.
 }

@@ -1255,9 +1255,9 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
 
 #' Calculate Difference Between Control and Treatment Groups (S4 Wrapper)
 #'
-#' S4 wrapper for \code{\link{calculate_difference}} that operates on TSENATAnalysis objects.
-#' Uses diversity results from \code{@diversity_results} slot (from \code{calculate_diversity_s4()})
-#' and stores results in the \code{lm_results} slot.
+#' S4 wrapper that operates on TSENATAnalysis objects to calculate differences
+#' between control and treatment groups. Uses diversity results from \code{@diversity_results} 
+#' slot (from \code{calculate_diversity_s4()}) and stores results in the \code{lm_results} slot.
 #'
 #' @param analysis A \code{TSENATAnalysis} object with diversity results in \code{@diversity_results}.
 #' @param q \code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.
@@ -1282,7 +1282,8 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
 #' }
 #'
 #' @export
-#' @seealso \code{\link{calculate_diversity_s4}} for computing diversity.
+#' @seealso
+#' \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
 #' @examples
 #' \dontrun{
@@ -1648,7 +1649,7 @@ extract_q_from_key <- function(key) {
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_difference_s4}} for computing differential analysis
+#' \code{\link{calculate_difference_s4}} for computing differential analysis.
 #'
 #' @import methods
 #' @export
@@ -1753,9 +1754,9 @@ plot_volcano_ma_grid_s4 <- function(
 
 #' M-Estimation for Sample Quality (S4 Wrapper)
 #'
-#' S4 wrapper for \code{\link{m_estimate}} that performs robust M-estimation
-#' on diversity results stored in a TSENATAnalysis object and stores results
-#' back into the object.
+#' S4 wrapper that performs robust M-estimation on diversity results stored 
+#' in a TSENATAnalysis object and stores results back into the object.
+#' This wrapper calls the base M-estimation function internally.
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results
 #'   (typically via \code{\link{calculate_diversity_s4}}).
@@ -1826,7 +1827,7 @@ plot_volcano_ma_grid_s4 <- function(
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_diversity_s4}} for computing diversity
+#' \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
 #' @export
 m_estimate_s4 <- function(
@@ -1995,14 +1996,12 @@ m_estimate_s4 <- function(
 #' Compute concordance between two analysis methods in TSENATAnalysis
 #'
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
-#' @param ... Additional arguments including:
-#'   \describe{
-#'     \item{gam_method}{\code{character}. Key for GAM/interaction results in \code{@lm_results}.
-#'       Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
-#'     \item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
-#'       Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
-#'     \item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
-#'   }
+#' @param gam_method \code{character}. Key for GAM/interaction results in \code{@lm_results}.
+#'   Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})
+#' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
+#'   Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})
+#' @param verbose \code{logical}. Print progress messages. Default: FALSE
+#' @param ... Additional arguments for future extensibility.
 #'
 #' @return Modified TSENATAnalysis object with concordance results stored in:
 #'   \code{@metadata$method_concordance}:
@@ -2221,7 +2220,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_divergence_s4}} for computing divergence
+#' \code{\link{calculate_divergence_s4}} for computing divergence.
 #'
 #' @export
 plot_divergence_spectrum_s4 <- function(
@@ -2936,7 +2935,7 @@ plot_top_transcripts_s4 <- function(
 #' }
 #'
 #' @seealso
-#' \code{\link{effect_sizes_divergence_s4}} for computing effect sizes
+#' \code{\link{effect_sizes_divergence_s4}} for computing effect sizes.
 #'
 #' @export
 plot_divergence_distribution_s4 <- function(

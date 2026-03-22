@@ -15,6 +15,8 @@ plot_lm_interaction_gam_s4(
 )
 }
 \arguments{
+\item{analysis}{\code{TSENATAnalysis} object with diversity and LM interaction results.}
+
 \item{n_top}{\code{integer}. Number of top genes (by adjusted p-value) to plot 
 (default: 6). Only used if genes = NULL.}
 

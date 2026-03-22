@@ -73,6 +73,5 @@ A red dashed line marks the information-theoretic significance threshold.
 
 }
 \seealso{
-\code{\link{plot_divergence_distribution}} for the base function.
 \code{\link{effect_sizes_divergence_s4}} for computing effect sizes.
 }

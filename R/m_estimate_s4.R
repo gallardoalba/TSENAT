@@ -81,7 +81,6 @@
 #' }
 #'
 #' @seealso
-#' \code{m_estimate} for the underlying M-estimation function
 #' \code{\link{calculate_diversity_s4}} for computing diversity
 #'
 #' @export

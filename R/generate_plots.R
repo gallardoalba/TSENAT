@@ -403,14 +403,42 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @importFrom tidyr pivot_longer
 #'
 #' @examples
-#' # Create synthetic diversity data
-#' set.seed(123)
-#' rc <- matrix(sample(1:100, 250, replace = TRUE), nrow = 50, ncol = 5)
-#' gs <- rep(paste0("gene_", 1:10), length.out = 50)
+#' # Create a sample SummarizedExperiment with diversity data
+#' library(SummarizedExperiment)
 #' 
-#' # Aggregate mode: median +/- IQR across all genes
-#' se_basic <- calculate_diversity(rc, gs, q = c(0.5, 1.0, 1.5))
-#' p_basic <- plot_tsallis_q_curve_s4(se_basic)
+#' # Create synthetic diversity results
+#' set.seed(123)
+#' q_values <- c(0.5, 1.0, 1.5)
+#' n_genes <- 50
+#' n_samples <- 10
+#' 
+#' # Create assay with diversity values (rows = genes, cols = samples)
+#' diversity_matrix <- matrix(
+#'   rnorm(n_genes * n_samples, mean = 2, sd = 0.5),
+#'   nrow = n_genes, ncol = n_samples
+#' )
+#' 
+#' # Create column data with sample type
+#' col_data <- data.frame(
+#'   sample_type = rep(c("GroupA", "GroupB"), length.out = n_samples),
+#'   row.names = paste0("sample_", 1:n_samples)
+#' )
+#' 
+#' # Create row data
+#' row_data <- data.frame(
+#'   gene_name = paste0("gene_", 1:n_genes),
+#'   row.names = paste0("gene_", 1:n_genes)
+#' )
+#' 
+#' # Create SummarizedExperiment
+#' se_diversity <- SummarizedExperiment(
+#'   assays = list(diversity = diversity_matrix),
+#'   colData = col_data,
+#'   rowData = row_data
+#' )
+#' 
+#' # Plot aggregate q-curve
+#' p <- plot_tsallis_q_curve_s4(se_diversity)
 #'
 #' @export
 plot_tsallis_q_curve_s4 <- function(
@@ -1093,12 +1121,31 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
 #'
 #' @export
 #' @examples
-#' # Create synthetic count data
+#' # Create synthetic diversity data as a SummarizedExperiment
+#' library(SummarizedExperiment)
 #' set.seed(123)
-#' rc <- matrix(sample(1:100, 100, replace = TRUE), nrow = 20, ncol = 5)
-#' gs <- rep(paste0("gene_", 1:4), length.out = 20)
-#' # Calculate diversity for single q value
-#' se <- calculate_diversity(rc, gs, q = 1, norm = TRUE)
+#' 
+#' # Create a diversity matrix (genes x samples)
+#' n_genes <- 20
+#' n_samples <- 5
+#' diversity_matrix <- matrix(
+#'   rnorm(n_genes * n_samples, mean = 1.5, sd = 0.3),
+#'   nrow = n_genes, ncol = n_samples
+#' )
+#' 
+#' # Create sample metadata with condition information
+#' col_data <- data.frame(
+#'   sample_type = rep(c("GroupA", "GroupB"), length.out = n_samples),
+#'   row.names = paste0("sample_", 1:n_samples)
+#' )
+#' 
+#' # Create SummarizedExperiment
+#' se <- SummarizedExperiment(
+#'   assays = list(diversity = diversity_matrix),
+#'   colData = col_data
+#' )
+#' 
+#' # Create the plot
 #' plot_tsallis_violin_density_grid_s4(se)
 plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL) {
     # Require cowplot for grid arrangement

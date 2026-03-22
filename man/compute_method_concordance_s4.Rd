@@ -17,6 +17,8 @@ compute_method_concordance_s4(analysis, ...)
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object with LM results (e.g., GAM).}
 
+\item{...}{Additional arguments for future extensibility.}
+
 \item{gam_method}{\code{character}. Key for GAM/interaction results in \code{@lm_results}.
 Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 
@@ -24,8 +26,7 @@ Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
-
-\item{...}{Additional arguments (currently unused, for future extensibility).}
+}
 \value{
 Modified TSENATAnalysis object with concordance results stored in:
   \code{@metadata$method_concordance}:

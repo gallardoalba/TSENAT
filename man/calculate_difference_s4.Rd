@@ -21,9 +21,9 @@ Returns the modified \code{analysis} object invisibly with results stored in
   \code{analysis@lm_results$difference}.
 }
 \description{
-S4 wrapper for \code{\link{calculate_difference}} that operates on TSENATAnalysis objects.
-Uses diversity results from \code{@diversity_results} slot (from \code{calculate_diversity_s4()})
-and stores results in the \code{lm_results} slot.
+S4 wrapper that operates on TSENATAnalysis objects to calculate differences
+between control and treatment groups. Uses diversity results from \code{@diversity_results} 
+slot (from \code{calculate_diversity_s4()}) and stores results in the \code{lm_results} slot.
 }
 \details{
 **IMPORTANT:** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
@@ -48,6 +48,5 @@ between control and treatment groups, not raw abundance data.
 }
 }
 \seealso{
-\code{\link{calculate_difference}} for the base function.
 \code{\link{calculate_diversity_s4}} for computing diversity.
 }
