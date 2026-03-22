@@ -5,7 +5,10 @@
 # - Print/summary methods for jackknife results
 # - Outlier detection, influence metrics
 
-test_that("jackknife_tsallis_entropy vector with single q", {
+# Load consolidation helpers
+source("helper-jackknife-consolidation.R")
+
+test_that("jackknife_tsallis_entropy basic vector input", {
   # Test basic vector input
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
@@ -402,8 +405,8 @@ test_that("jackknife_isoform_switching with multiple q", {
   expect_true(is.list(result))
 })
 
-test_that("jackknife_tsallis_entropy returns estimate field", {
-  # Test that result contains estimate field
+test_that("jackknife_tsallis_entropy returns required field structure", {
+  # Test that result contains all required fields with correct types
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
@@ -414,41 +417,7 @@ test_that("jackknife_tsallis_entropy returns estimate field", {
     print_results = FALSE
   )
   
-  expect_true("estimate" %in% names(result))
-  expect_true(is.numeric(result$estimate))
-})
-
-test_that("jackknife_tsallis_entropy returns jackknife_se field", {
-  # Test that result contains jackknife standard error
-  set.seed(123)
-  x <- c(100, 50, 75, 200, 80, 120)
-  
-  result <- jackknife_tsallis_entropy(
-    x = x,
-    q = 2,
-    norm = TRUE,
-    print_results = FALSE
-  )
-  
-  expect_true("jackknife_se" %in% names(result))
-  expect_true(is.numeric(result$jackknife_se))
-})
-
-test_that("jackknife_tsallis_entropy returns influence field", {
-  # Test that result includes per-transcript influence
-  set.seed(123)
-  x <- c(100, 50, 75, 200, 80, 120)
-  
-  result <- jackknife_tsallis_entropy(
-    x = x,
-    q = 2,
-    norm = TRUE,
-    print_results = FALSE
-  )
-  
-  expect_true("influence" %in% names(result))
-  expect_true(is.numeric(result$influence))
-  expect_equal(length(result$influence), length(x))
+  assert_jackknife_result_valid(result, n_transcripts = length(x))
 })
 
 test_that("jackknife_tsallis_entropy identifies outliers", {

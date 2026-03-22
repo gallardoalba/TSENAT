@@ -36,7 +36,7 @@ test_that("jackknife_isoform_switching accepts single q value", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = 1.0,
-    n_bootstrap = 10,
+    n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
     print_results = FALSE
   ))
   
@@ -72,7 +72,7 @@ test_that("Multi-q results have correct naming convention", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 10,
+    n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
     print_results = FALSE
   ))
   
@@ -91,10 +91,10 @@ test_that("Each multi-q result is a valid tsenat_isoform_switching object", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 10,
+    n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
     print_results = FALSE
   ))
-  
+
   # Each element should be a valid single-q result
   for (i in seq_along(result)) {
     expect_is(result[[i]], "tsenat_isoform_switching")

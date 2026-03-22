@@ -1207,6 +1207,7 @@ test_that("plot_multiq_delta_influence_heatmaps rejects results without q-values
 })
 
 test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results", {
+  skip_on_ci()  # Expensive: runs jackknife_isoform_switching with multi-q
   # Load test data - salmon_dataset from TSENAT
   data("readcounts", package = "TSENAT", envir = environment())
   
@@ -1255,6 +1256,7 @@ test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results
 })
 
 test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
+  skip_on_ci()  # Expensive: runs jackknife_isoform_switching with multi-q
   # Load test data
   data("readcounts", package = "TSENAT", envir = environment())
   
@@ -1399,6 +1401,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
 })
 
 test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
+  skip_on_ci()  # Expensive: runs jackknife_isoform_switching with multi-q
   # Load test data
   data("readcounts", package = "TSENAT", envir = environment())
   

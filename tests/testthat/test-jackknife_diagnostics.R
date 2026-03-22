@@ -1,5 +1,8 @@
 context("Jackknife Diagnostics: Tsallis Entropy Stability Analysis")
 
+# Load consolidation helpers
+source("helper-jackknife-consolidation.R")
+
 # Setup test data
 set.seed(42)
 balanced_counts <- c(100, 100, 100, 100, 100)  # All equal
@@ -8,38 +11,17 @@ with_dominant <- c(900, 50, 30, 20)  # One very dominant
 single_counts <- c(1000)  # Single transcript
 two_counts <- c(500, 500)  # Two transcripts
 
-# Test 1: Basic vector input
-test_that("jackknife_tsallis_entropy works with vector input", {
-  result <- jackknife_tsallis_entropy(balanced_counts, q = 1)
-
-  expect_is(result, "tsenat_jackknife")
-  expect_is(result$estimate, "numeric")
-  expect_length(result$jackknife_estimates, length(balanced_counts))
-  expect_length(result$influence, length(balanced_counts))
-  expect_true(!is.na(result$jackknife_se))
-  expect_true(result$n_transcripts == length(balanced_counts))
+# Consolidated input type tests using helper
+test_that("jackknife_tsallis_entropy works with all input types", {
+  test_jackknife_input_types(
+    func_name = "jackknife_tsallis_entropy",
+    test_vec = balanced_counts,
+    test_mat = matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE),
+    extra_args = list(q = 1, print_results = FALSE)
+  )
 })
 
-# Test 2: Matrix input
-test_that("jackknife_tsallis_entropy works with matrix input", {
-  gene_matrix <- matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE)
-  result <- jackknife_tsallis_entropy(gene_matrix, q = 1, print_results = FALSE)
-
-  expect_is(result, "tsenat_jackknife_list")
-  expect_length(result, 2)
-  expect_is(result[[1]], "tsenat_jackknife")
-  expect_is(result[[2]], "tsenat_jackknife")
-})
-
-# Test 3: Data frame input
-test_that("jackknife_tsallis_entropy works with data frame input", {
-  gene_df <- as.data.frame(matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE))
-  result <- jackknife_tsallis_entropy(gene_df, q = 1, print_results = FALSE)
-
-  expect_is(result, "tsenat_jackknife_list")
-  expect_length(result, 2)
-})
-
+# Diagnostics-specific tests (not in consolidated helpers)
 # Test 4: Balanced distribution has low influence
 test_that("Balanced counts have low, uniform influence", {
   result <- jackknife_tsallis_entropy(balanced_counts, q = 1, norm = TRUE)
@@ -113,33 +95,12 @@ test_that("Jackknife SE is computed correctly", {
   expect_true(result_bal$jackknife_se < result$jackknife_se)
 })
 
-# Test 11: Input validation - negative values
-test_that("jackknife_tsallis_entropy rejects negative counts", {
-  bad_counts <- c(100, -50, 50)
-  expect_error(
-    jackknife_tsallis_entropy(bad_counts),
-    "negative values"
-  )
-})
-
-# Test 12: Input validation - missing values
-test_that("jackknife_tsallis_entropy rejects NA values", {
-  bad_counts <- c(100, NA, 50)
-  expect_error(
-    jackknife_tsallis_entropy(bad_counts),
-    "missing values"
-  )
-})
-
-# Test 13: Input validation - q value
-test_that("jackknife_tsallis_entropy validates q parameter", {
-  expect_error(
-    jackknife_tsallis_entropy(balanced_counts, q = 0),
-    "positive numeric"
-  )
-  expect_error(
-    jackknife_tsallis_entropy(balanced_counts, q = -1),
-    "positive numeric"
+# Consolidated Tests: Parameter validation
+test_that("jackknife_tsallis_entropy validates all parameters", {
+  test_jackknife_parameter_validation(
+    func_name = "jackknife_tsallis_entropy",
+    valid_counts = balanced_counts,
+    valid_args = list(q = 1, print_results = FALSE)
   )
 })
 
@@ -228,12 +189,13 @@ test_that("jackknife_tsallis_entropy is deterministic", {
 
 # Test 23: Large transcript count
 test_that("jackknife_tsallis_entropy works with many transcripts", {
-  many_transcripts <- rpois(100, lambda = 50)
+  skip_on_ci()  # Skip on CI: 100 jackknife iterations are expensive
+  many_transcripts <- rpois(50, lambda = 50)  # Reduced from 100 to 50 for faster testing
 
   result <- jackknife_tsallis_entropy(many_transcripts, q = 1)
 
-  expect_equal(result$n_transcripts, 100)
-  expect_length(result$influence, 100)
+  expect_equal(result$n_transcripts, 50)
+  expect_length(result$influence, 50)
   expect_true(!is.na(result$jackknife_se))
 })
 

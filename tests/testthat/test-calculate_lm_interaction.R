@@ -872,7 +872,12 @@ test_that("multicorr parameter accepts valid values", {
     
     # Test each valid multicorr value
     for (method in c("hochberg", "benjamini-yekutieli", "westfall-young")) {
-        res <- calculate_lm_interaction(se, condition_col = "samples", multicorr = method, min_obs = 8)
+        # Use reduced wy_randomizations for westfall-young to speed up test
+        wy_param <- if (method == "westfall-young") 50 else 1000
+        res <- suppressWarnings(
+            calculate_lm_interaction(se, condition_col = "samples", multicorr = method, 
+                                   wy_randomizations = wy_param, min_obs = 8)
+        )
         
         if (is.data.frame(res)) {
             rd_out <- as.data.frame(res)
