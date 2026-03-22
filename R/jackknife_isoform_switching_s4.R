@@ -69,7 +69,7 @@
 #'   \item \code{isoform_col}: Uses explicit parameter, then looks for "transcript", "isoform", or "Isoform"
 #' }
 #'
-#' @seealso \code{\link{jackknife_isoform_switching}} for the underlying implementation,
+#' @seealso \code{jackknife_isoform_switching} for the underlying implementation,
 #' \code{\link{TSENATAnalysis}} for object structure.
 #'
 #' @examples

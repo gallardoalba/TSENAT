@@ -3055,8 +3055,10 @@ plot_divergence_distribution_s4 <- function(
 #' @param isoform_col \code{character}. Column name in rowData(se) or metadata identifying 
 #'   isoforms/transcripts. Default: "transcript" or "isoform".
 #'
-#' @param q \code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
-#'   or vector for multi-q analysis (default: c(0.01, 0.5, 1, 1.5, 2)).
+#' @param q \code{numeric} or \code{NULL}. Tsallis entropy parameter(s) to analyze. 
+#'   Can be single value or vector for multi-q analysis. If NULL (default), uses q_values 
+#'   from \code{@config} if available, otherwise defaults to \code{c(0.01, 0.5, 1, 1.5, 2)}. 
+#'   When explicitly provided, overrides config values.
 #'
 #' @param norm \code{logical}. Whether to use normalized diversity values 
 #'   (default: TRUE).
@@ -3166,7 +3168,6 @@ jackknife_isoform_switching_s4 <- function(
   }
 
   # Auto-detect q-values from config if not explicitly provided
-  # By using NULL as default, we can now distinguish between "user passed values" vs "user didn't pass q"
   if (is.null(q)) {
     if ("q_values" %in% names(analysis@config)) {
       config_q <- analysis@config$q_values
@@ -3176,14 +3177,13 @@ jackknife_isoform_switching_s4 <- function(
           cat("[jackknife_isoform_switching_s4] Using q-values from config: ",
               paste(q, collapse = ", "), "\n")
         }
-      } else {
-        # Fall back to default if config is empty or invalid
-        q <- c(0.01, 0.5, 1, 1.5, 2)
       }
-    } else {
-      # No config q-values, use default
-      q <- c(0.01, 0.5, 1, 1.5, 2)
     }
+  }
+
+  # Use default q-values if still not set
+  if (is.null(q)) {
+    q <- c(0.01, 0.5, 1, 1.5, 2)
   }
 
   # =========================================================================

@@ -40,7 +40,7 @@
 #' may not align with the filtered SE dimensions.
 #'
 #' @seealso
-#' \code{\link{filter_se}} for the underlying filtering function
+#' \code{filter_se} for the underlying filtering function
 #' \code{\link{build_analysis}} for creating a new analysis object
 #'
 #' @examples

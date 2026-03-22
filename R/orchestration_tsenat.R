@@ -376,7 +376,7 @@ tsenat <- function(
         tryCatch({
           # Dispatch to appropriate plot function based on type
           plot_obj <- switch(ptype,
-            q_curve = plot_tsallis_q_curve(analysis@se, analysis@diversity_results),
+            q_curve = plot_tsallis_q_curve_s4(analysis@se, analysis@diversity_results),
             lm_interaction = if ("lm_interaction" %in% names(analysis@lm_results)) {
               plot_lm_interaction_gam(analysis@lm_results$lm_interaction)
             } else NULL,

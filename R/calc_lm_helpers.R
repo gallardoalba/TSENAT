@@ -75,7 +75,7 @@
         if ("f_statistic" %in% colnames(res)) {
             f_vals <- res$f_statistic[!is.na(res$f_statistic)]
             if (length(f_vals) > 0) {
-                message(sprintf("[calculate_lm_interaction] q×condition interaction strength: F-stat range [%.2f, %.2f]",
+                message(sprintf("[calculate_lm_interaction] q x condition interaction strength: F-stat range [%.2f, %.2f]",
                                 min(f_vals), max(f_vals)))
             }
         }

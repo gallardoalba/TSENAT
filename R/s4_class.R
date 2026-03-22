@@ -9,7 +9,7 @@
 #' retrieval.
 #'
 #' @slot se \code{SummarizedExperiment}. The base expression data object
-#'   (genes × samples) with assays and colData.
+#'   (genes x samples) with assays and colData.
 #'
 #' @slot config \code{list}. Configuration metadata specifying analysis
 #'   parameters that persist through the workflow (q-values, sample grouping
@@ -731,7 +731,7 @@ setMethod("summary", "TSENATAnalysis", function(object) {
     cat(sprintf("  Package: TSENAT %s\n", object@metadata$package_version))
   }
   if ("function_calls" %in% names(object@metadata) && length(object@metadata$function_calls) > 0) {
-    cat(sprintf("  Workflow: %s\n", paste(object@metadata$function_calls, collapse = " → ")))
+    cat(sprintf("  Workflow: %s\n", paste(object@metadata$function_calls, collapse = " -> ")))
   }
 
   cat("\n")

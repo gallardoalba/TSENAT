@@ -7,10 +7,13 @@
 # Run with: devtools::test("tests/testthat/test-performance.R")
 
 # SKIP ALL TESTS IF RUNNING COVERAGE ANALYSIS (performance tests are slow and not needed for coverage)
+
 if (identical(Sys.getenv("SKIP_PERFORMANCE_TESTS"), "true")) {
   cat("Skipping all performance tests (SKIP_PERFORMANCE_TESTS environment variable set)\n")
   skip("Performance tests skipped during coverage analysis")
 }
+
+skip_on_cran()
 
 # Setup: Create realistic test data
 setup_test_counts <- function(n_genes = 1000, n_samples = 10) {
@@ -107,6 +110,7 @@ test_that("calculate_diversity with normalization is efficient", {
 # ============================================================================
 
 test_that("zscore normalization is fast enough (internal bottleneck)", {
+  skip_on_cran()
   skip_if_not_installed("microbenchmark")
   
   # Normalize large entropy matrix (common in pipeline)

@@ -23,8 +23,7 @@
 #'
 #' @name readcounts
 #' @aliases readcounts salmon_dataset salmon_tpm salmon_effective_length
-#' @keywords internal
-#' @noRd
+NULL
 NULL
 
 

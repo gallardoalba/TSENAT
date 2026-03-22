@@ -118,10 +118,10 @@ validate_gene_names <- function(
   
   if (verbose) {
     if (is_aligned) {
-      cat("[validate_gene_names] ✓ Gene names aligned perfectly\n")
+      cat("[validate_gene_names] Gene names aligned perfectly\n")
       cat("  ", n_se, " genes in both ", se_name, " and ", results_name, "\n", sep = "")
     } else {
-      cat("[validate_gene_names] ✗ Gene name mismatch!\n")
+      cat("[validate_gene_names] Gene name mismatch!\n")
       for (line in mismatch_details) cat(line, "\n")
       cat("\nSOLUTION: Ensure both objects were derived from the same analysis.\n")
     }
@@ -212,13 +212,13 @@ validate_se_dimensions <- function(
   
   if (verbose) {
     if (is_valid) {
-      cat("[validate_se_dimensions] ✓ All dimension checks passed\n")
+      cat("[validate_se_dimensions] All dimension checks passed\n")
       cat("  Samples: ", n_samples, ", Genes: ", n_genes, "\n", sep = "")
       if (length(assays_present) > 0) {
         cat("  Assays: ", paste(assays_present, collapse = ", "), "\n", sep = "")
       }
     } else {
-      cat("[validate_se_dimensions] ✗ Dimension mismatches found!\n")
+      cat("[validate_se_dimensions] Dimension mismatches found!\n")
       for (issue in issues) cat("  ", issue, "\n", sep = "")
     }
   }
@@ -362,13 +362,13 @@ validate_lm_results <- function(
   
   if (verbose) {
     if (is_valid) {
-      cat("[validate_lm_results] ✓ LM results structure valid\n")
+      cat("[validate_lm_results] LM results structure valid\n")
       cat("  Results: ", n_results, " genes\n", sep = "")
       cat("  Columns: ", paste(cols_present, collapse = ", "), "\n", sep = "")
       if (has_pval) cat("  P-value column: ", pval_col, "\n", sep = "")
       if (has_effect) cat("  Effect size: available\n")
     } else {
-      cat("[validate_lm_results] ✗ LM results structure issues!\n")
+      cat("[validate_lm_results] LM results structure issues!\n")
       for (issue in issues) cat("  ", issue, "\n", sep = "")
     }
   }
@@ -459,7 +459,7 @@ validate_plot_data <- function(
   }
   
   if (verbose && length(all_issues) == 0) {
-    cat("[validate_plot_data] ✓ All data compatibility checks passed!\n")
+    cat("[validate_plot_data] All data compatibility checks passed!\n")
   }
   
   return(invisible(all_issues))
