@@ -8,20 +8,15 @@ test_that("calculate_divergence works with basic SE input", {
     
     set.seed(42)
     
-    # Create a basic SummarizedExperiment
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    
-    metadata <- data.frame(
-        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
-        row.names = colnames(counts)
+    # Create SE with 20 genes and 8 samples
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 42
     )
-    
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
-    )
+    colnames(se) <- paste0("Sample_", 1:8)
     
     # Test with bootstrap=TRUE (default)
     result_bootstrap <- calculate_divergence(
@@ -55,12 +50,15 @@ test_that("calculate_divergence bootstrap parameter works correctly", {
     
     set.seed(43)
     
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    metadata <- data.frame(group = factor(c(rep("A", 4), rep("B", 4))),
-                           row.names = colnames(counts))
-    se <- SummarizedExperiment(assays = list(counts = counts), colData = metadata)
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 43
+    )
+    # Update colData to use group values "A" and "B"
+    SummarizedExperiment::colData(se)$group <- factor(c(rep("A", 4), rep("B", 4)))
     
     # Point estimates only (bootstrap=FALSE)
     result_point <- calculate_divergence(
@@ -104,12 +102,14 @@ test_that("calculate_divergence input validation", {
     
     set.seed(44)
     
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    metadata <- data.frame(group = factor(c(rep("A", 4), rep("B", 4))),
-                           row.names = colnames(counts))
-    se <- SummarizedExperiment(assays = list(counts = counts), colData = metadata)
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 44
+    )
+    SummarizedExperiment::colData(se)$group <- factor(c(rep("A", 4), rep("B", 4)))
     
     # Invalid SE (not SummarizedExperiment)
     expect_error(
@@ -129,12 +129,14 @@ test_that("calculate_divergence handles parallel processing", {
     
     set.seed(45)
     
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    metadata <- data.frame(group = factor(c(rep("A", 4), rep("B", 4))),
-                           row.names = colnames(counts))
-    se <- SummarizedExperiment(assays = list(counts = counts), colData = metadata)
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 45
+    )
+    SummarizedExperiment::colData(se)$group <- factor(c(rep("A", 4), rep("B", 4)))
     
     # Sequential (nthreads=1) - uses default nboot=1000, so no warning expected
     result_seq <- calculate_divergence(
@@ -152,23 +154,19 @@ test_that("calculate_divergence auto-detects paired samples", {
     
     set.seed(46)
     
-    # Create SE with paired_samples column (expected for TSENAT readcounts)
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8")
-    
-    # Metadata with paired_samples column (A-D pairs, matched normal-tumor)
-    metadata <- data.frame(
-        condition = factor(c(rep("Normal", 4), rep("Tumor", 4))),
-        paired_samples = c("A", "B", "C", "D",  # Paired group IDs
-                          "A", "B", "C", "D"),   # Same IDs for paired samples
-        row.names = colnames(counts)
+    # Create SE with paired_samples column
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 46
     )
+    colnames(se) <- c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8")
     
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
-    )
+    # Add paired_samples column
+    SummarizedExperiment::colData(se)$condition <- factor(c(rep("Normal", 4), rep("Tumor", 4)))
+    SummarizedExperiment::colData(se)$paired_samples <- c("A", "B", "C", "D", "A", "B", "C", "D")
     
     # Test with bootstrap=TRUE (triggers auto-detection)
     result <- calculate_divergence(
@@ -198,18 +196,12 @@ test_that("calculate_divergence works without paired_samples column", {
     set.seed(47)
     
     # SE without paired_samples column (should use independent bootstrap)
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    
-    metadata <- data.frame(
-        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
-        row.names = colnames(counts)
-    )
-    
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 47
     )
     
     # Test with bootstrap=TRUE (no pairing detected)
@@ -231,15 +223,15 @@ test_that(".detect_pair_ids correctly identifies paired structures", {
     skip_if_not_installed("SummarizedExperiment")
     
     # Test 1: paired_samples column detected
-    counts <- matrix(rpois(20 * 6, lambda = 100), nrow = 20, ncol = 6)
-    colnames(counts) <- paste0("Sample_", 1:6)
-    
-    metadata <- data.frame(
-        paired_samples = c("Pair_A", "Pair_B", "Pair_C", "Pair_A", "Pair_B", "Pair_C"),
-        row.names = colnames(counts)
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 6,
+        n_control = 3,
+        lambda = 100,
+        seed = 48
     )
     
-    se <- SummarizedExperiment(assays = list(counts = counts), colData = metadata)
+    SummarizedExperiment::colData(se)$paired_samples <- c("Pair_A", "Pair_B", "Pair_C", "Pair_A", "Pair_B", "Pair_C")
     
     detected <- TSENAT:::.detect_pair_ids(se)
     
@@ -250,11 +242,13 @@ test_that(".detect_pair_ids correctly identifies paired structures", {
     
     # Test 2: No paired column (should return NULL)
     metadata_no_pairs <- data.frame(
-        group = factor(c(rep("A", 3), rep("B", 3))),
-        row.names = colnames(counts)
+        group = factor(c(rep("A", 3), rep("B", 3)))
     )
     
-    se_no_pairs <- SummarizedExperiment(assays = list(counts = counts), colData = metadata_no_pairs)
+    se_no_pairs <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = SummarizedExperiment::assays(se)[[1]]),
+        colData = metadata_no_pairs
+    )
     detected_no_pairs <- TSENAT:::.detect_pair_ids(se_no_pairs)
     
     expect_equal(detected_no_pairs$num_pairs, 0)
@@ -266,19 +260,13 @@ test_that("calculate_divergence normalization modes work correctly", {
     
     set.seed(42)
     
-    # Create a basic SummarizedExperiment
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    
-    metadata <- data.frame(
-        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
-        row.names = colnames(counts)
-    )
-    
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
+    # Create SE with 20 genes and 8 samples
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 42
     )
     
     # Test norm="none" (no normalization)
@@ -345,19 +333,13 @@ test_that("calculate_divergence all normalization modes are supported", {
     
     set.seed(42)
     
-    # Create a basic SummarizedExperiment
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    
-    metadata <- data.frame(
-        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
-        row.names = colnames(counts)
-    )
-    
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
+    # Create SE with 20 genes and 8 samples
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 42
     )
     
     # Test all 5 normalization modes
@@ -385,18 +367,12 @@ test_that("calculate_divergence normalization produces valid ranges", {
     
     set.seed(42)
     
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    
-    metadata <- data.frame(
-        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
-        row.names = colnames(counts)
-    )
-    
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 42
     )
     
     # Test range normalization produces values in [0,1]
@@ -422,18 +398,12 @@ test_that("calculate_divergence norm parameter validation", {
     
     set.seed(42)
     
-    counts <- matrix(rpois(20 * 8, lambda = 100), nrow = 20, ncol = 8)
-    rownames(counts) <- paste0("Gene_", 1:20)
-    colnames(counts) <- paste0("Sample_", 1:8)
-    
-    metadata <- data.frame(
-        group = factor(c(rep("Control", 4), rep("Treatment", 4))),
-        row.names = colnames(counts)
-    )
-    
-    se <- SummarizedExperiment(
-        assays = list(counts = counts),
-        colData = metadata
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 42
     )
     
     # Test invalid norm value raises error
@@ -459,8 +429,3 @@ test_that("calculate_divergence norm parameter validation", {
         expect_equal(metadata(result)$normalization, valid_mode)
     }
 })
-
-# =====================================================================
-# Bayesian Credible Intervals (Tier 2 Integration)
-# =====================================================================
-

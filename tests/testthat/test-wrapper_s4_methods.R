@@ -2901,14 +2901,7 @@ test_that("m_estimate_s4: auto-detect verbose from config (lines 1875-1883)", {
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
   # Create minimal diversity results
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   # Should run without explicit verbose and use config value
@@ -2955,10 +2948,7 @@ test_that("m_estimate_s4: validate diversity_results structure (lines 1897-1900)
   config <- list(q_values = c(1.0))
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   # Create a properly typed list but with no names
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(condition = c("control", "control", "treatment"))
-  )
+  se <- create_wrapper_test_se_10x3(include_condition = FALSE)
   analysis@diversity_results <- list(se)  # No names - unnamed element
   
   expect_error(
@@ -2973,14 +2963,7 @@ test_that("m_estimate_s4: auto-detect condition_col from config (lines 1903-1912
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
   # Create diversity results
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   # Should auto-detect condition_col from config
@@ -3003,14 +2986,7 @@ test_that("m_estimate_s4: condition_col validation (lines 1917-1919)", {
   config <- list(q_values = c(1.0))
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   # Pass non-character condition_col
@@ -3025,13 +3001,7 @@ test_that("m_estimate_s4: condition_col not found in metadata (lines 1943-1946)"
   config <- list(q_values = c(1.0))
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = FALSE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   # Pass condition_col that doesn't exist
@@ -3064,14 +3034,7 @@ test_that("m_estimate_s4: auto-detect paired from config (lines 1922-1933)", {
   config <- list(q_values = c(1.0), paired = TRUE)
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   result <- tryCatch({
@@ -3094,22 +3057,8 @@ test_that("m_estimate_s4: combine multi-q diversity results (lines 1950-1978)", 
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0, 1.5))
   
   # Create diversity results for two q-values
-  se_q1 <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
-  se_q2 <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  se_q1 <- create_wrapper_test_se_10x3(include_condition = TRUE)
+  se_q2 <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = se_q1, q_1.5 = se_q2)
   
   # Should combine both q-values
@@ -3131,14 +3080,7 @@ test_that("m_estimate_s4: store results and metadata (lines 2004-2010)", {
   config <- list(q_values = c(1.0))
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   result <- tryCatch({
@@ -3171,14 +3113,7 @@ test_that("m_estimate_s4: return updated analysis object (lines 2016)", {
   config <- list(q_values = c(1.0))
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   result <- tryCatch({
@@ -3199,14 +3134,7 @@ test_that("m_estimate_s4: error handling in m_estimate (lines 1985-2001)", {
   config <- list(q_values = c(1.0))
   analysis <- setup_wrapper_analysis(config = config, q_vals = c(1.0))
   
-  diversity_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(rpois(30, 100), nrow = 10, ncol = 3)),
-    colData = data.frame(
-      sample = c("control_1", "control_2", "treatment_1"),
-      condition = c("control", "control", "treatment"),
-      stringsAsFactors = FALSE
-    )
-  )
+  diversity_se <- create_wrapper_test_se_10x3(include_condition = TRUE)
   analysis@diversity_results <- list(q_1.0 = diversity_se)
   
   # Use invalid loss_type to trigger error
@@ -7066,9 +6994,7 @@ test_that("TSENATAnalysis can be created with empty SummarizedExperiment (valida
 })
 
 test_that("TSENATAnalysis stores configuration properly", {
-  se <- SummarizedExperiment(
-    assays = list(counts = matrix(rpois(50, 3), nrow = 5, ncol = 10))
-  )
+  se <- create_simple_se_5x10()
   rownames(se) <- paste0("G", 1:5)
   colnames(se) <- paste0("S", 1:10)
 
@@ -7080,9 +7006,7 @@ test_that("TSENATAnalysis stores configuration properly", {
 })
 
 test_that("TSENATAnalysis initializes metadata with timestamps and version", {
-  se <- SummarizedExperiment(
-    assays = list(counts = matrix(rpois(50, 3), nrow = 5, ncol = 10))
-  )
+  se <- create_simple_se_5x10()
   rownames(se) <- paste0("G", 1:5)
   colnames(se) <- paste0("S", 1:10)
 
@@ -7099,9 +7023,7 @@ test_that("TSENATAnalysis validity checks slot types", {
   # The validity function should prevent invalid objects
   # We test this indirectly through the constructor
 
-  se <- SummarizedExperiment(
-    assays = list(counts = matrix(rpois(50, 3), nrow = 5, ncol = 10))
-  )
+  se <- create_simple_se_5x10()
   rownames(se) <- paste0("G", 1:5)
   colnames(se) <- paste0("S", 1:10)
 
@@ -7115,9 +7037,7 @@ test_that("TSENATAnalysis validity checks slot types", {
 })
 
 test_that("show method works for TSENATAnalysis", {
-  se <- SummarizedExperiment(
-    assays = list(counts = matrix(rpois(50, 3), nrow = 5, ncol = 10))
-  )
+  se <- create_simple_se_5x10()
   rownames(se) <- paste0("G", 1:5)
   colnames(se) <- paste0("S", 1:10)
 
@@ -7131,9 +7051,7 @@ test_that("show method works for TSENATAnalysis", {
 })
 
 test_that("summary method works for TSENATAnalysis", {
-  se <- SummarizedExperiment(
-    assays = list(counts = matrix(rpois(50, 3), nrow = 5, ncol = 10))
-  )
+  se <- create_simple_se_5x10()
   rownames(se) <- paste0("G", 1:5)
   colnames(se) <- paste0("S", 1:10)
 

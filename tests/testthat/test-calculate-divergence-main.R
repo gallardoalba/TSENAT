@@ -7,14 +7,11 @@
 
 test_that("calculate_divergence validates norm parameter", {
   # Basic test data - 2 genes x 6 samples
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(1:12, nrow = 2, ncol = 6)),
-    colData = data.frame(
-      sample_type = c("Control", "Control", "Treatment", "Treatment", "Treatment", "Treatment")
-    ),
-    rowData = data.frame(
-      gene_name = c("gene1", "gene2")
-    )
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
@@ -35,14 +32,11 @@ test_that("calculate_divergence validates norm parameter", {
 })
 
 test_that("calculate_divergence sorts q values in ascending order", {
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(1:12, nrow = 2, ncol = 6)),
-    colData = data.frame(
-      sample_type = c("Control", "Control", "Treatment", "Treatment", "Treatment", "Treatment")
-    ),
-    rowData = data.frame(
-      gene_name = c("gene1", "gene2")
-    )
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
@@ -61,14 +55,11 @@ test_that("calculate_divergence sorts q values in ascending order", {
 })
 
 test_that("calculate_divergence rejects non-positive q values", {
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(1:12, nrow = 2, ncol = 6)),
-    colData = data.frame(
-      sample_type = c("Control", "Control", "Treatment", "Treatment", "Treatment", "Treatment")
-    ),
-    rowData = data.frame(
-      gene_name = c("gene1", "gene2")
-    )
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
@@ -101,14 +92,11 @@ test_that("calculate_divergence requires SummarizedExperiment input", {
 })
 
 test_that("calculate_divergence auto-detects group column", {
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(1:12, nrow = 2, ncol = 6)),
-    colData = data.frame(
-      sample_type = c("Control", "Control", "Treatment", "Treatment", "Treatment", "Treatment")
-    ),
-    rowData = data.frame(
-      gene_name = c("gene1", "gene2")
-    )
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
@@ -127,15 +115,14 @@ test_that("calculate_divergence auto-detects group column", {
 })
 
 test_that("calculate_divergence auto-detects control group", {
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(1:12, nrow = 2, ncol = 6)),
-    colData = data.frame(
-      sample_type = c("Normal", "Normal", "Treatment", "Treatment", "Treatment", "Treatment")
-    ),
-    rowData = data.frame(
-      gene_name = c("gene1", "gene2")
-    )
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
   )
+  # Update control group name to "Normal" for this test
+  SummarizedExperiment::colData(se)$sample_type <- c("Normal", "Normal", "Treatment", "Treatment", "Treatment", "Treatment")
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
   # Don't specify control_group, should auto-detect "Normal"
@@ -152,6 +139,7 @@ test_that("calculate_divergence auto-detects control group", {
 })
 
 test_that("calculate_divergence fails without gene identifiers", {
+  # Create SE without rowData gene_name or rownames
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(c(1, 2, 3, 4, 5, 6), nrow = 1, ncol = 6)),
     colData = data.frame(
@@ -174,12 +162,11 @@ test_that("calculate_divergence fails without gene identifiers", {
 })
 
 test_that("calculate_divergence rejects non-logical bootstrap", {
-  se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = matrix(c(1, 2, 3, 4, 5, 6), nrow = 1, ncol = 6)),
-    colData = data.frame(
-      sample_type = c("Control", "Control", "Treatment", "Treatment", "Treatment", "Treatment")
-    ),
-    rowData = data.frame(gene_name = c("gene1"))
+  se <- create_test_se_simple(
+    n_genes = 1,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
