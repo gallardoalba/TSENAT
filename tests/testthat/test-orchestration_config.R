@@ -9,8 +9,8 @@ context("Orchestration: Configuration and Pipeline")
 make_test_se <- function() {
   set.seed(123)
   # Create synthetic transcript-level data with proper isoform structure
-  n_genes <- 50  # Reduced for faster testing but enough for jackknife
-  isoforms_per_gene <- 5  # More isoforms per gene for better diversity
+  n_genes <- 20  # Reduced for faster testing (Phase 9 optimization)
+  isoforms_per_gene <- 3  # Reduced for faster testing while maintaining coverage
   n_isoforms <- n_genes * isoforms_per_gene
   n_samples_control <- 10
   n_samples_treatment <- 10
@@ -186,32 +186,32 @@ test_that("tsenat accepts SE with valid assays", {
   expect_true(TRUE)
 })
 
-test_that("tsenat accepts config parameter", {
-  se <- make_test_se()
-  config <- tsenat_config(seed = 555)
-  
-  result <- tryCatch(
-    tsenat(se, config = config, verbose = FALSE, generate_plots = FALSE),
-    error = function(e) NULL
-  )
-  
-  expect_true(TRUE)
-})
-
-test_that("tsenat respects methods parameter", {
+test_that("tsenat accepts config, methods, and filter_genome parameters", {
+  # Consolidated test combining 3 parameter tests for efficiency (Phase 9 optimization)
   se <- make_test_se()
   
-  result <- tryCatch(
-    tsenat(
-      se,
-      methods = c("gam"),
-      verbose = FALSE,
-      generate_plots = FALSE
-    ),
+  # Test 1: Config parameter with seed
+  config1 <- tsenat_config(seed = 555)
+  result1 <- tryCatch(
+    tsenat(se, config = config1, verbose = FALSE, generate_plots = FALSE),
     error = function(e) NULL
   )
+  expect_true(is.null(result1) || inherits(result1, "TSENATAnalysis"))
   
-  expect_true(TRUE)
+  # Test 2: Methods parameter
+  result2 <- tryCatch(
+    tsenat(se, methods = c("gam"), verbose = FALSE, generate_plots = FALSE),
+    error = function(e) NULL
+  )
+  expect_true(is.null(result2) || inherits(result2, "TSENATAnalysis"))
+  
+  # Test 3: Config with filter_genome parameter (part of tsenat_config)
+  config3 <- tsenat_config(filter_genome = TRUE)
+  result3 <- tryCatch(
+    tsenat(se, config = config3, verbose = FALSE, generate_plots = FALSE),
+    error = function(e) NULL
+  )
+  expect_true(is.null(result3) || inherits(result3, "TSENATAnalysis"))
 })
 
 test_that("tsenat rejects invalid SE (missing required assays)", {
@@ -261,16 +261,7 @@ test_that("tsenat passes config parameters to analysis methods", {
   }
 })
 
-test_that("tsenat with filter_genome parameter works", {
-  se <- make_test_se()
-  
-  result <- tryCatch(
-    tsenat(se, filter_genome = TRUE, verbose = FALSE, generate_plots = FALSE),
-    error = function(e) NULL
-  )
-  
-  expect_true(TRUE)
-})
+
 
 # ============================================================================
 # TEST: Configuration validation

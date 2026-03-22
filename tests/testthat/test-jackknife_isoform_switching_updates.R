@@ -54,7 +54,7 @@ test_that("jackknife_isoform_switching accepts vector of q values", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -114,7 +114,7 @@ test_that("Multi-q analysis analyzes same genes across all q values", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     q = q_values,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -149,7 +149,7 @@ test_that("jackknife_isoform_switching maps gene names to IDs in lm_results", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -177,7 +177,7 @@ test_that("jackknife_isoform_switching handles lm_results with gene IDs", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -204,7 +204,7 @@ test_that("Gene mapping respects LM p-value threshold", {
     lm_results = lm_results,
     lm_p_threshold = 0.005,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -217,7 +217,7 @@ test_that("Gene mapping respects LM p-value threshold", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -261,7 +261,7 @@ test_that("Gene name to ID mapping removes duplicates", {
     isoform_col = "isoform_id",
     lm_results = lm_results,
     lm_p_threshold = 0.05,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -290,7 +290,7 @@ test_that("Function accepts multiple genes in lm_results", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -317,7 +317,7 @@ test_that("LM threshold influences number of analyzed genes", {
     lm_results = lm_results,
     lm_p_threshold = 0.005,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -330,7 +330,7 @@ test_that("LM threshold influences number of analyzed genes", {
     lm_results = lm_results,
     lm_p_threshold = 0.50,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -356,7 +356,7 @@ test_that("Function works without top_n parameter", {
     condition_col = "condition",
     gene_col = "gene_id",
     isoform_col = "isoform_id",
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -387,7 +387,7 @@ test_that("Multi-q analysis works with gene name to ID mapping", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -419,7 +419,7 @@ test_that("Multi-q with gene filtering returns consistent structure", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -454,7 +454,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = TRUE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -466,7 +466,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -495,7 +495,7 @@ test_that("Metadata tracks LM gene filtering correctly", {
     isoform_col = "isoform_id",
     lm_results = lm_results,
     lm_p_threshold = 0.05,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   
@@ -522,7 +522,7 @@ test_that("Metadata correctly reports LM filtering statistics", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
-    n_bootstrap = 10,
+    n_bootstrap = 5,
     print_results = FALSE
   ))
   

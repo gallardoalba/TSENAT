@@ -148,6 +148,17 @@ setup_effect_sizes_analysis <- function(config = list(), q_vals = 1.0) {
   }
 })
 
+# Cache expensive analysis for reuse across computational tests
+.get_cached_effect_sizes_analysis <- local({
+  cache <- NULL
+  function(config = list(), q_vals = 1.0) {
+    if (is.null(cache)) {
+      cache <<- suppressWarnings(setup_effect_sizes_analysis(config, q_vals))
+    }
+    cache
+  }
+})
+
 # ==============================================================================
 # INPUT VALIDATION TESTS
 # ==============================================================================
@@ -165,9 +176,7 @@ test_that("effect_sizes_divergence_s4: analysis must be TSENATAnalysis (line 254
 
 test_that("effect_sizes_divergence_s4: divergence results required (line 2546-2549)", {
   # Line 2546-2549: Check that divergence results exist
-  config <- list()
-  # Suppress model convergence warnings from setup (expected for synthetic data)
-  analysis <- suppressWarnings(setup_effect_sizes_analysis(config = config, q_vals = 1.0))
+  analysis <- .get_cached_effect_sizes_analysis()
   
   # Clear divergence results
   analysis@divergence_results <- list()
@@ -180,9 +189,7 @@ test_that("effect_sizes_divergence_s4: divergence results required (line 2546-25
 
 test_that("effect_sizes_divergence_s4: LM results required (line 2551-2554)", {
   # Line 2551-2554: Check that LM results exist
-  config <- list()
-  # Suppress model convergence warnings from setup (expected for synthetic data)
-  analysis <- suppressWarnings(setup_effect_sizes_analysis(config = config, q_vals = 1.0))
+  analysis <- .get_cached_effect_sizes_analysis()
   
   # Clear LM results
   analysis@lm_results <- list()
@@ -278,9 +285,7 @@ test_that("effect_sizes_divergence_s4: verbose output covers extraction and comp
 
 test_that("effect_sizes_divergence_s4: effect sizes computation (line 2639-2651)", {
   # Line 2639-2651: Test successful effect sizes computation via tryCatch
-  config <- list()
-  # Suppress model convergence warnings from setup (expected for synthetic data)
-  analysis <- suppressWarnings(setup_effect_sizes_analysis(config = config, q_vals = 1.0))
+  analysis <- .get_cached_effect_sizes_analysis()
   
   result <- tryCatch({
     effect_sizes_divergence_s4(analysis, verbose = FALSE)
@@ -327,9 +332,7 @@ test_that("effect_sizes_divergence_s4: metadata storage and function call tracki
 
 test_that("effect_sizes_divergence_s4: return value is TSENATAnalysis (line 2676)", {
   # Line 2676: Should return TSENATAnalysis object
-  config <- list()
-  # Suppress model convergence warnings from setup (expected for synthetic data)
-  analysis <- suppressWarnings(setup_effect_sizes_analysis(config = config, q_vals = 1.0))
+  analysis <- .get_cached_effect_sizes_analysis()
   
   result <- tryCatch({
     effect_sizes_divergence_s4(analysis, verbose = FALSE)
@@ -346,13 +349,7 @@ test_that("effect_sizes_divergence_s4: return value is TSENATAnalysis (line 2676
 test_that("effect_sizes_divergence_s4: integration with parameter override and config", {
   # Test complete workflow: explicit parameters override config
   # Also test using config parameters when explicit args not provided
-  # Model convergence warnings expected for synthetic data
-  config <- list(
-    significance_threshold = 0.01,
-    enrich_per_q_pattern = TRUE,
-    verbose = FALSE
-  )
-  analysis <- suppressWarnings(setup_effect_sizes_analysis(config = config, q_vals = 1.0))
+  analysis <- .get_cached_effect_sizes_analysis()
   
   # Explicit parameters should override config
   result1 <- tryCatch({

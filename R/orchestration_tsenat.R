@@ -351,7 +351,7 @@ tsenat <- function(
       tryCatch({
         analysis <- detect_q_gene_interactions_s4(
           analysis,
-          q_values = q_vals,
+          q = q_vals,
           ...
         )
          if (verbose) cat("  \u2713 Q-interactions detected\n\n")

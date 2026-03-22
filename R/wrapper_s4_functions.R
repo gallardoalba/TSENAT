@@ -74,7 +74,7 @@
 #' }
 #'
 #' @export
-calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
+calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -430,14 +430,19 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
       analysis@metadata$parallel_processing,
       paste0("calculate_diversity_s4: nthreads=", nthreads, " (", length(q), " q-values)")
     )
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write as text table (convert to data.frame representation)
+      write.table(as.data.frame(analysis@diversity_results), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
   }
 
   analysis
 }
-
-# ============================================================================
-# LM INTERACTION WRAPPER
-# ============================================================================
 
 #' Calculate LM interactions and store in TSENATAnalysis
 #'
@@ -477,7 +482,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
 #'
 #' @export
 calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, 
-                                       formula = NULL, method = NULL, ...) {
+                                       formula = NULL, method = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -743,6 +748,23 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
     "calculate_lm_interaction"
   )
 
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write LM results as text table
+      lm_data <- if (!is.null(analysis@lm_results$lm_interaction$results)) {
+        analysis@lm_results$lm_interaction$results
+      } else {
+        as.data.frame(analysis@lm_results)
+      }
+      write.table(lm_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
+  }
+
   analysis
 }
 
@@ -771,7 +793,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' }
 #'
 #' @export
-jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, ...) {
+jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -847,11 +869,14 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
     })
   }
 
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    saveRDS(analysis, file = output_file)
+
+  }
   analysis
 }
 
-# ============================================================================
-# DIVERGENCE WRAPPER
 # ============================================================================
 
 #' Calculate divergence metrics and store in TSENATAnalysis
@@ -889,7 +914,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' }
 #'
 #' @export
-calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, ...) {
+calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1013,6 +1038,18 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, ...) {
     paste0("calculate_divergence[q=", q, "]")
   )
 
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write divergence results as text table
+      write.table(as.data.frame(analysis@divergence_results), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
+  }
+
   analysis
 }
 
@@ -1047,7 +1084,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, ...) {
 #' }
 #'
 #' @export
-detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
+detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1246,6 +1283,18 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
     )
   }
 
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write q-interactions results as text table
+      write.table(as.data.frame(result), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
+  }
+
   analysis
 }
 
@@ -1293,7 +1342,7 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
 #'   # Then compute differences
 #'   analysis <- calculate_difference_s4(analysis, control = "Normal")
 #' }
-calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, ...) {
+calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1390,6 +1439,23 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, ...) {
     analysis@metadata$function_calls,
     paste0("calculate_difference_s4[q=", q_used, ", control=", control, "]")
   )
+
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write difference results as text table
+      diff_data <- if (!is.null(analysis@lm_results$difference$results)) {
+        analysis@lm_results$difference$results
+      } else {
+        as.data.frame(analysis@lm_results$difference)
+      }
+      write.table(diff_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
+  }
 
   analysis
 }
@@ -1663,6 +1729,7 @@ plot_volcano_ma_grid_s4 <- function(
     title_volcano = NULL,
     title_ma = "Tsallis-based MA plot",
     verbose = FALSE,
+    output_file = NULL,
     ...) {
 
   # Auto-detect verbose from config if not explicitly provided
@@ -1747,6 +1814,24 @@ plot_volcano_ma_grid_s4 <- function(
 
   if (verbose) {
     cat("[plot_volcano_ma_grid_s4] Plot created successfully\n")
+  }
+
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.pdf$", tolower(output_file))) {
+      ggplot2::ggsave(output_file, plot = plot_obj, device = "pdf")
+    } else if (grepl("\\.png$", tolower(output_file))) {
+      ggplot2::ggsave(output_file, plot = plot_obj, device = "png")
+    } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
+      ggplot2::ggsave(output_file, plot = plot_obj, device = "jpeg")
+    } else {
+      # Default to PDF
+      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = plot_obj, device = "pdf")
+    }
+    if (verbose) {
+      cat("[plot_volcano_ma_grid_s4] Plot saved to", output_file, "\n")
+    }
+
   }
 
   return(invisible(plot_obj))
@@ -1842,7 +1927,8 @@ m_estimate_s4 <- function(
     q_combine_method = "mean",
     influence_threshold = 0.75,
     scale_method = "mad",
-    verbose = TRUE) {
+    verbose = TRUE,
+    output_file = NULL) {
 
   # Auto-detect verbose from config if not explicitly provided
   if (isTRUE(verbose)) {
@@ -1984,6 +2070,23 @@ m_estimate_s4 <- function(
 
   if (verbose) {
     cat("[OK] M-estimation complete. Results stored in @metadata$m_estimate_results\n")
+  }
+
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write M-estimation results as text table
+      m_est_data <- if (!is.null(analysis@metadata$m_estimate_results)) {
+        analysis@metadata$m_estimate_results
+      } else {
+        data.frame()
+      }
+      write.table(m_est_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
   }
 
   analysis
@@ -2494,6 +2597,7 @@ effect_sizes_divergence_s4 <- function(
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE,
     verbose = TRUE,
+    output_file = NULL,
     ...) {
 
   # Auto-detect verbose from config if not explicitly provided
@@ -2642,6 +2746,18 @@ effect_sizes_divergence_s4 <- function(
     if (!is.null(result$interaction_results)) {
       cat("  - Effect size results:", nrow(result$interaction_results), "genes\n")
     }
+  }
+
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write effect size results as text table
+      write.table(as.data.frame(result$interaction_results), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
   }
 
   analysis
@@ -3152,7 +3268,8 @@ jackknife_isoform_switching_s4 <- function(
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  output_file = NULL
 ) {
   # Auto-detect verbose from config if not explicitly provided
   if (isFALSE(verbose)) {
@@ -3405,6 +3522,18 @@ jackknife_isoform_switching_s4 <- function(
     )
   }
   
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write jackknife switching results as text table
+      write.table(as.data.frame(result), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+
+  }
+
   # Return modified analysis object
   analysis
 }
@@ -3471,6 +3600,7 @@ prepare_gene_switching_tables_s4 <- function(
     n_top_genes = NULL,
     n_transcripts_per_gene = 10,
     verbose = FALSE,
+    output_file = NULL,
     ...) {
   
   # Auto-detect verbose from config if not explicitly provided
@@ -3575,6 +3705,18 @@ prepare_gene_switching_tables_s4 <- function(
   analysis@metadata$function_timestamps <- c(analysis@metadata$function_timestamps,
                                              as.character(Sys.time()))
   
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write as TSV/CSV
+      write.table(result, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    } else {
+      # Default to RDS for arbitrary objects
+      saveRDS(result, file = output_file)
+    }
+
+  }
+  
   return(result)
 }
 
@@ -3641,6 +3783,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     n_genes = 4,
     lm_results = NULL,
     verbose = FALSE,
+    output_file = NULL,
     ...) {
   
   # Auto-detect verbose from config if not explicitly provided
@@ -3722,6 +3865,35 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     cat("  Saved to:", heatmap_file, "\n")
   }
 
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.pdf$", tolower(output_file))) {
+      # If heatmap_file is a PNG from base function, convert by re-saving as PDF
+      # For now, just copy/save the plot object if available
+      if (file.exists(heatmap_file)) {
+        file.copy(heatmap_file, output_file, overwrite = TRUE)
+      }
+    } else if (grepl("\\.png$", tolower(output_file))) {
+      # heatmap_file should already be PNG from base function
+      if (file.exists(heatmap_file)) {
+        file.copy(heatmap_file, output_file, overwrite = TRUE)
+      }
+    } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
+      # Convert PNG to JPEG if needed
+      if (file.exists(heatmap_file)) {
+        file.copy(heatmap_file, output_file, overwrite = TRUE)
+      }
+    } else {
+      # Default: copy base output to requested file
+      if (file.exists(heatmap_file)) {
+        file.copy(heatmap_file, output_file, overwrite = TRUE)
+      }
+    }
+    if (verbose && file.exists(output_file)) {
+      cat("[plot_multiq_delta_influence_heatmaps_s4] Plot saved to", output_file, "\n")
+    }
+  }
+
   # Return result visibly (consistent with other S4 wrappers)
   heatmap_file
 }
@@ -3801,6 +3973,7 @@ plot_lm_interaction_gam_s4 <- function(
   condition_col = NULL,
   sig_alpha = 0.05,
   assay_name = "diversity",
+  output_file = NULL,
   ...
 ) {
   # =========================================================================
@@ -3950,6 +4123,21 @@ plot_lm_interaction_gam_s4 <- function(
     )
   }
   
+  # Save if output_file provided
+  if (!is.null(output_file)) {
+    if (grepl("\\.pdf$", tolower(output_file))) {
+      ggplot2::ggsave(output_file, plot = result, device = "pdf")
+    } else if (grepl("\\.png$", tolower(output_file))) {
+      ggplot2::ggsave(output_file, plot = result, device = "png")
+    } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
+      ggplot2::ggsave(output_file, plot = result, device = "jpeg")
+    } else {
+      # Default to PDF
+      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = result, device = "pdf")
+    }
+
+  }
+
   # Return the plot object directly (not the analysis object)
   result
 }

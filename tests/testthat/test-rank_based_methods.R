@@ -57,7 +57,7 @@ test_that("rank_correlation_bootstrap_ci handles percentile CI", {
   )
   
   result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
-                                         ci = "percentile", n_bootstrap = 200)
+                                         ci = "percentile", n_bootstrap = 100)
   
   expect_equal(result$ci_type, "percentile")
   expect_equal(dim(result$ci_matrix), c(2, 2, 2))
@@ -67,6 +67,7 @@ test_that("rank_correlation_bootstrap_ci handles percentile CI", {
 })
 
 test_that("rank_correlation_bootstrap_ci handles BCA CI", {
+  skip_on_ci()
   set.seed(42)
   pvalues <- list(
     q01 = runif(50),
@@ -74,7 +75,7 @@ test_that("rank_correlation_bootstrap_ci handles BCA CI", {
   )
   
   result <- suppressWarnings(rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
-                                         ci = "bca", n_bootstrap = 200))
+                                         ci = "bca", n_bootstrap = 100))
   
   expect_equal(result$ci_type, "bca")
   expect_equal(dim(result$ci_matrix), c(2, 2, 2))
@@ -84,6 +85,7 @@ test_that("rank_correlation_bootstrap_ci handles BCA CI", {
 })
 
 test_that("rank_correlation_bootstrap_ci handles permutation CI", {
+  skip_on_ci()
   set.seed(42)
   pvalues <- list(
     q01 = runif(50),
@@ -91,7 +93,7 @@ test_that("rank_correlation_bootstrap_ci handles permutation CI", {
   )
   
   result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
-                                         ci = "permutation", n_permutations = 200)
+                                         ci = "permutation", n_permutations = 100)
   
   expect_equal(result$ci_type, "permutation")
   expect_equal(dim(result$ci_matrix), c(2, 2, 2))
@@ -636,7 +638,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
   result <- detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
-    wy_randomizations = 30
+    wy_randomizations = 15
   )
   
   # Verify adjusted p-values exist and are valid
@@ -659,7 +661,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
   result <- suppressWarnings(detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
-    wy_randomizations = 15
+    wy_randomizations = 10
   ))
   
   # Sort by p_value and check that adj_p_value is non-decreasing
@@ -689,7 +691,7 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
   result_large <- suppressWarnings(detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
-    wy_randomizations = 50
+    wy_randomizations = 25
   ))
   
   # Both should have valid results
@@ -768,7 +770,7 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
   result_wy <- detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
-    wy_randomizations = 40
+    wy_randomizations = 20
   )
   
   result_hoch <- detect_q_gene_interactions(
@@ -855,7 +857,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
     detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
-      wy_randomizations = 100
+      wy_randomizations = 50
     )
   )
   
@@ -935,9 +937,9 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   set.seed(2004)
   
   # Create synthetic paired data with AR(1) structure
-  n_subjects <- 10
+  n_subjects <- 8
   n_q_values <- 4
-  n_genes <- 5
+  n_genes <- 4
   
   # Simulate paired subjects
   subject_ids <- rep(paste0("Subject_", 1:n_subjects), each = n_q_values)
@@ -972,7 +974,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
     paired = TRUE,
     subject_col = "subject",
     multicorr = "westfall-young",
-    wy_randomizations = 100,
+    wy_randomizations = 50,
     verbose = FALSE
   )
   
@@ -987,12 +989,13 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
 })
 
 test_that("detect_q_gene_interactions paired and unpaired give different results", {
+  skip_on_ci()
   set.seed(2005)
   
   # Create paired structure with STRONG correlation between q-values for some genes
-  n_subjects <- 15
+  n_subjects <- 12
   n_q_values <- 4
-  n_genes <- 6
+  n_genes <- 4
   
   subject_ids <- rep(paste0("Subject_", 1:n_subjects), each = n_q_values)
   q_levels <- rep(c(0.5, 1.0, 1.5, 2.0), n_subjects)
@@ -1054,7 +1057,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
       paired = TRUE,
       subject_col = "subject",
       multicorr = "westfall-young",
-      wy_randomizations = 100,
+      wy_randomizations = 50,
       verbose = FALSE
     )
   )

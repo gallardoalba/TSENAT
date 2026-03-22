@@ -75,7 +75,8 @@ test_that("plot_top_transcripts returns ggplot for synthetic data", {
     )
     p <- plot_top_transcripts(se,
         gene = "GENE1",
-        top_n = 2
+        top_n = 2,
+        output_file = NULL
     )
     expect_s3_class(p, "ggplot")
 })
@@ -103,7 +104,7 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se, res = res, top_n = 2)
+    p <- plot_top_transcripts(se, res = res, top_n = 2, output_file = NULL)
     expect_s3_class(p, "ggplot")
 })
 
@@ -272,7 +273,7 @@ test_that("plot_top_transcripts works on simple matrix input", {
         rowData = S4Vectors::DataFrame(genes = tx2gene$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2)
+    p <- plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2, output_file = NULL)
     expect_true(!is.null(p))
     # expect ggplot object or patchwork
     expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
@@ -511,7 +512,7 @@ test_that("plot_top_transcripts supports metric 'iqr'", {
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se, gene = "G1", metric = "iqr")
+    p <- plot_top_transcripts(se, gene = "G1", metric = "iqr", output_file = NULL)
     expect_s3_class(p, "ggplot")
 })
 
