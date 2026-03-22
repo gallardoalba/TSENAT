@@ -1560,9 +1560,9 @@ extract_q_from_key <- function(key) {
 
 #' Plot Volcano and MA Grid from Differential Analysis Results (S4 Wrapper)
 #'
-#' S4 wrapper for \code{\link{plot_volcano_ma_grid}} that extracts differential
-#' analysis results from a TSENATAnalysis object and creates side-by-side volcano
-#' and MA plots for comparing control and treatment groups.
+#' S4 wrapper that extracts differential analysis results from a TSENATAnalysis
+#' object and creates side-by-side volcano and MA plots for comparing control
+#' and treatment groups.
 #'
 #' @param analysis \code{TSENATAnalysis} object with calculated differences
 #'   (typically via \code{\link{calculate_difference_s4}}).
@@ -2140,10 +2140,9 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 
 #' Plot Global Divergence q-Curve Across All Genes (S4 Wrapper)
 #'
-#' S4 wrapper for \code{\link{plot_divergence_spectrum}} that extracts
-#' divergence results from a TSENATAnalysis object and visualizes the
-#' average Tsallis divergence across all genes (or specified genes) as
-#' a function of q-value.
+#' S4 wrapper that extracts divergence results from a TSENATAnalysis object
+#' and visualizes the average Tsallis divergence across all genes (or specified
+#' genes) as a function of q-value.
 #'
 #' @param analysis \code{TSENATAnalysis} object with divergence results
 #'   (typically via \code{\link{calculate_divergence_s4}}).
@@ -2885,9 +2884,9 @@ plot_top_transcripts_s4 <- function(
 
 #' Plot Tsallis Divergence Effect Size Distribution (S4 Wrapper)
 #'
-#' S4 wrapper for \code{\link{plot_divergence_distribution}} that extracts
-#' effect size results from a TSENATAnalysis object and generates a histogram
-#' visualization of Tsallis divergence effect sizes across genes.
+#' S4 wrapper that extracts effect size results from a TSENATAnalysis object
+#' and generates a histogram visualization of Tsallis divergence effect sizes
+#' across genes.
 #'
 #' @param analysis \code{TSENATAnalysis} object with effect sizes computed
 #'   (typically via \code{\link{effect_sizes_divergence_s4}}).

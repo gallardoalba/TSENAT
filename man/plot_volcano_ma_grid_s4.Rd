@@ -53,9 +53,9 @@ Invisibly returns a cowplot grid object containing both volcano and MA plots
 combined side-by-side. If the plot cannot be created, returns NULL invisibly.
 }
 \description{
-S4 wrapper for \code{\link{plot_volcano_ma_grid}} that extracts differential
-analysis results from a TSENATAnalysis object and creates side-by-side volcano
-and MA plots for comparing control and treatment groups.
+S4 wrapper that extracts differential analysis results from a TSENATAnalysis
+object and creates side-by-side volcano and MA plots for comparing control
+and treatment groups.
 }
 \details{
 This wrapper extracts the difference results data frame from

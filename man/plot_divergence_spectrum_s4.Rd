@@ -59,10 +59,9 @@ If the plot cannot be created (missing data, ggplot2 not available),
 returns NULL invisibly with an informative message.
 }
 \description{
-S4 wrapper for \code{\link{plot_divergence_spectrum}} that extracts
-divergence results from a TSENATAnalysis object and visualizes the
-average Tsallis divergence across all genes (or specified genes) as
-a function of q-value.
+S4 wrapper that extracts divergence results from a TSENATAnalysis object
+and visualizes the average Tsallis divergence across all genes (or specified
+genes) as a function of q-value.
 }
 \details{
 This wrapper extracts the divergence SummarizedExperiment from

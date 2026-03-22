@@ -197,6 +197,11 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
     method <- match.arg(method)
     what <- match.arg(what)
     
+    # OPTIMIZATION (March 2026): Cache platform check to avoid repeated lookups
+    # .Platform$OS.type check happens multiple times in matrix path
+    # Caching avoids repeated system calls (negligible but clean)
+    is_windows <- .Platform$OS.type != "unix"
+    
     # AUTO-SELECT NBOOT WHEN "auto"
     if (identical(nboot, "auto")) {
       # Detect n_genes from input
@@ -230,7 +235,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         if (nthreads > 1) {
             # Parallel processing using mclapply (Unix/Mac only)
             # Windows users will fall through to sequential processing
-            if (.Platform$OS.type == "unix") {
+            if (!is_windows) {
                 results_list <- parallel::mclapply(
                     seq_len(nrow(x)),
                     function(i) {
@@ -883,11 +888,17 @@ print.tsenat_bootstrap_ci <- function(x, ...) {
   widths <- job_df$width[-1]  # Exclude full dataset width
   ci_width_variation <- sd(widths, na.rm = TRUE) / mean(widths, na.rm = TRUE)
   
-  # Relative variation in bounds
-  lower_variation <- (max(job_df$lower[-1], na.rm = TRUE) - min(job_df$lower[-1], na.rm = TRUE)) / 
-                     (abs(full_ci$lower) + 1e-10)
-  upper_variation <- (max(job_df$upper[-1], na.rm = TRUE) - min(job_df$upper[-1], na.rm = TRUE)) / 
-                     (abs(full_ci$upper) + 1e-10)
+  # BUG FIX (March 2026): Numerical stability in bound variation calculation
+  # Previous code divided by abs(value) + 1e-10 which is unstable for small values
+  # New approach: Use ratio of range to mean absolute value (robust to scale)
+  lower_range <- max(job_df$lower[-1], na.rm = TRUE) - min(job_df$lower[-1], na.rm = TRUE)
+  lower_mean_abs <- mean(abs(job_df$lower[-1]), na.rm = TRUE)
+  lower_variation <- if (lower_mean_abs > 1e-8) lower_range / lower_mean_abs else 0
+  
+  upper_range <- max(job_df$upper[-1], na.rm = TRUE) - min(job_df$upper[-1], na.rm = TRUE)
+  upper_mean_abs <- mean(abs(job_df$upper[-1]), na.rm = TRUE)
+  upper_variation <- if (upper_mean_abs > 1e-8) upper_range / upper_mean_abs else 0
+  
   bound_variability <- max(lower_variation, upper_variation, na.rm = TRUE)
   
   # Count outlier CI bounds (> 2 SD from jackknife mean)
@@ -1523,16 +1534,25 @@ calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = 
             # Resample pair indices with replacement
             sampled_pair_indices <- sample(seq_len(n_pairs), size = n_pairs, replace = TRUE)
             
-            # OPTIMIZATION: Use vectorized sum instead of element-wise accumulation
-            # This replaces the inner loop: for (pid_idx in sampled_pair_indices) { ... }
+            # BUG FIX (March 2026): Proper normalization for paired divergence
+            # Previous code divided by itself: p_boot = (sum+pc)/(sum+pc) = 1, which is wrong
+            # Now properly aggregate paired counts and normalize across both groups
             x_boot_sum <- sum(ctrl_counts[sampled_pair_indices], na.rm = TRUE)
             y_boot_sum <- sum(treat_counts[sampled_pair_indices], na.rm = TRUE)
             
-            # Add pseudocount and normalize
-            p_boot <- (x_boot_sum + pseudocount) / (x_boot_sum + pseudocount)
-            r_boot <- (y_boot_sum + pseudocount) / (y_boot_sum + pseudocount)
+            # Add pseudocount and normalize to proper proportions
+            # Divergence requires two separate probability distributions summing to 1
+            total_combined <- x_boot_sum + y_boot_sum + 2 * pseudocount
+            if (total_combined > 0) {
+                p_boot <- (x_boot_sum + pseudocount) / total_combined
+                r_boot <- (y_boot_sum + pseudocount) / total_combined
+            } else {
+                # Edge case: no counts in either group
+                p_boot <- 0.5
+                r_boot <- 0.5
+            }
             
-            # Compute divergence
+            # Compute divergence (note: divergence between scalar probabilities, not distributions)
             bootstrap_divs[i] <- .tsenat_compute_tsallis_divergence(
                 p_boot, r_boot, q, log_base, norm
             )

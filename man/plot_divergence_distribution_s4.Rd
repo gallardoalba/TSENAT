@@ -38,9 +38,9 @@ If the plot cannot be created (missing data, ggplot2 not available),
 returns NULL invisibly with an informative message.
 }
 \description{
-S4 wrapper for \code{\link{plot_divergence_distribution}} that extracts
-effect size results from a TSENATAnalysis object and generates a histogram
-visualization of Tsallis divergence effect sizes across genes.
+S4 wrapper that extracts effect size results from a TSENATAnalysis object
+and generates a histogram visualization of Tsallis divergence effect sizes
+across genes.
 }
 \details{
 This wrapper extracts the interaction results (with effect size columns)
