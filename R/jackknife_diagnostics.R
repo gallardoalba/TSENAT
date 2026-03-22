@@ -210,8 +210,20 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     use_parallel <- length(q) > 2 && requireNamespace("parallel", quietly = TRUE)
     
     if (use_parallel) {
-      # Use all available cores minus 1
+      # Use all available cores minus 1, but cap to 2 if _R_CHECK_LIMIT_CORES_ is set
       n_cores <- max(1, parallel::detectCores() - 1)
+      if (exists(".tsenat_get_effective_nthreads", mode = "function")) {
+        n_cores <- .tsenat_get_effective_nthreads(n_cores)
+      } else {
+        # Fallback: check env var manually
+        core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)
+        if (!is.na(core_limit)) {
+          core_limit <- as.integer(core_limit)
+          if (is.finite(core_limit) && core_limit > 0) {
+            n_cores <- min(n_cores, core_limit)
+          }
+        }
+      }
       cl <- parallel::makeCluster(n_cores, type = "PSOCK")
       on.exit(parallel::stopCluster(cl), add = TRUE)
       

@@ -2961,8 +2961,13 @@
         }
 
         lrt_p <- NA_real_
+        msg <- NULL
         if (!is.null(fallback_lm)) {
             lrt_p <- .tsenat_extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1)
+            # If glmmTMB fallback failed due to convergence, propagate message
+            if (!is.null(fallback_lm$message)) {
+                msg <- fallback_lm$message
+            }
         } else {
             lrt_p <- .tsenat_extract_lrt_p(fit0, fit1)
         }
@@ -2977,9 +2982,11 @@
         # Add weighting information to results (Phase 1)
         has_weights <- !is.null(df$weight)
 
-        return(data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
+        res <- data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
             p_satterthwaite = NA_real_, fit_method = used_fit_method, singular = used_singular,
-            arima_transformation = use_arima, ci_weighted = has_weights, stringsAsFactors = FALSE))
+            arima_transformation = use_arima, ci_weighted = has_weights, stringsAsFactors = FALSE)
+        if (!is.null(msg)) res$message <- msg
+        return(res)
     }
 
     if (method == "gam") {
@@ -3246,7 +3253,23 @@
         fit1_tmb <- try(glmmTMB::glmmTMB(entropy ~ q * group + (1 | subject), data = df,
             REML = FALSE, verbose = FALSE), silent = TRUE)
         if (!inherits(fit0_tmb, "try-error") && !inherits(fit1_tmb, "try-error")) {
-            return(list(fit0 = fit0_tmb, fit1 = fit1_tmb, method = "glmmTMB"))
+            # Check for model convergence for both fits
+            conv0 <- tryCatch({
+                c0 <- fit0_tmb$fit$converged
+                if (is.null(c0)) FALSE else isTRUE(c0)
+            }, error = function(e) FALSE)
+            conv1 <- tryCatch({
+                c1 <- fit1_tmb$fit$converged
+                if (is.null(c1)) FALSE else isTRUE(c1)
+            }, error = function(e) FALSE)
+            if (conv0 && conv1) {
+                return(list(fit0 = fit0_tmb, fit1 = fit1_tmb, method = "glmmTMB"))
+            } else {
+                msg <- paste0("glmmTMB model did not converge: ",
+                              "fit0 converged=", conv0, ", fit1 converged=", conv1)
+                if (verbose) message("[.tsenat_try_lm_fallbacks] ", msg)
+                return(list(fit0 = NA, fit1 = NA, method = "glmmTMB", message = msg))
+            }
         }
     }
 
