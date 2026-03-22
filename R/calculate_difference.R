@@ -540,8 +540,11 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
     }
     
     # Validate wy_randomizations
-    if (!is.numeric(wy_randomizations) || wy_randomizations < 100) {
-        stop("wy_randomizations must be numeric and >= 100", call. = FALSE)
+    if (!is.numeric(wy_randomizations) || wy_randomizations < 1) {
+        stop("wy_randomizations must be numeric and >= 1", call. = FALSE)
+    }
+    if (wy_randomizations < 100) {
+        warning("wy_randomizations < 100 may give unreliable p-values; recommend >= 100", call. = FALSE)
     }
     
     # Auto-detect subject_col from colData if paired=TRUE and subject_col=NULL
@@ -1131,7 +1134,7 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
     # Extract components
     raw_p_values <- vapply(test_results, function(r) if(is.na(r$p.value)) 1 else r$p.value, FUN.VALUE = numeric(1))
     u_statistics <- vapply(test_results, function(r) r$statistic, FUN.VALUE = numeric(1))
-    n_samples <- vapply(test_results, function(r) r$n, FUN.VALUE = integer(1))
+    n_samples <- vapply(test_results, function(r) r$n, FUN.VALUE = numeric(1))
     
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
     

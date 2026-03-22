@@ -450,9 +450,8 @@ test_that("calculate_diversity with shrinkage parameter works correctly", {
 context("Bootstrap Confidence Intervals for calculate_diversity")
 
 test_that("bootstrap=FALSE (default) produces no CI assays", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     result <- calculate_diversity(x, genes, q = 1, bootstrap = FALSE, verbose = FALSE)
     
@@ -465,9 +464,8 @@ test_that("bootstrap=FALSE (default) produces no CI assays", {
 })
 
 test_that("bootstrap=TRUE with percentile method creates CI assays", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE, 
                                  bootstrap_nboot = 100, 
@@ -487,9 +485,8 @@ test_that("bootstrap=TRUE with percentile method creates CI assays", {
 })
 
 test_that("bootstrap CI bounds are monotonic (lower <= upper)", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100,
@@ -503,9 +500,8 @@ test_that("bootstrap CI bounds are monotonic (lower <= upper)", {
 })
 
 test_that("bootstrap with BCa method stores method in metadata", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100,
@@ -520,9 +516,8 @@ test_that("bootstrap with BCa method stores method in metadata", {
 })
 
 test_that("bootstrap with multiple q values creates CIs for all q", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     q_vals <- c(0.5, 1, 2)
     result <- calculate_diversity(x, genes, q = q_vals, bootstrap = TRUE,
@@ -540,9 +535,8 @@ test_that("bootstrap with multiple q values creates CIs for all q", {
 })
 
 test_that("bootstrap CI metadata includes nboot parameter", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     nboot_val <- 150
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -555,9 +549,8 @@ test_that("bootstrap CI metadata includes nboot parameter", {
 })
 
 test_that("bootstrap CI metadata includes confidence level", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     ci_level <- 0.99
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -571,22 +564,25 @@ test_that("bootstrap CI metadata includes confidence level", {
 })
 
 test_that("nboot parameter is validated (must be >= 100)", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
-    # Should error with nboot < 100
-    expect_error(
+    # nboot < 100 now produces warning (Phase 8 optimization), not error
+    # Temporarily disable warning suppression to verify warning is triggered
+    old_option <- getOption("TSENAT.suppress_nboot_warning")
+    on.exit(options(TSENAT.suppress_nboot_warning = old_option))
+    options(TSENAT.suppress_nboot_warning = FALSE)
+    
+    expect_warning(
         calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                            bootstrap_nboot = 50, verbose = FALSE),
-        "nboot must be >= 100"
+        "nboot.*below.*recommended"
     )
 })
 
 test_that("ci parameter is validated (must be in (0,1))", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     # Should error with ci outside (0, 1)
     expect_error(
@@ -598,9 +594,8 @@ test_that("ci parameter is validated (must be in (0,1))", {
 
 test_that("bootstrap results are consistent with counts assay", {
     # Verify that bootstrap CIs use the same data as the main calculation
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100, verbose = FALSE)
@@ -631,9 +626,8 @@ test_that("bootstrap with simple matrix input works correctly", {
 })
 
 test_that("bootstrap method parameter is stored and retrieved", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     # Test percentile
     result_pct <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -651,9 +645,8 @@ test_that("bootstrap method parameter is stored and retrieved", {
 })
 
 test_that("bootstrap CI values are within [0,1] for normalized entropy", {
-    x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
-    colnames(x) <- c("S1", "S2")
-    genes <- c("g1", "g1", "g2")
+    td <- create_diversity_test_matrix_3x2_standard()
+    x <- td$x; genes <- td$genes
     
     result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100, norm = TRUE,

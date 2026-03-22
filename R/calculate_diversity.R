@@ -609,7 +609,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
                 # Count how many different isoforms exist for this gene
                 # If genes are isoform-level, just return the count
                 sum(gene_mask)
-            })
+            }, FUN.VALUE = integer(1))
             
             # Call normalization function directly without warning suppression
             result_assay <- .tsenat_normalize_log_odds_ratio(result_assay, n_isoforms, q)
@@ -1300,7 +1300,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     gene_mask <- genes == g
     gene_counts <- rowSums(x[gene_mask, , drop = FALSE])
     sum(gene_counts > min_count)
-  })
+  }, FUN.VALUE = integer(1))
   
   # For each q value, estimate global mean and variance from entropy estimates
   q_cols <- grep(paste0("_q=", q, "$", collapse = "|"), colnames(entropy_matrix), 
@@ -1351,7 +1351,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
       } else {
         NA
       }
-    })
+    }, FUN.VALUE = numeric(1))
     
     # Fit loess trend: variance ~ mean entropy per q-value
     # Only use genes with valid finite values for robust fitting

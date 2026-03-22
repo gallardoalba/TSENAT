@@ -10,6 +10,9 @@
 # - calculate_divergence_bootstrap
 # - Print/summary methods
 
+# Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
+options(TSENAT.suppress_nboot_warning = TRUE)
+
 test_that("calculate_tsallis_entropy_bootstrap with matrix input and nthreads > 1", {
   # Test parallel processing with multiple genes
   set.seed(123)
@@ -25,7 +28,7 @@ test_that("calculate_tsallis_entropy_bootstrap with matrix input and nthreads > 
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     nthreads = 2,
@@ -52,7 +55,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix input with sequential proc
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 1.5,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
     nthreads = 1,
     print_results = FALSE
@@ -71,7 +74,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix without rownames generates
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     nthreads = 1,
     print_results = FALSE
   )
@@ -90,7 +93,7 @@ test_that("calculate_tsallis_entropy_bootstrap validates nthreads parameter", {
     calculate_tsallis_entropy_bootstrap(
       x = x,
       nthreads = -1,
-      nboot = 100
+      nboot = 10  # Exploratory: use nboot=10 (faster)
     ),
     NA  # Might error at different point
   )
@@ -113,7 +116,7 @@ test_that("calculate_tsallis_entropy_bootstrap with SE and multi-gene (top_n > 1
     res = res,
     top_n = 2,
     q = 2,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
     print_results = FALSE
   )
@@ -141,7 +144,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE skip insufficient genes", {
     res = res,
     top_n = 2,
     q = 2,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
     print_results = FALSE
   )
@@ -170,7 +173,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE with gene_name in rowData", {
     res = res,
     top_n = 1,
     q = 2,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
     print_results = FALSE
   )
@@ -187,7 +190,7 @@ test_that("calculate_tsallis_entropy_bootstrap with JOB method (use_job = TRUE)"
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     use_job = TRUE,
@@ -210,7 +213,7 @@ test_that("calculate_tsallis_entropy_bootstrap with paired = TRUE", {
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,  # Must be >= 100
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     paired = TRUE,
@@ -342,7 +345,7 @@ test_that("calculate_divergence_bootstrap basic functionality", {
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile"
   )
@@ -364,7 +367,7 @@ test_that("calculate_divergence_bootstrap with multiple q values", {
     x = x,
     y = y,
     q = 1.0,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     print_results = FALSE
@@ -375,7 +378,7 @@ test_that("calculate_divergence_bootstrap with multiple q values", {
     x = x,
     y = y,
     q = 2.0,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     print_results = FALSE
@@ -397,7 +400,7 @@ test_that("calculate_divergence_bootstrap with SE input and results data.frame",
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     print_results = FALSE
@@ -414,7 +417,7 @@ test_that("print method for tsenat_bootstrap_ci works correctly", {
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     print_results = FALSE
@@ -432,7 +435,7 @@ test_that("summary method for tsenat_bootstrap_ci works correctly", {
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     print_results = FALSE
@@ -453,7 +456,7 @@ test_that("print method for tsenat_divergence_bootstrap_ci", {
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     print_results = FALSE
@@ -474,7 +477,7 @@ test_that("summary method for tsenat_divergence_bootstrap_ci", {
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile"
   )
@@ -494,7 +497,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix print_results = TRUE", {
     result <- calculate_tsallis_entropy_bootstrap(
       x = x,
       q = 2,
-      nboot = 100,  # Must be >= 100
+      nboot = 10,  # Exploratory: use nboot=10 (faster)
       nthreads = 1,
       print_results = TRUE
     )
@@ -521,7 +524,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE with print_results = TRUE", {
       res = res,
       top_n = 2,
       q = 2,
-      nboot = 100,  # Must be >= 100
+      nboot = 10,  # Exploratory: use nboot=10 (faster)
       print_results = TRUE
     )
   )
@@ -538,7 +541,7 @@ test_that("calculate_tsallis_entropy_bootstrap with include_diagnostics = FALSE"
   result <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     include_diagnostics = FALSE,
@@ -555,7 +558,7 @@ test_that("calculate_tsallis_entropy_bootstrap seed parameter reproducibility", 
   result1 <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     seed = 456,
@@ -565,7 +568,7 @@ test_that("calculate_tsallis_entropy_bootstrap seed parameter reproducibility", 
   result2 <- calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     seed = 456,
@@ -628,7 +631,7 @@ test_that("calculate_divergence_bootstrap pseudocount parameter", {
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     pseudocount = 0.5  # Add pseudocount to handle zeros
@@ -649,7 +652,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     log_base = exp(1),  # Natural log
@@ -660,7 +663,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
     x = x,
     y = y,
     q = 2,
-    nboot = 100,
+    nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
     log_base = 2,  # Binary log

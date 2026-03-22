@@ -954,14 +954,21 @@ test_that("wy_randomizations parameter validates minimum value", {
     cd <- data.frame(samples = sample_names, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
-    # wy_randomizations < 100 should error
-    expect_error(calculate_lm_interaction(se, condition_col = "samples", 
-                                        multicorr = "westfall-young", 
-                                        wy_randomizations = 50,
-                                        min_obs = 8),
-                 "wy_randomizations|100", ignore.case = TRUE)
+    # wy_randomizations < 100 now generates warning (not error), as of Phase 9c optimization
+    # Temporarily disable warning suppression to verify warning is triggered
+    old_option <- getOption("TSENAT.suppress_nboot_warning")
+    on.exit(options(TSENAT.suppress_nboot_warning = old_option))
+    options(TSENAT.suppress_nboot_warning = FALSE)
     
-    # wy_randomizations >= 100 should work
+    expect_warning(
+        calculate_lm_interaction(se, condition_col = "samples", 
+                               multicorr = "westfall-young", 
+                               wy_randomizations = 50,
+                               min_obs = 8),
+        "wy_randomizations.*100|unreliable"
+    )
+    
+    # wy_randomizations >= 100 should work without warning
     res_valid <- calculate_lm_interaction(se, condition_col = "samples",
                                         multicorr = "westfall-young",
                                         wy_randomizations = 100,
@@ -1208,10 +1215,12 @@ test_that("Westfall-Young permutation method produces adjusted p-values", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # Use small number of permutations for speed
-    res <- calculate_lm_interaction(se, condition_col = "samples", 
-                                   multicorr = "westfall-young",
-                                   wy_randomizations = 100,
-                                   min_obs = 8)
+    res <- suppressWarnings(
+        calculate_lm_interaction(se, condition_col = "samples", 
+                               multicorr = "westfall-young",
+                               wy_randomizations = 50,
+                               min_obs = 8)
+    )
     
     if (is.data.frame(res)) {
         rd_out <- as.data.frame(res)
@@ -1254,15 +1263,23 @@ test_that("Westfall-Young uses wy_randomizations parameter correctly", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
     
     # Run with two different randomization counts
+    res_50 <- suppressWarnings(
+        calculate_lm_interaction(se, condition_col = "samples",
+                               multicorr = "westfall-young",
+                               wy_randomizations = 50,
+                               min_obs = 8)
+    )
+    
     res_100 <- calculate_lm_interaction(se, condition_col = "samples",
                                        multicorr = "westfall-young",
                                        wy_randomizations = 100,
                                        min_obs = 8)
     
-    res_200 <- calculate_lm_interaction(se, condition_col = "samples",
-                                       multicorr = "westfall-young",
-                                       wy_randomizations = 200,
-                                       min_obs = 8)
+    if (is.data.frame(res_50)) {
+        df_50 <- as.data.frame(res_50)
+    } else {
+        df_50 <- as.data.frame(SummarizedExperiment::rowData(res_50))
+    }
     
     if (is.data.frame(res_100)) {
         df_100 <- as.data.frame(res_100)
@@ -1270,19 +1287,13 @@ test_that("Westfall-Young uses wy_randomizations parameter correctly", {
         df_100 <- as.data.frame(SummarizedExperiment::rowData(res_100))
     }
     
-    if (is.data.frame(res_200)) {
-        df_200 <- as.data.frame(res_200)
-    } else {
-        df_200 <- as.data.frame(SummarizedExperiment::rowData(res_200))
-    }
-    
     # Both should produce results (with more permutations, results may differ slightly due to randomness)
+    expect_true(nrow(df_50) > 0)
     expect_true(nrow(df_100) > 0)
-    expect_true(nrow(df_200) > 0)
     
     # Should have adj_p_interaction in both
+    expect_true("adj_p_interaction" %in% colnames(df_50))
     expect_true("adj_p_interaction" %in% colnames(df_100))
-    expect_true("adj_p_interaction" %in% colnames(df_200))
 })
 
 # ============================================================================

@@ -1,6 +1,9 @@
 # Tests for calculate_divergence_bootstrap and results processing
 # Covers uncovered lines from divergence_coverage.txt
 
+# Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
+options(TSENAT.suppress_nboot_warning = TRUE)
+
 test_that("calculate_divergence handles per-q pattern classification", {
   # Tests the q-spectrum pattern classification (covered lines 1041-1051)
   se <- create_test_se_simple()
@@ -21,78 +24,24 @@ test_that("calculate_divergence handles per-q pattern classification", {
   expect_true("per_q_pattern" %in% colnames(rd))
 })
 
-test_that("calculate_divergence applies range normalization", {
-  # Tests range normalization (covered lines 1082-1103)
+test_that("calculate_divergence all normalization modes work correctly", {
+  # Consolidated test: validates all 5 normalization modes
+  # (replaced 4 separate tests covering lines 1082-1103, 1104-1127, 1128-1152, 1153+)
+  # Uses test_all_normalization_modes() helper for comprehensive validation with strong assertions
+  
   se <- create_test_se_simple()
   
-  # Test normalization method
-  result <- calculate_divergence(
-    se,
+  # Test all 5 normalization modes (none, range, zscore, log_odds_ratio, relative_reference)
+  test_all_normalization_modes(
+    func = calculate_divergence,
+    se = se,
+    q = 1,
     group_col = "sample_type",
     control_group = "Control",
-    q = 1,
-    norm = "range",
     bootstrap = FALSE,
-    verbose = FALSE
+    verbose = FALSE,
+    progress = FALSE
   )
-  
-  # Result should be computed without error
-  expect_result_structure(result, "SummarizedExperiment", n_rows = 2)
-  expect_valid_normalization(result, norm_mode = "range")
-})
-
-test_that("calculate_divergence applies z-score normalization", {
-  # Tests z-score normalization (covered lines 1104-1127)
-  se <- create_test_se_simple()
-  
-  result <- calculate_divergence(
-    se,
-    group_col = "sample_type",
-    control_group = "Control",
-    q = 1,
-    norm = "zscore",
-    bootstrap = FALSE,
-    verbose = FALSE
-  )
-  
-  expect_result_structure(result, "SummarizedExperiment", n_rows = 2)
-  expect_valid_normalization(result, norm_mode = "zscore")
-})
-
-test_that("calculate_divergence applies log_odds_ratio normalization", {
-  # Tests log_odds_ratio normalization (covered lines 1128-1152)
-  se <- create_test_se_simple()
-  
-  result <- calculate_divergence(
-    se,
-    group_col = "sample_type",
-    control_group = "Control",
-    q = 1,
-    norm = "log_odds_ratio",
-    bootstrap = FALSE,
-    verbose = FALSE
-  )
-  
-  expect_result_structure(result, "SummarizedExperiment", n_rows = 2)
-  expect_valid_normalization(result, norm_mode = "log_odds_ratio")
-})
-
-test_that("calculate_divergence applies relative_reference normalization", {
-  # Tests relative_reference normalization (covered lines 1153+)
-  se <- create_test_se_simple()
-  
-  result <- calculate_divergence(
-    se,
-    group_col = "sample_type",
-    control_group = "Control",
-    q = 1,
-    norm = "relative_reference",
-    bootstrap = FALSE,
-    verbose = FALSE
-  )
-  
-  expect_result_structure(result, "SummarizedExperiment", n_rows = 2)
-  expect_valid_normalization(result, norm_mode = "relative_reference")
 })
 
 test_that("calculate_divergence skips genes with NA estimates", {

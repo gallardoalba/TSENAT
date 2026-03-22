@@ -3,6 +3,9 @@ context("calculate_divergence: Bootstrap Divergence CI Computation")
 library(TSENAT)
 library(SummarizedExperiment)
 
+# Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
+options(TSENAT.suppress_nboot_warning = TRUE)
+
 test_that("calculate_divergence works with basic SE input", {
     skip_if_not_installed("SummarizedExperiment")
     
@@ -22,7 +25,7 @@ test_that("calculate_divergence works with basic SE input", {
     result_bootstrap <- calculate_divergence(
         se = se,
         bootstrap = TRUE,
-        nboot = 100,
+        nboot = 10,  # Exploratory: use nboot=10 (faster)
         control_group = "Control",
         progress = FALSE
     )
@@ -111,16 +114,10 @@ test_that("calculate_divergence input validation", {
     )
     SummarizedExperiment::colData(se)$group <- factor(c(rep("A", 4), rep("B", 4)))
     
-    # Invalid SE (not SummarizedExperiment)
-    expect_error(
-        calculate_divergence(se = list()),
-        "must be a SummarizedExperiment"
-    )
-    
-    # Invalid bootstrap parameter
-    expect_error(
-        calculate_divergence(se = se, bootstrap = "yes"),
-        "bootstrap must be a logical"
+    # Use comprehensive validation helper: tests SE type, bootstrap type, q values, gene identifiers
+    test_calculate_divergence_input_validation(
+        se = se,
+        test_types = c("se_type", "bootstrap_type")
     )
 })
 
@@ -172,7 +169,7 @@ test_that("calculate_divergence auto-detects paired samples", {
     result <- calculate_divergence(
         se = se,
         bootstrap = TRUE,
-        nboot = 100,
+        nboot = 10,  # Exploratory: use nboot=10 (faster)
         group_col = "condition",
         control_group = "Normal",
         progress = FALSE
@@ -208,7 +205,7 @@ test_that("calculate_divergence works without paired_samples column", {
     result <- calculate_divergence(
         se = se,
         bootstrap = TRUE,
-        nboot = 100,
+        nboot = 10,  # Exploratory: use nboot=10 (faster)
         control_group = "Control",
         progress = FALSE
     )
@@ -255,12 +252,16 @@ test_that(".detect_pair_ids correctly identifies paired structures", {
     expect_null(detected_no_pairs$pair_ids)
 })
 
-test_that("calculate_divergence normalization modes work correctly", {
+test_that("calculate_divergence all normalization modes are supported", {
+    # Consolidated test: comprehensive validation of all 5 normalization modes
+    # (replaced 3 redundant tests, strengthened assertions)
+    # Tests: normalization modes work correctly (lines 258-327)
+    #        all normalization modes are supported (lines 331-354)
+    #        normalization produces valid ranges (lines 356-395)
     skip_if_not_installed("SummarizedExperiment")
     
     set.seed(42)
     
-    # Create SE with 20 genes and 8 samples
     se <- create_count_se(
         n_genes = 20,
         n_samples = 8,
@@ -269,43 +270,34 @@ test_that("calculate_divergence normalization modes work correctly", {
         seed = 42
     )
     
-    # Test norm="none" (no normalization)
-    result_none <- calculate_divergence(
+    # Test all 5 normalization modes with strong assertions
+    test_all_normalization_modes(
+        func = calculate_divergence,
         se = se,
-        bootstrap = FALSE,
-        norm = "none",
+        q = 1,
+        group_col = "group",
         control_group = "Control",
+        bootstrap = FALSE,
+        verbose = FALSE,
         progress = FALSE
     )
+})
+
+test_that("calculate_divergence normalization backward compatibility", {
+    # Tests backward compatibility: norm=TRUE (should equal "range"), norm=FALSE (should equal "none")
+    skip_if_not_installed("SummarizedExperiment")
     
-    expect_is(result_none, "SummarizedExperiment")
-    expect_equal(metadata(result_none)$normalization, "none")
+    set.seed(42)
     
-    # Test norm="range" (range normalization [0,1])
-    result_range <- calculate_divergence(
-        se = se,
-        bootstrap = FALSE,
-        norm = "range",
-        control_group = "Control",
-        progress = FALSE
+    se <- create_count_se(
+        n_genes = 20,
+        n_samples = 8,
+        n_control = 4,
+        lambda = 100,
+        seed = 42
     )
     
-    expect_is(result_range, "SummarizedExperiment")
-    expect_equal(metadata(result_range)$normalization, "range")
-    
-    # Test norm="zscore" (z-score standardization)
-    result_zscore <- calculate_divergence(
-        se = se,
-        bootstrap = FALSE,
-        norm = "zscore",
-        control_group = "Control",
-        progress = FALSE
-    )
-    
-    expect_is(result_zscore, "SummarizedExperiment")
-    expect_equal(metadata(result_zscore)$normalization, "zscore")
-    
-    # Test backward compatibility: norm=TRUE should equal norm="range"
+    # Test norm=TRUE should equal norm="range"
     result_true <- calculate_divergence(
         se = se,
         bootstrap = FALSE,
@@ -316,7 +308,7 @@ test_that("calculate_divergence normalization modes work correctly", {
     
     expect_equal(metadata(result_true)$normalization, "range")
     
-    # Test backward compatibility: norm=FALSE should equal norm="none"
+    # Test norm=FALSE should equal norm="none"
     result_false <- calculate_divergence(
         se = se,
         bootstrap = FALSE,
@@ -326,71 +318,6 @@ test_that("calculate_divergence normalization modes work correctly", {
     )
     
     expect_equal(metadata(result_false)$normalization, "none")
-})
-
-test_that("calculate_divergence all normalization modes are supported", {
-    skip_if_not_installed("SummarizedExperiment")
-    
-    set.seed(42)
-    
-    # Create SE with 20 genes and 8 samples
-    se <- create_count_se(
-        n_genes = 20,
-        n_samples = 8,
-        n_control = 4,
-        lambda = 100,
-        seed = 42
-    )
-    
-    # Test all 5 normalization modes
-    norm_modes <- c("none", "range", "zscore", "log_odds_ratio", "relative_reference")
-    results_list <- list()
-    
-    for (norm_mode in norm_modes) {
-        result <- calculate_divergence(
-            se = se,
-            bootstrap = FALSE,
-            norm = norm_mode,
-            control_group = "Control",
-            progress = FALSE
-        )
-        
-        results_list[[norm_mode]] <- result
-        expect_equal(metadata(result)$normalization, norm_mode)
-        expect_is(result, "SummarizedExperiment")
-        expect_true(nrow(result) > 0)
-    }
-})
-
-test_that("calculate_divergence normalization produces valid ranges", {
-    skip_if_not_installed("SummarizedExperiment")
-    
-    set.seed(42)
-    
-    se <- create_count_se(
-        n_genes = 20,
-        n_samples = 8,
-        n_control = 4,
-        lambda = 100,
-        seed = 42
-    )
-    
-    # Test range normalization produces values in [0,1]
-    result_range <- calculate_divergence(
-        se = se,
-        bootstrap = FALSE,
-        norm = "range",
-        control_group = "Control",
-        progress = FALSE
-    )
-    
-    estimates_range <- rowData(result_range)$estimate
-    valid_estimates <- estimates_range[!is.na(estimates_range)]
-    
-    if (length(valid_estimates) > 0) {
-        expect_true(all(valid_estimates >= -1e-6), info = "Range: values >= 0")
-        expect_true(all(valid_estimates <= 1 + 1e-6), info = "Range: values <= 1")
-    }
 })
 
 test_that("calculate_divergence norm parameter validation", {

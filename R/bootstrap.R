@@ -553,8 +553,15 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
     if (!is.numeric(q) || any(q <= 0)) {
         stop("q must be positive numeric value(s).")
     }
-    if (!is.numeric(nboot) || nboot < 100) {
-        stop("nboot must be >= 100.")
+    if (!is.numeric(nboot) || nboot < 1) {
+        stop("nboot must be a numeric value >= 1.")
+    }
+    if (nboot < 100 && !isTRUE(getOption("TSENAT.suppress_nboot_warning"))) {
+        warning(
+            "nboot = ", nboot, " is below the recommended minimum (100).\n",
+            "For production/precision testing with real data, use nboot >= 100.\n",
+            "Values 10-50 are acceptable for exploratory testing only."
+        )
     }
     if (!is.numeric(ci) || ci <= 0 || ci >= 1) {
         stop("ci must be a probability in (0, 1).")

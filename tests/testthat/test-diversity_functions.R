@@ -380,7 +380,7 @@ test_that("estimate_shrinkage_params returns correct structure with var_trend an
     }
     
     # Call estimate_shrinkage_params (wrapped to suppress loess warnings from synthetic data)
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
     
     # Verify all 6 components
     expect_named(params, c("global_mean", "global_var", "var_trend", "outlier_genes", "n_isoforms", "n_samples"))
@@ -430,7 +430,7 @@ test_that("Loess variance trend fits successfully with sufficient data", {
     }
     
     # Call estimate_shrinkage_params (wrapped to suppress loess warnings from synthetic data)
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
     
     # Verify successful fit
     expect_true(is.list(params$var_trend))
@@ -470,7 +470,7 @@ test_that("Outlier genes with extreme variance are detected correctly", {
     entropy_matrix["Gene2", grep("_q=1$", colnames(entropy_matrix))] <- rnorm(n_samples, mean = 0.15, sd = 0.08)
     
     # Estimate parameters (wrapped to suppress loess warnings from synthetic data)
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -519,11 +519,11 @@ test_that("Sample-size weight is computed correctly and decreases with more samp
     entropy_large <- create_entropy_matrix(20, n_genes)
     
     # Get parameters for both (wrapped to suppress loess warnings from synthetic data)
-    params_small <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params_small <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x_small, genes = genes, entropy_matrix = entropy_small, q = 1
     ))
     
-    params_large <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params_large <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x_large, genes = genes, entropy_matrix = entropy_large, q = 1
     ))
     
@@ -556,7 +556,7 @@ test_that("Shrinkage weights are computed correctly for normal genes", {
     colnames(entropy_matrix) <- paste0("Sample", 1:n_samples, "_q=", 1)
     
     # Estimate parameters (wrapped to suppress loess warnings from synthetic data)
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -611,8 +611,8 @@ test_that("Outlier genes skip shrinkage (w=1) and maintain original values", {
     # Make Gene1 an outlier: extremely high variance
     entropy_matrix["Gene1", ] <- c(0.95, 0.02, 0.98, 0.01, 0.96)
     
-    # Manually create params with Gene1 marked as outlier (wrapped to suppress loess warnings)
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    # Manually create params with Gene1 marked as outlier (suppress loess warnings)
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -660,7 +660,7 @@ test_that("Shrinkage formula produces correct weighted average of observation an
     colnames(entropy_matrix) <- paste0("Sample", 1:n_samples, "_q=1")
     
     # Estimate parameters (wrapped to suppress loess warnings from synthetic data)
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -722,9 +722,9 @@ test_that("Shrinkage with NA and NaN values handled correctly", {
     entropy_matrix["Gene3", 1] <- NaN   # Only Gene3 has NaN
     
     # Estimate parameters
-    # Suppress warnings about loess fitting with NA/NaN data
+    # Suppress expected loess warnings about fitting with NA/NaN data
     # The graceful fallback to global variance is the expected behavior
-    params <- suppressWarnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,

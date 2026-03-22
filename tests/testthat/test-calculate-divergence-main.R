@@ -78,17 +78,8 @@ test_that("calculate_divergence rejects non-positive q values", {
 })
 
 test_that("calculate_divergence requires SummarizedExperiment input", {
-  # Pass a non-SE object
-  expect_error(
-    calculate_divergence(
-      data.frame(a = 1, b = 2),
-      group_col = "group",
-      control_group = "Control",
-      bootstrap = FALSE,
-      verbose = FALSE
-    ),
-    "SummarizedExperiment"
-  )
+  # Use consolidated validation helper: tests SE type requirement
+  test_calculate_divergence_input_validation(test_types = c("se_type"))
 })
 
 test_that("calculate_divergence auto-detects group column", {
@@ -170,16 +161,8 @@ test_that("calculate_divergence rejects non-logical bootstrap", {
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
-  expect_error(
-    calculate_divergence(
-      se,
-      group_col = "sample_type",
-      control_group = "Control",
-      bootstrap = "yes",  # Not logical
-      verbose = FALSE
-    ),
-    "bootstrap must be a logical"
-  )
+  # Use consolidated validation helper: tests bootstrap type requirement
+  test_calculate_divergence_input_validation(se = se, test_types = c("bootstrap_type"))
 })
 
 # =====================================================================

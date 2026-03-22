@@ -38,8 +38,8 @@ test_that("test_rankbased_assumptions_s4: converts data.frame to matrix", {
     checks = c("exchangeability")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result, check_type = "exchangeability")
 })
 
 # ============================================================================
@@ -75,8 +75,8 @@ test_that("test_rankbased_assumptions_s4: handles small data in exchangeability"
     checks = c("exchangeability")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result)
 })
 
 # ============================================================================
@@ -112,8 +112,8 @@ test_that("test_rankbased_assumptions_s4: permutation handles small data", {
     checks = c("exchangeability")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result, check_type = "exchangeability")
 })
 
 # ============================================================================
@@ -150,8 +150,8 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high monotonic
     checks = c("monotonicity")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result)
 })
 
 # ============================================================================
@@ -187,8 +187,8 @@ test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate
     checks = c("monotonicity")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result, check_type = "monotonicity")
 })
 
 # ============================================================================
@@ -224,8 +224,8 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high Kendall's
     checks = c("consistency")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result)
 })
 
 # ============================================================================
@@ -258,8 +258,8 @@ test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate
     checks = c("consistency")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result)
 })
 
 # ============================================================================
@@ -429,6 +429,6 @@ test_that("test_rankbased_assumptions_s4: runs all checks without error", {
     checks = c("exchangeability", "monotonicity", "consistency")
   )
   
-  expect_true(!is.null(result))
-  expect_true(is.list(result@metadata$rankbased_assumptions))
+  # Strong assertion: validate result structure and content
+  assert_rankbased_result_valid(result, check_type = "monotonicity")
 })

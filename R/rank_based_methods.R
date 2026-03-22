@@ -1645,7 +1645,7 @@ detect_q_gene_interactions <- function(
         # Count permutations where MAXIMUM test statistic >= this gene's observed value
         count <- sum(max_stats_per_perm >= H_obs, na.rm = TRUE)
         pmin(1.0, (count + 1) / (wy_randomizations + 1))
-    })
+    }, FUN.VALUE = numeric(1))
     
     # Enforce monotonicity (required for valid step-down)
     interaction_results <- interaction_results[order(interaction_results$p_value), , drop = FALSE]
