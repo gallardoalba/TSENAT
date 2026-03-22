@@ -171,7 +171,7 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
     n_boot <- 100
     pi0_boot_mat <- matrix(NA, nrow = n_boot, ncol = length(lambda_grid))
     
-    set.seed(12345)  # For reproducibility
+    # Seed handling left to caller for Bioconductor compliance
     for (b in seq_len(n_boot)) {
       boot_p <- sample(pvalues, size = m, replace = TRUE)
       for (i in seq_along(lambda_grid)) {

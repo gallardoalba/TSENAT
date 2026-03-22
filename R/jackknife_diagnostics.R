@@ -804,7 +804,7 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
   }
   
   n_tx <- length(delta_influence)
-  set.seed(seed)
+  # Seed handling left to caller for Bioconductor compliance
   bootstrap_deltas_matrix <- matrix(nrow = n_bootstrap, ncol = n_tx)
   
   for (b in 1:n_bootstrap) {
@@ -1113,7 +1113,7 @@ jackknife_isoform_switching <- function(
     
     # Check if lm_results contains gene names or gene IDs
     # First, check if the "gene" column matches gene IDs in se
-    sample_lm_genes <- lm_results$gene[1:min(5, nrow(lm_results))]
+    sample_lm_genes <- lm_results$gene[seq_len(min(5, nrow(lm_results)))]
     genes_are_ids <- all(sample_lm_genes %in% gene_ids)
     
     # If genes are names, map them to IDs
@@ -1721,12 +1721,12 @@ prepare_gene_switching_tables <- function(
       n_tx <- min(n_transcripts_per_gene, n_tx_available)
       
       # Build data frame with proper structure
-      tx_ids <- gene_data_by_q[[first_q]]$transcript_ids[1:n_tx]
+      tx_ids <- gene_data_by_q[[first_q]]$transcript_ids[seq_len(n_tx)]
       comparison_data <- data.frame(transcript = tx_ids, stringsAsFactors = FALSE)
       
       # Add delta_influence values for each q-value
       for (q_key in q_values_available) {
-        delta_vals <- gene_data_by_q[[q_key]]$delta_influence[1:n_tx]
+        delta_vals <- gene_data_by_q[[q_key]]$delta_influence[seq_len(n_tx)]
         comparison_data[[q_key]] <- delta_vals
       }
       
@@ -1736,7 +1736,7 @@ prepare_gene_switching_tables <- function(
       }
       
       # Get pre-computed direction consistency from jackknife results
-      consistency_results <- gene_data_by_q[[q_values_available[1]]]$direction_consistency[1:n_tx]
+      consistency_results <- gene_data_by_q[[q_values_available[1]]]$direction_consistency[seq_len(n_tx)]
       
       # Add consistency column
       comparison_data$Spacer <- " "

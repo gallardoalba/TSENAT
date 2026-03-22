@@ -379,7 +379,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         if (length(top_genes) < top_n) {
             warning("Requested top_n = ", top_n, " but only ", length(top_genes),
                     " genes available in res. Using available genes.")
-            top_genes <- top_genes[1:min(top_n, length(top_genes))]
+            top_genes <- top_genes[seq_len(min(top_n, length(top_genes)))]
         }
         
         # Test [16] Improvement 4.2: Filter genes by minimum count threshold
@@ -440,12 +440,12 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
             warning(
                 "Skipped ", length(skipped_genes), " gene(s) with insufficient counts: ",
                 paste(skipped_genes, collapse = ", "), "\n",
-                "Using genes with sufficient counts: ", paste(valid_genes[1:min(top_n, length(valid_genes))], collapse = ", ")
+                "Using genes with sufficient counts: ", paste(valid_genes[seq_len(min(top_n, length(valid_genes)))], collapse = ", ")
             )
         }
         
         # Use only the number of valid genes requested (up to top_n)
-        top_genes <- valid_genes[1:min(top_n, length(valid_genes))]
+        top_genes <- valid_genes[seq_len(min(top_n, length(valid_genes)))]
         
         # Update single gene case to use first valid gene
         if (length(top_genes) > 1) {
@@ -619,10 +619,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
     
     # Single q path continues below
     
-    # Set random seed if provided
-    if (!is.null(seed)) {
-        set.seed(seed)
-    }
+    # Seed handling is left to the caller
     
     # Calculate point estimate on original data
     point_est <- calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
@@ -1329,10 +1326,7 @@ calculate_divergence_bootstrap <- function(x = NULL, y = NULL, se = NULL, res = 
     
     method <- match.arg(method)
     
-    # Set random seed if provided
-    if (!is.null(seed)) {
-        set.seed(seed)
-    }
+    # Seed handling is left to the caller
     
     # =========================================================================
     # AUTOMATIC DATA EXTRACTION FROM SummarizedExperiment + results

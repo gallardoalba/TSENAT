@@ -315,8 +315,8 @@ jackknife_isoform_switching_s4 <- function(
       use_lm_fdr = use_lm_fdr
     )
   }, error = function(e) {
-    stop(paste0("[jackknife_isoform_switching_s4] Error in jackknife analysis:\n",
-                conditionMessage(e)), call. = FALSE)
+    stop("[jackknife_isoform_switching_s4] Error in jackknife analysis:\n",
+                conditionMessage(e), call. = FALSE)
   })
   
   # =========================================================================

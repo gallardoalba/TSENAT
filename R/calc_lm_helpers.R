@@ -2232,11 +2232,11 @@
     
     # Add bias correction metadata if applied
     if (bc_result$bias_correction_applied) {
-        result$bias_correction_applied = TRUE
-        result$correction_method = bc_result$correction_method
-        result$adjustment_factor = bc_result$adjustment_factor
-        result$rho_method = if(bc_result$rho_data_driven) "data-driven" else "default"
-        result$adjustment_factor = bc_result$adjustment_factor
+        result$bias_correction_applied <- TRUE
+        result$correction_method <- bc_result$correction_method
+        result$adjustment_factor <- bc_result$adjustment_factor
+        result$rho_method <- if(bc_result$rho_data_driven) "data-driven" else "default"
+        result$adjustment_factor <- bc_result$adjustment_factor
     }
     
     # Add ARIMA transformation flag

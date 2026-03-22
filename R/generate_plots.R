@@ -539,12 +539,12 @@ plot_tsallis_q_curve_s4 <- function(
       
       # Fill in the combined assay
       if (col_idx + ncol(mat) - 1 > total_cols) {
-        stop(paste0("Dimension mismatch in plot_tsallis_q_curve: ",
+        stop("Dimension mismatch in plot_tsallis_q_curve: ",
                     "Trying to assign to columns ", col_idx, " to ", col_idx + ncol(mat) - 1,
                     ", but combined_assay only has ", total_cols, " columns.\n",
                     "Matrix dimensions: ", nrow(mat), " x ", ncol(mat), "\n",
                     "target_genes: ", length(target_genes), ", target_n_cols: ", target_n_cols,
-                    ", target_n_qs: ", target_n_qs))
+                    ", target_n_qs: ", target_n_qs)
       }
       
       for (i in seq_len(ncol(mat))) {
@@ -2940,7 +2940,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
           
           if (length(valid_genes) > 0) {
             genes_to_plot <- valid_genes
-            adj_p_values <- lm_sorted$adj_p_interaction[1:length(valid_genes)]
+            adj_p_values <- lm_sorted$adj_p_interaction[seq_along(valid_genes)]
             
             # Extract per_q patterns from assay
             per_q_patterns <- character(length(valid_genes))
@@ -3533,7 +3533,8 @@ plot_divergence_spectrum <- function(divergence_results_se,
     
     # Extract q values from column names
     col_names <- colnames(div_mat)
-    q_vals <- suppressWarnings(as.numeric(gsub(".*q[_=]?", "", col_names)))
+    extracted_q <- gsub(".*q[_=]?", "", col_names)
+    q_vals <- as.numeric(extracted_q)
     
     if (all(is.na(q_vals))) {
         # Fallback: assume sequential q-values
@@ -3939,18 +3940,18 @@ plot_multiq_delta_influence_heatmaps <- function(
         # Sort by p-value (lowest p-values = most significant)
         gene_order <- order(p_values)
         gene_ids_sorted <- gene_ids[gene_order]
-        top_genes_for_comparison <- gene_ids_sorted[1:min(n_genes, length(gene_ids_sorted))]
+        top_genes_for_comparison <- gene_ids_sorted[seq_len(min(n_genes, length(gene_ids_sorted)))]
       } else {
         # Could not find gene identifier column, use first N genes
-        top_genes_for_comparison <- gene_ids[1:min(n_genes, length(gene_ids))]
+        top_genes_for_comparison <- gene_ids[seq_len(min(n_genes, length(gene_ids)))]
       }
     } else {
       # No p-value column found, use first N genes
-      top_genes_for_comparison <- gene_ids[1:min(n_genes, length(gene_ids))]
+      top_genes_for_comparison <- gene_ids[seq_len(min(n_genes, length(gene_ids)))]
     }
   } else {
     # No lm_results provided, use first N genes
-    top_genes_for_comparison <- gene_ids[1:min(n_genes, length(gene_ids))]
+    top_genes_for_comparison <- gene_ids[seq_len(min(n_genes, length(gene_ids)))]
   }
   
   # Prepare data for combined multi-Q heatmap
@@ -3991,7 +3992,7 @@ plot_multiq_delta_influence_heatmaps <- function(
         if (!is.null(gene_res$delta_influence)) {
           # Extract q value from key: q_0_01 -> remove "q_" -> "0_01" -> replace "_" with "." -> "0.01"
           q_str_cleaned <- gsub("_", ".", gsub("^q_", "", q_key))
-          q_num <- suppressWarnings(as.numeric(q_str_cleaned))
+          q_num <- as.numeric(q_str_cleaned)
           col_name <- paste0("q_", sprintf("%.2f", q_num))
           delta_vals <- as.numeric(gene_res$delta_influence)
           
@@ -4012,7 +4013,7 @@ plot_multiq_delta_influence_heatmaps <- function(
           if (length(delta_vals) < n_rows) {
             delta_vals <- c(delta_vals, rep(NA_real_, n_rows - length(delta_vals)))
           } else if (length(delta_vals) > n_rows) {
-            delta_vals <- delta_vals[1:n_rows]
+            delta_vals <- delta_vals[seq_len(n_rows)]
           }
           heatmap_data[[col_name]] <- as.numeric(delta_vals)
         }
@@ -4252,7 +4253,7 @@ plot_multiq_delta_influence_heatmaps <- function(
     # Create viewport layout with spacing between rows
     # Alternate between content rows and gap rows with larger gaps
     n_layout_rows <- n_rows * 2 - 1  # n_rows for content + (n_rows-1) for gaps
-    row_heights <- rep(c(1, 0.20), n_rows)[1:n_layout_rows]  # Gap height (0.20) reduced for less row separation
+    row_heights <- rep(c(1, 0.20), n_rows)[seq_len(n_layout_rows)]  # Gap height (0.20) reduced for less row separation
     
     grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 1, height = 0.80,
                                       layout = grid::grid.layout(

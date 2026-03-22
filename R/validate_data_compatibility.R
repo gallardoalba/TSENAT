@@ -459,7 +459,7 @@ validate_plot_data <- function(
   }
   
   if (verbose && length(all_issues) == 0) {
-    cat("[validate_plot_data] All data compatibility checks passed!\n")
+    message("[validate_plot_data] All data compatibility checks passed!")
   }
   
   return(invisible(all_issues))

@@ -346,15 +346,15 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
       # ===================================================================
       if (is(result_se, "SummarizedExperiment")) {
         if (length(SummarizedExperiment::assays(result_se)) == 0) {
-          stop(paste0("[calculate_diversity_s4] Converted SE for q=", q_val, 
-                      " has no assays. Check diversity result structure."),
+          stop("[calculate_diversity_s4] Converted SE for q=", q_val, 
+                      " has no assays. Check diversity result structure.",
                call. = FALSE)
         }
         test_assay <- tryCatch({
           SummarizedExperiment::assay(result_se, 1)
         }, error = function(e) {
-          stop(paste0("[calculate_diversity_s4] Cannot access assay in SE for q=", q_val,
-                      ": ", conditionMessage(e)), call. = FALSE)
+          stop("[calculate_diversity_s4] Cannot access assay in SE for q=", q_val,
+                      ": ", conditionMessage(e), call. = FALSE)
         })
         if (is.null(test_assay) || nrow(test_assay) == 0) {
           warning("[calculate_diversity_s4] Assay for q=", q_val, 
@@ -399,10 +399,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
       # GAP 6 FIX: More specific error reporting
       error_msg <- conditionMessage(e)
       if (bootstrap && grepl("bootstrap", error_msg, ignore.case = TRUE)) {
-        stop(paste0("[calculate_diversity_s4] Bootstrap CI computation failed for q=", q_val, ": ", error_msg),
+        stop("[calculate_diversity_s4] Bootstrap CI computation failed for q=", q_val, ": ", error_msg,
              call. = FALSE)
       } else {
-        stop(paste0("[calculate_diversity_s4] Error computing diversity for q=", q_val, ":\n", error_msg),
+        stop("[calculate_diversity_s4] Error computing diversity for q=", q_val, ":\n", error_msg,
              call. = FALSE)
       }
     })
@@ -638,8 +638,8 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
     
     se_combined
   }, error = function(e) {
-    stop(paste0("[calculate_lm_interaction_s4] Failed to combine diversity results: ",
-                conditionMessage(e)), call. = FALSE)
+    stop("[calculate_lm_interaction_s4] Failed to combine diversity results: ",
+                conditionMessage(e), call. = FALSE)
   })
   
   # Build arguments for calculate_lm_interaction
@@ -680,7 +680,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   }, error = function(e) {
     cat("  Message:", conditionMessage(e), "\n")
     cat("  Call:", paste(deparse(e$call), collapse="\n"), "\n")
-    stop(paste0("Error in lm_interaction calculation:\n", conditionMessage(e)),
+    stop("Error in lm_interaction calculation:\n", conditionMessage(e),
          call. = FALSE)
   })
 
@@ -842,7 +842,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
         paste0("jackknife_tsallis_entropy[q=", q_val, "]")
       )
     }, error = function(e) {
-      stop(paste0("Jackknife error for q=", q_val, ":\n", e$message),
+      stop("Jackknife error for q=", q_val, ":\n", e$message,
            call. = FALSE)
     })
   }
@@ -980,7 +980,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, ...) {
   result <- tryCatch({
     do.call(calculate_divergence, args)
   }, error = function(e) {
-    stop(paste0("Error in divergence calculation:\n", e$message),
+    stop("Error in divergence calculation:\n", e$message,
          call. = FALSE)
   })
 
@@ -1117,14 +1117,14 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
         if (is.matrix(se) || is.data.frame(se)) {
           se <- SummarizedExperiment(assays = list(entropy = as.matrix(se)))
         } else {
-          stop(paste0("Diversity result for ", key, " is not a SummarizedExperiment or matrix"),
+          stop("Diversity result for ", key, " is not a SummarizedExperiment or matrix",
                call. = FALSE)
         }
       }
       
       # Get assay data
       if (length(SummarizedExperiment::assays(se)) == 0) {
-        stop(paste0("Diversity result for ", key, " has no assays"), call. = FALSE)
+        stop("Diversity result for ", key, " has no assays", call. = FALSE)
       }
       assay_data <- SummarizedExperiment::assay(se, 1)
       
@@ -1140,7 +1140,7 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
         if (length(common_rownames) == length(assay_rownames)) {
           assay_data <- assay_data[common_rownames, , drop = FALSE]
         } else {
-          stop(paste0("Diversity result for ", key, " has different number of genes"),
+          stop("Diversity result for ", key, " has different number of genes",
                call. = FALSE)
         }
       }
@@ -1227,7 +1227,7 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
       ...
     )
   }, error = function(e) {
-    stop(paste0("Error in q-interaction detection:\n", e$message),
+    stop("Error in q-interaction detection:\n", e$message,
          call. = FALSE)
   })
 
@@ -1374,7 +1374,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, ...) {
       ...
     )
   }, error = function(e) {
-    stop(paste0("Error in difference calculation:\n", e$message),
+    stop("Error in difference calculation:\n", e$message,
          call. = FALSE)
   })
 
@@ -1529,7 +1529,7 @@ setMethod(
         alpha = alpha
       )
     }, error = function(e) {
-      stop(paste0("Error in rankbased assumptions test:\n", e$message),
+      stop("Error in rankbased assumptions test:\n", e$message,
            call. = FALSE)
     })
     
@@ -1970,7 +1970,7 @@ m_estimate_s4 <- function(
       scale_method = scale_method
     )
   }, error = function(e) {
-    stop(paste0("Error in M-estimation:\n", e$message), call. = FALSE)
+    stop("Error in M-estimation:\n", e$message, call. = FALSE)
   })
 
   # Store results in metadata
@@ -2066,14 +2066,14 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   # Check for required methods
   if (!(gam_method %in% names(analysis@lm_results))) {
     available_methods <- paste(names(analysis@lm_results), collapse = ", ")
-    stop(paste0("GAM method '", gam_method, "' not found in LM results. ",
-                "Available: ", available_methods), call. = FALSE)
+    stop("GAM method '", gam_method, "' not found in LM results. ",
+                "Available: ", available_methods, call. = FALSE)
   }
   
   if (!(friedman_method %in% names(analysis@lm_results))) {
     available_methods <- paste(names(analysis@lm_results), collapse = ", ")
-    stop(paste0("Friedman method '", friedman_method, "' not found in LM results. ",
-                "Available: ", available_methods), call. = FALSE)
+    stop("Friedman method '", friedman_method, "' not found in LM results. ",
+                "Available: ", available_methods, call. = FALSE)
   }
   
   # Extract results
@@ -2082,11 +2082,11 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   
   # Validate they're data frames
   if (!is.data.frame(gam_results)) {
-    stop(paste0("GAM results ('", gam_method, "') must be a data.frame"), call. = FALSE)
+    stop("GAM results ('", gam_method, "') must be a data.frame", call. = FALSE)
   }
   
   if (!is.data.frame(friedman_results)) {
-    stop(paste0("Friedman results ('", friedman_method, "') must be a data.frame"), call. = FALSE)
+    stop("Friedman results ('", friedman_method, "') must be a data.frame", call. = FALSE)
   }
   
   # ===================================================================
@@ -2102,8 +2102,8 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   concordance_result <- tryCatch({
     compute_method_concordance(gam_results, friedman_results)
   }, error = function(e) {
-    stop(paste0("[compute_method_concordance_s4] Error computing concordance:\n",
-                conditionMessage(e)), call. = FALSE)
+    stop("[compute_method_concordance_s4] Error computing concordance:\n",
+                conditionMessage(e), call. = FALSE)
   })
   
   # ===================================================================
@@ -2618,7 +2618,7 @@ effect_sizes_divergence_s4 <- function(
       ...
     )
   }, error = function(e) {
-    stop(paste0("Error in effect_sizes_divergence:\n", e$message),
+    stop("Error in effect_sizes_divergence:\n", e$message,
          call. = FALSE)
   })
 
@@ -2829,7 +2829,7 @@ plot_top_transcripts_s4 <- function(
 
         if (!is.na(p_col) && p_col %in% colnames(lm_results_df)) {
           # Get top genes (sorted by p-value, select top_n)
-          top_indices <- order(lm_results_df[[p_col]])[1:min(top_n, nrow(lm_results_df))]
+          top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n, nrow(lm_results_df)))]
           gene <- as.character(lm_results_df[top_indices, gene_col])
 
           if (verbose) {
@@ -3354,8 +3354,8 @@ jackknife_isoform_switching_s4 <- function(
       use_lm_fdr = use_lm_fdr
     )
   }, error = function(e) {
-    stop(paste0("[jackknife_isoform_switching_s4] Error in jackknife analysis:\n",
-                conditionMessage(e)), call. = FALSE)
+    stop("[jackknife_isoform_switching_s4] Error in jackknife analysis:\n",
+                conditionMessage(e), call. = FALSE)
   })
   
   # =========================================================================
@@ -3909,8 +3909,8 @@ plot_lm_interaction_gam_s4 <- function(
       bootstrap = FALSE
     )
   }, error = function(e) {
-    stop(paste0("[plot_lm_interaction_gam_s4] Failed to reconstruct diversity SE:\n",
-                conditionMessage(e)), call. = FALSE)
+    stop("[plot_lm_interaction_gam_s4] Failed to reconstruct diversity SE:\n",
+                conditionMessage(e), call. = FALSE)
   })
   
   # =========================================================================
@@ -3937,8 +3937,8 @@ plot_lm_interaction_gam_s4 <- function(
       ...
     )
   }, error = function(e) {
-    stop(paste0("[plot_lm_interaction_gam_s4] Error in plot generation:\n", 
-                conditionMessage(e)),
+    stop("[plot_lm_interaction_gam_s4] Error in plot generation:\n", 
+                conditionMessage(e),
          call. = FALSE)
   })
   

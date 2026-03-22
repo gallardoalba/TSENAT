@@ -366,17 +366,12 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
     if (any(grepl("_q=", long$sample_q))) {
       # Old format with _q=
       long <- tidyr::separate(long, sample_q, into = c("sample", "q"), sep = "_q=", extra = "merge")
-      # Debug: Check for values that can't be converted
-      suppressWarnings({
-        long$q <- as.numeric(long$q)
-      })
-      # Check for NAs introduced by coercion
-      na_count <- sum(is.na(long$q))
-      if (na_count > 0) {
-        # Find which values failed to convert
-        non_numeric_q <- unique(long$q[is.na(long$q)])
-        # Remove NA entries since they indicate malformed column names
-        long <- long[!is.na(long$q), ]
+      # Check for values that can't be converted before attempting coercion
+      valid_numeric <- grepl("^[0-9.]+$", long$q) & !is.na(long$q)
+      long$q <- as.numeric(long$q)
+      # Remove entries with non-numeric q values since they indicate malformed column names
+      if (any(!valid_numeric)) {
+        long <- long[valid_numeric, ]
       }
     } else if (any(grepl("_q[0-9]", long$sample_q))) {
       # New format with _qX.X - extract sample and q
@@ -414,7 +409,7 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
             }
         } else if (nrow(col_data) == length(assay_cols_unique)) {
             # Strategy 2: Fallback - assume colData rows correspond to unique samples in order
-            st_map <- setNames(col_st[1:length(assay_cols_unique)], assay_cols_unique)
+            st_map <- setNames(col_st[seq_along(assay_cols_unique)], assay_cols_unique)
         } else if (nrow(col_data) == nrow(mat) || nrow(col_data) == ncol(mat)) {
             # Strategy 3: colData has one row per column in assay
             # Create mapping by extracting unique sample from each column

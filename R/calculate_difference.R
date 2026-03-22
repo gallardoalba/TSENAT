@@ -623,13 +623,16 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
     # ================================================================================
     
     all_results <- list()
-    fit_one <- function(g) {
+    fit_one <- function(g, group_vec_override = NULL) {
         # CI weighting removed (March 2026) - not supported by literature
         # See: CI_WEIGHTING_VALIDATION_REPORT.txt, BY020 (Kotzen), BY021 (Kleijn), S232 (Bayarri & Berger)
         gene_weights <- NULL
         
+        # Use override group_vec if provided (for permutation testing), otherwise use outer scope
+        gv <- if (!is.null(group_vec_override)) group_vec_override else group_vec
+        
         .tsenat_fit_one_interaction(g = g, se = se, mat = mat, q_vals = q_vals, sample_names = sample_names,
-            group_vec = group_vec, method = method, pvalue = pvalue, subject_col = subject_col,
+            group_vec = gv, method = method, pvalue = pvalue, subject_col = subject_col,
             paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings,
             progress = progress, bias_correction = bias_correction, regularization = regularization, corstr = corstr,
             adaptive_knots = adaptive_knots, weights = gene_weights)
@@ -730,15 +733,13 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
             },
             refit_fn = function(perm_assignment) {
                 # Refit models with permuted group assignment
-                # Captures group_vec from outer scope to temporarily modify for this permutation
-                group_vec <<- perm_assignment  # Temporary assignment for fit_one() calls
-                
+                # Pass permuted group_vec explicitly to avoid modifying outer scope
                 perm_pvalues <- numeric(nrow(res))
                 # Refit each gene with permuted group assignment
                 for (g_idx in seq_along(rownames(mat))) {
                     gene_name <- rownames(mat)[g_idx]
                     tryCatch({
-                        gene_result <- fit_one(gene_name)
+                        gene_result <- fit_one(gene_name, group_vec_override = perm_assignment)
                         if (!is.null(gene_result) && !is.na(gene_result$p_interaction)) {
                             perm_pvalues[g_idx] <- gene_result$p_interaction
                         }
@@ -750,9 +751,6 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
             nthreads = nthreads,
             verbose = verbose
         )
-        
-        # Restore original group_vec after permutation testing
-        group_vec <<- group_vec_orig
         
         # Adjust p-values based on permutation distribution
         # For each observed p-value, compute proportion of permutations with min_perm <= p_obs

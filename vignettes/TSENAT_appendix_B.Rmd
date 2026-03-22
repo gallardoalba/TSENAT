@@ -130,8 +130,8 @@ analysis <- test_rankbased_assumptions_s4(
     analysis
 )
 
-# Extract the result object from metadata
-rank_assumptions <- analysis@metadata$rankbased_assumptions$result
+# Extract the result object from metadata using accessor function
+rank_assumptions <- metadata(analysis, "rankbased_assumptions")$result
 ```
 
 ```{r rank-assumptions-output, message=FALSE, echo=FALSE}
@@ -212,8 +212,8 @@ analysis <- detect_q_gene_interactions_s4(
     verbose = TRUE
 )
 
-# Extract results from S4 object
-friedman_results <- analysis@lm_results$q_interactions
+# Extract results from S4 object using accessor
+friedman_results <- lmResults(analysis, component = "q_interactions")
 ```
 
 ```{r rank-summary, message=FALSE, echo=FALSE}
@@ -683,7 +683,7 @@ plot_method_concordance_s4(analysis, verbose = TRUE)
 plot_tsallis_q_curve_s4(
     analysis,
     condition_col = "sample_type",
-    lm_res = analysis@lm_results$q_interactions,
+    lm_res = lmResults(analysis, component = "q_interactions"),
     n_top = 4
 )
 ```

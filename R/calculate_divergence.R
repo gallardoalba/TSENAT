@@ -344,10 +344,12 @@
   
   # Try format: "q_0.5" (standard with dot)
   if (all(grepl("^q_", nm))) {
-    q_vals <- suppressWarnings(as.numeric(gsub("^q_", "", nm)))
+    extracted_q <- gsub("^q_", "", nm)
+    q_vals <- as.numeric(extracted_q)
   } else if (all(grepl("^q", nm))) {
     # Try other formats
-    q_vals <- suppressWarnings(as.numeric(gsub("^q[_.]", "", nm)))
+    extracted_q <- gsub("^q[_.]", "", nm)
+    q_vals <- as.numeric(extracted_q)
   }
   
   # If we still can't extract numeric q values, return NA
@@ -693,7 +695,7 @@ calculate_divergence <- function(
     use_bca <- method == "bca"
     nboot <- suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
     if (progress) {
-      cat("Auto-selected nboot =", nboot, "for", num_genes, "genes\n")
+      message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
     }
   }
 
@@ -730,14 +732,14 @@ calculate_divergence <- function(
                               pair_detected$column_name)
       
       if (paired == FALSE && progress) {
-        cat("NOTE: Paired sample structure detected in '", 
+        message("NOTE: Paired sample structure detected in '", 
             pair_detected$column_name, "' column.\n",
-            "      Using pair-respecting bootstrap resampling.\n\n", sep = "")
+            "      Using pair-respecting bootstrap resampling.")
       }
     } else {
       if (paired == TRUE && progress) {
-        cat("WARNING: paired=TRUE but no pair ID column detected in colData.\n",
-            "         Using independent bootstrap resampling instead.\n\n")
+        message("WARNING: paired=TRUE but no pair ID column detected in colData.\n",
+            "         Using independent bootstrap resampling instead.")
       }
     }
   }
@@ -750,9 +752,9 @@ calculate_divergence <- function(
     }
 
     mode_str <- if (use_parallel) "Parallel" else "Sequential"
-    cat(mode_str, "mode: ", num_genes, " genes", 
+    message(mode_str, " mode: ", num_genes, " genes", 
         if (use_parallel) paste0(" on ", nthreads, " threads") else "",
-        " [", mode_desc, "]\n\n", sep = "")
+        " [", mode_desc, "]")
   }
 
   # =========================================================================
@@ -770,7 +772,7 @@ calculate_divergence <- function(
       gene_name <- target_gene
       gene_start <- Sys.time()
 
-      tryCatch({
+      result_i <- tryCatch({
         # Get gene-level counts via transcript aggregation
         # (Following Paper I033: gene-level analysis from transcript-level data)
         
@@ -783,13 +785,12 @@ calculate_divergence <- function(
         }
         
         if (length(gene_transcript_indices) == 0) {
-          results_list[[i]] <- list(
+          return(list(
             gene_name = gene_name,
             results_per_q = rep(list(list(estimate = NA_real_, lower_ci = NA_real_, upper_ci = NA_real_, method = NA_character_)), length(q)),
             computation_time_sec = as.numeric(Sys.time() - gene_start, units = "secs"),
             error = "No transcripts found for gene"
-          )
-          next
+          ))
         }
         
         # Aggregate counts across all transcripts for this gene
@@ -802,7 +803,7 @@ calculate_divergence <- function(
         y <- counts_gene[groups != control_group]
 
         if (length(x) == 0 || length(y) == 0) {
-          results_list[[i]] <- list(
+          return(list(
             gene_name = gene_name,
             estimate = NA_real_,
             lower_ci = NA_real_,
@@ -813,11 +814,7 @@ calculate_divergence <- function(
             method = if (bootstrap) method else NA_character_,
             computation_time_sec = as.numeric(Sys.time() - gene_start, units = "secs"),
             error = "Insufficient group samples"
-          )
-          if (progress && (i %% 10 == 0)) {
-            cat("[", i, "/", num_genes, "] Processed\n")
-          }
-          next
+          ))
         }
 
         # Compute divergence for each q value separately and store all results
@@ -845,27 +842,31 @@ calculate_divergence <- function(
 
         gene_elapsed <- as.numeric(Sys.time() - gene_start, units = "secs")
 
-        results_list[[i]] <- list(
+        list(
           gene_name = gene_name,
           results_per_q = gene_results,
           computation_time_sec = gene_elapsed,
           error = NA_character_
         )
 
-        if (progress && (i %% 10 == 0)) {
-          elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
-          rate <- (i / elapsed) * 60
-          cat("[", i, "/", num_genes, "] (", sprintf("%.1f genes/min", rate), ")\n")
-        }
-
       }, error = function(e) {
-        results_list[[i]] <<- list(
+        # Return error result instead of using <<- assignment
+        list(
           gene_name = gene_name,
           results_per_q = rep(list(list(estimate = NA_real_, lower_ci = NA_real_, upper_ci = NA_real_, method = NA_character_)), length(q)),
           computation_time_sec = as.numeric(Sys.time() - gene_start, units = "secs"),
           error = as.character(e$message)
         )
       })
+      
+      # Assign the result after tryCatch
+      results_list[[i]] <- result_i
+
+      if (progress && (i %% 10 == 0)) {
+        elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
+        rate <- (i / elapsed) * 60
+        message("[", i, "/", num_genes, "] (", sprintf("%.1f genes/min", rate), ")")
+      }
     }
 
   } else {
@@ -1074,7 +1075,7 @@ calculate_divergence <- function(
   # Apply normalization if requested (BEFORE creating SE)
   if (norm != "none") {
     if (progress) {
-      cat(sprintf("Applying '%s' normalization to divergence estimates...\n", norm))
+      message(sprintf("Applying '%s' normalization to divergence estimates...", norm))
     }
     
     if (norm == "range") {
@@ -1181,28 +1182,24 @@ calculate_divergence <- function(
   num_errors <- num_genes - num_success
 
   if (progress) {
-    cat("\n", paste(rep("=", 70), collapse = ""), "\n", sep = "")
-    cat("DIVERGENCE COMPUTATION COMPLETE\n")
-    cat(paste(rep("=", 70), collapse = ""), "\n\n", sep = "")
-
-    cat("Summary:\n")
-    cat("  Genes processed:        ", num_genes, "\n")
-    cat("  Successful:             ", num_success, "\n")
-    cat("  Failed:                 ", num_errors, "\n")
-    cat("  Total elapsed time:     ", sprintf("%.1f seconds", elapsed), "\n")
-    cat("  Average per gene:       ", sprintf("%.2f seconds", elapsed / num_genes), "\n")
-    cat("  Genes per minute:       ", sprintf("%.1f", (num_genes / elapsed) * 60), "\n\n")
+    message("\nDIVERGENCE COMPUTATION COMPLETE")
+    message("Summary:")
+    message("  Genes processed:        ", num_genes)
+    message("  Successful:             ", num_success)
+    message("  Failed:                 ", num_errors)
+    message("  Total elapsed time:     ", sprintf("%.1f seconds", elapsed))
+    message("  Average per gene:       ", sprintf("%.2f seconds", elapsed / num_genes))
+    message("  Genes per minute:       ", sprintf("%.1f", (num_genes / elapsed) * 60))
 
     if (num_errors > 0) {
-      cat("Failed genes:\n")
+      message("Failed genes:")
       failed <- row_data_df[!is.na(row_data_df$error), ]
       for (i in seq_len(min(10, nrow(failed)))) {
-        cat(sprintf("  [%d] %s: %s\n", i, failed$gene_name[i], failed$error[i]))
+        message(sprintf("  [%d] %s: %s", i, failed$gene_name[i], failed$error[i]))
       }
       if (num_errors > 10) {
-        cat("  ... and", num_errors - 10, "more\n")
+        message("  ... and", num_errors - 10, "more")
       }
-      cat("\n")
     }
   }
 
@@ -1278,9 +1275,7 @@ calculate_divergence_bootstrap <- function(
     paired = FALSE,
     pair_ids = NULL) {
 
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
+  # Seed handling left to caller for Bioconductor compliance
 
   # Compute point estimate
   point_est <- .tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
@@ -1495,7 +1490,8 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
   
   # Fallback: try to extract numeric directly after "q"
   if (all(is.na(q_vals))) {
-    q_vals <- suppressWarnings(as.numeric(gsub("^q", "", nm)))
+    extracted_q <- gsub("^q", "", nm)
+    q_vals <- as.numeric(extracted_q)
   }
   
   # If we still can't extract numeric q values, return NA
@@ -1555,7 +1551,8 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
   }
   
   # Fallback: Use original correlation-based approach
-  slope <- suppressWarnings(cor(q_vals, per_q_divs, use = "complete.obs"))
+  # Note: cor() with use="complete.obs" handles missing values without warnings
+  slope <- cor(q_vals, per_q_divs, use = "complete.obs")
   
   # If correlation is NA (e.g., constant divergence), treat as balanced
   if (is.na(slope)) {

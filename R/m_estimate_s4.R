@@ -235,7 +235,7 @@ m_estimate_s4 <- function(
       scale_method = scale_method
     )
   }, error = function(e) {
-    stop(paste0("Error in M-estimation:\n", e$message), call. = FALSE)
+    stop("Error in M-estimation:\n", e$message, call. = FALSE)
   })
 
   # Store results in metadata

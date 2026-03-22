@@ -798,6 +798,69 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
   object
 })
 
+#' Extract SummarizedExperiment from TSENATAnalysis
+#'
+#' @param object \code{TSENATAnalysis} object.
+#'
+#' @return The \code{SummarizedExperiment} containing transcript/gene counts.
+#'
+#' @details
+#' Provides type-safe accessor for the embedded \code{SummarizedExperiment}.
+#'
+#' @examples
+#' \dontrun{
+#'   se <- se(analysis)
+#'   nrow(se)  # Number of genes/transcripts
+#' }
+#'
+#' @export
+setGeneric("se", function(object) {
+  standardGeneric("se")
+})
+
+#' @rdname se
+#' @export
+setMethod("se", "TSENATAnalysis", function(object) {
+  object@se
+})
+
+#' Extract metadata from TSENATAnalysis
+#'
+#' @param object \code{TSENATAnalysis} object.
+#' @param key \code{character} (optional). Specific metadata key to extract.
+#'   If NULL, returns entire metadata list.
+#'
+#' @return The metadata list, or a specific metadata element if key is provided.
+#'
+#' @details
+#' Provides type-safe accessor for analysis metadata (timestamps, function calls, 
+#' intermediate results, etc.).
+#'
+#' @examples
+#' \dontrun{
+#'   all_meta <- metadata(analysis)
+#'   m_estimate_res <- metadata(analysis, "m_estimate_results")
+#' }
+#'
+#' @export
+setGeneric("metadata", function(object, key = NULL) {
+  standardGeneric("metadata")
+}, signature = "object")
+
+#' @rdname metadata
+#' @export
+setMethod("metadata", "TSENATAnalysis", function(object, key = NULL) {
+  if (is.null(key)) {
+    return(object@metadata)
+  }
+  
+  if (key %in% names(object@metadata)) {
+    return(object@metadata[[key]])
+  }
+  
+  NULL
+})
+
 #' Test rank-based method assumptions
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results.

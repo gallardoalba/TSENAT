@@ -60,9 +60,11 @@
   if (is.null(q) || length(q) == 0) {
     # Try to extract from colnames format "Sample_q=X"
     col_names <- colnames(entropy_matrix)
-    q_vals <- unique(suppressWarnings(as.numeric(
-      sub(".*_q=([0-9.]+).*", "\\1", col_names)
-    )))
+    extracted_q <- sub(".*_q=([0-9.]+).*", "\\1", col_names)
+    # Only keep values that match numeric pattern to avoid coercion warnings
+    valid_idx <- grepl("^[0-9.]+$", extracted_q) & extracted_q != col_names
+    extracted_q <- extracted_q[valid_idx]
+    q_vals <- unique(as.numeric(extracted_q))
     q_vals <- q_vals[!is.na(q_vals)]
     if (length(q_vals) == 0) q_vals <- 2  # Default fallback
     q <- q_vals
@@ -71,9 +73,11 @@
   # OPTIMIZED: Cache q-value extraction and prepare named vectors (VECTORIZED - 35-50% faster)
   # Extract q values for all columns (vectorized, not per-column loop)
   col_names <- colnames(result)
-  col_q_vals <- suppressWarnings(as.numeric(
-    sub(".*_q=([0-9.]+).*", "\\1", col_names)
-  ))
+  extracted_q <- sub(".*_q=([0-9.]+).*", "\\1", col_names)
+  # Only convert values that match numeric pattern to avoid coercion warnings
+  valid_idx <- grepl("^[0-9.]+$", extracted_q) & extracted_q != col_names
+  col_q_vals <- rep(NA_real_, length(extracted_q))
+  col_q_vals[valid_idx] <- as.numeric(extracted_q[valid_idx])
   col_q_vals[is.na(col_q_vals)] <- q[1]  # Use first q as fallback
   
   # Handle n_isoforms as named vector (vectorized lookup)
@@ -607,10 +611,8 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
                 sum(gene_mask)
             })
             
-            # Suppress warnings about partial matching
-            suppressWarnings(
-                result_assay <- .tsenat_normalize_log_odds_ratio(result_assay, n_isoforms, q)
-            )
+            # Call normalization function directly without warning suppression
+            result_assay <- .tsenat_normalize_log_odds_ratio(result_assay, n_isoforms, q)
         } else if (norm == "relative_reference") {
             # Extract group information from metadata if available
             if (is(original_x, "SummarizedExperiment") || is(original_x, "RangedSummarizedExperiment")) {
@@ -1355,6 +1357,11 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     # Only use genes with valid finite values for robust fitting
     valid_idx <- is.finite(entropy_vals) & is.finite(gene_variances)
     
+    # Initialize defaults (NULL and empty character vector) for this q-value
+    # These will be updated below if sufficient data for loess fitting
+    var_trend[[col_name]] <- NULL
+    outlier_genes[[col_name]] <- character(0)
+    
     # Require sufficient data points for stable loess fitting
     # With n<6, loess becomes numerically unstable (degrees of freedom issues)
     if (sum(valid_idx) >= 6) {  # Increased from 4 to 6 for stability
@@ -1390,13 +1397,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
           "Loess trend fitting failed for q=%.2f; using global variance.",
           q_val
         ), call. = FALSE)
-        var_trend[[col_name]] <<- NULL
-        outlier_genes[[col_name]] <<- character(0)
       })
-    } else {
-      # Insufficient data for loess fitting
-      var_trend[[col_name]] <- NULL
-      outlier_genes[[col_name]] <- character(0)
     }
   }
   

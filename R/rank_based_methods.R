@@ -120,7 +120,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
     # Permutation test: resample column order 999 times
     n_perms <- 99
     perm_acf <- numeric(n_perms)
-    set.seed(42)
+    # Seed handling left to caller for Bioconductor compliance
     for (i in seq_len(n_perms)) {
       perm_idx <- sample(seq_len(ncol(data)))
       perm_data <- data[, perm_idx]
@@ -410,7 +410,7 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
   method <- match.arg(method)
   ci <- match.arg(ci)
   
-  set.seed(seed)
+  # Seed handling left to caller for Bioconductor compliance
   
   # Input validation
   if (!is.list(pvalues_or_ranks)) {
