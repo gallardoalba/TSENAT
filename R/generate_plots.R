@@ -2367,7 +2367,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         ggplot2::theme_minimal(base_size = 20) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 11, face = "plain"), 
+            axis.text.y = ggplot2::element_text(size = 15.4, face = "plain"), 
             axis.text.x = ggplot2::element_text(size = 17),
             plot.title = ggplot2::element_text(size = 20, hjust = 0.5, face = "bold"), 
             legend.position = "bottom",

@@ -15,7 +15,8 @@
 #' @param max_iter \code{integer}. Maximum iterations for M-estimation. Default: 50.
 #' @param tol \code{numeric}. Convergence tolerance. Default: 1e-6.
 #' @param paired \code{logical}. If TRUE, adjusts degrees of freedom for paired
-#'   designs. Default: FALSE.
+#'   designs. Auto-detected from \code{@config$paired} if available.
+#'   Default: FALSE.
 #' @param pcorr \code{character}. P-value correction method. Default: "BH" (Benjamini-Hochberg).
 #' @param q_combine_method \code{character}. How to collapse multi-q results:
 #'   "mean" (default) or "median".
@@ -67,13 +68,18 @@
 #'   # After computing diversity
 #'   analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by=0.5))
 #'
-#'   # Run M-estimation with sample grouping
+#'   # Run M-estimation with sample grouping (using explicit parameters)
 #'   analysis <- m_estimate_s4(
 #'       analysis,
 #'       samples = "sample_type",
 #'       loss_type = "huber",
 #'       influence_threshold = 0.75
 #'   )
+#'
+#'   # Or use parameters from @config (including paired design)
+#'   analysis@config$condition_col <- "sample_type"
+#'   analysis@config$paired <- TRUE
+#'   analysis <- m_estimate_s4(analysis)  # Auto-detects parameters from config
 #'
 #'   # Retrieve results
 #'   m_est_results <- analysis@metadata$m_estimate_results
@@ -91,7 +97,7 @@ m_estimate_s4 <- function(
     scale = NULL,
     max_iter = 50,
     tol = 1e-6,
-    paired = FALSE,
+    paired = NULL,
     pcorr = "BH",
     q_combine_method = "mean",
     influence_threshold = 0.75,
@@ -138,6 +144,25 @@ m_estimate_s4 <- function(
     }
   } else if (!is.character(samples) || length(samples) != 1) {
     stop("'samples' must be a single character value", call. = FALSE)
+  }
+
+  # Auto-detect paired parameter from @config if not explicitly provided
+  if (is.null(paired)) {
+    if ("paired" %in% names(analysis@config)) {
+      config_paired <- analysis@config$paired
+      if (is.logical(config_paired) && length(config_paired) == 1) {
+        paired <- config_paired
+        if (verbose && config_paired) {
+          cat("Auto-detected 'paired' design from config: paired =", paired, "\n")
+        }
+      } else {
+        paired <- FALSE
+      }
+    } else {
+      paired <- FALSE
+    }
+  } else if (!is.logical(paired) || length(paired) != 1) {
+    stop("'paired' must be a single logical value (TRUE or FALSE)", call. = FALSE)
   }
 
   # Extract diversity results - get first SE to access sample metadata
