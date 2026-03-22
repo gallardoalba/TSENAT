@@ -754,6 +754,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
+#' @param print_results \code{logical}. Print jackknife results summary. Default: FALSE.
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with jackknife results in @jackknife_results.
@@ -858,6 +859,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value for divergence.
 #'   If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.
+#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
 #' @param ... Additional arguments passed to the base divergence function,
 #'   including: control_group, paired, bootstrap, method, ci, etc.
 #'
@@ -1993,11 +1995,14 @@ m_estimate_s4 <- function(
 #' Compute concordance between two analysis methods in TSENATAnalysis
 #'
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
-#' @param gam_method \code{character}. Key for GAM/interaction results in \code{@lm_results}.
-#'   Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})
-#' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
-#'   Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})
-#' @param verbose \code{logical}. Print progress messages. Default: FALSE
+#' @param ... Additional arguments including:
+#'   \describe{
+#'     \item{gam_method}{\code{character}. Key for GAM/interaction results in \code{@lm_results}.
+#'       Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
+#'     \item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
+#'       Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
+#'     \item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
+#'   }
 #'
 #' @return Modified TSENATAnalysis object with concordance results stored in:
 #'   \code{@metadata$method_concordance}:
@@ -3729,6 +3734,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' Plot GAM q-curves from TSENATAnalysis object
 #'
 #' S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve plots
+#' @param analysis \code{TSENATAnalysis} object with diversity and LM interaction results.
 #' @param n_top \code{integer}. Number of top genes (by adjusted p-value) to plot 
 #'   (default: 6). Only used if genes = NULL.
 #'

@@ -12,6 +12,8 @@ calculate_divergence_s4(analysis, q = NULL, verbose = TRUE, ...)
 \item{q}{\code{numeric}. Q-value for divergence.
 If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.}
 
+\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
+
 \item{...}{Additional arguments passed to the base divergence function,
 including: control_group, paired, bootstrap, method, ci, etc.}
 }

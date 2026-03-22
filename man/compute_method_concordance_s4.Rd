@@ -24,7 +24,8 @@ Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
-}
+
+\item{...}{Additional arguments (currently unused, for future extensibility).}
 \value{
 Modified TSENATAnalysis object with concordance results stored in:
   \code{@metadata$method_concordance}:

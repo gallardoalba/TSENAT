@@ -11,6 +11,8 @@ jackknife_tsallis_entropy_s4(analysis, q = NULL, print_results = FALSE, ...)
 
 \item{q}{\code{numeric}. Q-value(s) for jackknife. Default: 1.0.}
 
+\item{print_results}{\code{logical}. Print jackknife results summary. Default: FALSE.}
+
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{

@@ -6,8 +6,8 @@
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results
 #'   (typically via \code{\link{calculate_diversity_s4}}).
-#' @param samples \code{character}. Column name in sample metadata indicating
-#'   sample/sample_type grouping. Auto-detected from \code{@config$condition_col}
+#' @param condition_col \code{character}. Column name in sample metadata indicating
+#'   condition/sample grouping. Auto-detected from \code{@config$condition_col}
 #'   if available.
 #' @param loss_type \code{character}. Type of loss function: "huber" (default),
 #'   "tukey", or "lsq". Determines robustness vs efficiency trade-off.

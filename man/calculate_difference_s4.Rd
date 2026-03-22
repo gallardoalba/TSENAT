@@ -48,5 +48,6 @@ between control and treatment groups, not raw abundance data.
 }
 }
 \seealso{
+\code{\link{calculate_difference}} for the base function.
 \code{\link{calculate_diversity_s4}} for computing diversity.
 }

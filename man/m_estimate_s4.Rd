@@ -18,21 +18,6 @@ m_estimate_s4(
   scale_method = "mad",
   verbose = TRUE
 )
-
-m_estimate_s4(
-  analysis,
-  condition_col = NULL,
-  loss_type = "huber",
-  scale = NULL,
-  max_iter = 50,
-  tol = 1e-06,
-  paired = FALSE,
-  pcorr = "BH",
-  q_combine_method = "mean",
-  influence_threshold = 0.75,
-  scale_method = "mad",
-  verbose = TRUE
-)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object with diversity results
@@ -66,10 +51,6 @@ as high-influence. Default: 0.75.}
 "proposal2", or "s-estimator".}
 
 \item{verbose}{\code{logical}. Print status messages. Default: TRUE.}
-
-\item{samples}{\code{character}. Column name in sample metadata indicating
-sample/sample_type grouping. Auto-detected from \code{@config$condition_col}
-if available.}
 }
 \value{
 Modified TSENATAnalysis object with M-estimation results stored in
@@ -181,8 +162,6 @@ unusual diversity patterns.
 
 }
 \seealso{
-\code{m_estimate} for the underlying M-estimation function
-\code{\link{calculate_diversity_s4}} for computing diversity
-
-\code{\link{calculate_diversity_s4}} for computing diversity
+\code{\link{m_estimate}} for the underlying M-estimation function.
+\code{\link{calculate_diversity_s4}} for computing diversity.
 }
