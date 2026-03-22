@@ -12,7 +12,7 @@ detect_q_gene_interactions_s4(analysis, q = NULL, ...)
 \item{q}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
 If NULL, auto-detects from \code{@config$q_values} or diversity results.}
 
-\item{...}{Additional arguments passed to \code{\link{detect_q_gene_interactions}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 Modified TSENATAnalysis with interaction results in @lm_results.

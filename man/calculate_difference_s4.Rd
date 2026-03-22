@@ -14,7 +14,7 @@ attempts to retrieve from \code{analysis@config$control}.}
 
 \item{q}{\code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.}
 
-\item{...}{Additional arguments passed to \code{\link{calculate_difference}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 Returns the modified \code{analysis} object invisibly with results stored in
@@ -48,5 +48,5 @@ between control and treatment groups, not raw abundance data.
 }
 }
 \seealso{
-\code{\link{calculate_difference}} for the underlying implementation.
+\code{\link{calculate_diversity_s4}} for computing diversity.
 }

@@ -2700,14 +2700,14 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #' N genes identified by LMM interaction analysis. Each panel shows the full q-spectrum
 #' divergence curve with the gene name and adjusted p-value in the title.
 #'
-#' @param eff_res Output from \code{\link{effect_sizes_divergence}} OR \code{NULL}.
+#' @param eff_res Output from effect size computation OR \code{NULL}.
 #'   If provided, must contain `$interaction_results` with columns: gene, adj_p_interaction, per_q_pattern.
 #'   If \code{NULL}, uses fallback with lm_res + divergence_results_se.
 #'
 #' @param lm_res (Optional) Data frame from LMM analysis with columns: gene, adj_p_interaction.
 #'   Only used if eff_res is NULL. Must be provided for fallback mode.
 #'
-#' @param divergence_results_se (Optional) SummarizedExperiment from \code{\link{calculate_divergence}}.
+#' @param divergence_results_se (Optional) SummarizedExperiment from divergence calculation.
 #'   Only used if eff_res is NULL. Must be provided for fallback mode.
 #'
 #' @param n_genes Integer; number of top genes to plot (default: 9). Genes are sorted by

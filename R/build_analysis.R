@@ -50,7 +50,6 @@
 #' TSENATAnalysis object, call \code{build_se()} and \code{TSENATAnalysis()} separately.
 #'
 #' @seealso
-#' \code{build_se} for details on SummarizedExperiment creation
 #' \code{\link{TSENATAnalysis}} for the S4 class structure
 #' \code{\link{calculate_diversity_s4}} for computing Tsallis entropy
 #'

@@ -18,7 +18,7 @@ retrieval.
 
 \describe{
 \item{\code{se}}{\code{SummarizedExperiment}. The base expression data object
-(genes × samples) with assays and colData.}
+(genes x samples) with assays and colData.}
 
 \item{\code{config}}{\code{list}. Configuration metadata specifying analysis
 parameters that persist through the workflow (q-values, sample grouping

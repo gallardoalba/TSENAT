@@ -23,7 +23,7 @@ Default: 0.05.}
 \item{method}{\code{character}. Statistical method (e.g., "lmm", "gam", "gee").
 If NULL, uses method from @config$method or defaults to "lmm".}
 
-\item{...}{Additional arguments passed to \code{\link{calculate_lm_interaction}},
+\item{...}{Additional arguments passed to the base LM function,
 including: condition_col, paired, subject_col, multicorr, nthreads, etc.}
 }
 \value{

@@ -27,7 +27,7 @@ results for ranking genes (default: NULL). If NULL, attempts to extract from
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plot generation (default: FALSE).}
 
-\item{...}{Additional arguments passed to \code{\link{plot_multiq_delta_influence_heatmaps}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 A file path (character) to the saved heatmap PNG file, invisibly.
@@ -68,6 +68,5 @@ interface compared to the base function.
 
 }
 \seealso{
-\code{\link{plot_multiq_delta_influence_heatmaps}} for the base function,
 \code{\link{jackknife_isoform_switching_s4}} for computing switching results
 }

@@ -46,7 +46,7 @@ Default: "Tsallis-based MA plot".}
 
 \item{verbose}{\code{logical}. Print status messages. Default: TRUE.}
 
-\item{...}{Additional arguments passed to \code{\link{plot_volcano_ma_grid}}.}
+\item{...}{Additional arguments passed to the base plotting function.}
 }
 \value{
 Invisibly returns a cowplot grid object containing both volcano and MA plots
@@ -118,6 +118,5 @@ This wrapper extracts the difference results data frame from
 
 }
 \seealso{
-\code{\link{plot_volcano_ma_grid}} for the underlying plotting function
 \code{\link{calculate_difference_s4}} for computing differential analysis
 }

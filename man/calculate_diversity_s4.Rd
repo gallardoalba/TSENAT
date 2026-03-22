@@ -12,7 +12,7 @@ calculate_diversity_s4(analysis, q = NULL, ...)
 \item{q}{\code{numeric}. Q-value(s) for Tsallis entropy.
 If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).}
 
-\item{...}{Additional arguments passed to \code{\link{calculate_diversity}},
+\item{...}{Additional arguments passed to the base function,
 including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.}
 }
 \value{

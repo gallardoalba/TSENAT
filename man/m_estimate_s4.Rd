@@ -82,7 +82,7 @@ Modified TSENATAnalysis object with M-estimation results stored in
 influence scores, robustness weights, entropy statistics, and QC classifications.
 }
 \description{
-S4 wrapper for \code{\link{m_estimate}} that performs robust M-estimation
+S4 wrapper for \code{m_estimate} that performs robust M-estimation
 on diversity results stored in a TSENATAnalysis object and stores results
 back into the object.
 
@@ -181,9 +181,8 @@ unusual diversity patterns.
 
 }
 \seealso{
-\code{\link{m_estimate}} for the underlying M-estimation function
+\code{m_estimate} for the underlying M-estimation function
 \code{\link{calculate_diversity_s4}} for computing diversity
 
-\code{\link{m_estimate}} for the underlying M-estimation function
 \code{\link{calculate_diversity_s4}} for computing diversity
 }

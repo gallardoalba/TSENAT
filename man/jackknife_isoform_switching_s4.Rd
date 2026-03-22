@@ -56,8 +56,10 @@ Default: "gene".}
 \item{isoform_col}{\code{character}. Column name in rowData(se) or metadata identifying 
 isoforms/transcripts. Default: "transcript" or "isoform".}
 
-\item{q}{\code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
-or vector for multi-q analysis (default: c(0.01, 0.5, 1, 1.5, 2)).}
+\item{q}{\code{numeric} or \code{NULL}. Tsallis entropy parameter(s) to analyze. 
+Can be single value or vector for multi-q analysis. If NULL (default), uses q_values 
+from \code{@config} if available, otherwise defaults to \code{c(0.01, 0.5, 1, 1.5, 2)}. 
+When explicitly provided, overrides config values.}
 
 \item{norm}{\code{logical}. Whether to use normalized diversity values 
 (default: TRUE).}
@@ -197,9 +199,8 @@ This wrapper automatically:
 
 }
 \seealso{
-\code{\link{jackknife_isoform_switching}} for the underlying implementation,
+\code{jackknife_isoform_switching} for the underlying implementation,
 \code{\link{TSENATAnalysis}} for object structure.
 
-\code{\link{jackknife_isoform_switching}} for the underlying implementation,
 \code{\link{TSENATAnalysis}} for object structure.
 }

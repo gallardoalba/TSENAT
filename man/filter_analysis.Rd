@@ -69,6 +69,5 @@ analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.1))
 
 }
 \seealso{
-\code{\link{filter_se}} for the underlying filtering function
 \code{\link{build_analysis}} for creating a new analysis object
 }

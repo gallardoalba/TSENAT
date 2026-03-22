@@ -14,14 +14,14 @@ plot_multi_gene_q_spectrum_s4(
 )
 }
 \arguments{
-\item{eff_res}{Output from \code{\link{effect_sizes_divergence}} OR \code{NULL}.
+\item{eff_res}{Output from effect size computation OR \code{NULL}.
 If provided, must contain `$interaction_results` with columns: gene, adj_p_interaction, per_q_pattern.
 If \code{NULL}, uses fallback with lm_res + divergence_results_se.}
 
 \item{lm_res}{(Optional) Data frame from LMM analysis with columns: gene, adj_p_interaction.
 Only used if eff_res is NULL. Must be provided for fallback mode.}
 
-\item{divergence_results_se}{(Optional) SummarizedExperiment from \code{\link{calculate_divergence}}.
+\item{divergence_results_se}{(Optional) SummarizedExperiment from divergence calculation.
 Only used if eff_res is NULL. Must be provided for fallback mode.}
 
 \item{n_genes}{Integer; number of top genes to plot (default: 9). Genes are sorted by

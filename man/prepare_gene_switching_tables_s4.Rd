@@ -26,7 +26,7 @@ to display per gene in the output tables (default: 10).}
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during table preparation.}
 
-\item{...}{Additional arguments passed to \code{\link{prepare_gene_switching_tables}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 A list containing:

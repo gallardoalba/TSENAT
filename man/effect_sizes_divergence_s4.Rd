@@ -25,7 +25,7 @@ divergence patterns (default: TRUE).}
 
 \item{verbose}{\code{logical}. If TRUE, print diagnostic messages (default: TRUE).}
 
-\item{...}{Additional arguments passed to \code{\link{effect_sizes_divergence}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 Modified TSENATAnalysis with effect size results stored in
@@ -69,7 +69,6 @@ Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 
 }
 \seealso{
-\code{\link{effect_sizes_divergence}} for the base function,
 \code{\link{calculate_divergence_s4}} for divergence wrapper,
 \code{\link{calculate_lm_interaction_s4}} for LM interaction wrapper
 }

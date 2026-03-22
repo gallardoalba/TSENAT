@@ -11,7 +11,7 @@ jackknife_tsallis_entropy_s4(analysis, q = NULL, print_results = FALSE, ...)
 
 \item{q}{\code{numeric}. Q-value(s) for jackknife. Default: 1.0.}
 
-\item{...}{Additional arguments passed to \code{\link{jackknife_tsallis_entropy}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 Modified TSENATAnalysis with jackknife results in @jackknife_results.

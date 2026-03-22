@@ -93,7 +93,6 @@ analysis <- calculate_diversity_s4(analysis, q_values = c(0, 0.5, 1, 2))
 
 }
 \seealso{
-\code{\link{build_se}} for details on SummarizedExperiment creation
 \code{\link{TSENATAnalysis}} for the S4 class structure
 \code{\link{calculate_diversity_s4}} for computing Tsallis entropy
 }

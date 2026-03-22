@@ -13,7 +13,7 @@
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for Tsallis entropy.
 #'   If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).
-#' @param ... Additional arguments passed to \code{\link{calculate_diversity}},
+#' @param ... Additional arguments passed to the base function,
 #'   including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.
 #'
 #' @return Modified TSENATAnalysis object with diversity results stored
@@ -447,7 +447,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, ...) {
 #' @param formula \code{formula} or NULL. Reserved for future use.
 #' @param method \code{character}. Statistical method (e.g., "lmm", "gam", "gee").
 #'   If NULL, uses method from @config$method or defaults to "lmm".
-#' @param ... Additional arguments passed to \code{\link{calculate_lm_interaction}},
+#' @param ... Additional arguments passed to the base LM function,
 #'   including: condition_col, paired, subject_col, multicorr, nthreads, etc.
 #'
 #' @return Modified TSENATAnalysis with results in @lm_results$lm_interaction.
@@ -754,7 +754,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
-#' @param ... Additional arguments passed to \code{\link{jackknife_tsallis_entropy}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with jackknife results in @jackknife_results.
 #'
@@ -858,7 +858,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value for divergence.
 #'   If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.
-#' @param ... Additional arguments passed to \code{\link{calculate_divergence}},
+#' @param ... Additional arguments passed to the base divergence function,
 #'   including: control_group, paired, bootstrap, method, ci, etc.
 #'
 #' @return Modified TSENATAnalysis with divergence metrics in @divergence_results
@@ -1023,7 +1023,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, ...) {
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric} or \code{NULL}. Q-values to test across spectrum.
 #'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
-#' @param ... Additional arguments passed to \code{\link{detect_q_gene_interactions}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -1261,7 +1261,7 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
 #' @param q \code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.
 #' @param control Character string specifying the control group identifier. If \code{NULL},
 #'   attempts to retrieve from \code{analysis@config$control}.
-#' @param ... Additional arguments passed to \code{\link{calculate_difference}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return Returns the modified \code{analysis} object invisibly with results stored in
 #'   \code{analysis@lm_results$difference}.
@@ -1280,7 +1280,7 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, ...) {
 #' }
 #'
 #' @export
-#' @seealso \code{\link{calculate_difference}} for the underlying implementation.
+#' @seealso \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
 #' @examples
 #' \dontrun{
@@ -1484,7 +1484,7 @@ setMethod(
         mat[common_genes, , drop = FALSE]
       })
       
-      # Combine all matrices column-wise (genes × all samples across q-values)
+      # Combine all matrices column-wise (genes x all samples across q-values)
       diversity_data <- do.call(cbind, entropy_list)
       # Keep natural column names from cbind to preserve structure
       q_used <- "all"
@@ -1580,7 +1580,7 @@ extract_q_from_key <- function(key) {
 #' @param title_ma \code{character}. Title for MA plot.
 #'   Default: "Tsallis-based MA plot".
 #' @param verbose \code{logical}. Print status messages. Default: TRUE.
-#' @param ... Additional arguments passed to \code{\link{plot_volcano_ma_grid}}.
+#' @param ... Additional arguments passed to the base plotting function.
 #'
 #' @return
 #' Invisibly returns a cowplot grid object containing both volcano and MA plots
@@ -1646,7 +1646,6 @@ extract_q_from_key <- function(key) {
 #' }
 #'
 #' @seealso
-#' \code{\link{plot_volcano_ma_grid}} for the underlying plotting function
 #' \code{\link{calculate_difference_s4}} for computing differential analysis
 #'
 #' @import methods
@@ -1825,7 +1824,6 @@ plot_volcano_ma_grid_s4 <- function(
 #' }
 #'
 #' @seealso
-#' \code{\link{m_estimate}} for the underlying M-estimation function
 #' \code{\link{calculate_diversity_s4}} for computing diversity
 #'
 #' @export
@@ -1982,7 +1980,7 @@ m_estimate_s4 <- function(
   )
 
   if (verbose) {
-    cat("✓ M-estimation complete. Results stored in @metadata$m_estimate_results\n")
+    cat("[OK] M-estimation complete. Results stored in @metadata$m_estimate_results\n")
   }
 
   analysis
@@ -2163,7 +2161,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' @param width \code{numeric}. Plot width in inches. Default is 10.
 #' @param height \code{numeric}. Plot height in inches. Default is 6.
 #' @param verbose \code{logical}. Print status messages. Default is TRUE.
-#' @param ... Additional arguments passed to \code{\link{plot_divergence_spectrum}}.
+#' @param ... Additional arguments passed to the underlying plotting function.
 #'
 #' @return
 #' Invisibly returns the file path if saved, otherwise the ggplot object.
@@ -2218,7 +2216,6 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' }
 #'
 #' @seealso
-#' \code{\link{plot_divergence_spectrum}} for the underlying plotting function
 #' \code{\link{calculate_divergence_s4}} for computing divergence
 #'
 #' @export
@@ -2447,7 +2444,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'
 #' @param verbose \code{logical}. If TRUE, print diagnostic messages (default: TRUE).
 #'
-#' @param ... Additional arguments passed to \code{\link{effect_sizes_divergence}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with effect size results stored in
 #'   \code{@metadata$effect_sizes_divergence}. Returns the analysis object visibly
@@ -2484,7 +2481,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'   eff_res <- analysis@metadata$effect_sizes_divergence$interaction_results
 #' }
 #'
-#' @seealso \code{\link{effect_sizes_divergence}} for the base function,
+#' @seealso
 #' \code{\link{calculate_divergence_s4}} for divergence wrapper,
 #' \code{\link{calculate_lm_interaction_s4}} for LM interaction wrapper
 #'
@@ -2677,7 +2674,7 @@ effect_sizes_divergence_s4 <- function(
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
-#' @param ... Additional arguments passed to \code{\link{plot_top_transcripts}}.
+#' @param ... Additional arguments passed to the base plotting function.
 #'
 #' @return A file path (character) to the saved plot PNG file, invisibly.
 #'
@@ -2690,7 +2687,7 @@ effect_sizes_divergence_s4 <- function(
 #'
 #' If no gene is specified, the function automatically selects the top gene from
 #' the LM results (lowest p-value). This simplifies visualization of genes with
-#' significant q×condition interaction effects.
+#' significant q x condition interaction effects.
 #'
 #' @examples
 #' \dontrun{
@@ -2709,7 +2706,7 @@ effect_sizes_divergence_s4 <- function(
 #'   )
 #' }
 #'
-#' @seealso \code{\link{plot_top_transcripts}} for the base function,
+#' @seealso
 #' \code{\link{TSENATAnalysis}} for object structure
 #'
 #' @export
@@ -2897,7 +2894,7 @@ plot_top_transcripts_s4 <- function(
 #' @param width \code{numeric}. Plot width in inches. Default is 10.
 #' @param height \code{numeric}. Plot height in inches. Default is 6.
 #' @param verbose \code{logical}. Print status messages. Default is TRUE.
-#' @param ... Additional arguments passed to \code{\link{plot_divergence_distribution}}.
+#' @param ... Additional arguments passed to the underlying plotting function.
 #'
 #' @return
 #' Invisibly returns the file path if saved, otherwise the ggplot object.
@@ -2934,7 +2931,6 @@ plot_top_transcripts_s4 <- function(
 #' }
 #'
 #' @seealso
-#' \code{\link{plot_divergence_distribution}} for the underlying plotting function
 #' \code{\link{effect_sizes_divergence_s4}} for computing effect sizes
 #'
 #' @export
@@ -3105,7 +3101,7 @@ plot_divergence_distribution_s4 <- function(
 #'   \item \code{isoform_col}: Uses explicit parameter, then looks for "transcript", "isoform", or "Isoform"
 #' }
 #'
-#' @seealso \code{\link{jackknife_isoform_switching}} for the underlying implementation,
+#' @seealso
 #' \code{\link{TSENATAnalysis}} for object structure.
 #'
 #' @examples
@@ -3432,7 +3428,7 @@ jackknife_isoform_switching_s4 <- function(
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during table preparation.
 #'
-#' @param ... Additional arguments passed to \code{\link{prepare_gene_switching_tables}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return A list containing:
 #'   \describe{
@@ -3515,7 +3511,7 @@ prepare_gene_switching_tables_s4 <- function(
     stop("Cannot find LM results data.frame in analysis@lm_results")
   }
   
-  if (verbose) cat("  ✓ Extracted LM results with", nrow(lm_res), "genes\n")
+  if (verbose) cat("  [OK] Extracted LM results with", nrow(lm_res), "genes\n")
   
   # Extract jackknife/switching results
   if (verbose) cat("Extracting jackknife switching results from analysis object...\n")
@@ -3533,7 +3529,7 @@ prepare_gene_switching_tables_s4 <- function(
     if (inherits(multi_q_object, "tsenat_isoform_switching_multiq")) {
       multi_q_results <- multi_q_object
       if (verbose) {
-        cat("  ✓ Found multi-q results under 'multi_q' key with", 
+        cat("  [OK] Found multi-q results under 'multi_q' key with", 
             length(multi_q_results), "q-values\n")
       }
     } else {
@@ -3553,11 +3549,11 @@ prepare_gene_switching_tables_s4 <- function(
     # Wrap q-keyed results as a multi_q object for consistency
     multi_q_results <- q_keyed_results
     if (verbose) {
-      cat("  ✓ Found", length(multi_q_results), "q-keyed results\n")
+      cat("  [OK] Found", length(multi_q_results), "q-keyed results\n")
     }
   }
   
-  if (verbose) cat("  ✓ Extracted jackknife results with", length(multi_q_results), "q-values\n")
+  if (verbose) cat("  [OK] Extracted jackknife results with", length(multi_q_results), "q-values\n")
   
   # Call base function with extracted parameters
   if (verbose) cat("Calling prepare_gene_switching_tables()...\n")
@@ -3571,7 +3567,7 @@ prepare_gene_switching_tables_s4 <- function(
     ...
   )
   
-  if (verbose) cat("✓ Gene switching tables prepared successfully\n")
+  if (verbose) cat("[OK] Gene switching tables prepared successfully\n")
   
   # Track function call in metadata
   analysis@metadata$function_calls <- c(analysis@metadata$function_calls, 
@@ -3602,7 +3598,7 @@ prepare_gene_switching_tables_s4 <- function(
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plot generation (default: FALSE).
 #'
-#' @param ... Additional arguments passed to \code{\link{plot_multiq_delta_influence_heatmaps}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return A file path (character) to the saved heatmap PNG file, invisibly.
 #'
@@ -3635,7 +3631,7 @@ prepare_gene_switching_tables_s4 <- function(
 #'   print(heatmap_img)
 #' }
 #'
-#' @seealso \code{\link{plot_multiq_delta_influence_heatmaps}} for the base function,
+#' @seealso
 #' \code{\link{jackknife_isoform_switching_s4}} for computing switching results
 #'
 #' @export
@@ -3675,13 +3671,13 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
   if ("multi_q" %in% names(jackknife_results_list)) {
     switching_results <- jackknife_results_list$multi_q
     if (verbose) {
-      cat("  ✓ Found multi-q result with class:", class(switching_results)[1], "\n")
+      cat("  [OK] Found multi-q result with class:", class(switching_results)[1], "\n")
     }
   } else {
     # Fallback: use all results as list (for single or multiple q-values)
     switching_results <- jackknife_results_list
     if (verbose) {
-      cat("  ✓ Using individual q-value results (", length(switching_results), "q-values)\n", sep = "")
+      cat("  [OK] Using individual q-value results (", length(switching_results), "q-values)\n", sep = "")
     }
   }
   
@@ -3704,9 +3700,9 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
       }
       
       if (!is.null(lm_results)) {
-        if (verbose) cat("  ✓ Extracted LM results with", nrow(lm_results), "genes\n")
+        if (verbose) cat("  [OK] Extracted LM results with", nrow(lm_results), "genes\n")
       } else if (verbose) {
-        cat("  ⚠ LM results not found; genes will be ranked by appearance\n")
+        cat("  [WARNING] LM results not found; genes will be ranked by appearance\n")
       }
     }
   }
@@ -3722,7 +3718,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
   )
   
   if (verbose) {
-    cat("✓ Heatmap plot generated successfully\n")
+    cat("[OK] Heatmap plot generated successfully\n")
     cat("  Saved to:", heatmap_file, "\n")
   }
 
@@ -3751,7 +3747,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' @param assay_name \code{character}. Name of the assay in se to extract 
 #'   (default: "diversity").
 #'
-#' @param ... Additional arguments passed to \code{\link{plot_lm_interaction_gam}}.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return A single \code{ggplot} object with all selected genes arranged in a 
 #'   grid layout. Can be saved with \code{ggplot2::ggsave()}.
@@ -3771,7 +3767,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #'   \item Default: "sample_type"
 #' }
 #'
-#' @seealso \code{\link{plot_lm_interaction_gam}} for the underlying implementation,
+#' @seealso
 #' \code{\link{calculate_lm_interaction_s4}} for running LM analysis on TSENATAnalysis.
 #'
 #' @examples

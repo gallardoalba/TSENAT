@@ -33,7 +33,7 @@ genes before selecting top n.}
 \item{assay_name}{\code{character}. Name of the assay in se to extract 
 (default: "diversity").}
 
-\item{...}{Additional arguments passed to \code{\link{plot_lm_interaction_gam}}.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 A single \code{ggplot} object with all selected genes arranged in a 
@@ -81,6 +81,5 @@ This wrapper automatically:
 
 }
 \seealso{
-\code{\link{plot_lm_interaction_gam}} for the underlying implementation,
 \code{\link{calculate_lm_interaction_s4}} for running LM analysis on TSENATAnalysis.
 }

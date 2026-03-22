@@ -30,7 +30,7 @@ If NULL, plot is returned but not saved.}
 
 \item{verbose}{\code{logical}. Print status messages. Default is TRUE.}
 
-\item{...}{Additional arguments passed to \code{\link{plot_divergence_distribution}}.}
+\item{...}{Additional arguments passed to the underlying plotting function.}
 }
 \value{
 Invisibly returns the file path if saved, otherwise the ggplot object.
@@ -73,6 +73,5 @@ A red dashed line marks the information-theoretic significance threshold.
 
 }
 \seealso{
-\code{\link{plot_divergence_distribution}} for the underlying plotting function
 \code{\link{effect_sizes_divergence_s4}} for computing effect sizes
 }

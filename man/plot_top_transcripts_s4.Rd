@@ -39,7 +39,7 @@ One of "median", "mean", "variance", or "iqr" (default: "median").}
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plotting (default: FALSE).}
 
-\item{...}{Additional arguments passed to \code{\link{plot_top_transcripts}}.}
+\item{...}{Additional arguments passed to the base plotting function.}
 }
 \value{
 A file path (character) to the saved plot PNG file, invisibly.
@@ -58,7 +58,7 @@ This wrapper extracts the following from \code{analysis}:
 
 If no gene is specified, the function automatically selects the top gene from
 the LM results (lowest p-value). This simplifies visualization of genes with
-significant q×condition interaction effects.
+significant q x condition interaction effects.
 }
 \examples{
 \dontrun{
@@ -79,6 +79,5 @@ significant q×condition interaction effects.
 
 }
 \seealso{
-\code{\link{plot_top_transcripts}} for the base function,
 \code{\link{TSENATAnalysis}} for object structure
 }

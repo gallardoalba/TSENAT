@@ -51,7 +51,7 @@ If NULL, plot is returned but not saved.}
 
 \item{verbose}{\code{logical}. Print status messages. Default is TRUE.}
 
-\item{...}{Additional arguments passed to \code{\link{plot_divergence_spectrum}}.}
+\item{...}{Additional arguments passed to the underlying plotting function.}
 }
 \value{
 Invisibly returns the file path if saved, otherwise the ggplot object.
@@ -113,6 +113,5 @@ This wrapper extracts the divergence SummarizedExperiment from
 
 }
 \seealso{
-\code{\link{plot_divergence_spectrum}} for the underlying plotting function
 \code{\link{calculate_divergence_s4}} for computing divergence
 }
