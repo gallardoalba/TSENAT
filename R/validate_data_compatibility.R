@@ -118,12 +118,12 @@ validate_gene_names <- function(
   
   if (verbose) {
     if (is_aligned) {
-      cat("[validate_gene_names] Gene names aligned perfectly\n")
-      cat("  ", n_se, " genes in both ", se_name, " and ", results_name, "\n", sep = "")
+      message("[validate_gene_names] Gene names aligned perfectly")
+      message("  ", n_se, " genes in both ", se_name, " and ", results_name)
     } else {
-      cat("[validate_gene_names] Gene name mismatch!\n")
-      for (line in mismatch_details) cat(line, "\n")
-      cat("\nSOLUTION: Ensure both objects were derived from the same analysis.\n")
+      message("[validate_gene_names] Gene name mismatch!")
+      for (line in mismatch_details) message(line)
+      message("\nSOLUTION: Ensure both objects were derived from the same analysis.")
     }
   }
   
@@ -212,14 +212,14 @@ validate_se_dimensions <- function(
   
   if (verbose) {
     if (is_valid) {
-      cat("[validate_se_dimensions] All dimension checks passed\n")
-      cat("  Samples: ", n_samples, ", Genes: ", n_genes, "\n", sep = "")
+      message("[validate_se_dimensions] All dimension checks passed")
+      message("  Samples: ", n_samples, ", Genes: ", n_genes)
       if (length(assays_present) > 0) {
-        cat("  Assays: ", paste(assays_present, collapse = ", "), "\n", sep = "")
+        message("  Assays: ", paste(assays_present, collapse = ", "))
       }
     } else {
-      cat("[validate_se_dimensions] Dimension mismatches found!\n")
-      for (issue in issues) cat("  ", issue, "\n", sep = "")
+      message("[validate_se_dimensions] Dimension mismatches found!")
+      for (issue in issues) message("  ", issue)
     }
   }
   
@@ -362,14 +362,14 @@ validate_lm_results <- function(
   
   if (verbose) {
     if (is_valid) {
-      cat("[validate_lm_results] LM results structure valid\n")
-      cat("  Results: ", n_results, " genes\n", sep = "")
-      cat("  Columns: ", paste(cols_present, collapse = ", "), "\n", sep = "")
-      if (has_pval) cat("  P-value column: ", pval_col, "\n", sep = "")
-      if (has_effect) cat("  Effect size: available\n")
+      message("[validate_lm_results] LM results structure valid")
+      message("  Results: ", n_results, " genes")
+      message("  Columns: ", paste(cols_present, collapse = ", "))
+      if (has_pval) message("  P-value column: ", pval_col)
+      if (has_effect) message("  Effect size: available")
     } else {
-      cat("[validate_lm_results] LM results structure issues!\n")
-      for (issue in issues) cat("  ", issue, "\n", sep = "")
+      message("[validate_lm_results] LM results structure issues!")
+      for (issue in issues) message("  ", issue)
     }
   }
   

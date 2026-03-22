@@ -1728,14 +1728,14 @@ effect_sizes_divergence <- function(
   if (n_after_filter > 0) {
     lm_res <- lm_res[matching_idx, , drop = FALSE]
     if (verbose) {
-      cat("[effect_sizes_divergence] Gene alignment:\n")
-      cat("  - lm_res before filtering: ", n_before_filter, " genes\n", sep = "")
-      cat("  - lm_res after filtering: ", n_after_filter, " genes\n", sep = "")
-      cat("  - Genes filtered out: ", n_before_filter - n_after_filter, "\n\n", sep = "")
+      message("[effect_sizes_divergence] Gene alignment:")
+      message("  - lm_res before filtering: ", n_before_filter, " genes")
+      message("  - lm_res after filtering: ", n_after_filter, " genes")
+      message("  - Genes filtered out: ", n_before_filter - n_after_filter)
     }
   } else {
     if (verbose) {
-      cat("[effect_sizes_divergence] WARNING: No matching genes found between lm_res and divergence_results_se\n\n")
+      message("[effect_sizes_divergence] WARNING: No matching genes found between lm_res and divergence_results_se")
     }
   }
   
@@ -1752,7 +1752,7 @@ effect_sizes_divergence <- function(
     q_values <- NA_real_
     use_generic <- TRUE
     if (verbose) {
-      cat("[effect_sizes_divergence] Using generic divergence columns (single q-value results)\n")
+      message("[effect_sizes_divergence] Using generic divergence columns (single q-value results)")
     }
   } else {
     # Extract q values from column names
@@ -1761,8 +1761,8 @@ effect_sizes_divergence <- function(
     use_generic <- FALSE
     
     if (verbose) {
-      cat("[effect_sizes_divergence] Detected per-q columns for q values: ",
-          paste(q_values, collapse = ", "), "\n")
+      message("[effect_sizes_divergence] Detected per-q columns for q values: ",
+          paste(q_values, collapse = ", "))
     }
   }
 
@@ -1773,9 +1773,9 @@ effect_sizes_divergence <- function(
   significant_genes <- lm_res$gene[lm_res$adj_p_interaction < significance_threshold]
 
   if (verbose) {
-    cat("\n**Filtering effect size analysis to significant genes:**\n")
-    cat("- Genes with adj_p_interaction <", significance_threshold, ":", 
-        length(significant_genes), "\n\n")
+    message("\n**Filtering effect size analysis to significant genes:**")
+    message("- Genes with adj_p_interaction <", significance_threshold, ": ", 
+        length(significant_genes))
   }
 
   # Initialize empty results data frame with columns for each q value
@@ -1802,7 +1802,7 @@ effect_sizes_divergence <- function(
 
   if (length(significant_genes) == 0) {
     if (verbose) {
-      cat("No genes with significant q*group interaction detected.\n")
+      message("No genes with significant q*group interaction detected.")
     }
     return(list(
       interaction_results = interaction_results,
@@ -1830,7 +1830,7 @@ effect_sizes_divergence <- function(
   )
 
   if (verbose) {
-    cat("\nMerging LMM results with divergence effect sizes...\n\n")
+    message("\nMerging LMM results with divergence effect sizes...")
   }
 
   # Determine which column in lm_res to use for matching gene names
@@ -1838,24 +1838,23 @@ effect_sizes_divergence <- function(
   use_gene_name_col <- "gene_name" %in% colnames(lm_res)
   
   if (verbose) {
-    cat("[effect_sizes_divergence] Gene name matching strategy:\n")
-    cat("  - gene_name column in lm_res:", use_gene_name_col, "\n")
+    message("[effect_sizes_divergence] Gene name matching strategy:")
+    message("  - gene_name column in lm_res:", use_gene_name_col)
     if (use_gene_name_col) {
-      cat("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse=", "), "\n")
-      cat("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name, 5), collapse=", "), "\n")
+      message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse=", "))
+      message("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name, 5), collapse=", "))
     } else {
-      cat("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse=", "), "\n")
+      message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse=", "))
     }
-    cat("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5), collapse=", "), "\n")
-    cat("\n")
+    message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5), collapse=", "))
   }
 
   if (verbose) {
-    cat("\n[effect_sizes_divergence] MERGE STARTING\n")
-    cat("  - significant_genes count:", length(significant_genes), "\n")
-    cat("  - lm_res rows:", nrow(lm_res), "\n")
-    cat("  - divergence rowData rows:", nrow(rd), "\n")
-    cat("  - use_gene_name_col:", use_gene_name_col, "\n")
+    message("\n[effect_sizes_divergence] MERGE STARTING")
+    message("  - significant_genes count:", length(significant_genes))
+    message("  - lm_res rows:", nrow(lm_res))
+    message("  - divergence rowData rows:", nrow(rd))
+    message("  - use_gene_name_col:", use_gene_name_col)
   }
   
   for (i in seq_along(significant_genes)) {
@@ -1883,7 +1882,7 @@ effect_sizes_divergence <- function(
     }
 
     if (verbose && i <= min(3, length(significant_genes))) {
-      cat("  [Gene ", i, "] gene_id='", gene_id, "' match_name='", match_name, "'", sep="")
+      message("  [Gene ", i, "] gene_id='", gene_id, "' match_name='", match_name, "'")
     }
 
     # Get divergence info from SE
@@ -1896,14 +1895,14 @@ effect_sizes_divergence <- function(
     }
 
     if (verbose && i <= min(3, length(significant_genes))) {
-      cat(" -> found ", nrow(div_row), " row(s)\n", sep="")
+      message(" -> found ", nrow(div_row), " row(s)")
     }
 
     if (nrow(div_row) == 0) {
       validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
       if (verbose && i > min(3, length(significant_genes))) {
         # Only show skipped messages for genes after the debug ones
-        cat("  [Skipped] ", match_name, " - divergence data not found\n", sep = "")
+        message("  [Skipped] ", match_name, " - divergence data not found")
       }
       next
     }
@@ -1914,7 +1913,7 @@ effect_sizes_divergence <- function(
       if (is.na(div_row$estimate[1])) {
         validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
         if (verbose) {
-          cat("  [Skipped] ", gene_name, " - divergence estimate is NA\n", sep = "")
+          message("  [Skipped] ", gene_name, " - divergence estimate is NA")
         }
         next
       }
@@ -1960,7 +1959,7 @@ effect_sizes_divergence <- function(
       if (!any_valid) {
         validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
         if (verbose) {
-          cat("  [Skipped] ", match_name, " - all divergence estimates are NA\n", sep = "")
+          message("  [Skipped] ", match_name, " - all divergence estimates are NA")
         }
         next
       }
@@ -1989,10 +1988,10 @@ effect_sizes_divergence <- function(
         ci_text <- ""
       }
       
-      cat("  [SUCCESS] ", match_name, " - p=", 
+      message("  [SUCCESS] ", match_name, " - p=", 
           format(p_interaction, digits = 3), ", D_spectrum=[", 
           if (use_generic) format(div_val, scientific = TRUE, digits = 3)
-          else div_summary, "]", ci_text, "\n", sep = "")
+          else div_summary, "]", ci_text)
     }
   }
 
@@ -2002,28 +2001,28 @@ effect_sizes_divergence <- function(
 
   # SUMMARY: Print merge results (only if verbose)
   if (verbose) {
-    cat("\n[effect_sizes_divergence] MERGE COMPLETED\n")
-    cat("  - Total significant genes:", validation_stats$total_genes, "\n")
-    cat("  - Passed merge:", validation_stats$passed_lmm, "\n")
-    cat("  - Failed (missing divergence):", validation_stats$failed_missing_divergence, "\n")
-    cat("  - Other errors:", validation_stats$other_errors, "\n")
-    cat("  - interaction_results rows:", nrow(interaction_results), "\n\n")
-    cat("\n**Effect Size Merge Summary:**\n\n")
-    cat("- Total significant genes:", validation_stats$total_genes, "\n")
-    cat("- Passed merge:", validation_stats$passed_lmm, "\n")
-    cat("- Failed (missing divergence):", validation_stats$failed_missing_divergence, "\n")
-    cat("- Other errors:", validation_stats$other_errors, "\n\n")
+    message("\n[effect_sizes_divergence] MERGE COMPLETED")
+    message("  - Total significant genes:", validation_stats$total_genes)
+    message("  - Passed merge:", validation_stats$passed_lmm)
+    message("  - Failed (missing divergence):", validation_stats$failed_missing_divergence)
+    message("  - Other errors:", validation_stats$other_errors)
+    message("  - interaction_results rows:", nrow(interaction_results))
+    message("\n**Effect Size Merge Summary:**\n")
+    message("- Total significant genes:", validation_stats$total_genes)
+    message("- Passed merge:", validation_stats$passed_lmm)
+    message("- Failed (missing divergence):", validation_stats$failed_missing_divergence)
+    message("- Other errors:", validation_stats$other_errors)
 
     if (nrow(interaction_results) > 0) {
-      cat("**Effect Size Distribution Across q Values:**\n")
+      message("\n**Effect Size Distribution Across q Values:**")
       
       if (use_generic) {
         div_col <- "effect_size_D"
-        cat("- Mean D:", round(mean(interaction_results[[div_col]], na.rm = TRUE), 4), "\n")
-        cat("- Median D:", round(median(interaction_results[[div_col]], na.rm = TRUE), 4), "\n")
-        cat("- Range: [", 
+        message("- Mean D:", round(mean(interaction_results[[div_col]], na.rm = TRUE), 4))
+        message("- Median D:", round(median(interaction_results[[div_col]], na.rm = TRUE), 4))
+        message("- Range: [", 
             round(min(interaction_results[[div_col]], na.rm = TRUE), 4), ", ",
-            round(max(interaction_results[[div_col]], na.rm = TRUE), 4), "]\n")
+            round(max(interaction_results[[div_col]], na.rm = TRUE), 4), "]")
       } else {
         for (q_val in q_values) {
           q_label <- gsub("\\.", "_", as.character(q_val))

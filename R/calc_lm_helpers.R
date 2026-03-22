@@ -802,10 +802,10 @@
     
     # Build regression matrix
     # Dependent variable: dy[2:n] (Deltay_t for t=2,...,n)
-    # Predictor 1: y[1:(n-1)] (y_{t-1})
-    # Predictor 2+: lagged differences dy[1:(n-lag_order-1)], etc.
+    # Predictor 1: y[seq_len(n-1)] (y_{t-1})
+    # Predictor 2+: lagged differences dy[seq_len(n-lag_order-1)], etc.
     
-    y_lag1 <- y[1:(n-1)]
+    y_lag1 <- y[seq_len(n - 1)]
     dy_response <- dy[2:length(dy)]  # Deltay_t for t=2
     y_lag1_response <- y_lag1[2:length(y_lag1)]  # y_{t-1} aligned with Deltay_t
     
