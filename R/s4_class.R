@@ -843,19 +843,15 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' }
 #'
 #' @export
-setGeneric("metadata", function(object, key = NULL) {
-  standardGeneric("metadata")
-}, signature = "object")
-
 #' @rdname metadata
 #' @export
-setMethod("metadata", "TSENATAnalysis", function(object, key = NULL) {
+setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
   if (is.null(key)) {
-    return(object@metadata)
+    return(x@metadata)
   }
   
-  if (key %in% names(object@metadata)) {
-    return(object@metadata[[key]])
+  if (key %in% names(x@metadata)) {
+    return(x@metadata[[key]])
   }
   
   NULL

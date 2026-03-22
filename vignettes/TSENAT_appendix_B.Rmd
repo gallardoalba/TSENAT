@@ -513,14 +513,17 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 ***
 
+
 # Method Concordance Analysis
 
 ```{r concordance-summary, message=FALSE}
 # Compute concordance analysis using S4 wrapper
-# Store GAM results in the analysis object
-lm_res <- lmResults(analysis)
-lm_res$gam_results <- gam_results
-analysis <- setConfig(analysis, list(lm_results = lm_res))
+# Add GAM results to the analysis object's lm_results slot
+if (is.list(analysis@lm_results)) {
+    analysis@lm_results$gam_results <- gam_results
+} else {
+    analysis@lm_results <- list(gam_results = gam_results)
+}
 
 # Compute concordance using S4 wrapper
 analysis_with_concordance <- compute_method_concordance_s4(

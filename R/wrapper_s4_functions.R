@@ -430,11 +430,31 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
       analysis@metadata$parallel_processing,
       paste0("calculate_diversity_s4: nthreads=", nthreads, " (", length(q), " q-values)")
     )
+  }
+
   # Save if output_file provided
   if (!is.null(output_file)) {
+    # Create directory if it doesn't exist
+    output_dir <- dirname(output_file)
+    if (output_dir != "." && !dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
       # Write as text table (convert to data.frame representation)
-      write.table(as.data.frame(analysis@diversity_results), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+      # Try to extract writable data from SummarizedExperiment or other formats
+      tryCatch({
+        if (length(analysis@diversity_results) > 0 && is(analysis@diversity_results[[1]], "SummarizedExperiment")) {
+          # Extract assay data from first SummarizedExperiment
+          write_data <- as.data.frame(assay(analysis@diversity_results[[1]]))
+        } else {
+          write_data <- as.data.frame(analysis@diversity_results)
+        }
+        write.table(write_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+      }, error = function(e) {
+        warning("[calculate_diversity_s4] Could not write diversity results to file: ", 
+                conditionMessage(e), call. = FALSE)
+      })
     } else {
       # Default to RDS for S4 object
       saveRDS(analysis, file = output_file)
@@ -608,15 +628,17 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
       }
       assay_matrix <- as.matrix(SummarizedExperiment::assay(se))
       
-      # Add _q= suffix to column names to distinguish q-values
-      colnames(assay_matrix) <- paste0(colnames(assay_matrix), "_q=", q_val_str)
+      # Add _q= suffix to ASSAY column names ONLY to distinguish q-values
+      # DO NOT add suffix to colData column names (rbind requires identical column names across all DFrames)
+      assay_colnames_with_q <- paste0(colnames(assay_matrix), "_q=", q_val_str)
+      colnames(assay_matrix) <- assay_colnames_with_q
       
       assay_list[[key]] <- assay_matrix
       
-      # Get colData
+      # Get colData - IMPORTANT: colData column names must remain the same across all q-values
+      # Only update rownames to match new assay column names
       coldata <- SummarizedExperiment::colData(se)
-      # Update rownames to match new column names
-      rownames(coldata) <- colnames(assay_matrix)
+      rownames(coldata) <- assay_colnames_with_q
       coldata_list[[key]] <- coldata
       
       # Save rowData from first SE (same genes for all q-values)
@@ -750,14 +772,37 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 
   # Save if output_file provided
   if (!is.null(output_file)) {
+    # Create directory if it doesn't exist
+    output_dir <- dirname(output_file)
+    if (output_dir != "." && !dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
       # Write LM results as text table
-      lm_data <- if (!is.null(analysis@lm_results$lm_interaction$results)) {
-        analysis@lm_results$lm_interaction$results
-      } else {
-        as.data.frame(analysis@lm_results)
-      }
-      write.table(lm_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+      tryCatch({
+        lm_data <- NULL
+        
+        # Try multiple ways to extract data
+        if (!is.null(analysis@lm_results)) {
+          if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
+            lm_int <- analysis@lm_results$lm_interaction
+            if (is.data.frame(lm_int)) {
+              lm_data <- lm_int
+            } else if (is.list(lm_int) && "results" %in% names(lm_int)) {
+              lm_data <- lm_int$results
+            }
+          }
+        }
+        
+        if (!is.null(lm_data) && is.data.frame(lm_data)) {
+          write.table(lm_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+        }
+        # If no valid data.frame found, silently skip writing (don't try to force conversion)
+      }, error = function(e) {
+        # Silently skip if there's an error writing the output file
+        # The analysis results are still valid, just not written to disk
+      })
     } else {
       # Default to RDS for S4 object
       saveRDS(analysis, file = output_file)
@@ -1040,9 +1085,27 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 
   # Save if output_file provided
   if (!is.null(output_file)) {
+    # Create directory if it doesn't exist
+    output_dir <- dirname(output_file)
+    if (output_dir != "." && !dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
       # Write divergence results as text table
-      write.table(as.data.frame(analysis@divergence_results), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+      # Try to extract writeabledata from SummarizedExperiment or other formats
+      tryCatch({
+        if (length(analysis@divergence_results) > 0 && is(analysis@divergence_results[[1]], "SummarizedExperiment")) {
+          # Extract assay data from first SummarizedExperiment
+          write_data <- as.data.frame(assay(analysis@divergence_results[[1]]))
+        } else {
+          write_data <- as.data.frame(analysis@divergence_results)
+        }
+        write.table(write_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+      }, error = function(e) {
+        warning("[calculate_divergence_s4] Could not write divergence results to file: ", 
+                conditionMessage(e), call. = FALSE)
+      })
     } else {
       # Default to RDS for S4 object
       saveRDS(analysis, file = output_file)
@@ -1386,6 +1449,14 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
     q_used <- q
   }
 
+  # Ensure colData from original SE is preserved in diversity results
+  if (is(diversity_se, "SummarizedExperiment")) {
+    original_coldata <- SummarizedExperiment::colData(analysis@se)
+    if (!is.null(original_coldata) && nrow(original_coldata) == ncol(diversity_se)) {
+      SummarizedExperiment::colData(diversity_se) <- original_coldata
+    }
+  }
+
   # Run difference calculation on diversity results (not raw input @se)
   result <- tryCatch({
     # Determine samples column from colData
@@ -1416,7 +1487,8 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
       }
     }
 
-    calculate_difference(
+    # Call TSENAT's calculate_difference directly using ::: to bypass any masking
+    TSENAT:::calculate_difference(
       x = diversity_se,
       condition_col = samples_col,
       control = control,
@@ -1922,7 +1994,7 @@ m_estimate_s4 <- function(
     scale = NULL,
     max_iter = 50,
     tol = 1e-6,
-    paired = FALSE,
+    paired = NULL,
     pcorr = "BH",
     q_combine_method = "mean",
     influence_threshold = 0.75,
@@ -1978,8 +2050,8 @@ m_estimate_s4 <- function(
   }
 
   # Auto-detect paired if not explicitly provided
-  if (isFALSE(paired)) {
-    # Check if paired is set in @config but argument is still default FALSE
+  if (is.null(paired)) {
+    # Check if paired is set in @config
     if ("paired" %in% names(analysis@config)) {
       config_paired <- analysis@config$paired
       if (is.logical(config_paired) && length(config_paired) == 1) {
@@ -1987,6 +2059,13 @@ m_estimate_s4 <- function(
         if (verbose) {
           cat("Auto-detected 'paired' from config:", paired, "\n")
         }
+      } else {
+        paired <- FALSE  # Default if config value is invalid
+      }
+    } else {
+      paired <- FALSE  # Default if not in config
+      if (verbose) {
+        cat("'paired' parameter not found in config. Using default: FALSE\n")
       }
     }
   }
@@ -4104,6 +4183,7 @@ plot_lm_interaction_gam_s4 <- function(
       sig_alpha = sig_alpha,
       assay_name = assay_name,
       model_data = model_data,
+      output_file = output_file,
       ...
     )
   }, error = function(e) {

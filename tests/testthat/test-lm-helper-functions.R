@@ -145,10 +145,15 @@ test_that(".tsenat_gam_regularization gamsel fallback when gamsel unavailable", 
   result <- .tsenat_gam_regularization(entropy_vals, q_vals, group_vec, 
                                        regularization = "gamsel")
   
-  # Should return fallback list if gamsel not available
+  # Should always return a list with valid structure
+  expect_is(result, "list")
+  expect_true("mode" %in% names(result))
+  
+  # If gamsel is not available, should use spline fallback; if available, should use gamsel
   if (!requireNamespace("gamsel", quietly = TRUE)) {
-    expect_is(result, "list")
     expect_equal(result$mode, "spline_fallback")
+  } else {
+    expect_equal(result$mode, "gamsel")
   }
 })
 

@@ -85,7 +85,7 @@ To install `TSENAT` from Bioconductor:
 
 ```{r installation, eval = FALSE}
 if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+    install.packages("BiocManager", repos = "http://cran.us.r-project.org")
 BiocManager::install("TSENAT")
 ```
 
@@ -128,7 +128,7 @@ analysis <- calculate_diversity_s4(analysis, q = 1, norm = TRUE)
 
 `TSENAT` operates on transcript-level read counts rather than pre-aggregated gene-level summaries. Input data should be organized as a matrix with transcript IDs as rows and samples as columns, typically derived from quantification tools such as SALMON or kallisto. This matrix must be accompanied by transcript-to-gene mapping information, conventionally provided through a GFF3 annotation file.
 
-All analysis results are organized into a **TSENATAnalysis** S4 object, which encapsulates the input `SummarizedExperiment`, analysis configuration, and all computed results (diversity, divergence, LM interactions, etc.). This unified structure facilitates seamless integration with Bioconductor and provides a clean object-oriented interface. The underlying `SummarizedExperiment` (accessible via `analysis@se`) stores transcript counts and metadata as per Bioconductor standards. For more details on the `SummarizedExperiment` class and its capabilities, refer to the [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
+All analysis results are organized into a **TSENATAnalysis** S4 object, which encapsulates the input `SummarizedExperiment`, analysis configuration, and all computed results (diversity, divergence, LM interactions, etc.). This unified structure facilitates seamless integration with Bioconductor and provides a clean object-oriented interface. The underlying `SummarizedExperiment` (accessible via `se(analysis)`) stores transcript counts and metadata as per Bioconductor standards. For more details on the `SummarizedExperiment` class and its capabilities, refer to the [SummarizedExperiment documentation](https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html).
 
 The **TSENATAnalysis** object organizes all results in dedicated slots: `@diversity_results` stores entropy values across q-values; `@jackknife_results` contains confidence intervals; `@lm_results` holds interaction test statistics; `@divergence_results` stores pairwise divergence metrics; and `@plots` contains generated visualizations. Access methods (`diversity()`, `divergence()`, `lmResults()`, etc.) provide convenient interfaces to these results.
 
@@ -359,16 +359,16 @@ counts and gene annotations extracted from the GFF3 file. Let's examine its inte
 
 ```{r examine-se-structure, include = FALSE}
 # Display the structure of the SummarizedExperiment
-se <- se(analysis)
+se_obj <- se(analysis)
 cat("SummarizedExperiment dimensions:\n")
-cat("  Transcripts (rows):", nrow(se), "\n")
-cat("  Samples (columns):", ncol(se), "\n")
-cat("  Assay (counts):", nrow(assay(se(analysis), "counts")), "×", ncol(assay(se(analysis), "counts")), "\n")
-cat("\nRowData columns:", paste(colnames(rowData(se)), collapse = ", "), "\n")
+cat("  Transcripts (rows):", nrow(se_obj), "\n")
+cat("  Samples (columns):", ncol(se_obj), "\n")
+cat("  Assay (counts):", nrow(assay(se_obj, "counts")), "×", ncol(assay(se_obj, "counts")), "\n")
+cat("\nRowData columns:", paste(colnames(rowData(se_obj)), collapse = ", "), "\n")
 cat("Sample metadata available:", exists("metadata_df"), "\n\n")
 
 # Show rowData with gene information
-rd <- as.data.frame(rowData(se)[1:5, ])
+rd <- as.data.frame(rowData(se_obj)[1:5, ])
 knitr::kable(rd, caption = "First 5 rows of rowData (gene information)", row.names = FALSE)
 ```
 
@@ -393,23 +393,13 @@ prefiltering on differential transcript usage, see
 
 ```{r readfilter}
 ## Filter lowly-expressed transcripts and report counts
-# Check if filtered analysis object already exists
-filtered_analysis_file <- file.path(extdata_dir, "analysis_filtered_medium.rds")
-
-if (file.exists(filtered_analysis_file)) {
-    analysis <- readRDS(filtered_analysis_file)
-    cat("Loaded filtered TSENATAnalysis object from", filtered_analysis_file, "\n")
-} else {
-    # Filter analysis using stringency parameter
-    # Medium stringency keeps transcripts present in >= 50% of samples
-    analysis <- filter_analysis(
-        analysis, 
-        stringency = "medium", 
-        verbose = TRUE
-    )
-    saveRDS(analysis, filtered_analysis_file)
-    cat("Saved filtered TSENATAnalysis object to", filtered_analysis_file, "\n")
-}
+# Filter analysis using stringency parameter
+# Medium stringency keeps transcripts present in >= 50% of samples
+analysis <- filter_analysis(
+    analysis, 
+    stringency = "medium", 
+    verbose = TRUE
+)
 ```
 
 The `stringency = "medium"` parameter automatically determines filtering thresholds
@@ -424,38 +414,29 @@ Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
 # Compute Tsallis entropy for a sequence of q values using S4 wrapper
-# Check if analysis object with diversity results already exists
-
 qvec <- seq(0.11, 2, by = 0.05)
-analysis_file <- file.path(extdata_dir, "analysis_diversity.rds")
 
-if (file.exists(analysis_file)) {
-    analysis <- readRDS(analysis_file)
-    cat("Loaded TSENATAnalysis with diversity results from", analysis_file, "\n")
-} else {
-    # Compute diversity using S4 wrapper
-    # Pass metadata to ensure .map_metadata() is applied to results (same as OLD vignette)
-    analysis <- calculate_diversity_s4(analysis,
-        q = qvec, norm = TRUE)
-    saveRDS(analysis, analysis_file)
-    cat("Saved TSENATAnalysis with diversity results to", analysis_file, "\n")
-}
+# Compute diversity using S4 wrapper
+analysis <- calculate_diversity_s4(
+    analysis,
+    q = qvec, 
+    norm = TRUE,
+    verbose = FALSE
+)
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
 # Extract diversity results using S4 accessor method
 div_results <- diversity(analysis)
-se_rowdata <- rowData(se(analysis))
 
 # Get diversity data from results - handle both matrix and SE formats
 if (is.list(div_results) && length(div_results) > 0) {
     # Extract first few q-values
-    q_names <- names(div_results)[1:min(3, length(div_results))]
+    q_names <- names(div_results)
     
-    # Create a combined table showing diversity for first 4 genes and first q-value
-    # Use only the first q-value for cleaner display
     if (length(q_names) > 0) {
         obj <- div_results[[q_names[1]]]
+        
         # Handle SummarizedExperiment or matrix format
         if (is(obj, "SummarizedExperiment")) {
             mat <- assay(obj)
@@ -468,57 +449,19 @@ if (is.list(div_results) && length(div_results) > 0) {
         if (!is.null(mat) && nrow(mat) > 0) {
             # Get first 4 genes and first 3 samples
             table_data <- mat[1:min(4, nrow(mat)), 1:min(3, ncol(mat)), drop = FALSE]
-        } else {
-            table_data <- NULL
+            
+            # Convert to data frame for kable
+            table_df <- as.data.frame(table_data)
+            table_df$Gene <- rownames(table_data)
+            table_df <- table_df[, c(ncol(table_df), 1:(ncol(table_df)-1))]
+            
+            knitr::kable(
+                table_df,
+                caption = "Tsallis entropy for first 4 genes and 3 samples (q=0.11)",
+                digits = 5,
+                row.names = FALSE
+            )
         }
-    } else {
-        table_data <- NULL
-    }
-    
-    if (!is.null(table_data) && nrow(table_data) > 0) {
-            
-            # Get gene names by mapping transcript IDs to gene names
-            se_rowdata <- rowData(se(analysis))
-            
-            # Get the transcript IDs from the table (first 4 rows)
-            transcript_ids <- rownames(table_data)
-            
-            # Find corresponding gene names from SE rowData
-            row_labels <- character(length(transcript_ids))
-            
-            for (i in seq_along(transcript_ids)) {
-                tx_id <- transcript_ids[i]
-                
-                # Try to find matching row in SE by transcript ID
-                idx <- which(rownames(analysis@se) == tx_id)[1]
-                
-                if (!is.na(idx)) {
-                    # Get gene name for this transcript
-                    if ("gene_name" %in% colnames(se_rowdata)) {
-                        gene_name <- se_rowdata$gene_name[idx]
-                        if (!is.na(gene_name) && gene_name != "") {
-                            row_labels[i] <- as.character(gene_name)
-                        } else {
-                            row_labels[i] <- tx_id
-                        }
-                    } else {
-                        row_labels[i] <- tx_id
-                    }
-                } else {
-                    row_labels[i] <- tx_id
-                }
-            }
-            
-            if (is.matrix(table_data)) {
-                rownames(table_data) <- row_labels
-                
-                knitr::kable(
-                    table_data,
-                    caption = "Tsallis entropy for first 4 genes and 3 samples (q=0.1)",
-                    digits = 5,
-                    row.names = TRUE
-                )
-            }
     }
 }
 ```
@@ -535,7 +478,10 @@ signals differences in dominant isoforms.
 ```{r tsallis-q-curve, fig.width=10, fig.height=5.2}
 # Plot overall q-curve with median ± IQR bands using S4 wrapper function
 # Uses condition_col from @config (no need to specify explicitly)
-p_qcurve <- plot_tsallis_q_curve_s4(se = analysis)
+p_qcurve <- plot_tsallis_q_curve_s4(
+    se = analysis,
+    output_file = file.path("output", "tsallis_q_curve.png")
+)
 print(p_qcurve)
 ```
 
@@ -554,17 +500,18 @@ Samples with high influence scores exert disproportionate leverage on entropy es
 # - Stores results in @metadata$m_estimate_results
 
 tryCatch({
-  # Use S4 wrapper - auto-detects condition_col from @config
+  # Use S4 wrapper - explicitly specify paired design to ensure proper paired analysis
   analysis <- m_estimate_s4(
     analysis,
     loss_type = "huber",
     q_combine_method = "mean",
     influence_threshold = 0.75,
-    verbose = FALSE
+    paired = TRUE,
+    verbose = TRUE
   )
   
-  # Extract results from metadata
-  sample_qc <- metadata(analysis)$m_estimate_results
+  # Extract results from metadata using accessor function
+  sample_qc <- metadata(analysis, "m_estimate_results")
   
   cat("Sample QC assessment completed\n")
   cat("Total samples:", nrow(sample_qc), "\n")
@@ -669,12 +616,12 @@ the q:group interaction with complex response shapes).
 if (requireNamespace("mgcv", quietly = TRUE)) {
     # Compute LM interaction using S4 wrapper
     # Uses condition_col from @config
-    analysis <- calculate_lm_interaction_s4(analysis,
+    analysis <- calculate_lm_interaction_s4(
+        analysis,
         method = "gam",
         paired = TRUE,
         multicorr = "hochberg",
-        nthreads = 3,
-        verbose = TRUE
+        nthreads = 3
     )
 }
 ```
@@ -682,48 +629,37 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
 ```{r kable-lm-interaction-before-qcurve, echo = FALSE}
 # show the top entries with proper p-value formatting
 # Extract results from TSENATAnalysis using S4 accessor method
-lm_res <- lmResults(analysis, component = "lm_interaction")
+lm_all <- lmResults(analysis)
 
-if (!is.null(lm_res) && is.list(lm_res) && length(lm_res) > 0) {
-    # lm_results from calculate_lm_interaction_s4 should be a data frame
-    lm_res_display <- if (is.data.frame(lm_res)) head(lm_res, 6) else head(lm_res$results, 6)
+# Extract lm_interaction results - handle both data frame and list formats
+if (!is.null(lm_all) && "lm_interaction" %in% names(lm_all)) {
+    lm_res <- lm_all$lm_interaction
+    # If it's a list with $results, extract the data frame
+    if (is.list(lm_res) && "results" %in% names(lm_res)) {
+        lm_res <- lm_res$results
+    }
+    lm_res_display <- if (is.data.frame(lm_res)) head(lm_res, 6) else data.frame()
 } else {
     lm_res_display <- data.frame()
 }
 
 if (nrow(lm_res_display) > 0) {
-    # Select only key columns that exist in the data, including Shapiro-Wilk normality test results
-    col_select <- intersect(c("gene", "gene_name", "p_interaction", "adj_p_interaction", 
-                              "family_used", "shapiro_p_value", "residuals_normal",
-                              "n_observations", "n_subjects", "arima_transformation"), 
+    # Select only key columns that exist in the data
+    col_select <- intersect(c("gene", "p_interaction", "adj_p_interaction"), 
                             colnames(lm_res_display))
     lm_res_display <- lm_res_display[, col_select, drop = FALSE]
     
-    # Use gene_name from lm_res (already populated by calculate_lm_interaction_s4)
-    # If gene_name is available, display it; otherwise use gene (ID)
-    if ("gene_name" %in% colnames(lm_res_display) && "gene" %in% colnames(lm_res_display)) {
-        lm_res_display$gene <- as.character(lm_res_display$gene_name)
-        lm_res_display$gene_name <- NULL  # Remove redundant column
-    }
-    
-    # Select key columns for display
-    display_cols <- c("gene", "p_interaction", "adj_p_interaction", "family_used", "shapiro_p_value", "residuals_normal")
-    lm_res_display <- lm_res_display[, intersect(display_cols, colnames(lm_res_display)), drop = FALSE]
-    
-    # Format p-values in scientific notation to show actual values
+    # Format p-values in scientific notation
     if ("p_interaction" %in% colnames(lm_res_display)) {
         lm_res_display$p_interaction <- format(lm_res_display$p_interaction, scientific = TRUE, digits = 3)
     }
     if ("adj_p_interaction" %in% colnames(lm_res_display)) {
         lm_res_display$adj_p_interaction <- format(lm_res_display$adj_p_interaction, scientific = TRUE, digits = 3)
     }
-    if ("shapiro_p_value" %in% colnames(lm_res_display)) {
-        lm_res_display$shapiro_p_value <- format(lm_res_display$shapiro_p_value, scientific = TRUE, digits = 3)
-    }
 
     knitr::kable(
         lm_res_display,
-        caption = "Top q-interaction results from GAM analysis with Hochberg correction, and Shapiro-Wilk normality tests",
+        caption = "Top q-interaction results from GAM analysis with Hochberg correction",
         digits = 5,
         row.names = FALSE
     )
@@ -736,11 +672,22 @@ by the linear-model interaction test.
 ```{r top-gene-qprofile, fig.width=14, fig.height=12}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
 # Uses condition_col from @config
-combined_plot <- plot_lm_interaction_gam_s4(
-    analysis,
-    n_top = 4
-)
-print(combined_plot)
+# Only plot if LM interaction results exist
+lm_exist <- !is.null(tryCatch(
+    lmResults(analysis, component = "lm_interaction"), 
+    error = function(e) NULL
+))
+
+if (lm_exist) {
+    combined_plot <- plot_lm_interaction_gam_s4(
+        analysis,
+        n_top = 4,
+        output_file = file.path("output", "lm_interaction_q_profiles.png")
+    )
+    print(combined_plot)
+} else {
+    cat("Note: LM interaction results not available. Skipping q-profile plot.\n")
+}
 ```
 
 ## Transcript Switching Across Diversity Scales
@@ -761,7 +708,8 @@ analysis <- tryCatch({
     q = c(0.01, 0.50, 1.00, 1.50, 2.00),
     n_bootstrap = 100,
     lm_p_threshold = 0.05,
-    threshold = 90
+    threshold = 90,
+    output_file = file.path("output", "jackknife_switching_results.tsv")
   )
 }, error = function(e) {
   cat("Note: Jackknife isoform switching computation failed:", conditionMessage(e), "\n")
@@ -835,7 +783,11 @@ scales) and transcripts (columns) for each gene.
 # Generate multi-Q heatmaps using the S4 wrapper
 if (exists("analysis")) {
     heatmap_file <- tryCatch({
-        plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
+        plot_multiq_delta_influence_heatmaps_s4(
+            analysis, 
+            n_genes = 4,
+            output_file = file.path("output", "multiq_delta_influence_heatmaps.png")
+        )
     }, error = function(e) {
         cat("Note: Multi-Q heatmap generation skipped:", conditionMessage(e), "\n")
         NULL
@@ -864,7 +816,7 @@ if (exists("analysis")) {
             analysis, 
             top_n = 4, 
             metric = "median",
-            output_file = file.path("output", "plot_top_transcripts_s4.png")
+            output_file = file.path("output", "top_transcripts_median.png")
         )
     }, error = function(e) {
         cat("Note: plot_top_transcripts_s4 generation skipped:", conditionMessage(e), "\n")
@@ -909,7 +861,12 @@ treatment groups across all q-dependent scales.
 
 ```{r effect-size-multiq}
 if (requireNamespace("mgcv", quietly = TRUE) && exists("analysis")) {
-  analysis <- calculate_divergence_s4(analysis, q = qvec, paired = TRUE)
+  analysis <- calculate_divergence_s4(
+      analysis, 
+      q = qvec, 
+      paired = TRUE,
+      output_file = file.path("output", "divergence_results.tsv")
+  )
 }
 ```
 
@@ -948,12 +905,25 @@ if (exists("analysis")) {
 
 ```{r effect-size-merge}
 # Compute effect sizes for divergence results
-analysis <- effect_sizes_divergence_s4(
-    analysis,
-    significance_threshold = 0.05,
-    enrich_per_q_pattern = TRUE,
-    verbose = FALSE
-)
+# Only if LM results are available
+lm_exist <- !is.null(tryCatch(
+    lmResults(analysis, component = "lm_interaction"), 
+    error = function(e) NULL
+))
+
+if (lm_exist) {
+    analysis <- tryCatch({
+        effect_sizes_divergence_s4(
+            analysis,
+            significance_threshold = 0.05,
+            enrich_per_q_pattern = TRUE,
+            verbose = FALSE
+        )
+    }, error = function(e) {
+        cat("Note: Effect size calculation skipped due to:", conditionMessage(e), "\n")
+        analysis  # Return original analysis
+    })
+}
 ```
 
 ```{r extract-divergence-results, echo=FALSE, results='hide'}
@@ -961,9 +931,9 @@ analysis <- effect_sizes_divergence_s4(
 divergence_results_se <- NULL
 lm_res_results <- NULL
 
-if (exists("analysis") && !is.null(metadata(analysis)$effect_sizes_divergence)) {
+if (exists("analysis") && !is.null(metadata(analysis, "effect_sizes_divergence"))) {
     # Extract from effect sizes results (which contains merged LM + divergence data)
-    effect_res <- metadata(analysis)$effect_sizes_divergence
+    effect_res <- metadata(analysis, "effect_sizes_divergence")
     if (!is.null(effect_res$interaction_results)) {
         lm_res_results <- effect_res$interaction_results
     }
@@ -1087,8 +1057,17 @@ for investigation of condition-specific splicing architecture and dynamic isofor
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
-p <- plot_divergence_distribution_s4(analysis, threshold = 0.05)
-print(p)
+if (!is.null(tryCatch(metadata(analysis, "effect_sizes_divergence"), error = function(e) NULL))) {
+  p <- plot_divergence_distribution_s4(
+      analysis, 
+      threshold = 0.05,
+      output_file = file.path("output", "divergence_distribution.png")
+  )
+  print(p)
+} else {
+  cat("Note: Effect sizes divergence have not been calculated. Skipping divergence distribution plot.\n")
+  cat("This occurs when LM interaction results are not available.\n")
+}
 ```
 
 
@@ -1097,7 +1076,12 @@ print(p)
 
 ```{r compare-q-spectra-plot, fig.width=10, fig.height=10}
 # Visualize q-spectrum curves for top 4 genes by significance
-p_multi <- plot_divergence_spectrum_s4(analysis, n_genes = 4, use_pvalue_ranking = TRUE)
+p_multi <- plot_divergence_spectrum_s4(
+    analysis, 
+    n_genes = 4, 
+    use_pvalue_ranking = TRUE,
+    output_file = file.path("output", "divergence_spectrum_top_genes.png")
+)
 print(p_multi)
 ```
 
@@ -1128,7 +1112,10 @@ abundance scales (rare vs. abundant) are affected.
 
 ```{r visualize-q-spectrum, fig.width=10, fig.height=6}
 # Visualize global divergence q-spectrum across all genes (aggregated)
-p <- plot_divergence_spectrum_s4(analysis)
+p <- plot_divergence_spectrum_s4(
+    analysis,
+    output_file = file.path("output", "divergence_spectrum_global.png")
+)
 print(p)
 ```
 

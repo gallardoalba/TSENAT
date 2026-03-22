@@ -267,14 +267,21 @@ simpson_index <- SplicingFactory::calculate_diversity(
   verbose = FALSE
 )
 
-# Add sample_type metadata to SplicingFactory objects (matches their naming)
+# Add sample_type and group metadata to SplicingFactory objects
+# (sample_type matches SplicingFactory naming; group matches TSENAT naming for consistency)
 colData(shannon_entropy)$sample_type <- sample_group
+colData(shannon_entropy)$group <- sample_group
 colData(simpson_index)$sample_type <- sample_group
+colData(simpson_index)$group <- sample_group
 
 # TSENAT: Create TSENATAnalysis objects for S4 wrapper approach
 # This maintains consistent workflow with S4 infrastructure
 tsenat_analysis_q1 <- TSENATAnalysis(se_data)
 tsenat_analysis_q2 <- TSENATAnalysis(se_data)
+
+# Set condition column in config for downstream differential analysis
+tsenat_analysis_q1@config$condition_col <- "group"
+tsenat_analysis_q2@config$condition_col <- "group"
 
 # TSENAT: Tsallis entropy at q=1 (equals Shannon entropy) - using S4 wrapper
 tsenat_analysis_q1 <- calculate_diversity_s4(
@@ -321,8 +328,9 @@ simpson_significance <- SplicingFactory::calculate_difference(
   verbose = FALSE
 )
 
-# TSENAT: Differential analysis for Tsallis q=1 - using S4 wrapper
-# The "group" metadata is already available in colData from diversity calculations
+# TSENAT: Differential analysis for Tsallis q=1
+# Ensure the grouping column is set in config for the wrapper
+tsenat_analysis_q1@config$condition_col <- "group"
 tsenat_analysis_q1 <- calculate_difference_s4(
   analysis = tsenat_analysis_q1,
   control = "Normal",
@@ -330,9 +338,12 @@ tsenat_analysis_q1 <- calculate_difference_s4(
   test = "wilcoxon",
   verbose = FALSE
 )
+# Extract results for downstream functions
 tsenat_shannon_diff <- tsenat_analysis_q1@lm_results$difference
 
-# TSENAT: Differential analysis for Tsallis q=2 - using S4 wrapper
+# TSENAT: Differential analysis for Tsallis q=2
+# Ensure the grouping column is set in config for the wrapper
+tsenat_analysis_q2@config$condition_col <- "group"
 tsenat_analysis_q2 <- calculate_difference_s4(
   analysis = tsenat_analysis_q2,
   control = "Normal",
@@ -340,6 +351,7 @@ tsenat_analysis_q2 <- calculate_difference_s4(
   test = "wilcoxon",
   verbose = FALSE
 )
+# Extract results for downstream functions
 tsenat_simpson_diff <- tsenat_analysis_q2@lm_results$difference
 ```
 

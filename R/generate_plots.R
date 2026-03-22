@@ -448,7 +448,8 @@ plot_tsallis_q_curve_s4 <- function(
   bootstrap = FALSE,
   gene = NULL,
   lm_res = NULL,
-  n_top = NULL
+  n_top = NULL,
+  output_file = NULL
 ) {
   require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment", "cowplot"))
   
@@ -824,6 +825,11 @@ plot_tsallis_q_curve_s4 <- function(
       p <- p + ggplot2::theme(legend.position = "none")
     }
     
+    # Save to file if output_file is provided
+    if (!is.null(output_file)) {
+      ggplot2::ggsave(output_file, plot = p, width = 10, height = 6, create.dir = TRUE)
+    }
+    
     return(p)
   }
   
@@ -984,8 +990,8 @@ plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NU
     
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
-    if (!is.null(metadata(se)$q) && length(metadata(se)$q) > 0) {
-        q_vals <- unique(as.numeric(metadata(se)$q))
+    if (!is.null(S4Vectors::metadata(se)$q) && length(S4Vectors::metadata(se)$q) > 0) {
+        q_vals <- unique(as.numeric(S4Vectors::metadata(se)$q))
         if (length(q_vals) > 0 && !all(is.na(q_vals))) {
             q_val <- q_vals[1]
         }
@@ -1058,8 +1064,8 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
     
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
-    if (!is.null(metadata(se)$q) && length(metadata(se)$q) > 0) {
-        q_vals <- unique(as.numeric(metadata(se)$q))
+    if (!is.null(S4Vectors::metadata(se)$q) && length(S4Vectors::metadata(se)$q) > 0) {
+        q_vals <- unique(as.numeric(S4Vectors::metadata(se)$q))
         if (length(q_vals) > 0 && !all(is.na(q_vals))) {
             q_val <- q_vals[1]
         }
@@ -1164,8 +1170,8 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     
     # Try to extract q from SE metadata first (best source for single-q SE)
     q_val <- NA
-    if (!is.null(metadata(se)$q) && length(metadata(se)$q) > 0) {
-        q_vals <- unique(as.numeric(metadata(se)$q))
+    if (!is.null(S4Vectors::metadata(se)$q) && length(S4Vectors::metadata(se)$q) > 0) {
+        q_vals <- unique(as.numeric(S4Vectors::metadata(se)$q))
         if (length(q_vals) > 0 && !all(is.na(q_vals))) {
             q_val <- q_vals[1]
         }
@@ -1849,7 +1855,7 @@ plot_top_transcripts <- function(
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
-    sig_alpha = 0.05, assay_name = "diversity", model_data = NULL) {
+    sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr", "cowplot"))
 
@@ -2230,6 +2236,11 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         nrow = 3,
         rel_heights = c(0.12, 1, 0.08)
     )
+    
+    # Save to file if output_file is provided
+    if (!is.null(output_file)) {
+        ggplot2::ggsave(output_file, plot = final_plot, width = 14, height = 12, create.dir = TRUE)
+    }
     
     return(final_plot)
 }

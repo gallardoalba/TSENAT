@@ -345,10 +345,14 @@
   # Try format: "q_0.5" (standard with dot)
   if (all(grepl("^q_", nm))) {
     extracted_q <- gsub("^q_", "", nm)
+    # Handle underscore-separated format q_0_5 (convert to 0.5)
+    extracted_q <- gsub("_", ".", extracted_q)
     q_vals <- as.numeric(extracted_q)
   } else if (all(grepl("^q", nm))) {
     # Try other formats
     extracted_q <- gsub("^q[_.]", "", nm)
+    # Handle underscore-separated format (convert to numeric)
+    extracted_q <- gsub("_", ".", extracted_q)
     q_vals <- as.numeric(extracted_q)
   }
   
