@@ -25,7 +25,7 @@ Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 \item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
 
-\item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
+\item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 
 \item{condition_col}{\code{character}. Column name in sample metadata indicating
 condition/sample grouping. Auto-detected from \code{@config$condition_col}
@@ -53,6 +53,9 @@ as high-influence. Default: 0.75.}
 
 \item{scale_method}{\code{character}. Scale estimation method: "mad" (default),
 "proposal2", or "s-estimator".}
+
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with M-estimation results stored in

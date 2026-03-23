@@ -827,7 +827,7 @@ setMethod("se", "TSENATAnalysis", function(object) {
 
 #' Extract metadata from TSENATAnalysis
 #'
-#' @param object \code{TSENATAnalysis} object.
+#' @param x \code{TSENATAnalysis} object.
 #' @param key \code{character} (optional). Specific metadata key to extract.
 #'   If NULL, returns entire metadata list.
 #'

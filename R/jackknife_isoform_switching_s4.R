@@ -47,6 +47,7 @@
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
+#' @param ... Additional arguments for future extensibility.
 #'
 #' @return \code{TSENATAnalysis} object with jackknife results stored in \code{@jackknife_results}
 #'   slot. Results are keyed by q-value (e.g., "q_1.00"). For multi-q analysis, multiple

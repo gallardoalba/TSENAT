@@ -67,6 +67,8 @@ lm_results (default: 0.05).}
 Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
+
+\item{...}{Additional arguments for future extensibility.}
 }
 \value{
 \code{TSENATAnalysis} object with jackknife results stored in \code{@jackknife_results}

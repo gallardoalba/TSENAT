@@ -76,6 +76,7 @@
 #' }
 #'
 #' @export
+#' @importFrom utils write.table
 calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -495,6 +496,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #' }
 #'
 #' @export
+#' @importFrom utils write.table
 calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, 
                                        formula = NULL, method = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
@@ -835,6 +837,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' }
 #'
 #' @export
+#' @importFrom utils write.table
 jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -958,6 +961,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' }
 #'
 #' @export
+#' @importFrom utils write.table
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -1158,6 +1162,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #' }
 #'
 #' @export
+#' @importFrom utils write.table
 detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -1407,6 +1412,7 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL
 #' }
 #'
 #' @export
+#' @importFrom utils write.table
 #' @seealso
 #' \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
@@ -1802,7 +1808,6 @@ extract_q_from_key <- function(key) {
 #' @seealso
 #' \code{\link{calculate_difference_s4}} for computing differential analysis.
 #'
-#' @import methods
 #' @export
 plot_volcano_ma_grid_s4 <- function(
     analysis,
@@ -2011,6 +2016,9 @@ plot_volcano_ma_grid_s4 <- function(
 #' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
 #'   Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})
 #' @param verbose \code{logical}. Print progress messages. Default: FALSE
+#' @param verbose \code{logical}. Print progress messages (default: FALSE).
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments for future extensibility.
 #'
 #' @return Modified TSENATAnalysis object with concordance results stored in:
@@ -2058,7 +2066,8 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
     analysis,
     gam_method = "q_interactions",
     friedman_method = "rankbased",
-    verbose = FALSE) {
+    verbose = FALSE,
+    output_file = NULL) {
   
   # ===================================================================
   # VALIDATION
@@ -2499,6 +2508,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'
 #' @export
 #' @importFrom methods is
+#' @importFrom utils write.table
 effect_sizes_divergence_s4 <- function(
     analysis,
     significance_threshold = 0.05,
@@ -3125,6 +3135,7 @@ plot_divergence_distribution_s4 <- function(
 #'
 #' @export
 #' @importFrom methods is
+#' @importFrom utils write.table
 prepare_gene_switching_tables_s4 <- function(
     analysis,
     n_top_genes = NULL,

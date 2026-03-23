@@ -92,6 +92,7 @@
 #' \code{\link{calculate_diversity_s4}} for computing diversity
 #'
 #' @export
+#' @importFrom utils write.table
 m_estimate_s4 <- function(
     analysis,
     condition_col = NULL,

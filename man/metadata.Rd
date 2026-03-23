@@ -7,10 +7,10 @@
 \S4method{metadata}{TSENATAnalysis}(x, key = NULL)
 }
 \arguments{
+\item{x}{\code{TSENATAnalysis} object.}
+
 \item{key}{\code{character} (optional). Specific metadata key to extract.
 If NULL, returns entire metadata list.}
-
-\item{object}{\code{TSENATAnalysis} object.}
 }
 \value{
 The metadata list, or a specific metadata element if key is provided.
