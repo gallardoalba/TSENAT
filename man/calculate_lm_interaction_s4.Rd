@@ -9,6 +9,7 @@ calculate_lm_interaction_s4(
   fdr_threshold = NULL,
   formula = NULL,
   method = NULL,
+  output_file = NULL,
   ...
 )
 }

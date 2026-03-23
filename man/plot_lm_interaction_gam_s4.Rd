@@ -11,6 +11,7 @@ plot_lm_interaction_gam_s4(
   condition_col = NULL,
   sig_alpha = 0.05,
   assay_name = "diversity",
+  output_file = NULL,
   ...
 )
 }

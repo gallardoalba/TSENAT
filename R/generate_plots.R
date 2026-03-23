@@ -2963,7 +2963,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
               }
             }
             
-            if (verbose) cat("[plot_multi_gene_q_spectrum_s4] Mode 2 (fallback): Using lm_res + divergence_results_se\n")
+            if (verbose) message("[plot_multi_gene_q_spectrum_s4] Mode 2 (fallback): Using lm_res + divergence_results_se")
           }
         }
       }
@@ -4108,39 +4108,39 @@ plot_multiq_delta_influence_heatmaps <- function(
     warning("No valid heatmap data generated for any genes")
     # Suppress validation report output
     invisible(capture.output({
-      cat("\n=== Data Validation Report ===\n")
+      message("\n=== Data Validation Report ===")
       for (i in seq_along(data_validity_report)) {
         report <- data_validity_report[[i]]
-        cat("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ")\n", sep = "")
-        cat("  - Has heatmap data: ", report$has_heatmap_data, "\n", sep = "")
-        cat("  - Has valid rows: ", report$has_valid_rows, "\n", sep = "")
-        cat("  - Has valid cols: ", report$has_valid_cols, "\n", sep = "")
-        cat("  - Has valid transcripts: ", report$has_valid_transcripts, "\n", sep = "")
+        message("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ")")
+        message("  - Has heatmap data: ", report$has_heatmap_data)
+        message("  - Has valid rows: ", report$has_valid_rows)
+        message("  - Has valid cols: ", report$has_valid_cols)
+        message("  - Has valid transcripts: ", report$has_valid_transcripts)
         if (!is.na(report$reason_skipped)) {
-          cat("  - Reason skipped: ", report$reason_skipped, "\n", sep = "")
+          message("  - Reason skipped: ", report$reason_skipped)
         }
       }
-      cat("\n================================\n\n")
+      message("\n================================\n")
     }))
     return(NULL)
   }
   
   # Suppress validation report output (show all genes, even those skipped)
   invisible(capture.output({
-    cat("\n=== Data Validation Report ===\n")
+    message("\n=== Data Validation Report ===")
     for (i in seq_along(data_validity_report)) {
       report <- data_validity_report[[i]]
       status <- if (!is.na(report$reason_skipped)) "? SKIPPED" else "[OK] VALID"
-      cat("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ") - ", status, "\n", sep = "")
-      cat("  - Has heatmap data: ", report$has_heatmap_data, "\n", sep = "")
-      cat("  - Has valid rows: ", report$has_valid_rows, "\n", sep = "")
-      cat("  - Has valid cols: ", report$has_valid_cols, "\n", sep = "")
-      cat("  - Has valid transcripts: ", report$has_valid_transcripts, "\n", sep = "")
+      message("\nGene #", i, ": ", report$gene_name, " (", report$gene_id, ") - ", status)
+      message("  - Has heatmap data: ", report$has_heatmap_data)
+      message("  - Has valid rows: ", report$has_valid_rows)
+      message("  - Has valid cols: ", report$has_valid_cols)
+      message("  - Has valid transcripts: ", report$has_valid_transcripts)
       if (!is.na(report$reason_skipped)) {
-        cat("  - Reason: ", report$reason_skipped, "\n", sep = "")
+        message("  - Reason: ", report$reason_skipped)
       }
     }
-    cat("\n================================\n\n")
+    message("\n================================\n")
   }))
   
   if (!requireNamespace("pheatmap", quietly = TRUE)) {

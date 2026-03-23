@@ -2230,6 +2230,49 @@
     result$df_residual <- df_residual
     result$model_converged <- model_converged
     
+    # Extract slope_diff from GAM by computing predicted slopes for each group
+    slope_diff <- NA_real_
+    if (!inherits(fit_alt, "try-error") && !is.null(fit_alt)) {
+        tryCatch({
+            # Get the GAM/GAMM object (may be nested in list for GAMM)
+            gam_obj <- if (is.list(fit_alt) && !is.null(fit_alt$gam)) fit_alt$gam else fit_alt
+            
+            # Create prediction grid at min and max q for each group
+            q_range <- range(df$q, na.rm = TRUE)
+            unique_groups <- unique(na.omit(as.character(df$group)))
+            
+            if (length(unique_groups) == 2 && is.finite(q_range[1]) && is.finite(q_range[2])) {
+                pred_slopes <- numeric(2)
+                for (g_idx in seq_along(unique_groups)) {
+                    pred_grid <- data.frame(
+                        q = c(q_range[1], q_range[2]),
+                        group = factor(rep(unique_groups[g_idx], 2), levels = levels(df$group))
+                    )
+                    
+                    # Add subject if needed for GAMM
+                    if (!is.null(subject) && "subject" %in% colnames(df)) {
+                        pred_grid$subject <- df$subject[1]  # Use first subject as reference
+                    }
+                    
+                    preds <- tryCatch(
+                        predict(gam_obj, newdata = pred_grid, type = "response", se.fit = FALSE),
+                        error = function(e) NULL
+                    )
+                    
+                    if (!is.null(preds) && length(preds) == 2 && all(is.finite(preds))) {
+                        pred_slopes[g_idx] <- (preds[2] - preds[1]) / (q_range[2] - q_range[1])
+                    }
+                }
+                
+                # Compute slope_diff if we got both slopes
+                if (all(is.finite(pred_slopes))) {
+                    slope_diff <- pred_slopes[2] - pred_slopes[1]
+                }
+            }
+        }, error = function(e) { NULL })
+    }
+    result$slope_diff <- slope_diff
+    
     # Add bias correction metadata if applied
     if (bc_result$bias_correction_applied) {
         result$bias_correction_applied <- TRUE
@@ -2556,8 +2599,8 @@
         p_interaction <- min(p_interaction, 1.0)  # Cap at 1.0
         
         return(data.frame(gene = g, p_interaction = p_interaction, n_pcs_tested = n_pc_use,
-                         min_pc_pvalue = min(pc_pvals_valid), ci_weighted = !is.null(weights), 
-                         stringsAsFactors = FALSE))
+                         min_pc_pvalue = min(pc_pvals_valid), slope_diff = NA_real_, 
+                         ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
     } else if (regularization %in% c("lasso", "elasticnet")) {
         # Regularized regression (LASSO/ElasticNet) on ordered curve matrix:
         # - Uses full curve (all q-values) to predict group membership
@@ -2642,8 +2685,8 @@
                 t_res <- try(stats::t.test(x1_by_subj, x2_by_subj, paired = TRUE), silent = TRUE)
                 if (!inherits(t_res, "try-error")) {
                     pval <- as.numeric(t_res$p.value)
-                    return(data.frame(gene = g, p_interaction = pval, ci_weighted = !is.null(weights), 
-                                     stringsAsFactors = FALSE))
+                    return(data.frame(gene = g, p_interaction = pval, slope_diff = NA_real_,
+                                     ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
                 }
             }
         }
@@ -2654,8 +2697,8 @@
             return(NULL)
         }
         pval <- as.numeric(t_res$p.value)
-        return(data.frame(gene = g, p_interaction = pval, ci_weighted = !is.null(weights), 
-                         stringsAsFactors = FALSE))
+        return(data.frame(gene = g, p_interaction = pval, slope_diff = NA_real_,
+                         ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
     } else {
         return(NULL)
     }
@@ -2979,12 +3022,37 @@
         # nlme always uses LRT for hypothesis testing
         p_interaction <- lrt_p
         
+        # Extract interaction coefficient (slope_diff) from fitted model
+        slope_diff <- NA_real_
+        if (!is.null(fallback_lm) && !is.null(fallback_lm$fit1)) {
+            # For fallback lm/glm models
+            coefs <- tryCatch(coef(fallback_lm$fit1), error = function(e) NULL)
+            if (!is.null(coefs)) {
+                # Look for q:group interaction term
+                interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
+                if (length(interaction_idx) > 0) {
+                    slope_diff <- coefs[interaction_idx[1]]
+                }
+            }
+        } else if (!inherits(fit1, "try-error")) {
+            # For nlme models
+            coefs <- tryCatch(nlme::fixef(fit1), error = function(e) NULL)
+            if (!is.null(coefs)) {
+                # Look for q:group interaction term
+                interaction_idx <- grep("q:group|group:q", names(coefs), ignore.case = FALSE)
+                if (length(interaction_idx) > 0) {
+                    slope_diff <- coefs[interaction_idx[1]]
+                }
+            }
+        }
+        
         # Add weighting information to results (Phase 1)
         has_weights <- !is.null(df$weight)
 
         res <- data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
-            p_satterthwaite = NA_real_, fit_method = used_fit_method, singular = used_singular,
-            arima_transformation = use_arima, ci_weighted = has_weights, stringsAsFactors = FALSE)
+            p_satterthwaite = NA_real_, slope_diff = slope_diff, fit_method = used_fit_method, 
+            singular = used_singular, arima_transformation = use_arima, ci_weighted = has_weights, 
+            stringsAsFactors = FALSE)
         if (!is.null(msg)) res$message <- msg
         return(res)
     }
@@ -3981,6 +4049,20 @@
     
     # Add Phase 1 bootstrap CI weighting tracking (March 2026)
     gee_result$ci_weighted <- !is.null(df$weight)
+    
+    # Extract slope_diff from GEE interaction coefficient
+    slope_diff <- NA_real_
+    if (!inherits(fit_alt, "try-error") && !is.null(fit_alt)) {
+        tryCatch({
+            coefs_alt <- stats::coef(fit_alt)
+            ia_names <- names(coefs_alt)[grepl("^q:", names(coefs_alt), ignore.case = TRUE)]
+            
+            if (length(ia_names) > 0) {
+                slope_diff <- coefs_alt[ia_names[1]]
+            }
+        }, error = function(e) { NULL })
+    }
+    gee_result$slope_diff <- slope_diff
     
     return(gee_result)
 }

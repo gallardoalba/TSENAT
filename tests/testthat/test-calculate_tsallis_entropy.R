@@ -20,10 +20,22 @@ test_that("calculate_tsallis_entropy computes correct q=1 Shannon entropy", {
     expect_true(abs(result - expected) < 0.5)
 })
 
-test_that("calculate_tsallis_entropy requires q > 0", {
-    # q must be strictly greater than 0 (q=0 not supported)
-    counts <- c(10, 20, 0, 15)
-    expect_error(calculate_tsallis_entropy(counts, q = 0))
+test_that("calculate_tsallis_entropy computes q=0 species richness", {
+    # q=0 computes species richness: S_0 = count(nonzero) - 1
+    # D_0 = count(nonzero) (true richness)
+    counts <- c(10, 20, 0, 15)  # 3 nonzero species
+    
+    # S_0 = 3 - 1 = 2 (unnormalized)
+    result_s0 <- calculate_tsallis_entropy(counts, q = 0, norm = FALSE, what = "S")
+    expect_equal(as.numeric(result_s0), 2)
+    
+    # D_0 = 3 (true species richness)
+    result_d0 <- calculate_tsallis_entropy(counts, q = 0, what = "D")
+    expect_equal(as.numeric(result_d0), 3)
+    
+    # Normalized S_0 with n=4: S_0_norm = 2 / (4-1) = 2/3
+    result_s0_norm <- calculate_tsallis_entropy(counts, q = 0, norm = TRUE, what = "S")
+    expect_equal(as.numeric(result_s0_norm), 2/3)
 })
 
 test_that("calculate_tsallis_entropy handles uniform distribution", {
@@ -105,10 +117,13 @@ test_that("calculate_tsallis_entropy handles zero-sum and q=1 correctly", {
     expect_equal(as.numeric(D1), expected_D1)
 })
 
-test_that("calculate_diversity rejects non-positive q", {
+test_that("calculate_diversity accepts q >= 0 (including q=0 for species richness)", {
     mat <- matrix(1, nrow = 3, ncol = 2)
     genes <- letters[1:3]
-    expect_error(calculate_diversity(mat, genes = genes, q = 0), "q")
+    # q=0 should work (species richness = number of non-zero species)
+    result <- calculate_diversity(mat, genes = genes, q = 0)
+    expect_s4_class(result, "SummarizedExperiment")
+    expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
 })
 
 # ============================================================================

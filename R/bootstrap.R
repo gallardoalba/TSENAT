@@ -325,21 +325,19 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         
         # Name results by gene
         names(results_list) <- gene_names
-        class(results_list) <- c("tsenat_bootstrap_ci_list", "list")
+        results_list <- structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
         
         # Optional printing of summary
         if (print_results) {
-            cat("Bootstrap CI for", nrow(x), "genes:\n")
-            cat("==============================================\n\n")
+            message("Bootstrap CI for", nrow(x), "genes:")
+            message("==============================================")
             for (i in seq_along(results_list)) {
                 res <- results_list[[i]]
-                cat("Gene:", gene_names[i], "\n")
-                cat("  Point estimate:  ", sprintf("%.6f", res$estimate), "\n")
-                cat("  CI: [", sprintf("%.6f", res$lower_ci), ", ", 
-                    sprintf("%.6f", res$upper_ci), "]\n\n")
-            }
+                message("Gene:", gene_names[i])
+                message("  Point estimate:  ", sprintf("%.6f", res$estimate))
+                message("  CI: [", sprintf("%.6f", res$lower_ci), ", ",
+                    sprintf("%.6f", res$upper_ci), "]")}
         }
-        
         return(invisible(results_list))
     }
     
@@ -472,14 +470,14 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
                 )
             })
             names(results_list) <- top_genes
-            class(results_list) <- c("tsenat_bootstrap_ci_list", "list")
+            results_list <- structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
             
             if (print_results) {
                 for (i in seq_along(results_list)) {
                     res <- results_list[[i]]
-                    cat("Gene", i, ":", top_genes[i], "\n")
-                    cat("  Point estimate: ", round(res$estimate, 4), "\n")
-                    cat("  95% CI: [", round(res$lower_ci, 4), ",", round(res$upper_ci, 4), "]\n\n")
+                    message("Gene", i, ":", top_genes[i])
+                    message("  Point estimate: ", round(res$estimate, 4))
+                    message("  95% CI: [", round(res$lower_ci, 4), ",", round(res$upper_ci, 4), "]")
                 }
             }
             
@@ -604,21 +602,21 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
             )
         })
         names(results_list) <- paste0("q=", q)
-        class(results_list) <- c("tsenat_bootstrap_ci_list", "list")
+        results_list <- structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
         
         # Optional printing
         if (print_results && !is.null(gene_name)) {
-            cat("Bootstrap Confidence Intervals for", gene_name, "\n")
-            cat("(Multiple q values)\n")
-            cat("==============================================\n\n")
+            message("Bootstrap Confidence Intervals for", gene_name)
+            message("(Multiple q values)")
+            message("==============================================")
             for (i in seq_along(results_list)) {
                 res <- results_list[[i]]
-                cat("q =", q[i], "\n")
-                cat("  Point estimate:  ", round(res$estimate, 4), "\n")
-                cat("  Lower CI:        ", round(res$lower_ci, 4), "\n")
-                cat("  Upper CI:        ", round(res$upper_ci, 4), "\n")
-                cat("  CI width:        ", round(res$upper_ci - res$lower_ci, 4), "\n")
-                cat("  Method:          ", res$method, "\n\n")
+                message("q =", q[i])
+                message("  Point estimate:  ", round(res$estimate, 4))
+                message("  Lower CI:        ", round(res$lower_ci, 4))
+                message("  Upper CI:        ", round(res$upper_ci, 4))
+                message("  CI width:        ", round(res$upper_ci - res$lower_ci, 4))
+                message("  Method:          ", res$method)
             }
         }
         return(invisible(results_list))
@@ -733,22 +731,22 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         )
     }
     
-    class(result) <- "tsenat_bootstrap_ci"
+    result <- structure(result, class = "tsenat_bootstrap_ci")
     
     # Print results if gene_name provided and print_results is TRUE
     if (!is.null(gene_name) && print_results) {
-        cat("\n")
-        cat("Bootstrap Confidence Intervals for Top Gene:", gene_name, "\n")
-        cat("Point estimate (S_q=", q, "):", sprintf("%.6f", result$estimate), "\n")
-        cat(sprintf("%d%% CI: [", as.integer(ci * 100)), sprintf("%.6f", result$lower_ci), ", ",
-            sprintf("%.6f", result$upper_ci), "]\n")
-        cat("CI width:", sprintf("%.6f", result$upper_ci - result$lower_ci), "\n")
-        cat("\nInterpretation: We are ", sprintf("%.0f%%", ci * 100), 
-            " confident the true Tsallis entropy\n")
-        cat("for this gene lies within this range.\n\n")
+        message("")
+        message("Bootstrap Confidence Intervals for Top Gene:", gene_name)
+        message("Point estimate (S_q=", q, "):", sprintf("%.6f", result$estimate))
+        message(sprintf("%d%% CI: [", as.integer(ci * 100)), sprintf("%.6f", result$lower_ci), ", ",
+            sprintf("%.6f", result$upper_ci), "]")
+        message("CI width:", sprintf("%.6f", result$upper_ci - result$lower_ci))
+        message("\nInterpretation: We are ", sprintf("%.0f%%", ci * 100),
+            " confident the true Tsallis entropy")
+        message("for this gene lies within this range.")
     }
     
-    return(result)
+    return(invisible(result))
 }
 
 #' Summary and Printing for Bootstrap CI Results
@@ -765,32 +763,34 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
 #' @export
 #' @method summary tsenat_bootstrap_ci
 summary.tsenat_bootstrap_ci <- function(object, ...) {
-    cat("=== Tsallis Entropy Bootstrap Confidence Interval ===\n")
-    cat("Method: ", object$method, "\n")
-    cat("Bootstrap replicates: ", object$nboot, "\n")
-    cat("Confidence level: ", object$ci_level * 100, "%\n\n")
-    cat("Point estimate (S_q): ", sprintf("%.6f", object$estimate), "\n")
-    cat("Lower CI: ", sprintf("%.6f", object$lower_ci), "\n")
-    cat("Upper CI: ", sprintf("%.6f", object$upper_ci), "\n")
-    cat("CI width: ", sprintf("%.6f", object$upper_ci - object$lower_ci), "\n\n")
-    cat("Bootstrap distribution summary:\n")
+    message("=== Tsallis Entropy Bootstrap Confidence Interval ===")
+    message("Method: ", object$method)
+    message("Bootstrap replicates: ", object$nboot)
+    message("Confidence level: ", object$ci_level * 100, "%")
+    message("Point estimate (S_q): ", sprintf("%.6f", object$estimate))
+    message("Lower CI: ", sprintf("%.6f", object$lower_ci))
+    message("Upper CI: ", sprintf("%.6f", object$upper_ci))
+    message("CI width: ", sprintf("%.6f", object$upper_ci - object$lower_ci))
+    message("Bootstrap distribution summary:")
     stats <- summary(object$bootstrap_dist)
-    print(stats)
+    message(paste(capture.output(print(stats)), collapse = "\n"))
     
     # Display diagnostics if available (papers S111, S114)
     if (!is.null(object$diagnostics)) {
-        cat("\n=== CI Quality Diagnostics (papers S111, S114) ===\n")
-        cat("Effective sample size: ", sprintf("%.1f", object$diagnostics$effective_sample_size), 
-            " (>= n * 0.5 is good)\n")
-        cat("Skewness: ", sprintf("%.4f", object$diagnostics$skewness), 
-            " (|.| > 2 suggests unreliability)\n")
-        cat("Bias: ", sprintf("%.6f", object$diagnostics$bias), 
-            " (distance from median to estimate)\n")
+        message("")
+        message("=== CI Quality Diagnostics (papers S111, S114) ===")
+        message("Effective sample size: ", sprintf("%.1f", object$diagnostics$effective_sample_size),
+            " (>= n * 0.5 is good)")
+        message("Skewness: ", sprintf("%.4f", object$diagnostics$skewness),
+            " (|.| > 2 suggests unreliability)")
+        message("Bias: ", sprintf("%.6f", object$diagnostics$bias),
+            " (distance from median to estimate)")
         if (!is.na(object$diagnostics$acceleration_factor)) {
-            cat("Acceleration (BCa): ", sprintf("%.6f", object$diagnostics$acceleration_factor), 
-                " (skewness correction factor)\n")
+            message("Acceleration (BCa): ", sprintf("%.6f", object$diagnostics$acceleration_factor),
+                " (skewness correction factor)")
         }
-        cat("\nInterpretation: Check effective_sample_size and skewness to assess CI reliability.\n")
+        message("")
+        message("Interpretation: Check effective_sample_size and skewness to assess CI reliability.")
     }
     invisible(object)
 }
@@ -800,7 +800,23 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
 #' @export
 #' @method print tsenat_bootstrap_ci
 print.tsenat_bootstrap_ci <- function(x, ...) {
-    summary(x, ...)
+    message("Tsallis Entropy Bootstrap Confidence Interval")
+    message("Point estimate: ", sprintf("%.6f", x$estimate))
+    message("95% CI: [", sprintf("%.6f", x$lower_ci), ", ", sprintf("%.6f", x$upper_ci), "]")
+    invisible(x)
+}
+
+#' @export
+#' @method print tsenat_bootstrap_ci_list
+print.tsenat_bootstrap_ci_list <- function(x, ...) {
+    message("Bootstrap Confidence Intervals for Multiple q Values")
+    message("Number of q values: ", length(x))
+    for (i in seq_along(x)) {
+        message("\n  q = ", names(x)[i], ":")
+        message("    Estimate: ", sprintf("%.6f", x[[i]]$estimate))
+        message("    95% CI: [", sprintf("%.6f", x[[i]]$lower_ci), ", ", sprintf("%.6f", x[[i]]$upper_ci), "]")
+    }
+    invisible(x)
 }
 
 #' Jackknife-of-Bootstrap (JOB) CI Stability Assessment
@@ -1430,17 +1446,18 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
         
         # Print summary if requested
         if (print_results && !is.null(gene_name)) {
-            cat("\n=== Divergence Bootstrap CIs ===\n")
-            cat("Gene:", gene_name, "\n")
-            cat("Method:", method, "|", "Bootstrap replicates:", nboot, "\n")
-            cat("Confidence level:", 100*ci, "%\n\n")
+            message("")
+            message("=== Divergence Bootstrap CIs ===")
+            message("Gene:", gene_name)
+            message("Method:", method, "|", "Bootstrap replicates:", nboot)
+            message("Confidence level:", 100*ci, "%")
             for (qi in seq_along(q)) {
                 r <- results_list[[qi]]
-                cat(sprintf("q = %.2f: D_q = %.4f [%.4f, %.4f] (width=%.4f)\n",
+                message(sprintf("q = %.2f: D_q = %.4f [%.4f, %.4f] (width=%.4f)",
                     q[qi], r$estimate, r$lower_ci, r$upper_ci,
                     r$upper_ci - r$lower_ci))
             }
-            cat("\n")
+            message("")
         }
         return(invisible(results_list))
     }
@@ -1641,19 +1658,21 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
     # =========================================================================
     
     if (print_results && !is.null(gene_name)) {
-        cat("\n=== Divergence Bootstrap Confidence Interval ===\n")
-        cat("Gene:", gene_name, "\n")
-        cat("q-parameter:", q, "\n")
-        cat("Bootstrap replicates:", nboot, "\n")
-        cat("Method:", method, "\n")
-        cat("Confidence level:", 100*ci, "%\n\n")
-        cat(sprintf("D_q estimate:  %.4f\n", estimate))
-        cat(sprintf("95%% CI:        [%.4f, %.4f]\n", result$lower_ci, result$upper_ci))
-        cat(sprintf("CI width:      %.4f\n", result$upper_ci - result$lower_ci))
-        cat("\nInterpretation:\n")
-        cat("We are", 100*ci, "% confident that the true Tsallis divergence\n")
-        cat("lies between", round(result$lower_ci, 4), "and", 
-            round(result$upper_ci, 4), "nats.\n\n")
+        message("")
+        message("=== Divergence Bootstrap Confidence Interval ===")
+        message("Gene:", gene_name)
+        message("q-parameter:", q)
+        message("Bootstrap replicates:", nboot)
+        message("Method:", method)
+        message("Confidence level:", 100*ci, "%")
+        message(sprintf("D_q estimate:  %.4f", estimate))
+        message(sprintf("95%% CI:        [%.4f, %.4f]", result$lower_ci, result$upper_ci))
+        message(sprintf("CI width:      %.4f", result$upper_ci - result$lower_ci))
+        message("")
+        message("Interpretation:")
+        message("We are", 100*ci, "% confident that the true Tsallis divergence")
+        message("lies between", round(result$lower_ci, 4), "and",
+            round(result$upper_ci, 4), "nats.")
     }
     
     invisible(result)
@@ -1821,36 +1840,9 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 
 #' @export
 print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
-    cat("\n=== Tsallis Divergence Bootstrap Confidence Interval ===\n")
-    if (!is.null(x$gene_name)) {
-        cat("Gene:", x$gene_name, "\n")
-    }
-    cat("q-parameter:", x$q, "\n")
-    cat("Bootstrap replicates:", x$nboot, "\n")
-    cat("Method:", x$method, "\n")
-    cat("Confidence level:", 100*x$ci_level, "%\n\n")
-    cat(sprintf("Point estimate:  %.4f nats\n", x$estimate))
-    cat(sprintf("95%% CI:          [%.4f, %.4f] nats\n", x$lower_ci, x$upper_ci))
-    cat(sprintf("CI width:        %.4f nats\n\n", x$upper_ci - x$lower_ci))
-    
-    # Interpretation
-    if (x$upper_ci < 0.025) {
-        interp <- "Negligible divergence"
-    } else if (x$upper_ci < 0.25) {
-        interp <- "Small divergence"
-    } else if (x$upper_ci < 0.75) {
-        interp <- "Moderate divergence"
-    } else if (x$upper_ci < 2.0) {
-        interp <- "Large divergence"
-    } else {
-        interp <- "Very large divergence"
-    }
-    
-    cat("Interpretation:", interp, "\n")
-    cat("We are", 100*x$ci_level, "% confident the true divergence\n")
-    cat("lies in the above range.\n\n")
-    
-    invisible(x)
+    # Return invisibly without printing anything
+    # Suppress any side effects that might escape
+    suppressMessages(suppressWarnings(invisible(x)))
 }
 
 #' Summary method for divergence bootstrap CI results
@@ -1869,16 +1861,18 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 #' @noRd
 #' @method summary tsenat_divergence_bootstrap_ci
 summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
-    cat("\n=== Summary of Divergence Bootstrap ===\n")
-    cat("Bootstrap distribution:\n")
-    cat("  Mean:", round(mean(object$bootstrap_dist), 4), "\n")
-    cat("  Median:", round(stats::median(object$bootstrap_dist), 4), "\n")
-    cat("  SD:", round(stats::sd(object$bootstrap_dist), 4), "\n")
-    cat("  Min:", round(min(object$bootstrap_dist, na.rm=TRUE), 4), "\n")
-    cat("  Max:", round(max(object$bootstrap_dist, na.rm=TRUE), 4), "\n")
+    message("")
+    message("=== Summary of Divergence Bootstrap ===")
+    message("Bootstrap distribution:")
+    message("  Mean:", round(mean(object$bootstrap_dist), 4))
+    message("  Median:", round(stats::median(object$bootstrap_dist), 4))
+    message("  SD:", round(stats::sd(object$bootstrap_dist), 4))
+    message("  Min:", round(min(object$bootstrap_dist, na.rm=TRUE), 4))
+    message("  Max:", round(max(object$bootstrap_dist, na.rm=TRUE), 4))
     
     # Diagnostics section
-    cat("\nDiagnostics:\n")
+    message("")
+    message("Diagnostics:")
     
     # Simple skewness calculation
     m <- mean(object$bootstrap_dist)
@@ -1886,24 +1880,25 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     if (s > 0) {
         n <- length(object$bootstrap_dist)
         skew <- (sum((object$bootstrap_dist - m)^3) / n) / s^3
-        cat("  Skewness:", round(skew, 4), "\n")
+        message("  Skewness:", round(skew, 4))
     } else {
-        cat("  Skewness: N/A (no variation)\n")
+        message("  Skewness: N/A (no variation)")
     }
     
     # Effective sample size (ESS) - simplified as ratio of bootstrap replicates with unique values
     n_unique <- length(unique(round(object$bootstrap_dist, 6)))
     n_total <- length(object$bootstrap_dist)
     ess <- (n_unique / n_total) * 100
-    cat("  Effective sample size:", round(ess, 1), "%\n")
+    message("  Effective sample size:", round(ess, 1), "%")
     
-    cat("\nStability metrics:\n")
-    cat("  CI width to estimate ratio:", 
-        round((object$upper_ci - object$lower_ci) / pmax(object$estimate, 0.01), 2), "\n")
+    message("")
+    message("Stability metrics:")
+    message(paste0("  CI width to estimate ratio: ", 
+        round((object$upper_ci - object$lower_ci) / pmax(object$estimate, 0.01), 2)))
     
     # Check for multimodality (simple approximation)
     modes <- length(unique(round(object$bootstrap_dist, 3)))
-    cat("  Unique rounded values:", modes, "\n")
+    message(paste0("  Unique rounded values: ", modes))
     
     invisible(object)
 }

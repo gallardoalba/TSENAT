@@ -117,8 +117,17 @@ plot_method_concordance <- function(comparison_df) {
     rel_heights = c(0.15, 1)
   )
   
-  # Convert to grob to ensure consistent return type
+  # Convert to grob and return invisibly
+  # The plot will render when print() is called on it
   gridExtra::arrangeGrob(final_plot)
+}
+
+#' @exportS3Method base::print gtable
+#' @keywords internal
+#' @noRd
+print.gtable <- function(x, ...) {
+  grid::grid.draw(x)
+  invisible(x)
 }
 
 

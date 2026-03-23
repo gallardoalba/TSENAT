@@ -4,7 +4,7 @@
 \alias{calculate_diversity_s4}
 \title{Calculate diversity and store in TSENATAnalysis}
 \usage{
-calculate_diversity_s4(analysis, q = NULL, ...)
+calculate_diversity_s4(analysis, q = NULL, output_file = NULL, ...)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}

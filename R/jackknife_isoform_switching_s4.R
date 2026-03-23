@@ -172,7 +172,7 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose) {
-      cat("[jackknife_isoform_switching_s4] Auto-detected condition_col =", condition_col, "\n")
+      message(paste0("[jackknife_isoform_switching_s4] Auto-detected condition_col = ", condition_col))
     }
   }
   
@@ -221,7 +221,7 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose) {
-      cat("[jackknife_isoform_switching_s4] Using gene_col =", gene_col, "\n")
+      message(paste0("[jackknife_isoform_switching_s4] Using gene_col = ", gene_col))
     }
   }
   
@@ -248,7 +248,7 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose) {
-      cat("[jackknife_isoform_switching_s4] Using isoform_col =", isoform_col, "\n")
+      message(paste0("[jackknife_isoform_switching_s4] Using isoform_col = ", isoform_col))
     }
   }
   
@@ -260,7 +260,7 @@ jackknife_isoform_switching_s4 <- function(
     if ("lm_interaction" %in% names(analysis@lm_results)) {
       lm_results <- analysis@lm_results$lm_interaction
       if (verbose) {
-        cat("[jackknife_isoform_switching_s4] Using LM interaction results from @lm_results\n")
+        message("[jackknife_isoform_switching_s4] Using LM interaction results from @lm_results")
       }
     }
   }
@@ -292,8 +292,23 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose && length(missing_q) == 0) {
-      cat("[jackknife_isoform_switching_s4] All requested q-values available in diversity results\n")
+      message("[jackknife_isoform_switching_s4] All requested q-values available in diversity results")
     }
+  }
+
+  # =========================================================================
+  # VALIDATE n_bootstrap PARAMETER
+  # =========================================================================
+  if (!is.numeric(n_bootstrap) || length(n_bootstrap) != 1 || n_bootstrap < 1) {
+    stop("'n_bootstrap' must be a positive integer", call. = FALSE)
+  }
+  
+  if (n_bootstrap < 50) {
+    warning(
+      "n_bootstrap = ", n_bootstrap, " is less than the recommended minimum of 50. ",
+      "Results may be unreliable. Consider increasing to at least 50-100 for stable estimates.",
+      call. = FALSE
+    )
   }
   
   # =========================================================================
@@ -336,8 +351,10 @@ jackknife_isoform_switching_s4 <- function(
     for (q_key in names(result)) {
       analysis@jackknife_results[[q_key]] <- result[[q_key]]
     }
+    # Also store the entire multi-q result object for plotting function access
+    analysis@jackknife_results[["multi_q"]] <- result
     if (verbose) {
-      cat("[jackknife_isoform_switching_s4] Stored multi-q result with keys:", paste(names(result), collapse = ", "), "\n")
+      message(paste0("[jackknife_isoform_switching_s4] Stored multi-q result with keys: ", paste(names(result), collapse = ", ")))
     }
   } else {
     # Store results for each q-value (vectorized - no explicit loop)
@@ -361,7 +378,7 @@ jackknife_isoform_switching_s4 <- function(
       }
       
       if (verbose) {
-        cat("[jackknife_isoform_switching_s4] Stored results for", q_key, "\n")
+        message(paste0("[jackknife_isoform_switching_s4] Stored results for ", q_key))
       }
     }
   }

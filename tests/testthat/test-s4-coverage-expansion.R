@@ -108,18 +108,15 @@ test_that("TSENATAnalysis: se slot contains valid SummarizedExperiment", {
 test_that("show: TSENATAnalysis displays basic info", {
   analysis <- create_test_analysis()
   
-  output <- capture.output(show(analysis))
-  expect_true(length(output) > 0)
+  # show() uses message() for output
+  expect_message(show(analysis), "TSENATAnalysis")
 })
 
 test_that("show: TSENATAnalysis shows sample count", {
   analysis <- create_test_analysis()
   
-  output <- capture.output(show(analysis))
-  output_str <- paste(output, collapse = " ")
-  
-  # Should reference samples or dimensions
-  expect_true(length(output) > 0)
+  # show() uses message() for output
+  expect_message(show(analysis), "Samples")
 })
 
 test_that("show: TSENATAnalysis displays with mock results", {
@@ -129,8 +126,8 @@ test_that("show: TSENATAnalysis displays with mock results", {
   analysis@diversity_results <- list(mock_result = "test")
   analysis@plots <- list(mock_plot = "test")
   
-  output <- capture.output(show(analysis))
-  expect_true(length(output) > 0)
+  # show() uses message() for output
+  expect_message(show(analysis), "TSENATAnalysis")
 })
 
 # ============================================================================
@@ -249,8 +246,8 @@ test_that("summary: callable on TSENATAnalysis object", {
 test_that("show: displays empty analysis clean", {
   analysis <- create_test_analysis()
   
-  output <- capture.output(show(analysis))
-  expect_true(length(output) > 0)
+  # show() uses message() for output
+  expect_message(show(analysis), "TSENATAnalysis")
 })
 
 test_that("show: displays analysis with diversity_combined in metadata", {
@@ -264,8 +261,8 @@ test_that("show: displays analysis with diversity_combined in metadata", {
     )
   )
   
-  output <- capture.output(show(analysis))
-  expect_true(length(output) > 0)
+  # show() uses message() for output
+  expect_message(show(analysis), "TSENATAnalysis")
 })
 
 test_that("show: displays analysis with all result types populated", {
@@ -291,8 +288,8 @@ test_that("show: displays analysis with all result types populated", {
     analysis_description = "Test analysis with all results"
   )
   
-  output <- capture.output(show(analysis))
-  expect_true(length(output) > 0)
+  # show() uses message() for output
+  expect_message(show(analysis), "TSENATAnalysis")
 })
 
 # ============================================================================

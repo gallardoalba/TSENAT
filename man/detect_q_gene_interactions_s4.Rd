@@ -4,7 +4,7 @@
 \alias{detect_q_gene_interactions_s4}
 \title{Detect q-dependent gene interactions}
 \usage{
-detect_q_gene_interactions_s4(analysis, q = NULL, ...)
+detect_q_gene_interactions_s4(analysis, q = NULL, output_file = NULL, ...)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}

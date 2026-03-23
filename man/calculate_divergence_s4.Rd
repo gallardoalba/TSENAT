@@ -4,7 +4,13 @@
 \alias{calculate_divergence_s4}
 \title{Calculate divergence metrics and store in TSENATAnalysis}
 \usage{
-calculate_divergence_s4(analysis, q = NULL, verbose = TRUE, ...)
+calculate_divergence_s4(
+  analysis,
+  q = NULL,
+  verbose = TRUE,
+  output_file = NULL,
+  ...
+)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}

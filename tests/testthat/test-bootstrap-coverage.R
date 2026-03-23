@@ -13,6 +13,11 @@
 # Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
 options(TSENAT.suppress_nboot_warning = TRUE)
 
+# Redirect all output to null device to silence tests completely
+.null_file <- file(if (.Platform$OS.type == "windows") "nul" else "/dev/null", open = "w")
+sink(.null_file, type = "output")
+sink(.null_file, type = "message")
+
 test_that("calculate_tsallis_entropy_bootstrap with matrix input and nthreads > 1", {
   # Test parallel processing with multiple genes
   set.seed(123)
@@ -673,3 +678,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
   expect_true(!is.null(result_e))
   expect_true(!is.null(result_2))
 })
+
+# Restore normal output handling
+tryCatch(sink(type = "output"), error = function(e) NULL)  # Restore output
+tryCatch(sink(type = "message"), error = function(e) NULL)  # Restore messages

@@ -92,7 +92,7 @@
 #' @export
 m_estimate_s4 <- function(
     analysis,
-    samples = NULL,
+    condition_col = NULL,
     loss_type = "huber",
     scale = NULL,
     max_iter = 50,
@@ -102,6 +102,7 @@ m_estimate_s4 <- function(
     q_combine_method = "mean",
     influence_threshold = 0.75,
     scale_method = "mad",
+    output_file = NULL,
     verbose = TRUE) {
 
   # Validate input
@@ -121,29 +122,29 @@ m_estimate_s4 <- function(
          call. = FALSE)
   }
 
-  # Auto-detect samples column if not provided
-  if (is.null(samples)) {
+  # Auto-detect condition_col if not provided
+  if (is.null(condition_col)) {
     if ("condition_col" %in% names(analysis@config)) {
-      samples <- analysis@config$condition_col
-      if (is.null(samples) || !is.character(samples) || samples == "") {
+      condition_col <- analysis@config$condition_col
+      if (is.null(condition_col) || !is.character(condition_col) || condition_col == "") {
         stop("@config$condition_col must be a non-empty character value",
              call. = FALSE)
       }
       if (verbose) {
-        cat("Auto-detected 'samples' column from config:", samples, "\n")
+        message(paste0("Auto-detected 'condition_col' from config: ", condition_col))
       }
     } else {
       cd_cols <- colnames(SummarizedExperiment::colData(analysis@diversity_results[[1]]))
       stop(
         "Sample grouping column not specified:\n",
         "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-        "SOLUTION: Set @config$condition_col or pass 'samples' parameter\n",
+        "SOLUTION: Set @config$condition_col or pass 'condition_col' parameter\n",
         "  Example: analysis@config$condition_col <- 'sample_type'\n",
-        "  Or:      m_estimate_s4(analysis, samples = 'sample_type')\n",
+        "  Or:      m_estimate_s4(analysis, condition_col = 'sample_type')\n",
         call. = FALSE)
     }
-  } else if (!is.character(samples) || length(samples) != 1) {
-    stop("'samples' must be a single character value", call. = FALSE)
+  } else if (!is.character(condition_col) || length(condition_col) != 1) {
+    stop("'condition_col' must be a single character value", call. = FALSE)
   }
 
   # Auto-detect paired parameter from @config if not explicitly provided
@@ -153,7 +154,7 @@ m_estimate_s4 <- function(
       if (is.logical(config_paired) && length(config_paired) == 1) {
         paired <- config_paired
         if (verbose && config_paired) {
-          cat("Auto-detected 'paired' design from config: paired =", paired, "\n")
+          message(paste0("Auto-detected 'paired' design from config: paired = ", paired))
         }
       } else {
         paired <- FALSE
@@ -172,21 +173,21 @@ m_estimate_s4 <- function(
     stop("Diversity SummarizedExperiment is empty", call. = FALSE)
   }
 
-  # Verify samples column exists
+  # Verify condition_col exists
   sample_info <- SummarizedExperiment::colData(diversity_se)
-  if (!(samples %in% colnames(sample_info))) {
+  if (!(condition_col %in% colnames(sample_info))) {
     stop(
-      "Column '", samples, "' not found in sample metadata.\n",
+      "Column '", condition_col, "' not found in sample metadata.\n",
       "Available columns: ", paste(colnames(sample_info), collapse = ", "), "\n\n",
       "SOLUTION: Use a valid column name\n",
-      "  Example: m_estimate_s4(analysis, samples = 'sample_type')\n",
+      "  Example: m_estimate_s4(analysis, condition_col = 'sample_type')\n",
       call. = FALSE)
   }
 
   # Combine all q-value diversity results into a single matrix
   # (m_estimate needs all diversity data in one SE)
   if (verbose) {
-    cat("Combining", length(analysis@diversity_results), "q-value diversity results...\n")
+    message(paste0("Combining ", length(analysis@diversity_results), " q-value diversity results..."))
   }
 
   first_se <- analysis@diversity_results[[1]]
@@ -217,13 +218,13 @@ m_estimate_s4 <- function(
 
   # Run m_estimate
   if (verbose) {
-    cat("Running M-estimation on combined diversity...\n")
+    message("Running M-estimation on combined diversity...")
   }
 
   m_est_results <- tryCatch({
-    m_estimate(
+    result <- m_estimate(
       x = combined_se,
-      samples = samples,
+      samples = condition_col,
       loss_type = loss_type,
       scale = scale,
       max_iter = max_iter,
@@ -234,21 +235,80 @@ m_estimate_s4 <- function(
       influence_threshold = influence_threshold,
       scale_method = scale_method
     )
+    result
   }, error = function(e) {
+    # Get full error information
+    message("\n========== FULL ERROR DETAILS ==========")
+    message(paste0("Error message: ", e$message))
+    message(paste0("Error class: ", class(e)))
+    
+    # Try to get the call stack
+    if (exists(".Internal")) {
+      try({
+        sys.calls_all <- sys.calls()
+        message("\nCall stack (last 10):")
+        for (i in max(1, length(sys.calls_all)-9):length(sys.calls_all)) {
+          message(paste0("[", i, "] ", deparse(sys.calls_all[[i]])[1]))
+        }
+      })
+    }
+    message("========================================\n")
+    
     stop("Error in M-estimation:\n", e$message, call. = FALSE)
   })
 
   # Store results in metadata
   analysis@metadata$m_estimate_results <- m_est_results
 
+  # Save to output file if provided
+  if (!is.null(output_file)) {
+    if (!is.character(output_file) || length(output_file) != 1) {
+      stop("'output_file' must be a character string (file path)", call. = FALSE)
+    }
+    
+    # Create output directory if needed
+    output_dir <- dirname(output_file)
+    if (output_dir != "." && !dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    
+    # Prepare results table for export
+    # Extract influence scores and dfbeta values
+    if (!is.null(m_est_results$influence_scores)) {
+      results_df <- data.frame(
+        Gene = rownames(m_est_results$influence_scores),
+        Influence_Score = m_est_results$influence_scores[, 1],
+        stringsAsFactors = FALSE
+      )
+      
+      # Add dfbeta values if available
+      if (!is.null(m_est_results$dfbeta)) {
+        results_df <- cbind(results_df, m_est_results$dfbeta)
+      }
+      
+      # Write to TSV
+      utils::write.table(
+        results_df,
+        file = output_file,
+        sep = "\t",
+        quote = FALSE,
+        row.names = FALSE
+      )
+      
+      if (verbose) {
+        message(paste0("M-estimation results saved to: ", output_file))
+      }
+    }
+  }
+
   # Track function call
   analysis@metadata$function_calls <- c(
     analysis@metadata$function_calls,
-    paste0("m_estimate_s4[samples=", samples, ",loss_type=", loss_type, "]")
+    paste0("m_estimate_s4[condition_col=", condition_col, ",loss_type=", loss_type, "]")
   )
 
   if (verbose) {
-    cat("M-estimation complete. Results stored in @metadata$m_estimate_results\n")
+    message("M-estimation complete. Results stored in @metadata$m_estimate_results")
   }
 
   invisible(analysis)

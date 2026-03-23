@@ -14,6 +14,7 @@ plot_volcano_ma_grid_s4(
   title_volcano = NULL,
   title_ma = "Tsallis-based MA plot",
   verbose = FALSE,
+  output_file = NULL,
   ...
 )
 }

@@ -266,47 +266,47 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
 #' @keywords internal
 #' @noRd
 print.rank_assumptions <- function(x, ...) {
-  cat("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)\n")
-  cat(paste(rep("=", 60), collapse = ""), "\n\n")
+  message("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)")
+  message(paste(rep("=", 60), collapse = ""))
   
   # Get checks from attribute
   check_results <- attr(x, "checks")
   if (!is.null(check_results)) {
     for (check_name in names(check_results)) {
       check <- check_results[[check_name]]
-      cat(sprintf("Test: %s\n", check_name))
-      cat(sprintf("  Description: %s\n", check$description))
+      message(sprintf("Test: %s", check_name))
+      message(sprintf("  Description: %s", check$description))
       
       if (!is.null(check$method)) {
-        cat(sprintf("  Method: %s\n", check$method))
+        message(sprintf("  Method: %s", check$method))
       }
       
       if (!is.null(check$status)) {
-        cat(sprintf("  Status: %s\n", check$status))
+        message(sprintf("  Status: %s", check$status))
       }
       
       if (!is.null(check$details)) {
-        cat(sprintf("  Details: %s\n", check$details))
+        message(sprintf("  Details: %s", check$details))
       }
       
       if (!is.null(check$p_value)) {
-        cat(sprintf("  P-value: %.4f\n", check$p_value))
+        message(sprintf("  P-value: %.4f", check$p_value))
       }
       
       if (!is.null(check$mean_correlation)) {
-        cat(sprintf("  Mean Spearman r: %.4f\n", check$mean_correlation))
+        message(sprintf("  Mean Spearman r: %.4f", check$mean_correlation))
       }
       
       if (!is.null(check$kendall_w)) {
-        cat(sprintf("  Kendall's W: %.4f\n", check$kendall_w))
+        message(sprintf("  Kendall's W: %.4f", check$kendall_w))
       }
       
-      cat("\n")
+      message("")
     }
   }
   
-  cat(x$overall_summary, "\n")
-  cat("Note: Use attr(result, 'checks') for detailed numeric results\n")
+  message(x$overall_summary)
+  message("Note: Use attr(result, 'checks') for detailed numeric results")
   invisible(x)
 }
 
@@ -624,25 +624,25 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
 #' @keywords internal
 #' @noRd
 print.rank_correlation_ci <- function(x, ...) {
-  cat("RANK CORRELATION CONFIDENCE INTERVALS\n")
-  cat(paste(rep("=", 60), collapse = ""), "\n")
-  cat("Method:", x$method, "\n")
-  cat("Confidence Level:", paste0(x$ci_level * 100, "%"), "\n\n")
+  message("RANK CORRELATION CONFIDENCE INTERVALS")
+  message(paste(rep("=", 60), collapse = ""))
+  message(paste0("Method:", x$method))
+  message(paste0("Confidence Level:", paste0(x$ci_level * 100, "%")))
   
-  cat("CORRELATION MATRIX\n")
-  cat(paste(rep("-", 60), collapse = ""), "\n")
+  message("CORRELATION MATRIX")
+  message(paste(rep("-", 60), collapse = ""))
   print(round(x$correlation_matrix, 4))
   
-  cat("\n\nINTERPRETATION SUMMARY\n")
-  cat(paste(rep("-", 60), collapse = ""), "\n")
+  message("\n\nINTERPRETATION SUMMARY")
+  message(paste(rep("-", 60), collapse = ""))
   print(x$interpretation, row.names = FALSE)
   
-  cat("\n\nGUIDELINES FOR INTERPRETATION:\n")
-  cat("- Very stable (r > 0.85): Genes rank consistently across all q-values\n")
-  cat("- Robust (r > 0.70): Stable ranking; minor q-value effects\n")
-  cat("- Moderate (r > 0.50): Noticeable changes; q-value effects important\n")
-  cat("- Weak (r <= 0.50): Results highly q-value dependent\n")
-  cat("- Variable (includes 0): No stable ranking; q-values give different results\n")
+  message("\n\nGUIDELINES FOR INTERPRETATION:")
+  message("- Very stable (r > 0.85): Genes rank consistently across all q-values")
+  message("- Robust (r > 0.70): Stable ranking; minor q-value effects")
+  message("- Moderate (r > 0.50): Noticeable changes; q-value effects important")
+  message("- Weak (r <= 0.50): Results highly q-value dependent")
+  message("- Variable (includes 0): No stable ranking; q-values give different results")
   
   invisible(x)
 }
@@ -1305,7 +1305,7 @@ detect_q_gene_interactions <- function(
   
   if (is.character(wy_randomizations) && tolower(wy_randomizations) == "auto") {
     if (verbose) {
-      cat("Estimating optimal permutations using estimate_nperm()...\n")
+      message("Estimating optimal permutations using estimate_nperm()...")
     }
     wy_randomizations <- estimate_nperm(
       data = data,
@@ -1315,7 +1315,7 @@ detect_q_gene_interactions <- function(
       mode = nperm_mode
     )
     if (verbose) {
-      cat(sprintf("  Estimated %d permutations (mode='%s')\n", wy_randomizations, nperm_mode))
+      message(sprintf("  Estimated %d permutations (mode='%s')", wy_randomizations, nperm_mode))
     }
   } else if (is.null(wy_randomizations)) {
     wy_randomizations <- 500
@@ -1341,7 +1341,7 @@ detect_q_gene_interactions <- function(
   
   # Handle SummarizedExperiment input: convert to long-format data frame
   if (methods::is(data, "SummarizedExperiment")) {
-    if (verbose) cat("Converting SummarizedExperiment to long-format data frame...\n")
+    if (verbose) message("Converting SummarizedExperiment to long-format data frame...")
     
     # FIXED: Use assays() (plural) to get first assay if multiple exist
     # assay() alone would fail if there are multiple assays
@@ -1387,8 +1387,8 @@ detect_q_gene_interactions <- function(
     q_col <- "q"
     gene_col <- "gene"
     
-    if (verbose) cat("Conversion complete:", nrow(data), "observations from", n_genes, "genes\n")
-    if (paired && verbose) cat("Paired design detected with subject blocking:", subject_col, "\n")
+    if (verbose) message(paste0("Conversion complete:", nrow(data), "observations from", n_genes, "genes"))
+    if (paired && verbose) message(paste0("Paired design detected with subject blocking:", subject_col))
   }
   
   # Ensure proper column names in input data

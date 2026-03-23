@@ -112,10 +112,23 @@ test_that("calculate_diversity errors when genes length mismatches rows", {
     colnames(x) <- c("S1", "S2")
 })
 
-test_that("calculate_diversity errors for invalid q values (<=0)", {
+test_that("calculate_diversity rejects negative q values", {
     x <- matrix(1:6, ncol = 2)
     genes <- c("g1", "g1", "g2")
-    expect_error(calculate_diversity(x, genes, q = 0), "Argument 'q' must be numeric and greater than 0")
+    expect_error(calculate_diversity(x, genes, q = -0.5), "must be numeric and >= 0")
+    # But q=0 should work (species richness)
+    result <- calculate_diversity(x, genes, q = 0)
+    expect_s4_class(result, "SummarizedExperiment")
+})
+
+test_that("calculate_diversity q=0 species richness", {
+    x <- matrix(c(1, 0, 2, 1, 0, 3), ncol = 2)
+    genes <- c("g1", "g1", "g2")
+    result <- calculate_diversity(x, genes, q = 0)
+    expect_s4_class(result, "SummarizedExperiment")
+    # With aggregation by gene, should have 2 rows (g1, g2)
+    # If not aggregated, should have 3 rows from original matrix
+    expect_true(nrow(result) >= 1)
 })
 
 test_that("calculate_diversity returns hill numbers when what='D'", {
@@ -192,9 +205,13 @@ test_that("calculate_tsallis_entropy computes correct q=1 Shannon entropy", {
     expect_true(abs(result - expected) < 0.5)
 })
 
-test_that("calculate_tsallis_entropy requires q > 0", {
+test_that("calculate_tsallis_entropy supports q >= 0", {
     counts <- c(10, 20, 0, 15)
-    expect_error(calculate_tsallis_entropy(counts, q = 0))
+    # q=0 should work (species richness)
+    result_q0 <- calculate_tsallis_entropy(counts, q = 0)
+    expect_true(is.numeric(result_q0))
+    expect_true(!is.na(result_q0))
+    expect_true(result_q0 > 0)  # Species richness should be > 0 if any species present
 })
 
 test_that("calculate_tsallis_entropy handles uniform distribution", {
@@ -260,10 +277,14 @@ test_that("calculate_tsallis_entropy handles zero-sum and q=1 correctly", {
     expect_equal(as.numeric(D1), expected_D1)
 })
 
-test_that("calculate_diversity rejects non-positive q", {
+test_that("calculate_diversity accepts q >= 0 (including q=0 for species richness)", {
     mat <- matrix(1, nrow = 3, ncol = 2)
     genes <- letters[1:3]
-    expect_error(calculate_diversity(mat, genes = genes, q = 0), "q")
+    # q=0 should work (species richness = number of non-zero species)
+    result <- calculate_diversity(mat, genes = genes, q = 0)
+    expect_s4_class(result, "SummarizedExperiment")
+    # Result should have diversity values (species richness for each sample)
+    expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
 })
 
 test_that("calculate_diversity returns correct Tsallis entropy for vector q", {

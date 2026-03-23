@@ -345,10 +345,10 @@ analysis <- build_analysis(
 analysis <- setConfig(analysis, list(
   condition_col = "sample_type",
   subject_col = "paired_samples",
-  q_values = seq(0.01, 2, by = 0.05),
+  q_values = seq(0, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
-  control = "control",
+  control = "normal",
   metadata = metadata_df
 ))
 
@@ -414,55 +414,60 @@ Now we will compute Tsallis entropy.
 
 ```{r tsallis-calc-sequence}
 # Compute Tsallis entropy for a sequence of q values using S4 wrapper
-qvec <- seq(0.11, 2, by = 0.05)
+
 
 # Compute diversity using S4 wrapper
 analysis <- calculate_diversity_s4(
     analysis,
-    q = qvec, 
     norm = TRUE,
-    verbose = FALSE
+    output_file = file.path("output", "diversity_results.tsv")
 )
 ```
 
 ```{r kable-tsallis-calc-sequence, echo = FALSE}
-# Extract diversity results using S4 accessor method
-div_results <- diversity(analysis)
+# Extract diversity results for three specific q values using the diversity() accessor
+# Show entropy values for ONE sample across three q values (0, 1, 2)
 
-# Get diversity data from results - handle both matrix and SE formats
-if (is.list(div_results) && length(div_results) > 0) {
-    # Extract first few q-values
-    q_names <- names(div_results)
+q_values_to_show <- c(0, 1, 2)
+sample_data <- NULL
+first_sample_name <- NULL
+
+for (q_val in q_values_to_show) {
+    div_q <- diversity(analysis, q = q_val)
     
-    if (length(q_names) > 0) {
-        obj <- div_results[[q_names[1]]]
-        
-        # Handle SummarizedExperiment or matrix format
-        if (is(obj, "SummarizedExperiment")) {
-            mat <- assay(obj)
-        } else if (is.matrix(obj)) {
-            mat <- obj
+    if (!is.null(div_q)) {
+        # Extract matrix from SummarizedExperiment
+        if (is(div_q, "SummarizedExperiment")) {
+            mat <- assay(div_q)
+        } else if (is.matrix(div_q)) {
+            mat <- div_q
         } else {
-            mat <- NULL
+            next
         }
         
-        if (!is.null(mat) && nrow(mat) > 0) {
-            # Get first 4 genes and first 3 samples
-            table_data <- mat[1:min(4, nrow(mat)), 1:min(3, ncol(mat)), drop = FALSE]
-            
-            # Convert to data frame for kable
-            table_df <- as.data.frame(table_data)
-            table_df$Gene <- rownames(table_data)
-            table_df <- table_df[, c(ncol(table_df), 1:(ncol(table_df)-1))]
-            
-            knitr::kable(
-                table_df,
-                caption = "Tsallis entropy for first 4 genes and 3 samples (q=0.11)",
-                digits = 5,
-                row.names = FALSE
-            )
+        # Get first 4 genes and first sample only
+        first_sample_idx <- 1
+        first_sample_name <- colnames(mat)[first_sample_idx]
+        mat_subset <- mat[1:min(4, nrow(mat)), first_sample_idx, drop = FALSE]
+        
+        # Add values for this q with descriptive column names
+        if (is.null(sample_data)) {
+            sample_data <- data.frame(Gene = rownames(mat_subset))
         }
+        
+        col_name <- paste0("q=", sprintf("%.1f", q_val))
+        sample_data[[col_name]] <- as.numeric(mat_subset)
     }
+}
+
+if (!is.null(sample_data) && nrow(sample_data) > 0) {
+    knitr::kable(
+        sample_data,
+        caption = paste0("Tsallis entropy for first 4 genes across three diversity scales (sample: ", 
+                         first_sample_name, ")"),
+        digits = 5,
+        row.names = FALSE
+    )
 }
 ```
 
@@ -493,35 +498,30 @@ Samples with high influence scores exert disproportionate leverage on entropy es
 
 ```{r qc-sample-check-multiQ, echo=TRUE}
 # Perform multi-q sample influence analysis via S4 wrapper
-# m_estimate_s4 automatically:
-# - Extracts diversity results from @diversity_results
-# - Combines all q-values for robust M-estimation
-# - Performs leave-one-out sample influence assessment
-# - Stores results in @metadata$m_estimate_results
+# m_estimate_s4 uses condition_col from @config set earlier
+
+cat("DEBUG: About to call m_estimate_s4\n")
+cat("DEBUG: condition_col in config:", analysis@config$condition_col, "\n")
+cat("DEBUG: condition_col class:", class(analysis@config$condition_col), "\n")
 
 tryCatch({
-  # Use S4 wrapper - explicitly specify paired design to ensure proper paired analysis
   analysis <- m_estimate_s4(
-    analysis,
-    loss_type = "huber",
-    q_combine_method = "mean",
-    influence_threshold = 0.75,
-    paired = TRUE,
-    verbose = TRUE
+      analysis,
+      loss_type = "huber",
+      q_combine_method = "mean",
+      influence_threshold = 0.75,
+      output_file = "output/m_estimate_results.tsv"
   )
-  
-  # Extract results from metadata using accessor function
-  sample_qc <- metadata(analysis, "m_estimate_results")
-  
-  cat("Sample QC assessment completed\n")
-  cat("Total samples:", nrow(sample_qc), "\n")
-  cat("QC status:\n")
-  print(table(sample_qc$Status))
-  
+  cat("DEBUG: m_estimate_s4 completed successfully\n")
 }, error = function(e) {
-  cat("Error in m_estimate analysis:\n", conditionMessage(e), "\n")
-  cat("Skipping sample QC assessment...\n")
+  cat("ERROR in m_estimate_s4:", e$message, "\n")
+  stop(e)
 })
+
+# Extract results from metadata using accessor function
+cat("DEBUG: About to extract metadata\n")
+sample_qc <- metadata(analysis, "m_estimate_results")
+cat("DEBUG: Metadata extracted successfully\n")
 ```
 
 ```{r qc-sample-display, echo=FALSE, results="asis"}
@@ -555,10 +555,23 @@ if (exists("sample_qc") && !is.null(sample_qc) && nrow(sample_qc) > 0) {
   qc_table$Genes_Affected <- round(qc_table$Genes_Affected, 1)
   qc_table$Distance_from_Centroid <- round(qc_table$Distance_from_Centroid, 4)
 
+  # Create nice column headers
+  col_headers <- c(
+    "Sample" = "Sample",
+    "Condition" = "Condition",
+    "Pair" = "Pair ID",
+    "Proportion_Affected" = "Prop. Affected",
+    "Genes_Affected" = "Genes Affected",
+    "Distance_from_Centroid" = "Distance from Centroid",
+    "Status" = "Status"
+  )
+  display_headers <- col_headers[colnames(qc_table)]
+
   # Display as formatted table with automatic width and alignment
   knitr::kable(
       qc_table,
       caption = "Sample Influence Assessment via M-estimation",
+      col.names = display_headers,
       digits = 4,
       row.names = FALSE,
       align = c("l", rep("c", ncol(qc_table) - 1))
@@ -619,9 +632,9 @@ if (requireNamespace("mgcv", quietly = TRUE)) {
     analysis <- calculate_lm_interaction_s4(
         analysis,
         method = "gam",
-        paired = TRUE,
         multicorr = "hochberg",
-        nthreads = 3
+        nthreads = 2,
+        output_file = file.path("output", "lm_interaction_results.tsv")
     )
 }
 ```
@@ -644,22 +657,37 @@ if (!is.null(lm_all) && "lm_interaction" %in% names(lm_all)) {
 }
 
 if (nrow(lm_res_display) > 0) {
-    # Select only key columns that exist in the data
-    col_select <- intersect(c("gene", "p_interaction", "adj_p_interaction"), 
+    # Select columns: gene, test statistic, effect size, and p-values
+    col_select <- intersect(c("gene", "test_statistic", "effect_size", "p_interaction", "adj_p_interaction"), 
                             colnames(lm_res_display))
     lm_res_display <- lm_res_display[, col_select, drop = FALSE]
     
-    # Format p-values in scientific notation
+    # Format numeric columns
+    if ("test_statistic" %in% colnames(lm_res_display)) {
+        lm_res_display$test_statistic <- round(as.numeric(lm_res_display$test_statistic), 3)
+    }
+    if ("effect_size" %in% colnames(lm_res_display)) {
+        lm_res_display$effect_size <- round(as.numeric(lm_res_display$effect_size), 4)
+    }
     if ("p_interaction" %in% colnames(lm_res_display)) {
-        lm_res_display$p_interaction <- format(lm_res_display$p_interaction, scientific = TRUE, digits = 3)
+        lm_res_display$p_interaction <- format(as.numeric(lm_res_display$p_interaction), scientific = TRUE, digits = 3)
     }
     if ("adj_p_interaction" %in% colnames(lm_res_display)) {
-        lm_res_display$adj_p_interaction <- format(lm_res_display$adj_p_interaction, scientific = TRUE, digits = 3)
+        lm_res_display$adj_p_interaction <- format(as.numeric(lm_res_display$adj_p_interaction), scientific = TRUE, digits = 3)
     }
+
+    # Create nice column headers
+    col_headers <- c("gene" = "Gene", 
+                     "effect_size" = "Effect Size",
+                     "test_statistic" = "Test Statistic",
+                     "p_interaction" = "P-value",
+                     "adj_p_interaction" = "Adj. P-value")
+    display_headers <- col_headers[colnames(lm_res_display)]
 
     knitr::kable(
         lm_res_display,
         caption = "Top q-interaction results from GAM analysis with Hochberg correction",
+        col.names = display_headers,
         digits = 5,
         row.names = FALSE
     )
@@ -671,23 +699,12 @@ by the linear-model interaction test.
 
 ```{r top-gene-qprofile, fig.width=14, fig.height=12}
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
-# Uses condition_col from @config
-# Only plot if LM interaction results exist
-lm_exist <- !is.null(tryCatch(
-    lmResults(analysis, component = "lm_interaction"), 
-    error = function(e) NULL
-))
-
-if (lm_exist) {
-    combined_plot <- plot_lm_interaction_gam_s4(
-        analysis,
-        n_top = 4,
-        output_file = file.path("output", "lm_interaction_q_profiles.png")
-    )
-    print(combined_plot)
-} else {
-    cat("Note: LM interaction results not available. Skipping q-profile plot.\n")
-}
+combined_plot <- plot_lm_interaction_gam_s4(
+    analysis,
+    n_top = 4,
+    output_file = file.path("output", "lm_interaction_q_profiles.png")
+)
+print(combined_plot)
 ```
 
 ## Transcript Switching Across Diversity Scales
@@ -699,23 +716,15 @@ bridges the gap between the multi-q LM test and the single-q jackknife
 analysis.
 
 ```{r multi-q-switching-validation, echo=TRUE, results='hide'}
-
 # Multi-Q analysis: Test switching at different q values
-# jackknife_isoform_switching_s4 returns the modified TSENATAnalysis object
-analysis <- tryCatch({
-  jackknife_isoform_switching_s4(
+analysis <- jackknife_isoform_switching_s4(
     analysis,
-    q = c(0.01, 0.50, 1.00, 1.50, 2.00),
+    q = c(0, 0.5, 1, 1.5, 2),
     n_bootstrap = 100,
     lm_p_threshold = 0.05,
     threshold = 90,
     output_file = file.path("output", "jackknife_switching_results.tsv")
-  )
-}, error = function(e) {
-  cat("Note: Jackknife isoform switching computation failed:", conditionMessage(e), "\n")
-  analysis  # Return original analysis if error
-})
-
+)
 ```
 
 The tables below examine how transcript switching patterns vary across different diversity scales (q-values) for the four genes with the strongest q×condition interactions. The delta influence metric quantifies the difference in transcript importance between the two conditions: positive values indicate a transcript is more influential under the first condition, negative values indicate greater importance in the second condition. By comparing these values across q-values (0.01 to 2.0), we identify whether transcript switching is consistent across all scales or scale-dependent. The "Direction Consistency" column classifies each transcript's behavior: "Consistent positive/negative" indicates robust, scale-independent switching; "Mixed directions" indicates scale-dependent switching where the same transcript switches direction depending on the diversity scale analyzed. This analysis reveals whether isoform shifts are driven by the same transcripts across all q-values or whether different q-values emphasize switching in different transcripts.
@@ -723,20 +732,13 @@ The tables below examine how transcript switching patterns vary across different
 
 ```{r multi-q-switching-table, echo=TRUE, results='hide'}
 # Prepare comparison tables for top genes across q-values using S4 accessor
-tables_result <- tryCatch({
-  if (!is.null(jackKnife(analysis)) && length(jackKnife(analysis)) > 0) {
-    prepare_gene_switching_tables_s4(analysis, n_top_genes = 2)
-  } else {
-    NULL
-  }
-}, error = function(e) {
-  cat("Note: Gene switching table preparation failed:", conditionMessage(e), "\n")
-  NULL
-})
+tables_result <- prepare_gene_switching_tables_s4(
+    analysis, 
+    n_top_genes = 2
+)
 ```
 
 ```{r multi-q-switching-display, echo=FALSE, results='asis'}
-
 # Only display tables if tables_result was successfully created
 if (exists("tables_result") && is.list(tables_result) && 
     !is.null(tables_result$gene_headers) && length(tables_result$gene_headers) > 0) {
@@ -781,23 +783,13 @@ scales) and transcripts (columns) for each gene.
 
 ```{r multi-q-heatmap, echo=TRUE, fig.width=24, fig.height=20}
 # Generate multi-Q heatmaps using the S4 wrapper
-if (exists("analysis")) {
-    heatmap_file <- tryCatch({
-        plot_multiq_delta_influence_heatmaps_s4(
-            analysis, 
-            n_genes = 4,
-            output_file = file.path("output", "multiq_delta_influence_heatmaps.png")
-        )
-    }, error = function(e) {
-        cat("Note: Multi-Q heatmap generation skipped:", conditionMessage(e), "\n")
-        NULL
-    })
-    
-    # Display if successfully created and is a valid path
-    if (!is.null(heatmap_file) && is.character(heatmap_file) && nzchar(heatmap_file)) {
-        knitr::include_graphics(heatmap_file)
-    }
-}
+heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(
+    analysis, 
+    n_genes = 4,
+    output_file = file.path("output", "multiq_delta_influence_heatmaps.png")
+)
+
+knitr::include_graphics(heatmap_file)
 ```
 
 Interpretation:
@@ -809,25 +801,15 @@ Interpretation:
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
 ```{r reads-transcripts-median, echo=TRUE, fig.width=26, fig.height=22}
-if (exists("analysis")) {
-    # Generate plot with explicit output file (directory created automatically)
-    plot_file <- tryCatch({
-        plot_top_transcripts_s4(
-            analysis, 
-            top_n = 4, 
-            metric = "median",
-            output_file = file.path("output", "top_transcripts_median.png")
-        )
-    }, error = function(e) {
-        cat("Note: plot_top_transcripts_s4 generation skipped:", conditionMessage(e), "\n")
-        NULL
-    })
-    
-    # Display if successfully created and is a valid path
-    if (!is.null(plot_file) && is.character(plot_file) && nzchar(plot_file) && file.exists(plot_file)) {
-        knitr::include_graphics(plot_file)
-    }
-}
+# Generate plot with explicit output file (directory created automatically)
+plot_file <- plot_top_transcripts_s4(
+    analysis, 
+    top_n = 4, 
+    metric = "median",
+    output_file = file.path("output", "top_transcripts_median.png")
+)
+
+knitr::include_graphics(plot_file)
 ```
 
 ### Effect size analysis
@@ -860,11 +842,11 @@ revealing that isoform complexity patterns (captured by multi-q Tsallis entropy)
 treatment groups across all q-dependent scales.
 
 ```{r effect-size-multiq}
-if (requireNamespace("mgcv", quietly = TRUE) && exists("analysis")) {
+if (exists("analysis")) {
+  # Calculate divergence using q values from config
+  # q_values should be in analysis@config$q_values (set during build_analysis or before)
   analysis <- calculate_divergence_s4(
       analysis, 
-      q = qvec, 
-      paired = TRUE,
       output_file = file.path("output", "divergence_results.tsv")
   )
 }
@@ -905,25 +887,12 @@ if (exists("analysis")) {
 
 ```{r effect-size-merge}
 # Compute effect sizes for divergence results
-# Only if LM results are available
-lm_exist <- !is.null(tryCatch(
-    lmResults(analysis, component = "lm_interaction"), 
-    error = function(e) NULL
-))
-
-if (lm_exist) {
-    analysis <- tryCatch({
-        effect_sizes_divergence_s4(
-            analysis,
-            significance_threshold = 0.05,
-            enrich_per_q_pattern = TRUE,
-            verbose = FALSE
-        )
-    }, error = function(e) {
-        cat("Note: Effect size calculation skipped due to:", conditionMessage(e), "\n")
-        analysis  # Return original analysis
-    })
-}
+analysis <- effect_sizes_divergence_s4(
+    analysis,
+    significance_threshold = 0.05,
+    enrich_per_q_pattern = TRUE,
+    output_file = file.path("output", "effect_sizes_results.tsv")
+)
 ```
 
 ```{r extract-divergence-results, echo=FALSE, results='hide'}
@@ -989,9 +958,9 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
                         # If numeric fallback was used (old format), it would show commas
                     }
                     
-                    # Sort and select top 5
+                    # Sort and select top 10
                     div_df <- div_df[order(div_df$p_adj, na.last = TRUE), ]
-                    div_df <- head(div_df, 5)
+                    div_df <- head(div_df, 10)
                     
                     # Remove rows with NA p-values
                     div_df <- div_df[!is.na(div_df$p_adj), ]
@@ -1010,8 +979,13 @@ if (!is.null(lm_res_results) && nrow(lm_res_results) > 0) {
                         names(div_df)[names(div_df) == "Mean_Effect_Size"] <- "Mean Divergence"
                         names(div_df)[names(div_df) == "Q_Pattern"] <- "Q-Pattern"
                         
+                        # Reorder columns for better readability: Gene -> Effect -> Pattern -> Significance
+                        col_order <- c("Gene", "Mean Divergence", "Q-Pattern", "LM adj. p-value")
+                        col_order <- col_order[col_order %in% colnames(div_df)]
+                        div_df <- div_df[, col_order, drop = FALSE]
+                        
                         print(knitr::kable(div_df,
-                            caption = "Top 5 genes by LM significance with effect sizes",
+                            caption = "Top 10 genes by LM significance with effect sizes",
                             row.names = FALSE))
                     } else {
                         cat("No valid divergence results to display.\n")
@@ -1057,22 +1031,14 @@ for investigation of condition-specific splicing architecture and dynamic isofor
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
-if (!is.null(tryCatch(metadata(analysis, "effect_sizes_divergence"), error = function(e) NULL))) {
-  p <- plot_divergence_distribution_s4(
-      analysis, 
-      threshold = 0.05,
-      output_file = file.path("output", "divergence_distribution.png")
-  )
-  print(p)
-} else {
-  cat("Note: Effect sizes divergence have not been calculated. Skipping divergence distribution plot.\n")
-  cat("This occurs when LM interaction results are not available.\n")
-}
+plot_file <- plot_divergence_distribution_s4(
+    analysis, 
+    threshold = 0.05,
+    output_file = file.path("output", "divergence_distribution.png")
+)
+
+knitr::include_graphics(plot_file)
 ```
-
-
-### Visualize Q-Spectrum Curve
-
 
 ```{r compare-q-spectra-plot, fig.width=10, fig.height=10}
 # Visualize q-spectrum curves for top 4 genes by significance
@@ -1082,7 +1048,8 @@ p_multi <- plot_divergence_spectrum_s4(
     use_pvalue_ranking = TRUE,
     output_file = file.path("output", "divergence_spectrum_top_genes.png")
 )
-print(p_multi)
+
+knitr::include_graphics(p_multi)
 ```
 
 
@@ -1116,7 +1083,8 @@ p <- plot_divergence_spectrum_s4(
     analysis,
     output_file = file.path("output", "divergence_spectrum_global.png")
 )
-print(p)
+
+knitr::include_graphics(p)
 ```
 
 **Statistical Validation During Interpretation:**

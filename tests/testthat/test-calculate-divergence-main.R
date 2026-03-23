@@ -73,7 +73,7 @@ test_that("calculate_divergence rejects non-positive q values", {
       bootstrap = FALSE,
       verbose = FALSE
     ),
-    "q parameter must be positive"
+    "q parameter must be >= 0"
   )
 })
 

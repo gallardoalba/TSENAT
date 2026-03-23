@@ -314,7 +314,7 @@
 #' @keywords internal
 #' @noRd
 calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-    verbose = TRUE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
+    verbose = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
@@ -367,9 +367,9 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
     what <- match.arg(what)
     shrinkage <- match.arg(shrinkage, choices = c("none", "empirical_bayes"))
-    # validate q values (Tsallis parameter must be > 0)
-    if (!is.numeric(q) || any(q <= 0)) {
-        stop("Argument 'q' must be numeric and greater than 0.", call. = FALSE)
+    # validate q values (Tsallis parameter must be >= 0; q=0 is species richness)
+    if (!is.numeric(q) || any(q < 0)) {
+        stop("Argument 'q' must be numeric and >= 0 (q=0 represents species richness).", call. = FALSE)
     }
     # keep a copy of transcript-level counts when available (non-null)
     if (is.null(se_assay_mat)) {
@@ -829,7 +829,21 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
 .tsenat_calc_S <- function(p, q, tol, n, log_base, norm) {
     vapply(q, function(qi) {
-        if (abs(qi - 1) < tol) {
+        if (abs(qi) < tol) {
+            # q=0: Species richness (number of nonzero species) - 1
+            # S_0 = count(p > 0) - 1
+            richness <- sum(p > 0) - 1
+            if (norm) {
+                if (n <= 1) {
+                  # Single isoform: normalized richness is undefined
+                  richness <- NaN
+                } else {
+                  # Normalize by max possible richness (n - 1)
+                  richness <- richness / (n - 1)
+                }
+            }
+            return(richness)
+        } else if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
             if (norm) {
                 if (n <= 1) {
@@ -862,7 +876,12 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
 
 .tsenat_calc_D <- function(p, q, tol, log_base) {
     vapply(q, function(qi) {
-        if (abs(qi - 1) < tol) {
+        if (abs(qi) < tol) {
+            # q=0: Hill number D_0 = number of nonzero species (true species richness)
+            # D_0 = count(p > 0)
+            D0 <- sum(p > 0)
+            return(D0)
+        } else if (abs(qi - 1) < tol) {
             sh <- -sum(ifelse(p > 0, p * log(p, base = log_base), 0))
             D1 <- (log_base)^(sh)
             return(D1)
@@ -1618,8 +1637,8 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
     if (!is.numeric(q)) {
         stop("q must be numeric.")
     }
-    if (any(q <= 0)) {
-        stop("q must be greater than 0.")
+    if (any(q < 0)) {
+        stop("q must be >= 0 (q=0 represents species richness).")
     }
     if (!is.numeric(x)) {
         stop("x must be numeric")
@@ -1746,9 +1765,9 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
     "empirical_bayes"), effective_length = NULL) {
     what <- match.arg(what)
     shrinkage <- match.arg(shrinkage)
-    # validate q
-    if (!is.numeric(q) || any(q <= 0)) {
-        stop("Argument 'q' must be numeric and greater than 0.", call. = FALSE)
+    # validate q (q=0 represents species richness)
+    if (!is.numeric(q) || any(q < 0)) {
+        stop("Argument 'q' must be numeric and >= 0 (q=0 represents species richness).", call. = FALSE)
     }
     # cannot use aggregate because calculate_tsallis_entropy may return
     # multiple values when length(q) > 1

@@ -11,7 +11,8 @@ plot_tsallis_q_curve_s4(
   bootstrap = FALSE,
   gene = NULL,
   lm_res = NULL,
-  n_top = NULL
+  n_top = NULL,
+  output_file = NULL
 )
 }
 \arguments{

@@ -598,9 +598,10 @@ calculate_divergence <- function(
   # BUGFIX #4: Auto-sort q parameter for consistent output and q-spectrum analysis
   # Sorts q values in ascending order (rare -> abundant: 0.5 -> 2)
   q <- sort(as.numeric(q))
-  if (any(q <= 0)) {
-    stop("q parameter must be positive. ",
-         "Note: q should be in range (0, 3] for typical use. ",
+  if (any(q < 0)) {
+    stop("q parameter must be >= 0. ",
+         "Note: q should be in range [0, 3] for typical use. ",
+         "q=0 represents uniform divergence. ",
          "Got: ", paste(q, collapse = ", "))
   }
 
@@ -1391,7 +1392,12 @@ calculate_divergence_bootstrap <- function(
   # D_q(p||r) with D_q >= 0 and equality iff p = r
   # BUGFIX: Ensure formula is applied correctly for all q values
   
-  if (abs(q_val - 1) < 0.01) {
+  if (abs(q_val) < 0.01) {
+    # q=0: Tsallis divergence D_0(p||r) = (1/(0-1)) * (1 - sum(p^0 * r^1))
+    #     = -1 * (1 - sum(1 * r)) = -1 * (1 - 1) = 0 (always 0 for any distributions)
+    # This is mathematically correct: at q=0, all probability distributions have equal "divergence"
+    div <- 0
+  } else if (abs(q_val - 1) < 0.01) {
     # KL divergence (special case q -> 1): lim_{q->1} D_q = sum(p*log(p/r))
     div <- sum(p * log(p / r), na.rm = TRUE)
   } else if (q_val > 0 && q_val != 1) {
@@ -1679,7 +1685,7 @@ effect_sizes_divergence <- function(
     divergence_results_se,
     significance_threshold = 0.05,
     enrich_per_q_pattern = TRUE,
-    verbose = TRUE) {
+    verbose = FALSE) {
 
   # =========================================================================
   # INPUT VALIDATION

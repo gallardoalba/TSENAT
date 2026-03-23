@@ -4,7 +4,13 @@
 \alias{jackknife_tsallis_entropy_s4}
 \title{Jackknife resampling with confidence intervals}
 \usage{
-jackknife_tsallis_entropy_s4(analysis, q = NULL, print_results = FALSE, ...)
+jackknife_tsallis_entropy_s4(
+  analysis,
+  q = NULL,
+  print_results = FALSE,
+  output_file = NULL,
+  ...
+)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}

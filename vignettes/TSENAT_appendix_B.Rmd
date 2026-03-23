@@ -618,7 +618,9 @@ if (nrow(high_conf) > 0) {
 
 ```{r concordance-plot, fig.width=10, fig.height=8}
 # Create comparison plot using S4 wrapper
-plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
+p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
+
+print(p)
 ```
 
 ***

@@ -560,57 +560,57 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #'
 #' @export
 setMethod("show", "TSENATAnalysis", function(object) {
-  cat("TSENATAnalysis object\n")
-  cat("=====================\n\n")
+  message("TSENATAnalysis object")
+  message("=====================")
 
   # Show SE info
-  cat("SummarizedExperiment:\n")
-  cat("  Genes:  ", nrow(object@se), "\n")
-  cat("  Samples:", ncol(object@se), "\n")
+  message("SummarizedExperiment:")
+  message(paste0("  Genes:  ", nrow(object@se)))
+  message(paste0("  Samples:", ncol(object@se)))
 
   # Show config
   if (length(object@config) > 0) {
-    cat("\nConfiguration:\n")
+    message("\nConfiguration:")
     for (name in names(object@config)) {
       val <- object@config[[name]]
       if (is.character(val) && length(val) == 1) {
-        cat("  ", name, ": ", val, "\n", sep = "")
+        message(paste0("  ", name, ": ", val))
       } else if (is.numeric(val) && length(val) <= 3) {
-        cat("  ", name, ": ", paste(val, collapse = ", "), "\n", sep = "")
+        message(paste0("  ", name, ": ", paste(val, collapse = ", ")))
       } else {
-        cat("  ", name, ": <", class(val), ">\n", sep = "")
+        message(paste0("  ", name, ": <", class(val), ">"))
       }
     }
   }
 
   # Show results
-  cat("\nAnalysis Status:\n")
+  message("\nAnalysis Status:")
   if (length(object@diversity_results) > 0) {
-    cat("  \u2713 Diversity: ", length(object@diversity_results), " q-value(s)\n", sep = "")
+    message(paste0("  \u2713 Diversity: ", length(object@diversity_results), " q-value(s)"))
   }
   if (length(object@lm_results) > 0) {
-    cat("  \u2713 LM results: ", paste(names(object@lm_results), collapse = ", "), "\n", sep = "")
+    message(paste0("  \u2713 LM results: ", paste(names(object@lm_results), collapse = ", ")))
   }
   if (length(object@jackknife_results) > 0) {
-    cat("  \u2713 Jackknife: ", length(object@jackknife_results), " q-value(s)\n", sep = "")
+    message(paste0("  \u2713 Jackknife: ", length(object@jackknife_results), " q-value(s)"))
   }
   if (length(object@divergence_results) > 0) {
-    cat("  \u2713 Divergence: ", length(object@divergence_results), " component(s)\n", sep = "")
+    message(paste0("  \u2713 Divergence: ", length(object@divergence_results), " component(s)"))
   }
   if (length(object@plots) > 0) {
-    cat("  \u2713 Plots: ", paste(names(object@plots), collapse = ", "), "\n", sep = "")
+    message(paste0("  \u2713 Plots: ", paste(names(object@plots), collapse = ", ")))
   }
 
   # Show metadata
   if (length(object@metadata) > 0 && "function_calls" %in% names(object@metadata)) {
     n_calls <- length(object@metadata$function_calls)
     if (n_calls > 0) {
-      cat("\nFunction History:\n")
-      cat("  Calls: ", paste(object@metadata$function_calls, collapse = " \u2192 "), "\n", sep = "")
+      message("\nFunction History:")
+      message(paste0("  Calls: ", paste(object@metadata$function_calls, collapse = " \u2192 ")))
     }
   }
 
-  cat("\n")
+  message("")
 })
 
 # ============================================================================
@@ -635,53 +635,53 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #'
 #' @export
 setMethod("summary", "TSENATAnalysis", function(object) {
-  cat("=== TSENAT Analysis Summary ===\n\n")
+  message("=== TSENAT Analysis Summary ===")
 
   # Dimensions
-  cat("DATA:\n")
-  cat(sprintf("  Genes:    %6d\n", nrow(object@se)))
-  cat(sprintf("  Samples:  %6d\n", ncol(object@se)))
-  cat(sprintf("  Assays:   %6d (%s)\n",
+  message("DATA:")
+  message(sprintf("  Genes:    %6d", nrow(object@se)))
+  message(sprintf("  Samples:  %6d", ncol(object@se)))
+  message(sprintf("  Assays:   %6d (%s)",
               length(SummarizedExperiment::assays(object@se)),
               paste(SummarizedExperiment::assayNames(object@se), collapse = ", ")))
 
   # Configuration
-  cat("\nCONFIGURATION:\n")
+  message("\nCONFIGURATION:")
   if (length(object@config) == 0) {
-    cat("  (None set)\n")
+    message("  (None set)")
   } else {
     for (name in names(object@config)) {
       val <- object@config[[name]]
       if (is.character(val)) {
         if (length(val) == 1) {
-          cat(sprintf("  %s: %s\n", name, val))
+          message(sprintf("  %s: %s", name, val))
         } else {
-          cat(sprintf("  %s: <%d values>\n", name, length(val)))
+          message(sprintf("  %s: <%d values>", name, length(val)))
         }
       } else if (is.numeric(val)) {
         if (length(val) <= 5) {
-          cat(sprintf("  %s: %s\n", name, paste(round(val, 2), collapse = ", ")))
+          message(sprintf("  %s: %s", name, paste(round(val, 2), collapse = ", ")))
         } else {
-          cat(sprintf("  %s: <%d values>\n", name, length(val)))
+          message(sprintf("  %s: <%d values>", name, length(val)))
         }
       } else {
-        cat(sprintf("  %s: <%s>\n", name, class(val)))
+        message(sprintf("  %s: <%s>", name, class(val)))
       }
     }
   }
 
   # Results Summary
-  cat("\nRESULTS:\n")
+  message("\nRESULTS:")
 
   if (length(object@diversity_results) > 0) {
     q_vals <- gsub("q_", "", names(object@diversity_results))
-    cat(sprintf("  Diversity:   %d analyses at q = %s\n",
+    message(sprintf("  Diversity:   %d analyses at q = %s",
                 length(object@diversity_results),
                 paste(q_vals, collapse = ", ")))
   }
 
   if (length(object@lm_results) > 0) {
-    cat(sprintf("  LM/Stats:    %d result set(s) (%s)\n",
+    message(sprintf("  LM/Stats:    %d result set(s) (%s)",
                 length(object@lm_results),
                 paste(names(object@lm_results), collapse = ", ")))
 
@@ -691,43 +691,43 @@ setMethod("summary", "TSENATAnalysis", function(object) {
           "results" %in% names(object@lm_results[[name]]) &&
           is.data.frame(object@lm_results[[name]]$results)) {
         n_genes <- nrow(object@lm_results[[name]]$results)
-        cat(sprintf("    - %s: %d genes\n", name, n_genes))
+        message(sprintf("    - %s: %d genes", name, n_genes))
       }
     }
   }
 
   if (length(object@jackknife_results) > 0) {
     q_vals <- gsub("q_", "", names(object@jackknife_results))
-    cat(sprintf("  Jackknife:   %d analyses at q = %s\n",
+    message(sprintf("  Jackknife:   %d analyses at q = %s",
                 length(object@jackknife_results),
                 paste(q_vals, collapse = ", ")))
   }
 
   if (length(object@divergence_results) > 0) {
-    cat(sprintf("  Divergence:  %d component(s) (%s)\n",
+    message(sprintf("  Divergence:  %d component(s) (%s)",
                 length(object@divergence_results),
                 paste(names(object@divergence_results), collapse = ", ")))
   }
 
   if (length(object@plots) > 0) {
-    cat(sprintf("  Plots:       %d cached (%s)\n",
+    message(sprintf("  Plots:       %d cached (%s)",
                 length(object@plots),
                 paste(names(object@plots), collapse = ", ")))
   }
 
   # Metadata
-  cat("\nMETADATA:\n")
+  message("\nMETADATA:")
   if ("created_at" %in% names(object@metadata)) {
-    cat(sprintf("  Created: %s\n", format(object@metadata$created_at, "%Y-%m-%d %H:%M:%S")))
+    message(sprintf("  Created: %s", format(object@metadata$created_at, "%Y-%m-%d %H:%M:%S")))
   }
   if ("package_version" %in% names(object@metadata)) {
-    cat(sprintf("  Package: TSENAT %s\n", object@metadata$package_version))
+    message(sprintf("  Package: TSENAT %s", object@metadata$package_version))
   }
   if ("function_calls" %in% names(object@metadata) && length(object@metadata$function_calls) > 0) {
-    cat(sprintf("  Workflow: %s\n", paste(object@metadata$function_calls, collapse = " -> ")))
+    message(sprintf("  Workflow: %s", paste(object@metadata$function_calls, collapse = " -> ")))
   }
 
-  cat("\n")
+  message("")
 
   invisible(object)
 })

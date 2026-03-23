@@ -3,7 +3,7 @@
 \name{compute_method_concordance_s4}
 \alias{compute_method_concordance_s4}
 \alias{compute_method_concordance_s4,TSENATAnalysis-method}
-\title{Compute concordance between two analysis methods in TSENATAnalysis}
+\title{M-Estimation for Sample Quality (S4 Wrapper)}
 \usage{
 compute_method_concordance_s4(analysis, ...)
 
@@ -26,8 +26,39 @@ Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: FALSE}
+
+\item{condition_col}{\code{character}. Column name in sample metadata indicating
+condition/sample grouping. Auto-detected from \code{@config$condition_col}
+if available.}
+
+\item{loss_type}{\code{character}. Type of loss function: "huber" (default),
+"tukey", or "lsq". Determines robustness vs efficiency trade-off.}
+
+\item{scale}{\code{numeric}. Manual scale parameter. If NULL, estimated from data.}
+
+\item{max_iter}{\code{integer}. Maximum iterations for M-estimation. Default: 50.}
+
+\item{tol}{\code{numeric}. Convergence tolerance. Default: 1e-6.}
+
+\item{paired}{\code{logical}. If TRUE, adjusts degrees of freedom for paired
+designs. Default: FALSE.}
+
+\item{pcorr}{\code{character}. P-value correction method. Default: "BH" (Benjamini-Hochberg).}
+
+\item{q_combine_method}{\code{character}. How to collapse multi-q results:
+"mean" (default) or "median".}
+
+\item{influence_threshold}{\code{numeric}. Threshold for classifying samples
+as high-influence. Default: 0.75.}
+
+\item{scale_method}{\code{character}. Scale estimation method: "mad" (default),
+"proposal2", or "s-estimator".}
 }
 \value{
+Modified TSENATAnalysis object with M-estimation results stored in
+\code{analysis@metadata$m_estimate_results}. Contains data frame with
+influence scores, robustness weights, entropy statistics, and QC classifications.
+
 Modified TSENATAnalysis object with concordance results stored in:
   \code{@metadata$method_concordance}:
   \describe{
@@ -41,9 +72,34 @@ Modified TSENATAnalysis object with concordance results stored in:
   }
 }
 \description{
-Compute concordance between two analysis methods in TSENATAnalysis
+S4 wrapper that performs robust M-estimation on diversity results stored 
+in a TSENATAnalysis object and stores results back into the object.
+This wrapper calls the base M-estimation function internally.
 }
 \details{
+This wrapper extracts diversity results from \code{analysis@diversity_results},
+performs robust M-estimation on diversity values (entropy), and stores results
+in the analysis object metadata.
+
+**M-Estimation:** Robust regression technique that down-weights outliers based
+on their residuals. Useful for detecting low-quality samples that show
+unusual diversity patterns.
+
+**M-Estimation Results include:**
+\itemize{
+  \item \code{sample_influence}: How much each sample affects the overall fit
+  \item \code{robustness_weight}: Down-weighting factor (lower = more outlying)
+  \item \code{entropy_mean}: Average entropy for the sample
+  \item \code{entropy_sd}: Entropy variability within the sample
+  \item \code{Status}: QC Classification ("OK" or "Flag for QC" based on influence_threshold)
+}
+
+**Data Requirements:**
+\itemize{
+  \item Diversity results must be computed via \code{calculate_diversity_s4()}
+  \item Sample grouping column required (sample_type, condition, etc.)
+}
+
 Compares results from two different statistical methods (typically GAM for continuous 
 and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifies:
 - Genes significant in both methods (high confidence)
@@ -51,6 +107,23 @@ and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifie
 - Spearman correlation of p-values (overall agreement trends)
 }
 \examples{
+\dontrun{
+  # After computing diversity
+  analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by=0.5))
+
+  # Run M-estimation with sample grouping
+  analysis <- m_estimate_s4(
+      analysis,
+      condition_col = "sample_type",
+      loss_type = "huber",
+      influence_threshold = 0.75
+  )
+
+  # Retrieve results
+  m_est_results <- analysis@metadata$m_estimate_results
+  head(m_est_results)
+}
+
 \dontrun{
   # After running both GAM and Friedman analyses:
   analysis <- detect_q_gene_interactions_s4(analysis, ...)
@@ -65,4 +138,9 @@ and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifie
   print(concordance_results$agreement_table)
 }
 
+}
+\seealso{
+\code{\link{calculate_diversity_s4}} for computing diversity.
+
+Compute concordance between two analysis methods in TSENATAnalysis
 }

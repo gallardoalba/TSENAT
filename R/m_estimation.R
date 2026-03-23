@@ -321,7 +321,19 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     if (!(samples %in% colnames(sample_info))) {
       stop(sprintf("Column '%s' not found in colData", samples))
     }
-    group_assignment <- as.vector(sample_info[[samples]])
+    
+    # Extract column - note: as.vector with mode can fail on certain S4 objects
+    # Use fallback approach if direct conversion fails
+    group_assignment <- tryCatch({
+      as.vector(sample_info[[samples]])
+    }, error = function(e) {
+      col_val <- sample_info[[samples]]
+      if (is.atomic(col_val)) {
+        col_val
+      } else {
+        as.character(col_val)
+      }
+    })
     
     col_names <- colnames(entropy_matrix)
     sample_names_full <- sub("_q=.*$", "", col_names)
@@ -351,17 +363,14 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     # Perform leave-one-out influence analysis
     # First, calculate M-estimate with ALL samples as the baseline
     # NOTE: Use paired mode for full fit to leverage any pairing in the design
-    m_est_full <- m_estimate(entropy_by_sample, samples = group_assignment_unique,
-                             loss_type = loss_type, scale = scale,
-                             max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
-                             scale_method = scale_method)
-    
-    # DEBUG: Check what m_est_full looks like
-    # cat("[m_estimate DEBUG] m_est_full structure:\n")
-    # cat("  Rows:", nrow(m_est_full), "\n")
-    # cat("  Cols:", ncol(m_est_full), "\n")
-    # cat("  First col:", colnames(m_est_full)[1], "\n")
-    # cat("  Has location_diff?", "location_diff" %in% colnames(m_est_full), "\n")
+    m_est_full <- tryCatch({
+      m_estimate(entropy_by_sample, samples = group_assignment_unique,
+                 loss_type = loss_type, scale = scale,
+                 max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
+                 scale_method = scale_method)
+    }, error = function(e) {
+      stop(e)
+    })
 
     sample_influence <- numeric(length(unique_samples))
     sample_robustness_weights <- numeric(length(unique_samples))
@@ -425,9 +434,20 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       dfbeta <- (m_est_full$location_diff - m_est_subset$location_diff) / 
                 pmax(m_est_full$se_diff, 1e-6)  # Use full model's SE for standardization
       
+      # Get gene names - use rownames if available, otherwise use rownames from m_est_full or generate
+      gene_names <- rownames(entropy_by_sample)
+      if (is.null(gene_names) || length(gene_names) == 0) {
+        # Try to get from m_est_full result
+        gene_names <- rownames(m_est_full)
+      }
+      if (is.null(gene_names) || length(gene_names) == 0) {
+        # Generate default names if still missing
+        gene_names <- paste0("Gene_", seq_len(nrow(entropy_by_sample)))
+      }
+      
       # Store gene-level changes for this sample
       gene_level_changes[[unique_samples[i]]] <- data.frame(
-        gene = rownames(entropy_by_sample),
+        gene = gene_names,
         full_location_diff = m_est_full$location_diff,
         loo_location_diff = m_est_subset$location_diff,
         full_se_diff = m_est_full$se_diff,
@@ -535,8 +555,7 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       Entropy_Mean = entropy_means,
       Entropy_SD = entropy_sds,
       Distance_from_Centroid = centroid_distances,
-      Status = ifelse(sample_influence > high_influence_threshold, 
-                      "Flag for QC", "OK"),
+      Status = ifelse(sample_influence > high_influence_threshold, "Flag for QC", "OK"),
       stringsAsFactors = FALSE,
       row.names = NULL
     )
@@ -545,10 +564,6 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     if (!is.null(paired_sample_info)) {
       result_df$Pair_ID <- paired_sample_info
     }
-    
-    # Attach gene-level influence data as attribute for debugging
-    attr(result_df, "gene_level_influences") <- gene_level_changes
-    
     return(result_df)
   }
   

@@ -8,7 +8,8 @@ effect_sizes_divergence_s4(
   analysis,
   significance_threshold = 0.05,
   enrich_per_q_pattern = TRUE,
-  verbose = TRUE,
+  verbose = FALSE,
+  output_file = NULL,
   ...
 )
 }

@@ -57,7 +57,9 @@ test_that("Tsallis entropy calculation is mathematically correct", {
     # Single isoform with norm=TRUE: normalized entropy is 0/0 = undefined (NaN)
     expect_true(is.nan(calculate_tsallis_entropy(c(1), q = 2)))
     expect_true(is.na(calculate_tsallis_entropy(c(0, 0), q = 2)))
-    expect_error(calculate_tsallis_entropy(read_counts, q = 0))
+    # q=0 should work (species richness)
+    q0_result <- calculate_tsallis_entropy(read_counts, q = 0)
+    expect_true(is.numeric(q0_result) || is.na(q0_result))
     expect_error(calculate_tsallis_entropy(read_counts, q = -1))
 })
 
@@ -156,7 +158,7 @@ library(TSENAT)
 test_that("calculate_tsallis_entropy validates inputs", {
     expect_error(calculate_tsallis_entropy("notnum", q = 2), "x must be numeric")
     expect_error(calculate_tsallis_entropy(c(1, 2, 3), q = "a"), "q must be numeric")
-    expect_error(calculate_tsallis_entropy(c(1, 2, 3), q = c(-1, 2)), "q must be greater than 0")
+    expect_error(calculate_tsallis_entropy(c(1, 2, 3), q = c(-1, 2)), "q must be >= 0")
 })
 
 test_that("calculate_tsallis_entropy handles zero-sum vectors and returns NA", {

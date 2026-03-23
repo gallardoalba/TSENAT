@@ -9,6 +9,7 @@ plot_multiq_delta_influence_heatmaps_s4(
   n_genes = 4,
   lm_results = NULL,
   verbose = FALSE,
+  output_file = NULL,
   ...
 )
 }

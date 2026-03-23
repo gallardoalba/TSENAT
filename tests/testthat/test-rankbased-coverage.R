@@ -290,13 +290,14 @@ test_that("print.rank_assumptions: prints header and check details", {
     checks = c("exchangeability")
   )
   
-  # Capture output of print
-  output <- capture.output(print(result))
+  # Extract the actual rank_assumptions result from metadata
+  rank_result <- result@metadata$rankbased_assumptions$result
   
-  # Verify output contains expected elements
-  output_text <- paste(output, collapse = "\n")
-  
-  expect_true(length(output) > 0)  # Some output was produced
+  # Verify print method produces message output
+  expect_message(
+    print(rank_result),
+    "RANK-BASED METHOD ASSUMPTIONS"
+  )
 })
 
 # ============================================================================
@@ -326,12 +327,14 @@ test_that("print.rank_assumptions: includes method field when present", {
     checks = c("monotonicity")  # monotonicity has method field
   )
   
-  # Capture output
-  output <- capture.output(print(result))
-  output_text <- paste(output, collapse = "\n")
+  # Extract the actual rank_assumptions result from metadata
+  rank_result <- result@metadata$rankbased_assumptions$result
   
-  # Should contain method info when monotonicity is checked
-  expect_true(length(output) > 0)
+  # Verify print method produces message output with method field
+  expect_message(
+    print(rank_result),
+    "Method:"
+  )
 })
 
 # ============================================================================
@@ -361,11 +364,14 @@ test_that("print.rank_assumptions: includes status field when present", {
     checks = c("monotonicity", "consistency")
   )
   
-  output <- capture.output(print(result))
-  output_text <- paste(output, collapse = "\n")
+  # Extract the actual rank_assumptions result from metadata
+  rank_result <- result@metadata$rankbased_assumptions$result
   
-  # Should include output
-  expect_true(length(output) > 0)
+  # Verify print method produces message output with status field
+  expect_message(
+    print(rank_result),
+    "Status:"
+  )
 })
 
 # ============================================================================
@@ -395,11 +401,14 @@ test_that("print.rank_assumptions: includes details field when present", {
     checks = c("monotonicity")
   )
   
-  output <- capture.output(print(result))
-  output_text <- paste(output, collapse = "\n")
+  # Extract the actual rank_assumptions result from metadata
+  rank_result <- result@metadata$rankbased_assumptions$result
   
-  # Should contain detailed information
-  expect_true(length(output) > 5)  # More than minimal output
+  # Verify print method produces detailed message output
+  expect_message(
+    print(rank_result),
+    "RANK-BASED METHOD ASSUMPTIONS"
+  )
 })
 
 # ============================================================================

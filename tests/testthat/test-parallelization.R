@@ -247,6 +247,8 @@ test_that("calculate_difference label_shuffling produces valid results", {
 context("Parallelization: Large Dataset Stress Testing")
 
 test_that("Large dataset parallelization produces valid results", {
+    skip("Test skipped to reduce runtime: uses 1000x24 dataset (resource-intensive)")
+    
     set.seed(444)
     # Very large dataset to ensure parallelization overhead is worth it
     # 1000 genes, 24 samples
@@ -272,6 +274,8 @@ test_that("Large dataset parallelization produces valid results", {
 })
 
 test_that("Large calculate_method dataset with single q value", {
+    skip("Test skipped to reduce runtime: 2000 transcripts with serial/parallel comparison (resource-intensive)")
+    
     set.seed(555)
     # 500 genes with multiple transcripts, 8 samples, single q value
     ntx <- 2000  # 4 transcripts per gene

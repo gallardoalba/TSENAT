@@ -259,18 +259,17 @@ tsenat <- function(
 
   # Log start
   if (verbose) {
-    cat("TSENAT Pipeline\n")
-    cat("===============\n")
-    cat("Genes:  ", nrow(se), "\n")
-    cat("Samples:", ncol(se), "\n")
-    cat("Methods:", paste(methods_to_run, collapse = ", "), "\n")
-    cat("Q-values:", paste(q_vals, collapse = ", "), "\n")
-    cat("\n")
+    message("TSENAT Pipeline")
+    message("===============")
+    message(paste0("Genes:  ", nrow(se)))
+    message(paste0("Samples:", ncol(se)))
+    message(paste0("Methods:", paste(methods_to_run, collapse = ", ")))
+    message(paste0("Q-values:", paste(q_vals, collapse = ", ")))
   }
 
   # ========== STEP 1: DIVERSITY ==========
   if ("diversity" %in% methods_to_run) {
-    if (verbose) cat("Step 1: Calculating diversity...\n")
+    if (verbose) message("Step 1: Calculating diversity...")
 
     tryCatch({
       analysis <- calculate_diversity_s4(
@@ -278,7 +277,7 @@ tsenat <- function(
         q = q_vals,
         ...
       )
-      if (verbose) cat("  \u2713 Diversity calculated for q = ", paste(q_vals, collapse = ", "), "\n\n", sep = "")
+      if (verbose) message(paste0("  ✓ Diversity calculated for q = ", paste(q_vals, collapse = ", ")))
     }, error = function(e) {
       stop("Diversity calculation failed:\n", e$message, call. = FALSE)
     })
@@ -287,9 +286,9 @@ tsenat <- function(
   # ========== STEP 2: JACKKNIFE ==========
   if ("jackknife" %in% methods_to_run) {
     if (length(analysis@diversity_results) == 0) {
-      if (verbose) cat("Step 2: Skipping jackknife (requires diversity)\n\n")
+      if (verbose) message("Step 2: Skipping jackknife (requires diversity)")
     } else {
-      if (verbose) cat("Step 2: Running jackknife resampling...\n")
+      if (verbose) message("Step 2: Running jackknife resampling...")
 
       tryCatch({
         analysis <- jackknife_tsallis_entropy_s4(
@@ -298,7 +297,7 @@ tsenat <- function(
           print_results = FALSE,
           ...
         )
-        if (verbose) cat("  \u2713 Jackknife CIs computed\n\n")
+        if (verbose) message("  ✓ Jackknife CIs computed")
       }, error = function(e) {
         warning("Jackknife failed:\n", e$message, call. = FALSE)
       })
@@ -307,7 +306,7 @@ tsenat <- function(
 
   # ========== STEP 3: LM INTERACTIONS ==========
   if ("lm_interaction" %in% methods_to_run) {
-    if (verbose) cat("Step 3: Testing LM interactions...\n")
+    if (verbose) message("Step 3: Testing LM interactions...")
 
     tryCatch({
       analysis <- calculate_lm_interaction_s4(
@@ -315,7 +314,7 @@ tsenat <- function(
         fdr_threshold = analysis@config$fdr_threshold %||% 0.05,
         ...
       )
-      if (verbose) cat("  \u2713 LM analysis complete\n\n")
+      if (verbose) message("  ✓ LM analysis complete")
     }, error = function(e) {
       warning("LM interaction calculation failed:\n", e$message, call. = FALSE)
     })
@@ -324,9 +323,9 @@ tsenat <- function(
   # ========== STEP 4: DIVERGENCE ==========
   if ("divergence" %in% methods_to_run) {
     if (length(analysis@diversity_results) == 0) {
-      if (verbose) cat("Step 4: Skipping divergence (requires diversity)\n\n")
+      if (verbose) message("Step 4: Skipping divergence (requires diversity)")
     } else {
-      if (verbose) cat("Step 4: Calculating divergence metrics...\n")
+      if (verbose) message("Step 4: Calculating divergence metrics...")
 
       tryCatch({
         analysis <- calculate_divergence_s4(
@@ -334,7 +333,7 @@ tsenat <- function(
           q = q_vals[1],  # Use first q-value
           ...
         )
-         if (verbose) cat("  \u2713 Divergence metrics computed\n\n")
+         if (verbose) message("  ✓ Divergence metrics computed")
       }, error = function(e) {
         warning("Divergence calculation failed:\n", e$message, call. = FALSE)
       })
@@ -344,9 +343,9 @@ tsenat <- function(
   # ========== STEP 5: Q-DEPENDENT INTERACTIONS ==========
   if ("q_interactions" %in% methods_to_run) {
     if (length(analysis@diversity_results) == 0) {
-      if (verbose) cat("Step 5: Skipping Q-interactions (requires diversity)\n\n")
+      if (verbose) message("Step 5: Skipping Q-interactions (requires diversity)")
     } else {
-      if (verbose) cat("Step 5: Detecting Q-dependent interactions...\n")
+      if (verbose) message("Step 5: Detecting Q-dependent interactions...")
 
       tryCatch({
         analysis <- detect_q_gene_interactions_s4(
@@ -354,7 +353,7 @@ tsenat <- function(
           q = q_vals,
           ...
         )
-         if (verbose) cat("  \u2713 Q-interactions detected\n\n")
+         if (verbose) message("  ✓ Q-interactions detected")
       }, error = function(e) {
         warning("Q-interaction detection failed:\n", e$message, call. = FALSE)
       })
@@ -363,7 +362,7 @@ tsenat <- function(
 
   # ========== STEP 6: PLOT GENERATION ==========
   if (do_plots && length(analysis@diversity_results) > 0) {
-    if (verbose) cat("Step 6: Generating plots...\n")
+    if (verbose) message("Step 6: Generating plots...")
 
     tryCatch({
       # Plot types from config or auto-detect
@@ -403,13 +402,13 @@ tsenat <- function(
           }
         }, error = function(e) {
           if (verbose) {
-             cat("  \u26A0 Plot '", ptype, "' failed: ", e$message, "\n", sep = "")
+             message(paste0("  ⚠ Plot '", ptype, "' failed: ", e$message))
           }
         })
       }
 
       if (verbose) {
-         cat("  \u2713 ", length(analysis@plots), " plot(s) generated\n\n", sep = "")
+         message(paste0("  ✓ ", length(analysis@plots), " plot(s) generated"))
       }
     }, error = function(e) {
       warning("Plot generation failed:\n", e$message, call. = FALSE)
@@ -418,15 +417,15 @@ tsenat <- function(
 
   # ========== FINALIZE ==========
   if (verbose) {
-    cat("Analysis Complete\n")
-    cat("=================\n")
-    cat("Results summary:\n")
-    if (length(analysis@diversity_results) > 0) cat("  \u2713 Diversity\n")
-    if (length(analysis@lm_results) > 0) cat("  \u2713 LM results\n")
-    if (length(analysis@jackknife_results) > 0) cat("  \u2713 Jackknife CIs\n")
-    if (length(analysis@divergence_results) > 0) cat("  \u2713 Divergence\n")
-    if (length(analysis@plots) > 0) cat("  \u2713 Plots (", length(analysis@plots), ")\n", sep = "")
-    cat("\nUse show(analysis) or summary(analysis) for details\n\n")
+    message("Analysis Complete")
+    message("=================")
+    message("Results summary:")
+    if (length(analysis@diversity_results) > 0) message("  ✓ Diversity")
+    if (length(analysis@lm_results) > 0) message("  ✓ LM results")
+    if (length(analysis@jackknife_results) > 0) message("  ✓ Jackknife CIs")
+    if (length(analysis@divergence_results) > 0) message("  ✓ Divergence")
+    if (length(analysis@plots) > 0) message(paste0("  ✓ Plots (", length(analysis@plots), ")"))
+    message("\nUse show(analysis) or summary(analysis) for details")
   }
 
   # Add final timing

@@ -9,6 +9,7 @@ prepare_gene_switching_tables_s4(
   n_top_genes = NULL,
   n_transcripts_per_gene = 10,
   verbose = FALSE,
+  output_file = NULL,
   ...
 )
 }

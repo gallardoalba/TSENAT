@@ -4,7 +4,13 @@
 \alias{calculate_difference_s4}
 \title{Calculate Difference Between Control and Treatment Groups (S4 Wrapper)}
 \usage{
-calculate_difference_s4(analysis, control = NULL, q = NULL, ...)
+calculate_difference_s4(
+  analysis,
+  control = NULL,
+  q = NULL,
+  output_file = NULL,
+  ...
+)
 }
 \arguments{
 \item{analysis}{A \code{TSENATAnalysis} object with diversity results in \code{@diversity_results}.}

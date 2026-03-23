@@ -255,16 +255,16 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     
     # Optional printing
     if (print_results && !is.null(x) && (is.vector(x) || length(q) > 1)) {
-      cat("Jackknife Stability Analysis for Multiple q Values\n")
-      cat("====================================================\n\n")
+      message("Jackknife Stability Analysis for Multiple q Values")
+      message("====================================================")
       for (i in seq_along(results_list)) {
-        cat("q =", q[i], "\n")
+        message(paste0("q = ", q[i]))
         res <- results_list[[i]]
         if (is.list(res) && "estimate" %in% names(res)) {
-          cat("  Estimate:           ", round(res$estimate, 4), "\n")
-          cat("  Jackknife SE:       ", round(res$jackknife_se, 4), "\n")
-          cat("  Max influence:      ", round(max(res$influence), 4), "\n")
-          cat("  Outliers detected:  ", length(res$outlier_indices), "\n\n")
+          message(paste0("  Estimate:            ", round(res$estimate, 4)))
+          message(paste0("  Jackknife SE:        ", round(res$jackknife_se, 4)))
+          message(paste0("  Max influence:       ", round(max(res$influence), 4)))
+          message(paste0("  Outliers detected:   ", length(res$outlier_indices)))
         }
       }
     }
@@ -389,32 +389,30 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     
     # Display results if requested
     if (print_results) {
-      cat("Jackknife Stability Analysis for Top 5 Genes\n")
-      cat("============================================\n\n")
+      message("Jackknife Stability Analysis for Top 5 Genes")
+      message("============================================")
       
       for (i in seq_along(results)) {
         gene_name <- names(results)[i]
         jr <- results[[i]]
         
-        cat("Gene:", gene_name, "\n")
-        cat("  Transcripts:", jr$n_transcripts, "\n")
-        cat("  Diversity estimate:", round(jr$estimate, 4), "\n")
-        cat("  Jackknife SE:", round(jr$jackknife_se, 4), "\n")
-        cat("  Max transcript influence:", round(max(jr$influence), 4), "\n")
-        cat("  Outliers detected:", length(jr$outlier_indices), "\n")
+        message(paste0("Gene: ", gene_name))
+        message(paste0("  Transcripts: ", jr$n_transcripts))
+        message(paste0("  Diversity estimate: ", round(jr$estimate, 4)))
+        message(paste0("  Jackknife SE: ", round(jr$jackknife_se, 4)))
+        message(paste0("  Max transcript influence: ", round(max(jr$influence), 4)))
+        message(paste0("  Outliers detected: ", length(jr$outlier_indices)))
         
         if (length(jr$outlier_indices) > 0) {
-          cat("    Outlier transcripts (indices):", paste(jr$outlier_indices, collapse = ", "), "\n")
+          message(paste0("    Outlier transcripts (indices): ", paste(jr$outlier_indices, collapse = ", ")))
         }
-        cat("\n")
       }
       
-      cat("Interpretation:\n")
-      cat("- High SE relative to estimate: unstable diversity (few dominant transcripts)\n")
-      cat("- Many outliers: non-uniform isoform distribution\n")
-      cat("- No outliers: balanced/robust isoform diversity\n\n")
+      message("Interpretation:")
+      message("- High SE relative to estimate: unstable diversity (few dominant transcripts)")
+      message("- Many outliers: non-uniform isoform distribution")
+      message("- No outliers: balanced/robust isoform diversity")
     }
-    
     # IMPORTANT: When returning a single-row matrix result, extract the single result object
     # instead of returning a list with one element. This provides consistent return type.
     # Calling code can always use results[[1]] or results$gene_name to access the data.
@@ -635,28 +633,10 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
 #' @export
 #' @method print tsenat_jackknife
 print.tsenat_jackknife <- function(x, ...) {
-  cat("Jackknife Diagnostics for Tsallis Entropy (q =", x$q, ")\n")
-  cat("=========================================================\n")
-  cat("Number of transcripts:", x$n_transcripts, "\n")
-  cat("Entropy (full data):", round(x$estimate, 6), "\n")
-  cat("Jackknife SE:", round(x$jackknife_se, 6), "\n")
-  cat("95% CI approximately: [",
-      round(x$estimate - 1.96 * x$jackknife_se, 6), ", ",
-      round(x$estimate + 1.96 * x$jackknife_se, 6), "]\n\n")
-
-  cat("Transcript Influence (absolute change in entropy):\n")
-  cat("Min:", round(min(x$influence), 6), "\n")
-  cat("Median:", round(stats::median(x$influence), 6), "\n")
-  cat("Max:", round(max(x$influence), 6), "\n\n")
-
-  cat("Outlier Summary (threshold:", x$outlier_threshold, "%ile):\n")
-  cat("Cutoff value:", round(x$outlier_cutoff_value, 6), "\n")
-  cat("Number of outliers:", length(x$outlier_indices), "\n")
-
-  if (length(x$outlier_indices) > 0) {
-    cat("Outlier transcript indices:", paste(x$outlier_indices, collapse = ", "), "\n")
-  }
-
+  message("Jackknife Diagnostics for Tsallis Entropy (q = ", x$q, ")")
+  message("Estimate: ", sprintf("%.6f", x$estimate))
+  message("Jackknife SE: ", sprintf("%.6f", x$jackknife_se))
+  message("Number of transcripts: ", x$n_transcripts)
   invisible(x)
 }
 
@@ -671,28 +651,28 @@ print.tsenat_jackknife <- function(x, ...) {
 #' @export
 #' @method summary tsenat_jackknife
 summary.tsenat_jackknife <- function(object, ...) {
-  cat("Jackknife Diagnostics Summary\n")
-  cat("=============================\n")
-  cat("Gene entropy (q =", object$q, "):", round(object$estimate, 6), "\n")
-  cat("Jackknife standard error:", round(object$jackknife_se, 6), "\n")
-  cat("Coefficient of variation:", round(object$jackknife_se / object$estimate, 4), "\n")
-  cat("Total transcripts:", object$n_transcripts, "\n\n")
+  message("Jackknife Diagnostics Summary")
+  message("=============================")
+  message(paste0("Gene entropy (q =", object$q, "):", round(object$estimate, 6)))
+  message(paste0("Jackknife standard error:", round(object$jackknife_se, 6)))
+  message(paste0("Coefficient of variation:", round(object$jackknife_se / object$estimate, 4)))
+  message(paste0("Total transcripts:", object$n_transcripts))
 
-  cat("Influence Distribution:\n")
-  cat("-----------------------\n")
-  print(summary(object$influence))
+  message("Influence Distribution:")
+  message("-----------------------")
+  message(paste(capture.output(print(summary(object$influence))), collapse = "\n"))
 
-  cat("\n\nOutlier Transcripts (influence > ", object$outlier_threshold, "%ile):\n", sep = "")
-  cat("-----------------------------------------------\n")
+  message(paste0("\n\nOutlier Transcripts (influence > ", object$outlier_threshold, "%ile):"))
+  message("-----------------------------------------------")
 
   if (length(object$outlier_indices) > 0) {
     outl_data <- data.frame(
       Transcript = object$outlier_indices,
       Influence = object$influence[object$outlier_indices]
     )
-    print(outl_data)
+    message(paste(capture.output(print(outl_data)), collapse = "\n"))
   } else {
-    cat("No outliers detected.\n")
+    message("No outliers detected.")
   }
 
   invisible(object)
@@ -709,12 +689,11 @@ summary.tsenat_jackknife <- function(object, ...) {
 #' @export
 #' @method print tsenat_jackknife_list
 print.tsenat_jackknife_list <- function(x, ...) {
-  cat("Jackknife Diagnostics for", length(x), "genes\n")
-  cat("=============================================\n")
-  cat("Gene names:", paste(head(names(x), 5), collapse = ", "))
-  if (length(x) > 5) cat(", ...")
-  cat("\n")
-  cat("\nUse indexing to view individual genes: object[[1]] or object$'GeneName'\n")
+  message("Jackknife Results for Multiple Genes")
+  message("Number of genes: ", length(x))
+  for (i in seq_along(x)) {
+    message("  ", names(x)[i], ": Estimate = ", sprintf("%.6f", x[[i]]$estimate))
+  }
   invisible(x)
 }
 #' Bootstrap Helper Function for Delta Statistics
@@ -1016,20 +995,20 @@ jackknife_isoform_switching <- function(
     
     # Optional printing for multi-q results
     if (print_results) {
-      cat("Isoform Switching Analysis - Multi-Q Comparison\n")
-      cat("================================================\n\n")
+      message("Isoform Switching Analysis - Multi-Q Comparison")
+      message("================================================")
       for (i in seq_along(results_list)) {
-        cat("q = ", q[i], "\n")
+        message(paste0("q = ", q[i]))
         res <- results_list[[i]]
         if (!is.null(res$metadata)) {
-          cat("  Genes analyzed:      ", length(res$gene_names), "\n")
-          cat("  Transcripts tested:  ", res$metadata$n_transcripts_tested, "\n")
-          cat("  FDR-significant:     ", res$metadata$n_fdr_significant, "\n")
-          cat("  Genes with switching:", sum(res$summary_table$n_switching_transcripts > 0), "\n\n")
+          message(paste0("  Genes analyzed:      ", length(res$gene_names)))
+          message(paste0("  Transcripts tested:  ", res$metadata$n_transcripts_tested))
+          message(paste0("  FDR-significant:     ", res$metadata$n_fdr_significant))
+          message(paste0("  Genes with switching:", sum(res$summary_table$n_switching_transcripts > 0)))
         }
       }
-      cat("[OK] Access results$q_<value>$results_per_gene$<gene> for per-q, per-gene details\n")
-      cat("[OK] Compare q values to assess scale-dependent isoform switching patterns\n\n")
+      message("[OK] Access results$q_<value>$results_per_gene$<gene> for per-q, per-gene details")
+      message("[OK] Compare q values to assess scale-dependent isoform switching patterns")
     }
     
     return(invisible(results_list))
@@ -1515,36 +1494,36 @@ jackknife_isoform_switching <- function(
   
   # Print results if requested
   if (print_results) {
-    cat("Isoform Switching Analysis Results\n")
-    cat("===================================\n")
-    cat("Conditions: '", conditions[1], "' vs. '", conditions[2], "'\n", sep = "")
+    message("Isoform Switching Analysis Results")
+    message("===================================")
+    message(paste0("Conditions: '", conditions[1], "' vs. '", conditions[2], "'"))
     
     if (is_paired && !is.null(pair_info)) {
-      cat("Design: PAIRED (", subject_col, ") - ", pair_info$n_pairs, " matched pairs\n", sep = "")
+      message(paste0("Design: PAIRED (", subject_col, ") - ", pair_info$n_pairs, " matched pairs"))
     } else {
-      cat("Design: UNPAIRED\n")
+      message("Design: UNPAIRED")
     }
     
     if (!is.null(lm_results)) {
-      cat("LM filtering: Genes with p < ", lm_p_threshold, " (N = ", lm_genes_filtered, ")\n", sep = "")
+      message(paste0("LM filtering: Genes with p < ", lm_p_threshold, " (N = ", lm_genes_filtered, ")"))
     }
     
-    cat("\nGenes analyzed:", length(result$gene_names), "\n")
-    cat("Total transcripts tested:", result$metadata$n_transcripts_tested, "\n")
-    cat("FDR-significant transcripts (FDR<0.05):", result$metadata$n_fdr_significant, "\n\n")
+    message(paste0("\nGenes analyzed:", length(result$gene_names)))
+    message(paste0("Total transcripts tested:", result$metadata$n_transcripts_tested))
+    message(paste0("FDR-significant transcripts (FDR<0.05):", result$metadata$n_fdr_significant))
     
-    cat("Summary Table:\n")
-    print(summary_table)
+    message("Summary Table:")
+    message(paste(capture.output(print(summary_table)), collapse = "\n"))
     
-    cat("\n[OK] Use results$results_per_gene$'GeneName' to access per-gene switching details\n")
-    cat("[OK] Use results$summary_table for overview across genes\n")
-    cat("[OK] Use results$all_transcript_stats for FDR-corrected p-values per transcript\n")
-    cat("[OK] Use results$metadata$is_paired to check if paired design was applied\n")
+    message("\n[OK] Use results$results_per_gene$'GeneName' to access per-gene switching details")
+    message("[OK] Use results$summary_table for overview across genes")
+    message("[OK] Use results$all_transcript_stats for FDR-corrected p-values per transcript")
+    message("[OK] Use results$metadata$is_paired to check if paired design was applied")
     
     if (!is.null(lm_results)) {
-      cat("[OK] Access lm_p_interaction in each gene$lm_p_interaction for LM test results\n")
+      message("[OK] Access lm_p_interaction in each gene$lm_p_interaction for LM test results")
     }
-    cat("\n")
+    message("")
   }
   
   return(invisible(result))
@@ -1610,7 +1589,7 @@ prepare_gene_switching_tables <- function(
   q_vector <- sort(q_vector)  # Ensure numeric order
   
   if (verbose) {
-    cat(sprintf("Extracted q_vector from multi_q_results: %s\n", paste(sprintf("%.2f", q_vector), collapse=", ")))
+    message(sprintf("Extracted q_vector from multi_q_results: %s", paste(sprintf("%.2f", q_vector), collapse=", ")))
   }
   
   # Create summary_df from lm_res
@@ -1630,12 +1609,12 @@ prepare_gene_switching_tables <- function(
   if (is.null(n_top_genes)) {
     n_top_genes <- nrow(summary_df)
     if (verbose) {
-      cat(sprintf("n_top_genes is NULL; using all %d genes from summary_df\n", n_top_genes))
+      message(sprintf("n_top_genes is NULL; using all %d genes from summary_df", n_top_genes))
     }
   }
   
   if (verbose) {
-    cat(sprintf("Created summary_df with %d genes\n", nrow(summary_df)))
+    message(sprintf("Created summary_df with %d genes", nrow(summary_df)))
   }
   
   # Extract gene_name_map from the first multi_q result
@@ -1674,7 +1653,7 @@ prepare_gene_switching_tables <- function(
   }
   
   if (verbose) {
-    cat(sprintf("Matched %d top genes to multi_q_results\n", length(top_genes_list)))
+    message(sprintf("Matched %d top genes to multi_q_results", length(top_genes_list)))
   }
   
   # Build comparison tables for each gene

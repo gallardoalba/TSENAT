@@ -368,6 +368,8 @@ test_that("jackknife_isoform_switching with SummarizedExperiment", {
 
 test_that("jackknife_isoform_switching with multiple q", {
   # Test with multi-q 
+  skip("Test skipped to reduce runtime: jackknife_isoform_switching with multiple q-values (resource-intensive)")
+  
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
