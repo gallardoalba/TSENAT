@@ -277,7 +277,7 @@ tsenat <- function(
         q = q_vals,
         ...
       )
-      if (verbose) message(paste0("  ✓ Diversity calculated for q = ", paste(q_vals, collapse = ", ")))
+      if (verbose) message(paste0("  \u2713 Diversity calculated for q = ", paste(q_vals, collapse = ", ")))
     }, error = function(e) {
       stop("Diversity calculation failed:\n", e$message, call. = FALSE)
     })
@@ -297,7 +297,7 @@ tsenat <- function(
           print_results = FALSE,
           ...
         )
-        if (verbose) message("  ✓ Jackknife CIs computed")
+        if (verbose) message("  \u2713 Jackknife CIs computed")
       }, error = function(e) {
         warning("Jackknife failed:\n", e$message, call. = FALSE)
       })
@@ -314,7 +314,7 @@ tsenat <- function(
         fdr_threshold = analysis@config$fdr_threshold %||% 0.05,
         ...
       )
-      if (verbose) message("  ✓ LM analysis complete")
+      if (verbose) message("  \u2713 LM analysis complete")
     }, error = function(e) {
       warning("LM interaction calculation failed:\n", e$message, call. = FALSE)
     })
@@ -333,7 +333,7 @@ tsenat <- function(
           q = q_vals[1],  # Use first q-value
           ...
         )
-         if (verbose) message("  ✓ Divergence metrics computed")
+         if (verbose) message("  \u2713 Divergence metrics computed")
       }, error = function(e) {
         warning("Divergence calculation failed:\n", e$message, call. = FALSE)
       })
@@ -353,7 +353,7 @@ tsenat <- function(
           q = q_vals,
           ...
         )
-         if (verbose) message("  ✓ Q-interactions detected")
+         if (verbose) message("  \u2713 Q-interactions detected")
       }, error = function(e) {
         warning("Q-interaction detection failed:\n", e$message, call. = FALSE)
       })
@@ -402,13 +402,13 @@ tsenat <- function(
           }
         }, error = function(e) {
           if (verbose) {
-             message(paste0("  ⚠ Plot '", ptype, "' failed: ", e$message))
+             message(paste0("  \u26a0 Plot '", ptype, "' failed: ", e$message))
           }
         })
       }
 
       if (verbose) {
-         message(paste0("  ✓ ", length(analysis@plots), " plot(s) generated"))
+         message(paste0("  \u2713 ", length(analysis@plots), " plot(s) generated"))
       }
     }, error = function(e) {
       warning("Plot generation failed:\n", e$message, call. = FALSE)
@@ -420,11 +420,11 @@ tsenat <- function(
     message("Analysis Complete")
     message("=================")
     message("Results summary:")
-    if (length(analysis@diversity_results) > 0) message("  ✓ Diversity")
-    if (length(analysis@lm_results) > 0) message("  ✓ LM results")
-    if (length(analysis@jackknife_results) > 0) message("  ✓ Jackknife CIs")
-    if (length(analysis@divergence_results) > 0) message("  ✓ Divergence")
-    if (length(analysis@plots) > 0) message(paste0("  ✓ Plots (", length(analysis@plots), ")"))
+    if (length(analysis@diversity_results) > 0) message("  \u2713 Diversity")
+    if (length(analysis@lm_results) > 0) message("  \u2713 LM results")
+    if (length(analysis@jackknife_results) > 0) message("  \u2713 Jackknife CIs")
+    if (length(analysis@divergence_results) > 0) message("  \u2713 Divergence")
+    if (length(analysis@plots) > 0) message(paste0("  \u2713 Plots (", length(analysis@plots), ")"))
     message("\nUse show(analysis) or summary(analysis) for details")
   }
 

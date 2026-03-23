@@ -30,8 +30,8 @@ group assignments (default: "sample_type").}
 \item{top_n}{\code{numeric}. Number of top transcripts to display for each
 condition (default: 3).}
 
-\item{output_file}{\code{character} or \code{NULL}. Path to save the plot as
-a PNG file. If NULL, saves to a temporary location (default: NULL).}
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
+Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).}
 
 \item{metric}{\code{character}. Method for ranking transcripts within genes.
 One of "median", "mean", "variance", or "iqr" (default: "median").}

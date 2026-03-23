@@ -19,6 +19,9 @@ jackknife_tsallis_entropy_s4(
 
 \item{print_results}{\code{logical}. Print jackknife results summary. Default: FALSE.}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{

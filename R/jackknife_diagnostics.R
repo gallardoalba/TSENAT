@@ -630,7 +630,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
 #'
 #' @keywords internal
 #' @noRd
-#' @export
+#' @exportS3Method base::print tsenat_jackknife
 #' @method print tsenat_jackknife
 print.tsenat_jackknife <- function(x, ...) {
   message("Jackknife Diagnostics for Tsallis Entropy (q = ", x$q, ")")
@@ -648,7 +648,7 @@ print.tsenat_jackknife <- function(x, ...) {
 #'
 #' @keywords internal
 #' @noRd
-#' @export
+#' @exportS3Method base::summary tsenat_jackknife
 #' @method summary tsenat_jackknife
 summary.tsenat_jackknife <- function(object, ...) {
   message("Jackknife Diagnostics Summary")
@@ -686,7 +686,7 @@ summary.tsenat_jackknife <- function(object, ...) {
 #'
 #' @keywords internal
 #' @noRd
-#' @export
+#' @exportS3Method base::print tsenat_jackknife_list
 #' @method print tsenat_jackknife_list
 print.tsenat_jackknife_list <- function(x, ...) {
   message("Jackknife Results for Multiple Genes")

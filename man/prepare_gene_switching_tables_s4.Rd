@@ -27,6 +27,9 @@ to display per gene in the output tables (default: 10).}
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during table preparation.}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{

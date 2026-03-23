@@ -20,6 +20,9 @@ attempts to retrieve from \code{analysis@config$control}.}
 
 \item{q}{\code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{

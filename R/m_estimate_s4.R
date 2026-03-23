@@ -24,6 +24,8 @@
 #'   as high-influence. Default: 0.75.
 #' @param scale_method \code{character}. Scale estimation method: "mad" (default),
 #'   "proposal2", or "s-estimator".
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param verbose \code{logical}. Print status messages. Default: TRUE.
 #'
 #' @return

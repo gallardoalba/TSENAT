@@ -24,6 +24,9 @@ Default: 0.05.}
 \item{method}{\code{character}. Statistical method (e.g., "lmm", "gam", "gee").
 If NULL, uses method from @config$method or defaults to "lmm".}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base LM function,
 including: condition_col, paired, subject_col, multicorr, nthreads, etc.}
 }

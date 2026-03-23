@@ -265,6 +265,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
 #'
 #' @keywords internal
 #' @noRd
+#' @exportS3Method base::print rank_assumptions
 print.rank_assumptions <- function(x, ...) {
   message("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)")
   message(paste(rep("=", 60), collapse = ""))
@@ -623,6 +624,7 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
 #'
 #' @keywords internal
 #' @noRd
+#' @exportS3Method base::print rank_correlation_ci
 print.rank_correlation_ci <- function(x, ...) {
   message("RANK CORRELATION CONFIDENCE INTERVALS")
   message(paste(rep("=", 60), collapse = ""))

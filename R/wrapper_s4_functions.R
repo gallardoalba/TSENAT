@@ -13,6 +13,8 @@
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for Tsallis entropy.
 #'   If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .tsv, .csv, .txt (for tables), .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function,
 #'   including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.
 #'
@@ -221,17 +223,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
     }
   }
   
-  # ===================================================================
-  # OPTIMIZATION (B: Lazy Conversion):
-  # Store combined format for efficient downstream use
-  # Per-q format created lazily on-demand by accessor
-  # ===================================================================
-  
-  # ===================================================================
-  # OPTIMIZATION (B: Lazy Conversion):
-  # Create and cache combined SE with proper metadata structure
-  # ===================================================================
-  
+
   # ===================================================================
   # NO RECONSTRUCTION NEEDED: result_df IS already a SummarizedExperiment!
   # ===================================================================
@@ -472,6 +464,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #' @param formula \code{formula} or NULL. Reserved for future use.
 #' @param method \code{character}. Statistical method (e.g., "lmm", "gam", "gee").
 #'   If NULL, uses method from @config$method or defaults to "lmm".
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base LM function,
 #'   including: condition_col, paired, subject_col, multicorr, nthreads, etc.
 #'
@@ -823,6 +817,8 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
 #' @param print_results \code{logical}. Print jackknife results summary. Default: FALSE.
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with jackknife results in @jackknife_results.
@@ -931,6 +927,8 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' @param q \code{numeric}. Q-value for divergence.
 #'   If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base divergence function,
 #'   including: control_group, paired, bootstrap, method, ci, etc.
 #'
@@ -1136,6 +1134,8 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric} or \code{NULL}. Q-values to test across spectrum.
 #'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
@@ -1386,6 +1386,8 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL
 #' @param q \code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.
 #' @param control Character string specifying the control group identifier. If \code{NULL},
 #'   attempts to retrieve from \code{analysis@config$control}.
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return Returns the modified \code{analysis} object invisibly with results stored in
@@ -1498,8 +1500,8 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
       }
     }
 
-    # Call TSENAT's calculate_difference directly using ::: to bypass any masking
-    TSENAT:::calculate_difference(
+    # Call calculate_difference directly (internal TSENAT function)
+    calculate_difference(
       x = diversity_se,
       condition_col = samples_col,
       control = control,
@@ -2708,6 +2710,8 @@ effect_sizes_divergence_s4 <- function(
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
+#'   Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base plotting function.
 #'
 #' @return A file path (character) to the saved plot PNG file, invisibly.
@@ -3115,6 +3119,9 @@ plot_divergence_distribution_s4 <- function(
 #'   summary_table <- tables$summary_table
 #'   gene_tables <- tables$transcript_tables
 #' }
+#'
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #'
 #' @export
 #' @importFrom methods is

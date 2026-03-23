@@ -20,6 +20,9 @@ If NULL, uses first q_value from @config$q_values if available, else defaults to
 
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base divergence function,
 including: control_group, paired, bootstrap, method, ci, etc.}
 }

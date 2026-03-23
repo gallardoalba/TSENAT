@@ -12,6 +12,9 @@ calculate_diversity_s4(analysis, q = NULL, output_file = NULL, ...)
 \item{q}{\code{numeric}. Q-value(s) for Tsallis entropy.
 If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .tsv, .csv, .txt (for tables), .rds (for S4 objects). Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base function,
 including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.}
 }

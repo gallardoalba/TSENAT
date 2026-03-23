@@ -63,6 +63,9 @@ lm_results (default: 0.05).}
 \item{use_lm_fdr}{\code{logical}. If TRUE, uses adjusted p-values from lm_results 
 (default: TRUE).}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 }
 \value{

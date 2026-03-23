@@ -2,6 +2,8 @@ Package: TSENAT
 Type: Package
 Title: Tsallis Entropy Analysis Toolbox
 Version: 0.99.0
+Author: Cristóbal Gallardo [aut, cre]
+Maintainer: Cristóbal Gallardo <gallardoalba@pm.me>
 Authors@R: person(given = "Cristóbal", family = "Gallardo", role = c("aut", "cre"), email = "gallardoalba@pm.me", comment=c(ORCID="0000-0002-5752-2155"))
 Description: Tsallis entropy generalizes Shannon entropy with a parameter
     q that controls sensitivity to transcript abundance. This package allows the calculation 
