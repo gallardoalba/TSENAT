@@ -782,8 +782,9 @@ the **jackknife** delta influence (a measure of transcript switching robustness)
 across different q-values (rows: 0.01 to 2.0, representing increasing diversity
 scales) and transcripts (columns) for each gene.
 
-```{r multi-q-heatmap, echo=TRUE, fig.width=24, fig.height=20}
+```{r multi-q-heatmap, echo=TRUE, fig.width=12, fig.height=10, out.width="100%"}
 # Generate multi-Q heatmaps using the S4 wrapper
+# Automatically layouts 2 heatmaps per row with inverse scaling of cell widths based on transcript count
 heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(
     analysis, 
     n_genes = 4,
@@ -801,7 +802,7 @@ Interpretation:
 - Blue cells: Transcript more influential in the second condition
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
-```{r reads-transcripts-median, echo=TRUE}
+```{r reads-transcripts-median, echo=TRUE, out.width='100%', fig.align='center'}
 # Generate plot with explicit output file (directory created automatically)
 plot_file <- plot_top_transcripts_s4(
     analysis, 
@@ -1029,7 +1030,7 @@ abundant isoforms) in another, revealing scale-dependent regulatory mechanisms. 
 for investigation of condition-specific splicing architecture and dynamic isoform switching.
 
 
-```{r effect-size-plot-multiq, fig.width=10, fig.height=6}
+```{r effect-size-plot-multiq, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
 plot_file <- plot_divergence_distribution_s4(
@@ -1041,7 +1042,7 @@ plot_file <- plot_divergence_distribution_s4(
 knitr::include_graphics(plot_file)
 ```
 
-```{r compare-q-spectra-plot, fig.width=10, fig.height=10}
+```{r compare-q-spectra-plot, fig.width=10, fig.height=10, out.width='100%', fig.align='center'}
 # Visualize q-spectrum curves for top 4 genes by significance
 p_multi <- plot_divergence_spectrum_s4(
     analysis, 
@@ -1078,7 +1079,7 @@ Whe can also plot the global divergence spectrum across all genes.
 This curve is the full biological signature of **isoform switching**—the pattern encodes which 
 abundance scales (rare vs. abundant) are affected.
 
-```{r visualize-q-spectrum, fig.width=10, fig.height=6}
+```{r visualize-q-spectrum, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
 # Visualize global divergence q-spectrum across all genes (aggregated)
 p <- plot_divergence_spectrum_s4(
     analysis,

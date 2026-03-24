@@ -3980,13 +3980,15 @@ plot_multiq_delta_influence_heatmaps <- function(
   verbose = FALSE,
   cellwidth = 0,
   cellheight = 0,
-  fontsize = 18) {
+  fontsize = 18,
+  layout_ncol = 2) {
   # cellwidth, cellheight, fontsize follow pheatmap best practices:
   # - fontsize=18pt default for readable, large-format heatmaps (GLOBAL constant from .tsenat_font_sizes$heatmap_main)
   # - cellwidth=0, cellheight=0 (default) trigger dynamic sizing based on layout and data dimensions
   # - Dynamic sizing is aggressive: prioritizes visibility over whitespace
   # - Set cellwidth > 0 and cellheight > 0 to use fixed cell sizes instead and override dynamic sizing
   # - These are applied per individual heatmap in the grid layout
+  # - layout_ncol: Fixed number of heatmaps per row (default: 2); set to NULL for adaptive layout based on transcript counts
   # Input validation
   if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
     stop("switching_results must be a multi-q result from jackknife_isoform_switching()")
@@ -4248,34 +4250,52 @@ plot_multiq_delta_influence_heatmaps <- function(
     n_layout_rows <- 0     # Count of actual rows needed
     
     if (length(all_gene_matrices) > 0) {
-      # Iterate through genes and assign to layout rows
-      i <- 1
-      while (i <= n_total_genes) {
-        gene_idx <- i
-        has_data_i <- !is.null(all_gene_matrices[[gene_idx]]) && nrow(all_gene_matrices[[gene_idx]]) > 0
-        n_transcripts_i <- if (has_data_i) ncol(all_gene_matrices[[gene_idx]]) else 0
-        
-        # Check if next gene exists and has data
-        has_next <- i < n_total_genes
-        has_data_next <- has_next && !is.null(all_gene_matrices[[i + 1]]) && nrow(all_gene_matrices[[i + 1]]) > 0
-        n_transcripts_next <- if (has_data_next) ncol(all_gene_matrices[[i + 1]]) else 0
-        
-        if (has_data_i && n_transcripts_i > 5) {
-          # Gene with >5 transcripts: full-width row
-          gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+      # Determine layout strategy (fixed columns or adaptive)
+      use_fixed_layout <- !is.null(layout_ncol) && layout_ncol > 0
+      
+      if (use_fixed_layout) {
+        # FIXED LAYOUT: Force layout_ncol heatmaps per row
+        n_cols <- as.integer(layout_ncol)
+        i <- 1
+        while (i <= n_total_genes) {
+          for (col_pos in seq_len(n_cols)) {
+            if (i <= n_total_genes) {
+              gene_layout[[i]] <- list(row = n_layout_rows + 1, col = col_pos, width = 1/n_cols)
+              i <- i + 1
+            }
+          }
           n_layout_rows <- n_layout_rows + 1
-          i <- i + 1
-        } else if (has_data_i && n_transcripts_i <= 5 && has_data_next && n_transcripts_next <= 5) {
-          # Two consecutive genes BOTH with <=5 transcripts: pair them
-          gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
-          gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
-          n_layout_rows <- n_layout_rows + 1
-          i <- i + 2
-        } else {
-          # Single gene or last gene: full row
-          gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
-          n_layout_rows <- n_layout_rows + 1
-          i <- i + 1
+        }
+      } else {
+        # ADAPTIVE LAYOUT: Original logic based on transcript counts
+        i <- 1
+        while (i <= n_total_genes) {
+          gene_idx <- i
+          has_data_i <- !is.null(all_gene_matrices[[gene_idx]]) && nrow(all_gene_matrices[[gene_idx]]) > 0
+          n_transcripts_i <- if (has_data_i) ncol(all_gene_matrices[[gene_idx]]) else 0
+          
+          # Check if next gene exists and has data
+          has_next <- i < n_total_genes
+          has_data_next <- has_next && !is.null(all_gene_matrices[[i + 1]]) && nrow(all_gene_matrices[[i + 1]]) > 0
+          n_transcripts_next <- if (has_data_next) ncol(all_gene_matrices[[i + 1]]) else 0
+          
+          if (has_data_i && n_transcripts_i > 5) {
+            # Gene with >5 transcripts: full-width row
+            gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+            n_layout_rows <- n_layout_rows + 1
+            i <- i + 1
+          } else if (has_data_i && n_transcripts_i <= 5 && has_data_next && n_transcripts_next <= 5) {
+            # Two consecutive genes BOTH with <=5 transcripts: pair them
+            gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
+            gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
+            n_layout_rows <- n_layout_rows + 1
+            i <- i + 2
+          } else {
+            # Single gene or last gene: full row
+            gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+            n_layout_rows <- n_layout_rows + 1
+            i <- i + 1
+          }
         }
       }
     } else {
@@ -4367,36 +4387,32 @@ plot_multiq_delta_influence_heatmaps <- function(
       base_cellwidth <- 35   # 50 * 0.7 for 30% reduction
       base_cellheight <- 29  # 42 * 0.7 for 30% reduction
       
-      # Scale factors based on layout and column count
+      # For half-width heatmaps (2-per-row), calculate cellwidth to ensure ~32% plot width per heatmap (reduced by 20%)
+      # Plot width: 1200px × 0.96 (viewport) × 0.4 (reduced from 0.5) = ~461px per heatmap
+      # Minus margins (~40px left labels) and borders (~30px) = ~405px for heatmap cells
+      # Divide by number of transcripts to get cellwidth
       if (heatmap_width_fraction < 1) {
-        # Half-width in 2-column layout: expand more to fill available space
-        if (n_cols_mat > 8) {
-          scale_factor_width <- 1.0
-        } else if (n_cols_mat > 5) {
-          scale_factor_width <- 1.1
-        } else {
-          scale_factor_width <- 1.2  # Further increased expansion for paired with few transcripts
-        }
+        # Half-width: allocate ~32% of plot width per heatmap (20% reduction)
+        # 1200px × 0.96 × 0.4 = 461px available
+        # Minus margins (~40px left labels) and borders (~30px) = ~405px for cells
+        available_width_px <- 1200 * 0.65 * heatmap_width_fraction - 40 - 30
+        cellwidth_calc <- available_width_px / n_cols_mat
+        # Allow cellwidth to vary based on transcript count (no artificial caps)
+        adaptive_cellwidth <- max(15, cellwidth_calc)  # Minimum 15px to stay readable
       } else {
-        # Full-width row: EXPAND to fill available space
-        # Apply expansion factors for full-width heatmaps at new smaller width
+        # Full-width: use base scaling with expansion
         if (n_cols_mat > 8) {
-          scale_factor_width <- 2.3  # Further increased expansion even with many columns
+          scale_factor_width <- 2.3
         } else {
-          scale_factor_width <- 2.6  # Further increased expansion for < 8 columns
+          scale_factor_width <- 2.6
         }
+        adaptive_cellwidth <- base_cellwidth * scale_factor_width
       }
       
-      # Scale height based on number of rows (q-values)
-      if (n_rows_mat > 10) {
-        scale_factor_height <- 0.7
-      } else if (n_rows_mat > 5) {
-        scale_factor_height <- 0.85
-      } else {
-        scale_factor_height <- 1.0
-      }
+      # Scale height based on number of rows (q-values) using linear formula
+      # Continuously reduces cell height as rows increase
+      scale_factor_height <- max(0.7, 1.15 - n_rows_mat * 0.03)
       
-      adaptive_cellwidth <- base_cellwidth * scale_factor_width
       adaptive_cellheight <- base_cellheight * scale_factor_height
       
       # If explicit cellwidth/cellheight provided and >0, use those; else use adaptive

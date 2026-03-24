@@ -414,9 +414,9 @@ This section loads precomputed GAM results **generated in the main vignette** ([
 The precomputed results include effect sizes, model convergence diagnostics, and heteroscedasticity detection. Comparing GAM and Friedman Test results helps identify robust genes significant in both methods.
 
 ```{r gam-analysis, message=FALSE}
-# Load precomputed GAM results from CSV file
-gam_results <- read.csv(
-    system.file("extdata", "lm_interaction_results.csv", package = "TSENAT"),
+# Load precomputed GAM results from TSV file
+gam_results <- read.delim(
+    system.file("extdata", "lm_interaction_results.tsv", package = "TSENAT"),
     stringsAsFactors = FALSE
 )
 ```
