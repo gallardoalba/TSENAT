@@ -11,6 +11,7 @@ compute_method_concordance_s4(analysis, ...)
   analysis,
   gam_method = "q_interactions",
   friedman_method = "rankbased",
+  gam_results = NULL,
   verbose = FALSE,
   output_file = NULL
 )
@@ -25,6 +26,11 @@ Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 
 \item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
+
+\item{gam_results}{\code{data.frame} or \code{NULL}. Optional GAM results data frame to store
+in the analysis object. If provided, automatically stored in \code{@lm_results} under the
+key specified by \code{gam_method}. Useful for importing external results or results 
+computed outside the S4 wrapper. Default: NULL (use existing results in analysis).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 

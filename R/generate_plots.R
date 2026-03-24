@@ -318,19 +318,30 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
         ggplot2::geom_point(alpha = 0.75, size = 3.2) +
         ggplot2::scale_color_manual(
-            values = c("non-significant" = "grey40", "significant" = "firebrick3"),
+            values = .tsenat_significance_colors(),
             guide = "none"
         ) +
-        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::labs(
             title = title %||% "MA plot: mean vs log10 fold-change",
             x = x_label_formatted,
             y = y_label_formatted
         ) +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
-            axis.title = ggplot2::element_text(size = 14),
-            axis.text = ggplot2::element_text(size = 12)
+            plot.title = ggplot2::element_text(
+                hjust = 0.5, 
+                face = "bold",
+                size = 16,
+                margin = ggplot2::margin(b = 8)
+            ),
+            axis.title = ggplot2::element_text(face = "bold"),
+            axis.text = ggplot2::element_text(size = ggplot2::rel(0.9)),
+            panel.grid.minor = ggplot2::element_blank(),
+            panel.border = ggplot2::element_rect(
+                color = "grey85", 
+                fill = NA, 
+                linewidth = 0.3
+            )
         )
 
     p
@@ -664,9 +675,10 @@ plot_tsallis_q_curve_s4 <- function(
         ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = central - spread, ymax = central + spread, fill = group), alpha = 0.2, inherit.aes = FALSE) +
         ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central, color = group), linewidth = 1.3) +
         ggplot2::labs(title = sel, x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
-        ggplot2::scale_color_discrete(name = "Group") + ggplot2::scale_fill_discrete(name = "Group") +
+        ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") + 
+        ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
         ggplot2::theme(plot.title = ggplot2::element_text(
-          hjust = 0.5, size = 14,
+          hjust = 0.5, size = 16, face = "bold",
           margin = ggplot2::margin(b = 10)
         ))
       p
@@ -707,9 +719,9 @@ plot_tsallis_q_curve_s4 <- function(
     # Create title and subtitle
     title_plot <- cowplot::ggdraw() + 
       cowplot::draw_label("Tsallis Entropy q-Curve Profile", 
-                         fontface = "bold", size = 18, x = 0.5, y = 0.7) +
+                         fontface = "bold", size = 19, x = 0.5, y = 0.7) +
       cowplot::draw_label("Top genes ranked by statistical significance (Median +/- SD)", 
-                         fontface = "italic", size = 14, x = 0.5, y = 0.35, color = "gray40")
+                         fontface = "italic", size = 15, x = 0.5, y = 0.35, color = "gray40")
     
     # Add legend at bottom
     grid_with_legend <- cowplot::plot_grid(
@@ -776,7 +788,9 @@ plot_tsallis_q_curve_s4 <- function(
         ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2),
         alpha = 0.2, color = NA
       ) +
-      ggplot2::theme_minimal(base_size = 14) +
+      ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+      ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+      .tsenat_theme_base(base_size = 11) +
       ggplot2::labs(
         title = "Group Comparison: Tsallis Entropy Across Diversity Scales (q-spectrum)",
         subtitle = "Median +/- IQR across samples",
@@ -785,12 +799,7 @@ plot_tsallis_q_curve_s4 <- function(
         color = "Group",
         fill = "Group"
       ) +
-      ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 14),
-                     plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 14))
-    
-    # Use default discrete ggplot2 colours
-    p <- p + ggplot2::scale_color_discrete(name = "Group") +
-      ggplot2::scale_fill_discrete(name = "Group")
+      ggplot2::theme(plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic"))
     
     # If only one group, hide legend
     if (length(unique(long$group)) == 1) {
@@ -799,7 +808,7 @@ plot_tsallis_q_curve_s4 <- function(
     
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
-      ggplot2::ggsave(output_file, plot = p, width = 10, height = 6, create.dir = TRUE)
+      ggplot2::ggsave(output_file, plot = p, width = 12, height = 7.2, dpi = 100, create.dir = TRUE)
     }
     
     return(p)
@@ -918,7 +927,9 @@ plot_tsallis_q_curve_s4 <- function(
       alpha = 0.15,
       color = NA
     ) +
-    ggplot2::theme_minimal(base_size = 13) +
+    ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+    ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+    .tsenat_theme_base(base_size = 11) +
     ggplot2::labs(
       title = "Group Comparison: Tsallis Entropy Across Diversity Scales (q-spectrum)",
       subtitle = "Median with 95% confidence intervals",
@@ -928,11 +939,8 @@ plot_tsallis_q_curve_s4 <- function(
       fill = "Group"
     ) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 20),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 14)
-    ) +
-    ggplot2::scale_color_manual(values = c("#1B9E77", "#D95F02")) +
-    ggplot2::scale_fill_manual(values = c("#1B9E77", "#D95F02"))
+      plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic")
+    )
   
   if (length(groups) == 1) {
     p <- p + ggplot2::theme(legend.position = "none")
@@ -1001,8 +1009,8 @@ plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NU
             outlier.shape = NA,
             alpha = 0.8
         ) +
-        ggplot2::theme_minimal(base_size = 14) +
-        ggplot2::scale_fill_discrete(name = "Group", guide = "none") +
+        .tsenat_theme_base(base_size = 11) +
+        ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group", guide = "none") +
         ggplot2::labs(
             title = title_use,
             x = "Group",
@@ -1010,8 +1018,7 @@ plot_tsallis_violin_singleq <- function(se, assay_name = "diversity", title = NU
             fill = "Group"
         ) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain"),
-            axis.title = ggplot2::element_text(size = 12)
+            axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title)
         )
 }
 
@@ -1066,9 +1073,9 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
         ggplot2::aes(x = tsallis, color = group, fill = group)
     ) +
         ggplot2::geom_density(alpha = 0.3, linewidth = 1) +
-        ggplot2::theme_minimal(base_size = 14) +
-        ggplot2::scale_color_discrete(name = "Group") +
-        ggplot2::scale_fill_discrete(name = "Group") +
+        .tsenat_theme_base(base_size = 11) +
+        ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+        ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
         ggplot2::labs(
             title = title_use,
             x = "Tsallis entropy",
@@ -1077,8 +1084,7 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
             fill = "Group"
         ) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "plain"),
-            axis.title = ggplot2::element_text(size = 12)
+            axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title)
         )
 }
 
@@ -1171,8 +1177,8 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     # Add overall title and subtitle above the grid
     grid_with_title <- cowplot::plot_grid(
         cowplot::ggdraw() + 
-            cowplot::draw_label("Tsallis Entropy Distribution by Group", fontface = "bold", size = 18, x = 0.5, y = 0.75) +
-            cowplot::draw_label("Violin and density plots across samples", fontface = "italic", size = 14, x = 0.5, y = 0.25, color = "gray40"),
+            cowplot::draw_label("Tsallis Entropy Distribution by Group", fontface = "bold", size = 19, x = 0.5, y = 0.75) +
+            cowplot::draw_label("Violin and density plots across samples", fontface = "italic", size = 15, x = 0.5, y = 0.25, color = "gray40"),
         grid,
         nrow = 2,
         rel_heights = c(0.08, 1)
@@ -1180,7 +1186,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
-      ggplot2::ggsave(output_file, plot = grid_with_title, width = 10, height = 6, create.dir = TRUE)
+      ggplot2::ggsave(output_file, plot = grid_with_title, width = 12, height = 7.2, dpi = 100, create.dir = TRUE)
     }
     
     return(grid_with_title)
@@ -1234,7 +1240,7 @@ plot_volcano <- function(
     ) +
         ggplot2::geom_point(alpha = 0.75, size = 3.4) +
         ggplot2::scale_color_manual(
-            values = c("non-significant" = "black", "significant" = "red"),
+            values = .tsenat_significance_colors(),
             guide = "none"
         ) +
         ggplot2::geom_hline(
@@ -1247,16 +1253,27 @@ plot_volcano <- function(
             linetype = "dashed",
             color = "gray50"
         ) +
-        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::labs(
             title = title_use,
             x = x_label_formatted,
             y = paste0("-Log10(", padj_label_formatted, ")")
         ) +
+        ggplot2::theme_minimal(base_size = 14) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "plain", margin = ggplot2::margin(b = 4)),
-            axis.title = ggplot2::element_text(size = 14),
-            axis.text = ggplot2::element_text(size = 12)
+            plot.title = ggplot2::element_text(
+                hjust = 0.5, 
+                face = "bold",
+                size = 16,
+                margin = ggplot2::margin(b = 8)
+            ),
+            axis.title = ggplot2::element_text(face = "bold"),
+            axis.text = ggplot2::element_text(size = 14 * 0.9),
+            panel.grid.minor = ggplot2::element_blank(),
+            panel.border = ggplot2::element_rect(
+                color = "grey85", 
+                fill = NA, 
+                linewidth = 0.3
+            )
         )
 
     p
@@ -1401,8 +1418,8 @@ plot_volcano_ma_grid <- function(
     # Title row
     vp_title <- grid::viewport(layout.pos.row = 1, layout.pos.col = seq_len(ncol))
     grid::pushViewport(vp_title)
-    grid::grid.text("Transcript level expression", x = 0.5, y = 0.6, gp = grid::gpar(fontsize = 18, fontface = "bold"))
-    grid::grid.text(paste0("Top genes with metric ", title), x = 0.5, y = 0.2, gp = grid::gpar(fontsize = 14, fontface = "italic", col = "gray40"))
+    grid::grid.text("Transcript level expression", x = 0.5, y = 0.6, gp = grid::gpar(fontsize = 14, fontface = "bold"))
+    grid::grid.text(paste0("Top genes with metric ", title), x = 0.5, y = 0.2, gp = grid::gpar(fontsize = 11, fontface = "italic", col = "gray40"))
     grid::upViewport()
     # Plot rows
     for (i in seq_along(grobs)) {
@@ -1428,11 +1445,11 @@ plot_volcano_ma_grid <- function(
 
 ## Internal helpers for `plot_top_transcripts` refactor
 ## Create per-gene plot and combine multiple gene plots into final output
-.ptt_make_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL) {
+.ptt_make_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1.0) {
     require_pkgs(c("ggplot2", "tidyr"))
     built <- .ptt_build_tx_long(gene_single, mapping, counts, samples, NULL)
     df_summary <- .ptt_aggregate_df_long(built$df_long, agg_fun, pseudocount)
-    .ptt_build_plot_from_summary(df_summary, agg_label_unique, fill_limits)
+    .ptt_build_plot_from_summary(df_summary, agg_label_unique, fill_limits, font_scale = font_scale)
 }
 
 .ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
@@ -1709,8 +1726,23 @@ plot_top_transcripts <- function(
     output_file <- prep$output_file
 
     make_plot_for_gene <- function(gene_single, fill_limits = NULL) {
-        .ptt_make_plot_for_gene(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits)
+        .ptt_make_plot_for_gene(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits, font_scale = font_scale)
     }
+
+    # Calculate dimensions and font scaling upfront
+    n_cols <- 2
+    n_rows <- ceiling(length(gene) / n_cols)
+    
+    # Standardized dimensions: 12 inches width with proportional height
+    # Base: 6 inches per column width, 3 inches per row height, plus 2 inch margin
+    calc_width <- if (is.null(width)) 12 else width
+    calc_height <- if (is.null(height)) 2 + (3 * n_rows) else height
+    
+    # Calculate font scaling based on actual dimensions
+    # Reference: 12x8 inches (96 sq in) uses base formula for 11pt fonts
+    # For other sizes: font_scale = sqrt(area / 96)
+    plot_area <- calc_width * calc_height
+    font_scale <- sqrt(plot_area / 96)
 
     # Produce plots (single or multiple)
     if (length(gene) > 1) {
@@ -1720,7 +1752,9 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 18, face = "plain", margin = ggplot2::margin(b = 5)))
+            # Scale title font proportionally
+            scaled_title_size <- 16 * font_scale
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = scaled_title_size, face = "bold", margin = ggplot2::margin(b = 5)))
             pp
         })
 
@@ -1736,21 +1770,11 @@ plot_top_transcripts <- function(
             dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
         }
         
-        # Auto-calculate dimensions if not provided based on number of genes
-        if (is.null(width) || is.null(height)) {
-            # 2 genes per row layout
-            n_cols <- 2
-            n_rows <- ceiling(length(gene) / n_cols)
-            # Default: 8 inches per column, 6 inches per row + headers
-            # (reduced from 13x10 because fonts are 50% larger)
-            plot_width <- if (is.null(width)) 8 * n_cols else width
-            plot_height <- if (is.null(height)) 2 + (6 * n_rows) else height
-        } else {
-            plot_width <- width
-            plot_height <- height
-        }
+        # Use pre-calculated dimensions
+        plot_width <- calc_width
+        plot_height <- calc_height
         
-        ggplot2::ggsave(output_file, result_plot, width = plot_width, height = plot_height, dpi = 150)
+        ggplot2::ggsave(output_file, result_plot, width = plot_width, height = plot_height, dpi = 100)
         invisible(output_file)
     } else {
         result_plot
@@ -1834,7 +1858,7 @@ plot_top_transcripts <- function(
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
-    sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL) {
+    sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL, width = NULL, height = NULL) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr", "cowplot"))
 
@@ -2113,17 +2137,15 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         pred_df$group <- factor(pred_df$group, levels = group_levels)
 
         # Create explicit color mapping for all groups
-        # Generate enough colors for all unique groups using Set1 palette
-        color_mapping <- c()
-        
-        # Use RColorBrewer Set1 for consistent, distinct colors
-        # Ensure we have at least 3 colors (Set1 minimum)
-        n_colors <- max(3, length(group_levels))
-        palette_colors <- RColorBrewer::brewer.pal(n_colors, "Set1")
+        # Use .tsenat_palette_blue_red() for harmonized blue-red color scheme
+        palette_colors <- .tsenat_palette_blue_red()
         
         # Map each group to a color from the palette
+        color_mapping <- c()
         for (i in seq_along(group_levels)) {
-            color_mapping[group_levels[i]] <- palette_colors[i]
+            # Cycle through palette if more groups than palette colors
+            color_idx <- ((i - 1) %% length(palette_colors)) + 1
+            color_mapping[group_levels[i]] <- palette_colors[color_idx]
         }
 
         # Create plot with explicit color scale
@@ -2150,14 +2172,21 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
                 y = "Tsallis entropy",
                 title = ifelse(gene_display_name != g, sprintf("%s (%s)", gene_display_name, g), gene_display_name)
             ) +
-            ggplot2::theme_minimal(base_size = 14) +
+            ggplot2::theme_minimal(base_size = 11) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = 17, face = "bold"),
-                axis.title = ggplot2::element_text(size = 15),
-                axis.text = ggplot2::element_text(size = 13),
+                plot.title = ggplot2::element_text(
+                    hjust = 0.5, 
+                    face = "bold", 
+                    size = 16,
+                    margin = ggplot2::margin(b = 8)
+                ),
+                axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
+                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.border = ggplot2::element_rect(color = "grey85", fill = NA, linewidth = 0.3),
                 legend.position = "none",
-                legend.title = ggplot2::element_text(size = 13),
-                legend.text = ggplot2::element_text(size = 12)
+                legend.title = ggplot2::element_text(size = .tsenat_font_sizes$legend_title),
+                legend.text = ggplot2::element_text(size = .tsenat_font_sizes$legend_text)
             )
 
         return(p)
@@ -2195,8 +2224,8 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     # Extract legend from first plot
     legend <- cowplot::get_legend(plots[[1]] + 
         ggplot2::theme(legend.position = "bottom",
-                      legend.title = ggplot2::element_text(size = 13),
-                      legend.text = ggplot2::element_text(size = 12)))
+                      legend.title = ggplot2::element_text(size = .tsenat_font_sizes$legend_title),
+                      legend.text = ggplot2::element_text(size = .tsenat_font_sizes$legend_text)))
     
     # Create grid without legends
     combined_plot <- cowplot::plot_grid(
@@ -2212,7 +2241,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         cowplot::draw_label("GAM q-curve: Top genes with group interaction", 
                            fontface = "bold", size = 20, x = 0.5, y = 0.80) +
         cowplot::draw_label("Fitted smooth curves by group", 
-                           fontface = "italic", size = 16, x = 0.5, y = 0.40, color = "gray40")
+                           fontface = "italic", size = 16, x = 0.5, y = 0.25, color = "gray40")
     
     # Combine title, plots, and single legend at bottom
     final_plot <- cowplot::plot_grid(
@@ -2225,7 +2254,10 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     
     # Save to file if output_file is provided
     if (!is.null(output_file)) {
-        ggplot2::ggsave(output_file, plot = final_plot, width = 14, height = 12, create.dir = TRUE)
+        # Use provided dimensions or defaults
+        save_width <- if (is.null(width)) 12 else width
+        save_height <- if (is.null(height)) 10.3 else height
+        ggplot2::ggsave(output_file, plot = final_plot, width = save_width, height = save_height, dpi = 100, create.dir = TRUE)
     }
     
     return(final_plot)
@@ -2349,7 +2381,19 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     df_summary
 }
 
-.ptt_build_plot_from_summary <- function(df_summary, agg_label_unique, fill_limits = NULL) {
+.ptt_build_plot_from_summary <- function(df_summary, agg_label_unique, fill_limits = NULL, 
+                                        font_scale = 1.0) {
+    # Calculate font sizes proportionally to output dimensions
+    # Reference: 12x8 inches (96 sq in) uses font_base=11
+    # For other sizes, scale base font as: base_font = 11 * sqrt(area/96)
+    # This ensures readability is maintained across different output sizes
+    
+    base_font <- 11 * font_scale
+    y_axis_font <- 12 * font_scale
+    x_axis_font <- 14 * font_scale
+    title_font <- 16 * font_scale
+    legend_font <- 9 * font_scale
+    
     p <- ggplot2::ggplot(df_summary, ggplot2::aes(x = group, y = tx, fill = log2expr)) +
         ggplot2::geom_tile(color = "black", linewidth = 0.3, width = 0.95, height = 0.92) + 
         ggplot2::geom_vline(xintercept = 1.5, color = "white", linewidth = 1.5) +
@@ -2361,23 +2405,23 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
             limits = fill_limits,
             name = "log2(expr)"
         ) + 
-        ggplot2::theme_minimal(base_size = 30) +
+        ggplot2::theme_minimal(base_size = base_font) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 18, face = "plain"), 
-            axis.text.x = ggplot2::element_text(size = 21),
-            plot.title = ggplot2::element_text(size = 20, hjust = 0.5, face = "bold"), 
+            axis.text.y = ggplot2::element_text(size = y_axis_font, face = "plain"), 
+            axis.text.x = ggplot2::element_text(size = x_axis_font),
+            plot.title = ggplot2::element_text(size = title_font, hjust = 0.5, face = "bold"),
             legend.position = "bottom",
             legend.justification = "center",
             legend.key.width = ggplot2::unit(2, "cm"), 
-            legend.text = ggplot2::element_text(size = 14),
+            legend.text = ggplot2::element_text(size = legend_font),
             plot.margin = ggplot2::margin(4, 4, 4, 4)
         ) + 
         ggplot2::guides(fill = ggplot2::guide_colorbar(
             title.position = "top",
             barwidth = 10, 
             barheight = 0.5,
-            title.theme = ggplot2::element_text(size = 20)
+            title.theme = ggplot2::element_text(size = title_font)
         ))
     p
 }
@@ -2397,7 +2441,14 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         if (length(row_plots) >= 1) {
             row_plots[[1]] <- row_plots[[1]] + ggplot2::theme(plot.margin = ggplot2::margin(r = 1.0, unit = "cm"))
         }
-        row_combined <- Reduce(`+`, row_plots) + patchwork::plot_layout(ncol = 2)
+        # Use patchwork composition (| for horizontal) to avoid scale conflicts
+        if (length(row_plots) == 1) {
+            row_combined <- row_plots[[1]]
+        } else if (length(row_plots) == 2) {
+            row_combined <- row_plots[[1]] | row_plots[[2]]  # Horizontal with patchwork
+        } else {
+            row_combined <- Reduce(function(x, y) x | y, row_plots)
+        }
         plot_rows[[row]] <- row_combined
     }
     
@@ -2421,17 +2472,20 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     combined_plots_section <- Reduce(`/`, combined_elements) +
         patchwork::plot_layout(heights = heights_spec)
     
-    # Add title spacer above plots
+    # Add title spacer above plots (use / for vertical, not | for horizontal)
     spacer <- ggplot2::ggplot() + ggplot2::theme_void()
-    combined <- (spacer + patchwork::plot_spacer()) / combined_plots_section &
-        ggplot2::theme(legend.position = "bottom")
-    combined <- combined + patchwork::plot_annotation(
-        title = "Transcript level expression",
-        subtitle = paste0("Top genes with metric ", agg_label_unique),
-        theme = ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 26, face = "bold", margin = ggplot2::margin(t = 30, b = 0)),
-            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 20, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4))
-        )) +
+    title_row <- spacer | patchwork::plot_spacer()
+    
+    # Combine: title row on top, plot grid below
+    combined <- title_row / combined_plots_section +
+        patchwork::plot_annotation(
+            title = "Transcript level expression",
+            subtitle = paste0("Top genes with metric ", agg_label_unique),
+            theme = ggplot2::theme(
+                plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold", margin = ggplot2::margin(t = 10, b = 10)),
+                plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$subtitle, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4))
+            )
+        ) +
         patchwork::plot_layout(heights = c(0.045, 1), guides = "collect")
     combined
 }
@@ -2712,7 +2766,7 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
   
   # Create visualization of effect size distribution
   p_effect <- ggplot2::ggplot(interaction_results, ggplot2::aes(x = .data[[median_col]])) +
-    ggplot2::geom_histogram(binwidth = 0.02, fill = "steelblue", alpha = 0.7, color = "black") +
+    ggplot2::geom_histogram(binwidth = 0.02, fill = .tsenat_palette_blue_red()[1], alpha = 0.7, color = "black") +
     ggplot2::geom_vline(xintercept = threshold, linetype = "dashed", color = "red", linewidth = 1) +
     ggplot2::labs(
       title = expression("Distribution of Tsallis Divergence (" ~ D[q] ~ ") effect sizes across genes"),
@@ -2721,11 +2775,10 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
       y = "Number of genes",
       caption = paste("Red dashed line: D =", threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")
     ) +
-    ggplot2::theme_minimal() +
+    .tsenat_theme_base(base_size = 11) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 18, color = "black"),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 12),
-      plot.margin = ggplot2::margin(t = 20, b = 5, unit = "pt"),
+      plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title, face = "bold", hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(face = "italic", size = .tsenat_font_sizes$subtitle, hjust = 0.5),
       panel.grid.major = ggplot2::element_line(color = "gray90")
     ) +
     ggplot2::annotate("text", x = threshold, y = Inf, 
@@ -3026,9 +3079,9 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       
       # Create base plot
       p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-        ggplot2::theme_minimal(base_size = 12) +
-        ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
-        ggplot2::geom_point(color = "#2E86AB", size = 2.8, alpha = 0.8) +
+        .tsenat_theme_base(base_size = 11) +
+        ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
+        ggplot2::geom_point(color = "#4575B4", size = 2.8, alpha = 0.8) +
         ggplot2::geom_vline(xintercept = 1, linetype = 3, color = "gray60", linewidth = 0.8, alpha = 0.7) +
         ggplot2::labs(
           title = sprintf("%s", gene_name),
@@ -3037,19 +3090,14 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
           y = "Tsallis Divergence D[q]"
         ) +
         ggplot2::theme(
-          plot.title = ggplot2::element_text(
-            hjust = 0.5, face = "bold", size = 12,
-            margin = ggplot2::margin(b = 3)
-          ),
           plot.subtitle = ggplot2::element_text(
             hjust = 0.5, size = 10, color = "gray40",
             margin = ggplot2::margin(b = 8)
           ),
           plot.margin = ggplot2::margin(t = 8, b = 8, l = 6, r = 6),
           panel.grid.major = ggplot2::element_line(color = "gray92", linewidth = 0.25),
-          panel.grid.minor = ggplot2::element_blank(),
-          axis.text = ggplot2::element_text(size = 10),
-          axis.title = ggplot2::element_text(size = 10, face = "plain")
+          axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
+          axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title, face = "plain")
         )
       
       plot_list[[i]] <- p
@@ -3106,8 +3154,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
                      title = "Tsallis Divergence q-Spectrum Profiles",
                      subtitle = "Per-q divergence curves for top-ranked genes",
                      theme = ggplot2::theme(
-                       plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 18, margin = ggplot2::margin(b = 8)),
-                       plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 14, color = "gray40", margin = ggplot2::margin(b = 12))
+                       plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = .tsenat_font_sizes$title, margin = ggplot2::margin(b = 8)),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = .tsenat_font_sizes$subtitle, color = "gray40", margin = ggplot2::margin(b = 12))
                      )
                    )
   
@@ -3115,7 +3163,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   # Save to file if output_file is provided
   if (!is.null(output_file)) {
-    ggplot2::ggsave(output_file, plot = combined_plot, width = 10, height = 6, create.dir = TRUE)
+    ggplot2::ggsave(output_file, plot = combined_plot, width = 12, height = 7.2, dpi = 100, create.dir = TRUE)
   }
   
   return(combined_plot)
@@ -3363,7 +3411,20 @@ plot_tsallis_divergence_profile <- function(se,
             ) +
             ggplot2::theme_minimal(base_size = 14) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
+                plot.title = ggplot2::element_text(
+                    hjust = 0.5, 
+                    size = .tsenat_font_sizes$title, 
+                    face = "bold",
+                    margin = ggplot2::margin(b = 8)
+                ),
+                axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
+                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.border = ggplot2::element_rect(
+                    color = "grey85", 
+                    fill = NA, 
+                    linewidth = 0.3
+                ),
                 legend.position = "right"
             )
     } else {
@@ -3379,7 +3440,20 @@ plot_tsallis_divergence_profile <- function(se,
             ) +
             ggplot2::theme_minimal(base_size = 14) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
+                plot.title = ggplot2::element_text(
+                    hjust = 0.5, 
+                    size = .tsenat_font_sizes$title, 
+                    face = "bold",
+                    margin = ggplot2::margin(b = 8)
+                ),
+                axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
+                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
+                panel.grid.minor = ggplot2::element_blank(),
+                panel.border = ggplot2::element_rect(
+                    color = "grey85", 
+                    fill = NA, 
+                    linewidth = 0.3
+                ),
                 legend.position = "right"
             )
     }
@@ -3426,7 +3500,7 @@ plot_tsallis_divergence_profile <- function(se,
                         ) +
                         ggplot2::theme_minimal(base_size = 12) +
                         ggplot2::theme(
-                            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
+                            plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold"),
                             panel.grid.minor = ggplot2::element_blank(),
                             legend.position = "right"
                         )
@@ -3441,7 +3515,7 @@ plot_tsallis_divergence_profile <- function(se,
                         ) +
                         ggplot2::theme_minimal(base_size = 12) +
                         ggplot2::theme(
-                            plot.title = ggplot2::element_text(hjust = 0.5, size = 14, face = "bold"),
+                            plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold"),
                             panel.grid.minor = ggplot2::element_blank()
                     )
                 }
@@ -3586,17 +3660,16 @@ plot_divergence_spectrum <- function(divergence_results_se,
         )
         
         p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-            ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
-            ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
+            ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
+            ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) +
             ggplot2::labs(
                 title = paste("Divergence Spectrum:", gene),
                 x = "q value (diversity scale parameter)",
                 y = "Tsallis Divergence D_q"
             ) +
-            ggplot2::theme_minimal(base_size = 14) +
+            .tsenat_theme_base(base_size = 11) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = 20, face = "bold"),
-                panel.grid.minor = ggplot2::element_blank()
+plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title, face = "bold", hjust = 0.5)
             )
         
         return(p)
@@ -3727,30 +3800,26 @@ plot_divergence_spectrum <- function(divergence_results_se,
                     ggplot2::aes(x = q, ymin = lower, ymax = upper),
                     inherit.aes = FALSE,
                     alpha = 0.15,
-                    fill = "#2E86AB",
+                    fill = "#4575B4",
                     color = NA
                 )
             }
             
             p <- p +
-                ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2, alpha = 0.8) +
-                ggplot2::geom_point(color = "#2E86AB", size = 3, alpha = 0.8) +
+                ggplot2::geom_line(color = "#4575B4", linewidth = 1.2, alpha = 0.8) +
+                ggplot2::geom_point(color = "#4575B4", size = 3, alpha = 0.8) +
                 ggplot2::labs(
                     title = "Divergence Spectra: Per-gene Comparisons",
                     subtitle = paste0("Ranked by interaction significance (", metric, ")"),
                     x = "q value (diversity scale parameter)",
                     y = expression("Divergence D[q]")
                 ) +
-                ggplot2::theme_minimal(base_size = 14) +
+                .tsenat_theme_base(base_size = 11) +
                 ggplot2::theme(
-                    plot.title = ggplot2::element_text(hjust = 0.5, size = 19, face = "bold", margin = ggplot2::margin(b = 10)),
-                    plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 14, face = "italic", margin = ggplot2::margin(b = 20)),
-                    axis.title = ggplot2::element_text(size = 13),
-                    axis.text = ggplot2::element_text(size = 11),
-                    plot.margin = ggplot2::margin(t = 30, b = 5, unit = "pt"),
-                    panel.grid.minor = ggplot2::element_blank(),
+                    plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title, face = "bold", hjust = 0.5),
+                    plot.subtitle = ggplot2::element_text(face = "italic", size = .tsenat_font_sizes$subtitle, hjust = 0.5),
                     panel.spacing = ggplot2::unit(1.5, "lines"),
-                    strip.text = ggplot2::element_text(face = "bold", size = 14)
+                    strip.text = ggplot2::element_text(face = "bold", size = .tsenat_font_sizes$subtitle)
                 )
             
             return(p)
@@ -3796,25 +3865,21 @@ plot_divergence_spectrum <- function(divergence_results_se,
             ggplot2::aes(ymin = central - spread * spread_factor, 
                         ymax = central + spread * spread_factor),
             alpha = 0.1,
-            fill = "#2E86AB",
+            fill = "#4575B4",
             color = NA
         ) +
-        ggplot2::geom_line(color = "#2E86AB", linewidth = 1.3) +
-        ggplot2::geom_point(color = "#2E86AB", size = 3.5, alpha = 0.8) +
+        ggplot2::geom_line(color = "#4575B4", linewidth = 1.3) +
+        ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) +
         ggplot2::labs(
             title = expression("Global Divergence Spectrum: Average " * D[q] * " Across All Genes"),
             x = "q value (diversity scale parameter)",
             y = expression("Divergence D[q]"),
             subtitle = paste0(metric_label, " +/- ", spread_label, " (", nrow(div_mat_sorted), " genes)")
         ) +
-        ggplot2::theme_minimal(base_size = 16) +
+        .tsenat_theme_base(base_size = 11) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 19, face = "bold", color = "black"),
-            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 11, face = "italic"),
-            axis.title = ggplot2::element_text(size = 13),
-            axis.text = ggplot2::element_text(size = 11),
-            plot.margin = ggplot2::margin(t = 30, b = 5, unit = "pt"),
-            panel.grid.minor = ggplot2::element_blank()
+            plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title, face = "bold", hjust = 0.5),
+            plot.subtitle = ggplot2::element_text(face = "italic", size = .tsenat_font_sizes$subtitle, hjust = 0.5)
         )
     
     return(p)
@@ -3837,6 +3902,17 @@ plot_divergence_spectrum <- function(divergence_results_se,
 #'   containing gene interaction statistics. Should have columns for gene identifiers
 #'   ('gene_name' or 'gene_id') and p-values ('p_interaction' or 'adj_p_interaction').
 #'   If provided, genes are ranked by p-value significance for selection of top genes.
+#' @param verbose Logical; if TRUE, print detailed validation report of heatmap data
+#'   including which genes were included and any skipped due to insufficient data.
+#'   Default: FALSE (no validation output).
+#' @param cellwidth Numeric; width of heatmap cells in pixels (default: 35).
+#'   Following pheatmap best practices for publication-quality heatmaps.
+#'   Larger values (50+) make cells more visible but reduce number of visible transcripts.
+#' @param cellheight Numeric; height of heatmap cells in pixels (default: 10.25).
+#'   Following pheatmap best practices. Smaller values allow more q-values to be visible.
+#' @param fontsize Numeric; font size in points for heatmap labels (default: 11).
+#'   Following pheatmap best practices for publication-quality figures. Applies to
+#'   row labels (q-values) and column labels (transcript IDs).
 #'
 #' @return Character path to saved PNG file containing the combined heatmaps.
 #'   The plot is automatically saved to a temporary file and can be displayed
@@ -3901,7 +3977,16 @@ plot_multiq_delta_influence_heatmaps <- function(
     switching_results,
   n_genes = 4,
   lm_results = NULL,
-  verbose = FALSE) {
+  verbose = FALSE,
+  cellwidth = 0,
+  cellheight = 0,
+  fontsize = 18) {
+  # cellwidth, cellheight, fontsize follow pheatmap best practices:
+  # - fontsize=18pt default for readable, large-format heatmaps (GLOBAL constant from .tsenat_font_sizes$heatmap_main)
+  # - cellwidth=0, cellheight=0 (default) trigger dynamic sizing based on layout and data dimensions
+  # - Dynamic sizing is aggressive: prioritizes visibility over whitespace
+  # - Set cellwidth > 0 and cellheight > 0 to use fixed cell sizes instead and override dynamic sizing
+  # - These are applied per individual heatmap in the grid layout
   # Input validation
   if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
     stop("switching_results must be a multi-q result from jackknife_isoform_switching()")
@@ -4154,6 +4239,69 @@ plot_multiq_delta_influence_heatmaps <- function(
   }
   
   tryCatch({
+    # First, determine layout based on heatmap transcript counts
+    # This is done BEFORE creating heatmaps so cellsizes can be adjusted
+    n_total_genes <- length(top_genes_for_comparison)
+    
+    # Determine which genes have >5 transcripts (will use full-width rows)
+    gene_layout <- list()  # Will store layout info for each gene
+    n_layout_rows <- 0     # Count of actual rows needed
+    
+    if (length(all_gene_matrices) > 0) {
+      # Iterate through genes and assign to layout rows
+      i <- 1
+      while (i <= n_total_genes) {
+        gene_idx <- i
+        has_data_i <- !is.null(all_gene_matrices[[gene_idx]]) && nrow(all_gene_matrices[[gene_idx]]) > 0
+        n_transcripts_i <- if (has_data_i) ncol(all_gene_matrices[[gene_idx]]) else 0
+        
+        # Check if next gene exists and has data
+        has_next <- i < n_total_genes
+        has_data_next <- has_next && !is.null(all_gene_matrices[[i + 1]]) && nrow(all_gene_matrices[[i + 1]]) > 0
+        n_transcripts_next <- if (has_data_next) ncol(all_gene_matrices[[i + 1]]) else 0
+        
+        if (has_data_i && n_transcripts_i > 5) {
+          # Gene with >5 transcripts: full-width row
+          gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+          n_layout_rows <- n_layout_rows + 1
+          i <- i + 1
+        } else if (has_data_i && n_transcripts_i <= 5 && has_data_next && n_transcripts_next <= 5) {
+          # Two consecutive genes BOTH with <=5 transcripts: pair them
+          gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
+          gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
+          n_layout_rows <- n_layout_rows + 1
+          i <- i + 2
+        } else {
+          # Single gene or last gene: full row
+          gene_layout[[gene_idx]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+          n_layout_rows <- n_layout_rows + 1
+          i <- i + 1
+        }
+      }
+    } else {
+      # No data: assign all genes to layouts (as placeholders)
+      i <- 1
+      while (i <= n_total_genes) {
+        if (i < n_total_genes) {
+          # Pair genes if possible
+          gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
+          gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
+          n_layout_rows <- n_layout_rows + 1
+          i <- i + 2
+        } else {
+          # Last unpaired gene
+          gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+          n_layout_rows <- n_layout_rows + 1
+          i <- i + 1
+        }
+      }
+    }
+    
+    # Calculate heatmap dimensions BEFORE processing individual heatmaps
+    # These values are needed for adaptive cell sizing calculations
+    # Height: 3 inches per layout row (scaled for 1200px width format)
+    heatmap_height <- 3 * n_layout_rows + 1.5 * (n_layout_rows - 1)
+    
     # Create individual heatmaps for each gene and store as grobs
     heatmap_plots <- list()
     plot_gene_names <- character(0)
@@ -4199,25 +4347,78 @@ plot_multiq_delta_influence_heatmaps <- function(
         }
       }
       
-      # Create symmetric breaks centered at zero for proper diverging color mapping
-      # Use global breaks calculated across all genes for consistent coloring
-      
       # Create pheatmap (returns a grob object)
-      p <- pheatmap::pheatmap(
+      # Using best practices from pheatmap documentation:
+      # - fontsize=13pt (standard for publication heatmaps)
+      # - cellwidth/cellheight dynamically scaled based on matrix dimensions
+      # - Color scale: diverging palette (blue-white-red) centered at zero
+      
+      # Calculate dynamic cell sizes based on AVAILABLE GRID SPACE
+      # Simplified adaptive sizing: scale based on number of columns/rows
+      n_cols_mat <- ncol(mat_viz)
+      n_rows_mat <- nrow(mat_viz)
+      
+      # Get layout info for this gene
+      layout_info <- gene_layout[[gene_idx]]
+      heatmap_width_fraction <- if (!is.null(layout_info)) layout_info$width else 1
+      
+      # BASE cell sizes: SCALED FOR 1200px WIDTH (12 inches @ 100 DPI)
+      # Reduced by 30% for proportional sizing
+      base_cellwidth <- 35   # 50 * 0.7 for 30% reduction
+      base_cellheight <- 29  # 42 * 0.7 for 30% reduction
+      
+      # Scale factors based on layout and column count
+      if (heatmap_width_fraction < 1) {
+        # Half-width in 2-column layout: expand more to fill available space
+        if (n_cols_mat > 8) {
+          scale_factor_width <- 1.0
+        } else if (n_cols_mat > 5) {
+          scale_factor_width <- 1.1
+        } else {
+          scale_factor_width <- 1.2  # Further increased expansion for paired with few transcripts
+        }
+      } else {
+        # Full-width row: EXPAND to fill available space
+        # Apply expansion factors for full-width heatmaps at new smaller width
+        if (n_cols_mat > 8) {
+          scale_factor_width <- 2.3  # Further increased expansion even with many columns
+        } else {
+          scale_factor_width <- 2.6  # Further increased expansion for < 8 columns
+        }
+      }
+      
+      # Scale height based on number of rows (q-values)
+      if (n_rows_mat > 10) {
+        scale_factor_height <- 0.7
+      } else if (n_rows_mat > 5) {
+        scale_factor_height <- 0.85
+      } else {
+        scale_factor_height <- 1.0
+      }
+      
+      adaptive_cellwidth <- base_cellwidth * scale_factor_width
+      adaptive_cellheight <- base_cellheight * scale_factor_height
+      
+      # If explicit cellwidth/cellheight provided and >0, use those; else use adaptive
+      final_cellwidth <- if (cellwidth > 0) cellwidth else adaptive_cellwidth
+      final_cellheight <- if (cellheight > 0) cellheight else adaptive_cellheight
+      
+    p <- pheatmap::pheatmap(
         mat_viz,
         main = header_text,
         cluster_rows = FALSE,
         cluster_cols = (ncol(mat_viz) > 1),
         display_numbers = FALSE,
         na_col = "lightgray",
-        color = grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(100),
-        cellwidth = 65,
-        cellheight = 65,
-        fontsize = 26,
-        fontsize_row = 26,
-        fontsize_col = 26,
-        fontsize_number = 20,
-        margins = c(11, 180),
+        border_color = "black",           # BLACK borders for better color separation
+        color = grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(70),
+        cellwidth = final_cellwidth,
+        cellheight = final_cellheight,
+        fontsize = fontsize * 0.7,        # Reduced by 30%
+        fontsize_row = fontsize * 0.7,
+        fontsize_col = fontsize * 0.7,
+        fontsize_number = fontsize * 0.56, # Reduced by 30%
+        margins = c(8, 10),               # REDUCED margins to maximize heatmap space
         show_rownames = TRUE,
         show_colnames = TRUE,
         silent = TRUE
@@ -4243,59 +4444,92 @@ plot_multiq_delta_influence_heatmaps <- function(
     }
     
     # Combine all panels into one figure using manual grid layout
-    # Save as PNG using manual grid layout
-    n_genes <- n_total_genes  # Always use requested number of genes for grid layout
-    n_cols <- 2
-    n_rows <- ceiling(n_genes / n_cols)
+    # Use mixed layout: full-width rows for large heatmaps, 2-per-row for small ones
+    n_genes <- n_total_genes
     
-    # Increase height to accommodate spacing between rows
-    heatmap_height <- 9 * n_rows + 2 * (n_rows - 1)  # Add 2 inches per gap between rows
-    grDevices::png(combined_png_file, width = 28, height = heatmap_height + 5, 
-                   units = "in", res = 96)
+    # PNG dimensions: standardized to 1200px width (12 inches @ 100 DPI) for consistency with other plots
+    # Height scales proportionally with content
+    png_width <- 12   # 12 inches @ 100 DPI = 1200 pixels
+    png_dpi <- 100
+    
+    # Scale heatmap_height proportionally: was 6 inches per row @ 150 DPI, now at 100 DPI
+    # Adjust from (heatmap_height @ 150 DPI context) to (heatmap_height @ 100 DPI context)
+    heatmap_height_scaled <- heatmap_height * (png_dpi / 150)
+    
+    grDevices::png(combined_png_file, width = png_width, height = heatmap_height_scaled + 4, 
+                   units = "in", res = png_dpi)
     
     grid::grid.newpage()
     
-    # Add main title (positioned to create more space before first row)
+    # Calculate dynamic title/subtitle sizes based on number of rows
+    # Scales proportionally: 15% increase per additional row layout
+    # For typical 2-row layout: ~30% bigger than base (16pt * 1.30 = 20.8pt ≈ 21pt)
+    title_fontsize <- 16 * (1 + 0.15 * n_layout_rows)
+    subtitle_fontsize <- 12 * (1 + 0.15 * n_layout_rows)
+    
+    # Add main title 
     grid::grid.text("Delta Influence Across Diversity Scales", 
-                    x = 0.5, y = 0.98, 
+                    x = 0.5, y = 0.97, 
                     just = "top",
-                    gp = grid::gpar(fontsize = 48, fontface = "bold"))
+                    gp = grid::gpar(fontsize = title_fontsize, fontface = "bold"))
     
-    # Add subtitle with minimal spacing
+    # Add subtitle
     grid::grid.text("Jackknife weights across q-spectrum for selected genes", 
-                    x = 0.5, y = 0.945, 
+                    x = 0.5, y = 0.94, 
                     just = "top",
-                    gp = grid::gpar(fontsize = 32, fontface = "italic", col = "gray40"))
+                    gp = grid::gpar(fontsize = subtitle_fontsize, fontface = "italic", col = "gray40"))
     
-    # Create viewport layout with spacing between rows
-    # Alternate between content rows and gap rows with larger gaps
-    n_layout_rows <- n_rows * 2 - 1  # n_rows for content + (n_rows-1) for gaps
-    row_heights <- rep(c(1, 0.20), n_rows)[seq_len(n_layout_rows)]  # Gap height (0.20) reduced for less row separation
+    # Create viewport layout with variable columns per row
+    # Each actual content row is followed by a gap row
+    n_grid_rows <- n_layout_rows * 2 - 1
+    row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
     
-    grid::pushViewport(grid::viewport(x = 0.5, y = 0.48, width = 1, height = 0.80,
-                                      layout = grid::grid.layout(
-      n_layout_rows, 
-      n_cols, 
-      heights = grid::unit(row_heights, "null"),
-      widths = rep(1, n_cols),
-      respect = FALSE
-    )))
+    # Use 3 columns as grid basis: column 1 (left), column 2 (gap), column 3 (right)
+    # This allows proper spacing between heatmaps in 2-column layouts
+    # MAXIMUM width (0.96) and height (0.85) to fill plot space with reduced title/subtitle spacing
+    grid::pushViewport(grid::viewport(
+      x = 0.5, 
+      y = 0.48, 
+      width = 0.96,
+      height = 0.85,
+      layout = grid::grid.layout(
+        n_grid_rows, 
+        3,
+        heights = grid::unit(row_heights, "null"),
+        widths = c(1, 0.12, 1),  # Col 1: left (1), gap (0.12), col 3: right (1)
+        respect = FALSE
+      )
+    ))
     
-    # Draw each pheatmap (or placeholder) in its own viewport
-    # Skip over gap rows (every odd row in expanded layout)
-    plot_idx <- 1
-    layout_row <- 1
-    for (row in seq_len(n_rows)) {
-      for (col in seq_len(n_cols)) {
-        if (plot_idx <= length(heatmap_plots)) {
-          grid::pushViewport(grid::viewport(layout.pos.row = layout_row, layout.pos.col = col))
-          grid::grid.draw(heatmap_plots[[plot_idx]])
-          grid::popViewport()
-          plot_idx <- plot_idx + 1
+    # Draw heatmaps using gene_layout positions
+    for (plot_idx in seq_along(heatmap_plots)) {
+      layout_info <- gene_layout[[plot_idx]]
+      if (!is.null(layout_info)) {
+        grid_row <- layout_info$row * 2 - 1  # Convert to grid row (accounting for gaps)
+        grid_col <- layout_info$col
+        width_frac <- layout_info$width
+        
+        if (width_frac == 1) {
+          # Full width: span all columns (1, 2, 3)
+          grid_col_start <- 1
+          grid_col_end <- 3
+        } else if (layout_info$col == 1) {
+          # Left column: only column 1
+          grid_col_start <- 1
+          grid_col_end <- 1
+        } else {
+          # Right column: only column 3 (skip gap)
+          grid_col_start <- 3
+          grid_col_end <- 3
         }
+        
+        grid::pushViewport(grid::viewport(
+          layout.pos.row = grid_row,
+          layout.pos.col = grid_col_start:grid_col_end
+        ))
+        grid::grid.draw(heatmap_plots[[plot_idx]])
+        grid::popViewport()
       }
-      # Move to next content row (skip gap row)
-      layout_row <- layout_row + 2
     }
     
     grid::popViewport()

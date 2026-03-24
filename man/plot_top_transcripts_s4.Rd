@@ -11,6 +11,8 @@ plot_top_transcripts_s4(
   top_n = 3,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
+  width = NULL,
+  height = NULL,
   verbose = FALSE,
   ...
 )
@@ -35,6 +37,12 @@ Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).}
 
 \item{metric}{\code{character}. Method for ranking transcripts within genes.
 One of "median", "mean", "variance", or "iqr" (default: "median").}
+
+\item{width}{\code{numeric} or \code{NULL}. Output image width in inches. 
+If NULL, automatically calculated based on number of genes (default: ~13 inches per column).}
+
+\item{height}{\code{numeric} or \code{NULL}. Output image height in inches.
+If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).}
 
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plotting (default: FALSE).}

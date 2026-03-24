@@ -1771,6 +1771,8 @@ plot_volcano_ma_grid_s4 <- function(
     title_ma = "Tsallis-based MA plot",
     verbose = FALSE,
     output_file = NULL,
+    width = 12,
+    height = 7.2,
     ...) {
 
   # Auto-detect verbose from config if not explicitly provided
@@ -1860,14 +1862,14 @@ plot_volcano_ma_grid_s4 <- function(
   # Save if output_file provided
   if (!is.null(output_file)) {
     if (grepl("\\.pdf$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = plot_obj, device = "pdf")
+      ggplot2::ggsave(output_file, plot = plot_obj, device = "pdf", width = width, height = height, dpi = 100)
     } else if (grepl("\\.png$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = plot_obj, device = "png")
+      ggplot2::ggsave(output_file, plot = plot_obj, device = "png", width = width, height = height, dpi = 100)
     } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = plot_obj, device = "jpeg")
+      ggplot2::ggsave(output_file, plot = plot_obj, device = "jpeg", width = width, height = height, dpi = 100)
     } else {
       # Default to PDF
-      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = plot_obj, device = "pdf")
+      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = plot_obj, device = "pdf", width = width, height = height, dpi = 100)
     }
     if (verbose) {
       message("[plot_volcano_ma_grid_s4] Plot saved to ", output_file)
@@ -2128,8 +2130,8 @@ plot_divergence_spectrum_s4 <- function(
     variability_metric = c("iqr", "sd"),
     use_pvalue_ranking = FALSE,
     output_file = NULL,
-    width = 10,
-    height = 6,
+    width = 12,
+    height = NULL,
     verbose = TRUE,
     ...) {
 
@@ -2194,6 +2196,12 @@ plot_divergence_spectrum_s4 <- function(
     }
   }
 
+  # Calculate height if not provided (based on grid layout)
+  if (is.null(height)) {
+    n_rows <- ceiling(n_genes / ncol)
+    height <- 3 + (3.5 * n_rows)  # 3" base + 3.5" per row
+  }
+
   # Create the plot using base function
   p <- tryCatch({
     plot_divergence_spectrum(
@@ -2227,7 +2235,7 @@ plot_divergence_spectrum_s4 <- function(
         plot = p,
         width = width,
         height = height,
-        dpi = 300
+        dpi = 100
       )
       output_file_path <- output_file
       if (verbose) {
@@ -2947,7 +2955,7 @@ plot_divergence_distribution_s4 <- function(
     analysis,
     threshold = 0.1,
     output_file = NULL,
-    width = 10,
+    width = 12,
     height = 6,
     verbose = TRUE,
     ...) {
@@ -3015,7 +3023,7 @@ plot_divergence_distribution_s4 <- function(
         plot = p,
         width = width,
         height = height,
-        dpi = 300
+        dpi = 100
       )
       output_file_path <- output_file
       if (verbose) {
@@ -3492,6 +3500,8 @@ plot_lm_interaction_gam_s4 <- function(
   sig_alpha = 0.05,
   assay_name = "diversity",
   output_file = NULL,
+  width = 12,
+  height = NULL,
   ...
 ) {
   # =========================================================================
@@ -3610,6 +3620,29 @@ plot_lm_interaction_gam_s4 <- function(
   }
   
   # =========================================================================
+  # CALCULATE HEIGHT IF NOT PROVIDED
+  # =========================================================================
+  if (is.null(height)) {
+    # Estimate number of genes to be plotted
+    if (!is.null(genes)) {
+      n_genes_plot <- length(genes)
+    } else {
+      # Count significant genes
+      if ("adj_p_interaction" %in% colnames(lm_res)) {
+        sig_genes <- lm_res$adj_p_interaction <= sig_alpha
+      } else if ("p_interaction" %in% colnames(lm_res)) {
+        sig_genes <- lm_res$p_interaction <= sig_alpha
+      } else {
+        sig_genes <- rep(TRUE, nrow(lm_res))
+      }
+      n_genes_plot <- min(sum(sig_genes), n_top)
+    }
+    # Calculate height: 2 rows per 3-gene group, ~3.5 inches per row
+    n_rows <- ceiling(n_genes_plot / 2)
+    height <- 2 + (3.5 * n_rows)
+  }
+  
+  # =========================================================================
   # CALL plot_lm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
   # =========================================================================
   result <- tryCatch({
@@ -3623,6 +3656,8 @@ plot_lm_interaction_gam_s4 <- function(
       assay_name = assay_name,
       model_data = model_data,
       output_file = output_file,
+      width = width,
+      height = height,
       ...
     )
   }, error = function(e) {
@@ -3645,14 +3680,14 @@ plot_lm_interaction_gam_s4 <- function(
   # Save if output_file provided
   if (!is.null(output_file)) {
     if (grepl("\\.pdf$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = result, device = "pdf")
+      ggplot2::ggsave(output_file, plot = result, device = "pdf", width = width, height = height, dpi = 100)
     } else if (grepl("\\.png$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = result, device = "png")
+      ggplot2::ggsave(output_file, plot = result, device = "png", width = width, height = height, dpi = 100)
     } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = result, device = "jpeg")
+      ggplot2::ggsave(output_file, plot = result, device = "jpeg", width = width, height = height, dpi = 100)
     } else {
       # Default to PDF
-      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = result, device = "pdf")
+      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = result, device = "pdf", width = width, height = height, dpi = 100)
     }
 
   }
