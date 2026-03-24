@@ -236,11 +236,13 @@ test_that("filter_analysis preserves colData", {
   analysis <- TSENATAnalysis(se)
   filtered_analysis <- filter_analysis(analysis, stringency = "soft", verbose = FALSE)
   
-  # colData should be preserved
-  expect_equal(
-    ncol(SummarizedExperiment::colData(filtered_analysis@se)),
-    ncol(coldata)
-  )
+  # colData should preserve original columns (sample_id is added by constructor)
+  filtered_coldata <- SummarizedExperiment::colData(filtered_analysis@se)
+  expect_true("pair_id" %in% colnames(filtered_coldata))
+  expect_true("condition" %in% colnames(filtered_coldata))
+  expect_true("sample_id" %in% colnames(filtered_coldata))
+  # Check expected column count: pair_id + condition + sample_id (added by constructor)
+  expect_equal(ncol(filtered_coldata), 3)
 })
 
 test_that("filter_analysis validates input type", {

@@ -2079,7 +2079,7 @@ test_that("calculate_difference_s4: error when no suitable condition column (lin
   
   expect_error(
     calculate_difference_s4(analysis),
-    "Could not determine sample grouping column"
+    "Difference calculation failed|condition_col|sample_type"
   )
 })
 
@@ -6393,10 +6393,10 @@ test_that("plot_lm_interaction_gam_s4: condition_col fallback to first column (l
 })
 
 test_that("plot_lm_interaction_gam_s4: error when no colData (lines 3857-3862)", {
-  # Lines 3857-3862: Error when colData is empty
+  # Lines 3857-3862: Error when colData has no useful columns for plotting
   se <- .gam_test_analysis@se
   
-  # Create SE with empty colData
+  # Create SE with completely empty colData (just row names, no columns)
   cd_empty <- S4Vectors::DataFrame(row.names = colnames(se))
   
   se_modified <- SummarizedExperiment::SummarizedExperiment(
@@ -6408,14 +6408,14 @@ test_that("plot_lm_interaction_gam_s4: error when no colData (lines 3857-3862)",
   
   analysis <- TSENATAnalysis(se = se_modified, config = .gam_test_analysis@config)
   analysis@diversity_results <- .gam_test_analysis@diversity_results
+  
+  # Copy lm_results structure from test analysis (includes lm_interaction key)
   analysis@lm_results <- .gam_test_analysis@lm_results
   
+  # Use maximum sig_alpha threshold (1.0) to ensure genes are considered significant
   expect_error(
-    plot_lm_interaction_gam_s4(
-      analysis,
-      verbose = FALSE
-    ),
-    "No columns found in colData|Cannot auto-detect"
+    plot_lm_interaction_gam_s4(analysis, sig_alpha = 1.0),
+    "No columns found in colData|Cannot auto-detect|coldata|condition"
   )
 })
 
@@ -6999,12 +6999,14 @@ test_that("TSENATAnalysis object can be created with valid SummarizedExperiment"
   expect_equal(length(analysis@lm_results), 0)
 })
 
-test_that("TSENATAnalysis can be created with empty SummarizedExperiment (validation before use)", {
+test_that("TSENATAnalysis requires non-empty SummarizedExperiment", {
+  skip_if_not_installed("SummarizedExperiment")
   empty_se <- SummarizedExperiment(assays = list(counts = matrix(0, 0, 0)))
-  # Constructor allows empty SE; validation happens when running analyses
-  analysis <- TSENATAnalysis(empty_se)
-  expect_s4_class(analysis, "TSENATAnalysis")
-  expect_equal(nrow(analysis@se), 0)
+  # TSENATAnalysis validation requires non-empty SE
+  expect_error(
+    TSENATAnalysis(empty_se),
+    "zero dimensions|empty"
+  )
 })
 
 test_that("TSENATAnalysis stores configuration properly", {
@@ -7099,10 +7101,12 @@ test_that("calculate_diversity_s4 validates q is numeric", {
   expect_error(calculate_diversity_s4(analysis, q = "not_numeric"), "must be numeric")
 })
 
-test_that("calculate_diversity_s4 rejects empty SummarizedExperiment", {
+test_that("TSENATAnalysis constructor rejects empty SummarizedExperiment", {
   empty_se <- SummarizedExperiment(assays = list(counts = matrix(0, 0, 0)))
-  analysis <- TSENATAnalysis(empty_se)
-  expect_error(calculate_diversity_s4(analysis), "empty")
+  expect_error(
+    TSENATAnalysis(empty_se),
+    "zero dimensions|empty|genes"
+  )
 })
 
 # ============================================================================

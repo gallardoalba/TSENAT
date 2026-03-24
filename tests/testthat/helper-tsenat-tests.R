@@ -62,6 +62,7 @@ create_test_se <- function(
   )
   
   rowData <- data.frame(
+    gene_id = paste0("GENE_", seq_len(n_genes)),
     gene_name = rownames(counts)
   )
   
@@ -129,6 +130,7 @@ create_test_se_simple <- function(
   colData <- data.frame(colData_list, row.names = colnames(counts))
   
   rowData <- data.frame(
+    gene_id = paste0("GENE", seq_len(n_genes)),
     gene_name = paste0("gene", seq_len(n_genes))
   )
   
@@ -614,11 +616,16 @@ create_count_se <- function(
     sample_id = paste0("S", 1:n_samples),
     group = group
   )
-  
+
+  row_data <- data.frame(
+    gene_id = rownames(counts)
+  )
+
   # Create SE
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = counts),
-    colData = col_data
+    colData = col_data,
+    rowData = row_data
   )
   
   se
@@ -663,18 +670,23 @@ create_wrapper_diversity_se <- function(
     )
   }
   
+  # Create rowData with gene_id
+  row_data <- data.frame(
+    gene_id = paste0("GENE_", 1:n_rows)
+  )
+
   # Create SE
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = counts),
-    colData = col_data
+    colData = col_data,
+    rowData = row_data
   )
-  
+
   se
 }
 
-#' Create wrapper test diversity SE with sample metadata
+#' Create wrapper test SE: 10×3 with metadata
 #'
-#' Convenience function for the most common wrapper test pattern:
 #' 10×3 SE with sample names and condition metadata.
 #'
 #' @param include_condition If TRUE, adds condition column (control/control/treatment)
@@ -859,9 +871,16 @@ create_simple_se_5x10 <- function(seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   
   counts <- matrix(rpois(50, 3), nrow = 5, ncol = 10)
-  
+  rownames(counts) <- paste0("GENE", 1:5)
+  colnames(counts) <- paste0("S", 1:10)
+
+  row_data <- data.frame(
+    gene_id = rownames(counts)
+  )
+
   SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = counts)
+    assays = list(counts = counts),
+    rowData = row_data
   )
 }
 

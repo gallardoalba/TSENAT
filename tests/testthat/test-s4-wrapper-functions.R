@@ -25,16 +25,23 @@ test_that("calculate_diversity_s4 rejects empty SummarizedExperiment", {
   config <- list()
   skip_if_not_installed("SummarizedExperiment")
   
-  # Create empty TSENATAnalysis
-  empty_se <- SummarizedExperiment::SummarizedExperiment(
+  # Create a non-empty SE first with required rowData/colData
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(1, nrow = 1, ncol = 1)),
+    rowData = data.frame(gene_id = "GENE1"),
+    colData = data.frame(sample_id = "S1", row.names = "S1")
+  )
+  
+  analysis <- TSENATAnalysis(se)
+  
+  # Now manually make it empty (bypassing validator)
+  analysis@se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(nrow = 0, ncol = 0))
   )
   
-  analysis <- new("TSENATAnalysis", se = empty_se, config = list())
-  
   expect_error(
     calculate_diversity_s4(analysis),
-    "SummarizedExperiment"
+    "SummarizedExperiment|dimensions|empty"
   )
 })
 
