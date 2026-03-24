@@ -85,12 +85,12 @@ This wrapper extracts the divergence SummarizedExperiment from
 }
 }
 \examples{
+# Plot 1: Global divergence spectrum across all genes
 analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
-  q_values = c(0.5, 1.0, 1.5))
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-# Global divergence curve (all genes aggregated) - default mode
+  q_values = c(0.5, 1, 1.5))
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 p_global <- plot_divergence_spectrum_s4(analysis)
-print(p_global)
+if (!is.null(p_global)) print(p_global)
 
 }
 \seealso{

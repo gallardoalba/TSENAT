@@ -64,42 +64,43 @@ This wrapper automatically:
 }
 }
 \examples{
-# Create TSENATAnalysis with diversity and LM results
-library(SummarizedExperiment)
-set.seed(42)
-n_genes <- 8
-n_isoforms_per_gene <- 3
-n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 20
-n_samples <- n_samples_per_group * 2
+# Plot 3: GAM q-curves for genes with q-by-condition interactions
+n_genes <- 4
+n_samples_per_group <- 15
+n_transcripts <- n_genes * 20
+n_samples <- 2 * n_samples_per_group
+q_vals <- seq(0.2, 2.5, by = 0.15)
 
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-                         nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-                           nrow = n_isoforms, ncol = n_samples_per_group)
+# Create interaction-rich test data
+control_counts <- matrix(rpois(n_transcripts * n_samples_per_group, lambda = 40),
+  nrow = n_transcripts, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_transcripts * n_samples_per_group, lambda = 150),
+  nrow = n_transcripts, ncol = n_samples_per_group)
 counts <- cbind(control_counts, treatment_counts)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
+counts <- pmax(counts, 30)
+rownames(counts) <- paste0("TX_", 1:n_transcripts)
 colnames(counts) <- paste0("Sample_", 1:n_samples)
-se <- SummarizedExperiment(assays = list(counts = counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
+
+se <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = counts),
+  colData = S4Vectors::DataFrame(
+    sample_id = colnames(counts),
+    sample_type = rep(c("control", "treatment"), each = n_samples_per_group),
+    row.names = colnames(counts)))
+
+tx2gene_df <- data.frame(
   Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  sample_id = paste0("Sample_", 1:n_samples),
-  condition = rep(c("control", "treatment"), each = n_samples_per_group),
-  pair = rep(1:n_samples_per_group, 2),
-  row.names = colnames(se))
-# Add gene identifiers to rowData
-tx2gene <- S4Vectors::metadata(se)$tx2gene
-SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
-SummarizedExperiment::rowData(se)$gene_id <- tx2gene$Gene[match(rownames(se), tx2gene$Transcript)]
-analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_transcripts / n_genes))
+S4Vectors::metadata(se)$tx2gene <- tx2gene_df
+
+analysis <- TSENAT::TSENATAnalysis(se = se, config = list())
+analysis <- calculate_diversity_s4(analysis, q = q_vals, verbose = FALSE, min_valid_frac = 0)
 analysis <- calculate_lm_interaction_s4(analysis,
-  condition_col = "condition", verbose = FALSE)
-# Plot GAM curves for top genes
-plot <- plot_lm_interaction_gam_s4(analysis, n_top = 3,
-  condition_col = "condition")
+  condition_col = "sample_type", verbose = FALSE)
+
+p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2,
+  condition_col = "sample_type", sig_alpha = 0.15)
+if (!is.null(p_gam)) print(p_gam)
 
 }
 \seealso{

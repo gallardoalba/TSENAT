@@ -405,8 +405,12 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @importFrom tidyr pivot_longer
 #'
 #' @examples
-#' analysis <- create_test_analysis()
-#' p <-plot_tsallis_q_curve_s4(analysis@diversity_results[[1]])
+#' # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+#'   q_values = seq(0.1, 3, by = 0.1), seed = 123)
+#' analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
+#' p <- plot_tsallis_q_curve_s4(analysis)
+#' if (!is.null(p)) print(p)
 #'
 #' @export
 plot_tsallis_q_curve_s4 <- function(
@@ -1095,8 +1099,12 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
 #'
 #' @export
 #' @examples
-#' analysis <- create_test_analysis()
-#' p <- plot_tsallis_violin_density_grid_s4(analysis@diversity_results[[1]])
+#' # Plot 8: Violin and density plots of Tsallis entropy distribution
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+#'   q_values = seq(0.1, 3, by = 0.1), seed = 123)
+#' analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
+#' p <- plot_tsallis_violin_density_grid_s4(analysis)
+#' if (!is.null(p)) print(p)
 #'
 plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL, output_file = NULL) {
     # Require cowplot for grid arrangement
@@ -2757,8 +2765,7 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #' - All plots use consistent ggplot2 styling matching plot_q_spectrum
 #'
 #' @examples
-#' # Plot multi-gene q-spectrum after complete analysis pipeline
-#' library(SummarizedExperiment)
+#' # Plot 4: Multi-gene q-spectrum profiles
 #' set.seed(42)
 #' n_genes <- 8
 #' n_isoforms_per_gene <- 3
@@ -2767,33 +2774,34 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #' n_samples <- n_samples_per_group * 2
 #' 
 #' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
+#'   nrow = n_isoforms, ncol = n_samples_per_group)
 #' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
+#'   nrow = n_isoforms, ncol = n_samples_per_group)
 #' counts <- cbind(control_counts, treatment_counts)
 #' rownames(counts) <- paste0("TX_", 1:n_isoforms)
 #' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' tx2gene_df <- data.frame(
-#'   Transcript = rownames(counts),
+#' 
+#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+#' tx2gene_df <- data.frame(Transcript = rownames(counts),
 #'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 #' S4Vectors::metadata(se)$tx2gene <- tx2gene_df
-#' SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
-#' SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
-#' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
 #'   sample_id = paste0("Sample_", 1:n_samples),
 #'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
 #'   row.names = colnames(se))
+#' SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+#' SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se),
+#'   tx2gene_df$Transcript)]
+#' 
 #' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
-#' # Plot multi-gene q-spectra for top genes
+#' 
 #' p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
+#' if (!is.null(p)) print(p)
 #'
 #' @seealso \code{\link{calculate_divergence_s4}} for computing divergence values.
 #'
@@ -3873,7 +3881,8 @@ plot_divergence_spectrum <- function(divergence_results_se,
 plot_multiq_delta_influence_heatmaps <- function(
     switching_results,
   n_genes = 4,
-  lm_results = NULL) {
+  lm_results = NULL,
+  verbose = FALSE) {
   # Input validation
   if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
     stop("switching_results must be a multi-q result from jackknife_isoform_switching()")
@@ -3951,10 +3960,10 @@ plot_multiq_delta_influence_heatmaps <- function(
   for (gene_idx in seq_along(top_genes_for_comparison)) {
     gene_id <- top_genes_for_comparison[gene_idx]
     
-    # Look up gene name from gene_name_map
+    # Look up gene name from gene_name_map, use gene_id as fallback if NA
     gene_name_idx <- which(gene_ids == gene_id)[1]
-    gene_name <- NA_character_
-    if (!is.na(gene_name_idx)) {
+    gene_name <- gene_id  # Default to gene_id
+    if (!is.na(gene_name_idx) && !is.na(gene_name_map[gene_name_idx])) {
       gene_name <- gene_name_map[gene_name_idx]
     }
     
@@ -4084,8 +4093,8 @@ plot_multiq_delta_influence_heatmaps <- function(
   
   if (length(all_gene_matrices) == 0) {
     warning("No valid heatmap data generated for any genes")
-    # Suppress validation report output
-    invisible(capture.output({
+    # Suppress validation report output (only shown if verbose=TRUE)
+    if (verbose) {
       message("\n=== Data Validation Report ===")
       for (i in seq_along(data_validity_report)) {
         report <- data_validity_report[[i]]
@@ -4099,12 +4108,12 @@ plot_multiq_delta_influence_heatmaps <- function(
         }
       }
       message("\n================================\n")
-    }))
+    }
     return(NULL)
   }
   
-  # Suppress validation report output (show all genes, even those skipped)
-  invisible(capture.output({
+  # Show validation report if verbose=TRUE (shows all genes, even those skipped)
+  if (verbose) {
     message("\n=== Data Validation Report ===")
     for (i in seq_along(data_validity_report)) {
       report <- data_validity_report[[i]]
@@ -4119,7 +4128,7 @@ plot_multiq_delta_influence_heatmaps <- function(
       }
     }
     message("\n================================\n")
-  }))
+  }
   
   if (!requireNamespace("pheatmap", quietly = TRUE)) {
     stop("pheatmap package required for this function. Install with: install.packages('pheatmap')")

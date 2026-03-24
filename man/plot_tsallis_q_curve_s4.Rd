@@ -84,7 +84,11 @@ or bootstrap confidence interval bands.
 - Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
 }
 \examples{
-analysis <- create_test_analysis()
-p <-plot_tsallis_q_curve_s4(analysis@diversity_results[[1]])
+# Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
+analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+  q_values = seq(0.1, 3, by = 0.1), seed = 123)
+analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
+p <- plot_tsallis_q_curve_s4(analysis)
+if (!is.null(p)) print(p)
 
 }

@@ -54,13 +54,16 @@ The wrapper automatically handles parameter extraction and provides a simplified
 interface compared to the base function.
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
-  q_values = c(0.5, 1.0, 1.5))
+# Plot 5: Multi-q delta influence (isoform switching) heatmaps
+analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+  q_values = c(0.5, 1, 1.5))
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)
-analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0, 1.5),
+analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
   n_bootstrap = 5, verbose = FALSE)
-heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
+heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)
 
 }
 \seealso{

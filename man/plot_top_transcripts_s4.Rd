@@ -61,11 +61,12 @@ the LM results (lowest p-value). This simplifies visualization of genes with
 significant q x condition interaction effects.
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
-  q_values = c(0.5, 1.0, 1.5))
+# Plot 6: Top transcripts across groups
+analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+  q_values = c(0.5, 1, 1.5))
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)
-# Plot top transcripts (if ggplot2 available)
 plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 
 }

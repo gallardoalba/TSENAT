@@ -4,7 +4,12 @@
 \alias{plot_tsallis_violin_density_grid_s4}
 \title{Combined Violin and Density Plot Grid for Single q Value}
 \usage{
-plot_tsallis_violin_density_grid_s4(se, assay_name = "diversity", title = NULL)
+plot_tsallis_violin_density_grid_s4(
+  se,
+  assay_name = "diversity",
+  title = NULL,
+  output_file = NULL
+)
 }
 \arguments{
 \item{se}{A `SummarizedExperiment` returned by `calculate_diversity` containing
@@ -24,7 +29,11 @@ on the right, both showing Tsallis entropy distribution for the q value in the p
 SummarizedExperiment (which should contain a single q value).
 }
 \examples{
-analysis <- create_test_analysis()
-p <- plot_tsallis_violin_density_grid_s4(analysis@diversity_results[[1]])
+# Plot 8: Violin and density plots of Tsallis entropy distribution
+analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+  q_values = seq(0.1, 3, by = 0.1), seed = 123)
+analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
+p <- plot_tsallis_violin_density_grid_s4(analysis)
+if (!is.null(p)) print(p)
 
 }
