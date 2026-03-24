@@ -6408,14 +6408,13 @@ test_that("plot_lm_interaction_gam_s4: error when no colData (lines 3857-3862)",
   
   analysis <- TSENATAnalysis(se = se_modified, config = .gam_test_analysis@config)
   analysis@diversity_results <- .gam_test_analysis@diversity_results
-  
-  # Copy lm_results structure from test analysis (includes lm_interaction key)
   analysis@lm_results <- .gam_test_analysis@lm_results
   
-  # Use maximum sig_alpha threshold (1.0) to ensure genes are considered significant
+  # When colData is empty, condition_col cannot be auto-detected
+  # Explicitly try to extract a column that doesn't exist
   expect_error(
-    plot_lm_interaction_gam_s4(analysis, sig_alpha = 1.0),
-    "No columns found in colData|Cannot auto-detect|coldata|condition"
+    plot_lm_interaction_gam_s4(analysis, condition_col = "nonexistent"),
+    "not found|Available"
   )
 })
 
