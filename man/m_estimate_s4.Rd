@@ -100,27 +100,16 @@ unusual diversity patterns.
 }
 }
 \examples{
-\dontrun{
-  # After computing diversity
-  analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by=0.5))
-
-  # Run M-estimation with sample grouping (using explicit parameters)
-  analysis <- m_estimate_s4(
-      analysis,
-      samples = "sample_type",
-      loss_type = "huber",
-      influence_threshold = 0.75
-  )
-
-  # Or use parameters from @config (including paired design)
-  analysis@config$condition_col <- "sample_type"
-  analysis@config$paired <- TRUE
-  analysis <- m_estimate_s4(analysis)  # Auto-detects parameters from config
-
-  # Retrieve results
-  m_est_results <- analysis@metadata$m_estimate_results
-  head(m_est_results)
-}
+library(SummarizedExperiment)
+set.seed(42)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+  colData = data.frame(sample_type = rep(c("A", "B"), 5))
+)
+analysis <- TSENATAnalysis(se)
+# First compute diversity
+analysis <- calculate_diversity_s4(analysis, q = 1.0)
+analysis <- m_estimate_s4(analysis, samples = "sample_type", loss_type = "huber")
 
 }
 \seealso{

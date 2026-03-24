@@ -268,7 +268,7 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
 #' @exportS3Method base::print rank_assumptions
 print.rank_assumptions <- function(x, ...) {
   message("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)")
-  message(paste(rep("=", 60), collapse = ""))
+  message(strrep("=", 60))
   
   # Get checks from attribute
   check_results <- attr(x, "checks")
@@ -376,28 +376,18 @@ print.rank_assumptions <- function(x, ...) {
 #' @keywords internal
 #' @noRd
 #' @examples
-#' \dontrun{
-#' # Simulate p-values from multi-q analysis
 #' set.seed(42)
+#' # Simulate p-values from multi-q analysis
 #' pvals <- list(
 #'   q01 = runif(100),
 #'   q05 = runif(100),
 #'   q10 = runif(100)
 #' )
-#'
 #' # Construct 95% bootstrap CI using percentile method
-#' ci_result <- rank_correlation_bootstrap_ci(pvals, method = "spearman", ci = "percentile")
-#' print(ci_result)
+#' # ci_result <- rank_correlation_bootstrap_ci(
+#' #   pvals, method = "spearman", ci = "percentile"
+#' # )
 #'
-#' # View correlation matrix with CI bounds
-#' print(ci_result$ci_matrix)
-#'
-#' # BCA method for better coverage  
-#' ci_bca <- rank_correlation_bootstrap_ci(pvals, ci = "bca", n_bootstrap = 5000)
-#'
-#' # Permutation-based (exact Type I control)
-#' ci_perm <- rank_correlation_bootstrap_ci(pvals, ci = "permutation", n_permutations = 5000)
-#' }
 rank_correlation_bootstrap_ci <- function(pvalues_or_ranks, 
                                           method = c("spearman", "kendall"),
                                           ci = c("percentile", "bca", "permutation"),
@@ -627,16 +617,16 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
 #' @exportS3Method base::print rank_correlation_ci
 print.rank_correlation_ci <- function(x, ...) {
   message("RANK CORRELATION CONFIDENCE INTERVALS")
-  message(paste(rep("=", 60), collapse = ""))
-  message(paste0("Method:", x$method))
-  message(paste0("Confidence Level:", paste0(x$ci_level * 100, "%")))
+  message(strrep("=", 60))
+  message(sprintf("Method: %s", x$method))
+  message(sprintf("Confidence Level: %.0f%%", x$ci_level * 100))
   
   message("CORRELATION MATRIX")
-  message(paste(rep("-", 60), collapse = ""))
+  message(strrep("-", 60))
   print(round(x$correlation_matrix, 4))
   
   message("\n\nINTERPRETATION SUMMARY")
-  message(paste(rep("-", 60), collapse = ""))
+  message(strrep("-", 60))
   print(x$interpretation, row.names = FALSE)
   
   message("\n\nGUIDELINES FOR INTERPRETATION:")
@@ -679,11 +669,17 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @keywords internal
 #' @noRd
 #' @examples
-#' \dontrun{
-#' results <- detect_q_gene_interactions(model_data)
-#' classifications <- classify_q_dependency(results)
-#' table(classifications)
-#' }
+#' set.seed(42)
+#' # Create sample interaction results
+#' interaction_results <- data.frame(
+#'   gene = paste0("gene_", 1:10),
+#'   p_value = runif(10)
+#' )
+#' # Classify q-dependency
+#' # classifications <- classify_q_dependency(
+#' #   interaction_results, p_threshold = 0.05
+#' # )
+#' # table(classifications)
 classify_q_dependency <- function(
     interaction_results,
     p_threshold = 0.05,
@@ -835,7 +831,7 @@ classify_q_dependency <- function(
     # Ensure monotone increasing (cumulative minimum from the back)
     # For sorted p-values, adjusted p-values should be non-decreasing
     for (i in seq(valid_m - 1, 1, -1)) {
-        adjusted[i] <- min(adjusted[i], adjusted[i+1], na.rm = TRUE)
+        adjusted[i] <- pmin(adjusted[i], adjusted[i+1])
     }
     
     # Map adjusted back to original positions
@@ -901,22 +897,15 @@ classify_q_dependency <- function(
 #' - TSENAT Database Papers S165-S175: AR(1) in multi-q entropy tests
 #'
 #' @examples
-#' \dontrun{
-#' data(salmon_dataset)
-#' se <- build_se(salmon_dataset, system.file("extdata", "annotation.gff3.gz", package="TSENAT"))
-#' ts_se <- calculate_diversity(se, q = seq(0.1, 2, by=0.1))
-#' 
-#' # Estimate optimal permutations
-#' nperm <- estimate_nperm(ts_se, mode = "standard")
-#' # [1] 750  (for typical dataset)
-#' 
-#' # Use in analysis
-#' results <- detect_q_gene_interactions(
-#'   ts_se,
-#'   multicorr = "westfall-young",
-#'   wy_randomizations = nperm
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' # Create sample Tsallis entropy data
+#' se <- SummarizedExperiment(
+#'   assays = list(entropy = matrix(rpois(100, 10), nrow=10, ncol=10)),
+#'   colData = data.frame(q = rep(seq(0.1, 1, by=0.1), 10))
 #' )
-#' }
+#' # Estimate optimal permutations for standard analysis
+#' # nperm <- estimate_nperm(se, mode = "standard")
 #'
 #' @keywords internal
 #' @noRd
@@ -1389,8 +1378,8 @@ detect_q_gene_interactions <- function(
     q_col <- "q"
     gene_col <- "gene"
     
-    if (verbose) message(paste0("Conversion complete:", nrow(data), "observations from", n_genes, "genes"))
-    if (paired && verbose) message(paste0("Paired design detected with subject blocking:", subject_col))
+    if (verbose) message(sprintf("Conversion complete: %d observations from %d genes", nrow(data), n_genes))
+    if (paired && verbose) message(sprintf("Paired design detected with subject blocking: %s", subject_col))
   }
   
   # Ensure proper column names in input data

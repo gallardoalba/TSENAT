@@ -501,8 +501,9 @@ Samples with high influence scores exert disproportionate leverage on entropy es
 # m_estimate_s4 uses condition_col from @config set earlier
 
 cat("DEBUG: About to call m_estimate_s4\n")
-cat("DEBUG: condition_col in config:", analysis@config$condition_col, "\n")
-cat("DEBUG: condition_col class:", class(analysis@config$condition_col), "\n")
+config <- getConfig(analysis)
+cat("DEBUG: condition_col in config:", config$condition_col, "\n")
+cat("DEBUG: condition_col class:", class(config$condition_col), "\n")
 
 tryCatch({
   analysis <- m_estimate_s4(
@@ -844,7 +845,7 @@ treatment groups across all q-dependent scales.
 ```{r effect-size-multiq}
 if (exists("analysis")) {
   # Calculate divergence using q values from config
-  # q_values should be in analysis@config$q_values (set during build_analysis or before)
+  # q_values should be in getConfig(analysis)$q_values (set during build_analysis or before)
   analysis <- calculate_divergence_s4(
       analysis, 
       output_file = file.path("output", "divergence_results.tsv")

@@ -773,7 +773,7 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
     message("CI width: ", sprintf("%.6f", object$upper_ci - object$lower_ci))
     message("Bootstrap distribution summary:")
     stats <- summary(object$bootstrap_dist)
-    message(paste(capture.output(print(stats)), collapse = "\n"))
+    message(paste(capture.output(print(stats)), collapse = ""))
     
     # Display diagnostics if available (papers S111, S114)
     if (!is.null(object$diagnostics)) {
@@ -999,19 +999,19 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' @keywords internal
 #' @noRd
 #' @examples
-#' \dontrun{
 #' # After prepare_tsallis_long()
-#' ci_results <- compute_bootstrap_qcurve_cis(
-#'   long = long_data,
-#'   unique_q = c(0.5, 1.0, 1.5, 2.0, 2.5),
-#'   groups = c("control", "treatment"),
-#'   ci_level = 0.95,
-#'   n_bootstrap = 500
+#' set.seed(42)
+#' # Create sample long-format diversity data
+#' long_data <- data.frame(
+#'   entropy = runif(100, 0, 5),
+#'   q = rep(c(0.5, 1.0, 1.5, 2.0, 2.5), 20),
+#'   group = rep(c("control", "treatment"), 50)
 #' )
-#'
-#' # Access CI for group "control" at q=2.0
-#' ci_results[["control"]][["2"]]
-#' }
+#' unique_q <- c(0.5, 1.0, 1.5, 2.0, 2.5)
+#' ci_results <- compute_bootstrap_qcurve_cis(
+#'   long = long_data, unique_q = unique_q,
+#'   groups = c("control", "treatment"), ci_level = 0.95, n_bootstrap = 100
+#' )
 compute_bootstrap_qcurve_cis <- function(long, unique_q, groups, 
                                         ci_level = 0.95, n_bootstrap = 500) {
   
@@ -1332,14 +1332,16 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #'
 #' # Example 4: Paired design (with SummarizedExperiment)
 #' # Assumes se has colData with pair_id column and res contains test results
-#' \dontrun{
-#'   result_paired <- .bootstrap_divergence_with_results(
-#'     se = se, res = res, top_n = 1,
-#'     paired = TRUE,  # Resample pairs as units
-#'     group_col = "group", control_group = "Control",
-#'     nboot = 1000, q = 1, print_results = TRUE
-#'   )
-#' }
+#' se <- SummarizedExperiment::SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(5000, 10), nrow = 100, ncol = 50,
+#'     dimnames = list(paste0("GENE", 1:100), NULL))),
+#'   colData = data.frame(group = rep(c("Control", "Treatment"), 25))
+#' )
+#' res <- data.frame(gene = rownames(se), divergence = runif(100))
+#' result_paired <- .bootstrap_divergence_with_results(
+#'   se = se, res = res, paired = TRUE, group_col = "group",
+#'   control_group = "Control", nboot = 100, q = 1
+#' )
 #'
 #' @noRd
 .bootstrap_divergence_with_results <- function(x = NULL, y = NULL, se = NULL, res = NULL,
@@ -1893,12 +1895,12 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     
     message("")
     message("Stability metrics:")
-    message(paste0("  CI width to estimate ratio: ", 
-        round((object$upper_ci - object$lower_ci) / pmax(object$estimate, 0.01), 2)))
+    message(sprintf("  CI width to estimate ratio: %.2f",
+        (object$upper_ci - object$lower_ci) / pmax(object$estimate, 0.01)))
     
     # Check for multimodality (simple approximation)
     modes <- length(unique(round(object$bootstrap_dist, 3)))
-    message(paste0("  Unique rounded values: ", modes))
+    message(sprintf("  Unique rounded values: %d", modes))
     
     invisible(object)
 }

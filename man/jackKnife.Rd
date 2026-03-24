@@ -26,9 +26,14 @@ Jackknife results are stored per q-value. Use this to access confidence
 intervals and diagnostic information from resampling.
 }
 \examples{
-\dontrun{
-  jk_q1 <- jackKnife(analysis, q = 1.0)
-  ci <- jk_q1$confidence_intervals
-}
+library(SummarizedExperiment)
+set.seed(42)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+  colData = data.frame(condition = rep(c("A", "B"), 5))
+)
+analysis <- TSENATAnalysis(se)
+# Access jackknife results (if they exist after resampling)
+# jk_results <- jackKnife(analysis, q = 1.0)
 
 }

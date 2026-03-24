@@ -27,9 +27,13 @@ which must be provided. The @metadata slot automatically records:
 - initial function call
 }
 \examples{
-\dontrun{
-  analysis <- TSENATAnalysis(se)
-  show(analysis)  # Display empty initialized object
-}
+library(SummarizedExperiment)
+set.seed(42)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+  colData = data.frame(condition = rep(c("A", "B"), 5))
+)
+analysis <- TSENATAnalysis(se)
+show(analysis)  # Display empty initialized object
 
 }

@@ -2016,11 +2016,6 @@ effect_sizes_divergence <- function(
     message("  - Failed (missing divergence):", validation_stats$failed_missing_divergence)
     message("  - Other errors:", validation_stats$other_errors)
     message("  - interaction_results rows:", nrow(interaction_results))
-    message("\n**Effect Size Merge Summary:**\n")
-    message("- Total significant genes:", validation_stats$total_genes)
-    message("- Passed merge:", validation_stats$passed_lmm)
-    message("- Failed (missing divergence):", validation_stats$failed_missing_divergence)
-    message("- Other errors:", validation_stats$other_errors)
 
     if (nrow(interaction_results) > 0) {
       message("\n**Effect Size Distribution Across q Values:**")

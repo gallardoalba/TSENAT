@@ -11,7 +11,8 @@ compute_method_concordance_s4(analysis, ...)
   analysis,
   gam_method = "q_interactions",
   friedman_method = "rankbased",
-  verbose = FALSE
+  verbose = FALSE,
+  output_file = NULL
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
+
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
+Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 
 \item{condition_col}{\code{character}. Column name in sample metadata indicating
 condition/sample grouping. Auto-detected from \code{@config$condition_col}
@@ -53,9 +57,6 @@ as high-influence. Default: 0.75.}
 
 \item{scale_method}{\code{character}. Scale estimation method: "mad" (default),
 "proposal2", or "s-estimator".}
-
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with M-estimation results stored in

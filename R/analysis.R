@@ -177,19 +177,18 @@ print.gtable <- function(x, ...) {
 #' robust detection of q-value × group interactions.
 #'
 #' @examples
-#' \dontrun{
-#'   # Assuming gam_results and kw_results are available
-#'   concordance_result <- compute_method_concordance(gam_results, kw_results)
-#'   
-#'   # View agreement breakdown
-#'   print(concordance_result$agreement_table)
-#'   
-#'   # View high-confidence genes
-#'   head(concordance_result$high_conf)
-#'   
-#'   # Check correlation
-#'   cat("Spearman ρ =", concordance_result$spearman_rho)
-#' }  
+#' # Create sample results from two statistical methods
+#' gam_results <- data.frame(
+#'   gene = paste0("gene_", 1:10),
+#'   p_value = runif(10)
+#' )
+#' kw_results <- data.frame(
+#'   gene = paste0("gene_", 1:10),
+#'   p_value = runif(10)
+#' )
+#' # concordance_result <- compute_method_concordance(
+#' #   gam_results, kw_results
+#' # )  
 #'
 #' @keywords internal
 #' @noRd

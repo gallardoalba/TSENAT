@@ -66,27 +66,16 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
-#'   # After computing diversity
-#'   analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by=0.5))
-#'
-#'   # Run M-estimation with sample grouping (using explicit parameters)
-#'   analysis <- m_estimate_s4(
-#'       analysis,
-#'       samples = "sample_type",
-#'       loss_type = "huber",
-#'       influence_threshold = 0.75
-#'   )
-#'
-#'   # Or use parameters from @config (including paired design)
-#'   analysis@config$condition_col <- "sample_type"
-#'   analysis@config$paired <- TRUE
-#'   analysis <- m_estimate_s4(analysis)  # Auto-detects parameters from config
-#'
-#'   # Retrieve results
-#'   m_est_results <- analysis@metadata$m_estimate_results
-#'   head(m_est_results)
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+#'   colData = data.frame(sample_type = rep(c("A", "B"), 5))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' # First compute diversity
+#' analysis <- calculate_diversity_s4(analysis, q = 1.0)
+#' analysis <- m_estimate_s4(analysis, samples = "sample_type", loss_type = "huber")
 #'
 #' @seealso
 #' \code{\link{calculate_diversity_s4}} for computing diversity
@@ -134,7 +123,7 @@ m_estimate_s4 <- function(
              call. = FALSE)
       }
       if (verbose) {
-        message(paste0("Auto-detected 'condition_col' from config: ", condition_col))
+        message(sprintf("Auto-detected 'condition_col' from config: %s", condition_col))
       }
     } else {
       cd_cols <- colnames(SummarizedExperiment::colData(analysis@diversity_results[[1]]))
@@ -157,7 +146,7 @@ m_estimate_s4 <- function(
       if (is.logical(config_paired) && length(config_paired) == 1) {
         paired <- config_paired
         if (verbose && config_paired) {
-          message(paste0("Auto-detected 'paired' design from config: paired = ", paired))
+          message(sprintf("Auto-detected 'paired' design from config: paired = %s", paired))
         }
       } else {
         paired <- FALSE
@@ -190,7 +179,7 @@ m_estimate_s4 <- function(
   # Combine all q-value diversity results into a single matrix
   # (m_estimate needs all diversity data in one SE)
   if (verbose) {
-    message(paste0("Combining ", length(analysis@diversity_results), " q-value diversity results..."))
+    message(sprintf("Combining %d q-value diversity results...", length(analysis@diversity_results)))
   }
 
   first_se <- analysis@diversity_results[[1]]
@@ -241,9 +230,9 @@ m_estimate_s4 <- function(
     result
   }, error = function(e) {
     # Get full error information
-    message("\n========== FULL ERROR DETAILS ==========")
-    message(paste0("Error message: ", e$message))
-    message(paste0("Error class: ", class(e)))
+    message("\n========== DETAILS ==========")
+    message(sprintf("Message: %s", e$message))
+    message(sprintf("Class: %s", class(e)))
     
     # Try to get the call stack
     if (exists(".Internal")) {
@@ -251,13 +240,13 @@ m_estimate_s4 <- function(
         sys.calls_all <- sys.calls()
         message("\nCall stack (last 10):")
         for (i in max(1, length(sys.calls_all)-9):length(sys.calls_all)) {
-          message(paste0("[", i, "] ", deparse(sys.calls_all[[i]])[1]))
+          message(sprintf("[%d] %s", i, deparse(sys.calls_all[[i]])[1]))
         }
       })
     }
     message("========================================\n")
     
-    stop("Error in M-estimation:\n", e$message, call. = FALSE)
+    stop("M-estimation failed:\n", e$message, call. = FALSE)
   })
 
   # Store results in metadata
@@ -299,7 +288,7 @@ m_estimate_s4 <- function(
       )
       
       if (verbose) {
-        message(paste0("M-estimation results saved to: ", output_file))
+        message(sprintf("M-estimation results saved to: %s", output_file))
       }
     }
   }

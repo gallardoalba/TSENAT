@@ -41,6 +41,9 @@ Useful for plotting significant genes from any interaction analysis.}
 \item{n_top}{Integer or NULL; number of top genes to select from `lm_res` when `gene` is NULL
 (default: NULL). When NULL, defaults to showing the single most significant gene (n_top=1),
 providing a conservative view of the strongest effect. Set to a numeric value to show that many top genes.}
+
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
+Default: NULL (no file output).}
 }
 \value{
 **Aggregate mode (gene=NULL, lm_res=NULL)**:

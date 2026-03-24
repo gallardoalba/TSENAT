@@ -23,9 +23,11 @@ Provides type-safe accessor for analysis metadata (timestamps, function calls,
 intermediate results, etc.).
 }
 \examples{
-\dontrun{
-  all_meta <- metadata(analysis)
-  m_estimate_res <- metadata(analysis, "m_estimate_results")
-}
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+all_meta <- metadata(analysis)
 
 }

@@ -25,14 +25,16 @@
 #' Flags mismatches and provides suggestion for resolution.
 #'
 #' @examples
-#' \dontrun{
-#'   validation <- validate_gene_names(se, lm_results, 
-#'                                     se_name = "Input SE",
-#'                                     results_name = "LM Results")
-#'   if (!validation$is_aligned) {
-#'     warning(validation$mismatch_details)
-#'   }
-#' }
+#' library(SummarizedExperiment)
+#' tx_counts <- matrix(sample(10:100, 400, replace = TRUE), nrow = 40, ncol = 10,
+#'   dimnames = list(paste0("TX", 1:40), paste0("Sample", 1:10)))
+#' se <- SummarizedExperiment(assays = list(counts = tx_counts))
+#' S4Vectors::metadata(se)$tx2gene <- data.frame(
+#'   Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
+#' lm_results <- data.frame(gene = paste0("GENE", 1:10), p_value = runif(10))
+#' validation <- validate_gene_names(
+#'   se, lm_results, se_name = "Input SE", results_name = "LM Results"
+#' )
 #'
 #' @noRd
 validate_gene_names <- function(

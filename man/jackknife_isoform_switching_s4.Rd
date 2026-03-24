@@ -100,31 +100,17 @@ This wrapper automatically:
 }
 }
 \examples{
-\dontrun{
-  # Basic usage with single q-value
-  results <- jackknife_isoform_switching_s4(
-    analysis,
-    condition_col = "sample_type",
-    q = 1
-  )
-  
-  # Multi-q analysis across diversity scales
-  results <- jackknife_isoform_switching_s4(
-    analysis,
-    condition_col = "sample_type",
-    q = seq(0.5, 2, by = 0.5),
-    n_bootstrap = 2000
-  )
-  
-  # With LM filtering to focus on significant genes
-  results <- jackknife_isoform_switching_s4(
-    analysis,
-    condition_col = "sample_type",
-    q = c(0.5, 1, 1.5, 2),
-    lm_results = analysis@lm_results$lm_interaction,
-    lm_p_threshold = 0.05
-  )
-}
+library(SummarizedExperiment)
+set.seed(42)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+  colData = data.frame(sample_type = rep(c("A", "B"), 5))
+)
+analysis <- TSENATAnalysis(se)
+# Basic usage with single q-value
+# results <- jackknife_isoform_switching_s4(
+#   analysis, condition_col = "sample_type", q = 1
+# )
 
 }
 \seealso{

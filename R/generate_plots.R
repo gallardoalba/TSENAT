@@ -362,6 +362,8 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @param n_top Integer or NULL; number of top genes to select from `lm_res` when `gene` is NULL
 #'   (default: NULL). When NULL, defaults to showing the single most significant gene (n_top=1),
 #'   providing a conservative view of the strongest effect. Set to a numeric value to show that many top genes.
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
+#'   Default: NULL (no file output).
 #'
 #' @return
 #' **Aggregate mode (gene=NULL, lm_res=NULL)**:
@@ -2078,6 +2080,13 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
 
         # Generate prediction grid
         q_range <- range(plot_df$q, na.rm = TRUE)
+        
+        # Check if q_range is valid (not all NA)
+        if (!is.finite(q_range[1]) || !is.finite(q_range[2])) {
+            warning(sprintf("Invalid q values for gene '%s'", g), call. = FALSE)
+            return(NULL)
+        }
+        
         pred_q <- seq(q_range[1], q_range[2], length.out = 100)
 
         # Fit GAM and predict for each group
@@ -2976,7 +2985,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   if (is.null(genes_to_plot) || length(genes_to_plot) == 0) {
     if (verbose) {
-      message("ERROR: No valid genes to plot. Check input data:")
+      message("No valid genes to plot. Check input data:")
       message("  - eff_res provided:", !is.null(eff_res))
       if (!is.null(eff_res)) {
         message("  - eff_res$interaction_results exists:", !is.null(eff_res$interaction_results))
@@ -3055,7 +3064,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       plot_list[[i]] <- p
       
     }, error = function(e) {
-      if (verbose) message(sprintf("  Error plotting %s: %s", gene_name, e$message))
+      if (verbose) message(sprintf("  Failed to plot %s: %s", gene_name, e$message))
     })
   }
   
@@ -3065,7 +3074,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   if (length(plot_list) == 0) {
     if (verbose) {
-      message("ERROR: No valid plots were created.")
+      message("No valid plots were created.")
       message("This may occur if:")
       message("  - per_q_pattern values cannot be parsed as numeric comma-separated strings")
       message("  - All genes had parsing errors in tryCatch blocks")
@@ -3151,25 +3160,17 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
 #' @importFrom SummarizedExperiment colData assay
 #'
 #' @examples
-#' \dontrun{
-#'   # Example 1: Plot with signed divergence (default, shows directionality)
-#'   p <- plot_tsallis_divergence_profile(ts_se, gene = c("LINC03040", "PNPT1", "CXCL12"))
-#'   print(p)
-#'
-#'   # Example 2: Plot with absolute divergence (magnitude only)
-#'   p_abs <- plot_tsallis_divergence_profile(ts_se, gene = "LINC03040", signed = FALSE)
-#'   print(p_abs)
-#'
-#'   # Example 3: Plot top 5 significant genes from LMM results
-#'   p_list <- plot_tsallis_divergence_profile(ts_se, lm_res = interaction_results, 
-#'                                             n_top = 5, arrange_type = "list")
-#'   print(p_list$LINC03040)
-#'
-#'   # Example 4: Single gene with detailed inspection (signed)
-#'   p_single <- plot_tsallis_divergence_profile(ts_se, gene = "LINC03040", 
-#'                                               arrange_type = "list", signed = TRUE)
-#'   print(p_single$LINC03040)
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' # Create sample Tsallis divergence data
+#' ts_se <- SummarizedExperiment(
+#'   assays = list(divergence = matrix(rnorm(100, mean=2, sd=0.5), nrow=10, ncol=10)),
+#'   rowData = data.frame(gene = paste0("gene_", 1:10)),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#' )
+#' # p <- plot_tsallis_divergence_profile(
+#' #   ts_se, gene = c("gene_1", "gene_2")
+#' # )
 #'
 #' @keywords internal
 #' @noRd
@@ -4301,7 +4302,7 @@ plot_multiq_delta_influence_heatmaps <- function(
     
   }, error = function(e) {
     tryCatch(grDevices::dev.off(), silent = TRUE)
-    stop("Error creating heatmap: ", e$message)
+    stop("Heatmap creation failed: ", e$message)
   })
 }
 

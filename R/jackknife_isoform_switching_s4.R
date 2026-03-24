@@ -76,31 +76,17 @@
 #' \code{\link{TSENATAnalysis}} for object structure.
 #'
 #' @examples
-#' \dontrun{
-#'   # Basic usage with single q-value
-#'   results <- jackknife_isoform_switching_s4(
-#'     analysis,
-#'     condition_col = "sample_type",
-#'     q = 1
-#'   )
-#'   
-#'   # Multi-q analysis across diversity scales
-#'   results <- jackknife_isoform_switching_s4(
-#'     analysis,
-#'     condition_col = "sample_type",
-#'     q = seq(0.5, 2, by = 0.5),
-#'     n_bootstrap = 2000
-#'   )
-#'   
-#'   # With LM filtering to focus on significant genes
-#'   results <- jackknife_isoform_switching_s4(
-#'     analysis,
-#'     condition_col = "sample_type",
-#'     q = c(0.5, 1, 1.5, 2),
-#'     lm_results = analysis@lm_results$lm_interaction,
-#'     lm_p_threshold = 0.05
-#'   )
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+#'   colData = data.frame(sample_type = rep(c("A", "B"), 5))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' # Basic usage with single q-value
+#' # results <- jackknife_isoform_switching_s4(
+#' #   analysis, condition_col = "sample_type", q = 1
+#' # )
 #'
 #' @export
 jackknife_isoform_switching_s4 <- function(
@@ -175,7 +161,7 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose) {
-      message(paste0("[jackknife_isoform_switching_s4] Auto-detected condition_col = ", condition_col))
+      message(sprintf("[jackknife_isoform_switching_s4] Auto-detected condition_col = %s", condition_col))
     }
   }
   
@@ -224,7 +210,7 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose) {
-      message(paste0("[jackknife_isoform_switching_s4] Using gene_col = ", gene_col))
+      message(sprintf("[jackknife_isoform_switching_s4] Using gene_col = %s", gene_col))
     }
   }
   
@@ -251,7 +237,7 @@ jackknife_isoform_switching_s4 <- function(
     }
     
     if (verbose) {
-      message(paste0("[jackknife_isoform_switching_s4] Using isoform_col = ", isoform_col))
+      message(sprintf("[jackknife_isoform_switching_s4] Using isoform_col = %s", isoform_col))
     }
   }
   
@@ -335,7 +321,7 @@ jackknife_isoform_switching_s4 <- function(
       use_lm_fdr = use_lm_fdr
     )
   }, error = function(e) {
-    stop("[jackknife_isoform_switching_s4] Error in jackknife analysis:\n",
+    stop("[jackknife_isoform_switching_s4] Jackknife analysis failed:\\n",
                 conditionMessage(e), call. = FALSE)
   })
   
@@ -357,7 +343,7 @@ jackknife_isoform_switching_s4 <- function(
     # Also store the entire multi-q result object for plotting function access
     analysis@jackknife_results[["multi_q"]] <- result
     if (verbose) {
-      message(paste0("[jackknife_isoform_switching_s4] Stored multi-q result with keys: ", paste(names(result), collapse = ", ")))
+      message(sprintf("[jackknife_isoform_switching_s4] Stored multi-q result with keys: %s", paste(names(result), collapse = ", ")))
     }
   } else {
     # Store results for each q-value (vectorized - no explicit loop)
@@ -381,7 +367,7 @@ jackknife_isoform_switching_s4 <- function(
       }
       
       if (verbose) {
-        message(paste0("[jackknife_isoform_switching_s4] Stored results for ", q_key))
+        message(sprintf("[jackknife_isoform_switching_s4] Stored results for %s", q_key))
       }
     }
   }

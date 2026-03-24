@@ -28,10 +28,12 @@ Use \code{diversity(analysis)} to get all results as a list, or
 \code{diversity(analysis, q=1.0)} for a specific q-value.
 }
 \examples{
-\dontrun{
-  analysis <- tsenat(se, methods = "diversity")
-  all_div <- diversity(analysis)        # List of all q-values
-  div_at_q1 <- diversity(analysis, q = 1.0)  # Specific q-value
-}
+# Create minimal SummarizedExperiment
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+diversity_list <- diversity(analysis)  # Empty until analysis runs
 
 }

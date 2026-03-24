@@ -28,9 +28,12 @@ Use \code{lmResults(analysis)} to get all components, or specify component type
 for targeted extraction.
 }
 \examples{
-\dontrun{
-  lm_df <- lmResults(analysis, component = "results")
-  all_lm <- lmResults(analysis)
-}
+# With an analysis object that has lm results
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+all_lm <- lmResults(analysis)  # Returns empty list until analysis runs
 
 }

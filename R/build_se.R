@@ -62,7 +62,6 @@
 #' - Employs efficient string operations instead of heavy regex on every line
 #' - Handles both compressed (.gz) and uncompressed files seamlessly
 #' @examples
-#' \dontrun{
 #' # Create a temporary GFF3 file with transcript features
 #' gff3_lines <- c(
 #'   'chr1\tgencode\ttranscript\t1000\t3000\t.\t+\t.\tID=ENST001;Parent=ENSG001',
@@ -75,7 +74,6 @@
 #' # Extract transcript-to-gene mapping
 #' tx2gene <- extract_tx2gene_from_gff3(tf)
 #' head(tx2gene)
-#' }
 #' @noRd
 extract_tx2gene_from_gff3 <- function(gff3_file) {
     # Handle both .gff3 and .gff3.gz files

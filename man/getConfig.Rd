@@ -24,10 +24,11 @@ Provides type-safe access to @config slot. After calling wrapper functions like
 \code{last_diversity_run}, showing which parameters were actually used.
 }
 \examples{
-\dontrun{
-  config <- getConfig(analysis)
-  actual_params <- config$last_diversity_run$parameters_used
-  # Shows: norm, verbose, bootstrap, nthreads, etc.
-}
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se, config = list(q_values = c(0.5, 1.0, 2.0)))
+config <- getConfig(analysis)
 
 }

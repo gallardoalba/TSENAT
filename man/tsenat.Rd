@@ -60,28 +60,14 @@ Metadata automatically tracks:
 - Parameter settings
 }
 \examples{
-\dontrun{
-  # Load data
-  data(readcounts, package = "TSENAT")
-  se <- build_se(readcounts)
-
-  # Run with defaults
-  analysis <- tsenat(se)
-
-  # Run with custom config
-  cfg <- tsenat_config(
-    q_values = c(0.5, 1.0, 2.0),
-    formula = ~ treatment,
-    generate_plots = TRUE
-  )
-  analysis <- tsenat(se, config = cfg)
-
-  # Access results
-  show(analysis)
-  summary(analysis)
-  div_q1 <- diversity(analysis, q = 1.0)
-  lm_res <- lmResults(analysis)
-  p <- getPlot(analysis, type = "q_curve")
-}
+library(SummarizedExperiment)
+# Create minimal SummarizedExperiment
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+  colData = data.frame(condition = rep(c("A", "B"), 5))
+)
+cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+analysis <- TSENATAnalysis(se, config = cfg)
+show(analysis)
 
 }

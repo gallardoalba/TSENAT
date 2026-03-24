@@ -20,9 +20,11 @@ Provides comprehensive analysis summary including dimensions, results
 counts, validation status, and metadata tracking.
 }
 \examples{
-\dontrun{
-  analysis <- tsenat(se, methods = c("diversity", "lm_interaction"))
-  summary(analysis)
-}
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+summary(analysis)
 
 }

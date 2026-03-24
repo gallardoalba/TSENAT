@@ -51,11 +51,6 @@
 #'   fdr_threshold = 0.01
 #' )
 #'
-#' # Use with tsenat()
-#' \dontrun{
-#'   analysis <- tsenat(se, config = cfg)
-#' }
-#'
 #' @export
 tsenat_config <- function(
   q_values = NULL,
@@ -74,6 +69,9 @@ tsenat_config <- function(
   if (!is.null(q_range)) {
     if (length(q_range) != 2) {
       stop("'q_range' must be c(lower, upper)", call. = FALSE)
+    }
+    if (!is.finite(q_range[1]) || !is.finite(q_range[2])) {
+      stop("'q_range' values must be finite", call. = FALSE)
     }
     q_values <- seq(q_range[1], q_range[2], by = 0.5)
   }
@@ -172,29 +170,15 @@ tsenat_config <- function(
 #' - Parameter settings
 #'
 #' @examples
-#' \dontrun{
-#'   # Load data
-#'   data(readcounts, package = "TSENAT")
-#'   se <- build_se(readcounts)
-#'
-#'   # Run with defaults
-#'   analysis <- tsenat(se)
-#'
-#'   # Run with custom config
-#'   cfg <- tsenat_config(
-#'     q_values = c(0.5, 1.0, 2.0),
-#'     formula = ~ treatment,
-#'     generate_plots = TRUE
-#'   )
-#'   analysis <- tsenat(se, config = cfg)
-#'
-#'   # Access results
-#'   show(analysis)
-#'   summary(analysis)
-#'   div_q1 <- diversity(analysis, q = 1.0)
-#'   lm_res <- lmResults(analysis)
-#'   p <- getPlot(analysis, type = "q_curve")
-#' }
+#' library(SummarizedExperiment)
+#' # Create minimal SummarizedExperiment
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#' )
+#' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+#' analysis <- TSENATAnalysis(se, config = cfg)
+#' show(analysis)
 #'
 #' @export
 tsenat <- function(
@@ -261,10 +245,10 @@ tsenat <- function(
   if (verbose) {
     message("TSENAT Pipeline")
     message("===============")
-    message(paste0("Genes:  ", nrow(se)))
-    message(paste0("Samples:", ncol(se)))
-    message(paste0("Methods:", paste(methods_to_run, collapse = ", ")))
-    message(paste0("Q-values:", paste(q_vals, collapse = ", ")))
+    message(sprintf("Genes:   %d", nrow(se)))
+    message(sprintf("Samples: %d", ncol(se)))
+    message(sprintf("Methods: %s", paste(methods_to_run, collapse = ", ")))
+    message(sprintf("Q-values: %s", paste(q_vals, collapse = ", ")))
   }
 
   # ========== STEP 1: DIVERSITY ==========
@@ -277,7 +261,7 @@ tsenat <- function(
         q = q_vals,
         ...
       )
-      if (verbose) message(paste0("  \u2713 Diversity calculated for q = ", paste(q_vals, collapse = ", ")))
+      if (verbose) message(sprintf("  \u2713 Diversity calculated for q = %s", paste(q_vals, collapse = ", ")))
     }, error = function(e) {
       stop("Diversity calculation failed:\n", e$message, call. = FALSE)
     })
@@ -402,13 +386,13 @@ tsenat <- function(
           }
         }, error = function(e) {
           if (verbose) {
-             message(paste0("  \u26a0 Plot '", ptype, "' failed: ", e$message))
+             message(sprintf("  \u26a0 Plot '%s' failed: %s", ptype, e$message))
           }
         })
       }
 
       if (verbose) {
-         message(paste0("  \u2713 ", length(analysis@plots), " plot(s) generated"))
+         message(sprintf("  \u2713 %d plot(s) generated", length(analysis@plots)))
       }
     }, error = function(e) {
       warning("Plot generation failed:\n", e$message, call. = FALSE)
@@ -424,7 +408,7 @@ tsenat <- function(
     if (length(analysis@lm_results) > 0) message("  \u2713 LM results")
     if (length(analysis@jackknife_results) > 0) message("  \u2713 Jackknife CIs")
     if (length(analysis@divergence_results) > 0) message("  \u2713 Divergence")
-    if (length(analysis@plots) > 0) message(paste0("  \u2713 Plots (", length(analysis@plots), ")"))
+    if (length(analysis@plots) > 0) message(sprintf("  \u2713 Plots (%d)", length(analysis@plots)))
     message("\nUse show(analysis) or summary(analysis) for details")
   }
 

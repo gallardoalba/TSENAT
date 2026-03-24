@@ -258,13 +258,13 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
       message("Jackknife Stability Analysis for Multiple q Values")
       message("====================================================")
       for (i in seq_along(results_list)) {
-        message(paste0("q = ", q[i]))
+        message(sprintf("q = %s", q[i]))
         res <- results_list[[i]]
         if (is.list(res) && "estimate" %in% names(res)) {
-          message(paste0("  Estimate:            ", round(res$estimate, 4)))
-          message(paste0("  Jackknife SE:        ", round(res$jackknife_se, 4)))
-          message(paste0("  Max influence:       ", round(max(res$influence), 4)))
-          message(paste0("  Outliers detected:   ", length(res$outlier_indices)))
+          message(sprintf("  Estimate:            %.4f", res$estimate))
+          message(sprintf("  Jackknife SE:        %.4f", res$jackknife_se))
+          message(sprintf("  Max influence:       %.4f", max(res$influence)))
+          message(sprintf("  Outliers detected:   %d", length(res$outlier_indices)))
         }
       }
     }
@@ -396,15 +396,15 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
         gene_name <- names(results)[i]
         jr <- results[[i]]
         
-        message(paste0("Gene: ", gene_name))
-        message(paste0("  Transcripts: ", jr$n_transcripts))
-        message(paste0("  Diversity estimate: ", round(jr$estimate, 4)))
-        message(paste0("  Jackknife SE: ", round(jr$jackknife_se, 4)))
-        message(paste0("  Max transcript influence: ", round(max(jr$influence), 4)))
-        message(paste0("  Outliers detected: ", length(jr$outlier_indices)))
+        message(sprintf("Gene: %s", gene_name))
+        message(sprintf("  Transcripts: %d", jr$n_transcripts))
+        message(sprintf("  Diversity estimate: %.4f", jr$estimate))
+        message(sprintf("  Jackknife SE: %.4f", jr$jackknife_se))
+        message(sprintf("  Max transcript influence: %.4f", max(jr$influence)))
+        message(sprintf("  Outliers detected: %d", length(jr$outlier_indices)))
         
         if (length(jr$outlier_indices) > 0) {
-          message(paste0("    Outlier transcripts (indices): ", paste(jr$outlier_indices, collapse = ", ")))
+          message(sprintf("    Outlier transcripts (indices): %s", paste(jr$outlier_indices, collapse = ", ")))
         }
       }
       
@@ -653,16 +653,16 @@ print.tsenat_jackknife <- function(x, ...) {
 summary.tsenat_jackknife <- function(object, ...) {
   message("Jackknife Diagnostics Summary")
   message("=============================")
-  message(paste0("Gene entropy (q =", object$q, "):", round(object$estimate, 6)))
-  message(paste0("Jackknife standard error:", round(object$jackknife_se, 6)))
-  message(paste0("Coefficient of variation:", round(object$jackknife_se / object$estimate, 4)))
-  message(paste0("Total transcripts:", object$n_transcripts))
+  message(sprintf("Gene entropy (q =%.6f): %.6f", object$q, object$estimate))
+  message(sprintf("Jackknife standard error: %.6f", object$jackknife_se))
+  message(sprintf("Coefficient of variation: %.4f", object$jackknife_se / object$estimate))
+  message(sprintf("Total transcripts: %d", object$n_transcripts))
 
   message("Influence Distribution:")
   message("-----------------------")
-  message(paste(capture.output(print(summary(object$influence))), collapse = "\n"))
+  message(paste(capture.output(print(summary(object$influence))), collapse = ""))
 
-  message(paste0("\n\nOutlier Transcripts (influence > ", object$outlier_threshold, "%ile):"))
+  message(sprintf("\n\nOutlier Transcripts (influence > %s%%ile):", object$outlier_threshold))
   message("-----------------------------------------------")
 
   if (length(object$outlier_indices) > 0) {
@@ -670,7 +670,7 @@ summary.tsenat_jackknife <- function(object, ...) {
       Transcript = object$outlier_indices,
       Influence = object$influence[object$outlier_indices]
     )
-    message(paste(capture.output(print(outl_data)), collapse = "\n"))
+    message(paste(capture.output(print(outl_data)), collapse = ""))
   } else {
     message("No outliers detected.")
   }
@@ -998,13 +998,13 @@ jackknife_isoform_switching <- function(
       message("Isoform Switching Analysis - Multi-Q Comparison")
       message("================================================")
       for (i in seq_along(results_list)) {
-        message(paste0("q = ", q[i]))
+        message(sprintf("q = %s", q[i]))
         res <- results_list[[i]]
         if (!is.null(res$metadata)) {
-          message(paste0("  Genes analyzed:      ", length(res$gene_names)))
-          message(paste0("  Transcripts tested:  ", res$metadata$n_transcripts_tested))
-          message(paste0("  FDR-significant:     ", res$metadata$n_fdr_significant))
-          message(paste0("  Genes with switching:", sum(res$summary_table$n_switching_transcripts > 0)))
+          message(sprintf("  Genes analyzed:      %d", length(res$gene_names)))
+          message(sprintf("  Transcripts tested:  %d", res$metadata$n_transcripts_tested))
+          message(sprintf("  FDR-significant:     %d", res$metadata$n_fdr_significant))
+          message(sprintf("  Genes with switching: %d", sum(res$summary_table$n_switching_transcripts > 0)))
         }
       }
       message("[OK] Access results$q_<value>$results_per_gene$<gene> for per-q, per-gene details")
@@ -1496,24 +1496,24 @@ jackknife_isoform_switching <- function(
   if (print_results) {
     message("Isoform Switching Analysis Results")
     message("===================================")
-    message(paste0("Conditions: '", conditions[1], "' vs. '", conditions[2], "'"))
+    message(sprintf("Conditions: '%s' vs. '%s'", conditions[1], conditions[2]))
     
     if (is_paired && !is.null(pair_info)) {
-      message(paste0("Design: PAIRED (", subject_col, ") - ", pair_info$n_pairs, " matched pairs"))
+      message(sprintf("Design: PAIRED (%s) - %d matched pairs", subject_col, pair_info$n_pairs))
     } else {
       message("Design: UNPAIRED")
     }
     
     if (!is.null(lm_results)) {
-      message(paste0("LM filtering: Genes with p < ", lm_p_threshold, " (N = ", lm_genes_filtered, ")"))
+      message(sprintf("LM filtering: Genes with p < %.6f (N = %d)", lm_p_threshold, lm_genes_filtered))
     }
     
-    message(paste0("\nGenes analyzed:", length(result$gene_names)))
-    message(paste0("Total transcripts tested:", result$metadata$n_transcripts_tested))
-    message(paste0("FDR-significant transcripts (FDR<0.05):", result$metadata$n_fdr_significant))
+    message(sprintf("\nGenes analyzed: %d", length(result$gene_names)))
+    message(sprintf("Total transcripts tested: %d", result$metadata$n_transcripts_tested))
+    message(sprintf("FDR-significant transcripts (FDR<0.05): %d", result$metadata$n_fdr_significant))
     
     message("Summary Table:")
-    message(paste(capture.output(print(summary_table)), collapse = "\n"))
+    message(paste(capture.output(print(summary_table)), collapse = ""))
     
     message("\n[OK] Use results$results_per_gene$'GeneName' to access per-gene switching details")
     message("[OK] Use results$summary_table for overview across genes")

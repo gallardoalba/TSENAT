@@ -22,9 +22,15 @@ Extract SummarizedExperiment from TSENATAnalysis
 Provides type-safe accessor for the embedded \code{SummarizedExperiment}.
 }
 \examples{
-\dontrun{
-  se <- se(analysis)
-  nrow(se)  # Number of genes/transcripts
-}
+library(SummarizedExperiment)
+set.seed(42)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+  colData = data.frame(condition = rep(c("A", "B"), 5))
+)
+analysis <- TSENATAnalysis(se)
+# Extract the SummarizedExperiment from the analysis object
+se_extracted <- se(analysis)
+nrow(se_extracted)  # Number of genes/transcripts
 
 }

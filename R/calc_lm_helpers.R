@@ -2595,11 +2595,13 @@
         # (curve shape differences). BH is less conservative than Bonferroni and accounts
         # for structure in the test dependency (orthogonal features).
         pc_pvals_adj <- stats::p.adjust(pc_pvals, method = "BH")
-        p_interaction <- min(pc_pvals_adj[!is.na(pc_pvals_adj)])
+        pc_pvals_adj_valid <- pc_pvals_adj[!is.na(pc_pvals_adj)]
+        p_interaction <- if (length(pc_pvals_adj_valid) > 0) min(pc_pvals_adj_valid) else 1.0
         p_interaction <- min(p_interaction, 1.0)  # Cap at 1.0
         
+        min_pc_pvalue_val <- if (length(pc_pvals_valid) > 0) min(pc_pvals_valid) else NA_real_
         return(data.frame(gene = g, p_interaction = p_interaction, n_pcs_tested = n_pc_use,
-                         min_pc_pvalue = min(pc_pvals_valid), slope_diff = NA_real_, 
+                         min_pc_pvalue = min_pc_pvalue_val, slope_diff = NA_real_, 
                          ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
     } else if (regularization %in% c("lasso", "elasticnet")) {
         # Regularized regression (LASSO/ElasticNet) on ordered curve matrix:

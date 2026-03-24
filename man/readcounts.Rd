@@ -15,17 +15,22 @@ Values represent TPM-normalized read counts.
 \usage{
 data(readcounts)
 }
+\value{
+A matrix (data frame) containing transcript-level TPM-normalized read
+  counts from salmon quantification. Rows represent transcripts (ENST format
+  IDs) and columns represent samples. Aliases include \code{salmon_dataset}
+  (main read count matrix), \code{salmon_tpm} (TPM values), and
+  \code{salmon_effective_length} (transcript lengths from salmon).
+}
 \description{
 A dataset containing transcript-level transcript-level read count abundances
 from salmon quantification. The dataset includes samples as columns
 (SRR14800475-SRR14800490) and transcript IDs as row names.
 }
 \examples{
-\dontrun{
-  data(readcounts, package = "TSENAT")
-  dim(salmon_dataset)
-  head(salmon_dataset[1:4, 1:3])
-}
+data(readcounts, package = "TSENAT")
+dim(salmon_dataset)
+head(salmon_dataset[1:4, 1:3])
 
 }
 \keyword{datasets}

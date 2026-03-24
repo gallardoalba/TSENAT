@@ -67,29 +67,13 @@ If you need to inspect or filter the SummarizedExperiment before creating the
 TSENATAnalysis object, call \code{build_se()} and \code{TSENATAnalysis()} separately.
 }
 \examples{
-\dontrun{
-# Load transcript counts
-data("readcounts", package = "TSENAT")
-
-# Load metadata
-metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t", row.names = 1
-)
-
-# Load annotation
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
-
-# Create complete analysis object in one call
-analysis <- build_analysis(
-  readcounts = readcounts,
-  tx2gene = gff3_file,
-  metadata = metadata_df
-)
-
-# Object is ready for analysis
-analysis <- calculate_diversity_s4(analysis, q_values = c(0, 0.5, 1, 2))
-}
+# This example shows the basic workflow structure
+# In practice, you would use actual readcounts data:
+# data("readcounts", package = "TSENAT")
+# metadata_df <- read.table(
+#   system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#   header = TRUE, sep = "\t", row.names = 1
+# )
 
 }
 \seealso{

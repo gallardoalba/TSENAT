@@ -22,9 +22,11 @@ SummarizedExperiment or data.frame with divergence metrics.
 Extract divergence results
 }
 \examples{
-\dontrun{
-  div <- divergence(analysis)
-  effect_sizes <- divergence(analysis, component = "effect_sizes")
-}
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+div <- divergence(analysis)  # Returns empty list until divergence analysis runs
 
 }

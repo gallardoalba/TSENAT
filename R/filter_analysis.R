@@ -43,23 +43,15 @@
 #' \code{\link{build_analysis}} for creating a new analysis object
 #'
 #' @examples
-#' \dontrun{
-#' # Load transcript counts
-#' data("readcounts", package = "TSENAT")
-#'
-#' # Create analysis object
-#' analysis <- build_analysis(
-#'   readcounts = readcounts,
-#'   tx2gene = "annotation.gff3.gz",
-#'   metadata = metadata_df
-#' )
-#'
-#' # Filter low-abundance transcripts before computing diversity
-#' analysis <- filter_analysis(analysis, stringency = "medium", verbose = TRUE)
-#'
-#' # Now safe to compute diversity
-#' analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.1))
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' tx_counts <- matrix(sample(10:100, 400, replace = TRUE), nrow = 40, ncol = 10,
+#'   dimnames = list(paste0("TX", 1:40), paste0("Sample", 1:10)))
+#' se <- SummarizedExperiment(assays = list(counts = tx_counts))
+#' S4Vectors::metadata(se)$tx2gene <- data.frame(
+#'   Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
+#' analysis <- TSENATAnalysis(se)
+#' analysis <- filter_analysis(analysis, stringency = "medium")
 #'
 #' @export
 filter_analysis <- function(analysis, stringency = NULL, min_samples = 5L, verbose = FALSE) {

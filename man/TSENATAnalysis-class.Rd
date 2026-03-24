@@ -4,6 +4,16 @@
 \name{TSENATAnalysis-class}
 \alias{TSENATAnalysis-class}
 \title{TSENATAnalysis S4 Class}
+\value{
+An S4 object of class \code{TSENATAnalysis} containing:
+  \itemize{
+    \item Raw data (SummarizedExperiment)
+    \item Analysis configuration
+    \item Results from diversity, linear model, jackknife, and divergence analyses
+    \item Cached visualization objects
+    \item Reproducibility metadata and function history
+  }
+}
 \description{
 Central container for unified analysis workflows in TSENAT.
 }
@@ -85,21 +95,18 @@ Automatically maintained by wrapper functions. Includes:
 }
 
 \examples{
-\dontrun{
-  # Create from SummarizedExperiment
-  analysis <- TSENATAnalysis(se)
+# Create minimal SummarizedExperiment for example
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+  rowData = data.frame(gene_id = paste0("GENE", 1:10)),
+  colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
+)
 
-  # Or configure with metadata first
-  analysis <- tsenat_config(se, 
-    q_values = seq(0.5, 2, 0.1),
-    sample_type_col = "condition",
-    subject_col = "patient_id"
-  )
+# Create TSENATAnalysis object
+analysis <- TSENATAnalysis(se)
 
-  # Access results after analysis
-  div_results <- diversity(analysis, q = 1.0)
-  lm_df <- lmResults(analysis, component = "results")
-  summary(analysis)
-}
+# Show the object
+show(analysis)
 
 }

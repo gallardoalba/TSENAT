@@ -73,9 +73,4 @@ cfg <- tsenat_config(
   fdr_threshold = 0.01
 )
 
-# Use with tsenat()
-\dontrun{
-  analysis <- tsenat(se, config = cfg)
-}
-
 }

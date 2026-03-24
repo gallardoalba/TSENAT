@@ -8,6 +8,15 @@
 #' the analysis pipeline and provides consistent accessor methods for result
 #' retrieval.
 #'
+#' @return An S4 object of class \code{TSENATAnalysis} containing:
+#'   \itemize{
+#'     \item Raw data (SummarizedExperiment)
+#'     \item Analysis configuration
+#'     \item Results from diversity, linear model, jackknife, and divergence analyses
+#'     \item Cached visualization objects
+#'     \item Reproducibility metadata and function history
+#'   }
+#'
 #' @slot se \code{SummarizedExperiment}. The base expression data object
 #'   (genes x samples) with assays and colData.
 #'
@@ -71,22 +80,19 @@
 #'   SummarizedExperiment and all slots are correct types.
 #'
 #' @examples
-#' \dontrun{
-#'   # Create from SummarizedExperiment
-#'   analysis <- TSENATAnalysis(se)
-#'
-#'   # Or configure with metadata first
-#'   analysis <- tsenat_config(se, 
-#'     q_values = seq(0.5, 2, 0.1),
-#'     sample_type_col = "condition",
-#'     subject_col = "patient_id"
-#'   )
-#'
-#'   # Access results after analysis
-#'   div_results <- diversity(analysis, q = 1.0)
-#'   lm_df <- lmResults(analysis, component = "results")
-#'   summary(analysis)
-#' }
+#' # Create minimal SummarizedExperiment for example
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   rowData = data.frame(gene_id = paste0("GENE", 1:10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
+#' )
+#' 
+#' # Create TSENATAnalysis object
+#' analysis <- TSENATAnalysis(se)
+#' 
+#' # Show the object
+#' show(analysis)
 #'
 #' @name TSENATAnalysis-class
 #' @rdname TSENATAnalysis-class
@@ -157,10 +163,14 @@ setClass(
 #' - initial function call
 #'
 #' @examples
-#' \dontrun{
-#'   analysis <- TSENATAnalysis(se)
-#'   show(analysis)  # Display empty initialized object
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' show(analysis)  # Display empty initialized object
 #'
 #' @export
 TSENATAnalysis <- function(se, config = list()) {
@@ -211,11 +221,13 @@ TSENATAnalysis <- function(se, config = list()) {
 #' \code{diversity(analysis, q=1.0)} for a specific q-value.
 #'
 #' @examples
-#' \dontrun{
-#'   analysis <- tsenat(se, methods = "diversity")
-#'   all_div <- diversity(analysis)        # List of all q-values
-#'   div_at_q1 <- diversity(analysis, q = 1.0)  # Specific q-value
-#' }
+#' # Create minimal SummarizedExperiment
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' diversity_list <- diversity(analysis)  # Empty until analysis runs
 #'
 #' @export
 setGeneric("diversity", function(object, q = NULL) {
@@ -312,10 +324,13 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' for targeted extraction.
 #'
 #' @examples
-#' \dontrun{
-#'   lm_df <- lmResults(analysis, component = "results")
-#'   all_lm <- lmResults(analysis)
-#' }
+#' # With an analysis object that has lm results
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' all_lm <- lmResults(analysis)  # Returns empty list until analysis runs
 #'
 #' @export
 setGeneric("lmResults", function(object, component = NULL) {
@@ -376,10 +391,15 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
 #' intervals and diagnostic information from resampling.
 #'
 #' @examples
-#' \dontrun{
-#'   jk_q1 <- jackKnife(analysis, q = 1.0)
-#'   ci <- jk_q1$confidence_intervals
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' # Access jackknife results (if they exist after resampling)
+#' # jk_results <- jackKnife(analysis, q = 1.0)
 #'
 #' @export
 setGeneric("jackKnife", function(object, q = NULL) {
@@ -425,10 +445,12 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' @return SummarizedExperiment or data.frame with divergence metrics.
 #'
 #' @examples
-#' \dontrun{
-#'   div <- divergence(analysis)
-#'   effect_sizes <- divergence(analysis, component = "effect_sizes")
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' div <- divergence(analysis)  # Returns empty list until divergence analysis runs
 #'
 #' @export
 setGeneric("divergence", function(object, component = NULL) {
@@ -471,10 +493,12 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #' @return ggplot object or list of plots.
 #'
 #' @examples
-#' \dontrun{
-#'   p_qcurve <- getPlot(analysis, type = "q_curve")
-#'   all_plots <- getPlot(analysis)
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' all_plots <- getPlot(analysis)  # Empty until tsenat() generates plots
 #'
 #' @keywords internal
 #' @noRd
@@ -515,10 +539,13 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' @return Modified TSENATAnalysis object.
 #'
 #' @examples
-#' \dontrun{
-#'   p <- ggplot(...) + ...
-#'   analysis <- addPlot(analysis, type = "custom_plot", plot = p)
-#' }
+#' # Demonstrates adding a plot to analysis object (requires ggplot2)
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' # analysis <- addPlot(analysis, type = "example", plot = NULL)
 #'
 #' @keywords internal
 #' @noRd
@@ -548,15 +575,20 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #'
 #' @param object \code{TSENATAnalysis} object to display.
 #'
+#' @return Invisibly returns the \code{TSENATAnalysis} object (called for its
+#'   side effect of printing a formatted summary to the console).
+#'
 #' @details
 #' Provides a concise summary of: data dimensions, completed analyses,
 #' number of results, and metadata tracking.
 #'
 #' @examples
-#' \dontrun{
-#'   analysis <- TSENATAnalysis(se)
-#'   show(analysis)
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' show(analysis)
 #'
 #' @export
 setMethod("show", "TSENATAnalysis", function(object) {
@@ -565,8 +597,8 @@ setMethod("show", "TSENATAnalysis", function(object) {
 
   # Show SE info
   message("SummarizedExperiment:")
-  message(paste0("  Genes:  ", nrow(object@se)))
-  message(paste0("  Samples:", ncol(object@se)))
+  message(sprintf("  Genes:   %d", nrow(object@se)))
+  message(sprintf("  Samples: %d", ncol(object@se)))
 
   # Show config
   if (length(object@config) > 0) {
@@ -574,11 +606,11 @@ setMethod("show", "TSENATAnalysis", function(object) {
     for (name in names(object@config)) {
       val <- object@config[[name]]
       if (is.character(val) && length(val) == 1) {
-        message(paste0("  ", name, ": ", val))
+        message(sprintf("  %s: %s", name, val))
       } else if (is.numeric(val) && length(val) <= 3) {
-        message(paste0("  ", name, ": ", paste(val, collapse = ", ")))
+        message(sprintf("  %s: %s", name, paste(val, collapse = ", ")))
       } else {
-        message(paste0("  ", name, ": <", class(val), ">"))
+        message(sprintf("  %s: <%s>", name, class(val)))
       }
     }
   }
@@ -586,19 +618,19 @@ setMethod("show", "TSENATAnalysis", function(object) {
   # Show results
   message("\nAnalysis Status:")
   if (length(object@diversity_results) > 0) {
-    message(paste0("  \u2713 Diversity: ", length(object@diversity_results), " q-value(s)"))
+    message(sprintf("  \u2713 Diversity: %d q-value(s)", length(object@diversity_results)))
   }
   if (length(object@lm_results) > 0) {
-    message(paste0("  \u2713 LM results: ", paste(names(object@lm_results), collapse = ", ")))
+    message(sprintf("  \u2713 LM results: %s", paste(names(object@lm_results), collapse = ", ")))
   }
   if (length(object@jackknife_results) > 0) {
-    message(paste0("  \u2713 Jackknife: ", length(object@jackknife_results), " q-value(s)"))
+    message(sprintf("  \u2713 Jackknife: %d q-value(s)", length(object@jackknife_results)))
   }
   if (length(object@divergence_results) > 0) {
-    message(paste0("  \u2713 Divergence: ", length(object@divergence_results), " component(s)"))
+    message(sprintf("  \u2713 Divergence: %d component(s)", length(object@divergence_results)))
   }
   if (length(object@plots) > 0) {
-    message(paste0("  \u2713 Plots: ", paste(names(object@plots), collapse = ", ")))
+    message(sprintf("  \u2713 Plots: %s", paste(names(object@plots), collapse = ", ")))
   }
 
   # Show metadata
@@ -606,7 +638,7 @@ setMethod("show", "TSENATAnalysis", function(object) {
     n_calls <- length(object@metadata$function_calls)
     if (n_calls > 0) {
       message("\nFunction History:")
-      message(paste0("  Calls: ", paste(object@metadata$function_calls, collapse = " \u2192 ")))
+      message(sprintf("  Calls: %s", paste(object@metadata$function_calls, collapse = " \u2192 ")))
     }
   }
 
@@ -628,10 +660,12 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #' counts, validation status, and metadata tracking.
 #'
 #' @examples
-#' \dontrun{
-#'   analysis <- tsenat(se, methods = c("diversity", "lm_interaction"))
-#'   summary(analysis)
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' summary(analysis)
 #'
 #' @export
 setMethod("summary", "TSENATAnalysis", function(object) {
@@ -748,11 +782,12 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 #' \code{last_diversity_run}, showing which parameters were actually used.
 #'
 #' @examples
-#' \dontrun{
-#'   config <- getConfig(analysis)
-#'   actual_params <- config$last_diversity_run$parameters_used
-#'   # Shows: norm, verbose, bootstrap, nthreads, etc.
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se, config = list(q_values = c(0.5, 1.0, 2.0)))
+#' config <- getConfig(analysis)
 #'
 #' @export
 setGeneric("getConfig", function(object) {
@@ -778,10 +813,13 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' at the start of an analysis via \code{tsenat_config()} rather than directly.
 #'
 #' @examples
-#' \dontrun{
-#'   new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
-#'   analysis <- setConfig(analysis, new_config)
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
+#' analysis <- setConfig(analysis, new_config)
 #'
 #' @export
 setGeneric("setConfig", function(object, value) {
@@ -799,6 +837,42 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
   object
 })
 
+#' Set a single configuration value in TSENATAnalysis
+#'
+#' @param object \code{TSENATAnalysis} object.
+#' @param key Character. Name of the config item to set.
+#' @param value Value to set for the config item.
+#'
+#' @return Updated \code{TSENATAnalysis} object with the new config value.
+#'
+#' @details
+#' Convenience method for setting a single configuration value without
+#' needing to retrieve, merge, and set the entire config list.
+#'
+#' @examples
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' analysis <- setConfigValue(analysis, "condition_col", "sample_type")
+#'
+#' @export
+setGeneric("setConfigValue", function(object, key, value) {
+  standardGeneric("setConfigValue")
+})
+
+#' @rdname setConfigValue
+#' @export
+setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
+  config <- getConfig(object)
+  if (is.null(config)) {
+    config <- list()
+  }
+  config[[key]] <- value
+  setConfig(object, config)
+})
+
 #' Extract SummarizedExperiment from TSENATAnalysis
 #'
 #' @param object \code{TSENATAnalysis} object.
@@ -809,10 +883,16 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' Provides type-safe accessor for the embedded \code{SummarizedExperiment}.
 #'
 #' @examples
-#' \dontrun{
-#'   se <- se(analysis)
-#'   nrow(se)  # Number of genes/transcripts
-#' }
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' # Extract the SummarizedExperiment from the analysis object
+#' se_extracted <- se(analysis)
+#' nrow(se_extracted)  # Number of genes/transcripts
 #'
 #' @export
 setGeneric("se", function(object) {
@@ -838,10 +918,12 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' intermediate results, etc.).
 #'
 #' @examples
-#' \dontrun{
-#'   all_meta <- metadata(analysis)
-#'   m_estimate_res <- metadata(analysis, "m_estimate_results")
-#' }
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#' all_meta <- metadata(analysis)
 #'
 #' @export
 #' @rdname metadata

@@ -26,9 +26,12 @@ Provides type-safe replacement of @config slot. Typically called once
 at the start of an analysis via \code{tsenat_config()} rather than directly.
 }
 \examples{
-\dontrun{
-  new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
-  analysis <- setConfig(analysis, new_config)
-}
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
+analysis <- setConfig(analysis, new_config)
 
 }

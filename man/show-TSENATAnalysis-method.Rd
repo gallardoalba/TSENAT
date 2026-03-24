@@ -9,6 +9,10 @@
 \arguments{
 \item{object}{\code{TSENATAnalysis} object to display.}
 }
+\value{
+Invisibly returns the \code{TSENATAnalysis} object (called for its
+  side effect of printing a formatted summary to the console).
+}
 \description{
 Display TSENATAnalysis object
 }
@@ -17,9 +21,11 @@ Provides a concise summary of: data dimensions, completed analyses,
 number of results, and metadata tracking.
 }
 \examples{
-\dontrun{
-  analysis <- TSENATAnalysis(se)
-  show(analysis)
-}
+library(SummarizedExperiment)
+se <- SummarizedExperiment(
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+)
+analysis <- TSENATAnalysis(se)
+show(analysis)
 
 }
