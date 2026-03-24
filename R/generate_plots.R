@@ -1160,12 +1160,14 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         axis = "b"
     )
     
-    # Add overall title above the grid
+    # Add overall title and subtitle above the grid
     grid_with_title <- cowplot::plot_grid(
-        cowplot::ggdraw() + cowplot::draw_label(base_title, fontface = "plain", size = 16),
+        cowplot::ggdraw() + 
+            cowplot::draw_label("Tsallis Entropy Distribution by Group", fontface = "bold", size = 18, x = 0.5, y = 0.75) +
+            cowplot::draw_label("Violin and density plots across samples", fontface = "italic", size = 14, x = 0.5, y = 0.25, color = "gray40"),
         grid,
         nrow = 2,
-        rel_heights = c(0.06, 1)
+        rel_heights = c(0.08, 1)
     )
     
     # Save to file if output_file is provided
@@ -2181,9 +2183,9 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     # Add main title and subtitle above the grid
     title_plot <- cowplot::ggdraw() + 
         cowplot::draw_label("GAM q-curve: Top genes with group interaction", 
-                           fontface = "bold", size = 20, x = 0.5, y = 0.75) +
+                           fontface = "bold", size = 20, x = 0.5, y = 0.80) +
         cowplot::draw_label("Fitted smooth curves by group", 
-                           fontface = "italic", size = 16, x = 0.5, y = 0.45, color = "gray40")
+                           fontface = "italic", size = 16, x = 0.5, y = 0.40, color = "gray40")
     
     # Combine title, plots, and single legend at bottom
     final_plot <- cowplot::plot_grid(
@@ -3072,7 +3074,15 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   # Combine all rows with spacers vertically
   combined_plot <- Reduce(function(x, y) x / y, layout_plots) +
-                   patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect")
+                   patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect") +
+                   patchwork::plot_annotation(
+                     title = "Tsallis Divergence q-Spectrum Profiles",
+                     subtitle = "Per-q divergence curves for top-ranked genes",
+                     theme = ggplot2::theme(
+                       plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = 18, margin = ggplot2::margin(b = 8)),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = 14, color = "gray40", margin = ggplot2::margin(b = 12))
+                     )
+                   )
   
   if (verbose) message(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes", length(plot_list)))
   
@@ -4225,7 +4235,7 @@ plot_multiq_delta_influence_heatmaps <- function(
     
     # Add subtitle
     grid::grid.text("Jackknife weights across q-spectrum for selected genes", 
-                    x = 0.5, y = 0.945, 
+                    x = 0.5, y = 0.925, 
                     just = "top",
                     gp = grid::gpar(fontsize = 32, fontface = "italic", col = "gray40"))
     
