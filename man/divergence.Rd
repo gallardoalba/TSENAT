@@ -24,7 +24,8 @@ Extract divergence results
 \examples{
 library(SummarizedExperiment)
 se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+  colData = data.frame(sample_id = paste0("S", 1:10))
 )
 analysis <- TSENATAnalysis(se)
 div <- divergence(analysis)  # Returns empty list until divergence analysis runs

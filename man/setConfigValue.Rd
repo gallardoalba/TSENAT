@@ -29,7 +29,8 @@ needing to retrieve, merge, and set the entire config list.
 \examples{
 library(SummarizedExperiment)
 se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+  colData = data.frame(sample_id = paste0("S", 1:10), sample_type = rep(c("A", "B"), 5))
 )
 analysis <- TSENATAnalysis(se)
 analysis <- setConfigValue(analysis, "condition_col", "sample_type")

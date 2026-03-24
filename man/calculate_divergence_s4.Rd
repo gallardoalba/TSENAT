@@ -43,35 +43,17 @@ Parameters are resolved in priority order:
 }
 \examples{
 # Create and run divergence analysis with strong signal
-library(SummarizedExperiment)
-set.seed(42)
-n_genes <- 8
-n_isoforms_per_gene <- 3
-n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 20
-n_samples <- n_samples_per_group * 2
+# Create test analysis with diversity pre-computed
+analysis <- create_test_analysis(
+  n_genes = 8,
+  n_samples_per_group = 20,
+  q_values = c(0.5, 1.0, 1.5)
+)
 
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-                         nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-                           nrow = n_isoforms, ncol = n_samples_per_group)
-counts <- cbind(control_counts, treatment_counts)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
-se <- SummarizedExperiment(assays = list(counts = counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  condition = rep(c("control", "treatment"), each = n_samples_per_group),
-  pair = rep(1:n_samples_per_group, 2),
-  row.names = colnames(se))
-# First calculate diversity
-analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-# Then calculate divergence
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-# Check divergence results
-head(analysis@divergence_results)
+# Calculate divergence across q-values
+analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
+
+# Check divergence results  
+head(divergence(analysis))
 
 }

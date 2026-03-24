@@ -24,30 +24,7 @@ on the right, both showing Tsallis entropy distribution for the q value in the p
 SummarizedExperiment (which should contain a single q value).
 }
 \examples{
-# Create synthetic diversity data as a SummarizedExperiment
-library(SummarizedExperiment)
-set.seed(123)
+analysis <- create_test_analysis()
+p <- plot_tsallis_violin_density_grid_s4(analysis@diversity_results[[1]])
 
-# Create a diversity matrix (genes x samples)
-n_genes <- 20
-n_samples <- 5
-diversity_matrix <- matrix(
-  rnorm(n_genes * n_samples, mean = 1.5, sd = 0.3),
-  nrow = n_genes, ncol = n_samples
-)
-
-# Create sample metadata with condition information
-col_data <- data.frame(
-  sample_type = rep(c("GroupA", "GroupB"), length.out = n_samples),
-  row.names = paste0("sample_", 1:n_samples)
-)
-
-# Create SummarizedExperiment
-se <- SummarizedExperiment(
-  assays = list(diversity = diversity_matrix),
-  colData = col_data
-)
-
-# Create the plot
-plot_tsallis_violin_density_grid_s4(se)
 }

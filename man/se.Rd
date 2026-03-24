@@ -28,7 +28,8 @@ set.seed(42)
 se <- SummarizedExperiment(
   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-  colData = data.frame(condition = rep(c("A", "B"), 5),
+  colData = data.frame(sample_id = paste0("Sample", 1:10),
+    condition = rep(c("A", "B"), 5),
     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
 )
 S4Vectors::metadata(se)$tx2gene <- data.frame(

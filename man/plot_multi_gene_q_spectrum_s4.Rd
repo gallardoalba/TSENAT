@@ -81,21 +81,22 @@ tx2gene_df <- data.frame(
   Transcript = rownames(counts),
   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 S4Vectors::metadata(se)$tx2gene <- tx2gene_df
+SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  sample_id = paste0("Sample_", 1:n_samples),
   condition = rep(c("control", "treatment"), each = n_samples_per_group),
   pair = rep(1:n_samples_per_group, 2),
   row.names = colnames(se))
 analysis <- TSENATAnalysis(se)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-suppressWarnings(
-  analysis <- calculate_lm_interaction_s4(analysis,
-    condition_col = "condition", verbose = FALSE)
-)
+analysis <- calculate_lm_interaction_s4(analysis,
+  condition_col = "condition", verbose = FALSE)
 analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 # Plot multi-gene q-spectra for top genes
-p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
+p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
 
 }
 \seealso{

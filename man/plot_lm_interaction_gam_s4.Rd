@@ -85,20 +85,21 @@ S4Vectors::metadata(se)$tx2gene <- data.frame(
   Transcript = rownames(counts),
   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  sample_id = paste0("Sample_", 1:n_samples),
   condition = rep(c("control", "treatment"), each = n_samples_per_group),
   pair = rep(1:n_samples_per_group, 2),
   row.names = colnames(se))
+# Add gene identifiers to rowData
+tx2gene <- S4Vectors::metadata(se)$tx2gene
+SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+SummarizedExperiment::rowData(se)$gene_id <- tx2gene$Gene[match(rownames(se), tx2gene$Transcript)]
 analysis <- TSENATAnalysis(se)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-suppressWarnings(
-  analysis <- calculate_lm_interaction_s4(analysis,
-    condition_col = "condition", verbose = FALSE)
-)
+analysis <- calculate_lm_interaction_s4(analysis,
+  condition_col = "condition", verbose = FALSE)
 # Plot GAM curves for top genes
-if (!is.null(analysis@lm_results$lm_interaction)) {
-  plot <- plot_lm_interaction_gam_s4(analysis, n_top = 3,
-    condition_col = "condition")
-}
+plot <- plot_lm_interaction_gam_s4(analysis, n_top = 3,
+  condition_col = "condition")
 
 }
 \seealso{

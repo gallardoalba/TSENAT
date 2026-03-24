@@ -115,6 +115,11 @@ setClass(
       return("@se must be a SummarizedExperiment object")
     }
 
+    # Check SE has data
+    if (nrow(object@se) == 0 || ncol(object@se) == 0) {
+      return("@se has zero dimensions (no genes or samples)")
+    }
+
     # Check @config is list-like (list, TSENATConfig, or other list-based structure)
     if (!is.list(object@config)) {
       return("@config must be a list or list-based config object")
@@ -138,6 +143,22 @@ setClass(
     }
     if (!is.list(object@metadata)) {
       return("@metadata must be a list")
+    }
+
+    # Check colData has required columns if sample metadata expected
+    cdata <- colData(object@se)
+    if (!is.null(cdata) && ncol(cdata) > 0) {
+      if (!"sample_id" %in% colnames(cdata)) {
+        return("colData missing 'sample_id' column required for analysis")
+      }
+    }
+
+    # Check rowData has gene identifiers if results computed
+    rdata <- rowData(object@se)
+    if (!is.null(rdata) && ncol(rdata) > 0) {
+      if (!"gene_id" %in% colnames(rdata) && !"transcript_id" %in% colnames(rdata)) {
+        return("rowData missing 'gene_id' or 'transcript_id' column")
+      }
     }
 
     TRUE
@@ -167,7 +188,7 @@ setClass(
 #' set.seed(42)
 #' se <- SummarizedExperiment(
 #'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
-#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#'   colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' show(analysis)  # Display empty initialized object
@@ -224,7 +245,8 @@ TSENATAnalysis <- function(se, config = list()) {
 #' # Create minimal SummarizedExperiment
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' diversity_list <- diversity(analysis)  # Empty until analysis runs
@@ -327,7 +349,8 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' # With an analysis object that has lm results
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' all_lm <- lmResults(analysis)  # Returns empty list until analysis runs
@@ -413,8 +436,9 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' se <- SummarizedExperiment(
 #'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
 #'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-#'   colData = data.frame(condition = rep(c("A", "B"), 5),
-#'     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
+#'   colData = data.frame(sample_id = paste0("Sample", 1:10),
+#'     condition = rep(c("A", "B"), 5), pair = rep(1:5, 2), 
+#'     row.names = paste0("Sample", 1:10))
 #' )
 #' S4Vectors::metadata(se)$tx2gene <- data.frame(
 #'   Transcript = paste0("TX", 1:20),
@@ -469,7 +493,8 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' div <- divergence(analysis)  # Returns empty list until divergence analysis runs
@@ -564,7 +589,8 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' # Demonstrates adding a plot to analysis object (requires ggplot2)
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' # analysis <- addPlot(analysis, type = "example", plot = NULL)
@@ -806,7 +832,8 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se, config = list(q_values = c(0.5, 1.0, 2.0)))
 #' config <- getConfig(analysis)
@@ -837,7 +864,8 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
@@ -874,7 +902,8 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10), sample_type = rep(c("A", "B"), 5))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' analysis <- setConfigValue(analysis, "condition_col", "sample_type")
@@ -911,7 +940,8 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #' se <- SummarizedExperiment(
 #'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
 #'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-#'   colData = data.frame(condition = rep(c("A", "B"), 5),
+#'   colData = data.frame(sample_id = paste0("Sample", 1:10),
+#'     condition = rep(c("A", "B"), 5),
 #'     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
 #' )
 #' S4Vectors::metadata(se)$tx2gene <- data.frame(
@@ -948,7 +978,8 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(sample_id = paste0("S", 1:10))
 #' )
 #' analysis <- TSENATAnalysis(se)
 #' all_meta <- metadata(analysis)

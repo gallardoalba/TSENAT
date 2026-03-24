@@ -405,42 +405,8 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' @importFrom tidyr pivot_longer
 #'
 #' @examples
-#' # Create a sample SummarizedExperiment with diversity data
-#' library(SummarizedExperiment)
-#' 
-#' # Create synthetic diversity results
-#' set.seed(123)
-#' q_values <- c(0.5, 1.0, 1.5)
-#' n_genes <- 50
-#' n_samples <- 10
-#' 
-#' # Create assay with diversity values (rows = genes, cols = samples)
-#' diversity_matrix <- matrix(
-#'   rnorm(n_genes * n_samples, mean = 2, sd = 0.5),
-#'   nrow = n_genes, ncol = n_samples
-#' )
-#' 
-#' # Create column data with sample type
-#' col_data <- data.frame(
-#'   sample_type = rep(c("GroupA", "GroupB"), length.out = n_samples),
-#'   row.names = paste0("sample_", 1:n_samples)
-#' )
-#' 
-#' # Create row data
-#' row_data <- data.frame(
-#'   gene_name = paste0("gene_", 1:n_genes),
-#'   row.names = paste0("gene_", 1:n_genes)
-#' )
-#' 
-#' # Create SummarizedExperiment
-#' se_diversity <- SummarizedExperiment(
-#'   assays = list(diversity = diversity_matrix),
-#'   colData = col_data,
-#'   rowData = row_data
-#' )
-#' 
-#' # Plot aggregate q-curve
-#' p <- plot_tsallis_q_curve_s4(se_diversity)
+#' analysis <- create_test_analysis()
+#' p <-plot_tsallis_q_curve_s4(analysis@diversity_results[[1]])
 #'
 #' @export
 plot_tsallis_q_curve_s4 <- function(
@@ -1129,33 +1095,10 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
 #'
 #' @export
 #' @examples
-#' # Create synthetic diversity data as a SummarizedExperiment
-#' library(SummarizedExperiment)
-#' set.seed(123)
-#' 
-#' # Create a diversity matrix (genes x samples)
-#' n_genes <- 20
-#' n_samples <- 5
-#' diversity_matrix <- matrix(
-#'   rnorm(n_genes * n_samples, mean = 1.5, sd = 0.3),
-#'   nrow = n_genes, ncol = n_samples
-#' )
-#' 
-#' # Create sample metadata with condition information
-#' col_data <- data.frame(
-#'   sample_type = rep(c("GroupA", "GroupB"), length.out = n_samples),
-#'   row.names = paste0("sample_", 1:n_samples)
-#' )
-#' 
-#' # Create SummarizedExperiment
-#' se <- SummarizedExperiment(
-#'   assays = list(diversity = diversity_matrix),
-#'   colData = col_data
-#' )
-#' 
-#' # Create the plot
-#' plot_tsallis_violin_density_grid_s4(se)
-plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL) {
+#' analysis <- create_test_analysis()
+#' p <- plot_tsallis_violin_density_grid_s4(analysis@diversity_results[[1]])
+#'
+plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL, output_file = NULL) {
     # Require cowplot for grid arrangement
     if (!requireNamespace("cowplot", quietly = TRUE)) {
         stop("cowplot package required for plot_tsallis_violin_density_grid_s4()")
@@ -1224,6 +1167,11 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         nrow = 2,
         rel_heights = c(0.06, 1)
     )
+    
+    # Save to file if output_file is provided
+    if (!is.null(output_file)) {
+      ggplot2::ggsave(output_file, plot = grid_with_title, width = 10, height = 6, create.dir = TRUE)
+    }
     
     return(grid_with_title)
 }
@@ -1758,7 +1706,7 @@ plot_top_transcripts <- function(
             gname <- gene[i]
             pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
             per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 22, face = "plain", margin = ggplot2::margin(b = 5)))
+            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 18, face = "plain", margin = ggplot2::margin(b = 5)))
             pp
         })
 
@@ -2233,9 +2181,9 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     # Add main title and subtitle above the grid
     title_plot <- cowplot::ggdraw() + 
         cowplot::draw_label("GAM q-curve: Top genes with group interaction", 
-                           fontface = "bold", size = 20, x = 0.5, y = 0.7) +
+                           fontface = "bold", size = 20, x = 0.5, y = 0.75) +
         cowplot::draw_label("Fitted smooth curves by group", 
-                           fontface = "italic", size = 16, x = 0.5, y = 0.5, color = "gray40")
+                           fontface = "italic", size = 16, x = 0.5, y = 0.45, color = "gray40")
     
     # Combine title, plots, and single legend at bottom
     final_plot <- cowplot::plot_grid(
@@ -2387,20 +2335,20 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         ggplot2::theme_minimal(base_size = 20) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 15.4, face = "plain"), 
-            axis.text.x = ggplot2::element_text(size = 17),
-            plot.title = ggplot2::element_text(size = 20, hjust = 0.5, face = "bold"), 
+            axis.text.y = ggplot2::element_text(size = 12, face = "plain"), 
+            axis.text.x = ggplot2::element_text(size = 14),
+            plot.title = ggplot2::element_text(size = 13, hjust = 0.5, face = "bold"), 
             legend.position = "bottom",
             legend.justification = "center",
             legend.key.width = ggplot2::unit(2, "cm"), 
-            legend.text = ggplot2::element_text(size = 14),
+            legend.text = ggplot2::element_text(size = 9),
             plot.margin = ggplot2::margin(4, 4, 4, 4)
         ) + 
         ggplot2::guides(fill = ggplot2::guide_colorbar(
             title.position = "top",
             barwidth = 10, 
             barheight = 0.5,
-            title.theme = ggplot2::element_text(size = 20)
+            title.theme = ggplot2::element_text(size = 13)
         ))
     p
 }
@@ -2452,8 +2400,8 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         title = "Transcript level expression",
         subtitle = paste0("Top genes with metric ", agg_label_unique),
         theme = ggplot2::theme(
-            plot.title = ggplot2::element_text(hjust = 0.5, size = 41, face = "bold", margin = ggplot2::margin(t = 30, b = 0)),
-            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 31, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4))
+            plot.title = ggplot2::element_text(hjust = 0.5, size = 26, face = "bold", margin = ggplot2::margin(t = 30, b = 0)),
+            plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 20, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4))
         )) +
         patchwork::plot_layout(heights = c(0.045, 1), guides = "collect")
     combined
@@ -2470,9 +2418,9 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     
     grid <- cowplot::plot_grid(plotlist = plots_nolegend, ncol = ncol, nrow = nrow_val, align = "hv")
     title_grob <- cowplot::ggdraw() + cowplot::draw_label("Transcript level expression", fontface = "bold",
-        x = 0.5, hjust = 0.5, size = 29)
+        x = 0.5, hjust = 0.5, size = 18)
     subtitle_grob <- cowplot::ggdraw() + cowplot::draw_label(paste0("Top genes with metric ", agg_label_unique), fontface = "italic",
-        x = 0.5, hjust = 0.5, size = 22, color = "gray40")
+        x = 0.5, hjust = 0.5, size = 14, color = "gray40")
     # Add spacer between title and plots
     spacer_grob <- cowplot::ggdraw() + ggplot2::theme_void()
     result_plot <- cowplot::plot_grid(title_grob, subtitle_grob, spacer_grob, grid, legend, ncol = 1, rel_heights = c(0.05, 0.04,
@@ -2828,21 +2776,22 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #'   Transcript = rownames(counts),
 #'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 #' S4Vectors::metadata(se)$tx2gene <- tx2gene_df
+#' SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+#' SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 #' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   sample_id = paste0("Sample_", 1:n_samples),
 #'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
 #'   pair = rep(1:n_samples_per_group, 2),
 #'   row.names = colnames(se))
 #' analysis <- TSENATAnalysis(se)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 #' # Plot multi-gene q-spectra for top genes
-#' p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
+#' p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
 #'
 #' @seealso \code{\link{calculate_divergence_s4}} for computing divergence values.
 #'
@@ -2852,7 +2801,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
                                            divergence_results_se = NULL,
                                            n_genes = 9, 
                                            ncol = 3, 
-                                           verbose = TRUE) {
+                                           verbose = TRUE,
+                                           output_file = NULL) {
   
   require_pkgs(c("ggplot2", "patchwork", "SummarizedExperiment"))
   
@@ -3125,6 +3075,11 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
                    patchwork::plot_layout(heights = c(rep(c(1, 0.1), nrow - 1), 1), guides = "collect")
   
   if (verbose) message(sprintf("[OK] Multi-gene q-spectrum plot created with %d genes", length(plot_list)))
+  
+  # Save to file if output_file is provided
+  if (!is.null(output_file)) {
+    ggplot2::ggsave(output_file, plot = combined_plot, width = 10, height = 6, create.dir = TRUE)
+  }
   
   return(combined_plot)
 }

@@ -54,45 +54,12 @@ The wrapper automatically handles parameter extraction and provides a simplified
 interface compared to the base function.
 }
 \examples{
-# After running LM interaction analysis
-library(SummarizedExperiment)
-set.seed(42)
-n_genes <- 8
-n_isoforms_per_gene <- 3
-n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 20
-n_samples <- n_samples_per_group * 2
-
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-                         nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-                           nrow = n_isoforms, ncol = n_samples_per_group)
-counts <- cbind(control_counts, treatment_counts)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
-se <- SummarizedExperiment(assays = list(counts = counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-# Add both transcript and gene_name to rowData for jackknife analysis
-tx2gene_df <- S4Vectors::metadata(se)$tx2gene
-SummarizedExperiment::rowData(se)$transcript <- tx2gene_df$Transcript[match(rownames(se), tx2gene_df$Transcript)]
-SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  condition = rep(c("control", "treatment"), each = n_samples_per_group),
-  pair = rep(1:n_samples_per_group, 2),
-  row.names = colnames(se))
-analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-suppressWarnings(
-  analysis <- calculate_lm_interaction_s4(analysis,
-    condition_col = "condition", verbose = FALSE)
-)
-# Run jackknife analysis for multiple q-values (required for heatmap plotting)
-suppressWarnings(
-  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-)
-# Generate heatmaps using S4 wrapper
+analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+  q_values = c(0.5, 1.0, 1.5))
+analysis <- calculate_lm_interaction_s4(analysis,
+  condition_col = "condition", verbose = FALSE)
+analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0, 1.5),
+  n_bootstrap = 5, verbose = FALSE)
 heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 
 }

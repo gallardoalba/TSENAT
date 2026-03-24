@@ -81,18 +81,19 @@ tx2gene_df <- data.frame(
   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 S4Vectors::metadata(se)$tx2gene <- tx2gene_df
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  sample_id = paste0("Sample_", 1:n_samples),
   condition = rep(c("control", "treatment"), each = n_samples_per_group),
   pair = rep(1:n_samples_per_group, 2),
   row.names = colnames(se))
-# Add gene_name to rowData for proper aggregation in calculate_divergence_s4
+# Add gene identifiers and gene_name to rowData for proper aggregation
+SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 analysis <- TSENATAnalysis(se)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-suppressWarnings(
-  analysis <- calculate_lm_interaction_s4(analysis,
-    condition_col = "condition", verbose = FALSE)
-)
+analysis <- calculate_lm_interaction_s4(analysis,
+  condition_col = "condition", verbose = FALSE)
 # Compute effect sizes (required for plot_divergence_distribution_s4)
 analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 # Generate and display the plot (if ggplot2 available)

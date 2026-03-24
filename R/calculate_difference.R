@@ -859,7 +859,13 @@ calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 
                 n_unmapped, " used ID as fallback")
       }
     } else if (verbose) {
-      message("[calculate_lm_interaction] gene_name column not found in rowData - downstream matching may fail")
+      message("[calculate_lm_interaction] gene_name column not found in rowData - using gene ID as fallback")
+    }
+    
+    # Ensure gene_name column is always present and populated (for downstream functions)
+    if (is.null(res$gene_name) || !"gene_name" %in% colnames(res)) {
+      # If gene_name wasn't set above, use gene column as fallback
+      res$gene_name <- res$gene
     }
     
     # Ensure gene_id column is always present and populated

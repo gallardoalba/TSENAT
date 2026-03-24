@@ -48,38 +48,8 @@ between control and treatment groups, not raw abundance data.
 }
 }
 \examples{
-# First compute diversity with adequate sample size and strong signal
-library(SummarizedExperiment)
-set.seed(42)
-n_genes <- 8
-n_isoforms_per_gene <- 3
-n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 20
-n_samples <- n_samples_per_group * 2
-
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-                         nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-                           nrow = n_isoforms, ncol = n_samples_per_group)
-counts <- cbind(control_counts, treatment_counts)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
-se <- SummarizedExperiment(assays = list(counts = counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  condition = rep(c("Control", "Treatment"), each = n_samples_per_group),
-  row.names = colnames(se))
-analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-# Then compute differences
-analysis <- calculate_difference_s4(analysis, control = "Control", 
-  verbose = FALSE)
-if (!is.null(analysis@lm_results$difference) && 
-    nrow(analysis@lm_results$difference) > 0) {
-  head(analysis@lm_results$difference)
-}
+analysis <- create_test_analysis()
+result <- calculate_difference_s4(analysis, control = "control")
 
 }
 \seealso{

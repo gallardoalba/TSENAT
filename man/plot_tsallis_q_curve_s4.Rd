@@ -84,41 +84,7 @@ or bootstrap confidence interval bands.
 - Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
 }
 \examples{
-# Create a sample SummarizedExperiment with diversity data
-library(SummarizedExperiment)
-
-# Create synthetic diversity results
-set.seed(123)
-q_values <- c(0.5, 1.0, 1.5)
-n_genes <- 50
-n_samples <- 10
-
-# Create assay with diversity values (rows = genes, cols = samples)
-diversity_matrix <- matrix(
-  rnorm(n_genes * n_samples, mean = 2, sd = 0.5),
-  nrow = n_genes, ncol = n_samples
-)
-
-# Create column data with sample type
-col_data <- data.frame(
-  sample_type = rep(c("GroupA", "GroupB"), length.out = n_samples),
-  row.names = paste0("sample_", 1:n_samples)
-)
-
-# Create row data
-row_data <- data.frame(
-  gene_name = paste0("gene_", 1:n_genes),
-  row.names = paste0("gene_", 1:n_genes)
-)
-
-# Create SummarizedExperiment
-se_diversity <- SummarizedExperiment(
-  assays = list(diversity = diversity_matrix),
-  colData = col_data,
-  rowData = row_data
-)
-
-# Plot aggregate q-curve
-p <- plot_tsallis_q_curve_s4(se_diversity)
+analysis <- create_test_analysis()
+p <-plot_tsallis_q_curve_s4(analysis@diversity_results[[1]])
 
 }

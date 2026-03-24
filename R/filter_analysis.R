@@ -52,6 +52,7 @@
 #'   Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
 #' # Add sample metadata with pair column required by filter_analysis
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   sample_id = paste0("Sample", 1:10),
 #'   sample_type = rep(c("Control", "Treatment"), 5),
 #'   pair = rep(1:5, 2),
 #'   row.names = colnames(se))

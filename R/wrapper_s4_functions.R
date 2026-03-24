@@ -47,35 +47,18 @@
 #' }
 #'
 #' @examples
-#' # Create minimal test data
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
+#' # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
+#' analysis <- create_test_analysis(
+#'   n_genes = 8,
+#'   n_samples_per_group = 20,
+#'   control_lambda = 40,
+#'   treatment_lambda = 150,
+#'   q_values = c(0.5, 1.0, 1.5),
+#'   verbose = FALSE
+#' )
 #' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' # Calculate diversity for multiple q-values
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # View results
-#' head(SummarizedExperiment::assay(analysis@diversity_results$q_1.0))
+#' # Diversity results are pre-computed by factory
+#' head(diversity(analysis, q = 1.0))
 #'
 #' @export
 #' @importFrom utils write.table
@@ -486,42 +469,18 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #'
 #' @examples
 #' # Create test data with sufficient structure for LM analysis
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' # Generate count data with strong biological signal
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(counts))
-#' # Create analysis and calculate diversity first (prerequisite)
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Then calculate LM interactions
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
+#' # Create test analysis with diversity pre-computed
+#' analysis <- create_test_analysis(
+#'   n_genes = 8,
+#'   n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5)
 #' )
-#' if (!is.null(analysis@lm_results$lm_interaction) && 
-#'     nrow(analysis@lm_results$lm_interaction) > 0) {
-#'   head(analysis@lm_results$lm_interaction)
-#' }
+#' 
+#' # Calculate q × condition interactions (LM)
+#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' 
+#' # View results
+#' head(lmResults(analysis, "lm_interaction"))
 #'
 #' @export
 #' @importFrom utils write.table
@@ -866,33 +825,17 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' \code{calculate_diversity_s4()} has not been run.
 #'
 #' @examples
-#' # Create minimal test data with strong signal
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
+#' # Create test analysis with diversity pre-computed
+#' analysis <- create_test_analysis(
+#'   n_genes = 8,
+#'   n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5)
+#' )
 #' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' # Calculate diversity first (required)
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' # Run jackknife estimation
 #' analysis <- jackknife_tsallis_entropy_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' # Check jackknife results
-#' names(analysis@jackknife_results)
+#' names(jackKnife(analysis))
 #'
 #' @export
 #' @importFrom utils write.table
@@ -1006,36 +949,18 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #'
 #' @examples
 #' # Create and run divergence analysis with strong signal
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
+#' # Create test analysis with diversity pre-computed
+#' analysis <- create_test_analysis(
+#'   n_genes = 8,
+#'   n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5)
+#' )
 #' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' # First calculate diversity
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Then calculate divergence
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Check divergence results
-#' head(analysis@divergence_results)
+#' # Calculate divergence across q-values
+#' analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
+#' 
+#' # Check divergence results  
+#' head(divergence(analysis))
 #'
 #' @export
 #' @importFrom utils write.table
@@ -1231,46 +1156,12 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #' }
 #'
 #' @examples
-#' # Setup analysis with diversity results
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' # Create test data with strong signal for q-gene interactions
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Detect q-gene interactions across q-values
-#' # (requires both diversity and lm_interaction results)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
 #' analysis <- detect_q_gene_interactions_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' # Interaction results stored in lm_results
-#' if (!is.null(analysis@lm_results$lm_interaction)) {
-#'   head(analysis@lm_results$lm_interaction)
-#' }
+#' head(lmResults(analysis)$lm_interaction)
 #'
 #' @export
 #' @importFrom utils write.table
@@ -1527,38 +1418,8 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL
 #' \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
 #' @examples
-#' # First compute diversity with adequate sample size and strong signal
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("Control", "Treatment"), each = n_samples_per_group),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Then compute differences
-#' analysis <- calculate_difference_s4(analysis, control = "Control", 
-#'   verbose = FALSE)
-#' if (!is.null(analysis@lm_results$difference) && 
-#'     nrow(analysis@lm_results$difference) > 0) {
-#'   head(analysis@lm_results$difference)
-#' }
+#' analysis <- create_test_analysis()
+#' result <- calculate_difference_s4(analysis, control = "control")
 #'
 #' @export
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_file = NULL, ...) {
@@ -1584,9 +1445,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
   }
 
   # Determine which diversity result to use
-  # Priority: explicit q > first q in diversity_results
   if (is.null(q)) {
-    # Use first diversity result
     div_keys <- names(analysis@diversity_results)
     if (length(div_keys) == 0) {
       stop("No diversity results found in @diversity_results", call. = FALSE)
@@ -1594,7 +1453,6 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
     diversity_se <- analysis@diversity_results[[div_keys[1]]]
     q_used <- sub("^q_", "", div_keys[1])
   } else {
-    # Find diversity result for specified q
     q_key <- paste0("q_", formatC(q, format = "f", digits = 3))
     if (!(q_key %in% names(analysis@diversity_results))) {
       stop("Diversity not calculated for q=", q, 
@@ -1605,48 +1463,20 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
     q_used <- q
   }
 
-  # Ensure colData from original SE is preserved in diversity results
-  if (is(diversity_se, "SummarizedExperiment")) {
-    original_coldata <- SummarizedExperiment::colData(analysis@se)
-    if (!is.null(original_coldata) && nrow(original_coldata) == ncol(diversity_se)) {
-      SummarizedExperiment::colData(diversity_se) <- original_coldata
-    }
+  # Determine condition column to use
+  # Try to get from config, otherwise let calculate_difference auto-detect
+  condition_col <- if ("condition_col" %in% names(analysis@config)) {
+    analysis@config$condition_col
+  } else {
+    NULL
   }
 
-  # Run difference calculation on diversity results (not raw input @se)
+  # Run difference calculation on diversity results
+  # Note: diversity_se and its colData are already prepared by calculate_diversity_s4
   result <- tryCatch({
-    # Determine samples column from colData
-    # Priority 1: Check @config$condition_col
-    # Priority 2: Auto-detect from common column names
-    samples_col <- NULL
-    
-    if ("condition_col" %in% names(analysis@config)) {
-      samples_col <- analysis@config$condition_col
-    }
-    
-    # Fallback to auto-detection if not in config
-    if (is.null(samples_col)) {
-      cd_cols <- colnames(SummarizedExperiment::colData(analysis@se))
-      if ("group" %in% cd_cols) {
-        samples_col <- "group"
-      } else if ("sample_type" %in% cd_cols) {
-        samples_col <- "sample_type"
-      } else if ("condition" %in% cd_cols) {
-        samples_col <- "condition"
-      } else {
-        stop(
-          "Could not determine sample grouping column:\n",
-          "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-          "SOLUTION: Set @config$condition_col with the correct column name\n",
-          "  Example: analysis@config$condition_col <- 'sample_type'\n",
-          call. = FALSE)
-      }
-    }
-
-    # Call calculate_difference directly (internal TSENAT function)
     calculate_difference(
       x = diversity_se,
-      condition_col = samples_col,
+      condition_col = condition_col,
       control = control,
       ...
     )
@@ -1722,32 +1552,10 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
 #' 3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
 #'
 #' @examples
-#' # Create minimal test data with strong signal
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Test rank-based assumptions at q=1.0
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
-#' # Check results
-#' names(analysis@metadata$rankbased_assumptions)
+#' names(metadata(analysis, "rankbased_assumptions"))
 #'
 #' @export
 setMethod(
@@ -1943,37 +1751,10 @@ extract_q_from_key <- function(key) {
 #' }
 #'
 #' @examples
-#' # After calculating diversity and differences with strong signal
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("Normal", "Tumor"), each = n_samples_per_group),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_difference_s4(analysis, control = "Normal", 
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_difference_s4(analysis, control = "control",
 #'   verbose = FALSE)
-#' # Create volcano and MA plot grid (if ggplot2 available)
-#' if (!is.null(analysis@plots$volcano_ma_grid)) {
-#'   print(analysis@plots$volcano_ma_grid)
-#' }
 #'
 #' @seealso
 #' \code{\link{calculate_difference_s4}} for computing differential analysis.
@@ -2133,36 +1914,10 @@ plot_volcano_ma_grid_s4 <- function(
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @examples
-#' # Generic example showing compute_method_concordance_s4 structure
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
 #' # Note: compute_method_concordance_s4 requires results from both
 #' # detect_q_gene_interactions_s4 and test_rankbased_assumptions_s4
 #'
@@ -2333,32 +2088,8 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' }
 #'
 #' @examples
-#' # After computing divergence via S4 wrapper
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' # Global divergence curve (all genes aggregated) - default mode
 #' p_global <- plot_divergence_spectrum_s4(analysis)
@@ -2523,29 +2254,9 @@ plot_divergence_spectrum_s4 <- function(
 #' to populate \code{@metadata$method_concordance}.
 #'
 #' @examples
-#' # After computing concordance:
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' # Note: compute_method_concordance_s4 requires additional setup
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' # Note: compute_method_concordance_s4 requires additional LM and Friedman results
 #' # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance
 #'
 #' @aliases plot_method_concordance_s4
@@ -2641,45 +2352,12 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 #'
 #' @examples
-#' # Compute effect sizes after divergence and LM analysis with adequate data
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' tx2gene_df <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' S4Vectors::metadata(se)$tx2gene <- tx2gene_df
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' # Add gene_name to rowData for proper aggregation in calculate_divergence_s4
-#' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
-#' # Note: effect_sizes_divergence_s4 requires specialized data structures
-#' # Check that LM results were computed
-#' if (!is.null(analysis@lm_results$lm_interaction)) {
-#'   nrow(analysis@lm_results$lm_interaction)
-#' }
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
+#' nrow(lmResults(analysis)$lm_interaction)
 #'
 #' @seealso
 #' \code{\link{calculate_divergence_s4}} for divergence wrapper,
@@ -3001,39 +2679,10 @@ effect_sizes_divergence_s4 <- function(
 #' significant q x condition interaction effects.
 #'
 #' @examples
-#' # Plot top transcripts for the most significant gene
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' # Add gene_name to rowData for plot_top_transcripts_s4
-#' tx2gene_df <- S4Vectors::metadata(se)$tx2gene
-#' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
 #' # Plot top transcripts (if ggplot2 available)
 #' plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 #'
@@ -3270,18 +2919,19 @@ plot_top_transcripts_s4 <- function(
 #'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 #' S4Vectors::metadata(se)$tx2gene <- tx2gene_df
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   sample_id = paste0("Sample_", 1:n_samples),
 #'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
 #'   pair = rep(1:n_samples_per_group, 2),
 #'   row.names = colnames(se))
-#' # Add gene_name to rowData for proper aggregation in calculate_divergence_s4
+#' # Add gene identifiers and gene_name to rowData for proper aggregation
+#' SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+#' SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 #' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 #' analysis <- TSENATAnalysis(se)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
 #' # Compute effect sizes (required for plot_divergence_distribution_s4)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 #' # Generate and display the plot (if ggplot2 available)
@@ -3427,47 +3077,13 @@ plot_divergence_distribution_s4 <- function(
 #' providing a simplified interface compared to the base function.
 #'
 #' @examples
-#' # After running LM interaction analysis
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' # Add transcript and gene_name to rowData for jackknife analysis
-#' tx2gene_df <- S4Vectors::metadata(se)$tx2gene
-#' SummarizedExperiment::rowData(se)$transcript <- tx2gene_df$Transcript[match(rownames(se), tx2gene_df$Transcript)]
-#' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
-#' # Run jackknife analysis (required for prepare_gene_switching_tables_s4)
-#' suppressWarnings(
-#'   analysis <- jackknife_isoform_switching_s4(analysis, verbose = FALSE)
-#' )
-#' # Prepare tables using S4 wrapper
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
+#' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 5,
+#'   verbose = FALSE)
 #' tables <- prepare_gene_switching_tables_s4(analysis)
-#' # Access individual components
 #' head(tables$summary_df)
 #'
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
@@ -3641,45 +3257,12 @@ prepare_gene_switching_tables_s4 <- function(
 #' interface compared to the base function.
 #'
 #' @examples
-#' # After running LM interaction analysis
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
-#' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
-#' n_samples <- n_samples_per_group * 2
-#' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-#'                          nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-#'                            nrow = n_isoforms, ncol = n_samples_per_group)
-#' counts <- cbind(control_counts, treatment_counts)
-#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
-#' colnames(counts) <- paste0("Sample_", 1:n_samples)
-#' se <- SummarizedExperiment(assays = list(counts = counts))
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = rownames(counts),
-#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-#' # Add both transcript and gene_name to rowData for jackknife analysis
-#' tx2gene_df <- S4Vectors::metadata(se)$tx2gene
-#' SummarizedExperiment::rowData(se)$transcript <- tx2gene_df$Transcript[match(rownames(se), tx2gene_df$Transcript)]
-#' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
-#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
-#'   pair = rep(1:n_samples_per_group, 2),
-#'   row.names = colnames(se))
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
-#' # Run jackknife analysis for multiple q-values (required for heatmap plotting)
-#' suppressWarnings(
-#'   analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' )
-#' # Generate heatmaps using S4 wrapper
+#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#'   q_values = c(0.5, 1.0, 1.5))
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
+#' analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1.0, 1.5),
+#'   n_bootstrap = 5, verbose = FALSE)
 #' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 #'
 #' @seealso
@@ -3877,20 +3460,21 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #'   Transcript = rownames(counts),
 #'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   sample_id = paste0("Sample_", 1:n_samples),
 #'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
 #'   pair = rep(1:n_samples_per_group, 2),
 #'   row.names = colnames(se))
+#' # Add gene identifiers to rowData
+#' tx2gene <- S4Vectors::metadata(se)$tx2gene
+#' SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
+#' SummarizedExperiment::rowData(se)$gene_id <- tx2gene$Gene[match(rownames(se), tx2gene$Transcript)]
 #' analysis <- TSENATAnalysis(se)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' suppressWarnings(
-#'   analysis <- calculate_lm_interaction_s4(analysis,
-#'     condition_col = "condition", verbose = FALSE)
-#' )
+#' analysis <- calculate_lm_interaction_s4(analysis,
+#'   condition_col = "condition", verbose = FALSE)
 #' # Plot GAM curves for top genes
-#' if (!is.null(analysis@lm_results$lm_interaction)) {
-#'   plot <- plot_lm_interaction_gam_s4(analysis, n_top = 3,
-#'     condition_col = "condition")
-#' }
+#' plot <- plot_lm_interaction_gam_s4(analysis, n_top = 3,
+#'   condition_col = "condition")
 #'
 #' @export
 plot_lm_interaction_gam_s4 <- function(

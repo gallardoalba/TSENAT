@@ -17,7 +17,7 @@ m_estimate_s4(
   influence_threshold = 0.75,
   scale_method = "mad",
   output_file = NULL,
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{
@@ -105,7 +105,8 @@ set.seed(42)
 se <- SummarizedExperiment(
   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-  colData = data.frame(sample_type = rep(c("A", "B"), 5),
+  colData = data.frame(sample_id = paste0("Sample", 1:10),
+    sample_type = rep(c("A", "B"), 5),
     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
 )
 S4Vectors::metadata(se)$tx2gene <- data.frame(
@@ -114,7 +115,7 @@ S4Vectors::metadata(se)$tx2gene <- data.frame(
 analysis <- TSENATAnalysis(se)
 # First compute diversity
 analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
-analysis <- m_estimate_s4(analysis, condition_col = "sample_type", loss_type = "huber")
+analysis <- m_estimate_s4(analysis, condition_col = "sample_type", loss_type = "huber", verbose = FALSE)
 
 }
 \seealso{

@@ -31,7 +31,8 @@ Use \code{diversity(analysis)} to get all results as a list, or
 # Create minimal SummarizedExperiment
 library(SummarizedExperiment)
 se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+  colData = data.frame(sample_id = paste0("S", 1:10))
 )
 analysis <- TSENATAnalysis(se)
 diversity_list <- diversity(analysis)  # Empty until analysis runs

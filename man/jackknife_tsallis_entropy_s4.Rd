@@ -35,32 +35,16 @@ Requires diversity results to exist first. Will error if
 \code{calculate_diversity_s4()} has not been run.
 }
 \examples{
-# Create minimal test data with strong signal
-library(SummarizedExperiment)
-set.seed(42)
-n_genes <- 8
-n_isoforms_per_gene <- 3
-n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 20
-n_samples <- n_samples_per_group * 2
+# Create test analysis with diversity pre-computed
+analysis <- create_test_analysis(
+  n_genes = 8,
+  n_samples_per_group = 20,
+  q_values = c(0.5, 1.0, 1.5)
+)
 
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
-                         nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
-                           nrow = n_isoforms, ncol = n_samples_per_group)
-counts <- cbind(control_counts, treatment_counts)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
-se <- SummarizedExperiment(assays = list(counts = counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
-# Calculate diversity first (required)
-analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 # Run jackknife estimation
 analysis <- jackknife_tsallis_entropy_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 # Check jackknife results
-names(analysis@jackknife_results)
+names(jackKnife(analysis))
 
 }

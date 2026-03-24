@@ -26,7 +26,8 @@ Provides type-safe access to @config slot. After calling wrapper functions like
 \examples{
 library(SummarizedExperiment)
 se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+  colData = data.frame(sample_id = paste0("S", 1:10))
 )
 analysis <- TSENATAnalysis(se, config = list(q_values = c(0.5, 1.0, 2.0)))
 config <- getConfig(analysis)
