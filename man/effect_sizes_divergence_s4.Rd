@@ -66,30 +66,33 @@ Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 # Compute effect sizes after divergence and LM analysis with adequate data
 library(SummarizedExperiment)
 set.seed(42)
-n_genes <- 10
+n_genes <- 8
 n_isoforms_per_gene <- 3
 n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 5
+n_samples_per_group <- 20
 n_samples <- n_samples_per_group * 2
 
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
                          nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
                            nrow = n_isoforms, ncol = n_samples_per_group)
 counts <- cbind(control_counts, treatment_counts)
 rownames(counts) <- paste0("TX_", 1:n_isoforms)
 colnames(counts) <- paste0("Sample_", 1:n_samples)
 se <- SummarizedExperiment(assays = list(counts = counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
+tx2gene_df <- data.frame(
   Transcript = rownames(counts),
   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+S4Vectors::metadata(se)$tx2gene <- tx2gene_df
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
   condition = rep(c("control", "treatment"), each = n_samples_per_group),
   pair = rep(1:n_samples_per_group, 2),
   row.names = colnames(se))
+# Add gene_name to rowData for proper aggregation in calculate_divergence_s4
+SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
 analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = 1.0, verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 suppressWarnings(
   analysis <- calculate_lm_interaction_s4(analysis,
     condition_col = "condition", verbose = FALSE)

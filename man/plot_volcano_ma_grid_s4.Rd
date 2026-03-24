@@ -99,18 +99,18 @@ This wrapper extracts the difference results data frame from
 }
 }
 \examples{
-# After calculating diversity and differences with adequate sample size
+# After calculating diversity and differences with strong signal
 library(SummarizedExperiment)
 set.seed(42)
-n_genes <- 10
+n_genes <- 8
 n_isoforms_per_gene <- 3
 n_isoforms <- n_genes * n_isoforms_per_gene
-n_samples_per_group <- 5
+n_samples_per_group <- 20
 n_samples <- n_samples_per_group * 2
 
-control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
                          nrow = n_isoforms, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
                            nrow = n_isoforms, ncol = n_samples_per_group)
 counts <- cbind(control_counts, treatment_counts)
 rownames(counts) <- paste0("TX_", 1:n_isoforms)
@@ -123,7 +123,7 @@ SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
   condition = rep(c("Normal", "Tumor"), each = n_samples_per_group),
   row.names = colnames(se))
 analysis <- TSENATAnalysis(se)
-analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- calculate_difference_s4(analysis, control = "Normal", 
   verbose = FALSE)
 # Create volcano and MA plot grid (if ggplot2 available)

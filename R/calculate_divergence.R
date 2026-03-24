@@ -1723,10 +1723,14 @@ effect_sizes_divergence <- function(
     divergence_genes <- as.character(rownames(divergence_results_se))
   }
   
-  # Get lm_res gene identifiers (try rownames first, then gene column)
-  lm_res_genes <- rownames(lm_res)
-  if (length(lm_res_genes) == 0 || all(is.na(lm_res_genes))) {
+  # Get lm_res gene identifiers (prefer gene column, fall back to rownames)
+  if ("gene" %in% colnames(lm_res)) {
     lm_res_genes <- as.character(lm_res$gene)
+  } else {
+    lm_res_genes <- as.character(rownames(lm_res))
+    if (length(lm_res_genes) == 0 || all(is.na(lm_res_genes))) {
+      stop("lm_res must have either a 'gene' column or valid gene names in rownames")
+    }
   }
   
   # Find matching genes and filter lm_res
@@ -1779,10 +1783,14 @@ effect_sizes_divergence <- function(
   # FILTERING
   # =========================================================================
 
-  significant_genes <- lm_res$gene[lm_res$adj_p_interaction < significance_threshold]
+  # Filter to genes with valid p-values and adj_p_interaction < threshold
+  valid_p_idx <- !is.na(lm_res$adj_p_interaction)
+  significant_idx <- valid_p_idx & (lm_res$adj_p_interaction < significance_threshold)
+  significant_genes <- lm_res$gene[significant_idx]
 
   if (verbose) {
     message("\n**Filtering effect size analysis to significant genes:**")
+    message("- Genes with valid p-values: ", sum(valid_p_idx))
     message("- Genes with adj_p_interaction <", significance_threshold, ": ", 
         length(significant_genes))
   }

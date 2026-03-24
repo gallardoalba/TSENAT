@@ -2807,30 +2807,42 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #' - All plots use consistent ggplot2 styling matching plot_q_spectrum
 #'
 #' @examples
-#' # Create simplified example showing divergence data
-#' # For a full multi-gene plot, use output from effect_sizes_divergence()
-#' set.seed(123)
-#' divergence_matrix <- matrix(
-#'   rnorm(180, mean = 0.5, sd = 0.1),
-#'   nrow = 20, ncol = 9
-#' )
-#' rownames(divergence_matrix) <- paste0("gene_", 1:20)
-#' divergence_se <- SummarizedExperiment::SummarizedExperiment(
-#'   assays = list(divergence = divergence_matrix)
-#' )
-#' lm_results <- data.frame(
-#'   gene = paste0("gene_", 1:20),
-#'   adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2,
-#'                        0.3, 0.4, 0.5, 0.6, 0.7,
-#'                        0.75, 0.8, 0.85, 0.9, 0.95, 1, 1, 1, 1, 1)
-#' )
+#' # Plot multi-gene q-spectrum after complete analysis pipeline
+#' library(SummarizedExperiment)
+#' set.seed(42)
+#' n_genes <- 8
+#' n_isoforms_per_gene <- 3
+#' n_isoforms <- n_genes * n_isoforms_per_gene
+#' n_samples_per_group <- 20
+#' n_samples <- n_samples_per_group * 2
 #' 
-#' # Create plot of top 4 genes
-#' p <- plot_multi_gene_q_spectrum_s4(
-#'   lm_res = lm_results,
-#'   divergence_results_se = divergence_se,
-#'   n_genes = 4
+#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
+#'                          nrow = n_isoforms, ncol = n_samples_per_group)
+#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
+#'                            nrow = n_isoforms, ncol = n_samples_per_group)
+#' counts <- cbind(control_counts, treatment_counts)
+#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
+#' colnames(counts) <- paste0("Sample_", 1:n_samples)
+#' se <- SummarizedExperiment(assays = list(counts = counts))
+#' tx2gene_df <- data.frame(
+#'   Transcript = rownames(counts),
+#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+#' S4Vectors::metadata(se)$tx2gene <- tx2gene_df
+#' SummarizedExperiment::rowData(se)$gene_name <- tx2gene_df$Gene[match(rownames(se), tx2gene_df$Transcript)]
+#' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+#'   condition = rep(c("control", "treatment"), each = n_samples_per_group),
+#'   pair = rep(1:n_samples_per_group, 2),
+#'   row.names = colnames(se))
+#' analysis <- TSENATAnalysis(se)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' suppressWarnings(
+#'   analysis <- calculate_lm_interaction_s4(analysis,
+#'     condition_col = "condition", verbose = FALSE)
 #' )
+#' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
+#' # Plot multi-gene q-spectra for top genes
+#' p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4)
 #'
 #' @seealso \code{\link{calculate_divergence_s4}} for computing divergence values.
 #'
