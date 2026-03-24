@@ -1002,14 +1002,25 @@ test_that("mixed config and explicit parameters work correctly", {
 setup_lm_analysis <- function(config = list()) {
   set.seed(456)  # Different seed to avoid collisions
   
-  n_transcripts <- 500
-  n_genes <- 100
-  n_samples <- 8
+  n_genes <- 8
+  n_samples_per_group <- 20
+  n_samples <- n_samples_per_group * 2
+  n_transcripts <- n_genes * 50
   
-  counts <- matrix(
-    rpois(n_transcripts * n_samples, lambda = 1000),
-    nrow = n_transcripts, ncol = n_samples
-  )
+  # Generate counts with biological signal: differential lambda between conditions
+  control_idx <- seq(1, n_samples, by = 2)
+  treatment_idx <- seq(2, n_samples, by = 2)
+  
+  counts <- matrix(0, nrow = n_transcripts, ncol = n_samples)
+  
+  # Fill control samples (odd columns) with lambda=40
+  for (j in control_idx) {
+    counts[, j] <- rpois(n_transcripts, lambda = 40)
+  }
+  # Fill treatment samples (even columns) with lambda=150
+  for (j in treatment_idx) {
+    counts[, j] <- rpois(n_transcripts, lambda = 150)
+  }
   counts <- pmax(counts, 50)
   
   rownames(counts) <- paste0("TX_", 1:n_transcripts)
@@ -1017,7 +1028,7 @@ setup_lm_analysis <- function(config = list()) {
   
   rowData <- S4Vectors::DataFrame(
     transcript_id = rownames(counts),
-    gene_id = paste0("GENE_", rep(1:n_genes, length.out = n_transcripts)),
+    gene_id = paste0("GENE_", rep(1:n_genes, each = 50, length.out = n_transcripts)),
     row.names = rownames(counts)
   )
   
@@ -1025,8 +1036,8 @@ setup_lm_analysis <- function(config = list()) {
     sample_id = colnames(counts),
     condition = rep(c("A", "B"), length.out = n_samples),
     sample_type = rep(c("typeX", "typeY", "typeX", "typeY"), length.out = n_samples),
-    subject = rep(c("S1", "S2", "S3", "S4"), length.out = n_samples),
-    paired_samples = rep(c("pair1", "pair2"), length.out = n_samples),
+    subject = rep(c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10"), length.out = n_samples),
+    paired_samples = rep(c("pair1", "pair2", "pair3", "pair4", "pair5", "pair6", "pair7", "pair8", "pair9", "pair10"), length.out = n_samples),
     row.names = colnames(counts)
   )
   
@@ -1047,7 +1058,7 @@ setup_lm_analysis <- function(config = list()) {
   
   analysis <- calculate_diversity_s4(
     analysis,
-    q = 1.0,
+    q = c(0.5, 1.0, 1.5),
     verbose = FALSE,
     min_valid_frac = 0
   )

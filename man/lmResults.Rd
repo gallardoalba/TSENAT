@@ -3,11 +3,17 @@
 \name{lmResults}
 \alias{lmResults}
 \alias{lmResults,TSENATAnalysis-method}
+\alias{lmResults<-}
+\alias{lmResults<-,TSENATAnalysis-method}
 \title{Extract linear model results}
 \usage{
 lmResults(object, component = NULL)
 
 \S4method{lmResults}{TSENATAnalysis}(object, component = NULL)
+
+lmResults(object) <- value
+
+\S4method{lmResults}{TSENATAnalysis}(object) <- value
 }
 \arguments{
 \item{object}{\code{TSENATAnalysis} object.}

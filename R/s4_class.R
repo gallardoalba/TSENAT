@@ -374,6 +374,22 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
        call. = FALSE)
 })
 
+#' @rdname lmResults
+#' @export
+setGeneric("lmResults<-", function(object, value) {
+  standardGeneric("lmResults<-")
+})
+
+#' @rdname lmResults
+#' @export
+setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
+  if (!is.list(value)) {
+    stop("lmResults value must be a list", call. = FALSE)
+  }
+  object@lm_results <- value
+  object
+})
+
 # ============================================================================
 # JACKKNIFE ACCESSOR
 # ============================================================================

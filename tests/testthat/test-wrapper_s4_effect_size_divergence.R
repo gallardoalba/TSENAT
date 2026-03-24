@@ -292,11 +292,12 @@ test_that("effect_sizes_divergence_s4: effect sizes computation (line 2639-2651)
   }, error = function(e) list(error = conditionMessage(e)))
   
   # Should successfully compute
-  if (is.null(result$error)) {
-    expect_true(is(result, "TSENATAnalysis"))
-  } else {
+  if (is.list(result) && !is.null(result$error)) {
     # If error, should be from effect_sizes processing not extraction
     expect_true(!grepl("Could not extract", result$error))
+  } else {
+    # Success case
+    expect_true(is(result, "TSENATAnalysis"))
   }
 })
 
