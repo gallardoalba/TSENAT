@@ -4319,8 +4319,13 @@ plot_multiq_delta_influence_heatmaps <- function(
     
     # Calculate heatmap dimensions BEFORE processing individual heatmaps
     # These values are needed for adaptive cell sizing calculations
-    # Height: 3 inches per layout row (scaled for 1200px width format)
-    heatmap_height <- 3 * n_layout_rows + 1.5 * (n_layout_rows - 1)
+    # Height scales proportionally with number of q-values (rows per heatmap)
+    n_q_values <- length(q_result_keys)  # Number of q-values (rows per heatmap)
+    # Base: 3 inches per layout row for ~5 q-values
+    # Scale linearly: more q-values = taller heatmaps = more space needed
+    height_per_layout_row <- 3 * (n_q_values / 5)  # Scales from 3" for 5 q-values
+    gap_between_rows <- 1.5
+    heatmap_height <- height_per_layout_row * n_layout_rows + gap_between_rows * (n_layout_rows - 1)
     
     # Create individual heatmaps for each gene and store as grobs
     heatmap_plots <- list()
