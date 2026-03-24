@@ -200,6 +200,11 @@ TSENATAnalysis <- function(se, config = list()) {
     stop("se must be a SummarizedExperiment object", call. = FALSE)
   }
 
+  # Ensure sample_id column exists in colData (required by validator)
+  if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
+    SummarizedExperiment::colData(se)$sample_id <- colnames(se)
+  }
+
   # Create new object with all slots initialized
   new(
     "TSENATAnalysis",

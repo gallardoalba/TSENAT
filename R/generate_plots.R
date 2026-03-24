@@ -1556,6 +1556,8 @@ plot_volcano_ma_grid <- function(
 #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
 #' @param output_file Optional file path to save the plot. If `NULL`, the `ggplot` object is returned.
 #' @param metric Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").
+#' @param width Output image width in inches. If NULL, automatically calculated based on number of genes (default: ~13 inches per column).
+#' @param height Output image height in inches. If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).
 #' @return If `output_file` is `NULL`, returns a `ggplot` object. Otherwise saves to file and returns NULL invisibly.
 #' @examples
 #' library(SummarizedExperiment)
@@ -1578,7 +1580,9 @@ plot_top_transcripts <- function(
   res = NULL,
   top_n = 3,
   output_file = NULL,
-  metric = c("median", "mean", "variance", "iqr")
+  metric = c("median", "mean", "variance", "iqr"),
+  width = NULL,
+  height = NULL
 ) {
     require_pkgs(c("SummarizedExperiment", "S4Vectors"))
     
@@ -1731,7 +1735,22 @@ plot_top_transcripts <- function(
         if (!dir.exists(output_dir) && nzchar(output_dir) && output_dir != ".") {
             dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
         }
-        ggplot2::ggsave(output_file, result_plot)
+        
+        # Auto-calculate dimensions if not provided based on number of genes
+        if (is.null(width) || is.null(height)) {
+            # 2 genes per row layout
+            n_cols <- 2
+            n_rows <- ceiling(length(gene) / n_cols)
+            # Default: 8 inches per column, 6 inches per row + headers
+            # (reduced from 13x10 because fonts are 50% larger)
+            plot_width <- if (is.null(width)) 8 * n_cols else width
+            plot_height <- if (is.null(height)) 2 + (6 * n_rows) else height
+        } else {
+            plot_width <- width
+            plot_height <- height
+        }
+        
+        ggplot2::ggsave(output_file, result_plot, width = plot_width, height = plot_height, dpi = 150)
         invisible(output_file)
     } else {
         result_plot
@@ -2342,23 +2361,23 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
             limits = fill_limits,
             name = "log2(expr)"
         ) + 
-        ggplot2::theme_minimal(base_size = 20) +
+        ggplot2::theme_minimal(base_size = 30) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
-            axis.text.y = ggplot2::element_text(size = 12, face = "plain"), 
-            axis.text.x = ggplot2::element_text(size = 14),
-            plot.title = ggplot2::element_text(size = 13, hjust = 0.5, face = "bold"), 
+            axis.text.y = ggplot2::element_text(size = 18, face = "plain"), 
+            axis.text.x = ggplot2::element_text(size = 21),
+            plot.title = ggplot2::element_text(size = 20, hjust = 0.5, face = "bold"), 
             legend.position = "bottom",
             legend.justification = "center",
             legend.key.width = ggplot2::unit(2, "cm"), 
-            legend.text = ggplot2::element_text(size = 9),
+            legend.text = ggplot2::element_text(size = 14),
             plot.margin = ggplot2::margin(4, 4, 4, 4)
         ) + 
         ggplot2::guides(fill = ggplot2::guide_colorbar(
             title.position = "top",
             barwidth = 10, 
             barheight = 0.5,
-            title.theme = ggplot2::element_text(size = 13)
+            title.theme = ggplot2::element_text(size = 20)
         ))
     p
 }
@@ -4242,9 +4261,9 @@ plot_multiq_delta_influence_heatmaps <- function(
                     just = "top",
                     gp = grid::gpar(fontsize = 48, fontface = "bold"))
     
-    # Add subtitle
+    # Add subtitle with minimal spacing
     grid::grid.text("Jackknife weights across q-spectrum for selected genes", 
-                    x = 0.5, y = 0.925, 
+                    x = 0.5, y = 0.945, 
                     just = "top",
                     gp = grid::gpar(fontsize = 32, fontface = "italic", col = "gray40"))
     

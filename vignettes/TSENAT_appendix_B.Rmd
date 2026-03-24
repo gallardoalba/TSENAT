@@ -517,19 +517,12 @@ if ("p_interaction" %in% colnames(gam_results)) {
 
 ```{r concordance-summary, message=FALSE}
 # Compute concordance analysis using S4 wrapper
-# Store GAM results in the analysis object using accessor method
-current_lm_results <- lmResults(analysis)
-if (is.null(current_lm_results) || length(current_lm_results) == 0) {
-  current_lm_results <- list()
-}
-current_lm_results$gam_results <- gam_results
-lmResults(analysis) <- current_lm_results
-
-# Compute concordance using S4 wrapper
+# Pass GAM results directly - the function handles storage automatically
 analysis_with_concordance <- compute_method_concordance_s4(
     analysis,
     gam_method = "gam_results",
     friedman_method = "q_interactions",
+    gam_results = gam_results,
     verbose = TRUE
 )
 
@@ -672,19 +665,15 @@ analysis <- detect_q_gene_interactions_s4(
     verbose = TRUE
 )
 
-# 5. Load GAM results and store using accessor method
-current_lm_results <- lmResults(analysis)
-if (is.null(current_lm_results)) {
-  current_lm_results <- list()
-}
-current_lm_results$gam_results <- read.csv("lm_interaction_results.csv")
-lmResults(analysis) <- current_lm_results
+# 5. Load GAM results and pass directly to concordance function
+gam_results_loaded <- read.csv("lm_interaction_results.csv")
 
-# 6. Compare methods
+# 6. Compare methods (gam_results parameter handles storage automatically)
 analysis <- compute_method_concordance_s4(
     analysis,
     gam_method = "gam_results",
     friedman_method = "q_interactions",
+    gam_results = gam_results_loaded,
     verbose = TRUE
 )
 

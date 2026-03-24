@@ -107,9 +107,10 @@ genes      <- genes[tokeep]
 
 # Create SummarizedExperiment object for cleaner data handling
 # Important: Set gene names as rownames for compatibility with SplicingFactory
+# TSENATAnalysis requires 'gene_id' in rowData
 se_data <- SummarizedExperiment(
   assays = list(counts = as.matrix(readcounts)),
-  rowData = DataFrame(gene = genes)
+  rowData = DataFrame(gene_id = genes)
 )
 rownames(se_data) <- genes
 ```

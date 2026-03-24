@@ -100,6 +100,11 @@ build_analysis <- function(readcounts, tx2gene, assay_name = "counts",
     effective_length = effective_length
   )
 
+  # Ensure sample_id column exists in colData (required by TSENATAnalysis)
+  if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
+    SummarizedExperiment::colData(se)$sample_id <- colnames(se)
+  }
+
   # Store metadata in config for later use (e.g., in calculate_lm_interaction_s4)
   if (!is.null(metadata)) {
     config$metadata <- metadata

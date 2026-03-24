@@ -1889,6 +1889,10 @@ plot_volcano_ma_grid_s4 <- function(
 #'   Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})
 #' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
 #'   Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})
+#' @param gam_results \code{data.frame} or \code{NULL}. Optional GAM results data frame to store
+#'   in the analysis object. If provided, automatically stored in \code{@lm_results} under the
+#'   key specified by \code{gam_method}. Useful for importing external results or results 
+#'   computed outside the S4 wrapper. Default: NULL (use existing results in analysis).
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
@@ -1932,6 +1936,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
     analysis,
     gam_method = "q_interactions",
     friedman_method = "rankbased",
+    gam_results = NULL,
     verbose = FALSE,
     output_file = NULL) {
   
@@ -1941,6 +1946,21 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+  }
+  
+  # If gam_results provided, store them in lmResults automatically
+  if (!is.null(gam_results)) {
+    if (!is.data.frame(gam_results)) {
+      stop("gam_results must be a data.frame", call. = FALSE)
+    }
+    # Store GAM results in analysis@lm_results
+    if (is.null(analysis@lm_results)) {
+      analysis@lm_results <- list()
+    }
+    analysis@lm_results[[gam_method]] <- gam_results
+    if (verbose) {
+      message("[compute_method_concordance_s4] Stored GAM results as '", gam_method, "'")
+    }
   }
   
   if (is.null(analysis@lm_results)) {
@@ -1962,11 +1982,11 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   }
   
   # Extract results
-  gam_results <- analysis@lm_results[[gam_method]]
+  gam_results_final <- analysis@lm_results[[gam_method]]
   friedman_results <- analysis@lm_results[[friedman_method]]
   
   # Validate they're data frames
-  if (!is.data.frame(gam_results)) {
+  if (!is.data.frame(gam_results_final)) {
     stop("GAM results ('", gam_method, "') must be a data.frame", call. = FALSE)
   }
   
@@ -1985,7 +2005,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   
   # Call the standard function
   concordance_result <- tryCatch({
-    compute_method_concordance(gam_results, friedman_results)
+    compute_method_concordance(gam_results_final, friedman_results)
   }, error = function(e) {
     stop("[compute_method_concordance_s4]", conditionMessage(e), call. = FALSE)
   })
@@ -2658,6 +2678,12 @@ effect_sizes_divergence_s4 <- function(
 #' @param metric \code{character}. Method for ranking transcripts within genes.
 #'   One of "median", "mean", "variance", or "iqr" (default: "median").
 #'
+#' @param width \code{numeric} or \code{NULL}. Output image width in inches. 
+#'   If NULL, automatically calculated based on number of genes (default: ~13 inches per column).
+#'
+#' @param height \code{numeric} or \code{NULL}. Output image height in inches.
+#'   If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).
+#'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
@@ -2699,6 +2725,8 @@ plot_top_transcripts_s4 <- function(
     top_n = 3,
     output_file = NULL,
     metric = c("median", "mean", "variance", "iqr"),
+    width = NULL,
+    height = NULL,
     verbose = FALSE,
     ...) {
 
@@ -2845,6 +2873,8 @@ plot_top_transcripts_s4 <- function(
       top_n = top_n,
       output_file = output_file,
       metric = metric[1],  # Use first metric if multiple provided
+      width = width,
+      height = height,
       ...
     )
   }, error = function(e) {

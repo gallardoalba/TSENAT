@@ -801,7 +801,7 @@ Interpretation:
 - Blue cells: Transcript more influential in the second condition
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
-```{r reads-transcripts-median, echo=TRUE, fig.width=26, fig.height=22}
+```{r reads-transcripts-median, echo=TRUE}
 # Generate plot with explicit output file (directory created automatically)
 plot_file <- plot_top_transcripts_s4(
     analysis, 
