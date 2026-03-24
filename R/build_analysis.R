@@ -54,13 +54,37 @@
 #' \code{\link{calculate_diversity_s4}} for computing Tsallis entropy
 #'
 #' @examples
-#' # This example shows the basic workflow structure
-#' # In practice, you would use actual readcounts data:
-#' # data("readcounts", package = "TSENAT")
-#' # metadata_df <- read.table(
-#' #   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#' #   header = TRUE, sep = "\t", row.names = 1
-#' # )
+#' # Create example transcript count data
+#' set.seed(42)
+#' n_genes <- 10
+#' n_isoforms_per_gene <- 3
+#' n_isoforms <- n_genes * n_isoforms_per_gene
+#' n_samples <- 10
+#'
+#' # Generate count matrix
+#' counts <- matrix(rpois(n_isoforms * n_samples, lambda = 20),
+#'                  nrow = n_isoforms, ncol = n_samples)
+#' rownames(counts) <- paste0("TX_", 1:n_isoforms)
+#' colnames(counts) <- paste0("Sample_", 1:n_samples)
+#'
+#' # Create tx2gene mapping
+#' tx2gene <- data.frame(
+#'   Transcript = rownames(counts),
+#'   Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+#'
+#' # Create sample metadata
+#' metadata <- data.frame(
+#'   condition = rep(c("control", "treatment"), each = 5),
+#'   row.names = colnames(counts))
+#'
+#' # Build analysis object
+#' analysis <- build_analysis(
+#'   readcounts = counts,
+#'   tx2gene = tx2gene,
+#'   metadata = metadata)
+#'
+#' # Verify the analysis object was created
+#' analysis
 #'
 #' @export
 build_analysis <- function(readcounts, tx2gene, assay_name = "counts",

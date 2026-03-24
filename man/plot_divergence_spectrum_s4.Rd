@@ -85,30 +85,36 @@ This wrapper extracts the divergence SummarizedExperiment from
 }
 }
 \examples{
-\dontrun{
-  # After computing divergence via S4 wrapper
-  analysis <- calculate_divergence_s4(analysis, q = seq(0.1, 2, by=0.1))
+# After computing divergence via S4 wrapper
+library(SummarizedExperiment)
+set.seed(42)
+n_genes <- 10
+n_isoforms_per_gene <- 3
+n_isoforms <- n_genes * n_isoforms_per_gene
+n_samples_per_group <- 5
+n_samples <- n_samples_per_group * 2
 
-  # Global divergence curve (all genes aggregated) - default mode
-  p_global <- plot_divergence_spectrum_s4(analysis)
-  print(p_global)
-
-  # Top 4 genes ranked by p-value significance
-  p_top <- plot_divergence_spectrum_s4(analysis, n_genes = 4, ncol = 2, use_pvalue_ranking = TRUE)
-  print(p_top)
-
-  # Specific gene
-  p_gene <- plot_divergence_spectrum_s4(analysis, gene = "BRCA1")
-  print(p_gene)
-
-  # Save to file
-  analysis <- plot_divergence_spectrum_s4(
-      analysis,
-      output_file = "divergence_spectrum.png",
-      width = 12,
-      height = 8
-  )
-}
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                         nrow = n_isoforms, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                           nrow = n_isoforms, ncol = n_samples_per_group)
+counts <- cbind(control_counts, treatment_counts)
+rownames(counts) <- paste0("TX_", 1:n_isoforms)
+colnames(counts) <- paste0("Sample_", 1:n_samples)
+se <- SummarizedExperiment(assays = list(counts = counts))
+S4Vectors::metadata(se)$tx2gene <- data.frame(
+  Transcript = rownames(counts),
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c("control", "treatment"), each = n_samples_per_group),
+  pair = rep(1:n_samples_per_group, 2),
+  row.names = colnames(se))
+analysis <- TSENATAnalysis(se)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = 1.0, verbose = FALSE)
+# Global divergence curve (all genes aggregated) - default mode
+p_global <- plot_divergence_spectrum_s4(analysis)
+print(p_global)
 
 }
 \seealso{

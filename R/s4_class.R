@@ -392,11 +392,17 @@ setMethod("lmResults", "TSENATAnalysis", function(object, component = NULL) {
 #'
 #' @examples
 #' library(SummarizedExperiment)
+#' library(S4Vectors)
 #' set.seed(42)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
-#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
+#'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5),
+#'     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
 #' )
+#' S4Vectors::metadata(se)$tx2gene <- data.frame(
+#'   Transcript = paste0("TX", 1:20),
+#'   Gene = rep(paste0("GENE", 1:10), each = 2))
 #' analysis <- TSENATAnalysis(se)
 #' # Access jackknife results (if they exist after resampling)
 #' # jk_results <- jackKnife(analysis, q = 1.0)
@@ -884,11 +890,17 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #'
 #' @examples
 #' library(SummarizedExperiment)
+#' library(S4Vectors)
 #' set.seed(42)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
-#'   colData = data.frame(condition = rep(c("A", "B"), 5))
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
+#'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
+#'   colData = data.frame(condition = rep(c("A", "B"), 5),
+#'     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
 #' )
+#' S4Vectors::metadata(se)$tx2gene <- data.frame(
+#'   Transcript = paste0("TX", 1:20),
+#'   Gene = rep(paste0("GENE", 1:10), each = 2))
 #' analysis <- TSENATAnalysis(se)
 #' # Extract the SummarizedExperiment from the analysis object
 #' se_extracted <- se(analysis)

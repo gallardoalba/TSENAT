@@ -28,6 +28,9 @@ results for ranking genes (default: NULL). If NULL, attempts to extract from
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plot generation (default: FALSE).}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
+Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{
@@ -51,21 +54,38 @@ The wrapper automatically handles parameter extraction and provides a simplified
 interface compared to the base function.
 }
 \examples{
-\dontrun{
-  # After running full analysis pipeline
-  analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5, 2))
+# After running LM interaction analysis
+library(SummarizedExperiment)
+set.seed(42)
+n_genes <- 10
+n_isoforms_per_gene <- 3
+n_isoforms <- n_genes * n_isoforms_per_gene
+n_samples_per_group <- 5
+n_samples <- n_samples_per_group * 2
 
-  # Generate heatmaps using S4 wrapper
-  heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(
-    analysis,
-    n_genes = 4
-  )
-
-  # Load and display the heatmap
-  library(magick)
-  heatmap_img <- image_read(heatmap_file)
-  print(heatmap_img)
-}
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                         nrow = n_isoforms, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                           nrow = n_isoforms, ncol = n_samples_per_group)
+counts <- cbind(control_counts, treatment_counts)
+rownames(counts) <- paste0("TX_", 1:n_isoforms)
+colnames(counts) <- paste0("Sample_", 1:n_samples)
+se <- SummarizedExperiment(assays = list(counts = counts))
+S4Vectors::metadata(se)$tx2gene <- data.frame(
+  Transcript = rownames(counts),
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c("control", "treatment"), each = n_samples_per_group),
+  pair = rep(1:n_samples_per_group, 2),
+  row.names = colnames(se))
+analysis <- TSENATAnalysis(se)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+suppressWarnings(
+  analysis <- calculate_lm_interaction_s4(analysis,
+    condition_col = "condition", verbose = FALSE)
+)
+# Generate heatmaps using S4 wrapper (requires jackknife switching setup)
+heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 4)
 
 }
 \seealso{

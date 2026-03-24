@@ -61,21 +61,45 @@ the LM results (lowest p-value). This simplifies visualization of genes with
 significant q x condition interaction effects.
 }
 \examples{
-\dontrun{
-  # Plot top transcripts for the most significant gene
-  plot_file <- plot_top_transcripts_s4(
-    analysis,
-    top_n = 5
-  )
+# Plot top transcripts for the most significant gene
+library(SummarizedExperiment)
+set.seed(42)
+n_genes <- 10
+n_isoforms_per_gene <- 3
+n_isoforms <- n_genes * n_isoforms_per_gene
+n_samples_per_group <- 5
+n_samples <- n_samples_per_group * 2
 
-  # Plot specific gene
-  plot_file <- plot_top_transcripts_s4(
-    analysis,
-    gene = "ENSG00000198888",
-    top_n = 4,
-    metric = "mean"
-  )
-}
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                         nrow = n_isoforms, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                           nrow = n_isoforms, ncol = n_samples_per_group)
+counts <- cbind(control_counts, treatment_counts)
+rownames(counts) <- paste0("TX_", 1:n_isoforms)
+colnames(counts) <- paste0("Sample_", 1:n_samples)
+se <- SummarizedExperiment(assays = list(counts = counts))
+S4Vectors::metadata(se)$tx2gene <- data.frame(
+  Transcript = rownames(counts),
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c("control", "treatment"), each = n_samples_per_group),
+  pair = rep(1:n_samples_per_group, 2),
+  row.names = colnames(se))
+analysis <- TSENATAnalysis(se)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+suppressWarnings(
+  analysis <- calculate_lm_interaction_s4(analysis,
+    condition_col = "condition", verbose = FALSE)
+)
+# Plot top transcripts (if ggplot2 available)
+plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+suppressWarnings(
+  analysis <- calculate_lm_interaction_s4(analysis,
+    condition_col = "condition", verbose = FALSE)
+)
+# Plot top transcripts (if ggplot2 available)
+plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 
 }
 \seealso{

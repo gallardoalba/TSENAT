@@ -45,7 +45,10 @@ Default: NULL (no title).}
 \item{title_ma}{\code{character}. Title for MA plot.
 Default: "Tsallis-based MA plot".}
 
-\item{verbose}{\code{logical}. Print status messages. Default: TRUE.}
+\item{verbose}{\code{logical}. Print status messages. Default: FALSE.}
+
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
+Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base plotting function.}
 }
@@ -96,25 +99,36 @@ This wrapper extracts the difference results data frame from
 }
 }
 \examples{
-\dontrun{
-  # After calculating diversity and differences
-  analysis <- calculate_diversity_s4(analysis, q = 1.0)
-  analysis <- calculate_difference_s4(analysis, control = "Normal")
+# After calculating diversity and differences with adequate sample size
+library(SummarizedExperiment)
+set.seed(42)
+n_genes <- 10
+n_isoforms_per_gene <- 3
+n_isoforms <- n_genes * n_isoforms_per_gene
+n_samples_per_group <- 5
+n_samples <- n_samples_per_group * 2
 
-  # Create volcano and MA plot grid (default color threshold: p=0.05)
-  plot_grid <- plot_volcano_ma_grid_s4(analysis)
-  print(plot_grid)
-
-  # Customize thresholds and labels
-  plot_custom <- plot_volcano_ma_grid_s4(
-    analysis,
-    sig_alpha = 0.01,           # Stricter significance threshold
-    label_thresh = 0.05,         # Label genes with padj < 0.05
-    top_n = 10,                 # Label top 10 significant genes
-    title_volcano = "Volcano Plot: Normal vs Tumor",
-    title_ma = "MA Plot: Normal vs Tumor"
-  )
-  print(plot_custom)
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                         nrow = n_isoforms, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                           nrow = n_isoforms, ncol = n_samples_per_group)
+counts <- cbind(control_counts, treatment_counts)
+rownames(counts) <- paste0("TX_", 1:n_isoforms)
+colnames(counts) <- paste0("Sample_", 1:n_samples)
+se <- SummarizedExperiment(assays = list(counts = counts))
+S4Vectors::metadata(se)$tx2gene <- data.frame(
+  Transcript = rownames(counts),
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c("Normal", "Tumor"), each = n_samples_per_group),
+  row.names = colnames(se))
+analysis <- TSENATAnalysis(se)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+analysis <- calculate_difference_s4(analysis, control = "Normal", 
+  verbose = FALSE)
+# Create volcano and MA plot grid (if ggplot2 available)
+if (!is.null(analysis@plots$volcano_ma_grid)) {
+  print(analysis@plots$volcano_ma_grid)
 }
 
 }

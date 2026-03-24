@@ -3,7 +3,7 @@
 \name{compute_method_concordance_s4}
 \alias{compute_method_concordance_s4}
 \alias{compute_method_concordance_s4,TSENATAnalysis-method}
-\title{M-Estimation for Sample Quality (S4 Wrapper)}
+\title{Compute concordance between two analysis methods in TSENATAnalysis}
 \usage{
 compute_method_concordance_s4(analysis, ...)
 
@@ -30,39 +30,8 @@ Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
-
-\item{condition_col}{\code{character}. Column name in sample metadata indicating
-condition/sample grouping. Auto-detected from \code{@config$condition_col}
-if available.}
-
-\item{loss_type}{\code{character}. Type of loss function: "huber" (default),
-"tukey", or "lsq". Determines robustness vs efficiency trade-off.}
-
-\item{scale}{\code{numeric}. Manual scale parameter. If NULL, estimated from data.}
-
-\item{max_iter}{\code{integer}. Maximum iterations for M-estimation. Default: 50.}
-
-\item{tol}{\code{numeric}. Convergence tolerance. Default: 1e-6.}
-
-\item{paired}{\code{logical}. If TRUE, adjusts degrees of freedom for paired
-designs. Default: FALSE.}
-
-\item{pcorr}{\code{character}. P-value correction method. Default: "BH" (Benjamini-Hochberg).}
-
-\item{q_combine_method}{\code{character}. How to collapse multi-q results:
-"mean" (default) or "median".}
-
-\item{influence_threshold}{\code{numeric}. Threshold for classifying samples
-as high-influence. Default: 0.75.}
-
-\item{scale_method}{\code{character}. Scale estimation method: "mad" (default),
-"proposal2", or "s-estimator".}
 }
 \value{
-Modified TSENATAnalysis object with M-estimation results stored in
-\code{analysis@metadata$m_estimate_results}. Contains data frame with
-influence scores, robustness weights, entropy statistics, and QC classifications.
-
 Modified TSENATAnalysis object with concordance results stored in:
   \code{@metadata$method_concordance}:
   \describe{
@@ -76,34 +45,9 @@ Modified TSENATAnalysis object with concordance results stored in:
   }
 }
 \description{
-S4 wrapper that performs robust M-estimation on diversity results stored 
-in a TSENATAnalysis object and stores results back into the object.
-This wrapper calls the base M-estimation function internally.
+Compute concordance between two analysis methods in TSENATAnalysis
 }
 \details{
-This wrapper extracts diversity results from \code{analysis@diversity_results},
-performs robust M-estimation on diversity values (entropy), and stores results
-in the analysis object metadata.
-
-**M-Estimation:** Robust regression technique that down-weights outliers based
-on their residuals. Useful for detecting low-quality samples that show
-unusual diversity patterns.
-
-**M-Estimation Results include:**
-\itemize{
-  \item \code{sample_influence}: How much each sample affects the overall fit
-  \item \code{robustness_weight}: Down-weighting factor (lower = more outlying)
-  \item \code{entropy_mean}: Average entropy for the sample
-  \item \code{entropy_sd}: Entropy variability within the sample
-  \item \code{Status}: QC Classification ("OK" or "Flag for QC" based on influence_threshold)
-}
-
-**Data Requirements:**
-\itemize{
-  \item Diversity results must be computed via \code{calculate_diversity_s4()}
-  \item Sample grouping column required (sample_type, condition, etc.)
-}
-
 Compares results from two different statistical methods (typically GAM for continuous 
 and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifies:
 - Genes significant in both methods (high confidence)
@@ -111,40 +55,37 @@ and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifie
 - Spearman correlation of p-values (overall agreement trends)
 }
 \examples{
-\dontrun{
-  # After computing diversity
-  analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by=0.5))
+# Generic example showing compute_method_concordance_s4 structure
+library(SummarizedExperiment)
+set.seed(42)
+n_genes <- 10
+n_isoforms_per_gene <- 3
+n_isoforms <- n_genes * n_isoforms_per_gene
+n_samples_per_group <- 5
+n_samples <- n_samples_per_group * 2
 
-  # Run M-estimation with sample grouping
-  analysis <- m_estimate_s4(
-      analysis,
-      condition_col = "sample_type",
-      loss_type = "huber",
-      influence_threshold = 0.75
-  )
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                         nrow = n_isoforms, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                           nrow = n_isoforms, ncol = n_samples_per_group)
+counts <- cbind(control_counts, treatment_counts)
+rownames(counts) <- paste0("TX_", 1:n_isoforms)
+colnames(counts) <- paste0("Sample_", 1:n_samples)
+se <- SummarizedExperiment(assays = list(counts = counts))
+S4Vectors::metadata(se)$tx2gene <- data.frame(
+  Transcript = rownames(counts),
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c("control", "treatment"), each = n_samples_per_group),
+  pair = rep(1:n_samples_per_group, 2),
+  row.names = colnames(se))
+analysis <- TSENATAnalysis(se)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+suppressWarnings(
+  analysis <- calculate_lm_interaction_s4(analysis,
+    condition_col = "condition", verbose = FALSE)
+)
+# Note: compute_method_concordance_s4 requires results from both
+# detect_q_gene_interactions_s4 and test_rankbased_assumptions_s4
 
-  # Retrieve results
-  m_est_results <- analysis@metadata$m_estimate_results
-  head(m_est_results)
-}
-
-\dontrun{
-  # After running both GAM and Friedman analyses:
-  analysis <- detect_q_gene_interactions_s4(analysis, ...)
-  analysis <- test_rankbased_assumptions_s4(analysis, ...)
-  
-  # Compute concordance:
-  analysis <- compute_method_concordance_s4(analysis)
-  
-  # Access results:
-  concordance_results <- analysis@metadata$method_concordance
-  cat("Spearman correlation:", concordance_results$spearman_rho, "\n")
-  print(concordance_results$agreement_table)
-}
-
-}
-\seealso{
-\code{\link{calculate_diversity_s4}} for computing diversity.
-
-Compute concordance between two analysis methods in TSENATAnalysis
 }

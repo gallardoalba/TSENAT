@@ -36,6 +36,9 @@ genes before selecting top n.}
 \item{assay_name}{\code{character}. Name of the assay in se to extract 
 (default: "diversity").}
 
+\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
+Default: NULL (no file output).}
+
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{
@@ -61,25 +64,40 @@ This wrapper automatically:
 }
 }
 \examples{
-\dontrun{
-  # Create TSENATAnalysis with diversity and LM results
-  analysis <- TSENATAnalysis(se = se)
-  analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5))
-  analysis <- calculate_lm_interaction_s4(analysis, condition_col = "condition")
-  
-  # Plot GAM curves for top genes
-  plot <- plot_lm_interaction_gam_s4(
-    analysis,
-    n_top = 6,
-    condition_col = "condition"
-  )
-  
-  # Or plot specific genes
-  plot <- plot_lm_interaction_gam_s4(
-    analysis,
-    genes = c("gene_1", "gene_3", "gene_5"),
-    condition_col = "condition"
-  )
+# Create TSENATAnalysis with diversity and LM results
+library(SummarizedExperiment)
+set.seed(42)
+n_genes <- 10
+n_isoforms_per_gene <- 3
+n_isoforms <- n_genes * n_isoforms_per_gene
+n_samples_per_group <- 5
+n_samples <- n_samples_per_group * 2
+
+control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                         nrow = n_isoforms, ncol = n_samples_per_group)
+treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 35),
+                           nrow = n_isoforms, ncol = n_samples_per_group)
+counts <- cbind(control_counts, treatment_counts)
+rownames(counts) <- paste0("TX_", 1:n_isoforms)
+colnames(counts) <- paste0("Sample_", 1:n_samples)
+se <- SummarizedExperiment(assays = list(counts = counts))
+S4Vectors::metadata(se)$tx2gene <- data.frame(
+  Transcript = rownames(counts),
+  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  condition = rep(c("control", "treatment"), each = n_samples_per_group),
+  pair = rep(1:n_samples_per_group, 2),
+  row.names = colnames(se))
+analysis <- TSENATAnalysis(se)
+analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+suppressWarnings(
+  analysis <- calculate_lm_interaction_s4(analysis,
+    condition_col = "condition", verbose = FALSE)
+)
+# Plot GAM curves for top genes
+if (!is.null(analysis@lm_results$lm_interaction)) {
+  plot <- plot_lm_interaction_gam_s4(analysis, n_top = 3,
+    condition_col = "condition")
 }
 
 }

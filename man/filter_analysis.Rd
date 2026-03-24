@@ -56,6 +56,11 @@ tx_counts <- matrix(sample(10:100, 400, replace = TRUE), nrow = 40, ncol = 10,
 se <- SummarizedExperiment(assays = list(counts = tx_counts))
 S4Vectors::metadata(se)$tx2gene <- data.frame(
   Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
+# Add sample metadata with pair column required by filter_analysis
+SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
+  sample_type = rep(c("Control", "Treatment"), 5),
+  pair = rep(1:5, 2),
+  row.names = colnames(se))
 analysis <- TSENATAnalysis(se)
 analysis <- filter_analysis(analysis, stringency = "medium")
 

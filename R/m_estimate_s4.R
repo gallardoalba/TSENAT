@@ -69,13 +69,18 @@
 #' library(SummarizedExperiment)
 #' set.seed(42)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
-#'   colData = data.frame(sample_type = rep(c("A", "B"), 5))
+#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
+#'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
+#'   colData = data.frame(sample_type = rep(c("A", "B"), 5),
+#'     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
 #' )
+#' S4Vectors::metadata(se)$tx2gene <- data.frame(
+#'   Transcript = paste0("TX", 1:20),
+#'   Gene = rep(paste0("GENE", 1:10), each = 2))
 #' analysis <- TSENATAnalysis(se)
 #' # First compute diversity
-#' analysis <- calculate_diversity_s4(analysis, q = 1.0)
-#' analysis <- m_estimate_s4(analysis, samples = "sample_type", loss_type = "huber")
+#' analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+#' analysis <- m_estimate_s4(analysis, condition_col = "sample_type", loss_type = "huber")
 #'
 #' @seealso
 #' \code{\link{calculate_diversity_s4}} for computing diversity
