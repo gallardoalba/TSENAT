@@ -397,8 +397,7 @@ prefiltering on differential transcript usage, see
 # Medium stringency keeps transcripts present in >= 50% of samples
 analysis <- filter_analysis(
     analysis, 
-    stringency = "medium", 
-    verbose = TRUE
+    stringency = "medium"
 )
 ```
 
@@ -484,8 +483,7 @@ signals differences in dominant isoforms.
 # Plot overall q-curve with median ± IQR bands using S4 wrapper function
 # Uses condition_col from @config (no need to specify explicitly)
 p_qcurve <- plot_tsallis_q_curve_s4(
-    se = analysis,
-    output_file = file.path("output", "tsallis_q_curve.png")
+    se = analysis
 )
 print(p_qcurve)
 ```
@@ -702,8 +700,7 @@ by the linear-model interaction test.
 # Plot q-curve profiles for the top 4 genes using the S4 wrapper
 combined_plot <- plot_lm_interaction_gam_s4(
     analysis,
-    n_top = 4,
-    output_file = file.path("output", "lm_interaction_q_profiles.png")
+    n_top = 4
 )
 print(combined_plot)
 ```
@@ -782,16 +779,14 @@ the **jackknife** delta influence (a measure of transcript switching robustness)
 across different q-values (rows: 0.01 to 2.0, representing increasing diversity
 scales) and transcripts (columns) for each gene.
 
-```{r multi-q-heatmap, echo=TRUE, fig.width=12, fig.height=10, out.width="100%"}
+```{r multi-q-heatmap, echo=TRUE, results='hide', fig.width=12, fig.height=12, eval=TRUE, out.width="100%"}
 # Generate multi-Q heatmaps using the S4 wrapper
-# Automatically layouts 2 heatmaps per row with inverse scaling of cell widths based on transcript count
-heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(
+# Rendered directly to knitr graphics device (DESeq2 pattern)
+plot_multiq_delta_influence_heatmaps_s4(
     analysis, 
     n_genes = 4,
-    output_file = file.path("output", "multiq_delta_influence_heatmaps.png")
+    verbose = TRUE
 )
-
-knitr::include_graphics(heatmap_file)
 ```
 
 Interpretation:
@@ -803,15 +798,16 @@ Interpretation:
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
 ```{r reads-transcripts-median, echo=TRUE, out.width='100%', fig.align='center'}
-# Generate plot with explicit output file (directory created automatically)
-plot_file <- plot_top_transcripts_s4(
+# Generate top transcripts plot (returns plot object)
+# Optionally save to file for external use
+plot_obj <- plot_top_transcripts_s4(
     analysis, 
     top_n = 4, 
-    metric = "median",
-    output_file = file.path("output", "top_transcripts_median.png")
+    metric = "median"
 )
 
-knitr::include_graphics(plot_file)
+# Rendered directly by knitr (no file dependency)
+print(plot_obj)
 ```
 
 ### Effect size analysis
@@ -1033,25 +1029,27 @@ for investigation of condition-specific splicing architecture and dynamic isofor
 ```{r effect-size-plot-multiq, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
 # Visualize the distribution of Tsallis divergence effect sizes across genes
 # The red dashed line marks D = 0.1 (information-theoretic significance threshold)
-plot_file <- plot_divergence_distribution_s4(
+# Generate divergence distribution plot (returns plot object)
+# Optionally save to file for external use
+plot_obj <- plot_divergence_distribution_s4(
     analysis, 
-    threshold = 0.05,
-    output_file = file.path("output", "divergence_distribution.png")
+    threshold = 0.05
 )
 
-knitr::include_graphics(plot_file)
+# Rendered directly by knitr (no file dependency)
+print(plot_obj)
 ```
 
-```{r compare-q-spectra-plot, fig.width=10, fig.height=10, out.width='100%', fig.align='center'}
+```{r compare-q-spectra-plot, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
 # Visualize q-spectrum curves for top 4 genes by significance
+# Plot is rendered directly by knitr (no file dependency)
 p_multi <- plot_divergence_spectrum_s4(
     analysis, 
     n_genes = 4, 
-    use_pvalue_ranking = TRUE,
-    output_file = file.path("output", "divergence_spectrum_top_genes.png")
+    use_pvalue_ranking = TRUE
 )
 
-knitr::include_graphics(p_multi)
+print(p_multi)
 ```
 
 
@@ -1079,14 +1077,14 @@ Whe can also plot the global divergence spectrum across all genes.
 This curve is the full biological signature of **isoform switching**—the pattern encodes which 
 abundance scales (rare vs. abundant) are affected.
 
-```{r visualize-q-spectrum, fig.width=10, fig.height=6, out.width='100%', fig.align='center'}
+```{r visualize-q-spectrum, fig.width=10, fig.height=5, out.width='100%', fig.align='center'}
 # Visualize global divergence q-spectrum across all genes (aggregated)
+# Plot is rendered directly by knitr (no file dependency)
 p <- plot_divergence_spectrum_s4(
-    analysis,
-    output_file = file.path("output", "divergence_spectrum_global.png")
+    analysis
 )
 
-knitr::include_graphics(p)
+print(p)
 ```
 
 **Statistical Validation During Interpretation:**

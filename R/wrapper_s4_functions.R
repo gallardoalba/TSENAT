@@ -2249,11 +2249,7 @@ plot_divergence_spectrum_s4 <- function(
   }
 
   # Return file path if saved, otherwise return plot
-  if (!is.null(output_file_path)) {
-    invisible(output_file_path)
-  } else {
-    invisible(p)
-  }
+  invisible(p)
 }
 
 # ============================================================================
@@ -2889,11 +2885,15 @@ plot_top_transcripts_s4 <- function(
     stop("[plot_top_transcripts_s4]", conditionMessage(e), call. = FALSE)
   })
 
-  if (verbose) {
-      message("[plot_top_transcripts_s4] Plot saved to: ", plot_file)
+  # Optionally save to file if output_file provided
+  if (!is.null(output_file)) {
+    if (verbose) {
+      message("[plot_top_transcripts_s4] Plot saved to: ", output_file)
+    }
   }
 
-  # Return file path invisibly
+  # Always return the plot object (ggplot)
+  # Knitr will auto-manage figure rendering
   invisible(plot_file)
 }
 
@@ -3036,12 +3036,10 @@ plot_divergence_distribution_s4 <- function(
     })
   }
 
-  # Return file path if saved, otherwise return plot
-  if (!is.null(output_file_path)) {
-    invisible(output_file_path)
-  } else {
-    invisible(p)
-  }
+  # Always return the plot object (not file path)
+  # Knitr will auto-manage figure rendering
+  # File is saved separately if output_file provided
+  invisible(p)
 }
 
 
@@ -3358,7 +3356,8 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
   if (verbose) message("Calling plot_multiq_delta_influence_heatmaps()...")
   
   # Call base function with extracted parameters
-  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+  # Note: Base function now renders directly to active graphics device (managed by knitr in vignettes)
+  plot_multiq_delta_influence_heatmaps(
     switching_results = switching_results,
     n_genes = n_genes,
     lm_results = lm_results,
@@ -3368,40 +3367,18 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
   
   if (verbose) {
     message("[OK] Heatmap plot generated successfully")
-    message("  Saved to: ", heatmap_file)
   }
 
-  # Save if output_file provided
+  # Note: output_file parameter is now deprecated (no longer used)
+  # Plots are rendered directly to knitr graphics device
   if (!is.null(output_file)) {
-    if (grepl("\\.pdf$", tolower(output_file))) {
-      # If heatmap_file is a PNG from base function, convert by re-saving as PDF
-      # For now, just copy/save the plot object if available
-      if (file.exists(heatmap_file)) {
-        file.copy(heatmap_file, output_file, overwrite = TRUE)
-      }
-    } else if (grepl("\\.png$", tolower(output_file))) {
-      # heatmap_file should already be PNG from base function
-      if (file.exists(heatmap_file)) {
-        file.copy(heatmap_file, output_file, overwrite = TRUE)
-      }
-    } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
-      # Convert PNG to JPEG if needed
-      if (file.exists(heatmap_file)) {
-        file.copy(heatmap_file, output_file, overwrite = TRUE)
-      }
-    } else {
-      # Default: copy base output to requested file
-      if (file.exists(heatmap_file)) {
-        file.copy(heatmap_file, output_file, overwrite = TRUE)
-      }
-    }
-    if (verbose && file.exists(output_file)) {
-      message("[plot_multiq_delta_influence_heatmaps_s4] Plot saved to ", output_file)
+    if (verbose) {
+      message("[plot_multiq_delta_influence_heatmaps_s4] Note: output_file parameter is deprecated. ",
+              "Plots are rendered to knitr graphics device.")
     }
   }
 
-  # Return result visibly (consistent with other S4 wrappers)
-  heatmap_file
+  invisible(NULL)
 }
 
 #' Plot GAM q-curves from TSENATAnalysis object

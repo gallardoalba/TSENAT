@@ -2483,7 +2483,8 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
             subtitle = paste0("Top genes with metric ", agg_label_unique),
             theme = ggplot2::theme(
                 plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold", margin = ggplot2::margin(t = 10, b = 10)),
-                plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$subtitle, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4))
+                plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$subtitle, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4)),
+                legend.position = "bottom"
             )
         ) +
         patchwork::plot_layout(heights = c(0.045, 1), guides = "collect")
@@ -4195,7 +4196,7 @@ plot_multiq_delta_influence_heatmaps <- function(
   }
   
   # Create combined heatmap with genes in separate panels
-  combined_png_file <- tempfile(pattern = "heatmap_multiQ_", fileext = ".png")
+  # (Graphics device managed by knitr in vignette context)
   
   if (length(all_gene_matrices) == 0) {
     warning("No valid heatmap data generated for any genes")
@@ -4468,18 +4469,8 @@ plot_multiq_delta_influence_heatmaps <- function(
     # Use mixed layout: full-width rows for large heatmaps, 2-per-row for small ones
     n_genes <- n_total_genes
     
-    # PNG dimensions: standardized to 1200px width (12 inches @ 100 DPI) for consistency with other plots
-    # Height scales proportionally with content
-    png_width <- 12   # 12 inches @ 100 DPI = 1200 pixels
-    png_dpi <- 100
-    
-    # Scale heatmap_height proportionally: was 6 inches per row @ 150 DPI, now at 100 DPI
-    # Adjust from (heatmap_height @ 150 DPI context) to (heatmap_height @ 100 DPI context)
-    heatmap_height_scaled <- heatmap_height * (png_dpi / 150)
-    
-    grDevices::png(combined_png_file, width = png_width, height = heatmap_height_scaled + 4, 
-                   units = "in", res = png_dpi)
-    
+    # Create grid layout for rendering
+    # (knitr will handle PNG device creation with chunk options)
     grid::grid.newpage()
     
     # Calculate dynamic title/subtitle sizes based on number of rows
@@ -4501,9 +4492,9 @@ plot_multiq_delta_influence_heatmaps <- function(
                     gp = grid::gpar(fontsize = subtitle_fontsize, fontface = "italic", col = "gray40"))
     
     # Create viewport layout with variable columns per row
-    # Each actual content row is followed by a gap row
+    # Each actual content row is followed by a minimal gap row
     n_grid_rows <- n_layout_rows * 2 - 1
-    row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
+    row_heights <- rep(c(1, 0.02), n_layout_rows)[seq_len(n_grid_rows)]  # Minimal gap (0.02 instead of 0.15)
     
     # Use 3 columns as grid basis: column 1 (left), column 2 (gap), column 3 (right)
     # This allows proper spacing between heatmaps in 2-column layouts
@@ -4554,14 +4545,10 @@ plot_multiq_delta_influence_heatmaps <- function(
     }
     
     grid::popViewport()
-    grDevices::dev.off()
     
-    Sys.sleep(0.5)
-    
-    return(combined_png_file)
+    invisible(NULL)
     
   }, error = function(e) {
-    tryCatch(grDevices::dev.off(), silent = TRUE)
     stop("Heatmap creation failed: ", e$message)
   })
 }
