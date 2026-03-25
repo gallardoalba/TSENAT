@@ -189,8 +189,8 @@ test_that("bootstrap multi-q respects seed parameter", {
 test_that("bootstrap multi-q ci parameter returns finite widths", {
     x <- c(100, 80, 60, 40, 30, 20, 15, 10, 8, 5)
     
-    result_95 <- calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.95, seed = 111)
-    result_90 <- calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.90, seed = 111)
+    result_95 <- suppressWarnings(calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.95, seed = 111))
+    result_90 <- suppressWarnings(calculate_tsallis_entropy_bootstrap(x, q = c(1.5, 2.0), nboot = 20, ci = 0.90, seed = 111))
     
     # Both should give valid CI widths
     width_95_q1 <- result_95$`q=1.5`$upper_ci - result_95$`q=1.5`$lower_ci

@@ -4,7 +4,24 @@
 \alias{detect_q_gene_interactions_s4}
 \title{Detect q-dependent gene interactions}
 \usage{
-detect_q_gene_interactions_s4(analysis, q = NULL, output_file = NULL, ...)
+detect_q_gene_interactions_s4(
+  analysis,
+  q = NULL,
+  output_file = NULL,
+  paired = NULL,
+  subject_col = NULL,
+  condition_col = NULL,
+  test = c("auto", "kruskal-wallis", "friedman", "art"),
+  multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
+  entropy_col = "diversity",
+  q_col = "q",
+  gene_col = "gene",
+  wy_randomizations = 500,
+  nperm_mode = c("standard", "conservative", "interactive"),
+  nthreads = NULL,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
@@ -15,7 +32,40 @@ If NULL, auto-detects from \code{@config$q_values} or diversity results.}
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 
-\item{...}{Additional arguments passed to the base function.}
+\item{paired}{\code{logical} or \code{NULL}. If TRUE, uses paired/blocked design 
+(requires \code{subject_col}). If NULL, reads from \code{@config$paired}.}
+
+\item{subject_col}{\code{character} or \code{NULL}. Column name for subject/block identifiers
+(required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.}
+
+\item{condition_col}{\code{character} or \code{NULL}. Column name for grouping/condition.
+If NULL, reads from \code{@config$condition_col}.}
+
+\item{test}{\code{character}. Test method: "auto" (default), "kruskal-wallis" (unpaired),
+"friedman" (paired), or "art" (aligned rank transform).}
+
+\item{multicorr}{\code{character}. Multiple testing correction: "hochberg" (default),
+"benjamini-yekutieli", "westfall-young", or "none".}
+
+\item{entropy_col}{\code{character}. Column name containing entropy/diversity data.
+Default: "diversity".}
+
+\item{q_col}{\code{character}. Column name containing q-values. Default: "q".}
+
+\item{gene_col}{\code{character}. Column name containing gene identifiers. Default: "gene".}
+
+\item{wy_randomizations}{\code{numeric} or \code{character}. Number of permutations for 
+Westfall-Young correction. Use "auto" to estimate from data. Default: 500.}
+
+\item{nperm_mode}{\code{character}. Mode for automatic permutation estimation:
+"standard" (default), "conservative", or "interactive".}
+
+\item{nthreads}{\code{numeric} or \code{NULL}. Number of parallel threads for computation.
+If NULL, reads from \code{@config$nthreads}.}
+
+\item{verbose}{\code{logical}. If TRUE, prints progress messages. Default: FALSE.}
+
+\item{...}{Additional arguments passed to the base \code{detect_q_gene_interactions()} function.}
 }
 \value{
 Modified TSENATAnalysis with interaction results in @lm_results.
@@ -24,20 +74,28 @@ Modified TSENATAnalysis with interaction results in @lm_results.
 Detect q-dependent gene interactions
 }
 \details{
-Analyzes how gene interactions change across q-value spectrum.
+Analyzes how gene interactions change across q-value spectrum using rank-based
+(Friedman/Kruskal-Wallis) or parametric (GAM) statistical tests.
 
-**Parameter resolution priority** (explicit > @config > extract from results):
+**Parameter resolution priority** (explicit > @config > default/auto-detect):
 \itemize{
-  \item \code{q}: Uses explicit arg, else \code{@config$q_values},
-    else extracts from diversity_results keys
+  \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
+  \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
+  \item \code{subject_col}: explicit arg > \code{@config$subject_col}
+  \item \code{condition_col}: explicit arg > \code{@config$condition_col}
+  \item \code{multicorr}: explicit arg > \code{@config$multicorr} > "hochberg"
+  \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
+  \item \code{test}: explicit arg > \code{@config$test} > "auto" (auto-selection)
+  \item \code{nperm_mode}: explicit arg > \code{@config$nperm_mode} > "standard"
 }
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
-analysis <- calculate_lm_interaction_s4(analysis,
-  condition_col = "condition", verbose = FALSE)
-analysis <- detect_q_gene_interactions_s4(analysis, q = c(0.5, 1.0, 1.5))
-head(lmResults(analysis)$lm_interaction)
+analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+
+# Use config-stored parameters (paired design)
+analysis <- detect_q_gene_interactions_s4(analysis, multicorr = "hochberg")
+head(lmResults(analysis)$q_interactions)
 
 }

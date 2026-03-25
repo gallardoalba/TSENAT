@@ -35,7 +35,7 @@ Requires that \code{compute_method_concordance_s4()} has already been run
 to populate \code{@metadata$method_concordance}.
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 # Note: compute_method_concordance_s4 requires additional LM and Friedman results
 # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance

@@ -34,7 +34,7 @@ SummarizedExperiment (which should contain a single q value).
 }
 \examples{
 # Plot 8: Violin and density plots of Tsallis entropy distribution
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 25,
   q_values = seq(0.1, 3, by = 0.1), seed = 123)
 analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
 p <- plot_tsallis_violin_density_grid_s4(analysis)

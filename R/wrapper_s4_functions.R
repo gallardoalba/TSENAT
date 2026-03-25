@@ -48,7 +48,7 @@
 #'
 #' @examples
 #' # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
-#' analysis <- create_test_analysis(
+#' analysis <- TSENAT:::create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   control_lambda = 40,
@@ -470,7 +470,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #' @examples
 #' # Create test data with sufficient structure for LM analysis
 #' # Create test analysis with diversity pre-computed
-#' analysis <- create_test_analysis(
+#' analysis <- TSENAT:::create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5)
@@ -824,7 +824,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @examples
 #' # Create test analysis with diversity pre-computed
-#' analysis <- create_test_analysis(
+#' analysis <- TSENAT:::create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5)
@@ -948,7 +948,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' @examples
 #' # Create and run divergence analysis with strong signal
 #' # Create test analysis with diversity pre-computed
-#' analysis <- create_test_analysis(
+#' analysis <- TSENAT:::create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5)
@@ -1182,7 +1182,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #' }
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
@@ -1192,34 +1192,34 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #'
 #' @export
 #' @importFrom utils write.table
-#' ============================================================================
-#' S4 WRAPPER: Detect Q-Dependent Gene Interactions (Rank-Based Testing)
-#' ============================================================================
-#' Purpose:
-#'   Wrapper around detect_q_gene_interactions() that manages TSENATAnalysis object.
-#'   Tests for genes with q-dependent entropy patterns using rank-based methods.
-#' 
-#' Key Features:
-#'   - Multi-q analysis: Combines diversity results for multiple q-values into
-#'     a single SummarizedExperiment for joint hypothesis testing
-#'   - Rank-based statistics: Kruskal-Wallis (unpaired) or Friedman (paired)
-#'   - Multiple testing correction: Hochberg, Benjamini-Yekutieli, or
-#'     Westfall-Young permutation procedure
-#'   - AR(1) correlation handling: Westfall-Young preserves q-value correlations
-#'   - Effect sizes: Eta-squared (η²) for q-main effects and q×condition interactions
-#' 
-#' Mathematical Background:
-#'   Tests null hypothesis: H0 = "Gene entropy does NOT vary across q-values"
-#'   vs Alternative: H1 = "Gene entropy SIGNIFICANTLY q-dependent"
-#' 
-#'   For q-dependent genes, entropy curves across q show different patterns:
-#'   - Low q (< 1.0): Emphasizes tail isoforms (rare expression patterns)
-#'   - Mid q (= 1.0): Shannon entropy (balanced)
-#'   - High q (> 1.0): Emphasizes dominant isoforms (strong expression patterns)
-#' 
-#'   If a gene is q-dependent, different aspects of its isoform distribution
-#'   are revealed at different q-values.
-#' ============================================================================
+# ============================================================================
+# S4 WRAPPER: Detect Q-Dependent Gene Interactions (Rank-Based Testing)
+# ============================================================================
+# Purpose:
+#   Wrapper around detect_q_gene_interactions() that manages TSENATAnalysis object.
+#   Tests for genes with q-dependent entropy patterns using rank-based methods.
+# 
+# Key Features:
+#   - Multi-q analysis: Combines diversity results for multiple q-values into
+#     a single SummarizedExperiment for joint hypothesis testing
+#   - Rank-based statistics: Kruskal-Wallis (unpaired) or Friedman (paired)
+#   - Multiple testing correction: Hochberg, Benjamini-Yekutieli, or
+#     Westfall-Young permutation procedure
+#   - AR(1) correlation handling: Westfall-Young preserves q-value correlations
+#   - Effect sizes: Eta-squared (η²) for q-main effects and q×condition interactions
+#
+#   Mathematical Background:
+#   Tests null hypothesis: H0 = "Gene entropy does NOT vary across q-values"
+#   vs Alternative: H1 = "Gene entropy SIGNIFICANTLY q-dependent"
+# 
+#   For q-dependent genes, entropy curves across q show different patterns:
+#   - Low q (< 1.0): Emphasizes tail isoforms (rare expression patterns)
+#   - Mid q (= 1.0): Shannon entropy (balanced)
+#   - High q (> 1.0): Emphasizes dominant isoforms (strong expression patterns)
+# 
+#   If a gene is q-dependent, different aspects of its isoform distribution
+#   are revealed at different q-values.
+# ============================================================================
 detect_q_gene_interactions_s4 <- function(
     analysis, 
     q = NULL, 
@@ -1606,7 +1606,7 @@ detect_q_gene_interactions_s4 <- function(
 #' \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
 #' @examples
-#' analysis <- create_test_analysis()
+#' analysis <- TSENAT:::create_test_analysis()
 #' result <- calculate_difference_s4(analysis, control = "control")
 #'
 #' @export
@@ -1740,7 +1740,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
 #' 3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 #' names(metadata(analysis, "rankbased_assumptions"))
@@ -1944,7 +1944,7 @@ extract_q_from_key <- function(key) {
 #' }
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_difference_s4(analysis, control = "control",
 #'   verbose = FALSE)
@@ -2113,7 +2113,7 @@ plot_volcano_ma_grid_s4 <- function(
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -2304,7 +2304,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #'
 #' @examples
 #' # Plot 1: Global divergence spectrum across all genes
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' p_global <- plot_divergence_spectrum_s4(analysis)
@@ -2471,7 +2471,7 @@ plot_divergence_spectrum_s4 <- function(
 #' to populate \code{@metadata$method_concordance}.
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' # Note: compute_method_concordance_s4 requires additional LM and Friedman results
 #' # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance
@@ -2569,7 +2569,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -2925,7 +2925,7 @@ effect_sizes_divergence_s4 <- function(
 #'
 #' @examples
 #' # Plot 6: Top transcripts across groups
-#' analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -3162,7 +3162,7 @@ plot_top_transcripts_s4 <- function(
 #'
 #' @examples
 #' # Plot 2: Distribution of effect sizes across genes
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
@@ -3310,7 +3310,7 @@ plot_divergence_distribution_s4 <- function(
 #' providing a simplified interface compared to the base function.
 #'
 #' @examples
-#' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -3491,7 +3491,7 @@ prepare_gene_switching_tables_s4 <- function(
 #'
 #' @examples
 #' # Plot 5: Multi-q delta influence (isoform switching) heatmaps
-#' analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+#' analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)

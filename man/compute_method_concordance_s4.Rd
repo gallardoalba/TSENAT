@@ -61,7 +61,7 @@ and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifie
 - Spearman correlation of p-values (overall agreement trends)
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)

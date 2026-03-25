@@ -52,7 +52,7 @@ results as SummarizedExperiment objects. It extracts key parameters from
 }
 \examples{
 # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
-analysis <- create_test_analysis(
+analysis <- TSENAT:::create_test_analysis(
   n_genes = 8,
   n_samples_per_group = 20,
   control_lambda = 40,

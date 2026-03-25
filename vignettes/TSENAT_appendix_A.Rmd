@@ -281,8 +281,8 @@ tsenat_analysis_q1 <- TSENATAnalysis(se_data)
 tsenat_analysis_q2 <- TSENATAnalysis(se_data)
 
 # Set condition column in config for downstream differential analysis
-tsenat_analysis_q1 <- setConfigValue(tsenat_analysis_q1, "condition_col", "group")
-tsenat_analysis_q2 <- setConfigValue(tsenat_analysis_q2, "condition_col", "group")
+tsenat_analysis_q1 <- TSENAT:::setConfigValue(tsenat_analysis_q1, "condition_col", "group")
+tsenat_analysis_q2 <- TSENAT:::setConfigValue(tsenat_analysis_q2, "condition_col", "group")
 
 # TSENAT: Tsallis entropy at q=1 (equals Shannon entropy) - using S4 wrapper
 tsenat_analysis_q1 <- calculate_diversity_s4(
@@ -331,7 +331,7 @@ simpson_significance <- SplicingFactory::calculate_difference(
 
 # TSENAT: Differential analysis for Tsallis q=1
 # Ensure the grouping column is set in config for the wrapper
-tsenat_analysis_q1 <- setConfigValue(tsenat_analysis_q1, "condition_col", "group")
+tsenat_analysis_q1 <- TSENAT:::setConfigValue(tsenat_analysis_q1, "condition_col", "group")
 tsenat_analysis_q1 <- calculate_difference_s4(
   analysis = tsenat_analysis_q1,
   control = "Normal",
@@ -344,7 +344,7 @@ tsenat_shannon_diff <- lmResults(tsenat_analysis_q1, component = "difference")
 
 # TSENAT: Differential analysis for Tsallis q=2
 # Ensure the grouping column is set in config for the wrapper
-tsenat_analysis_q2 <- setConfigValue(tsenat_analysis_q2, "condition_col", "group")
+tsenat_analysis_q2 <- TSENAT:::setConfigValue(tsenat_analysis_q2, "condition_col", "group")
 tsenat_analysis_q2 <- calculate_difference_s4(
   analysis = tsenat_analysis_q2,
   control = "Normal",

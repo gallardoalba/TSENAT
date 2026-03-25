@@ -8,10 +8,10 @@ plot_top_transcripts_s4(
   analysis,
   gene = NULL,
   condition_col = NULL,
-  top_n = 3,
+  top_n = 4,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
-  use_tpm = FALSE,
+  use_tpm = TRUE,
   width = NULL,
   height = NULL,
   fontsize = 16,
@@ -97,7 +97,7 @@ significant q x condition interaction effects.
 }
 \examples{
 # Plot 6: Top transcripts across groups
-analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
   q_values = c(0.5, 1, 1.5))
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,

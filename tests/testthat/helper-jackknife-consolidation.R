@@ -19,8 +19,6 @@ test_jackknife_input_types <- function(
     test_mat = matrix(c(100, 50, 30, 20, 80, 40, 20, 10), nrow = 2, byrow = TRUE),
     extra_args = list(q = 1, print_results = FALSE)
 ) {
-  skip_if_not_installed("TSENAT")
-  
   # Test vector input
   vec_result <- do.call(func_name, c(list(x = test_vec), extra_args))
   expect_true(!is.null(vec_result), info = "Vector input should return result")
@@ -49,8 +47,6 @@ test_jackknife_parameter_validation <- function(
     valid_counts = c(100, 50, 30, 20),
     valid_args = list(q = 1, print_results = FALSE)
 ) {
-  skip_if_not_installed("TSENAT")
-  
   # Test rejection of negative counts
   expect_error(
     do.call(func_name, c(list(x = c(100, -50, 30, 20)), valid_args)),
@@ -90,8 +86,6 @@ test_multiq_support <- function(
     q_vector = c(0.5, 1, 2),
     extra_args = list(print_results = FALSE)
 ) {
-  skip_if_not_installed("TSENAT")
-  
   # Test single q (backward compatibility)
   single_q_result <- do.call(func_name, c(list(x = test_data, q = q_vector[1]), extra_args))
   expect_is(single_q_result, "tsenat_jackknife", info = "Single q should return tsenat_jackknife")

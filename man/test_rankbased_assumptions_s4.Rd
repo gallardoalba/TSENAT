@@ -65,7 +65,7 @@ extracted from the analysis object. Results include:
 3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 names(metadata(analysis, "rankbased_assumptions"))

@@ -60,7 +60,7 @@ A red dashed line marks the information-theoretic significance threshold.
 }
 \examples{
 # Plot 2: Distribution of effect sizes across genes
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1, 1.5))
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)

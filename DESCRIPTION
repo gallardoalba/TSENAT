@@ -9,6 +9,7 @@ Description: Tsallis entropy generalizes Shannon entropy with a parameter
     between two sample conditions. For power analysis and sample size planning, 
     see the companion package TSENATPower.
 License: GPL (>= 3)
+LicenseFile: LICENSE
 Encoding: UTF-8
 LazyData: false
 RoxygenNote: 7.3.3

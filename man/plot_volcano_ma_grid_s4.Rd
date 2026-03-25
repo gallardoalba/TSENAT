@@ -107,7 +107,7 @@ This wrapper extracts the difference results data frame from
 }
 }
 \examples{
-analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- calculate_difference_s4(analysis, control = "control",
   verbose = FALSE)

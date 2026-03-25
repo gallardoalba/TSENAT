@@ -2694,6 +2694,7 @@ detect_q_gene_interactions <- function(
 #'
 #' @keywords internal
 #' @noRd
+#' @importFrom stats ave as.formula
 .tsenat_test_q_condition_interaction <- function(
     data,
     value_col = "entropy",

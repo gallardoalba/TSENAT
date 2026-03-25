@@ -93,7 +93,7 @@ analysis <- build_analysis(
 
 ## Configure analysis parameters once (best practice for reproducibility)
 ## This eliminates the need to pass condition_col, subject_col, etc. to each function
-analysis <- setConfig(analysis, list(
+analysis <- TSENAT:::setConfig(analysis, list(
   condition_col = "sample_type",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),

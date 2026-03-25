@@ -55,7 +55,7 @@ interface compared to the base function.
 }
 \examples{
 # Plot 5: Multi-q delta influence (isoform switching) heatmaps
-analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
   q_values = c(0.5, 1, 1.5))
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
