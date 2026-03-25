@@ -1526,28 +1526,40 @@ detect_q_gene_interactions <- function(
     }
   }
   
+  # ========================================================================
+  # STEP 4: INITIALIZE RESULTS DATA FRAME
+  # ========================================================================
+  # Pre-allocate output with one row per gene
+  # Includes columns for: test statistics, p-values (raw & adjusted),
+  # effect sizes, data characteristics, and classification
+  
   # Initialize results data frame
   all_genes <- unique(data$gene)
   n_genes <- length(all_genes)
   
   interaction_results <- data.frame(
     gene = all_genes,
-    n_q_values_tested = integer(n_genes),
-    f_statistic = numeric(n_genes),
-    p_value = numeric(n_genes),
-    adj_p_value = numeric(n_genes),  # NEW: Multiple testing correction (March 2026)
-    ss_interaction = numeric(n_genes),
-    ss_residual = numeric(n_genes),
-    df_interaction = numeric(n_genes),
-    df_residual = numeric(n_genes),
-    effect_size_eta2 = numeric(n_genes),
-    interaction_class = character(n_genes),
-    test_method = character(n_genes),  # Track which test was used (NEW - March 2026)
-    heteroscedastic = logical(n_genes),  # Data characteristic (NEW - March 2026)
-    boundary_clustered = logical(n_genes),  # Data characteristic (NEW - March 2026)
-    highly_skewed = logical(n_genes),  # Data characteristic (NEW - March 2026)
+    n_q_values_tested = integer(n_genes),          # Number of q-levels per gene
+    f_statistic = numeric(n_genes),                # Kruskal-Wallis H or Friedman chi2
+    p_value = numeric(n_genes),                    # Unadjusted p-value
+    adj_p_value = numeric(n_genes),                # Multiple testing adjusted p-value
+    ss_interaction = numeric(n_genes),             # Sum of squares for q-effect
+    ss_residual = numeric(n_genes),                # Residual sum of squares
+    df_interaction = numeric(n_genes),             # Degrees of freedom for q-effect
+    df_residual = numeric(n_genes),                # Residual degrees of freedom
+    effect_size_eta2 = numeric(n_genes),           # Eta-squared effect size
+    interaction_class = character(n_genes),        # Classification: Robust/Moderate/Strong
+    test_method = character(n_genes),              # Which test was used (K-W, Friedman, ART, etc.)
+    heteroscedastic = logical(n_genes),            # Data characteristic: unequal variances?
+    boundary_clustered = logical(n_genes),         # Data characteristic: values at 0 or max?
+    highly_skewed = logical(n_genes),              # Data characteristic: asymmetric distribution?
     stringsAsFactors = FALSE
   )
+  
+  # ========================================================================
+  # STEP 5: PER-GENE ANALYSIS LOOP
+  # ========================================================================
+  # For each gene: detect characteristics, select test, compute statistics
   
   # Test each gene for q-effects
   for (g_idx in seq_len(n_genes)) {
@@ -1564,10 +1576,39 @@ detect_q_gene_interactions <- function(
     
     interaction_results$n_q_values_tested[g_idx] <- length(q_levels)
     
-    # Perform test: q × condition interaction if condition available, else q main effect (FIXED - March 2026)
-    # Check if condition column exists in gene_data (added during SE conversion if condition_col provided)
+    # ========================================================================
+    # CONDITIONAL TEST SELECTION & EXECUTION
+    # ========================================================================
+    # Automatically selects appropriate rank-based test based on data structure:
+    # 
+    # Test Logic:
+    #   1. If condition column provided: Test Q × CONDITION INTERACTION
+    #      (whether q-effect differs between conditions)
+    #   2. Else: Test Q MAIN EFFECT only
+    #      (whether entropy varies across q-values, ignoring grouping)
+    # 
+    # Rank-Based Tests Selected:
+    #   - Kruskal-Wallis: Default for unpaired data
+    #   - Friedman: For paired/blocked designs
+    #   - Aligned Rank Transform (ART): If data heteroscedastic
+    #   - Median test: If data highly skewed
+    # 
+    # Data Characteristics Detected During Test:
+    #   - Heteroscedasticity: Unequal variances across groups
+    #   - Boundary Clustering: Values concentrated at 0 or max entropy
+    #   - Extreme Skewness: Asymmetric distribution
+    # 
+    # These characteristics trigger:
+    #   - Heteroscedastic → Use ART instead of Kruskal-Wallis
+    #   - Boundary clustered → Use quantile-based comparison
+    #   - Highly skewed → Use robust median test
+    
+    # Perform test: Check if condition present to decide test type
     if ("condition" %in% colnames(gene_data)) {
-      # Test q × condition INTERACTION (properly tests if q-effect differs by condition)
+      # Test Q × CONDITION INTERACTION
+      # This is a two-way design: Both q-values and condition are factors
+      # Null Hypothesis H0: Q and condition are independent (no interaction)
+      # Alternative HA: Gene's q-dependence differs across conditions
       test_result <- tryCatch(
         .tsenat_test_q_condition_interaction(
           data = gene_data,
@@ -1584,8 +1625,10 @@ detect_q_gene_interactions <- function(
         message("[detect_q_gene_interactions] Testing q × condition INTERACTION (not q main effect)")
       }
     } else {
-      # Test q MAIN EFFECT only (no condition provided)
-      # This tests: does entropy vary across q-values (ignoring condition)
+      # Test Q MAIN EFFECT only
+      # One-way design: Only q is a factor
+      # Null Hypothesis H0: Entropy identical across all q-values (no q-dependence)
+      # Alternative HA: Gene entropy varies significantly with q
       test_result <- tryCatch(
         .tsenat_apply_conditional_rank_test(
           data = gene_data,
@@ -1623,48 +1666,64 @@ detect_q_gene_interactions <- function(
       interaction_results$highly_skewed[g_idx] <- test_result$characteristics$highly_skewed
     }
     
+  # ========================================================================
+  # STEP 6: EFFECT SIZE COMPUTATION (η² = Eta-Squared)
+  # ========================================================================
+  # Eta-squared measures proportion of variance explained by q-values
+  # Formula: η² = SS_q / SS_total
+  # 
+  # Two cases:
+  #   1. Q main effect only: Effect of all q-values on entropy
+  #   2. Q × Condition interaction: Combined effect of q and condition
+  # 
+  # Interpretation:
+  #   η² < 0.01:  Small/no effect (gene robust across q)
+  #   η² 0.01-0.10: Medium effect (moderately q-dependent)
+  #   η² > 0.10:  Large effect (strongly q-dependent)
+  
     # Compute effect size (eta-squared)
     ss_total <- sum((gene_data$entropy - mean(gene_data$entropy, na.rm = TRUE))^2, na.rm = TRUE)
     
-    # For interaction test: compute effect size for q × condition interaction
+    # Case 1: Q × Condition interaction (two-way design)
+    # Compute both q and condition main effects, then residual
     if ("condition" %in% colnames(gene_data)) {
-      # Two-way effect size (q × condition)
+      # Overall mean entropy for this gene
       overall_mean <- mean(gene_data$entropy, na.rm = TRUE)
-      # Main effect term for q
+      
+      # Q main effect: variation among q-level means
       q_means <- tapply(gene_data$entropy, gene_data$q, mean, na.rm = TRUE)
       q_counts <- tapply(gene_data$entropy, gene_data$q, length)
       ss_q <- sum(q_counts * (q_means - overall_mean)^2, na.rm = TRUE)
-      # Main effect term for condition
+      
+      # Condition main effect: variation among condition means
       cond_means <- tapply(gene_data$entropy, gene_data$condition, mean, na.rm = TRUE)
       cond_counts <- tapply(gene_data$entropy, gene_data$condition, length)
       ss_cond <- sum(cond_counts * (cond_means - overall_mean)^2, na.rm = TRUE)
-      # Interaction SS
+      
+      # Residual: unexplained variation after removing q and condition effects
       ss_residual_full <- ss_total - ss_q - ss_cond
     } else {
-      # One-way effect size (just q main effect)
+      # Case 2: Q main effect only (one-way design)
+      # Compute variation explained by q-levels alone
       q_means <- tapply(gene_data$entropy, gene_data$q, mean, na.rm = TRUE)
       q_counts <- tapply(gene_data$entropy, gene_data$q, length)
       ss_q <- sum(q_counts * (q_means - mean(gene_data$entropy, na.rm = TRUE))^2, na.rm = TRUE)
       ss_residual_full <- ss_total - ss_q
     }
     
-    interaction_results$ss_interaction[g_idx] <- ss_q
-    interaction_results$ss_residual[g_idx] <- ss_residual_full
+    # Store effect size components for results reporting
+    interaction_results$ss_interaction[g_idx] <- ss_q        # Sum of squares for q-effect
+    interaction_results$ss_residual[g_idx] <- ss_residual_full  # Residual sum of squares
     
+    # Compute eta-squared: proportion of variance explained by q-values
     if (ss_total > 0) {
       interaction_results$effect_size_eta2[g_idx] <- ss_q / ss_total
     } else {
-      interaction_results$effect_size_eta2[g_idx] <- 0
+      interaction_results$effect_size_eta2[g_idx] <- 0  # No variation = no effect
     }
   }
   
-  # Classify results
-  interaction_results$interaction_class <- classify_q_dependency(
-    interaction_results,
-    p_threshold = 0.05,
-    eta2_threshold_moderate = 0.01,
-    eta2_threshold_strong = 0.10
-  )
+  # ========================================================================\n  # STEP 8: RESULT CLASSIFICATION & SORTING\n  # ========================================================================\n  # Classify each gene based on combined p-value and effect size criteria\n  # \n  # Classification Logic:\n  #   p > 0.05                           → \"Robust across q\" (no significant effect)\n  #   p ≤ 0.05 AND η² ≤ 0.01             → \"Moderately q-dependent\" (significant but small)\n  #   p ≤ 0.05 AND η² > 0.10             → \"Strongly q-dependent\" (significant & large)\n  # \n  # Key Design Decision: Use BOTH p-value and effect size\n  #   - p-value: Statistical significance (accounts for sample size)\n  #   - Effect size: Practical magnitude (accounts for biology)\n  #   - Combined approach: Identifies genes with large signal, not just sample size artifacts\n  #\n  # Edge Cases Handled:\n  #   - NA p-values → preserved in classification\n  #   - Zero-variation genes → classified as \"insufficient data\"\n  #   - Failed tests → classified as \"test failed\"\n  \n  # Classify results based on p-value and effect size\n  interaction_results$interaction_class <- classify_q_dependency(\n    interaction_results,\n    p_threshold = 0.05,                  # Standard significance level\n    eta2_threshold_moderate = 0.01,      # Small effect boundary\n    eta2_threshold_strong = 0.10         # Large effect boundary\n  )"
   
   # Apply multiple testing correction for multi-q dependence (NEW - March 2026)
   # Q-values exhibit AR(1) correlation structure (Papers S168-S175)

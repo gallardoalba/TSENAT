@@ -154,7 +154,7 @@ test_that("tsenat_config: creates analysis with custom configuration", {
   )
   
   analysis_with_config <- TSENAT::TSENATAnalysis(
-    SummarizedExperiment::se(analysis),
+    analysis@se,
     config = custom_config
   )
   

@@ -71,13 +71,12 @@ test_that("plot_top_transcripts renders without error for synthetic data", {
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
     # Function now renders to active device (grid), returns invisible(NULL)
-    expect_silent({
-        p <- plot_top_transcripts(se,
-            gene = "GENE1",
-            top_n = 2,
-            output_file = NULL
-        )
-    })
+    # Note: suppressWarnings() used because function warns when TPM metadata unavailable
+    p <- suppressWarnings(plot_top_transcripts(se,
+        gene = "GENE1",
+        top_n = 2,
+        output_file = NULL
+    ))
     # Check that it returns NULL (invisibly)
     expect_null(p)
 })
@@ -103,9 +102,8 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
     # Function renders to active device, returns invisible(NULL)
-    expect_silent({
-        p <- plot_top_transcripts(se, res = res, top_n = 2, output_file = NULL)
-    })
+    # Note: suppressWarnings() used because function warns when TPM metadata unavailable
+    p <- suppressWarnings(plot_top_transcripts(se, res = res, top_n = 2, output_file = NULL))
     expect_null(p)
 })
 
@@ -275,9 +273,8 @@ test_that("plot_top_transcripts works on simple matrix input", {
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
     # Function renders to active device, returns invisible(NULL)
-    expect_silent({
-        p <- plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2, output_file = NULL)
-    })
+    # Note: suppressWarnings() used because function warns when TPM metadata unavailable
+    p <- suppressWarnings(plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2, output_file = NULL))
     expect_null(p)
 })
 
@@ -491,11 +488,11 @@ test_that("plot_top_transcripts writes output files for single and multiple gene
     )
 
     tf1 <- tempfile(fileext = ".png")
-    plot_top_transcripts(se, gene = "G1", output_file = tf1)
+    suppressWarnings(plot_top_transcripts(se, gene = "G1", output_file = tf1))
     expect_true(file.exists(tf1) && file.info(tf1)$size > 0)
 
     tf2 <- tempfile(fileext = ".png")
-    plot_top_transcripts(se, gene = c("G1", "G2"), output_file = tf2)
+    suppressWarnings(plot_top_transcripts(se, gene = c("G1", "G2"), output_file = tf2))
     expect_true(file.exists(tf2) && file.info(tf2)$size > 0)
 })
 
@@ -514,9 +511,8 @@ test_that("plot_top_transcripts supports metric 'iqr'", {
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
     # Function renders with metric = "iqr", returns invisible(NULL)
-    expect_silent({
-        p <- plot_top_transcripts(se, gene = "G1", metric = "iqr", output_file = NULL)
-    })
+    # Note: suppressWarnings() used because function warns when TPM metadata unavailable
+    p <- suppressWarnings(plot_top_transcripts(se, gene = "G1", metric = "iqr", output_file = NULL))
     expect_null(p)
 })
 

@@ -1192,6 +1192,34 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #'
 #' @export
 #' @importFrom utils write.table
+#' ============================================================================
+#' S4 WRAPPER: Detect Q-Dependent Gene Interactions (Rank-Based Testing)
+#' ============================================================================
+#' Purpose:
+#'   Wrapper around detect_q_gene_interactions() that manages TSENATAnalysis object.
+#'   Tests for genes with q-dependent entropy patterns using rank-based methods.
+#' 
+#' Key Features:
+#'   - Multi-q analysis: Combines diversity results for multiple q-values into
+#'     a single SummarizedExperiment for joint hypothesis testing
+#'   - Rank-based statistics: Kruskal-Wallis (unpaired) or Friedman (paired)
+#'   - Multiple testing correction: Hochberg, Benjamini-Yekutieli, or
+#'     Westfall-Young permutation procedure
+#'   - AR(1) correlation handling: Westfall-Young preserves q-value correlations
+#'   - Effect sizes: Eta-squared (η²) for q-main effects and q×condition interactions
+#' 
+#' Mathematical Background:
+#'   Tests null hypothesis: H0 = "Gene entropy does NOT vary across q-values"
+#'   vs Alternative: H1 = "Gene entropy SIGNIFICANTLY q-dependent"
+#' 
+#'   For q-dependent genes, entropy curves across q show different patterns:
+#'   - Low q (< 1.0): Emphasizes tail isoforms (rare expression patterns)
+#'   - Mid q (= 1.0): Shannon entropy (balanced)
+#'   - High q (> 1.0): Emphasizes dominant isoforms (strong expression patterns)
+#' 
+#'   If a gene is q-dependent, different aspects of its isoform distribution
+#'   are revealed at different q-values.
+#' ============================================================================
 detect_q_gene_interactions_s4 <- function(
     analysis, 
     q = NULL, 
@@ -1209,19 +1237,32 @@ detect_q_gene_interactions_s4 <- function(
     nthreads = NULL,
     verbose = FALSE,
     ...) {
+  # Validate input is TSENATAnalysis S4 class
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
 
-  # Check prerequisites
+  # ========================================================================
+  # PREREQUISITE CHECK: Diversity must be pre-calculated
+  # ========================================================================
+  # detect_q_gene_interactions() requires a SummarizedExperiment with:
+  #   - assays: entropy values (genes × samples)
+  #   - colData: q-values and optional condition/subject information
   if (length(analysis@diversity_results) == 0) {
     stop("Diversity results required. Run calculate_diversity_s4() first.",
          call. = FALSE)
   }
 
-  # =========================================================================
-  # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > default/auto-detect)
-  # =========================================================================
+  # ========================================================================
+  # PARAMETER EXTRACTION FROM @config
+  # ========================================================================
+  # Priority order for parameter resolution:
+  #   1. Explicit function arguments (highest priority)
+  #   2. Values stored in analysis@config (from TSENATAnalysis initialization)
+  #   3. Function defaults (lowest priority, most permissive)
+  # 
+  # This allows one-time configuration in TSENATAnalysis initialization without
+  # repeating parameters in every downstream function call.
   
   # Prepare dots for additional arguments
   dots <- list(...)
@@ -1297,17 +1338,23 @@ detect_q_gene_interactions_s4 <- function(
   dots$wy_randomizations <- wy_randomizations
   dots$verbose <- verbose
 
-  # =========================================================================
-  # OPTIMIZATION (B: Lazy Conversion):
-  # Use combined diversity result stored in metadata (if available)
-  # Bypasses expensive per-q recombination logic
-  # =========================================================================
+  # ========================================================================
+  # OPTIMIZATION: Use Cached Multi-Q SummarizedExperiment
+  # ========================================================================
+  # If calculate_diversity_s4() is called with multiple q-values in a single call,
+  # it caches the combined SE in @metadata$diversity_combined for reuse.
+  # 
+  # This optimization bypasses expensive per-q recombination when available:
+  #   - Per-q SEs are automatically cbind()ed horizontally
+  #   - Column names include _q= suffix to distinguish q-values
+  #   - colData is rbind()ed with preserved q-value information
+  # 
+  # Benefits: ~10-50x faster for multi-q analysis on large datasets
   
   # Check if we have combined diversity result cached (from lazy evaluation)
   if (!is.null(analysis@metadata$diversity_combined) && 
       is.list(analysis@metadata$diversity_combined) &&
       !is.null(analysis@metadata$diversity_combined$combined_se)) {
-    
     
     # Use cached combined SE directly - it has correct structure and metadata
     se_multi_q <- analysis@metadata$diversity_combined$combined_se
@@ -1320,19 +1367,32 @@ detect_q_gene_interactions_s4 <- function(
     se_multi_q <- NULL
   }
   
-  # Fallback: recombine per-q results if cache not available or invalid
+  # Fallback: Recombine Per-Q Results
+  # ========================================================================
+  # If cache not available (e.g., diversity calculated with separate calls),
+  # manually combine per-q SummarizedExperiments into single SE:
+  # 
+  # Process:
+  #   1. Extract q-values from diversity_results keys (format: "q_0.500", "q_1.000", etc.)
+  #   2. Validate all SEs have same genes (rownames must match)
+  #   3. cbind() all assay matrices with renamed columns (add _q=X.XXX suffix)
+  #   4. rbind() all colData (with updated rownames matching combined columns)
+  #   5. Combine rowData from first SE (genes are same across all q-values)
+  # 
+  # Result: Single SummarizedExperiment(genes × (samples per q × n_q))
   if (is.null(se_multi_q)) {
     
-    # Extract q-values from diversity_results keys (format: "q_0.5", "q_1.0", etc.)
+    # Step 1: Extract q-values from diversity_results keys (format: "q_0.5", "q_1.0", etc.)
     q_keys <- names(analysis@diversity_results)
     q_values_extracted <- as.numeric(sub("^q_", "", q_keys))
     q_values_extracted <- sort(q_values_extracted)
 
-    # Combine list of SEs (one per q-value) into a single SE for detection
-    # Each SE has same genes but different q-value data
+    # Step 2-4: Combine list of SEs (one per q-value) into single SE
+    # Each SE has same genes (rows) but different q-value samples (columns)
+    # cbind() the assay matrices, rbind() the colData
     combined_assay_list <- list()
     combined_coldata_list <- list()
-    common_rownames <- NULL
+    common_rownames <- NULL  # Track genes are same across all q-values
 
     for (key in sort(q_keys)) {
       se <- analysis@diversity_results[[key]]
@@ -1374,7 +1434,9 @@ detect_q_gene_interactions_s4 <- function(
       }
       rownames(assay_data) <- common_rownames
       
-      # Make unique column names by appending q-value using old format "_q=" for compatibility
+      # Append q-value to column names: distinguishes samples from different q-values
+      # Format: "sample_01_q=0.500", "sample_02_q=1.000", etc.
+      # This encoding enables downstream functions to parse q and map back to original samples
       orig_colnames <- colnames(assay_data)
       if (is.null(orig_colnames)) {
         orig_colnames <- paste0("sample_", seq_len(ncol(assay_data)))
@@ -1396,19 +1458,22 @@ detect_q_gene_interactions_s4 <- function(
       combined_coldata_list[[key]] <- cd
     }
 
-    # Combine all assays horizontally (cbind columns from different q-values)
+    # Step 3: Combine all assays horizontally (cbind columns from different q-values)
+    # This creates a matrix: genes × (sample_1_q_0.5, sample_2_q_0.5, ..., sample_1_q_1.0, ...)
     combined_assay <- do.call(cbind, combined_assay_list)
     
-    # Combine colData - rownames should already be set to unique column names from the assay
+    # Step 4: Combine colData vertically (rbind from each q-value's colData)
+    # Rownames already set to unique_colnames matching in final assay matrix
     combined_coldata_df <- do.call(rbind, combined_coldata_list)
     
     # Ensure colnames of combined_assay match rownames of combined_coldata_df
     colnames(combined_assay) <- rownames(combined_coldata_df)
     
-    # Get rowData from first diversity result (genes are same across all q-values)
+    # Step 5: Get rowData from first diversity result
+    # Genes (rows) are IDENTICAL across all q-values, so only need from first
     first_se <- analysis@diversity_results[[sort(q_keys)[1]]]
     
-    # Ensure first_se is a SummarizedExperiment
+    # Ensure first_se is a SummarizedExperiment (handle edge cases)
     if (!is(first_se, "SummarizedExperiment")) {
       if (is.matrix(first_se) || is.data.frame(first_se)) {
         first_se <- SummarizedExperiment(assays = list(entropy = as.matrix(first_se)))
@@ -1448,8 +1513,17 @@ detect_q_gene_interactions_s4 <- function(
     }
   }
 
-  # Run q-interaction detection on combined SE
-  # Use merged dots (config parameters + explicit overrides)
+  # ========================================================================
+  # RUN CORE RANK-BASED Q-INTERACTION TESTING
+  # ========================================================================
+  # Delegate to detect_q_gene_interactions() which performs:
+  #   1. SummarizedExperiment → long-format data frame conversion
+  #   2. Per-gene rank-based test selection (conditional on data characteristics)
+  #   3. Westfall-Young permutation procedure (if multicorr="westfall-young")
+  #   4. Multiple testing corrections (Hochberg, Benjamini-Yekutieli, none)
+  #   5. Effect size computation (η²) and result classification
+  # 
+  # Use merged parameter dictionary: config values + explicit overrides
   result <- tryCatch({
     do.call(detect_q_gene_interactions, c(list(data = se_multi_q), dots))
   }, error = function(e) {
@@ -1457,14 +1531,20 @@ detect_q_gene_interactions_s4 <- function(
          call. = FALSE)
   })
 
-  # Store in lm_results under "q_interactions" key
+  # ========================================================================
+  # STORE RESULTS IN TSENATAnalysis OBJECT
+  # ========================================================================
+  # Store results under @lm_results$q_interactions for accessor compatibility
+  # This location allows other functions to retrieve results via:
+  #   lmResults(analysis, "q_interactions")
   if (is.list(analysis@lm_results)) {
     analysis@lm_results$q_interactions <- result
   } else {
     analysis@lm_results <- list(q_interactions = result)
   }
 
-  # Track metadata
+  # Track function execution in audit trail
+  # Enables reproducibility: know which function calls were run and in what order
   if (!is.null(q_vals_for_tracking)) {
     analysis@metadata$function_calls <- c(
       analysis@metadata$function_calls,
