@@ -1243,12 +1243,13 @@ test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results
   )
   
   # Test that plotting works
-  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+  heatmap_file <- tempfile(fileext = ".png")
+  plot_multiq_delta_influence_heatmaps(
     switching_results = multi_q_results,
-    n_genes = 2
+    n_genes = 2,
+    output_file = heatmap_file
   )
   
-  expect_true(is.character(heatmap_file))
   expect_true(file.exists(heatmap_file))
   expect_true(grepl("\\.png$", heatmap_file))
   
@@ -1293,9 +1294,11 @@ test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
   
   # Test with different n_genes values
   for (n in c(1, 2, 5)) {
-    heatmap_file <- plot_multiq_delta_influence_heatmaps(
+    heatmap_file <- tempfile(fileext = ".png")
+    plot_multiq_delta_influence_heatmaps(
       switching_results = multi_q_results,
-      n_genes = n
+      n_genes = n,
+      output_file = heatmap_file
     )
     
     expect_true(file.exists(heatmap_file))
@@ -1340,9 +1343,11 @@ test_that("plot_multiq_delta_influence_heatmaps handles n_genes > available gene
   )
   
   # Request more genes than available - should gracefully use available genes
-  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+  heatmap_file <- tempfile(fileext = ".png")
+  plot_multiq_delta_influence_heatmaps(
     switching_results = multi_q_results,
-    n_genes = 1000  # More than available
+    n_genes = 1000,  # More than available
+    output_file = heatmap_file
   )
   
   expect_true(file.exists(heatmap_file))
@@ -1390,9 +1395,11 @@ test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
   expect_equal(length(q_keys), 3)
   
   # Test plotting works with multiple q-values
-  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+  heatmap_file <- tempfile(fileext = ".png")
+  plot_multiq_delta_influence_heatmaps(
     switching_results = multi_q_results,
-    n_genes = 2
+    n_genes = 2,
+    output_file = heatmap_file
   )
   
   expect_true(file.exists(heatmap_file))
@@ -1436,9 +1443,11 @@ test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
     print_results = FALSE
   )
   
-  heatmap_file <- plot_multiq_delta_influence_heatmaps(
+  heatmap_file <- tempfile(fileext = ".png")
+  plot_multiq_delta_influence_heatmaps(
     switching_results = multi_q_results,
-    n_genes = 2
+    n_genes = 2,
+    output_file = heatmap_file
   )
   
   # Check file size (PNG should be non-trivial size)
