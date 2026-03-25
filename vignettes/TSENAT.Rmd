@@ -1155,7 +1155,9 @@ For detailed workflow examples and troubleshooting, see the vignette sections be
 
 9. Golomb, R., Yoles, M., Fishilevich, S., et al. (2026). "An Information Content Principle Explains Regulatory Patterns of Gene Expression Across Human Tissues." *bioRxiv*, ahead of print. https://doi.org/10.64898/2026.02.19.706555.
 
+<!-- Commented out: TechRxiv preprint no longer available (404)
 10. Hinostroza Fuentes, V. G., Toledo Tan, M. J., Kapetanaki, M., Rashidi, P., Huang, K., & Benos, P. V. (2026). "Information-Theoretic Methods in Spatial Transcriptomics." *TechRxiv*, ahead of print. https://doi.org/10.36227/techrxiv.177155947.
+-->
 
 11. Jost, L. (2006). "Entropy and Diversity." *Oikos*, 113(2), 363–375. https://doi.org/10.1111/j.2006.0030-1299.14714.x.
 
