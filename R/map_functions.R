@@ -94,9 +94,13 @@
         condition_col_idx <- named_condition_col[1]
     }
     
+    # OPTIMIZATION: Cache character conversions to avoid repeated as.character() calls
+    coldata_sample_col_values <- as.character(coldata[[sample_col_idx]])
+    coldata_condition_col_values <- as.character(coldata[[condition_col_idx]])
+    
     # Prepare canonical condition order and base extraction.  `conds` is sorted
     # for deterministic ordering when constructing paired column order.
-    conds <- sort(unique(as.character(coldata[[condition_col_idx]])))
+    conds <- sort(unique(coldata_condition_col_values))
     
     # Automatically detect pairing from third column if present, 
     # or use suffix-removal if paired column is not available
@@ -107,7 +111,7 @@
         has_pairing <- TRUE
     } else {
         # Extract base by removing trailing suffix (e.g. _N/_T)
-        coldata_base <- sub("_[^_]+$", "", as.character(coldata[[sample_col_idx]]))
+        coldata_base <- sub("_[^_]+$", "", coldata_sample_col_values)
         has_pairing <- FALSE
     }
     bases <- unique(coldata_base)
@@ -136,9 +140,10 @@
     base_names <- sample_base_names
     idx_list <- integer(0)
     
-    # Follow the order present in `coldata`
-    ordered_samples <- as.character(coldata[[sample_col_idx]])
+    # Follow the order present in `coldata` (groups multiple q-values per sample together)
+    ordered_samples <- coldata_sample_col_values
     for (s in ordered_samples) {
+        # Find ALL columns for this sample (important when there are multiple q-values)
         matches <- which(base_names == s)
         if (length(matches) > 0) {
             idx_list <- c(idx_list, matches)
@@ -149,13 +154,14 @@
     
     if (length(new_order) > 0 && !all(new_order == seq_along(base_names))) {
         ts_se <- ts_se[, new_order, drop = FALSE]
-        sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+        # OPTIMIZATION: Use .strip_q_suffix() helper for consistency and caching benefit
+        sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
     }
     
     # Create a mapping from sample names to their pairing information (coldata_base)
     if (ncol(coldata) < 3) {
         # No explicit pairing column - use coldata_base extracted from sample names
-        pairing_map <- setNames(coldata_base, as.character(coldata[[sample_col_idx]]))
+        pairing_map <- setNames(coldata_base, coldata_sample_col_values)
     } else {
         # Use explicit pairing column (column 3)
         pairing_map <- .create_mapping(coldata, 3, sample_col_idx)
@@ -163,14 +169,14 @@
     sample_pairing <- unname(pairing_map[sample_base_names])
     
     # Create a mapping for actual sample base names (always from Sample column)
-    sample_name_map <- setNames(as.character(coldata[[sample_col_idx]]), as.character(coldata[[sample_col_idx]]))
+    sample_name_map <- setNames(coldata_sample_col_values, coldata_sample_col_values)
     
     # OPTIMIZATION: Use .create_sample_type_map() helper
     st_map <- .create_sample_type_map(coldata, sample_col_idx, condition_col_idx)
     sample_types <- unname(st_map[sample_base_names])
-    missing_idx <- which(is.na(sample_types))
-    if (length(missing_idx) > 0) {
-        missing_samples <- sample_base_names[missing_idx]
+    has_na <- is.na(sample_types)
+    if (any(has_na)) {
+        missing_samples <- sample_base_names[has_na]
         msg <- paste0("map_metadata: unmatched samples in 'coldata': ", paste(missing_samples,
             collapse = ", "), ". Provide matching entries in 'coldata' or populate ",
             "colData(ts_se)$sample_type beforehand.")
@@ -196,9 +202,9 @@
         col_data <- SummarizedExperiment::colData(ts_se)
         sample_names_full <- .strip_q_suffix(assay_cols)
         
-        # OPTIMIZATION: Use vectorized match() instead of loop with which() - O(n) vs O(n*m)
-        sample_col_values <- as.character(coldata[[sample_col_idx]])
-        expanded_rows <- match(sample_names_full, sample_col_values)
+        # OPTIMIZATION: Use vectorized match() instead of loop (O(n) vs O(n²))
+        # Match against original coldata sample column values, not reordered sample_base_names
+        expanded_rows <- match(sample_names_full, coldata_sample_col_values)
         # Replace NA with 1 (fallback to first row)
         expanded_rows[is.na(expanded_rows)] <- 1
         
@@ -233,7 +239,8 @@
     # Map batch column if present (typically column 4)
     if (ncol(coldata) >= 4) {
       batch_col_name <- colnames(coldata)[4]
-      batch_map <- setNames(as.character(coldata[[4]]), as.character(coldata[[sample_col_idx]]))
+      # OPTIMIZATION: Use cached sample column values
+      batch_map <- setNames(as.character(coldata[[4]]), coldata_sample_col_values)
       col_data_final$batch <- unname(batch_map[sample_names_final])
     }
     
@@ -307,9 +314,9 @@ map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
     }
 
     mapped <- unname(st_map[sample_names])
-    missing_idx <- which(is.na(mapped))
-    if (length(missing_idx) > 0) {
-        stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_names[missing_idx]),
+    has_na <- is.na(mapped)
+    if (any(has_na)) {
+        stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_names[has_na]),
             collapse = ", ")))
     }
     mapped
@@ -341,9 +348,9 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
         # OPTIMIZATION: Use .strip_q_suffix() helper
         sample_base <- .strip_q_suffix(long$sample)
         long$sample_type <- unname(st_map[sample_base])
-        missing_idx <- which(is.na(long$sample_type))
-        if (length(missing_idx) > 0) {
-            stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_base[missing_idx]),
+        has_na <- is.na(long$sample_type)
+        if (any(has_na)) {
+            stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(sample_base[has_na]),
                 collapse = ", ")))
         }
     } else {
@@ -384,26 +391,29 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
 
     long <- tidyr::pivot_longer(df, cols = -Gene, names_to = "sample_q", values_to = "tsallis")
     
-    # Handle different column naming conventions
+    # Handle different column naming conventions (OPTIMIZATION: Unified regex-based parser)
     # Convention 1: Old format "sample_q=X.X" (from calculate_diversity multi-q)
     # Convention 2: New format "sample_qX.X" (from TSENATAnalysis S4 wrapper)
-    if (any(grepl("_q=", long$sample_q))) {
-      # Old format with _q=
-      long <- tidyr::separate(long, sample_q, into = c("sample", "q"), sep = "_q=", extra = "merge")
-      # Check for values that can't be converted before attempting coercion
-      valid_numeric <- grepl("^[0-9.]+$", long$q) & !is.na(long$q)
-      long$q <- as.numeric(long$q)
-      # Remove entries with non-numeric q values since they indicate malformed column names
-      if (any(!valid_numeric)) {
-        long <- long[valid_numeric, ]
-      }
-    } else if (any(grepl("_q[0-9]", long$sample_q))) {
-      # New format with _qX.X - extract sample and q using helper
-      long$sample <- .strip_q_format(long$sample_q)
-      long$q <- as.numeric(sub("^.*_q", "", long$sample_q))
-    } else {
-      long$sample <- long$sample_q
-      long$q <- NA
+    # Normalize old format "_q=" to "_q" for consistent parsing
+    sample_q_col <- gsub("_q=", "_q", long$sample_q)
+    
+    # Extract parts using regex subexpression matching: matches "sample_qX.X" pattern
+    parsed <- regmatches(sample_q_col, regexec("^(.+)_q([0-9.]+)$", sample_q_col))
+    
+    # Extract sample and q from parsed results
+    long$sample <- sapply(parsed, function(x) if (length(x) > 1) x[2] else NA_character_)
+    q_values <- sapply(parsed, function(x) if (length(x) > 2) x[3] else NA_character_)
+    long$q <- suppressWarnings(as.numeric(q_values))
+    
+    # For entries without q-value pattern, use sample_q as sample name
+    no_q_match <- is.na(long$sample)
+    long$sample[no_q_match] <- long$sample_q[no_q_match]
+    
+    # Remove entries with non-numeric q values that matched the pattern
+    has_q_pattern <- grepl("_q[0-9.]", sample_q_col)
+    invalid_q <- has_q_pattern & is.na(long$q)
+    if (any(invalid_q)) {
+        long <- long[!invalid_q, ]
     }
 
     if (!is.null(condition_col) && (condition_col %in% colnames(SummarizedExperiment::colData(se)))) {
@@ -419,45 +429,49 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
         
         # Strategy 1: If colData has rownames set, use them to build mapping
         if (!is.null(col_rownames) && length(col_rownames) > 0 && !all(is.na(col_rownames))) {
+            # OPTIMIZATION: Cache .strip_q_format() result - avoid repeated regex evaluation
             # colData rownames should be the full assay column names (with _q suffixes)
-            # Extract unique sample names from colData rownames
-            col_rownames_unique <- unique(.strip_q_format(col_rownames))
+            col_rownames_stripped <- .strip_q_format(col_rownames)
+            col_rownames_unique <- unique(col_rownames_stripped)
             
-            # For each unique sample in colData rownames, find its sample type
-            for (sname in col_rownames_unique) {
-                # Find first row matching this sample name
-                matching_idx <- which(.strip_q_format(col_rownames) == sname)[1]
-                if (!is.na(matching_idx)) {
-                    st_map[sname] <- col_st[matching_idx]
-                }
-            }
+            # For each unique sample, find first matching row and get its sample type
+            # Vectorized approach: get first occurrence of each unique sample
+            first_occurrences <- match(col_rownames_unique, col_rownames_stripped)
+            valid_matches <- !is.na(first_occurrences)
+            st_map <- setNames(col_st[first_occurrences[valid_matches]], col_rownames_unique[valid_matches])
         } else if (nrow(col_data) == length(assay_cols_unique)) {
             # Strategy 2: Fallback - assume colData rows correspond to unique samples in order
             st_map <- setNames(col_st[seq_along(assay_cols_unique)], assay_cols_unique)
         } else if (nrow(col_data) == nrow(mat) || nrow(col_data) == ncol(mat)) {
             # Strategy 3: colData has one row per column in assay
-            # Create mapping by extracting unique sample from each column
-            for (i in seq_along(assay_cols_unique)) {
-                # Find first occurrence of this sample in assay columns
-                first_col_idx <- which(.strip_q_format(colnames(mat)) == assay_cols_unique[i])[1]
-                if (!is.na(first_col_idx) && first_col_idx <= nrow(col_data)) {
-                    st_map[assay_cols_unique[i]] <- col_st[first_col_idx]
-                }
-            }
+            # OPTIMIZATION: Cache .strip_q_format() result - avoid repeated regex evaluation in loop
+            mat_cols_stripped <- .strip_q_format(colnames(mat))
+            # Get first occurrence of each unique sample in assay columns
+            first_occurrences_mat <- match(assay_cols_unique, mat_cols_stripped)
+            valid_matches_mat <- !is.na(first_occurrences_mat) & first_occurrences_mat <= nrow(col_data)
+            st_map <- setNames(col_st[first_occurrences_mat[valid_matches_mat]], assay_cols_unique[valid_matches_mat])
         }
         
         # Assign group based on the mapping
         long$group <- unname(st_map[as.character(long$sample)])
-        missing_idx <- which(is.na(long$group))
-        if (length(missing_idx) > 0) {
-            stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(as.character(long$sample)[missing_idx]),
+        has_na <- is.na(long$group)
+        if (any(has_na)) {
+            stop(sprintf("Missing sample_type mapping for samples: %s", paste(unique(as.character(long$sample)[has_na]),
                 collapse = ", ")))
         }
     } else {
         long$group <- rep("Group", nrow(long))
     }
 
-    as.data.frame(long[!is.na(long$tsallis), , drop = FALSE])
+    long_filtered <- as.data.frame(long[!is.na(long$tsallis), , drop = FALSE])
+    
+    # Check if any data remains after filtering
+    if (nrow(long_filtered) == 0) {
+        stop(sprintf("No tsallis values found in SummarizedExperiment. Check that assay '%s' contains valid data.",
+            assay_name), call. = FALSE)
+    }
+    
+    long_filtered
 }
 
 

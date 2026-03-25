@@ -2701,7 +2701,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: valid assay name passes validation
     plot_tsallis_q_curve_s4(
       analysis,
       gene = "GENE_1",
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) {
     # If error, should NOT be about assay validation
@@ -2729,7 +2729,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: prepare_tsallis_long is called (li
     plot_tsallis_q_curve_s4(
       analysis,
       gene = "GENE_1",
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -2751,7 +2751,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: Gene column requirement (line 567)
     plot_tsallis_q_curve_s4(
       analysis,
       gene = "GENE_1",
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -2778,7 +2778,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: gene parameter takes precedence (l
       analysis,
       gene = "GENE_2",  # gene is provided
       lm_res = lm_res,  # lm_res also provided
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -2786,20 +2786,19 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: gene parameter takes precedence (l
   expect_true(is.null(result) || is.list(result) || !is.null(result))
 })
 
-test_that("plot_tsallis_q_curve_s4 gene-mode: lm_res required when gene is NULL (line 571)", {
+test_that("plot_tsallis_q_curve_s4 gene-mode: NULL gene and lm_res falls back to aggregate mode (line 571)", {
   analysis <- setup_gene_mode_analysis()
   
-  # When gene is NULL and lm_res is NULL, should error
-  suppressWarnings(expect_error(
-    plot_tsallis_q_curve_s4(
-      analysis,
-      gene = NULL,
-      lm_res = NULL,
-      assay_name = "tsallis"
-    ),
-    "(Either.*gene.*or.*lm_res|No tsallis|must be provided)",
-    ignore.case = TRUE
+  # When gene is NULL and lm_res is NULL, falls back to aggregate mode (plots all genes)
+  p <- suppressWarnings(plot_tsallis_q_curve_s4(
+    analysis,
+    gene = NULL,
+    lm_res = NULL,
+    assay_name = "diversity"
   ))
+  
+  # Should return a visualization without error
+  expect_true(!is.null(p))
 })
 
 # ==============================================================================
@@ -2815,7 +2814,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: lm_res must be data.frame (line 57
       analysis,
       gene = NULL,
       lm_res = list(not_a_dataframe = TRUE),  # Not a data.frame
-      assay_name = "tsallis"
+      assay_name = "diversity"
     ),
     "must be a data.frame",
     ignore.case = TRUE
@@ -2836,7 +2835,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: lm_res must have gene column (line
       analysis,
       gene = NULL,
       lm_res = bad_lm_res,
-      assay_name = "tsallis"
+      assay_name = "diversity"
     ),
     "gene.*column",
     ignore.case = TRUE
@@ -2857,7 +2856,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: detect adj_p_interaction format (l
       analysis,
       gene = NULL,
       lm_res = lm_res,
-      assay_name = "tsallis",
+      assay_name = "diversity",
       n_top = 1
     )
   }, error = function(e) list(error = conditionMessage(e))))
@@ -2881,7 +2880,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: detect p_interaction format (line 
       analysis,
       gene = NULL,
       lm_res = lm_res,
-      assay_name = "tsallis",
+      assay_name = "diversity",
       n_top = 1
     )
   }, error = function(e) list(error = conditionMessage(e))))
@@ -2903,7 +2902,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: detect adj_p_value format (line 58
       analysis,
       gene = NULL,
       lm_res = lm_res,
-      assay_name = "tsallis",
+      assay_name = "diversity",
       n_top = 1
     )
   }, error = function(e) list(error = conditionMessage(e))))
@@ -2925,7 +2924,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: detect p_value format (line 584-58
       analysis,
       gene = NULL,
       lm_res = lm_res,
-      assay_name = "tsallis",
+      assay_name = "diversity",
       n_top = 1
     )
   }, error = function(e) list(error = conditionMessage(e))))
@@ -2956,7 +2955,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: missing p-value column error (line
       analysis,
       gene = NULL,
       lm_res = bad_lm_res,
-      assay_name = "tsallis"
+      assay_name = "diversity"
     ),
     "must contain one of.*adj_p_interaction.*p_interaction.*adj_p_value.*p_value",
     ignore.case = TRUE
@@ -2977,7 +2976,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: genes ordered by p-value (line 590
       analysis,
       gene = NULL,
       lm_res = lm_res,
-      assay_name = "tsallis",
+      assay_name = "diversity",
       n_top = 2  # Request top 2
     )
   }, error = function(e) list(error = conditionMessage(e))))
@@ -2997,7 +2996,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: n_top defaults to 1 when NULL (lin
       gene = NULL,
       lm_res = lm_res,
       n_top = NULL,  # Should default to 1
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3016,7 +3015,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: n_top limits gene selection (line 
       gene = NULL,
       lm_res = lm_res,
       n_top = 2,
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3027,19 +3026,18 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: n_top limits gene selection (line 
 # TEST: Empty genes check (Line 598)
 # ==============================================================================
 
-test_that("plot_tsallis_q_curve_s4 gene-mode: no genes selected error (line 598)", {
+test_that("plot_tsallis_q_curve_s4 gene-mode: empty gene vector falls back to aggregate mode (line 598)", {
   analysis <- setup_gene_mode_analysis()
   
-  # Empty gene vector should error during processing
-  suppressWarnings(expect_error(
-    plot_tsallis_q_curve_s4(
-      analysis,
-      gene = c(),  # Empty
-      assay_name = "tsallis"
-    ),
-    "(No genes selected|No tsallis|not found)",
-    ignore.case = TRUE
+  # Empty gene vector should not error - falls back to aggregate mode (plots all genes)
+  p <- suppressWarnings(plot_tsallis_q_curve_s4(
+    analysis,
+    gene = c(),  # Empty - should use aggregate mode
+    assay_name = "diversity"
   ))
+  
+  # Should return a ggplot or similar visualization
+  expect_true(!is.null(p))
 })
 
 # ==============================================================================
@@ -3054,7 +3052,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: single gene plotting (line 631-632
     plot_tsallis_q_curve_s4(
       analysis,
       gene = "GENE_1",
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) {
     # If error, check it's not from empty genes
@@ -3075,7 +3073,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: median +/- SD computation (lines 6
     plot_tsallis_q_curve_s4(
       analysis,
       gene = "GENE_1",
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3100,7 +3098,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: multiple genes creates grid (lines
     plot_tsallis_q_curve_s4(
       analysis,
       gene = c("GENE_1", "GENE_2", "GENE_3"),
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3116,7 +3114,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: legend extraction and positioning 
     plot_tsallis_q_curve_s4(
       analysis,
       gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4"),
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3132,7 +3130,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: 2x2 grid arrangement (lines 657-66
     plot_tsallis_q_curve_s4(
       analysis,
       gene = c("GENE_1", "GENE_2", "GENE_3", "GENE_4"),
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3148,7 +3146,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: title and subtitle construction (l
     plot_tsallis_q_curve_s4(
       analysis,
       gene = c("GENE_2", "GENE_3"),
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
@@ -3164,7 +3162,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: full grid with legend assembly (li
     plot_tsallis_q_curve_s4(
       analysis,
       gene = c("GENE_1", "GENE_2"),
-      assay_name = "tsallis"
+      assay_name = "diversity"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   

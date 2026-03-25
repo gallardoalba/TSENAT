@@ -425,6 +425,12 @@ plot_tsallis_q_curve_s4 <- function(
   
   # Handle TSENATAnalysis objects - extract diversity_results
   if (methods::is(se, "TSENATAnalysis")) {
+    # For TSENATAnalysis, the function creates a combined assay named "diversity"
+    # Only "diversity" is valid - reject anything else
+    if (assay_name != "diversity") {
+      stop("Assay '", assay_name, "' not found in SummarizedExperiment")
+    }
+    
     # Convert diversity_results list to combined SummarizedExperiment
     div_list <- se@diversity_results
     
@@ -581,6 +587,10 @@ plot_tsallis_q_curve_s4 <- function(
   # GENE-SPECIFIC MODE (when gene or lm_res is provided)
   # =========================================================================
   if (!is.null(gene) || !is.null(lm_res)) {
+    # Check for empty gene vector c()
+    if (!is.null(gene) && length(gene) == 0) {
+      stop("No genes selected for plotting")
+    }
     long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
     
     # Diagnostic: check what columns were created
