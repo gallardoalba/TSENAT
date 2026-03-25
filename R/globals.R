@@ -573,3 +573,127 @@ scale_fill_tsenat_diverging <- function(...) {
   )
 }
 
+# ============================================================================
+# RESPONSIVE SIZING SYSTEM - Aspect ratio and dimension calculation
+# ============================================================================
+
+#' TSENAT Plot Aspect Ratio Constants
+#'
+#' Defines standardized aspect ratios (width/height) for different plot types.
+#' Used to maintain consistent visual proportions across the TSENAT package.
+#'
+#' @details
+#' Aspect ratios defined:
+#' - `.aspect_ratio_standard`: 1.67 (16:10) - Default for most plots
+#' - `.aspect_ratio_tall`: 1.20 (6:5) - For plots with many rows (heatmaps, multi-gene panels)
+#' - `.aspect_ratio_wide`: 2.40 (12:5) - For time-series or wide categorical plots
+#'
+#' These constants ensure plots maintain readable font sizes and proportions
+#' regardless of absolute output dimensions.
+#'
+#' @keywords internal
+#' @noRd
+.aspect_ratio_standard <- 12 / 7.2    # 1.67 (16:10, publication standard)
+.aspect_ratio_tall <- 12 / 10         # 1.20 (taller, for heatmaps)
+.aspect_ratio_wide <- 12 / 5          # 2.40 (wider, for spectral profiles)
+
+#' Calculate Plot Dimensions from Width and Aspect Ratio
+#'
+#' Helper function to compute height from width and aspect ratio type.
+#' Returns both dimensions and DPI as a list for use with ggsave and grid functions.
+#'
+#' @param width_inches Numeric; plot width in inches (default: 12).
+#' @param aspect_type Character; one of "standard", "tall", or "wide" (default: "standard").
+#' @param dpi_output Numeric; output DPI for PNG/TIFF (default: 100).
+#'
+#' @return List with elements: $width (inches), $height (inches), $dpi (integer).
+#'
+#' @details
+#' Example usage in plot functions:
+#'
+#' ```r
+#' # Standard aspect ratio plot
+#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard")
+#' ggplot2::ggsave("plot.pdf", plot_obj, width = dims$width, 
+#'                  height = dims$height, dpi = dims$dpi)
+#'
+#' # Heatmap with many rows (use tall aspect)
+#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall")
+#' # ... render and save
+#' ```
+#'
+#' This ensures all plots maintain:
+#' - Readable font sizes
+#' - Consistent proportions
+#' - Professional appearance across all outputs
+#'
+#' @keywords internal
+#' @noRd
+.calculate_plot_dims <- function(width_inches = 12, 
+                                  aspect_type = "standard",
+                                  dpi_output = 100) {
+  # Validate aspect_type
+  valid_aspects <- c("standard", "tall", "wide")
+  if (!aspect_type %in% valid_aspects) {
+    warning("aspect_type '", aspect_type, "' not recognized. Using 'standard'.")
+    aspect_type <- "standard"
+  }
+  
+  # Get aspect ratio constant by direct lookup
+  aspect_ratio <- switch(aspect_type,
+    standard = .aspect_ratio_standard,
+    tall = .aspect_ratio_tall,
+    wide = .aspect_ratio_wide,
+    .aspect_ratio_standard  # Fallback to standard
+  )
+  
+  # Calculate height from width and aspect ratio
+  # aspect_ratio = width / height, so:
+  # height = width / aspect_ratio
+  height_inches <- width_inches / aspect_ratio
+  
+  list(
+    width = width_inches,
+    height = height_inches,
+    dpi = as.integer(dpi_output)
+  )
+}
+
+#' Scale Font Sizes Responsively Based on Plot Area
+#'
+#' Adjusts base font size scaling factor based on plot output dimensions.
+#' Useful for maintaining readability across different output sizes.
+#'
+#' @param width_inches Numeric; plot width in inches.
+#' @param height_inches Numeric; plot height in inches.
+#' @param reference_area Numeric; reference area in square inches for baseline scaling.
+#'   Default (96 sq in) represents a 12x8 inch plot.
+#'
+#' @return Numeric scaling factor to multiply with base font sizes.
+#'
+#' @details
+#' The scaling factor is computed as: sqrt(actual_area / reference_area)
+#'
+#' This ensures font readability is maintained proportionally with plot size.
+#' A plot at 6x4 inches (1/4 the area) gets 0.5x font scaling,
+#' while a 24x16 inch plot (4x the area) gets 2x scaling.
+#'
+#' Example:
+#' ```r
+#' # For a heatmap that's 15 inches wide and 12 inches tall
+#' scale <- .scale_font_by_area(width_inches = 15, height_inches = 12)
+#' # Results in scale ~ 1.38, increasing fonts for larger output
+#'
+#' # Use in custom plotting:
+#' font_scale <- .scale_font_by_area(12, 10)
+#' base_font <- 11 * font_scale
+#' ```
+#'
+#' @keywords internal
+#' @noRd
+.scale_font_by_area <- function(width_inches, height_inches, 
+                                 reference_area = 96) {
+  actual_area <- width_inches * height_inches
+  sqrt(actual_area / reference_area)
+}
+

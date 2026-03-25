@@ -655,7 +655,7 @@ plot_tsallis_q_curve_s4 <- function(
       
       # Build plot
       p <- ggplot2::ggplot() +
-        ggplot2::theme_minimal(base_size = 14)
+        .tsenat_theme_spectrum(base_size = 11)
       
       # Median +/- SD ribbon
       p <- p +
@@ -2367,7 +2367,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
             limits = fill_limits,
             name = "log2(expr)"
         ) + 
-        ggplot2::theme_minimal(base_size = base_font) +
+        .tsenat_theme_base(base_size = base_font) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
             axis.text.y = ggplot2::element_text(size = y_axis_font, face = "plain"), 
@@ -3441,7 +3441,7 @@ plot_tsallis_divergence_profile <- function(se,
                             y = expression("Divergence D[q]"),
                             subtitle = paste0("Red = ", groups[1], " higher | Blue = ", groups[2], " higher")
                         ) +
-                        ggplot2::theme_minimal(base_size = 12) +
+                        .tsenat_theme_spectrum(base_size = 11) +
                         ggplot2::theme(
                             plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold"),
                             panel.grid.minor = ggplot2::element_blank(),
@@ -3456,7 +3456,7 @@ plot_tsallis_divergence_profile <- function(se,
                             x = "q value",
                             y = "Divergence D[q] (Absolute)"
                         ) +
-                        ggplot2::theme_minimal(base_size = 12) +
+                        .tsenat_theme_spectrum(base_size = 11) +
                         ggplot2::theme(
                             plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold"),
                             panel.grid.minor = ggplot2::element_blank()
