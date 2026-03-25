@@ -132,7 +132,7 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high monotonic
   # Create highly correlated data (rows rank similarly)
   set.seed(42)
   diversity_data <- matrix(nrow = 10, ncol = 5)
-  for (i in 1:10) {
+  for (i in seq_len(10)) {
     base_vals <- runif(5)
     diversity_data[i, ] <- base_vals + rnorm(5, 0, 0.01)  # Small variance = high correlation
   }
@@ -170,7 +170,7 @@ test_that("test_rankbased_assumptions_s4: returns ACCEPTABLE status for moderate
   # Create moderately correlated data
   set.seed(42)
   diversity_data <- matrix(nrow = 10, ncol = 5)
-  for (i in 1:10) {
+  for (i in seq_len(10)) {
     diversity_data[i, ] <- rnorm(5, mean = i, sd = 2)
   }
   
@@ -207,7 +207,7 @@ test_that("test_rankbased_assumptions_s4: returns PASS status for high Kendall's
   # Create highly consistent data across samples
   set.seed(42)
   diversity_data <- matrix(nrow = 10, ncol = 4)
-  for (i in 1:10) {
+  for (i in seq_len(10)) {
     diversity_data[i, ] <- rank(rnorm(4, mean = i, sd = 0.1))
   }
   

@@ -32,6 +32,10 @@ increasing adjusted p-value (most significant first).}
 automatically calculated as ceiling(n_genes / ncol).}
 
 \item{verbose}{Logical; if TRUE, print diagnostic messages (default: TRUE).}
+
+\item{output_file}{Character or NULL. Optional file path to save the plot as an image.
+If provided, the plot will be saved with appropriate dimensions.
+Default: NULL (no file output, only return object).}
 }
 \value{
 A ggplot2 object created via \code{patchwork} combining all gene panels,

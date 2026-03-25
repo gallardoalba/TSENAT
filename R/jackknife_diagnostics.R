@@ -463,23 +463,19 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
       "  -> Jackknife results may have large influence from abundant transcripts.\n",
       "  -> Better for detecting changes in dominant isoforms (papers S111, I004)."
     )
-  }
-  if (q > 2) {
+  } else if (q > 2) {
     message(
       "High q (", q, ") may be insensitive to rare isoform diversity.\n",
       "  -> Jackknife results focus on most abundant transcripts only.\n",
       "  -> May miss important rare transcript contributions (papers S111, I004).\n",
       "  -> Consider q in [0.5, 2] for balanced diversity assessment."
     )
-  }
-  if (q >= 0.5 && q <= 2) {
-    if (verbose) {
-      message(
-        "q = ", q, " is in the recommended range [0.5, 2].\n",
-        "  -> Balanced sensitivity to rare and abundant isoforms.\n",
-        "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004)."
-      )
-    }
+  } else if (verbose) {
+    message(
+      "q = ", q, " is in the recommended range [0.5, 2].\n",
+      "  -> Balanced sensitivity to rare and abundant isoforms.\n",
+      "  -> Jackknife results should be reliable for diversity assessment (papers S111, I004)."
+    )
   }
 
   # (estimate already computed in jackknife loop above)

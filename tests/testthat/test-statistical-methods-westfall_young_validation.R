@@ -88,8 +88,8 @@ test_that("Within-q permutation preserves multi-q AR(1) correlation structure", 
   
   # Build AR(1) covariance matrix
   cov_matrix <- matrix(0, nrow = K, ncol = K)
-  for (i in 1:K) {
-    for (j in 1:K) {
+  for (i in seq_len(K)) {
+    for (j in seq_len(K)) {
       cov_matrix[i, j] <- phi^abs(i - j)
     }
   }
@@ -104,7 +104,7 @@ test_that("Within-q permutation preserves multi-q AR(1) correlation structure", 
   )
   
   data_multiq$entropy <- NA_real_
-  for (i in 1:nrow(data_multiq)) {
+  for (i in seq_len(nrow(data_multiq))) {
     gene_idx <- data_multiq$gene[i]
     q_idx <- match(data_multiq$q[i], q_values)
     data_multiq$entropy[i] <- gene_effects[gene_idx, q_idx] + rnorm(1, sd = 0.1)
@@ -162,7 +162,7 @@ test_that("Type I error (FWER) is maintained at appropriate alpha level", {
   n_simulations <- 30  # Reduced for speed in test suite
   alpha <- 0.05
   
-  for (sim in 1:n_simulations) {
+  for (sim in seq_len(n_simulations)) {
     # Generate null data
     data_null <- expand.grid(
       gene = 1:n_genes,

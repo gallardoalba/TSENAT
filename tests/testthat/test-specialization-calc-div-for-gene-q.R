@@ -84,7 +84,7 @@ test_that("calc_div_for_gene_q: entropy-based approximation (TIER 2 fallback)", 
   
   # Group A samples (s1, s2) should have higher entropy
   # Group B samples (s3, s4) should have lower entropy
-  for (i in 1:n_genes) {
+  for (i in seq_len(n_genes)) {
     mat[i, col_names_sample %in% c("s1", "s2")] <- rnorm(4, mean = 3.0, sd = 0.3)
     mat[i, col_names_sample %in% c("s3", "s4")] <- rnorm(4, mean = 1.5, sd = 0.3)
   }

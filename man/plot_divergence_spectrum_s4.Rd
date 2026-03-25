@@ -13,8 +13,8 @@ plot_divergence_spectrum_s4(
   variability_metric = c("iqr", "sd"),
   use_pvalue_ranking = FALSE,
   output_file = NULL,
-  width = 10,
-  height = 6,
+  width = 12,
+  height = NULL,
   verbose = TRUE,
   ...
 )

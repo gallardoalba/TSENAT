@@ -34,8 +34,6 @@ create_test_analysis <- function(
     seed = 42,
     verbose = FALSE) {
   
-  set.seed(seed)
-  
   # Dimensions
   n_samples <- n_samples_per_group * 2
   n_transcripts <- n_genes * 50
@@ -50,7 +48,7 @@ create_test_analysis <- function(
   treatment_idx <- seq(2, n_samples, by = 2)
   
   counts <- matrix(0, nrow = n_transcripts, ncol = n_samples)
-  for (j in 1:n_samples) {
+  for (j in seq_len(n_samples)) {
     if (j %in% control_idx) {
       counts[, j] <- rpois(n_transcripts, lambda = control_lambda)
     } else {
@@ -59,13 +57,13 @@ create_test_analysis <- function(
   }
   counts <- pmax(counts, 50)
   
-  rownames(counts) <- paste0("TX_", 1:n_transcripts)
-  colnames(counts) <- paste0("Sample_", 1:n_samples)
+  rownames(counts) <- paste0("TX_", seq_len(n_transcripts))
+  colnames(counts) <- paste0("Sample_", seq_len(n_samples))
   
   # Create rowData with gene mappings
   rowData <- S4Vectors::DataFrame(
     transcript_id = rownames(counts),
-    gene_id = paste0("GENE_", rep(1:n_genes, each = 50, length.out = n_transcripts)),
+    gene_id = paste0("GENE_", rep(seq_len(n_genes), each = 50, length.out = n_transcripts)),
     row.names = rownames(counts)
   )
   
@@ -74,8 +72,8 @@ create_test_analysis <- function(
     sample_id = colnames(counts),
     condition = rep(c("control", "treatment"), length.out = n_samples),
     sample_type = rep(c("control", "treatment"), length.out = n_samples),
-    subject = rep(paste0("S", 1:10), length.out = n_samples),
-    paired_samples = rep(paste0("pair", 1:10), length.out = n_samples),
+    subject = rep(paste0("S", seq_len(10)), length.out = n_samples),
+    paired_samples = rep(paste0("pair", seq_len(10)), length.out = n_samples),
     row.names = colnames(counts)
   )
   
@@ -133,8 +131,6 @@ create_lightweight_analysis <- function(
     n_samples = 8,
     seed = 42) {
   
-  set.seed(seed)
-  
   n_transcripts <- n_genes * 20
   
   # Minimal counts
@@ -145,12 +141,12 @@ create_lightweight_analysis <- function(
   )
   counts <- pmax(counts, 50)
   
-  rownames(counts) <- paste0("TX_", 1:n_transcripts)
-  colnames(counts) <- paste0("Sample_", 1:n_samples)
+  rownames(counts) <- paste0("TX_", seq_len(n_transcripts))
+  colnames(counts) <- paste0("Sample_", seq_len(n_samples))
   
   rowData <- S4Vectors::DataFrame(
     transcript_id = rownames(counts),
-    gene_id = paste0("GENE_", rep(1:n_genes, each = 20, length.out = n_transcripts)),
+    gene_id = paste0("GENE_", rep(seq_len(n_genes), each = 20, length.out = n_transcripts)),
     row.names = rownames(counts)
   )
   

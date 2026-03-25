@@ -27,7 +27,7 @@ create_test_se_gam <- function(n_samples = 20, n_genes = 5, seed = 42) {  # Redu
     # Extract q_vals for all samples
     q_vals_expanded <- rep(qvec, times = n_samples)
     
-    for (i in 1:n_genes) {
+    for (i in seq_len(n_genes)) {
         # Create data with smooth curvature (polynomial + sine pattern for more variation)
         base_curve <- 0.3 + 0.4 * (q_vals_expanded / 2.0) + 0.2 * sin(q_vals_expanded * pi) 
         noise <- rnorm(length(coln), sd = 0.1)
@@ -402,7 +402,7 @@ test_that("FPCA with regularization='pca' (default) works correctly", {
     all_samples <- c(samples_normal, samples_tumor)
     
     gene1_vals <- c()
-    for (i in 1:15) {
+    for (i in seq_len(15)) {
         gene1_vals <- c(gene1_vals, qvec * 1.0 + rnorm(length(qvec), sd = 0.01))  # Normal
     }
     for (i in 16:30) {
@@ -470,7 +470,7 @@ test_that("FPCA with regularization='lasso' produces valid results", {
     # Create curve data where LASSO should select important q-values
     # 15 per group (30 total) for glmnet
     gene1_vals <- c()
-    for (i in 1:15) {
+    for (i in seq_len(15)) {
         gene1_vals <- c(gene1_vals, qvec * 1.0 + rnorm(length(qvec), sd = 0.01))  # Normal
     }
     for (i in 16:30) {
@@ -525,7 +525,7 @@ test_that("FPCA with regularization='elasticnet' produces valid results", {
     # Create curve data with moderate interaction
     # 15 per group (30 total) for glmnet
     gene1_vals <- c()
-    for (i in 1:15) {
+    for (i in seq_len(15)) {
         gene1_vals <- c(gene1_vals, qvec * 1.2 + rnorm(length(qvec), sd = 0.01))  # Normal
     }
     for (i in 16:30) {
@@ -580,7 +580,7 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
     set.seed(203)
     # Data with clear interaction for comparing methods (15 per group)
     gene1_vals <- c()
-    for (i in 1:15) {
+    for (i in seq_len(15)) {
         gene1_vals <- c(gene1_vals, qvec * 1.0 + rnorm(length(qvec), sd = 0.005))   # Normal
     }
     for (i in 16:30) {
@@ -674,7 +674,7 @@ test_that(".tsenat_fpca_interaction works with all regularization methods", {
     all_samples <- c(samples_normal, samples_tumor)
     
     gene1_vals <- c()
-    for (i in 1:15) {
+    for (i in seq_len(15)) {
         gene1_vals <- c(gene1_vals, qvec * 1.0 + rnorm(length(qvec), sd = 0.05))
     }
     for (i in 16:30) {
@@ -826,7 +826,7 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
     # 8 pairs (small sample, should trigger K-C correction)
     # Generate unique column names to avoid duplicates
     samples <- character()
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         samples <- c(samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
     }
     
@@ -835,7 +835,7 @@ test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
     set.seed(100)
     # Gene with interaction (should show difference between corrected/uncorrected)
     gene1_vals <- numeric()
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         # Normal group
         gene1_vals <- c(gene1_vals, qvec * 1.0 + rnorm(length(qvec), sd = 0.02))
         # Tumor group with different slope
@@ -924,14 +924,14 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     
     # Case 1: Small clusters (should trigger correction)
     small_samples <- character()
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         small_samples <- c(small_samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
     }
     small_coln <- paste0(rep(small_samples, each = length(qvec)), "_q=", rep(qvec, times = length(small_samples)))
     
     set.seed(101)
     small_vals <- numeric()
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         small_vals <- c(small_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
         small_vals <- c(small_vals, rnorm(length(qvec), mean = 0.6, sd = 0.1))
     }
@@ -971,14 +971,14 @@ test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
     
     # Case 2: Large clusters (should NOT apply correction)
     large_samples <- character()
-    for (i in 1:25) {
+    for (i in seq_len(25)) {
         large_samples <- c(large_samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
     }
     large_coln <- paste0(rep(large_samples, each = length(qvec)), "_q=", rep(qvec, times = length(large_samples)))
     
     set.seed(102)
     large_vals <- numeric()
-    for (i in 1:25) {
+    for (i in seq_len(25)) {
         large_vals <- c(large_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
         large_vals <- c(large_vals, rnorm(length(qvec), mean = 0.6, sd = 0.1))
     }
@@ -1024,7 +1024,7 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
     qvec <- seq(0.01, 0.05, by = 0.01)
     
     samples <- character()
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         samples <- c(samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
     }
     coln <- paste0(rep(samples, each = length(qvec)), "_q=", rep(qvec, times = length(samples)))
@@ -1032,7 +1032,7 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
     set.seed(103)
     # Null data: same distribution in both groups (no interaction)
     null_vals <- numeric()
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         null_vals <- c(null_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
         null_vals <- c(null_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
     }
@@ -1588,7 +1588,7 @@ create_test_se_small <- function(n_samples = 12, n_genes = 5, seed = 42) {
     mat <- matrix(NA_real_, nrow = n_genes, ncol = length(coln))
     q_vals_expanded <- rep(qvec, times = n_samples)
     
-    for (i in 1:n_genes) {
+    for (i in seq_len(n_genes)) {
         # Create data with smooth curvature
         base_curve <- sin(q_vals_expanded * pi * 2) * 0.3 + 0.5
         noise <- rnorm(length(coln), sd = 0.15)

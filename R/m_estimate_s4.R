@@ -235,23 +235,6 @@ m_estimate_s4 <- function(
     )
     result
   }, error = function(e) {
-    # Get full error information
-    message("\n========== DETAILS ==========")
-    message(sprintf("Message: %s", e$message))
-    message(sprintf("Class: %s", class(e)))
-    
-    # Try to get the call stack
-    if (exists(".Internal")) {
-      try({
-        sys.calls_all <- sys.calls()
-        message("\nCall stack (last 10):")
-        for (i in max(1, length(sys.calls_all)-9):length(sys.calls_all)) {
-          message(sprintf("[%d] %s", i, deparse(sys.calls_all[[i]])[1]))
-        }
-      })
-    }
-    message("========================================\n")
-    
     stop("M-estimation failed:\n", e$message, call. = FALSE)
   })
 

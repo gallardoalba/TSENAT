@@ -30,7 +30,7 @@ make_test_se <- function() {
   )
   
   # Create strong isoform-level switching with higher amplitude
-  for (g in 1:n_genes) {
+  for (g in seq_len(n_genes)) {
     iso_idx <- ((g-1) * isoforms_per_gene + 1):(g * isoforms_per_gene)
     # Highly differential isoform switching
     control_multiplier <- c(5, 2, 1, 0.5, 0.2)

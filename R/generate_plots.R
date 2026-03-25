@@ -1086,6 +1086,9 @@ plot_tsallis_density_singleq <- function(se, assay_name = "diversity", title = N
 #'   entropy values at a single q value.
 #' @param assay_name Name of the assay to use (default: "diversity").
 #' @param title Optional base title. If NULL, auto-generated based on q value.
+#' @param output_file Character or NULL. Optional file path to save the plot as an image.
+#'   If provided, the plot will be saved with appropriate dimensions.
+#'   Default: NULL (no file output, only return object).
 #'
 #' @return A `ggplot2` object showing a 1x2 grid with violin plot on the left and
 #'   density plot on the right.
@@ -2778,6 +2781,10 @@ plot_divergence_distribution <- function(interaction_results, threshold = 0.1) {
 #'
 #' @param verbose Logical; if TRUE, print diagnostic messages (default: TRUE).
 #'
+#' @param output_file Character or NULL. Optional file path to save the plot as an image.
+#'   If provided, the plot will be saved with appropriate dimensions.
+#'   Default: NULL (no file output, only return object).
+#'
 #' @return A ggplot2 object created via \code{patchwork} combining all gene panels,
 #'   or NULL if gene data is unavailable. The function automatically handles ggplot2 grid
 #'   creation and returns a print-ready object.
@@ -3076,11 +3083,11 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
   
   if (length(plot_list) == 0) {
     if (verbose) {
-      message("No valid plots were created.")
-      message("This may occur if:")
-      message("  - per_q_pattern values cannot be parsed as numeric comma-separated strings")
-      message("  - All genes had parsing errors in tryCatch blocks")
-      message("  - Sample size or q-value count was too small")
+      message("No valid plots were created.\n",
+              "This may occur if:\n",
+              "  - per_q_pattern values cannot be parsed as numeric comma-separated strings\n",
+              "  - All genes had parsing errors in tryCatch blocks\n",
+              "  - Sample size or q-value count was too small")
     }
     # Return NULL visibly (no invisible) for consistency
     return(NULL)

@@ -409,6 +409,7 @@ setGeneric("lmResults<-", function(object, value) {
 })
 
 #' @rdname lmResults
+#' @param value A list of LM results to assign to the object.
 #' @export
 setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
   if (!is.list(value)) {

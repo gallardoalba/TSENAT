@@ -947,7 +947,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   
   # Create entropy data with AR(1) correlation
   entropy_data <- numeric(length(subject_ids))
-  for (s in 1:n_subjects) {
+  for (s in seq_len(n_subjects)) {
     q_entropy <- numeric(n_q_values)
     q_entropy[1] <- runif(1, min = 0.5, max = 2.0)
     for (q_idx in 2:n_q_values) {
@@ -1003,8 +1003,8 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   entropy_data <- numeric(length(subject_ids))
   genes <- character(length(subject_ids))
   
-  for (s in 1:n_subjects) {
-    for (g in 1:n_genes) {
+  for (s in seq_len(n_subjects)) {
+    for (g in seq_len(n_genes)) {
       # Create q-dependent entropy values
       q_entropy <- numeric(n_q_values)
       base_val <- runif(1, min = 1.0, max = 2.5)

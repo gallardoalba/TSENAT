@@ -334,7 +334,7 @@ test_that("plot_multi_gene_q_spectrum_s4: grid arrangement with patchwork", {
   set.seed(42)
   plot_list <- list()
   
-  for (i in 1:4) {
+  for (i in seq_len(4)) {
     plot_df <- data.frame(
       q = seq(0.1, 0.3, length.out = 3),
       divergence = rnorm(3)
@@ -385,7 +385,7 @@ test_that("plot_multi_gene_q_spectrum_s4: many genes plotting", {
   n_genes <- 9
   plot_list <- list()
   
-  for (i in 1:n_genes) {
+  for (i in seq_len(n_genes)) {
     plot_df <- data.frame(
       q = seq(0.1, 0.3, length.out = 3),
       divergence = rnorm(3)

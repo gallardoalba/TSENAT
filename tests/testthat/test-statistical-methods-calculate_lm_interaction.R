@@ -1038,7 +1038,7 @@ test_that("Hochberg method monotonicity: no ascending then descending", {
     set.seed(103)
     # Create multiple genes with varying interaction strengths
     mat <- matrix(nrow = 5, ncol = length(coln))
-    for (i in 1:5) {
+    for (i in seq_len(5)) {
         slope_mult <- 1 + i * 0.3
         mat[i, ] <- c(qvec * 1, qvec * slope_mult) + rnorm(length(coln), sd = 1e-3)
     }
@@ -1135,7 +1135,7 @@ test_that("Benjamini-Yekutieli is more conservative than Hochberg", {
     set.seed(105)
     # Multiple genes with varying strengths
     mat <- matrix(nrow = 10, ncol = length(coln))
-    for (i in 1:10) {
+    for (i in seq_len(10)) {
         slope_mult <- 1 + i * 0.2
         mat[i, ] <- c(qvec * 1, qvec * slope_mult) + rnorm(length(coln), sd = 1e-3)
     }
@@ -1174,7 +1174,7 @@ test_that("Benjamini-Yekutieli is more conservative than Hochberg", {
     
     count_by_more_conservative <- 0
     count_by_less_or_equal <- 0
-    for (i in 1:nrow(df_hoch_sorted)) {
+    for (i in seq_len(nrow(df_hoch_sorted))) {
         p_adj_h <- df_hoch_sorted[i, "adj_p_interaction"]
         p_adj_b <- df_by_sorted[i, "adj_p_interaction"]
         if (!is.na(p_adj_h) && !is.na(p_adj_b)) {
@@ -1428,7 +1428,7 @@ test_that("storey parameter is orthogonal: all multicorr methods benefit", {
     
     set.seed(111)
     mat <- matrix(nrow = 8, ncol = length(coln))
-    for (i in 1:8) {
+    for (i in seq_len(8)) {
         slope_mult <- 1 + i * 0.2
         mat[i, ] <- c(qvec * 1, qvec * slope_mult) + rnorm(length(coln), sd = 1e-3)
     }
@@ -1484,7 +1484,7 @@ test_that("Different methods produce different adjustments", {
     
     set.seed(112)
     mat <- matrix(nrow = 6, ncol = length(coln))
-    for (i in 1:6) {
+    for (i in seq_len(6)) {
         slope_mult <- 1 + i * 0.25
         mat[i, ] <- c(qvec * 1, qvec * slope_mult) + rnorm(length(coln), sd = 1e-3)
     }

@@ -12,6 +12,8 @@ plot_lm_interaction_gam_s4(
   sig_alpha = 0.05,
   assay_name = "diversity",
   output_file = NULL,
+  width = 12,
+  height = NULL,
   ...
 )
 }
@@ -38,6 +40,13 @@ genes before selecting top n.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
 Default: NULL (no file output).}
+
+\item{width}{\code{numeric}. Width of the plot in inches (default: 12).
+Only used if output_file is not NULL.}
+
+\item{height}{\code{numeric} or \code{NULL}. Height of the plot in inches.
+Default: NULL (automatically calculated based on width and aspect ratio).
+Only used if output_file is not NULL.}
 
 \item{...}{Additional arguments passed to the base function.}
 }

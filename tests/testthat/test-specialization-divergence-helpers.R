@@ -180,7 +180,7 @@ test_that(".resample_paired_data maintains pair membership", {
   control_group <- "Control"
   
   # Resample multiple times and check structure
-  for (i in 1:5) {
+  for (i in seq_len(5)) {
     result <- TSENAT:::.resample_paired_data(
       control_samples,
       treatment_samples,

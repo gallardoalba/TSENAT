@@ -689,8 +689,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   result <- tryCatch({
     do.call(calculate_lm_interaction, args)
   }, error = function(e) {
-    message("  ", conditionMessage(e))
-    message("  Call: ", paste(deparse(e$call), collapse="\n"))
     stop("lm_interaction calculation failed:\n", conditionMessage(e),
          call. = FALSE)
   })
@@ -1707,6 +1705,10 @@ extract_q_from_key <- function(key) {
 #' @param verbose \code{logical}. Print status messages. Default: FALSE.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
 #'   Default: NULL (no file output).
+#' @param width \code{numeric}. Width of the output plot in inches (default: 12).
+#'   Only used if output_file is provided.
+#' @param height \code{numeric}. Height of the output plot in inches (default: 7.2).
+#'   Only used if output_file is provided.
 #' @param ... Additional arguments passed to the base plotting function.
 #'
 #' @return
@@ -3397,6 +3399,13 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #'
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
 #'   Default: NULL (no file output).
+#'
+#' @param width \code{numeric}. Width of the plot in inches (default: 12).
+#'   Only used if output_file is not NULL.
+#'
+#' @param height \code{numeric} or \code{NULL}. Height of the plot in inches.
+#'   Default: NULL (automatically calculated based on width and aspect ratio).
+#'   Only used if output_file is not NULL.
 #'
 #' @param ... Additional arguments passed to the base function.
 #'

@@ -343,7 +343,7 @@ select_top_genes <- function(results,
   # Select top genes
   top_genes <- results %>%
     dplyr::arrange(.data[[p_col]]) %>%
-    dplyr::slice(1:min(n_genes, nrow(results))) %>%
+    dplyr::slice(seq_len(min(n_genes, nrow(results)))) %>%
     dplyr::pull(.data[[gene_col]])
 
   return(as.character(top_genes))

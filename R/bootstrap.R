@@ -1842,9 +1842,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 
 #' @exportS3Method base::print tsenat_divergence_bootstrap_ci
 print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
-    # Return invisibly without printing anything
-    # Suppress any side effects that might escape
-    suppressMessages(suppressWarnings(invisible(x)))
+    invisible(x)
 }
 
 #' Summary method for divergence bootstrap CI results

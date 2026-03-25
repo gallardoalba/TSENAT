@@ -1563,7 +1563,7 @@ test_that("small matrix with 3 genes processes correctly", {
     expect_equal(length(result), 3)
     
     # Each should produce valid CI
-    for (i in 1:3) {
+    for (i in seq_len(3)) {
         expect_true(result[[i]]$lower_ci < result[[i]]$upper_ci)
         expect_true(result[[i]]$lower_ci >= 0)
         expect_true(result[[i]]$upper_ci <= 1)

@@ -152,7 +152,7 @@ test_that(".tsenat_benjamini_yekutieli uses Harmonic constant c_m correctly", {
   sorted_p <- raw_pvalues[order_idx]
   
   expected_adj <- numeric(m)
-  for (i in 1:m) {
+  for (i in seq_len(m)) {
     expected_adj[i] <- (m * c_m / i) * sorted_p[i]
     expected_adj[i] <- min(expected_adj[i], 1)
   }

@@ -8,7 +8,7 @@ plot_divergence_distribution_s4(
   analysis,
   threshold = 0.1,
   output_file = NULL,
-  width = 10,
+  width = 12,
   height = 6,
   verbose = TRUE,
   ...

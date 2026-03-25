@@ -73,7 +73,7 @@ create_test_analysis <- function(
   treatment_idx <- seq(2, n_samples, by = 2)
   
   counts <- matrix(0, nrow = n_transcripts, ncol = n_samples)
-  for (j in 1:n_samples) {
+  for (j in seq_len(n_samples)) {
     if (j %in% control_idx) {
       counts[, j] <- rpois(n_transcripts, lambda = control_lambda)
     } else {

@@ -7,10 +7,11 @@
 #' @name package_imports
 #' @noRd
 #' @importFrom dplyr arrange filter group_by mutate pull select summarise %>%
-#' @importFrom stats IQR aggregate anova aov chisq.test coef cor fitted friedman.test formula kruskal.test lm loess loess.control median model.frame model.matrix na.omit p.adjust pchisq pnorm pt qnorm quantile residuals rmultinom sd setNames t.test var weighted.mean wilcox.test xtabs
+#' @importFrom stats IQR aggregate anova aov chisq.test coef cor fitted friedman.test formula kruskal.test lm loess loess.control median model.frame model.matrix na.omit p.adjust pchisq pnorm pt qnorm quantile residuals rmultinom rpois sd setNames t.test var weighted.mean wilcox.test xtabs
 #' @importFrom utils capture.output
 #' @importFrom rlang .data
-#' @importFrom S4Vectors metadata
+#' @importFrom S4Vectors metadata DataFrame
+#' @importFrom SummarizedExperiment rowData<-
 NULL
 
 # # Declare package global variables to satisfy R CMD check NOTES

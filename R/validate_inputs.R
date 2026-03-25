@@ -291,12 +291,12 @@
   }
   
   # Validate each color using grDevices function
-  valid_colors <- sapply(value, function(col) {
+  valid_colors <- vapply(value, function(col) {
     tryCatch({
       grDevices::col2rgb(col)
       TRUE
     }, error = function(e) FALSE)
-  })
+  }, FUN.VALUE = logical(1))
   
   if (!all(valid_colors)) {
     invalid_idx <- which(!valid_colors)

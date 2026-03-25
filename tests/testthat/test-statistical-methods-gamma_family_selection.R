@@ -52,7 +52,7 @@ testthat::test_that(".tsenat_detect_heteroscedasticity identifies variance chang
         group = rep(c("A", "B"), each = n_q * n_samples / 2)
     )
     
-    for (i in 1:n_q) {
+    for (i in seq_len(n_q)) {
         idx <- which(df_hetero$q == df_hetero$q[i])
         sd_i <- 0.01 + 0.05 * (i / n_q)^2  # Increasing variance with q
         df_hetero$entropy[idx] <- 0.3 + rnorm(length(idx), 0, sd_i)
@@ -107,7 +107,7 @@ testthat::test_that(".tsenat_select_gam_family triggers Gamma for strong heteros
     )
     
     # Extreme variance increase with q (variance ratio > 5)
-    for (i in 1:n_q) {
+    for (i in seq_len(n_q)) {
         idx <- which(df$q == df$q[i])
         sd_i <- 0.005 + 0.08 * (i / n_q)^3  # Strongly increasing variance
         df$entropy[idx] <- 0.25 + rnorm(length(idx), 0, sd_i)
@@ -219,7 +219,7 @@ testthat::test_that(".tsenat_handle_bounded_support inverse link for Gamma is ex
         group = rep(c("A", "B"), each = n_q * n_samples / 2)
     )
     
-    for (i in 1:n_q) {
+    for (i in seq_len(n_q)) {
         idx <- which(df$q == df$q[i])
         sd_i <- 0.005 + 0.1 * (i / n_q)^3
         df$entropy[idx] <- 0.25 + rnorm(length(idx), 0, sd_i)
@@ -324,7 +324,7 @@ testthat::test_that("Family selection is stable across repeated calls", {
     
     # Call family selection multiple times
     results <- list()
-    for (i in 1:3) {
+    for (i in seq_len(3)) {
         results[[i]] <- .tsenat_select_gam_family(df, q_vals = sort(unique(df$q)),
                                                    group_vec = df$group, verbose = FALSE)
     }
@@ -370,7 +370,7 @@ testthat::test_that("Gamma predictions are always positive for log link", {
         group = rep(c("A", "B"), each = n_q * n_samples / 2)
     )
     
-    for (i in 1:n_q) {
+    for (i in seq_len(n_q)) {
         idx <- which(df$q == df$q[i])
         sd_i <- 0.01 + 0.05 * (i / n_q)^2
         df$entropy[idx] <- 0.25 + rnorm(length(idx), 0, sd_i)

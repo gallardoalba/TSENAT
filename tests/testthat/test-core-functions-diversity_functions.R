@@ -368,7 +368,7 @@ test_that("estimate_shrinkage_params returns correct structure with var_trend an
     colnames(entropy_matrix) <- paste0("Sample", 1:n_samples, "_q=1")
     
     # Generate entropy using logistic function (smooth)
-    for (i in 1:n_genes) {
+    for (i in seq_len(n_genes)) {
         x_scaled <- (i - 1) / (n_genes - 1) * 8 - 4
         mean_val <- 1 / (1 + exp(-x_scaled))
         
@@ -415,7 +415,7 @@ test_that("Loess variance trend fits successfully with sufficient data", {
     colnames(entropy_matrix) <- paste0("Sample", 1:n_samples, "_q=1")
     
     # Generate entropy using smooth logistic curves
-    for (i in 1:n_genes) {
+    for (i in seq_len(n_genes)) {
         # Map gene index to smooth sigmoid
         x_scaled <- (i - 1) / (n_genes - 1) * 8 - 4  # [-4, 4]
         mean_val <- 1 / (1 + exp(-x_scaled))
@@ -574,8 +574,8 @@ test_that("Shrinkage weights are computed correctly for normal genes", {
     
     # Shrunk values should be between original values and global mean
     global_mean <- params$global_mean[1]
-    for (i in 1:nrow(entropy_matrix)) {
-        for (j in 1:ncol(entropy_matrix)) {
+    for (i in seq_len(nrow(entropy_matrix))) {
+        for (j in seq_len(ncol(entropy_matrix))) {
             orig_val <- entropy_matrix[i, j]
             shrunk_val <- shrunk[i, j]
             
@@ -680,7 +680,7 @@ test_that("Shrinkage formula produces correct weighted average of observation an
     global_mean <- params$global_mean[1]
     
     # Check that genes with values far from mean are shrunk toward it
-    for (i in 1:nrow(entropy_matrix)) {
+    for (i in seq_len(nrow(entropy_matrix))) {
         mean_gene_entropy <- mean(entropy_matrix[i, ])
         
         # If gene entropy is below global mean, shrinkage should increase it

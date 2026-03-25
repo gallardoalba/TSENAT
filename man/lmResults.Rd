@@ -21,6 +21,8 @@ lmResults(object) <- value
 \item{component}{\code{character}. Which result component to extract.
 Options: NULL (all), "results", "lm_interaction", "q_interactions",
 "divergence_difference", etc.}
+
+\item{value}{A list of LM results to assign to the object.}
 }
 \value{
 List or data.frame depending on component requested.

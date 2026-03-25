@@ -18,6 +18,10 @@ entropy values at a single q value.}
 \item{assay_name}{Name of the assay to use (default: "diversity").}
 
 \item{title}{Optional base title. If NULL, auto-generated based on q value.}
+
+\item{output_file}{Character or NULL. Optional file path to save the plot as an image.
+If provided, the plot will be saved with appropriate dimensions.
+Default: NULL (no file output, only return object).}
 }
 \value{
 A `ggplot2` object showing a 1x2 grid with violin plot on the left and

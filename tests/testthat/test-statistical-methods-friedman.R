@@ -30,7 +30,7 @@ create_paired_diversity_se <- function(
   
   # Add q-dependent signal to first 10 genes
   q_vec <- rep(seq(0.1, 2.0, length.out = n_q_values), n_subjects)
-  for (i in 1:10) {
+  for (i in seq_len(10)) {
     # Add effect proportional to q-value
     diversity_matrix[i, ] <- diversity_matrix[i, ] + effect_size * q_vec
   }
@@ -818,7 +818,7 @@ test_that("detect_q_gene_interactions uses Kruskal-Wallis for paired=FALSE", {
 test_that("Friedman p-values are valid (between 0 and 1)", {
   set.seed(42)
   
-  for (i in 1:10) {
+  for (i in seq_len(10)) {
     # Random paired data
     n_subjects <- sample(4:8, 1)
     n_q <- sample(3:6, 1)
@@ -862,8 +862,8 @@ test_that("Friedman test can have better p-values than Kruskal-Wallis for paired
   q_effects <- c(-0.5, 0, 0.5)
   
   entropy <- numeric(n_subjects * n_q)
-  for (i in 1:n_subjects) {
-    for (j in 1:n_q) {
+  for (i in seq_len(n_subjects)) {
+    for (j in seq_len(n_q)) {
       idx <- (i-1)*n_q + j
       entropy[idx] <- 2 + subject_effects[i] + q_effects[j] + rnorm(1, sd=0.1)
     }
@@ -985,8 +985,8 @@ test_that("Paired analysis produces different results than unpaired on same data
   subject_effect <- rnorm(n_subjects, sd = 2)
   entropy_data <- numeric(n_subjects * n_q)
   
-  for (i in 1:n_subjects) {
-    for (j in 1:n_q) {
+  for (i in seq_len(n_subjects)) {
+    for (j in seq_len(n_q)) {
       idx <- (i-1)*n_q + j
       entropy_data[idx] <- 2 + subject_effect[i] + (j - n_q/2) * 0.3 + rnorm(1, sd=0.1)
     }
@@ -1118,8 +1118,8 @@ test_that("Friedman detects strong q-effect (low p-value)", {
   
   # Strong q-effect: entropy depends on q
   entropy <- numeric(n_subjects * n_q)
-  for (i in 1:n_subjects) {
-    for (j in 1:n_q) {
+  for (i in seq_len(n_subjects)) {
+    for (j in seq_len(n_q)) {
       idx <- (i-1)*n_q + j
       entropy[idx] <- 1 + (j - 1) * 0.8 + rnorm(1, sd=0.05)  # Strong effect, small noise
     }

@@ -126,7 +126,7 @@ test_that("plot_top_transcripts: many plots (>10)", {
   n_genes <- 12
   plots <- list()
   
-  for (i in 1:n_genes) {
+  for (i in seq_len(n_genes)) {
     df <- data.frame(x = rnorm(5), y = rnorm(5))
     p <- ggplot2::ggplot(df, ggplot2::aes(x = x, y = y)) +
       ggplot2::geom_point() +

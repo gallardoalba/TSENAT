@@ -15,6 +15,8 @@ plot_volcano_ma_grid_s4(
   title_ma = "Tsallis-based MA plot",
   verbose = FALSE,
   output_file = NULL,
+  width = 12,
+  height = 7.2,
   ...
 )
 }
@@ -49,6 +51,12 @@ Default: "Tsallis-based MA plot".}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
 Default: NULL (no file output).}
+
+\item{width}{\code{numeric}. Width of the output plot in inches (default: 12).
+Only used if output_file is provided.}
+
+\item{height}{\code{numeric}. Height of the output plot in inches (default: 7.2).
+Only used if output_file is provided.}
 
 \item{...}{Additional arguments passed to the base plotting function.}
 }
