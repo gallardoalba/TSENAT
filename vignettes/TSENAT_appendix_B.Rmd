@@ -129,8 +129,6 @@ Before applying rank-based methods, we verify that the entropy data meets the ke
 
 ```{r rank-assumptions-calculation, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
-# By default, tests the first q-value in diversity results
-# (For testing across all q-values at once, specify q=NULL and pre-combine results)
 analysis <- test_rankbased_assumptions_s4(
     analysis
 )
@@ -212,8 +210,9 @@ knitr::kable(data_characteristics,
 # paired=TRUE for repeated-measures design (subject_col="paired_samples" by default)
 analysis <- detect_q_gene_interactions_s4(
     analysis,
-    paired = TRUE,
-    multicorr = "hochberg",
+    # multicorr = "hochberg",
+    multicorr = "westfall-young",
+    wy_randomizations = 200,
     verbose = TRUE
 )
 
@@ -577,22 +576,27 @@ knitr::kable(concordance_metrics,
 
 ```{r concordance-agreement, message=FALSE, echo=FALSE}
 # === AGREEMENT CATEGORY BREAKDOWN ===
-agreement_breakdown <- data.frame(
-  Category = names(agreement_table),
-  Count = as.numeric(agreement_table),
-  Percentage = sprintf("%.1f%%", 100 * as.numeric(agreement_table) / sum(agreement_table))
-)
-
-colnames(agreement_breakdown) <- c("Agreement Category", "Number of Genes", "Percentage")
-
-knitr::kable(agreement_breakdown,
-             caption = "Method Agreement Distribution",
-             align = c("l", "r", "r"))
+if (!is.null(agreement_table) && length(agreement_table) > 0) {
+  agreement_breakdown <- data.frame(
+    Category = names(agreement_table),
+    Count = as.numeric(agreement_table),
+    Percentage = sprintf("%.1f%%", 100 * as.numeric(agreement_table) / sum(agreement_table)),
+    stringsAsFactors = FALSE
+  )
+  
+  colnames(agreement_breakdown) <- c("Agreement Category", "Number of Genes", "Percentage")
+  
+  knitr::kable(agreement_breakdown,
+               caption = "Method Agreement Distribution",
+               align = c("l", "r", "r"))
+} else {
+  cat("No agreement table available from concordance analysis.")
+}
 ```
 
 ```{r concordance-highconf, message=FALSE, echo=FALSE}
 # === HIGH-CONFIDENCE GENES (BOTH METHODS SIGNIFICANT) ===
-if (nrow(high_conf) > 0) {
+if (!is.null(high_conf) && nrow(high_conf) > 0) {
   # Sort by GAM adjusted p-value, then by Friedman adjusted p-value (both ascending)
   high_conf_sorted <- high_conf[order(high_conf$padj_gam, high_conf$padj_friedman), ]
   
@@ -609,6 +613,8 @@ if (nrow(high_conf) > 0) {
   knitr::kable(hc_display,
                caption = sprintf("Robust q-value Interactions: High-Confidence Genes Detected by Both Methods (n=%d, ranked by statistical significance)", nrow(high_conf)),
                align = c("l", "r", "r", "r", "r"))
+} else {
+  cat("No high-confidence genes detected by both methods (p < 0.05 in both GAM and Friedman tests).")
 }
 ```
 
@@ -616,9 +622,12 @@ if (nrow(high_conf) > 0) {
 
 ```{r concordance-plot, fig.width=10, fig.height=8}
 # Create comparison plot using S4 wrapper
-p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
-
-print(p)
+if (!is.null(comparison_df) && nrow(comparison_df) > 0) {
+  p <- plot_method_concordance_s4(analysis_with_concordance, verbose = TRUE)
+  print(p)
+} else {
+  cat("No data available for concordance visualization. Ensure both GAM and Friedman results have sufficient genes for comparison.")
+}
 ```
 
 ***

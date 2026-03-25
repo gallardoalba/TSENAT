@@ -1140,30 +1140,75 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
 #'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
-#' @param ... Additional arguments passed to the base function.
+#' @param paired \code{logical} or \code{NULL}. If TRUE, uses paired/blocked design 
+#'   (requires \code{subject_col}). If NULL, reads from \code{@config$paired}.
+#' @param subject_col \code{character} or \code{NULL}. Column name for subject/block identifiers
+#'   (required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.
+#' @param condition_col \code{character} or \code{NULL}. Column name for grouping/condition.
+#'   If NULL, reads from \code{@config$condition_col}.
+#' @param test \code{character}. Test method: "auto" (default), "kruskal-wallis" (unpaired),
+#'   "friedman" (paired), or "art" (aligned rank transform).
+#' @param multicorr \code{character}. Multiple testing correction: "hochberg" (default),
+#'   "benjamini-yekutieli", "westfall-young", or "none".
+#' @param entropy_col \code{character}. Column name containing entropy/diversity data.
+#'   Default: "diversity".
+#' @param q_col \code{character}. Column name containing q-values. Default: "q".
+#' @param gene_col \code{character}. Column name containing gene identifiers. Default: "gene".
+#' @param wy_randomizations \code{numeric} or \code{character}. Number of permutations for 
+#'   Westfall-Young correction. Use "auto" to estimate from data. Default: 500.
+#' @param nperm_mode \code{character}. Mode for automatic permutation estimation:
+#'   "standard" (default), "conservative", or "interactive".
+#' @param nthreads \code{numeric} or \code{NULL}. Number of parallel threads for computation.
+#'   If NULL, reads from \code{@config$nthreads}.
+#' @param verbose \code{logical}. If TRUE, prints progress messages. Default: FALSE.
+#' @param ... Additional arguments passed to the base \code{detect_q_gene_interactions()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
 #' @details
-#' Analyzes how gene interactions change across q-value spectrum.
+#' Analyzes how gene interactions change across q-value spectrum using rank-based
+#' (Friedman/Kruskal-Wallis) or parametric (GAM) statistical tests.
 #'
-#' **Parameter resolution priority** (explicit > @config > extract from results):
+#' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
-#'   \item \code{q}: Uses explicit arg, else \code{@config$q_values},
-#'     else extracts from diversity_results keys
+#'   \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
+#'   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
+#'   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
+#'   \item \code{condition_col}: explicit arg > \code{@config$condition_col}
+#'   \item \code{multicorr}: explicit arg > \code{@config$multicorr} > "hochberg"
+#'   \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
+#'   \item \code{test}: explicit arg > \code{@config$test} > "auto" (auto-selection)
+#'   \item \code{nperm_mode}: explicit arg > \code{@config$nperm_mode} > "standard"
 #' }
 #'
 #' @examples
 #' analysis <- create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_lm_interaction_s4(analysis,
-#'   condition_col = "condition", verbose = FALSE)
-#' analysis <- detect_q_gene_interactions_s4(analysis, q = c(0.5, 1.0, 1.5))
-#' head(lmResults(analysis)$lm_interaction)
+#' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+#' 
+#' # Use config-stored parameters (paired design)
+#' analysis <- detect_q_gene_interactions_s4(analysis, multicorr = "hochberg")
+#' head(lmResults(analysis)$q_interactions)
 #'
 #' @export
 #' @importFrom utils write.table
-detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL, ...) {
+detect_q_gene_interactions_s4 <- function(
+    analysis, 
+    q = NULL, 
+    output_file = NULL,
+    paired = NULL,
+    subject_col = NULL,
+    condition_col = NULL,
+    test = c("auto", "kruskal-wallis", "friedman", "art"),
+    multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
+    entropy_col = "diversity",
+    q_col = "q",
+    gene_col = "gene",
+    wy_randomizations = 500,
+    nperm_mode = c("standard", "conservative", "interactive"),
+    nthreads = NULL,
+    verbose = FALSE,
+    ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1175,15 +1220,82 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL
   }
 
   # =========================================================================
-  # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > extract from results)
+  # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > default/auto-detect)
   # =========================================================================
-  # If q not provided, check @config
+  
+  # Prepare dots for additional arguments
+  dots <- list(...)
+  
+  # Match test and multicorr enums early
+  if (!missing(test)) {
+    test <- match.arg(test)
+    dots$test <- test
+  } else if ("test" %in% names(analysis@config)) {
+    dots$test <- analysis@config$test
+  }
+  
+  if (!missing(multicorr)) {
+    multicorr <- match.arg(multicorr)
+    dots$multicorr <- multicorr
+  } else if ("multicorr" %in% names(analysis@config)) {
+    dots$multicorr <- analysis@config$multicorr
+  }
+  
+  if (!missing(nperm_mode)) {
+    nperm_mode <- match.arg(nperm_mode)
+    dots$nperm_mode <- nperm_mode
+  } else if ("nperm_mode" %in% names(analysis@config)) {
+    dots$nperm_mode <- analysis@config$nperm_mode
+  }
+  
+  # Add column specification parameters
+  dots$entropy_col <- entropy_col
+  dots$q_col <- q_col
+  dots$gene_col <- gene_col
+  
+  # 1. q-values: explicit > @config > extract from diversity_results keys
   if (is.null(q)) {
     if ("q_values" %in% names(analysis@config)) {
       q <- analysis@config$q_values
     }
     # Otherwise, will extract from diversity_results keys below
   }
+  
+  # 2. paired: explicit > @config (design structure parameter)
+  if (is.null(paired) && "paired" %in% names(analysis@config)) {
+    paired <- analysis@config$paired
+  }
+  if (!is.null(paired)) {
+    dots$paired <- paired
+  }
+  
+  # 3. subject_col: explicit > @config (required for paired analyses)
+  if (is.null(subject_col) && "subject_col" %in% names(analysis@config)) {
+    subject_col <- analysis@config$subject_col
+  }
+  if (!is.null(subject_col)) {
+    dots$subject_col <- subject_col
+  }
+  
+  # 4. condition_col: explicit > @config (optional grouping column)
+  if (is.null(condition_col) && "condition_col" %in% names(analysis@config)) {
+    condition_col <- analysis@config$condition_col
+  }
+  if (!is.null(condition_col)) {
+    dots$condition_col <- condition_col
+  }
+  
+  # 5. nthreads: explicit > @config (computation parameter)
+  if (is.null(nthreads) && "nthreads" %in% names(analysis@config)) {
+    nthreads <- analysis@config$nthreads
+  }
+  if (!is.null(nthreads)) {
+    dots$nthreads <- nthreads
+  }
+  
+  # 6. wy_randomizations and verbose (add if not already in dots)
+  dots$wy_randomizations <- wy_randomizations
+  dots$verbose <- verbose
 
   # =========================================================================
   # OPTIMIZATION (B: Lazy Conversion):
@@ -1337,11 +1449,9 @@ detect_q_gene_interactions_s4 <- function(analysis, q = NULL, output_file = NULL
   }
 
   # Run q-interaction detection on combined SE
+  # Use merged dots (config parameters + explicit overrides)
   result <- tryCatch({
-    detect_q_gene_interactions(
-      data = se_multi_q,
-      ...
-    )
+    do.call(detect_q_gene_interactions, c(list(data = se_multi_q), dots))
   }, error = function(e) {
     stop("q-interaction detection failed:\n", e$message,
          call. = FALSE)
