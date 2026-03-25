@@ -2,6 +2,8 @@
 # Local R check directories and temporary package checks
 *.bak
 docs/
+database/
+output/
 coverage/
 .DS_Store
 inst/doc/
