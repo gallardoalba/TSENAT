@@ -44,3 +44,7 @@ analysis <- TSENATAnalysis(se)
 # jk_results <- jackKnife(analysis, q = 1.0)
 
 }
+\seealso{
+Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+\code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+}

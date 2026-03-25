@@ -21,6 +21,11 @@ SummarizedExperiment or data.frame with divergence metrics.
 \description{
 Extract divergence results
 }
+\details{
+Divergence results are stored in @divergence_results with component names
+corresponding to different divergence metrics. Use \code{divergence(analysis)}
+to retrieve all components or specify a component for targeted extraction.
+}
 \examples{
 library(SummarizedExperiment)
 se <- SummarizedExperiment(
@@ -30,4 +35,8 @@ se <- SummarizedExperiment(
 analysis <- TSENATAnalysis(se)
 div <- divergence(analysis)  # Returns empty list until divergence analysis runs
 
+}
+\seealso{
+Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{jackKnife}},
+\code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
 }

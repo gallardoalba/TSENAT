@@ -38,3 +38,7 @@ analysis <- TSENATAnalysis(se)
 diversity_list <- diversity(analysis)  # Empty until analysis runs
 
 }
+\seealso{
+Other TSENATAnalysis accessors: \code{\link{divergence}}, \code{\link{jackKnife}},
+\code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+}

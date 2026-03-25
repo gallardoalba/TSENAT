@@ -1,3 +1,66 @@
+## OPTIMIZATION HELPERS: Internal utilities for mapping functions
+# Remove _q=... or _qX.X suffixes from sample/column names
+# @noRd
+.strip_q_suffix <- function(names) {
+    sub("_q=.*", "", names)
+}
+
+# Remove _q=... or _qX.X suffixes (handles both formats)
+# @noRd
+.strip_q_format <- function(names) {
+    sub("_q[=0-9].*", "", names)
+}
+
+# Create sample-to-condition mapping (OPTIMIZATION: consolidated from 4 duplicate implementations)
+# @noRd
+.create_sample_type_map <- function(coldata, sample_col_idx, condition_col_idx) {
+    setNames(as.character(coldata[[condition_col_idx]]), 
+             as.character(coldata[[sample_col_idx]]))
+}
+
+# Create pairing/batch mapping
+# @noRd
+.create_mapping <- function(coldata, col_idx, name_col_idx) {
+    setNames(as.character(coldata[[col_idx]]), 
+             as.character(coldata[[name_col_idx]]))
+}
+
+# Resolve gene names with fallback logic (OPTIMIZATION: consolidated from 6-step process)
+# @noRd
+.resolve_gene_names <- function(se, df_nrows) {
+    # Step 1: Try rowData gene_name
+    rd <- SummarizedExperiment::rowData(se)
+    if (!is.null(rd) && nrow(rd) > 0 && "gene_name" %in% colnames(rd)) {
+        return(rd$gene_name)
+    }
+    
+    # Step 2: Try gene_ids from metadata
+    gene_ids <- .get_gene_ids(se)
+    if (!is.null(gene_ids) && length(gene_ids) == df_nrows) {
+        return(gene_ids)
+    }
+    
+    # Step 3: Try rownames
+    rn <- rownames(se)
+    if (!is.null(rn) && length(rn) == df_nrows && !all(is.na(rn))) {
+        return(rn)
+    }
+    
+    # Step 4: Generate fallback names
+    paste0("gene_", seq_len(df_nrows))
+}
+
+# Check required packages and stop if missing
+# @noRd
+.check_required_packages <- function(packages) {
+    for (pkg in packages) {
+        if (!requireNamespace(pkg, quietly = TRUE)) {
+            stop(pkg, " required")
+        }
+    }
+    invisible(TRUE)
+}
+
 ## Helper: Map external coldata into a SummarizedExperiment
 #' @keywords internal
 #' @noRd
@@ -63,7 +126,8 @@
             stop(msg, call. = FALSE)
         }
     }
-    sample_base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(ts_se)))
+    # OPTIMIZATION: Use .strip_q_suffix() helper
+    sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
 
     # Reorder the SummarizedExperiment columns following the order in coldata.
     # Note: For paired analyses, the explicit pairing information is stored in
@@ -89,13 +153,20 @@
     }
     
     # Create a mapping from sample names to their pairing information (coldata_base)
-    pairing_map <- setNames(coldata_base, as.character(coldata[[sample_col_idx]]))
+    if (ncol(coldata) < 3) {
+        # No explicit pairing column - use coldata_base extracted from sample names
+        pairing_map <- setNames(coldata_base, as.character(coldata[[sample_col_idx]]))
+    } else {
+        # Use explicit pairing column (column 3)
+        pairing_map <- .create_mapping(coldata, 3, sample_col_idx)
+    }
     sample_pairing <- unname(pairing_map[sample_base_names])
     
     # Create a mapping for actual sample base names (always from Sample column)
     sample_name_map <- setNames(as.character(coldata[[sample_col_idx]]), as.character(coldata[[sample_col_idx]]))
     
-    st_map <- setNames(as.character(coldata[[condition_col_idx]]), as.character(coldata[[sample_col_idx]]))
+    # OPTIMIZATION: Use .create_sample_type_map() helper
+    st_map <- .create_sample_type_map(coldata, sample_col_idx, condition_col_idx)
     sample_types <- unname(st_map[sample_base_names])
     missing_idx <- which(is.na(sample_types))
     if (length(missing_idx) > 0) {
@@ -123,24 +194,13 @@
         # Assay has been expanded (multiple q-values per sample)
         # Expand colData to match by repeating rows for each q-value
         col_data <- SummarizedExperiment::colData(ts_se)
-        sample_names_full <- sub("_q=.*", "", assay_cols)
+        sample_names_full <- .strip_q_suffix(assay_cols)
         
-        # Find original colData row for each assay column's sample
+        # OPTIMIZATION: Use vectorized match() instead of loop with which() - O(n) vs O(n*m)
         sample_col_values <- as.character(coldata[[sample_col_idx]])
-        
-        # Map each sample name to its original row index
-        expanded_rows <- integer(n_assay_cols)
-        for (i in seq_along(assay_cols)) {
-            sample_name <- sample_names_full[i]
-            # Find matching row in original coldata
-            match_idx <- which(sample_col_values == sample_name)[1]
-            if (!is.na(match_idx)) {
-                expanded_rows[i] <- match_idx
-            } else {
-                # If no match found, use first row as fallback
-                expanded_rows[i] <- 1
-            }
-        }
+        expanded_rows <- match(sample_names_full, sample_col_values)
+        # Replace NA with 1 (fallback to first row)
+        expanded_rows[is.na(expanded_rows)] <- 1
         
         # Expand colData using the mapped indices
         new_col_data <- col_data[expanded_rows, ]
@@ -154,7 +214,8 @@
     # NOW set sample_type and pairing column after colData expansion is complete
     # This ensures all rows have these values properly assigned
     col_data_final <- SummarizedExperiment::colData(ts_se)
-    sample_names_final <- sub("_q=.*", "", rownames(col_data_final))
+    # OPTIMIZATION: Use .strip_q_suffix() helper
+    sample_names_final <- .strip_q_suffix(rownames(col_data_final))
     
     # Map each expanded row's sample name to its condition and pairing
     col_data_final$sample_type <- unname(st_map[sample_names_final])
@@ -192,8 +253,8 @@
     # vignette and plotting helpers can use a ready-made table.
     if ("diversity" %in% SummarizedExperiment::assayNames(ts_se)) {
         div_mat <- as.matrix(SummarizedExperiment::assay(ts_se, "diversity"))
-        # sample base names without per-q suffixes
-        sample_base_names <- sub("_q=.*", "", colnames(div_mat))
+        # OPTIMIZATION: Use .strip_q_suffix() helper
+        sample_base_names <- .strip_q_suffix(colnames(div_mat))
         # prefer explicit sample_type in colData when present
         samples_vec <- NULL
         if ("sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
@@ -225,11 +286,12 @@ map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
     # dataset by assigning a single default group 'Group' to all samples (this
     # permits plotting single-condition q-curves).
     
+    # OPTIMIZATION: Use .strip_q_suffix() helper
     # Get base names from either mat or se
     if (!is.null(mat)) {
-        base_names <- sub("_q=.*", "", colnames(mat))
+        base_names <- .strip_q_suffix(colnames(mat))
     } else if (!is.null(se)) {
-        base_names <- sub("_q=.*", "", colnames(SummarizedExperiment::assay(se)))
+        base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(se)))
     } else {
         # Both are NULL - return default group for all samples
         return(setNames(rep("Group", length(sample_names)), sample_names))
@@ -256,26 +318,17 @@ map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
 # Prepare a long-format data.frame for a simple assay (one value per sample)
 get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
     condition_col = NULL) {
-    if (!requireNamespace("tidyr", quietly = TRUE)) {
-        stop("tidyr required")
-    }
-    if (!requireNamespace("dplyr", quietly = TRUE)) {
-        stop("dplyr required")
-    }
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
-        stop("SummarizedExperiment required")
-    }
+    # OPTIMIZATION: Use .check_required_packages() helper
+    .check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
 
     mat <- SummarizedExperiment::assay(se, assay_name)
     if (is.null(mat)) {
         stop("Assay not found: ", assay_name)
     }
     df <- as.data.frame(mat)
-    genes_col <- .get_gene_ids(se)
-    if (is.null(genes_col)) {
-        genes_col <- rownames(df)
-    }
-    df <- cbind(df, Gene = genes_col)
+    # OPTIMIZATION: Use .resolve_gene_names() helper
+    genes_col <- .resolve_gene_names(se, nrow(df))
+    df <- data.frame(Gene = genes_col, df, row.names = NULL, stringsAsFactors = FALSE, check.names = FALSE)
     long <- tidyr::pivot_longer(df, -Gene, names_to = "sample", values_to = value_name)
 
     # sample_type: prefer explicit colData mapping when available. If not
@@ -285,7 +338,8 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
         st <- as.character(SummarizedExperiment::colData(se)[, condition_col])
         names(st) <- colnames(mat)
         st_map <- st[!duplicated(names(st))]
-        sample_base <- sub("_q=.*", "", long$sample)
+        # OPTIMIZATION: Use .strip_q_suffix() helper
+        sample_base <- .strip_q_suffix(long$sample)
         long$sample_type <- unname(st_map[sample_base])
         missing_idx <- which(is.na(long$sample_type))
         if (length(missing_idx) > 0) {
@@ -311,54 +365,24 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
 # Internal small helper: prepare long-format tsallis data from a
 # SummarizedExperiment
 prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "sample_type") {
-    if (!requireNamespace("tidyr", quietly = TRUE)) {
-        stop("tidyr required")
-    }
-    if (!requireNamespace("dplyr", quietly = TRUE)) {
-        stop("dplyr required")
-    }
-    if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
-        stop("SummarizedExperiment required")
-    }
+    # OPTIMIZATION: Use .check_required_packages() helper
+    .check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
 
     mat <- SummarizedExperiment::assay(se, assay_name)
     if (is.null(mat)) {
         stop("Assay not found: ", assay_name)
     }
+    
+    # OPTIMIZATION: Use .resolve_gene_names() helper (consolidates 6 fallback steps)
+    genes_col <- .resolve_gene_names(se, nrow(mat))
+    genes_col <- as.character(genes_col)
+    
+    # Create data frame with Gene column as first column
+    # Important: Create df first with rownames, then add Gene column explicitly
     df <- as.data.frame(mat)
-    
-    # Prefer gene names if available in rowData, otherwise use gene IDs, then fall back to rownames
-    rd <- SummarizedExperiment::rowData(se)
-    genes_col <- if (!is.null(rd) && nrow(rd) > 0 && "gene_name" %in% colnames(rd)) {
-        rd$gene_name
-    } else {
-        gene_ids <- .get_gene_ids(se)
-        if (is.null(gene_ids)) {
-            rn <- rownames(se)
-            if (is.null(rn) || all(is.na(rn))) {
-                # Fallback: generate names if rownames don't exist
-                paste0("gene_", seq_len(nrow(df)))
-            } else {
-                rn
-            }
-        } else {
-            gene_ids
-        }
-    }
-    
-    # Ensure genes_col has correct length and proper format
-    if (is.null(genes_col)) {
-        genes_col <- paste0("gene_", seq_len(nrow(df)))
-    } else if (length(genes_col) != nrow(df)) {
-        genes_col <- paste0("gene_", seq_len(nrow(df)))
-    } else {
-        genes_col <- as.character(genes_col)
-    }
-    
-    # Create Gene column explicitly as first column for pivot_longer
-    df <- data.frame(Gene = genes_col, df, row.names = NULL, stringsAsFactors = FALSE, check.names = FALSE)
+    df <- cbind(Gene = genes_col, df, stringsAsFactors = FALSE)
 
-    long <- tidyr::pivot_longer(df, -Gene, names_to = "sample_q", values_to = "tsallis")
+    long <- tidyr::pivot_longer(df, cols = -Gene, names_to = "sample_q", values_to = "tsallis")
     
     # Handle different column naming conventions
     # Convention 1: Old format "sample_q=X.X" (from calculate_diversity multi-q)
@@ -374,8 +398,8 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
         long <- long[valid_numeric, ]
       }
     } else if (any(grepl("_q[0-9]", long$sample_q))) {
-      # New format with _qX.X - extract sample and q
-      long$sample <- sub("_q[0-9].*$", "", long$sample_q)
+      # New format with _qX.X - extract sample and q using helper
+      long$sample <- .strip_q_format(long$sample_q)
       long$q <- as.numeric(sub("^.*_q", "", long$sample_q))
     } else {
       long$sample <- long$sample_q
@@ -390,19 +414,19 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
         
         # Create a mapping from unique sample names to sample type
         # Handle both "_q=" format (old) and "_qX.X" format (new)
-        assay_cols_unique <- unique(sub("_q[=0-9].*", "", colnames(mat)))
+        assay_cols_unique <- unique(.strip_q_format(colnames(mat)))
         st_map <- setNames(rep(NA_character_, length(assay_cols_unique)), assay_cols_unique)
         
         # Strategy 1: If colData has rownames set, use them to build mapping
         if (!is.null(col_rownames) && length(col_rownames) > 0 && !all(is.na(col_rownames))) {
             # colData rownames should be the full assay column names (with _q suffixes)
             # Extract unique sample names from colData rownames
-            col_rownames_unique <- unique(sub("_q[=0-9].*", "", col_rownames))
+            col_rownames_unique <- unique(.strip_q_format(col_rownames))
             
             # For each unique sample in colData rownames, find its sample type
             for (sname in col_rownames_unique) {
                 # Find first row matching this sample name
-                matching_idx <- which(sub("_q[=0-9].*", "", col_rownames) == sname)[1]
+                matching_idx <- which(.strip_q_format(col_rownames) == sname)[1]
                 if (!is.na(matching_idx)) {
                     st_map[sname] <- col_st[matching_idx]
                 }
@@ -415,7 +439,7 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
             # Create mapping by extracting unique sample from each column
             for (i in seq_along(assay_cols_unique)) {
                 # Find first occurrence of this sample in assay columns
-                first_col_idx <- which(sub("_q[=0-9].*", "", colnames(mat)) == assay_cols_unique[i])[1]
+                first_col_idx <- which(.strip_q_format(colnames(mat)) == assay_cols_unique[i])[1]
                 if (!is.na(first_col_idx) && first_col_idx <= nrow(col_data)) {
                     st_map[assay_cols_unique[i]] <- col_st[first_col_idx]
                 }

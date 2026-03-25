@@ -32,3 +32,7 @@ analysis <- TSENATAnalysis(se)
 all_meta <- metadata(analysis)
 
 }
+\seealso{
+Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+\code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{se}}
+}

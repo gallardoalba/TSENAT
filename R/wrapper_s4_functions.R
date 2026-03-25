@@ -1556,6 +1556,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
 #' names(metadata(analysis, "rankbased_assumptions"))
 #'
 #' @export
+#' @rdname test_rankbased_assumptions_s4
 setMethod(
   "test_rankbased_assumptions_s4",
   signature(analysis = "TSENATAnalysis"),

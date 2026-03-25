@@ -141,17 +141,26 @@ test_that("getConfig: returns configuration list", {
   expect_is(config, "list")
 })
 
-test_that("setConfig: updates configuration", {
+test_that("tsenat_config: creates analysis with custom configuration", {
+  # Test that configuration can be set via factory function (public API)
+  # Note: setConfig is now internal; configuration should be set at object creation
   analysis <- create_test_analysis()
   
-  new_config <- list(
+  # Create new analysis with custom config via factory function
+  custom_config <- TSENAT::tsenat_config(
     condition_col = "condition",
     q_values = c(0.01, 0.5, 1.0),
     nthreads = 2
   )
   
-  analysis_updated <- TSENAT::setConfig(analysis, new_config)
-  expect_s4_class(analysis_updated, "TSENATAnalysis")
+  analysis_with_config <- TSENAT::TSENATAnalysis(
+    SummarizedExperiment::se(analysis),
+    config = custom_config
+  )
+  
+  expect_s4_class(analysis_with_config, "TSENATAnalysis")
+  config <- TSENAT::getConfig(analysis_with_config)
+  expect_equal(config$condition_col, "condition")
 })
 
 test_that("getDiversity: callable on valid object", {

@@ -41,3 +41,7 @@ se_extracted <- se(analysis)
 nrow(se_extracted)  # Number of genes/transcripts
 
 }
+\seealso{
+Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+\code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{metadata}}
+}

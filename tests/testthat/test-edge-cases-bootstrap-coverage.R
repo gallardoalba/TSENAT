@@ -13,10 +13,24 @@
 # Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
 options(TSENAT.suppress_nboot_warning = TRUE)
 
-# Redirect all output to null device to silence tests completely
-.null_file <- file(if (.Platform$OS.type == "windows") "nul" else "/dev/null", open = "w")
-sink(.null_file, type = "output")
-sink(.null_file, type = "message")
+# Helper function to manage null device connection safely
+.setup_null_device <- function() {
+    .null_file <- file(if (.Platform$OS.type == "windows") "nul" else "/dev/null", open = "w")
+    sink(.null_file, type = "output")
+    sink(.null_file, type = "message")
+    .null_file  # Return for cleanup
+}
+
+.cleanup_null_device <- function(.null_file) {
+    tryCatch(sink(type = "output"), error = function(e) NULL)
+    tryCatch(sink(type = "message"), error = function(e) NULL)
+    if (!is.null(.null_file)) {
+        tryCatch(close(.null_file), error = function(e) NULL)
+    }
+}
+
+# Open null device once for all tests in this file
+.null_file <- .setup_null_device()
 
 test_that("calculate_tsallis_entropy_bootstrap with matrix input and nthreads > 1", {
   # Test parallel processing with multiple genes
@@ -679,6 +693,5 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
   expect_true(!is.null(result_2))
 })
 
-# Restore normal output handling
-tryCatch(sink(type = "output"), error = function(e) NULL)  # Restore output
-tryCatch(sink(type = "message"), error = function(e) NULL)  # Restore messages
+# Restore normal output handling (cleanup for unclosed connection warning)
+.cleanup_null_device(.null_file)

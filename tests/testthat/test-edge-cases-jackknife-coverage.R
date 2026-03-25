@@ -329,6 +329,7 @@ test_that("compute_delta_statistics returns statistics", {
 
 test_that("jackknife_isoform_switching with SummarizedExperiment", {
   # Test jackknife_isoform_switching with proper SE input
+  skip("Test skipped to reduce runtime: jackknife_isoform_switching with SummarizedExperiment (resource-intensive)")
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   

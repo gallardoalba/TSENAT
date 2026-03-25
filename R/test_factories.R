@@ -19,12 +19,8 @@
 #' - Sufficient samples (40 total: 20 per group)
 #' - Multiple q-values avoid rank deficiency
 #'
-#' @examples
-#' # Create with defaults
-#' analysis <- create_test_analysis()
-#' head(diversity(analysis, q = 1.0))
-#'
-#' @export
+#' @keywords internal
+#' @noRd
 create_test_analysis <- function(
     n_genes = 8,
     n_samples_per_group = 20,
@@ -125,7 +121,7 @@ create_test_analysis <- function(
 #' @return Minimal TSENATAnalysis
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 create_lightweight_analysis <- function(
     n_genes = 4,
     n_samples = 8,

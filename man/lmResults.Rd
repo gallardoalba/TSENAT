@@ -46,3 +46,7 @@ analysis <- TSENATAnalysis(se)
 all_lm <- lmResults(analysis)  # Returns empty list until analysis runs
 
 }
+\seealso{
+Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+\code{\link{jackKnife}}, \code{\link{se}}, \code{\link{metadata}}
+}

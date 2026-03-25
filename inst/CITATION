@@ -1,7 +1,7 @@
 citHeader("To cite TSENAT in publications use:")
 
 bibentry(
-    entry = "Manual",
+    bibtype = "Manual",
     title = "TSENAT: Tsallis Entropy Analysis Toolbox",
     author = c(as.person("Cristobal Gallardo")),
     year = 2026,
@@ -12,7 +12,7 @@ bibentry(
 citHeader("Also cite the original SplicingFactory paper used as basis:")
 
 bibentry(
-    entry    = "Article",
+    bibtype  = "Article",
     title    = "SplicingFactory - Splicing diversity analysis for transcriptome data",
     author   = c(
         as.person("Benedek Danko"),

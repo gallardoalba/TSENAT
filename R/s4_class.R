@@ -246,6 +246,10 @@ TSENATAnalysis <- function(se, config = list()) {
 #' Use \code{diversity(analysis)} to get all results as a list, or
 #' \code{diversity(analysis, q=1.0)} for a specific q-value.
 #'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{divergence}}, \code{\link{jackKnife}},
+#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+#'
 #' @examples
 #' # Create minimal SummarizedExperiment
 #' library(SummarizedExperiment)
@@ -350,6 +354,10 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' Use \code{lmResults(analysis)} to get all components, or specify component type
 #' for targeted extraction.
 #'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+#' \code{\link{jackKnife}}, \code{\link{se}}, \code{\link{metadata}}
+#'
 #' @examples
 #' # With an analysis object that has lm results
 #' library(SummarizedExperiment)
@@ -435,6 +443,10 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' Jackknife results are stored per q-value. Use this to access confidence
 #' intervals and diagnostic information from resampling.
 #'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+#'
 #' @examples
 #' library(SummarizedExperiment)
 #' library(S4Vectors)
@@ -495,6 +507,15 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #'   "tsallis_divergence", "effect_sizes", etc.
 #'
 #' @return SummarizedExperiment or data.frame with divergence metrics.
+#'
+#' @details
+#' Divergence results are stored in @divergence_results with component names
+#' corresponding to different divergence metrics. Use \code{divergence(analysis)}
+#' to retrieve all components or specify a component for targeted extraction.
+#'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{jackKnife}},
+#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
 #'
 #' @examples
 #' library(SummarizedExperiment)
@@ -877,13 +898,15 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
 #' analysis <- setConfig(analysis, new_config)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 setGeneric("setConfig", function(object, value) {
   standardGeneric("setConfig")
 })
 
 #' @rdname setConfig
-#' @export
+#' @keywords internal
+#' @noRd
 setMethod("setConfig", "TSENATAnalysis", function(object, value) {
   if (!is.list(value)) {
     stop("Configuration must be a list", call. = FALSE)
@@ -914,13 +937,15 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' analysis <- TSENATAnalysis(se)
 #' analysis <- setConfigValue(analysis, "condition_col", "sample_type")
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 setGeneric("setConfigValue", function(object, key, value) {
   standardGeneric("setConfigValue")
 })
 
 #' @rdname setConfigValue
-#' @export
+#' @keywords internal
+#' @noRd
 setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
   config <- getConfig(object)
   if (is.null(config)) {
@@ -938,6 +963,10 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #'
 #' @details
 #' Provides type-safe accessor for the embedded \code{SummarizedExperiment}.
+#'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+#' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{metadata}}
 #'
 #' @examples
 #' library(SummarizedExperiment)
@@ -981,6 +1010,10 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' Provides type-safe accessor for analysis metadata (timestamps, function calls, 
 #' intermediate results, etc.).
 #'
+#' @seealso
+#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
+#' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{se}}
+#'
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
@@ -992,7 +1025,6 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #'
 #' @export
 #' @rdname metadata
-#' @export
 setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
   if (is.null(key)) {
     return(x@metadata)
