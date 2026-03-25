@@ -1132,7 +1132,7 @@ estimate_nperm <- function(
 #'   **Effect on statistical test (FIXED - March 2026):**
 #'   \itemize{
 #'     \item{\code{condition_col = NULL} (default): Tests **q main effect** - whether entropy varies across q-values (ignoring condition)}
-#'     \item{\code{condition_col = "sample_type"} (or any valid column): Tests **q × condition interaction** - whether the q-effect differs between conditions (e.g., normal vs tumor)}
+#'     \item{\code{condition_col = "sample_type"} (or any valid column): Tests **q * condition interaction** - whether the q-effect differs between conditions (e.g., normal vs tumor)}
 #'   }
 #'   
 #'   When condition_col provided, automatically uses:
@@ -1187,7 +1187,7 @@ estimate_nperm <- function(
 #'   - Tests whether q itself influences entropy (ignoring grouping)
 #'   - Useful for: Detecting which genes show q-value dependence broadly
 #'
-#' 2. **Q × Condition Interaction** (condition_col = "sample_type" or similar):
+#' 2. **Q * Condition Interaction** (condition_col = "sample_type" or similar):
 #'   - H0: The q-effect does NOT differ between conditions (groups)
 #'   - Accounts for both within-q and condition differences
 #'   - Tests whether entropy's pattern across q-values DIFFERS by condition (e.g., tumor vs normal)
@@ -1202,7 +1202,7 @@ estimate_nperm <- function(
 #'
 #' **Unpaired mode (paired=FALSE, default):**
 #'   - Q main effect: Tests whether entropy varies across q-parameters for each gene
-#'   - Q × condition interaction: Uses Scheirer-Ray-Hare test (non-parametric 2-way ANOVA)
+#'   - Q * condition interaction: Uses Scheirer-Ray-Hare test (non-parametric 2-way ANOVA)
 #'     - Tests if q-effect varies by condition
 #'     - Works on rank-transformed data
 #'     - No distributional assumptions
@@ -1217,18 +1217,18 @@ estimate_nperm <- function(
 #' **The AR(1) Q-Correlation Problem:**
 #' 
 #' Tsallis entropy exhibits strong autocorrelation across q-values:
-#' - ρ(k) = φ^|i-j| for Tsallis diversity (autocorrelation between q_i and q_j)
+#' - rho(k) = phi^|i-j| for Tsallis diversity (autocorrelation between q_i and q_j)
 #' - Adjacent q values (e.g., q=0.9 vs q=1.0) more correlated than distant ones
 #' - Standard Westfall-Young doesn't account for this structure
-#' - Result: Null distribution becomes TOO CONSERVATIVE, all adjusted p-values → 1.0
+#' - Result: Null distribution becomes TOO CONSERVATIVE, all adjusted p-values -> 1.0
 #' - Papers: S168-S175 document this correlation empirically across real TSENAT data
 #' 
 #' **Block-Permutation Solution:**
 #' 
 #' For a paired design with:
 #' - n = subjects, k = q-values, m = conditions
-#' - Design: Each subject × q × condition is exactly one observation
-#' - Total observations: n × k × m (e.g., 8 subjects × 41 q-values × 2 conditions = 656 obs)
+#' - Design: Each subject * q * condition is exactly one observation
+#' - Total observations: n * k * m (e.g., 8 subjects * 41 q-values * 2 conditions = 656 obs)
 #' 
 #' **Permutation procedure:**
 #' 1. Group data by (subject, q) pairs [preserves all q-q correlations]
@@ -1236,7 +1236,7 @@ estimate_nperm <- function(
 #'    - Keeps q-structure intact
 #'    - Keeps q-q correlations intact  
 #'    - Tests condition effect under exchangeability assumption
-#' 3. Refit tests on permuted data (q × condition interaction test)
+#' 3. Refit tests on permuted data (q * condition interaction test)
 #' 4. Build null distribution from ~200 permutations
 #' 5. Apply max-T procedure with monotonicity correction
 #' 
@@ -1250,28 +1250,28 @@ estimate_nperm <- function(
 #' 
 #' Empirical result:
 #' - BEFORE: Unadjusted p = 6.76e-18, Adjusted p = 1.0 (wrong!)
-#' - AFTER: Unadjusted p = 6.76e-18, Adjusted p ≈ 0.003 (correct, FWER-controlled)
+#' - AFTER: Unadjusted p = 6.76e-18, Adjusted p ~ 0.003 (correct, FWER-controlled)
 #' 
 #' **Implementation details:**
 #' 
 #' Conditional permutation based on test type:
-#' - If condition_col ≠ NULL: Permute condition assignments within subjects
-#'   - Tests: Does q × condition interaction exist?
+#' - If condition_col != NULL: Permute condition assignments within subjects
+#'   - Tests: Does q * condition interaction exist?
 #'   - Null: q effect is same in both conditions (H0)
 #' - If condition_col = NULL: Permute q assignments within subjects  
 #'   - Tests: Does q main effect exist?
 #'   - Null: entropy independent of q (H0)
 #' 
 #' Conditional test refitting:
-#' - If condition_col ≠ NULL: Refit .tsenat_test_q_condition_interaction()
+#' - If condition_col != NULL: Refit .tsenat_test_q_condition_interaction()
 #' - If condition_col = NULL: Refit .tsenat_apply_conditional_rank_test()
 #' 
 #' **Technical notes:**
 #' 1. Paired parameter IGNORED if paired=FALSE (global permutation used instead)
-#' 2. Subject must have all q×condition combinations (balanced design required)
+#' 2. Subject must have all q*condition combinations (balanced design required)
 #' 3. Unbalanced designs automatically handled (NA imputation)
-#' 4. Computational cost: O(n_genes × wy_randomizations) refit operations
-#'    - Typical: 88 genes × 200 perms = 17,600 rank tests
+#' 4. Computational cost: O(n_genes * wy_randomizations) refit operations
+#'    - Typical: 88 genes * 200 perms = 17,600 rank tests
 #'    - Runtime: ~60-120 seconds on 8-core system
 #' 
 #' References: Westfall & Young (1993), Song (2007), Saulsbury (2020), 
@@ -1279,7 +1279,7 @@ estimate_nperm <- function(
 #' 
 #' **Paired mode (paired=TRUE):**
 #'   - Q main effect: Uses Friedman test with subject blocking
-#'   - Q × condition interaction: Uses two-way Friedman (q within-subjects, condition between)
+#'   - Q * condition interaction: Uses two-way Friedman (q within-subjects, condition between)
 #'     - Tests if the pattern of entropy across q-values differs by condition
 #'   - Uses Westfall-Young Max T permutation test with BLOCKED permutations that 
 #'     respect within-subject pairing structure. Details:
@@ -1475,10 +1475,10 @@ detect_q_gene_interactions <- function(
       data[[subject_col_name]] <- rep(ts_coldata[[subject_col]], each = n_genes)
     }
     
-    # Add condition column if available (FIXED - March 2026: q × condition interaction testing)
+    # Add condition column if available (FIXED - March 2026: q * condition interaction testing)
     if (!is.null(condition_col) && condition_col %in% colnames(ts_coldata)) {
       data$condition <- rep(ts_coldata[[condition_col]], each = n_genes)
-      if (verbose) message(sprintf("Condition column '%s' added for q × condition interaction testing", condition_col))
+      if (verbose) message(sprintf("Condition column '%s' added for q * condition interaction testing", condition_col))
     }
     
     # Override column name parameters for converted data
@@ -1582,7 +1582,7 @@ detect_q_gene_interactions <- function(
     # Automatically selects appropriate rank-based test based on data structure:
     # 
     # Test Logic:
-    #   1. If condition column provided: Test Q × CONDITION INTERACTION
+    #   1. If condition column provided: Test Q * CONDITION INTERACTION
     #      (whether q-effect differs between conditions)
     #   2. Else: Test Q MAIN EFFECT only
     #      (whether entropy varies across q-values, ignoring grouping)
@@ -1599,13 +1599,13 @@ detect_q_gene_interactions <- function(
     #   - Extreme Skewness: Asymmetric distribution
     # 
     # These characteristics trigger:
-    #   - Heteroscedastic → Use ART instead of Kruskal-Wallis
-    #   - Boundary clustered → Use quantile-based comparison
-    #   - Highly skewed → Use robust median test
+    #   - Heteroscedastic -> Use ART instead of Kruskal-Wallis
+    #   - Boundary clustered -> Use quantile-based comparison
+    #   - Highly skewed -> Use robust median test
     
     # Perform test: Check if condition present to decide test type
     if ("condition" %in% colnames(gene_data)) {
-      # Test Q × CONDITION INTERACTION
+      # Test Q * CONDITION INTERACTION
       # This is a two-way design: Both q-values and condition are factors
       # Null Hypothesis H0: Q and condition are independent (no interaction)
       # Alternative HA: Gene's q-dependence differs across conditions
@@ -1622,7 +1622,7 @@ detect_q_gene_interactions <- function(
       )
       
       if (verbose && g_idx == 1) {
-        message("[detect_q_gene_interactions] Testing q × condition INTERACTION (not q main effect)")
+        message("[detect_q_gene_interactions] Testing q * condition INTERACTION (not q main effect)")
       }
     } else {
       # Test Q MAIN EFFECT only
@@ -1667,24 +1667,24 @@ detect_q_gene_interactions <- function(
     }
     
   # ========================================================================
-  # STEP 6: EFFECT SIZE COMPUTATION (η² = Eta-Squared)
+  # STEP 6: EFFECT SIZE COMPUTATION (eta^2 = Eta-Squared)
   # ========================================================================
   # Eta-squared measures proportion of variance explained by q-values
-  # Formula: η² = SS_q / SS_total
+  # Formula: eta^2 = SS_q / SS_total
   # 
   # Two cases:
   #   1. Q main effect only: Effect of all q-values on entropy
-  #   2. Q × Condition interaction: Combined effect of q and condition
+  #   2. Q * Condition interaction: Combined effect of q and condition
   # 
   # Interpretation:
-  #   η² < 0.01:  Small/no effect (gene robust across q)
-  #   η² 0.01-0.10: Medium effect (moderately q-dependent)
-  #   η² > 0.10:  Large effect (strongly q-dependent)
+  #   eta^2 < 0.01:  Small/no effect (gene robust across q)
+  #   eta^2 0.01-0.10: Medium effect (moderately q-dependent)
+  #   eta^2 > 0.10:  Large effect (strongly q-dependent)
   
     # Compute effect size (eta-squared)
     ss_total <- sum((gene_data$entropy - mean(gene_data$entropy, na.rm = TRUE))^2, na.rm = TRUE)
     
-    # Case 1: Q × Condition interaction (two-way design)
+    # Case 1: Q * Condition interaction (two-way design)
     # Compute both q and condition main effects, then residual
     if ("condition" %in% colnames(gene_data)) {
       # Overall mean entropy for this gene
@@ -1723,7 +1723,25 @@ detect_q_gene_interactions <- function(
     }
   }
   
-  # ========================================================================\n  # STEP 8: RESULT CLASSIFICATION & SORTING\n  # ========================================================================\n  # Classify each gene based on combined p-value and effect size criteria\n  # \n  # Classification Logic:\n  #   p > 0.05                           → \"Robust across q\" (no significant effect)\n  #   p ≤ 0.05 AND η² ≤ 0.01             → \"Moderately q-dependent\" (significant but small)\n  #   p ≤ 0.05 AND η² > 0.10             → \"Strongly q-dependent\" (significant & large)\n  # \n  # Key Design Decision: Use BOTH p-value and effect size\n  #   - p-value: Statistical significance (accounts for sample size)\n  #   - Effect size: Practical magnitude (accounts for biology)\n  #   - Combined approach: Identifies genes with large signal, not just sample size artifacts\n  #\n  # Edge Cases Handled:\n  #   - NA p-values → preserved in classification\n  #   - Zero-variation genes → classified as \"insufficient data\"\n  #   - Failed tests → classified as \"test failed\"\n  \n  # Classify results based on p-value and effect size\n  interaction_results$interaction_class <- classify_q_dependency(\n    interaction_results,\n    p_threshold = 0.05,                  # Standard significance level\n    eta2_threshold_moderate = 0.01,      # Small effect boundary\n    eta2_threshold_strong = 0.10         # Large effect boundary\n  )"
+  # ========================================================================
+  # STEP 8: RESULT CLASSIFICATION & SORTING
+  # ========================================================================
+  # Classify each gene based on combined p-value and effect size criteria
+  # 
+  # Classification Logic:
+  #   p > 0.05                           -> "Robust across q" (no significant effect)
+  #   p <= 0.05 AND eta^2 <= 0.01        -> "Moderately q-dependent" (significant but small)
+  #   p <= 0.05 AND eta^2 > 0.10         -> "Strongly q-dependent" (significant & large)
+  # 
+  # Key Design Decision: Use BOTH p-value and effect size
+  #   - p-value: Statistical significance (accounts for sample size)
+  #   - Effect size: Practical magnitude (accounts for biology)
+  #   - Combined approach: Identifies genes with large signal, not just sample size artifacts
+  #
+  # Edge Cases Handled:
+  #   - NA p-values -> preserved in classification
+  #   - Zero-variation genes -> classified as "insufficient data"
+  #   - Failed tests -> classified as "test failed"\n  \n  # Classify results based on p-value and effect size\n  interaction_results$interaction_class <- classify_q_dependency(\n    interaction_results,\n    p_threshold = 0.05,                  # Standard significance level\n    eta2_threshold_moderate = 0.01,      # Small effect boundary\n    eta2_threshold_strong = 0.10         # Large effect boundary\n  )"
   
   # Apply multiple testing correction for multi-q dependence (NEW - March 2026)
   # Q-values exhibit AR(1) correlation structure (Papers S168-S175)
@@ -1752,25 +1770,25 @@ detect_q_gene_interactions <- function(
     if (paired) {
       # Paired design: block-level permutations respecting (subject) structure
       if (has_condition) {
-        # Testing q × condition interaction: permute CONDITION assignments within each subject
+        # Testing q * condition interaction: permute CONDITION assignments within each subject
         # This preserves q-value structure (repeated measures) while testing condition effect under null
         # Under H0 (no q*condition interaction): condition assignments are exchangeable within subjects
         # 
         # AR(1) Q-CORRELATION HANDLING (critical for paired-by-condition design):
-        # ══════════════════════════════════════════════════════════════════════════════════════════════
-        # Q-values exhibit AR(1) correlation structure: ρ(k) = φ^|k-j| across q-indices
+        # ==============================================================================================================
+        # Q-values exhibit AR(1) correlation structure: rho(k) = phi^|k-j| across q-indices
         # (i.e., adjacent q-values more correlated than distant ones; see Papers S168-S175)
         # 
         # Block-level permutation naturally respects this correlation:
         # - Permuting condition within subject preserves ALL q-wise correlations
-        # - Each q-value appears in (2 conditions × 1 subject) in each permutation
+        # - Each q-value appears in (2 conditions * 1 subject) in each permutation
         # - Null distribution built from ~200 "exchange-blocks" (one per subject)
-        # - Effective sample size for null ≈ 200 blocks, not 1600 observations
+        # - Effective sample size for null ~ 200 blocks, not 1600 observations
         # - Westfall-Young max-T accounts for multiplicity across 41 correlated q-values
         # 
         # This is the KEY FIX for previous "all adj_p=1.0" issue:
-        # Previous: Permuted q assignments, breaking q-structure → null too conservative
-        # Now: Permute conditions only, preserve q-correlations → correct null distribution
+        # Previous: Permuted q assignments, breaking q-structure -> null too conservative
+        # Now: Permute conditions only, preserve q-correlations -> correct null distribution
         permute_fn_paired_condition <- function() {
           data_perm <- data_orig
           subject_levels <- unique(data_orig[[subject_col]])
@@ -1806,7 +1824,7 @@ detect_q_gene_interactions <- function(
     } else {
       # Unpaired design: global permutations
       if (has_condition) {
-        # Testing q × condition interaction: permute condition assignments globally
+        # Testing q * condition interaction: permute condition assignments globally
         permute_fn_unpaired_condition <- function() {
           data_perm <- data_orig
           data_perm$condition <- factor(sample(data_perm$condition))
@@ -1836,7 +1854,7 @@ detect_q_gene_interactions <- function(
         permute_fn = permute_function,
         refit_fn = function(data_perm) {
             # Refit rank tests with permuted data
-            # KEY FIX (March 2026): When condition present, test q × condition interaction
+            # KEY FIX (March 2026): When condition present, test q * condition interaction
             # (not just q main effect as before)
             # CHANGED: Track both test statistics AND p-values for proper WY adjustment
             perm_stats <- numeric(nrow(interaction_results))
@@ -1858,7 +1876,7 @@ detect_q_gene_interactions <- function(
                 # Refit appropriate rank test with permuted data
                 tryCatch({
                     if (has_condition && "condition" %in% colnames(gene_data_perm)) {
-                        # Test q × condition interaction on permuted data
+                        # Test q * condition interaction on permuted data
                         test_result_perm <- .tsenat_test_q_condition_interaction(
                             data = gene_data_perm,
                             value_col = "entropy",
@@ -2639,15 +2657,15 @@ detect_q_gene_interactions <- function(
 }
 
 
-#' Test q × condition interaction using Two-Way Within-Subject Methods
+#' Test q * condition interaction using Two-Way Within-Subject Methods
 #'
 #' Tests interaction between q-values and condition factor in paired/repeated-measures 
 #' settings using rank-based non-parametric methods.
 #'
 #' **Design:** Both q-values and condition are WITHIN-SUBJECT factors
 #'   - Subjects: N individuals (paired)
-#'   - Within each subject: k q-values × m conditions = km observations
-#'   - Example: 8 subjects, 41 q-values, 2 conditions = 8 × 41 × 2 = 656 measurements
+#'   - Within each subject: k q-values * m conditions = km observations
+#'   - Example: 8 subjects, 41 q-values, 2 conditions = 8 * 41 * 2 = 656 measurements
 #'
 #' **Statistical approach (FIXED - March 2026):**
 #' For true two-way within-subject design, ranks ALL observations within each 
@@ -2692,7 +2710,7 @@ detect_q_gene_interactions <- function(
         stop("Column '", q_col, "' not found in data")
     }
     if (!condition_col %in% colnames(data)) {
-        stop("Column '", condition_col, "' not found in data; q × condition interaction cannot be tested without condition factor")
+        stop("Column '", condition_col, "' not found in data; q * condition interaction cannot be tested without condition factor")
     }
     if (paired && !subject_col %in% colnames(data)) {
         stop("Column '", subject_col, "' not found in data (required for paired analysis)")
@@ -2715,7 +2733,7 @@ detect_q_gene_interactions <- function(
         data$ranks <- rank(data[[value_col]], na.last = "keep")
     }
     
-    # Apply Scheirer-Ray-Hare test for q × condition interaction
+    # Apply Scheirer-Ray-Hare test for q * condition interaction
     # Works for both paired (within-subject ranks) and unpaired (global ranks) cases
     tryCatch({
         # Convert factors if needed
