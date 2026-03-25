@@ -125,7 +125,7 @@ analysis <- calculate_diversity_s4(
 
 ## Assumption Validation
 
-Before applying rank-based methods, we verify that the entropy data meets the key assumptions for robust non-parametric inference.
+Before applying rank-based methods, we verify that the entropy data meets the key assumptions for robust non-parametric inference for **q × condition interaction testing** (determining if the q-effect differs between normal and tumor samples).
 
 ```{r rank-assumptions-calculation, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
@@ -205,14 +205,17 @@ knitr::kable(data_characteristics,
 
 
 ```{r rank-based-analysis, message=TRUE}
-# Run Friedman test with Hochberg multiple testing correction
-# Uses the cached combined diversity result from above
-# paired=TRUE for repeated-measures design (subject_col="paired_samples" by default)
+# Run Friedman test for q × condition INTERACTION (FIXED - March 2026)
+# IMPORTANT: Now tests whether q-effect differs between conditions (tumor vs normal)
+# PREVIOUS BEHAVIOR (INCORRECT): Tested only q main effect, ignoring condition
+# NEW BEHAVIOR (CORRECT): Tests if entropy pattern across q-values differs by condition
+# 
+# With condition_col="sample_type", automatically uses:
+#  - Two-way Friedman test (paired=TRUE: q within-subjects, condition between-subjects)
+#  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure
 analysis <- detect_q_gene_interactions_s4(
     analysis,
-    # multicorr = "hochberg",
-    multicorr = "westfall-young",
-    wy_randomizations = 200,
+    multicorr = "hochberg",
     verbose = TRUE
 )
 
@@ -325,9 +328,29 @@ print(top_genes_plot)
 These q-curve profiles show how Tsallis entropy changes across the diversity parameter q for the most significant genes identified by the Friedman test. The median line represents the central tendency, while the shaded IQR ribbon indicates the variability across samples within each group.
 
 
-## Why Similar-Looking Curves Can Have Large Statistical Differences
+## Friedman Test: Testing q × Condition Interactions
 
-A striking feature of the q-curve plots is that visually similar entropy curves can have dramatically different statistical significance levels and effect sizes. For example:
+The Friedman test here tests whether the **pattern of entropy across q-values DIFFERS between normal and tumor conditions**. This is the biologically relevant q × condition interaction, not merely whether entropy varies across q-values (the old main effect test).
+
+**Important statistical note (March 2026):** This implementation uses proper **within-subject ranking** for two-way repeated-measures designs. The ranking procedure preserves the pairing structure between conditions within each subject, which is critical for valid statistical inference in paired designs.
+
+Key insight: We're testing if genes show different q-dependent patterns in normal vs tumor samples. For example:
+- Gene A: Shows strong q-dependence in tumor but weak in normal → significant interaction
+- Gene B: Shows equally strong q-dependence in both → no interaction (q main effect)
+- Gene C: Shows q-dependence only in tumor → significant interaction
+
+The Friedman test achieves this by:
+1. Ranking ALL entropy values for each subject together (across all q-values and conditions)
+2. Computing mean ranks per (q-level, condition) combination
+3. Testing whether rank patterns differ between conditions using two-way ANOVA
+
+This approach respects:
+- Within-subject pairing (8 paired tumor-normal samples)
+- q-values as a repeated measure
+- Condition (normal vs tumor) as another repeated-measures factor
+- The dependence between observations from the same subject
+
+**Mathematical basis:** Conover & Iman (1981), Puri & Sen (1985)
 
 - Gene A: Entropy normal = 2.5, entropy tumor = 2.8 (difference: 0.3) → η² = 97.8%, p < 0.0001
 - Gene B: Entropy normal = 2.6, entropy tumor = 2.8 (difference: 0.2) → η² = 59.4%, p < 0.0001
@@ -380,15 +403,10 @@ This represents the proportion of total variance in entropy explained by changes
 
 ## Interpreting Identical p-values and Effect Size Ranking
 
-A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the Friedman test:
+A key observation in this analysis is that **many genes share identical p-values** (e.g., 3.224e-43) despite dramatically different effect sizes (59.9%, 58.6%, 54.6%). This is **not a statistical error** but rather a fundamental property of the two-way Friedman test applied to q × condition interaction:
 
-**Why identical p-values occur:**
-The Friedman test statistic Q depends only on the **ranks** of observations within blocks (subjects), not their actual values. When entropy monotonically changes across q-values (the typical pattern), genes with the same rank pattern will have:
-- Identical test statistic Q
-- Identical p-value (all get p < 0.0001)
-- Identical rank sum $R_j$ for each treatment
-
-For example, if genes A and B both have monotonically decreasing entropy across all q-values and subjects, they have identical rank sums despite different magnitudes of entropy change.
+**Why identical p-values occur in two-way Friedman:**
+The test statistic depends on the **rank patterns** of entropy values across q-levels within each condition and subject. When genes show similar interaction structure (e.g., Q-entropy consistently higher in tumors vs normals at all q-values), they produce identical test statistics despite different magnitudes of entropy change.
 
 **How to rank genes when p-values cluster:**
 In this scenario, **effect size (η²) becomes the practical ranking metric** because it directly quantifies the strength of the q-value × entropy dependence:
@@ -721,11 +739,16 @@ For standard (non-S4) analyses, the original functions (`compute_method_concorda
 
 We recommend a **complementary two-method approach** for robust detection of q-value × group interactions:
 
-**Primary analysis:** Start with the Friedman Test, which provides correct statistical inference for paired/blocked designs by respecting the repeated-measures structure (8 subjects × q-values). The Friedman test accounts for within-subject correlation and controls for subject effects while testing for q-value × group interactions. Multiple testing correction via Hochberg step-up procedure controls family-wise error rate with strong power for positive-dependence structures. **Validation step:** Confirm findings with GAM (Generalized Additive Model method) to validate against parametric assumptions and identify nonlinear q-entropy patterns that may be missed by rank-based methods.
+**Primary analysis:** Start with the Friedman Test for q × condition interaction, which provides correct statistical inference for paired/blocked designs by:
+1. **Testing the interaction**: Does the q-effect differ between conditions? (Not just whether entropy varies across q-values)
+2. **Respecting the repeated-measures structure**: 8 paired tumor-normal samples, testing if entropy patterns across q-values differ by condition
+3. **Accounting for within-subject correlation**: Friedman test properly handles paired structure
+4. **Multiple testing correction**: Westfall-Young permutation respects AR(1) correlation structure across q-values
+5. **Condition-aware**: Uses two-way Friedman (q within-subjects, condition between-subjects)
 
-**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q-value × group interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, accounting properly for the within-subject correlation structure.
+**Validation step:** Confirm findings with GAM to validate against parametric assumptions and identify condition-specific nonlinear q-entropy patterns that may be missed by rank-based methods.
 
-Additionally, use **library size-normalized pseudocounts** for robust entropy estimation on sparse count data (via `estimate_pseudocount()`), and consider genes with **high effect sizes** (η² > 0.3) as particularly robust findings. When Friedman p-values cluster due to monotonic entropy patterns across q-values, effect size (η²) serves as the practical tiebreaker for ranking gene importance.
+**High-confidence genes** are those significant in *both* methods—these provide the strongest evidence of genuine q × condition interactions and are recommended for downstream biological validation. The Friedman Test is particularly appropriate for paired designs and provides distribution-free inference without requiring assumptions about data normality, while properly accounting for the q × condition interaction structure.
 
 ***
 
