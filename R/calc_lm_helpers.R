@@ -1217,19 +1217,47 @@
     return(approaches_lower_bound || approaches_upper_bound)
 }
 
-# Helper: Select appropriate GAM family based on data characteristics
-# Priority: Beta (if [0,1] bounded) > Gamma (if heteroscedastic) > Gaussian (default)
-# Tsallis entropy is mathematically bounded [0, log(m)], but Beta is ideal for [0,1]
-.tsenat_select_gam_family <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
-    # ---------------------------------------------------------------------
+
+
+# Helper: Compute skewness of a vector
+# Positive skew: right tail longer (mode < median < mean)
+# Negative skew: left tail longer (mean < median < mode)
+.tsenat_compute_skewness <- function(x, na.rm = TRUE) {
+    if (na.rm) x <- na.omit(x)
+    if (length(x) < 3) return(NA)
+    
+    m <- mean(x)
+    s <- sd(x)
+    n <- length(x)
+    
+    if (s == 0) return(0)
+    
+    # Unbiased skewness estimate
+    skew <- (sum((x - m)^3) / n) / (s^3)
+    return(skew)
+}
+
+# Helper: Handle bounded support for Tsallis entropy via appropriate GAM family selection
+# Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
+# Priority: Beta (if [0,1]) > Gamma (if heteroscedastic) > Gaussian (default)
+# Database Support (March 2026):
+#   - S223: "Information entropy of generalized beta distribution"
+#   - S220-S222: Beta regression applications with robustness validation
+.tsenat_handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
+    # ========================================================================
+    # INLINE: Family selection logic (previously .tsenat_select_gam_family)
+    # Select appropriate GAM family based on data characteristics
+    # Priority: Beta (if [0,1] bounded) > Gamma (if heteroscedastic) > Gaussian (default)
+    # Tsallis entropy is mathematically bounded [0, log(m)], but Beta is ideal for [0,1]
+    # ========================================================================
+    
     # INDICATOR 1: Check if data is [0,1] bounded (ideal for Beta regression)
-    # ---------------------------------------------------------------------
+    # =====================================================================
     entropy_vals <- na.omit(df$entropy)
     is_bounded_01 <- .tsenat_is_bounded_0_1(entropy_vals)
     
-    # ---------------------------------------------------------------------
     # INDICATOR 2: Heteroscedasticity detection
-    # ---------------------------------------------------------------------
+    # =========================================
     hetero_result <- try(
         .tsenat_detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
         silent = TRUE
@@ -1245,9 +1273,8 @@
         var_ratio_group <- if (is.null(hetero_result$var_ratio_group)) 1 else hetero_result$var_ratio_group
     }
     
-    # ---------------------------------------------------------------------
     # INDICATOR 3: Boundary clustering (values near 0 or 1)
-    # ---------------------------------------------------------------------
+    # ====================================================
     n_total <- length(entropy_vals)
     finite_entropy <- is.finite(entropy_vals)
     if (any(finite_entropy)) {
@@ -1266,17 +1293,15 @@
     n_near_max <- sum(entropy_vals >= entropy_max - boundary_threshold)
     pct_boundary_clustering <- 100 * (n_near_min + n_near_max) / n_total
     
-    # ---------------------------------------------------------------------
     # INDICATOR 4: Skewness (asymmetry indicates non-Gaussian behavior)
-    # ---------------------------------------------------------------------
+    # ===============================================================
     # Skewness = (mean - median) / sd * constant; values > 1 or < -1 indicate strong asymmetry
     skewness_val <- .tsenat_compute_skewness(entropy_vals)
     has_strong_skew <- abs(skewness_val) > 1.0
     
-    # ---------------------------------------------------------------------
-    # DECISION LOGIC (NEW - March 2026)
+    # DECISION LOGIC (March 2026)
     # Priority: Beta > Gamma > Gaussian
-    # ---------------------------------------------------------------------
+    # ================================
     use_beta <- FALSE
     use_gamma <- FALSE
     family_choice <- "gaussian"
@@ -1329,7 +1354,7 @@
         }
     }
     
-    return(list(
+    family_info <- list(
         use_beta = use_beta,
         use_gamma = use_gamma,
         use_gaussian = !use_beta && !use_gamma,
@@ -1341,36 +1366,7 @@
         skewness = skewness_val,
         reasons = reasons,
         family_choice = family_choice
-    ))
-}
-
-# Helper: Compute skewness of a vector
-# Positive skew: right tail longer (mode < median < mean)
-# Negative skew: left tail longer (mean < median < mode)
-.tsenat_compute_skewness <- function(x, na.rm = TRUE) {
-    if (na.rm) x <- na.omit(x)
-    if (length(x) < 3) return(NA)
-    
-    m <- mean(x)
-    s <- sd(x)
-    n <- length(x)
-    
-    if (s == 0) return(0)
-    
-    # Unbiased skewness estimate
-    skew <- (sum((x - m)^3) / n) / (s^3)
-    return(skew)
-}
-
-# Helper: Handle bounded support for Tsallis entropy via appropriate GAM family selection
-# Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
-# Priority: Beta (if [0,1]) > Gamma (if heteroscedastic) > Gaussian (default)
-# Database Support (March 2026):
-#   - S223: "Information entropy of generalized beta distribution"
-#   - S220-S222: Beta regression applications with robustness validation
-.tsenat_handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
-    # Select family based on data characteristics
-    family_info <- .tsenat_select_gam_family(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose)
+    )
     
     if (family_info$use_beta) {
         # Use Beta family with logit link (BEST for [0,1] bounded entropy data)

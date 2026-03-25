@@ -81,8 +81,9 @@ testthat::test_that(".tsenat_select_gam_family chooses Gaussian for normal data"
     # Ensure all positive
     df$entropy <- pmax(df$entropy, 0.001)
     
-    result <- .tsenat_select_gam_family(df, q_vals = sort(unique(df$q)),
+    bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                         group_vec = df$group, verbose = FALSE)
+    result <- bounded_result$family_info
     
     expect_true(is.list(result))
     expect_true("use_gamma" %in% names(result))
@@ -115,8 +116,9 @@ testthat::test_that(".tsenat_select_gam_family triggers Gamma for strong heteros
     
     df$entropy <- pmax(df$entropy, 0.001)  # Ensure positive
     
-    result <- .tsenat_select_gam_family(df, q_vals = sort(unique(df$q)),
+    bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                         group_vec = df$group, verbose = FALSE)
+    result <- bounded_result$family_info
     
     expect_true(is.list(result))
     
@@ -140,8 +142,9 @@ testthat::test_that(".tsenat_select_gam_family detects boundary clustering", {
         group = rep(c("A", "B"), each = n_q * n_samples / 2)
     )
     
-    result <- .tsenat_select_gam_family(df, q_vals = sort(unique(df$q)),
+    bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                         group_vec = df$group, verbose = FALSE)
+    result <- bounded_result$family_info
     
     expect_true(is.list(result))
     expect_true("boundary_pct" %in% names(result))
@@ -325,8 +328,9 @@ testthat::test_that("Family selection is stable across repeated calls", {
     # Call family selection multiple times
     results <- list()
     for (i in seq_len(3)) {
-        results[[i]] <- .tsenat_select_gam_family(df, q_vals = sort(unique(df$q)),
+        bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                                    group_vec = df$group, verbose = FALSE)
+        results[[i]] <- bounded_result$family_info
     }
     
     # All results should be consistent
@@ -349,8 +353,9 @@ testthat::test_that("Near-zero entropy values are handled correctly", {
     
     # Should handle without error
     result <- tryCatch({
-        .tsenat_select_gam_family(df, q_vals = rep(0.5, nrow(df)),
+        bounded_result <- .tsenat_handle_bounded_support(df, q_vals = rep(0.5, nrow(df)),
                                  group_vec = df$group)
+        bounded_result$family_info
     }, error = function(e) NULL)
     
     expect_false(is.null(result))
