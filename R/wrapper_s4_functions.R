@@ -3356,12 +3356,13 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
   if (verbose) message("Calling plot_multiq_delta_influence_heatmaps()...")
   
   # Call base function with extracted parameters
-  # Note: Base function now renders directly to active graphics device (managed by knitr in vignettes)
-  plot_multiq_delta_influence_heatmaps(
+  # Note: output_file parameter can be used to save heatmap as PNG file
+  result <- plot_multiq_delta_influence_heatmaps(
     switching_results = switching_results,
     n_genes = n_genes,
     lm_results = lm_results,
     verbose = verbose,
+    output_file = output_file,
     ...
   )
   
@@ -3369,16 +3370,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     message("[OK] Heatmap plot generated successfully")
   }
 
-  # Note: output_file parameter is now deprecated (no longer used)
-  # Plots are rendered directly to knitr graphics device
-  if (!is.null(output_file)) {
-    if (verbose) {
-      message("[plot_multiq_delta_influence_heatmaps_s4] Note: output_file parameter is deprecated. ",
-              "Plots are rendered to knitr graphics device.")
-    }
-  }
-
-  invisible(NULL)
+  invisible(result)
 }
 
 #' Plot GAM q-curves from TSENATAnalysis object

@@ -319,3 +319,257 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
   heatmap_labels = 11   # Heatmap row/column labels (increased from 10)
 )
 
+# ============================================================================
+# THEME VARIANTS - Specialized themes for different plot types
+# ============================================================================
+
+#' TSENAT Spectrum Theme Variant
+#'
+#' Returns a specialized variant of the base theme optimized for spectrum/profile plots.
+#' Inherits from \code{\link{.tsenat_theme_base}} and adds spectrum-specific overrides.
+#'
+#' @param base_size Numeric; base font size in points (default: 11).
+#'
+#' @return List of ggplot2 theme elements that can be added to plots with `+`.
+#'
+#' @details
+#' Spectrum-specific adjustments:
+#' - Right-aligned legend for profile plots
+#' - Optional major gridlines for q-value axis
+#' - Wider plot margins for axis labels
+#'
+#' Used by: plot_tsallis_q_curve_s4(), plot_lm_interaction_gam(),
+#'          plot_tsallis_divergence_profile() and similar spectrum/profile plots.
+#'
+#' @keywords internal
+#' @noRd
+.tsenat_theme_spectrum <- function(base_size = 11) {
+  list(
+    .tsenat_theme_base(base_size = base_size),
+    ggplot2::theme(
+      legend.position = "right",
+      panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
+      plot.margin = ggplot2::margin(t = 5, r = 8, b = 5, l = 5, unit = "mm")
+    )
+  )
+}
+
+#' TSENAT Heatmap Theme Variant
+#'
+#' Returns a specialized variant of the base theme optimized for heatmap visualizations.
+#' Inherits from \code{\link{.tsenat_theme_base}} and adds heatmap-specific overrides.
+#'
+#' @param base_size Numeric; base font size in points (default: 11).
+#'
+#' @return List of ggplot2 theme elements that can be added to plots with `+`.
+#'
+#' @details
+#' Heatmap-specific adjustments:
+#' - No gridlines (not applicable to heatmaps)
+#' - Compact margins to maximize heatmap area
+#' - Bottom legend position for multi-panel layouts
+#' - Reduced plot title margins
+#'
+#' Used by: plot_multiq_delta_influence_heatmaps_s4(), 
+#'          plot_top_transcripts_s4() when using ggplot2 heatmap geoms.
+#'
+#' @keywords internal
+#' @noRd
+.tsenat_theme_heatmap <- function(base_size = 11) {
+  list(
+    .tsenat_theme_base(base_size = base_size),
+    ggplot2::theme(
+      panel.grid.major = ggplot2::element_blank(),
+      panel.grid.minor = ggplot2::element_blank(),
+      legend.position = "bottom",
+      plot.margin = ggplot2::margin(t = 3, r = 3, b = 3, l = 3, unit = "mm"),
+      plot.title = ggplot2::element_text(
+        hjust = 0.5,
+        face = "bold",
+        size = base_size * 1.3,
+        margin = ggplot2::margin(b = 4)
+      )
+    )
+  )
+}
+
+#' TSENAT Distribution Theme Variant
+#'
+#' Returns a specialized variant of the base theme optimized for distribution plots
+#' (violin, box, histogram, density).
+#'
+#' @param base_size Numeric; base font size in points (default: 11).
+#'
+#' @return List of ggplot2 theme elements that can be added to plots with `+`.
+#'
+#' @details
+#' Distribution-specific adjustments:
+#' - Major gridlines on y-axis for easier value reading
+#' - Legend on the right for comparison groups
+#' - Rotated x-axis labels if many categories
+#'
+#' Used by: plot_tsallis_violin_density_grid_s4() and similar distribution plots.
+#'
+#' @keywords internal
+#' @noRd
+.tsenat_theme_distribution <- function(base_size = 11) {
+  list(
+    .tsenat_theme_base(base_size = base_size),
+    ggplot2::theme(
+      legend.position = "right",
+      panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
+      axis.text.x = ggplot2::element_text(
+        angle = 45,
+        hjust = 1,
+        vjust = 1,
+        size = base_size * 0.85
+      )
+    )
+  )
+}
+
+# ============================================================================
+# SPECIALIZED THEME VARIANTS - For specific plot types
+# ============================================================================
+
+#' TSENAT Spectrum Plot Theme
+#'
+#' Theme variant for q-spectrum (diversity/divergence) plots.
+#' Adds gridlines for easier value reading.
+#'
+#' @param base_size Numeric; base font size in points (default: 11).
+#'
+#' @return List of ggplot2 theme elements.
+#'
+#' @keywords internal
+#' @noRd
+.tsenat_theme_spectrum <- function(base_size = 11) {
+  list(
+    .tsenat_theme_base(base_size = base_size),
+    ggplot2::theme(
+      panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.3),
+      legend.position = "right"
+    )
+  )
+}
+
+#' TSENAT Heatmap Theme
+#'
+#' Theme variant for heatmap plots (via ComplexHeatmap or pheatmap).
+#' Minimal borders, adjusted annotation text.
+#'
+#' @param base_size Numeric; base font size in points (default: 11).
+#'
+#' @return List of ggplot2 theme elements.
+#'
+#' @keywords internal
+#' @noRd
+.tsenat_theme_heatmap <- function(base_size = 11) {
+  list(
+    .tsenat_theme_base(base_size = base_size),
+    ggplot2::theme(
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1, size = base_size * 0.85),
+      axis.text.y = ggplot2::element_text(size = base_size * 0.85),
+      panel.grid = ggplot2::element_blank(),
+      legend.position = "bottom"
+    )
+  )
+}
+
+#' TSENAT Distribution Plot Theme
+#'
+#' Theme variant for distribution plots (violin, density, boxplot).
+#' Optimized for categorical comparisons.
+#'
+#' @param base_size Numeric; base font size in points (default: 11).
+#'
+#' @return List of ggplot2 theme elements.
+#'
+#' @keywords internal
+#' @noRd
+.tsenat_theme_distribution <- function(base_size = 11) {
+  list(
+    .tsenat_theme_base(base_size = base_size),
+    ggplot2::theme(
+      panel.grid.major.x = ggplot2::element_blank(),
+      panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.3),
+      legend.position = "bottom",
+      axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+    )
+  )
+}
+
+# ============================================================================
+# SCALE WRAPPER FUNCTIONS - Consistent color/fill scales
+# ============================================================================
+
+#' TSENAT Discrete Color Scale
+#'
+#' Wrapper for ggplot2 color scale using the TSENAT discrete palette.
+#'
+#' @param ... Additional arguments passed to \code{ggplot2::scale_color_manual()}.
+#'
+#' @return ggplot2 scale layer.
+#'
+#' @keywords internal
+#' @noRd
+scale_color_tsenat_discrete <- function(...) {
+  ggplot2::scale_color_manual(
+    values = .tsenat_palette_discrete(),
+    ...
+  )
+}
+
+#' TSENAT Discrete Fill Scale
+#'
+#' Wrapper for ggplot2 fill scale using the TSENAT discrete palette.
+#'
+#' @param ... Additional arguments passed to \code{ggplot2::scale_fill_manual()}.
+#'
+#' @return ggplot2 scale layer.
+#'
+#' @keywords internal
+#' @noRd
+scale_fill_tsenat_discrete <- function(...) {
+  ggplot2::scale_fill_manual(
+    values = .tsenat_palette_discrete(),
+    ...
+  )
+}
+
+#' TSENAT Diverging Color Scale
+#'
+#' Wrapper for ggplot2 color scale using the TSENAT diverging palette.
+#' Use for continuous diverging data (e.g., log fold-change).
+#'
+#' @param ... Additional arguments passed to \code{ggplot2::scale_color_gradientn()}.
+#'
+#' @return ggplot2 scale layer.
+#'
+#' @keywords internal
+#' @noRd
+scale_color_tsenat_diverging <- function(...) {
+  ggplot2::scale_color_gradientn(
+    colors = .tsenat_palette_continuous_diverging(n = 100),
+    ...
+  )
+}
+
+#' TSENAT Diverging Fill Scale
+#'
+#' Wrapper for ggplot2 fill scale using the TSENAT diverging palette.
+#' Use for continuous diverging data (e.g., heatmap values).
+#'
+#' @param ... Additional arguments passed to \code{ggplot2::scale_fill_gradientn()}.
+#'
+#' @return ggplot2 scale layer.
+#'
+#' @keywords internal
+#' @noRd
+scale_fill_tsenat_diverging <- function(...) {
+  ggplot2::scale_fill_gradientn(
+    colors = .tsenat_palette_continuous_diverging(n = 100),
+    ...
+  )
+}
+

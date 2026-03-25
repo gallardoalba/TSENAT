@@ -326,22 +326,9 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
             x = x_label_formatted,
             y = y_label_formatted
         ) +
-        ggplot2::theme_minimal(base_size = 14) +
+        .tsenat_theme_base(base_size = 11) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(
-                hjust = 0.5, 
-                face = "bold",
-                size = 16,
-                margin = ggplot2::margin(b = 8)
-            ),
-            axis.title = ggplot2::element_text(face = "bold"),
-            axis.text = ggplot2::element_text(size = ggplot2::rel(0.9)),
-            panel.grid.minor = ggplot2::element_blank(),
-            panel.border = ggplot2::element_rect(
-                color = "grey85", 
-                fill = NA, 
-                linewidth = 0.3
-            )
+            axis.title = ggplot2::element_text(face = "bold")
         )
 
     p
@@ -1258,22 +1245,9 @@ plot_volcano <- function(
             x = x_label_formatted,
             y = paste0("-Log10(", padj_label_formatted, ")")
         ) +
-        ggplot2::theme_minimal(base_size = 14) +
+        .tsenat_theme_base(base_size = 11) +
         ggplot2::theme(
-            plot.title = ggplot2::element_text(
-                hjust = 0.5, 
-                face = "bold",
-                size = 16,
-                margin = ggplot2::margin(b = 8)
-            ),
-            axis.title = ggplot2::element_text(face = "bold"),
-            axis.text = ggplot2::element_text(size = 14 * 0.9),
-            panel.grid.minor = ggplot2::element_blank(),
-            panel.border = ggplot2::element_rect(
-                color = "grey85", 
-                fill = NA, 
-                linewidth = 0.3
-            )
+            axis.title = ggplot2::element_text(face = "bold")
         )
 
     p
@@ -2172,21 +2146,9 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
                 y = "Tsallis entropy",
                 title = ifelse(gene_display_name != g, sprintf("%s (%s)", gene_display_name, g), gene_display_name)
             ) +
-            ggplot2::theme_minimal(base_size = 11) +
+            .tsenat_theme_spectrum(base_size = 11) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(
-                    hjust = 0.5, 
-                    face = "bold", 
-                    size = 16,
-                    margin = ggplot2::margin(b = 8)
-                ),
-                axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
-                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
-                panel.grid.minor = ggplot2::element_blank(),
-                panel.border = ggplot2::element_rect(color = "grey85", fill = NA, linewidth = 0.3),
-                legend.position = "none",
-                legend.title = ggplot2::element_text(size = .tsenat_font_sizes$legend_title),
-                legend.text = ggplot2::element_text(size = .tsenat_font_sizes$legend_text)
+                legend.position = "none"
             )
 
         return(p)
@@ -3410,23 +3372,13 @@ plot_tsallis_divergence_profile <- function(se,
                 x = "q value (diversity scale parameter)",
                 y = "Divergence D[q] (Positive = Right Group Higher, Negative = Left Group Higher)"
             ) +
-            ggplot2::theme_minimal(base_size = 14) +
+            .tsenat_theme_spectrum(base_size = 11) +
             ggplot2::theme(
                 plot.title = ggplot2::element_text(
-                    hjust = 0.5, 
-                    size = .tsenat_font_sizes$title, 
-                    face = "bold",
-                    margin = ggplot2::margin(b = 8)
+                    size = .tsenat_font_sizes$title
                 ),
                 axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
-                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
-                panel.grid.minor = ggplot2::element_blank(),
-                panel.border = ggplot2::element_rect(
-                    color = "grey85", 
-                    fill = NA, 
-                    linewidth = 0.3
-                ),
-                legend.position = "right"
+                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text)
             )
     } else {
         # Absolute divergence plot (original)
@@ -3439,23 +3391,13 @@ plot_tsallis_divergence_profile <- function(se,
                 y = "Divergence D[q] (Absolute)",
                 color = "Gene"
             ) +
-            ggplot2::theme_minimal(base_size = 14) +
+            .tsenat_theme_spectrum(base_size = 11) +
             ggplot2::theme(
                 plot.title = ggplot2::element_text(
-                    hjust = 0.5, 
-                    size = .tsenat_font_sizes$title, 
-                    face = "bold",
-                    margin = ggplot2::margin(b = 8)
+                    size = .tsenat_font_sizes$title
                 ),
                 axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
-                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
-                panel.grid.minor = ggplot2::element_blank(),
-                panel.border = ggplot2::element_rect(
-                    color = "grey85", 
-                    fill = NA, 
-                    linewidth = 0.3
-                ),
-                legend.position = "right"
+                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text)
             )
     }
 
@@ -3967,7 +3909,7 @@ plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title, face = "bold
 #' )
 #' 
 #' # Create heatmap visualization
-#' heatmap_file <- plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
+#' plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
 #'
 #' @import grid
 #' @import pheatmap
@@ -3982,7 +3924,8 @@ plot_multiq_delta_influence_heatmaps <- function(
   cellwidth = 0,
   cellheight = 0,
   fontsize = 18,
-  layout_ncol = 2) {
+  layout_ncol = 2,
+  output_file = NULL) {
   # cellwidth, cellheight, fontsize follow pheatmap best practices:
   # - fontsize=18pt default for readable, large-format heatmaps (GLOBAL constant from .tsenat_font_sizes$heatmap_main)
   # - cellwidth=0, cellheight=0 (default) trigger dynamic sizing based on layout and data dimensions
@@ -4195,8 +4138,8 @@ plot_multiq_delta_influence_heatmaps <- function(
     data_validity_report[[gene_idx]] <- validity_report
   }
   
-  # Create combined heatmap with genes in separate panels
-  # (Graphics device managed by knitr in vignette context)
+  # Note: Rendering directly to active graphics device (like DESeq2)
+  # This allows knitr to capture the output during vignette compilation
   
   if (length(all_gene_matrices) == 0) {
     warning("No valid heatmap data generated for any genes")
@@ -4216,7 +4159,7 @@ plot_multiq_delta_influence_heatmaps <- function(
       }
       message("\n================================\n")
     }
-    return(NULL)
+    return(invisible(NULL))
   }
   
   # Show validation report if verbose=TRUE (shows all genes, even those skipped)
@@ -4467,10 +4410,26 @@ plot_multiq_delta_influence_heatmaps <- function(
     
     # Combine all panels into one figure using manual grid layout
     # Use mixed layout: full-width rows for large heatmaps, 2-per-row for small ones
+    
     n_genes <- n_total_genes
     
-    # Create grid layout for rendering
-    # (knitr will handle PNG device creation with chunk options)
+    # Conditional rendering: PNG file if output_file provided, otherwise active device
+    if (!is.null(output_file)) {
+      # Render to PNG file when output_file is specified
+      # PNG dimensions: standardized to 1200px width (12 inches @ 100 DPI) for consistency with other plots
+      png_width <- 12   # 12 inches @ 100 DPI = 1200 pixels
+      png_dpi <- 100
+      
+      # Scale heatmap_height proportionally: was 6 inches per row @ 150 DPI, now at 100 DPI
+      # Adjust from (heatmap_height @ 150 DPI context) to (heatmap_height @ 100 DPI context)
+      heatmap_height_scaled <- heatmap_height * (png_dpi / 150)
+      
+      grDevices::png(output_file, width = png_width, height = heatmap_height_scaled + 4, 
+                     units = "in", res = png_dpi)
+    }
+    
+    # Render directly to active graphics device (managed by knitr during vignette compilation)
+    # or to PNG file if output_file was specified (opened above)
     grid::grid.newpage()
     
     # Calculate dynamic title/subtitle sizes based on number of rows
@@ -4492,9 +4451,9 @@ plot_multiq_delta_influence_heatmaps <- function(
                     gp = grid::gpar(fontsize = subtitle_fontsize, fontface = "italic", col = "gray40"))
     
     # Create viewport layout with variable columns per row
-    # Each actual content row is followed by a minimal gap row
+    # Each actual content row is followed by a gap row
     n_grid_rows <- n_layout_rows * 2 - 1
-    row_heights <- rep(c(1, 0.02), n_layout_rows)[seq_len(n_grid_rows)]  # Minimal gap (0.02 instead of 0.15)
+    row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
     
     # Use 3 columns as grid basis: column 1 (left), column 2 (gap), column 3 (right)
     # This allows proper spacing between heatmaps in 2-column layouts
@@ -4546,9 +4505,22 @@ plot_multiq_delta_influence_heatmaps <- function(
     
     grid::popViewport()
     
-    invisible(NULL)
+    # Close PNG device if it was opened
+    if (!is.null(output_file)) {
+      grDevices::dev.off()
+      if (verbose) {
+        message("Heatmap saved to: ", output_file)
+      }
+      return(output_file)
+    } else {
+      # Return invisible(NULL) - graphics are captured by knitr during vignette compilation
+      return(invisible(NULL))
+    }
     
   }, error = function(e) {
+    if (!is.null(output_file)) {
+      tryCatch(grDevices::dev.off(), silent = TRUE)
+    }
     stop("Heatmap creation failed: ", e$message)
   })
 }
