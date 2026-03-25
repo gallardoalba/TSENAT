@@ -2691,6 +2691,26 @@ effect_sizes_divergence_s4 <- function(
 #' @param height \code{numeric} or \code{NULL}. Output image height in inches.
 #'   If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).
 #'
+#' @param fontsize \code{numeric}. Base font size for heatmap titles and labels 
+#'   (default: 16pt). Automatically scaled for readability.
+#'
+#' @param cellwidth \code{numeric}. Width of individual heatmap cells in pixels.
+#'   If 0 (default), uses adaptive sizing based on data dimensions and layout.
+#'   Set > 0 to override dynamic sizing.
+#'
+#' @param cellheight \code{numeric}. Height of individual heatmap cells in pixels.
+#'   If 0 (default), uses adaptive sizing based on data dimensions and layout.
+#'   Set > 0 to override dynamic sizing.
+#'
+#' @param layout_ncol \code{numeric}. Number of heatmaps per row in fixed layout
+#'   (default: 2). If NULL, uses adaptive layout based on transcript counts.
+#'
+#' @param use_tpm \code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
+#'   from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
+#'   depth and is recommended for comparing expression across samples. Requires TPM data 
+#'   in metadata from `build_analysis()` or `build_se()` with `tpm` parameter. 
+#'   Raises error if TPM not available and `use_tpm = TRUE`.
+#'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
@@ -2698,7 +2718,9 @@ effect_sizes_divergence_s4 <- function(
 #'   Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base plotting function.
 #'
-#' @return A file path (character) to the saved plot PNG file, invisibly.
+#' @return Invisibly returns the output file path (if `output_file` provided), or invisible(NULL) 
+#'   if rendering to active graphics device. Graphics are rendered to the active grid device 
+#'   for capture during vignette compilation.
 #'
 #' @details
 #' This wrapper extracts the following from \code{analysis}:
@@ -2729,11 +2751,16 @@ plot_top_transcripts_s4 <- function(
     analysis,
     gene = NULL,
     condition_col = NULL,
-    top_n = 3,
+    top_n = 4,
     output_file = NULL,
     metric = c("median", "mean", "variance", "iqr"),
+    use_tpm = TRUE,
     width = NULL,
     height = NULL,
+    fontsize = 16,
+    cellwidth = 0,
+    cellheight = 0,
+    layout_ncol = 2,
     verbose = FALSE,
     ...) {
 
@@ -2880,8 +2907,13 @@ plot_top_transcripts_s4 <- function(
       top_n = top_n,
       output_file = output_file,
       metric = metric[1],  # Use first metric if multiple provided
+      use_tpm = use_tpm,
       width = width,
       height = height,
+      fontsize = fontsize,
+      cellwidth = cellwidth,
+      cellheight = cellheight,
+      layout_ncol = layout_ncol,
       ...
     )
   }, error = function(e) {

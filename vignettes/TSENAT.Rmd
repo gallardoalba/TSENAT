@@ -796,18 +796,34 @@ Interpretation:
 - Blue cells: Transcript more influential in the second condition
 - Column patterns: Consistent color down a column indicates stable switching; varied colors indicate q-dependent switching
 
-```{r reads-transcripts-median, echo=TRUE, fig.width=12, fig.height=10, out.width='100%', fig.align='center'}
-# Generate top transcripts plot (returns plot object)
-# Optionally save to file for external use
-plot_obj <- plot_top_transcripts_s4(
+```{r reads-transcripts-median, , echo=TRUE, results='hide', fig.width=12, fig.height=10, eval=TRUE, out.width="100%"}
+# Generate top transcripts heatmaps (pheatmap with hierarchical clustering)
+
+plot_top_transcripts_s4(
     analysis, 
     top_n = 4, 
     metric = "median"
 )
-
-# Rendered directly by knitr (no file dependency)
-print(plot_obj)
 ```
+
+### Transcript Expression Heatmaps Interpretation
+
+The heatmap displays transcript abundance across experimental conditions for the top genes
+identified by linear model interaction analysis. This visualization reveals which isoforms
+(rows) show differential expression patterns between conditions (columns).
+
+**Visualization features:**
+- **Rows**: Individual transcripts within each gene, hierarchically clustered by expression similarity
+- **Columns**: Experimental conditions (e.g., Control, Treatment), aggregated using the specified metric (median by default)
+- **Color scale**: Blue = low expression, White = medium expression, Red = high expression
+- **Hierarchical clustering**: Transcripts and conditions are grouped by expression similarity, revealing isoform expression modules
+- **Log-normalization**: Expression values transformed as log₂(counts + 1e-6) for stability and comparability across genes
+
+Biological interpretation:
+- Distinct horizontal bands indicate transcripts with condition-specific expression patterns
+- Strong red in one condition suggests condition-preferential expression
+- Strong blue in one condition suggests condition-suppressed expression
+- Uniform coloring across conditions suggests constitutive expression
 
 ### Effect size analysis
 

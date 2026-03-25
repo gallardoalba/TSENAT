@@ -11,8 +11,13 @@ plot_top_transcripts_s4(
   top_n = 3,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
+  use_tpm = FALSE,
   width = NULL,
   height = NULL,
+  fontsize = 16,
+  cellwidth = 0,
+  cellheight = 0,
+  layout_ncol = 2,
   verbose = FALSE,
   ...
 )
@@ -38,11 +43,31 @@ Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).}
 \item{metric}{\code{character}. Method for ranking transcripts within genes.
 One of "median", "mean", "variance", or "iqr" (default: "median").}
 
+\item{use_tpm}{\code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
+from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
+depth and is recommended for comparing expression across samples. Requires TPM data 
+in metadata from `build_analysis()` or `build_se()` with `tpm` parameter. 
+Raises error if TPM not available and `use_tpm = TRUE`.}
+
 \item{width}{\code{numeric} or \code{NULL}. Output image width in inches. 
 If NULL, automatically calculated based on number of genes (default: ~13 inches per column).}
 
 \item{height}{\code{numeric} or \code{NULL}. Output image height in inches.
 If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).}
+
+\item{fontsize}{\code{numeric}. Base font size for heatmap titles and labels 
+(default: 16pt). Automatically scaled for readability.}
+
+\item{cellwidth}{\code{numeric}. Width of individual heatmap cells in pixels.
+If 0 (default), uses adaptive sizing based on data dimensions and layout.
+Set > 0 to override dynamic sizing.}
+
+\item{cellheight}{\code{numeric}. Height of individual heatmap cells in pixels.
+If 0 (default), uses adaptive sizing based on data dimensions and layout.
+Set > 0 to override dynamic sizing.}
+
+\item{layout_ncol}{\code{numeric}. Number of heatmaps per row in fixed layout
+(default: 2). If NULL, uses adaptive layout based on transcript counts.}
 
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plotting (default: FALSE).}
@@ -50,7 +75,9 @@ during plotting (default: FALSE).}
 \item{...}{Additional arguments passed to the base plotting function.}
 }
 \value{
-A file path (character) to the saved plot PNG file, invisibly.
+Invisibly returns the output file path (if `output_file` provided), or invisible(NULL) 
+  if rendering to active graphics device. Graphics are rendered to the active grid device 
+  for capture during vignette compilation.
 }
 \description{
 S4 wrapper for \code{plot_top_transcripts()} that extracts data directly from

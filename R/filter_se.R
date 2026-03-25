@@ -351,6 +351,14 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
         md$tx2gene <- txmap[txmap[[txcol]] %in% rownames(assay_mat)[tokeep], , drop = FALSE]
     }
     
+    # Filter SALMON metadata (TPM and effective_length) to match filtered assay
+    if (!is.null(md$salmon_tpm) && is.matrix(md$salmon_tpm)) {
+        md$salmon_tpm <- as.matrix(md$salmon_tpm)[tokeep, , drop = FALSE]
+    }
+    if (!is.null(md$salmon_effective_length) && is.numeric(md$salmon_effective_length)) {
+        md$salmon_effective_length <- md$salmon_effective_length[tokeep]
+    }
+    
     new_md <- c(md, list(filtered = list(min_samples = min_samples, 
                             min_tpm = min_tpm, 
                             min_tx_per_gene = min_tx_per_gene,

@@ -117,6 +117,18 @@ create_test_analysis <- function(
   )
   S4Vectors::metadata(se)$tx2gene <- tx2gene_df
   
+  # Generate synthetic TPM data (matching counts dimensions)
+  tpm <- counts
+  for (j in seq_len(ncol(tpm))) {
+    lib_size <- colSums(tpm[, j, drop = FALSE])
+    if (lib_size > 0) {
+      tpm[, j] <- (tpm[, j] / lib_size) * 1e6
+    }
+  }
+  rownames(tpm) <- rownames(counts)
+  colnames(tpm) <- colnames(counts)
+  S4Vectors::metadata(se)$salmon_tpm <- tpm
+  
   # Initialize TSENATAnalysis
   analysis <- TSENAT::TSENATAnalysis(se = se, config = list())
   

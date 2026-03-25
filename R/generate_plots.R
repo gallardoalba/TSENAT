@@ -1534,9 +1534,10 @@ plot_volcano_ma_grid <- function(
     list(counts = counts, samples = samples, mapping = mapping, metric_choice = metric_choice, agg_fun = agg_fun, agg_label_unique = agg_label_unique, top_n = top_n, pseudocount = pseudocount, output_file = output_file)
 }
 
-#' Plot top transcripts for a gene
+#' Plot top transcripts for a gene using pheatmap
 #' @param se A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
 #'   Must have a "genes" column in rowData specifying which gene each transcript belongs to.
+#'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis()` or `build_se()`).
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
 #'   top genes are selected by p-value.
 #' @param condition_col Character; column name in colData(se) to use for sample grouping 
@@ -1548,11 +1549,32 @@ plot_volcano_ma_grid <- function(
 #'   - `detect_q_gene_interactions()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
-#' @param output_file Optional file path to save the plot. If `NULL`, the `ggplot` object is returned.
+#' @param output_file Optional file path to save the plot. If `NULL`, renders to active graphics device.
 #' @param metric Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").
-#' @param width Output image width in inches. If NULL, automatically calculated based on number of genes (default: ~13 inches per column).
-#' @param height Output image height in inches. If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).
-#' @return If `output_file` is `NULL`, returns a `ggplot` object. Otherwise saves to file and returns NULL invisibly.
+#' @param use_tpm Logical; if TRUE, uses TPM (Transcripts Per Million) from metadata instead of raw counts 
+#'   (default: FALSE). TPM is normalized for sequencing depth and is recommended for comparing 
+#'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis()` or `build_se()` 
+#'   with `tpm` parameter. Raises error if TPM not available and `use_tpm = TRUE`.
+#' @param width Output image width in inches. If NULL, automatically calculated (12 inches).
+#' @param height Output image height in inches. If NULL, automatically calculated based on number of genes.
+#' @param fontsize Base font size for heatmap titles and labels (default: 16pt). Automatically scaled for readability.
+#' @param cellwidth Width of individual heatmap cells in pixels (default: 0 = adaptive). Set > 0 to use fixed sizing.
+#' @param cellheight Height of individual heatmap cells in pixels (default: 0 = adaptive). Set > 0 to use fixed sizing.
+#' @param layout_ncol Number of heatmaps per row in fixed layout (default: 2). If NULL, uses adaptive layout based on transcript counts.
+#' @return Invisibly returns the output file path (if `output_file` provided), or invisible(NULL) if rendering to active device.
+#'   Graphics are rendered to the active grid device for capture during vignette compilation.
+#' @details
+#' Visualizes transcript abundances across conditions as pheatmap heatmaps (one per gene with conditions as columns).
+#' Aggregates expression by condition using the specified metric before log-normalization with pseudocount.
+#' Uses hierarchical clustering of transcripts and condition-based samples. Following pheatmap best practices: 
+#' publication-quality colors, dynamic cell sizing, and no artificial gaps between cells.
+#'
+#' Architecture follows the pattern established by `plot_multiq_delta_influence_heatmaps()`:
+#' - Phase 1: Input validation and extraction
+#' - Phase 2: Gene/condition selection
+#' - Phase 3: Layout planning (before creating heatmaps)
+#' - Phase 4: Data preparation and heatmap creation
+#' - Phase 5: Grid layout and rendering
 #' @examples
 #' library(SummarizedExperiment)
 #' library(S4Vectors)
@@ -1564,7 +1586,7 @@ plot_volcano_ma_grid <- function(
 #' se <- SummarizedExperiment(assays = list(counts = counts), 
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
-#' plot_top_transcripts(se, gene = "G1", top_n = 2)
+#' plot_top_transcripts(se, gene = "G1", top_n = 2, output_file = "/tmp/heatmap.png")
 #' @keywords internal
 #' @noRd
 plot_top_transcripts <- function(
@@ -1575,187 +1597,444 @@ plot_top_transcripts <- function(
   top_n = 3,
   output_file = NULL,
   metric = c("median", "mean", "variance", "iqr"),
+  use_tpm = TRUE,
   width = NULL,
-  height = NULL
+  height = NULL,
+  fontsize = 16,
+  cellwidth = 0,
+  cellheight = 0,
+  layout_ncol = 2
 ) {
-    require_pkgs(c("SummarizedExperiment", "S4Vectors"))
-    
-    # Validate input
-    if (!inherits(se, "SummarizedExperiment")) {
-        stop("se must be a SummarizedExperiment object", call. = FALSE)
-    }
-    
-    # Extract components from SE
-    counts <- as.matrix(SummarizedExperiment::assay(se))
-    rd <- SummarizedExperiment::rowData(se)
-    cd <- SummarizedExperiment::colData(se)
-    
-    # Identify gene column (prefer "genes", then "gene_name", then "gene_id")
-    gene_col <- if ("genes" %in% colnames(rd)) {
-        "genes"
-    } else if ("gene_name" %in% colnames(rd)) {
-        "gene_name"
-    } else if ("gene_id" %in% colnames(rd)) {
-        "gene_id"
+  require_pkgs(c("SummarizedExperiment", "S4Vectors", "pheatmap", "grid"))
+  
+  # =========================================================================
+  # PHASE 1: INPUT VALIDATION & EXTRACTION
+  # =========================================================================
+  
+  if (!inherits(se, "SummarizedExperiment")) {
+    stop("se must be a SummarizedExperiment object", call. = FALSE)
+  }
+  
+  # Extract components from SE
+  counts <- as.matrix(SummarizedExperiment::assay(se))
+  rd <- SummarizedExperiment::rowData(se)
+  cd <- SummarizedExperiment::colData(se)
+  
+  # Handle use_tpm: extract TPM from metadata if explicitly requested AND available
+  if (use_tpm) {
+    md <- S4Vectors::metadata(se)
+    if (!is.null(md$salmon_tpm)) {
+      tpm_data <- as.matrix(md$salmon_tpm)
+      
+      # Only use TPM if dimensions match exactly (no validation errors)
+      if (nrow(tpm_data) == nrow(counts) && ncol(tpm_data) == ncol(counts)) {
+        counts <- tpm_data
+      } else {
+        # If dimensions don't match, issue a warning but continue with raw counts
+        warning("TPM data dimensions (", nrow(tpm_data), " x ", ncol(tpm_data), 
+                ") do not match assay (", nrow(counts), " x ", ncol(counts), 
+                "). Using raw counts instead.", call. = FALSE)
+      }
     } else {
-        stop("rowData(se) must contain a 'genes', 'gene_name', or 'gene_id' column", call. = FALSE)
+      # If TPM requested but not available, issue warning and use raw counts
+      warning("use_tpm = TRUE but TPM data not found in metadata. ",
+              "Using raw counts instead. Provide tpm parameter to build_analysis().", call. = FALSE)
+    }
+  }
+  
+  # Identify gene column (prefer "genes", then "gene_name", then "gene_id")
+  gene_col <- if ("genes" %in% colnames(rd)) {
+    "genes"
+  } else if ("gene_name" %in% colnames(rd)) {
+    "gene_name"
+  } else if ("gene_id" %in% colnames(rd)) {
+    "gene_id"
+  } else {
+    stop("rowData(se) must contain a 'genes', 'gene_name', or 'gene_id' column", call. = FALSE)
+  }
+  
+  # Build tx2gene mapping
+  tx2gene <- data.frame(
+    Transcript = rownames(counts),
+    Gen = as.character(rd[[gene_col]]),
+    stringsAsFactors = FALSE
+  )
+  
+  # Extract conditions
+  if (!condition_col %in% colnames(cd)) {
+    stop("Column '", condition_col, "' not found in colData(se)", call. = FALSE)
+  }
+  conditions <- as.character(cd[[condition_col]])
+  unique_conditions <- unique(conditions)
+  
+  # =========================================================================
+  # PHASE 2: GENE SELECTION
+  # =========================================================================
+  
+  if (is.null(gene) && !is.null(res)) {
+    # Extract data.frame if res is a list
+    if (is.list(res) && !is.data.frame(res) && "results" %in% names(res)) {
+      res <- res$results
     }
     
-    # Build tx2gene mapping
-    tx2gene <- data.frame(
-        Transcript = rownames(counts),
-        Gen = as.character(rd[[gene_col]]),
-        stringsAsFactors = FALSE
+    if (!is.data.frame(res)) {
+      stop("res must be a data.frame or list with $results component", call. = FALSE)
+    }
+    
+    # Normalize p-value column name
+    if ("adj_p_interaction" %in% colnames(res) && "adj_p_value" %in% colnames(res) == FALSE) {
+      colnames(res)[colnames(res) == "adj_p_interaction"] <- "adj_p_value"
+    }
+    
+    # Find gene column in results
+    res_gene_col <- if ("gene" %in% colnames(res)) {
+      "gene"
+    } else if ("genes" %in% colnames(res)) {
+      "genes"
+    } else if ("gene_id" %in% colnames(res)) {
+      "gene_id"
+    } else {
+      stop("res must contain 'gene', 'genes', or 'gene_id' column", call. = FALSE)
+    }
+    
+    # Find adjusted p-value column
+    p_col <- if ("adj_p_value" %in% colnames(res)) {
+      "adj_p_value"
+    } else if ("padj" %in% colnames(res)) {
+      "padj"
+    } else if ("adjusted_p_values" %in% colnames(res)) {
+      "adjusted_p_values"
+    } else {
+      stop("res must contain adjusted p-value column", call. = FALSE)
+    }
+    
+    # Sort by p-value and select top genes
+    res_sorted <- res[order(res[[p_col]], na.last = NA), ]
+    gene <- head(as.character(res_sorted[[res_gene_col]]), top_n)
+    
+    # Filter to genes present in SE
+    se_genes <- unique(tx2gene$Gen)
+    gene <- gene[gene %in% se_genes]
+    
+    if (length(gene) == 0) {
+      stop("No genes from res found in rowData of SE", call. = FALSE)
+    }
+  }
+  
+  if (is.null(gene)) {
+    stop("gene must be provided or derivable from res", call. = FALSE)
+  }
+  
+  # =========================================================================
+  # PHASE 3: LAYOUT PLANNING (before creating heatmaps)
+  # =========================================================================
+  
+  n_total_genes <- length(gene)
+  metric_choice <- match.arg(metric)
+  pseudocount <- 1e-6
+  
+  # Create directory if needed
+  if (!is.null(output_file)) {
+    output_dir <- dirname(output_file)
+    if (!dir.exists(output_dir) && nzchar(output_dir) && output_dir != ".") {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+  }
+  
+  # Determine layout: fixed columns or adaptive
+  use_fixed_layout <- !is.null(layout_ncol) && layout_ncol > 0
+  
+  if (use_fixed_layout) {
+    # FIXED LAYOUT: Force layout_ncol genes per row
+    n_cols <- as.integer(layout_ncol)
+    n_layout_rows <- ceiling(n_total_genes / n_cols)
+  } else {
+    # ADAPTIVE LAYOUT: genes with >3 transcripts get full width, smaller ones pair up
+    gene_layout <- list()
+    n_layout_rows <- 0
+    i <- 1
+    
+    while (i <= n_total_genes) {
+      # Get transcript count for current gene
+      tx_indices_i <- which(tx2gene$Gen == gene[i])
+      n_tx_i <- length(tx_indices_i)
+      
+      # Check next gene
+      has_next <- i < n_total_genes
+      if (has_next) {
+        tx_indices_next <- which(tx2gene$Gen == gene[i + 1])
+        n_tx_next <- length(tx_indices_next)
+      } else {
+        n_tx_next <- 0
+      }
+      
+      if (n_tx_i > 3) {
+        # Full-width row
+        gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+        n_layout_rows <- n_layout_rows + 1
+        i <- i + 1
+      } else if (n_tx_i <= 3 && has_next && n_tx_next <= 3) {
+        # Pair two small genes
+        gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 0.5)
+        gene_layout[[i + 1]] <- list(row = n_layout_rows + 1, col = 2, width = 0.5)
+        n_layout_rows <- n_layout_rows + 1
+        i <- i + 2
+      } else {
+        # Single full-width
+        gene_layout[[i]] <- list(row = n_layout_rows + 1, col = 1, width = 1)
+        n_layout_rows <- n_layout_rows + 1
+        i <- i + 1
+      }
+    }
+  }
+  
+  # Calculate dimensions based on layout
+  height_per_layout_row <- 3.5
+  gap_between_rows <- 1.0
+  heatmap_height <- height_per_layout_row * n_layout_rows + gap_between_rows * (n_layout_rows - 1)
+  calc_width <- if (is.null(width)) 12 else width
+  calc_height <- if (is.null(height)) heatmap_height + 2.5 else height  # +2.5 for title/subtitle space
+  
+  # =========================================================================
+  # PHASE 4: DATA PREPARATION & HEATMAP CREATION
+  # =========================================================================
+  
+  heatmap_plots <- list()
+  
+  for (gene_idx in seq_along(gene)) {
+    gene_name <- gene[gene_idx]
+    
+    # Extract transcripts for this gene
+    tx_indices <- which(tx2gene$Gen == gene_name)
+    if (length(tx_indices) == 0) {
+      warning("Gene '", gene_name, "' not found in SE", call. = FALSE)
+      heatmap_plots[[gene_idx]] <- NULL
+      next
+    }
+    
+    # Get count matrix for this gene
+    gene_counts <- counts[tx_indices, , drop = FALSE]
+    
+    # Aggregate by condition
+    condition_matrix <- matrix(0, nrow = nrow(gene_counts), ncol = length(unique_conditions))
+    rownames(condition_matrix) <- rownames(gene_counts)
+    colnames(condition_matrix) <- unique_conditions
+    
+    for (cond in unique_conditions) {
+      cond_samples <- conditions == cond
+      if (sum(cond_samples) > 0) {
+        if (metric_choice == "mean") {
+          condition_matrix[, cond] <- rowMeans(gene_counts[, cond_samples, drop = FALSE])
+        } else if (metric_choice == "median") {
+          condition_matrix[, cond] <- apply(gene_counts[, cond_samples, drop = FALSE], 1, median)
+        } else if (metric_choice == "variance") {
+          condition_matrix[, cond] <- apply(gene_counts[, cond_samples, drop = FALSE], 1, var)
+        } else if (metric_choice == "iqr") {
+          condition_matrix[, cond] <- apply(gene_counts[, cond_samples, drop = FALSE], 1, IQR)
+        }
+      }
+    }
+    
+    # Log-normalize
+    condition_matrix_log <- log2(condition_matrix + pseudocount)
+    
+    # TRANSPOSE: Make transcripts columns (X-axis) and conditions rows (Y-axis)
+    # This matches plot_multiq_delta_influence_heatmaps structure:
+    # - Rows: conditions (no dendrogram)
+    # - Columns: transcripts (with dendrogram at top)
+    condition_matrix_log <- t(condition_matrix_log)
+    
+    # Calculate dynamic cell sizes (after transposition!)
+    n_cols_mat <- ncol(condition_matrix_log)  # Now transcripts (columns)
+    n_rows_mat <- nrow(condition_matrix_log)  # Now conditions (rows)
+    
+    # Get layout info if using adaptive layout
+    if (!use_fixed_layout && !is.null(gene_layout[[gene_idx]])) {
+      width_frac <- gene_layout[[gene_idx]]$width
+    } else {
+      width_frac <- if (use_fixed_layout) 1 / as.integer(layout_ncol) else 1
+    }
+    
+    # BASE cell sizes
+    base_cellwidth <- 35
+    base_cellheight <- 29
+    
+    # Adaptive sizing for transcripts (now columns)
+    if (width_frac < 1) {
+      # Half-width: ~32% of plot width
+      available_width_px <- 1200 * 0.65 * width_frac - 40 - 30
+      cellwidth_calc <- available_width_px / n_cols_mat
+      adaptive_cellwidth <- max(20, cellwidth_calc)
+    } else {
+      # Full-width
+      if (n_cols_mat > 3) {
+        scale_factor_width <- 2.2
+      } else {
+        scale_factor_width <- 2.8
+      }
+      adaptive_cellwidth <- base_cellwidth * scale_factor_width
+    }
+    
+    # Height scaling for conditions (now rows)
+    scale_factor_height <- max(0.75, 1.2 - n_rows_mat * 0.04)
+    adaptive_cellheight <- base_cellheight * scale_factor_height
+    
+    # Use fixed sizes if provided, else adaptive
+    final_cellwidth <- if (cellwidth > 0) cellwidth else adaptive_cellwidth
+    final_cellheight <- if (cellheight > 0) cellheight else adaptive_cellheight
+    
+    # Create pheatmap
+    # Structure matches plot_multiq_delta_influence_heatmaps_s4:
+    # - cluster_rows = FALSE: No dendrogram on left (conditions as rows)
+    # - cluster_cols = TRUE: Dendrogram at top (transcripts as columns)
+    p <- pheatmap::pheatmap(
+      condition_matrix_log,
+      main = gene_name,
+      cluster_rows = FALSE,
+      cluster_cols = (ncol(condition_matrix_log) > 1),
+      display_numbers = FALSE,
+      na_col = "lightgray",
+      border_color = "black",
+      color = grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(70),
+      cellwidth = final_cellwidth,
+      cellheight = final_cellheight,
+      fontsize = fontsize * 0.7,
+      fontsize_row = fontsize * 0.7,
+      fontsize_col = fontsize * 0.7,
+      fontsize_number = fontsize * 0.56,
+      margins = c(8, 10),
+      show_rownames = TRUE,
+      show_colnames = TRUE,
+      silent = TRUE
     )
     
-    # Extract sample groups
-    if (!condition_col %in% colnames(cd)) {
-        stop("Column '", condition_col, "' not found in colData(se)", call. = FALSE)
-    }
-    samples <- as.character(cd[[condition_col]])
-    
-    # Handle gene selection from results if needed
-    if (is.null(gene) && !is.null(res)) {
-        # Extract data.frame if res is a list (from calculate_lm_interaction with return_model_data = TRUE)
-        if (is.list(res) && !is.data.frame(res) && "results" %in% names(res)) {
-            res <- res$results
-        }
-        
-        if (!is.data.frame(res)) {
-            stop("res must be a data.frame or a list with $results component from calculate_lm_interaction() or similar analysis function", call. = FALSE)
-        }
-        
-        # Normalize p-value column name for compatibility across sources:
-        # - calculate_lm_interaction uses: adj_p_interaction
-        # - detect_q_gene_interactions uses: adj_p_value
-        # Standardize to a common column for downstream use
-        if ("adj_p_interaction" %in% colnames(res) && "adj_p_value" %in% colnames(res) == FALSE) {
-            # From calculate_lm_interaction (LMM/GAM method)
-            colnames(res)[colnames(res) == "adj_p_interaction"] <- "adj_p_value"
-        }
-        
-        # Find gene column in results
-        res_gene_col <- if ("gene" %in% colnames(res)) {
-            "gene"
-        } else if ("genes" %in% colnames(res)) {
-            "genes"
-        } else if ("gene_id" %in% colnames(res)) {
-            "gene_id"
-        } else {
-            stop("res must contain 'gene', 'genes', or 'gene_id' column", call. = FALSE)
-        }
-        
-        # Find adjusted p-value column (supports multiple naming conventions)
-        # Priority: adj_p_value (from both calculate_lm_interaction and detect_q_gene_interactions)
-        #         padj (legacy support)
-        #         adjusted_p_values (legacy support)
-        p_col <- if ("adj_p_value" %in% colnames(res)) {
-            "adj_p_value"
-        } else if ("padj" %in% colnames(res)) {
-            "padj"
-        } else if ("adjusted_p_values" %in% colnames(res)) {
-            "adjusted_p_values"
-        } else {
-            stop("res must contain adjusted p-value column. Expected: 'adj_p_value' (from calculate_lm_interaction or detect_q_gene_interactions), 'padj', or 'adjusted_p_values'", call. = FALSE)
-        }
-        
-        # Sort by p-value and select top genes
-        res_sorted <- res[order(res[[p_col]], na.last = NA), ]
-        gene <- head(as.character(res_sorted[[res_gene_col]]), top_n)
-        
-        # Filter to genes present in SE
-        se_genes <- unique(tx2gene$Gen)
-        gene <- gene[gene %in% se_genes]
-        
-        if (length(gene) == 0) {
-            stop("No genes from res found in rowData of SE", call. = FALSE)
-        }
-    }
-    
-    if (is.null(gene)) {
-        stop("gene must be provided or derivable from res", call. = FALSE)
-    }
-
-    ## Prepare inputs and normalization via helper
-    prep <- .ptt_prepare_inputs(
-        counts = counts, 
-        readcounts = NULL, 
-        samples = samples, 
-        coldata = NULL, 
-        condition_col = condition_col, 
-        tx2gene = tx2gene, 
-        res = NULL,
-        top_n = top_n, 
-        pseudocount = 1e-6, 
-        output_file = output_file, 
-        metric = metric
-    )
-
-    # Extract prepared data
-    counts <- prep$counts
-    samples <- prep$samples
-    mapping <- prep$mapping
-    metric_choice <- prep$metric_choice
-    agg_fun <- prep$agg_fun
-    agg_label_unique <- prep$agg_label_unique
-    top_n <- prep$top_n
-    pseudocount <- prep$pseudocount
-    output_file <- prep$output_file
-
-    make_plot_for_gene <- function(gene_single, fill_limits = NULL) {
-        .ptt_make_plot_for_gene(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits, font_scale = font_scale)
-    }
-
-    # Calculate dimensions and font scaling upfront
-    n_cols <- 2
-    n_rows <- ceiling(length(gene) / n_cols)
-    
-    # Standardized dimensions: 12 inches width with proportional height
-    # Base: 6 inches per column width, 3 inches per row height, plus 2 inch margin
-    calc_width <- if (is.null(width)) 12 else width
-    calc_height <- if (is.null(height)) 2 + (3 * n_rows) else height
-    
-    # Calculate font scaling based on actual dimensions
-    # Reference: 12x8 inches (96 sq in) uses base formula for 11pt fonts
-    # For other sizes: font_scale = sqrt(area / 96)
-    plot_area <- calc_width * calc_height
-    font_scale <- sqrt(plot_area / 96)
-
-    # Produce plots (single or multiple)
-    if (length(gene) > 1) {
-        fill_limits <- .compute_transcript_fill_limits(gene, mapping, counts, samples, top_n, agg_fun, pseudocount)
-
-        plots <- lapply(seq_along(gene), function(i) {
-            gname <- gene[i]
-            pp <- make_plot_for_gene(gname, fill_limits = fill_limits)
-            per_gene_title <- if (!is.na(gname) && nzchar(as.character(gname))) as.character(gname) else ""
-            # Scale title font proportionally
-            scaled_title_size <- 16 * font_scale
-            pp <- pp + ggplot2::labs(title = per_gene_title) + ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = scaled_title_size, face = "bold", margin = ggplot2::margin(b = 5)))
-            pp
-        })
-
-        result_plot <- .ptt_combine_plots(plots, output_file = output_file, agg_label_unique = agg_label_unique)
-    } else {
-        result_plot <- make_plot_for_gene(gene)
-    }
-
+    heatmap_plots[[gene_idx]] <- p
+  }
+  
+  if (all(sapply(heatmap_plots, is.null))) {
+    stop("No valid heatmaps created for the specified genes", call. = FALSE)
+  }
+  
+  # =========================================================================
+  # PHASE 5: GRID LAYOUT & RENDERING
+  # =========================================================================
+  
+  tryCatch({
+    # Open PNG if output_file specified
     if (!is.null(output_file)) {
-        # Create directory if it doesn't exist
-        output_dir <- dirname(output_file)
-        if (!dir.exists(output_dir) && nzchar(output_dir) && output_dir != ".") {
-            dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-        }
-        
-        # Use pre-calculated dimensions
-        plot_width <- calc_width
-        plot_height <- calc_height
-        
-        ggplot2::ggsave(output_file, result_plot, width = plot_width, height = plot_height, dpi = 100)
-        invisible(output_file)
-    } else {
-        result_plot
+      grDevices::png(output_file, width = calc_width, height = calc_height,
+                     units = "in", res = 100)
     }
+    
+    grid::grid.newpage()
+    
+    # Add title and subtitle
+    title_fontsize <- 16 * (1 + 0.15 * n_layout_rows)
+    subtitle_fontsize <- 12 * (1 + 0.15 * n_layout_rows)
+    
+    # Format metric label for subtitle
+    metric_label <- if (metric_choice == "iqr") "IQR" else metric_choice
+    
+    grid::grid.text("Isoform Expression Profiles",
+                    x = 0.5, y = 0.97,
+                    just = "top",
+                    gp = grid::gpar(fontsize = title_fontsize, fontface = "bold"))
+    
+    grid::grid.text(paste("Log-normalized", metric_label, "abundance by condition (hierarchically clustered transcripts)"),
+                    x = 0.5, y = 0.94,
+                    just = "top",
+                    gp = grid::gpar(fontsize = subtitle_fontsize, fontface = "italic", col = "gray40"))
+    
+    # Create grid layout with gaps
+    n_grid_rows <- n_layout_rows * 2 - 1
+    row_heights <- rep(c(1, 0.15), n_layout_rows)[seq_len(n_grid_rows)]
+    
+    grid::pushViewport(grid::viewport(
+      x = 0.5,
+      y = 0.48,
+      width = 0.96,
+      height = 0.85,
+      layout = grid::grid.layout(
+        n_grid_rows,
+        3,
+        heights = grid::unit(row_heights, "null"),
+        widths = c(1, 0.12, 1),
+        respect = FALSE
+      )
+    ))
+    
+    # Draw heatmaps
+    if (use_fixed_layout) {
+      # Fixed layout rendering
+      n_cols <- as.integer(layout_ncol)
+      for (i in seq_along(heatmap_plots)) {
+        if (!is.null(heatmap_plots[[i]])) {
+          grid_row <- ((i - 1) %/% n_cols) * 2 + 1
+          col_pos <- ((i - 1) %% n_cols) + 1
+          
+          if (n_cols == 1) {
+            grid_col_start <- 1
+            grid_col_end <- 3
+          } else if (col_pos == 1) {
+            grid_col_start <- 1
+            grid_col_end <- 1
+          } else {
+            grid_col_start <- 3
+            grid_col_end <- 3
+          }
+          
+          grid::pushViewport(grid::viewport(
+            layout.pos.row = grid_row,
+            layout.pos.col = grid_col_start:grid_col_end
+          ))
+          grid::grid.draw(heatmap_plots[[i]])
+          grid::popViewport()
+        }
+      }
+    } else {
+      # Adaptive layout rendering using gene_layout
+      for (i in seq_along(heatmap_plots)) {
+        if (!is.null(heatmap_plots[[i]]) && !is.null(gene_layout[[i]])) {
+          layout_info <- gene_layout[[i]]
+          grid_row <- layout_info$row * 2 - 1
+          
+          if (layout_info$width == 1) {
+            grid_col_start <- 1
+            grid_col_end <- 3
+          } else if (layout_info$col == 1) {
+            grid_col_start <- 1
+            grid_col_end <- 1
+          } else {
+            grid_col_start <- 3
+            grid_col_end <- 3
+          }
+          
+          grid::pushViewport(grid::viewport(
+            layout.pos.row = grid_row,
+            layout.pos.col = grid_col_start:grid_col_end
+          ))
+          grid::grid.draw(heatmap_plots[[i]])
+          grid::popViewport()
+        }
+      }
+    }
+    
+    grid::popViewport()
+    
+    # Close PNG if it was opened
+    if (!is.null(output_file)) {
+      grDevices::dev.off()
+      invisible(output_file)
+    } else {
+      invisible(NULL)
+    }
+    
+  }, error = function(e) {
+    if (!is.null(output_file)) {
+      tryCatch(grDevices::dev.off(), silent = TRUE)
+    }
+    stop("Heatmap creation failed: ", e$message)
+  })
 }
 
 #' Plot GAM q-curves for top genes identified by FPCA/GAM interaction tests

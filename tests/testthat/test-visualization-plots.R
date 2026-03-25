@@ -52,10 +52,7 @@ test_that("plot_ma errors on mixed mean/median columns", {
     expect_error(plot_ma_tsallis(df), "Could not find two mean or two median columns")
 })
 
-test_that("plot_top_transcripts returns ggplot for synthetic data", {
-    skip_if_not_installed("ggplot2")
-    library(ggplot2)
-
+test_that("plot_top_transcripts renders without error for synthetic data", {
     set.seed(42)
     counts <- matrix(rpois(3 * 8, lambda = 20), nrow = 3)
     rownames(counts) <- paste0("tx", 1:3)
@@ -73,18 +70,19 @@ test_that("plot_top_transcripts returns ggplot for synthetic data", {
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se,
-        gene = "GENE1",
-        top_n = 2,
-        output_file = NULL
-    )
-    expect_s3_class(p, "ggplot")
+    # Function now renders to active device (grid), returns invisible(NULL)
+    expect_silent({
+        p <- plot_top_transcripts(se,
+            gene = "GENE1",
+            top_n = 2,
+            output_file = NULL
+        )
+    })
+    # Check that it returns NULL (invisibly)
+    expect_null(p)
 })
 
 test_that("plot_top_transcripts selects genes from res when gene is NULL", {
-    skip_if_not_installed("ggplot2")
-    library(ggplot2)
-
     set.seed(42)
     counts <- matrix(rpois(9 * 4, lambda = 20), nrow = 9)
     rownames(counts) <- paste0("tx", 1:9)
@@ -104,8 +102,11 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se, res = res, top_n = 2, output_file = NULL)
-    expect_s3_class(p, "ggplot")
+    # Function renders to active device, returns invisible(NULL)
+    expect_silent({
+        p <- plot_top_transcripts(se, res = res, top_n = 2, output_file = NULL)
+    })
+    expect_null(p)
 })
 
 test_that("plot_volcano returns a ggplot and annotates top genes", {
@@ -273,10 +274,11 @@ test_that("plot_top_transcripts works on simple matrix input", {
         rowData = S4Vectors::DataFrame(genes = tx2gene$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2, output_file = NULL)
-    expect_true(!is.null(p))
-    # expect ggplot object or patchwork
-    expect_true(inherits(p, "ggplot") || inherits(p, "patchwork") || inherits(p, "gtable") || inherits(p, "ggarrange"))
+    # Function renders to active device, returns invisible(NULL)
+    expect_silent({
+        p <- plot_top_transcripts(se, gene = c("G1", "G2"), top_n = 2, output_file = NULL)
+    })
+    expect_null(p)
 })
 
 test_that("plot_top_transcripts errors when se is not SummarizedExperiment", {
@@ -500,7 +502,6 @@ test_that("plot_top_transcripts writes output files for single and multiple gene
 # plot_top_transcripts supports metric = 'iqr'
 
 test_that("plot_top_transcripts supports metric 'iqr'", {
-    skip_if_not_installed("ggplot2")
     counts <- matrix(rpois(3 * 4, lambda = 5), nrow = 3)
     rownames(counts) <- paste0("tx", 1:3)
     colnames(counts) <- paste0("S", 1:4)
@@ -512,8 +513,11 @@ test_that("plot_top_transcripts supports metric 'iqr'", {
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
         colData = S4Vectors::DataFrame(sample_type = samples)
     )
-    p <- plot_top_transcripts(se, gene = "G1", metric = "iqr", output_file = NULL)
-    expect_s3_class(p, "ggplot")
+    # Function renders with metric = "iqr", returns invisible(NULL)
+    expect_silent({
+        p <- plot_top_transcripts(se, gene = "G1", metric = "iqr", output_file = NULL)
+    })
+    expect_null(p)
 })
 
 # plot_volcano auto-detects x_col when not provided
