@@ -916,7 +916,7 @@ calculate_divergence <- function(
         failed = num_errors,
         failed_details = if (num_errors > 0) {
             failed <- row_data_df[!is.na(row_data_df$error), ]
-            failed[1:min(10, nrow(failed)), c("gene_name", "error")]
+            failed[seq_len(min(10, nrow(failed))), c("gene_name", "error")]
         } else NULL
     )
 }

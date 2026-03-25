@@ -1921,7 +1921,7 @@ plot_top_transcripts <- function(
     heatmap_plots[[gene_idx]] <- p
   }
   
-  if (all(sapply(heatmap_plots, is.null))) {
+  if (all(vapply(heatmap_plots, is.null, logical(1)))) {
     stop("No valid heatmaps created for the specified genes", call. = FALSE)
   }
   

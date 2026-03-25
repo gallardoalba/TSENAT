@@ -401,9 +401,12 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
     parsed <- regmatches(sample_q_col, regexec("^(.+)_q([0-9.]+)$", sample_q_col))
     
     # Extract sample and q from parsed results
-    long$sample <- sapply(parsed, function(x) if (length(x) > 1) x[2] else NA_character_)
-    q_values <- sapply(parsed, function(x) if (length(x) > 2) x[3] else NA_character_)
-    long$q <- suppressWarnings(as.numeric(q_values))
+    long$sample <- vapply(parsed, function(x) if (length(x) > 1) x[2] else NA_character_, character(1))
+    q_values <- vapply(parsed, function(x) if (length(x) > 2) x[3] else NA_character_, character(1))
+    # Convert only non-NA q_values to numeric to avoid unnecessary warnings
+    long$q <- NA_real_
+    valid_idx <- !is.na(q_values)
+    long$q[valid_idx] <- as.numeric(q_values[valid_idx])
     
     # For entries without q-value pattern, use sample_q as sample name
     no_q_match <- is.na(long$sample)
