@@ -69,20 +69,13 @@ filter_analysis <- function(analysis, stringency = NULL, min_samples = 5L, verbo
   # Extract SE from analysis
   se <- analysis@se
 
-  # Apply filtering via filter_se
+  # Apply filtering via filter_se (colData is already preserved within filter_se)
   se_filtered <- filter_se(
     se = se,
     stringency = stringency,
     min_samples = min_samples,
     verbose = verbose
   )
-
-  # Ensure colData is preserved from original SE to maintain pairing structure
-  # This is critical for downstream analyses like LM interaction tests
-  if (!is.null(SummarizedExperiment::colData(se)) && 
-      nrow(SummarizedExperiment::colData(se)) == ncol(se_filtered)) {
-    SummarizedExperiment::colData(se_filtered) <- SummarizedExperiment::colData(se)
-  }
 
   # Store filtered SE back in analysis object
   analysis@se <- se_filtered

@@ -101,6 +101,7 @@ build_analysis <- function(readcounts, tx2gene, assay_name = "counts",
   )
 
   # Ensure sample_id column exists in colData (required by TSENATAnalysis)
+  # OPTIMIZATION: Only add if not already present
   if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
     SummarizedExperiment::colData(se)$sample_id <- colnames(se)
   }

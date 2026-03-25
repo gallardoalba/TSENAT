@@ -64,6 +64,61 @@
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
 #' filt <- filter_se(se, min_samples = 1)
 #' class(filt)
+
+# ============================================================================
+# HELPER: Resolve assay by name/index with fallback logic
+# OPTIMIZATION: Consolidated from 3 duplicate implementations
+# @noRd
+.resolve_assay_index <- function(assay_ref, assay_names) {
+    if (is.character(assay_ref)) {
+        idx <- which(assay_names == assay_ref)
+        if (length(idx) == 1) return(idx)
+        return(1)  # Fallback to first
+    } else if (is.numeric(assay_ref)) {
+        if (assay_ref >= 1 && assay_ref <= length(assay_names)) return(assay_ref)
+        return(1)  # Fallback to first
+    }
+    1  # Default to first
+}
+
+# ============================================================================
+# HELPER: Get assay matrix with TPM priority logic (OPTIMIZATION: single call point)
+# @noRd
+.get_assay_for_filtering <- function(se, assays_list, tpm_assay_name, assay_name) {
+    # Priority 1: explicit TPM assay
+    if (!is.null(tpm_assay_name) && tpm_assay_name %in% names(assays_list)) {
+        return(list(mat = as.matrix(assays_list[[tpm_assay_name]]), 
+                   source = sprintf("assay '%s' (user-specified)", tpm_assay_name)))
+    }
+    
+    # Priority 2: metadata
+    md <- S4Vectors::metadata(se)
+    if (!is.null(md$salmon_tpm) && is.matrix(md$salmon_tpm)) {
+        return(list(mat = as.matrix(md$salmon_tpm), 
+                   source = "metadata$salmon_tpm (SALMON preprocessed)"))
+    }
+    if (!is.null(md$tpm) && is.matrix(md$tpm)) {
+        return(list(mat = as.matrix(md$tpm), 
+                   source = "metadata$tpm"))
+    }
+    
+    # Priority 3: auto-detect by name
+    if ("tpm" %in% names(assays_list)) {
+        return(list(mat = as.matrix(assays_list[["tpm"]]), 
+                   source = "assay 'tpm' (auto-detected)"))
+    }
+    if ("abundance" %in% names(assays_list)) {
+        return(list(mat = as.matrix(assays_list[["abundance"]]), 
+                   source = "assay 'abundance' (tximport format)"))
+    }
+    
+    # Fallback with warning
+    idx <- .resolve_assay_index(assay_name, names(assays_list))
+    return(list(mat = as.matrix(assays_list[[idx]]), 
+               source = sprintf("assay '%s' (fallback - NOT TPM!)", names(assays_list)[idx]),
+               is_fallback = TRUE))
+}
+
 filter_se <- function(se, min_samples = 5L, stringency = NULL,
     pair_col = NULL, min_tpm = 1.0, tpm_assay_name = NULL,
     min_tx_per_gene = 2L, assay_name = "counts", verbose = TRUE) {
@@ -71,57 +126,20 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
         stop("'se' must be a SummarizedExperiment", call. = FALSE)
     }
     
-    # ========================================================================
-    # LOCATE TPM DATA FOR FILTERING
-    # ========================================================================
-    # Priority: explicit parameter > metadata > assay names
+    # OPTIMIZATION: Single assays retrieval (moved out of duplicate locations)
     assays_list <- SummarizedExperiment::assays(se)
-    tpm_assay_mat <- NULL
-    tpm_source <- NULL
     
-    # Strategy 1: Use explicitly specified TPM assay
-    if (!is.null(tpm_assay_name)) {
-        if (tpm_assay_name %in% names(assays_list)) {
-            tpm_assay_mat <- as.matrix(assays_list[[tpm_assay_name]])
-            tpm_source <- sprintf("assay '%s' (user-specified)", tpm_assay_name)
-        } else {
-            warning(sprintf("TPM assay '%s' not found. Available assays: %s",
-                          tpm_assay_name, paste(names(assays_list), collapse=", ")),
-                   call. = FALSE)
-        }
-    }
+    # ========================================================================
+    # LOCATE TPM DATA FOR FILTERING (OPTIMIZATION: consolidated helper)
+    tpm_result <- .get_assay_for_filtering(se, assays_list, tpm_assay_name, assay_name)
+    tpm_assay_mat <- tpm_result$mat
+    tpm_source <- tpm_result$source
     
-    # Strategy 2: Look in metadata for salmon_tpm or tpm
-    if (is.null(tpm_assay_mat)) {
-        md <- S4Vectors::metadata(se)
-        if (!is.null(md$salmon_tpm) && is.matrix(md$salmon_tpm)) {
-            tpm_assay_mat <- as.matrix(md$salmon_tpm)
-            tpm_source <- "metadata$salmon_tpm (SALMON preprocessed)"
-        } else if (!is.null(md$tpm) && is.matrix(md$tpm)) {
-            tpm_assay_mat <- as.matrix(md$tpm)
-            tpm_source <- "metadata$tpm"
-        }
-    }
-    
-    # Strategy 3: Search for assay named "tpm" or "abundance"
-    if (is.null(tpm_assay_mat)) {
-        if ("tpm" %in% names(assays_list)) {
-            tpm_assay_mat <- as.matrix(assays_list[["tpm"]])
-            tpm_source <- "assay 'tpm' (auto-detected)"
-        } else if ("abundance" %in% names(assays_list)) {
-            tpm_assay_mat <- as.matrix(assays_list[["abundance"]])
-            tpm_source <- "assay 'abundance' (tximport format)"
-        }
-    }
-    
-    # If no TPM found, warn and fall back to specified/default assay (likely incorrect)
-    if (is.null(tpm_assay_mat)) {
+    if (!is.null(tpm_result$is_fallback) && tpm_result$is_fallback) {
         warning("No TPM data found in assays or metadata. Falling back to assay '", assay_name, "'.",
                 "\nThis may produce INCORRECT results if '", assay_name, "' contains raw counts.",
                 "\nEnsure TPM data is added as an assay or in metadata with salmon_tpm/tpm.",
                 call. = FALSE)
-        tpm_source <- sprintf("assay '%s' (fallback - NOT TPM!)", assay_name)
-        tpm_assay_mat <- NULL  # Will use assay_name below
     }
     
     # Handle stringency-based filtering for paired designs
@@ -236,18 +254,13 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
         }
     }
 
-    assays_list <- SummarizedExperiment::assays(se)
-    # Use TPM data if found, otherwise use specified assay
+    # OPTIMIZATION: Reuse assays_list from top; use TPM data if found, otherwise use specified assay
     if (!is.null(tpm_assay_mat)) {
         assay_mat <- tpm_assay_mat
     } else {
-        if (is.character(assay_name) && assay_name %in% names(assays_list)) {
-            assay_mat <- as.matrix(assays_list[[assay_name]])
-        } else if (is.numeric(assay_name) && assay_name >= 1 && assay_name <= length(assays_list)) {
-            assay_mat <- as.matrix(assays_list[[assay_name]])
-        } else {
-            # fallback to first assay
-            assay_mat <- as.matrix(assays_list[[1]])
+        idx <- .resolve_assay_index(assay_name, names(assays_list))
+        assay_mat <- as.matrix(assays_list[[idx]])
+        if (idx != 1 && !(is.character(assay_name) && assay_name %in% names(assays_list)) && !is.null(assay_name)) {
             warning("Requested assay not found; using first assay.", call. = FALSE)
         }
     }
@@ -325,8 +338,10 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
         rd <- SummarizedExperiment::rowData(se)[tokeep, , drop = FALSE]
     }
 
-    # subset metadata readcounts and tx2gene if present
+    # OPTIMIZATION: Consolidate metadata operations (build new metadata once)
     md <- S4Vectors::metadata(se)
+    
+    # Filter readcounts and tx2gene if present
     if (!is.null(md$readcounts) && is.matrix(md$readcounts)) {
         md$readcounts <- as.matrix(md$readcounts)[tokeep, , drop = FALSE]
     }
@@ -335,29 +350,18 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
         txcol <- colnames(txmap)[1]
         md$tx2gene <- txmap[txmap[[txcol]] %in% rownames(assay_mat)[tokeep], , drop = FALSE]
     }
-
-    # construct new SE with same colData
-    new_se <- SummarizedExperiment::SummarizedExperiment(assays = new_assays, rowData = if (!is.null(rd)) {
-        rd
-    } else {
-        S4Vectors::DataFrame()
-    }, colData = SummarizedExperiment::colData(se), metadata = c(S4Vectors::metadata(se),
-        list(filtered = list(min_samples = min_samples, 
+    
+    new_md <- c(md, list(filtered = list(min_samples = min_samples, 
                             min_tpm = min_tpm, 
                             min_tx_per_gene = min_tx_per_gene,
-                            stringency = stringency))))
+                            stringency = stringency)))
 
-    # attach updated metadata pieces
-    S4Vectors::metadata(new_se)$readcounts <- if (!is.null(md$readcounts)) {
-        md$readcounts
-    } else {
-        NULL
-    }
-    S4Vectors::metadata(new_se)$tx2gene <- if (!is.null(md$tx2gene)) {
-        md$tx2gene
-    } else {
-        NULL
-    }
-
+    # construct new SE with consolidated metadata
+    new_se <- SummarizedExperiment::SummarizedExperiment(
+        assays = new_assays, 
+        rowData = if (!is.null(rd)) rd else S4Vectors::DataFrame(), 
+        colData = SummarizedExperiment::colData(se), 
+        metadata = new_md)
+    
     return(new_se)
 }
