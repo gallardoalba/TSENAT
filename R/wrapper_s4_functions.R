@@ -13,10 +13,42 @@
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for Tsallis entropy.
 #'   If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).
+#' @param norm \code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
+#'   If NULL, reads from \code{@config$norm} or defaults to TRUE.
+#' @param tpm \code{logical}. TPM normalization. Default: FALSE.
+#'   If not specified, reads from \code{@config$tpm} if available.
+#' @param assayno \code{numeric}. Assay number to use. Default: 1.
+#'   If NULL, reads from \code{@config$assayno} if available.
+#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#'   If not specified, reads from \code{@config$verbose} if available.
+#' @param what \code{character}. Output type: "S" (entropy) or "D" (diversity). Default: "S".
+#'   If NULL, reads from \code{@config$what} if available.
+#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
+#' @param pseudocount \code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
+#'   If NULL, reads from \code{@config$pseudocount} if available.
+#' @param min_valid_frac \code{numeric}. Minimum valid fraction threshold. Default: 0.75.
+#'   If NULL, reads from \code{@config$min_valid_frac} if available.
+#' @param shrinkage \code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
+#'   If NULL, reads from \code{@config$shrinkage} if available.
+#' @param genes \code{character} or \code{NULL}. Gene set specification. Default: NULL (use all genes).
+#'   If NULL, reads from \code{@config$genes} if available.
+#' @param effective_length \code{numeric} or \code{NULL}. Effective gene lengths. Default: NULL.
+#'   If NULL, reads from \code{@config$effective_length} if available.
+#' @param metadata \code{list} or \code{NULL}. Additional metadata. Default: NULL.
+#' @param bootstrap \code{logical}. Compute bootstrap confidence intervals. Default: FALSE.
+#'   If not specified, reads from \code{@config$bootstrap} if available.
+#' @param bootstrap_nboot \code{numeric} or \code{NULL}. Number of bootstrap iterations. Default: NULL.
+#'   If NULL, reads from \code{@config$bootstrap_nboot} if available.
+#' @param bootstrap_method \code{character}. Bootstrap method: "percentile" or others. Default: "percentile".
+#'   If NULL, reads from \code{@config$bootstrap_method} if available.
+#' @param bootstrap_ci \code{numeric}. Bootstrap confidence interval level (0-1). Default: 0.95.
+#'   If NULL, reads from \code{@config$bootstrap_ci} if available.
+#' @param bootstrap_include_diagnostics \code{logical}. Include bootstrap diagnostics. Default: TRUE.
+#'   If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .tsv, .csv, .txt (for tables), .rds (for S4 objects). Default: NULL (no file output).
-#' @param ... Additional arguments passed to the base function,
-#'   including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.
+#' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis object with diversity results stored
 #'   in \code{@diversity_results}, keyed by "q_X.X" format (e.g., "q_1.0").
@@ -30,10 +62,10 @@
 #' \describe{
 #'   \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default: seq(0.01, 2, by = 0.05))\cr
 #'     **Note:** If explicit q AND \code{@config$q_values} both provided, explicit wins.}
+#'   \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
 #'   \item{verbose}{Priority: explicit > \code{@config$verbose} > TRUE}
 #'   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}
 #'   \item{pseudocount}{Priority: explicit > \code{@config$pseudocount} > 0}
-#'   \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
 #'   \item{norm}{Priority: explicit > \code{@config$norm} > TRUE}
 #'   \item{what}{Priority: explicit > \code{@config$what} > "S" (Tsallis entropy)}
 #' }
@@ -62,7 +94,12 @@
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) {
+calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE, assayno = NULL,
+                                   verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
+                                   min_valid_frac = NULL, shrinkage = NULL, genes = NULL,
+                                   effective_length = NULL, metadata = NULL, bootstrap = NULL,
+                                   bootstrap_nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL,
+                                   bootstrap_include_diagnostics = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -91,74 +128,139 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
   # PARAMETER EXTRACTION FROM @config (with priority resolution)
   # ===================================================================
   # Priority: explicit argument > @config > function default
-  dots <- list(...)
+  
+  # Extract nthreads parameter
+  if (is.null(nthreads)) {
+    if ("nthreads" %in% names(analysis@config)) {
+      nthreads <- analysis@config$nthreads
+    } else {
+      nthreads <- 1  # Default to sequential
+    }
+  }
   
   # Extract verbose parameter
-  verbose <- if ("verbose" %in% names(dots)) {
-    dots$verbose
-  } else if ("verbose" %in% names(analysis@config)) {
-    analysis@config$verbose
-  } else {
-    TRUE  # Default
+  if (is.null(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      verbose <- analysis@config$verbose
+    } else {
+      verbose <- TRUE  # Default
+    }
   }
   
   # Extract bootstrap parameter
-  bootstrap <- if ("bootstrap" %in% names(dots)) {
-    dots$bootstrap
-  } else if ("bootstrap" %in% names(analysis@config)) {
-    analysis@config$bootstrap
-  } else {
-    FALSE  # Default
+  if (is.null(bootstrap)) {
+    if ("bootstrap" %in% names(analysis@config)) {
+      bootstrap <- analysis@config$bootstrap
+    } else {
+      bootstrap <- FALSE  # Default
+    }
   }
   
   # Extract pseudocount parameter
-  pseudocount <- if ("pseudocount" %in% names(dots)) {
-    dots$pseudocount
-  } else if ("pseudocount" %in% names(analysis@config)) {
-    analysis@config$pseudocount
-  } else {
-    0  # Default
-  }
-  
-  # Extract nthreads parameter
-  nthreads <- if ("nthreads" %in% names(dots)) {
-    dots$nthreads
-  } else if ("nthreads" %in% names(analysis@config)) {
-    analysis@config$nthreads
-  } else {
-    1  # Default
+  if (is.null(pseudocount)) {
+    if ("pseudocount" %in% names(analysis@config)) {
+      pseudocount <- analysis@config$pseudocount
+    } else {
+      pseudocount <- 0  # Default
+    }
   }
   
   # Extract normalization method
-  norm <- if ("norm" %in% names(dots)) {
-    dots$norm
-  } else if ("norm" %in% names(analysis@config)) {
-    analysis@config$norm
-  } else {
-    TRUE  # Default
+  if (is.null(norm)) {
+    if ("norm" %in% names(analysis@config)) {
+      norm <- analysis@config$norm
+    } else {
+      norm <- TRUE  # Default
+    }
   }
   
   # Extract what parameter (S for Tsallis entropy, D for diversity)
-  what <- if ("what" %in% names(dots)) {
-    dots$what
-  } else if ("what" %in% names(analysis@config)) {
-    analysis@config$what
-  } else {
-    "S"  # Default to entropy
+  if (is.null(what)) {
+    if ("what" %in% names(analysis@config)) {
+      what <- analysis@config$what
+    } else {
+      what <- "S"  # Default to entropy
+    }
+  }
+  
+  # Extract tpm parameter
+  if (!tpm && "tpm" %in% names(analysis@config)) {
+    tpm <- analysis@config$tpm
+  }
+  
+  # Extract assayno parameter
+  if (is.null(assayno)) {
+    if ("assayno" %in% names(analysis@config)) {
+      assayno <- analysis@config$assayno
+    } else {
+      assayno <- 1  # Default
+    }
+  }
+  
+  # Extract min_valid_frac parameter
+  if (is.null(min_valid_frac)) {
+    if ("min_valid_frac" %in% names(analysis@config)) {
+      min_valid_frac <- analysis@config$min_valid_frac
+    } else {
+      min_valid_frac <- 0.75  # Default
+    }
+  }
+  
+  # Extract shrinkage parameter
+  if (is.null(shrinkage)) {
+    if ("shrinkage" %in% names(analysis@config)) {
+      shrinkage <- analysis@config$shrinkage
+    } else {
+      shrinkage <- "none"  # Default
+    }
+  }
+  
+  # Extract genes parameter
+  if (is.null(genes) && "genes" %in% names(analysis@config)) {
+    genes <- analysis@config$genes
+  }
+  
+  # Extract effective_length parameter
+  if (is.null(effective_length) && "effective_length" %in% names(analysis@config)) {
+    effective_length <- analysis@config$effective_length
+  }
+  
+  # Extract bootstrap_nboot parameter
+  if (is.null(bootstrap_nboot) && "bootstrap_nboot" %in% names(analysis@config)) {
+    bootstrap_nboot <- analysis@config$bootstrap_nboot
+  }
+  
+  # Extract bootstrap_method parameter
+  if (is.null(bootstrap_method)) {
+    if ("bootstrap_method" %in% names(analysis@config)) {
+      bootstrap_method <- analysis@config$bootstrap_method
+    } else {
+      bootstrap_method <- "percentile"  # Default
+    }
+  }
+  
+  # Extract bootstrap_ci parameter
+  if (is.null(bootstrap_ci)) {
+    if ("bootstrap_ci" %in% names(analysis@config)) {
+      bootstrap_ci <- analysis@config$bootstrap_ci
+    } else {
+      bootstrap_ci <- 0.95  # Default
+    }
+  }
+  
+  # Extract bootstrap_include_diagnostics parameter
+  if (is.null(bootstrap_include_diagnostics)) {
+    if ("bootstrap_include_diagnostics" %in% names(analysis@config)) {
+      bootstrap_include_diagnostics <- analysis@config$bootstrap_include_diagnostics
+    } else {
+      bootstrap_include_diagnostics <- TRUE  # Default
+    }
   }
   
   # Extract metadata parameter (for .map_metadata() application to results)
-  metadata <- if ("metadata" %in% names(dots)) {
-    dots$metadata
-  } else if ("metadata" %in% names(analysis@config)) {
-    analysis@config$metadata
-  } else {
-    NULL
+  if (is.null(metadata) && "metadata" %in% names(analysis@config)) {
+    metadata <- analysis@config$metadata
   }
-
-  # Remove extracted parameters from dots to avoid duplicate argument errors
-  params_to_remove <- c("verbose", "bootstrap", "pseudocount", "nthreads", "norm", "what", "metadata")
-  dots_filtered <- dots[!(names(dots) %in% params_to_remove)]
 
   # Use three decimal precision for q-value formatting
   # This ensures consistent formatting for all q-values (e.g., 0.100, 0.150, 2.000)
@@ -170,20 +272,34 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
     x = analysis@se,
     q = q,  # Pass entire vector, not individual values
     norm = norm,
+    tpm = tpm,
+    assayno = assayno,
     verbose = verbose,
-    bootstrap = bootstrap,
-    pseudocount = pseudocount,
+    what = what,
     nthreads = nthreads,
-    what = what
+    pseudocount = pseudocount,
+    min_valid_frac = min_valid_frac,
+    shrinkage = shrinkage,
+    bootstrap = bootstrap,
+    bootstrap_nboot = bootstrap_nboot,
+    bootstrap_method = bootstrap_method,
+    bootstrap_ci = bootstrap_ci,
+    bootstrap_include_diagnostics = bootstrap_include_diagnostics
   )
   
-  # Include metadata if provided (for .map_metadata() application)
+  # Add optional parameters if provided
+  if (!is.null(genes)) {
+    calc_args$genes <- genes
+  }
+  if (!is.null(effective_length)) {
+    calc_args$effective_length <- effective_length
+  }
   if (!is.null(metadata)) {
     calc_args$metadata <- metadata
   }
   
   # Add any additional parameters from dots
-  calc_args <- c(calc_args, dots_filtered)
+  calc_args <- c(calc_args, list(...))
   
   result_df <- do.call(calculate_diversity, calc_args)
 
@@ -448,12 +564,31 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #' @param fdr_threshold \code{numeric}. FDR cutoff for significance.
 #'   Default: 0.05.
 #' @param formula \code{formula} or NULL. Reserved for future use.
+#' @param condition_col \code{character} or \code{NULL}. Column name in colData identifying sample conditions.
+#'   If NULL, reads from \code{@config$condition_col} or auto-detects common column names.
 #' @param method \code{character}. Statistical method (e.g., "lmm", "gam", "gee").
 #'   If NULL, uses method from @config$method or defaults to "lmm".
+#' @param paired \code{logical}. Whether to use paired design. Default: FALSE.
+#'   If not specified, reads from \code{@config$paired} if available.
+#' @param subject_col \code{character} or \code{NULL}. Column name identifying subject IDs for paired designs.
+#'   If NULL, reads from \code{@config$subject_col} if available.
+#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#'   If NULL, reads from \code{@config$nthreads} (or defaults to NULL, letting base function decide).
+#' @param multicorr \code{character} or \code{NULL}. Multiple comparison correction method.
+#'   Options: "hochberg", "westfall-young", "benjamini-yekutieli".
+#'   If NULL, uses method from @config or base function defaults.
+#' @param corstr \code{character} or \code{NULL}. Correlation structure for GEE models.
+#'   Options: "ar1", "exchangeable", "independence".
+#'   If NULL, uses method from @config or base function defaults.
+#' @param pcorr \code{character} or \code{NULL}. P-value correction method.
+#'   Default: "BH" (Benjamini-Hochberg).
+#'   If NULL, reads from \code{@config$pcorr} if available.
+#' @param verbose \code{logical}. Print progress messages. Default: FALSE.
+#' @param return_model_data \code{logical}. Return model data for visualization. Default: TRUE.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base LM function,
-#'   including: condition_col, paired, subject_col, multicorr, nthreads, etc.
+#'   including: pvalue, min_obs, assay_name, bias_correction, regularization, storey, wy_randomizations, adaptive_knots, etc.
 #'
 #' @return Modified TSENATAnalysis with results in @lm_results$lm_interaction.
 #'
@@ -461,6 +596,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #' Extracts diversity results from @diversity_results (prerequisite),
 #' combines across q-values into single SummarizedExperiment,
 #' then runs \code{calculate_lm_interaction()}.
+#' 
+#' **Parameter Priority Resolution:**
+#' \itemize{
+#'   \item \code{nthreads}: Priority: explicit > @config > NULL
+#' }
 #' 
 #' Parameters are resolved in priority order:
 #' 1. Explicit arguments passed to function
@@ -485,7 +625,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, output_file = NULL, ...) 
 #' @export
 #' @importFrom utils write.table
 calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, 
-                                       formula = NULL, method = NULL, output_file = NULL, ...) {
+                                       formula = NULL, condition_col = NULL, method = NULL,
+                                       paired = FALSE, subject_col = NULL, nthreads = NULL,
+                                       multicorr = NULL, corstr = NULL, pcorr = NULL,
+                                       verbose = FALSE, return_model_data = TRUE,
+                                       output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -519,17 +663,16 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   # This allows specifying once in TSENATAnalysis initialization
   
   # Condition column (for sample grouping)
-  condition_col <- NULL
-  if ("condition_col" %in% names(list(...))) {
-    condition_col <- list(...)$condition_col
-  } else if ("condition_col" %in% names(analysis@config)) {
-    condition_col <- analysis@config$condition_col
-  } else if ("condition" %in% colnames(colData(analysis@se))) {
-    # Auto-detect common column name
-    condition_col <- "condition"
-  } else if ("sample_type" %in% colnames(colData(analysis@se))) {
-    # Try another common name
-    condition_col <- "sample_type"
+  if (is.null(condition_col)) {
+    if ("condition_col" %in% names(analysis@config)) {
+      condition_col <- analysis@config$condition_col
+    } else if ("condition" %in% colnames(colData(analysis@se))) {
+      # Auto-detect common column name
+      condition_col <- "condition"
+    } else if ("sample_type" %in% colnames(colData(analysis@se))) {
+      # Try another common name
+      condition_col <- "sample_type"
+    }
   }
   
   # Method (statistical approach)
@@ -542,27 +685,41 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   }
   
   # Paired design flag
-  paired <- FALSE
-  if ("paired" %in% names(list(...))) {
-    paired <- list(...)$paired
-  } else if ("paired" %in% names(analysis@config)) {
+  if (!paired && "paired" %in% names(analysis@config)) {
     paired <- analysis@config$paired
   }
   
-  # Number of threads for parallel computation
-  nthreads <- NULL
-  if ("nthreads" %in% names(list(...))) {
-    nthreads <- list(...)$nthreads
-  } else if ("nthreads" %in% names(analysis@config)) {
-    nthreads <- analysis@config$nthreads
+  # Subject column (for paired/hierarchical designs)
+  if (is.null(subject_col) && "subject_col" %in% names(analysis@config)) {
+    subject_col <- analysis@config$subject_col
   }
   
-  # Subject column (for paired/hierarchical designs)
-  subject_col <- NULL
-  if ("subject_col" %in% names(list(...))) {
-    subject_col <- list(...)$subject_col
-  } else if ("subject_col" %in% names(analysis@config)) {
-    subject_col <- analysis@config$subject_col
+  # Number of threads for parallel computation
+  # Priority: explicit argument > @config$nthreads > NULL
+  if (is.null(nthreads)) {
+    if ("nthreads" %in% names(analysis@config)) {
+      nthreads <- analysis@config$nthreads
+    }
+    # else: keep as NULL (let base function decide)
+  }
+  
+  # Multiple comparison correction
+  if (is.null(multicorr) && "multicorr" %in% names(analysis@config)) {
+    multicorr <- analysis@config$multicorr
+  }
+  
+  # Correlation structure for GEE
+  if (is.null(corstr) && "corstr" %in% names(analysis@config)) {
+    corstr <- analysis@config$corstr
+  }
+  
+  # P-value correction
+  if (is.null(pcorr)) {
+    if ("pcorr" %in% names(analysis@config)) {
+      pcorr <- analysis@config$pcorr
+    } else {
+      pcorr <- "BH"  # Default Benjamini-Hochberg
+    }
   }
   
   # Validate that required parameters are available
@@ -659,30 +816,43 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
     args$method <- method
   }
   
-  # Add extracted parameters from @config if not already provided in ...
-  if (!is.null(condition_col) && !("condition_col" %in% names(list(...)))) {
+  # Add extracted parameters
+  if (!is.null(condition_col)) {
     args$condition_col <- condition_col
   }
   
-  # Always pass paired if from config (even if FALSE)
-  if (!("paired" %in% names(list(...)))) {
+  if (paired) {
     args$paired <- paired
   }
   
-  if (!is.null(subject_col) && !("subject_col" %in% names(list(...)))) {
+  if (!is.null(subject_col)) {
     args$subject_col <- subject_col
   }
 
-  if (!is.null(nthreads) && !("nthreads" %in% names(list(...)))) {
+  if (!is.null(nthreads)) {
     args$nthreads <- nthreads
   }
 
-  # Request model_data for plotting compatibility (unless explicitly disabled)
-  if (!("return_model_data" %in% names(args))) {
-    args$return_model_data <- TRUE
+  if (!is.null(multicorr)) {
+    args$multicorr <- multicorr
   }
+
+  if (!is.null(corstr)) {
+    args$corstr <- corstr
+  }
+
+  if (!is.null(pcorr)) {
+    args$pcorr <- pcorr
+  }
+
+  if (verbose) {
+    args$verbose <- verbose
+  }
+
+  # Request model_data for plotting compatibility
+  args$return_model_data <- return_model_data
   
-  # Merge with additional args (which may include condition_col, paired, multicorr, etc.)
+  # Merge with additional args (which may override these values)
   args <- c(args, list(...))
 
   # Run LM analysis
@@ -812,6 +982,9 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
 #' @param print_results \code{logical}. Print jackknife results summary. Default: FALSE.
+#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
+#'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
@@ -821,6 +994,11 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' @details
 #' Requires diversity results to exist first. Will error if
 #' \code{calculate_diversity_s4()} has not been run.
+#'
+#' **Parameter Priority Resolution:**
+#' \describe{
+#'   \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
+#' }
 #'
 #' @examples
 #' # Create test analysis with diversity pre-computed
@@ -837,7 +1015,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @export
 #' @importFrom utils write.table
-jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, output_file = NULL, ...) {
+jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, nthreads = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -862,6 +1040,16 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
   # Ensure q is numeric
   if (!is.numeric(q)) {
     stop("'q' must be numeric", call. = FALSE)
+  }
+
+  # PARAMETER EXTRACTION: nthreads with priority resolution
+  # Priority: explicit argument > @config > default (1)
+  if (is.null(nthreads)) {
+    if ("nthreads" %in% names(analysis@config)) {
+      nthreads <- analysis@config$nthreads
+    } else {
+      nthreads <- 1  # Default to sequential
+    }
   }
 
   for (q_val in q) {
@@ -895,6 +1083,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
         x = div_matrix,
         q = q_val,
         print_results = print_results,
+        nthreads = nthreads,
         ...
       )
 
@@ -929,10 +1118,19 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #' @param q \code{numeric}. Q-value for divergence.
 #'   If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
-#' @param ... Additional arguments passed to the base divergence function,
-#'   including: control_group, paired, bootstrap, method, ci, etc.
+#' @param control_group \code{character} or \code{NULL}. Control group identifier for divergence comparison.
+#'   If NULL, reads from \code{@config$control_group} if available.
+#' @param paired \code{logical}. Whether to use paired design. Default: FALSE.
+#'   If not specified, reads from \code{@config$paired} if available.
+#' @param method \code{character} or \code{NULL}. Statistical method for divergence calculation.
+#'   If NULL, reads from \code{@config$method} if available.
+#' @param bootstrap \code{logical}. Whether to compute bootstrap confidence intervals. Default: FALSE.
+#'   If not specified, reads from \code{@config$bootstrap} if available.
+#' @param ... Additional arguments passed to the base divergence function.
 #'
 #' @return Modified TSENATAnalysis with divergence metrics in @divergence_results
 #'   (stored as list of data.frames or matrices).
@@ -962,7 +1160,9 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_file = NULL, ...) {
+calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads = NULL, 
+                                    output_file = NULL, control_group = NULL, paired = FALSE, 
+                                    method = NULL, bootstrap = FALSE, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1000,63 +1200,60 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, output_f
   }
   
   # Control group for divergence comparison
-  control_group <- NULL
-  if ("control_group" %in% names(list(...))) {
-    control_group <- list(...)$control_group
-  } else if ("control_group" %in% names(analysis@config)) {
+  if (is.null(control_group) && "control_group" %in% names(analysis@config)) {
     control_group <- analysis@config$control_group
   }
   
   # Paired design flag
-  paired <- FALSE
-  if ("paired" %in% names(list(...))) {
-    paired <- list(...)$paired
-  } else if ("paired" %in% names(analysis@config)) {
+  if (!paired && "paired" %in% names(analysis@config)) {
     paired <- analysis@config$paired
   }
   
   # Statistical method
-  method <- NULL
-  if ("method" %in% names(list(...))) {
-    method <- list(...)$method
-  } else if ("method" %in% names(analysis@config)) {
+  if (is.null(method) && "method" %in% names(analysis@config)) {
     method <- analysis@config$method
   }
   
   # Bootstrap parameters
-  bootstrap <- FALSE
-  if ("bootstrap" %in% names(list(...))) {
-    bootstrap <- list(...)$bootstrap
-  } else if ("bootstrap" %in% names(analysis@config)) {
+  if (!bootstrap && "bootstrap" %in% names(analysis@config)) {
     bootstrap <- analysis@config$bootstrap
+  }
+  
+  # Extract nthreads parameter - Priority: explicit > @config > 1
+  if (is.null(nthreads)) {
+    if ("nthreads" %in% names(analysis@config)) {
+      nthreads <- analysis@config$nthreads
+    } else {
+      nthreads <- 1  # Default to sequential
+    }
   }
 
   # Run divergence calculation with extracted parameters
   args <- list(
     se = analysis@se,
     q = q,
-    verbose = verbose
+    verbose = verbose,
+    nthreads = nthreads
   )
   
-  # Add parameters from @config if not already in ...
-  if (!is.null(control_group) && !("control_group" %in% names(list(...)))) {
+  # Add parameters if they are not NULL/FALSE
+  if (!is.null(control_group)) {
     args$control_group <- control_group
   }
   
-  # Always pass paired if from config (even if FALSE)
-  if (!("paired" %in% names(list(...)))) {
+  if (paired) {
     args$paired <- paired
   }
   
-  if (!is.null(method) && !("method" %in% names(list(...)))) {
+  if (!is.null(method)) {
     args$method <- method
   }
   
-  if (bootstrap && !("bootstrap" %in% names(list(...)))) {
+  if (bootstrap) {
     args$bootstrap <- bootstrap
   }
   
-  # Merge with additional args (which may override @config values)
+  # Merge with additional args (which may override values)
   args <- c(args, list(...))
   
   # Run divergence calculation
@@ -1326,13 +1523,15 @@ detect_q_gene_interactions_s4 <- function(
     dots$condition_col <- condition_col
   }
   
-  # 5. nthreads: explicit > @config (computation parameter)
-  if (is.null(nthreads) && "nthreads" %in% names(analysis@config)) {
-    nthreads <- analysis@config$nthreads
+  # 5. nthreads: explicit > @config > 1 (computation parameter)
+  if (is.null(nthreads)) {
+    if ("nthreads" %in% names(analysis@config)) {
+      nthreads <- analysis@config$nthreads
+    } else {
+      nthreads <- 1  # Default to sequential
+    }
   }
-  if (!is.null(nthreads)) {
-    dots$nthreads <- nthreads
-  }
+  dots$nthreads <- nthreads
   
   # 6. wy_randomizations and verbose (add if not already in dots)
   dots$wy_randomizations <- wy_randomizations
@@ -1581,6 +1780,34 @@ detect_q_gene_interactions_s4 <- function(
 #' @param q \code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.
 #' @param control Character string specifying the control group identifier. If \code{NULL},
 #'   attempts to retrieve from \code{analysis@config$control}.
+#' @param condition_col \code{character} or \code{NULL}. Column name in colData identifying sample conditions.
+#'   If NULL, reads from \code{@config$condition_col} or auto-detects.
+#' @param method \code{character}. Difference calculation method. Default: "mean".
+#'   If NULL, reads from \code{@config$method} if available.
+#' @param test \code{character}. Statistical test type. Default: "wilcoxon".
+#'   If NULL, reads from \code{@config$test} if available.
+#' @param randomizations \code{numeric}. Number of randomizations. Default: 100.
+#'   If NULL, reads from \code{@config$randomizations} if available.
+#' @param pcorr \code{character}. P-value correction method. Default: "BH".
+#'   If NULL, reads from \code{@config$pcorr} if available.
+#' @param assayno \code{numeric}. Assay number to use. Default: 1.
+#'   If NULL, reads from \code{@config$assayno} if available.
+#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#'   If not specified, reads from \code{@config$verbose} if available.
+#' @param paired \code{logical}. Whether data is paired. Default: FALSE.
+#'   If not specified, reads from \code{@config$paired} if available.
+#' @param exact \code{logical}. Use exact test. Default: FALSE.
+#'   If not specified, reads from \code{@config$exact} if available.
+#' @param pseudocount \code{numeric}. Pseudocount for normalization. Default: 0.
+#'   If NULL, reads from \code{@config$pseudocount} if available.
+#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
+#' @param seed \code{numeric} or \code{NULL}. Random seed. Default: NULL.
+#'   If NULL, reads from \code{@config$seed} if available.
+#' @param robust_loss_type \code{character}. Robust regression loss type. Default: "huber".
+#'   If NULL, reads from \code{@config$robust_loss_type} if available.
+#' @param robust_scale_method \code{character}. Robust scaling method. Default: "mad".
+#'   If NULL, reads from \code{@config$robust_scale_method} if available.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
@@ -1597,6 +1824,7 @@ detect_q_gene_interactions_s4 <- function(
 #' **Parameter resolution priority** (explicit > @config > auto-detect > error):
 #' \itemize{
 #'   \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
+#'   \item \code{nthreads}: Uses explicit arg, else \code{@config$nthreads}, else 1
 #'   \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
 #'     else auto-detects from colData columns: "group", "sample_type", "condition"
 #' }
@@ -1610,7 +1838,12 @@ detect_q_gene_interactions_s4 <- function(
 #' result <- calculate_difference_s4(analysis, control = "control")
 #'
 #' @export
-calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_file = NULL, ...) {
+calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
+                                    method = NULL, test = NULL, randomizations = NULL, pcorr = NULL,
+                                    assayno = NULL, verbose = NULL, paired = FALSE, exact = FALSE,
+                                    pseudocount = NULL, nthreads = NULL, seed = NULL, 
+                                    robust_loss_type = NULL, robust_scale_method = NULL,
+                                    output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1652,11 +1885,116 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
   }
 
   # Determine condition column to use
-  # Try to get from config, otherwise let calculate_difference auto-detect
-  condition_col <- if ("condition_col" %in% names(analysis@config)) {
-    analysis@config$condition_col
-  } else {
-    NULL
+  if (is.null(condition_col)) {
+    if ("condition_col" %in% names(analysis@config)) {
+      condition_col <- analysis@config$condition_col
+    }
+    # else: keep as NULL (let calculate_difference auto-detect)
+  }
+
+  # Extract method parameter
+  if (is.null(method)) {
+    if ("method" %in% names(analysis@config)) {
+      method <- analysis@config$method
+    } else {
+      method <- "mean"  # Default
+    }
+  }
+
+  # Extract test parameter
+  if (is.null(test)) {
+    if ("test" %in% names(analysis@config)) {
+      test <- analysis@config$test
+    } else {
+      test <- "wilcoxon"  # Default
+    }
+  }
+
+  # Extract randomizations parameter
+  if (is.null(randomizations)) {
+    if ("randomizations" %in% names(analysis@config)) {
+      randomizations <- analysis@config$randomizations
+    } else {
+      randomizations <- 100  # Default
+    }
+  }
+
+  # Extract pcorr parameter
+  if (is.null(pcorr)) {
+    if ("pcorr" %in% names(analysis@config)) {
+      pcorr <- analysis@config$pcorr
+    } else {
+      pcorr <- "BH"  # Default
+    }
+  }
+
+  # Extract assayno parameter
+  if (is.null(assayno)) {
+    if ("assayno" %in% names(analysis@config)) {
+      assayno <- analysis@config$assayno
+    } else {
+      assayno <- 1  # Default
+    }
+  }
+
+  # Extract verbose parameter
+  if (is.null(verbose)) {
+    if ("verbose" %in% names(analysis@config)) {
+      verbose <- analysis@config$verbose
+    } else {
+      verbose <- TRUE  # Default
+    }
+  }
+
+  # Extract paired parameter
+  if (!paired && "paired" %in% names(analysis@config)) {
+    paired <- analysis@config$paired
+  }
+
+  # Extract exact parameter
+  if (!exact && "exact" %in% names(analysis@config)) {
+    exact <- analysis@config$exact
+  }
+
+  # Extract pseudocount parameter
+  if (is.null(pseudocount)) {
+    if ("pseudocount" %in% names(analysis@config)) {
+      pseudocount <- analysis@config$pseudocount
+    } else {
+      pseudocount <- 0  # Default
+    }
+  }
+
+  # Extract nthreads parameter
+  if (is.null(nthreads)) {
+    if ("nthreads" %in% names(analysis@config)) {
+      nthreads <- analysis@config$nthreads
+    } else {
+      nthreads <- 1  # Default to sequential
+    }
+  }
+
+  # Extract seed parameter
+  if (is.null(seed) && "seed" %in% names(analysis@config)) {
+    seed <- analysis@config$seed
+  }
+
+  # Extract robust_loss_type parameter
+  if (is.null(robust_loss_type)) {
+    if ("robust_loss_type" %in% names(analysis@config)) {
+      robust_loss_type <- analysis@config$robust_loss_type
+    } else {
+      robust_loss_type <- "huber"  # Default
+    }
+  }
+
+  # Extract robust_scale_method parameter
+  if (is.null(robust_scale_method)) {
+    if ("robust_scale_method" %in% names(analysis@config)) {
+      robust_scale_method <- analysis@config$robust_scale_method
+    } else {
+      robust_scale_method <- "mad"  # Default
+    }
   }
 
   # Run difference calculation on diversity results
@@ -1666,6 +2004,19 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, output_f
       x = diversity_se,
       condition_col = condition_col,
       control = control,
+      method = method,
+      test = test,
+      randomizations = randomizations,
+      pcorr = pcorr,
+      assayno = assayno,
+      verbose = verbose,
+      paired = paired,
+      exact = exact,
+      pseudocount = pseudocount,
+      nthreads = nthreads,
+      seed = seed,
+      robust_loss_type = robust_loss_type,
+      robust_scale_method = robust_scale_method,
       ...
     )
   }, error = function(e) {

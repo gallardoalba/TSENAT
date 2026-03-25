@@ -8,7 +8,12 @@ calculate_divergence_s4(
   analysis,
   q = NULL,
   verbose = TRUE,
+  nthreads = NULL,
   output_file = NULL,
+  control_group = NULL,
+  paired = FALSE,
+  method = NULL,
+  bootstrap = FALSE,
   ...
 )
 }
@@ -20,11 +25,25 @@ If NULL, uses first q_value from @config$q_values if available, else defaults to
 
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
 
+\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
+
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
 
-\item{...}{Additional arguments passed to the base divergence function,
-including: control_group, paired, bootstrap, method, ci, etc.}
+\item{control_group}{\code{character} or \code{NULL}. Control group identifier for divergence comparison.
+If NULL, reads from \code{@config$control_group} if available.}
+
+\item{paired}{\code{logical}. Whether to use paired design. Default: FALSE.
+If not specified, reads from \code{@config$paired} if available.}
+
+\item{method}{\code{character} or \code{NULL}. Statistical method for divergence calculation.
+If NULL, reads from \code{@config$method} if available.}
+
+\item{bootstrap}{\code{logical}. Whether to compute bootstrap confidence intervals. Default: FALSE.
+If not specified, reads from \code{@config$bootstrap} if available.}
+
+\item{...}{Additional arguments passed to the base divergence function.}
 }
 \value{
 Modified TSENATAnalysis with divergence metrics in @divergence_results

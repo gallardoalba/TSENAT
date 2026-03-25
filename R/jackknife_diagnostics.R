@@ -24,6 +24,9 @@
 #' @param seed Random seed for reproducibility.
 #' @param print_results Logical: if TRUE (default), display formatted results for each gene.
 #' @param verbose Logical: if TRUE, print diagnostic messages (default FALSE).
+#' @param nthreads Numeric: number of CPU threads for parallel processing (default = 1, sequential).
+#'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
+#'   If NULL, auto-detects available cores minus 1.
 #'
 #' @return If x is a vector, a list of class `tsenat_jackknife` with:
 #'   \describe{
@@ -193,7 +196,7 @@
 jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
                                        q = 1, norm = TRUE, log_base = exp(1),
                                        pseudocount = 0, threshold = 90, seed = NULL,
-                                       print_results = TRUE, verbose = FALSE, .cluster = NULL) {
+                                       print_results = TRUE, verbose = FALSE, nthreads = 1, .cluster = NULL) {
 
   # Input validation
   if (!is.numeric(q) || any(q <= 0)) {
@@ -206,17 +209,20 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
   
   # Handle multiple q values (with parallel processing optimization)
   if (length(q) > 1) {
-    # Use parallel processing if available and q-values > 2 (overhead cost)
+    # Use parallel processing if:
+    # - User requested parallelization (nthreads > 1 or nthreads = NULL)
+    # - q-values > 2 (overhead only worthwhile for multiple q scenarios)
+    # - parallel package is available
     # P2 OPTIMIZATION: Reuse existing cluster if provided, create once instead of per-recursion
-    create_cluster <- is.null(.cluster) && length(q) > 2 && requireNamespace("parallel", quietly = TRUE)
     
-    if (create_cluster) {
-      # Use all available cores minus 1, but cap to 2 if _R_CHECK_LIMIT_CORES_ is set
+    # Determine number of threads to use
+    if (is.null(nthreads)) {
+      # Auto-detect: use all available cores minus 1
       n_cores <- max(1, parallel::detectCores() - 1)
       if (exists(".tsenat_get_effective_nthreads", mode = "function")) {
         n_cores <- .tsenat_get_effective_nthreads(n_cores)
       } else {
-        # Fallback: check env var manually
+        # Fallback: check env var manually for R CMD check
         core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)
         if (!is.na(core_limit)) {
           core_limit <- as.integer(core_limit)
@@ -225,6 +231,18 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
           }
         }
       }
+    } else if (nthreads > 1) {
+      # User explicitly requested parallelization
+      n_cores <- as.integer(nthreads)
+    } else {
+      # nthreads = 1: skip parallelization
+      n_cores <- 1
+    }
+    
+    # Create cluster only if parallelization requested and not already provided
+    create_cluster <- is.null(.cluster) && n_cores > 1 && length(q) > 2 && requireNamespace("parallel", quietly = TRUE)
+    
+    if (create_cluster) {
       .cluster <- parallel::makeCluster(n_cores, type = "PSOCK")
       on.exit(parallel::stopCluster(.cluster), add = TRUE)
       
@@ -405,6 +423,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
       seed = seed,
       print_results = print_results,
       verbose = verbose,
+      nthreads = nthreads,  # Pass nthreads parameter through recursion
       .cluster = .cluster  # Pass cluster if it exists
     ))
   }

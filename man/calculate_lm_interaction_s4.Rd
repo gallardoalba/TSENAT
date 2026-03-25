@@ -8,7 +8,16 @@ calculate_lm_interaction_s4(
   analysis,
   fdr_threshold = NULL,
   formula = NULL,
+  condition_col = NULL,
   method = NULL,
+  paired = FALSE,
+  subject_col = NULL,
+  nthreads = NULL,
+  multicorr = NULL,
+  corstr = NULL,
+  pcorr = NULL,
+  verbose = FALSE,
+  return_model_data = TRUE,
   output_file = NULL,
   ...
 )
@@ -21,14 +30,42 @@ Default: 0.05.}
 
 \item{formula}{\code{formula} or NULL. Reserved for future use.}
 
+\item{condition_col}{\code{character} or \code{NULL}. Column name in colData identifying sample conditions.
+If NULL, reads from \code{@config$condition_col} or auto-detects common column names.}
+
 \item{method}{\code{character}. Statistical method (e.g., "lmm", "gam", "gee").
 If NULL, uses method from @config$method or defaults to "lmm".}
+
+\item{paired}{\code{logical}. Whether to use paired design. Default: FALSE.
+If not specified, reads from \code{@config$paired} if available.}
+
+\item{subject_col}{\code{character} or \code{NULL}. Column name identifying subject IDs for paired designs.
+If NULL, reads from \code{@config$subject_col} if available.}
+
+\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+If NULL, reads from \code{@config$nthreads} (or defaults to NULL, letting base function decide).}
+
+\item{multicorr}{\code{character} or \code{NULL}. Multiple comparison correction method.
+Options: "hochberg", "westfall-young", "benjamini-yekutieli".
+If NULL, uses method from @config or base function defaults.}
+
+\item{corstr}{\code{character} or \code{NULL}. Correlation structure for GEE models.
+Options: "ar1", "exchangeable", "independence".
+If NULL, uses method from @config or base function defaults.}
+
+\item{pcorr}{\code{character} or \code{NULL}. P-value correction method.
+Default: "BH" (Benjamini-Hochberg).
+If NULL, reads from \code{@config$pcorr} if available.}
+
+\item{verbose}{\code{logical}. Print progress messages. Default: FALSE.}
+
+\item{return_model_data}{\code{logical}. Return model data for visualization. Default: TRUE.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base LM function,
-including: condition_col, paired, subject_col, multicorr, nthreads, etc.}
+including: pvalue, min_obs, assay_name, bias_correction, regularization, storey, wy_randomizations, adaptive_knots, etc.}
 }
 \value{
 Modified TSENATAnalysis with results in @lm_results$lm_interaction.
@@ -40,6 +77,11 @@ Calculate LM interactions and store in TSENATAnalysis
 Extracts diversity results from @diversity_results (prerequisite),
 combines across q-values into single SummarizedExperiment,
 then runs \code{calculate_lm_interaction()}.
+
+**Parameter Priority Resolution:**
+\itemize{
+  \item \code{nthreads}: Priority: explicit > @config > NULL
+}
 
 Parameters are resolved in priority order:
 1. Explicit arguments passed to function

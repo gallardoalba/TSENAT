@@ -8,6 +8,20 @@ calculate_difference_s4(
   analysis,
   control = NULL,
   q = NULL,
+  condition_col = NULL,
+  method = NULL,
+  test = NULL,
+  randomizations = NULL,
+  pcorr = NULL,
+  assayno = NULL,
+  verbose = NULL,
+  paired = FALSE,
+  exact = FALSE,
+  pseudocount = NULL,
+  nthreads = NULL,
+  seed = NULL,
+  robust_loss_type = NULL,
+  robust_scale_method = NULL,
   output_file = NULL,
   ...
 )
@@ -19,6 +33,48 @@ calculate_difference_s4(
 attempts to retrieve from \code{analysis@config$control}.}
 
 \item{q}{\code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.}
+
+\item{condition_col}{\code{character} or \code{NULL}. Column name in colData identifying sample conditions.
+If NULL, reads from \code{@config$condition_col} or auto-detects.}
+
+\item{method}{\code{character}. Difference calculation method. Default: "mean".
+If NULL, reads from \code{@config$method} if available.}
+
+\item{test}{\code{character}. Statistical test type. Default: "wilcoxon".
+If NULL, reads from \code{@config$test} if available.}
+
+\item{randomizations}{\code{numeric}. Number of randomizations. Default: 100.
+If NULL, reads from \code{@config$randomizations} if available.}
+
+\item{pcorr}{\code{character}. P-value correction method. Default: "BH".
+If NULL, reads from \code{@config$pcorr} if available.}
+
+\item{assayno}{\code{numeric}. Assay number to use. Default: 1.
+If NULL, reads from \code{@config$assayno} if available.}
+
+\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.
+If not specified, reads from \code{@config$verbose} if available.}
+
+\item{paired}{\code{logical}. Whether data is paired. Default: FALSE.
+If not specified, reads from \code{@config$paired} if available.}
+
+\item{exact}{\code{logical}. Use exact test. Default: FALSE.
+If not specified, reads from \code{@config$exact} if available.}
+
+\item{pseudocount}{\code{numeric}. Pseudocount for normalization. Default: 0.
+If NULL, reads from \code{@config$pseudocount} if available.}
+
+\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
+
+\item{seed}{\code{numeric} or \code{NULL}. Random seed. Default: NULL.
+If NULL, reads from \code{@config$seed} if available.}
+
+\item{robust_loss_type}{\code{character}. Robust regression loss type. Default: "huber".
+If NULL, reads from \code{@config$robust_loss_type} if available.}
+
+\item{robust_scale_method}{\code{character}. Robust scaling method. Default: "mad".
+If NULL, reads from \code{@config$robust_scale_method} if available.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
@@ -43,6 +99,7 @@ between control and treatment groups, not raw abundance data.
 **Parameter resolution priority** (explicit > @config > auto-detect > error):
 \itemize{
   \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
+  \item \code{nthreads}: Uses explicit arg, else \code{@config$nthreads}, else 1
   \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
     else auto-detects from colData columns: "group", "sample_type", "condition"
 }

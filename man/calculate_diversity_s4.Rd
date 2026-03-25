@@ -4,7 +4,29 @@
 \alias{calculate_diversity_s4}
 \title{Calculate diversity and store in TSENATAnalysis}
 \usage{
-calculate_diversity_s4(analysis, q = NULL, output_file = NULL, ...)
+calculate_diversity_s4(
+  analysis,
+  q = NULL,
+  norm = NULL,
+  tpm = FALSE,
+  assayno = NULL,
+  verbose = NULL,
+  what = NULL,
+  nthreads = NULL,
+  pseudocount = NULL,
+  min_valid_frac = NULL,
+  shrinkage = NULL,
+  genes = NULL,
+  effective_length = NULL,
+  metadata = NULL,
+  bootstrap = NULL,
+  bootstrap_nboot = NULL,
+  bootstrap_method = NULL,
+  bootstrap_ci = NULL,
+  bootstrap_include_diagnostics = NULL,
+  output_file = NULL,
+  ...
+)
 }
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
@@ -12,11 +34,60 @@ calculate_diversity_s4(analysis, q = NULL, output_file = NULL, ...)
 \item{q}{\code{numeric}. Q-value(s) for Tsallis entropy.
 If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).}
 
+\item{norm}{\code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
+If NULL, reads from \code{@config$norm} or defaults to TRUE.}
+
+\item{tpm}{\code{logical}. TPM normalization. Default: FALSE.
+If not specified, reads from \code{@config$tpm} if available.}
+
+\item{assayno}{\code{numeric}. Assay number to use. Default: 1.
+If NULL, reads from \code{@config$assayno} if available.}
+
+\item{verbose}{\code{logical}. Print progress messages. Default: TRUE.
+If not specified, reads from \code{@config$verbose} if available.}
+
+\item{what}{\code{character}. Output type: "S" (entropy) or "D" (diversity). Default: "S".
+If NULL, reads from \code{@config$what} if available.}
+
+\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
+
+\item{pseudocount}{\code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
+If NULL, reads from \code{@config$pseudocount} if available.}
+
+\item{min_valid_frac}{\code{numeric}. Minimum valid fraction threshold. Default: 0.75.
+If NULL, reads from \code{@config$min_valid_frac} if available.}
+
+\item{shrinkage}{\code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
+If NULL, reads from \code{@config$shrinkage} if available.}
+
+\item{genes}{\code{character} or \code{NULL}. Gene set specification. Default: NULL (use all genes).
+If NULL, reads from \code{@config$genes} if available.}
+
+\item{effective_length}{\code{numeric} or \code{NULL}. Effective gene lengths. Default: NULL.
+If NULL, reads from \code{@config$effective_length} if available.}
+
+\item{metadata}{\code{list} or \code{NULL}. Additional metadata. Default: NULL.}
+
+\item{bootstrap}{\code{logical}. Compute bootstrap confidence intervals. Default: FALSE.
+If not specified, reads from \code{@config$bootstrap} if available.}
+
+\item{bootstrap_nboot}{\code{numeric} or \code{NULL}. Number of bootstrap iterations. Default: NULL.
+If NULL, reads from \code{@config$bootstrap_nboot} if available.}
+
+\item{bootstrap_method}{\code{character}. Bootstrap method: "percentile" or others. Default: "percentile".
+If NULL, reads from \code{@config$bootstrap_method} if available.}
+
+\item{bootstrap_ci}{\code{numeric}. Bootstrap confidence interval level (0-1). Default: 0.95.
+If NULL, reads from \code{@config$bootstrap_ci} if available.}
+
+\item{bootstrap_include_diagnostics}{\code{logical}. Include bootstrap diagnostics. Default: TRUE.
+If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.}
+
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .tsv, .csv, .txt (for tables), .rds (for S4 objects). Default: NULL (no file output).}
 
-\item{...}{Additional arguments passed to the base function,
-including: norm, bootstrap, pseudocount, nthreads, what, verbose, etc.}
+\item{...}{Additional arguments passed to the base function.}
 }
 \value{
 Modified TSENATAnalysis object with diversity results stored
@@ -34,10 +105,10 @@ results as SummarizedExperiment objects. It extracts key parameters from
 \describe{
   \item{q}{Priority 1 (explicit) > Priority 2 (\code{@config$q_values}) > Priority 3 (default: seq(0.01, 2, by = 0.05))\cr
     **Note:** If explicit q AND \code{@config$q_values} both provided, explicit wins.}
+  \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
   \item{verbose}{Priority: explicit > \code{@config$verbose} > TRUE}
   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}
   \item{pseudocount}{Priority: explicit > \code{@config$pseudocount} > 0}
-  \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
   \item{norm}{Priority: explicit > \code{@config$norm} > TRUE}
   \item{what}{Priority: explicit > \code{@config$what} > "S" (Tsallis entropy)}
 }

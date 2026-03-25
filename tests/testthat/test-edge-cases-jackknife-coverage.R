@@ -605,3 +605,137 @@ test_that("jackknife_tsallis_entropy print method", {
   # Print should work without error
   expect_error(print(result), NA)
 })
+
+# ============================================================================
+# NTHREADS PARAMETER TESTS
+# ============================================================================
+
+test_that("jackknife_tsallis_entropy nthreads = 1 (sequential)", {
+  # Test sequential processing with nthreads = 1 (default)
+  set.seed(123)
+  x <- c(100, 50, 75, 200, 80, 120, 150, 60)
+  
+  result <- jackknife_tsallis_entropy(
+    x = x,
+    q = 1,
+    norm = TRUE,
+    nthreads = 1,
+    print_results = FALSE
+  )
+  
+  expect_true(inherits(result, "tsenat_jackknife"))
+  expect_true("estimate" %in% names(result))
+  expect_true("jackknife_se" %in% names(result))
+})
+
+test_that("jackknife_tsallis_entropy nthreads = 2 with multi-q", {
+  # Test parallel processing with nthreads = 2 (if available)
+  skip_if_not_installed("parallel")
+  set.seed(123)
+  x <- c(100, 50, 75, 200, 80)
+  
+  result <- jackknife_tsallis_entropy(
+    x = x,
+    q = c(0.5, 1, 1.5, 2),  # 4 q values triggers parallel (> 2)
+    norm = TRUE,
+    nthreads = 2,
+    print_results = FALSE
+  )
+  
+  expect_true(is.list(result))
+  expect_length(result, 4)  # Should have 4 results (one per q)
+  expect_true(all(sapply(result, inherits, "tsenat_jackknife")))
+})
+
+test_that("jackknife_tsallis_entropy nthreads = NULL (auto-detect)", {
+  # Test auto-detection of threads
+  set.seed(123)
+  x <- c(100, 50, 75, 200, 80)
+  
+  result <- jackknife_tsallis_entropy(
+    x = x,
+    q = c(0.5, 1, 1.5, 2),  # Multi-q to enable parallelization
+    norm = TRUE,
+    nthreads = NULL,  # Auto-detect
+    print_results = FALSE
+  )
+  
+  expect_true(is.list(result))
+  expect_length(result, 4)
+})
+
+test_that("jackknife_tsallis_entropy nthreads parameter passes through SE path", {
+  # Test nthreads parameter with SummarizedExperiment input
+  skip_if_not_installed("SummarizedExperiment")
+  set.seed(123)
+  
+  # Create simple SE with 2 genes in rownames
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(c(100, 50, 75, 80, 200, 120, 150, 160), nrow = 2, ncol = 4)),
+    rowData = data.frame(
+      transcript_id = c("tx1", "tx2"),
+      gene_name = c("Gene1", "Gene2")
+    ),
+    colData = data.frame(sample = c("s1", "s2", "s3", "s4"))
+  )
+  
+  # Set rownames to match genes in res
+  rownames(se) <- c("Gene1", "Gene2")
+  
+  # Create results data frame with gene_id column
+  res <- data.frame(
+    gene_id = c("Gene1", "Gene2"),
+    pvalue = c(0.01, 0.05),
+    row.names = c("Gene1", "Gene2")
+  )
+  
+  result <- jackknife_tsallis_entropy(
+    se = se,
+    res = res,
+    top_n = 2,
+    q = 1,
+    nthreads = 1,
+    print_results = FALSE
+  )
+  
+  expect_true(!is.null(result))
+})
+
+test_that("jackknife_tsallis_entropy nthreads parameter passes through matrix recursion", {
+  # Test nthreads parameter through matrix input (internal recursion)
+  set.seed(123)
+  x_matrix <- matrix(
+    c(100, 50, 75, 80, 200, 120, 150, 160),
+    nrow = 2, ncol = 4
+  )
+  rownames(x_matrix) <- c("Gene1", "Gene2")
+  
+  # Single q value (no parallelization but nthreads should still work)
+  result <- jackknife_tsallis_entropy(
+    x = x_matrix,
+    q = 1,
+    nthreads = 1,
+    print_results = FALSE
+  )
+  
+  expect_true(is.list(result))
+  expect_length(result, 2)  # 2 genes
+})
+
+test_that("jackknife_tsallis_entropy nthreads behavior: nthreads > 1 without multi-q", {
+  # Even if nthreads > 1, without sufficient q values it should be sequential
+  skip_if_not_installed("parallel")
+  set.seed(123)
+  x <- c(100, 50, 75, 200, 80)
+  
+  # Single q value: should not parallelize even with nthreads = 2
+  result <- jackknife_tsallis_entropy(
+    x = x,
+    q = 1,  # Only 1 q value, so no parallelization
+    nthreads = 2,
+    print_results = FALSE
+  )
+  
+  expect_true(inherits(result, "tsenat_jackknife"))
+  expect_true("estimate" %in% names(result))
+})

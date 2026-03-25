@@ -8,6 +8,7 @@ jackknife_tsallis_entropy_s4(
   analysis,
   q = NULL,
   print_results = FALSE,
+  nthreads = NULL,
   output_file = NULL,
   ...
 )
@@ -18,6 +19,10 @@ jackknife_tsallis_entropy_s4(
 \item{q}{\code{numeric}. Q-value(s) for jackknife. Default: 1.0.}
 
 \item{print_results}{\code{logical}. Print jackknife results summary. Default: FALSE.}
+
+\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+If NULL, reads from \code{@config$nthreads} (or defaults to 1).
+If > 1 and multiple q-values provided, uses parallel PSOCK cluster.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
@@ -33,6 +38,11 @@ Jackknife resampling with confidence intervals
 \details{
 Requires diversity results to exist first. Will error if
 \code{calculate_diversity_s4()} has not been run.
+
+**Parameter Priority Resolution:**
+\describe{
+  \item{nthreads}{Priority: explicit > \code{@config$nthreads} > 1}
+}
 }
 \examples{
 # Create test analysis with diversity pre-computed
