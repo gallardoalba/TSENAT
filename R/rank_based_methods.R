@@ -711,10 +711,13 @@ classify_q_dependency <- function(
       
       if (p_val > p_threshold) {
         classifications[i] <- "Robust across q"
-      } else if (p_val <= p_threshold && eta2_val <= eta2_threshold_strong) {
+      } else if (p_val <= p_threshold && eta2_val <= eta2_threshold_moderate) {
         classifications[i] <- "Moderately q-dependent"
       } else if (p_val <= p_threshold && eta2_val > eta2_threshold_strong) {
         classifications[i] <- "Strongly q-dependent"
+      } else if (p_val <= p_threshold) {
+        # Gap case: 0.01 < eta2 <= 0.10 with p <= 0.05
+        classifications[i] <- "Moderately q-dependent"
       }
     }
   }
@@ -1741,7 +1744,15 @@ detect_q_gene_interactions <- function(
   # Edge Cases Handled:
   #   - NA p-values -> preserved in classification
   #   - Zero-variation genes -> classified as "insufficient data"
-  #   - Failed tests -> classified as "test failed"\n  \n  # Classify results based on p-value and effect size\n  interaction_results$interaction_class <- classify_q_dependency(\n    interaction_results,\n    p_threshold = 0.05,                  # Standard significance level\n    eta2_threshold_moderate = 0.01,      # Small effect boundary\n    eta2_threshold_strong = 0.10         # Large effect boundary\n  )"
+  #   - Failed tests -> classified as "test failed"
+  
+  # Classify results based on p-value and effect size
+  interaction_results$interaction_class <- classify_q_dependency(
+    interaction_results,
+    p_threshold = 0.05,                  # Standard significance level
+    eta2_threshold_moderate = 0.01,      # Small effect boundary
+    eta2_threshold_strong = 0.10         # Large effect boundary
+  )
   
   # Apply multiple testing correction for multi-q dependence (NEW - March 2026)
   # Q-values exhibit AR(1) correlation structure (Papers S168-S175)
