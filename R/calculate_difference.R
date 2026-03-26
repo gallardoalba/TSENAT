@@ -249,80 +249,9 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
 
 
 # Internal: Hochberg Stepup Procedure for FWER Control
-.tsenat_hochberg_stepup <- function(pvalues) {
-    m <- length(pvalues)
-    if (m == 0) return(numeric(0))
-    if (m == 1) return(pmin(1, pvalues[1]))
-    
-    # Handle NA/NaN/Inf values: preserve their positions but exclude from sorting
-    invalid_mask <- !is.finite(pvalues)
-    if (all(invalid_mask)) return(pvalues)  # All invalid, return as is
-    
-    # Create result vector with invalid values preserved
-    result <- numeric(m)
-    result[invalid_mask] <- pvalues[invalid_mask]
-    
-    # Find indices of valid values
-    valid_idx <- which(is.finite(pvalues))
-    if (length(valid_idx) == 0) return(result)
-    if (length(valid_idx) == 1) {
-        result[valid_idx] <- pmin(1, pvalues[valid_idx])
-        return(result)
-    }
-    
-    # Apply Hochberg only to valid values
-    valid_p <- pvalues[valid_idx]
-    valid_m <- length(valid_p)
-    
-    order_idx <- order(valid_p)
-    sorted_p <- valid_p[order_idx]
-    
-    adjusted_valid <- (valid_m - (0:(valid_m-1))) * sorted_p
-    adjusted_valid <- pmin(1, adjusted_valid)
-    
-    # Ensure no NaN/Inf after adjustment; replace with 1
-    na_idx <- which(!is.finite(adjusted_valid))
-    if (length(na_idx) > 0) {
-        adjusted_valid[na_idx] <- 1
-    }
-    
-    # Monotone increasing constraint (Hochberg stepup)
-    if (valid_m > 1) {
-        for (i in 2:valid_m) {
-            adjusted_valid[i] <- max(adjusted_valid[i-1], adjusted_valid[i])
-        }
-    }
-    
-    # Map adjusted back to original positions
-    adjusted_result <- numeric(valid_m)
-    adjusted_result[order_idx] <- adjusted_valid
-    result[valid_idx] <- adjusted_result
-    
-    return(result)
-}
-
-# Internal: Benjamini-Yekutieli FDR Control for Dependent Tests
-.tsenat_benjamini_yekutieli <- function(pvalues) {
-    m <- length(pvalues)
-    if (m == 0) return(numeric(0))
-    if (m == 1) return(pmin(1, pvalues[1]))
-    
-    order_idx <- order(pvalues)
-    sorted_p <- pvalues[order_idx]
-    
-    c_m <- sum(1 / seq_len(m))
-    ranks <- seq_len(m)
-    adjusted <- (m / (ranks * c_m)) * sorted_p
-    adjusted <- pmin(1, adjusted)
-    
-    for (i in seq(m - 1, 1, -1)) {
-        if (adjusted[i] > adjusted[i+1]) adjusted[i] <- adjusted[i+1]
-    }
-    
-    result <- numeric(m)
-    result[order_idx] <- adjusted
-    return(result)
-}
+# NOTE (March 2026): .tsenat_hochberg_stepup() and .tsenat_benjamini_yekutieli()
+# are now imported from rank_based_methods.R to eliminate duplication.
+# These functions are defined there with full NA/Inf handling for robustness.
 
 
 #' Linear-model interaction test for Tsallis entropy   For each gene, fit a
