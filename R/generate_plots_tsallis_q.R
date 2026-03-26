@@ -196,6 +196,7 @@ plot_tsallis_q_curve_s4 <- function(
       ggplot2::labs(title = sel, x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
       ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") + 
       ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+      .tsenat_theme_base(base_size = 11) +
       ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"))
     p
   }
