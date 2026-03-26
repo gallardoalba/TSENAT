@@ -192,7 +192,7 @@
 #'
 #' @keywords internal
 #' @noRd
-jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
+jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
                                        q = 1, norm = TRUE, log_base = exp(1),
                                        pseudocount = 0, threshold = 90, seed = NULL,
                                        verbose = FALSE, nthreads = 1, .cluster = NULL) {
@@ -246,7 +246,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
       on.exit(parallel::stopCluster(.cluster), add = TRUE)
       
       # Export required functions to cluster (only when creating new cluster)
-      parallel::clusterExport(.cluster, c("jackknife_tsallis_entropy", ".tsenat_entropy_single"), 
+      parallel::clusterExport(.cluster, c("jackknife_entropy_outliers", ".tsenat_entropy_single"), 
                              envir = environment())
     }
     
@@ -254,7 +254,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     if (!is.null(.cluster)) {
       # Parallel lapply for each q value with reused cluster
       results_list <- parallel::parLapply(.cluster, q, function(q_val) {
-        jackknife_tsallis_entropy(
+        jackknife_entropy_outliers(
           x = x, se = se, res = res, top_n = top_n, q = q_val, 
           norm = norm, log_base = log_base, pseudocount = pseudocount,
           threshold = threshold, seed = seed, verbose = FALSE
@@ -263,7 +263,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     } else {
       # Sequential lapply for small q-value sets or when parallel not available
       results_list <- lapply(q, function(q_val) {
-        jackknife_tsallis_entropy(
+        jackknife_entropy_outliers(
           x = x, se = se, res = res, top_n = top_n, q = q_val, 
           norm = norm, log_base = log_base, pseudocount = pseudocount,
           threshold = threshold, seed = seed, verbose = FALSE,
@@ -412,7 +412,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
 
     # Call recursively with matrix input (with verbose suppressed for first call)
     # P2 OPTIMIZATION: Pass .cluster through recursion
-    return(jackknife_tsallis_entropy(
+    return(jackknife_entropy_outliers(
       x = counts_matrix,
       q = q,
       norm = norm,

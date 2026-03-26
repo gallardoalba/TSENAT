@@ -1009,13 +1009,13 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' )
 #' 
 #' # Run jackknife estimation
-#' analysis <- jackknife_tsallis_entropy_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' # Check jackknife results
 #' names(jackKnife(analysis))
 #'
 #' @export
 #' @importFrom utils write.table
-jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL, output_file = NULL, ...) {
+jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1079,7 +1079,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, verbose = FALSE, nt
 
     # Run jackknife - pass the diversity matrix as x
     tryCatch({
-      result <- jackknife_tsallis_entropy(
+      result <- jackknife_entropy_outliers(
         x = div_matrix,
         q = q_val,
         verbose = verbose,

@@ -8,12 +8,12 @@
 # Load consolidation helpers
 source("helper-jackknife-consolidation.R")
 
-test_that("jackknife_tsallis_entropy basic vector input", {
+test_that("jackknife_entropy_outliers basic vector input", {
   # Test basic vector input
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 1,
     norm = TRUE,
@@ -26,13 +26,13 @@ test_that("jackknife_tsallis_entropy basic vector input", {
   expect_true("influence" %in% names(result))
 })
 
-test_that("jackknife_tsallis_entropy multiple q with verbose = TRUE", {
+test_that("jackknife_entropy_outliers multiple q with verbose = TRUE", {
   # Test printing of multi-q results
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
   suppressMessages(
-    result <- jackknife_tsallis_entropy(
+    result <- jackknife_entropy_outliers(
       x = x,
       q = c(1.0, 2.0),
       norm = TRUE,
@@ -43,12 +43,12 @@ test_that("jackknife_tsallis_entropy multiple q with verbose = TRUE", {
   expect_true(is.list(result))
 })
 
-test_that("jackknife_tsallis_entropy matrix with multiple q", {
+test_that("jackknife_entropy_outliers matrix with multiple q", {
   # Test matrix input with multiple q values
   set.seed(123)
   x <- matrix(c(100, 50, 200, 75, 150, 80), nrow = 2, ncol = 3)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = c(1.0, 1.5, 2.0),
     norm = TRUE,
@@ -58,7 +58,7 @@ test_that("jackknife_tsallis_entropy matrix with multiple q", {
   expect_true(is.list(result))
 })
 
-test_that("jackknife_tsallis_entropy with SE and res inputs", {
+test_that("jackknife_entropy_outliers with SE and res inputs", {
   # Test SummarizedExperiment with results data.frame for multi-gene analysis
   set.seed(123)
   
@@ -70,7 +70,7 @@ test_that("jackknife_tsallis_entropy with SE and res inputs", {
   
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 2,
@@ -82,7 +82,7 @@ test_that("jackknife_tsallis_entropy with SE and res inputs", {
   expect_true(is.list(result))
 })
 
-test_that("jackknife_tsallis_entropy SE gene lookup from rowData gene_name", {
+test_that("jackknife_entropy_outliers SE gene lookup from rowData gene_name", {
   # Test gene lookup using gene_name column in rowData
   set.seed(123)
   
@@ -97,7 +97,7 @@ test_that("jackknife_tsallis_entropy SE gene lookup from rowData gene_name", {
   
   res <- data.frame(gene_id = c("GENEQ", "GENEZ", "GENEX"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 1,
@@ -109,7 +109,7 @@ test_that("jackknife_tsallis_entropy SE gene lookup from rowData gene_name", {
   expect_true(!is.null(result))
 })
 
-test_that("jackknife_tsallis_entropy SE gene lookup from rowData gene_id", {
+test_that("jackknife_entropy_outliers SE gene lookup from rowData gene_id", {
   # Test gene lookup using gene_id column in rowData
   set.seed(123)
   
@@ -124,7 +124,7 @@ test_that("jackknife_tsallis_entropy SE gene lookup from rowData gene_id", {
   
   res <- data.frame(gene_id = c("G001", "G002", "G003"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 1,
@@ -136,7 +136,7 @@ test_that("jackknife_tsallis_entropy SE gene lookup from rowData gene_id", {
   expect_true(!is.null(result))
 })
 
-test_that("jackknife_tsallis_entropy SE with missing gene warning", {
+test_that("jackknife_entropy_outliers SE with missing gene warning", {
   # Test handling of gene not found in SE
   set.seed(123)
   
@@ -150,7 +150,7 @@ test_that("jackknife_tsallis_entropy SE with missing gene warning", {
   
   # Should handle missing gene gracefully with a warning
   expect_warning(
-    result <- jackknife_tsallis_entropy(
+    result <- jackknife_entropy_outliers(
       se = se,
       res = res,
       top_n = 2,
@@ -162,7 +162,7 @@ test_that("jackknife_tsallis_entropy SE with missing gene warning", {
   )
 })
 
-test_that("jackknife_tsallis_entropy with invalid count values", {
+test_that("jackknife_entropy_outliers with invalid count values", {
   # Test handling of NA or negative counts
   set.seed(123)
   
@@ -176,7 +176,7 @@ test_that("jackknife_tsallis_entropy with invalid count values", {
   
   # Should handle invalid counts
   expect_warning(
-    result <- jackknife_tsallis_entropy(
+    result <- jackknife_entropy_outliers(
       se = se,
       res = res,
       top_n = 1,
@@ -187,7 +187,7 @@ test_that("jackknife_tsallis_entropy with invalid count values", {
   )
 })
 
-test_that("jackknife_tsallis_entropy SE with pseudocount and normalization", {
+test_that("jackknife_entropy_outliers SE with pseudocount and normalization", {
   # Test pseudocount and normalization parameters
   set.seed(123)
   
@@ -199,7 +199,7 @@ test_that("jackknife_tsallis_entropy SE with pseudocount and normalization", {
   
   res <- data.frame(gene_id = c("g1", "g2"), pvalue = c(0.001, 0.01))
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 1,
@@ -212,12 +212,12 @@ test_that("jackknife_tsallis_entropy SE with pseudocount and normalization", {
   expect_true(!is.null(result))
 })
 
-test_that("jackknife_tsallis_entropy with different log bases", {
+test_that("jackknife_entropy_outliers with different log bases", {
   # Test different logarithm bases
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result_e <- jackknife_tsallis_entropy(
+  result_e <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -225,7 +225,7 @@ test_that("jackknife_tsallis_entropy with different log bases", {
     verbose = FALSE
   )
   
-  result_2 <- jackknife_tsallis_entropy(
+  result_2 <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -237,12 +237,12 @@ test_that("jackknife_tsallis_entropy with different log bases", {
   expect_true(!is.null(result_2))
 })
 
-test_that("jackknife_tsallis_entropy with outlier threshold parameter", {
+test_that("jackknife_entropy_outliers with outlier threshold parameter", {
   # Test threshold parameter for outlier detection
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result_90 <- jackknife_tsallis_entropy(
+  result_90 <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -250,7 +250,7 @@ test_that("jackknife_tsallis_entropy with outlier threshold parameter", {
     verbose = FALSE
   )
   
-  result_95 <- jackknife_tsallis_entropy(
+  result_95 <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -262,12 +262,12 @@ test_that("jackknife_tsallis_entropy with outlier threshold parameter", {
   expect_true(!is.null(result_95))
 })
 
-test_that("jackknife_tsallis_entropy with seed for reproducibility", {
+test_that("jackknife_entropy_outliers with seed for reproducibility", {
   # Test seed parameter
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result1 <- jackknife_tsallis_entropy(
+  result1 <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -275,7 +275,7 @@ test_that("jackknife_tsallis_entropy with seed for reproducibility", {
     verbose = FALSE
   )
   
-  result2 <- jackknife_tsallis_entropy(
+  result2 <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -408,12 +408,12 @@ test_that("jackknife_isoform_switching with multiple q", {
   expect_true(is.list(result))
 })
 
-test_that("jackknife_tsallis_entropy returns required field structure", {
+test_that("jackknife_entropy_outliers returns required field structure", {
   # Test that result contains all required fields with correct types
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -423,13 +423,13 @@ test_that("jackknife_tsallis_entropy returns required field structure", {
   assert_jackknife_result_valid(result, n_transcripts = length(x))
 })
 
-test_that("jackknife_tsallis_entropy identifies outliers", {
+test_that("jackknife_entropy_outliers identifies outliers", {
   # Test outlier detection
   set.seed(123)
   # Create data with one very dominant transcript
   x <- c(1000, 50, 75, 200, 80, 120)  # First value is much larger
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -441,12 +441,12 @@ test_that("jackknife_tsallis_entropy identifies outliers", {
   expect_true(is.numeric(result$outlier_indices))
 })
 
-test_that("jackknife_tsallis_entropy with very small counts", {
+test_that("jackknife_entropy_outliers with very small counts", {
   # Test stability with small counts
   set.seed(123)
   x <- c(1, 2, 1, 3, 2, 1)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -458,12 +458,12 @@ test_that("jackknife_tsallis_entropy with very small counts", {
   expect_true("estimate" %in% names(result))
 })
 
-test_that("jackknife_tsallis_entropy with zero counts", {
+test_that("jackknife_entropy_outliers with zero counts", {
   # Test with zero counts (requires pseudocount)
   set.seed(123)
   x <- c(100, 0, 75, 200, 0, 120)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -474,12 +474,12 @@ test_that("jackknife_tsallis_entropy with zero counts", {
   expect_true(!is.null(result))
 })
 
-test_that("jackknife_tsallis_entropy with q = 1 (Shannon entropy)", {
+test_that("jackknife_entropy_outliers with q = 1 (Shannon entropy)", {
   # Test special case of q=1 (Shannon entropy)
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 1.0,
     norm = TRUE,
@@ -490,12 +490,12 @@ test_that("jackknife_tsallis_entropy with q = 1 (Shannon entropy)", {
   expect_true(result$estimate >= 0)
 })
 
-test_that("jackknife_tsallis_entropy with large q value", {
+test_that("jackknife_entropy_outliers with large q value", {
   # Test with large q (focuses on rare species)
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 5.0,
     norm = TRUE,
@@ -505,7 +505,7 @@ test_that("jackknife_tsallis_entropy with large q value", {
   expect_true(!is.null(result))
 })
 
-test_that("jackknife_tsallis_entropy SE with top_n > total genes", {
+test_that("jackknife_entropy_outliers SE with top_n > total genes", {
   # Test when top_n exceeds available genes - should process all available
   set.seed(123)
   
@@ -518,7 +518,7 @@ test_that("jackknife_tsallis_entropy SE with top_n > total genes", {
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
   # top_n = 10 but only 3 genes available - should use all 3
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 10,
@@ -531,7 +531,7 @@ test_that("jackknife_tsallis_entropy SE with top_n > total genes", {
   expect_true(!is.null(result) || is.list(result))
 })
 
-test_that("jackknife_tsallis_entropy SE SE validation", {
+test_that("jackknife_entropy_outliers SE SE validation", {
   # Test that function validates SE input
   set.seed(123)
   
@@ -540,7 +540,7 @@ test_that("jackknife_tsallis_entropy SE SE validation", {
   res <- data.frame(gene_id = c("g1"), pvalue = c(0.001))
   
   expect_error(
-    jackknife_tsallis_entropy(
+    jackknife_entropy_outliers(
       se = invalid_se,
       res = res,
       q = 2,
@@ -550,7 +550,7 @@ test_that("jackknife_tsallis_entropy SE SE validation", {
   )
 })
 
-test_that("jackknife_tsallis_entropy SE res validation", {
+test_that("jackknife_entropy_outliers SE res validation", {
   # Test that function validates res input
   set.seed(123)
   
@@ -564,7 +564,7 @@ test_that("jackknife_tsallis_entropy SE res validation", {
   invalid_res <- list(gene_id = c("g1"))
   
   expect_error(
-    jackknife_tsallis_entropy(
+    jackknife_entropy_outliers(
       se = se,
       res = invalid_res,
       q = 2,
@@ -574,12 +574,12 @@ test_that("jackknife_tsallis_entropy SE res validation", {
   )
 })
 
-test_that("jackknife_tsallis_entropy summary method", {
+test_that("jackknife_entropy_outliers summary method", {
   # Test summary method on jackknife results
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -590,12 +590,12 @@ test_that("jackknife_tsallis_entropy summary method", {
   expect_error(summary(result), NA)
 })
 
-test_that("jackknife_tsallis_entropy print method", {
+test_that("jackknife_entropy_outliers print method", {
   # Test print method on jackknife results
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -610,12 +610,12 @@ test_that("jackknife_tsallis_entropy print method", {
 # NTHREADS PARAMETER TESTS
 # ============================================================================
 
-test_that("jackknife_tsallis_entropy nthreads = 1 (sequential)", {
+test_that("jackknife_entropy_outliers nthreads = 1 (sequential)", {
   # Test sequential processing with nthreads = 1 (default)
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 1,
     norm = TRUE,
@@ -628,13 +628,13 @@ test_that("jackknife_tsallis_entropy nthreads = 1 (sequential)", {
   expect_true("jackknife_se" %in% names(result))
 })
 
-test_that("jackknife_tsallis_entropy nthreads = 2 with multi-q", {
+test_that("jackknife_entropy_outliers nthreads = 2 with multi-q", {
   # Test parallel processing with nthreads = 2 (if available)
   skip_if_not_installed("parallel")
   set.seed(123)
   x <- c(100, 50, 75, 200, 80)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = c(0.5, 1, 1.5, 2),  # 4 q values triggers parallel (> 2)
     norm = TRUE,
@@ -647,12 +647,12 @@ test_that("jackknife_tsallis_entropy nthreads = 2 with multi-q", {
   expect_true(all(sapply(result, inherits, "tsenat_jackknife")))
 })
 
-test_that("jackknife_tsallis_entropy nthreads = NULL (auto-detect)", {
+test_that("jackknife_entropy_outliers nthreads = NULL (auto-detect)", {
   # Test auto-detection of threads
   set.seed(123)
   x <- c(100, 50, 75, 200, 80)
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = c(0.5, 1, 1.5, 2),  # Multi-q to enable parallelization
     norm = TRUE,
@@ -664,7 +664,7 @@ test_that("jackknife_tsallis_entropy nthreads = NULL (auto-detect)", {
   expect_length(result, 4)
 })
 
-test_that("jackknife_tsallis_entropy nthreads parameter passes through SE path", {
+test_that("jackknife_entropy_outliers nthreads parameter passes through SE path", {
   # Test nthreads parameter with SummarizedExperiment input
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
@@ -689,7 +689,7 @@ test_that("jackknife_tsallis_entropy nthreads parameter passes through SE path",
     row.names = c("Gene1", "Gene2")
   )
   
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 2,
@@ -701,7 +701,7 @@ test_that("jackknife_tsallis_entropy nthreads parameter passes through SE path",
   expect_true(!is.null(result))
 })
 
-test_that("jackknife_tsallis_entropy nthreads parameter passes through matrix recursion", {
+test_that("jackknife_entropy_outliers nthreads parameter passes through matrix recursion", {
   # Test nthreads parameter through matrix input (internal recursion)
   skip("Test skipped to reduce runtime: nthreads parameter passes through matrix recursion (resource-intensive multi-gene processing)")
   set.seed(123)
@@ -712,7 +712,7 @@ test_that("jackknife_tsallis_entropy nthreads parameter passes through matrix re
   rownames(x_matrix) <- c("Gene1", "Gene2")
   
   # Single q value (no parallelization but nthreads should still work)
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x_matrix,
     q = 1,
     nthreads = 1,
@@ -723,14 +723,14 @@ test_that("jackknife_tsallis_entropy nthreads parameter passes through matrix re
   expect_length(result, 2)  # 2 genes
 })
 
-test_that("jackknife_tsallis_entropy nthreads behavior: nthreads > 1 without multi-q", {
+test_that("jackknife_entropy_outliers nthreads behavior: nthreads > 1 without multi-q", {
   # Even if nthreads > 1, without sufficient q values it should be sequential
   skip_if_not_installed("parallel")
   set.seed(123)
   x <- c(100, 50, 75, 200, 80)
   
   # Single q value: should not parallelize even with nthreads = 2
-  result <- jackknife_tsallis_entropy(
+  result <- jackknife_entropy_outliers(
     x = x,
     q = 1,  # Only 1 q value, so no parallelization
     nthreads = 2,

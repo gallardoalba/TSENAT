@@ -46,7 +46,7 @@ divergence -> gene interactions -> visualizations.
 Pipeline execution order (enforced):
 \enumerate{
   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-  \item \code{jackknife_tsallis_entropy_s4()} - Confidence intervals
+  \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
   \item \code{calculate_lm_interaction_s4()} - Statistical tests
   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
   \item \code{detect_q_gene_interactions_s4()} - Q-dependent interactions
