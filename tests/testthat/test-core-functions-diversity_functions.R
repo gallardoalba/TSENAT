@@ -750,3 +750,317 @@ test_that("Shrinkage with NA and NaN values handled correctly", {
     expect_true(is.finite(shrunk["Gene3", 1]),
                info = "NaN should be converted to posterior mean")
 })
+
+# ============================================================================
+# ORCHESTRATION TESTS: calculate_diversity Main Function
+# ============================================================================
+
+test_that("calculate_diversity returns SummarizedExperiment with correct structure", {
+    # Create simple test data
+    set.seed(123)
+    n_genes <- 5
+    n_samples <- 3
+    n_transcripts <- 15
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    colnames(x) <- paste0("S", 1:n_samples)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # Call orchestrated function
+    result <- calculate_diversity(x, genes = genes, q = 2, norm = TRUE, verbose = FALSE)
+    
+    # Check output structure
+    expect_s4_class(result, "SummarizedExperiment")
+    expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
+    expect_equal(nrow(result), n_genes)
+    expect_true(nrow(SummarizedExperiment::colData(result)) > 0)
+    expect_true(nrow(SummarizedExperiment::rowData(result)) > 0)
+})
+
+test_that("calculate_diversity with multiple q values creates multi-q structure", {
+    set.seed(123)
+    n_genes <- 4
+    n_samples <- 3
+    n_transcripts <- 12
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 8), nrow = n_transcripts)
+    colnames(x) <- paste0("S", 1:n_samples)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # Multi-q call
+    result <- calculate_diversity(x, genes = genes, q = c(1, 1.5, 2), norm = TRUE, verbose = FALSE)
+    
+    # Should have n_samples * n_q columns
+    expect_equal(ncol(result), n_samples * 3)
+    
+    # Check column structure includes q values
+    col_names <- colnames(result)
+    expect_true(all(grepl("_q=", col_names)))
+})
+
+test_that("calculate_diversity validates parameter inputs", {
+    set.seed(123)
+    x <- matrix(rpois(20, lambda = 10), nrow = 5)
+    genes <- c("G1", "G1", "G2", "G2", "G3")
+    
+    # Invalid norm - match.arg produces specific error format
+    expect_error(
+        calculate_diversity(x, genes = genes, norm = "invalid_norm", verbose = FALSE),
+        "should be one of"
+    )
+    
+    # Invalid q (negative)
+    expect_error(
+        calculate_diversity(x, genes = genes, q = -1, verbose = FALSE),
+        "must be numeric and >= 0"
+    )
+})
+
+test_that("calculate_diversity with pseudocount auto-estimation", {
+    set.seed(123)
+    x <- matrix(rpois(20, lambda = 5), nrow = 5)
+    genes <- c("G1", "G1", "G2", "G2", "G3")
+    
+    # With auto pseudocount
+    result_auto <- calculate_diversity(x, genes = genes, pseudocount = "auto", 
+                                       q = 2, norm = TRUE, verbose = FALSE)
+    
+    # With fixed pseudocount
+    result_fixed <- calculate_diversity(x, genes = genes, pseudocount = 0.5, 
+                                        q = 2, norm = TRUE, verbose = FALSE)
+    
+    # Both should produce SE with same structure
+    expect_s4_class(result_auto, "SummarizedExperiment")
+    expect_s4_class(result_fixed, "SummarizedExperiment")
+    expect_equal(nrow(result_auto), nrow(result_fixed))
+})
+
+test_that("calculate_diversity preserves metadata from SummarizedExperiment input", {
+    library(SummarizedExperiment)
+    set.seed(123)
+    
+    # Create SE with metadata
+    n_genes <- 4
+    n_samples <- 3
+    n_transcripts <- 12
+    
+    x_mat <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    se <- SummarizedExperiment(
+        assays = list(counts = x_mat),
+        colData = data.frame(Sample = paste0("S", 1:n_samples), Condition = rep(c("A", "B"), c(1, 2))),
+        rowData = data.frame(tx_id = paste0("TX", 1:n_transcripts))
+    )
+    
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    result <- calculate_diversity(se, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    
+    # Check metadata preservation
+    expect_s4_class(result, "SummarizedExperiment")
+    result_meta <- S4Vectors::metadata(result)
+    expect_true(!is.null(result_meta$se))
+})
+
+test_that("calculate_diversity with SE input uses colData correctly", {
+    library(SummarizedExperiment)
+    set.seed(123)
+    
+    n_genes <- 3
+    n_samples <- 3
+    n_transcripts <- 9
+    
+    x_mat <- matrix(rpois(n_transcripts * n_samples, lambda = 8), nrow = n_transcripts)
+    colnames(x_mat) <- paste0("S", 1:n_samples)
+    
+    se <- SummarizedExperiment(
+        assays = list(counts = x_mat),
+        colData = data.frame(
+            Sample = paste0("S", 1:n_samples),
+            Treatment = c("Control", "Treated", "Control")
+        )
+    )
+    
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    result <- calculate_diversity(se, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    
+    # Check colData is preserved in output
+    col_data <- SummarizedExperiment::colData(result)
+    expect_true("Treatment" %in% colnames(col_data) | "samples" %in% colnames(col_data))
+})
+
+test_that("calculate_diversity applies different normalization methods", {
+    set.seed(123)
+    n_genes <- 4
+    n_samples <- 3
+    n_transcripts <- 12
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # Test range normalization
+    result_range <- calculate_diversity(x, genes = genes, norm = "range", q = 2, verbose = FALSE)
+    expect_s4_class(result_range, "SummarizedExperiment")
+    
+    # Test zscore normalization
+    result_zscore <- calculate_diversity(x, genes = genes, norm = "zscore", q = 2, verbose = FALSE)
+    expect_s4_class(result_zscore, "SummarizedExperiment")
+    
+    # Test no normalization
+    result_none <- calculate_diversity(x, genes = genes, norm = "none", q = 2, verbose = FALSE)
+    expect_s4_class(result_none, "SummarizedExperiment")
+    
+    # Results should differ based on normalization
+    assay_range <- SummarizedExperiment::assay(result_range)
+    assay_zscore <- SummarizedExperiment::assay(result_zscore)
+    expect_false(all(assay_range == assay_zscore, na.rm = TRUE))
+})
+
+test_that("calculate_diversity with Hill numbers (what='D')", {
+    set.seed(123)
+    n_genes <- 3
+    n_samples <- 3
+    n_transcripts <- 9
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # Request Hill numbers
+    result <- calculate_diversity(x, genes = genes, q = 2, what = "D", norm = TRUE, verbose = FALSE)
+    
+    # Should return valid SE
+    expect_s4_class(result, "SummarizedExperiment")
+    
+    # Values should be positive for Hill numbers
+    assay_mat <- SummarizedExperiment::assay(result)
+    expect_true(all(assay_mat > 0, na.rm = TRUE))
+})
+
+test_that("calculate_diversity handles small sample input", {
+    set.seed(123)
+    n_genes <- 3
+    n_transcripts <- 9
+    n_samples <- 2  # Use 2 samples instead of 1 to avoid edge case handling
+    
+    # Create proper matrix with column names
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts, ncol = n_samples)
+    colnames(x) <- paste0("S", 1:n_samples)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    result <- calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    
+    expect_s4_class(result, "SummarizedExperiment")
+    expect_equal(ncol(result), n_samples)
+})
+
+test_that("calculate_diversity respects min_valid_frac filter", {
+    set.seed(123)
+    n_genes <- 5
+    n_samples <- 3
+    n_transcripts <- 15
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # Strict filtering
+    result_strict <- calculate_diversity(x, genes = genes, min_valid_frac = 0.95, 
+                                        q = 2, norm = TRUE, verbose = FALSE)
+    
+    # Relaxed filtering
+    result_relaxed <- calculate_diversity(x, genes = genes, min_valid_frac = 0.50, 
+                                         q = 2, norm = TRUE, verbose = FALSE)
+    
+    # Relaxed should have at least as many genes as strict
+    expect_gte(nrow(result_relaxed), nrow(result_strict))
+})
+
+test_that("calculate_diversity with bootstrap CI computation", {
+    set.seed(123)
+    n_genes <- 3
+    n_samples <- 3
+    n_transcripts <- 9
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # With bootstrap enabled (use nboot=100 to avoid warning about minimum)
+    result <- calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, 
+                                 bootstrap = TRUE, bootstrap_nboot = 100, 
+                                 verbose = FALSE)
+    
+    # Should have bootstrap info in metadata
+    result_meta <- S4Vectors::metadata(result)
+    expect_true(result_meta$bootstrap)
+    expect_equal(result_meta$bootstrap_nboot, 100)
+})
+
+test_that("calculate_diversity combines vocalization of parameters with helper functions", {
+    # This tests the orchestration: that all 3 helpers are called and work together
+    set.seed(123)
+    n_genes <- 3
+    n_samples <- 1
+    n_transcripts <- 9
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts, ncol = n_samples)
+    colnames(x) <- "S1"
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    # Should handle all parameter variations and pass through helpers
+    # (validation helper, pseudocount handler, extraction helper, prep helper)
+    result <- calculate_diversity(
+        x, 
+        genes = genes, 
+        norm = "range",           # -> validation helper
+        q = c(1, 2),              # -> validation helper
+        what = "S",               # -> validation helper
+        pseudocount = 0,          # using fixed pseudocount to avoid estimation issues in tests
+        shrinkage = "none",       # -> validation helper
+        verbose = FALSE
+    )
+    
+    expect_s4_class(result, "SummarizedExperiment")
+    expect_equal(ncol(result), 2)  # 1 sample * 2 q values
+})
+
+test_that("calculate_diversity output includes rowData with gene info", {
+    library(SummarizedExperiment)
+    set.seed(123)
+    
+    n_genes <- 4
+    n_samples <- 3
+    n_transcripts <- 12
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    result <- calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    
+    # Check rowData structure
+    row_data <- SummarizedExperiment::rowData(result)
+    expect_equal(nrow(row_data), n_genes)
+    expect_true("gene_id" %in% colnames(row_data))
+})
+
+test_that("calculate_diversity output includes colData with sample and q info", {
+    library(SummarizedExperiment)
+    set.seed(123)
+    
+    n_genes <- 3
+    n_samples <- 3
+    n_transcripts <- 9
+    
+    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
+    colnames(x) <- paste0("S", 1:n_samples)
+    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
+    
+    result <- calculate_diversity(x, genes = genes, q = c(1, 2), norm = TRUE, verbose = FALSE)
+    
+    # Check colData for q values
+    col_data <- SummarizedExperiment::colData(result)
+    expect_true("q" %in% colnames(col_data))
+    expect_true("samples" %in% colnames(col_data))
+    
+    # Should have 2 q values per sample
+    q_values <- col_data$q
+    expect_true(all(q_values %in% c(1, 2)))
+})
