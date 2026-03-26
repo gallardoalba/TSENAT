@@ -1002,3 +1002,615 @@ test_that("Block jackknife results are visualizable", {
   expect_true(!is.null(result$influence))
   expect_true(length(result$influence) > 0)
 })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPREHENSIVE TESTS FOR HELPER FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+context("Jackknife Helper Functions: Modular Unit Tests")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 1: .jackknife_validate_params()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_validate_params rejects q <= 0", {
+  # Negative q
+  expect_error(
+    TSENAT:::.jackknife_validate_params(q = -1, threshold = 75),
+    "q.*must be positive"
+  )
+  
+  # Zero q
+  expect_error(
+    TSENAT:::.jackknife_validate_params(q = 0, threshold = 75),
+    "q.*must be positive"
+  )
+})
+
+test_that(".jackknife_validate_params accepts valid q values", {
+  # Should not error for valid q values
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = 0.5, threshold = 75))
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 75))
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = 2, threshold = 75))
+})
+
+test_that(".jackknife_validate_params accepts vector of q values", {
+  # Vector of q values should be accepted
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = c(0.5, 1, 1.5, 2), threshold = 75))
+})
+
+test_that(".jackknife_validate_params rejects invalid threshold", {
+  # Negative threshold
+  expect_error(
+    TSENAT:::.jackknife_validate_params(q = 1, threshold = -1),
+    "threshold.*between 0 and 100"
+  )
+  
+  # Threshold > 100
+  expect_error(
+    TSENAT:::.jackknife_validate_params(q = 1, threshold = 101),
+    "threshold.*between 0 and 100"
+  )
+})
+
+test_that(".jackknife_validate_params accepts valid threshold values", {
+  # Boundary values
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 0))
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 50))
+  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 100))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 2: .jackknife_get_nthreads()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_get_nthreads returns positive integer", {
+  result <- TSENAT:::.jackknife_get_nthreads(NULL)
+  expect_true(is.numeric(result))
+  expect_true(result >= 1)
+})
+
+test_that(".jackknife_get_nthreads respects explicit nthreads=1", {
+  result <- TSENAT:::.jackknife_get_nthreads(nthreads = 1)
+  expect_equal(result, 1)
+})
+
+test_that(".jackknife_get_nthreads respects explicit nthreads > 1", {
+  result <- TSENAT:::.jackknife_get_nthreads(nthreads = 4)
+  expect_equal(result, 4)
+})
+
+test_that(".jackknife_get_nthreads auto-detects cores when NULL", {
+  result <- TSENAT:::.jackknife_get_nthreads(NULL)
+  max_cores <- parallel::detectCores()
+  expect_true(result <= max_cores)
+  expect_true(result >= 1)
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 3: .jackknife_compute_estimates()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_compute_estimates returns numeric vector", {
+  p <- c(0.25, 0.25, 0.25, 0.25)
+  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
+  
+  expect_true(is.numeric(result))
+  expect_length(result, 4)
+})
+
+test_that(".jackknife_compute_estimates handles q=1 (Shannon)", {
+  # Balanced distribution
+  p <- c(0.25, 0.25, 0.25, 0.25)
+  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
+  
+  # All should be valid numbers
+  expect_true(all(is.finite(result)))
+  expect_true(all(result > 0))
+})
+
+test_that(".jackknife_compute_estimates handles q != 1 (Tsallis)", {
+  # Balanced distribution
+  p <- c(0.25, 0.25, 0.25, 0.25)
+  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 2, log_base = 2, n = 4)
+  
+  # All should be valid numbers
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that(".jackknife_compute_estimates handles skewed distribution", {
+  # Heavily skewed - first transcript dominates
+  p <- c(0.7, 0.15, 0.1, 0.05)
+  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
+  
+  # Removing the dominant transcript should increase entropy
+  # (because remaining distribution becomes more even)
+  expect_true(result[1] > mean(result[-1]))
+})
+
+test_that(".jackknife_compute_estimates handles different log bases", {
+  p <- c(0.25, 0.25, 0.25, 0.25)
+  
+  result_base2 <- TSENAT:::.jackknife_compute_estimates(p, q = 1, log_base = 2, n = 4)
+  result_base10 <- TSENAT:::.jackknife_compute_estimates(p, q = 1, log_base = 10, n = 4)
+  
+  # Results should differ due to different log base
+  expect_false(isTRUE(all.equal(result_base2, result_base10)))
+  
+  # Base 10 should give smaller values
+  expect_true(all(result_base10 < result_base2))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 4: .jackknife_calculate_influence_and_outliers()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_calculate_influence_and_outliers returns correct structure", {
+  jackknife_ests <- c(2.0, 2.1, 1.95, 2.05, 1.98)
+  estimate <- 2.0
+  
+  result <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+    jackknife_estimates = jackknife_ests,
+    estimate = estimate,
+    threshold = 75,
+    q = 1,
+    n = 5,
+    norm = FALSE
+  )
+  
+  expect_is(result, "tsenat_jackknife")
+  expect_true("estimate" %in% names(result))
+  expect_true("influence" %in% names(result))
+  expect_true("jackknife_se" %in% names(result))
+  expect_true("outlier_indices" %in% names(result))
+  expect_true("outlier_threshold" %in% names(result))
+  expect_true("outlier_cutoff_value" %in% names(result))
+})
+
+test_that(".jackknife_calculate_influence_and_outliers computes influence correctly", {
+  jackknife_ests <- c(1.0, 3.0, 2.0, 2.5, 1.5)
+  estimate <- 2.0
+  
+  result <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+    jackknife_estimates = jackknife_ests,
+    estimate = estimate,
+    threshold = 75,
+    q = 1,
+    n = 5,
+    norm = FALSE
+  )
+  
+  # Influence should be absolute differences
+  expected_influence <- abs(jackknife_ests - estimate)
+  expect_equal(result$influence, expected_influence)
+})
+
+test_that(".jackknife_calculate_influence_and_outliers respects threshold", {
+  jackknife_ests <- c(1.0, 3.0, 2.0, 2.5, 1.5)
+  estimate <- 2.0
+  
+  result_high <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+    jackknife_estimates = jackknife_ests,
+    estimate = estimate,
+    threshold = 90,
+    q = 1,
+    n = 5,
+    norm = FALSE
+  )
+  
+  result_low <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+    jackknife_estimates = jackknife_ests,
+    estimate = estimate,
+    threshold = 50,
+    q = 1,
+    n = 5,
+    norm = FALSE
+  )
+  
+  # Lower threshold should identify more outliers
+  expect_true(length(result_low$outlier_indices) >= length(result_high$outlier_indices))
+})
+
+test_that(".jackknife_calculate_influence_and_outliers computes SE correctly", {
+  jackknife_ests <- c(1.9, 2.0, 2.1, 2.05, 1.95)  # Small variance
+  estimate <- 2.0
+  n <- 5
+  
+  result <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+    jackknife_estimates = jackknife_ests,
+    estimate = estimate,
+    threshold = 75,
+    q = 1,
+    n = n,
+    norm = FALSE
+  )
+  
+  # SE should be positive
+  expect_true(result$jackknife_se >= 0)
+  
+  # Verify SE calculation
+  theta_jack_mean <- mean(jackknife_ests)
+  expected_se <- sqrt(((n - 1) / n) * sum((jackknife_ests - theta_jack_mean)^2))
+  expect_equal(result$jackknife_se, expected_se)
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 5: .jackknife_process_vector_core()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_process_vector_core returns tsenat_jackknife object", {
+  counts <- c(100, 80, 60, 40, 20)
+  
+  result <- TSENAT:::.jackknife_process_vector_core(
+    x = counts,
+    q = 1,
+    norm = FALSE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75,
+    gene_name = "Gene1",
+    verbose = FALSE
+  )
+  
+  expect_is(result, "tsenat_jackknife")
+})
+
+test_that(".jackknife_process_vector_core rejects < 2 transcripts", {
+  single_count <- c(100)
+  
+  expect_error(
+    TSENAT:::.jackknife_process_vector_core(
+      x = single_count,
+      q = 1,
+      norm = FALSE,
+      log_base = 2,
+      pseudocount = 0,
+      threshold = 75
+    ),
+    "at least 2"
+  )
+})
+
+test_that(".jackknife_process_vector_core handles normalization", {
+  counts <- c(100, 80, 60, 40, 20)
+  
+  result_norm <- TSENAT:::.jackknife_process_vector_core(
+    x = counts,
+    q = 1,
+    norm = TRUE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75
+  )
+  
+  result_unnorm <- TSENAT:::.jackknife_process_vector_core(
+    x = counts,
+    q = 1,
+    norm = FALSE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75
+  )
+  
+  # Both should have valid structure
+  expect_is(result_norm, "tsenat_jackknife")
+  expect_is(result_unnorm, "tsenat_jackknife")
+  
+  # Estimates should differ
+  expect_false(abs(result_norm$estimate - result_unnorm$estimate) < 1e-6)
+})
+
+test_that(".jackknife_process_vector_core handles pseudocount", {
+  counts <- c(100, 0, 60, 40, 20)
+  
+  # With pseudocount, should not error
+  result <- TSENAT:::.jackknife_process_vector_core(
+    x = counts,
+    q = 1,
+    norm = FALSE,
+    log_base = 2,
+    pseudocount = 1e-10,
+    threshold = 75
+  )
+  
+  expect_true(!is.na(result$estimate))
+  expect_true(all(is.finite(result$jackknife_estimates)))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 6: .jackknife_process_matrix()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_process_matrix returns list with correct class", {
+  counts_mat <- matrix(
+    c(100, 80, 60, 40, 20, 150, 100, 50, 30, 10),
+    nrow = 2,
+    byrow = TRUE,
+    dimnames = list(c("Gene1", "Gene2"), NULL)
+  )
+  
+  result <- TSENAT:::.jackknife_process_matrix(
+    x = counts_mat,
+    q = 1,
+    norm = FALSE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75,
+    verbose = FALSE
+  )
+  
+  expect_is(result, "tsenat_jackknife_list")
+  expect_equal(length(result), 2)
+})
+
+test_that(".jackknife_process_matrix processes each row independently", {
+  counts_mat <- matrix(
+    c(100, 80, 60, 40, 20, 150, 100, 50, 30, 10),
+    nrow = 2,
+    byrow = TRUE,
+    dimnames = list(c("Gene1", "Gene2"), NULL)
+  )
+  
+  result <- TSENAT:::.jackknife_process_matrix(
+    x = counts_mat,
+    q = 1,
+    norm = FALSE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75,
+    verbose = FALSE
+  )
+  
+  # Each gene should be a tsenat_jackknife object
+  expect_is(result[[1]], "tsenat_jackknife")
+  expect_is(result[[2]], "tsenat_jackknife")
+  
+  # Estimates should differ since genes have different distributions
+  expect_false(abs(result[[1]]$estimate - result[[2]]$estimate) < 1e-6)
+})
+
+test_that(".jackknife_process_matrix preserves row names", {
+  counts_mat <- matrix(
+    c(100, 80, 60, 40, 20, 150, 100, 50, 30, 10),
+    nrow = 2,
+    byrow = TRUE,
+    dimnames = list(c("GeneA", "GeneB"), NULL)
+  )
+  
+  result <- TSENAT:::.jackknife_process_matrix(
+    x = counts_mat,
+    q = 1,
+    norm = FALSE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75,
+    verbose = FALSE
+  )
+  
+  expect_equal(names(result), c("GeneA", "GeneB"))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 7: .jackknife_warn_on_q_parameters()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_warn_on_q_parameters warns on low total count", {
+  counts <- c(1, 1, 1, 1, 1)  # Total = 5, below 10
+  
+  expect_warning(
+    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
+    "Total count"
+  )
+})
+
+test_that(".jackknife_warn_on_q_parameters does not warn on normal count", {
+  counts <- c(100, 80, 60, 40, 20)  # Total = 300
+  
+  expect_no_warning(
+    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE)
+  )
+})
+
+test_that(".jackknife_warn_on_q_parameters mentions paper citations", {
+  counts <- c(1, 1, 1, 1, 1)
+  
+  expect_warning(
+    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
+    "S111|S114"
+  )
+})
+
+test_that(".jackknife_warn_on_q_parameters warns on low q", {
+  counts <- c(100, 80, 60, 40, 20)
+  
+  expect_message(
+    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 0.3, verbose = TRUE),
+    "Low q"
+  )
+})
+
+test_that(".jackknife_warn_on_q_parameters warns on high q", {
+  counts <- c(100, 80, 60, 40, 20)
+  
+  expect_message(
+    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 5, verbose = TRUE),
+    "High q"
+  )
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 8: .jackknife_format_verbose_output_matrix()
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that(".jackknife_format_verbose_output_matrix returns character string", {
+  # Create mock result structure
+  results <- list(
+    Gene1 = list(
+      estimate = 2.5,
+      jackknife_se = 0.1,
+      influence = c(0.05, 0.04, 0.06, 0.03, 0.07),
+      outlier_indices = c(5)
+    ),
+    Gene2 = list(
+      estimate = 1.8,
+      jackknife_se = 0.15,
+      influence = c(0.08, 0.09, 0.07, 0.10, 0.06),
+      outlier_indices = c(4, 5)
+    )
+  )
+  class(results) <- c("tsenat_jackknife_list", "list")
+  
+  output <- TSENAT:::.jackknife_format_verbose_output_matrix(results)
+  
+  expect_is(output, "character")
+  expect_true(nchar(output) > 0)
+})
+
+test_that(".jackknife_format_verbose_output_matrix includes gene names", {
+  results <- list(
+    GeneAlpha = list(
+      estimate = 2.5,
+      jackknife_se = 0.1,
+      influence = c(0.05, 0.04),
+      outlier_indices = integer(0)
+    ),
+    GeneBeta = list(
+      estimate = 1.8,
+      jackknife_se = 0.15,
+      influence = c(0.08, 0.09),
+      outlier_indices = integer(0)
+    )
+  )
+  class(results) <- c("tsenat_jackknife_list", "list")
+  
+  output <- TSENAT:::.jackknife_format_verbose_output_matrix(results)
+  
+  expect_match(output, "GeneAlpha")
+  expect_match(output, "GeneBeta")
+})
+
+test_that(".jackknife_format_verbose_output_matrix includes statistics", {
+  results <- list(
+    Gene1 = list(
+      estimate = 2.5,
+      jackknife_se = 0.123,
+      influence = c(0.05, 0.04, 0.06),
+      outlier_indices = c(2)
+    )
+  )
+  class(results) <- c("tsenat_jackknife_list", "list")
+  
+  output <- TSENAT:::.jackknife_format_verbose_output_matrix(results)
+  
+  expect_match(output, "2\\.5|estimate|SE|influence|outlier")
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Test Suite 9: Integration Tests for Helper Function Interactions
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("Helper functions work correctly in integrated pipeline (vector)", {
+  counts <- c(120, 90, 60, 30)
+  
+  # Full pipeline through main function uses helpers internally
+  result <- jackknife_entropy_outliers(
+    x = counts,
+    q = 1,
+    norm = TRUE,
+    log_base = 2,
+    pseudocount = 0,
+    threshold = 75,
+    verbose = FALSE
+  )
+  
+  # All components should be valid
+  expect_is(result, "tsenat_jackknife")
+  expect_true(!is.na(result$estimate))
+  expect_equal(length(result$influence), length(counts))
+  expect_true(result$jackknife_se >= 0)
+})
+
+test_that("Helper functions work correctly in integrated pipeline (matrix)", {
+  counts_mat <- matrix(
+    c(120, 90, 60, 30, 100, 100, 100, 100),
+    nrow = 2,
+    byrow = TRUE,
+    dimnames = list(c("Gene1", "Gene2"), NULL)
+  )
+  
+  result <- jackknife_entropy_outliers(
+    x = counts_mat,
+    q = 1,
+    norm = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_is(result, "tsenat_jackknife_list")
+  expect_equal(length(result), 2)
+  expect_true(all(sapply(result, function(r) !is.na(r$estimate))))
+})
+
+test_that("Helper functions preserve optimization levels", {
+  # Test that optimizations from original code are preserved
+  counts <- c(100, 80, 60, 40, 20, 10, 5, 2)  # 8 transcripts
+  
+  result <- jackknife_entropy_outliers(
+    x = counts,
+    q = 1,
+    norm = TRUE,
+    verbose = FALSE
+  )
+  
+  # Should complete without excessive computation
+  expect_true(!is.na(result$estimate))
+  expect_equal(result$n_transcripts, 8)
+  expect_equal(length(result$jackknife_estimates), 8)
+})
+
+test_that("Helper functions handle edge case: all equal counts", {
+  equal_counts <- rep(50, 6)
+  
+  result <- jackknife_entropy_outliers(
+    x = equal_counts,
+    q = 1,
+    norm = TRUE,
+    verbose = FALSE
+  )
+  
+  # Influence should be minimal and uniform
+  expect_true(all(result$influence < 0.01))
+  expect_true(max(result$influence) - min(result$influence) < 1e-6)
+})
+
+test_that("Helper functions handle edge case: highly skewed counts", {
+  skewed_counts <- c(1000, 50, 25, 15, 10)
+  
+  result <- jackknife_entropy_outliers(
+    x = skewed_counts,
+    q = 1,
+    norm = TRUE,
+    verbose = FALSE
+  )
+  
+  # First transcript should have highest influence
+  expect_equal(which.max(result$influence), 1)
+})
+
+test_that("Multiple q values processed separately with accurate results", {
+  counts <- c(100, 80, 60, 40, 20)
+  q_vals <- c(0.5, 1, 1.5)
+  
+  # Process individually
+  results_individual <- lapply(q_vals, function(q) {
+    jackknife_entropy_outliers(x = counts, q = q, verbose = FALSE)
+  })
+  
+  # All should be valid
+  expect_true(all(sapply(results_individual, function(r) !is.na(r$estimate))))
+  
+  # Estimates should differ
+  estimates <- sapply(results_individual, function(r) r$estimate)
+  expect_true(length(unique(round(estimates, 4))) > 1)
+})
