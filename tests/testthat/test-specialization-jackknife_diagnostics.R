@@ -17,7 +17,7 @@ test_that("jackknife_tsallis_entropy works with all input types", {
     func_name = "jackknife_tsallis_entropy",
     test_vec = balanced_counts,
     test_mat = matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE),
-    extra_args = list(q = 1, print_results = FALSE)
+    extra_args = list(q = 1, verbose = FALSE)
   )
 })
 
@@ -100,7 +100,7 @@ test_that("jackknife_tsallis_entropy validates all parameters", {
   test_jackknife_parameter_validation(
     func_name = "jackknife_tsallis_entropy",
     valid_counts = balanced_counts,
-    valid_args = list(q = 1, print_results = FALSE)
+    valid_args = list(q = 1, verbose = FALSE)
   )
 })
 
@@ -152,7 +152,7 @@ test_that("summary method works for jackknife results", {
 # Test 19: S3 print for list
 test_that("print method works for jackknife list", {
   gene_matrix <- matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE)
-  result <- jackknife_tsallis_entropy(gene_matrix, q = 1, print_results = FALSE)
+  result <- jackknife_tsallis_entropy(gene_matrix, q = 1, verbose = FALSE)
 
   # Methods use message() for output, not stdout
   expect_message(print(result), "genes")
@@ -268,7 +268,7 @@ test_that("jackknife_isoform_switching detects missing condition column", {
       isoform_col = "isoform_id",
       n_bootstrap = 5,
       norm = FALSE,
-      print_results = FALSE
+      verbose = FALSE
     )),
     "condition"
   )
@@ -287,7 +287,7 @@ test_that("jackknife_isoform_switching handles q parameter appropriately", {
     q = 1.5,
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -304,7 +304,7 @@ test_that("jackknife_isoform_switching returns tsenat_isoform_switching class", 
     isoform_col = "isoform_id",
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -322,7 +322,7 @@ test_that("jackknife_isoform_switching output has required components", {
     isoform_col = "isoform_id",
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_true(!is.null(result$gene_names))
@@ -343,7 +343,7 @@ test_that("all_transcript_stats has required columns", {
     isoform_col = "isoform_id",
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   stats <- result$all_transcript_stats
@@ -381,7 +381,7 @@ test_that("jackknife_isoform_switching accepts subject_col parameter", {
     isoform_col = "isoform_id",
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -425,7 +425,7 @@ test_that("jackknife_isoform_switching accepts lm_results parameter", {
     lm_p_threshold = 0.05,
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -443,7 +443,7 @@ test_that("Metadata is populated after analysis", {
     q = 1.5,
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   meta <- result$metadata
@@ -467,7 +467,7 @@ test_that("Results contain numeric values with small bootstrap", {
     isoform_col = "isoform_id",
     n_bootstrap = 5,
     norm = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   gene_res <- result$results_per_gene[["Gene1"]]
@@ -599,7 +599,7 @@ test_that("Matrix input with sparse counts handles NAs in all genes", {
     Gene3 = c(50, 50, 50, 50, 50, 50, 50, 50)
   )
   
-  result <- try(suppressWarnings(jackknife_tsallis_entropy(sparse_matrix, q = 1, norm = TRUE, print_results = FALSE)), silent = TRUE)
+  result <- try(suppressWarnings(jackknife_tsallis_entropy(sparse_matrix, q = 1, norm = TRUE, verbose = FALSE)), silent = TRUE)
   
   # Should complete without error
   expect_false(inherits(result, "try-error"))
@@ -651,7 +651,7 @@ test_that("Quantile for outlier cutoff uses na.rm=TRUE", {
 test_that("Multiple q values all use na.rm correctly", {
   test_counts <- c(50, 50, 50, 50, 50, 50, 50, 0)
   
-  result <- try(jackknife_tsallis_entropy(test_counts, q = c(0.5, 1, 1.5, 2), norm = TRUE, print_results = FALSE), silent = TRUE)
+  result <- try(jackknife_tsallis_entropy(test_counts, q = c(0.5, 1, 1.5, 2), norm = TRUE, verbose = FALSE), silent = TRUE)
   
   expect_false(inherits(result, "try-error"))
   expect_is(result, "tsenat_jackknife_list_multiq")
@@ -689,7 +689,7 @@ test_that("q-parameter messaging for low q (underweights rare isoforms)", {
   
   # Capture messages when q < 0.5
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.3, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 0.3, verbose = FALSE),
     "Low q.*heavily underweights rare isoforms"
   )
 })
@@ -699,7 +699,7 @@ test_that("q-parameter messaging mentions large influence from abundant transcri
   
   # Verify message about abundant transcript influence
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.25, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 0.25, verbose = FALSE),
     "large influence from abundant transcripts"
   )
 })
@@ -709,7 +709,7 @@ test_that("q-parameter messaging cites papers S111, I004 for low q", {
   
   # Verify database paper citations
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.1, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 0.1, verbose = FALSE),
     "papers S111, I004"
   )
 })
@@ -719,7 +719,7 @@ test_that("q-parameter messaging for high q (insensitive to rare diversity)", {
   
   # Capture messages when q > 2
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 2.5, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 2.5, verbose = FALSE),
     "may be insensitive to rare isoform diversity"
   )
 })
@@ -729,7 +729,7 @@ test_that("q-parameter messaging mentions missed rare transcripts for high q", {
   
   # Verify message about rare transcript contributions
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 3.0, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 3.0, verbose = FALSE),
     "miss important rare transcript contributions"
   )
 })
@@ -739,7 +739,7 @@ test_that("q-parameter messaging recommends q in [0.5, 2] for high q", {
   
   # Verify recommendation for balanced assessment
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 2.2, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 2.2, verbose = FALSE),
     "Consider q in"
   )
 })
@@ -749,7 +749,7 @@ test_that("q-parameter messaging for recommended q range with verbose", {
   
   # Verbose message when q in [0.5, 2] and verbose=TRUE
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 1.0, print_results = FALSE, verbose = TRUE),
+    jackknife_tsallis_entropy(x = counts, q = 1.0, verbose = TRUE),
     "recommended range"
   )
 })
@@ -759,7 +759,7 @@ test_that("q-parameter messaging cites papers for recommended range", {
   
   # Verify database paper citations in recommended range message
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 1.5, print_results = FALSE, verbose = TRUE),
+    jackknife_tsallis_entropy(x = counts, q = 1.5, verbose = TRUE),
     "papers S111, I004"
   )
 })
@@ -769,7 +769,7 @@ test_that("q-parameter messaging at boundary q=0.5", {
   
   # q=0.5 is at the lower boundary of recommended range
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.5, print_results = FALSE, verbose = TRUE),
+    jackknife_tsallis_entropy(x = counts, q = 0.5, verbose = TRUE),
     "recommended range"
   )
 })
@@ -779,7 +779,7 @@ test_that("q-parameter messaging at boundary q=2.0", {
   
   # q=2.0 is at the upper boundary of recommended range
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 2.0, print_results = FALSE, verbose = TRUE),
+    jackknife_tsallis_entropy(x = counts, q = 2.0, verbose = TRUE),
     "recommended range"
   )
 })
@@ -789,7 +789,7 @@ test_that("q-parameter messaging no verbose warning for recommended q without ve
   
   # When q in recommended range and verbose=FALSE, should not message
   expect_no_message(
-    jackknife_tsallis_entropy(x = counts, q = 1.0, print_results = FALSE, verbose = FALSE)
+    jackknife_tsallis_entropy(x = counts, q = 1.0, verbose = FALSE)
   )
 })
 
@@ -797,7 +797,7 @@ test_that("q-parameter optimization doesn't affect computation results", {
   counts <- c(1000, 500, 200, 100, 50)
   
   # Results should be identical regardless of messaging
-  result <- jackknife_tsallis_entropy(x = counts, q = 0.3, print_results = FALSE)
+  result <- jackknife_tsallis_entropy(x = counts, q = 0.3, verbose = FALSE)
   
   # Verify computation still works
   expect_true("estimate" %in% names(result))
@@ -817,7 +817,7 @@ test_that("q-parameter optimization works with multiple q values", {
     jackknife_tsallis_entropy(
       x = counts, 
       q = c(0.3, 1.0, 2.5), 
-      print_results = FALSE,
+      verbose = FALSE,
       verbose = FALSE
     ),
     NA  # Expect no error
@@ -834,7 +834,7 @@ test_that("q-parameter optimization with matrix input", {
   
   # Messages should appear for each gene with low q
   expect_message(
-    jackknife_tsallis_entropy(x = counts_matrix, q = 0.4, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts_matrix, q = 0.4, verbose = FALSE),
     "Low q"
   )
 })
@@ -844,7 +844,7 @@ test_that("q-parameter emphasizes dominant isoform detection for low q", {
   
   # Verify message mentions better for detecting changes
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.2, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 0.2, verbose = FALSE),
     "detecting changes in dominant isoforms"
   )
 })
@@ -854,7 +854,7 @@ test_that("q-parameter documentation mentions balanced assessment for high q", {
   
   # Verify message calls for balanced assessment
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 2.8, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 2.8, verbose = FALSE),
     "balanced diversity assessment"
   )
 })
@@ -864,7 +864,7 @@ test_that("q=0.5 boundary lower - no low q warning", {
   
   # Exactly at boundary should not show low q warning
   expect_no_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.5, print_results = FALSE, verbose = FALSE)
+    jackknife_tsallis_entropy(x = counts, q = 0.5, verbose = FALSE)
   )
 })
 
@@ -873,7 +873,7 @@ test_that("q=2.0 boundary upper - no high q warning", {
   
   # Exactly at boundary should not show high q warning
   expect_no_message(
-    jackknife_tsallis_entropy(x = counts, q = 2.0, print_results = FALSE, verbose = FALSE)
+    jackknife_tsallis_entropy(x = counts, q = 2.0, verbose = FALSE)
   )
 })
 
@@ -882,7 +882,7 @@ test_that("q=0.49 just below boundary - shows low q warning", {
   
   # Just below 0.5 should show low q warning
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 0.49, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 0.49, verbose = FALSE),
     "Low q"
   )
 })
@@ -892,7 +892,7 @@ test_that("q=2.01 just above boundary - shows high q warning", {
   
   # Just above 2.0 should show high q warning
   expect_message(
-    jackknife_tsallis_entropy(x = counts, q = 2.01, print_results = FALSE),
+    jackknife_tsallis_entropy(x = counts, q = 2.01, verbose = FALSE),
     "High q"
   )
 })
@@ -904,12 +904,12 @@ test_that("Feature 4.1 integration: q-parameter messaging is entropy-specific", 
   counts_skewed <- c(1000, 10, 10, 10, 10)      # Dominant + rare
   
   # Low q should affect results differently for balanced vs skewed
-  result_balanced_low <- jackknife_tsallis_entropy(x = counts_balanced, q = 0.3, print_results = FALSE)
-  result_skewed_low <- jackknife_tsallis_entropy(x = counts_skewed, q = 0.3, print_results = FALSE)
+  result_balanced_low <- jackknife_tsallis_entropy(x = counts_balanced, q = 0.3, verbose = FALSE)
+  result_skewed_low <- jackknife_tsallis_entropy(x = counts_skewed, q = 0.3, verbose = FALSE)
   
   # High q should follow similar pattern
-  result_balanced_high <- jackknife_tsallis_entropy(x = counts_balanced, q = 2.5, print_results = FALSE)
-  result_skewed_high <- jackknife_tsallis_entropy(x = counts_skewed, q = 2.5, print_results = FALSE)
+  result_balanced_high <- jackknife_tsallis_entropy(x = counts_balanced, q = 2.5, verbose = FALSE)
+  result_skewed_high <- jackknife_tsallis_entropy(x = counts_skewed, q = 2.5, verbose = FALSE)
   
   # Different q values should give different estimates
   expect_true(result_balanced_low$estimate != result_balanced_high$estimate)
@@ -922,7 +922,7 @@ test_that("Feature 4.1 database citations are accurate", {
   
   # Both papers should be mentioned
   output_low <- capture_messages(
-    jackknife_tsallis_entropy(x = counts, q = 0.2, print_results = FALSE)
+    jackknife_tsallis_entropy(x = counts, q = 0.2, verbose = FALSE)
   )
   
   expect_true(any(grepl("S111", paste(output_low, collapse = " "))))
@@ -975,7 +975,7 @@ test_that("Block jackknife computation works with grouped samples", {
   counts <- assay(se)[1, ]
   
   # Should compute without errors
-  result <- expect_no_error(jackknife_tsallis_entropy(counts, q = 1, print_results = FALSE))
+  result <- expect_no_error(jackknife_tsallis_entropy(counts, q = 1, verbose = FALSE))
   
   # Result should be valid
   expect_is(result, "tsenat_jackknife")
@@ -991,7 +991,7 @@ test_that("Block jackknife respects phase grouping from metadata", {
   counts <- assay(se)[1, ]
   
   # Standard jackknife
-  result_standard <- jackknife_tsallis_entropy(counts, q = 1, print_results = FALSE)
+  result_standard <- jackknife_tsallis_entropy(counts, q = 1, verbose = FALSE)
   
   # Both should produce valid results
   expect_true(is.numeric(result_standard$estimate))
@@ -1003,7 +1003,7 @@ test_that("Block jackknife results are visualizable", {
   se <- test_se_with_blocks()
   counts <- assay(se)[1, ]
   
-  result <- jackknife_tsallis_entropy(counts, q = 1, print_results = FALSE)
+  result <- jackknife_tsallis_entropy(counts, q = 1, verbose = FALSE)
   
   # Results should have influence data for visualization
   expect_true(!is.null(result$influence))

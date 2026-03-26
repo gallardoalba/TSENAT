@@ -426,7 +426,7 @@ calculate_divergence_bootstrap <- function(
     log_base = exp(1),
     pseudocount = 0.5,
     gene_name = NA_character_,
-    print_results = FALSE,
+    verbose = FALSE,
     seed = NULL,
     paired = FALSE,
     pair_ids = NULL) {

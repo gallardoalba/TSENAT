@@ -270,7 +270,7 @@ test_that("bootstrap entropy calculation produces non-zero values with drop=FALS
         q = 2, 
         nboot = 150, 
         seed = 123,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Verify point estimate matches
@@ -321,7 +321,7 @@ test_that("aggregated transcript counts via drop=FALSE produce valid entropy", {
         q = 2,
         nboot = 100,
         seed = 456,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     expect_equal(boot_result$estimate, entropy, tolerance = 1e-6)
@@ -344,7 +344,7 @@ test_that("minimum sample size warning triggers for low counts (total < 10)", {
             q = 2, 
             nboot = 100, 
             seed = 789,
-            print_results = FALSE
+            verbose = FALSE
         ),
         "Total count.*below recommended minimum"
     )
@@ -359,7 +359,7 @@ test_that("minimum sample size warning includes paper references (S111, S114)", 
             q = 2,
             nboot = 100,
             seed = 111,
-            print_results = FALSE
+            verbose = FALSE
         ),
         warning = function(w) w$message
     )
@@ -378,7 +378,7 @@ test_that("minimum sample size warning NOT triggered for sufficient counts (>= 1
             q = 2,
             nboot = 100,
             seed = 222,
-            print_results = FALSE
+            verbose = FALSE
         )
     )
     
@@ -395,7 +395,7 @@ test_that("minimum sample size warning threshold is exactly at 10", {
             q = 2,
             nboot = 100,
             seed = 333,
-            print_results = FALSE
+            verbose = FALSE
         )
     )
     
@@ -411,7 +411,7 @@ test_that("minimum sample size warning with total = 9 (below threshold)", {
             q = 2,
             nboot = 100,
             seed = 444,
-            print_results = FALSE
+            verbose = FALSE
         ),
         "Total count.*below recommended minimum"
     )
@@ -427,7 +427,7 @@ test_that("minimum sample size validation still computes estimate despite warnin
             q = 2,
             nboot = 100,
             seed = 555,
-            print_results = FALSE
+            verbose = FALSE
         )
     )
     
@@ -447,7 +447,7 @@ test_that("minimum sample size validation with high counts (no warning)", {
             q = 2,
             nboot = 100,
             seed = 666,
-            print_results = FALSE
+            verbose = FALSE
         )
     )
     
@@ -654,7 +654,7 @@ test_that("suggest_nboot() recommendations work in actual bootstrap workflow", {
         q = 2,
         nboot = nboot_rec,  # Use recommended value
         seed = 777,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     expect_is(result, "tsenat_bootstrap_ci")
@@ -671,7 +671,7 @@ test_that("suggest_nboot() for BCa method works with calculate_tsallis_entropy_b
         nboot = nboot_bca,
         method = "bca",
         seed = 888,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     expect_is(result, "tsenat_bootstrap_ci")
@@ -695,7 +695,7 @@ test_that("multiple genes benefit from lower nboot recommendations", {
         q = 2,
         nboot = nboot_recommended,
         seed = 999,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     time_elapsed <- Sys.time() - time_start
@@ -722,7 +722,7 @@ test_that("diagnostics included by default (include_diagnostics=TRUE)", {
         q = 2,
         nboot = 100,
         seed = 123,
-        print_results = FALSE
+        verbose = FALSE
         # include_diagnostics defaults to TRUE
     )
     
@@ -739,7 +739,7 @@ test_that("diagnostics can be disabled with include_diagnostics=FALSE", {
         q = 2,
         nboot = 100,
         seed = 123,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = FALSE
     )
     
@@ -755,7 +755,7 @@ test_that("diagnostics list contains required fields", {
         q = 2,
         nboot = 200,
         seed = 456,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = TRUE
     )
     
@@ -772,7 +772,7 @@ test_that("effective_sample_size is computed and reasonable", {
         q = 2,
         nboot = 300,
         seed = 789,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Effective sample size should be positive and <= nboot
@@ -789,7 +789,7 @@ test_that("skewness is computed correctly", {
         q = 2,
         nboot = 200,
         seed = 111,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Skewness should be numeric and reasonable (-10 to +10 range typically)
@@ -806,7 +806,7 @@ test_that("bias shows difference between estimate and median of bootstrap dist",
         q = 2,
         nboot = 200,
         seed = 222,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Bias should be small (typically |bias| < 0.1)
@@ -824,7 +824,7 @@ test_that("acceleration_factor is NA for percentile method", {
         nboot = 100,
         seed = 333,
         method = "percentile",
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Percentile method doesn't have acceleration factor
@@ -840,7 +840,7 @@ test_that("acceleration_factor is computed for BCa method", {
         nboot = 150,
         seed = 444,
         method = "bca",
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # BCa method should have acceleration factor (numeric or NA)
@@ -860,7 +860,7 @@ test_that("diagnostics preserved in recursive calls (multiple q values)", {
         q = c(1, 2, 3),
         nboot = 100,
         seed = 555,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = TRUE
     )
     
@@ -881,7 +881,7 @@ test_that("diagnostics consistent across runs with same seed", {
         q = 2,
         nboot = 50,
         seed = 666,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     result2 <- calculate_tsallis_entropy_bootstrap(
@@ -889,7 +889,7 @@ test_that("diagnostics consistent across runs with same seed", {
         q = 2,
         nboot = 50,
         seed = 666,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Verify both have valid diagnostics
@@ -927,7 +927,7 @@ test_that("summary method displays diagnostics when available", {
         q = 2,
         nboot = 100,
         seed = 777,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = TRUE
     )
     
@@ -949,7 +949,7 @@ test_that("summary method works without diagnostics", {
         q = 2,
         nboot = 100,
         seed = 888,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = FALSE
     )
     
@@ -966,7 +966,7 @@ test_that("skewness interpretation: skewness is computed for any distribution", 
         q = 2,
         nboot = 200,
         seed = 999,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Skewness should be numeric and in a reasonable range
@@ -985,7 +985,7 @@ test_that("effective_sample_size is positive and reasonable", {
         q = 2,
         nboot = 500,
         seed = 1001,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Effective n should be positive (accounting for autocorrelation)
@@ -1004,7 +1004,7 @@ test_that("diagnostics work with low-abundance genes (with warning)", {
             q = 2,
             nboot = 100,
             seed = 1002,
-            print_results = FALSE,
+            verbose = FALSE,
             include_diagnostics = TRUE
         )
     )
@@ -1038,7 +1038,7 @@ test_that("diagnostics with multiple genes (SE extraction)", {
         q = 2,
         nboot = 100,
         seed = 1003,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = TRUE
     )
     
@@ -1055,7 +1055,7 @@ test_that("parameter include_diagnostics backward compatible (default TRUE)", {
         q = 2,
         nboot = 100,
         seed = 1004,
-        print_results = FALSE
+        verbose = FALSE
         # include_diagnostics not specified
     )
     
@@ -1077,7 +1077,7 @@ test_that("JOB disabled by default (use_job=FALSE)", {
         q = 2,
         nboot = 100,
         seed = 1005,
-        print_results = FALSE
+        verbose = FALSE
         # use_job not specified, should default to FALSE
     )
     
@@ -1093,7 +1093,7 @@ test_that("JOB computation included when use_job=TRUE", {
         q = 2,
         nboot = 100,
         seed = 1006,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1111,7 +1111,7 @@ test_that("JOB requires n >= 3 observations", {
             x = x,
             q = 2,
             nboot = 100,
-            print_results = FALSE,
+            verbose = FALSE,
             use_job = TRUE
         ),
         "JOB requires n >= 3"
@@ -1126,7 +1126,7 @@ test_that("JOB stabilit metrics contain required fields", {
         q = 2,
         nboot = 100,
         seed = 1007,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1144,7 +1144,7 @@ test_that("JOB lower_stable <= original lower_ci (more conservative)", {
         q = 2,
         nboot = 150,
         seed = 1008,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1160,7 +1160,7 @@ test_that("JOB upper_stable >= original upper_ci (more conservative)", {
         q = 2,
         nboot = 150,
         seed = 1009,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1176,7 +1176,7 @@ test_that("JOB width_variation is non-negative", {
         q = 2,
         nboot = 100,
         seed = 1010,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1192,7 +1192,7 @@ test_that("JOB bound_variability indicates CI stability", {
         q = 2,
         nboot = 100,
         seed = 1011,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1210,7 +1210,7 @@ test_that("JOB n_outlier_bounds counts outlier estimates", {
         q = 2,
         nboot = 100,
         seed = 1012,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1229,7 +1229,7 @@ test_that("JOB works with BCa method", {
         nboot = 100,
         seed = 1013,
         method = "bca",
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1246,7 +1246,7 @@ test_that("JOB with diagnostics includes both fields", {
         q = 2,
         nboot = 100,
         seed = 1014,
-        print_results = FALSE,
+        verbose = FALSE,
         include_diagnostics = TRUE,
         use_job = TRUE
     )
@@ -1265,7 +1265,7 @@ test_that("JOB reproducible with same seed", {
         q = 2,
         nboot = 50,
         seed = 1015,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1274,7 +1274,7 @@ test_that("JOB reproducible with same seed", {
         q = 2,
         nboot = 50,
         seed = 1015,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1306,7 +1306,7 @@ test_that("JOB with multiple q values", {
         q = c(1, 2, 3),
         nboot = 100,
         seed = 1016,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1326,7 +1326,7 @@ test_that("JOB reasonable for uniform distributions", {
         q = 2,
         nboot = 100,
         seed = 1017,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1346,7 +1346,7 @@ test_that("JOB identifies instability in skewed data", {
         q = 2,
         nboot = 100,
         seed = 1018,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1366,7 +1366,7 @@ test_that("JOB computational cost is manageable", {
         q = 2,
         nboot = 100,
         seed = 1019,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1397,7 +1397,7 @@ test_that("JOB parameter passed through recursive calls", {
         q = 2,
         nboot = 100,
         seed = 1020,
-        print_results = FALSE,
+        verbose = FALSE,
         use_job = TRUE
     )
     
@@ -1424,7 +1424,7 @@ test_that("matrix input detection works correctly", {
         q = 2,
         nboot = 100,
         seed = 2000,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Should return a list of results, one per gene
@@ -1448,7 +1448,7 @@ test_that("matrix input with sequential processing (nthreads=1)", {
         nboot = 100,
         nthreads = 1,
         seed = 2001,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Each element should be a bootstrap CI result
@@ -1473,7 +1473,7 @@ test_that("nthreads parameter validation", {
         calculate_tsallis_entropy_bootstrap(
             x = counts_matrix,
             nthreads = -1,
-            print_results = FALSE
+            verbose = FALSE
         )
     )
     
@@ -1482,7 +1482,7 @@ test_that("nthreads parameter validation", {
         calculate_tsallis_entropy_bootstrap(
             x = counts_matrix,
             nthreads = 0,
-            print_results = FALSE
+            verbose = FALSE
         )
     )
     
@@ -1494,7 +1494,7 @@ test_that("nthreads parameter validation", {
         nthreads = max_threads,
         nboot = 100,
         seed = 2002,
-        print_results = FALSE
+        verbose = FALSE
     )
     expect_is(result, "list")
 })
@@ -1513,7 +1513,7 @@ test_that("gene names extracted from rownames", {
         q = 2,
         nboot = 100,
         seed = 2003,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Result names should match rownames
@@ -1533,7 +1533,7 @@ test_that("matrix without rownames generates default names", {
         q = 2,
         nboot = 100,
         seed = 2004,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Should have default names like Gene_1, Gene_2, etc.
@@ -1556,7 +1556,7 @@ test_that("small matrix with 3 genes processes correctly", {
         nboot = 100,
         nthreads = 1,
         seed = 2005,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # All three genes should be processed
@@ -1585,7 +1585,7 @@ test_that("matrix input output structure is complete", {
         nboot = 100,
         include_diagnostics = TRUE,
         seed = 2006,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Each element should be a complete bootstrap CI result
@@ -1613,7 +1613,7 @@ test_that("matrix with different sample sizes handled correctly", {
         nboot = 100,
         nthreads = 1,
         seed = 2007,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     expect_equal(length(result), 5)
@@ -1634,7 +1634,7 @@ test_that("matrix with low-count genes triggers warnings", {
         q = 2,
         nboot = 100,
         seed = 2008,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Should still work but may have warnings
@@ -1658,7 +1658,7 @@ test_that("matrix with diagnostic parameters propagated", {
         method = "bca",
         include_diagnostics = TRUE,
         seed = 2009,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # All elements should have BCA method and diagnostics
@@ -1689,7 +1689,7 @@ test_that("parallel processing validation on multi-core systems", {
         nboot = 100,
         nthreads = n_cores,
         seed = 2010,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Should complete and return valid results
@@ -1713,7 +1713,7 @@ test_that("matrix input with seed reproducibility", {
         nboot = 50,
         nthreads = 1,
         seed = 2011,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     result2 <- calculate_tsallis_entropy_bootstrap(
@@ -1722,7 +1722,7 @@ test_that("matrix input with seed reproducibility", {
         nboot = 50,
         nthreads = 1,
         seed = 2011,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Verify both results are valid lists
@@ -1761,11 +1761,11 @@ test_that("matrix with different q parameters", {
     )
     
     result_q1 <- calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, q = 1, nboot = 100, seed = 2012, print_results = FALSE
+        x = counts_matrix, q = 1, nboot = 100, seed = 2012, verbose = FALSE
     )
     
     result_q2 <- calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, q = 2, nboot = 100, seed = 2012, print_results = FALSE
+        x = counts_matrix, q = 2, nboot = 100, seed = 2012, verbose = FALSE
     )
     
     # Different q values should generally give different results
@@ -1781,11 +1781,11 @@ test_that("matrix input respects what parameter for entropy vs divergence", {
     )
     
     result_entropy <- calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, what = "S", nboot = 100, seed = 2013, print_results = FALSE
+        x = counts_matrix, what = "S", nboot = 100, seed = 2013, verbose = FALSE
     )
     
     result_divergence <- calculate_tsallis_entropy_bootstrap(
-        x = counts_matrix, what = "D", nboot = 100, seed = 2013, print_results = FALSE
+        x = counts_matrix, what = "D", nboot = 100, seed = 2013, verbose = FALSE
     )
     
     # Both should work with matrix input
@@ -1807,7 +1807,7 @@ test_that("matrix as second matrix input (edge case)", {
         q = 2,
         nboot = 100,
         seed = 2014,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     # Should process matrix input
@@ -1863,7 +1863,7 @@ test_that("paired=FALSE allows odd sample size (standard bootstrap)", {
     x <- c(100, 50, 90)  # 3 observations - OK for standard bootstrap
     
     result <- calculate_tsallis_entropy_bootstrap(
-        x, q = 2, nboot = 100, paired = FALSE, seed = 1, print_results = FALSE
+        x, q = 2, nboot = 100, paired = FALSE, seed = 1, verbose = FALSE
     )
     
     expect_true(is.list(result))
@@ -1878,13 +1878,13 @@ test_that("block bootstrap with paired=TRUE vs standard bootstrap", {
     # Block bootstrap (paired)
     result_paired <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 200, paired = TRUE, 
-        seed = 101, print_results = FALSE
+        seed = 101, verbose = FALSE
     )
     
     # Standard bootstrap (ignores pairing)
     result_standard <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 200, paired = FALSE, 
-        seed = 101, print_results = FALSE
+        seed = 101, verbose = FALSE
     )
     
     # Both should be lists with same structure
@@ -1913,7 +1913,7 @@ test_that("block bootstrap preserves pair structure", {
     # This preserves the pair structure and within-pair correlation
     result <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 200, paired = TRUE,
-        seed = 102, print_results = FALSE
+        seed = 102, verbose = FALSE
     )
     
     # Should produce valid CI
@@ -1927,7 +1927,7 @@ test_that("paired with diagnostics=TRUE includes quality metrics", {
     
     result <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        include_diagnostics = TRUE, seed = 104, print_results = FALSE
+        include_diagnostics = TRUE, seed = 104, verbose = FALSE
     )
     
     # Should include diagnostics
@@ -1943,7 +1943,7 @@ test_that("paired with BCa method works correctly", {
     
     result <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        method = "bca", seed = 106, print_results = FALSE
+        method = "bca", seed = 106, verbose = FALSE
     )
     
     expect_true(is.list(result))
@@ -1960,7 +1960,7 @@ test_that("paired with JOB (Jackknife-of-Bootstrap) disabled with warning", {
     expect_warning(
         result <- calculate_tsallis_entropy_bootstrap(
             paired_data, q = 2, nboot = 150, paired = TRUE,
-            use_job = TRUE, seed = 108, print_results = FALSE
+            use_job = TRUE, seed = 108, verbose = FALSE
         ),
         "JOB not supported"
     )
@@ -1977,7 +1977,7 @@ test_that("paired bootstrap is reproducible with seed", {
     
     result1 <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE, 
-        seed = 110, print_results = FALSE
+        seed = 110, verbose = FALSE
     )
     
     # Verify result is valid (skip exact reproducibility due to RNG state complexity)
@@ -1994,7 +1994,7 @@ test_that("paired with multiple q values works", {
     
     result <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = c(1, 1.5, 2), nboot = 150, paired = TRUE,
-        seed = 112, print_results = FALSE
+        seed = 112, verbose = FALSE
     )
     
     # Should return list of results, one per q
@@ -2016,7 +2016,7 @@ test_that("paired bootstrap with low-count data warns", {
     expect_warning(
         calculate_tsallis_entropy_bootstrap(
             paired_data, q = 2, nboot = 100, paired = TRUE,
-            seed = 113, print_results = FALSE
+            seed = 113, verbose = FALSE
         ),
         "below recommended minimum"
     )
@@ -2028,7 +2028,7 @@ test_that("paired bootstrap CI coverage for uniform pairs", {
     
     result <- calculate_tsallis_entropy_bootstrap(
         uniform_pairs, q = 2, nboot = 200, paired = TRUE,
-        seed = 114, print_results = FALSE
+        seed = 114, verbose = FALSE
     )
     
     # For uniform data, entropy should be 0 (all probability on 1 state)
@@ -2046,7 +2046,7 @@ test_that("paired bootstrap with diverse pairs", {
     
     result <- calculate_tsallis_entropy_bootstrap(
         diverse_pairs, q = 2, nboot = 200, paired = TRUE,
-        seed = 115, print_results = FALSE
+        seed = 115, verbose = FALSE
     )
     
     expect_true(is.list(result))
@@ -2060,11 +2060,11 @@ test_that("paired vs standard bootstrap give different CIs", {
     paired_data <- simulate_paired_data(n_pairs = 15, seed = 116)
     
     result_paired <- calculate_tsallis_entropy_bootstrap(
-        paired_data, q = 2, nboot = 200, paired = TRUE, seed = 117, print_results = FALSE
+        paired_data, q = 2, nboot = 200, paired = TRUE, seed = 117, verbose = FALSE
     )
     
     result_standard <- calculate_tsallis_entropy_bootstrap(
-        paired_data, q = 2, nboot = 200, paired = FALSE, seed = 117, print_results = FALSE
+        paired_data, q = 2, nboot = 200, paired = FALSE, seed = 117, verbose = FALSE
     )
     
     # Both should have reasonable estimates
@@ -2083,7 +2083,7 @@ test_that("paired=FALSE ignores pairing assumption (default behavior)", {
     # Standard bootstrap should work fine (doesn't assume pairs)
     result <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = FALSE,
-        seed = 118, print_results = FALSE
+        seed = 118, verbose = FALSE
     )
     
     expect_true(is.list(result))
@@ -2097,7 +2097,7 @@ test_that("paired = TRUE with minimum data (1 pair)", {
     
     result <- calculate_tsallis_entropy_bootstrap(
         min_paired, q = 2, nboot = 100, paired = TRUE,
-        seed = 119, print_results = FALSE
+        seed = 119, verbose = FALSE
     )
     
     # Should still produce valid result
@@ -2132,7 +2132,7 @@ test_that("paired bootstrap with SummarizedExperiment integration", {
     # Bootstrap CI analysis with paired data
     result <- calculate_tsallis_entropy_bootstrap(
         se = se, res = res, top_n = 1, q = 2, nboot = 100,
-        paired = TRUE, seed = 122, print_results = FALSE
+        paired = TRUE, seed = 122, verbose = FALSE
     )
     
     # Should work with SE + res input
@@ -2146,13 +2146,13 @@ test_that("paired with different confidence intervals", {
     # 90% CI
     result_90 <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, ci = 0.90, paired = TRUE,
-        seed = 124, print_results = FALSE
+        seed = 124, verbose = FALSE
     )
     
     # 95% CI
     result_95 <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, ci = 0.95, paired = TRUE,
-        seed = 124, print_results = FALSE
+        seed = 124, verbose = FALSE
     )
     
     # 95% CI should be wider than 90% CI (wider confidence bounds)
@@ -2168,13 +2168,13 @@ test_that("block bootstrap respects what parameter (S vs D)", {
     # Entropy (S)
     result_s <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        what = "S", seed = 126, print_results = FALSE
+        what = "S", seed = 126, verbose = FALSE
     )
     
     # Divergence (D) - Hill numbers
     result_d <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        what = "D", seed = 126, print_results = FALSE
+        what = "D", seed = 126, verbose = FALSE
     )
     
     # Both should produce results
@@ -2191,13 +2191,13 @@ test_that("paired with normalization works", {
     # Normalized entropy [0, 1]
     result_norm <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        norm = TRUE, seed = 128, print_results = FALSE
+        norm = TRUE, seed = 128, verbose = FALSE
     )
     
     # Unnormalized
     result_unnorm <- calculate_tsallis_entropy_bootstrap(
         paired_data, q = 2, nboot = 150, paired = TRUE,
-        norm = FALSE, seed = 128, print_results = FALSE
+        norm = FALSE, seed = 128, verbose = FALSE
     )
     
     # Normalized should be in [0, 1]
@@ -2236,7 +2236,7 @@ test_that("Genes with sufficient counts (≥10) are processed normally", {
   
   result <- calculate_tsallis_entropy_bootstrap(
     se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-    seed = 42, print_results = FALSE
+    seed = 42, verbose = FALSE
   )
   
   # Should successfully process and return result
@@ -2270,7 +2270,7 @@ test_that("Genes with insufficient counts (<10) trigger warning", {
   expect_warning(
     result <- calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     ),
     "insufficient counts"
   )
@@ -2302,7 +2302,7 @@ test_that("Function skips low-count genes and uses next valid gene", {
   result <- suppressWarnings(
     calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     )
   )
   
@@ -2335,7 +2335,7 @@ test_that("Minimum threshold is 10 (per papers S111, S114)", {
   # Should process Gene1 (exactly at threshold)
   result <- calculate_tsallis_entropy_bootstrap(
     se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-    seed = 42, print_results = FALSE
+    seed = 42, verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -2365,7 +2365,7 @@ test_that("Gene with count = 9 is rejected (below threshold)", {
   result <- suppressWarnings(
     calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     )
   )
   
@@ -2397,7 +2397,7 @@ test_that("All genes insufficient returns NULL and warning", {
   expect_warning(
     result <- calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 2, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     ),
     "No genes with sufficient"
   )
@@ -2431,7 +2431,7 @@ test_that("Filtering works with multiple genes requested (top_n > 1)", {
   result <- suppressWarnings(
     calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 3, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     )
   )
   
@@ -2468,7 +2468,7 @@ test_that("Warning message mentions minimum threshold and database papers", {
   warn_msg <- tryCatch(
     calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     ),
     warning = function(w) conditionMessage(w)
   )
@@ -2477,7 +2477,7 @@ test_that("Warning message mentions minimum threshold and database papers", {
   result <- suppressWarnings(
     calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-      seed = 42, print_results = FALSE
+      seed = 42, verbose = FALSE
     )
   )
   
@@ -2510,7 +2510,7 @@ test_that("Feature 4.2 gracefully handles genes by rownames vs rowData", {
   # Should find Gene_A via rowData and process it
   result <- calculate_tsallis_entropy_bootstrap(
     se = se, res = res, top_n = 1, q = 1, nboot = 100, 
-    seed = 42, print_results = FALSE
+    seed = 42, verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -2552,11 +2552,11 @@ test_that("Feature 4.2 implementation uses database recommendation from papers S
   
   # Gene with count=9 should fail
   result_below <- suppressWarnings(
-    calculate_tsallis_entropy_bootstrap(se = se_below, res = res, top_n = 1, nboot = 100, seed = 42, print_results = FALSE)
+    calculate_tsallis_entropy_bootstrap(se = se_below, res = res, top_n = 1, nboot = 100, seed = 42, verbose = FALSE)
   )
   
   # Gene with count=10 should succeed
-  result_at <- calculate_tsallis_entropy_bootstrap(se = se_at, res = res, top_n = 1, nboot = 100, seed = 42, print_results = FALSE)
+  result_at <- calculate_tsallis_entropy_bootstrap(se = se_at, res = res, top_n = 1, nboot = 100, seed = 42, verbose = FALSE)
   
   expect_true(is.null(result_below))
   expect_true(!is.null(result_at))

@@ -43,7 +43,7 @@
 #' @param gene_name Optional character string; name of the gene for display
 #'   (e.g., for output labeling). If NULL and \code{se}+\code{res} are provided,
 #'   gene name is extracted automatically from rownames(se). Default: NULL.
-#' @param print_results Logical; if TRUE with \code{gene_name} provided,
+#' @param verbose Logical; if TRUE with \code{gene_name} provided,
 #'   prints a formatted summary with interpretation. Default: TRUE.
 #' @param include_diagnostics Logical; if TRUE (default), includes diagnostic fields
 #'   assessing CI quality: effective sample size, skewness, bias, and acceleration factor
@@ -129,7 +129,7 @@
 #' - Sets \code{gene_name} from rownames(se) for display if not provided
 #' - Performs bootstrap analysis on the extracted transcript counts
 #'
-#' **When \code{gene_name} is provided with \code{print_results = TRUE}:**
+#' **When \code{gene_name} is provided with \code{verbose = TRUE}:**
 #' The function displays:
 #' - Point estimate and confidence bounds
 #' - CI width (precision indicator)
@@ -164,14 +164,14 @@
 #' result2 <- calculate_tsallis_entropy_bootstrap(
 #'   x, q = 2, nboot = 500, 
 #'   gene_name = "TOP_GENE_1", 
-#'   print_results = TRUE
+#'   verbose = TRUE
 #' )
 #'
 #' # Example 2b: Multiple q values for robustness checking
 #' result2b <- calculate_tsallis_entropy_bootstrap(
 #'   x, q = c(0.5, 1, 1.5, 2), nboot = 500, 
 #'   gene_name = "TOP_GENE_1",
-#'   print_results = TRUE
+#'   verbose = TRUE
 #' )
 #' # Returns list of results; shows how CI changes across q values
 #'
@@ -184,7 +184,7 @@
 #' #   top_n = 1,  # Most significant gene
 #' #   q = 0.5,
 #' #   nboot = 500,
-#' #   print_results = TRUE  # Auto-extracts and displays results with gene name
+#' #   verbose = TRUE  # Auto-extracts and displays results with gene name
 #' # )
 #'
 #' @keywords internal
@@ -192,7 +192,7 @@
 calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL, top_n = 1,
     q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile", "bca"),
     log_base = exp(1), pseudocount = 0, what = c("S", "D"), seed = NULL, gene_name = NULL,
-    print_results = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE) {
+    verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE) {
 
     method <- match.arg(method)
     what <- match.arg(what)
@@ -254,7 +254,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
                             what = what,
                             seed = seed,
                             gene_name = gene_names[i],
-                            print_results = FALSE,
+                            verbose = FALSE,
                             include_diagnostics = include_diagnostics,
                             use_job = use_job,
                             nthreads = 1,  # No nested parallelization
@@ -284,7 +284,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
                             what = what,
                             seed = seed,
                             gene_name = gene_names[i],
-                            print_results = FALSE,
+                            verbose = FALSE,
                             include_diagnostics = include_diagnostics,
                             use_job = use_job,
                             nthreads = 1,
@@ -313,7 +313,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
                         what = what,
                         seed = seed,
                         gene_name = gene_names[i],
-                        print_results = FALSE,
+                        verbose = FALSE,
                         include_diagnostics = include_diagnostics,
                         use_job = use_job,
                         nthreads = 1,
@@ -328,7 +328,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         results_list <- structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
         
         # Optional printing of summary
-        if (print_results) {
+        if (verbose) {
             message("Bootstrap CI for", nrow(x), "genes:")
             message("==============================================")
             for (i in seq_along(results_list)) {
@@ -463,7 +463,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
                     what = what,
                     seed = seed,
                     gene_name = top_genes[i],
-                    print_results = FALSE,
+                    verbose = FALSE,
                     include_diagnostics = include_diagnostics,
                     use_job = use_job,
                     nthreads = 1
@@ -472,7 +472,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
             names(results_list) <- top_genes
             results_list <- structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
             
-            if (print_results) {
+            if (verbose) {
                 for (i in seq_along(results_list)) {
                     res <- results_list[[i]]
                     message("Gene", i, ":", top_genes[i])
@@ -532,7 +532,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
             what = what,
             seed = seed,
             gene_name = gene_name,
-            print_results = print_results,
+            verbose = verbose,
             include_diagnostics = include_diagnostics,
             use_job = use_job,
             paired = paired
@@ -595,7 +595,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
                 q = q_val, norm = norm, nboot = nboot, ci = ci, 
                 method = method, log_base = log_base, pseudocount = pseudocount,
                 what = what, seed = seed, gene_name = gene_name,
-                print_results = FALSE,  # Suppress individual printing
+                verbose = FALSE,  # Suppress individual printing
                 include_diagnostics = include_diagnostics,
                 use_job = use_job,
                 paired = paired
@@ -605,7 +605,7 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
         results_list <- structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
         
         # Optional printing
-        if (print_results && !is.null(gene_name)) {
+        if (verbose && !is.null(gene_name)) {
             message("Bootstrap Confidence Intervals for", gene_name)
             message("(Multiple q values)")
             message("==============================================")
@@ -733,8 +733,8 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
     
     result <- structure(result, class = "tsenat_bootstrap_ci")
     
-    # Print results if gene_name provided and print_results is TRUE
-    if (!is.null(gene_name) && print_results) {
+    # Print results if gene_name provided and verbose is TRUE
+    if (!is.null(gene_name) && verbose) {
         message("")
         message("Bootstrap Confidence Intervals for Top Gene:", gene_name)
         message("Point estimate (S_q=", q, "):", sprintf("%.6f", result$estimate))
@@ -773,7 +773,7 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
     message("CI width: ", sprintf("%.6f", object$upper_ci - object$lower_ci))
     message("Bootstrap distribution summary:")
     stats <- summary(object$bootstrap_dist)
-    message(paste(capture.output(print(stats)), collapse = ""))
+    message(paste(capture.output(str(stats)), collapse = "\n"))
     
     # Display diagnostics if available (papers S111, S114)
     if (!is.null(object$diagnostics)) {
@@ -1239,7 +1239,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' @param seed Integer random seed for reproducibility (default: NULL).
 #' @param gene_name Optional character string; name of the gene for display.
 #'   If NULL and \code{se} + \code{res} provided, extracted automatically.
-#' @param print_results Logical; if TRUE with \code{gene_name} provided,
+#' @param verbose Logical; if TRUE with \code{gene_name} provided,
 #'   prints a formatted summary. Default: TRUE.
 #' @param paired Logical; if TRUE, uses paired sample design where bootstrap resamples
 #'   pairs as units to preserve pairing structure. Requires colData to contain pairing
@@ -1280,7 +1280,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' **BCa method:** Adjusts for bias and acceleration (skewness) using jackknife,
 #' improving coverage in small samples. Computationally more intensive.
 #'
-#' **When \code{gene_name} is provided with \code{print_results = TRUE}:**
+#' **When \code{gene_name} is provided with \code{verbose = TRUE}:**
 #' The function displays:
 #' - Point estimate and confidence bounds
 #' - CI width (precision indicator)
@@ -1320,14 +1320,14 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' result2 <- .bootstrap_divergence_with_results(
 #'   x, y, q = 1, nboot = 500,
 #'   gene_name = "GENE_TOP_1",
-#'   print_results = TRUE
+#'   verbose = TRUE
 #' )
 #'
 #' # Example 3: Multiple q values for robustness
 #' result3 <- .bootstrap_divergence_with_results(
 #'   x, y, q = c(0.5, 1.0, 1.5, 2.0), nboot = 500,
 #'   gene_name = "GENE_TOP_1",
-#'   print_results = TRUE
+#'   verbose = TRUE
 #' )
 #'
 #' # Example 4: Paired design (with SummarizedExperiment)
@@ -1347,7 +1347,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 .bootstrap_divergence_with_results <- function(x = NULL, y = NULL, se = NULL, res = NULL,
     top_n = 1, group_col = "group", control_group = "Normal", q = 1, norm = FALSE,
     nboot = 1000, ci = 0.95, method = c("percentile", "bca"), log_base = exp(1),
-    pseudocount = 0.5, seed = NULL, gene_name = NULL, print_results = TRUE, paired = FALSE, pair_id_col = NULL) {
+    pseudocount = 0.5, seed = NULL, gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
     
     method <- match.arg(method)
     
@@ -1439,7 +1439,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
                 x = x, y = y, se = NULL, res = NULL,
                 q = qi, norm = norm, nboot = nboot, ci = ci, method = method,
                 log_base = log_base, pseudocount = pseudocount, seed = seed,
-                gene_name = gene_name, print_results = FALSE, paired = paired,
+                gene_name = gene_name, verbose = FALSE, paired = paired,
                 pair_id_col = pair_id_col
             )
         })
@@ -1447,7 +1447,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
         class(results_list) <- "tsenat_divergence_bootstrap_list"
         
         # Print summary if requested
-        if (print_results && !is.null(gene_name)) {
+        if (verbose && !is.null(gene_name)) {
             message("")
             message("=== Divergence Bootstrap CIs ===")
             message("Gene:", gene_name)
@@ -1659,7 +1659,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
     # OPTIONAL: PRINT RESULTS
     # =========================================================================
     
-    if (print_results && !is.null(gene_name)) {
+    if (verbose && !is.null(gene_name)) {
         message("")
         message("=== Divergence Bootstrap Confidence Interval ===")
         message("Gene:", gene_name)

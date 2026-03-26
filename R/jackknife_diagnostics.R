@@ -862,7 +862,7 @@ summary.tsenat_jackknife <- function(object, ...) {
 
   message("Influence Distribution:")
   message("-----------------------")
-  message(paste(capture.output(print(summary(object$influence))), collapse = ""))
+  message(paste(capture.output(str(object$influence)), collapse = "\n"))
 
   message(sprintf("\n\nOutlier Transcripts (influence > %s%%ile):", object$outlier_threshold))
   message("-----------------------------------------------")
@@ -872,7 +872,7 @@ summary.tsenat_jackknife <- function(object, ...) {
       Transcript = object$outlier_indices,
       Influence = object$influence[object$outlier_indices]
     )
-    message(paste(capture.output(print(outl_data)), collapse = ""))
+    message(paste(capture.output(str(outl_data)), collapse = "\n"))
   } else {
     message("No outliers detected.")
   }

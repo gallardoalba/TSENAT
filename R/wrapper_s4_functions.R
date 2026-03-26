@@ -981,7 +981,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
-#' @param print_results \code{logical}. Print jackknife results summary. Default: FALSE.
+#' @param verbose \code{logical}. Print jackknife results summary. Default: FALSE.
 #' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
@@ -1015,7 +1015,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @export
 #' @importFrom utils write.table
-jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FALSE, nthreads = NULL, output_file = NULL, ...) {
+jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1082,7 +1082,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, print_results = FAL
       result <- jackknife_tsallis_entropy(
         x = div_matrix,
         q = q_val,
-        print_results = print_results,
+        print_results = verbose,
         nthreads = nthreads,
         ...
       )
@@ -4571,7 +4571,6 @@ jackknife_isoform_switching_s4 <- function(
       norm = norm,
       threshold = threshold,
       n_bootstrap = n_bootstrap,
-      print_results = FALSE,
       verbose = verbose,
       lm_results = lm_results,
       lm_p_threshold = lm_p_threshold,

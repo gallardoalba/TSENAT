@@ -460,7 +460,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
             method = bootstrap_method,
             pseudocount = pseudocount,
             nthreads = nthreads,
-            print_results = FALSE,
+            verbose = FALSE,
             include_diagnostics = bootstrap_include_diagnostics
         )
         

@@ -1239,7 +1239,7 @@ test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results
     q = c(0.5, 1.0),
     norm = TRUE,
     n_bootstrap = 10,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Test that plotting works
@@ -1289,7 +1289,7 @@ test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
     q = c(0.5, 1.0),
     norm = TRUE,
     n_bootstrap = 10,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Test with different n_genes values
@@ -1339,7 +1339,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles n_genes > available gene
     q = c(0.5, 1.0),
     norm = TRUE,
     n_bootstrap = 10,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Request more genes than available - should gracefully use available genes
@@ -1387,7 +1387,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
     q = c(0.5, 1.0, 1.5),
     norm = TRUE,
     n_bootstrap = 10,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Verify correct number of q-values
@@ -1440,7 +1440,7 @@ test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
     q = c(0.5, 1.0),
     norm = TRUE,
     n_bootstrap = 10,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   heatmap_file <- tempfile(fileext = ".png")

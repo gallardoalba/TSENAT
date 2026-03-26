@@ -623,11 +623,11 @@ print.rank_correlation_ci <- function(x, ...) {
   
   message("CORRELATION MATRIX")
   message(strrep("-", 60))
-  print(round(x$correlation_matrix, 4))
+  message(paste(capture.output(str(round(x$correlation_matrix, 4))), collapse = "\n"))
   
   message("\n\nINTERPRETATION SUMMARY")
   message(strrep("-", 60))
-  print(x$interpretation, row.names = FALSE)
+  message(paste(capture.output(str(x$interpretation)), collapse = "\n"))
   
   message("\n\nGUIDELINES FOR INTERPRETATION:")
   message("- Very stable (r > 0.85): Genes rank consistently across all q-values")

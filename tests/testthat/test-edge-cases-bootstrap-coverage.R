@@ -51,7 +51,7 @@ test_that("calculate_tsallis_entropy_bootstrap with matrix input and nthreads > 
     ci = 0.95,
     method = "percentile",
     nthreads = 2,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should return a list with class tsenat_bootstrap_ci_list
@@ -77,7 +77,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix input with sequential proc
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
     nthreads = 1,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(is.list(result))
@@ -95,7 +95,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix without rownames generates
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     nthreads = 1,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should generate Gene_1, Gene_2 style names
@@ -137,7 +137,7 @@ test_that("calculate_tsallis_entropy_bootstrap with SE and multi-gene (top_n > 1
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should return list with 2 genes
@@ -165,7 +165,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE skip insufficient genes", {
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should handle gracefully - either NULL or single gene
@@ -194,7 +194,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE with gene_name in rowData", {
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -214,7 +214,7 @@ test_that("calculate_tsallis_entropy_bootstrap with JOB method (use_job = TRUE)"
     method = "percentile",
     use_job = TRUE,
     include_diagnostics = TRUE,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should include JOB-related fields in result
@@ -236,7 +236,7 @@ test_that("calculate_tsallis_entropy_bootstrap with paired = TRUE", {
     ci = 0.95,
     method = "percentile",
     paired = TRUE,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -257,7 +257,7 @@ test_that("calculate_tsallis_entropy_bootstrap auto-selects nboot for matrix", {
     nboot = "auto",
     method = "percentile",
     nthreads = 1,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(is.list(result))
@@ -389,7 +389,7 @@ test_that("calculate_divergence_bootstrap with multiple q values", {
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Test with q = 2.0
@@ -400,7 +400,7 @@ test_that("calculate_divergence_bootstrap with multiple q values", {
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result1))
@@ -422,7 +422,7 @@ test_that("calculate_divergence_bootstrap with SE input and results data.frame",
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -439,7 +439,7 @@ test_that("print method for tsenat_bootstrap_ci works correctly", {
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should not error when printing
@@ -457,7 +457,7 @@ test_that("summary method for tsenat_bootstrap_ci works correctly", {
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should not error when summarizing
@@ -478,7 +478,7 @@ test_that("print method for tsenat_divergence_bootstrap_ci", {
     nboot = 10,  # Exploratory: use nboot=10 (faster)
     ci = 0.95,
     method = "percentile",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Should not error when printing
@@ -505,7 +505,7 @@ test_that("summary method for tsenat_divergence_bootstrap_ci", {
   expect_error(summary(result), NA)
 })
 
-test_that("calculate_tsallis_entropy_bootstrap matrix print_results = TRUE", {
+test_that("calculate_tsallis_entropy_bootstrap matrix verbose = TRUE", {
   # Test that print_results produces output without error
   set.seed(123)
   
@@ -518,14 +518,14 @@ test_that("calculate_tsallis_entropy_bootstrap matrix print_results = TRUE", {
       q = 2,
       nboot = 10,  # Exploratory: use nboot=10 (faster)
       nthreads = 1,
-      print_results = TRUE
+      verbose = TRUE
     )
   )
   
   expect_true(is.list(result))
 })
 
-test_that("calculate_tsallis_entropy_bootstrap SE with print_results = TRUE", {
+test_that("calculate_tsallis_entropy_bootstrap SE with verbose = TRUE", {
   # Test SE multi-gene with printing
   set.seed(123)
   
@@ -544,7 +544,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE with print_results = TRUE", {
       top_n = 2,
       q = 2,
       nboot = 10,  # Exploratory: use nboot=10 (faster)
-      print_results = TRUE
+      verbose = TRUE
     )
   )
   
@@ -564,7 +564,7 @@ test_that("calculate_tsallis_entropy_bootstrap with include_diagnostics = FALSE"
     ci = 0.95,
     method = "percentile",
     include_diagnostics = FALSE,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -581,7 +581,7 @@ test_that("calculate_tsallis_entropy_bootstrap seed parameter reproducibility", 
     ci = 0.95,
     method = "percentile",
     seed = 456,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   result2 <- calculate_tsallis_entropy_bootstrap(
@@ -591,7 +591,7 @@ test_that("calculate_tsallis_entropy_bootstrap seed parameter reproducibility", 
     ci = 0.95,
     method = "percentile",
     seed = 456,
-    print_results = FALSE
+    verbose = FALSE
   )
   
   # Same seed should give same estimates
@@ -610,7 +610,7 @@ test_that("calculate_tsallis_entropy_bootstrap BCa method", {
     nboot = 150,
     ci = 0.95,
     method = "bca",
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result))
@@ -675,7 +675,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
     ci = 0.95,
     method = "percentile",
     log_base = exp(1),  # Natural log
-    print_results = FALSE
+    verbose = FALSE
   )
   
   result_2 <- calculate_divergence_bootstrap(
@@ -686,7 +686,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
     ci = 0.95,
     method = "percentile",
     log_base = 2,  # Binary log
-    print_results = FALSE
+    verbose = FALSE
   )
   
   expect_true(!is.null(result_e))

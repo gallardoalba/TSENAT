@@ -644,7 +644,7 @@ calculate_divergence <- function(
     args <- list(
         x = x, y = y, q = q_val, nboot = nboot, ci = ci, method = method,
         log_base = log_base, pseudocount = pseudocount,
-        gene_name = gene_name, print_results = FALSE, seed = seed,
+        gene_name = gene_name, verbose = FALSE, seed = seed,
         paired = !is.null(pair_ids)
     )
     

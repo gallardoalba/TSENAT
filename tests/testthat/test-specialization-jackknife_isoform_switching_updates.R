@@ -37,7 +37,7 @@ test_that("jackknife_isoform_switching accepts single q value", {
     isoform_col = "isoform_id",
     q = 1.0,
     n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -55,7 +55,7 @@ test_that("jackknife_isoform_switching accepts vector of q values", {
     isoform_col = "isoform_id",
     q = q_values,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching_multiq")
@@ -73,7 +73,7 @@ test_that("Multi-q results have correct naming convention", {
     isoform_col = "isoform_id",
     q = q_values,
     n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Check naming format: q_X_XX format
@@ -92,7 +92,7 @@ test_that("Each multi-q result is a valid tsenat_isoform_switching object", {
     isoform_col = "isoform_id",
     q = q_values,
     n_bootstrap = 5,  # Reduced from 10 to 5 for faster testing
-    print_results = FALSE
+    verbose = FALSE
   ))
 
   # Each element should be a valid single-q result
@@ -115,7 +115,7 @@ test_that("Multi-q analysis analyzes same genes across all q values", {
     isoform_col = "isoform_id",
     q = q_values,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Extract gene names from each q result
@@ -150,7 +150,7 @@ test_that("jackknife_isoform_switching maps gene names to IDs in lm_results", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -178,7 +178,7 @@ test_that("jackknife_isoform_switching handles lm_results with gene IDs", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -205,7 +205,7 @@ test_that("Gene mapping respects LM p-value threshold", {
     lm_p_threshold = 0.005,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Analyze with lenient threshold (GeneA and GeneB)
@@ -218,7 +218,7 @@ test_that("Gene mapping respects LM p-value threshold", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_length(result_strict$gene_names, 1)
@@ -262,7 +262,7 @@ test_that("Gene name to ID mapping removes duplicates", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -291,7 +291,7 @@ test_that("Function accepts multiple genes in lm_results", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Should successfully filter and analyze genes
@@ -318,7 +318,7 @@ test_that("LM threshold influences number of analyzed genes", {
     lm_p_threshold = 0.005,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Run with lenient threshold
@@ -331,7 +331,7 @@ test_that("LM threshold influences number of analyzed genes", {
     lm_p_threshold = 0.50,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Stricter threshold should result in fewer genes
@@ -357,7 +357,7 @@ test_that("Function works without top_n parameter", {
     gene_col = "gene_id",
     isoform_col = "isoform_id",
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching")
@@ -388,7 +388,7 @@ test_that("Multi-q analysis works with gene name to ID mapping", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   expect_is(result, "tsenat_isoform_switching_multiq")
@@ -420,7 +420,7 @@ test_that("Multi-q with gene filtering returns consistent structure", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Should return multiq results
@@ -455,7 +455,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     lm_p_threshold = 0.05,
     use_lm_fdr = TRUE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   result_raw <- suppressWarnings(jackknife_isoform_switching(
@@ -467,7 +467,7 @@ test_that("use_lm_fdr parameter switches between raw and adjusted p-values", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   # Both should filter genes
@@ -496,7 +496,7 @@ test_that("Metadata tracks LM gene filtering correctly", {
     lm_results = lm_results,
     lm_p_threshold = 0.05,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   meta <- result$metadata
@@ -523,7 +523,7 @@ test_that("Metadata correctly reports LM filtering statistics", {
     lm_p_threshold = 0.05,
     use_lm_fdr = FALSE,
     n_bootstrap = 5,
-    print_results = FALSE
+    verbose = FALSE
   ))
   
   meta <- result$metadata

@@ -17,7 +17,7 @@ test_jackknife_input_types <- function(
     func_name = "jackknife_tsallis_entropy",
     test_vec = c(100, 50, 30, 20),
     test_mat = matrix(c(100, 50, 30, 20, 80, 40, 20, 10), nrow = 2, byrow = TRUE),
-    extra_args = list(q = 1, print_results = FALSE)
+    extra_args = list(q = 1, verbose = FALSE)
 ) {
   # Test vector input
   vec_result <- do.call(func_name, c(list(x = test_vec), extra_args))
@@ -45,7 +45,7 @@ test_jackknife_input_types <- function(
 test_jackknife_parameter_validation <- function(
     func_name = "jackknife_tsallis_entropy",
     valid_counts = c(100, 50, 30, 20),
-    valid_args = list(q = 1, print_results = FALSE)
+    valid_args = list(q = 1, verbose = FALSE)
 ) {
   # Test rejection of negative counts
   expect_error(
@@ -84,7 +84,7 @@ test_multiq_support <- function(
     func_name = "jackknife_tsallis_entropy",
     test_data = c(100, 50, 30, 20),
     q_vector = c(0.5, 1, 2),
-    extra_args = list(print_results = FALSE)
+    extra_args = list(verbose = FALSE)
 ) {
   # Test single q (backward compatibility)
   single_q_result <- do.call(func_name, c(list(x = test_data, q = q_vector[1]), extra_args))

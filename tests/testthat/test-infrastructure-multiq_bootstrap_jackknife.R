@@ -66,7 +66,7 @@ test_that("bootstrap multi-q with different nboot values", {
 
 test_that("jackknife_tsallis_entropy accepts vector q", {
     x <- c(100, 50, 30, 20)
-    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = TRUE, print_results = FALSE)
+    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = TRUE, verbose = FALSE)
     
     expect_is(result, "tsenat_jackknife_list_multiq")
     expect_length(result, 2)
@@ -75,7 +75,7 @@ test_that("jackknife_tsallis_entropy accepts vector q", {
 
 test_that("jackknife multi-q returns correct structure", {
     x <- c(100, 50, 30, 20, 15, 10)
-    result <- jackknife_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE, print_results = FALSE)
+    result <- jackknife_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE, verbose = FALSE)
     
     # Check list structure
     expect_length(result, 3)
@@ -86,7 +86,7 @@ test_that("jackknife multi-q returns correct structure", {
 
 test_that("jackknife multi-q estimates differ across q values", {
     x <- c(100, 50, 30, 20, 10)
-    result <- jackknife_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE, print_results = FALSE)
+    result <- jackknife_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE, verbose = FALSE)
     
     # Estimates should be different for different q values
     est_q05 <- result$`q=0.5`$estimate
@@ -110,7 +110,7 @@ test_that("jackknife multi-q with matrix input", {
         x = counts_matrix[1, , drop = FALSE],
         q = c(1, 2),
         norm = TRUE,
-        print_results = FALSE
+        verbose = FALSE
     )
     
     expect_is(result, "tsenat_jackknife_list_multiq")
@@ -119,7 +119,7 @@ test_that("jackknife multi-q with matrix input", {
 
 test_that("jackknife multi-q SE estimates are positive", {
     x <- c(100, 50, 30, 20, 15)
-    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = TRUE, print_results = FALSE)
+    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = TRUE, verbose = FALSE)
     
     for (res in result) {
         expect_gt(res$jackknife_se, 0)
@@ -142,7 +142,7 @@ test_that("jackknife accepts vector q with length > 1", {
     x <- c(100, 50, 30, 20)
     
     # Vector q with length > 1 returns list
-    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = TRUE, print_results = FALSE)
+    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = TRUE, verbose = FALSE)
     expect_is(result, "tsenat_jackknife_list_multiq")
     expect_length(result, 2)
     expect_named(result, c("q=1", "q=2"))
@@ -157,7 +157,7 @@ test_that("single q still works (backward compatibility)", {
     expect_named(boot_result, c("estimate", "lower_ci", "upper_ci", "ci_level", "method", "nboot", "bootstrap_dist"))
     
     # Jackknife with scalar q
-    jack_result <- jackknife_tsallis_entropy(x, q = 1, norm = TRUE, print_results = FALSE)
+    jack_result <- jackknife_tsallis_entropy(x, q = 1, norm = TRUE, verbose = FALSE)
     expect_is(jack_result, "tsenat_jackknife")
     # Check that key fields exist (structure may have additional fields)
     expect_true("estimate" %in% names(jack_result))
@@ -206,7 +206,7 @@ test_that("bootstrap multi-q ci parameter returns finite widths", {
 test_that("jackknife multi-q accepts Hill numbers (D)", {
     x <- c(100, 50, 30, 20, 15)
     # Note: jackknife doesn't have 'what' parameter, but we test multi-q works
-    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = FALSE, print_results = FALSE)
+    result <- jackknife_tsallis_entropy(x, q = c(1, 2), norm = FALSE, verbose = FALSE)
     
     expect_is(result, "tsenat_jackknife_list_multiq")
     expect_length(result, 2)
