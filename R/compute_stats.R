@@ -929,3 +929,405 @@ select_genes_from_results <- function(res, top_n) {
   genes_sel <- unique(genes_sel)
   return(head(genes_sel, top_n))
 }
+
+# ============================================================================
+# PLOT TSALLIS Q-CURVE HELPERS
+# ============================================================================
+
+#' Convert TSENATAnalysis to combined SummarizedExperiment
+#'
+#' @param analysis TSENATAnalysis object with diversity_results
+#' @return SummarizedExperiment with combined assay across all q-values
+#' @keywords internal
+#' @noRd
+.prepare_combined_se_from_analysis <- function(analysis) {
+  require_pkgs(c("SummarizedExperiment", "S4Vectors"))
+  
+  div_list <- analysis@diversity_results
+  
+  # Extract first SE to get dimensions
+  first_se <- NULL
+  combined_assays_dict <- list()
+  
+  for (q_name in names(div_list)) {
+    obj <- div_list[[q_name]]
+    if (methods::is(obj, "SummarizedExperiment")) {
+      mat <- SummarizedExperiment::assay(obj, 1)
+      if (is.null(first_se)) {
+        first_se <- obj
+      }
+    } else {
+      mat <- as.matrix(obj)
+    }
+    
+    q_val <- as.numeric(sub("^q_", "", q_name))
+    combined_assays_dict[[q_name]] <- list(matrix = mat, q_val = q_val)
+  }
+  
+  if (is.null(first_se)) {
+    stop("No valid SummarizedExperiment found in analysis@diversity_results")
+  }
+  
+  # Get dimensions
+  target_genes <- rownames(first_se)
+  target_n_cols <- ncol(first_se)
+  target_n_qs <- length(combined_assays_dict)
+  total_cols <- target_n_cols * target_n_qs
+  
+  # Create combined assay matrix
+  combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
+  rownames(combined_assay) <- target_genes
+  
+  combined_coldata_list <- list()
+  col_idx <- 1
+  
+  for (q_name in names(combined_assays_dict)) {
+    mat <- combined_assays_dict[[q_name]]$matrix
+    q_val <- combined_assays_dict[[q_name]]$q_val
+    
+    # Handle dimension mismatches
+    if (ncol(mat) != target_n_cols) {
+      if (ncol(mat) > target_n_cols) {
+        mat <- mat[, seq_len(target_n_cols), drop = FALSE]
+      } else {
+        mat <- cbind(mat, matrix(0, nrow = nrow(mat), ncol = target_n_cols - ncol(mat)))
+      }
+    }
+    
+    # Reorder rows to match first_se
+    mat <- mat[target_genes, , drop = FALSE]
+    
+    # Add q-value suffix to column names
+    orig_colnames <- colnames(mat)
+    if (is.null(orig_colnames)) {
+      orig_colnames <- paste0("sample_", seq_len(ncol(mat)))
+    }
+    
+    clean_colnames <- sub("_q=.*$", "", orig_colnames)
+    if (is.na(clean_colnames[1]) || identical(clean_colnames, orig_colnames)) {
+      clean_colnames <- orig_colnames
+    }
+    
+    unique_colnames <- paste0(clean_colnames, "_q=", formatC(q_val, format = "f", digits = 3))
+    
+    # Fill in combined assay
+    if (col_idx + ncol(mat) - 1 > total_cols) {
+      stop("Dimension mismatch: ", col_idx, " to ", col_idx + ncol(mat) - 1,
+           " exceeds total_cols=", total_cols)
+    }
+    
+    for (i in seq_len(ncol(mat))) {
+      combined_assay[, col_idx] <- mat[, i]
+      col_idx <- col_idx + 1
+    }
+    
+    # Build colData for this q-value
+    if (is(div_list[[q_name]], "SummarizedExperiment")) {
+      cd <- as.data.frame(SummarizedExperiment::colData(div_list[[q_name]]))
+    } else {
+      cd <- data.frame(row.names = unique_colnames)
+    }
+    cd$q <- q_val
+    rownames(cd) <- unique_colnames
+    combined_coldata_list[[q_name]] <- cd
+  }
+  
+  # Combine colData
+  combined_coldata_df <- do.call(rbind, combined_coldata_list)
+  colnames(combined_assay) <- rownames(combined_coldata_df)
+  
+  # Get/create rowData
+  rd_combined <- tryCatch({
+    rd_temp <- SummarizedExperiment::rowData(first_se)
+    if (!is.null(rd_temp) && nrow(rd_temp) > 0) {
+      rd_temp
+    } else {
+      NULL
+    }
+  }, error = function(e) NULL)
+  
+  if (is.null(rd_combined) || nrow(rd_combined) == 0) {
+    rd_combined <- data.frame(
+      gene_id = rownames(combined_assay),
+      row.names = rownames(combined_assay),
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  # Return combined SE
+  SummarizedExperiment::SummarizedExperiment(
+    assays = list(diversity = combined_assay),
+    colData = combined_coldata_df,
+    rowData = rd_combined
+  )
+}
+
+#' Compute gene-level statistics (median +/- SD) by group and q-value
+#'
+#' @param long_data Long-format data frame with Gene, q, group, tsallis columns
+#' @return Data frame with central tendency and spread by gene, group, q
+#' @keywords internal
+#' @noRd
+.compute_gene_stats_by_group <- function(long_data) {
+  require_pkgs("dplyr")
+  
+  long_data$qnum <- as.numeric(as.character(long_data$q))
+  
+  dplyr::summarise(
+    dplyr::group_by(long_data, group, qnum),
+    central = median(tsallis, na.rm = TRUE),
+    spread = sqrt(stats::var(tsallis, na.rm = TRUE)),
+    .groups = "drop"
+  )
+}
+
+#' Aggregate bootstrap CI bounds by group and q-value
+#'
+#' @param se SummarizedExperiment with ci_lower and ci_upper assays
+#' @param long Long-format data with group, q, sample, tsallis
+#' @return Data frame with q, median, ci_lower, ci_upper, group
+#' @keywords internal
+#' @noRd
+.aggregate_bootstrap_ci_by_group <- function(se, long) {
+  require_pkgs(c("SummarizedExperiment", "dplyr"))
+  
+  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
+  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
+  
+  sample_names <- colnames(ci_lower_mat)
+  if (is.null(sample_names)) {
+    sample_names <- paste0("Sample", seq_len(ncol(ci_lower_mat)))
+  }
+  
+  groups <- unique(sort(long$group))
+  unique_q <- sort(unique(long$q))
+  
+  plot_df <- data.frame(
+    q = numeric(),
+    median = numeric(),
+    ci_lower = numeric(),
+    ci_upper = numeric(),
+    group = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  for (group_val in groups) {
+    for (q_val in unique_q) {
+      group_q_data <- long %>%
+        dplyr::filter(group == group_val, q == q_val)
+      
+      if (nrow(group_q_data) > 0) {
+        median_val <- median(group_q_data$tsallis, na.rm = TRUE)
+        
+        group_samples <- unique(group_q_data$sample)
+        all_ci_lower <- c()
+        all_ci_upper <- c()
+        
+        for (samp in group_samples) {
+          samp_idx <- which(sample_names == samp)
+          if (length(samp_idx) > 0) {
+            all_ci_lower <- c(all_ci_lower, mean(ci_lower_mat[, samp_idx], na.rm = TRUE))
+            all_ci_upper <- c(all_ci_upper, mean(ci_upper_mat[, samp_idx], na.rm = TRUE))
+          }
+        }
+        
+        if (length(all_ci_lower) > 0) {
+          ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
+          ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
+        } else {
+          ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
+          ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
+        }
+        
+        plot_df <- rbind(plot_df, data.frame(
+          q = q_val,
+          median = median_val,
+          ci_lower = ci_lower_final,
+          ci_upper = ci_upper_final,
+          group = group_val,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+  }
+  
+  plot_df
+}
+
+# ============================================================================
+# GAM INTERACTION HELPERS
+# ============================================================================
+
+#' Build sample-to-group mapping from colData
+#'
+#' @param cdata SummarizedExperiment colData with sample metadata
+#' @param condition_col Column name for group assignments
+#' @return Named character vector: sample name -> group value
+#' @keywords internal
+#' @noRd
+.prepare_sample_to_group_mapping <- function(cdata, condition_col) {
+  coldata_rownames <- rownames(cdata)
+  coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
+  
+  unique_samples <- unique(coldata_sample_names)
+  sample_to_group <- character(length(unique_samples))
+  names(sample_to_group) <- unique_samples
+  
+  for (samp in unique_samples) {
+    idx <- which(coldata_sample_names == samp)[1]
+    sample_to_group[samp] <- as.character(cdata[[condition_col]][idx])
+  }
+  
+  sample_to_group
+}
+
+#' Prepare long-format plot data for a single gene
+#'
+#' @param gene Gene ID to extract
+#' @param mat Assay matrix (genes x samples*q)
+#' @param sample_to_group Named vector mapping sample names to groups
+#' @return Data frame with columns: sample, group, q, entropy (or NULL if invalid)
+#' @keywords internal
+#' @noRd
+.prepare_gam_plot_data_per_gene <- function(gene, mat, sample_to_group) {
+  if (!(gene %in% rownames(mat))) {
+    return(NULL)
+  }
+  
+  gene_vals <- mat[gene, ]
+  col_names_full <- colnames(mat)
+  
+  # Parse column names: "Sample_q=value"
+  col_sample_names <- sub("_q=.*", "", col_names_full)
+  col_q_values <- as.numeric(sub(".*_q=", "", col_names_full))
+  
+  # Look up group for each column
+  col_groups <- unname(sample_to_group[col_sample_names])
+  
+  if (any(is.na(col_groups))) {
+    return(NULL)
+  }
+  
+  # Build long-format data frame
+  plot_df <- data.frame(
+    sample = col_sample_names,
+    group = col_groups,
+    q = col_q_values,
+    entropy = as.numeric(gene_vals),
+    stringsAsFactors = FALSE
+  )
+  
+  # Remove NA entries
+  plot_df <- plot_df[!is.na(plot_df$entropy), , drop = FALSE]
+  
+  if (nrow(plot_df) == 0) {
+    return(NULL)
+  }
+  
+  plot_df
+}
+
+#' Fit GAM models per group and generate predictions
+#'
+#' @param plot_df Long-format data frame with sample, group, q, entropy
+#' @return List with $plot_data and $pred_data data frames (or NULL if fitting fails)
+#' @keywords internal
+#' @noRd
+.fit_gam_per_group <- function(plot_df) {
+  require_pkgs(c("mgcv", "dplyr"))
+  
+  unique_groups <- unique(plot_df$group)
+  
+  if (length(unique_groups) < 2) {
+    return(NULL)
+  }
+  
+  # Generate prediction grid
+  q_range <- range(plot_df$q, na.rm = TRUE)
+  if (!is.finite(q_range[1]) || !is.finite(q_range[2])) {
+    return(NULL)
+  }
+  
+  pred_q <- seq(q_range[1], q_range[2], length.out = 100)
+  
+  # Fit GAM and predict for each group
+  pred_list <- list()
+  for (gr in unique_groups) {
+    subset_data <- subset(plot_df, group == gr)
+    
+    if (nrow(subset_data) < 3) {
+      next
+    }
+    
+    tryCatch(
+      {
+        k <- min(10, max(2, round(nrow(subset_data) / 2)))
+        gam_fit <- mgcv::gam(entropy ~ s(q, k = k), data = subset_data)
+        
+        pred_data <- data.frame(q = pred_q)
+        pred_vals <- stats::predict(gam_fit, newdata = pred_data, se.fit = TRUE)
+        
+        pred_list[[as.character(gr)]] <- data.frame(
+          group = gr,
+          q = pred_q,
+          entropy_fit = pred_vals$fit,
+          se = pred_vals$se.fit,
+          stringsAsFactors = FALSE
+        )
+      },
+      error = function(e) {
+        # Silently skip failed fits
+        NULL
+      }
+    )
+  }
+  
+  if (length(pred_list) == 0) {
+    return(NULL)
+  }
+  
+  pred_df <- do.call(rbind, pred_list)
+  
+  # Ensure group is factor with consistent levels
+  group_levels <- sort(unique(c(as.character(plot_df$group), as.character(pred_df$group))))
+  plot_df$group <- factor(plot_df$group, levels = group_levels)
+  pred_df$group <- factor(pred_df$group, levels = group_levels)
+  
+  list(plot_data = plot_df, pred_data = pred_df, group_levels = group_levels)
+}
+
+#' Select genes to plot based on significance
+#'
+#' @param lm_res Data frame with gene and p-value columns
+#' @param genes Optional character vector of specific genes
+#' @param n_top Number of top genes to select
+#' @param sig_alpha Significance threshold
+#' @return Character vector of gene IDs to plot (or NULL if none selected)
+#' @keywords internal
+#' @noRd
+.select_genes_for_plotting <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
+  if (!is.null(genes)) {
+    if (!is.character(genes)) {
+      stop("genes must be a character vector of gene names", call. = FALSE)
+    }
+    return(genes)
+  }
+  
+  # Select top genes by p-value
+  if ("adj_p_interaction" %in% colnames(lm_res)) {
+    sig_mask <- lm_res$adj_p_interaction <= sig_alpha
+  } else if ("p_interaction" %in% colnames(lm_res)) {
+    sig_mask <- lm_res$p_interaction <= sig_alpha
+  } else {
+    stop("lm_res must contain 'adj_p_interaction' or 'p_interaction' column", call. = FALSE)
+  }
+  
+  sig_genes <- lm_res[sig_mask, , drop = FALSE]
+  
+  if (nrow(sig_genes) == 0) {
+    return(NULL)
+  }
+  
+  # Select top n
+  sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
+}

@@ -2808,7 +2808,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: NULL gene and lm_res falls back to
 test_that("plot_tsallis_q_curve_s4 gene-mode: lm_res must be data.frame (line 572)", {
   analysis <- setup_gene_mode_analysis()
   
-  # lm_res as non-dataframe should fail
+  # lm_res as non-dataframe should fail with validation error
   suppressWarnings(expect_error(
     plot_tsallis_q_curve_s4(
       analysis,
@@ -2816,7 +2816,7 @@ test_that("plot_tsallis_q_curve_s4 gene-mode: lm_res must be data.frame (line 57
       lm_res = list(not_a_dataframe = TRUE),  # Not a data.frame
       assay_name = "diversity"
     ),
-    "must be a data.frame",
+    "lm_res must be a data.frame",
     ignore.case = TRUE
   ))
 })
