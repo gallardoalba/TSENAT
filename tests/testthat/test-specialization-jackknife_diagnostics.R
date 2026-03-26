@@ -142,13 +142,6 @@ test_that("print method works for jackknife results", {
 })
 
 # Test 18: S3 summary method
-test_that("summary method works for jackknife results", {
-  result <- jackknife_entropy_outliers(skewed_counts, q = 1)
-
-  # Methods use message() for output, not stdout
-  expect_message(summary(result), "Jackknife Diagnostics Summary")
-})
-
 # Test 19: S3 print for list
 test_that("print method works for jackknife list", {
   gene_matrix <- matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE)

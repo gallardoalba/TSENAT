@@ -760,8 +760,6 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
 #'
 #' @keywords internal
 #' @noRd
-#' @exportS3Method base::summary tsenat_bootstrap_ci
-#' @method summary tsenat_bootstrap_ci
 summary.tsenat_bootstrap_ci <- function(object, ...) {
     message("=== Tsallis Entropy Bootstrap Confidence Interval ===")
     message("Method: ", object$method)
@@ -797,8 +795,6 @@ summary.tsenat_bootstrap_ci <- function(object, ...) {
 
 #' @keywords internal
 #' @noRd
-#' @exportS3Method base::print tsenat_bootstrap_ci
-#' @method print tsenat_bootstrap_ci
 print.tsenat_bootstrap_ci <- function(x, ...) {
     message("Tsallis Entropy Bootstrap Confidence Interval")
     message("Point estimate: ", sprintf("%.6f", x$estimate))
@@ -806,8 +802,6 @@ print.tsenat_bootstrap_ci <- function(x, ...) {
     invisible(x)
 }
 
-#' @exportS3Method base::print tsenat_bootstrap_ci_list
-#' @method print tsenat_bootstrap_ci_list
 print.tsenat_bootstrap_ci_list <- function(x, ...) {
     message("Bootstrap Confidence Intervals for Multiple q Values")
     message("Number of q values: ", length(x))
@@ -1840,7 +1834,6 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 # S3 METHODS FOR PRINT AND SUMMARY
 # ============================================================================
 
-#' @exportS3Method base::print tsenat_divergence_bootstrap_ci
 print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     invisible(x)
 }

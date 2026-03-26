@@ -830,52 +830,12 @@ jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 
 #'
 #' @keywords internal
 #' @noRd
-#' @exportS3Method base::print tsenat_jackknife
-#' @method print tsenat_jackknife
 print.tsenat_jackknife <- function(x, ...) {
   message("Jackknife Diagnostics for Tsallis Entropy (q = ", x$q, ")")
   message("Estimate: ", sprintf("%.6f", x$estimate))
   message("Jackknife SE: ", sprintf("%.6f", x$jackknife_se))
   message("Number of transcripts: ", x$n_transcripts)
   invisible(x)
-}
-
-
-#' Summary of Jackknife Diagnostics Results
-#'
-#' @param object A \code{tsenat_jackknife} object
-#' @param ... Additional arguments (unused)
-#'
-#' @keywords internal
-#' @noRd
-#' @exportS3Method base::summary tsenat_jackknife
-#' @method summary tsenat_jackknife
-summary.tsenat_jackknife <- function(object, ...) {
-  message("Jackknife Diagnostics Summary")
-  message("=============================")
-  message(sprintf("Gene entropy (q =%.6f): %.6f", object$q, object$estimate))
-  message(sprintf("Jackknife standard error: %.6f", object$jackknife_se))
-  message(sprintf("Coefficient of variation: %.4f", object$jackknife_se / object$estimate))
-  message(sprintf("Total transcripts: %d", object$n_transcripts))
-
-  message("Influence Distribution:")
-  message("-----------------------")
-  message(paste(capture.output(str(object$influence)), collapse = "\n"))
-
-  message(sprintf("\n\nOutlier Transcripts (influence > %s%%ile):", object$outlier_threshold))
-  message("-----------------------------------------------")
-
-  if (length(object$outlier_indices) > 0) {
-    outl_data <- data.frame(
-      Transcript = object$outlier_indices,
-      Influence = object$influence[object$outlier_indices]
-    )
-    message(paste(capture.output(str(outl_data)), collapse = "\n"))
-  } else {
-    message("No outliers detected.")
-  }
-
-  invisible(object)
 }
 
 
@@ -886,8 +846,6 @@ summary.tsenat_jackknife <- function(object, ...) {
 #'
 #' @keywords internal
 #' @noRd
-#' @exportS3Method base::print tsenat_jackknife_list
-#' @method print tsenat_jackknife_list
 print.tsenat_jackknife_list <- function(x, ...) {
   message("Jackknife Results for Multiple Genes")
   message("Number of genes: ", length(x))
@@ -895,136 +853,6 @@ print.tsenat_jackknife_list <- function(x, ...) {
     message("  ", names(x)[i], ": Estimate = ", sprintf("%.6f", x[[i]]$estimate))
   }
   invisible(x)
-}
-#' Bootstrap Helper Function for Delta Statistics
-#'
-#' Internal function to compute bootstrap confidence intervals and p-values
-#' for delta_influence (difference in Tsallis entropy influence between conditions).
-#' Computes per-transcript statistics from bootstrap resamples.
-#'
-#' @keywords internal
-#' @noRd
-compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
-                                   q = 1, norm = TRUE, log_base = exp(1),
-                                   pseudocount = 0, n_bootstrap = 1000,
-                                   seed = 42, confidence = 0.95, n_transcripts = NULL) {
-  .calculate_tsallis <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
-    if (is.vector(counts)) counts <- t(as.matrix(counts))
-    
-    # Check for zero-sum columns BEFORE adding pseudocount to detect samples with no expression
-    raw_col_sums <- colSums(counts)
-    with_zero_counts <- raw_col_sums == 0
-    
-    # CRITICAL FIX: Enforce minimum pseudocount to avoid zero-count edge cases
-    if (pseudocount <= 0) {
-      pseudocount <- 1e-8
-    }
-    counts <- counts + pseudocount
-    
-    col_sums <- colSums(counts)
-    # Avoid division by zero
-    if (any(col_sums <= 0)) {
-      return(rep(NA_real_, ncol(counts)))
-    }
-    
-    # Avoid division by near-zero for zero-count columns by using raw column sums intelligently
-    # For zero-count columns, set col_sums to 1 to avoid division by near-zero
-    col_sums_safe <- pmax(col_sums, 1)
-    
-    p <- counts / col_sums_safe
-    
-    if (q == 1) {
-      if (log_base == exp(1)) {
-        h <- -colSums(p * log(p + 1e-100))
-      } else {
-        h <- -colSums(p * log(p + 1e-100, log_base))
-      }
-    } else {
-      p_q_sum <- colSums(p^q)
-      if (log_base == exp(1)) {
-        h <- (1 / (1 - q)) * (1 - p_q_sum)
-      } else {
-        h <- (1 / (1 - q)) * (1 - p_q_sum)
-      }
-    }
-    
-    h[!is.finite(h)] <- NA_real_
-    # Set entropy to NA for zero-count columns
-    h[with_zero_counts] <- NA_real_
-    
-    if (norm) {
-      if (q == 1) {
-        # Use FIXED n_transcripts if provided, otherwise use current matrix dimensions
-        n_tx <- if (!is.null(n_transcripts_fixed)) n_transcripts_fixed else nrow(counts)
-        max_h <- log(n_tx) / log(log_base)
-      } else {
-        n_tx <- if (!is.null(n_transcripts_fixed)) n_transcripts_fixed else nrow(counts)
-        # Use absolute value because the formula produces negative values for q<1 and q>1
-        max_h <- abs((1 / (1 - q)) * (1 - n_tx^(1 - q)))
-      }
-      if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
-        h <- h / max_h
-      }
-    }
-    return(h)
-  }
-  
-  .jackknife_entropy <- function(counts, q, norm, log_base, pseudocount, n_transcripts_fixed) {
-    if (is.vector(counts)) counts <- matrix(counts, nrow = 1)
-    n_tx <- nrow(counts)
-    h_full <- .calculate_tsallis(counts, q, norm, log_base, pseudocount, n_transcripts_fixed)
-    influences <- numeric(n_tx)
-    
-    for (i in seq_len(n_tx)) {
-      h_leave_i <- .calculate_tsallis(counts[-i, , drop = FALSE], q, norm, log_base, pseudocount, n_transcripts_fixed)
-      influences[i] <- mean(abs(h_full - h_leave_i), na.rm = TRUE)
-    }
-    list(full_entropy = h_full, influences = influences)
-  }
-  
-  n_tx <- length(delta_influence)
-  # Seed handling left to caller for Bioconductor compliance
-  bootstrap_deltas_matrix <- matrix(nrow = n_bootstrap, ncol = n_tx)
-  
-  for (b in seq_len(n_bootstrap)) {
-    idx_A <- sample(seq_len(ncol(counts_A)), size = ncol(counts_A), replace = TRUE)
-    idx_B <- sample(seq_len(ncol(counts_B)), size = ncol(counts_B), replace = TRUE)
-    
-    boot_A <- counts_A[, idx_A, drop = FALSE]
-    boot_B <- counts_B[, idx_B, drop = FALSE]
-    
-    jack_A <- .jackknife_entropy(boot_A, q, norm, log_base, pseudocount, n_transcripts)
-    jack_B <- .jackknife_entropy(boot_B, q, norm, log_base, pseudocount, n_transcripts)
-    
-    # Compute per-transcript delta for this bootstrap sample
-    bootstrap_deltas_matrix[b, ] <- jack_A$influences - jack_B$influences
-  }
-  
-  # Compute per-transcript statistics
-  alpha <- 1 - confidence
-  ci_lower <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, alpha / 2, na.rm = TRUE))
-  ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha / 2, na.rm = TRUE))
-  
-  # Para cada transcrito, calcular p-value basado en cuantos bootstrap samples
-  # tienen signo opuesto al delta_influence observado
-  pvalues <- numeric(n_tx)
-  for (i in seq_len(n_tx)) {
-    boot_signs <- sign(bootstrap_deltas_matrix[, i])
-    obs_sign <- sign(delta_influence[i])
-    # P-value: proporcion de muestras bootstrap con signo opuesto
-    pvalues[i] <- mean(boot_signs != obs_sign, na.rm = TRUE)
-    pvalues[i] <- max(pvalues[i], 1 / n_bootstrap)  # Minimum p-value
-  }
-  
-  # Standard error per transcript
-  se <- apply(bootstrap_deltas_matrix, 2, sd, na.rm = TRUE)
-  
-  return(list(
-    ci_lower = as.numeric(ci_lower),
-    ci_upper = as.numeric(ci_upper),
-    pvalue = pvalues,
-    se = se
-  ))
 }
 
 

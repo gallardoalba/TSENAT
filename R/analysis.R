@@ -122,7 +122,6 @@ plot_method_concordance <- function(comparison_df) {
   gridExtra::arrangeGrob(final_plot)
 }
 
-#' @exportS3Method base::print gtable
 #' @keywords internal
 #' @noRd
 print.gtable <- function(x, ...) {
