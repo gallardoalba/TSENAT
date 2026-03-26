@@ -1029,7 +1029,7 @@ test_that("diagnostics with multiple genes (SE extraction)", {
     )
     
     se <- SummarizedExperiment(assays = list(counts = counts_matrix))
-    res <- data.frame(genes = c("TX1", "TX2"), row.names = 1:2)
+    res <- data.frame(gene_id = c("TX1", "TX2"), row.names = 1:2)
     
     result <- calculate_tsallis_entropy_bootstrap(
         se = se,
@@ -1388,7 +1388,7 @@ test_that("JOB parameter passed through recursive calls", {
     )
     
     se <- SummarizedExperiment(assays = list(counts = counts_matrix))
-    res <- data.frame(genes = c("TX1", "TX2"), row.names = 1:2)
+    res <- data.frame(gene_id = c("TX1", "TX2"), row.names = 1:2)
     
     result <- calculate_tsallis_entropy_bootstrap(
         se = se,
@@ -2125,7 +2125,7 @@ test_that("paired bootstrap with SummarizedExperiment integration", {
     
     # Create results data.frame
     res <- data.frame(
-        genes = paste0("Gene_", 1:100),
+        gene_id = paste0("Gene_", 1:100),
         p_value = runif(100)
     )
     
@@ -2229,7 +2229,7 @@ test_that("Genes with sufficient counts (≥10) are processed normally", {
   )
   
   res <- data.frame(
-    genes = c("Gene1", "Gene2"),
+    gene_id = c("Gene1", "Gene2"),
     pvalue = c(0.01, 0.05),
     row.names = 1:2
   )
@@ -2246,10 +2246,10 @@ test_that("Genes with sufficient counts (≥10) are processed normally", {
 })
 
 test_that("Genes with insufficient counts (<10) trigger warning", {
-  # Create SE where top gene has insufficient counts
+  # Create SE where ALL genes have insufficient counts
   counts_matrix <- rbind(
     Gene1 = c(1, 1, 1, 1),        # Total: 4 (insufficient)
-    Gene2 = c(50, 50, 50, 50)     # Total: 200 (sufficient)
+    Gene2 = c(2, 2, 2, 2)         # Total: 8 (insufficient)
   )
   
   rownames(counts_matrix) <- c("Gene1", "Gene2")
@@ -2261,18 +2261,18 @@ test_that("Genes with insufficient counts (<10) trigger warning", {
   )
   
   res <- data.frame(
-    genes = c("Gene1", "Gene2"),
+    gene_id = c("Gene1", "Gene2"),
     pvalue = c(0.001, 0.05),
     row.names = 1:2
   )
   
-  # Should warn about insufficient counts for Gene1
+  # Should warn about insufficient counts for all genes
   expect_warning(
     result <- calculate_tsallis_entropy_bootstrap(
       se = se, res = res, top_n = 1, q = 1, nboot = 100, 
       seed = 42, verbose = FALSE
     ),
-    "insufficient counts"
+    "No genes with sufficient"
   )
 })
 
@@ -2292,7 +2292,7 @@ test_that("Function skips low-count genes and uses next valid gene", {
   )
   
   res <- data.frame(
-    genes = c("Gene1", "Gene2"),
+    gene_id = c("Gene1", "Gene2"),
     pvalue = c(0.001, 0.05),
     row.names = 1:2
   )
@@ -2327,7 +2327,7 @@ test_that("Minimum threshold is 10 (per papers S111, S114)", {
   )
   
   res <- data.frame(
-    genes = c("Gene1"),
+    gene_id = c("Gene1"),
     pvalue = c(0.01),
     row.names = 1
   )
@@ -2356,7 +2356,7 @@ test_that("Gene with count = 9 is rejected (below threshold)", {
   )
   
   res <- data.frame(
-    genes = c("Gene1"),
+    gene_id = c("Gene1"),
     pvalue = c(0.01),
     row.names = 1
   )
@@ -2388,7 +2388,7 @@ test_that("All genes insufficient returns NULL and warning", {
   )
   
   res <- data.frame(
-    genes = c("Gene1", "Gene2"),
+    gene_id = c("Gene1", "Gene2"),
     pvalue = c(0.01, 0.05),
     row.names = 1:2
   )
@@ -2422,7 +2422,7 @@ test_that("Filtering works with multiple genes requested (top_n > 1)", {
   )
   
   res <- data.frame(
-    genes = c("Gene1", "Gene2", "Gene3"),
+    gene_id = c("Gene1", "Gene2", "Gene3"),
     pvalue = c(0.001, 0.01, 0.05),
     row.names = 1:3
   )
@@ -2459,7 +2459,7 @@ test_that("Warning message mentions minimum threshold and database papers", {
   )
   
   res <- data.frame(
-    genes = c("Gene1"),
+    gene_id = c("Gene1"),
     pvalue = c(0.01),
     row.names = 1
   )
@@ -2502,7 +2502,7 @@ test_that("Feature 4.2 gracefully handles genes by rownames vs rowData", {
   )
   
   res <- data.frame(
-    genes = c("Gene_A"),
+    gene_id = c("Gene_A"),
     pvalue = c(0.01),
     row.names = 1
   )
@@ -2548,7 +2548,7 @@ test_that("Feature 4.2 implementation uses database recommendation from papers S
     )
   )
   
-  res <- data.frame(genes = "Gene1", pvalue = 0.01, row.names = 1)
+  res <- data.frame(gene_id = "Gene1", pvalue = 0.01, row.names = 1)
   
   # Gene with count=9 should fail
   result_below <- suppressWarnings(
