@@ -7,7 +7,7 @@
 jackknife_tsallis_entropy_s4(
   analysis,
   q = NULL,
-  print_results = FALSE,
+  verbose = FALSE,
   nthreads = NULL,
   output_file = NULL,
   ...
@@ -18,7 +18,7 @@ jackknife_tsallis_entropy_s4(
 
 \item{q}{\code{numeric}. Q-value(s) for jackknife. Default: 1.0.}
 
-\item{print_results}{\code{logical}. Print jackknife results summary. Default: FALSE.}
+\item{verbose}{\code{logical}. Print jackknife results summary. Default: FALSE.}
 
 \item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
 If NULL, reads from \code{@config$nthreads} (or defaults to 1).
