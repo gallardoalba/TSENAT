@@ -318,7 +318,6 @@ Now let's visualize the q-curves for the top 4 genes identified by the Friedman 
 # plot_tsallis_q_curve_s4 accepts TSENATAnalysis objects and extracts diversity_results
 top_genes_plot <- plot_tsallis_q_curve_s4(
     analysis,
-    condition_col = "sample_type",
     lm_res = friedman_results,
     n_top = 4
 )

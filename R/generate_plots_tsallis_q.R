@@ -7,8 +7,9 @@
 #' @param se A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
 #'   For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
-#' @param condition_col Character; column name in colData indicating group/sample type
-#'   (default: "sample_type"). Only used in aggregate and CI modes.
+#' @param condition_col Character or NULL; column name in colData indicating group/sample type.
+#'   If NULL (default), reads from `@config$condition_col` when input is TSENATAnalysis,
+#'   otherwise defaults to "sample_type". Only used in aggregate and CI modes.
 #' @param bootstrap Logical; if TRUE, plots bootstrap confidence interval bands for aggregate mode.
 #'   Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
 #'   Requires 2+ q values and exactly 2 groups (default: FALSE).
@@ -77,7 +78,7 @@
 plot_tsallis_q_curve_s4 <- function(
   se,
   assay_name = "diversity",
-  condition_col = "sample_type",
+  condition_col = NULL,
   bootstrap = FALSE,
   gene = NULL,
   lm_res = NULL,
@@ -91,8 +92,23 @@ plot_tsallis_q_curve_s4 <- function(
     if (assay_name != "diversity") {
       stop("Assay '", assay_name, "' not found in SummarizedExperiment")
     }
+    
+    # Extract condition_col from config if not provided
+    if (is.null(condition_col)) {
+      if ("condition_col" %in% names(se@config)) {
+        condition_col <- se@config$condition_col
+      } else {
+        condition_col <- "sample_type"
+      }
+    }
+    
     se <- .prepare_combined_se_from_analysis(se)
     assay_name <- "diversity"
+  }
+  
+  # Default condition_col if still NULL (for direct SE input)
+  if (is.null(condition_col)) {
+    condition_col <- "sample_type"
   }
   
   # Validate input

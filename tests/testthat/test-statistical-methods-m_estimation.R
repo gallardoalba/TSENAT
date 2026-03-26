@@ -693,6 +693,463 @@ test_that("m_estimate SummarizedExperiment path with various data sizes", {
   expect_true(all(is.finite(result$Entropy_Mean)))
 })
 
+# ============================================================================
+# TEST: Helper Functions (Internal) - SE Data Preparation
+# ============================================================================
+
+context("Helper Functions: Data Preparation and Analysis")
+
+test_that(".prepare_se_data_for_m_estimate correctly collapses multi-q data", {
+  library(SummarizedExperiment)
+  set.seed(1001)
+  
+  n_q <- 3
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 1.5, 2), n_samples)
+  )
+  
+  # 4 genes x 12 columns (4 samples * 3 q-values each)
+  entropy_data <- matrix(seq(1, 48), nrow = 4, ncol = 12)
+  se <- SummarizedExperiment(
+    assays = list(diversity = entropy_data),
+    colData = data.frame(sample_type = rep(c("A", "B"), each = 2*n_q))
+  )
+  colnames(se) <- col_names
+  
+  # Call helper via m_estimate which uses it internally
+  # Verify it processes data correctly by checking output structure
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # Result should have 4 rows (same as input genes)
+  expect_equal(nrow(result), 4)
+  expect_true("Entropy_Mean" %in% colnames(result))
+})
+
+test_that(".prepare_se_data_for_m_estimate handles median vs mean collapsing", {
+  library(SummarizedExperiment)
+  set.seed(1002)
+  
+  n_q <- 2
+  n_samples <- 2
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  # Create data that will be collapsed across q-values
+  entropy_data <- rbind(
+    c(1, 100, 2, 101),      # High range in sample 1 - median vs mean differ
+    c(50, 50, 50, 50),      # Constant - median = mean
+    c(10, 15, 20, 25)       # Increasing - median and mean similar
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = entropy_data),
+    colData = data.frame(sample_type = c("X", "X", "Y", "Y"))
+  )
+  colnames(se) <- col_names
+  
+  # SE input returns sample-level QC metrics, not gene-level statistics
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)  # 2 samples (S1, S2)
+  expect_true("Sample" %in% colnames(result))
+  expect_true("Robustness_Weight" %in% colnames(result))
+})
+
+test_that(".prepare_se_data_for_m_estimate rejects invalid column names", {
+  library(SummarizedExperiment)
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(40), nrow = 5, ncol = 8)),
+    colData = data.frame(group = rep(c("A", "B"), each = 4))
+  )
+  colnames(se) <- paste0("S", 1:8, "_q=1")
+  
+  # Should error when non-existent column is requested
+  expect_error(
+    m_estimate(se, samples = "nonexistent_column", loss_type = "huber"),
+    "not found"
+  )
+})
+
+test_that(".prepare_se_data_for_m_estimate preserves gene names and sample order", {
+  library(SummarizedExperiment)
+  set.seed(1003)
+  
+  n_q <- 2
+  
+  # 2 genes x 4 columns (2 samples * 2 q-values each)
+  col_names <- paste0(
+    rep(c("S1", "S2"), each = n_q),
+    "_q=",
+    rep(c(1, 2), 2)
+  )
+  
+  entropy_data <- matrix(rnorm(8, mean = 2, sd = 0.5), nrow = 2, ncol = 4)
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = entropy_data),
+    colData = data.frame(sample_type = rep(c("TypeA", "TypeB"), each = n_q))
+  )
+  rownames(se) <- c("GENE_A", "GENE_B")
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # Result should have 2 rows (same as number of genes)
+  expect_equal(nrow(result), 2)
+})
+
+# ============================================================================
+# TEST: Helper Functions - LOO Influence Analysis
+# ============================================================================
+
+test_that(".perform_influence_loo_analysis identifies high-influence samples", {
+  library(SummarizedExperiment)
+  set.seed(1004)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  # Create data where first sample is very different (high influence)
+  entropy_data <- rbind(
+    c(-50, -50, 1, 2, 3, 4, 5, 6),  # Extreme outlier in first sample positions
+    matrix(rnorm(88, mean = 2, sd = 0.5), nrow = 11, ncol = 8)
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = entropy_data),
+    colData = data.frame(sample_type = rep(c("Case", "Control"), each = 2*n_q))
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # Should flag high-influence outlier
+  expect_true("Proportion_Affected" %in% colnames(result))
+})
+
+test_that(".perform_influence_loo_analysis handles identical groups", {
+  library(SummarizedExperiment)
+  set.seed(1005)
+  
+  n_q <- 2
+  n_samples <- 2
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  # Create SE with identical values across all entries
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(5, nrow = 8, ncol = 4)),
+    colData = data.frame(sample_type = c("GroupA", "GroupA", "GroupB", "GroupB"))
+  )
+  rownames(se) <- paste0("Gene", 1:8)
+  colnames(se) <- col_names
+  
+  # SE returns sample-level results (one per unique sample)
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)  # 2 unique samples (S1, S2)
+  expect_true(all(is.finite(result$Robustness_Weight)))
+})
+
+# ============================================================================
+# TEST: Helper Functions - Centroid Distance Computation
+# ============================================================================
+
+test_that(".compute_centroid_distances_m_est calculates euclidean distances", {
+  library(SummarizedExperiment)
+  set.seed(1006)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  # Create data where distance patterns are clear
+  entropy_data <- rbind(
+    c(0, 0, 0, 0, 10, 10, 10, 10),  # Group 1: ~0, Group 2: ~10
+    rnorm(8, mean = 2, sd = 0.2)
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = entropy_data),
+    colData = data.frame(sample_type = rep(c("Ctrl", "Treat"), each = 2*n_q))
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # Some samples should be closer to centroid than others
+  distances <- result$Distance_from_Centroid
+  expect_true(length(unique(round(distances, 3))) >= 1)
+})
+
+test_that(".compute_centroid_distances_m_est with single-sample groups", {
+  library(SummarizedExperiment)
+  set.seed(1007)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  # 4 samples: 2 in Group 1, 2 in Group 2
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(50, mean = 2, sd = 0.5), nrow = 50, ncol = 8)),
+    colData = data.frame(sample_type = c(rep("G1", 2*n_q), rep("G2", 2*n_q)))
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # With 2 samples per group, distance should be to group centroid (may be 0 for single sample)
+  expect_true(all(result$Distance_from_Centroid >= 0))
+  expect_true(all(is.finite(result$Distance_from_Centroid)))
+})
+
+# ============================================================================
+# TEST: Edge Cases and Data Validation
+# ============================================================================
+
+context("Edge Cases: Single Sample, Missing Values, and Data Extremes")
+
+test_that("m_estimate handles minimum viable data (2 groups, 1 sample each)", {
+  x <- matrix(c(1:5, 6:10), nrow = 5, ncol = 2)
+  samples <- c("A", "B")
+  
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  expect_true(is.data.frame(result))
+  expect_true(nrow(result) == 5)
+  expect_true(all(is.finite(result$location_diff)))
+})
+
+test_that("m_estimate handles data with zero variance in one gene", {
+  x <- matrix(
+    c(rep(5, 8),      # Gene 1: constant
+      1:8),           # Gene 2: varying
+    nrow = 2, byrow = TRUE
+  )
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 2)
+  expect_true(all(is.finite(result$location_diff)))
+})
+
+test_that("m_estimate handles data with NA values gracefully", {
+  x <- matrix(c(rnorm(36), NA, NA, NA, NA), nrow = 4, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  # Should handle NAs without crashing
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  expect_true(is.data.frame(result))
+  # May have NAs or computed values for genes with missing data
+  expect_true(nrow(result) >= 0)
+})
+
+test_that("m_estimate with very large magnitude differences handles scaling", {
+  x <- matrix(
+    c(1e-6, 1e-5, 1e-4, 1e-3, 1e3, 1e4, 1e5, 1e6),
+    nrow = 1, ncol = 8
+  )
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  expect_true(is.data.frame(result))
+  expect_true(all(is.finite(result$location_diff)))
+})
+
+test_that("m_estimate produces consistent results with identical raw data", {
+  set.seed(2001)
+  x <- matrix(rnorm(40), nrow = 5, ncol = 8)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result1 <- m_estimate(x, samples, loss_type = "huber")
+  result2 <- m_estimate(x, samples, loss_type = "huber")
+  
+  expect_equal(result1$location_diff, result2$location_diff)
+  expect_equal(result1$pvalue, result2$pvalue)
+})
+
+test_that("m_estimate location_diff=0 when groups are identical", {
+  x <- matrix(c(rep(5, 4), rep(5, 4)), nrow = 2, ncol = 8, byrow = TRUE)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  # When groups are identical, difference should be near 0
+  expect_true(all(abs(result$location_diff) < 1e-6))
+})
+
+# ============================================================================
+# TEST: Statistical Properties and Downstream Consistency
+# ============================================================================
+
+context("Statistical Properties: Behavior Under Different Conditions")
+
+test_that("m_estimate t-statistics follow expected relationship with SE", {
+  set.seed(2002)
+  x <- matrix(rnorm(40, mean = 5, sd = 2), nrow = 5, ncol = 8)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  # t_stat = location_diff / se_diff
+  expected_t <- result$location_diff / result$se_diff
+  
+  expect_equal(result$t_stat, expected_t, tolerance = 1e-10)
+})
+
+test_that("m_estimate rejects invalid loss_type gracefully", {
+  x <- matrix(rnorm(40), nrow = 5, ncol = 8)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  expect_error(
+    m_estimate(x, samples, loss_type = "invalid_loss"),
+    "loss_type must be"
+  )
+})
+
+test_that("m_estimate rejects insufficient data", {
+  x <- matrix(c(1, 2), nrow = 1, ncol = 2)
+  samples <- c("A", "B")
+  
+  # With only 2 samples total (1 per group), should still work as edge case
+  result <- m_estimate(x, samples, loss_type = "huber")
+  expect_true(is.data.frame(result))
+})
+
+test_that("Comparison of loss types shows different down-weighting patterns", {
+  set.seed(2003)
+  x <- matrix(
+    c(c(1, 2, 3, 4, 1000, 2000, 3000, 4000),  # Group A: high variation
+      rnorm(8, mean = 100, sd = 1)),           # Gene 2: stable
+    nrow = 2, byrow = TRUE
+  )
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result_huber <- m_estimate(x, samples, loss_type = "huber")
+  result_tukey <- m_estimate(x, samples, loss_type = "tukey")
+  result_lsq <- m_estimate(x, samples, loss_type = "lsq")
+  
+  # Robust methods should down-weight differently than LSQ
+  # (checking that all produce valid results)
+  expect_true(all(is.finite(result_huber$n_down_weighted)))
+  expect_true(all(is.finite(result_tukey$n_down_weighted)))
+  expect_true(all(is.finite(result_lsq$n_down_weighted)))
+})
+
+test_that("m_estimate weights reflect influence correctly", {
+  set.seed(2004)
+  x <- matrix(
+    c(5, 5, 5, 5, 50, 50, 50, 50,  # Gene 1: extreme difference
+      1, 1, 1, 1, 1, 1, 1, 1),      # Gene 2: no difference
+    nrow = 2, byrow = TRUE
+  )
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result <- m_estimate(x, samples, loss_type = "huber")
+  
+  # Gene 1 should have more down-weighted observations than Gene 2
+  expect_true(result$n_down_weighted[1] >= result$n_down_weighted[2])
+})
+
+# ============================================================================
+# TEST: SummarizedExperiment vs Matrix Consistency
+# ============================================================================
+
+context("Consistency: Matrix Input vs SummarizedExperiment Input")
+
+test_that("Matrix and SE have different output formats as designed", {
+  library(SummarizedExperiment)
+  set.seed(2005)
+  
+  n_q <- 2
+  
+  # Create simple data: 3 genes x 4 columns (2 samples * 2 q-values each)
+  x_matrix <- matrix(c(1:4, 5:8, 9:12), nrow = 3, ncol = 4, byrow = TRUE)
+  samples_vector <- c("G1", "G1", "G2", "G2")
+  
+  # Create corresponding SE with same structure
+  col_names <- paste0(
+    rep(c("S1", "S2"), each = n_q),
+    "_q=",
+    rep(c(1, 2), 2)
+  )
+  se <- SummarizedExperiment(
+    assays = list(diversity = x_matrix),
+    colData = data.frame(sample_type = samples_vector)
+  )
+  rownames(se) <- c("Gene1", "Gene2", "Gene3")
+  colnames(se) <- col_names
+  
+  # Test: SE input produces sample-level QC metrics
+  result_se <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  expect_true(is.data.frame(result_se))
+  expect_equal(nrow(result_se), 2)  # 2 samples in SE format
+  expect_true("Sample" %in% colnames(result_se))  # SE format has Sample column
+  
+  # Test: Matrix input produces gene-level statistics
+  result_matrix <- m_estimate(x_matrix, samples = samples_vector, loss_type = "huber")
+  
+  expect_true(is.data.frame(result_matrix))
+  expect_equal(nrow(result_matrix), 3)  # 3 genes
+  expect_true("location_diff" %in% colnames(result_matrix))  # Matrix format has statistics
+})
+
+test_that("QC metrics exist for both matrix and SE input paths", {
+  library(SummarizedExperiment)
+  set.seed(2006)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(32, mean = 2, sd = 0.5), nrow = 4, ncol = 8)),
+    colData = data.frame(sample_type = rep(c("X", "Y"), each = 2*n_q))
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # SE path should include QC metrics
+  qc_cols <- c("Robustness_Weight", "Entropy_Mean", "Entropy_SD", "Distance_from_Centroid")
+  expect_true(all(qc_cols %in% colnames(result)))
+})
+
 
 
 

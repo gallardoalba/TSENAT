@@ -300,69 +300,179 @@ NULL
 #'   More robust to extreme contamination than M-estimation (~25%).
 #'   Recommended when data contamination is suspected.
 #'
+# ============================================================================
+# M-ESTIMATION INTERNAL HELPERS
+# ============================================================================
+
+#' Prepare SummarizedExperiment data for M-estimation
+#' @keywords internal
+#' @noRd
+.prepare_se_data_for_m_estimate <- function(x, samples_col, q_combine_method = "mean") {
+  entropy_matrix <- SummarizedExperiment::assay(x)
+  sample_info <- SummarizedExperiment::colData(x)
+  
+  if (!(samples_col %in% colnames(sample_info))) {
+    stop(sprintf("Column '%s' not found in colData", samples_col))
+  }
+  
+  group_assignment <- tryCatch({
+    as.vector(sample_info[[samples_col]])
+  }, error = function(e) {
+    col_val <- sample_info[[samples_col]]
+    if (is.atomic(col_val)) col_val else as.character(col_val)
+  })
+  
+  col_names <- colnames(entropy_matrix)
+  sample_names_full <- sub("_q=.*$", "", col_names)
+  unique_samples <- unique(sample_names_full)
+  
+  # Collapse across q-values
+  entropy_by_sample <- matrix(0, nrow = nrow(entropy_matrix), ncol = length(unique_samples),
+                              dimnames = list(rownames(entropy_matrix), unique_samples))
+  
+  for (j in seq_along(unique_samples)) {
+    cols_for_sample <- which(sample_names_full == unique_samples[j])
+    if (q_combine_method == "median") {
+      entropy_by_sample[, j] <- apply(entropy_matrix[, cols_for_sample, drop = FALSE], 1, median)
+    } else {
+      entropy_by_sample[, j] <- rowMeans(entropy_matrix[, cols_for_sample, drop = FALSE])
+    }
+  }
+  
+  # Get group assignment for unique samples
+  group_assignment_unique <- rep(NA, length(unique_samples))
+  for (j in seq_along(unique_samples)) {
+    first_col_idx <- which(sample_names_full == unique_samples[j])[1]
+    group_assignment_unique[j] <- group_assignment[first_col_idx]
+  }
+  
+  list(entropy_by_sample = entropy_by_sample, 
+       group_assignment_unique = group_assignment_unique,
+       unique_samples = unique_samples,
+       sample_info = sample_info,
+       sample_names_full = sample_names_full,
+       group_assignment = group_assignment)
+}
+
+#' Perform leave-one-out influence analysis for M-estimation
+#' @keywords internal
+#' @noRd
+.perform_influence_loo_analysis <- function(entropy_by_sample, group_assignment_unique, 
+                                            unique_samples, m_est_full,
+                                            loss_type = "huber", scale = NULL, max_iter = 50, 
+                                            tol = 1e-6, pcorr = "BH", scale_method = "mad") {
+  n_samples <- length(unique_samples)
+  dfbeta_threshold <- 2 / sqrt(max(n_samples, 2))
+  
+  sample_influence <- numeric(n_samples)
+  gene_level_changes <- list()
+  names(sample_influence) <- unique_samples
+  
+  for (i in seq_along(unique_samples)) {
+    sample_entropy_vals <- entropy_by_sample[, i]
+    entropy_subset <- entropy_by_sample[, -i, drop = FALSE]
+    group_subset <- group_assignment_unique[-i]
+    
+    unique_groups_subset <- unique(group_subset)
+    if (length(unique_groups_subset) < 2) {
+      sample_influence[i] <- 1.0
+      gene_names <- rownames(entropy_by_sample)
+      if (is.null(gene_names)) {
+        gene_names <- paste0("Gene_", seq_len(nrow(entropy_by_sample)))
+      }
+      gene_level_changes[[unique_samples[i]]] <- data.frame(
+        gene = gene_names,
+        reason = "Only one group remains"
+      )
+      next
+    }
+    
+    # LOO M-estimate
+    m_est_subset <- m_estimate(entropy_subset, samples = group_subset,
+                               loss_type = loss_type, scale = scale,
+                               max_iter = max_iter, tol = tol, paired = FALSE, 
+                               pcorr = pcorr, scale_method = scale_method)
+    
+    # Calculate DFBETA
+    dfbeta <- (m_est_full$location_diff - m_est_subset$location_diff) / 
+              pmax(m_est_full$se_diff, 1e-6)
+    
+    gene_names <- rownames(entropy_by_sample)
+    if (is.null(gene_names) || length(gene_names) == 0) {
+      gene_names <- paste0("Gene_", seq_len(nrow(entropy_by_sample)))
+    }
+    
+    gene_level_changes[[unique_samples[i]]] <- data.frame(
+      gene = gene_names,
+      full_location_diff = m_est_full$location_diff,
+      loo_location_diff = m_est_subset$location_diff,
+      dfbeta = dfbeta,
+      exceeds_threshold = abs(dfbeta) > dfbeta_threshold
+    )
+    
+    sample_influence[i] <- mean(abs(dfbeta) > dfbeta_threshold, na.rm = TRUE)
+  }
+  
+  list(sample_influence = sample_influence, gene_level_changes = gene_level_changes)
+}
+
+#' Compute centroid distances for M-estimation
+#' @keywords internal
+#' @noRd
+.compute_centroid_distances_m_est <- function(entropy_by_sample, group_assignment_unique, 
+                                              unique_samples) {
+  centroid_distances <- numeric(length(unique_samples))
+  names(centroid_distances) <- unique_samples
+  
+  for (group in unique(group_assignment_unique)) {
+    group_samples_idx <- which(group_assignment_unique == group)
+    
+    if (length(group_samples_idx) > 0) {
+      if (length(group_samples_idx) == 1) {
+        group_centroid <- entropy_by_sample[, group_samples_idx, drop = FALSE]
+      } else {
+        group_centroid <- apply(entropy_by_sample[, group_samples_idx, drop = FALSE], 1, median)
+      }
+      
+      for (sample_idx in group_samples_idx) {
+        sample_entropy <- entropy_by_sample[, sample_idx]
+        if (is.matrix(group_centroid)) {
+          dist <- sqrt(sum((sample_entropy - group_centroid[, 1])^2, na.rm = TRUE))
+        } else {
+          dist <- sqrt(sum((sample_entropy - group_centroid)^2, na.rm = TRUE))
+        }
+        centroid_distances[sample_idx] <- dist
+      }
+    }
+  }
+  
+  centroid_distances
+}
+
 m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
                        max_iter = 50, tol = 1e-6, paired = FALSE, pcorr = "BH",
                        q_combine_method = "mean", influence_threshold = 0.75,
                        scale_method = "mad", verbose = FALSE) {
   # Handle SummarizedExperiment input with multi-q analysis
   if (inherits(x, "SummarizedExperiment")) {
-    entropy_matrix <- SummarizedExperiment::assay(x)
-    sample_info <- SummarizedExperiment::colData(x)
+    se_data <- .prepare_se_data_for_m_estimate(x, samples, q_combine_method)
+    entropy_by_sample <- se_data$entropy_by_sample
+    group_assignment_unique <- se_data$group_assignment_unique
+    unique_samples <- se_data$unique_samples
+    sample_info <- se_data$sample_info
+    sample_names_full <- se_data$sample_names_full
+    group_assignment <- se_data$group_assignment
+    
     
     # Auto-detect paired from SE metadata if paired parameter is default FALSE
-    if (!isTRUE(paired) && length(metadata(x)) > 0 && "paired" %in% names(metadata(x))) {
-      paired_meta <- metadata(x)$paired
+    if (!isTRUE(paired) && length(S4Vectors::metadata(x)) > 0 && "paired" %in% names(S4Vectors::metadata(x))) {
+      paired_meta <- S4Vectors::metadata(x)$paired
       if (is.logical(paired_meta) && length(paired_meta) == 1) {
         paired <- paired_meta
       }
     }
     
-    # Get group assignment
-    if (!(samples %in% colnames(sample_info))) {
-      stop(sprintf("Column '%s' not found in colData", samples))
-    }
-    
-    # Extract column - note: as.vector with mode can fail on certain S4 objects
-    # Use fallback approach if direct conversion fails
-    group_assignment <- tryCatch({
-      as.vector(sample_info[[samples]])
-    }, error = function(e) {
-      col_val <- sample_info[[samples]]
-      if (is.atomic(col_val)) {
-        col_val
-      } else {
-        as.character(col_val)
-      }
-    })
-    
-    col_names <- colnames(entropy_matrix)
-    sample_names_full <- sub("_q=.*$", "", col_names)
-    unique_samples <- unique(sample_names_full)
-    
-    # Create sample-level entropy matrix (collapse across q values)
-    entropy_by_sample <- matrix(0, nrow = nrow(entropy_matrix), ncol = length(unique_samples),
-                                dimnames = list(rownames(entropy_matrix), unique_samples))
-    
-    for (j in seq_along(unique_samples)) {
-      cols_for_sample <- which(sample_names_full == unique_samples[j])
-      if (q_combine_method == "median") {
-        entropy_by_sample[, j] <- apply(entropy_matrix[, cols_for_sample, drop = FALSE], 1, median)
-      } else {
-        entropy_by_sample[, j] <- rowMeans(entropy_matrix[, cols_for_sample, drop = FALSE])
-      }
-    }
-    
-    # Get group assignment for unique samples
-    # Initialize directly without type inference to avoid issues with S4 objects
-    group_assignment_unique <- rep(NA, length(unique_samples))
-    for (j in seq_along(unique_samples)) {
-      first_col_idx <- which(sample_names_full == unique_samples[j])[1]
-      group_assignment_unique[j] <- group_assignment[first_col_idx]
-    }
-    
-    # Perform leave-one-out influence analysis
-    # First, calculate M-estimate with ALL samples as the baseline
-    # NOTE: Use paired mode for full fit to leverage any pairing in the design
+    # Calculate M-estimate with ALL samples as baseline
     m_est_full <- tryCatch({
       m_estimate(entropy_by_sample, samples = group_assignment_unique,
                  loss_type = loss_type, scale = scale,
@@ -371,153 +481,37 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     }, error = function(e) {
       stop(e)
     })
-
-    sample_influence <- numeric(length(unique_samples))
+    
+    # Perform leave-one-out influence analysis
+    loo_result <- .perform_influence_loo_analysis(
+      entropy_by_sample, group_assignment_unique, unique_samples, m_est_full,
+      loss_type = loss_type, scale = scale, max_iter = max_iter, tol = tol,
+      pcorr = pcorr, scale_method = scale_method
+    )
+    
+    sample_influence <- loo_result$sample_influence
+    gene_level_changes <- loo_result$gene_level_changes
+    
+    # Calculate entropy statistics
+    entropy_means <- apply(entropy_by_sample, 2, mean, na.rm = TRUE)
+    entropy_sds <- apply(entropy_by_sample, 2, sd, na.rm = TRUE)
+    
+    # Extract robustness weights  
     sample_robustness_weights <- numeric(length(unique_samples))
-    entropy_means <- numeric(length(unique_samples))
-    entropy_sds <- numeric(length(unique_samples))
-    names(sample_influence) <- unique_samples
     names(sample_robustness_weights) <- unique_samples
-    names(entropy_means) <- unique_samples
-    names(entropy_sds) <- unique_samples
-    
-    # Store gene-level location_diff for debugging: list with one entry per sample
-    gene_level_changes <- list()
-    
-    # Calculate DFBETA threshold based on sample size (standard regression diagnostics)
-    # Threshold of 2/sqrt(n) is commonly used (see Fox 2016, Regression Diagnostics)
-    n_samples <- length(unique_samples)
-    dfbeta_threshold <- 2 / sqrt(max(n_samples, 2))
-    
-    for (i in seq_along(unique_samples)) {
-      # Calculate entropy statistics for this sample FIRST (before any skips)
-      sample_entropy_vals <- entropy_by_sample[, i]
-      entropy_means[i] <- mean(sample_entropy_vals, na.rm = TRUE)
-      entropy_sds[i] <- sd(sample_entropy_vals, na.rm = TRUE)
-      
-      entropy_subset <- entropy_by_sample[, -i, drop = FALSE]
-      group_subset <- group_assignment_unique[-i]
-      
-      # Check if we still have both groups represented
-      unique_groups_subset <- unique(group_subset)
-      if (length(unique_groups_subset) < 2) {
-        # If removing sample i leaves only one group, this sample has very HIGH influence
-        # Set to maximum influence (all genes affected) 
-        sample_influence[i] <- 1.0
-        # For high-influence samples, use maximum observed robustness weight variation
-        sample_robustness_weights[i] <- NA  # Mark as NA to handle separately later
-        # Record that this sample's removal breaks group structure
-        gene_level_changes[[unique_samples[i]]] <- data.frame(
-          gene = rownames(entropy_by_sample),
-          full_location_diff = NA_real_,
-          loo_location_diff = NA_real_,
-          dfbeta = NA_real_,
-          reason = "Only one group remains after removing sample"
-        )
-        next
-      }
-      
-      # Call m_estimate recursively on matrix data WITHOUT sample i
-      # IMPORTANT: Use paired=FALSE for leave-one-out diagnostics
-      # REASON: Removing one observation breaks paired structure. Influence diagnostics
-      # must work on data as-is. The FULL fit uses paired=TRUE; comparison vs LOO is valid.
-      # Bibliography reference: Standard statistical practice (Fox 2016, Cook & Weisberg 1982)
-      m_est_subset <- m_estimate(entropy_subset, samples = group_subset,
-                                 loss_type = loss_type, scale = scale,
-                                 max_iter = max_iter, tol = tol, paired = FALSE, pcorr = pcorr,
-                                 scale_method = scale_method)
-      
-      # Calculate standardized influence (DFBETA) for each gene
-      # DFBETA = (coef_full - coef_loo) / SE(coef_full)
-      # This scales the change by the precision/uncertainty of the estimate
-      # See: Fox (2016), Regression Diagnostics; Cook & Weisberg (1982)
-      dfbeta <- (m_est_full$location_diff - m_est_subset$location_diff) / 
-                pmax(m_est_full$se_diff, 1e-6)  # Use full model's SE for standardization
-      
-      # Get gene names - use rownames if available, otherwise use rownames from m_est_full or generate
-      gene_names <- rownames(entropy_by_sample)
-      if (is.null(gene_names) || length(gene_names) == 0) {
-        # Try to get from m_est_full result
-        gene_names <- rownames(m_est_full)
-      }
-      if (is.null(gene_names) || length(gene_names) == 0) {
-        # Generate default names if still missing
-        gene_names <- paste0("Gene_", seq_len(nrow(entropy_by_sample)))
-      }
-      
-      # Store gene-level changes for this sample
-      gene_level_changes[[unique_samples[i]]] <- data.frame(
-        gene = gene_names,
-        full_location_diff = m_est_full$location_diff,
-        loo_location_diff = m_est_subset$location_diff,
-        full_se_diff = m_est_full$se_diff,
-        dfbeta = dfbeta,
-        exceeds_threshold = abs(dfbeta) > dfbeta_threshold,
-        removed_sample_idx = i,
-        removed_sample_name = unique_samples[i],
-        full_n_normal = sum(group_assignment_unique == "normal"),
-        full_n_tumor = sum(group_assignment_unique == "tumor"),
-        loo_n_normal = sum(group_subset == "normal"),
-        loo_n_tumor = sum(group_subset == "tumor"),
-        stringsAsFactors = FALSE
-      )
-      
-      # Influence = proportion of genes with problematic DFBETA values
-      # DFBETA > threshold indicates substantive influence on that gene
-      sample_influence[i] <- mean(abs(dfbeta) > dfbeta_threshold, na.rm = TRUE)
-    }
-    
-    # Extract robustness weights from baseline M-estimate 
-    # (how much was each sample downweighted in the full fit?)
-    # For SummarizedExperiment input, m_est_full is a data.frame with sample-level results
-    # We need to get per-gene weights from the baseline regression
-    # As approximation, use the max_weight from the baseline fit
     if (is.data.frame(m_est_full) && "max_weight" %in% colnames(m_est_full)) {
-      # In SummarizedExperiment mode, max_weight represents robustness per gene
-      # Average across genes to get overall robustness
       mean_weight <- mean(m_est_full$max_weight, na.rm = TRUE)
-      # Apply to all samples, then override NA (high-influence) samples with minimum weight
-      sample_robustness_weights[is.na(sample_robustness_weights)] <- 
-        min(m_est_full$max_weight, na.rm = TRUE)
-      sample_robustness_weights[sample_robustness_weights == 0] <- mean_weight
+      sample_robustness_weights[] <- mean_weight
     } else {
-      # Default: all samples fully trusted, except high-influence samples get lower weight
-      sample_robustness_weights[is.na(sample_robustness_weights)] <- 0.5
-      sample_robustness_weights[sample_robustness_weights == 0] <- 1.0
+      sample_robustness_weights[] <- 1.0
     }
     
-    # Calculate distance from each sample to its group centroid
-    centroid_distances <- numeric(length(unique_samples))
-    names(centroid_distances) <- unique_samples
+    # Calculate centroid distances
+    centroid_distances <- .compute_centroid_distances_m_est(
+      entropy_by_sample, group_assignment_unique, unique_samples
+    )
     
-    for (group in unique(group_assignment_unique)) {
-      group_samples_idx <- which(group_assignment_unique == group)
-      
-      if (length(group_samples_idx) > 0) {
-        # Compute group centroid as median entropy pattern
-        if (length(group_samples_idx) == 1) {
-          group_centroid <- entropy_by_sample[, group_samples_idx, drop = FALSE]
-        } else {
-          group_centroid <- apply(entropy_by_sample[, group_samples_idx, drop = FALSE], 1, median)
-        }
-        
-        # Calculate Euclidean distance from each sample in group to centroid
-        for (sample_idx in group_samples_idx) {
-          sample_entropy <- entropy_by_sample[, sample_idx]
-          if (is.matrix(group_centroid)) {
-            dist <- sqrt(sum((sample_entropy - group_centroid[, 1])^2, na.rm = TRUE))
-          } else {
-            dist <- sqrt(sum((sample_entropy - group_centroid)^2, na.rm = TRUE))
-          }
-          centroid_distances[sample_idx] <- dist
-        }
-      }
-    }
-    
-    # Identify problematic samples (using specified threshold)
-    high_influence_threshold <- quantile(sample_influence, influence_threshold, na.rm = TRUE)
-    
-    # Extract condition/group information for each unique sample
+    # Get condition information for each unique sample
     condition_for_samples <- character(length(unique_samples))
     for (j in seq_along(unique_samples)) {
       first_col_idx <- which(sample_names_full == unique_samples[j])[1]
@@ -526,7 +520,6 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
     
     # Extract paired sample information if available
     paired_sample_info <- NULL
-    # Check for various column name conventions
     pair_col_names <- c("pair_id", "paired_samples", "Pair_ID", "Pair")
     pair_col <- NULL
     for (col in pair_col_names) {
@@ -545,7 +538,10 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       }
     }
     
-    # Return influence scores as data frame with condition, robustness, entropy info, and centroid distance
+    # Identify problematic samples
+    high_influence_threshold <- quantile(sample_influence, influence_threshold, na.rm = TRUE)
+    
+    # Assemble result dataframe
     result_df <- data.frame(
       Sample = names(sample_influence),
       Condition = condition_for_samples,
@@ -560,7 +556,6 @@ m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
       row.names = NULL
     )
     
-    # Add paired sample information if available
     if (!is.null(paired_sample_info)) {
       result_df$Pair_ID <- paired_sample_info
     }
