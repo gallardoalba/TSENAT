@@ -1082,7 +1082,7 @@ jackknife_tsallis_entropy_s4 <- function(analysis, q = NULL, verbose = FALSE, nt
       result <- jackknife_tsallis_entropy(
         x = div_matrix,
         q = q_val,
-        print_results = verbose,
+        verbose = verbose,
         nthreads = nthreads,
         ...
       )

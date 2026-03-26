@@ -22,8 +22,7 @@
 #' @param pseudocount Numeric: small value to add before normalizing to avoid zeros (default 0).
 #' @param threshold Numeric: percentile threshold for outlier detection (default 90).
 #' @param seed Random seed for reproducibility.
-#' @param print_results Logical: if TRUE (default), display formatted results for each gene.
-#' @param verbose Logical: if TRUE, print diagnostic messages (default FALSE).
+#' @param verbose Logical: if TRUE (default), display formatted results for each gene and print diagnostic messages.
 #' @param nthreads Numeric: number of CPU threads for parallel processing (default = 1, sequential).
 #'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
 #'   If NULL, auto-detects available cores minus 1.
@@ -83,14 +82,14 @@
 #' recommending appropriate interpretation. Set \code{verbose=TRUE} for additional guidance
 #' when q is in the recommended range (per papers S111, I004).
 #'
-#' **Display behavior (print_results parameter):**
-#' When x is a matrix/data.frame and print_results=TRUE (default):
+#' **Display behavior (verbose parameter):**
+#' When x is a matrix/data.frame and verbose=TRUE (default):
 #' - Displays header: "Jackknife Stability Analysis for Top N Genes"
 #' - For each gene: number of transcripts, diversity estimate, jackknife SE,
 #'   max transcript influence, number of outliers detected, and outlier indices
 #' - Shows interpretation guide explaining stability patterns
-#' When x is a vector, returns silently regardless of print_results value.
-#' For programmatic access without display, set print_results=FALSE.
+#' When x is a vector, returns silently regardless of verbose value.
+#' For programmatic access without display, set verbose=FALSE.
 #'
 #' **Use cases:**
 #' - Identify genes with one dominant isoform (suspect for splicing errors)
@@ -169,7 +168,7 @@
 #'   x = counts_matrix,
 #'   q = 1,
 #'   norm = TRUE,
-#'   print_results = TRUE  # Auto-displays summary for all genes
+#'   verbose = TRUE  # Auto-displays summary for all genes
 #' )
 #' 
 #' # Example 2b: Multiple q values for robustness checking
@@ -177,7 +176,7 @@
 #'   x = counts_matrix[1, ],  # First gene
 #'   q = c(0.5, 1, 1.5, 2),
 #'   norm = TRUE,
-#'   print_results = TRUE  # Shows stability across q values
+#'   verbose = TRUE  # Shows stability across q values
 #' )
 #' 
 #' # Example 3: SummarizedExperiment input with automatic data extraction
@@ -188,7 +187,7 @@
 #' #     top_n = 5,
 #' #     q = 0.5,
 #' #     norm = TRUE,
-#' #     print_results = TRUE  # Auto-extracts top 5 genes and displays summary                                                # Auto-extracts top 5 genes and displays summary
+#' #     verbose = TRUE  # Auto-extracts top 5 genes and displays summary                                                # Auto-extracts top 5 genes and displays summary
 #' # )
 #'
 #' @keywords internal
@@ -196,7 +195,7 @@
 jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
                                        q = 1, norm = TRUE, log_base = exp(1),
                                        pseudocount = 0, threshold = 90, seed = NULL,
-                                       print_results = TRUE, verbose = FALSE, nthreads = 1, .cluster = NULL) {
+                                       verbose = FALSE, nthreads = 1, .cluster = NULL) {
 
   # Input validation
   if (!is.numeric(q) || any(q <= 0)) {
@@ -258,7 +257,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
         jackknife_tsallis_entropy(
           x = x, se = se, res = res, top_n = top_n, q = q_val, 
           norm = norm, log_base = log_base, pseudocount = pseudocount,
-          threshold = threshold, seed = seed, print_results = FALSE, verbose = verbose
+          threshold = threshold, seed = seed, verbose = FALSE
         )
       })
     } else {
@@ -267,7 +266,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
         jackknife_tsallis_entropy(
           x = x, se = se, res = res, top_n = top_n, q = q_val, 
           norm = norm, log_base = log_base, pseudocount = pseudocount,
-          threshold = threshold, seed = seed, print_results = FALSE, verbose = verbose,
+          threshold = threshold, seed = seed, verbose = FALSE,
           .cluster = NULL  # No cluster available
         )
       })
@@ -278,7 +277,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     
     # Optional printing
     # P3 OPTIMIZATION: Batch message formatting for multi-q display
-    if (print_results && !is.null(x) && (is.vector(x) || length(q) > 1)) {
+    if (verbose && !is.null(x) && (is.vector(x) || length(q) > 1)) {
       output_lines <- c(
         "Jackknife Stability Analysis for Multiple q Values",
         "===================================================="
@@ -411,7 +410,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     counts_matrix <- do.call(rbind, counts_list)
     rownames(counts_matrix) <- gene_names_out
 
-    # Call recursively with matrix input (with print_results suppressed for first call)
+    # Call recursively with matrix input (with verbose suppressed for first call)
     # P2 OPTIMIZATION: Pass .cluster through recursion
     return(jackknife_tsallis_entropy(
       x = counts_matrix,
@@ -421,7 +420,6 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
       pseudocount = pseudocount,
       threshold = threshold,
       seed = seed,
-      print_results = print_results,
       verbose = verbose,
       nthreads = nthreads,  # Pass nthreads parameter through recursion
       .cluster = .cluster  # Pass cluster if it exists
@@ -552,7 +550,7 @@ jackknife_tsallis_entropy <- function(x = NULL, se = NULL, res = NULL, top_n = 5
     
     # Display results if requested
     # P3 OPTIMIZATION: Batch message formatting to reduce I/O overhead
-    if (print_results) {
+    if (verbose) {
       output_lines <- c(
         "Jackknife Stability Analysis for Top 5 Genes",
         "============================================"
