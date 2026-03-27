@@ -51,24 +51,29 @@
       stop("colData must contain '", subject_col, "' column for paired design")
     }
     
+    # condition_col is REQUIRED
+    if (is.null(condition_col) || !condition_col %in% colnames(ts_coldata)) {
+      stop("condition_col='", condition_col, "' not found in colData. Required for Q×Condition interaction testing.")
+    }
+    
     data <- data.frame(
       entropy = as.numeric(entropy_matrix),
       gene = rep(rownames(data), ncol(data)),
       q = rep(ts_coldata$q, each = nrow(data)),
+      condition = rep(ts_coldata[[condition_col]], each = nrow(entropy_matrix)),
       stringsAsFactors = FALSE
     )
     
     if (paired) {
       data[[subject_col]] <- rep(ts_coldata[[subject_col]], each = nrow(entropy_matrix))
     }
-    if (!is.null(condition_col) && condition_col %in% colnames(ts_coldata)) {
-      data$condition <- rep(ts_coldata[[condition_col]], each = nrow(entropy_matrix))
-      if (verbose) message("Testing q * condition interaction")
-    }
+    
+    if (verbose) message("Testing Q × Condition interaction")
     
     entropy_col <- "entropy"
     q_col <- "q"
     gene_col <- "gene"
+    condition_col <- "condition"
   }
   
   # Validate columns exist
@@ -76,13 +81,30 @@
     if (!col %in% colnames(data)) stop("Column '", col, "' not found")
   }
   
+  # Handle condition_col: it must exist in the data
+  if (is.null(condition_col)) {
+    # Try default "condition" column if no condition_col specified
+    if ("condition" %in% colnames(data)) {
+      condition_col <- "condition"
+    } else {
+      stop("'condition_col' must be specified or 'condition' column must exist in data. ",
+           "This function requires Q×Condition interaction testing.", call. = FALSE)
+    }
+  } else if (!condition_col %in% colnames(data)) {
+    stop("Column '", condition_col, "' not found in data", call. = FALSE)
+  }
+  
   # Standardize column names
   colnames(data)[colnames(data) == entropy_col] <- "entropy"
   colnames(data)[colnames(data) == q_col] <- "q"
   colnames(data)[colnames(data) == gene_col] <- "gene"
+  if (condition_col %in% colnames(data) && condition_col != "condition") {
+    colnames(data)[colnames(data) == condition_col] <- "condition"
+  }
   
   data$q <- factor(data$q)
   data$gene <- factor(data$gene)
+  data$condition <- factor(data$condition)
   
   if (paired) {
     if (!subject_col %in% colnames(data)) {
@@ -91,7 +113,7 @@
     data[[subject_col]] <- factor(data[[subject_col]])
   }
   
-  return(list(data = data, has_condition = "condition" %in% colnames(data)))
+  return(list(data = data, has_condition = TRUE))
 }
 
 #' Internal: Analyze single gene for q-effects
@@ -103,16 +125,10 @@
     return(list(test_failed = TRUE, class = "Insufficient data", method = "insufficient"))
   }
   
-  # Run appropriate test
-  test_result <- if (has_condition && "condition" %in% colnames(gene_data)) {
-    tryCatch(.tsenat_test_q_condition_interaction(
-      gene_data, "entropy", "q", "condition", paired, if (paired) subject_col else NULL),
-      error = function(e) NULL)
-  } else {
-    tryCatch(.tsenat_apply_conditional_rank_test(
-      gene_data, "entropy", "q", paired, if (paired) subject_col else NULL, FALSE),
-      error = function(e) NULL)
-  }
+  # Always run Q×Condition interaction test (condition is now REQUIRED)
+  test_result <- tryCatch(.tsenat_test_q_condition_interaction(
+    gene_data, "entropy", "q", "condition", paired, if (paired) subject_col else NULL),
+    error = function(e) NULL)
   
   if (is.null(test_result)) return(list(test_failed = TRUE, class = "Test failed", method = "failed"))
   
@@ -176,39 +192,21 @@
 #' @noRd
 .tsenat_detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
   data_orig <- data
+  # Always test Q×Condition interaction (condition is now REQUIRED)
   if (paired) {
-    if (has_condition) {
-      function() {
-        d <- data_orig
-        for (subj in unique(d[[subject_col]])) {
-          idx <- d[[subject_col]] == subj
-          if (sum(idx) > 0) d$condition[idx] <- sample(d$condition[idx])
-        }
-        d
+    function() {
+      d <- data_orig
+      for (subj in unique(d[[subject_col]])) {
+        idx <- d[[subject_col]] == subj
+        if (sum(idx) > 0) d$condition[idx] <- sample(d$condition[idx])
       }
-    } else {
-      function() {
-        d <- data_orig
-        for (subj in unique(d[[subject_col]])) {
-          idx <- d[[subject_col]] == subj
-          if (sum(idx) > 0) d$q[idx] <- sample(d$q[idx])
-        }
-        d
-      }
+      d
     }
   } else {
-    if (has_condition) {
-      function() {
-        d <- data_orig
-        d$condition <- factor(sample(d$condition))
-        d
-      }
-    } else {
-      function() {
-        d <- data_orig
-        d$q <- factor(sample(d$q))
-        d
-      }
+    function() {
+      d <- data_orig
+      d$condition <- factor(sample(d$condition))
+      d
     }
   }
 }
@@ -222,13 +220,9 @@
     for (i in seq_len(nrow(interaction_results))) {
       gene_data_perm <- data_perm[data_perm$gene == interaction_results$gene[i], ]
       if (nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >= 2) {
-        test_result <- if (has_condition && "condition" %in% colnames(gene_data_perm)) {
-          tryCatch(.tsenat_test_q_condition_interaction(gene_data_perm, "entropy", "q", "condition",
+        # Always run Q×Condition interaction test (condition is now REQUIRED)
+        test_result <- tryCatch(.tsenat_test_q_condition_interaction(gene_data_perm, "entropy", "q", "condition",
                                                        paired, if (paired) subject_col else NULL), error = function(e) NULL)
-        } else {
-          tryCatch(.tsenat_apply_conditional_rank_test(gene_data_perm, "entropy", "q", 
-                                                      paired, if (paired) subject_col else NULL, FALSE), error = function(e) NULL)
-        }
         if (!is.null(test_result) && !is.na(test_result$statistic)) {
           perm_stats[i] <- test_result$statistic
           perm_pvals[i] <- test_result$p_value
@@ -241,13 +235,12 @@
 
 ################################################################################
 #
-#' Detect Q*Gene Interaction Terms
+#' Detect Q×Condition Interaction Terms
 #'
-#' Tests for q-parameter main effects and q*condition interactions in Tsallis entropy
-#' analysis. Can test either: (1) whether entropy varies across q-values for each gene
-#' (q main effect), or (2) whether entropy's pattern across q-values differs between
-#' conditions (q*condition interaction). The latter is the primary use case for identifying
-#' genes with condition-specific entropy dynamics.
+#' Tests for q×condition interactions in Tsallis entropy analysis. Identifies genes
+#' where entropy's pattern across q-values differs significantly between experimental
+#' conditions. This reveals genes with condition-specific transcriptome remodeling through
+#' isoform switching.
 #'
 #' @param data SummarizedExperiment (from calculate_diversity) or data frame.
 #'   If SummarizedExperiment: assay contains entropy values, colData must have "q" column,
@@ -328,14 +321,15 @@
 #'   paired=TRUE. Each subject ID should appear exactly once per q-value. 
 #'   Example: "patient_id", "subject", "pair_id". (NEW - March 2026)
 #'
-#' @param condition_col Character or NULL. Name of colData column (SummarizedExperiment) or
-#'   data frame column containing sample group/condition labels. Default: NULL.
+#' @param condition_col Character. Name of colData column (SummarizedExperiment) or
+#'   data frame column containing sample group/condition labels. **REQUIRED.**
+#'   Specifies the condition/treatment variable for testing q×condition interactions.
 #'   
-#'   **Effect on statistical test (FIXED - March 2026):**
-#'   \itemize{
-#'     \item{\code{condition_col = NULL} (default): Tests **q main effect** - whether entropy varies across q-values (ignoring condition)}
-#'     \item{\code{condition_col = "sample_type"} (or any valid column): Tests **q * condition interaction** - whether the q-effect differs between conditions (e.g., normal vs tumor)}
-#'   }
+#'   This function tests **Q×Condition interactions** only:
+#'   - Tests whether the q-effect differs between conditions
+#'   - Example: Identifies genes with condition-specific isoform switching patterns
+#'   - Genes with strong q×condition interaction show entropy variation across q-values
+#'     that differs significantly between conditions
 #'   
 #'   When condition_col provided, automatically uses:
 #'   - **Paired designs** (paired=TRUE): Two-way Friedman test (q within-subjects, condition between-subjects)
@@ -576,7 +570,8 @@
 #' @noRd
 detect_q_gene_interactions <- function(
     data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
-    paired = FALSE, subject_col = "paired_samples", condition_col = NULL,
+    condition_col = NULL,
+    paired = FALSE, subject_col = "paired_samples",
     test = c("auto", "kruskal-wallis", "friedman", "art"),
     multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
     wy_randomizations = 500, nperm_mode = "standard", nthreads = 1, verbose = FALSE) {

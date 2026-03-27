@@ -98,36 +98,41 @@ test_that(".tsenat_detect_q_prepare_data: standardizes column names", {
     my_entropy = c(1, 2, 3, 4, 5, 6),
     my_q = c("q1", "q1", "q1", "q2", "q2", "q2"),
     my_gene = c("G1", "G1", "G1", "G1", "G1", "G1"),
+    my_condition = c("A", "A", "A", "B", "B", "B"),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_prepare_data(
     data = df, entropy_col = "my_entropy", q_col = "my_q", gene_col = "my_gene",
-    paired = FALSE, subject_col = NULL, condition_col = NULL, verbose = FALSE
+    paired = FALSE, subject_col = NULL, condition_col = "my_condition", verbose = FALSE
   )
   
   expect_true("entropy" %in% colnames(result$data))
   expect_true("q" %in% colnames(result$data))
   expect_true("gene" %in% colnames(result$data))
+  expect_true("condition" %in% colnames(result$data))
   expect_is(result$data$q, "factor")
   expect_is(result$data$gene, "factor")
+  expect_is(result$data$condition, "factor")
+  expect_true(result$has_condition)
 })
 
-test_that(".tsenat_detect_q_prepare_data: returns has_condition=FALSE for data frame without condition", {
+test_that(".tsenat_detect_q_prepare_data: requires condition column", {
   df <- data.frame(
     entropy = c(1, 2, 3, 4, 5, 6),
     q = c("q1", "q1", "q1", "q2", "q2", "q2"),
     gene = c("G1", "G1", "G1", "G1", "G1", "G1"),
+    condition = c("A", "A", "A", "B", "B", "B"),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_prepare_data(
     data = df, entropy_col = "entropy", q_col = "q", gene_col = "gene",
-    paired = FALSE, subject_col = NULL, condition_col = NULL, verbose = FALSE
+    paired = FALSE, subject_col = NULL, condition_col = "condition", verbose = FALSE
   )
   
-  expect_false(result$has_condition)
-  expect_false("condition" %in% colnames(result$data))
+  expect_true(result$has_condition)
+  expect_true("condition" %in% colnames(result$data))
 })
 
 test_that(".tsenat_detect_q_prepare_data: handles paired designs", {
@@ -136,16 +141,19 @@ test_that(".tsenat_detect_q_prepare_data: handles paired designs", {
     q = rep(c("q1", "q2", "q3"), 4),
     gene = rep("G1", 12),
     subject = rep(c("S1", "S2"), 6),
+    condition = rep(c("A", "B"), 6),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_prepare_data(
     data = df, entropy_col = "entropy", q_col = "q", gene_col = "gene",
-    paired = TRUE, subject_col = "subject", condition_col = NULL, verbose = FALSE
+    paired = TRUE, subject_col = "subject", condition_col = "condition", verbose = FALSE
   )
   
   expect_true("subject" %in% colnames(result$data))
   expect_is(result$data$subject, "factor")
+  expect_true("condition" %in% colnames(result$data))
+  expect_true(result$has_condition)
 })
 
 # ============================================================================
@@ -157,11 +165,12 @@ test_that(".tsenat_detect_q_analyze_gene: identifies insufficient data", {
     entropy = c(1, 2),
     q = c("q1", "q1"),
     gene = c("G1", "G1"),
+    condition = c("A", "B"),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = FALSE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
   expect_true(result$test_failed)
@@ -174,11 +183,12 @@ test_that(".tsenat_detect_q_analyze_gene: computes test statistics for valid dat
     entropy = rnorm(12),
     q = rep(c("q1", "q2", "q3"), 4),
     gene = rep("G1", 12),
+    condition = rep(c("A", "B"), 6),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = FALSE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
   expect_false(result$test_failed)
@@ -200,11 +210,12 @@ test_that(".tsenat_detect_q_analyze_gene: computes valid effect sizes", {
     ),
     q = rep(c("q1", "q2", "q3"), each = 4),
     gene = rep("G1", 12),
+    condition = rep(c("A", "B"), 6),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = FALSE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
   # Effect size should be meaningful (eta2 between 0 and 1)
@@ -219,11 +230,12 @@ test_that(".tsenat_detect_q_analyze_gene: sums of squares are consistent", {
     entropy = rnorm(12),
     q = rep(c("q1", "q2", "q3"), 4),
     gene = rep("G1", 12),
+    condition = rep(c("A", "B"), 6),
     stringsAsFactors = FALSE
   )
   
   result <- TSENAT:::.tsenat_detect_q_analyze_gene(
-    gene_data, paired = FALSE, subject_col = NULL, has_condition = FALSE
+    gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
   # Function returns ss_interaction (not ss_q) and ss_residual

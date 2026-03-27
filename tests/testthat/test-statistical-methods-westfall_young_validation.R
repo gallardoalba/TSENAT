@@ -273,6 +273,8 @@ test_that("detect_q_gene_interactions handles paired design correctly", {
   # Add q-dependent signal for some genes
   data_paired$entropy[data_paired$gene == "Gene1" & data_paired$q == 1.5] <- 
     data_paired$entropy[data_paired$gene == "Gene1" & data_paired$q == 1.5] + 0.8
+  # Add condition column
+  data_paired$condition <- data_paired$sample_type
   
   # Run with paired design
   result <- detect_q_gene_interactions(
@@ -280,6 +282,7 @@ test_that("detect_q_gene_interactions handles paired design correctly", {
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    condition_col = "condition",
     paired = TRUE,
     subject_col = "subject",
     multicorr = "hochberg",
@@ -315,6 +318,8 @@ test_that("Westfall-Young permutation maintains FWER with adequate sample sizes"
   
   # Generate baseline entropy (null)
   data_large$entropy <- rnorm(nrow(data_large), mean = 2, sd = 0.4)
+  # Add condition column
+  data_large$condition <- rep(c("A", "B"), length.out = nrow(data_large))
   
   # Run with Westfall-Young (uses permutation loop)
   result <- detect_q_gene_interactions(
@@ -322,6 +327,7 @@ test_that("Westfall-Young permutation maintains FWER with adequate sample sizes"
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    condition_col = "condition",
     paired = FALSE,
     multicorr = "westfall-young",
     wy_randomizations = 50,
@@ -360,6 +366,8 @@ test_that("Westfall-Young permutation works with unpaired rank-based tests", {
   # Add strong signal for Gene1 at higher q values
   data_sig$entropy[data_sig$gene == "Gene1" & data_sig$q == 3] <- 
     data_sig$entropy[data_sig$gene == "Gene1" & data_sig$q == 3] + 1.5
+  # Add condition column
+  data_sig$condition <- rep(c("A", "B"), length.out = nrow(data_sig))
   
   # Run with Hochberg correction (more stable for moderate sample sizes)
   # Hochberg is valid under positive regression dependence (satisfied for Tsallis entropy q-values)
@@ -368,6 +376,7 @@ test_that("Westfall-Young permutation works with unpaired rank-based tests", {
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    condition_col = "condition",
     paired = FALSE,
     multicorr = "hochberg",
     verbose = FALSE
@@ -455,6 +464,8 @@ test_that("Parallel WY permutation (nthreads=2) produces valid results", {
   data_parallel$sample <- paste0(data_parallel$subject, "_", data_parallel$sample_type)
   data_parallel$paired_samples <- data_parallel$subject
   data_parallel$entropy <- rnorm(nrow(data_parallel), mean = 2, sd = 0.4)
+  # Add condition column
+  data_parallel$condition <- data_parallel$sample_type
   
   # Run with WY permutation and nthreads=2
   # Use smaller wy_randomizations for speed
@@ -463,6 +474,7 @@ test_that("Parallel WY permutation (nthreads=2) produces valid results", {
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    condition_col = "condition",
     paired = TRUE,
     subject_col = "subject",
     multicorr = "westfall-young",
@@ -512,6 +524,8 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
   data_compare$sample <- paste0(data_compare$subject, "_", data_compare$sample_type)
   data_compare$paired_samples <- data_compare$subject
   data_compare$entropy <- rnorm(nrow(data_compare), mean = 2, sd = 0.4)
+  # Add condition column
+  data_compare$condition <- data_compare$sample_type
   
   # Set seed identically for both runs
   # Suppress chi-squared approximation warnings (expected with small sample sizes)
@@ -521,6 +535,7 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    condition_col = "condition",
     paired = TRUE,
     subject_col = "subject",
     multicorr = "westfall-young",
@@ -535,6 +550,7 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
     entropy_col = "entropy",
     q_col = "q",
     gene_col = "gene",
+    condition_col = "condition",
     paired = TRUE,
     subject_col = "subject",
     multicorr = "westfall-young",

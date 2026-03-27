@@ -1209,8 +1209,9 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   (requires \code{subject_col}). If NULL, reads from \code{@config$paired}.
 #' @param subject_col \code{character} or \code{NULL}. Column name for subject/block identifiers
 #'   (required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.
-#' @param condition_col \code{character} or \code{NULL}. Column name for grouping/condition.
-#'   If NULL, reads from \code{@config$condition_col}.
+#' @param condition_col \code{character}. Column name for sample grouping/condition (REQUIRED).
+#'   Specifies the condition/treatment variable for testing q×condition interactions.
+#'   Example: "sample_type", "treatment", "disease_status".
 #' @param test \code{character}. Test method: "auto" (default), "kruskal-wallis" (unpaired),
 #'   "friedman" (paired), or "art" (aligned rank transform).
 #' @param multicorr \code{character}. Multiple testing correction: "hochberg" (default),
@@ -1236,10 +1237,10 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
+#'   \item \code{condition_col}: REQUIRED - must be explicitly provided
 #'   \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
 #'   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
 #'   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
-#'   \item \code{condition_col}: explicit arg > \code{@config$condition_col}
 #'   \item \code{multicorr}: explicit arg > \code{@config$multicorr} > "hochberg"
 #'   \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
 #'   \item \code{test}: explicit arg > \code{@config$test} > "auto" (auto-selection)
@@ -1251,47 +1252,51 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
-#' # Use config-stored parameters (paired design)
-#' analysis <- detect_q_gene_interactions_s4(analysis, multicorr = "hochberg")
+#' # Test Q×Condition interaction (condition_col is REQUIRED)
+#' analysis <- detect_q_gene_interactions_s4(analysis, condition_col = "condition", 
+#'                                            multicorr = "hochberg")
 #' head(lmResults(analysis)$q_interactions)
 #'
 #' @export
 #' @importFrom utils write.table
 # ============================================================================
-# S4 WRAPPER: Detect Q-Dependent Gene Interactions (Rank-Based Testing)
+# S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
 # Purpose:
 #   Wrapper around detect_q_gene_interactions() that manages TSENATAnalysis object.
-#   Tests for genes with q-dependent entropy patterns using rank-based methods.
+#   Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns.
+#   Tests whether the effect of q-values DIFFERS between experimental conditions.
 # 
 # Key Features:
+#   - Q×Condition interaction: Tests if entropy patterns across q-values differ by condition
 #   - Multi-q analysis: Combines diversity results for multiple q-values into
 #     a single SummarizedExperiment for joint hypothesis testing
 #   - Rank-based statistics: Kruskal-Wallis (unpaired) or Friedman (paired)
+#   - Scheirer-Ray-Hare test: Two-way non-parametric ANOVA on ranks
 #   - Multiple testing correction: Hochberg, Benjamini-Yekutieli, or
 #     Westfall-Young permutation procedure
 #   - AR(1) correlation handling: Westfall-Young preserves q-value correlations
-#   - Effect sizes: Eta-squared (η²) for q-main effects and q×condition interactions
+#   - Effect sizes: Eta-squared (η²) for q×condition interactions
 #
 #   Mathematical Background:
-#   Tests null hypothesis: H0 = "Gene entropy does NOT vary across q-values"
-#   vs Alternative: H1 = "Gene entropy SIGNIFICANTLY q-dependent"
+#   Tests null hypothesis: H0 = "Gene entropy q-effect does NOT differ between conditions"
+#   vs Alternative: H1 = "Gene entropy q-dependence is CONDITION-SPECIFIC"
 # 
-#   For q-dependent genes, entropy curves across q show different patterns:
-#   - Low q (< 1.0): Emphasizes tail isoforms (rare expression patterns)
-#   - Mid q (= 1.0): Shannon entropy (balanced)
-#   - High q (> 1.0): Emphasizes dominant isoforms (strong expression patterns)
+#   Example: Gene shows strong isoform switching (q-dependent entropy) in tumor cells
+#   but NOT in healthy cells -> Identified as disease-relevant q-dependent gene.
 # 
-#   If a gene is q-dependent, different aspects of its isoform distribution
-#   are revealed at different q-values.
+#   For condition-specific q-dependent genes:
+#   - Condition A: Strong entropy variation across q (q-dependent)
+#   - Condition B: Flat entropy profile across q (q-independent)
+#   - Interaction: Condition-specific q-dependence pattern reveals biological process
 # ============================================================================
 detect_q_gene_interactions_s4 <- function(
     analysis, 
+    condition_col,
     q = NULL, 
     output_file = NULL,
     paired = NULL,
     subject_col = NULL,
-    condition_col = NULL,
     test = c("auto", "kruskal-wallis", "friedman", "art"),
     multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
     entropy_col = "diversity",
@@ -1307,12 +1312,24 @@ detect_q_gene_interactions_s4 <- function(
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
 
+  # Validate condition_col is provided (Q×Condition interaction is required)
+  # Try to read from config if not explicitly provided
+  if (missing(condition_col) || is.null(condition_col)) {
+    # Try to get from config
+    if (!is.null(analysis@config) && "condition_col" %in% names(analysis@config)) {
+      condition_col <- analysis@config$condition_col
+    } else {
+      # Default to "condition" if still not found
+      condition_col <- "condition"
+    }
+  }
+
   # ========================================================================
   # PREREQUISITE CHECK: Diversity must be pre-calculated
   # ========================================================================
   # detect_q_gene_interactions() requires a SummarizedExperiment with:
   #   - assays: entropy values (genes × samples)
-  #   - colData: q-values and optional condition/subject information
+  #   - colData: q-values, condition_col, and optional subject information
   if (length(analysis@diversity_results) == 0) {
     stop("Diversity results required. Run calculate_diversity_s4() first.",
          call. = FALSE)
@@ -1356,13 +1373,13 @@ detect_q_gene_interactions_s4 <- function(
   q <- resolve_slot_param(q, analysis@config, "q_values", NULL)
   paired <- resolve_slot_param(paired, analysis@config, "paired", NULL)
   subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col", NULL)
-  condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col", NULL)
   nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
   
   # Add resolved parameters to dots list
   if (!is.null(paired)) dots$paired <- paired
   if (!is.null(subject_col)) dots$subject_col <- subject_col
-  if (!is.null(condition_col)) dots$condition_col <- condition_col
+  # condition_col is REQUIRED and explicitly passed
+  dots$condition_col <- condition_col
   dots$nthreads <- nthreads
   dots$wy_randomizations <- wy_randomizations
   dots$verbose <- verbose

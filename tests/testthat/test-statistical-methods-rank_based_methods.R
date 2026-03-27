@@ -284,6 +284,7 @@ test_that("detect_q_gene_interactions basic functionality works", {
     q = rep(c(0.5, 1.0, 1.5), each = 30),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 10),
     sample = rep(paste0("S", 1:10), 9),
+    condition = rep(c("A", "B"), times = 45),
     stringsAsFactors = FALSE
   )
   
@@ -316,6 +317,7 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("RobustGene", 30),
     sample = rep(paste0("S", 1:10), 3),
+    condition = rep(c("A", "B"), times = 15),
     stringsAsFactors = FALSE
   )
   
@@ -340,6 +342,7 @@ test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("DependentGene", 30),
     sample = rep(paste0("S", 1:10), 3),
+    condition = rep(c("A", "B"), times = 15),
     stringsAsFactors = FALSE
   )
   

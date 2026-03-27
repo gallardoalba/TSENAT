@@ -31,6 +31,8 @@
 #' @param plot_types \code{character}. Specific plots to generate.
 #'   Default: all available types.
 #' @param seed \code{numeric}. Random seed for reproducibility.
+#' @param condition_col \code{character}. Name of condition column in colData.
+#'   Default: "condition".
 #' @param ... Additional configuration parameters (stored as-is).
 #'
 #' @return \code{list} with class \code{TSENATConfig} containing all
@@ -63,6 +65,7 @@ tsenat_config <- function(
   generate_plots = TRUE,
   plot_types = NULL,
   seed = NULL,
+  condition_col = "condition",
   ...
 ) {
   # Build q_values if range specified
@@ -110,7 +113,8 @@ tsenat_config <- function(
     p_threshold = p_threshold,
     fdr_threshold = fdr_threshold,
     methods = methods,
-    generate_plots = generate_plots
+    generate_plots = generate_plots,
+    condition_col = condition_col
   )
 
   # Add optional parameters
@@ -213,6 +217,7 @@ tsenat <- function(
   # Extract parameters from config with defaults
   methods_to_run <- analysis@config$methods %||% c("diversity", "lm_interaction", "jackknife", "divergence", "q_interactions")
   q_vals <- analysis@config$q_values %||% seq(0.5, 2.0, by = 0.5)
+  condition_col_name <- analysis@config$condition_col %||% "condition"
   do_plots <- generate_plots && (analysis@config$generate_plots %||% TRUE)
   do_parallel <- parallel && ("parallel" %in% rownames(utils::installed.packages()))
 
@@ -334,6 +339,7 @@ tsenat <- function(
       tryCatch({
         analysis <- detect_q_gene_interactions_s4(
           analysis,
+          condition_col = condition_col_name,
           q = q_vals,
           ...
         )
