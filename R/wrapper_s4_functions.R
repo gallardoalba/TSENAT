@@ -108,9 +108,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
     stop("SummarizedExperiment in @se is empty", call. = FALSE)
   }
 
-  # Priority 1: Use explicit parameter if provided
-  # Priority 2: Use @config$q_values if set
-  # Priority 3: Default to seq(0.01, 2, by = 0.05)
+  # Extract q parameter with default range
   if (is.null(q)) {
     if ("q_values" %in% names(analysis@config)) {
       q <- analysis@config$q_values
@@ -127,140 +125,31 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
   # ===================================================================
   # PARAMETER EXTRACTION FROM @config (with priority resolution)
   # ===================================================================
-  # Priority: explicit argument > @config > function default
+  # Use resolve_slot_param() for centralized priority handling
   
-  # Extract nthreads parameter
-  if (is.null(nthreads)) {
-    if ("nthreads" %in% names(analysis@config)) {
-      nthreads <- analysis@config$nthreads
-    } else {
-      nthreads <- 1  # Default to sequential
-    }
-  }
+  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+  bootstrap <- resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE)
+  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
+  norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
+  what <- resolve_slot_param(what, analysis@config, "what", "S")
+  assayno <- resolve_slot_param(assayno, analysis@config, "assayno", 1)
+  min_valid_frac <- resolve_slot_param(min_valid_frac, analysis@config, "min_valid_frac", 0.75)
+  shrinkage <- resolve_slot_param(shrinkage, analysis@config, "shrinkage", "none")
+  bootstrap_method <- resolve_slot_param(bootstrap_method, analysis@config, "bootstrap_method", "percentile")
+  bootstrap_ci <- resolve_slot_param(bootstrap_ci, analysis@config, "bootstrap_ci", 0.95)
   
-  # Extract verbose parameter
-  if (is.null(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      verbose <- analysis@config$verbose
-    } else {
-      verbose <- TRUE  # Default
-    }
-  }
-  
-  # Extract bootstrap parameter
-  if (is.null(bootstrap)) {
-    if ("bootstrap" %in% names(analysis@config)) {
-      bootstrap <- analysis@config$bootstrap
-    } else {
-      bootstrap <- FALSE  # Default
-    }
-  }
-  
-  # Extract pseudocount parameter
-  if (is.null(pseudocount)) {
-    if ("pseudocount" %in% names(analysis@config)) {
-      pseudocount <- analysis@config$pseudocount
-    } else {
-      pseudocount <- 0  # Default
-    }
-  }
-  
-  # Extract normalization method
-  if (is.null(norm)) {
-    if ("norm" %in% names(analysis@config)) {
-      norm <- analysis@config$norm
-    } else {
-      norm <- TRUE  # Default
-    }
-  }
-  
-  # Extract what parameter (S for Tsallis entropy, D for diversity)
-  if (is.null(what)) {
-    if ("what" %in% names(analysis@config)) {
-      what <- analysis@config$what
-    } else {
-      what <- "S"  # Default to entropy
-    }
-  }
-  
-  # Extract tpm parameter
+  # TPM parameter (special case: logical, default FALSE, check config if FALSE)
   if (!tpm && "tpm" %in% names(analysis@config)) {
     tpm <- analysis@config$tpm
   }
   
-  # Extract assayno parameter
-  if (is.null(assayno)) {
-    if ("assayno" %in% names(analysis@config)) {
-      assayno <- analysis@config$assayno
-    } else {
-      assayno <- 1  # Default
-    }
-  }
-  
-  # Extract min_valid_frac parameter
-  if (is.null(min_valid_frac)) {
-    if ("min_valid_frac" %in% names(analysis@config)) {
-      min_valid_frac <- analysis@config$min_valid_frac
-    } else {
-      min_valid_frac <- 0.75  # Default
-    }
-  }
-  
-  # Extract shrinkage parameter
-  if (is.null(shrinkage)) {
-    if ("shrinkage" %in% names(analysis@config)) {
-      shrinkage <- analysis@config$shrinkage
-    } else {
-      shrinkage <- "none"  # Default
-    }
-  }
-  
-  # Extract genes parameter
-  if (is.null(genes) && "genes" %in% names(analysis@config)) {
-    genes <- analysis@config$genes
-  }
-  
-  # Extract effective_length parameter
-  if (is.null(effective_length) && "effective_length" %in% names(analysis@config)) {
-    effective_length <- analysis@config$effective_length
-  }
-  
-  # Extract bootstrap_nboot parameter
-  if (is.null(bootstrap_nboot) && "bootstrap_nboot" %in% names(analysis@config)) {
-    bootstrap_nboot <- analysis@config$bootstrap_nboot
-  }
-  
-  # Extract bootstrap_method parameter
-  if (is.null(bootstrap_method)) {
-    if ("bootstrap_method" %in% names(analysis@config)) {
-      bootstrap_method <- analysis@config$bootstrap_method
-    } else {
-      bootstrap_method <- "percentile"  # Default
-    }
-  }
-  
-  # Extract bootstrap_ci parameter
-  if (is.null(bootstrap_ci)) {
-    if ("bootstrap_ci" %in% names(analysis@config)) {
-      bootstrap_ci <- analysis@config$bootstrap_ci
-    } else {
-      bootstrap_ci <- 0.95  # Default
-    }
-  }
-  
-  # Extract bootstrap_include_diagnostics parameter
-  if (is.null(bootstrap_include_diagnostics)) {
-    if ("bootstrap_include_diagnostics" %in% names(analysis@config)) {
-      bootstrap_include_diagnostics <- analysis@config$bootstrap_include_diagnostics
-    } else {
-      bootstrap_include_diagnostics <- TRUE  # Default
-    }
-  }
-  
-  # Extract metadata parameter (for .map_metadata() application to results)
-  if (is.null(metadata) && "metadata" %in% names(analysis@config)) {
-    metadata <- analysis@config$metadata
-  }
+  # Optional parameters (may be NULL)
+  genes <- resolve_slot_param(genes, analysis@config, "genes", NULL)
+  effective_length <- resolve_slot_param(effective_length, analysis@config, "effective_length", NULL)
+  bootstrap_nboot <- resolve_slot_param(bootstrap_nboot, analysis@config, "bootstrap_nboot", NULL)
+  bootstrap_include_diagnostics <- resolve_slot_param(bootstrap_include_diagnostics, analysis@config, "bootstrap_include_diagnostics", TRUE)
+  metadata <- resolve_slot_param(metadata, analysis@config, "metadata", NULL)
 
   # Use three decimal precision for q-value formatting
   # This ensures consistent formatting for all q-values (e.g., 0.100, 0.150, 2.000)
@@ -526,34 +415,9 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
     )
   }
 
-  # Save if output_file provided
-  if (!is.null(output_file)) {
-    # Create directory if it doesn't exist
-    output_dir <- dirname(output_file)
-    if (output_dir != "." && !dir.exists(output_dir)) {
-      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-    }
-    
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write as text table (convert to data.frame representation)
-      # Try to extract writable data from SummarizedExperiment or other formats
-      tryCatch({
-        if (length(analysis@diversity_results) > 0 && is(analysis@diversity_results[[1]], "SummarizedExperiment")) {
-          # Extract assay data from first SummarizedExperiment
-          write_data <- as.data.frame(assay(analysis@diversity_results[[1]]))
-        } else {
-          write_data <- as.data.frame(analysis@diversity_results)
-        }
-        write.table(write_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
-      }, error = function(e) {
-        warning("[calculate_diversity_s4] Could not write diversity results to file: ", 
-                conditionMessage(e), call. = FALSE)
-      })
-    } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
-    }
-  }
+  # Save if output_file provided (using centralized output handler)
+  save_analysis_output(analysis, output_file, object = analysis, verbose = verbose, 
+                       func_name = "calculate_diversity_s4")
 
   analysis
 }
@@ -657,69 +521,34 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   }
 
   # =========================================================================
-  # PARAMETER EXTRACTION FROM @config (Priority: explicit > config > default)
+  # PARAMETER EXTRACTION FROM @config using centralized helpers
   # =========================================================================
-  # Extract parameters from @config if not provided as arguments
-  # This allows specifying once in TSENATAnalysis initialization
   
-  # Condition column (for sample grouping)
+  # Auto-detect condition_col if not provided
   if (is.null(condition_col)) {
-    if ("condition_col" %in% names(analysis@config)) {
-      condition_col <- analysis@config$condition_col
-    } else if ("condition" %in% colnames(colData(analysis@se))) {
-      # Auto-detect common column name
-      condition_col <- "condition"
-    } else if ("sample_type" %in% colnames(colData(analysis@se))) {
-      # Try another common name
-      condition_col <- "sample_type"
-    }
+    cd_cols <- colnames(colData(analysis@se))
+    condition_col <- auto_detect_column(
+      cd_cols,
+      config_list = analysis@config,
+      config_key = "condition_col",
+      priority_candidates = c("condition", "sample_type", "group", "treatment"),
+      default_fallback = NULL,
+      verbose = verbose,
+      param_name = "condition_col"
+    )
   }
   
-  # Method (statistical approach)
-  if (is.null(method)) {
-    if ("method" %in% names(analysis@config)) {
-      method <- analysis@config$method
-    } else {
-      method <- "lmm"  # Default to LMM with AR(1) covariance
-    }
-  }
+  # Resolve remaining parameters using centralized handler
+  method <- resolve_slot_param(method, analysis@config, "method", "lmm")
+  subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col", NULL)
+  multicorr <- resolve_slot_param(multicorr, analysis@config, "multicorr", NULL)
+  corstr <- resolve_slot_param(corstr, analysis@config, "corstr", NULL)
+  pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
+  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", NULL)
   
-  # Paired design flag
+  # Paired design (logical flag)
   if (!paired && "paired" %in% names(analysis@config)) {
     paired <- analysis@config$paired
-  }
-  
-  # Subject column (for paired/hierarchical designs)
-  if (is.null(subject_col) && "subject_col" %in% names(analysis@config)) {
-    subject_col <- analysis@config$subject_col
-  }
-  
-  # Number of threads for parallel computation
-  # Priority: explicit argument > @config$nthreads > NULL
-  if (is.null(nthreads)) {
-    if ("nthreads" %in% names(analysis@config)) {
-      nthreads <- analysis@config$nthreads
-    }
-    # else: keep as NULL (let base function decide)
-  }
-  
-  # Multiple comparison correction
-  if (is.null(multicorr) && "multicorr" %in% names(analysis@config)) {
-    multicorr <- analysis@config$multicorr
-  }
-  
-  # Correlation structure for GEE
-  if (is.null(corstr) && "corstr" %in% names(analysis@config)) {
-    corstr <- analysis@config$corstr
-  }
-  
-  # P-value correction
-  if (is.null(pcorr)) {
-    if ("pcorr" %in% names(analysis@config)) {
-      pcorr <- analysis@config$pcorr
-    } else {
-      pcorr <- "BH"  # Default Benjamini-Hochberg
-    }
   }
   
   # Validate that required parameters are available
@@ -932,42 +761,24 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 
   # Save if output_file provided
   if (!is.null(output_file)) {
-    # Create directory if it doesn't exist
-    output_dir <- dirname(output_file)
-    if (output_dir != "." && !dir.exists(output_dir)) {
-      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    lm_data <- NULL
+    
+    # Try multiple ways to extract data
+    if (!is.null(analysis@lm_results)) {
+      if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
+        lm_int <- analysis@lm_results$lm_interaction
+        if (is.data.frame(lm_int)) {
+          lm_data <- lm_int
+        } else if (is.list(lm_int) && "results" %in% names(lm_int)) {
+          lm_data <- lm_int$results
+        }
+      }
     }
     
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write LM results as text table
-      tryCatch({
-        lm_data <- NULL
-        
-        # Try multiple ways to extract data
-        if (!is.null(analysis@lm_results)) {
-          if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
-            lm_int <- analysis@lm_results$lm_interaction
-            if (is.data.frame(lm_int)) {
-              lm_data <- lm_int
-            } else if (is.list(lm_int) && "results" %in% names(lm_int)) {
-              lm_data <- lm_int$results
-            }
-          }
-        }
-        
-        if (!is.null(lm_data) && is.data.frame(lm_data)) {
-          write.table(lm_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
-        }
-        # If no valid data.frame found, silently skip writing (don't try to force conversion)
-      }, error = function(e) {
-        # Silently skip if there's an error writing the output file
-        # The analysis results are still valid, just not written to disk
-      })
-    } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
+    if (!is.null(lm_data) && is.data.frame(lm_data)) {
+      save_analysis_output(lm_data, output_file, object = analysis, verbose = verbose,
+                           func_name = "calculate_lm_interaction_s4")
     }
-
   }
 
   analysis
@@ -986,7 +797,8 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
+#'   Supported formats: .tsv, .csv, .txt (for jackknife results table with estimates, influence, outliers),
+#'   .rds (for entire S4 object). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with jackknife results in @jackknife_results.
@@ -1026,30 +838,13 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
          call. = FALSE)
   }
 
-  # Priority 1: Use explicit parameter
-  # Priority 2: Use @config$q_values
-  # Priority 3: Use @config$q_values_default or 1.0
-  if (is.null(q)) {
-    if ("q_values" %in% names(analysis@config)) {
-      q <- analysis@config$q_values
-    } else {
-      q <- 1.0
-    }
-  }
-
+  # PARAMETER EXTRACTION using utility function
+  q <- resolve_slot_param(q, analysis@config, "q_values", 1.0)
+  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  
   # Ensure q is numeric
   if (!is.numeric(q)) {
     stop("'q' must be numeric", call. = FALSE)
-  }
-
-  # PARAMETER EXTRACTION: nthreads with priority resolution
-  # Priority: explicit argument > @config > default (1)
-  if (is.null(nthreads)) {
-    if ("nthreads" %in% names(analysis@config)) {
-      nthreads <- analysis@config$nthreads
-    } else {
-      nthreads <- 1  # Default to sequential
-    }
   }
 
   for (q_val in q) {
@@ -1104,8 +899,84 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 
   # Save if output_file provided
   if (!is.null(output_file)) {
-    saveRDS(analysis, file = output_file)
-
+    # Create directory if it doesn't exist
+    output_dir <- dirname(output_file)
+    if (output_dir != "." && !dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+    
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Convert jackknife results to data.frame for text output
+      tryCatch({
+        # Extract all jackknife results and convert to data.frame
+        all_results <- list()
+        for (jk_key in names(analysis@jackknife_results)) {
+          jk_result <- analysis@jackknife_results[[jk_key]]
+          
+          # Handle both single result and list of results
+          if (inherits(jk_result, "tsenat_jackknife")) {
+            # Single result - wrap in list for uniform processing
+            jk_result <- list(jk_result)
+            names(jk_result) <- "gene1"
+          }
+          
+          if (inherits(jk_result, "tsenat_jackknife_list")) {
+            # Convert list of results to data.frame
+            df_list <- lapply(names(jk_result), function(gene_name) {
+              res <- jk_result[[gene_name]]
+              data.frame(
+                gene = gene_name,
+                estimate = res$estimate,
+                jackknife_se = res$jackknife_se,
+                n_transcripts = res$n_transcripts,
+                n_outliers = length(res$outlier_indices),
+                outlier_indices = paste(res$outlier_indices, collapse = ","),
+                outlier_threshold = res$outlier_threshold,
+                outlier_cutoff_value = res$outlier_cutoff_value,
+                q_value = res$q,
+                normalized = res$norm,
+                stringsAsFactors = FALSE
+              )
+            })
+            
+            df <- do.call(rbind, df_list)
+            df$q_key <- jk_key  # Add q-value key for multi-q results
+            rownames(df) <- NULL
+            all_results[[jk_key]] <- df
+          }
+        }
+        
+        # Combine all results into single data.frame
+        if (length(all_results) > 0) {
+          output_df <- do.call(rbind, all_results)
+          rownames(output_df) <- NULL
+          
+          # Determine separator based on file extension
+          sep <- if (grepl("\\.csv$", tolower(output_file))) "," else "\t"
+          
+          write.table(
+            output_df,
+            file = output_file,
+            sep = sep,
+            quote = FALSE,
+            row.names = FALSE
+          )
+          
+          if (verbose) {
+            message("[jackknife_entropy_outliers_s4] Results saved to ", output_file)
+          }
+        }
+      }, error = function(e) {
+        warning("[jackknife_entropy_outliers_s4] Could not write jackknife results to file: ",
+                conditionMessage(e), call. = FALSE)
+      })
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+      if (verbose) {
+        message("[jackknife_entropy_outliers_s4] Analysis object saved to ", output_file)
+      }
+    }
   }
   analysis
 }
@@ -1177,19 +1048,11 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
          call. = FALSE)
   }
 
-  # =========================================================================
-  # PARAMETER EXTRACTION FROM @config (Priority: explicit > config > default)
-  # =========================================================================
-  
-  # Q-value: Priority 1: explicit, 2: full q_values from @config, 3: default to 1.0
-  # NOTE: Supports multi-q divergence spectrum analysis (unlike single-q defaults)
-  if (is.null(q)) {
-    if ("q_values" %in% names(analysis@config)) {
-      q <- analysis@config$q_values  # Use all q-values for spectrum analysis
-    } else {
-      q <- 1.0
-    }
-  }
+  # PARAMETER EXTRACTION using utility functions
+  q <- resolve_slot_param(q, analysis@config, "q_values", 1.0)
+  control_group <- resolve_slot_param(control_group, analysis@config, "control_group", NULL)
+  method <- resolve_slot_param(method, analysis@config, "method", "percentile")
+  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
   
   # Replace q=0 with q=0.01 for practical approximation
   # (q=0 divergence always returns 0, which is mathematically correct but uninformative)
@@ -1199,11 +1062,6 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     q <- 0.01
   }
   
-  # Control group for divergence comparison
-  if (is.null(control_group) && "control_group" %in% names(analysis@config)) {
-    control_group <- analysis@config$control_group
-  }
-  
   # Paired design flag - ensure it's always a logical value
   if (!isTRUE(paired) && !isFALSE(paired)) {
     if ("paired" %in% names(analysis@config)) {
@@ -1211,18 +1069,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     } else {
       paired <- FALSE
     }
-    # Sanitize value from config - ensure it's logical, never NA
     if (!is.logical(paired) || is.na(paired)) paired <- FALSE
-  }
-  
-  # Statistical method validation
-  if (!is.null(method)) {
-    method <- as.character(method[1])  # Ensure character type
-  } else if ("method" %in% names(analysis@config)) {
-    method <- analysis@config$method
-    if (is.null(method) || is.na(method)) method <- "percentile"
-  } else {
-    method <- "percentile"  # Safe default
   }
   
   # Bootstrap parameters - ensure it's always a logical value
@@ -1232,17 +1079,15 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     } else {
       bootstrap <- FALSE
     }
-    # Sanitize value from config - ensure it's logical, never NA
     if (!is.logical(bootstrap) || is.na(bootstrap)) bootstrap <- FALSE
   }
   
-  # Extract nthreads parameter - Priority: explicit > @config > 1
-  if (is.null(nthreads)) {
-    if ("nthreads" %in% names(analysis@config)) {
-      nthreads <- analysis@config$nthreads
-    } else {
-      nthreads <- 1  # Default to sequential
-    }
+  # Sanitize method if needed
+  if (!is.null(method)) {
+    method <- as.character(method[1])
+  }
+  if (is.null(method) || is.na(method)) {
+    method <- "percentile"
   }
 
   # Run divergence calculation with extracted parameters
@@ -1474,15 +1319,8 @@ detect_q_gene_interactions_s4 <- function(
   }
 
   # ========================================================================
-  # PARAMETER EXTRACTION FROM @config
+  # PARAMETER EXTRACTION FROM @config using centralized helpers
   # ========================================================================
-  # Priority order for parameter resolution:
-  #   1. Explicit function arguments (highest priority)
-  #   2. Values stored in analysis@config (from TSENATAnalysis initialization)
-  #   3. Function defaults (lowest priority, most permissive)
-  # 
-  # This allows one-time configuration in TSENATAnalysis initialization without
-  # repeating parameters in every downstream function call.
   
   # Prepare dots for additional arguments
   dots <- list(...)
@@ -1514,49 +1352,18 @@ detect_q_gene_interactions_s4 <- function(
   dots$q_col <- q_col
   dots$gene_col <- gene_col
   
-  # 1. q-values: explicit > @config > extract from diversity_results keys
-  if (is.null(q)) {
-    if ("q_values" %in% names(analysis@config)) {
-      q <- analysis@config$q_values
-    }
-    # Otherwise, will extract from diversity_results keys below
-  }
+  # Use resolve_slot_param for remaining parameters
+  q <- resolve_slot_param(q, analysis@config, "q_values", NULL)
+  paired <- resolve_slot_param(paired, analysis@config, "paired", NULL)
+  subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col", NULL)
+  condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col", NULL)
+  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
   
-  # 2. paired: explicit > @config (design structure parameter)
-  if (is.null(paired) && "paired" %in% names(analysis@config)) {
-    paired <- analysis@config$paired
-  }
-  if (!is.null(paired)) {
-    dots$paired <- paired
-  }
-  
-  # 3. subject_col: explicit > @config (required for paired analyses)
-  if (is.null(subject_col) && "subject_col" %in% names(analysis@config)) {
-    subject_col <- analysis@config$subject_col
-  }
-  if (!is.null(subject_col)) {
-    dots$subject_col <- subject_col
-  }
-  
-  # 4. condition_col: explicit > @config (optional grouping column)
-  if (is.null(condition_col) && "condition_col" %in% names(analysis@config)) {
-    condition_col <- analysis@config$condition_col
-  }
-  if (!is.null(condition_col)) {
-    dots$condition_col <- condition_col
-  }
-  
-  # 5. nthreads: explicit > @config > 1 (computation parameter)
-  if (is.null(nthreads)) {
-    if ("nthreads" %in% names(analysis@config)) {
-      nthreads <- analysis@config$nthreads
-    } else {
-      nthreads <- 1  # Default to sequential
-    }
-  }
+  # Add resolved parameters to dots list
+  if (!is.null(paired)) dots$paired <- paired
+  if (!is.null(subject_col)) dots$subject_col <- subject_col
+  if (!is.null(condition_col)) dots$condition_col <- condition_col
   dots$nthreads <- nthreads
-  
-  # 6. wy_randomizations and verbose (add if not already in dots)
   dots$wy_randomizations <- wy_randomizations
   dots$verbose <- verbose
 
@@ -1774,16 +1581,11 @@ detect_q_gene_interactions_s4 <- function(
     )
   }
 
-  # Save if output_file provided
+  # Save if output_file provided (using centralized output handler)
   if (!is.null(output_file)) {
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write q-interactions results as text table
-      write.table(as.data.frame(result), file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
-    } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
-    }
-
+    result_df <- as.data.frame(result)
+    save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
+                         func_name = "detect_q_gene_interactions_s4")
   }
 
   analysis
@@ -1908,117 +1710,30 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
   }
 
   # Determine condition column to use
-  if (is.null(condition_col)) {
-    if ("condition_col" %in% names(analysis@config)) {
-      condition_col <- analysis@config$condition_col
-    }
-    # else: keep as NULL (let calculate_difference auto-detect)
-  }
-
-  # Extract method parameter
-  if (is.null(method)) {
-    if ("method" %in% names(analysis@config)) {
-      method <- analysis@config$method
-    } else {
-      method <- "mean"  # Default
-    }
-  }
-
-  # Extract test parameter
-  if (is.null(test)) {
-    if ("test" %in% names(analysis@config)) {
-      test <- analysis@config$test
-    } else {
-      test <- "wilcoxon"  # Default
-    }
-  }
-
-  # Extract randomizations parameter
-  if (is.null(randomizations)) {
-    if ("randomizations" %in% names(analysis@config)) {
-      randomizations <- analysis@config$randomizations
-    } else {
-      randomizations <- 100  # Default
-    }
-  }
-
-  # Extract pcorr parameter
-  if (is.null(pcorr)) {
-    if ("pcorr" %in% names(analysis@config)) {
-      pcorr <- analysis@config$pcorr
-    } else {
-      pcorr <- "BH"  # Default
-    }
-  }
-
-  # Extract assayno parameter
-  if (is.null(assayno)) {
-    if ("assayno" %in% names(analysis@config)) {
-      assayno <- analysis@config$assayno
-    } else {
-      assayno <- 1  # Default
-    }
-  }
-
-  # Extract verbose parameter
-  if (is.null(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      verbose <- analysis@config$verbose
-    } else {
-      verbose <- TRUE  # Default
-    }
-  }
-
-  # Extract paired parameter
+  condition_col <- resolve_slot_param(condition_col, analysis@config, "condition_col", NULL)
+  
+  # Resolve remaining parameters using centralized handler
+  method <- resolve_slot_param(method, analysis@config, "method", "mean")
+  test <- resolve_slot_param(test, analysis@config, "test", "wilcoxon")
+  randomizations <- resolve_slot_param(randomizations, analysis@config, "randomizations", 100)
+  pcorr <- resolve_slot_param(pcorr, analysis@config, "pcorr", "BH")
+  assayno <- resolve_slot_param(assayno, analysis@config, "assayno", 1)
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
+  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
+  nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  robust_loss_type <- resolve_slot_param(robust_loss_type, analysis@config, "robust_loss_type", "huber")
+  robust_scale_method <- resolve_slot_param(robust_scale_method, analysis@config, "robust_scale_method", "mad")
+  
+  # Parameters with logical defaults (check config if FALSE)
   if (!paired && "paired" %in% names(analysis@config)) {
     paired <- analysis@config$paired
   }
-
-  # Extract exact parameter
   if (!exact && "exact" %in% names(analysis@config)) {
     exact <- analysis@config$exact
   }
-
-  # Extract pseudocount parameter
-  if (is.null(pseudocount)) {
-    if ("pseudocount" %in% names(analysis@config)) {
-      pseudocount <- analysis@config$pseudocount
-    } else {
-      pseudocount <- 0  # Default
-    }
-  }
-
-  # Extract nthreads parameter
-  if (is.null(nthreads)) {
-    if ("nthreads" %in% names(analysis@config)) {
-      nthreads <- analysis@config$nthreads
-    } else {
-      nthreads <- 1  # Default to sequential
-    }
-  }
-
-  # Extract seed parameter
-  if (is.null(seed) && "seed" %in% names(analysis@config)) {
-    seed <- analysis@config$seed
-  }
-
-  # Extract robust_loss_type parameter
-  if (is.null(robust_loss_type)) {
-    if ("robust_loss_type" %in% names(analysis@config)) {
-      robust_loss_type <- analysis@config$robust_loss_type
-    } else {
-      robust_loss_type <- "huber"  # Default
-    }
-  }
-
-  # Extract robust_scale_method parameter
-  if (is.null(robust_scale_method)) {
-    if ("robust_scale_method" %in% names(analysis@config)) {
-      robust_scale_method <- analysis@config$robust_scale_method
-    } else {
-      robust_scale_method <- "mad"  # Default
-    }
-  }
+  
+  # Optional parameters (may be NULL)
+  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
 
   # Run difference calculation on diversity results
   # Note: diversity_se and its colData are already prepared by calculate_diversity_s4
@@ -2060,21 +1775,15 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
     paste0("calculate_difference_s4[q=", q_used, ", control=", control, "]")
   )
 
-  # Save if output_file provided
+  # Save if output_file provided (using centralized output handler)
   if (!is.null(output_file)) {
-    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-      # Write difference results as text table
-      diff_data <- if (!is.null(analysis@lm_results$difference$results)) {
-        analysis@lm_results$difference$results
-      } else {
-        as.data.frame(analysis@lm_results$difference)
-      }
-      write.table(diff_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
+    diff_data <- if (!is.null(analysis@lm_results$difference$results)) {
+      analysis@lm_results$difference$results
     } else {
-      # Default to RDS for S4 object
-      saveRDS(analysis, file = output_file)
+      as.data.frame(analysis@lm_results$difference)
     }
-
+    save_analysis_output(diff_data, output_file, object = analysis, verbose = verbose,
+                         func_name = "calculate_difference_s4")
   }
 
   analysis
@@ -2120,6 +1829,13 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' names(metadata(analysis, "rankbased_assumptions"))
 #'
 #' @export
+#' @rdname test_rankbased_assumptions_s4
+setGeneric("test_rankbased_assumptions_s4", function(analysis, q = NULL, 
+           checks = c("exchangeability", "monotonicity", "consistency"),
+           alpha = 0.05, ...) {
+  standardGeneric("test_rankbased_assumptions_s4")
+})
+
 #' @rdname test_rankbased_assumptions_s4
 setMethod(
   "test_rankbased_assumptions_s4",
@@ -2318,10 +2034,15 @@ extract_q_from_key <- function(key) {
 #' }
 #'
 #' @examples
+#' # Create test analysis with diversity and differential results
 #' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_difference_s4(analysis, control = "control",
 #'   verbose = FALSE)
+#'   
+#' # Plot volcano and MA plots
+#' p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
+#' if (!is.null(p)) print(p)
 #'
 #' @seealso
 #' \code{\link{calculate_difference_s4}} for computing differential analysis.
@@ -2342,15 +2063,8 @@ plot_volcano_ma_grid_s4 <- function(
     height = 7.2,
     ...) {
 
-  # Auto-detect verbose from config if not explicitly provided
-  if (isTRUE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
@@ -2374,35 +2088,19 @@ plot_volcano_ma_grid_s4 <- function(
     stop("Difference results are empty or not a data frame", call. = FALSE)
   }
 
-  # Validate padj_col exists
-  # Handle both "padj" and "adjusted_p_values" column names
-  actual_padj_col <- padj_col
-  if (!(padj_col %in% colnames(diff_df))) {
-    # Try alternative column name
-    if ("adjusted_p_values" %in% colnames(diff_df) && padj_col == "padj") {
-      actual_padj_col <- "adjusted_p_values"
-    } else if ("pvalue" %in% colnames(diff_df) && padj_col == "padj") {
-      # Fallback to raw p-values if adjusted not available
-      actual_padj_col <- "pvalue"
-    } else {
-      stop("Column '", padj_col, "' not found in difference results. ",
-           "Available columns: ", paste(colnames(diff_df), collapse = ", "),
-           call. = FALSE)
-    }
-  }
-
-  # Determine x_col if not provided
-  # Prefer mean_difference, then log2_fold_change, then mean
+  # Auto-detect column names - padj_col with fallbacks, x_col for effect size
+  actual_padj_col <- auto_detect_column(
+    colnames(diff_df), analysis@config, "padj_col",
+    c("padj", "adjusted_p_values", "pvalue"),
+    verbose = verbose, param_name = "padj_col"
+  )
+  
   if (is.null(x_col)) {
-    if ("mean_difference" %in% colnames(diff_df)) {
-      x_col <- "mean_difference"
-    } else if ("log2_fold_change" %in% colnames(diff_df)) {
-      x_col <- "log2_fold_change"
-    } else {
-      warning("Could not auto-detect x_col. Available numeric columns: ",
-              paste(colnames(diff_df)[vapply(diff_df, is.numeric, FUN.VALUE = logical(1))], collapse = ", "),
-              call. = FALSE)
-    }
+    x_col <- auto_detect_column(
+      colnames(diff_df), analysis@config, "x_col",
+      c("mean_difference", "log2_fold_change", "effect_size"),
+      verbose = verbose, param_name = "x_col"
+    )
   }
 
   plot_obj <- tryCatch({
@@ -2426,22 +2124,11 @@ plot_volcano_ma_grid_s4 <- function(
     message("[plot_volcano_ma_grid_s4] Plot created successfully")
   }
 
-  # Save if output_file provided
+  # Save plot to file if requested
   if (!is.null(output_file)) {
-    if (grepl("\\.pdf$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = plot_obj, device = "pdf", width = width, height = height, dpi = 100)
-    } else if (grepl("\\.png$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = plot_obj, device = "png", width = width, height = height, dpi = 100)
-    } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = plot_obj, device = "jpeg", width = width, height = height, dpi = 100)
-    } else {
-      # Default to PDF
-      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = plot_obj, device = "pdf", width = width, height = height, dpi = 100)
-    }
-    if (verbose) {
-      message("[plot_volcano_ma_grid_s4] Plot saved to ", output_file)
-    }
-
+    save_analysis_output(plot_obj, output_file, object = analysis, verbose = verbose,
+                         func_name = "plot_volcano_ma_grid_s4",
+                         width = width, height = height)
   }
 
   return(invisible(plot_obj))
@@ -2702,15 +2389,8 @@ plot_divergence_spectrum_s4 <- function(
     verbose = TRUE,
     ...) {
 
-  # Auto-detect verbose from config if not explicitly provided
-  if (isTRUE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
 
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
@@ -2793,26 +2473,11 @@ plot_divergence_spectrum_s4 <- function(
     return(invisible(NULL))
   }
 
-  # Save to file if requested
-  output_file_path <- NULL
+  # Save plot to file if requested
   if (!is.null(output_file)) {
-    tryCatch({
-      ggplot2::ggsave(
-        filename = output_file,
-        plot = p,
-        width = width,
-        height = height,
-        dpi = 100
-      )
-      output_file_path <- output_file
-      if (verbose) {
-        message("Saved divergence spectrum plot to: ", output_file)
-      }
-    }, error = function(e) {
-      if (verbose) {
-        message("Could not save plot to file: ", e$message)
-      }
-    })
+    save_analysis_output(p, output_file, object = analysis, verbose = verbose,
+                         func_name = "plot_divergence_spectrum_s4",
+                         width = width, height = height)
   }
 
   # Return file path if saved, otherwise return plot
@@ -2943,12 +2608,22 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 #'
 #' @examples
+#' # Setup: Create test analysis with divergence and LM interaction results
 #' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), 
+#'   verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
-#' nrow(lmResults(analysis)$lm_interaction)
+#'   
+#' # Compute effect sizes from divergence results
+#' analysis <- effect_sizes_divergence_s4(analysis, 
+#'   significance_threshold = 0.05, verbose = FALSE)
+#' 
+#' # Access results
+#' if (!is.null(analysis@metadata$effect_sizes_divergence)) {
+#'   cat("Effect sizes computed successfully\n")
+#' }
 #'
 #' @seealso
 #' \code{\link{calculate_divergence_s4}} for divergence wrapper,
@@ -2965,15 +2640,8 @@ effect_sizes_divergence_s4 <- function(
     output_file = NULL,
     ...) {
 
-  # Auto-detect verbose from config if not explicitly provided
-  if (isTRUE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
   # =========================================================================
   # INPUT VALIDATION
@@ -2994,37 +2662,12 @@ effect_sizes_divergence_s4 <- function(
   }
 
   # =========================================================================
-  # PARAMETER EXTRACTION FROM @config (Priority: explicit > @config > default)
-  # =========================================================================
-  # Extract parameters from @config if not provided as arguments
-  dots <- list(...)
-  
-  # significance_threshold parameter
-  if (is.null(significance_threshold) || identical(significance_threshold, 0.05)) {
-    if ("significance_threshold" %in% names(dots)) {
-      significance_threshold <- dots$significance_threshold
-    } else if ("significance_threshold" %in% names(analysis@config)) {
-      significance_threshold <- analysis@config$significance_threshold
-    }
-  }
-  
-  # enrich_per_q_pattern parameter
-  if (isTRUE(enrich_per_q_pattern)) {
-    if ("enrich_per_q_pattern" %in% names(dots)) {
-      enrich_per_q_pattern <- dots$enrich_per_q_pattern
-    } else if ("enrich_per_q_pattern" %in% names(analysis@config)) {
-      enrich_per_q_pattern <- analysis@config$enrich_per_q_pattern
-    }
-  }
-  
-  # verbose parameter
-  if (isTRUE(verbose)) {
-    if ("verbose" %in% names(dots)) {
-      verbose <- dots$verbose
-    } else if ("verbose" %in% names(analysis@config)) {
-      verbose <- analysis@config$verbose
-    }
-  }
+  # PARAMETER EXTRACTION using utility functions
+  significance_threshold <- resolve_slot_param(significance_threshold, analysis@config, 
+                                               "significance_threshold", 0.05)
+  enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, analysis@config, 
+                                             "enrich_per_q_pattern", TRUE)
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
   # =========================================================================
   # EXTRACT RESULTS FROM ANALYSIS OBJECT
@@ -3328,15 +2971,8 @@ plot_top_transcripts_s4 <- function(
     verbose = FALSE,
     ...) {
 
-  # Auto-detect verbose from config if not explicitly provided
-  if (isFALSE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
   # =========================================================================
   # INPUT VALIDATION
@@ -3355,38 +2991,11 @@ plot_top_transcripts_s4 <- function(
   # =========================================================================
   if (is.null(condition_col)) {
     cd_cols <- colnames(colData(se))
-
-    # Try Priority 1: @config$condition_col
-    if ("condition_col" %in% names(analysis@config)) {
-      candidate <- analysis@config$condition_col
-      if (candidate %in% cd_cols) {
-        condition_col <- candidate
-      }
-    }
-
-    # Try Priority 2: @config$sample_type or direct colData
-    if (is.null(condition_col) && "sample_type" %in% cd_cols) {
-      condition_col <- "sample_type"
-    }
-
-    # Try Priority 3: @config$condition
-    if (is.null(condition_col) && "condition" %in% cd_cols) {
-      condition_col <- "condition"
-    }
-
-    # Fallback: use first column
-    if (is.null(condition_col) && length(cd_cols) > 0) {
-      condition_col <- cd_cols[1]
-    }
-
-    if (is.null(condition_col)) {
-      stop("[plot_top_transcripts_s4] Cannot auto-detect condition_col. ",
-           "Provide explicitly.", call. = FALSE)
-    }
-
-    if (verbose) {
-      message("[plot_top_transcripts_s4] Auto-detected condition_col = ", condition_col)
-    }
+    condition_col <- auto_detect_column(
+      cd_cols, analysis@config, "condition_col",
+      c("condition", "sample_type", "group", "treatment"),
+      verbose = verbose, param_name = "condition_col"
+    )
   }
 
   # =========================================================================
@@ -3405,33 +3014,20 @@ plot_top_transcripts_s4 <- function(
 
       # Auto-select top gene from LM results
       if (!is.null(lm_results_df) && nrow(lm_results_df) > 0) {
-        # Find p-value column (handle various naming conventions)
-        p_col <- if ("p_interaction" %in% colnames(lm_results_df)) {
-          "p_interaction"
-        } else if ("pvalue" %in% colnames(lm_results_df)) {
-          "pvalue"
-        } else if ("p.value" %in% colnames(lm_results_df)) {
-          "p.value"
-        } else if ("padj" %in% colnames(lm_results_df)) {
-          "padj"
-        } else if ("p_value" %in% colnames(lm_results_df)) {
-          "p_value"
-        } else {
-          NA
-        }
+        # Find p-value and gene columns
+        p_col <- auto_detect_column(
+          colnames(lm_results_df), analysis@config, "p_col",
+          c("p_interaction", "padj", "pvalue", "p.value", "p_value"),
+          verbose = FALSE, param_name = "p_col"
+        )
+        
+        gene_col <- auto_detect_column(
+          colnames(lm_results_df), analysis@config, "gene_col",
+          c("gene", "gene_name", "gene_id"),
+          verbose = FALSE, param_name = "gene_col"
+        )
 
-        # Find gene column (handle various naming conventions)
-        gene_col <- if ("gene" %in% colnames(lm_results_df)) {
-          "gene"
-        } else if ("gene_name" %in% colnames(lm_results_df)) {
-          "gene_name"
-        } else if ("gene_id" %in% colnames(lm_results_df)) {
-          "gene_id"
-        } else {
-          colnames(lm_results_df)[1]  # Fallback to first column
-        }
-
-        if (!is.na(p_col) && p_col %in% colnames(lm_results_df)) {
+        if (!is.null(p_col) && p_col %in% colnames(lm_results_df)) {
           # Get top genes (sorted by p-value, select top_n)
           top_indices <- order(lm_results_df[[p_col]])[seq_len(min(top_n, nrow(lm_results_df)))]
           gene <- as.character(lm_results_df[top_indices, gene_col])
@@ -3559,15 +3155,8 @@ plot_divergence_distribution_s4 <- function(
     verbose = TRUE,
     ...) {
 
-  # Auto-detect verbose from config if not explicitly provided
-  if (isTRUE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
 
   # Validate input
   if (!is(analysis, "TSENATAnalysis")) {
@@ -3614,25 +3203,10 @@ plot_divergence_distribution_s4 <- function(
   }
 
   # Save to file if requested
-  output_file_path <- NULL
   if (!is.null(output_file)) {
-    tryCatch({
-      ggplot2::ggsave(
-        filename = output_file,
-        plot = p,
-        width = width,
-        height = height,
-        dpi = 100
-      )
-      output_file_path <- output_file
-      if (verbose) {
-        message("Saved divergence distribution plot to: ", output_file)
-      }
-    }, error = function(e) {
-      if (verbose) {
-        message("Could not save plot to file: ", e$message)
-      }
-    })
+    save_analysis_output(p, output_file, object = analysis, verbose = verbose,
+                         func_name = "plot_divergence_distribution_s4",
+                         width = width, height = height)
   }
 
   # Always return the plot object (not file path)
@@ -3707,15 +3281,8 @@ prepare_gene_switching_tables_s4 <- function(
     output_file = NULL,
     ...) {
   
-  # Auto-detect verbose from config if not explicitly provided
-  if (isFALSE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
   # Validation
   if (!is(analysis, "TSENATAnalysis")) {
@@ -3888,15 +3455,8 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     output_file = NULL,
     ...) {
   
-  # Auto-detect verbose from config if not explicitly provided
-  if (isFALSE(verbose)) {
-    if ("verbose" %in% names(analysis@config)) {
-      config_verbose <- analysis@config$verbose
-      if (is.logical(config_verbose) && length(config_verbose) == 1) {
-        verbose <- config_verbose
-      }
-    }
-  }
+  # Extract verbose parameter if not provided
+  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
   # Validation
   if (!is(analysis, "TSENATAnalysis")) {
@@ -4112,42 +3672,11 @@ plot_lm_interaction_gam_s4 <- function(
   # =========================================================================
   if (is.null(condition_col)) {
     cd_cols <- colnames(colData(analysis@se))
-    
-    # Try Priority 1: @config$condition_col (validate it exists)
-    if ("condition_col" %in% names(analysis@config)) {
-      candidate <- analysis@config$condition_col
-      if (candidate %in% cd_cols) {
-        condition_col <- candidate
-      }
-    }
-    
-    # Try Priority 2: @config$condition (validate it exists)
-    if (is.null(condition_col) && "condition" %in% names(analysis@config)) {
-      candidate <- analysis@config$condition
-      if (candidate %in% cd_cols) {
-        condition_col <- candidate
-      }
-    }
-    
-    # Try Priority 3: Check for common column names in actual colData
-    if (is.null(condition_col)) {
-      if ("condition" %in% cd_cols) {
-        condition_col <- "condition"
-      }
-      else if ("sample_type" %in% cd_cols) {
-        condition_col <- "sample_type"
-      }
-      else {
-        # Use first column as fallback
-        if (length(cd_cols) > 0) {
-          condition_col <- cd_cols[1]
-        } else {
-          stop("[plot_lm_interaction_gam_s4] No columns found in colData(se). ",
-               "Cannot auto-detect condition_col.",
-               call. = FALSE)
-        }
-      }
-    }
+    condition_col <- auto_detect_column(
+      cd_cols, analysis@config, "condition_col",
+      c("condition", "sample_type", "group", "treatment"),
+      verbose = verbose, param_name = "condition_col"
+    )
   }
   
   # Validate that condition_col exists in colData
@@ -4252,19 +3781,11 @@ plot_lm_interaction_gam_s4 <- function(
     )
   }
   
-  # Save if output_file provided
+  # Save plot to file if requested
   if (!is.null(output_file)) {
-    if (grepl("\\.pdf$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = result, device = "pdf", width = width, height = height, dpi = 100)
-    } else if (grepl("\\.png$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = result, device = "png", width = width, height = height, dpi = 100)
-    } else if (grepl("\\.jpg$|\\.jpeg$", tolower(output_file))) {
-      ggplot2::ggsave(output_file, plot = result, device = "jpeg", width = width, height = height, dpi = 100)
-    } else {
-      # Default to PDF
-      ggplot2::ggsave(paste0(output_file, ".pdf"), plot = result, device = "pdf", width = width, height = height, dpi = 100)
-    }
-
+    save_analysis_output(result, output_file, object = analysis, verbose = verbose,
+                         func_name = "plot_lm_interaction_gam_s4",
+                         width = width, height = height)
   }
 
   # Return the plot object directly (not the analysis object)
@@ -4408,63 +3929,31 @@ jackknife_isoform_switching_s4 <- function(
   }
   
   # =========================================================================
-  # AUTO-DETECT condition_col (CACHED colnames() - optimization)
+  # AUTO-DETECT condition_col (using centralized helper)
   # =========================================================================
   cd_cols <- colnames(colData(se))
+  condition_col <- auto_detect_column(
+    cd_cols, 
+    config_list = analysis@config, 
+    config_key = "condition_col",
+    priority_candidates = c("sample_type", "condition", "group", "sample_group"),
+    default_fallback = if (length(cd_cols) > 0) cd_cols[1] else NULL,
+    verbose = verbose,
+    param_name = "condition_col"
+  )
   
   if (is.null(condition_col)) {
-    # Try Priority 1: @config$condition_col
-    if ("condition_col" %in% names(analysis@config)) {
-      candidate <- analysis@config$condition_col
-      if (!is.na(match(candidate, cd_cols))) {
-        condition_col <- candidate
-      }
-    }
-    
-    # Try Priority 2-4: use match() for faster lookup (vectorized)
-    if (is.null(condition_col)) {
-      priority_cols <- c("sample_type", "condition", "group", "sample_group")
-      idx <- match(priority_cols, cd_cols)
-      # FIX: Check if ANY priority column exists, not just first one
-      if (any(!is.na(idx))) {
-        # Get first matching column by priority order
-        condition_col <- cd_cols[idx[which.min(is.na(idx))]]
-      }
-    }
-    
-    # Fallback: use first column
-    if (is.null(condition_col) && length(cd_cols) > 0) {
-      condition_col <- cd_cols[1]
-    }
-    
-    if (is.null(condition_col)) {
-      stop(
-        "[jackknife_isoform_switching_s4] Cannot auto-detect condition_col.\n",
-        "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-        "SOLUTION: Set @config$condition_col or pass explicit parameter\n",
-        "  Example: analysis@config$condition_col <- 'sample_type'\n",
-        "  Or:      jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
-        call. = FALSE)
-    }
-    
-    if (verbose) {
-      message(sprintf("[jackknife_isoform_switching_s4] Auto-detected condition_col = %s", condition_col))
-    }
-  }
-  
-  # Validate condition_col exists (use cached cd_cols - optimization)
-  if (is.na(match(condition_col, cd_cols))) {
     stop(
-      "[jackknife_isoform_switching_s4] Specified condition_col='", condition_col,
-      "' not found in colData.\n",
-      "Available columns: ", paste(cd_cols, collapse = ", "), "\n\n",
-      "SOLUTION: Use a valid column name\n",
-      "  Example: jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
+      "[jackknife_isoform_switching_s4] Cannot auto-detect condition_col.\n",
+      "  Available colData columns: ", paste(cd_cols, collapse = ", "), "\n\n",
+      "SOLUTION: Set @config$condition_col or pass explicit parameter\n",
+      "  Example: analysis@config$condition_col <- 'sample_type'\n",
+      "  Or:      jackknife_isoform_switching_s4(analysis, condition_col = 'sample_type')\n",
       call. = FALSE)
   }
   
   # =========================================================================
-  # AUTO-DETECT gene_col AND isoform_col FROM rowData (CACHED - optimization)
+  # AUTO-DETECT gene_col AND isoform_col FROM rowData (using centralized helper)
   # =========================================================================
   rd <- if (!is.null(rowData(se)) && nrow(rowData(se)) > 0) {
     rowData(se)
@@ -4474,58 +3963,30 @@ jackknife_isoform_switching_s4 <- function(
   
   rd_cols <- if (!is.null(rd)) colnames(rd) else character(0)
   
-  # Detect gene_col - use match() for faster lookup (vectorized)
+  # Detect gene_col
   if (is.null(gene_col)) {
-    # Try Priority 1: @config$gene_col
-    if ("gene_col" %in% names(analysis@config)) {
-      candidate <- analysis@config$gene_col
-      if (!is.na(match(candidate, rd_cols)) || candidate %in% c("gene", "gene_id", "Gene", "gene_name")) {
-        gene_col <- candidate
-      }
-    }
-    
-    # Try Priority 2-5: standard column names
-    if (is.null(gene_col)) {
-      priority_genes <- c("gene_id", "gene", "Gene", "gene_name")
-      idx <- match(priority_genes, rd_cols)
-      # FIX: Check if ANY priority column exists, not just assuming match worked
-      if (any(!is.na(idx))) {
-        gene_col <- rd_cols[idx[which.min(is.na(idx))]]
-      } else {
-        gene_col <- "gene"  # Default fallback
-      }
-    }
-    
-    if (verbose) {
-      message(sprintf("[jackknife_isoform_switching_s4] Using gene_col = %s", gene_col))
-    }
+    gene_col <- auto_detect_column(
+      rd_cols,
+      config_list = analysis@config,
+      config_key = "gene_col",
+      priority_candidates = c("gene_id", "gene", "Gene", "gene_name"),
+      default_fallback = "gene",
+      verbose = verbose,
+      param_name = "gene_col"
+    )
   }
   
-  # Detect isoform_col - use match() for faster lookup (vectorized)
+  # Detect isoform_col
   if (is.null(isoform_col)) {
-    # Try Priority 1: @config$isoform_col
-    if ("isoform_col" %in% names(analysis@config)) {
-      candidate <- analysis@config$isoform_col
-      if (!is.na(match(candidate, rd_cols)) || candidate %in% c("transcript", "transcript_id", "isoform", "Isoform", "tx_id")) {
-        isoform_col <- candidate
-      }
-    }
-    
-    # Try Priority 2-6: standard column names
-    if (is.null(isoform_col)) {
-      priority_isoforms <- c("transcript_id", "transcript", "isoform", "Isoform", "tx_id")
-      idx <- match(priority_isoforms, rd_cols)
-      # FIX: Check if ANY priority column exists, not just assuming match worked
-      if (any(!is.na(idx))) {
-        isoform_col <- rd_cols[idx[which.min(is.na(idx))]]
-      } else {
-        isoform_col <- "transcript"  # Default fallback
-      }
-    }
-    
-    if (verbose) {
-      message(sprintf("[jackknife_isoform_switching_s4] Using isoform_col = %s", isoform_col))
-    }
+    isoform_col <- auto_detect_column(
+      rd_cols,
+      config_list = analysis@config,
+      config_key = "isoform_col",
+      priority_candidates = c("transcript_id", "transcript", "isoform", "Isoform", "tx_id"),
+      default_fallback = "transcript",
+      verbose = verbose,
+      param_name = "isoform_col"
+    )
   }
   
   # =========================================================================
@@ -4683,7 +4144,6 @@ jackknife_isoform_switching_s4 <- function(
   # SAVE RESULTS IF output_file PROVIDED
   # =========================================================================
   if (!is.null(output_file)) {
-    # Create directory if it doesn't exist
     output_dir <- dirname(output_file)
     if (output_dir != "." && !dir.exists(output_dir)) {
       dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -4692,57 +4152,41 @@ jackknife_isoform_switching_s4 <- function(
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
       # Write as text table (extract from jackknife results)
       tryCatch({
-        # Determine base name and extension for dual output
         output_ext <- sub("^.*\\.", ".", tolower(output_file))
         output_base <- sub(paste0(output_ext, "$"), "", output_file)
         transcript_file <- paste0(output_base, "_transcripts", output_ext)
         
-        if (inherits(result, "tsenat_isoform_switching_multiq")) {
-          # For multi-q results, write both gene and transcript level summaries
-          
-          # Gene-level summary with q_value column
-          gene_data <- do.call(rbind, lapply(names(result), function(q_key) {
-            q_result <- result[[q_key]]
-            if (!is.null(q_result$summary_table)) {
-              df <- q_result$summary_table
-              df$q_value <- sub("^q_", "", q_key)
-              return(df)
+        # Extract gene-level and transcript-level tables using helper
+        gene_data <- extract_multiq_table(
+          result, is_multiq = inherits(result, "tsenat_isoform_switching_multiq"),
+          extract_fn = function(res, q_key) {
+            if (!is.null(res$summary_table)) {
+              return(res$summary_table)
             }
             return(NULL)
-          }))
-          
-          # Transcript-level stats with q_value column
-          transcript_data <- do.call(rbind, lapply(names(result), function(q_key) {
-            q_result <- result[[q_key]]
-            if (!is.null(q_result$all_transcript_stats)) {
-              df <- q_result$all_transcript_stats
-              df$q_value <- sub("^q_", "", q_key)
-              return(df)
+          },
+          q_value_col = "q_value"
+        )
+        
+        transcript_data <- extract_multiq_table(
+          result, is_multiq = inherits(result, "tsenat_isoform_switching_multiq"),
+          extract_fn = function(res, q_key) {
+            if (!is.null(res$all_transcript_stats)) {
+              return(res$all_transcript_stats)
             }
             return(NULL)
-          }))
-          
-          # Write gene-level to original file
-          if (!is.null(gene_data)) {
-            write.table(gene_data, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
-          }
-          
-          # Write transcript-level to separate file
-          if (!is.null(transcript_data)) {
-            write.table(transcript_data, file = transcript_file, sep = "\t", quote = FALSE, row.names = FALSE)
-          }
-        } else {
-          # Single q-value result
-          
-          # Write gene-level summary to original file
-          if (!is.null(result$summary_table)) {
-            write.table(result$summary_table, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
-          }
-          
-          # Write transcript-level stats to separate file
-          if (!is.null(result$all_transcript_stats)) {
-            write.table(result$all_transcript_stats, file = transcript_file, sep = "\t", quote = FALSE, row.names = FALSE)
-          }
+          },
+          q_value_col = "q_value"
+        )
+        
+        # Write gene-level to original file
+        if (!is.null(gene_data)) {
+          write.table(gene_data, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
+        }
+        
+        # Write transcript-level to separate file
+        if (!is.null(transcript_data)) {
+          write.table(transcript_data, file = transcript_file, sep = "\t", quote = FALSE, row.names = FALSE)
         }
       }, error = function(e) {
         warning("[jackknife_isoform_switching_s4] Could not write jackknife results to file: ",
@@ -4906,21 +4350,9 @@ m_estimate_s4 <- function(
   }
 
   # Auto-detect paired parameter from @config if not explicitly provided
-  if (is.null(paired)) {
-    if ("paired" %in% names(analysis@config)) {
-      config_paired <- analysis@config$paired
-      if (is.logical(config_paired) && length(config_paired) == 1) {
-        paired <- config_paired
-        if (verbose && config_paired) {
-          message(sprintf("Auto-detected 'paired' design from config: paired = %s", paired))
-        }
-      } else {
-        paired <- FALSE
-      }
-    } else {
-      paired <- FALSE
-    }
-  } else if (!is.logical(paired) || length(paired) != 1) {
+  paired <- resolve_slot_param(paired, analysis@config, "paired", FALSE)
+  
+  if (!is.logical(paired) || length(paired) != 1) {
     stop("'paired' must be a single logical value (TRUE or FALSE)", call. = FALSE)
   }
 
@@ -5006,46 +4438,9 @@ m_estimate_s4 <- function(
     if (!is.character(output_file) || length(output_file) != 1) {
       stop("'output_file' must be a character string (file path)", call. = FALSE)
     }
-    
-    # Create output directory if needed
-    output_dir <- dirname(output_file)
-    if (output_dir != "." && !dir.exists(output_dir)) {
-      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-    }
-    
-    # Prepare results table for export
-    # m_est_results is a data.frame with Sample, Condition, Proportion_Affected, etc.
-    if (is.data.frame(m_est_results) && nrow(m_est_results) > 0) {
-      # Write based on file extension
-      if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
-        # Write as text table
-        utils::write.table(
-          m_est_results,
-          file = output_file,
-          sep = "\t",
-          quote = FALSE,
-          row.names = FALSE
-        )
-      } else if (grepl("\\.rds$", tolower(output_file))) {
-        # Write entire analysis object as RDS
-        saveRDS(analysis, file = output_file)
-      } else {
-        # Default to TSV for unknown extensions
-        utils::write.table(
-          m_est_results,
-          file = output_file,
-          sep = "\t",
-          quote = FALSE,
-          row.names = FALSE
-        )
-      }
-      
-      if (verbose) {
-        message(sprintf("M-estimation results saved to: %s", output_file))
-      }
-    } else {
-      warning("[m_estimate_s4] No results to write to file", call. = FALSE)
-    }
+    # Use save_analysis_output for consistent handling (data frame for TSV, RDS for S4)
+    save_analysis_output(m_est_results, output_file, object = analysis, verbose = verbose,
+                         func_name = "m_estimate_s4")
   }
 
   # Track function call
