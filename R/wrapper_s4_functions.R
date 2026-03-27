@@ -4319,7 +4319,14 @@ plot_lm_interaction_gam_s4 <- function(
 #'
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
+#'   Supported formats: .tsv, .csv, .txt (for tables), or .rds (for S4 objects).
+#'   When text format is specified, generates TWO files:
+#'   \itemize{
+#'     \item \code{output_file}: Gene-level summary (one row per gene with switching statistics)
+#'     \item \code{output_file_transcripts.ext}: Transcript-level details (one row per transcript with p-values and FDR)
+#'   }
+#'   For .rds format, saves only the full analysis object.
+#'   Default: NULL (no file output).
 #' @param ... Additional arguments for future extensibility.
 #'
 #' @return \code{TSENATAnalysis} object with jackknife results stored in \code{@jackknife_results}
@@ -4671,6 +4678,81 @@ jackknife_isoform_switching_s4 <- function(
       as.character(Sys.time())
     )
   }
+
+  # =========================================================================
+  # SAVE RESULTS IF output_file PROVIDED
+  # =========================================================================
+  if (!is.null(output_file)) {
+    # Create directory if it doesn't exist
+    output_dir <- dirname(output_file)
+    if (output_dir != "." && !dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+
+    if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+      # Write as text table (extract from jackknife results)
+      tryCatch({
+        # Determine base name and extension for dual output
+        output_ext <- sub("^.*\\.", ".", tolower(output_file))
+        output_base <- sub(paste0(output_ext, "$"), "", output_file)
+        transcript_file <- paste0(output_base, "_transcripts", output_ext)
+        
+        if (inherits(result, "tsenat_isoform_switching_multiq")) {
+          # For multi-q results, write both gene and transcript level summaries
+          
+          # Gene-level summary with q_value column
+          gene_data <- do.call(rbind, lapply(names(result), function(q_key) {
+            q_result <- result[[q_key]]
+            if (!is.null(q_result$summary_table)) {
+              df <- q_result$summary_table
+              df$q_value <- sub("^q_", "", q_key)
+              return(df)
+            }
+            return(NULL)
+          }))
+          
+          # Transcript-level stats with q_value column
+          transcript_data <- do.call(rbind, lapply(names(result), function(q_key) {
+            q_result <- result[[q_key]]
+            if (!is.null(q_result$all_transcript_stats)) {
+              df <- q_result$all_transcript_stats
+              df$q_value <- sub("^q_", "", q_key)
+              return(df)
+            }
+            return(NULL)
+          }))
+          
+          # Write gene-level to original file
+          if (!is.null(gene_data)) {
+            write.table(gene_data, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
+          }
+          
+          # Write transcript-level to separate file
+          if (!is.null(transcript_data)) {
+            write.table(transcript_data, file = transcript_file, sep = "\t", quote = FALSE, row.names = FALSE)
+          }
+        } else {
+          # Single q-value result
+          
+          # Write gene-level summary to original file
+          if (!is.null(result$summary_table)) {
+            write.table(result$summary_table, file = output_file, sep = "\t", quote = FALSE, row.names = FALSE)
+          }
+          
+          # Write transcript-level stats to separate file
+          if (!is.null(result$all_transcript_stats)) {
+            write.table(result$all_transcript_stats, file = transcript_file, sep = "\t", quote = FALSE, row.names = FALSE)
+          }
+        }
+      }, error = function(e) {
+        warning("[jackknife_isoform_switching_s4] Could not write jackknife results to file: ",
+                conditionMessage(e), call. = FALSE)
+      })
+    } else {
+      # Default to RDS for S4 object
+      saveRDS(analysis, file = output_file)
+    }
+  }
   
   # Return modified analysis object (visibly for method chaining as documented)
   analysis
@@ -4932,31 +5014,37 @@ m_estimate_s4 <- function(
     }
     
     # Prepare results table for export
-    # Extract influence scores and dfbeta values
-    if (!is.null(m_est_results$influence_scores)) {
-      results_df <- data.frame(
-        Gene = rownames(m_est_results$influence_scores),
-        Influence_Score = m_est_results$influence_scores[, 1],
-        stringsAsFactors = FALSE
-      )
-      
-      # Add dfbeta values if available
-      if (!is.null(m_est_results$dfbeta)) {
-        results_df <- cbind(results_df, m_est_results$dfbeta)
+    # m_est_results is a data.frame with Sample, Condition, Proportion_Affected, etc.
+    if (is.data.frame(m_est_results) && nrow(m_est_results) > 0) {
+      # Write based on file extension
+      if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
+        # Write as text table
+        utils::write.table(
+          m_est_results,
+          file = output_file,
+          sep = "\t",
+          quote = FALSE,
+          row.names = FALSE
+        )
+      } else if (grepl("\\.rds$", tolower(output_file))) {
+        # Write entire analysis object as RDS
+        saveRDS(analysis, file = output_file)
+      } else {
+        # Default to TSV for unknown extensions
+        utils::write.table(
+          m_est_results,
+          file = output_file,
+          sep = "\t",
+          quote = FALSE,
+          row.names = FALSE
+        )
       }
-      
-      # Write to TSV
-      utils::write.table(
-        results_df,
-        file = output_file,
-        sep = "\t",
-        quote = FALSE,
-        row.names = FALSE
-      )
       
       if (verbose) {
         message(sprintf("M-estimation results saved to: %s", output_file))
       }
+    } else {
+      warning("[m_estimate_s4] No results to write to file", call. = FALSE)
     }
   }
 

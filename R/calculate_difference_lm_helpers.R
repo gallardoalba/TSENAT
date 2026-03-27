@@ -496,7 +496,7 @@
                 if (verbose) {
                     message(
                         "[calculate_lm_interaction] Applied Storey ",
-                        "adaptive FDR π0 correction to ",
+                        "adaptive FDR pi0 correction to ",
                         multicorr, " p-values"
                     )
                 }

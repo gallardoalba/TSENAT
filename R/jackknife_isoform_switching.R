@@ -91,7 +91,8 @@
   if (n_tx < 2) return(influences)
   for (i in seq_len(n_tx)) {
     counts_leave_i <- counts[-i, , drop = FALSE]
-    h_leave_i <- .tsallis_entropy_jis(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed)
+    # Keep leave-one-out on same normalization scale as full set for proper jackknife comparison
+    h_leave_i <- .tsallis_entropy_jis(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed = n_tx_fixed)
     diffs <- abs(h_full - h_leave_i)
     influences[i] <- mean(diffs, na.rm = TRUE)
   }
@@ -324,9 +325,13 @@ jackknife_isoform_switching <- function(
       pairs_A <- colData(se)[cond_mask_A, paired_info$subject_col]
       pairs_B <- colData(se)[cond_mask_B, paired_info$subject_col]
       matched_pairs <- intersect(pairs_A, pairs_B)
-      cond_A_idx <- which(cond_mask_A)[match(matched_pairs, pairs_A, nomatch = 0)]
-      cond_B_idx <- which(cond_mask_B)[match(matched_pairs, pairs_B, nomatch = 0)]
-      if (length(cond_A_idx) > 0 && length(cond_B_idx) > 0) {
+      # Safely extract indices without nomatch=0 which can skip pairs
+      match_idx_A <- match(matched_pairs, pairs_A, nomatch = NA)
+      match_idx_B <- match(matched_pairs, pairs_B, nomatch = NA)
+      valid_pairs <- !is.na(match_idx_A) & !is.na(match_idx_B)
+      if (any(valid_pairs)) {
+        cond_A_idx <- which(cond_mask_A)[match_idx_A[valid_pairs]]
+        cond_B_idx <- which(cond_mask_B)[match_idx_B[valid_pairs]]
         counts_A <- counts_matrix[, cond_A_idx, drop = FALSE]
         counts_B <- counts_matrix[, cond_B_idx, drop = FALSE]
       } else {
@@ -361,16 +366,21 @@ jackknife_isoform_switching <- function(
     }
   }
   
-  # 6. Build results summary
+  # 6. Apply FDR correction FIRST (capture the result)
+  results_per_gene <- .apply_fdr_correction_jis(results_per_gene, all_pvalues)
+  
+  # 7. Build results summary WITH updated FDR values
   all_transcript_stats <- do.call(rbind, lapply(names(results_per_gene), function(gene) {
     res <- results_per_gene[[gene]]
-    df <- data.frame(gene = gene, transcript_id = res$transcript_ids, pvalue = ifelse(is.null(res$delta_pvalue), NA_real_, res$delta_pvalue), fdr = ifelse(is.null(res$delta_fdr), NA_real_, res$delta_fdr), stringsAsFactors = FALSE)
+    # Extract FDR values properly - handle as vector, not ifelse()
+    fdr_vals <- if (!is.null(res$delta_fdr) && length(res$delta_fdr) > 0) res$delta_fdr else rep(NA_real_, length(res$transcript_ids))
+    pval_vals <- if (!is.null(res$delta_pvalue) && length(res$delta_pvalue) > 0) res$delta_pvalue else rep(NA_real_, length(res$transcript_ids))
+    
+    df <- data.frame(gene = gene, transcript_id = res$transcript_ids, pvalue = pval_vals, fdr = fdr_vals, stringsAsFactors = FALSE)
     if (!is.null(res$lm_p_interaction)) df$lm_p_interaction <- res$lm_p_interaction
     if (!is.null(res$lm_adj_p_interaction)) df$lm_adj_p_interaction <- res$lm_adj_p_interaction
     df
   }))
-  
-  .apply_fdr_correction_jis(results_per_gene, all_pvalues)
   
   summary_rows <- lapply(names(results_per_gene), function(gene) {
     res <- results_per_gene[[gene]]
@@ -528,15 +538,21 @@ compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
   ci_lower <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, alpha / 2, na.rm = TRUE))
   ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha / 2, na.rm = TRUE))
   
-  # Para cada transcrito, calcular p-value basado en cuantos bootstrap samples
-  # tienen signo opuesto al delta_influence observado
+  # Compute two-tailed bootstrap p-values
+  # Two-tailed test: proportion of bootstrap samples with |bootstrap_delta| >= |observed_delta|
   pvalues <- numeric(n_tx)
   for (i in seq_len(n_tx)) {
-    boot_signs <- sign(bootstrap_deltas_matrix[, i])
-    obs_sign <- sign(delta_influence[i])
-    # P-value: proporcion de muestras bootstrap con signo opuesto
-    pvalues[i] <- mean(boot_signs != obs_sign, na.rm = TRUE)
-    pvalues[i] <- max(pvalues[i], 1 / n_bootstrap)  # Minimum p-value
+    obs_abs <- abs(delta_influence[i])
+    boot_abs <- abs(bootstrap_deltas_matrix[, i])
+    # Two-tailed p-value: proportion of bootstrap samples as or more extreme than observed
+    # Handle case where all bootstrap values are NA/NaN
+    valid_boots <- !is.na(boot_abs) & is.finite(boot_abs)
+    if (!is.na(obs_abs) && is.finite(obs_abs) && any(valid_boots)) {
+      pvalues[i] <- mean(boot_abs[valid_boots] >= obs_abs, na.rm = FALSE)
+      pvalues[i] <- max(pvalues[i], 1 / n_bootstrap)  # Minimum p-value = 1/n_bootstrap
+    } else {
+      pvalues[i] <- NA_real_  # Return NA if insufficient data
+    }
   }
   
   # Standard error per transcript
