@@ -1068,21 +1068,7 @@ estimate_nperm <- function(
 # * Default -> Standard Kruskal-Wallis (already robust)
 # ================================================================================
 
-# Internal helper: Compute skewness for data quality assessment
-.tsenat_compute_skewness <- function(x, na.rm = TRUE) {
-    if (na.rm) x <- na.omit(x)
-    if (length(x) < 3) return(NA)
-    
-    m <- mean(x)
-    s <- sd(x)
-    n <- length(x)
-    
-    if (s == 0) return(0)
-    
-    # Unbiased skewness estimate
-    skew <- (sum((x - m)^3) / n) / (s^3)
-    return(skew)
-}
+# NOTE: Uses .tsenat_compute_skewness from calc_lm_helpers.R
 
 #' Select appropriate rank-based test based on data characteristics
 #'

@@ -143,13 +143,18 @@
     consistency_results <- apply(delta_matrix, 1, function(x) {
       x_valid <- x[!is.na(x) & !is.infinite(x)]
       if (length(x_valid) >= 2) {
-        pos_count <- sum(x_valid > 0)
-        neg_count <- sum(x_valid < 0)
-        zero_count <- sum(x_valid == 0)
-        if (pos_count == length(x_valid)) "Consistent positive"
-        else if (neg_count == length(x_valid)) "Consistent negative"
-        else if (zero_count == length(x_valid)) "All zero"
-        else "Mixed directions"
+        # Ignore zeros when checking for consistency (0 is a neutral/boundary point)
+        x_nonzero <- x_valid[x_valid != 0]
+        if (length(x_nonzero) == 0) {
+          "All zero"
+        } else {
+          pos_count <- sum(x_nonzero > 0)
+          neg_count <- sum(x_nonzero < 0)
+          # Check if ALL non-zero values have the same sign
+          if (pos_count == length(x_nonzero)) "Consistent positive"
+          else if (neg_count == length(x_nonzero)) "Consistent negative"
+          else "Mixed directions"
+        }
       } else if (length(x_valid) == 1) "Single q-value"
       else "No data"
     })

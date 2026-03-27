@@ -1,5 +1,3 @@
-#!/usr/bin/env R
-
 # =========================================================================
 # PRIVATE HELPER FUNCTIONS (must come before main roxygen block)
 # =========================================================================
@@ -296,114 +294,7 @@
 }
 
 
-# =========================================================================
-# PRIVATE HELPER: Classify Q-Pattern
-# =========================================================================
 
-#' Classify a per-q divergence spectrum into biological pattern types
-#'
-#' When Tsallis divergence has been computed across multiple q values
-#' for a gene, the resulting vector can be summarised by its trend across the
-#' spectrum. This helper compares divergence in the rare-region (q < 1) vs
-#' abundant-region (q >= 1).
-#'
-#' \describe{
-#'   \item{RARE_DRIVEN}{Divergence higher at low q (q < 1);
-#'     indicates changes driven by low-abundance isoforms.}
-#'   \item{ABUNDANT_DRIVEN}{Divergence higher at high q (q >= 1);
-#'     indicates shifts among the most abundant transcripts.}
-#'   \item{BALANCED}{Similar divergence across rare and abundant regions.}
-#' }
-#'
-#' If the input vector is too short, contains only NAs, or classification
-#' cannot be performed, NA is returned.
-#'
-#' @param per_q_divs Named numeric vector of divergences. Names should be of form
-#'   "q_0.01", "q_0.5", "q_1.0", etc.
-#' @param ratio_threshold Numeric; ratio threshold for classification (default: 1.3).
-#'   RARE_DRIVEN if rare_median / abundant_median > threshold.
-#'
-#' @return Character scalar: "RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED", or NA.
-#'
-#' @keywords internal
-#' @noRd
-.classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
-  # Input validation
-  if (!is.numeric(per_q_divs) || length(per_q_divs) < 2) {
-    return(NA_character_)
-  }
-  
-  # Get names
-  nm <- names(per_q_divs)
-  if (is.null(nm) || any(is.na(nm))) {
-    return(NA_character_)
-  }
-  
-  # Extract q values from names: try "q_0.5", "q_0_5", etc.
-  q_vals <- NA
-  
-  # Try format: "q_0.5" (standard with dot)
-  if (all(grepl("^q_", nm))) {
-    extracted_q <- gsub("^q_", "", nm)
-    # Handle underscore-separated format q_0_5 (convert to 0.5)
-    extracted_q <- gsub("_", ".", extracted_q)
-    q_vals <- as.numeric(extracted_q)
-  } else if (all(grepl("^q", nm))) {
-    # Try other formats
-    extracted_q <- gsub("^q[_.]", "", nm)
-    # Handle underscore-separated format (convert to numeric)
-    extracted_q <- gsub("_", ".", extracted_q)
-    q_vals <- as.numeric(extracted_q)
-  }
-  
-  # If we still can't extract numeric q values, return NA
-  if (any(is.na(q_vals))) {
-    return(NA_character_)
-  }
-  
-  # Check if all divergence values are NA
-  if (all(is.na(per_q_divs))) {
-    return(NA_character_)
-  }
-  
-  # Need at least 2 non-NA pairs for comparison
-  valid_pairs <- !is.na(per_q_divs)
-  if (sum(valid_pairs) < 2) {
-    return(NA_character_)
-  }
-  
-  # Split into rare-region (q < 1) and abundant-region (q >= 1)
-  rare_mask <- q_vals < 1
-  abund_mask <- q_vals >= 1
-  
-  # Calculate median divergence in each region
-  rare_div_median <- NA
-  abund_div_median <- NA
-  
-  if (sum(rare_mask & valid_pairs) > 0) {
-    rare_div_median <- median(per_q_divs[rare_mask & valid_pairs], na.rm = TRUE)
-  }
-  
-  if (sum(abund_mask & valid_pairs) > 0) {
-    abund_div_median <- median(per_q_divs[abund_mask & valid_pairs], na.rm = TRUE)
-  }
-  
-  # If we have both regions, compare them
-  if (!is.na(rare_div_median) && !is.na(abund_div_median) && abund_div_median > 0) {
-    ratio <- rare_div_median / abund_div_median
-    
-    if (ratio > ratio_threshold) {
-      return("RARE_DRIVEN")
-    } else if (ratio < 1 / ratio_threshold) {
-      return("ABUNDANT_DRIVEN")
-    } else {
-      return("BALANCED")
-    }
-  }
-  
-  # Fallback: if only one region available, can't classify
-  return(NA_character_)
-}
 
 
 # -------------------------------------------------------------------------
@@ -440,8 +331,8 @@ calculate_divergence_bootstrap <- function(
   if (nboot > 0) {
     bootstrap_dist <- numeric(nboot)
     
-    # Determine if using paired resampling
-    use_paired_bootstrap <- paired && !is.null(pair_ids)
+    # Determine if using paired resampling (use isTRUE to handle NA safely)
+    use_paired_bootstrap <- isTRUE(paired) && !is.null(pair_ids)
 
     for (b in seq_len(nboot)) {
       if (use_paired_bootstrap) {
@@ -450,28 +341,48 @@ calculate_divergence_bootstrap <- function(
         x_names <- names(x)
         y_names <- names(y)
         all_names <- c(x_names, y_names)
+        
+        # BUGFIX: Safely handle pair_ids subset with proper indexing
+        # Only keep pairs that have samples in the current groups
         pair_ids_subset <- pair_ids[all_names]
         
         # Get unique pairs and resample indices with replacement
-        unique_pairs <- unique(pair_ids_subset)
-        num_pairs <- length(unique_pairs)
-        resampled_pair_indices <- sample(seq_len(num_pairs), size = num_pairs, replace = TRUE)
+        unique_pairs <- unique(pair_ids_subset[!is.na(pair_ids_subset)])
         
-        # Collect samples from resampled pairs, maintaining group structure
-        x_boot <- numeric(0)
-        y_boot <- numeric(0)
-        
-        for (idx in resampled_pair_indices) {
-          pair_id <- unique_pairs[idx]
-          pair_mask <- pair_ids_subset == pair_id
-          pair_samples <- names(pair_ids_subset)[pair_mask]
+        if (length(unique_pairs) == 0) {
+          # Fallback to independent bootstrap if pairing structure is broken
+          x_boot <- sample(x, size = length(x), replace = TRUE)
+          y_boot <- sample(y, size = length(y), replace = TRUE)
+        } else {
+          num_pairs <- length(unique_pairs)
+          resampled_pair_indices <- sample(seq_len(num_pairs), size = num_pairs, replace = TRUE)
           
-          for (sample in pair_samples) {
-            if (sample %in% x_names) {
-              x_boot <- c(x_boot, x[sample])
-            } else if (sample %in% y_names) {
-              y_boot <- c(y_boot, y[sample])
+          # Collect samples from resampled pairs, maintaining group structure
+          x_boot <- c()
+          y_boot <- c()
+          
+          for (idx in resampled_pair_indices) {
+            pair_id <- unique_pairs[idx]
+            pair_mask <- pair_ids_subset == pair_id
+            pair_samples <- names(pair_ids_subset)[pair_mask]
+            
+            for (sample in pair_samples) {
+              if (sample %in% x_names) {
+                x_boot <- c(x_boot, x[sample])
+              } else if (sample %in% y_names) {
+                y_boot <- c(y_boot, y[sample])
+              }
             }
+          }
+          
+          # BUGFIX: Ensure both vectors are non-empty and numeric
+          if (length(x_boot) == 0) x_boot <- numeric(0)
+          if (length(y_boot) == 0) y_boot <- numeric(0)
+          
+          # If pairing structure doesn't preserve group sizes, fall back to independent bootstrap
+          if (length(x_boot) != length(x) || length(y_boot) != length(y)) {
+            x_boot <- sample(x, size = length(x), replace = TRUE)
+            y_boot <- sample(y, size = length(y), replace = TRUE)
           }
         }
       } else {
@@ -519,6 +430,13 @@ calculate_divergence_bootstrap <- function(
 .tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
   # Validate input vectors
   if (length(x) == 0 || length(y) == 0) {
+    return(NA_real_)
+  }
+  
+  # BUGFIX: Ensure x and y have equal length (required for divergence)
+  if (length(x) != length(y)) {
+    # This can happen if paired bootstrap resampling produces unequal group sizes
+    # Return NA rather than crashing
     return(NA_real_)
   }
   
@@ -592,7 +510,6 @@ calculate_divergence_bootstrap <- function(
   # Divergence should always be >= 0.
   return(abs(div))
 }
-
 
 #' Classify a per-q divergence spectrum into biological pattern types
 #'
@@ -690,7 +607,7 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
   }
   
   # If we have both regions, compare them
-  if (!is.na(rare_div_median) && !is.na(abund_div_median)) {
+  if (!is.na(rare_div_median) && !is.na(abund_div_median) && abund_div_median > 0) {
     ratio <- rare_div_median / abund_div_median
     
     # Use a proper ratio threshold (not the correlation threshold)
@@ -702,9 +619,9 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
     # ABUNDANT_DRIVEN: abundant region has notably higher divergence (ratio < 1/threshold)
     # BALANCED: similar divergence across regions (ratio near 1)
     
-    if (ratio > ratio_threshold) {
+    if (!is.na(ratio) && ratio > ratio_threshold) {
       return("RARE_DRIVEN")
-    } else if (ratio < 1 / ratio_threshold) {
+    } else if (!is.na(ratio) && ratio < 1 / ratio_threshold) {
       return("ABUNDANT_DRIVEN")
     } else {
       return("BALANCED")
@@ -712,7 +629,16 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
   }
   
   # Fallback: Use original correlation-based approach
-  # Note: cor() with use="complete.obs" handles missing values without warnings
+  # Check for constant values (zero variance) before computing correlation
+  # This avoids errors from cor() when one variable has no variance
+  q_sd <- sd(q_vals, na.rm = TRUE)
+  div_sd <- sd(per_q_divs, na.rm = TRUE)
+  
+  # Use isTRUE for safe comparison (handles NA)
+  if (isTRUE(q_sd == 0) || isTRUE(div_sd == 0)) {
+    return("BALANCED")
+  }
+  
   slope <- cor(q_vals, per_q_divs, use = "complete.obs")
   
   # If correlation is NA (e.g., constant divergence), treat as balanced
@@ -734,523 +660,3 @@ classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
   }
 }
 
-
-#' Merge LMM Interaction Results with Tsallis Divergence Effect Sizes
-#'
-#' Combines LMM interaction test p-values with pre-computed Tsallis divergence
-#' effect sizes and bootstrap confidence intervals across ALL q values. This is a 
-#' **data merger**, not a model fitter--all statistical computation happens upstream in:
-#' - `calculate_lm_interaction()` -> LMM p-values
-#' - `calculate_divergence()` -> Divergence estimates and CIs for multiple q
-#'
-#' This function merges the results into a single data frame for downstream
-#' interpretation. When multiple q values are present, effect sizes are computed
-#' for each q to capture the full biological spectrum (rare->abundant isoforms).
-#'
-#' **Architecture:**
-#' ```
-#' Input 1: LMM results (from calculate_lm_interaction)
-#'   - gene names
-#'   - adj_p_interaction values
-#'
-#' Input 2: Divergence SE (from calculate_divergence)
-#'   - gene names
-#'   - divergence estimates and bootstrap CIs for each q value
-#'
-#' Output: Merged data frame
-#'   - gene name
-#'   - statistical significance (p-value)
-#'   - effect magnitude for EACH q: D_q, lower_ci_q, upper_ci_q
-#' ```
-#'
-#' @param lm_res A data frame of LMM interaction test results from `calculate_lm_interaction()`,
-#'   with columns: `gene` (character, gene name), `adj_p_interaction` (numeric, multiple-test adjusted p-value).
-#'   Genes with adj_p_interaction below `significance_threshold` are included.
-#'
-#' @param divergence_results_se A SummarizedExperiment from `calculate_divergence()`,
-#'   containing rowData with columns: `gene_name` and either:
-#'   - Generic: `estimate`, `lower_ci`, `upper_ci` (single q-value results), OR
-#'   - Per-q: `estimate_q*`, `lower_ci_q*`, `upper_ci_q*` (multiple q-values)
-#'   All divergence-related data is self-contained in this object.
-#'
-#' @param significance_threshold Numeric; p-value threshold for filtering significant
-#'   genes (default: 0.05). Only genes with adj_p_interaction < threshold are included.
-#'
-#' @param enrich_per_q_pattern Logical; if TRUE (default), adds a 'per_q_pattern' column
-#'   to the output data frame containing comma-separated divergence values across the
-#'   q spectrum for each gene. This column enables visualization and classification
-#'   of whether treatment effects are driven by rare (low-q) or abundant (high-q)
-#'   isoforms. Set to FALSE to reduce output size if this annotation is not needed.
-#'
-#' @param verbose Logical; if TRUE, print detailed validation and merge statistics
-#'   to console (default: TRUE). Shows counts of passed, skipped, and failed genes.
-#'
-#' @return A list with two elements:
-#'   \describe{
-#'     \item{\code{interaction_results}}{Data frame (genes * columns) with merged results:
-#'       - `gene`: Gene name (character)
-#'       - `p_value_interaction`: LMM adjusted p-value for q:group interaction
-#'       - `slope_diff`: q:group interaction slope coefficient (if present in lm_res)
-#'       - For EACH q value found: 
-#'         - `effect_size_D_q*`: Absolute Tsallis divergence at q
-#'         - `D_q*_lower_ci`: Bootstrap lower confidence bound
-#'         - `D_q*_upper_ci`: Bootstrap upper confidence bound
-#'     }
-#'     \item{\code{validation_stats}}{List with merge quality metrics:
-#'       - `total_genes`: Total significant genes from LMM
-#'       - `passed_lmm`: Successfully merged with divergence data
-#'       - `failed_missing_divergence`: Missing or NA divergence estimate
-#'       - `other_errors`: Other processing failures
-#'       - `q_values`: Numeric vector of q-values processed
-#'     }
-#'   }
-#'
-#' @details
-#' **Interpretation of Effect Sizes:**
-#'
-#' Tsallis divergence D_q quantifies the information-theoretic distance between
-#' control and treatment isoform distributions at each q-value:
-#' - D_q > 0.05: Small effect size
-#' - D_q > 0.10: Medium effect size (meaningful biological significance)
-#' - D_q > 0.20: Large effect size
-#'
-#' **Different q-values capture different biological scales:**
-#' - q=0.5: Rare (low-abundance) isoforms dominate
-#' - q=1.0: Shannon entropy (balanced across abundances)
-#' - q=2.0: Common (high-abundance) isoforms dominate
-#'
-#' Examining the divergence spectrum across q reveals whether treatment effects
-#' are driven by rare transcripts (high D at low q) or abundant transcripts (high D at high q).
-#'
-#' For paired designs, divergence is computed separately within each pair,
-#' then averaged to account for pairing structure.
-#'
-#' **Database References:**
-#' - Papers I002-I004: Tsallis divergence mathematical foundation
-#' - Papers C016: Bootstrap CI computation respecting data structure
-#' - Papers S197: Quality filtering and effect size thresholds
-#'
-#' @keywords internal
-#' @noRd
-effect_sizes_divergence <- function(
-    lm_res,
-    divergence_results_se,
-    significance_threshold = 0.05,
-    enrich_per_q_pattern = TRUE,
-    verbose = FALSE) {
-
-  # =========================================================================
-  # INPUT VALIDATION
-  # =========================================================================
-
-  if (!is.data.frame(lm_res)) {
-    stop("lm_res must be a data frame")
-  }
-
-  if (!("gene" %in% colnames(lm_res)) || !("adj_p_interaction" %in% colnames(lm_res))) {
-    stop("lm_res must have columns 'gene' and 'adj_p_interaction'")
-  }
-
-  if (!methods::is(divergence_results_se, "SummarizedExperiment")) {
-    stop("divergence_results_se must be a SummarizedExperiment from calculate_divergence()")
-  }
-
-  # Validate divergence SE has required columns in rowData
-  rd <- SummarizedExperiment::rowData(divergence_results_se)
-  
-  if (!("gene_name" %in% colnames(rd))) {
-    stop("divergence_results_se rowData must have 'gene_name' column")
-  }
-
-  # =========================================================================
-  # ALIGN DATASETS
-  # =========================================================================
-  # Filter lm_res to include only genes present in divergence_results_se
-  # This prevents row mismatches and ensures robust merging
-  
-  # Extract gene identifiers from divergence_results_se
-  if ("gene_name" %in% colnames(rd)) {
-    divergence_genes <- as.character(rd$gene_name)
-  } else {
-    divergence_genes <- as.character(rownames(divergence_results_se))
-  }
-  
-  # Get lm_res gene identifiers (prefer gene column, fall back to rownames)
-  if ("gene" %in% colnames(lm_res)) {
-    lm_res_genes <- as.character(lm_res$gene)
-  } else {
-    lm_res_genes <- as.character(rownames(lm_res))
-    if (length(lm_res_genes) == 0 || all(is.na(lm_res_genes))) {
-      stop("lm_res must have either a 'gene' column or valid gene names in rownames")
-    }
-  }
-  
-  # Find matching genes and filter lm_res
-  matching_idx <- lm_res_genes %in% divergence_genes
-  n_before_filter <- nrow(lm_res)
-  n_after_filter <- sum(matching_idx)
-  
-  if (n_after_filter > 0) {
-    lm_res <- lm_res[matching_idx, , drop = FALSE]
-    if (verbose) {
-      message("[effect_sizes_divergence] Gene alignment:")
-      message("  - lm_res before filtering: ", n_before_filter, " genes")
-      message("  - lm_res after filtering: ", n_after_filter, " genes")
-      message("  - Genes filtered out: ", n_before_filter - n_after_filter)
-    }
-  } else {
-    if (verbose) {
-      message("[effect_sizes_divergence] No matching genes found between lm_res and divergence_results_se")
-    }
-  }
-  
-  # Auto-detect available q values from per-q columns
-  estimate_cols <- grep("^estimate_q", colnames(rd), value = TRUE)
-  
-  if (length(estimate_cols) == 0) {
-    # Check for generic columns (single q result)
-    if (!all(c("estimate", "lower_ci", "upper_ci") %in% colnames(rd))) {
-      stop("divergence_results_se rowData must have either:\n",
-           "  - Generic columns: 'estimate', 'lower_ci', 'upper_ci', OR\n",
-           "  - Per-q columns: 'estimate_q*', 'lower_ci_q*', 'upper_ci_q*'")
-    }
-    q_values <- NA_real_
-    use_generic <- TRUE
-    if (verbose) {
-      message("[effect_sizes_divergence] Using generic divergence columns (single q-value results)")
-    }
-  } else {
-    # Extract q values from column names
-    q_values <- as.numeric(sub("estimate_q", "", estimate_cols))
-    q_values <- sort(q_values)  # Sort for consistent output
-    use_generic <- FALSE
-    
-    if (verbose) {
-      message("[effect_sizes_divergence] Detected per-q columns for q values: ",
-          paste(q_values, collapse = ", "))
-    }
-  }
-
-  # =========================================================================
-  # FILTERING
-  # =========================================================================
-
-  # Filter to genes with valid p-values and adj_p_interaction < threshold
-  valid_p_idx <- !is.na(lm_res$adj_p_interaction)
-  significant_idx <- valid_p_idx & (lm_res$adj_p_interaction < significance_threshold)
-  significant_genes <- lm_res$gene[significant_idx]
-
-  if (verbose) {
-    message("\n**Filtering effect size analysis to significant genes:**")
-    message("- Genes with valid p-values: ", sum(valid_p_idx))
-    message("- Genes with adj_p_interaction <", significance_threshold, ": ", 
-        length(significant_genes))
-  }
-
-  # Initialize empty results data frame with columns for each q value
-  interaction_results <- data.frame(
-    gene = character(0),
-    p_value_interaction = numeric(0),
-    slope_diff = numeric(0),
-    stringsAsFactors = FALSE
-  )
-  
-  # Add per-q effect size columns
-  if (use_generic) {
-    interaction_results$effect_size_D <- numeric(0)
-    interaction_results$D_lower_ci <- numeric(0)
-    interaction_results$D_upper_ci <- numeric(0)
-  } else {
-    for (q_val in q_values) {
-      q_label <- gsub("\\.", "_", as.character(q_val))  # Replace . with _ for column names
-      interaction_results[[paste0("effect_size_D_q", q_label)]] <- numeric(0)
-      interaction_results[[paste0("D_q", q_label, "_lower_ci")]] <- numeric(0)
-      interaction_results[[paste0("D_q", q_label, "_upper_ci")]] <- numeric(0)
-    }
-  }
-
-  if (length(significant_genes) == 0) {
-    if (verbose) {
-      message("No genes with significant q*group interaction detected.")
-    }
-    return(list(
-      interaction_results = interaction_results,
-      validation_stats = list(
-        total_genes = 0,
-        passed_lmm = 0,
-        failed_missing_divergence = 0,
-        other_errors = 0,
-        q_values = q_values
-      )
-    ))
-  }
-
-  # =========================================================================
-  # MERGE RESULTS
-  # =========================================================================
-
-  # For each significant gene, combine LMM p-value with divergence effect sizes
-  validation_stats <- list(
-    total_genes = length(significant_genes),
-    passed_lmm = 0,
-    failed_missing_divergence = 0,
-    other_errors = 0,
-    q_values = q_values
-  )
-
-  if (verbose) {
-    message("\nMerging LMM results with divergence effect sizes...")
-  }
-
-  # Determine which column in lm_res to use for matching gene names
-  # Prefer gene_name if available (set by calculate_lm_interaction), fall back to gene column
-  use_gene_name_col <- "gene_name" %in% colnames(lm_res)
-  
-  if (verbose) {
-    message("[effect_sizes_divergence] Gene name matching strategy:")
-    message("  - gene_name column in lm_res:", use_gene_name_col)
-    if (use_gene_name_col) {
-      message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse=", "))
-      message("  - lm_res$gene_name (first 5):", paste(head(lm_res$gene_name, 5), collapse=", "))
-    } else {
-      message("  - lm_res$gene (first 5):", paste(head(lm_res$gene, 5), collapse=", "))
-    }
-    message("  - divergence gene_name (first 5):", paste(head(rd$gene_name, 5), collapse=", "))
-  }
-
-  if (verbose) {
-    message("\n[effect_sizes_divergence] MERGE STARTING")
-    message("  - significant_genes count:", length(significant_genes))
-    message("  - lm_res rows:", nrow(lm_res))
-    message("  - divergence rowData rows:", nrow(rd))
-    message("  - use_gene_name_col:", use_gene_name_col)
-  }
-  
-  for (i in seq_along(significant_genes)) {
-    gene_id <- significant_genes[i]
-    
-    # Get LMM info
-    lmm_row <- lm_res[lm_res$gene == gene_id, ]
-    if (nrow(lmm_row) == 0) {
-      validation_stats$other_errors <- validation_stats$other_errors + 1
-      next
-    }
-
-    # Determine the gene name to use for matching against divergence_results_se
-    match_name <- if (use_gene_name_col && !is.na(lmm_row$gene_name[1])) {
-      lmm_row$gene_name[1]
-    } else {
-      gene_id
-    }
-
-    p_interaction <- lmm_row$adj_p_interaction[1]
-    slope_diff <- if ("slope_diff" %in% colnames(lmm_row)) {
-      lmm_row$slope_diff[1]
-    } else {
-      NA_real_
-    }
-
-    if (verbose && i <= min(3, length(significant_genes))) {
-      message("  [Gene ", i, "] gene_id='", gene_id, "' match_name='", match_name, "'")
-    }
-
-    # Get divergence info from SE
-    # Try to match by gene_name first (most reliable), then by rownames
-    div_row <- rd[rd$gene_name == match_name, ]
-    
-    if (nrow(div_row) == 0 && !use_gene_name_col) {
-      # If match_name is an ID and we have rownames, try matching rownames
-      div_row <- rd[rownames(rd) == match_name, ]
-    }
-
-    if (verbose && i <= min(3, length(significant_genes))) {
-      message(" -> found ", nrow(div_row), " row(s)")
-    }
-
-    if (nrow(div_row) == 0) {
-      validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
-      if (verbose && i > min(3, length(significant_genes))) {
-        # Only show skipped messages for genes after the debug ones
-        message("  [Skipped] ", match_name, " - divergence data not found")
-      }
-      next
-    }
-
-    # Check if any divergence estimates are available
-    if (use_generic) {
-      # Single q result
-      if (is.na(div_row$estimate[1])) {
-        validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
-        if (verbose) {
-          message("  [Skipped] ", gene_name, " - divergence estimate is NA")
-        }
-        next
-      }
-      
-      new_row <- data.frame(
-        gene = match_name,
-        p_value_interaction = p_interaction,
-        slope_diff = slope_diff,
-        effect_size_D = abs(div_row$estimate[1]),
-        D_lower_ci = div_row$lower_ci[1],
-        D_upper_ci = div_row$upper_ci[1],
-        stringsAsFactors = FALSE
-      )
-    } else {
-      # Per-q results - check if any are available
-      any_valid <- FALSE
-      new_row <- data.frame(
-        gene = match_name,
-        p_value_interaction = p_interaction,
-        slope_diff = slope_diff,
-        stringsAsFactors = FALSE
-      )
-      
-      for (q_val in q_values) {
-        estimate_col <- paste0("estimate_q", q_val)
-        lower_col <- paste0("lower_ci_q", q_val)
-        upper_col <- paste0("upper_ci_q", q_val)
-        q_label <- gsub("\\.", "_", as.character(q_val))
-        
-        if (!is.na(div_row[[estimate_col]][1])) {
-          any_valid <- TRUE
-          new_row[[paste0("effect_size_D_q", q_label)]] <- abs(div_row[[estimate_col]][1])
-          new_row[[paste0("D_q", q_label, "_lower_ci")]] <- div_row[[lower_col]][1]
-          new_row[[paste0("D_q", q_label, "_upper_ci")]] <- div_row[[upper_col]][1]
-        } else {
-          # Set to NA for this q
-          new_row[[paste0("effect_size_D_q", q_label)]] <- NA_real_
-          new_row[[paste0("D_q", q_label, "_lower_ci")]] <- NA_real_
-          new_row[[paste0("D_q", q_label, "_upper_ci")]] <- NA_real_
-        }
-      }
-      
-      if (!any_valid) {
-        validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
-        if (verbose) {
-          message("  [Skipped] ", match_name, " - all divergence estimates are NA")
-        }
-        next
-      }
-    }
-
-    # Add to results
-    interaction_results <- rbind(interaction_results, new_row)
-    validation_stats$passed_lmm <- validation_stats$passed_lmm + 1
-
-    if (verbose) {
-      if (use_generic) {
-        div_val <- abs(div_row$estimate[1])
-        ci_text <- if (!is.na(div_row$lower_ci[1])) {
-          sprintf(" CI=[%.4f, %.4f]", div_row$lower_ci[1], div_row$upper_ci[1])
-        } else {
-          ""
-        }
-      } else {
-        # Show summary across q values
-        div_vals <- vapply(q_values, function(q) {
-          estimate_col <- paste0("estimate_q", q)
-          div_row[[estimate_col]][1]
-        }, FUN.VALUE = numeric(1))
-        div_summary <- paste(sprintf("%.3f", abs(div_vals)), collapse = ", ")
-        div_val <- max(abs(div_vals), na.rm = TRUE)
-        ci_text <- ""
-      }
-      
-      message("  [SUCCESS] ", match_name, " - p=", 
-          format(p_interaction, digits = 3), ", D_spectrum=[", 
-          if (use_generic) format(div_val, scientific = TRUE, digits = 3)
-          else div_summary, "]", ci_text)
-    }
-  }
-
-  # =========================================================================
-  # SUMMARY
-  # =========================================================================
-
-  # SUMMARY: Print merge results (only if verbose)  
-  if (verbose) {
-    message("\n[effect_sizes_divergence] MERGE COMPLETED\n",
-            "  - Total significant genes: ", validation_stats$total_genes, "\n",
-            "  - Passed merge: ", validation_stats$passed_lmm, "\n",
-            "  - Failed (missing divergence): ", validation_stats$failed_missing_divergence, "\n",
-            "  - Other errors: ", validation_stats$other_errors, "\n",
-            "  - interaction_results rows: ", nrow(interaction_results))
-
-    if (nrow(interaction_results) > 0) {
-      message("\n**Effect Size Distribution Across q Values:**")
-      
-      if (use_generic) {
-        div_col <- "effect_size_D"
-        message("- Mean D:", round(mean(interaction_results[[div_col]], na.rm = TRUE), 4))
-        message("- Median D:", round(median(interaction_results[[div_col]], na.rm = TRUE), 4))
-        message("- Range: [", 
-            round(min(interaction_results[[div_col]], na.rm = TRUE), 4), ", ",
-            round(max(interaction_results[[div_col]], na.rm = TRUE), 4), "]")
-      } else {
-        for (q_val in q_values) {
-          q_label <- gsub("\\.", "_", as.character(q_val))
-          div_col <- paste0("effect_size_D_q", q_label)
-          if (div_col %in% colnames(interaction_results)) {
-            valid_vals <- interaction_results[[div_col]][!is.na(interaction_results[[div_col]])]
-            if (length(valid_vals) > 0) {
-              message("- q=", q_val, ": mean=", round(mean(valid_vals, na.rm = TRUE), 4),
-                  ", median=", round(median(valid_vals, na.rm = TRUE), 4))
-            }
-          }
-        }
-      }
-      
-      message("- Interpretation: D > 0.05 = small, D > 0.1 = medium, D > 0.2 = large")
-    }
-  }
-
-  # =========================================================================
-  # ENRICH RESULTS: Add per_q_pattern column
-  # =========================================================================
-
-  if (enrich_per_q_pattern && nrow(interaction_results) > 0) {
-    # Extract gene names from divergence_results_se rowData and assay matrix
-    div_assay <- SummarizedExperiment::assay(divergence_results_se)
-    div_rd <- as.data.frame(SummarizedExperiment::rowData(divergence_results_se))
-
-    if (nrow(div_assay) > 0 && ncol(div_assay) > 0) {
-      # Map genes from divergence_results_se
-      div_gene_names <- if ("gene_name" %in% colnames(div_rd)) {
-        div_rd$gene_name
-      } else {
-        rownames(div_assay)
-      }
-
-      # Create per_q_pattern column: classify divergence patterns
-      # RARE_DRIVEN = divergence higher at low q (rare isoforms drive changes)
-      # ABUNDANT_DRIVEN = divergence higher at high q (abundant isoforms drive changes)  
-      # BALANCED = similar divergence across diversity scales
-      per_q_patterns <- character(nrow(interaction_results))
-      for (i in seq_len(nrow(interaction_results))) {
-        gene_name <- interaction_results$gene[i]
-        gene_idx <- which(div_gene_names == gene_name)
-
-        if (length(gene_idx) > 0) {
-          # Get divergence values for this gene across q values
-          divs <- div_assay[gene_idx[1], ]
-          
-          # Create named vector for classify_q_pattern
-          # Column names in divs should be like "q_0.01", "q_0.5", "q_1.0", etc.
-          per_q_patterns[i] <- .classify_q_pattern(divs)
-          
-          # If classification failed, return "UNCLASSIFIED"
-          if (is.na(per_q_patterns[i])) {
-            per_q_patterns[i] <- "UNCLASSIFIED"
-          }
-        }
-      }
-      interaction_results$per_q_pattern <- per_q_patterns
-    }
-  }
-
-  return(list(
-    interaction_results = interaction_results,
-    validation_stats = validation_stats
-  ))
-}

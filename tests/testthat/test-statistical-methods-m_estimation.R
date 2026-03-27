@@ -1150,6 +1150,493 @@ test_that("QC metrics exist for both matrix and SE input paths", {
   expect_true(all(qc_cols %in% colnames(result)))
 })
 
+# ============================================================================
+# TEST: Refactored Helper Functions - Unit Tests
+# ============================================================================
+
+context("Helper Functions: Refactored Modular Components")
+
+test_that(".validateMEstimateInputs rejects non-2-group designs", {
+  x <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  
+  # Three groups should error
+  samples_3groups <- c(rep("A", 3), rep("B", 3), rep("C", 4))
+  expect_error(
+    TSENAT:::.validateMEstimateInputs(x, samples_3groups, "huber", "mad", FALSE),
+    "Must have exactly 2 groups"
+  )
+})
+
+test_that(".validateMEstimateInputs rejects mismatched sample length", {
+  x <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 3))  # Only 8 samples for 10 columns
+  
+  expect_error(
+    TSENAT:::.validateMEstimateInputs(x, samples, "huber", "mad", FALSE),
+    "Length of samples must equal"
+  )
+})
+
+test_that(".validateMEstimateInputs rejects invalid loss_type", {
+  x <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  expect_error(
+    TSENAT:::.validateMEstimateInputs(x, samples, "invalid", "mad", FALSE),
+    "loss_type must be"
+  )
+})
+
+test_that(".validateMEstimateInputs rejects invalid scale_method", {
+  x <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  expect_error(
+    TSENAT:::.validateMEstimateInputs(x, samples, "huber", "not_a_method", FALSE),
+    "scale_method must be"
+  )
+})
+
+test_that(".validateMEstimateInputs accepts all valid parameter combinations", {
+  x <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  # Should not error with valid combinations
+  expect_silent(
+    TSENAT:::.validateMEstimateInputs(x, samples, "huber", "mad", FALSE)
+  )
+  expect_silent(
+    TSENAT:::.validateMEstimateInputs(x, samples, "tukey", "proposal2", TRUE)
+  )
+  expect_silent(
+    TSENAT:::.validateMEstimateInputs(x, samples, "lsq", "s-estimator", FALSE)
+  )
+})
+
+test_that(".determineMEstimateScale returns finite scale for normal data", {
+  y <- rnorm(50, mean = 5, sd = 2)
+  
+  scale_mad <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "mad")
+  scale_prop2 <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "proposal2")
+  scale_s <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "s-estimator")
+  
+  expect_true(is.finite(scale_mad))
+  expect_true(is.finite(scale_prop2))
+  expect_true(is.finite(scale_s))
+  expect_true(scale_mad > 0)
+  expect_true(scale_prop2 > 0)
+  expect_true(scale_s > 0)
+})
+
+test_that(".determineMEstimateScale respects user-provided scale", {
+  y <- rnorm(50, mean = 5, sd = 2)
+  user_scale <- 2.5
+  
+  scale <- TSENAT:::.determineMEstimateScale(y, scale = user_scale, scale_method = "mad")
+  
+  expect_equal(scale, user_scale)
+})
+
+test_that(".determineMEstimateScale handles constant data", {
+  y <- rep(5, 50)  # Constant
+  
+  # MAD should return 0, which is replaced with 1
+  scale_mad <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "mad")
+  
+  expect_equal(scale_mad, 1)
+})
+
+test_that(".determineMEstimateScale returns NA for NA-only data", {
+  y <- rep(NA_real_, 50)
+  
+  scale <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "mad")
+  
+  expect_true(is.na(scale))
+})
+
+test_that(".determineMEstimateScale handles data with extreme values", {
+  y <- c(-1e10, -1e5, -1, 0, 1, 1e5, 1e10)
+  
+  scale_mad <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "mad")
+  scale_prop2 <- TSENAT:::.determineMEstimateScale(y, scale = NULL, scale_method = "proposal2")
+  
+  # Even with extreme values, should return finite positive scale
+  expect_true(is.finite(scale_mad))
+  expect_true(is.finite(scale_prop2))
+  expect_true(scale_mad > 0)
+  expect_true(scale_prop2 > 0)
+})
+
+test_that(".performIRLSRegression converges for normal data", {
+  set.seed(3001)
+  y <- rnorm(20, mean = 5, sd = 1)
+  X <- c(rep(0, 10), rep(1, 10))
+  
+  result <- TSENAT:::.performIRLSRegression(y, X, loss_type = "huber", 
+                                            scale_local = 1.0, max_iter = 50, 
+                                            tol = 1e-6, use_intercept = TRUE)
+  
+  expect_true(is.list(result))
+  expect_true(all(c("coef", "weights", "converged") %in% names(result)))
+  expect_equal(length(result$coef), 2)  # Intercept and slope
+  expect_equal(length(result$weights), 20)
+  expect_true(all(is.finite(result$coef)))
+})
+
+test_that(".performIRLSRegression with paired design", {
+  set.seed(3002)
+  y <- rnorm(10)  # Differences
+  X <- rep(1, 10)  # All 1s for paired
+  
+  result <- TSENAT:::.performIRLSRegression(y, X, loss_type = "huber", 
+                                            scale_local = 1.0, max_iter = 50, 
+                                            tol = 1e-6, use_intercept = FALSE)
+  
+  expect_true(is.list(result))
+  expect_equal(length(result$coef), 1)  # Just the mean difference
+  expect_true(is.finite(result$coef[1]))
+})
+
+test_that(".performIRLSRegression with different loss functions", {
+  set.seed(3003)
+  y <- rnorm(20, mean = 3, sd = 1)
+  X <- c(rep(0, 10), rep(1, 10))
+  
+  result_huber <- TSENAT:::.performIRLSRegression(y, X, loss_type = "huber",
+                                                  scale_local = 1.0, max_iter = 50,
+                                                  tol = 1e-6, use_intercept = TRUE)
+  result_tukey <- TSENAT:::.performIRLSRegression(y, X, loss_type = "tukey",
+                                                  scale_local = 1.0, max_iter = 50,
+                                                  tol = 1e-6, use_intercept = TRUE)
+  result_lsq <- TSENAT:::.performIRLSRegression(y, X, loss_type = "lsq",
+                                                scale_local = 1.0, max_iter = 50,
+                                                tol = 1e-6, use_intercept = TRUE)
+  
+  # All should return valid results
+  expect_true(all(is.finite(result_huber$coef)))
+  expect_true(all(is.finite(result_tukey$coef)))
+  expect_true(all(is.finite(result_lsq$coef)))
+})
+
+test_that(".performIRLSRegression returns NA for invalid scale", {
+  y <- rnorm(20, mean = 5, sd = 1)
+  X <- c(rep(0, 10), rep(1, 10))
+  
+  # Pass NaN scale - should handle gracefully
+  result <- TSENAT:::.performIRLSRegression(y, X, loss_type = "huber",
+                                            scale_local = NaN, max_iter = 50,
+                                            tol = 1e-6, use_intercept = TRUE)
+  
+  expect_true(is.list(result))
+  expect_false(all(is.finite(result$coef)))  # Should have NAs
+})
+
+test_that(".performIRLSRegression handles all-NA residuals", {
+  y <- rep(NA_real_, 20)
+  X <- c(rep(0, 10), rep(1, 10))
+  
+  result <- TSENAT:::.performIRLSRegression(y, X, loss_type = "huber",
+                                            scale_local = 1.0, max_iter = 50,
+                                            tol = 1e-6, use_intercept = TRUE)
+  
+  expect_true(!all(is.finite(result$coef)))  # Should be NA
+})
+
+test_that(".processMEstimateFeature returns correct dataframe structure", {
+  set.seed(3004)
+  x <- matrix(rnorm(40), nrow = 5, ncol = 8)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result <- TSENAT:::.processMEstimateFeature(
+    1, x, samples, loss_type = "huber", scale = NULL, 
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 1)
+  
+  expected_cols <- c("location_diff", "se_diff", "t_stat", "pvalue", 
+                     "n_down_weighted", "max_weight")
+  expect_true(all(expected_cols %in% colnames(result)))
+})
+
+test_that(".processMEstimateFeature with paired design", {
+  set.seed(3005)
+  x <- matrix(rnorm(40), nrow = 5, ncol = 8)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result_paired <- TSENAT:::.processMEstimateFeature(
+    1, x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-6, paired = TRUE, scale_method = "mad"
+  )
+  
+  result_unpaired <- TSENAT:::.processMEstimateFeature(
+    1, x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  # Both should return valid results
+  expect_true(all(is.finite(result_paired$location_diff)))
+  expect_true(all(is.finite(result_unpaired$location_diff)))
+})
+
+test_that(".processMEstimateFeature processes all rows independently", {
+  set.seed(3006)
+  x <- matrix(
+    c(1, 2, 3, 4, 5, 6, 7, 8,              # Gene 1: small values, diff=4
+      100, 101, 102, 103, 200, 201, 202, 203,  # Gene 2: large values, diff=100
+      10, 15, 20, 25, 30, 35, 40, 45),     # Gene 3: changing slope
+    nrow = 3, byrow = TRUE
+  )
+  samples <- c(rep("X", 4), rep("Y", 4))
+  
+  result1 <- TSENAT:::.processMEstimateFeature(
+    1, x, samples, loss_type = "huber", scale = NULL, 
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  result2 <- TSENAT:::.processMEstimateFeature(
+    2, x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  result3 <- TSENAT:::.processMEstimateFeature(
+    3, x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  # All should return valid single-row dataframes
+  expect_equal(nrow(result1), 1)
+  expect_equal(nrow(result2), 1)
+  expect_equal(nrow(result3), 1)
+  
+  # All should have finite coefficients
+  expect_true(all(is.finite(result1$location_diff)))
+  expect_true(all(is.finite(result2$location_diff)))
+  expect_true(all(is.finite(result3$location_diff)))
+  
+  # Results should differ: Gene 1 diff~4, Gene 2 diff~100, Gene 3 diff~20
+  # (location_diff should scale with data magnitudes)
+  expect_true(abs(result2$location_diff) > abs(result1$location_diff))
+  expect_true(abs(result3$location_diff) > abs(result1$location_diff))
+})
+
+test_that(".processMEstimateFeature counts down-weighting correctly", {
+  set.seed(3007)
+  # Create data with extreme outliers
+  x <- matrix(
+    c(1, 2, 3, 4, 1000, 2000, 3000, 4000,  # Gene 1: extreme
+      5, 5, 5, 5, 5, 5, 5, 5),              # Gene 2: stable
+    nrow = 2, byrow = TRUE
+  )
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result_outlier <- TSENAT:::.processMEstimateFeature(
+    1, x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  result_stable <- TSENAT:::.processMEstimateFeature(
+    2, x, samples, loss_type = "huber", scale = NULL,
+    max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+  )
+  
+  # Gene with outliers should have more down-weighted observations
+  expect_true(result_outlier$n_down_weighted > result_stable$n_down_weighted)
+})
+
+test_that(".processMEstimateFeature produces valid p-values", {
+  set.seed(3008)
+  x <- matrix(rnorm(40, mean = 5, sd = 2), nrow = 5, ncol = 8)
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  for (i in 1:nrow(x)) {
+    result <- TSENAT:::.processMEstimateFeature(
+      i, x, samples, loss_type = "huber", scale = NULL,
+      max_iter = 50, tol = 1e-6, paired = FALSE, scale_method = "mad"
+    )
+    
+    # p-value should be in [0,1]
+    expect_true(result$pvalue >= 0 & result$pvalue <= 1, info = paste("Row", i))
+  }
+})
+
+test_that(".handleMEstimateSEInput returns sample-level results", {
+  library(SummarizedExperiment)
+  set.seed(3009)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(40, mean = 2.5, sd = 0.7), 
+                                     nrow = 10, ncol = 8)),
+    colData = data.frame(sample_type = rep(c("A", "B"), each = 2*n_q))
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  
+  # Should return 1 sample per unique sample ID (4 unique: S1, S2, S3, S4)
+  expect_equal(nrow(result), 4)
+  
+  # Should have sample-level QC columns
+  expect_true("Sample" %in% colnames(result))
+  expect_true("Condition" %in% colnames(result))
+  expect_true("Robustness_Weight" %in% colnames(result))
+})
+
+test_that(".handleMEstimateSEInput preserves paired metadata", {
+  library(SummarizedExperiment)
+  set.seed(3010)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(30, mean = 3, sd = 0.6),
+                                     nrow = 15, ncol = 8)),
+    colData = data.frame(
+      sample_type = rep(c("case", "control"), each = 2*n_q),
+      pair_id = rep(c("P1", "P2", "P3", "P4"), each = n_q)
+    )
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber", paired = TRUE)
+  
+  # Should include Pair_ID column from colData
+  expect_true("Pair_ID" %in% colnames(result))
+})
+
+test_that(".handleMEstimateSEInput combines multi-q data correctly", {
+  library(SummarizedExperiment)
+  set.seed(3011)
+  
+  n_q <- 3  # Multiple q-values
+  n_samples <- 2
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 1.5, 2), n_samples)
+  )
+  
+  se <- SummarizedExperiment(
+    assays = list(diversity = matrix(rnorm(36, mean = 2.5, sd = 0.5),
+                                     nrow = 6, ncol = 6)),
+    colData = data.frame(sample_type = rep(c("T1", "T2"), each = n_q))
+  )
+  colnames(se) <- col_names
+  
+  result <- m_estimate(se, samples = "sample_type", loss_type = "huber",
+                      q_combine_method = "mean")
+  
+  # Should return 2 rows for 2 unique samples
+  expect_equal(nrow(result), 2)
+  expect_true(all(c("S1", "S2") %in% result$Sample))
+})
+
+test_that(".handleMEstimateSEInput metadata for pair_id vs Pair vs pair_id column", {
+  library(SummarizedExperiment)
+  set.seed(3012)
+  
+  n_q <- 2
+  n_samples <- 4
+  col_names <- paste0(
+    rep(paste0("S", 1:n_samples), each = n_q),
+    "_q=",
+    rep(c(1, 2), n_samples)
+  )
+  
+  # Test each possible pair column name
+  for (pair_col in c("pair_id", "paired_samples", "Pair_ID", "Pair")) {
+    col_data <- data.frame(sample_type = rep(c("X", "Y"), each = 2*n_q))
+    col_data[[pair_col]] <- rep(c("Pair1", "Pair2", "Pair3", "Pair4"), each = n_q)
+    
+    se <- SummarizedExperiment(
+      assays = list(diversity = matrix(rnorm(25, mean = 2.5, sd = 0.5),
+                                       nrow = 25, ncol = 8)),
+      colData = col_data
+    )
+    colnames(se) <- col_names
+    
+    result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+    
+    # Should extract the pair column
+    expect_true("Pair_ID" %in% colnames(result))
+  }
+})
+
+test_that("Refactoring maintains backward compatibility with matrix input", {
+  set.seed(3013)
+  x <- matrix(rnorm(60), nrow = 6, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  # Matrix input should still work exactly as before
+  result <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  
+  expect_true(is.data.frame(result))
+  expect_equal(nrow(result), 6)
+  
+  expected_cols <- c("location_diff", "se_diff", "t_stat", "pvalue", 
+                     "padj", "n_down_weighted", "max_weight")
+  expect_true(all(expected_cols %in% colnames(result)))
+  expect_true(all(is.finite(result$location_diff)))
+})
+
+test_that("Refactoring maintains p-value adjustment behavior", {
+  set.seed(3014)
+  x <- matrix(rnorm(70), nrow = 7, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  result_bh <- m_estimate(x, samples, loss_type = "huber", pcorr = "BH")
+  result_bonf <- m_estimate(x, samples, loss_type = "huber", pcorr = "bonferroni")
+  
+  # BH should be more lenient (smaller adjusted p-values) than Bonferroni
+  # (on average, allowing for individual variation)
+  mean_padj_bh <- mean(result_bh$padj, na.rm = TRUE)
+  mean_padj_bonf <- mean(result_bonf$padj, na.rm = TRUE)
+  
+  expect_true(mean_padj_bh <= mean_padj_bonf)
+})
+
+test_that("All scale methods work with refactored functions", {
+  set.seed(3015)
+  x <- matrix(rnorm(50), nrow = 5, ncol = 10)
+  samples <- c(rep("A", 5), rep("B", 5))
+  
+  for (scale_method in c("mad", "proposal2", "s-estimator")) {
+    result <- m_estimate(x, samples, loss_type = "huber", scale_method = scale_method)
+    
+    expect_true(is.data.frame(result), info = scale_method)
+    expect_true(all(is.finite(result$location_diff)), info = scale_method)
+  }
+})
+
+test_that("Refactored code maintains loss function behavior", {
+  set.seed(3016)
+  x <- rbind(
+    c(1, 2, 3, 4, 5, 6, 7, 8),        # Normal
+    c(1, 2, 3, 4, 1000, 2000, 3000, 4000)  # With outliers
+  )
+  samples <- c(rep("A", 4), rep("B", 4))
+  
+  result_huber <- m_estimate(x, samples, loss_type = "huber")
+  result_lsq <- m_estimate(x, samples, loss_type = "lsq")
+  
+  # Huber should down-weight outliers more than LSQ
+  expect_true(result_huber$n_down_weighted[2] >= result_lsq$n_down_weighted[2])
+})
 
 
 

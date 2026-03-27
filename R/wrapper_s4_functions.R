@@ -1204,19 +1204,36 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     control_group <- analysis@config$control_group
   }
   
-  # Paired design flag
-  if (!paired && "paired" %in% names(analysis@config)) {
-    paired <- analysis@config$paired
+  # Paired design flag - ensure it's always a logical value
+  if (!isTRUE(paired) && !isFALSE(paired)) {
+    if ("paired" %in% names(analysis@config)) {
+      paired <- analysis@config$paired
+    } else {
+      paired <- FALSE
+    }
+    # Sanitize value from config - ensure it's logical, never NA
+    if (!is.logical(paired) || is.na(paired)) paired <- FALSE
   }
   
-  # Statistical method
-  if (is.null(method) && "method" %in% names(analysis@config)) {
+  # Statistical method validation
+  if (!is.null(method)) {
+    method <- as.character(method[1])  # Ensure character type
+  } else if ("method" %in% names(analysis@config)) {
     method <- analysis@config$method
+    if (is.null(method) || is.na(method)) method <- "percentile"
+  } else {
+    method <- "percentile"  # Safe default
   }
   
-  # Bootstrap parameters
-  if (!bootstrap && "bootstrap" %in% names(analysis@config)) {
-    bootstrap <- analysis@config$bootstrap
+  # Bootstrap parameters - ensure it's always a logical value
+  if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
+    if ("bootstrap" %in% names(analysis@config)) {
+      bootstrap <- analysis@config$bootstrap
+    } else {
+      bootstrap <- FALSE
+    }
+    # Sanitize value from config - ensure it's logical, never NA
+    if (!is.logical(bootstrap) || is.na(bootstrap)) bootstrap <- FALSE
   }
   
   # Extract nthreads parameter - Priority: explicit > @config > 1
@@ -1229,11 +1246,13 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   }
 
   # Run divergence calculation with extracted parameters
+  # IMPORTANT: Always include progress=FALSE to prevent NA boolean operations
   args <- list(
     se = analysis@se,
     q = q,
     verbose = verbose,
-    nthreads = nthreads
+    nthreads = nthreads,
+    progress = FALSE  # CRITICAL: Always be explicit to prevent NA issues
   )
   
   # Add parameters if they are not NULL/FALSE
@@ -1241,7 +1260,8 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     args$control_group <- control_group
   }
   
-  if (paired) {
+  # Use isTRUE to safely handle NA values
+  if (isTRUE(paired)) {
     args$paired <- paired
   }
   
@@ -1249,7 +1269,8 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     args$method <- method
   }
   
-  if (bootstrap) {
+  # Use isTRUE to safely handle NA values
+  if (isTRUE(bootstrap)) {
     args$bootstrap <- bootstrap
   }
   
@@ -1260,8 +1281,10 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   result <- tryCatch({
     do.call(calculate_divergence, args)
   }, error = function(e) {
-    stop("Divergence calculation failed:\n", e$message,
-         call. = FALSE)
+    # More detailed error handling
+    stop("Divergence calculation failed [NA boolean likely in: ",
+         paste0(names(args), collapse = ", "), "]:\n", 
+         e$message, call. = FALSE)
   })
 
   # =========================================================================

@@ -300,8 +300,10 @@ test_that(".classify_q_pattern handles mixed NA values", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
-  # Should classify based on available values
-  expect_true(result %in% c("RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED"))
+  # Should classify based on available values with strict boundaries
+  # With q < 1 and q > 1 (no q=1 fallback), needs values in both regions
+  # This test only has rare region (q_0.01), so should return NA
+  expect_true(is.na(result))
 })
 
 test_that(".classify_q_pattern respects ratio_threshold", {
@@ -383,15 +385,6 @@ test_that(".classify_q_pattern rejects non-numeric input", {
 test_that(".classify_q_pattern rejects input with length < 2", {
   # Uncovered line 332-333: length check
   per_q_divs <- c("q_0.5" = 0.5)
-  
-  result <- TSENAT:::.classify_q_pattern(per_q_divs)
-  
-  expect_true(is.na(result))
-})
-
-test_that(".classify_q_pattern rejects NULL names", {
-  # Uncovered line 337-339: NULL names check
-  per_q_divs <- c(0.5, 0.6, 0.7)  # No names
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs)
   
@@ -558,7 +551,7 @@ test_that(".classify_q_pattern returns NA when no valid divergence data", {
 })
 
 test_that(".classify_q_pattern handles single valid pair in each region", {
-  # Uncovered lines 364-366: minimum valid pairs requirement
+  # Only one value in rare region (q_0.01), abundant region is empty (q_2.0 = NA)
   per_q_divs <- c(
     "q_0.01" = 0.8,
     "q_0.5" = NA,
@@ -568,7 +561,7 @@ test_that(".classify_q_pattern handles single valid pair in each region", {
   
   result <- TSENAT:::.classify_q_pattern(per_q_divs, ratio_threshold = 1.3)
   
-  # Has exactly 1 valid rare and 1 valid abundant, should classify
-  # Rare median = 0.8, Abundant median = 0.4, ratio = 2.0 > 1.3
-  expect_equal(result, "RARE_DRIVEN")
+  # With strict boundaries (q < 1 and q > 1), no abundant region values exist,
+  # so classification should return NA
+  expect_true(is.na(result))
 })

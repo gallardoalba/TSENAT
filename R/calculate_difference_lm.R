@@ -194,413 +194,143 @@
 #' 
 #' # Run linear model interaction analysis
 #' results <- calculate_lm_interaction(se, condition_col = "condition")
-calculate_lm_interaction <- function(se, condition_col = "condition", min_obs = 10, method = c("lmm",
-    "gam", "fpca", "gee"), pvalue = c("satterthwaite", "lrt", "both"), subject_col = NULL,
-    paired = FALSE, nthreads = 1, assay_name = "diversity", pcorr = "BH", verbose = FALSE, 
-    bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
-    corstr = c("ar1", "exchangeable", "independence"), multicorr = c("hochberg", "westfall-young", "benjamini-yekutieli"),
-    storey = FALSE, wy_randomizations = 1000, adaptive_knots = TRUE, return_model_data = FALSE) {
+calculate_lm_interaction <- function(
+    se,
+    condition_col = "condition",
+    min_obs = 10,
+    method = c("lmm", "gam", "fpca", "gee"),
+    pvalue = c("satterthwaite", "lrt", "both"),
+    subject_col = NULL,
+    paired = FALSE,
+    nthreads = 1,
+    assay_name = "diversity",
+    pcorr = "BH",
+    verbose = FALSE,
+    bias_correction = TRUE,
+    regularization = c("pca", "lasso", "elasticnet", "gamsel",
+                       "spline"),
+    corstr = c("ar1", "exchangeable", "independence"),
+    multicorr = c("hochberg", "westfall-young",
+                  "benjamini-yekutieli"),
+    storey = FALSE,
+    wy_randomizations = 1000,
+    adaptive_knots = TRUE,
+    return_model_data = FALSE
+) {
+    # Normalize and validate arguments
     method <- match.arg(method)
     corstr <- match.arg(corstr)
     pvalue <- match.arg(pvalue)
     regularization <- match.arg(regularization)
-    pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg", "holm"))
+    pcorr <- match.arg(pcorr, c("BH", "bonferroni", "hochberg",
+                                "holm"))
     multicorr <- match.arg(multicorr)
-    
-    # Validate storey parameter
-    if (!is.logical(storey)) {
-        stop("storey must be TRUE or FALSE", call. = FALSE)
-    }
-    
-    # Validate wy_randomizations
-    if (!is.numeric(wy_randomizations) || wy_randomizations < 1) {
-        stop("wy_randomizations must be numeric and >= 1", call. = FALSE)
-    }
-    if (wy_randomizations < 100) {
-        warning("wy_randomizations < 100 may give unreliable p-values; recommend >= 100", call. = FALSE)
-    }
-    
-    # Auto-detect subject_col from colData if paired=TRUE and subject_col=NULL
-    # Prioritize 'paired_samples' or 'sample_base' columns (created by calculate_diversity or map_metadata)
-    if (paired && is.null(subject_col)) {
-        cd_colnames <- colnames(SummarizedExperiment::colData(se))
-        
-        # Check for paired_samples or sample_base columns
-        if ("paired_samples" %in% cd_colnames) {
-            subject_col <- "paired_samples"
-            if (verbose) {
-                message("[calculate_lm_interaction] paired=TRUE detected; auto-using subject_col='paired_samples'")
-            }
-        } else if ("sample_base" %in% cd_colnames) {
-            subject_col <- "sample_base"
-            if (verbose) {
-                message("[calculate_lm_interaction] paired=TRUE detected; auto-using subject_col='sample_base'")
-            }
-        } else {
-            # Error if paired=TRUE but no recognized pairing column found
-            stop("paired=TRUE requires either 'paired_samples' or 'sample_base' column in colData. ",
-                 "Available columns: ", paste(cd_colnames, collapse = ", "),
-                 ". Ensure calculate_diversity() or map_metadata() was called with appropriate metadata.",
-                 call. = FALSE)
-        }
-    }
 
-    
-    if (verbose) {
-        message("[calculate_lm_interaction] method=", method)
-    }
-    # internal flags: keep these internal to avoid documenting them in Rd
-    suppress_lme4_warnings <- TRUE
-    progress <- FALSE
     if (!requireNamespace("SummarizedExperiment", quietly = TRUE)) {
         stop("SummarizedExperiment required")
     }
 
+    if (verbose) {
+        message("[calculate_lm_interaction] method=", method)
+    }
+
+    # Validate input parameters
+    validated <- .tsenat_validate_lm_interaction_input(
+        method = method,
+        pvalue = pvalue,
+        corstr = corstr,
+        regularization = regularization,
+        multicorr = multicorr,
+        pcorr = pcorr,
+        storey = storey,
+        wy_randomizations = wy_randomizations,
+        paired = paired,
+        subject_col = subject_col,
+        se = se,
+        verbose = verbose
+    )
+
+    # Update subject_col from validated params (may be auto-detected)
+    subject_col <- validated$subject_col
+
+    # Parse sample metadata and q-values
+    metadata <- .tsenat_parse_sample_metadata(
+        se = se,
+        condition_col = condition_col,
+        assay_name = assay_name,
+        verbose = verbose
+    )
+
     mat <- SummarizedExperiment::assay(se, assay_name)
-    if (is.null(mat)) {
-        stop(sprintf("Assay '%s' not found in SummarizedExperiment", assay_name))
-    }
 
-    sample_q <- colnames(mat)
-    if (is.null(sample_q) || length(sample_q) == 0) {
-        stop("No column names found on diversity assay")
-    }
+    # Fit models to all genes
+    res <- .tsenat_fit_all_genes(
+        mat = mat,
+        se = se,
+        metadata = metadata,
+        method = method,
+        pvalue = pvalue,
+        subject_col = subject_col,
+        paired = paired,
+        min_obs = min_obs,
+        nthreads = nthreads,
+        verbose = verbose,
+        bias_correction = bias_correction,
+        regularization = regularization,
+        corstr = corstr,
+        adaptive_knots = adaptive_knots
+    )
 
-    # parse sample names and q values from column names like 'Sample_q=0.01'
-    sample_names <- sub("_q=.*", "", sample_q)
-    has_q <- grepl("_q=", sample_q)
-    if (!any(has_q)) {
-        stop("Could not parse q values; expected '_q=' in column names", call. = FALSE)
-    }
-    if (!all(has_q)) {
-        stop("Some column names are missing '_q='; ensure all diversity columns include a q value",
-            call. = FALSE)
-    }
-    q_vals <- as.numeric(sub(".*_q=", "", sample_q))
-
-    # determine group for each sample
-    condition_in_coldata <- !is.null(condition_col) && condition_col %in% colnames(SummarizedExperiment::colData(se))
-    if (condition_in_coldata) {
-        st <- as.character(SummarizedExperiment::colData(se)[, condition_col])
-        names(st) <- rownames(SummarizedExperiment::colData(se))
-        # when user provides a condition_col, index by the FULL column names (sample_q)
-        # not by sample_names (which lose the q-value information)
-        group_vec <- unname(st[sample_q])
-    } else {
-        stop("No sample grouping found: please supply `condition_col` or map sample",
-            "types into `colData(se)` before calling calculate_lm_interaction().",
-            call. = FALSE)
-    }
-
-    if (verbose && progress) {
-        message("[calculate_lm_interaction] parsed samples and groups")
-    }
-    
-    # ================================================================================
-    
-    all_results <- list()
-    fit_one <- function(g, group_vec_override = NULL) {
-        # CI weighting removed (March 2026) - not supported by literature
-        # See: CI_WEIGHTING_VALIDATION_REPORT.txt, BY020 (Kotzen), BY021 (Kleijn), S232 (Bayarri & Berger)
-        gene_weights <- NULL
-        
-        # Use override group_vec if provided (for permutation testing), otherwise use outer scope
-        gv <- if (!is.null(group_vec_override)) group_vec_override else group_vec
-        
-        .tsenat_fit_one_interaction(g = g, se = se, mat = mat, q_vals = q_vals, sample_names = sample_names,
-            group_vec = gv, method = method, pvalue = pvalue, subject_col = subject_col,
-            paired = paired, min_obs = min_obs, verbose = verbose, suppress_lme4_warnings = suppress_lme4_warnings,
-            progress = progress, bias_correction = bias_correction, regularization = regularization, corstr = corstr,
-            adaptive_knots = adaptive_knots, weights = gene_weights)
-    }
-
-    if (nthreads > 1) {
-        res_list <- .tsenat_bplapply(rownames(mat), fit_one, nthreads = nthreads)
-    } else {
-        res_list <- lapply(rownames(mat), fit_one)
-    }
-    all_results <- Filter(Negate(is.null), res_list)
-
-    if (length(all_results) == 0) {
-        return(data.frame())
-    }
-    res <- do.call(rbind, all_results)
-    
-    # VALIDATION: Ensure critical columns exist after rbind
     if (nrow(res) == 0) {
-        warning("[calculate_lm_interaction] No genes analyzed (all filtered out)", call. = FALSE)
         return(res)
     }
-    
-    critical_cols <- c("p_interaction", "gene")
-    missing_cols <- setdiff(critical_cols, colnames(res))
-    if (length(missing_cols) > 0) {
-        stop("[calculate_lm_interaction] CRITICAL: Missing columns in results for ",
-             method, " method: ", paste(missing_cols, collapse=", "),
-             "\nAvailable columns: ", paste(colnames(res), collapse=", "),
-             call. = FALSE)
-    }
-    
-    # Ensure Shapiro-Wilk columns exist for methods that add them
-    # (GAM and GEE should add them; ensure consistency)
-    if (method %in% c("gam", "gee")) {
-        if (!"shapiro_p_value" %in% colnames(res)) {
-            res$shapiro_p_value <- NA_real_
-        }
-        if (!"residuals_normal" %in% colnames(res)) {
-            res$residuals_normal <- NA
-        }
-        if (!"n_residuals_tested" %in% colnames(res)) {
-            res$n_residuals_tested <- NA_integer_
-        }
-    }
-    
-    # Ensure ci_weighted column exists for all methods (Phase 1 tracking)
-    # This is set by all .tsenat_*_interaction helpers, but validate it's present
-    if (!"ci_weighted" %in% colnames(res)) {
-        res$ci_weighted <- NA  # Should not happen, but provide fallback
-        if (verbose) {
-            warning("[calculate_lm_interaction] ci_weighted column was missing; added as NAs. ",
-                    "This suggests a method helper did not properly set ci_weighted.", call. = FALSE)
-        }
-    }
-    
-    # Apply primary multi-q p-value adjustment method
-    if (multicorr == "hochberg") {
-        # Hochberg stepup procedure (FWER control under positive regression dependence)
-        res$adj_p_interaction <- .tsenat_hochberg_stepup(res$p_interaction)
-        if (verbose) {
-            message("[calculate_lm_interaction] Applied Hochberg stepup adjustment for multi-q correlation")
-        }
-    } else if (multicorr == "westfall-young") {
-        # True Westfall-Young permutation procedure (FWER control via empirical null distribution)
-        # Note: This is computationally expensive as it requires refitting models for permutations.
-        # For large datasets, consider using 'hochberg' instead.
-        
-        if (verbose) {
-            message("[calculate_lm_interaction] Computing true Westfall-Young via ", 
-                    wy_randomizations, " permutations (may be slow)...")
-        }
-        
-        # Save original group vector for safe restoration
-        group_vec_orig <- group_vec
-        
-        # Use helper function for WY permutation machinery
-        # This consolidates the permutation loop and p-value aggregation logic
-        # that was previously duplicated in detect_q_gene_interactions()
-        # CRITICAL: Permutation must preserve q-level structure because:
-        # - Multi-q tests exhibit AR(1) autoregressive correlation WITHIN each q-level
-        # - Exchangeability assumption only holds within q-levels, not globally
-        # - Global shuffling violates this assumption and inflates Type I error
-        # Solution: Shuffle group assignments separately within each q-level
-        perm_result <- .tsenat_westfall_young_permutation(
-            n_genes = nrow(res),
-            wy_randomizations = wy_randomizations,
-            permute_fn = function() {
-                # Generate permutation assignment by shuffling group labels separately within each q-level
-                # This preserves the multi-q correlation structure and maintains valid exchangeability
-                q_unique <- unique(q_vals)
-                perm_assignment <- group_vec_orig
-                for (q_val in q_unique) {
-                    q_idx <- which(q_vals == q_val)
-                    perm_assignment[q_idx] <- sample(group_vec_orig[q_idx])
-                }
-                return(perm_assignment)
-            },
-            refit_fn = function(perm_assignment) {
-                # Refit models with permuted group assignment
-                # Pass permuted group_vec explicitly to avoid modifying outer scope
-                perm_pvalues <- numeric(nrow(res))
-                # Refit each gene with permuted group assignment
-                for (g_idx in seq_along(rownames(mat))) {
-                    gene_name <- rownames(mat)[g_idx]
-                    tryCatch({
-                        gene_result <- fit_one(gene_name, group_vec_override = perm_assignment)
-                        if (!is.null(gene_result) && !is.na(gene_result$p_interaction)) {
-                            perm_pvalues[g_idx] <- gene_result$p_interaction
-                        }
-                    }, error = function(e) { NULL })
-                }
-                
-                return(perm_pvalues)
-            },
-            nthreads = nthreads,
-            verbose = verbose
-        )
-        
-        # Adjust p-values based on permutation distribution
-        # For each observed p-value, compute proportion of permutations with min_perm <= p_obs
-        res$adj_p_interaction <- vapply(res$p_interaction, function(p_obs) {
-            pmin(1.0, (sum(perm_result$perm_minima <= p_obs) + 1) / (wy_randomizations + 1))
-        }, FUN.VALUE = numeric(1))
-        
-        if (verbose) {
-            message("[calculate_lm_interaction] Applied true Westfall-Young (permutation) adjustment")
-        }
-    } else if (multicorr == "benjamini-yekutieli") {
-        # Benjamini-Yekutieli FDR control (valid under any dependence structure)
-        res$adj_p_interaction <- .tsenat_benjamini_yekutieli(res$p_interaction)
-        if (verbose) {
-            message("[calculate_lm_interaction] Applied Benjamini-Yekutieli adjustment for dependent tests")
-        }
-    }
-    
-    # Apply optional Storey adaptive FDR enhancement layer
-    if (storey) {
-        if (requireNamespace("fdrtool", quietly = TRUE)) {
-            tryCatch({
-                res$adj_p_interaction <- compute_storey_qvalues(res$adj_p_interaction)
-                if (verbose) {
-                    message("[calculate_lm_interaction] Applied Storey adaptive FDR ?0 correction to ", 
-                            multicorr, " p-values")
-                }
-            }, error = function(e) {
-                if (verbose) {
-                    message("[calculate_lm_interaction] Storey adjustment failed: ", conditionMessage(e))
-                }
-            })
-        } else if (verbose) {
-            message("[calculate_lm_interaction] fdrtool package not available for Storey (install with: install.packages('fdrtool'))")
-        }
-    }
-    
-    # Sort first by adjusted p-values, then by raw p-values for stable ordering
-    res <- res[order(res$adj_p_interaction, res$p_interaction), , drop = FALSE]
+
+    # Adjust p-values for multiple q-values
+    res$adj_p_interaction <- .tsenat_adjust_pvalues_multicorr(
+        p_values = res$p_interaction,
+        multicorr = multicorr,
+        wy_randomizations = wy_randomizations,
+        metadata = metadata,
+        verbose = verbose,
+        storey = storey
+    )
+
+    # Sort by adjusted p-values, then raw p-values
+    res <- res[order(res$adj_p_interaction, res$p_interaction),
+               , drop = FALSE]
     rownames(res) <- NULL
 
     .tsenat_report_fit_summary(res, verbose = verbose)
 
-    # Map gene identifiers to gene names from rowData for downstream analysis
-    # This ensures effect_sizes_divergence() can match genes across different identifier systems
-    rd <- SummarizedExperiment::rowData(se)
-    
-    # Look for gene_name column from calculate_diversity or build_se
-    gene_name_col <- if ("gene_name" %in% colnames(rd)) "gene_name" else NULL
-    
-    if (verbose) {
-      message("[calculate_lm_interaction] Gene annotations: ", paste(colnames(rd), collapse=", "))
-    }
-    
-    if (!is.null(gene_name_col)) {
-      # Directly extract gene_id and gene_name from rowData using rownames as key
-      # rowData rows correspond to matrix rows in same order
-      
-      # Determine gene_id column if it exists
-      id_col <- if ("genes" %in% colnames(rd)) {
-        "genes"
-      } else if ("gene_id" %in% colnames(rd)) {
-        "gene_id"
-      } else {
-        NA  # rownames will be used as ID
-      }
-      
-      # Build lookup tables: rowname -> gene_id and rowname -> gene_name
-      if (is.na(id_col)) {
-        # rownames ARE the gene IDs
-        rowname_to_id <- setNames(
-          as.character(rownames(rd)),
-          as.character(rownames(rd))
-        )
-      } else {
-        # gene IDs are in a column
-        rowname_to_id <- setNames(
-          as.character(rd[[id_col]]),
-          as.character(rownames(rd))
-        )
-      }
-      
-      rowname_to_name <- setNames(
-        as.character(rd[[gene_name_col]]),
-        as.character(rownames(rd))
-      )
-      
-      # Vectorized lookup: map res$gene (rownames) to gene_id and gene_name
-      res$gene_id <- unname(rowname_to_id[as.character(res$gene)])
-      res$gene_name <- unname(rowname_to_name[as.character(res$gene)])
-      
-      # For any unmapped genes, use gene column as fallback
-      unmapped_idx <- is.na(res$gene_name)
-      n_mapped <- sum(!unmapped_idx)
-      n_unmapped <- sum(unmapped_idx)
-      
-      if (any(unmapped_idx)) {
-        res$gene_name[unmapped_idx] <- res$gene[unmapped_idx]
-      }
-      
-      if (verbose && n_unmapped > 0) {
-        message("[calculate_lm_interaction] Gene mapping: ", n_mapped, " mapped, ", 
-                n_unmapped, " used ID as fallback")
-      }
-    } else if (verbose) {
-      message("[calculate_lm_interaction] gene_name column not found in rowData - using gene ID as fallback")
-    }
-    
-    # Ensure gene_name column is always present and populated (for downstream functions)
-    if (is.null(res$gene_name) || !"gene_name" %in% colnames(res)) {
-      # If gene_name wasn't set above, use gene column as fallback
-      res$gene_name <- res$gene
-    }
-    
-    # Ensure gene_id column is always present and populated
-    if (is.null(res$gene_id) || !"gene_id" %in% colnames(res)) {
-      # If gene_id wasn't set above, use gene column (which may be rownames or gene symbols)
-      res$gene_id <- res$gene
-    }
+    # Map gene identifiers to annotations
+    res <- .tsenat_map_gene_annotations(
+        res = res,
+        se = se,
+        verbose = verbose
+    )
 
     # Optionally return model data alongside results
     if (return_model_data) {
-        # Extract per-group statistics from SE
-        per_group_stats <- list()
-        
-        mat <- SummarizedExperiment::assay(se, assay_name)
-        cdata <- SummarizedExperiment::colData(se)
-        
-        for (gr in unique(group_vec)) {
-            gr_idx <- which(group_vec == gr)
-            gr_mat <- mat[, gr_idx, drop = FALSE]
-            
-            per_group_stats[[gr]] <- list(
-                group = gr,
-                n_samples = length(unique(sample_names[gr_idx])),
-                n_observations = ncol(gr_mat),
-                entropy_mean = mean(as.numeric(gr_mat), na.rm = TRUE),
-                entropy_sd = sd(as.numeric(gr_mat), na.rm = TRUE),
-                entropy_min = min(as.numeric(gr_mat), na.rm = TRUE),
-                entropy_max = max(as.numeric(gr_mat), na.rm = TRUE),
-                entropy_median = median(as.numeric(gr_mat), na.rm = TRUE),
-                n_na = sum(is.na(gr_mat))
-            )
-        }
-        
-        model_data <- list(
+        model_data <- .tsenat_assemble_model_metadata(
+            se = se,
+            res = res,
+            mat = mat,
+            metadata = metadata,
             method = method,
-            n_genes = nrow(res),
-            n_q_values = length(unique(q_vals)),
-            q_values = sort(unique(q_vals)),
-            sample_names = unique(sample_names),
-            group_levels = levels(factor(group_vec)),
-            per_group_statistics = per_group_stats,
-            test_configuration = list(
-                method = method,
-                pvalue_method = pvalue,
-                multicorr = multicorr,
-                bias_correction = bias_correction,
-                regularization = regularization,
-                corstr = corstr,
-                adaptive_knots = adaptive_knots
-            ),
-            genes_analyzed = res$gene,
-            call_time = Sys.time(),
-            notes = "Use this model_data with plotting functions to visualize model fits and diagnostics. See per_group_statistics for condition-specific entropy summaries."
+            pvalue = pvalue,
+            multicorr = multicorr,
+            assay_name = assay_name,
+            bias_correction = bias_correction,
+            regularization = regularization,
+            corstr = corstr,
+            adaptive_knots = adaptive_knots
         )
-        
+
         return(list(
             results = res,
             model_data = model_data
         ))
     }
 
-    # Return the result data.frame (do not attach to or return a
-    # SummarizedExperiment)
     return(res)
 }

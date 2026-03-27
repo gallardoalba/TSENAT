@@ -237,3 +237,332 @@ test_that("effect_sizes_divergence requires required columns", {
     "lm_res must have columns"
   )
 })
+
+# =====================================================================
+# Tests for refactored calculate_divergence orchestrator (March 2026)
+# =====================================================================
+
+test_that("calculate_divergence executes sequential processing (nthreads=1)", {
+  se <- create_test_se_simple(
+    n_genes = 3,
+    n_samples = 8,
+    control_n = 3,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = c(0.5, 1, 2),
+    nthreads = 1,  # Explicitly sequential
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+  expect_equal(nrow(result), 3)  # 3 genes
+})
+
+test_that("calculate_divergence handles multiple q values", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 8,
+    control_n = 3,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = c(0.5, 1, 1.5, 2),  # 4 q values
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  # Should have matrix with correct dimensions
+  expect_true(methods::is(result, "SummarizedExperiment"))
+  expect_equal(nrow(result), 2)  # 2 genes
+  # Assay has 4 columns (one per q value)
+  expect_equal(ncol(SummarizedExperiment::assay(result)), 4)
+})
+
+test_that("calculate_divergence performs bootstrap with auto nboot", {
+  se <- create_test_se_simple(
+    n_genes = 1,
+    n_samples = 8,
+    control_n = 3,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    bootstrap = TRUE,
+    nboot = "auto",  # Auto-select nboot
+    verbose = FALSE,
+    progress = FALSE
+  )
+  
+  # Should return SE with bootstrap results
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence applies normalization (range)", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = 1,
+    norm = "range",  # Range normalization
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence applies normalization (zscore)", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = 1,
+    norm = "zscore",  # Z-score normalization
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence skips normalization with norm='none'", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = 1,
+    norm = "none",  # No normalization
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence classifies per-q patterns with multiple q", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = c(0.5, 1, 2),  # Multiple q values
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  # Should have per_q_pattern column
+  expect_true("per_q_pattern" %in% colnames(SummarizedExperiment::rowData(result)))
+})
+
+test_that("calculate_divergence populates reference q columns", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    q = c(0.5, 1, 2),  # q=1 included
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  rd <- SummarizedExperiment::rowData(result)
+  
+  # Should have generic columns populated from reference q
+  expect_true("estimate" %in% colnames(rd))
+  expect_true("lower_ci" %in% colnames(rd))
+  expect_true("upper_ci" %in% colnames(rd))
+})
+
+test_that("calculate_divergence handles single gene correctly", {
+  se <- create_test_se_simple(
+    n_genes = 1,
+    n_samples = 8,
+    control_n = 3,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_equal(nrow(result), 1)
+})
+
+test_that("calculate_divergence rejects bootstrap=non-logical", {
+  se <- create_test_se_simple(
+    n_genes = 1,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  expect_error(
+    calculate_divergence(
+      se,
+      group_col = "sample_type",
+      control_group = "Control",
+      bootstrap = "TRUE",  # Should be logical, not character
+      verbose = FALSE
+    ),
+    "bootstrap must be a logical"
+  )
+})
+
+test_that("calculate_divergence includes metadata in result", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  # Get metadata using the generic function (no namespace prefix)
+  meta <- metadata(result)
+  
+  # Should include computation metadata
+  expect_true("elapsed_time_sec" %in% names(meta))
+  expect_true("summary_stats" %in% names(meta))
+})
+
+test_that("calculate_divergence handles custom pseudocount", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    pseudocount = 1.0,  # Custom pseudocount
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence handles custom log_base", {
+  se <- create_test_se_simple(
+    n_genes = 2,
+    n_samples = 6,
+    control_n = 2,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    log_base = 2,  # Log base 2
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence handles bootstrap with bca method", {
+  se <- create_test_se_simple(
+    n_genes = 1,
+    n_samples = 8,
+    control_n = 3,
+    group_col_name = "sample_type"
+  )
+  
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    bootstrap = TRUE,
+    nboot = 100,
+    method = "bca",  # Bias-corrected accelerated method
+    verbose = FALSE,
+    progress = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})
+
+test_that("calculate_divergence returns error results gracefully", {
+  # Create SE with extreme count values that may cause computation issues
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = matrix(c(1e15, 1e15, 1, 1, 1, 1), nrow = 1)),
+    rowData = data.frame(gene_name = "gene1"),
+    colData = data.frame(
+      sample_type = c("Control", "Control", "Treatment", "Treatment", "Treatment", "Treatment")
+    )
+  )
+  colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
+  
+  # Should complete without crashing
+  result <- calculate_divergence(
+    se,
+    group_col = "sample_type",
+    control_group = "Control",
+    bootstrap = FALSE,
+    verbose = FALSE
+  )
+  
+  expect_true(methods::is(result, "SummarizedExperiment"))
+})

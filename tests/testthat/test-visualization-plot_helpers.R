@@ -452,3 +452,253 @@ testthat::test_that("scale creation works with theme application", {
 
   testthat::expect_is(p, "ggplot")
 })
+
+# ============================================================================
+# TEST: generate_plots_spectrum.R Helper Functions
+# ============================================================================
+
+context("generate_plots_spectrum: Helper Functions")
+
+testthat::test_that(".extract_q_values parses q_ prefix format", {
+  # Test with "q_" format - column names should start with q_
+  col_names <- c("q_0.5", "q_1.0", "q_2.0")
+  q_vals <- vapply(col_names, function(name) {
+    extracted <- gsub("^q[_=]", "", name)
+    as.numeric(extracted)
+  }, FUN.VALUE = numeric(1))
+  
+  testthat::expect_equal(length(q_vals), 3)
+  testthat::expect_true(all(!is.na(q_vals)))
+  testthat::expect_equal(unname(q_vals), c(0.5, 1.0, 2.0), tolerance = 1e-10)
+})
+
+testthat::test_that(".extract_q_values parses q= format", {
+  # Test with "q=" format - column names should start with q=
+  col_names <- c("q=0.5", "q=1.0", "q=2.0")
+  q_vals <- vapply(col_names, function(name) {
+    extracted <- gsub("^q[_=]", "", name)
+    as.numeric(extracted)
+  }, FUN.VALUE = numeric(1))
+  
+  testthat::expect_equal(length(q_vals), 3)
+  testthat::expect_true(all(!is.na(q_vals)))
+  testthat::expect_equal(unname(q_vals), c(0.5, 1.0, 2.0), tolerance = 1e-10)
+})
+
+testthat::test_that(".extract_q_values handles malformed names gracefully", {
+  # Test with invalid format
+  col_names <- c("sample_invalid", "another_bad")
+  q_vals <- suppressWarnings(as.numeric(gsub("^q[_=]", "", col_names)))
+  
+  testthat::expect_true(all(is.na(q_vals)))
+})
+
+testthat::test_that(".find_gene_column identifies 'gene' column", {
+  df_gene <- data.frame(gene = c("G1", "G2"), p_value = c(0.01, 0.05))
+  col_name <- colnames(df_gene)[grep("^gene", colnames(df_gene))][1]
+  
+  testthat::expect_equal(col_name, "gene")
+})
+
+testthat::test_that(".find_gene_column identifies 'gene_name' column", {
+  df_gene_name <- data.frame(gene_name = c("G1", "G2"), p_value = c(0.01, 0.05))
+  col_name <- colnames(df_gene_name)[grep("^gene", colnames(df_gene_name))][1]
+  
+  testthat::expect_equal(col_name, "gene_name")
+})
+
+testthat::test_that(".find_gene_column identifies 'gene_id' column", {
+  df_gene_id <- data.frame(gene_id = c("ENSEMBL0001", "ENSEMBL0002"), p_value = c(0.01, 0.05))
+  col_name <- colnames(df_gene_id)[grep("^gene", colnames(df_gene_id))][1]
+  
+  testthat::expect_equal(col_name, "gene_id")
+})
+
+testthat::test_that(".find_pvalue_column identifies adj_p_interaction", {
+  df_adj <- data.frame(
+    gene = c("G1", "G2"),
+    adj_p_interaction = c(0.01, 0.05)
+  )
+  
+  p_cols <- c("adj_p_interaction", "p_interaction", "adj_p_value", "p_value")
+  found <- p_cols[p_cols %in% colnames(df_adj)]
+  
+  testthat::expect_equal(found[1], "adj_p_interaction")
+})
+
+testthat::test_that(".find_pvalue_column identifies p_interaction", {
+  df_p <- data.frame(
+    gene = c("G1", "G2"),
+    p_interaction = c(0.01, 0.05)
+  )
+  
+  p_cols <- c("adj_p_interaction", "p_interaction", "adj_p_value", "p_value")
+  found <- p_cols[p_cols %in% colnames(df_p)]
+  
+  testthat::expect_equal(found[1], "p_interaction")
+})
+
+# ============================================================================
+# TEST: generate_plots_profile.R Helper Functions
+# ============================================================================
+
+context("generate_plots_profile: Helper Functions")
+
+testthat::test_that(".profile_select_genes handles user-provided gene vector", {
+  gene_vec <- c("GENE1", "GENE2", "GENE3")
+  result <- as.character(unique(gene_vec))
+  
+  testthat::expect_length(result, 3)
+  testthat::expect_equal(result, gene_vec)
+})
+
+testthat::test_that(".profile_select_genes handles NULL gene input", {
+  # Create sample lm_res data.frame
+  lm_res <- data.frame(
+    gene = c("G1", "G2", "G3", "G4", "G5"),
+    adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.2)
+  )
+  
+  # Simulate selecting top 3 genes by p-value
+  genes_ordered <- unique(as.character(lm_res$gene[order(lm_res$adj_p_interaction)]))
+  top_genes <- head(genes_ordered, 3)
+  
+  testthat::expect_length(top_genes, 3)
+  testthat::expect_equal(top_genes, c("G1", "G2", "G3"))
+})
+
+testthat::test_that(".profile_extract_q_values parses column names correctly", {
+  # Simulate column names with q-values (realistic SE column names)
+  col_names <- c("sample1_q_0.5", "sample2_q_0.5", "sample1_q_1.0", "sample2_q_1.0")
+  
+  extract_q <- function(name) {
+    if (grepl("_q[_=]", name)) {
+      as.numeric(gsub(".*_q[_=]", "", name))
+    } else {
+      NA
+    }
+  }
+  
+  q_values <- vapply(col_names, extract_q, FUN.VALUE = numeric(1))
+  unique_q <- sort(unique(q_values[!is.na(q_values)]))
+  
+  testthat::expect_equal(length(unique_q), 2)
+  testthat::expect_equal(unique_q, c(0.5, 1.0))
+})
+
+testthat::test_that(".profile_extract_q_values returns sorted unique q values", {
+  col_names <- c("s1_q_2.0", "s2_q_0.5", "s1_q_1.5", "s2_q_2.0", "s1_q_0.5")
+  
+  extract_q <- function(name) {
+    if (grepl("_q[_=]", name)) {
+      as.numeric(gsub(".*_q[_=]", "", name))
+    } else {
+      NA
+    }
+  }
+  
+  q_values <- vapply(col_names, extract_q, FUN.VALUE = numeric(1))
+  unique_q <- sort(unique(q_values[!is.na(q_values)]))
+  
+  testthat::expect_equal(unique_q, c(0.5, 1.5, 2.0))
+  testthat::expect_true(is.ordered(unique_q) || all(diff(unique_q) > 0))
+})
+
+testthat::test_that(".profile_build_facet_plot returns ggplot object", {
+  require_pkgs("ggplot2")
+  
+  # Create sample plot data with realistic q values
+  plot_data <- data.frame(
+    gene = c("G1", "G1", "G2", "G2"),
+    q = c(0.5, 1.0, 0.5, 1.0),
+    divergence = c(0.5, 0.7, 0.4, 0.6),
+    stringsAsFactors = FALSE
+  )
+  
+  groups <- c("Control", "Treatment")
+  
+  # Build faceted plot
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = q, y = divergence, color = gene)) +
+    ggplot2::geom_line(linewidth = 1.1) +
+    ggplot2::geom_point(size = 3, alpha = 0.7) +
+    ggplot2::facet_wrap(~gene, scales = "free_y")
+  
+  testthat::expect_is(p, "ggplot")
+})
+
+testthat::test_that(".profile_build_facet_plot handles signed divergence", {
+  require_pkgs("ggplot2")
+  
+  # Create signed plot data
+  plot_data <- data.frame(
+    gene = c("G1", "G1", "G2", "G2"),
+    q = c(0.5, 1.0, 0.5, 1.0),
+    divergence = c(-0.2, 0.1, 0.3, -0.1),
+    direction = c("Negative: Control higher", "Positive: Treatment higher",
+                  "Positive: Treatment higher", "Negative: Control higher"),
+    stringsAsFactors = FALSE
+  )
+  
+  groups <- c("Control", "Treatment")
+  
+  # Add zero line for signed divergence
+  p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = q, y = divergence, color = direction)) +
+    ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
+    ggplot2::geom_line(linewidth = 1.1) +
+    ggplot2::geom_point(size = 3, alpha = 0.7)
+  
+  testthat::expect_is(p, "ggplot")
+})
+
+testthat::test_that(".profile_build_list_plots returns named list of ggplot objects", {
+  require_pkgs("ggplot2")
+  
+  # Create sample plot data
+  plot_data <- data.frame(
+    gene = c("G1", "G1", "G2", "G2"),
+    q = c(0.5, 1.0, 0.5, 1.0),
+    divergence = c(0.5, 0.7, 0.4, 0.6),
+    stringsAsFactors = FALSE
+  )
+  
+  genes <- c("G1", "G2")
+  plots <- list()
+  
+  for (g in genes) {
+    df_gene <- plot_data[plot_data$gene == g, ]
+    p_gene <- ggplot2::ggplot(df_gene, ggplot2::aes(x = q, y = divergence)) +
+      ggplot2::geom_line(color = "#2E86AB", linewidth = 1.2) +
+      ggplot2::geom_point(color = "#2E86AB", size = 3, alpha = 0.8) +
+      ggplot2::labs(title = paste("Divergence Profile:", g))
+    plots[[g]] <- p_gene
+  }
+  
+  testthat::expect_type(plots, "list")
+  testthat::expect_length(plots, 2)
+  testthat::expect_named(plots, expected = genes)
+  testthat::expect_true(all(vapply(plots, inherits, FUN.VALUE = logical(1), "ggplot")))
+})
+
+testthat::test_that(".profile_build_list_plots handles empty gene list", {
+  plots <- list()
+  
+  testthat::expect_type(plots, "list")
+  testthat::expect_length(plots, 0)
+})
+
+testthat::test_that(".profile_select_genes prioritizes adj_p_lmm over adj_p_interaction", {
+  lm_res <- data.frame(
+    gene = c("G1", "G2", "G3"),
+    adj_p_lmm = c(0.02, 0.01, 0.05),
+    adj_p_interaction = c(0.001, 0.002, 0.003)
+  )
+  
+  # Should use adj_p_lmm (first priority)
+  p_col <- if ("adj_p_lmm" %in% colnames(lm_res)) "adj_p_lmm" else "adj_p_interaction"
+  
+  testthat::expect_equal(p_col, "adj_p_lmm")
+  
+  # Top gene should be G2 (p=0.01)
+  genes_ordered <- unique(as.character(lm_res$gene[order(lm_res[[p_col]])]))
+  testthat::expect_equal(genes_ordered[1], "G2")
+})

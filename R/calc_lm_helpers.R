@@ -2541,42 +2541,7 @@
     return(structure("error", class = "try-error"))
 }
 
-.tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL, suppress_lme4_warnings = TRUE,
-    verbose = FALSE, mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
-    # If we have a fallback lm, extract from its coefficients
-    if (!is.null(fallback_lm)) {
-        coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
-        if (!inherits(coefs, "try-error")) {
-            ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0) {
-                return(coefs[ia_idx[1], "Pr(>|t|)"])
-            }
-        }
-        return(NA_real_)
-    }
-    # Prefer lmerTest when available; suppress known lme4/lmerTest warnings
-    if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod")) {
-        muffle_cond <- suppress_lme4_warnings || (!verbose)
-        fit_lt <- withCallingHandlers(try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
-            REML = FALSE), silent = TRUE), warning = function(w) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
-                invokeRestart("muffleWarning")
-            }
-        }, message = function(m) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
-                invokeRestart("muffleMessage")
-            }
-        })
-        if (!inherits(fit_lt, "try-error")) {
-            coefs <- summary(fit_lt)$coefficients
-            ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0) {
-                return(coefs[ia_idx[1], "Pr(>|t|)"])
-            }
-        }
-    }
-    return(NA_real_)
-}
+# NOTE: Satterthwaite p-value extraction consolidated below (see line 2683)
 
 # FPCA matrix preparation
 .tsenat_prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
@@ -2718,21 +2683,8 @@
     return(NA_real_)
 }
 
-.tsenat_prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
-    # prepare matrix for FPCA: center, scale, and drop near-constant rows
-    if (!is.matrix(mat)) {
-        mat <- as.matrix(mat)
-    }
-    row_vars <- apply(mat, 1, stats::var, na.rm = TRUE)
-    keep <- row_vars > (min_frac * max(row_vars, na.rm = TRUE))
-    if (sum(keep) == 0) {
-        keep <- rep(TRUE, nrow(mat))
-    }
-    m2 <- mat[keep, , drop = FALSE]
-    m2 <- t(scale(t(m2)))
-    return(list(mat = m2, keep = keep))
-}
-## Additional note: Duplicate definitions removed. See consolidated versions above.
+## Consolidated helpers for calculate_lm_interaction fallbacks, LRT and Satterthwaite
+## Improved mixed model handling with multiple fallback strategies
 
 # Helper for FPCA-style preprocessing used in calculate_lm_interaction fpca
 # method.  Builds curve_mat, filters good rows, imputes column means, and

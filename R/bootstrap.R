@@ -33,7 +33,7 @@
   if (!is.logical(paired) || length(paired) != 1) {
     stop("'paired' must be a single logical value (TRUE or FALSE)")
   }
-  if (paired && (length(x) %% 2 != 0)) {
+  if (isTRUE(paired) && (length(x) %% 2 != 0)) {
     stop("For paired=TRUE, data must have even length")
   }
   
@@ -207,12 +207,12 @@
   )
   
   job_stability <- NULL
-  if (use_job && paired) {
+  if (isTRUE(use_job) && isTRUE(paired)) {
     warning("JOB not supported with paired=TRUE.")
-  } else if (use_job && length(x) >= 3) {
+  } else if (isTRUE(use_job) && length(x) >= 3) {
     job_stability <- .tsenat_compute_job(x, q = q, norm = norm, nboot = nboot, ci = ci,
       method = method, log_base = log_base, pseudocount = pseudocount, what = what, paired = paired)
-  } else if (use_job && length(x) < 3) {
+  } else if (isTRUE(use_job) && length(x) < 3) {
     warning("JOB requires n >= 3. Skipping.")
   }
   
@@ -238,7 +238,7 @@
     result$diagnostics <- diag_list$diagnostics
   }
   
-  if (use_job && !is.null(diag_list$job_stability)) {
+  if (isTRUE(use_job) && !is.null(diag_list$job_stability)) {
     result$job_stability <- diag_list$job_stability[c("ci_lower_stable", "ci_upper_stable",
       "ci_width_variation", "bound_variability", "n_outlier_bounds")]
   }
@@ -569,6 +569,7 @@ print.tsenat_bootstrap_ci <- function(x, ...) {
     invisible(x)
 }
 
+#' @exportS3Method base::print
 print.tsenat_bootstrap_ci_list <- function(x, ...) {
     message("Bootstrap Confidence Intervals for Multiple q Values")
     message("Number of q values: ", length(x))
@@ -917,24 +918,9 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
   max(100, base_nboot)
 }
 
-# Internal helper: Compute Skewness of Bootstrap Distribution
-# Calculate Fisher-Pearson skewness coefficient to assess asymmetry of bootstrap
-# distribution. Values near 0 indicate symmetry; values > |2| suggest heavy skewness.
-# @keywords internal
-# @noRd
-.tsenat_compute_skewness <- function(x) {
-  n <- length(x)
-  if (n < 3) return(NA_real_)
-  
-  x_centered <- x - mean(x, na.rm = TRUE)
-  m3 <- mean(x_centered^3, na.rm = TRUE)
-  m2 <- mean(x_centered^2, na.rm = TRUE)
-  
-  sd_x <- sqrt(m2)
-  if (sd_x == 0) return(0)
-  
-  return(m3 / (sd_x^3))
-}
+# NOTE: .tsenat_compute_skewness defined in calc_lm_helpers.R
+# Bootstrap distributions are clean (generated from rmultinom + entropy calculations),
+# so the version with na.rm parameter is safe to use with default na.rm=TRUE
 
 #' Compute Effective Sample Size from Bootstrap Data
 #'
@@ -1239,7 +1225,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
     
     bootstrap_divs <- numeric(nboot)
     
-    if (paired && !is.null(se)) {
+    if (isTRUE(paired) && !is.null(se)) {
         # PAIRED BOOTSTRAP: Resample pairs as units while maintaining pairing structure
         # Extract pair_id information from colData
         coldata <- SummarizedExperiment::colData(se)
@@ -1601,6 +1587,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 # S3 METHODS FOR PRINT AND SUMMARY
 # ============================================================================
 
+#' @exportS3Method base::print
 print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     invisible(x)
 }

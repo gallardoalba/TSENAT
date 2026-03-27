@@ -1,4 +1,307 @@
 # =========================================================================
+# NEW ORCHESTRATOR HELPERS (March 2026 refactoring)
+# =========================================================================
+
+#' Validate group columns and auto-detect missing ones
+#' Consolidates duplicated if-pattern for group_col and control_group
+#' @keywords internal
+#' @noRd
+.validate_and_auto_detect_groups <- function(se, group_col, control_group, progress) {
+  if (is.null(group_col) || is.null(control_group)) {
+    auto_groups <- .auto_detect_groups(se)
+    
+    if (is.null(group_col)) {
+      if (is.na(auto_groups$group_col)) {
+        stop("Could not auto-detect group column in colData. ",
+             "Available columns: ", 
+             paste(colnames(SummarizedExperiment::colData(se)), collapse = ", "),
+             ". Please specify 'group_col' explicitly.",
+             call. = FALSE)
+      }
+      group_col <- auto_groups$group_col
+      if (progress) message("[calculate_divergence] Auto-detected group_col='", group_col, "'")
+    }
+    
+    if (is.null(control_group)) {
+      if (is.na(auto_groups$control_group)) {
+        stop("Could not auto-detect control_group. Found groups: ",
+             paste(auto_groups$groups, collapse = ", "),
+             ". Please specify 'control_group' explicitly.",
+             call. = FALSE)
+      }
+      control_group <- auto_groups$control_group
+      if (progress) message("[calculate_divergence] Auto-detected control_group='", control_group, "'")
+    }
+  }
+  
+  list(group_col = group_col, control_group = control_group)
+}
+
+#' Prepare genes for processing (identification + extraction)
+#' Consolidates gene column identification and unique gene extraction
+#' @keywords internal
+#' @noRd
+.prepare_genes_for_processing <- function(se) {
+  rd <- SummarizedExperiment::rowData(se)
+  gene_col <- .identify_gene_column(se)
+  all_gene_names <- .extract_gene_list(se, gene_col)
+  gene_indices <- seq_along(all_gene_names)
+  
+  if (length(gene_indices) == 0) {
+    stop("No genes to process. ",
+         "se gene names (first 3): ", paste(head(all_gene_names, 3), collapse=", "))
+  }
+  
+  list(
+    gene_col = gene_col,
+    all_gene_names = all_gene_names,
+    gene_indices = gene_indices,
+    rd = rd,
+    num_genes = length(gene_indices)
+  )
+}
+
+#' Configure bootstrap and parallel execution parameters
+#' Fixes nboot bug and consolidates configuration logic
+#' @keywords internal
+#' @noRd
+.configure_bootstrap_and_parallel <- function(bootstrap, nboot, method, num_genes, nthreads, progress) {
+  # Validate bootstrap flag - use isTRUE to safely handle NA
+  if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
+    bootstrap <- FALSE  # Default to no bootstrap if invalid
+  }
+  
+  if (!isTRUE(bootstrap)) {
+    nboot <- 0
+  }
+  
+  # AUTO-SELECT NBOOT WHEN "auto"
+  if (isTRUE(bootstrap) && identical(nboot, "auto")) {
+    use_bca <- !is.null(method) && identical(method, "bca")
+    nboot <- suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
+    if (isTRUE(progress)) {
+      message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
+    }
+  }
+  
+  # Configure parallel execution (fixes line 257 bug by using num_genes parameter)
+  parallel_config <- .configure_parallel_execution(nthreads, num_genes)
+  
+  list(
+    nboot = nboot,
+    nthreads = parallel_config$nthreads,
+    use_parallel = parallel_config$use_parallel
+  )
+}
+
+#' Prepare paired sample and progress information
+#' Consolidates paired detection and progress message assembly
+#' @keywords internal
+#' @noRd
+.prepare_divergence_execution <- function(se, bootstrap, paired, nboot, method, nthreads, progress) {
+  pair_ids <- NULL
+  pairing_info <- ""
+  
+  if (isTRUE(bootstrap)) {  # Use isTRUE to safely handle NA
+    # Auto-detect paired samples
+    pair_detected <- .detect_pair_ids(se)
+    
+    if (pair_detected$num_pairs > 0) {
+      pair_ids <- pair_detected$pair_ids
+      pairing_info <- sprintf(" [paired: %d unique pairs from '%s' column]", 
+                              pair_detected$num_pairs, 
+                              pair_detected$column_name)
+      
+      if (isFALSE(paired) && progress) {  # Use isFALSE to safely handle NA
+        message("NOTE: Paired sample structure detected in '", 
+            pair_detected$column_name, "' column.\n",
+            "      Using pair-respecting bootstrap resampling.")
+      }
+    } else {
+      if (isTRUE(paired) && progress) {  # Use isTRUE to safely handle NA
+        message("paired=TRUE but no pair ID column detected in colData.",
+            " Using independent bootstrap resampling instead.")
+      }
+    }
+  }
+  
+  if (progress) {
+    mode_desc <- if (isTRUE(bootstrap)) {  # Use isTRUE to safely handle NA
+      paste0("bootstrap with ", nboot, " replicates (", method, ")", pairing_info)
+    } else {
+      "point estimates only"
+    }
+    
+    mode_str <- if (!is.null(nthreads) && nthreads > 1) "Parallel" else "Sequential"
+    thread_desc <- if (!is.null(nthreads) && nthreads > 1) paste0(" on ", nthreads, " threads") else ""
+    message(mode_str, " mode: ", mode_desc, thread_desc)
+  }
+  
+  list(pair_ids = pair_ids, pairing_info = pairing_info)
+}
+
+#' Execute divergence computation (abstracted seq vs parallel dispatch)
+#' Consolidates nearly-identical sequential and parallel blocks
+#' @keywords internal
+#' @noRd
+.execute_divergence_computation <- function(gene_indices, all_gene_names, se, gene_col, rd,
+                                            group_col, control_group, q, nboot, ci, method,
+                                            log_base, pseudocount, seed, pair_ids, 
+                                            nthreads, use_parallel, progress) {
+  start_time <- Sys.time()
+  num_genes <- length(gene_indices)
+  results_list <- list()
+  
+  if (!use_parallel) {
+    # ====== SEQUENTIAL PROCESSING ======
+    for (i in seq_along(gene_indices)) {
+      gene_idx <- gene_indices[i]
+      
+      results_list[[i]] <- .process_single_gene(
+        gene_idx, all_gene_names, se, gene_col, rd,
+        group_col, control_group, q, nboot, ci, method,
+        log_base, pseudocount, seed, pair_ids
+      )
+      
+      if (progress && (i %% 10 == 0)) {
+        elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
+        rate <- (i / elapsed) * 60
+        message("[", i, "/", num_genes, "] (", sprintf("%.1f genes/min", rate), ")")
+      }
+    }
+  } else {
+    # ====== PARALLEL PROCESSING ======
+    cl <- parallel::makeCluster(nthreads, type = "PSOCK")
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    
+    parallel::clusterExport(cl, 
+      c(".process_single_gene", "calculate_divergence_bootstrap", ".tsallis_divergence_scalar",
+        ".aggregate_counts_for_gene", ".extract_group_counts", ".compute_divergence_per_q",
+        ".build_bootstrap_args", ".make_error_result",
+        "rd", "gene_col", "all_gene_names", "se", "q", "nboot", "ci", "method",
+        "log_base", "pseudocount", "seed", "group_col", "control_group", "pair_ids"),
+      envir = environment())
+    
+    parallel::clusterCall(cl, function() {
+      requireNamespace("SummarizedExperiment", quietly = TRUE)
+    })
+    
+    results_list <- parallel::parLapply(cl, seq_along(gene_indices), function(i) {
+      gene_idx <- gene_indices[i]
+      .process_single_gene(
+        gene_idx, all_gene_names, se, gene_col, rd,
+        group_col, control_group, q, nboot, ci, method,
+        log_base, pseudocount, seed, pair_ids
+      )
+    })
+  }
+  
+  elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
+  list(results = results_list, elapsed = elapsed)
+}
+
+#' Finalize result matrices from results list
+#' Consolidates matrix initialization, population, and reference q handling
+#' @keywords internal
+#' @noRd
+.finalize_divergence_matrices <- function(results_list, num_genes, q, norm, progress) {
+  # Initialize result matrices
+  matrices <- .initialize_result_matrices(num_genes, q)
+  assay_matrix <- matrices$assay
+  row_data_df <- matrices$rowData
+  
+  # Populate matrices from results_list
+  populated <- .populate_result_matrices(results_list, assay_matrix, row_data_df, q)
+  assay_matrix <- populated$assay
+  row_data_df <- populated$rowData
+  
+  # Set row names
+  rownames(row_data_df) <- row_data_df$gene_name
+  rownames(assay_matrix) <- row_data_df$gene_name
+  
+  # Populate generic estimate/lower_ci/upper_ci columns using reference q value (q=1)
+  q_ref <- 1.0
+  q_idx <- which.min(abs(q - q_ref))
+  if (length(q_idx) > 0 && q_idx <= length(q)) {
+    ref_q <- q[q_idx]
+    estimate_col <- paste0("estimate_q", ref_q)
+    lower_ci_col <- paste0("lower_ci_q", ref_q)
+    upper_ci_col <- paste0("upper_ci_q", ref_q)
+    ci_width_col <- paste0("ci_width_q", ref_q)
+    
+    if (estimate_col %in% colnames(row_data_df)) {
+      row_data_df$estimate <- row_data_df[[estimate_col]]
+      row_data_df$lower_ci <- row_data_df[[lower_ci_col]]
+      row_data_df$upper_ci <- row_data_df[[upper_ci_col]]
+      row_data_df$ci_width <- row_data_df[[ci_width_col]]
+    }
+  }
+  
+  # Apply normalization if requested
+  if (norm != "none") {
+    if (progress) {
+      message(sprintf("Applying '%s' normalization to divergence estimates...", norm))
+    }
+    
+    normalized <- .apply_divergence_normalization(
+      assay_matrix = assay_matrix,
+      row_data_df = row_data_df,
+      q_vals = q,
+      norm = norm
+    )
+    assay_matrix <- normalized$assay
+    row_data_df <- normalized$rowData
+  }
+  
+  # Classify per-q patterns
+  row_data_df$per_q_pattern <- NA_character_
+  if (length(q) > 1) {
+    for (i in seq_len(nrow(row_data_df))) {
+      per_q_divs <- assay_matrix[i, ]
+      names(per_q_divs) <- paste0("q_", q)
+      
+      if (sum(!is.na(per_q_divs)) >= 2) {
+        pattern <- classify_q_pattern(per_q_divs)
+        row_data_df$per_q_pattern[i] <- if (is.na(pattern)) "UNCLASSIFIED" else pattern
+      }
+    }
+  }
+  
+  list(assay = assay_matrix, rowData = row_data_df)
+}
+
+#' Print divergence computation summary
+#' Consolidates logging and summary statistics reporting
+#' @keywords internal
+#' @noRd
+.print_divergence_summary <- function(num_genes, num_errors, elapsed, row_data_df, progress) {
+  num_success <- num_genes - num_errors
+  
+  if (progress) {
+    message("\nDIVERGENCE COMPUTATION COMPLETE")
+    message("Summary:")
+    message("  Genes processed:        ", num_genes)
+    message("  Successful:             ", num_success)
+    message("  Failed:                 ", num_errors)
+    message("  Total elapsed time:     ", sprintf("%.1f seconds", elapsed))
+    message("  Average per gene:       ", sprintf("%.2f seconds", elapsed / num_genes))
+    message("  Genes per minute:       ", sprintf("%.1f", (num_genes / elapsed) * 60))
+    
+    if (num_errors > 0) {
+      message("Failed genes:")
+      failed <- row_data_df[!is.na(row_data_df$error), ]
+      for (i in seq_len(min(10, nrow(failed)))) {
+        message(sprintf("  [%d] %s: %s", i, failed$gene_name[i], failed$error[i]))
+      }
+      if (num_errors > 10) {
+        message("  ... and", num_errors - 10, "more")
+      }
+    }
+  }
+}
+
+
+# =========================================================================
 # MAIN FUNCTION: Calculate Bootstrap Divergence
 # =========================================================================
 
@@ -155,8 +458,67 @@
 #'   approaches for effect size comparability (S197 - DESeq2 independent filtering)
 #' @keywords internal
 #' @noRd
-
 calculate_divergence <- function(
+    se,
+    group_col = NULL,
+    control_group = NULL,
+    q = 1,
+    paired = FALSE,
+    bootstrap = FALSE,
+    nboot = "auto",
+    ci = 0.95,
+    method = "percentile",
+    norm = TRUE,
+    log_base = exp(1),
+    pseudocount = 0.5,
+    nthreads = 1,
+    progress = FALSE,
+    verbose = TRUE,
+    seed = NULL) {
+  
+  # =========================================================================
+  # INPUT VALIDATION - Must be done BEFORE implementation
+  # Following Bioconductor guidelines: fail fast with clear error messages
+  # =========================================================================
+  
+  # Validate bootstrap parameter
+  if (!is.logical(bootstrap) || length(bootstrap) != 1 || is.na(bootstrap)) {
+    stop("bootstrap must be a logical", call. = FALSE)
+  }
+  
+  # Validate paired parameter
+  if (!is.logical(paired) || length(paired) != 1 || is.na(paired)) {
+    stop("paired must be a logical", call. = FALSE)
+  }
+  
+  # Validate method parameter
+  if (!is.null(method) && (!is.character(method) || length(method) == 0 || is.na(method[1]))) {
+    stop("method must be a character string", call. = FALSE)
+  }
+  
+  # Validate nthreads parameter
+  if (!is.null(nthreads)) {
+    if (!is.numeric(nthreads) || length(nthreads) != 1 || is.na(nthreads)) {
+      stop("nthreads must be a positive integer", call. = FALSE)
+    }
+  }
+  
+  # Validate progress parameter
+  if (!is.logical(progress) || length(progress) != 1 || is.na(progress)) {
+    stop("progress must be a logical", call. = FALSE)
+  }
+  
+  # Call implementation directly - errors will propagate clearly
+  .calculate_divergence_impl(
+    se, group_col, control_group, q, paired, bootstrap, nboot, ci, method,
+    norm, log_base, pseudocount, nthreads, progress, verbose, seed
+  )
+}
+
+#' Implementation of calculate_divergence with parameter validation
+#' @keywords internal
+#' @noRd
+.calculate_divergence_impl <- function(
     se,
     group_col = NULL,
     control_group = NULL,
@@ -175,301 +537,116 @@ calculate_divergence <- function(
     seed = NULL) {
 
   # =========================================================================
-  # INPUT VALIDATION
+  # =========================================================================
+  # INPUT VALIDATION & SETUP
   # =========================================================================
 
-  # Normalize norm parameter: coerce logical to character for backward compatibility
+  # Parameters are validated in calculate_divergence() 
+  # Normalize/coerce for internal use
+  if (!isTRUE(bootstrap)) {
+    bootstrap <- FALSE
+  }
+  if (!isTRUE(paired)) {
+    paired <- FALSE
+  }
+  
+  method <- if (!is.null(method) && is.character(method) && length(method) > 0) {
+    as.character(method[1])
+  } else {
+    "percentile"
+  }
+  
+  nthreads <- if (is.numeric(nthreads) && length(nthreads) == 1 && !is.na(nthreads)) {
+    as.integer(max(1, nthreads))
+  } else if (is.null(nthreads)) {
+    1L
+  } else {
+    1L
+  }
+  
+  progress <- if (is.logical(progress) && length(progress) == 1) {
+    progress
+  } else {
+    FALSE
+  }
+  
   norm <- .normalize_norm_parameter(norm)
-  
-  # Validate and sort q parameter
   q <- .validate_and_sort_q_values(q)
-  
-  # Validate SE input
   .validate_se_input(se)
 
   # =========================================================================
   # AUTO-DETECT GROUP COLUMN AND CONTROL GROUP
   # =========================================================================
-  
-  if (is.null(group_col) || is.null(control_group)) {
-    auto_groups <- .auto_detect_groups(se)
-    
-    if (is.null(group_col)) {
-      if (is.na(auto_groups$group_col)) {
-        stop("Could not auto-detect group column in colData. ",
-             "Available columns: ", 
-             paste(colnames(SummarizedExperiment::colData(se)), collapse = ", "),
-             ". Please specify 'group_col' explicitly.",
-             call. = FALSE)
-      }
-      group_col <- auto_groups$group_col
-      if (progress) {
-        message("[calculate_divergence] Auto-detected group_col='", group_col, "'")
-      }
-    }
-    
-    if (is.null(control_group)) {
-      if (is.na(auto_groups$control_group)) {
-        stop("Could not auto-detect control_group. Found groups: ",
-             paste(auto_groups$groups, collapse = ", "),
-             ". Please specify 'control_group' explicitly.",
-             call. = FALSE)
-      }
-      control_group <- auto_groups$control_group
-      if (progress) {
-        message("[calculate_divergence] Auto-detected control_group='", control_group, "'")
-      }
-    }
-  }
 
-  # Get list of UNIQUE genes to process (not transcripts)
-  rd <- SummarizedExperiment::rowData(se)
-  
-  # Identify gene name column
-  gene_col <- .identify_gene_column(se)
-  
-  # Extract unique gene list
-  all_gene_names <- .extract_gene_list(se, gene_col)
-
-  # Process unique genes only
-  genes_to_process <- all_gene_names
-  gene_indices <- seq_along(all_gene_names)
-
-  num_genes <- length(gene_indices)
-  
-  if (num_genes == 0) {
-    stop("No genes to process. ",
-         "se gene names (first 3): ", paste(head(all_gene_names, 3), collapse=", "))
-  }
+  group_info <- .validate_and_auto_detect_groups(se, group_col, control_group, progress)
+  group_col <- group_info$group_col
+  control_group <- group_info$control_group
 
   # =========================================================================
-  # BOOTSTRAP CONFIGURATION
+  # PREPARE GENES FOR PROCESSING
   # =========================================================================
 
-  if (!is.logical(bootstrap) || length(bootstrap) != 1) {
-    stop("bootstrap must be a logical (TRUE/FALSE)")
-  }
-
-  if (!bootstrap) {
-    nboot <- 0
-  }
-
-  # AUTO-SELECT NBOOT WHEN "auto"
-  if (bootstrap && identical(nboot, "auto")) {
-    num_genes <- nrow(se)
-    use_bca <- method == "bca"
-    nboot <- suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
-    if (progress) {
-      message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
-    }
-  }
-
-  # Configure parallel execution
-  parallel_config <- .configure_parallel_execution(nthreads, num_genes)
-  nthreads <- parallel_config$nthreads
-  use_parallel <- parallel_config$use_parallel
+  genes_info <- .prepare_genes_for_processing(se)
+  gene_col <- genes_info$gene_col
+  all_gene_names <- genes_info$all_gene_names
+  gene_indices <- genes_info$gene_indices
+  rd <- genes_info$rd
+  num_genes <- genes_info$num_genes
 
   # =========================================================================
-  # PAIRED SAMPLE DETECTION (NEW FEATURE)
-  # =========================================================================
-  
-  pair_ids <- NULL
-  pairing_info <- ""
-  
-  if (bootstrap) {
-    # Auto-detect paired samples when bootstrap=TRUE (or when paired=TRUE)
-    pair_detected <- .detect_pair_ids(se)
-    
-    if (pair_detected$num_pairs > 0) {
-      pair_ids <- pair_detected$pair_ids
-      pairing_info <- sprintf(" [paired: %d unique pairs from '%s' column]", 
-                              pair_detected$num_pairs, 
-                              pair_detected$column_name)
-      
-      if (paired == FALSE && progress) {
-        message("NOTE: Paired sample structure detected in '", 
-            pair_detected$column_name, "' column.\n",
-            "      Using pair-respecting bootstrap resampling.")
-      }
-    } else {
-      if (paired == TRUE && progress) {
-        message("paired=TRUE but no pair ID column detected in colData.",
-            " Using independent bootstrap resampling instead.")
-      }
-    }
-  }
-
-  if (progress) {
-    mode_desc <- if (bootstrap) {
-      paste0("bootstrap with ", nboot, " replicates (", method, ")", pairing_info)
-    } else {
-      "point estimates only"
-    }
-
-    mode_str <- if (use_parallel) "Parallel" else "Sequential"
-    thread_desc <- if (use_parallel) paste0(" on ", nthreads, " threads") else ""
-    message(mode_str, " mode: ", num_genes, " genes", thread_desc, " [", mode_desc, "]")
-  }
-
-  # =========================================================================
-  # COMPUTATION (SEQUENTIAL OR PARALLEL)
+  # BOOTSTRAP & PARALLEL CONFIGURATION
   # =========================================================================
 
-  start_time <- Sys.time()
-  results_list <- list()
-
-  if (!use_parallel) {
-    # ====== SEQUENTIAL PROCESSING ======
-    for (i in seq_along(gene_indices)) {
-      gene_idx <- gene_indices[i]
-      
-      # Use consolidated gene processing helper
-      results_list[[i]] <- .process_single_gene(
-        gene_idx, all_gene_names, se, gene_col, rd,
-        group_col, control_group, q, nboot, ci, method,
-        log_base, pseudocount, seed, pair_ids
-      )
-
-      if (progress && (i %% 10 == 0)) {
-        elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
-        rate <- (i / elapsed) * 60
-        message("[", i, "/", num_genes, "] (", sprintf("%.1f genes/min", rate), ")")
-      }
-    }
-
-  } else {
-    # ====== PARALLEL PROCESSING ======
-
-    cl <- parallel::makeCluster(nthreads, type = "PSOCK")
-    on.exit(parallel::stopCluster(cl), add = TRUE)
-
-    # Export helper functions and dependencies to cluster
-    parallel::clusterExport(cl, 
-      c(".process_single_gene", "calculate_divergence_bootstrap", ".tsallis_divergence_scalar",
-        ".aggregate_counts_for_gene", ".extract_group_counts", ".compute_divergence_per_q",
-        ".build_bootstrap_args", ".make_error_result",
-        "rd", "gene_col", "all_gene_names", "se", "q", "nboot", "ci", "method",
-        "log_base", "pseudocount", "seed", "group_col", "control_group", "pair_ids"),
-      envir = environment())
-
-    parallel::clusterCall(cl, function() {
-      requireNamespace("SummarizedExperiment", quietly = TRUE)
-    })
-
-    results_list <- parallel::parLapply(cl, seq_along(gene_indices), function(i) {
-      gene_idx <- gene_indices[i]
-      
-      # Use consolidated gene processing helper
-      .process_single_gene(
-        gene_idx, all_gene_names, se, gene_col, rd,
-        group_col, control_group, q, nboot, ci, method,
-        log_base, pseudocount, seed, pair_ids
-      )
-    })
-  }
-
-  elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
+  boot_config <- .configure_bootstrap_and_parallel(
+    bootstrap, nboot, method, num_genes, nthreads, progress
+  )
+  nboot <- boot_config$nboot
+  nthreads <- boot_config$nthreads
+  use_parallel <- boot_config$use_parallel
 
   # =========================================================================
-  # RESULTS COMPILATION - Build genes * q matrix
+  # PAIRED SAMPLE DETECTION & EXECUTION SETUP
   # =========================================================================
 
-  # Initialize result matrices
-  matrices <- .initialize_result_matrices(num_genes, q)
-  assay_matrix <- matrices$assay
-  row_data_df <- matrices$rowData
-  
-  # Populate matrices from results_list
-  populated <- .populate_result_matrices(results_list, assay_matrix, row_data_df, q)
-  assay_matrix <- populated$assay
-  row_data_df <- populated$rowData
-  
-  # Set row names
-  rownames(row_data_df) <- row_data_df$gene_name
-  rownames(assay_matrix) <- row_data_df$gene_name
-  
-  # Classify per-q patterns: RARE_DRIVEN, ABUNDANT_DRIVEN, or BALANCED
-  row_data_df$per_q_pattern <- NA_character_
-  if (length(q) > 1) {
-    for (i in seq_len(nrow(row_data_df))) {
-      # Get divergence values across q for this gene
-      per_q_divs <- assay_matrix[i, ]
-      names(per_q_divs) <- paste0("q_", q)
-      
-      # Only classify if we have valid values
-      if (sum(!is.na(per_q_divs)) >= 2) {
-        pattern <- classify_q_pattern(per_q_divs)
-        row_data_df$per_q_pattern[i] <- if (is.na(pattern)) "UNCLASSIFIED" else pattern
-      }
-    }
-  }
-  
-  # Populate generic estimate/lower_ci/upper_ci columns using reference q value (q=1)
-  # This is needed for downstream functions like effect_sizes_divergence()
-  q_ref <- 1.0
-  q_idx <- which.min(abs(q - q_ref))  # Find closest q to 1.0
-  if (length(q_idx) > 0 && q_idx <= length(q)) {
-    ref_q <- q[q_idx]
-    estimate_col <- paste0("estimate_q", ref_q)
-    lower_ci_col <- paste0("lower_ci_q", ref_q)
-    upper_ci_col <- paste0("upper_ci_q", ref_q)
-    ci_width_col <- paste0("ci_width_q", ref_q)
-    
-    # Copy per-q columns to generic columns for downstream compatibility
-    if (estimate_col %in% colnames(row_data_df)) {
-      row_data_df$estimate <- row_data_df[[estimate_col]]
-      row_data_df$lower_ci <- row_data_df[[lower_ci_col]]
-      row_data_df$upper_ci <- row_data_df[[upper_ci_col]]
-      row_data_df$ci_width <- row_data_df[[ci_width_col]]
-    }
-  }
-  
-  # Apply normalization if requested (BEFORE creating SE)
-  if (norm != "none") {
-    if (progress) {
-      message(sprintf("Applying '%s' normalization to divergence estimates...", norm))
-    }
-    
-    normalized <- .apply_divergence_normalization(
-      assay_matrix = assay_matrix,
-      row_data_df = row_data_df,
-      q_vals = q,
-      norm = norm
-    )
-    assay_matrix <- normalized$assay
-    row_data_df <- normalized$rowData
-  }
-
-  # Summary statistics
-  num_success <- sum(is.na(row_data_df$error))
-  num_errors <- num_genes - num_success
-
-  if (progress) {
-    message("\nDIVERGENCE COMPUTATION COMPLETE")
-    message("Summary:")
-    message("  Genes processed:        ", num_genes)
-    message("  Successful:             ", num_success)
-    message("  Failed:                 ", num_errors)
-    message("  Total elapsed time:     ", sprintf("%.1f seconds", elapsed))
-    message("  Average per gene:       ", sprintf("%.2f seconds", elapsed / num_genes))
-    message("  Genes per minute:       ", sprintf("%.1f", (num_genes / elapsed) * 60))
-
-    if (num_errors > 0) {
-      message("Failed genes:")
-      failed <- row_data_df[!is.na(row_data_df$error), ]
-      for (i in seq_len(min(10, nrow(failed)))) {
-        message(sprintf("  [%d] %s: %s", i, failed$gene_name[i], failed$error[i]))
-      }
-      if (num_errors > 10) {
-        message("  ... and", num_errors - 10, "more")
-      }
-    }
-  }
+  exec_setup <- .prepare_divergence_execution(
+    se, bootstrap, paired, nboot, method, nthreads, progress
+  )
+  pair_ids <- exec_setup$pair_ids
 
   # =========================================================================
-  # CREATE SUMMARIZED EXPERIMENT
+  # EXECUTE DIVERGENCE COMPUTATION (SEQUENTIAL OR PARALLEL)
   # =========================================================================
-  
+
+  comp_result <- .execute_divergence_computation(
+    gene_indices, all_gene_names, se, gene_col, rd,
+    group_col, control_group, q, nboot, ci, method,
+    log_base, pseudocount, seed, pair_ids,
+    nthreads, use_parallel, progress
+  )
+  results_list <- comp_result$results
+  elapsed <- comp_result$elapsed
+
+  # =========================================================================
+  # FINALIZE MATRICES & APPLY NORMALIZATION
+  # =========================================================================
+
+  matrices_final <- .finalize_divergence_matrices(
+    results_list, num_genes, q, norm, progress
+  )
+  assay_matrix <- matrices_final$assay
+  row_data_df <- matrices_final$rowData
+
+  # =========================================================================
+  # SUMMARY STATISTICS & LOGGING
+  # =========================================================================
+
+  num_errors <- sum(!is.na(row_data_df$error))
+  .print_divergence_summary(num_genes, num_errors, elapsed, row_data_df, progress)
+
+  # =========================================================================
+  # CREATE & RETURN SUMMARIZED EXPERIMENT
+  # =========================================================================
+
   result_se <- .construct_result_se(
     assay_matrix = assay_matrix,
     row_data_df = row_data_df,
@@ -568,17 +745,18 @@ calculate_divergence <- function(
 #' Auto-detects cores and decides between sequential/parallel
 #' @noRd
 .configure_parallel_execution <- function(nthreads, num_genes) {
-    if (is.null(nthreads)) {
+    if (is.null(nthreads) || is.na(nthreads)) {
         nthreads <- parallel::detectCores() - 1
         nthreads <- max(1, nthreads)
     }
     
     if (!is.numeric(nthreads) || nthreads < 1) {
-        stop("nthreads must be a positive integer")
+        stop("'nthreads' must be a positive integer")
     }
     nthreads <- as.integer(nthreads)
     
-    use_parallel <- (num_genes >= 5 && nthreads > 1)
+    # Safe boolean check: only use parallel if num_genes is numeric and nthreads > 1
+    use_parallel <- (!is.na(num_genes) && num_genes >= 5 && nthreads > 1)
     
     list(nthreads = nthreads, use_parallel = use_parallel)
 }
