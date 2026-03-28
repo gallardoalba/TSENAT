@@ -13,40 +13,30 @@
 # Plot S4 wrappers call .load_visualization_deps() at function entry,
 # ensuring packages are available before plot creation.
 
-#' Load visualization dependencies on demand
-#'
-#' Deferred loading of visualization packages (ggplot2, cowplot, pheatmap, dplyr, tidyr)
-#' to optimize package startup time. Called automatically by plot functions.
-#'
-#' This function is designed to be called at the start of any plot function.
-#' It performs a no-op if packages are already loaded.
-#'
-#' @param strict \code{logical}. If TRUE (default), raise error if packages 
-#'   cannot be loaded. If FALSE, issue warning instead.
-#' @param verbose \code{logical}. If TRUE, print loading status message. Default: FALSE.
-#'
-#' @return Invisibly returns logical:
-#'   \describe{
-#'     \item{TRUE}{Packages were already loaded}
-#'     \item{FALSE}{Packages just loaded by this call}
-#'     \item{NA}{Loading failed (only if strict=FALSE)}
-#'   }
-#'
-#' @details
-#' This function is called automatically by all S4 plot wrapper functions
-#' (plot_volcano_ma_grid_s4, plot_divergence_spectrum_s4, etc.).
-#' Users should not need to call this directly.
-#'
-#' The loading state is tracked in namespace variable `.viz_loaded` to ensure
-#' packages are only loaded once.
-#'
-#' @keywords internal
-#' @examples
-#' \dontrun{
-#'   # Automatically called by plot functions
-#'   TSENAT:::.load_visualization_deps(verbose = TRUE)
-#' }
-#'
+# Load visualization dependencies on demand (INTERNAL FUNCTION)
+#
+# Deferred loading of visualization packages (ggplot2, cowplot, pheatmap, dplyr, tidyr)
+# to optimize package startup time. Called automatically by plot functions.
+#
+# Arguments:
+#   strict - logical. If TRUE (default), raise error if packages cannot be loaded.
+#            If FALSE, issue warning instead.
+#   verbose - logical. If TRUE, print loading status message. Default: FALSE.
+#
+# Returns:
+#   Invisibly returns logical:
+#   - TRUE: Packages were already loaded
+#   - FALSE: Packages just loaded by this call
+#   - NA: Loading failed (only if strict=FALSE)
+#
+# Details:
+#   This function is called automatically by all S4 plot wrapper functions
+#   (plot_volcano_ma_grid_s4, plot_divergence_spectrum_s4, etc.).
+#   Users should not need to call this directly.
+#
+#   The loading state is tracked in namespace variable .viz_loaded to ensure
+#   packages are only loaded once.
+#
 .load_visualization_deps <- function(strict = TRUE, verbose = FALSE) {
   # Fetch package namespace (more efficient than asNamespace())
   ns <- asNamespace("TSENAT")
@@ -94,41 +84,29 @@
   )
 }
 
-#' Check if visualization dependencies are loaded
-#'
-#' Simple utility to check whether visualization packages have been loaded
-#' (either at startup or via lazy-loading).
-#'
-#' @return \code{logical}. TRUE if visualization packages are loaded, FALSE otherwise.
-#'
-#' @keywords internal
-#' @examples
-#' \dontrun{
-#'   if (TSENAT:::.viz_available()) {
-#'     # Safe to call plot functions
-#'   }
-#' }
-#'
+# Check if visualization dependencies are loaded (INTERNAL FUNCTION)
+#
+# Simple utility to check whether visualization packages have been loaded
+# (either at startup or via lazy-loading).
+#
+# Returns:
+#   logical. TRUE if visualization packages are loaded, FALSE otherwise.
+#
 .viz_available <- function() {
   isTRUE(get0(".viz_loaded", envir = asNamespace("TSENAT"), inherits = FALSE))
 }
 
-#' Get lazy-loading status report
-#'
-#' Diagnostic function for checking which visualization packages are loaded
-#' and when lazy-loading occurred.
-#'
-#' @return A list with lazy-loading information:
-#'   \describe{
-#'     \item{viz_loaded}{Logical: whether lazy-loading has occurred}
-#'     \item{packages_loaded}{Character vector: names of loaded viz packages}
-#'     \item{ggplot2_available}{\code{TRUE} if ggplot2 namespace is loaded}
-#'     \item{cowplot_available}{\code{TRUE} if cowplot namespace is loaded}
-#'     \item{pheatmap_available}{\code{TRUE} if pheatmap namespace is loaded}
-#'   }
-#'
-#' @keywords internal
-#' @export
+# Get lazy-loading status report (INTERNAL FUNCTION)
+#
+# Diagnostic function for checking which visualization packages are loaded
+# and when lazy-loading occurred.
+#
+# Returns:
+#   A list with lazy-loading information:
+#   - viz_loaded: Logical indicating whether lazy-loading has occurred
+#   - packages_loaded: Named logical vector for each visualization package
+#   - total_namespaces_loaded: Total count of all loaded namespaces
+#
 .viz_status <- function() {
   ls_all <- loadedNamespaces()
   

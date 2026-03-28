@@ -14,6 +14,9 @@ calculate_divergence_s4(
   paired = FALSE,
   method = NULL,
   bootstrap = FALSE,
+  nboot = NULL,
+  seed = NULL,
+  progress = FALSE,
   ...
 )
 }
@@ -42,6 +45,12 @@ If NULL, reads from \code{@config$method} if available.}
 
 \item{bootstrap}{\code{logical}. Whether to compute bootstrap confidence intervals. Default: FALSE.
 If not specified, reads from \code{@config$bootstrap} if available.}
+
+\item{nboot}{\code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
+If NULL, reads from \code{@config$nboot} if available.}
+
+\item{seed}{\code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
+If NULL, reads from \code{@config$seed} if available.}
 
 \item{...}{Additional arguments passed to the base divergence function.}
 }

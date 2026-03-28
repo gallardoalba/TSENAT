@@ -22,10 +22,11 @@ calculate_diversity_s4(
   effective_length = NULL,
   metadata = NULL,
   bootstrap = NULL,
-  bootstrap_nboot = NULL,
+  nboot = NULL,
   bootstrap_method = NULL,
   bootstrap_ci = NULL,
   bootstrap_include_diagnostics = NULL,
+  seed = NULL,
   output_file = NULL,
   ...
 )
@@ -89,8 +90,8 @@ If NULL, reads from \code{@config$effective_length} if available.}
 \item{bootstrap}{\code{logical}. Compute bootstrap confidence intervals. Default: FALSE.
 If not specified, reads from \code{@config$bootstrap} if available.}
 
-\item{bootstrap_nboot}{\code{numeric} or \code{NULL}. Number of bootstrap iterations. Default: NULL.
-If NULL, reads from \code{@config$bootstrap_nboot} if available.}
+\item{nboot}{\code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
+If NULL, reads from \code{@config$nboot} if available.}
 
 \item{bootstrap_method}{\code{character}. Bootstrap method: "percentile" or others. Default: "percentile".
 If NULL, reads from \code{@config$bootstrap_method} if available.}
