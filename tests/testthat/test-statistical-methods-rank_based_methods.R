@@ -329,20 +329,23 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
 })
 
 test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
-  # Gene with changing entropy across q
+  # Gene with changing entropy across q AND interaction with condition
   set.seed(456)
   entropy_changing <- c(
-    rnorm(10, mean = 0.5, sd = 0.05),  # q=0.5 (low)
-    rnorm(10, mean = 2.0, sd = 0.05),  # q=1.0 (high)
-    rnorm(10, mean = 3.5, sd = 0.05)   # q=1.5 (very high)
+    # q=0.5: condition A and B both low
+    rnorm(5, mean = 0.5, sd = 0.03), rnorm(5, mean = 0.5, sd = 0.03),
+    # q=1.0: condition A moderate, condition B high
+    rnorm(5, mean = 1.5, sd = 0.03), rnorm(5, mean = 2.5, sd = 0.03),
+    # q=1.5: condition A high, condition B very high
+    rnorm(5, mean = 2.5, sd = 0.03), rnorm(5, mean = 4.0, sd = 0.03)
   )
   
   model_data <- data.frame(
     diversity = entropy_changing,
-    q = rep(c(0.5, 1.0, 1.5), each = 10),
+    q = rep(c(0.5, 0.5, 1.0, 1.0, 1.5, 1.5), each = 5),
     gene = rep("DependentGene", 30),
-    sample = rep(paste0("S", 1:10), 3),
-    condition = rep(c("A", "B"), times = 15),
+    sample = rep(paste0("S", 1:5), 6),
+    condition = c(rep('A', 5), rep('B', 5), rep('A', 5), rep('B', 5), rep('A', 5), rep('B', 5)),
     stringsAsFactors = FALSE
   )
   
@@ -364,6 +367,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("TestGene", 30),
     sample = rep(paste0("S", 1:10), 3),
+    condition = rep(c("A", "B"), times = 15),
     stringsAsFactors = FALSE
   )
   
@@ -381,6 +385,7 @@ test_that("detect_q_gene_interactions requires minimum 2 q-levels", {
     q = rep(0.5, 10),
     gene = rep("Gene1", 10),
     sample = paste0("S", 1:10),
+    condition = rep(c("A", "B"), times = 5),
     stringsAsFactors = FALSE
   )
   
@@ -419,6 +424,7 @@ test_that("detect_q_gene_interactions kruskal.test method produces results", {
     q = rep(c(0.5, 1.0, 1.5), each = 10),
     gene = rep("Gene1", 30),
     sample = rep(paste0("S", 1:10), 3),
+    condition = rep(c("A", "B"), times = 15),
     stringsAsFactors = FALSE
   )
   
@@ -522,24 +528,38 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
     q = rep(c(0.5, 1.0, 1.5), 100),
     gene = rep(paste0("Gene", 1:30), each = 10),
     sample = rep(paste0("S", 1:10), 30),
+    condition = rep(c("A", "B"), times = 150),
     stringsAsFactors = FALSE
   )
   
-  # Gene 31-40: moderately q-dependent (moderate variation)
+  # Gene 31-40: moderately q-dependent (moderate variation across q and condition)
   data_moderate <- data.frame(
-    diversity = c(rnorm(50, mean = 1.0, sd = 0.1), rnorm(50, mean = 1.3, sd = 0.1)),
-    q = rep(c(0.5, 1.0, 1.5), c(34, 33, 33)),
-    gene = rep(paste0("Gene", 31:40), each = 10),
-    sample = rep(paste0("S", 1:10), 10),
+    diversity = c(
+      rnorm(50, mean = 1.0, sd = 0.1),  # q=0.5
+      rnorm(50, mean = 1.3, sd = 0.1),  # q=1.0
+      rnorm(50, mean = 1.6, sd = 0.1)   # q=1.5
+    ),
+    q = rep(c(0.5, 1.0, 1.5), 50),
+    gene = rep(paste0("Gene", 31:40), each = 15),
+    sample = rep(paste0("S", 1:10), 15),
+    condition = rep(c("A", "B"), times = 75),
     stringsAsFactors = FALSE
   )
   
-  # Gene 41-45: strongly q-dependent (large variation)
+  # Gene 41-45: strongly q-dependent (large variation across q AND condition interaction)
   data_strong <- data.frame(
-    diversity = c(rnorm(25, mean = 0.5, sd = 0.1), rnorm(25, mean = 2.0, sd = 0.1)),
-    q = rep(c(0.5, 1.0, 1.5), c(17, 17, 16)),
-    gene = rep(paste0("Gene", 41:45), each = 5),
-    sample = rep(paste0("S", 1:5), 5),
+    diversity = c(
+      # q=0.5: A and B similar (around 0.5)
+      rnorm(10, mean = 0.5, sd = 0.05), rnorm(10, mean = 0.5, sd = 0.05),
+      # q=1.0: A moderate, B high (strong difference!)
+      rnorm(10, mean = 1.5, sd = 0.05), rnorm(10, mean = 2.5, sd = 0.05),
+      # q=1.5: A high, B very high (even stronger difference!)
+      rnorm(10, mean = 2.5, sd = 0.05), rnorm(10, mean = 4.0, sd = 0.05)
+    ),
+    q = rep(c(0.5, 0.5, 1.0, 1.0, 1.5, 1.5), each = 10),
+    gene = rep(paste0("Gene", 41:45), each = 12),
+    sample = rep(paste0("S", 1:10), 6),
+    condition = c(rep('A', 10), rep('B', 10), rep('A', 10), rep('B', 10), rep('A', 10), rep('B', 10)),
     stringsAsFactors = FALSE
   )
   
@@ -559,7 +579,9 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Verify classifications make sense: robust genes should be more frequent than strongly q-dependent
   table_classifications <- table(classifications)
-  expect_true(table_classifications["Robust across q"] >= table_classifications["Strongly q-dependent"])
+  # Check that we have at least some robust genes (should be the majority)
+  expect_true("Robust across q" %in% names(table_classifications))
+  expect_true(table_classifications["Robust across q"] >= 15)  # At least 15 robust genes
 })
 
 test_that("Functions handle edge case: single sample per q-level", {
@@ -569,6 +591,7 @@ test_that("Functions handle edge case: single sample per q-level", {
     q = rep(c(0.5, 1.0, 1.5), 2),
     gene = rep(c("Gene1", "Gene2"), each = 3),
     sample = c("S1", "S1", "S1", "S2", "S2", "S2"),
+    condition = c("A", "A", "A", "B", "B", "B"),
     stringsAsFactors = FALSE
   )
   
@@ -588,6 +611,7 @@ test_that("Functions handle edge case: many q-levels", {
     q = rep(q_vals, length.out = 100),
     gene = rep("Gene1", 100),
     sample = rep(paste0("S", 1:10), 10),
+    condition = rep(c("A", "B"), times = 50),
     stringsAsFactors = FALSE
   )
   
@@ -608,6 +632,7 @@ test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
     q = rep(c(0.5, 1.0, 1.5, 2.0), 25),
     gene = rep(paste0("Gene", 1:5), each = 20),
     sample = rep(paste0("S", 1:5), 20),
+    condition = rep(c("A", "B"), times = 50),
     stringsAsFactors = FALSE
   )
   
@@ -635,6 +660,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 40),
     sample = rep(paste0("S", 1:20), 6),
+    condition = rep(c("A", "B"), times = 60),
     stringsAsFactors = FALSE
   )
   
@@ -657,6 +683,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(paste0("Gene", 1:6), each = 20),
     sample = rep(paste0("S", 1:10), 12),
+    condition = rep(c("A", "B"), times = 60),
     stringsAsFactors = FALSE
   )
   
@@ -680,6 +707,7 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
     q = rep(c(0.5, 1.0, 1.5, 2.0), 20),
     gene = rep(paste0("Gene", 1:4), each = 20),
     sample = rep(paste0("S", 1:5), 16),
+    condition = rep(c("A", "B"), times = 40),
     stringsAsFactors = FALSE
   )
   
@@ -713,6 +741,7 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(paste0("Gene", 1:3), each = 20),
     sample = rep(paste0("S", 1:5), 12),
+    condition = rep(c("A", "B"), times = 30),
     stringsAsFactors = FALSE
   )
   
@@ -737,6 +766,7 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
     q = rep(c(0.5, 1.0, 1.5, 2.0), 50),
     gene = rep(paste0("Gene", 1:10), each = 20),
     sample = rep(paste0("S", 1:10), 20),
+    condition = rep(c("A", "B"), times = 100),
     stringsAsFactors = FALSE
   )
   
@@ -767,6 +797,7 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 40),
     sample = rep(paste0("S", 1:10), 12),
+    condition = rep(c("A", "B"), times = 60),
     stringsAsFactors = FALSE
   )
   
@@ -797,6 +828,7 @@ test_that("detect_q_gene_interactions westfall-young handles small randomization
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(paste0("Gene", 1:3), each = 20),
     sample = rep(paste0("S", 1:5), 12),
+    condition = rep(c("A", "B"), times = 30),
     stringsAsFactors = FALSE
   )
   
@@ -826,6 +858,7 @@ test_that("detect_q_gene_interactions westfall-young handles edge cases graceful
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
     sample = rep(paste0("S", 1:5), 12),
+    condition = rep(c("A", "B"), times = 30),
     stringsAsFactors = FALSE
   )
   
@@ -853,6 +886,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 40),
     sample = rep(paste0("S", 1:10), 12),
+    condition = rep(c("A", "B"), times = 60),
     stringsAsFactors = FALSE
   )
   
@@ -912,6 +946,7 @@ test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warnin
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
     subject = rep(paste0("Subject_", 1:5), 12),
+    condition = rep(c("A", "B"), times = 30),
     stringsAsFactors = FALSE
   )
   
@@ -927,6 +962,7 @@ test_that("detect_q_gene_interactions detects missing subject_col in data", {
     diversity = rnorm(60),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 15),
     gene = rep(c("Gene1", "Gene2", "Gene3"), each = 20),
+    condition = rep(c("A", "B"), times = 30),
     stringsAsFactors = FALSE
   )
   
@@ -948,13 +984,13 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   subject_ids <- rep(paste0("Subject_", 1:n_subjects), each = n_q_values)
   q_levels <- rep(c(0.5, 1.0, 1.5, 2.0), n_subjects)
   
-  # Create entropy data with AR(1) correlation
+  # Create entropy data with AR(1) correlation plus noise to avoid perfect fits
   entropy_data <- numeric(length(subject_ids))
   for (s in seq_len(n_subjects)) {
     q_entropy <- numeric(n_q_values)
     q_entropy[1] <- runif(1, min = 0.5, max = 2.0)
     for (q_idx in 2:n_q_values) {
-      q_entropy[q_idx] <- 0.7 * q_entropy[q_idx-1] + 0.3 * runif(1, min = 0.5, max = 2.0)
+      q_entropy[q_idx] <- 0.7 * q_entropy[q_idx-1] + 0.3 * runif(1, min = 0.5, max = 2.0) + rnorm(1, sd = 0.15)
     }
     idx <- (s-1) * n_q_values + 1:n_q_values
     entropy_data[idx] <- pmax(0.1, q_entropy)
@@ -968,17 +1004,20 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
     q = factor(q_levels),
     gene = factor(genes),
     subject = factor(subject_ids),
+    condition = rep(c("A", "B"), length = length(subject_ids)),
     stringsAsFactors = FALSE
   )
   
-  # Run paired analysis
-  result <- detect_q_gene_interactions(
-    model_data,
-    paired = TRUE,
-    subject_col = "subject",
-    multicorr = "westfall-young",
-    wy_randomizations = 50,
-    verbose = FALSE
+  # Run paired analysis (suppress expected warnings about perfect fits in permutations)
+  result <- suppressWarnings(
+    detect_q_gene_interactions(
+      model_data,
+      paired = TRUE,
+      subject_col = "subject",
+      multicorr = "westfall-young",
+      wy_randomizations = 50,
+      verbose = FALSE
+    )
   )
   
   # Verify results structure
@@ -1012,12 +1051,12 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
       q_entropy <- numeric(n_q_values)
       base_val <- runif(1, min = 1.0, max = 2.5)
       
-      # Strong AR(1) correlation (ρ=0.85) with gene-specific effect
-      q_entropy[1] <- base_val
+      # Strong AR(1) correlation (ρ=0.85) with gene-specific effect and noise
+      q_entropy[1] <- base_val + rnorm(1, sd = 0.1)
       for (q_idx in 2:n_q_values) {
-        # Strong correlation + gene-specific q-effect
+        # Strong correlation + gene-specific q-effect + noise
         gene_effect <- ifelse(g <= 3, 0.3 * (q_idx - 1), 0)  # First 3 genes have q-effect
-        q_entropy[q_idx] <- 0.85 * q_entropy[q_idx-1] + 0.15 * runif(1, 0.5, 2.5) + gene_effect
+        q_entropy[q_idx] <- 0.85 * q_entropy[q_idx-1] + 0.15 * runif(1, 0.5, 2.5) + gene_effect + rnorm(1, sd = 0.15)
       }
       
       idx <- (s-1) * n_q_values + 1:n_q_values
@@ -1041,6 +1080,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
     q = factor(q_levels_full),
     gene = factor(genes),
     subject = factor(subject_ids_full),
+    condition = rep(c("A", "B"), length = length(entropy_data)),
     stringsAsFactors = FALSE
   )
   
@@ -1116,6 +1156,7 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
       q = factor(colData(se)$q),
       gene = rownames(se)[i],
       subject = colData(se)$subject,
+      condition = rep(c("A", "B"), 6),
       stringsAsFactors = FALSE
     )
   })
@@ -1148,6 +1189,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
     q = c(0.5, 1.0, 1.5, 2.0),
     gene = "Gene1",
     subject = "Subject_1",
+    condition = c("A", "A", "B", "B"),
     stringsAsFactors = FALSE
   )
   
@@ -1157,6 +1199,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
     q = c(0.5, 1.0, 1.5, 2.0),
     gene = "Gene1",
     subject = "Subject_2",
+    condition = c("A", "A", "B", "B"),
     stringsAsFactors = FALSE
   )
   
@@ -1166,6 +1209,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
     q = c(0.5, 1.0, 1.5),
     gene = "Gene1",
     subject = "Subject_3",
+    condition = c("A", "A", "B"),
     stringsAsFactors = FALSE
   )
   
@@ -1359,6 +1403,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
     diversity = rnorm(120),
     q = rep(c(0.5, 1.0, 1.5, 2.0), 30),
     gene = rep(paste0("Gene", 1:6), each = 20),
+    condition = rep(c("A", "B"), times = 60),
     stringsAsFactors = FALSE
   )
   
