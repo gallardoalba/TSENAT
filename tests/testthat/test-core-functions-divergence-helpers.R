@@ -8,14 +8,14 @@ context("Divergence Helper Functions")
 # INPUT VALIDATION HELPERS
 # ============================================================================
 
-test_that(".normalize_norm_parameter coerces logical to character", {
-    expect_equal(.normalize_norm_parameter(TRUE), "range")
-    expect_equal(.normalize_norm_parameter(FALSE), "none")
-    expect_equal(.normalize_norm_parameter("zscore"), "zscore")
+test_that(".tsenat_validate_norm_parameter coerces logical to character", {
+    expect_equal(.tsenat_validate_norm_parameter(TRUE), "range")
+    expect_equal(.tsenat_validate_norm_parameter(FALSE), "none")
+    expect_equal(.tsenat_validate_norm_parameter("zscore"), "zscore")
 })
 
-test_that(".normalize_norm_parameter rejects invalid values", {
-    expect_error(.normalize_norm_parameter("invalid"),
+test_that(".tsenat_validate_norm_parameter rejects invalid values", {
+    expect_error(.tsenat_validate_norm_parameter("invalid"),
                  "should be one of")
 })
 
@@ -29,15 +29,15 @@ test_that(".tsenat_validate_and_sort_q_values rejects negative q", {
                  "q parameter must be >= 0")
 })
 
-test_that(".validate_se_input accepts SummarizedExperiment", {
+test_that(".tsenat_validate_se_input accepts SummarizedExperiment", {
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:10, 2, 5))
     )
-    expect_true(.validate_se_input(se))
+    expect_true(.tsenat_validate_se_input(se))
 })
 
-test_that(".validate_se_input rejects non-SE objects", {
-    expect_error(.validate_se_input(data.frame(x = 1:5)),
+test_that(".tsenat_validate_se_input rejects non-SE objects", {
+    expect_error(.tsenat_validate_se_input(data.frame(x = 1:5)),
                  "SummarizedExperiment")
 })
 
@@ -160,20 +160,20 @@ test_that(".tsenat_compute_aggregate_counts returns NULL when gene not found", {
     expect_null(result)
 })
 
-test_that(".extract_group_counts splits by group", {
+test_that(".tsenat_extract_group_counts_gene splits by group", {
     counts <- c(10, 20, 30, 40, 50)
     groups <- c("A", "A", "B", "B", "B")
     
-    result <- .extract_group_counts(counts, groups, "A")
+    result <- .tsenat_extract_group_counts_gene(counts, groups, "A")
     expect_equal(result$control, c(10, 20))
     expect_equal(result$treatment, c(30, 40, 50))
 })
 
-test_that(".extract_group_counts errors on length mismatch", {
+test_that(".tsenat_extract_group_counts_gene errors on length mismatch", {
     counts <- c(10, 20, 30)
     groups <- c("A", "B")
     
-    expect_error(.extract_group_counts(counts, groups, "A"),
+    expect_error(.tsenat_extract_group_counts_gene(counts, groups, "A"),
                  "Length mismatch")
 })
 
@@ -289,7 +289,7 @@ test_that(".tsenat_divergence_normalize_zscore normalizes each column", {
 # APPLY NORMALIZATION DISPATCHER
 # ============================================================================
 
-test_that(".apply_divergence_normalization handles all methods", {
+test_that(".tsenat_normalize_divergence_matrix handles all methods", {
     assay <- matrix(1:6, 2, 3)
     row_data <- data.frame(
         estimate_q1 = 1:2,
@@ -298,27 +298,27 @@ test_that(".apply_divergence_normalization handles all methods", {
     )
     
     # Test each method
-    result_none <- .apply_divergence_normalization(assay, row_data, c(1), "none")
+    result_none <- .tsenat_normalize_divergence_matrix(assay, row_data, c(1), "none")
     expect_equal(result_none$assay, assay)
     
-    result_range <- .apply_divergence_normalization(assay, row_data, c(1), "range")
+    result_range <- .tsenat_normalize_divergence_matrix(assay, row_data, c(1), "range")
     expect_true(all(result_range$assay >= 0, na.rm = TRUE))
     
-    result_zscore <- .apply_divergence_normalization(assay, row_data, c(1), "zscore")
+    result_zscore <- .tsenat_normalize_divergence_matrix(assay, row_data, c(1), "zscore")
     expect_true(!is.null(result_zscore))
 })
 
 # COMPUTE SUMMARY STATISTICS
 # ============================================================================
 
-test_that(".generate_computation_summary creates summary", {
+test_that(".tsenat_generate_summary creates summary", {
     row_data_df <- data.frame(
         gene_name = c("G1", "G2", "G3"),
         error = c(NA_character_, NA_character_, "error"),
         stringsAsFactors = FALSE
     )
     
-    result <- .generate_computation_summary(elapsed = 10, num_genes = 3, 
+    result <- .tsenat_generate_summary(elapsed = 10, num_genes = 3, 
                                             num_errors = 1, row_data_df)
     
     expect_equal(result$successful, 2)
@@ -330,7 +330,7 @@ test_that(".generate_computation_summary creates summary", {
 # SE CONSTRUCTION
 # ============================================================================
 
-test_that(".construct_result_se creates SummarizedExperiment", {
+test_that(".tsenat_construct_result_se creates SummarizedExperiment", {
     assay <- matrix(0.1, 3, 2, dimnames = list(NULL, c("q_0.5", "q_1")))
     row_data <- data.frame(
         gene_name = c("G1", "G2", "G3"),
@@ -339,7 +339,7 @@ test_that(".construct_result_se creates SummarizedExperiment", {
         stringsAsFactors = FALSE
     )
     
-    result <- .construct_result_se(
+    result <- .tsenat_construct_result_se(
         assay, row_data, c(0.5, 1),
         elapsed = 5, nboot = 1000, ci = 0.95, method = "percentile",
         norm = "none", use_parallel = FALSE, num_genes = 3, num_errors = 0
@@ -351,7 +351,7 @@ test_that(".construct_result_se creates SummarizedExperiment", {
     expect_true("divergence" %in% names(SummarizedExperiment::assays(result)))
 })
 
-test_that(".construct_result_se preserves metadata", {
+test_that(".tsenat_construct_result_se preserves metadata", {
     assay <- matrix(0.1, 2, 1)
     row_data <- data.frame(
         gene_name = c("G1", "G2"),
@@ -359,7 +359,7 @@ test_that(".construct_result_se preserves metadata", {
         computation_time_sec = c(1, 1)
     )
     
-    result <- .construct_result_se(
+    result <- .tsenat_construct_result_se(
         assay, row_data, c(1),
         elapsed = 2, nboot = 500, ci = 0.95, method = "bca",
         norm = "range", use_parallel = TRUE, num_genes = 2, num_errors = 0

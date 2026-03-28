@@ -97,7 +97,7 @@ plot_multiq_delta_influence_heatmaps <- function(
   layout_ncol = 2,
   output_file = NULL) {
   # Phase 1: Validate input
-  result_data <- .validate_multiq_input(switching_results)
+  result_data <- .tsenat_validate_multiq_input(switching_results)
   q_result_keys <- result_data$q_result_keys
   gene_ids <- result_data$gene_ids
   gene_name_map <- result_data$gene_name_map
@@ -107,7 +107,7 @@ plot_multiq_delta_influence_heatmaps <- function(
 
   # Phase 3: Collect gene info for layout planning
   gene_info_list <- lapply(seq_along(top_genes), function(i) {
-    mat <- .prepare_multiq_heatmap_data(switching_results, top_genes[i], q_result_keys)
+    mat <- .tsenat_heatmap_prepare_multiq_data(switching_results, top_genes[i], q_result_keys)
     if (is.null(mat)) {
       list(n_transcripts = 0)
     } else {
@@ -129,7 +129,7 @@ plot_multiq_delta_influence_heatmaps <- function(
 
   for (gene_idx in seq_along(top_genes)) {
     gene_id <- top_genes[gene_idx]
-    mat <- .prepare_multiq_heatmap_data(switching_results, gene_id, q_result_keys)
+    mat <- .tsenat_heatmap_prepare_multiq_data(switching_results, gene_id, q_result_keys)
 
     if (is.null(mat) || nrow(mat) == 0 || ncol(mat) == 0) {
       all_gene_matrices[[gene_idx]] <- NULL
@@ -193,14 +193,14 @@ plot_multiq_delta_influence_heatmaps <- function(
 
   # Phase 7: Render grid
   tryCatch({
-    .setup_grid_rendering(n_layout_rows, output_file, dims$png_width, dims$png_height,
+    .tsenat_plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
       title = "Delta Influence Across Diversity Scales",
       subtitle = "Jackknife weights across q-spectrum for selected genes"
     )
 
-    .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+    .tsenat_render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
     
-    .finalize_grid_output(output_file, verbose = verbose)
+    .tsenat_plot_grid_finalize(output_file, verbose = verbose)
   }, error = function(e) {
     if (!is.null(output_file)) {
       tryCatch(grDevices::dev.off(), silent = TRUE)
@@ -285,7 +285,7 @@ plot_top_transcripts <- function(
   }
   
   # Phase 1: Validate input and extract components
-  se_data <- .validate_se_for_heatmaps(se, condition_col = condition_col)
+  se_data <- .tsenat_validate_se_for_heatmaps(se, condition_col = condition_col)
   counts <- se_data$counts
   rd <- se_data$rowdata
   cd <- se_data$coldata
@@ -350,7 +350,7 @@ plot_top_transcripts <- function(
     }
     
     gene_counts <- counts[tx_indices, , drop = FALSE]
-    mat <- .prepare_condition_heatmap_data(gene_counts, seq_along(tx_indices),
+    mat <- .tsenat_heatmap_prepare_condition_data(gene_counts, seq_along(tx_indices),
       conditions, metric_choice)
     
     if (is.null(mat) || nrow(mat) == 0) {
@@ -382,14 +382,14 @@ plot_top_transcripts <- function(
   tryCatch({
     metric_label <- if (metric_choice == "iqr") "IQR" else metric_choice
     
-    .setup_grid_rendering(n_layout_rows, output_file,
+    .tsenat_plot_grid_setup(n_layout_rows, output_file,
       dims$png_width, dims$png_height,
       title = "Isoform Expression Profiles",
       subtitle = paste("Log2-normalized", metric_label, "by condition")
     )
     
-    .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
-    .finalize_grid_output(output_file, verbose = FALSE)
+    .tsenat_render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+    .tsenat_plot_grid_finalize(output_file, verbose = FALSE)
   }, error = function(e) {
     if (!is.null(output_file)) {
       tryCatch(grDevices::dev.off(), silent = TRUE)
@@ -427,7 +427,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.validate_multiq_input <- function(switching_results) {
+.tsenat_validate_multiq_input <- function(switching_results) {
   if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
     stop("switching_results must be a multi-q result from jackknife_isoform_switching()",
          call. = FALSE)
@@ -471,7 +471,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
+.tsenat_validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
   if (!inherits(se, "SummarizedExperiment")) {
     stop("se must be a SummarizedExperiment object", call. = FALSE)
   }
@@ -920,7 +920,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.setup_grid_rendering <- function(n_layout_rows, output_file = NULL,
+.tsenat_plot_grid_setup <- function(n_layout_rows, output_file = NULL,
                                    png_width = 12, png_height = 8,
                                    title = "Heatmap Analysis",
                                    subtitle = "") {
@@ -977,7 +977,7 @@ plot_top_transcripts <- function(
 #' Render Heatmaps into Grid Layout
 #'
 #' Positions and draws heatmap grob objects into the grid layout
-#' established by .setup_grid_rendering().
+#' established by .tsenat_plot_grid_setup().
 #'
 #' @param heatmap_plots List of pheatmap grob objects
 #' @param gene_layout List of layout positions (from .tsenat_plot_adaptive_layout)
@@ -987,7 +987,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.render_heatmaps_to_grid <- function(heatmap_plots, gene_layout,
+.tsenat_render_heatmaps_to_grid <- function(heatmap_plots, gene_layout,
                                       layout_ncol = 2) {
   if (is.null(gene_layout)) {
     # Simple rendering: assume layout_ncol columns per row
@@ -1058,7 +1058,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.finalize_grid_output <- function(output_file = NULL, verbose = FALSE) {
+.tsenat_plot_grid_finalize <- function(output_file = NULL, verbose = FALSE) {
   grid::popViewport()
 
   if (!is.null(output_file)) {
@@ -1092,7 +1092,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.prepare_multiq_heatmap_data <- function(switching_results, gene_id,
+.tsenat_heatmap_prepare_multiq_data <- function(switching_results, gene_id,
                                          q_result_keys,
                                          cap_outliers_pctl = 0.95) {
   heatmap_data <- NULL
@@ -1183,7 +1183,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.prepare_condition_heatmap_data <- function(counts, gene_transcripts, conditions,
+.tsenat_heatmap_prepare_condition_data <- function(counts, gene_transcripts, conditions,
                                             metric = "median", pseudocount = 1e-6) {
   unique_conditions <- unique(conditions)
 

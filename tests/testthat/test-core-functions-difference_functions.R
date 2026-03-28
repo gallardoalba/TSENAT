@@ -485,7 +485,7 @@ test_that("wilcoxon paired handles SummarizedExperiment input", {
         stringsAsFactors = FALSE
     )
     
-    se_mapped <- TSENAT:::.map_metadata(se, coldata)
+    se_mapped <- TSENAT:::.tsenat_map_metadata_se(se, coldata)
     res <- wilcoxon(
         SummarizedExperiment::assay(se_mapped),
         SummarizedExperiment::colData(se_mapped)$sample_type,

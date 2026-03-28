@@ -110,177 +110,6 @@ compute_diversity_spectrum <- function(se,
   return(stats)
 }
 
-# ============================================================================
-# DIVERGENCE SPECTRUM COMPUTATION
-# ============================================================================
-
-#' Compute Divergence Spectrum for Single Gene
-#'
-#' Extracts per-q divergence values for a specific gene from multi-q results.
-#'
-#' @param divergence_results_se A \code{SummarizedExperiment} with divergence assays.
-#' @param gene_id Character: gene identifier or NULL for global aggregation.
-#' @param metric Character: "median" or "mean" for aggregation (if gene_id is NULL).
-#'
-#' @return Data frame with columns:
-#'   - q: q-value
-#'   - divergence: D[q] value
-#'   - gene_id: gene identifier (if single gene)
-#'
-#' @keywords internal
-#' @noRd
-compute_gene_divergence_spectrum <- function(divergence_results_se,
-                                             gene_id = NULL,
-                                             metric = c("median", "mean")) {
-
-  require_pkgs("SummarizedExperiment")
-
-  if (!inherits(divergence_results_se, "SummarizedExperiment")) {
-    stop("divergence_results_se must be a SummarizedExperiment", call. = FALSE)
-  }
-
-  metric <- match.arg(metric)
-
-  # Get all genes
-  all_genes <- rownames(divergence_results_se)
-
-  if (!is.null(gene_id) && !(gene_id %in% all_genes)) {
-    stop("Gene '", gene_id, "' not found in divergence results", call. = FALSE)
-  }
-
-  # Extract data
-  if (!is.null(gene_id)) {
-    # Single gene
-    gene_row <- SummarizedExperiment::assay(divergence_results_se, "divergence")[gene_id, ]
-    q_vals <- colnames(divergence_results_se)
-
-    result <- data.frame(
-      q = q_vals,
-      divergence = as.numeric(gene_row),
-      gene_id = gene_id,
-      stringsAsFactors = FALSE
-    )
-  } else {
-    # Global (aggregate across genes)
-    mat <- SummarizedExperiment::assay(divergence_results_se, "divergence")
-    q_vals <- colnames(divergence_results_se)
-
-    central_vals <- apply(mat, 2, function(x) {
-      if (metric == "median") {
-        median(x, na.rm = TRUE)
-      } else {
-        mean(x, na.rm = TRUE)
-      }
-    })
-
-    result <- data.frame(
-      q = q_vals,
-      divergence = as.numeric(central_vals),
-      stringsAsFactors = FALSE
-    )
-  }
-
-  return(result)
-}
-
-# ============================================================================
-# DATA AGGREGATION HELPERS
-# ============================================================================
-
-#' Aggregate Long-Format Data by Group
-#'
-#' Summarizes diversity/divergence data grouped by condition.
-#' Computes central tendency and variability measures.
-#'
-#' @param long_data Data frame in long format with columns:
-#'   q, tsallis, group (and sample_id).
-#' @param agg_metric Character: "median", "mean", "iqr", or "sd".
-#'
-#' @return Data frame with aggregated statistics.
-#'
-#' @keywords internal
-#' @noRd
-aggregate_by_group <- function(long_data, agg_metric = "median") {
-
-  require_pkgs("dplyr")
-
-  valid_metrics <- c("median", "mean", "iqr", "sd")
-  if (!(agg_metric %in% valid_metrics)) {
-    stop("agg_metric must be one of: ", paste(valid_metrics, collapse = ", "),
-      call. = FALSE
-    )
-  }
-
-  # Group by q and group
-  result <- long_data %>%
-    dplyr::group_by(q, group) %>%
-    dplyr::summarise(
-      value = switch(agg_metric,
-        "median" = median(.data$tsallis, na.rm = TRUE),
-        "mean" = mean(.data$tsallis, na.rm = TRUE),
-        "iqr" = IQR(.data$tsallis, na.rm = TRUE),
-        "sd" = sqrt(stats::var(.data$tsallis, na.rm = TRUE))
-      ),
-      count = sum(!is.na(.data$tsallis)),
-      .groups = "drop"
-    )
-
-  return(result)
-}
-
-#' Compute Confidence Intervals for Diversity Measurements
-#'
-#' Calculates percentile-based confidence intervals (e.g., 95% CI).
-#'
-#' @param se A \code{SummarizedExperiment} with diversity assays and CI assays.
-#' @param condition_col Character: column for grouping (optional).
-#' @param ci_level Numeric: confidence level (default: 0.95 for 95% CI).
-#'
-#' @return Data frame with columns:
-#'   - q, group (optional), central, ci_lower, ci_upper
-#'
-#' @keywords internal
-#' @noRd
-compute_diversity_ci <- function(se,
-                                 condition_col = NULL,
-                                 ci_level = 0.95) {
-
-  require_pkgs(c("SummarizedExperiment", "dplyr"))
-
-  # Check for CI assays
-  assays_available <- SummarizedExperiment::assayNames(se)
-  has_ci <- ("ci_lower" %in% assays_available &&
-    "ci_upper" %in% assays_available)
-
-  if (!has_ci) {
-    warning("ci_lower and ci_upper assays not found. ",
-      "Run calculate_diversity(..., bootstrap=TRUE) to generate CIs.",
-      call. = FALSE
-    )
-    return(NULL)
-  }
-
-  # Extract CI bounds
-  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
-  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
-  central_mat <- SummarizedExperiment::assay(se, "diversity")
-
-  # Prepare for aggregation
-  long_data <- prepare_tsallis_long(se,
-    assay_name = "diversity",
-    condition_col = condition_col
-  )
-
-  # Add CI values
-  # (This is a simplified version; full implementation would need to align rows/cols)
-  result <- long_data %>%
-    dplyr::mutate(
-      ci_lower = NA_real_,
-      ci_upper = NA_real_
-    )
-
-  return(result)
-}
 
 # ============================================================================
 # GENE FILTERING & RANKING
@@ -940,7 +769,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return SummarizedExperiment with combined assay across all q-values
 #' @keywords internal
 #' @noRd
-.prepare_combined_se_from_analysis <- function(analysis) {
+.tsenat_prepare_combined_se <- function(analysis) {
   require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   div_list <- analysis@diversity_results
@@ -1165,7 +994,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return Named character vector: sample name -> group value
 #' @keywords internal
 #' @noRd
-.prepare_sample_to_group_mapping <- function(cdata, condition_col) {
+.tsenat_prepare_sample_group_mapping <- function(cdata, condition_col) {
   coldata_rownames <- rownames(cdata)
   coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
   
@@ -1189,7 +1018,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return Data frame with columns: sample, group, q, entropy (or NULL if invalid)
 #' @keywords internal
 #' @noRd
-.prepare_gam_plot_data_per_gene <- function(gene, mat, sample_to_group) {
+.tsenat_plot_gam_prepare_gene_data <- function(gene, mat, sample_to_group) {
   if (!(gene %in% rownames(mat))) {
     return(NULL)
   }
@@ -1233,7 +1062,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return List with $plot_data and $pred_data data frames (or NULL if fitting fails)
 #' @keywords internal
 #' @noRd
-.fit_gam_per_group <- function(plot_df) {
+.tsenat_plot_gam_fit_group <- function(plot_df) {
   require_pkgs(c("mgcv", "dplyr"))
   
   unique_groups <- unique(plot_df$group)

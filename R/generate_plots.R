@@ -736,7 +736,7 @@ plot_volcano_ma_grid <- function(
 
 #' Internal helper to compute fill limits across multiple genes (not exported)
 #' @noRd
-.compute_transcript_fill_limits <- function(genes, mapping, counts, samples, top_n, agg_fun, pseudocount) {
+.tsenat_plot_transcript_fill_limits <- function(genes, mapping, counts, samples, top_n, agg_fun, pseudocount) {
     mins <- maxs <- c()
     for (g in genes) {
         txs <- mapping$Transcript[mapping$Gen == g]
@@ -759,7 +759,7 @@ plot_volcano_ma_grid <- function(
 
 #' Internal helper to draw grid layout with title, plots, and legend using base grid
 #' @noRd
-.draw_transcript_grid <- function(grobs, title, legend_grob, ncol, heights, to_file = NULL) {
+.tsenat_plot_transcript_grid_draw <- function(grobs, title, legend_grob, ncol, heights, to_file = NULL) {
     # If no output file is provided and no graphics device is open, render to a
     # temporary pdf device so that plotting in non-interactive sessions does not
     # create `Rplots.pdf` in the working directory.
@@ -1221,10 +1221,10 @@ make_plot_for_genecombine_grid <- function(plots, output_file = NULL, agg_label_
         png_width <- 800 * ncol
         png_height <- 480 * nrow
         png(filename = output_file, width = png_width, height = png_height, res = 150)
-        .draw_transcript_grid(grobs, agg_label_unique, legend_grob, ncol, heights, to_file = output_file)
+        .tsenat_plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights, to_file = output_file)
         invisible(NULL)
     } else {
-        .draw_transcript_grid(grobs, agg_label_unique, legend_grob, ncol, heights)
+        .tsenat_plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights)
         invisible(NULL)
     }
 }

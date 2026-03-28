@@ -355,153 +355,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
   )
 }
 
-#' TSENAT Heatmap Theme Variant
-#'
-#' Returns a specialized variant of the base theme optimized for heatmap visualizations.
-#' Inherits from \code{\link{.tsenat_theme_base}} and adds heatmap-specific overrides.
-#'
-#' @param base_size Numeric; base font size in points (default: 11).
-#'
-#' @return List of ggplot2 theme elements that can be added to plots with `+`.
-#'
-#' @details
-#' Heatmap-specific adjustments:
-#' - No gridlines (not applicable to heatmaps)
-#' - Compact margins to maximize heatmap area
-#' - Bottom legend position for multi-panel layouts
-#' - Reduced plot title margins
-#'
-#' Used by: plot_multiq_delta_influence_heatmaps_s4(), 
-#'          plot_top_transcripts_s4() when using ggplot2 heatmap geoms.
-#'
-#' @keywords internal
-#' @noRd
-.tsenat_theme_heatmap <- function(base_size = 11) {
-  list(
-    .tsenat_theme_base(base_size = base_size),
-    ggplot2::theme(
-      panel.grid.major = ggplot2::element_blank(),
-      panel.grid.minor = ggplot2::element_blank(),
-      legend.position = "bottom",
-      plot.margin = ggplot2::margin(t = 3, r = 3, b = 3, l = 3, unit = "mm"),
-      plot.title = ggplot2::element_text(
-        hjust = 0.5,
-        face = "bold",
-        size = base_size * 1.3,
-        margin = ggplot2::margin(b = 4)
-      )
-    )
-  )
-}
 
-#' TSENAT Distribution Theme Variant
-#'
-#' Returns a specialized variant of the base theme optimized for distribution plots
-#' (violin, box, histogram, density).
-#'
-#' @param base_size Numeric; base font size in points (default: 11).
-#'
-#' @return List of ggplot2 theme elements that can be added to plots with `+`.
-#'
-#' @details
-#' Distribution-specific adjustments:
-#' - Major gridlines on y-axis for easier value reading
-#' - Legend on the right for comparison groups
-#' - Rotated x-axis labels if many categories
-#'
-#' Used by: plot_tsallis_violin_density_grid_s4() and similar distribution plots.
-#'
-#' @keywords internal
-#' @noRd
-.tsenat_theme_distribution <- function(base_size = 11) {
-  list(
-    .tsenat_theme_base(base_size = base_size),
-    ggplot2::theme(
-      legend.position = "right",
-      panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
-      axis.text.x = ggplot2::element_text(
-        angle = 45,
-        hjust = 1,
-        vjust = 1,
-        size = base_size * 0.85
-      )
-    )
-  )
-}
-
-# ============================================================================
-# SCALE WRAPPER FUNCTIONS - Consistent color/fill scales
-# ============================================================================
-
-#' TSENAT Discrete Color Scale
-#'
-#' Wrapper for ggplot2 color scale using the TSENAT discrete palette.
-#'
-#' @param ... Additional arguments passed to \code{ggplot2::scale_color_manual()}.
-#'
-#' @return ggplot2 scale layer.
-#'
-#' @keywords internal
-#' @noRd
-scale_color_tsenat_discrete <- function(...) {
-  ggplot2::scale_color_manual(
-    values = .tsenat_palette_discrete(),
-    ...
-  )
-}
-
-#' TSENAT Discrete Fill Scale
-#'
-#' Wrapper for ggplot2 fill scale using the TSENAT discrete palette.
-#'
-#' @param ... Additional arguments passed to \code{ggplot2::scale_fill_manual()}.
-#'
-#' @return ggplot2 scale layer.
-#'
-#' @keywords internal
-#' @noRd
-scale_fill_tsenat_discrete <- function(...) {
-  ggplot2::scale_fill_manual(
-    values = .tsenat_palette_discrete(),
-    ...
-  )
-}
-
-#' TSENAT Diverging Color Scale
-#'
-#' Wrapper for ggplot2 color scale using the TSENAT diverging palette.
-#' Use for continuous diverging data (e.g., log fold-change).
-#'
-#' @param ... Additional arguments passed to \code{ggplot2::scale_color_gradientn()}.
-#'
-#' @return ggplot2 scale layer.
-#'
-#' @keywords internal
-#' @noRd
-scale_color_tsenat_diverging <- function(...) {
-  ggplot2::scale_color_gradientn(
-    colors = .tsenat_palette_continuous_diverging(n = 100),
-    ...
-  )
-}
-
-#' TSENAT Diverging Fill Scale
-#'
-#' Wrapper for ggplot2 fill scale using the TSENAT diverging palette.
-#' Use for continuous diverging data (e.g., heatmap values).
-#'
-#' @param ... Additional arguments passed to \code{ggplot2::scale_fill_gradientn()}.
-#'
-#' @return ggplot2 scale layer.
-#'
-#' @keywords internal
-#' @noRd
-scale_fill_tsenat_diverging <- function(...) {
-  ggplot2::scale_fill_gradientn(
-    colors = .tsenat_palette_continuous_diverging(n = 100),
-    ...
-  )
-}
 
 # ============================================================================
 # RESPONSIVE SIZING SYSTEM - Aspect ratio and dimension calculation
@@ -611,17 +465,17 @@ scale_fill_tsenat_diverging <- function(...) {
 #' Example:
 #' ```r
 #' # For a heatmap that's 15 inches wide and 12 inches tall
-#' scale <- .scale_font_by_area(width_inches = 15, height_inches = 12)
+#' scale <- .tsenat_scale_font_by_area(width_inches = 15, height_inches = 12)
 #' # Results in scale ~ 1.38, increasing fonts for larger output
 #'
 #' # Use in custom plotting:
-#' font_scale <- .scale_font_by_area(12, 10)
+#' font_scale <- .tsenat_scale_font_by_area(12, 10)
 #' base_font <- 11 * font_scale
 #' ```
 #'
 #' @keywords internal
 #' @noRd
-.scale_font_by_area <- function(width_inches, height_inches, 
+.tsenat_scale_font_by_area <- function(width_inches, height_inches, 
                                  reference_area = 96) {
   actual_area <- width_inches * height_inches
   sqrt(actual_area / reference_area)

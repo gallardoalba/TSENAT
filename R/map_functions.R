@@ -1,13 +1,13 @@
 ## OPTIMIZATION HELPERS: Internal utilities for mapping functions
 # Remove _q=... or _qX.X suffixes from sample/column names
 # @noRd
-.strip_q_suffix <- function(names) {
+.tsenat_strip_q_suffix <- function(names) {
     sub("_q=.*", "", names)
 }
 
 # Remove _q=... or _qX.X suffixes (handles both formats)
 # @noRd
-.strip_q_format <- function(names) {
+.tsenat_strip_q_format <- function(names) {
     sub("_q[=0-9].*", "", names)
 }
 
@@ -27,7 +27,7 @@
 
 # Resolve gene names with fallback logic (OPTIMIZATION: consolidated from 6-step process)
 # @noRd
-.resolve_gene_names <- function(se, df_nrows) {
+.tsenat_resolve_gene_names <- function(se, df_nrows) {
     # Step 1: Try rowData gene_name
     rd <- SummarizedExperiment::rowData(se)
     if (!is.null(rd) && nrow(rd) > 0 && "gene_name" %in% colnames(rd)) {
@@ -52,7 +52,7 @@
 
 # Check required packages and stop if missing
 # @noRd
-.check_required_packages <- function(packages) {
+.tsenat_check_required_packages <- function(packages) {
     for (pkg in packages) {
         if (!requireNamespace(pkg, quietly = TRUE)) {
             stop(pkg, " required")
@@ -64,7 +64,7 @@
 ## Helper: Map external coldata into a SummarizedExperiment
 #' @keywords internal
 #' @noRd
-.map_metadata <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
+.tsenat_map_metadata_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
     if (is.null(coldata)) {
         return(ts_se)
     }
@@ -130,8 +130,8 @@
             stop(msg, call. = FALSE)
         }
     }
-    # OPTIMIZATION: Use .strip_q_suffix() helper
-    sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
+    # OPTIMIZATION: Use .tsenat_strip_q_suffix() helper
+    sample_base_names <- .tsenat_strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
 
     # Reorder the SummarizedExperiment columns following the order in coldata.
     # Note: For paired analyses, the explicit pairing information is stored in
@@ -154,8 +154,8 @@
     
     if (length(new_order) > 0 && !all(new_order == seq_along(base_names))) {
         ts_se <- ts_se[, new_order, drop = FALSE]
-        # OPTIMIZATION: Use .strip_q_suffix() helper for consistency and caching benefit
-        sample_base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
+        # OPTIMIZATION: Use .tsenat_strip_q_suffix() helper for consistency and caching benefit
+        sample_base_names <- .tsenat_strip_q_suffix(colnames(SummarizedExperiment::assay(ts_se)))
     }
     
     # Create a mapping from sample names to their pairing information (coldata_base)
@@ -200,7 +200,7 @@
         # Assay has been expanded (multiple q-values per sample)
         # Expand colData to match by repeating rows for each q-value
         col_data <- SummarizedExperiment::colData(ts_se)
-        sample_names_full <- .strip_q_suffix(assay_cols)
+        sample_names_full <- .tsenat_strip_q_suffix(assay_cols)
         
         # OPTIMIZATION: Use vectorized match() instead of loop (O(n) vs O(n²))
         # Match against original coldata sample column values, not reordered sample_base_names
@@ -220,8 +220,8 @@
     # NOW set sample_type and pairing column after colData expansion is complete
     # This ensures all rows have these values properly assigned
     col_data_final <- SummarizedExperiment::colData(ts_se)
-    # OPTIMIZATION: Use .strip_q_suffix() helper
-    sample_names_final <- .strip_q_suffix(rownames(col_data_final))
+    # OPTIMIZATION: Use .tsenat_strip_q_suffix() helper
+    sample_names_final <- .tsenat_strip_q_suffix(rownames(col_data_final))
     
     # Map each expanded row's sample name to its condition and pairing
     col_data_final$sample_type <- unname(st_map[sample_names_final])
@@ -260,8 +260,8 @@
     # vignette and plotting helpers can use a ready-made table.
     if ("diversity" %in% SummarizedExperiment::assayNames(ts_se)) {
         div_mat <- as.matrix(SummarizedExperiment::assay(ts_se, "diversity"))
-        # OPTIMIZATION: Use .strip_q_suffix() helper
-        sample_base_names <- .strip_q_suffix(colnames(div_mat))
+        # OPTIMIZATION: Use .tsenat_strip_q_suffix() helper
+        sample_base_names <- .tsenat_strip_q_suffix(colnames(div_mat))
         # prefer explicit sample_type in colData when present
         samples_vec <- NULL
         if ("sample_type" %in% colnames(SummarizedExperiment::colData(ts_se))) {
@@ -293,12 +293,12 @@ map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
     # dataset by assigning a single default group 'Group' to all samples (this
     # permits plotting single-condition q-curves).
     
-    # OPTIMIZATION: Use .strip_q_suffix() helper
+    # OPTIMIZATION: Use .tsenat_strip_q_suffix() helper
     # Get base names from either mat or se
     if (!is.null(mat)) {
-        base_names <- .strip_q_suffix(colnames(mat))
+        base_names <- .tsenat_strip_q_suffix(colnames(mat))
     } else if (!is.null(se)) {
-        base_names <- .strip_q_suffix(colnames(SummarizedExperiment::assay(se)))
+        base_names <- .tsenat_strip_q_suffix(colnames(SummarizedExperiment::assay(se)))
     } else {
         # Both are NULL - return default group for all samples
         return(setNames(rep("Group", length(sample_names)), sample_names))
@@ -325,16 +325,16 @@ map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
 # Prepare a long-format data.frame for a simple assay (one value per sample)
 get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
     condition_col = NULL) {
-    # OPTIMIZATION: Use .check_required_packages() helper
-    .check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
+    # OPTIMIZATION: Use .tsenat_check_required_packages() helper
+    .tsenat_check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
 
     mat <- SummarizedExperiment::assay(se, assay_name)
     if (is.null(mat)) {
         stop("Assay not found: ", assay_name)
     }
     df <- as.data.frame(mat)
-    # OPTIMIZATION: Use .resolve_gene_names() helper
-    genes_col <- .resolve_gene_names(se, nrow(df))
+    # OPTIMIZATION: Use .tsenat_resolve_gene_names() helper
+    genes_col <- .tsenat_resolve_gene_names(se, nrow(df))
     df <- data.frame(Gene = genes_col, df, row.names = NULL, stringsAsFactors = FALSE, check.names = FALSE)
     long <- tidyr::pivot_longer(df, -Gene, names_to = "sample", values_to = value_name)
 
@@ -345,8 +345,8 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
         st <- as.character(SummarizedExperiment::colData(se)[, condition_col])
         names(st) <- colnames(mat)
         st_map <- st[!duplicated(names(st))]
-        # OPTIMIZATION: Use .strip_q_suffix() helper
-        sample_base <- .strip_q_suffix(long$sample)
+        # OPTIMIZATION: Use .tsenat_strip_q_suffix() helper
+        sample_base <- .tsenat_strip_q_suffix(long$sample)
         long$sample_type <- unname(st_map[sample_base])
         has_na <- is.na(long$sample_type)
         if (any(has_na)) {
@@ -372,16 +372,16 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
 # Internal small helper: prepare long-format tsallis data from a
 # SummarizedExperiment
 prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "sample_type") {
-    # OPTIMIZATION: Use .check_required_packages() helper
-    .check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
+    # OPTIMIZATION: Use .tsenat_check_required_packages() helper
+    .tsenat_check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
 
     mat <- SummarizedExperiment::assay(se, assay_name)
     if (is.null(mat)) {
         stop("Assay not found: ", assay_name)
     }
     
-    # OPTIMIZATION: Use .resolve_gene_names() helper (consolidates 6 fallback steps)
-    genes_col <- .resolve_gene_names(se, nrow(mat))
+    # OPTIMIZATION: Use .tsenat_resolve_gene_names() helper (consolidates 6 fallback steps)
+    genes_col <- .tsenat_resolve_gene_names(se, nrow(mat))
     genes_col <- as.character(genes_col)
     
     # Create data frame with Gene column as first column
@@ -427,14 +427,14 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
         
         # Create a mapping from unique sample names to sample type
         # Handle both "_q=" format (old) and "_qX.X" format (new)
-        assay_cols_unique <- unique(.strip_q_format(colnames(mat)))
+        assay_cols_unique <- unique(.tsenat_strip_q_format(colnames(mat)))
         st_map <- setNames(rep(NA_character_, length(assay_cols_unique)), assay_cols_unique)
         
         # Strategy 1: If colData has rownames set, use them to build mapping
         if (!is.null(col_rownames) && length(col_rownames) > 0 && !all(is.na(col_rownames))) {
-            # OPTIMIZATION: Cache .strip_q_format() result - avoid repeated regex evaluation
+            # OPTIMIZATION: Cache .tsenat_strip_q_format() result - avoid repeated regex evaluation
             # colData rownames should be the full assay column names (with _q suffixes)
-            col_rownames_stripped <- .strip_q_format(col_rownames)
+            col_rownames_stripped <- .tsenat_strip_q_format(col_rownames)
             col_rownames_unique <- unique(col_rownames_stripped)
             
             # For each unique sample, find first matching row and get its sample type
@@ -447,8 +447,8 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
             st_map <- setNames(col_st[seq_along(assay_cols_unique)], assay_cols_unique)
         } else if (nrow(col_data) == nrow(mat) || nrow(col_data) == ncol(mat)) {
             # Strategy 3: colData has one row per column in assay
-            # OPTIMIZATION: Cache .strip_q_format() result - avoid repeated regex evaluation in loop
-            mat_cols_stripped <- .strip_q_format(colnames(mat))
+            # OPTIMIZATION: Cache .tsenat_strip_q_format() result - avoid repeated regex evaluation in loop
+            mat_cols_stripped <- .tsenat_strip_q_format(colnames(mat))
             # Get first occurrence of each unique sample in assay columns
             first_occurrences_mat <- match(assay_cols_unique, mat_cols_stripped)
             valid_matches_mat <- !is.na(first_occurrences_mat) & first_occurrences_mat <= nrow(col_data)

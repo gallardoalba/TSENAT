@@ -531,7 +531,7 @@ build_se <- function(readcounts, tx2gene, assay_name = "counts", skip = FALSE,
 
     # Apply metadata mapping if metadata is provided
     if (!is.null(metadata)) {
-        se <- .map_metadata(se, metadata)
+        se <- .tsenat_map_metadata_se(se, metadata)
     }
 
     return(se)

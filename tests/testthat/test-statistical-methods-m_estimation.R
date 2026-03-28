@@ -699,7 +699,7 @@ test_that("m_estimate SummarizedExperiment path with various data sizes", {
 
 context("Helper Functions: Data Preparation and Analysis")
 
-test_that(".prepare_se_data_for_m_estimate correctly collapses multi-q data", {
+test_that(".tsenat_mest_prepare_se_data correctly collapses multi-q data", {
   library(SummarizedExperiment)
   set.seed(1001)
   
@@ -728,7 +728,7 @@ test_that(".prepare_se_data_for_m_estimate correctly collapses multi-q data", {
   expect_true("Entropy_Mean" %in% colnames(result))
 })
 
-test_that(".prepare_se_data_for_m_estimate handles median vs mean collapsing", {
+test_that(".tsenat_mest_prepare_se_data handles median vs mean collapsing", {
   library(SummarizedExperiment)
   set.seed(1002)
   
@@ -762,7 +762,7 @@ test_that(".prepare_se_data_for_m_estimate handles median vs mean collapsing", {
   expect_true("Robustness_Weight" %in% colnames(result))
 })
 
-test_that(".prepare_se_data_for_m_estimate rejects invalid column names", {
+test_that(".tsenat_mest_prepare_se_data rejects invalid column names", {
   library(SummarizedExperiment)
   
   se <- SummarizedExperiment(
@@ -778,7 +778,7 @@ test_that(".prepare_se_data_for_m_estimate rejects invalid column names", {
   )
 })
 
-test_that(".prepare_se_data_for_m_estimate preserves gene names and sample order", {
+test_that(".tsenat_mest_prepare_se_data preserves gene names and sample order", {
   library(SummarizedExperiment)
   set.seed(1003)
   

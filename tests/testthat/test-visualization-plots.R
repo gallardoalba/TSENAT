@@ -172,7 +172,7 @@ test_that("plot_tsallis_q_curve_s4 returns ggplot with valid SE", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- TSENAT:::.map_metadata(ts_se, coldata_df)
+    ts_se <- TSENAT:::.tsenat_map_metadata_se(ts_se, coldata_df)
 
     p <- plot_tsallis_q_curve_s4(ts_se)
     expect_true(inherits(p, "ggplot"))
@@ -1068,31 +1068,31 @@ test_that("plot_tsallis_q_curve_s4 handles single group and empty long df", {
 })
 
 
-test_that(".compute_transcript_fill_limits handles no transcripts found", {
+test_that(".tsenat_plot_transcript_fill_limits handles no transcripts found", {
     counts <- matrix(1:4, 2)
     rownames(counts) <- c("tx1", "tx2")
     mapping <- data.frame(Transcript = c("tx3"), Gen = c("g1"))
     samples <- c("a", "b")
-    expect_error(TSENAT:::.compute_transcript_fill_limits(genes = "g1", mapping = mapping, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1), "No transcripts found for provided genes")
+    expect_error(TSENAT:::.tsenat_plot_transcript_fill_limits(genes = "g1", mapping = mapping, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1), "No transcripts found for provided genes")
 
     # case where one gene has no txs, but other does
     mapping2 <- data.frame(Transcript = c("tx1", "tx4"), Gen = c("g2", "g3"))
-    limits <- TSENAT:::.compute_transcript_fill_limits(genes = c("g1", "g2"), mapping = mapping2, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1)
+    limits <- TSENAT:::.tsenat_plot_transcript_fill_limits(genes = c("g1", "g2"), mapping = mapping2, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1)
     expect_is(limits, "numeric")
 })
 
-test_that(".draw_transcript_grid creates a temporary pdf in non-interactive sessions", {
+test_that(".tsenat_plot_transcript_grid_draw creates a temporary pdf in non-interactive sessions", {
     # This is hard to test directly, but we can check the logic.
     # We can't easily force a non-interactive session in a test.
     # We can check that it doesn't error when no device is open.
     grob <- grid::rectGrob()
-    expect_silent(TSENAT:::.draw_transcript_grid(list(grob), "title", NULL, 1, grid::unit(1, "null")))
+    expect_silent(TSENAT:::.tsenat_plot_transcript_grid_draw(list(grob), "title", NULL, 1, grid::unit(1, "null")))
 
     # test with file (open a device so the function can close it)
     tf <- tempfile(fileext = ".png")
     png(tf, width = 400, height = 300)
     on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off(), add = TRUE)
-    expect_silent(TSENAT:::.draw_transcript_grid(list(grob), "title", NULL, 1, grid::unit(1, "null"), to_file = tf))
+    expect_silent(TSENAT:::.tsenat_plot_transcript_grid_draw(list(grob), "title", NULL, 1, grid::unit(1, "null"), to_file = tf))
     expect_true(file.exists(tf))
     if (file.exists(tf)) unlink(tf)
 })
@@ -5532,7 +5532,7 @@ test_that("plot_divergence_distribution: density plot overlay", {
   expect_is(p, "ggplot")
 })
 
-test_that(".draw_transcript_grid: grid arrangement helper", {
+test_that(".tsenat_plot_transcript_grid_draw: grid arrangement helper", {
   config <- list()
   skip_if_not_installed("cowplot")
   library("cowplot")

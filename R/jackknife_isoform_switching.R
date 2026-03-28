@@ -3,7 +3,7 @@
 #' Validate input parameters
 #' @keywords internal
 #' @noRd
-.validate_jis_input <- function(se, condition_col, gene_col, isoform_col) {
+.tsenat_jis_validate_input <- function(se, condition_col, gene_col, isoform_col) {
   if (is.null(se)) stop("SummarizedExperiment object (se) is required")
   if (!inherits(se, "SummarizedExperiment")) stop("se must be a SummarizedExperiment object")
   if (!(condition_col %in% colnames(colData(se)))) stop("condition_col '", condition_col, "' not found in colData")
@@ -50,7 +50,7 @@
 #' Calculate Tsallis entropy
 #' @keywords internal
 #' @noRd
-.tsallis_entropy_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+.tsenat_jis_tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
   raw_col_sums <- colSums(counts)
   with_zero_counts <- raw_col_sums == 0
   if (pseudocount == 0) pseudocount <- 1e-8
@@ -85,14 +85,14 @@
 #' @keywords internal
 #' @noRd
 .tsenat_jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
-  h_full <- .tsallis_entropy_jis(counts, q, norm, log_base, pseudocount, n_tx_fixed)
+  h_full <- .tsenat_jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
   n_tx <- nrow(counts)
   influences <- numeric(n_tx)
   if (n_tx < 2) return(influences)
   for (i in seq_len(n_tx)) {
     counts_leave_i <- counts[-i, , drop = FALSE]
     # Keep leave-one-out on same normalization scale as full set for proper jackknife comparison
-    h_leave_i <- .tsallis_entropy_jis(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed = n_tx_fixed)
+    h_leave_i <- .tsenat_jis_tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed = n_tx_fixed)
     diffs <- abs(h_full - h_leave_i)
     influences[i] <- mean(diffs, na.rm = TRUE)
   }
@@ -102,7 +102,7 @@
 #' Apply FDR correction
 #' @keywords internal
 #' @noRd
-.apply_fdr_correction_jis <- function(results_per_gene, all_pvalues) {
+.tsenat_jis_apply_fdr <- function(results_per_gene, all_pvalues) {
   if (length(all_pvalues) == 0) return(invisible(results_per_gene))
   pvals_vec <- vapply(all_pvalues, function(x) x$pvalue, FUN.VALUE = numeric(1))
   fdr_vec <- p.adjust(pvals_vec, method = "BH")
@@ -125,7 +125,7 @@
 #' Handle multi-q analysis
 #' @keywords internal
 #' @noRd
-.handle_multi_q_jis <- function(se, q, q_params, verbose) {
+.tsenat_jis_handle_multi_q <- function(se, q, q_params, verbose) {
   results_list <- lapply(q, function(q_val) {
     do.call(jackknife_isoform_switching, c(list(se = se, q = q_val, verbose = FALSE), q_params))
   })
@@ -261,12 +261,12 @@ jackknife_isoform_switching <- function(
   use_lm_fdr = TRUE
 ) {
   # 1. Validate input
-  conditions <- .validate_jis_input(se, condition_col, gene_col, isoform_col)
+  conditions <- .tsenat_jis_validate_input(se, condition_col, gene_col, isoform_col)
   
   # 2. Handle multiple q values
   if (is.numeric(q) && length(q) > 1) {
     q_params <- list(condition_col = condition_col, subject_col = subject_col, gene_col = gene_col, isoform_col = isoform_col, norm = norm, log_base = log_base, pseudocount = pseudocount, threshold = threshold, n_bootstrap = n_bootstrap, lm_results = lm_results, lm_p_threshold = lm_p_threshold, use_lm_fdr = use_lm_fdr)
-    return(.handle_multi_q_jis(se, q, q_params, verbose))
+    return(.tsenat_jis_handle_multi_q(se, q, q_params, verbose))
   }
   
   # 3. Setup paired design and gene mapping
@@ -367,7 +367,7 @@ jackknife_isoform_switching <- function(
   }
   
   # 6. Apply FDR correction FIRST (capture the result)
-  results_per_gene <- .apply_fdr_correction_jis(results_per_gene, all_pvalues)
+  results_per_gene <- .tsenat_jis_apply_fdr(results_per_gene, all_pvalues)
   
   # 7. Build results summary WITH updated FDR values
   all_transcript_stats <- do.call(rbind, lapply(names(results_per_gene), function(gene) {

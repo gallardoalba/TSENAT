@@ -58,33 +58,33 @@ create_paired_se <- function() {
 }
 
 # ============================================================================
-# TEST: .validate_jis_input()
+# TEST: .tsenat_jis_validate_input()
 # ============================================================================
 
-test_that(".validate_jis_input validates SE is a SummarizedExperiment", {
+test_that(".tsenat_jis_validate_input validates SE is a SummarizedExperiment", {
   se <- create_test_se()
   invalid_se <- list(data = "not_a_se")
   
   # Valid input should not throw error
-  expect_error(TSENAT:::.validate_jis_input(se, "condition", "gene_id", "transcript_id"), NA)
+  expect_error(TSENAT:::.tsenat_jis_validate_input(se, "condition", "gene_id", "transcript_id"), NA)
   
   # Invalid SE should throw error
   expect_error(
-    TSENAT:::.validate_jis_input(invalid_se, "condition", "gene_id", "transcript_id"),
+    TSENAT:::.tsenat_jis_validate_input(invalid_se, "condition", "gene_id", "transcript_id"),
     "SummarizedExperiment"
   )
 })
 
-test_that(".validate_jis_input detects missing condition_col", {
+test_that(".tsenat_jis_validate_input detects missing condition_col", {
   se <- create_test_se()
   
   expect_error(
-    TSENAT:::.validate_jis_input(se, "missing_col", "gene_id", "transcript_id"),
+    TSENAT:::.tsenat_jis_validate_input(se, "missing_col", "gene_id", "transcript_id"),
     "not found in colData"
   )
 })
 
-test_that(".validate_jis_input detects exactly 2 conditions", {
+test_that(".tsenat_jis_validate_input detects exactly 2 conditions", {
   se <- create_test_se()
   
   # Add a third condition
@@ -94,33 +94,33 @@ test_that(".validate_jis_input detects exactly 2 conditions", {
   SummarizedExperiment::colData(se_bad) <- cd
   
   expect_error(
-    TSENAT:::.validate_jis_input(se_bad, "condition", "gene_id", "transcript_id"),
+    TSENAT:::.tsenat_jis_validate_input(se_bad, "condition", "gene_id", "transcript_id"),
     "Exactly 2 conditions"
   )
 })
 
-test_that(".validate_jis_input detects missing gene_col", {
+test_that(".tsenat_jis_validate_input detects missing gene_col", {
   se <- create_test_se()
   
   expect_error(
-    TSENAT:::.validate_jis_input(se, "condition", "missing_gene", "transcript_id"),
+    TSENAT:::.tsenat_jis_validate_input(se, "condition", "missing_gene", "transcript_id"),
     "not found in rowData"
   )
 })
 
-test_that(".validate_jis_input detects missing isoform_col", {
+test_that(".tsenat_jis_validate_input detects missing isoform_col", {
   se <- create_test_se()
   
   expect_error(
-    TSENAT:::.validate_jis_input(se, "condition", "gene_id", "missing_iso"),
+    TSENAT:::.tsenat_jis_validate_input(se, "condition", "gene_id", "missing_iso"),
     "not found in rowData"
   )
 })
 
-test_that(".validate_jis_input returns sorted conditions", {
+test_that(".tsenat_jis_validate_input returns sorted conditions", {
   se <- create_test_se()
   
-  conditions <- TSENAT:::.validate_jis_input(se, "condition", "gene_id", "transcript_id")
+  conditions <- TSENAT:::.tsenat_jis_validate_input(se, "condition", "gene_id", "transcript_id")
   
   expect_equal(conditions, c("A", "B"))  # Should be sorted alphabetically
 })
@@ -207,33 +207,33 @@ test_that(".tsenat_build_gene_id_mapping returns empty for missing gene_name col
 })
 
 # ============================================================================
-# TEST: .tsallis_entropy_jis()
+# TEST: .tsenat_jis_tsallis_entropy()
 # ============================================================================
 
-test_that(".tsallis_entropy_jis calculates entropy for vector input", {
+test_that(".tsenat_jis_tsallis_entropy calculates entropy for vector input", {
   # Convert vector to matrix (rows=transcripts, cols=samples)
   counts <- matrix(c(100, 50, 75, 200, 80, 120), nrow = 6, ncol = 1)
   
-  result <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   expect_true(is.numeric(result))
   expect_equal(length(result), 1)
   expect_true(result >= 0)
 })
 
-test_that(".tsallis_entropy_jis with q=1 (Shannon entropy)", {
+test_that(".tsenat_jis_tsallis_entropy with q=1 (Shannon entropy)", {
   counts <- matrix(c(100, 100, 100, 100), nrow = 4, ncol = 1)  # Balanced distribution
   
   # Balanced distribution should have high entropy
-  result <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
   
   expect_true(result > 1.3)  # Shannon entropy of balanced 4-item distribution
 })
 
-test_that(".tsallis_entropy_jis with q=2 (Renyi entropy)", {
+test_that(".tsenat_jis_tsallis_entropy with q=2 (Renyi entropy)", {
   counts <- matrix(c(100, 50, 75), nrow = 3, ncol = 1)
   
-  result <- TSENAT:::.tsallis_entropy_jis(counts, q = 2, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 2, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   # Tsallis entropy with q > 1 can be negative - this is mathematically correct
   # The normalized value should be in [-1, 1] approximately
@@ -242,38 +242,38 @@ test_that(".tsallis_entropy_jis with q=2 (Renyi entropy)", {
   expect_true(result <= 1.1)
 })
 
-test_that(".tsallis_entropy_jis handles normalization", {
+test_that(".tsenat_jis_tsallis_entropy handles normalization", {
   counts <- matrix(c(100, 50, 75), nrow = 3, ncol = 1)
   
-  result_norm <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
-  result_no_norm <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
+  result_norm <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result_no_norm <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
   
   expect_true(result_norm <= result_no_norm)  # Normalized should be smaller or equal
 })
 
-test_that(".tsallis_entropy_jis handles matrix input (per-sample)", {
+test_that(".tsenat_jis_tsallis_entropy handles matrix input (per-sample)", {
   counts_matrix <- matrix(c(100, 50, 75, 110, 45, 80), nrow = 3, ncol = 2)
   
-  result <- TSENAT:::.tsallis_entropy_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.tsenat_jis_tsallis_entropy(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   expect_true(is.numeric(result))
   expect_equal(length(result), 2)  # One entropy per column (sample)
 })
 
-test_that(".tsallis_entropy_jis handles pseudocount", {
+test_that(".tsenat_jis_tsallis_entropy handles pseudocount", {
   counts <- matrix(c(100, 0, 75), nrow = 3, ncol = 1)  # Has zero count
   
   # Without pseudocount might have numerical issues
-  result_with_pc <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0.5)
+  result_with_pc <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0.5)
   
   expect_true(is.finite(result_with_pc))
 })
 
-test_that(".tsallis_entropy_jis respects log base parameter", {
+test_that(".tsenat_jis_tsallis_entropy respects log base parameter", {
   counts <- matrix(c(100, 50, 75), nrow = 3, ncol = 1)
   
-  result_e <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
-  result_2 <- TSENAT:::.tsallis_entropy_jis(counts, q = 1, norm = FALSE, log_base = 2, pseudocount = 0)
+  result_e <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
+  result_2 <- TSENAT:::.tsenat_jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = 2, pseudocount = 0)
   
   # Results should differ due to different log base
   expect_false(isTRUE(all.equal(result_e, result_2)))
@@ -323,10 +323,10 @@ test_that(".tsenat_jackknife_influences_jis with n_tx_fixed parameter", {
 })
 
 # ============================================================================
-# TEST: .apply_fdr_correction_jis()
+# TEST: .tsenat_jis_apply_fdr()
 # ============================================================================
 
-test_that(".apply_fdr_correction_jis corrects p-values with Benjamini-Hochberg method", {
+test_that(".tsenat_jis_apply_fdr corrects p-values with Benjamini-Hochberg method", {
   # Create mock gene results with p-values
   results_per_gene <- list(
     g1 = list(
@@ -346,7 +346,7 @@ test_that(".apply_fdr_correction_jis corrects p-values with Benjamini-Hochberg m
     list(gene = "g2", transcript = "tx4", pvalue = 0.1)
   )
   
-  results_per_gene <- TSENAT:::.apply_fdr_correction_jis(results_per_gene, all_pvalues)
+  results_per_gene <- TSENAT:::.tsenat_jis_apply_fdr(results_per_gene, all_pvalues)
   
   # Check that FDR values were added to results_per_gene
   expect_true("delta_fdr" %in% names(results_per_gene$g1))
@@ -354,7 +354,7 @@ test_that(".apply_fdr_correction_jis corrects p-values with Benjamini-Hochberg m
   expect_true(all(results_per_gene$g1$delta_fdr < 1))
 })
 
-test_that(".apply_fdr_correction_jis maintains p-value ordering relationships", {
+test_that(".tsenat_jis_apply_fdr maintains p-value ordering relationships", {
   results_per_gene <- list(
     g1 = list(
       transcript_ids = c("tx1", "tx2", "tx3"),
@@ -368,7 +368,7 @@ test_that(".apply_fdr_correction_jis maintains p-value ordering relationships", 
     list(gene = "g1", transcript = "tx3", pvalue = 0.05)
   )
   
-  results_per_gene <- TSENAT:::.apply_fdr_correction_jis(results_per_gene, all_pvalues)
+  results_per_gene <- TSENAT:::.tsenat_jis_apply_fdr(results_per_gene, all_pvalues)
   
   # FDR values should maintain order (smallest p-value → smallest FDR)
   fdr_vals <- results_per_gene$g1$delta_fdr
@@ -377,10 +377,10 @@ test_that(".apply_fdr_correction_jis maintains p-value ordering relationships", 
 })
 
 # ============================================================================
-# TEST: .handle_multi_q_jis()
+# TEST: .tsenat_jis_handle_multi_q()
 # ============================================================================
 
-test_that(".handle_multi_q_jis returns list of results for multiple q values", {
+test_that(".tsenat_jis_handle_multi_q returns list of results for multiple q values", {
   skip("Multi-q handling requires full SE setup - skip for unit testing")
   
   se <- create_test_se()
@@ -388,7 +388,7 @@ test_that(".handle_multi_q_jis returns list of results for multiple q values", {
   q_values <- c(1.0, 1.5)
   q_params <- list(norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 10)
   
-  result <- TSENAT:::.handle_multi_q_jis(se, q_values, q_params, verbose = FALSE)
+  result <- TSENAT:::.tsenat_jis_handle_multi_q(se, q_values, q_params, verbose = FALSE)
   
   expect_true(is.list(result))
   expect_equal(names(result), c("q_1_00", "q_1_50"))
@@ -402,7 +402,7 @@ test_that("Validation and pairing helpers work together", {
   se <- create_paired_se()
   
   # Validate input first
-  conditions <- TSENAT:::.validate_jis_input(se, "condition", "gene_id", "transcript_id")
+  conditions <- TSENAT:::.tsenat_jis_validate_input(se, "condition", "gene_id", "transcript_id")
   expect_equal(conditions, c("A", "B"))
   
   # Then setup paired design
@@ -421,7 +421,7 @@ test_that("Gene mapping and entropy calculation work together", {
   gene_mask <- rowData(se)$gene_id == "g1"
   counts_matrix <- assays(se)$counts[gene_mask, ]
   
-  entropy <- TSENAT:::.tsallis_entropy_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  entropy <- TSENAT:::.tsenat_jis_tsallis_entropy(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   expect_true(is.numeric(entropy))
   expect_true(all(entropy >= 0 & entropy <= 1))
 })

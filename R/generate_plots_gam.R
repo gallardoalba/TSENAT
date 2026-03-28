@@ -183,7 +183,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     }
 
     # Build sample-to-group mapping using helper
-    sample_to_group <- .prepare_sample_to_group_mapping(cdata, condition_col)
+    sample_to_group <- .tsenat_prepare_sample_group_mapping(cdata, condition_col)
 
     # Determine which genes to plot using helper
     top_genes <- .tsenat_plot_select_genes(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
@@ -213,13 +213,13 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
         }
         
         # Prepare plot data for this gene using helper
-        plot_df <- .prepare_gam_plot_data_per_gene(g, mat, sample_to_group)
+        plot_df <- .tsenat_plot_gam_prepare_gene_data(g, mat, sample_to_group)
         if (is.null(plot_df)) {
             return(NULL)
         }
         
         # Fit GAM models and generate predictions using helper
-        gam_result <- .fit_gam_per_group(plot_df)
+        gam_result <- .tsenat_plot_gam_fit_group(plot_df)
         if (is.null(gam_result)) {
             return(NULL)
         }

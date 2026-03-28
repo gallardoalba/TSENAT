@@ -239,7 +239,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.resample_paired_data <- function(
+.tsenat_jis_resample_paired_data <- function(
     control_samples,
     treatment_samples,
     pair_ids,
@@ -325,7 +325,7 @@ calculate_divergence_bootstrap <- function(
   # Seed handling left to caller for Bioconductor compliance
 
   # Compute point estimate
-  point_est <- .tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
+  point_est <- .tsenat_tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
 
   # Bootstrap confidence interval
   if (nboot > 0) {
@@ -391,7 +391,7 @@ calculate_divergence_bootstrap <- function(
         y_boot <- sample(y, size = length(y), replace = TRUE)
       }
 
-      bootstrap_dist[b] <- .tsallis_divergence_scalar(x_boot, y_boot, q, pseudocount, log_base)
+      bootstrap_dist[b] <- .tsenat_tsallis_divergence_scalar(x_boot, y_boot, q, pseudocount, log_base)
     }
 
     alpha <- (1 - ci) / 2
@@ -427,7 +427,7 @@ calculate_divergence_bootstrap <- function(
 #'
 #' @keywords internal
 #' @noRd
-.tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
+.tsenat_tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
   # Validate input vectors
   if (length(x) == 0 || length(y) == 0) {
     return(NA_real_)

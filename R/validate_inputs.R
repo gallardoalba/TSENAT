@@ -31,17 +31,17 @@
 #' @examples
 #' \dontrun{
 #' # Valid SE object
-#' .validate_se(se, assay_name = "diversity")
+#' .tsenat_validate_se(se, assay_name = "diversity")
 #'
 #' # Invalid will stop with helpful message
-#' .validate_se(df, assay_name = "diversity")
+#' .tsenat_validate_se(df, assay_name = "diversity")
 #' # Error: Input must be a SummarizedExperiment, not data.frame
 #' # Use: se <- SummarizedExperiment::SummarizedExperiment(assays = list(...))
 #' }
 #'
 #' @keywords internal
 #' @noRd
-.validate_se <- function(se, 
+.tsenat_validate_se <- function(se, 
                          assay_name = NULL,
                          min_genes = 1,
                          min_samples = 1,
@@ -108,7 +108,7 @@
 #' @examples
 #' \dontrun{
 #' # Valid data frame
-#' .validate_df(lm_results, required_cols = c("gene", "p_value"))
+#' .tsenat_validate_df(lm_results, required_cols = c("gene", "p_value"))
 #'
 #' # Missing column error:
 #' # Error: 'p_value' column missing in lm_results
@@ -117,7 +117,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.validate_df <- function(df,
+.tsenat_validate_df <- function(df,
                          required_cols = NULL,
                          allow_null = FALSE,
                          df_name = "Input data") {
@@ -170,16 +170,16 @@
 #' @examples
 #' \dontrun{
 #' # Valid
-#' .validate_numeric(n_genes, "n_genes", min = 1, integer_only = TRUE)
+#' .tsenat_validate_numeric(n_genes, "n_genes", min = 1, integer_only = TRUE)
 #'
 #' # Invalid - will stop with message
-#' .validate_numeric(sig_alpha = 1.5, "sig_alpha", min = 0, max = 1)
+#' .tsenat_validate_numeric(sig_alpha = 1.5, "sig_alpha", min = 0, max = 1)
 #' # Error: sig_alpha must be between 0 and 1, got 1.5
 #' }
 #'
 #' @keywords internal
 #' @noRd
-.validate_numeric <- function(value,
+.tsenat_validate_numeric <- function(value,
                               param_name = "parameter",
                               allow_null = FALSE,
                               min = NULL,
@@ -226,17 +226,17 @@
 #' @examples
 #' \dontrun{
 #' # Valid
-#' .validate_choice(metric, "metric", allowed_values = c("median", "mean", "sd"))
+#' .tsenat_validate_choice(metric, "metric", allowed_values = c("median", "mean", "sd"))
 #'
 #' # Invalid
-#' .validate_choice(metric = "mode", "metric", 
+#' .tsenat_validate_choice(metric = "mode", "metric", 
 #'                 allowed_values = c("median", "mean", "sd"))
 #' # Error: metric must be one of: median, mean, sd (got 'mode')
 #' }
 #'
 #' @keywords internal
 #' @noRd
-.validate_choice <- function(value,
+.tsenat_validate_choice <- function(value,
                             param_name = "parameter",
                             allowed_values = NULL,
                             allow_null = FALSE) {
@@ -255,87 +255,4 @@
   }
   
   invisible(TRUE)
-}
-
-#' Validate Color Specification
-#'
-#' Checks that value is a valid color specification (hex, named, or list of colors).
-#'
-#' @param value Color specification to validate.
-#' @param param_name Character; parameter name for error messages.
-#' @param allow_null Logical; if TRUE, NULL is accepted (default: FALSE).
-#' @param allow_vector Logical; if TRUE, allows vector of colors (default: TRUE).
-#'
-#' @return Invisibly returns TRUE if valid. Stops with error message if invalid.
-#'
-#' @keywords internal
-#' @noRd
-.validate_color <- function(value,
-                            param_name = "color",
-                            allow_null = FALSE,
-                            allow_vector = TRUE) {
-  # Check for NULL
-  if (is.null(value)) {
-    if (allow_null) return(invisible(TRUE))
-    stop(param_name, " is NULL. Provide a valid color.")
-  }
-  
-  # Check is character
-  if (!is.character(value)) {
-    stop(param_name, " must be character (hex or named colors), got ", class(value)[1])
-  }
-  
-  # Check if vector not allowed
-  if (!allow_vector && length(value) > 1) {
-    stop(param_name, " must be a single color, got ", length(value), " values")
-  }
-  
-  # Validate each color using grDevices function
-  valid_colors <- vapply(value, function(col) {
-    tryCatch({
-      grDevices::col2rgb(col)
-      TRUE
-    }, error = function(e) FALSE)
-  }, FUN.VALUE = logical(1))
-  
-  if (!all(valid_colors)) {
-    invalid_idx <- which(!valid_colors)
-    stop(param_name, " contains invalid color(s): ", 
-         paste(value[invalid_idx], collapse = ", "), "\n",
-         "  Use hex codes (#RRGGBB) or named colors from colors()")
-  }
-  
-  invisible(TRUE)
-}
-
-#' Summarize Data Validation Results
-#'
-#' Helper to format validation results for user output.
-#'
-#' @param se SummarizedExperiment; validated SE object.
-#' @param verbose Logical; if TRUE, print validation summary (default: TRUE).
-#'
-#' @return List with validation summary (genes, samples, assays, conditions).
-#'
-#' @keywords internal
-#' @noRd
-.summarize_se_validation <- function(se, verbose = TRUE) {
-  n_genes <- nrow(se)
-  n_samples <- ncol(se)
-  assay_names <- SummarizedExperiment::assayNames(se)
-  
-  summary_list <- list(
-    n_genes = n_genes,
-    n_samples = n_samples,
-    assay_names = assay_names
-  )
-  
-  if (verbose && !is.null(se)) {
-    message("[Validation OK] SummarizedExperiment:")
-    message("  - Genes: ", n_genes)
-    message("  - Samples: ", n_samples)
-    message("  - Assays: ", paste(assay_names, collapse = ", "))
-  }
-  
-  invisible(summary_list)
 }

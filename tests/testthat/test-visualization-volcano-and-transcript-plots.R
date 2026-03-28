@@ -212,7 +212,7 @@ test_that("plot_divergence_distribution: density plot overlay", {
   expect_is(p, "ggplot")
 })
 
-test_that(".draw_transcript_grid: grid arrangement helper", {
+test_that(".tsenat_plot_transcript_grid_draw: grid arrangement helper", {
   config <- list()
   skip_if_not_installed("cowplot")
   library("cowplot")

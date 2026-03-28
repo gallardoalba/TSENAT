@@ -1705,37 +1705,6 @@ estimate_nperm <- function(
 }
 
 
-#' Export improved rank test selection for Appendix B vignette
-#'
-#' This function enables the Appendix B vignette to use improved
-#' rank-based tests by wrapping conditional selection
-#'
-#' @param data Data frame with values and group indicators
-#' @param value_col Column name for values to test (default: "entropy")
-#' @param group_col Column name for group membership (default: "q")
-#'
-#' @keywords internal
-#' @noRd
-.tsenat_improved_kruskal_wallis <- function(data, value_col = "entropy", group_col = "q") {
-    result <- .tsenat_apply_conditional_rank_test(data, value_col, group_col, verbose = FALSE)
-    
-    # Return in format compatible with standard k-test output
-    structure(
-        list(
-            statistic = c(result$statistic),
-            p.value = result$p_value,
-            method = result$method,
-            data.name = paste(value_col, "~", group_col),
-            test_details = list(
-                test_type = result$test_type,
-                characteristics =result$characteristics
-            )
-        ),
-        class = "htest"
-    )
-}
-
-
 #' Test q * condition interaction using Two-Way Within-Subject Methods
 #'
 #' Tests interaction between q-values and condition factor in paired/repeated-measures 

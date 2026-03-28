@@ -2645,45 +2645,7 @@
     return(NA_real_)
 }
 
-.tsenat_extract_satterthwaite_p <- function(fit1, fallback_lm = NULL) {
-    # if fallback to lm, extract p from coefficients
-    if (!is.null(fallback_lm)) {
-        coefs <- try(summary(fallback_lm$fit1)$coefficients, silent = TRUE)
-        if (!inherits(coefs, "try-error")) {
-            ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0) {
-                p_val <- coefs[ia_idx[1], "Pr(>|t|)"]
-                # Convert NaN to NA (occurs when numerical instability produces NaN)
-                if (is.nan(p_val)) {
-                    return(NA_real_)
-                }
-                return(p_val)
-            }
-        }
-        return(NA_real_)
-    }
-    # if lmerTest available and fit1 is lmer (not singular), use it for Satterthwaite
-    if (requireNamespace("lmerTest", quietly = TRUE) && inherits(fit1, "lmerMod") &&
-        !isTRUE(attr(fit1, "singular"))) {
-        fit_lt <- try(lmerTest::lmer(stats::formula(fit1), data = stats::model.frame(fit1),
-            REML = FALSE), silent = TRUE)
-        if (!inherits(fit_lt, "try-error")) {
-            coefs <- summary(fit_lt)$coefficients
-            ia_idx <- grep("^q:group", rownames(coefs))
-            if (length(ia_idx) > 0) {
-                p_val <- coefs[ia_idx[1], "Pr(>|t|)"]
-                # Convert NaN to NA (occurs when numerical instability produces NaN)
-                if (is.nan(p_val)) {
-                    return(NA_real_)
-                }
-                return(p_val)
-            }
-        }
-    }
-    return(NA_real_)
-}
-
-## Consolidated helpers for calculate_lm_interaction fallbacks, LRT and Satterthwaite
+## Consolidated helpers for calculate_lm_interaction fallbacks and LRT
 ## Improved mixed model handling with multiple fallback strategies
 
 # Helper for FPCA-style preprocessing used in calculate_lm_interaction fpca

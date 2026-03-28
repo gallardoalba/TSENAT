@@ -938,8 +938,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             group2_medians <- vapply(seq_len(nrow(x)), function(feat)
                 median(x[feat, group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
             
-            scale1 <- .s_estimator_scale(group1_medians)
-            scale2 <- .s_estimator_scale(group2_medians)
+            scale1 <- .tsenat_mest_s_estimator_scale(group1_medians)
+            scale2 <- .tsenat_mest_s_estimator_scale(group2_medians)
         } else {
             # DEFAULT: MAD-based scale on aggregate (fastest)
             # Use MAD computed from pooled residuals
@@ -957,7 +957,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         }
         
         # Now compute location for each feature using pre-computed scales
-        # This avoids re-computing scales inside .irls_estimate_location()
+        # This avoids re-computing scales inside .tsenat_mest_irls_location()
         value_list <- list()
         
         for (feat in seq_len(nrow(x))) {
@@ -967,12 +967,12 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             group2_vals <- feat_vals[group2_idx]
             
             # Pass pre-computed scales to IRLS, skipping scale computation inside the function
-            est1 <- .irls_estimate_location(group1_vals, 
+            est1 <- .tsenat_mest_irls_location(group1_vals, 
                                             loss_type = robust_loss_type,
                                             scale = scale1,  # <- PRE-COMPUTED, avoids recomputation!
                                             max_iter = 20,
                                             tol = 1e-4)
-            est2 <- .irls_estimate_location(group2_vals,
+            est2 <- .tsenat_mest_irls_location(group2_vals,
                                             loss_type = robust_loss_type,
                                             scale = scale2,  # <- PRE-COMPUTED, avoids recomputation!
                                             max_iter = 20,
@@ -1053,8 +1053,8 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             group1_all <- as.numeric(x[, group1_idx])
             group2_all <- as.numeric(x[, group2_idx])
             
-            scale1 <- .s_estimator_scale(group1_all)
-            scale2 <- .s_estimator_scale(group2_all)
+            scale1 <- .tsenat_mest_s_estimator_scale(group1_all)
+            scale2 <- .tsenat_mest_s_estimator_scale(group2_all)
         } else {
             # DEFAULT: MAD-based scale (fastest, most robust)
             group1_all <- as.numeric(x[, group1_idx])
@@ -1072,12 +1072,12 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
         
         # Apply location estimation to each feature using pre-computed scales
         g1_val <- apply(x[, group1_idx, drop = FALSE], 1, function(row) {
-            .irls_estimate_location(row, loss_type = robust_loss_type,
+            .tsenat_mest_irls_location(row, loss_type = robust_loss_type,
                                     scale = scale1,  # <- Use pre-computed scale!
                                     max_iter = 20, tol = 1e-4)
         })
         g2_val <- apply(x[, group2_idx, drop = FALSE], 1, function(row) {
-            .irls_estimate_location(row, loss_type = robust_loss_type,
+            .tsenat_mest_irls_location(row, loss_type = robust_loss_type,
                                     scale = scale2,  # <- Use pre-computed scale!
                                     max_iter = 20, tol = 1e-4)
         })

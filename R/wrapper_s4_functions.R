@@ -46,17 +46,63 @@
 #'   If NULL, reads from \code{@config$bootstrap_ci} if available.
 #' @param bootstrap_include_diagnostics \code{logical}. Include bootstrap diagnostics. Default: TRUE.
 #'   If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.
+#' @param norm_method \code{character}. Post-hoc normalization method to apply after entropy calculation.
+#'   Options:
+#'   \itemize{
+#'     \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
+#'     \item \code{"zscore"} - Z-score normalization per q-value
+#'     \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
+#'     \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
+#'     \item \code{NULL} - No post-hoc normalization (default)
+#'   }
+#'   If NULL, reads from \code{@config$norm_method} if available.
+#' @param reference_group \code{character}. For \code{norm_method = "relative_reference"}, 
+#'   the reference group column name (e.g., from colData). If NULL, uses first group in colData.
+#'   If NULL, reads from \code{@config$reference_group} if available.
 #' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .tsv, .csv, .txt (for tables), .rds (for S4 objects). Default: NULL (no file output).
-#' @param ... Additional arguments passed to the base function.
+#'   When provided, generates TWO files:
+#'   \enumerate{
+#'     \item Primary output: Analysis object (.rds) or table (.tsv/.csv/.txt)
+#'     \item Secondary output: Diversity spectrum statistics (TSV format)
+#'         with suffix \code{_diversity_spectrum.tsv}
+#'   }
+#'   Example: output_file = "analysis.rds" generates:
+#'   \itemize{
+#'     \item \code{analysis.rds} - TSENATAnalysis object
+#'     \item \code{analysis_diversity_spectrum.tsv} - Spectrum statistics
+#'   }
+#'   The spectrum file contains columns: q, central (median diversity), 
+#'   spread (IQR), count, and group (if grouping variable available).
+#'   Default: NULL (no file output).
 #'
 #' @return Modified TSENATAnalysis object with diversity results stored
-#'   in \code{@diversity_results}, keyed by "q_X.X" format (e.g., "q_1.0").
+#'   in \code{@diversity_results}, keyed by "q_X.XX..." format (e.g., "q_1.000").
+#'   When \code{output_file} is provided, also generates:
+#'   \itemize{
+#'     \item Primary file: Analysis object or table export
+#'     \item Spectrum file: \code{*_diversity_spectrum.tsv} containing 
+#'           aggregated diversity statistics across q-values and groups
+#'   }
 #'
 #' @details
 #' This wrapper calls \code{calculate_diversity()} once per q-value, storing
 #' results as SummarizedExperiment objects. It extracts key parameters from
 #' \code{analysis@config} with priority resolution (explicit > \code{@config} > default).
+#'
+#' **Diversity Spectrum Computation:**
+#' By default, this function computes and saves a diversity spectrum (aggregated
+#' statistics across all q-values and groups) when \code{output_file} is provided.
+#' The spectrum contains:
+#' \itemize{
+#'   \item \code{q}: Diversity parameter value
+#'   \item \code{central}: Median (or mean) diversity across all genes
+#'   \item \code{spread}: IQR (or SD) around central value
+#'   \item \code{count}: Number of valid measurements
+#'   \item \code{group}: Condition group (if applicable)
+#' }
+#' This provides a quick summary of how diversity changes across q-values,
+#' useful for q-curve visualization and statistical comparisons.
+#' Spectrum is saved as: \code{*_diversity_spectrum.tsv}
 #'
 #' **Parameter Priority Resolution:**
 #' \describe{
@@ -91,10 +137,20 @@
 #' 
 #' # Diversity results are pre-computed by factory
 #' head(diversity(analysis, q = 1.0))
+#' 
+#' # Apply z-score normalization
+#' # analysis <- calculate_diversity_s4(analysis, norm_method = "zscore")
+#' 
+#' # Apply log-odds ratio normalization (q and isoform-aware)
+#' # analysis <- calculate_diversity_s4(analysis, norm_method = "log_odds_ratio")
+#'
+#' @seealso
+#' \code{\link{compute_diversity_spectrum}} for spectrum computation details.
 #'
 #' @export
 #' @importFrom utils write.table
-calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE, assayno = NULL,
+calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method = NULL, 
+                                   reference_group = NULL, tpm = FALSE, assayno = NULL,
                                    verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
                                    min_valid_frac = NULL, shrinkage = NULL, genes = NULL,
                                    effective_length = NULL, metadata = NULL, bootstrap = NULL,
@@ -150,6 +206,17 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
   bootstrap_nboot <- resolve_slot_param(bootstrap_nboot, analysis@config, "bootstrap_nboot", NULL)
   bootstrap_include_diagnostics <- resolve_slot_param(bootstrap_include_diagnostics, analysis@config, "bootstrap_include_diagnostics", TRUE)
   metadata <- resolve_slot_param(metadata, analysis@config, "metadata", NULL)
+  norm_method <- resolve_slot_param(norm_method, analysis@config, "norm_method", NULL)
+  reference_group <- resolve_slot_param(reference_group, analysis@config, "reference_group", NULL)
+  
+  # Validate norm_method parameter
+  if (!is.null(norm_method)) {
+    valid_methods <- c("default", "zscore", "log_odds_ratio", "relative_reference")
+    if (!(norm_method %in% valid_methods)) {
+      stop("'norm_method' must be one of: ", paste(valid_methods, collapse=", "), 
+           call. = FALSE)
+    }
+  }
 
   # Use three decimal precision for q-value formatting
   # This ensures consistent formatting for all q-values (e.g., 0.100, 0.150, 2.000)
@@ -356,6 +423,57 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
         }
       }
       
+      # ===================================================================
+      # POST-HOC NORMALIZATION: Apply selected normalization method
+      # ===================================================================
+      if (!is.null(norm_method) && norm_method != "default") {
+        if (is(result_se, "SummarizedExperiment")) {
+          diversity_assay <- SummarizedExperiment::assay(result_se, "diversity")
+          
+          if (norm_method == "zscore") {
+            # Z-score normalization per q-value (columns represent samples within this q)
+            diversity_assay <- .tsenat_normalize_zscore(diversity_assay, per_q = TRUE)
+            if (verbose) {
+              message("[calculate_diversity_s4] Applied z-score normalization for q=", q_val)
+            }
+          } else if (norm_method == "log_odds_ratio") {
+            # Log-odds ratio: requires n_isoforms for each gene
+            if (!is.null(genes) && is.vector(genes)) {
+              n_isoforms_vec <- table(genes)
+              diversity_assay <- .tsenat_normalize_log_odds_ratio(diversity_assay, 
+                                                                   n_isoforms = n_isoforms_vec, 
+                                                                   q = q_val)
+              if (verbose) {
+                message("[calculate_diversity_s4] Applied log-odds ratio normalization for q=", q_val)
+              }
+            } else {
+              warning("[calculate_diversity_s4] log_odds_ratio normalization requires 'genes' parameter. Skipping for q=", q_val,
+                      call. = FALSE)
+            }
+          } else if (norm_method == "relative_reference") {
+            # Relative reference: requires group vector and reference group name
+            coldata <- SummarizedExperiment::colData(result_se)
+            if (!is.null(reference_group) && reference_group %in% colnames(coldata)) {
+              group_vector <- coldata[[reference_group]]
+              diversity_assay <- .tsenat_normalize_relative_reference(diversity_assay, 
+                                                                       group_vector = group_vector,
+                                                                       reference_group = reference_group)
+              if (verbose) {
+                message("[calculate_diversity_s4] Applied relative reference normalization (ref=", 
+                        reference_group, ") for q=", q_val)
+              }
+            } else {
+              warning("[calculate_diversity_s4] relative_reference normalization requires valid reference_group from colData. ",
+                      "Available columns: ", paste(colnames(coldata), collapse=", "),
+                      call. = FALSE)
+            }
+          }
+          
+          # Update assay in SE with normalized values
+          SummarizedExperiment::assay(result_se, "diversity") <- diversity_assay
+        }
+      }
+      
       # Store with key "q_X.XX..." (using consistent decimal formatting for all q-values)
       key <- paste0("q_", formatC(q_val, format = "f", digits = q_decimals))
       
@@ -363,6 +481,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
       attr(result_se, "computed_with") <- list(
         q = q_val,
         norm = norm,
+        norm_method = norm_method,
         verbose = verbose,
         bootstrap = bootstrap,
         pseudocount = pseudocount,
@@ -398,6 +517,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
     num_q_values = length(q),
     parameters_used = list(
       norm = norm,
+      norm_method = norm_method,
       verbose = verbose,
       bootstrap = bootstrap,
       pseudocount = pseudocount,
@@ -413,6 +533,62 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, tpm = FALSE,
       analysis@metadata$parallel_processing,
       paste0("calculate_diversity_s4: nthreads=", nthreads, " (", length(q), " q-values)")
     )
+  }
+
+  # ===================================================================
+  # COMPUTE DIVERSITY SPECTRUM AND SAVE TO SEPARATE FILE
+  # ===================================================================
+  # Generate spectrum statistics across all q-values and groups
+  if (!is.null(output_file)) {
+    tryCatch({
+      # Get condition_col from config if available
+      spectrum_condition_col <- NULL
+      if ("condition_col" %in% names(analysis@config)) {
+        spectrum_condition_col <- analysis@config$condition_col
+      }
+      if (is.null(spectrum_condition_col)) {
+        spectrum_condition_col <- "sample_type"
+      }
+      
+      # Compute diversity spectrum using the combined SE
+      combined_se <- analysis@metadata$diversity_combined$combined_se
+      if (!is.null(combined_se) && nrow(combined_se) > 0) {
+        diversity_spectrum <- compute_diversity_spectrum(
+          se = combined_se,
+          metric = "median",
+          variability_metric = "iqr",
+          condition_col = spectrum_condition_col
+        )
+        
+        if (!is.null(diversity_spectrum) && nrow(diversity_spectrum) > 0) {
+          # Generate spectrum output file path (replace extension or append _spectrum)
+          spectrum_file <- sub("\\.[^.]+$", "_diversity_spectrum.tsv", output_file)
+          if (spectrum_file == output_file) {
+            # If no extension detected, append _spectrum.tsv
+            spectrum_file <- paste0(output_file, "_diversity_spectrum.tsv")
+          }
+          
+          # Write spectrum to TSV file
+          utils::write.table(
+            diversity_spectrum,
+            file = spectrum_file,
+            sep = "\t",
+            row.names = FALSE,
+            quote = FALSE
+          )
+          
+          if (verbose) {
+            message("[calculate_diversity_s4] Saved diversity spectrum to: ", spectrum_file)
+          }
+          
+          # Also store spectrum in analysis metadata for later access
+          analysis@metadata$diversity_spectrum <- diversity_spectrum
+        }
+      }
+    }, error = function(e) {
+      warning("[calculate_diversity_s4] Could not compute diversity spectrum: ", 
+              conditionMessage(e), call. = FALSE)
+    })
   }
 
   # Save if output_file provided (using centralized output handler)

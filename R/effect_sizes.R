@@ -658,7 +658,7 @@ effect_sizes_divergence <- function(
         
         # Create named vector for classify_q_pattern
         # Column names in divs should be like "q_0.01", "q_0.5", "q_1.0", etc.
-        per_q_patterns[i] <- .classify_q_pattern(divs)
+        per_q_patterns[i] <- .tsenat_classify_q_pattern(divs)
         
         # If classification failed, return "UNCLASSIFIED"
         if (is.na(per_q_patterns[i])) {
@@ -675,7 +675,7 @@ effect_sizes_divergence <- function(
 
 #' @keywords internal
 #' @noRd
-.classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
+.tsenat_classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
   # Classify q-value divergence pattern based on median divergence in rare vs abundant regions
   # per_q_divs: named vector where names are like "q_0.01", "q_0.5", "q_1.0", "q_2.0"
   #             or unnamed numeric vector (classification by position)

@@ -8,6 +8,8 @@ calculate_diversity_s4(
   analysis,
   q = NULL,
   norm = NULL,
+  norm_method = NULL,
+  reference_group = NULL,
   tpm = FALSE,
   assayno = NULL,
   verbose = NULL,
@@ -36,6 +38,21 @@ If NULL, uses q_values from \code{analysis@config$q_values} if available, else d
 
 \item{norm}{\code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
 If NULL, reads from \code{@config$norm} or defaults to TRUE.}
+
+\item{norm_method}{\code{character}. Post-hoc normalization method to apply after entropy calculation.
+Options:
+\itemize{
+  \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
+  \item \code{"zscore"} - Z-score normalization per q-value
+  \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
+  \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
+  \item \code{NULL} - No post-hoc normalization (default)
+}
+If NULL, reads from \code{@config$norm_method} if available.}
+
+\item{reference_group}{\code{character}. For \code{norm_method = "relative_reference"}, 
+the reference group column name (e.g., from colData). If NULL, uses first group in colData.
+If NULL, reads from \code{@config$reference_group} if available.}
 
 \item{tpm}{\code{logical}. TPM normalization. Default: FALSE.
 If not specified, reads from \code{@config$tpm} if available.}
@@ -85,13 +102,30 @@ If NULL, reads from \code{@config$bootstrap_ci} if available.}
 If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .tsv, .csv, .txt (for tables), .rds (for S4 objects). Default: NULL (no file output).}
-
-\item{...}{Additional arguments passed to the base function.}
+When provided, generates TWO files:
+\enumerate{
+  \item Primary output: Analysis object (.rds) or table (.tsv/.csv/.txt)
+  \item Secondary output: Diversity spectrum statistics (TSV format)
+      with suffix \code{_diversity_spectrum.tsv}
+}
+Example: output_file = "analysis.rds" generates:
+\itemize{
+  \item \code{analysis.rds} - TSENATAnalysis object
+  \item \code{analysis_diversity_spectrum.tsv} - Spectrum statistics
+}
+The spectrum file contains columns: q, central (median diversity), 
+spread (IQR), count, and group (if grouping variable available).
+Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with diversity results stored
-  in \code{@diversity_results}, keyed by "q_X.X" format (e.g., "q_1.0").
+  in \code{@diversity_results}, keyed by "q_X.XX..." format (e.g., "q_1.000").
+  When \code{output_file} is provided, also generates:
+  \itemize{
+    \item Primary file: Analysis object or table export
+    \item Spectrum file: \code{*_diversity_spectrum.tsv} containing 
+          aggregated diversity statistics across q-values and groups
+  }
 }
 \description{
 Calculate diversity and store in TSENATAnalysis
@@ -100,6 +134,21 @@ Calculate diversity and store in TSENATAnalysis
 This wrapper calls \code{calculate_diversity()} once per q-value, storing
 results as SummarizedExperiment objects. It extracts key parameters from
 \code{analysis@config} with priority resolution (explicit > \code{@config} > default).
+
+**Diversity Spectrum Computation:**
+By default, this function computes and saves a diversity spectrum (aggregated
+statistics across all q-values and groups) when \code{output_file} is provided.
+The spectrum contains:
+\itemize{
+  \item \code{q}: Diversity parameter value
+  \item \code{central}: Median (or mean) diversity across all genes
+  \item \code{spread}: IQR (or SD) around central value
+  \item \code{count}: Number of valid measurements
+  \item \code{group}: Condition group (if applicable)
+}
+This provides a quick summary of how diversity changes across q-values,
+useful for q-curve visualization and statistical comparisons.
+Spectrum is saved as: \code{*_diversity_spectrum.tsv}
 
 **Parameter Priority Resolution:**
 \describe{
@@ -135,4 +184,13 @@ analysis <- TSENAT:::create_test_analysis(
 # Diversity results are pre-computed by factory
 head(diversity(analysis, q = 1.0))
 
+# Apply z-score normalization
+# analysis <- calculate_diversity_s4(analysis, norm_method = "zscore")
+
+# Apply log-odds ratio normalization (q and isoform-aware)
+# analysis <- calculate_diversity_s4(analysis, norm_method = "log_odds_ratio")
+
+}
+\seealso{
+\code{\link{compute_diversity_spectrum}} for spectrum computation details.
 }

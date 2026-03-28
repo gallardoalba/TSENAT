@@ -77,7 +77,7 @@ NULL
 }
 
 # Helper function: S-estimator scale
-.s_estimator_scale <- function(y, b = 0.5, max_iter = 20) {
+.tsenat_mest_s_estimator_scale <- function(y, b = 0.5, max_iter = 20) {
   # S-estimator: minimizes scale with high breakdown point
   # Target: E[rho(y/s)] = b (typically b=0.5)
   
@@ -132,7 +132,7 @@ NULL
 #         If return_weights=TRUE: list(location_diff, weights, scale_used)
 #
 # @keywords internal
-.irls_estimate_location <- function(y, loss_type = "huber", scale = NULL,
+.tsenat_mest_irls_location <- function(y, loss_type = "huber", scale = NULL,
                                       scale_method = "mad", max_iter = 50,
                                       tol = 1e-6, return_weights = FALSE) {
   # Input validation
@@ -157,7 +157,7 @@ NULL
     if (scale_method == "proposal2") {
       scale_local <- .huber_proposal2_scale(y)
     } else if (scale_method == "s-estimator") {
-      scale_local <- .s_estimator_scale(y)
+      scale_local <- .tsenat_mest_s_estimator_scale(y)
     } else {
       # Default to MAD
       mad_y <- median(abs(y - median(y, na.rm = TRUE)), na.rm = TRUE)
@@ -225,7 +225,7 @@ NULL
 #' Prepare SummarizedExperiment data for M-estimation
 #' @keywords internal
 #' @noRd
-.prepare_se_data_for_m_estimate <- function(x, samples_col, q_combine_method = "mean") {
+.tsenat_mest_prepare_se_data <- function(x, samples_col, q_combine_method = "mean") {
   entropy_matrix <- SummarizedExperiment::assay(x)
   sample_info <- SummarizedExperiment::colData(x)
   
@@ -375,7 +375,7 @@ NULL
   # Helper: Process SummarizedExperiment input for m_estimate
   # Returns list with result_df and metadata for SE input
   
-  se_data <- .prepare_se_data_for_m_estimate(x, samples, q_combine_method)
+  se_data <- .tsenat_mest_prepare_se_data(x, samples, q_combine_method)
   entropy_by_sample <- se_data$entropy_by_sample
   group_assignment_unique <- se_data$group_assignment_unique
   unique_samples <- se_data$unique_samples
@@ -519,7 +519,7 @@ NULL
   } else if (scale_method == "proposal2") {
     scale_local <- .huber_proposal2_scale(y)
   } else if (scale_method == "s-estimator") {
-    scale_local <- .s_estimator_scale(y)
+    scale_local <- .tsenat_mest_s_estimator_scale(y)
   } else {
     # Default: MAD
     mad_y <- median(abs(y - median(y, na.rm = TRUE)), na.rm = TRUE)

@@ -482,7 +482,7 @@ testthat::test_that("select_genes_from_results errors on missing genes column", 
 # TEST: Plot Tsallis Q-Curve Helpers
 # ============================================================================
 
-testthat::test_that(".prepare_combined_se_from_analysis converts TSENATAnalysis to SE", {
+testthat::test_that(".tsenat_prepare_combined_se converts TSENATAnalysis to SE", {
   # Create test TSENATAnalysis object
   analysis <- TSENAT:::create_test_analysis(
     n_genes = 5, n_samples_per_group = 3,
@@ -490,7 +490,7 @@ testthat::test_that(".prepare_combined_se_from_analysis converts TSENATAnalysis 
   )
   
   # Call helper directly
-  se_combined <- TSENAT:::.prepare_combined_se_from_analysis(analysis)
+  se_combined <- TSENAT:::.tsenat_prepare_combined_se(analysis)
   
   # Verify it's a SummarizedExperiment
   testthat::expect_true(methods::is(se_combined, "SummarizedExperiment"))
@@ -508,13 +508,13 @@ testthat::test_that(".prepare_combined_se_from_analysis converts TSENATAnalysis 
   testthat::expect_true(any(grepl("_q=", colnames_combined)))
 })
 
-testthat::test_that(".prepare_combined_se_from_analysis creates colData with q column", {
+testthat::test_that(".tsenat_prepare_combined_se creates colData with q column", {
   analysis <- TSENAT:::create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
   
-  se_combined <- TSENAT:::.prepare_combined_se_from_analysis(analysis)
+  se_combined <- TSENAT:::.tsenat_prepare_combined_se(analysis)
   
   # Check colData has q column
   coldata <- SummarizedExperiment::colData(se_combined)
@@ -526,13 +526,13 @@ testthat::test_that(".prepare_combined_se_from_analysis creates colData with q c
   testthat::expect_true(all(q_vals %in% c(1, 2)))
 })
 
-testthat::test_that(".prepare_combined_se_from_analysis creates rowData with gene_id", {
+testthat::test_that(".tsenat_prepare_combined_se creates rowData with gene_id", {
   analysis <- TSENAT:::create_test_analysis(
     n_genes = 4, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
   
-  se_combined <- TSENAT:::.prepare_combined_se_from_analysis(analysis)
+  se_combined <- TSENAT:::.tsenat_prepare_combined_se(analysis)
   
   # Check rowData has gene_id column
   rowdata <- SummarizedExperiment::rowData(se_combined)
@@ -540,7 +540,7 @@ testthat::test_that(".prepare_combined_se_from_analysis creates rowData with gen
   testthat::expect_equal(nrow(rowdata), 4)
 })
 
-testthat::test_that(".prepare_combined_se_from_analysis handles dimension mismatches", {
+testthat::test_that(".tsenat_prepare_combined_se handles dimension mismatches", {
   # Create small test analysis with 2 q values
   analysis <- TSENAT:::create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
@@ -548,7 +548,7 @@ testthat::test_that(".prepare_combined_se_from_analysis handles dimension mismat
   )
   
   # Should handle conversion without error
-  se_combined <- TSENAT:::.prepare_combined_se_from_analysis(analysis)
+  se_combined <- TSENAT:::.tsenat_prepare_combined_se(analysis)
   testthat::expect_true(methods::is(se_combined, "SummarizedExperiment"))
   
   # Verify structure is correct
@@ -711,7 +711,7 @@ testthat::test_that(".tsenat_bootstrap_aggregate_ci CI bounds are valid", {
 # TEST: GAM Interaction Helpers
 # ============================================================================
 
-testthat::test_that(".prepare_sample_to_group_mapping builds correct mapping", {
+testthat::test_that(".tsenat_prepare_sample_group_mapping builds correct mapping", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(diversity = matrix(1:12, nrow = 3, ncol = 4)),
     colData = S4Vectors::DataFrame(
@@ -721,7 +721,7 @@ testthat::test_that(".prepare_sample_to_group_mapping builds correct mapping", {
   )
   
   cdata <- SummarizedExperiment::colData(se)
-  mapping <- TSENAT:::.prepare_sample_to_group_mapping(cdata, "sample_type")
+  mapping <- TSENAT:::.tsenat_prepare_sample_group_mapping(cdata, "sample_type")
   
   # Should have 4 unique samples
   testthat::expect_equal(length(mapping), 4)
@@ -733,7 +733,7 @@ testthat::test_that(".prepare_sample_to_group_mapping builds correct mapping", {
   testthat::expect_equal(unname(mapping["S4"]), "Tumor")
 })
 
-testthat::test_that(".prepare_gam_plot_data_per_gene creates valid plot data", {
+testthat::test_that(".tsenat_plot_gam_prepare_gene_data creates valid plot data", {
   # Create matrix with samples x q-values columns
   mat <- matrix(rnorm(20), nrow = 5, ncol = 4)
   rownames(mat) <- c("gene1", "gene2", "gene3", "gene4", "gene5")
@@ -741,7 +741,7 @@ testthat::test_that(".prepare_gam_plot_data_per_gene creates valid plot data", {
   
   sample_to_group <- c(S1 = "Normal", S2 = "Normal", S3 = "Tumor", S4 = "Tumor")
   
-  plot_df <- TSENAT:::.prepare_gam_plot_data_per_gene("gene1", mat, sample_to_group)
+  plot_df <- TSENAT:::.tsenat_plot_gam_prepare_gene_data("gene1", mat, sample_to_group)
   
   # Should have 4 rows (one per column)
   testthat::expect_equal(nrow(plot_df), 4)
@@ -754,7 +754,7 @@ testthat::test_that(".prepare_gam_plot_data_per_gene creates valid plot data", {
   testthat::expect_equal(plot_df$q, c(1, 1, 2, 2))
 })
 
-testthat::test_that(".prepare_gam_plot_data_per_gene returns NULL for invalid gene", {
+testthat::test_that(".tsenat_plot_gam_prepare_gene_data returns NULL for invalid gene", {
   mat <- matrix(1:20, nrow = 5, ncol = 4)
   rownames(mat) <- c("gene1", "gene2", "gene3", "gene4", "gene5")
   colnames(mat) <- c("S1_q=1", "S2_q=1", "S3_q=2", "S4_q=2")
@@ -762,12 +762,12 @@ testthat::test_that(".prepare_gam_plot_data_per_gene returns NULL for invalid ge
   sample_to_group <- c(S1 = "Normal", S2 = "Normal", S3 = "Tumor", S4 = "Tumor")
   
   # Query non-existent gene
-  result <- TSENAT:::.prepare_gam_plot_data_per_gene("invalid_gene", mat, sample_to_group)
+  result <- TSENAT:::.tsenat_plot_gam_prepare_gene_data("invalid_gene", mat, sample_to_group)
   
   testthat::expect_null(result)
 })
 
-testthat::test_that(".fit_gam_per_group generates predictions", {
+testthat::test_that(".tsenat_plot_gam_fit_group generates predictions", {
   # Create data with more q values and points per group for GAM fitting
   q_seq <- seq(0.5, 2, by = 0.25)  # More q values for GAM smoothing
   
@@ -779,7 +779,7 @@ testthat::test_that(".fit_gam_per_group generates predictions", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.fit_gam_per_group(plot_df)
+  result <- TSENAT:::.tsenat_plot_gam_fit_group(plot_df)
   
   # Should not be NULL
   testthat::expect_false(is.null(result))
@@ -797,7 +797,7 @@ testthat::test_that(".fit_gam_per_group generates predictions", {
   testthat::expect_equal(sort(result$group_levels), c("Normal", "Tumor"))
 })
 
-testthat::test_that(".fit_gam_per_group returns NULL for insufficient data", {
+testthat::test_that(".tsenat_plot_gam_fit_group returns NULL for insufficient data", {
   # Only 1 group - insufficient for fitting
   plot_df <- data.frame(
     sample = c("S1", "S2"),
@@ -807,7 +807,7 @@ testthat::test_that(".fit_gam_per_group returns NULL for insufficient data", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.fit_gam_per_group(plot_df)
+  result <- TSENAT:::.tsenat_plot_gam_fit_group(plot_df)
   
   testthat::expect_null(result)
 })

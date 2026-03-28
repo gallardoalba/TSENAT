@@ -102,7 +102,7 @@ plot_tsallis_q_curve_s4 <- function(
       }
     }
     
-    se <- .prepare_combined_se_from_analysis(se)
+    se <- .tsenat_prepare_combined_se(se)
     assay_name <- "diversity"
   }
   
