@@ -676,6 +676,10 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
 
+  # OPTIMIZATION: Clear memoization cache for new analysis
+  # Ensures fresh calculations for new dataset
+  .clear_lm_helper_cache()
+
   # Check prerequisites
   if (length(analysis@diversity_results) == 0) {
     stop("Diversity results required. Run calculate_diversity_s4() first.",

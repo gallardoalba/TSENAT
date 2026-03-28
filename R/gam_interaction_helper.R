@@ -125,8 +125,8 @@
     
     # Adaptive knot selection: compute k based on gene's entropy curve complexity
     if (adaptive_knots) {
-        k_q <- .adaptive_spline_knots(entropy_vals = df$entropy, q_vals = q_vals,
-                                             n_q_unique = uq_len, min_k = 2, max_k = 10)
+        k_q <- .adaptive_spline_knots_memo(entropy_vals = df$entropy, q_vals = q_vals,
+                                                 n_q_unique = uq_len, min_k = 2, max_k = 10)
     } else {
         # Fallback to static knot selection
         k_q <- max(2, min(10, uq_len - 1))
