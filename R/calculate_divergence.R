@@ -34,7 +34,7 @@
 #'     \item{sample_counts}{Named integer vector of sample counts per group (names: group names)}
 #'   }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_auto_detect_groups <- function(se) {
   
@@ -160,7 +160,7 @@
 #' @note Paired samples detected from any of: "paired_samples", "pair_id", "pair_samples",
 #'   "subject_id", "patient_id". Returns NULL if none present or validation fails.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_pair_ids <- function(se) {
   
@@ -237,7 +237,7 @@
 #'     \item{treatment_resampled}{Resampled treatment group counts}
 #'   }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_jis_resample_paired_data <- function(
     control_samples,
@@ -306,9 +306,10 @@
 #' Internal helper function for compute_divergence_bootstrap.
 #' Computes bootstrap confidence intervals for Tsallis divergence.
 #'
-#' @keywords internal
+
 #' @noRd
-calculate_divergence_bootstrap <- function(
+
+.calculate_divergence_bootstrap <- function(
     x, y,
     q = 1,
     nboot = 1000,
@@ -425,7 +426,7 @@ calculate_divergence_bootstrap <- function(
 #'
 #' Computes scalar Tsallis divergence D_q(p || q) using the Furuichi formula.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
   # Validate input vectors
@@ -535,15 +536,16 @@ calculate_divergence_bootstrap <- function(
 #'   correlation values below this threshold are classified as BALANCED (default: 0.5).
 #' @return Character scalar giving the pattern type, or NA if classification
 #'   cannot be performed.
-#' @keywords internal
+
 #' @noRd
 #' @examples
 #' per_q <- c(q_0.5=0.5, q_1=0.3, q_2=0.1)
-#' classify_q_pattern(per_q)
+#' .classify_q_pattern(per_q)
 #'
 #' # handling missing values
-#' classify_q_pattern(c(q_0.5=NA, q_1=0.2))
-classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
+#' .classify_q_pattern(c(q_0.5=NA, q_1=0.2))
+
+.classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
   # Input validation
   if (!is.numeric(per_q_divs) || length(per_q_divs) < 2) {
     return(NA_character_)

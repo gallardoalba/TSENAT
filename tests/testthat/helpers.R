@@ -35,10 +35,10 @@
 #' @examples
 #' \dontrun{
 #'   # Create with defaults (8 genes, 20 samples/group, multi-q)
-#'   analysis <- create_test_analysis()
+#'   analysis <- .create_test_analysis()
 #'   
 #'   # Create with custom parameters
-#'   analysis <- create_test_analysis(
+#'   analysis <- .create_test_analysis(
 #'     n_genes = 16,
 #'     n_samples_per_group = 30,
 #'     control_lambda = 50,

@@ -5,10 +5,10 @@ library(testthat)
 test_that("calculate_fc errors when control missing or not found", {
     x <- matrix(runif(8), nrow = 2)
     samples <- c("A", "A", "B", "B")
-    expect_error(TSENAT:::calculate_fc(x, samples, NULL), "`control` must be provided to calculate_fc")
-    expect_error(TSENAT:::calculate_fc(x, samples, "C"), "Control sample type not found in samples\\.")
+    expect_error(TSENAT:::.calculate_fc(x, samples, NULL), "`control` must be provided to calculate_fc")
+    expect_error(TSENAT:::.calculate_fc(x, samples, "C"), "Control sample type not found in samples\\.")
     # mismatched samples length
-    expect_error(TSENAT:::calculate_fc(x, samples[-1], "A"), "Length of 'samples' must equal number of columns in 'x'")
+    expect_error(TSENAT:::.calculate_fc(x, samples[-1], "A"), "Length of 'samples' must equal number of columns in 'x'")
 })
 
 library(testthat)
@@ -27,7 +27,7 @@ test_that("scale-aware pseudocount replaces non-positive group summaries", {
     ), byrow = TRUE, nrow = 2)
     rownames(mat) <- c("gene1", "gene2")
 
-    res_auto <- TSENAT:::calculate_fc(mat, samples, control = "Normal", method = "mean", pseudocount = 0)
+    res_auto <- TSENAT:::.calculate_fc(mat, samples, control = "Normal", method = "mean", pseudocount = 0)
     # Note: `calculate_fc` returns log2(non-control / control). With
     # control = "Normal" the non-control (Tumor) values are 4 and 4.
     # After automatic pseudocount selection (half of smallest positive = 1),
@@ -44,7 +44,7 @@ test_that("explicit pseudocount is honored and differs from automatic choice", {
     ), byrow = TRUE, nrow = 2)
     rownames(mat) <- c("gene1", "gene2")
 
-    res_explicit <- TSENAT:::calculate_fc(mat, samples, control = "Normal", method = "mean", pseudocount = 1e-6)
+    res_explicit <- TSENAT:::.calculate_fc(mat, samples, control = "Normal", method = "mean", pseudocount = 1e-6)
     # explicit tiny pseudocount should lead to a very large positive log2fc
     # (Tumor / near-zero Normal). Expect log2fc >> 10
     expect_true(as.numeric(res_explicit$log2_fold_change[1]) > 10)
@@ -66,7 +66,7 @@ test_that("calculate_difference forwards pseudocount to calculate_fc", {
     # call calculate_difference which should forward pseudocount
     # small sample sizes trigger a warning; assert it and capture the result
     res <- testthat::expect_warning(
-        calculate_difference(df, condition_col = samples, control = "Normal", method = "mean", test = "wilcoxon", paired = FALSE, pseudocount = 0),
+        .calculate_difference(df, condition_col = samples, control = "Normal", method = "mean", test = "wilcoxon", paired = FALSE, pseudocount = 0),
         "Low sample size for wilcoxon"
     )
     # find matching rows and compare log2_fold_change

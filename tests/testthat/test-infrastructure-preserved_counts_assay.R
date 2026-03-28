@@ -14,7 +14,7 @@ test_that("calculate_diversity preserves original counts assay", {
     genes <- rep(paste0("Gene", 1:4), each = 2)
     
     # Apply calculate_diversity with genes parameter
-    div_se <- calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
+    div_se <- .calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
     
     # Check that counts assay is preserved
     expect_true("counts" %in% SummarizedExperiment::assayNames(div_se))
@@ -37,7 +37,7 @@ test_that("calculate_diversity preserves counts with different normalization", {
     genes <- rep(paste0("Gene", 1:10), each = 2)
     
     # Calculate diversity with norm = FALSE
-    div_se_raw <- calculate_diversity(se, genes = genes, q = 1, norm = FALSE)
+    div_se_raw <- .calculate_diversity(se, genes = genes, q = 1, norm = FALSE)
     
     # Check structure and counts preservation
     expect_true("counts" %in% SummarizedExperiment::assayNames(div_se_raw))
@@ -62,12 +62,12 @@ test_that("calculate_diversity preserves counts for bootstrap compatibility", {
     genes <- rep(paste0("Gene", 1:10), each = 2)
     
     # Apply calculate_diversity
-    div_se <- calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
+    div_se <- .calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
     
     # Test that bootstrap works with the diversity-transformed SE
     # This verifies that counts assay is accessible and usable
     expect_no_error({
-        result <- calculate_tsallis_entropy_bootstrap(
+        result <- .calculate_tsallis_entropy_bootstrap(
             se = div_se, 
             x = SummarizedExperiment::assay(div_se, "counts")[1, ],
             q = 2, 
@@ -96,12 +96,12 @@ test_that("calculate_diversity preserves counts for jackknife compatibility", {
     genes <- rep(paste0("Gene", 1:10), each = 2)
     
     # Apply calculate_diversity
-    div_se <- calculate_diversity(se, genes = genes, q = 1, norm = TRUE)
+    div_se <- .calculate_diversity(se, genes = genes, q = 1, norm = TRUE)
     
     # Test that jackknife works with the diversity-transformed SE
     # This verifies that counts assay is accessible and usable
     expect_no_error({
-        result <- jackknife_entropy_outliers(
+        result <- .jackknife_entropy_outliers(
             x = SummarizedExperiment::assay(div_se, "counts")[1, ],
             q = 1,
             norm = TRUE
@@ -124,7 +124,7 @@ test_that("diversity assay and counts assay coexist without conflict", {
     genes <- c("Gene1", "Gene1", "Gene2", "Gene2")
     
     # Calculate diversity
-    div_se <- calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
+    div_se <- .calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
     
     # Check that both diversity and counts are present
     assay_names <- SummarizedExperiment::assayNames(div_se)
@@ -151,7 +151,7 @@ test_that("Hill numbers preserves counts assay", {
     genes <- rep(paste0("Gene", 1:5), each = 2)
     
     # Calculate Hill numbers (D instead of S)
-    hill_se <- calculate_diversity(se, genes = genes, q = 1.5, what = "D", norm = TRUE)
+    hill_se <- .calculate_diversity(se, genes = genes, q = 1.5, what = "D", norm = TRUE)
     
     # Check that counts assay is preserved
     expect_true("counts" %in% SummarizedExperiment::assayNames(hill_se))
@@ -176,7 +176,7 @@ test_that("metadata still includes readcounts reference for backward compatibili
     genes <- rep(paste0("Gene", 1:5), each = 2)
     
     # Calculate diversity
-    div_se <- calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
+    div_se <- .calculate_diversity(se, genes = genes, q = 2, norm = TRUE)
     
     # Check metadata still has readcounts for backward compatibility
     metadata <- S4Vectors::metadata(div_se)

@@ -3,8 +3,8 @@
 #' Combines LMM interaction test p-values with pre-computed Tsallis divergence
 #' effect sizes and bootstrap confidence intervals across ALL q values. This is a 
 #' **data merger**, not a model fitter--all statistical computation happens upstream in:
-#' - `calculate_lm_interaction()` -> LMM p-values
-#' - `calculate_divergence()` -> Divergence estimates and CIs for multiple q
+#' - `.calculate_lm_interaction()` -> LMM p-values
+#' - `.calculate_divergence()` -> Divergence estimates and CIs for multiple q
 #'
 #' This function merges the results into a single data frame for downstream
 #' interpretation. When multiple q values are present, effect sizes are computed
@@ -26,11 +26,11 @@
 #'   - effect magnitude for EACH q: D_q, lower_ci_q, upper_ci_q
 #' ```
 #'
-#' @param lm_res A data frame of LMM interaction test results from `calculate_lm_interaction()`,
+#' @param lm_res A data frame of LMM interaction test results from `.calculate_lm_interaction()`,
 #'   with columns: `gene` (character, gene name), `adj_p_interaction` (numeric, multiple-test adjusted p-value).
 #'   Genes with adj_p_interaction below `significance_threshold` are included.
 #'
-#' @param divergence_results_se A SummarizedExperiment from `calculate_divergence()`,
+#' @param divergence_results_se A SummarizedExperiment from `.calculate_divergence()`,
 #'   containing rowData with columns: `gene_name` and either:
 #'   - Generic: `estimate`, `lower_ci`, `upper_ci` (single q-value results), OR
 #'   - Per-q: `estimate_q*`, `lower_ci_q*`, `upper_ci_q*` (multiple q-values)
@@ -93,9 +93,10 @@
 #' - Papers C016: Bootstrap CI computation respecting data structure
 #' - Papers S197: Quality filtering and effect size thresholds
 #'
-#' @keywords internal
+
 #' @noRd
-effect_sizes_divergence <- function(
+
+.effect_sizes_divergence <- function(
     lm_res,
     divergence_results_se,
     significance_threshold = 0.05,
@@ -295,7 +296,7 @@ effect_sizes_divergence <- function(
 # INTERNAL HELPER FUNCTIONS
 # ============================================================================
 
-#' @keywords internal
+
 #' @noRd
 .validateEffectSizeInputs <- function(lm_res, divergence_results_se) {
   if (!is.data.frame(lm_res)) {
@@ -307,7 +308,7 @@ effect_sizes_divergence <- function(
   }
 
   if (!methods::is(divergence_results_se, "SummarizedExperiment")) {
-    stop("divergence_results_se must be a SummarizedExperiment from calculate_divergence()")
+    stop("divergence_results_se must be a SummarizedExperiment from .calculate_divergence()")
   }
 
   rd <- SummarizedExperiment::rowData(divergence_results_se)
@@ -317,7 +318,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .alignGeneDatasets <- function(lm_res, rd, verbose) {
   # Filter lm_res to include only genes present in divergence_results_se
@@ -396,7 +397,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .createResultsDataFrame <- function(q_values, use_generic) {
   interaction_results <- data.frame(
@@ -425,7 +426,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .extractLMMData <- function(lm_res, gene_id, use_gene_name_col) {
   lmm_row <- lm_res[lm_res$gene == gene_id, ]
@@ -455,7 +456,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .extractDivergenceData <- function(rd, match_name, verbose, i, total) {
   # Get divergence info from rowData
@@ -479,7 +480,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .formatSingleQResult <- function(match_name, p_interaction, slope_diff, div_data) {
   data.frame(
@@ -494,7 +495,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .formatMultiQResult <- function(match_name, p_interaction, slope_diff, div_data, q_values) {
   any_valid <- FALSE
@@ -556,7 +557,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .printMergeSuccess <- function(lmm_data, div_data, q_values, use_generic) {
   if (use_generic) {
@@ -583,7 +584,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .printMergeSummary <- function(validation_stats, interaction_results, q_values, use_generic, verbose) {
   if (!verbose) {
@@ -628,7 +629,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .enrichWithQPatterns <- function(interaction_results, divergence_results_se, verbose) {
   # Extract gene names from divergence_results_se rowData and assay matrix
@@ -673,7 +674,7 @@ effect_sizes_divergence <- function(
 }
 
 
-#' @keywords internal
+
 #' @noRd
 .tsenat_classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
   # Classify q-value divergence pattern based on median divergence in rare vs abundant regions

@@ -5,7 +5,7 @@
 # ============================================================================
 
 #' Internal: Validate jackknife parameters
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_validate_params <- function(q, threshold) {
   if (!is.numeric(q) || any(q <= 0)) {
@@ -17,7 +17,7 @@
 }
 
 #' Internal: Determine number of parallel threads
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_get_nthreads <- function(nthreads) {
   if (is.null(nthreads)) {
@@ -42,7 +42,7 @@
 }
 
 #' Internal: Process multi-q values with optional parallelization
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, 
                                       pseudocount, threshold, seed, verbose, nthreads, .cluster) {
@@ -63,7 +63,7 @@
     # Export main function and all helper functions needed for parallel execution
     # Use asNamespace to get functions from the TSENAT package namespace
     helper_funcs <- c(
-      "jackknife_entropy_outliers", ".tsenat_entropy_single",
+      ".jackknife_entropy_outliers", ".tsenat_entropy_single",
       ".tsenat_jackknife_validate_params", ".tsenat_jackknife_process_multiq", 
       ".tsenat_jackknife_process_se", ".tsenat_jackknife_process_matrix", 
       ".tsenat_jackknife_process_vector_core", ".tsenat_jackknife_compute_estimates",
@@ -75,14 +75,14 @@
   
   if (!is.null(.cluster)) {
     results_list <- parallel::parLapply(.cluster, q, function(q_val) {
-      jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n, q = q_val, 
+      .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n, q = q_val, 
                                 norm = norm, log_base = log_base, pseudocount = pseudocount,
                                 threshold = threshold, seed = seed, verbose = FALSE, 
                                 .cluster = NULL)
     })
   } else {
     results_list <- lapply(q, function(q_val) {
-      jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n, q = q_val, 
+      .jackknife_entropy_outliers(x = x, se = se, res = res, top_n = top_n, q = q_val, 
                                 norm = norm, log_base = log_base, pseudocount = pseudocount,
                                 threshold = threshold, seed = seed, verbose = FALSE, .cluster = NULL)
     })
@@ -111,7 +111,7 @@
 }
 
 #' Internal: Process SummarizedExperiment input
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_process_se <- function(se, res, top_n, q, norm, log_base, pseudocount, 
                                   threshold, seed, verbose, nthreads, .cluster) {
@@ -178,13 +178,13 @@
   counts_matrix <- do.call(rbind, lapply(valid_results, "[[", "counts"))
   rownames(counts_matrix) <- vapply(valid_results, "[[", "name", FUN.VALUE = character(1))
   
-  jackknife_entropy_outliers(x = counts_matrix, q = q, norm = norm, log_base = log_base,
+  .jackknife_entropy_outliers(x = counts_matrix, q = q, norm = norm, log_base = log_base,
                             pseudocount = pseudocount, threshold = threshold, seed = seed,
                             verbose = verbose, nthreads = nthreads, .cluster = .cluster)
 }
 
 #' Internal: Process matrix input (multiple genes)
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold, 
                                       seed, verbose) {
@@ -202,7 +202,7 @@
 }
 
 #' Internal: Core jackknife computation for a vector
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_process_vector_core <- function(x, q, norm, log_base, pseudocount, 
                                            threshold, gene_name = NULL, verbose = FALSE) {
@@ -239,7 +239,7 @@
 }
 
 #' Internal: Compute jackknife estimates
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_compute_estimates <- function(p, q, log_base, n) {
   jackknife_estimates <- numeric(n)
@@ -265,7 +265,7 @@
 }
 
 #' Internal: Calculate influence and outliers
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_calculate_influence_and_outliers <- function(jackknife_estimates, estimate, 
                                                         threshold, q, n, norm) {
@@ -285,7 +285,7 @@
 }
 
 #' Internal: Warn on q parameters
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
   total_count <- sum(x)
@@ -318,7 +318,7 @@
 }
 
 #' Internal: Format verbose output for matrix results
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_format_verbose_output_matrix <- function(results) {
   output_lines <- c("Jackknife Stability Analysis for Top Genes", 
@@ -354,7 +354,7 @@
 #'
 #' @param x Optional numeric vector or matrix of transcript abundance counts. If NULL, must provide `se` and `res`.
 #' @param se Optional SummarizedExperiment object containing transcript-level counts with "counts" assay.
-#' @param res Optional data.frame of results from `calculate_difference()` to extract top genes.
+#' @param res Optional data.frame of results from `.calculate_difference()` to extract top genes.
 #' @param top_n Numeric: Number of top genes to analyze (default 5).
 #' @param q Numeric: Tsallis entropy order (default 1). Can be vector for multiple q values.
 #' @param norm Logical: normalize entropy to [0,1]? (default TRUE)
@@ -454,14 +454,14 @@
 #' - Compare stability across genes or conditions
 #'
 #' **Relationship to other functions:**
-#' - \code{calculate_tsallis_entropy()}: computes entropy (stability as background)
+#' - \code{.calculate_tsallis_entropy()}: computes entropy (stability as background)
 #' - \code{\link{calculate_difference}}: tests if differences are significant (jackknife validates stability)
 #'
 #' **IMPORTANT - Raw Count Requirement:**
 #' This function requires a SummarizedExperiment with original raw transcript counts
 #' (the "counts" assay). Jackknife leave-one-out analysis is mathematically valid only
 #' on raw count data; entropy estimates from pre-computed diversity values cannot be
-#' reliably jackknifed. If you have passed data through `calculate_diversity()`, the
+#' reliably jackknifed. If you have passed data through `.calculate_diversity()`, the
 #' returned SummarizedExperiment preserves the original "counts" assay, so you can safely
 #' pass it to this function. Do NOT attempt to use diversity-transformed data as the
 #' leave-one-out assumptions will be violated.
@@ -469,7 +469,7 @@
 #' **Recommended workflow:**
 #' ```
 #' se <- your_data  # SummarizedExperiment with raw counts
-#' res <- calculate_difference(se, ...)  # Test for significance
+#' res <- .calculate_difference(se, ...)  # Test for significance
 #' jack_result <- jackknife_tsallis_entropy(se = se, res = res, ...)
 #' # The se parameter must have the "counts" assay available
 #' ```
@@ -500,7 +500,7 @@
 #' Chapman and Hall.
 #'
 #' @seealso
-#' \code{calculate_tsallis_entropy()} for entropy calculation,
+#' \code{.calculate_tsallis_entropy()} for entropy calculation,
 #' \code{\link{calculate_diversity}} for computing diversity across genes,
 #' \code{\link{calculate_difference}} for testing differences between groups.
 #'
@@ -508,7 +508,7 @@
 #' # Example 1: Vector input - single gene
 #' set.seed(42)
 #' counts <- c(1000, 500, 200, 100, 50)  # 5 transcripts, decreasing abundance
-#' results <- jackknife_entropy_outliers(
+#' results <- .jackknife_entropy_outliers(
 #'   x = counts,
 #'   q = 1,
 #'   norm = TRUE
@@ -520,7 +520,7 @@
 #'   "Gene1" = c(1000, 500, 200, 100, 50),
 #'   "Gene2" = c(800, 400, 300, 200, 100)
 #' )
-#' jack_list <- jackknife_entropy_outliers(
+#' jack_list <- .jackknife_entropy_outliers(
 #'   x = counts_matrix,
 #'   q = 1,
 #'   norm = TRUE,
@@ -528,7 +528,7 @@
 #' )
 #' 
 #' # Example 2b: Multiple q values for robustness checking
-#' jack_multiq <- jackknife_entropy_outliers(
+#' jack_multiq <- .jackknife_entropy_outliers(
 #'   x = counts_matrix[1, ],  # First gene
 #'   q = c(0.5, 1, 1.5, 2),
 #'   norm = TRUE,
@@ -537,7 +537,7 @@
 #' 
 #' # Example 3: SummarizedExperiment input with automatic data extraction
 #' # Requires se (SummarizedExperiment with counts) and res (results data.frame)
-#' # jack_results <- jackknife_entropy_outliers(
+#' # jack_results <- .jackknife_entropy_outliers(
 #' #     se = ts_se,
 #' #     res = res,
 #' #     top_n = 5,
@@ -546,9 +546,10 @@
 #' #     verbose = TRUE  # Auto-extracts top 5 genes and displays summary
 #' # )
 #'
-#' @keywords internal
+
 #' @noRd
-jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
+
+.jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 5,
                                        q = 1, norm = TRUE, log_base = exp(1),
                                        pseudocount = 0, threshold = 90, seed = NULL,
                                        verbose = FALSE, nthreads = 1, .cluster = NULL) {
@@ -603,7 +604,7 @@ jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 
 #'
 #' Internal helper function to compute Tsallis entropy for a vector of counts.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
                                     pseudocount = 0) {
@@ -653,8 +654,9 @@ jackknife_entropy_outliers <- function(x = NULL, se = NULL, res = NULL, top_n = 
 #' @param x A \code{tsenat_jackknife} object
 #' @param ... Additional arguments (unused)
 #'
-#' @keywords internal
+
 #' @noRd
+
 print.tsenat_jackknife <- function(x, ...) {
   message("Jackknife Diagnostics for Tsallis Entropy (q = ", x$q, ")")
   message("Estimate: ", sprintf("%.6f", x$estimate))
@@ -669,8 +671,9 @@ print.tsenat_jackknife <- function(x, ...) {
 #' @param x A \code{tsenat_jackknife_list} object
 #' @param ... Additional arguments (unused)
 #'
-#' @keywords internal
+
 #' @noRd
+
 print.tsenat_jackknife_list <- function(x, ...) {
   message("Jackknife Results for Multiple Genes")
   message("Number of genes: ", length(x))
@@ -710,9 +713,10 @@ print.tsenat_jackknife_list <- function(x, ...) {
 #' 5. Adds direction_consistency classifications
 #' 6. Cleans NaN/Inf values for display
 #'
-#' @keywords internal
+
 #' @noRd
-prepare_gene_switching_tables <- function(
+
+.prepare_gene_switching_tables <- function(
     lm_res,
     multi_q_results,
     n_top_genes = NULL,

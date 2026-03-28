@@ -27,4 +27,3 @@ data.frame with combined results and q_value column
 \description{
 Helper to combine results from multiple q-values into a single data.frame with q_value column.
 }
-\keyword{internal}

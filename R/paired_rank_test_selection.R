@@ -40,7 +40,7 @@
 #' - Threshold: |skewness| > 2 indicates extreme heavy tails
 #' - Robust median test appropriate when normality assumption strongly violated
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_select_rank_test_paired <- function(
     data,
@@ -198,7 +198,7 @@
 #' - method: "Robust (Median-based) Friedman Test"
 #' - test_type: "robust_friedman"
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_apply_robust_friedman <- function(
     data,
@@ -263,7 +263,7 @@
   if (is.null(chi_test)) {
     # If chi-squared fails, use simpler Friedman-like approach
     # Compute sum of squared deviations of treatment medians from overall median
-    treat_medians <- colMedians(block_ranks)
+    treat_medians <- .colMedians(block_ranks)
     Q_stat <- sum((treat_medians - median(treat_medians, na.rm = TRUE))^2, na.rm = TRUE)
     p_val <- 1 - pchisq(Q_stat, df = n_treatments - 1)
   } else {
@@ -280,7 +280,8 @@
 }
 
 # Helper: Compute column medians (simple implementation)
-colMedians <- function(x) {
+
+.colMedians <- function(x) {
   apply(x, 2, median, na.rm = TRUE)
 }
 
@@ -307,7 +308,7 @@ colMedians <- function(x) {
 #' - method: "Aligned Rank Transform (ART) Friedman Test"
 #' - test_type: "art_friedman"
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_apply_art_friedman <- function(
     data,

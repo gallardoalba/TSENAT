@@ -9,7 +9,7 @@ testthat::test_that("apply_tsenat_theme can be applied to plots", {
 
   # Just verify the function can be called
   testthat::expect_error(
-    theme_obj <- apply_tsenat_theme(base_size = 11),
+    theme_obj <- .apply_tsenat_theme(base_size = 11),
     NA  # Expect no error
   )
   
@@ -18,7 +18,7 @@ testthat::test_that("apply_tsenat_theme can be applied to plots", {
     ggplot2::geom_point()
   
   testthat::expect_error(
-    p_themed <- p + apply_tsenat_theme(),
+    p_themed <- p + .apply_tsenat_theme(),
     NA  # Expect no error
   )
   testthat::expect_is(p_themed, "ggplot")
@@ -30,7 +30,7 @@ testthat::test_that("set_plot_title modifies title correctly", {
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
 
-  p_titled <- set_plot_title(p, title = "Test Title", subtitle = "Test Subtitle")
+  p_titled <- .set_plot_title(p, title = "Test Title", subtitle = "Test Subtitle")
 
   # Extract title from plot
   testthat::expect_is(p_titled, "ggplot")
@@ -44,7 +44,7 @@ testthat::test_that("set_plot_title applies font sizes", {
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
 
-  p_styled <- set_plot_title(p, title = "Title", title_size = 16, subtitle_size = 12)
+  p_styled <- .set_plot_title(p, title = "Title", title_size = 16, subtitle_size = 12)
 
   testthat::expect_is(p_styled, "ggplot")
 })
@@ -55,7 +55,7 @@ testthat::test_that("set_plot_title handles NULL title/subtitle", {
   p <- ggplot2::ggplot(data.frame(x = 1, y = 1), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
 
-  p_unchanged <- set_plot_title(p, title = NULL, subtitle = NULL)
+  p_unchanged <- .set_plot_title(p, title = NULL, subtitle = NULL)
 
   testthat::expect_is(p_unchanged, "ggplot")
 })
@@ -67,15 +67,15 @@ testthat::test_that("set_plot_title handles NULL title/subtitle", {
 testthat::test_that("create_color_scale returns ggplot scale", {
   require_pkgs("ggplot2")
 
-  scale <- create_color_scale(palette = "blue_red")
+  scale <- .create_color_scale(palette = "blue_red")
   testthat::expect_is(scale, "Scale")
 })
 
 testthat::test_that("create_color_scale reverses with direction -1", {
   require_pkgs("ggplot2")
 
-  scale_fwd <- create_color_scale(palette = "blue_red", direction = 1)
-  scale_rev <- create_color_scale(palette = "blue_red", direction = -1)
+  scale_fwd <- .create_color_scale(palette = "blue_red", direction = 1)
+  scale_rev <- .create_color_scale(palette = "blue_red", direction = -1)
 
   testthat::expect_is(scale_fwd, "Scale")
   testthat::expect_is(scale_rev, "Scale")
@@ -84,15 +84,15 @@ testthat::test_that("create_color_scale reverses with direction -1", {
 testthat::test_that("create_fill_scale returns appropriate scale", {
   require_pkgs("ggplot2")
 
-  scale <- create_fill_scale(palette = "continuous_diverging")
+  scale <- .create_fill_scale(palette = "continuous_diverging")
   testthat::expect_is(scale, "Scale")
 })
 
 testthat::test_that("create_fill_scale accepts breaks parameter", {
   require_pkgs("ggplot2")
 
-  scale_50 <- create_fill_scale(breaks = 50)
-  scale_100 <- create_fill_scale(breaks = 100)
+  scale_50 <- .create_fill_scale(breaks = 50)
+  scale_100 <- .create_fill_scale(breaks = 100)
 
   testthat::expect_is(scale_50, "Scale")
   testthat::expect_is(scale_100, "Scale")
@@ -111,7 +111,7 @@ testthat::test_that("create_tsenat_heatmap creates basic heatmap", {
   colnames(mat) <- paste0("Sample_", 1:5)
   
   # Create heatmap with basic parameters
-  hm <- create_tsenat_heatmap(
+  hm <- .create_tsenat_heatmap(
     mat = mat,
     title = "Test Heatmap",
     colors = NULL
@@ -135,7 +135,7 @@ testthat::test_that("create_tsenat_heatmap applies custom colors", {
   custom_colors <- RColorBrewer::brewer.pal(9, "RdBu")
   
   # Create heatmap with custom colors
-  hm <- create_tsenat_heatmap(
+  hm <- .create_tsenat_heatmap(
     mat = mat,
     title = "Colored Heatmap",
     colors = custom_colors
@@ -156,7 +156,7 @@ testthat::test_that("create_tsenat_heatmap respects font size parameters", {
   colnames(mat) <- paste0("Sample_", 1:5)
   
   # Create heatmap with custom font sizes
-  hm <- create_tsenat_heatmap(
+  hm <- .create_tsenat_heatmap(
     mat = mat,
     title = "Large Font Heatmap",
     fontsize_row = 14,
@@ -181,7 +181,7 @@ testthat::test_that("combine_plots_patchwork handles single plot", {
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
 
-  combined <- combine_plots_patchwork(list(p), agg_label_unique = "median")
+  combined <- .combine_plots_patchwork(list(p), agg_label_unique = "median")
 
   testthat::expect_is(combined, "ggplot")
 })
@@ -198,7 +198,7 @@ testthat::test_that("combine_plots_patchwork handles multiple plots", {
       ggplot2::geom_point()
   )
 
-  combined <- combine_plots_patchwork(plots, agg_label_unique = "median")
+  combined <- .combine_plots_patchwork(plots, agg_label_unique = "median")
   testthat::expect_is(combined, "ggplot")
 })
 
@@ -208,7 +208,7 @@ testthat::test_that("combine_plots_patchwork generates title annotation", {
   p <- ggplot2::ggplot(data.frame(x = 1:5, y = 1:5), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
 
-  combined <- combine_plots_patchwork(list(p), agg_label_unique = "test_metric")
+  combined <- .combine_plots_patchwork(list(p), agg_label_unique = "test_metric")
 
   # Check that combined result is a patchwork composition
   testthat::expect_is(combined, "ggplot")
@@ -224,7 +224,7 @@ testthat::test_that("combine_plots_cowplot handles single plot", {
   p <- ggplot2::ggplot(data.frame(x = 1:10, y = 1:10), ggplot2::aes(x, y)) +
     ggplot2::geom_point()
 
-  combined <- combine_plots_cowplot(list(p), agg_label_unique = "median")
+  combined <- .combine_plots_cowplot(list(p), agg_label_unique = "median")
 
   # cowplot returns a ggplot object
   testthat::expect_is(combined, "ggplot")
@@ -240,7 +240,7 @@ testthat::test_that("combine_plots_cowplot handles multiple plots", {
       ggplot2::geom_point()
   )
 
-  combined <- combine_plots_cowplot(plots, agg_label_unique = "median")
+  combined <- .combine_plots_cowplot(plots, agg_label_unique = "median")
 
   testthat::expect_is(combined, "ggplot")
 })
@@ -255,7 +255,7 @@ testthat::test_that("combine_plots_cowplot returns invisible NULL with output_fi
   temp_file <- tempfile(fileext = ".pdf")
   on.exit(unlink(temp_file))
 
-  result <- combine_plots_cowplot(
+  result <- .combine_plots_cowplot(
     list(p),
     output_file = temp_file,
     agg_label_unique = "median"
@@ -279,7 +279,7 @@ testthat::test_that("combine_plots_grid handles single plot", {
     ggplot2::geom_point()
 
   # Grid composition returns invisible NULL by default
-  result <- combine_plots_grid(list(p), agg_label_unique = "median")
+  result <- .combine_plots_grid(list(p), agg_label_unique = "median")
 
   testthat::expect_null(result)
 })
@@ -294,7 +294,7 @@ testthat::test_that("combine_plots_grid handles multiple plots", {
       ggplot2::geom_point()
   )
 
-  result <- combine_plots_grid(plots, agg_label_unique = "median")
+  result <- .combine_plots_grid(plots, agg_label_unique = "median")
 
   testthat::expect_null(result)
 })
@@ -308,7 +308,7 @@ testthat::test_that("combine_plots_grid saves PNG with output_file", {
   temp_file <- tempfile(fileext = ".png")
   on.exit(unlink(temp_file))
 
-  result <- combine_plots_grid(
+  result <- .combine_plots_grid(
     list(p),
     output_file = temp_file,
     agg_label_unique = "median"
@@ -332,8 +332,8 @@ testthat::test_that("combine_plots_patchwork produces distinct layouts from cowp
       ggplot2::geom_point()
   )
 
-  p_patchwork <- combine_plots_patchwork(plots, agg_label_unique = "metric")
-  p_cowplot <- combine_plots_cowplot(plots, agg_label_unique = "metric")
+  p_patchwork <- .combine_plots_patchwork(plots, agg_label_unique = "metric")
+  p_cowplot <- .combine_plots_cowplot(plots, agg_label_unique = "metric")
 
   # Both should produce ggplot objects
   testthat::expect_is(p_patchwork, "ggplot")
@@ -347,7 +347,7 @@ testthat::test_that("combine_plots_patchwork produces distinct layouts from cowp
 testthat::test_that("create_color_scale handles NULL name parameter", {
   require_pkgs("ggplot2")
 
-  scale <- create_color_scale(palette = "blue_red", name = NULL)
+  scale <- .create_color_scale(palette = "blue_red", name = NULL)
   testthat::expect_is(scale, "Scale")
 })
 
@@ -358,7 +358,7 @@ testthat::test_that("set_plot_title preserves existing plot aesthetics", {
     ggplot2::geom_point(color = "red", size = 3) +
     ggplot2::labs(x = "X Axis", y = "Y Axis")
 
-  p_modified <- set_plot_title(p, title = "New Title")
+  p_modified <- .set_plot_title(p, title = "New Title")
 
   # Check title was added
   testthat::expect_equal(p_modified$labels$title, "New Title")
@@ -377,7 +377,7 @@ testthat::test_that("combine_plots functions handle plots with legends", {
     ggplot2::geom_point() +
     ggplot2::scale_color_manual(values = c("A" = "red", "B" = "blue"))
   
-  combined <- combine_plots_patchwork(list(p), agg_label_unique = "test")
+  combined <- .combine_plots_patchwork(list(p), agg_label_unique = "test")
 
   testthat::expect_is(combined, "ggplot")
 })
@@ -396,7 +396,7 @@ testthat::test_that("draw_transcript_grid handles proper dimensions", {
 
   # The function draws to device, so we just test it doesn't error
   testthat::expect_error(
-    draw_transcript_grid(
+    .draw_transcript_grid(
       list(grob),
       agg_label_unique = "test",
       legend_grob = NULL,
@@ -424,14 +424,14 @@ testthat::test_that("theme + composition workflow produces valid plot", {
   # Create plot with custom theme
   p <- ggplot2::ggplot(df, ggplot2::aes(x, y, color = group)) +
     ggplot2::geom_point() +
-    apply_tsenat_theme()
+    .apply_tsenat_theme()
 
   # Apply title
-  p_titled <- set_plot_title(p, title = "Test Plot", subtitle = "Integration Test")
+  p_titled <- .set_plot_title(p, title = "Test Plot", subtitle = "Integration Test")
 
   # Combine with another plot
   plots <- list(p_titled, p_titled)
-  combined <- combine_plots_patchwork(plots, agg_label_unique = "test_metric")
+  combined <- .combine_plots_patchwork(plots, agg_label_unique = "test_metric")
 
   testthat::expect_is(combined, "ggplot")
 })
@@ -447,8 +447,8 @@ testthat::test_that("scale creation works with theme application", {
 
   p <- ggplot2::ggplot(df, ggplot2::aes(x, y, fill = z)) +
     ggplot2::geom_tile() +
-    create_fill_scale(palette = "continuous_diverging") +
-    apply_tsenat_theme()
+    .create_fill_scale(palette = "continuous_diverging") +
+    .apply_tsenat_theme()
 
   testthat::expect_is(p, "ggplot")
 })

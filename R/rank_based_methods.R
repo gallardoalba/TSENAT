@@ -14,7 +14,7 @@
 #'    - Spearman rank correlation matrix showing which genes rank similarly
 #'    - Tells whether entropy signal is stable or q-dependent
 #'
-#' 3. **MULTI-Q FWER CONTROL**: See `detect_q_gene_interactions(multicorr='westfall-young')`
+#' 3. **MULTI-Q FWER CONTROL**: See `.detect_q_gene_interactions(multicorr='westfall-young')`
 #'    - Built-in Westfall-Young permutation procedure for rank-based tests
 #'    - Permutation-based Family-Wise Error Rate control
 #'    - Accounts for correlations between multi-q tests
@@ -25,7 +25,7 @@
 #'    - Storey FDR: pi0-adjusted Benjamini-Hochberg
 #'    - Both handle multi-q correlations better than standard FDR
 #'
-#' 5. **TEST L.5**: `test_rankbased_assumptions()`
+#' 5. **TEST L.5**: `.test_rankbased_assumptions()`
 #'    - Validates that rank-based analysis is appropriate
 #'    - Checks exchangeability, monotonicity, consistency
 #'
@@ -64,8 +64,6 @@
 #' - Rank correlation: Spearman/Kendall for effect strength across q-values
 #' - Rank-based FWER: Uses permutation of ranks for family-wise error control
 #'
-#' @keywords internal
-
 
 # ============================================================================
 # 5. UTILITY FUNCTIONS
@@ -82,9 +80,10 @@
 #'   Used in permutation tests to assess exchangeability and other assumptions.
 #'
 #' @return List with diagnostic results
-#' @keywords internal
+
 #' @noRd
-test_rankbased_assumptions <- function(data, checks = c("exchangeability", 
+
+.test_rankbased_assumptions <- function(data, checks = c("exchangeability", 
                                                        "monotonicity", 
                                                        "consistency"),
                                       alpha = 0.05) {
@@ -263,8 +262,9 @@ test_rankbased_assumptions <- function(data, checks = c("exchangeability",
 #' @param x Object of class "rank_assumptions"
 #' @param ... Additional arguments (ignored)
 #'
-#' @keywords internal
+
 #' @noRd
+
 print.rank_assumptions <- function(x, ...) {
   message("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)")
   message(strrep("=", 60))
@@ -372,7 +372,7 @@ print.rank_assumptions <- function(x, ...) {
 #' Computing exact p-values when permutations are randomly drawn.
 #' Statistical Applications in Genetics and Molecular Biology, 9(1), 39. Reference: S019
 #'
-#' @keywords internal
+
 #' @noRd
 #' @examples
 #' set.seed(42)
@@ -383,11 +383,12 @@ print.rank_assumptions <- function(x, ...) {
 #'   q10 = runif(100)
 #' )
 #' # Construct 95% bootstrap CI using percentile method
-#' # ci_result <- rank_correlation_bootstrap_ci(
+#' # ci_result <- .rank_correlation_bootstrap_ci(
 #' #   pvals, method = "spearman", ci = "percentile"
 #' # )
 #'
-rank_correlation_bootstrap_ci <- function(pvalues_or_ranks, 
+
+.rank_correlation_bootstrap_ci <- function(pvalues_or_ranks, 
                                           method = c("spearman", "kendall"),
                                           ci = c("percentile", "bca", "permutation"),
                                           ci_level = 0.95,
@@ -414,7 +415,7 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
   if (identical(n_bootstrap, "auto")) {
     n_features <- length(pvalues_or_ranks[[1]])  # Number of genes/features
     use_bca <- ci == "bca"
-    n_bootstrap <- suggest_nboot(n_features, use_bca = use_bca, nthreads = nthreads)
+    n_bootstrap <- .suggest_nboot(n_features, use_bca = use_bca, nthreads = nthreads)
   }
   
   # Convert to ranks internally
@@ -611,8 +612,9 @@ rank_correlation_bootstrap_ci <- function(pvalues_or_ranks,
 #' @param x Object of class "rank_correlation_ci"
 #' @param ... Additional arguments (ignored)
 #'
-#' @keywords internal
+
 #' @noRd
+
 print.rank_correlation_ci <- function(x, ...) {
   message("RANK CORRELATION CONFIDENCE INTERVALS")
   message(strrep("=", 60))
@@ -642,7 +644,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #'
 #' Stratifies genes based on their sensitivity to q-parameter changes.
 #'
-#' @param interaction_results Data frame output from detect_q_gene_interactions()
+#' @param interaction_results Data frame output from .detect_q_gene_interactions()
 #' @param p_threshold Numeric: p-value threshold for significance (default: 0.05)
 #' @param eta2_threshold_moderate Numeric: Effect size threshold for moderate dependency (default 0.01)
 #' @param eta2_threshold_strong Numeric: Effect size threshold for strong dependency (default 0.10)
@@ -664,7 +666,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - Moderate: Noticeable but not dramatic ranking shifts (Cohen's small-medium)
 #' - Strong: Substantial ranking changes (Cohen's large effect)
 #'
-#' @keywords internal
+
 #' @noRd
 #' @examples
 #' set.seed(42)
@@ -674,11 +676,12 @@ print.rank_correlation_ci <- function(x, ...) {
 #'   p_value = runif(10)
 #' )
 #' # Classify q-dependency
-#' # classifications <- classify_q_dependency(
+#' # classifications <- .classify_q_dependency(
 #' #   interaction_results, p_threshold = 0.05
 #' # )
 #' # table(classifications)
-classify_q_dependency <- function(
+
+.classify_q_dependency <- function(
     interaction_results,
     p_threshold = 0.05,
     eta2_threshold_moderate = 0.01,
@@ -906,11 +909,12 @@ classify_q_dependency <- function(
 #'   colData = data.frame(q = rep(seq(0.1, 1, by=0.1), 10))
 #' )
 #' # Estimate optimal permutations for standard analysis
-#' # nperm <- estimate_nperm(se, mode = "standard")
+#' # nperm <- .estimate_nperm(se, mode = "standard")
 #'
-#' @keywords internal
+
 #' @noRd
-estimate_nperm <- function(
+
+.estimate_nperm <- function(
     data,
     entropy_col = "diversity",
     q_col = "q",
@@ -1740,7 +1744,7 @@ estimate_nperm <- function(
 #'   - method: Description of test used
 #'   - test_type: "srh_interaction" or "two_way_friedman"
 #'
-#' @keywords internal
+
 #' @noRd
 #' @importFrom stats ave as.formula
 .tsenat_test_q_condition_interaction <- function(

@@ -58,7 +58,7 @@ Test rank-based method assumptions in TSENATAnalysis
 Tests whether rank-based analysis methods are appropriate for the data
 by evaluating exchangeability, monotonicity, and consistency assumptions.
 
-This wrapper calls \code{test_rankbased_assumptions()} on diversity data
+This wrapper calls \code{.test_rankbased_assumptions()} on diversity data
 extracted from the analysis object. Results include:
 
 \describe{
@@ -73,7 +73,7 @@ extracted from the analysis object. Results include:
 3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
 }
 \examples{
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 names(metadata(analysis, "rankbased_assumptions"))

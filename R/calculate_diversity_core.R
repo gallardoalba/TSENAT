@@ -1,11 +1,11 @@
 
 
 # ============================================================================
-# INTERNAL HELPERS FOR REFACTORED calculate_diversity()
+# INTERNAL HELPERS FOR REFACTORED .calculate_diversity()
 # ============================================================================
 
 #' Validate and normalize diversity parameters
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_diversity_parameters <- function(norm, q, what, shrinkage, pseudocount) {
   # Coerce logical norm to character for backward compatibility
@@ -33,7 +33,7 @@
 }
 
 #' Handle pseudocount auto-estimation
-#' @keywords internal
+
 #' @noRd
 .tsenat_handle_pseudocount_auto <- function(pseudocount, x, verbose) {
   if (!is.character(pseudocount) || tolower(pseudocount) != "auto") {
@@ -41,9 +41,9 @@
   }
   
   if (verbose) {
-    message("Computing pseudocount automatically via estimate_pseudocount()...")
+    message("Computing pseudocount automatically via .estimate_pseudocount()...")
   }
-  pc_result <- estimate_pseudocount(x, verbose = FALSE)
+  pc_result <- .estimate_pseudocount(x, verbose = FALSE)
   pseudocount <- pc_result$scalar_pseudocount
   
   if (verbose) {
@@ -54,7 +54,7 @@
 }
 
 #' Extract gene names from SummarizedExperiment rowData
-#' @keywords internal
+
 #' @noRd
 .tsenat_extract_gene_names <- function(original_x, genes, result) {
   gene_names <- NULL
@@ -107,7 +107,7 @@
 #' Internal helper: Prepares input matrix, validates dimensions, looks up effective_length
 #' in metadata, and computes initial diversity values via .tsenat_calculate_method().
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_prepare_diversity_data <- function(x, genes, original_x, effective_length, 
     norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose, 
@@ -158,7 +158,7 @@
 #'
 #' Internal helper: Performs bootstrap CI computation if requested.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
     bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
@@ -184,7 +184,7 @@
         if (n_genes_filtered < 1) {
             stop("After filtering, no genes remain. Try relaxing filter parameters.", call. = FALSE)
         }
-        bootstrap_nboot <- suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
+        bootstrap_nboot <- .suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
         if (verbose) message(sprintf("  -> Auto-suggested nboot = %d for %d genes", bootstrap_nboot, n_genes_filtered))
     }
     
@@ -195,7 +195,7 @@
     counts_for_bootstrap <- counts_for_bootstrap[match(filtered_genes, genes[gene_indices]), , drop = FALSE]
     rownames(counts_for_bootstrap) <- filtered_genes
     
-    bootstrap_ci_results <- calculate_tsallis_entropy_bootstrap(
+    bootstrap_ci_results <- .calculate_tsallis_entropy_bootstrap(
         x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
         ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
         nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics)
@@ -210,7 +210,7 @@
 #'
 #' Internal helper: Constructs output SE with assays, rowData, colData, and metadata.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
     bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes) {
@@ -353,7 +353,7 @@
     
     result
 }
-#' @keywords internal
+
 #' @noRd
 .tsenat_prepare_diversity_metadata <- function(x, result, original_x, genes, q, gene_names = NULL) {
   # Get gene IDs from first column of result
@@ -458,7 +458,7 @@
 #' before calculating proportions (default: 0). Useful for handling genes with
 #' zero counts in some samples. Values like 0.5 or 1 are commonly used to avoid
 #' zero-division issues and NaN results. When set to "auto", pseudocount is
-#' automatically estimated using library size adjustment via `estimate_pseudocount()`
+#' automatically estimated using library size adjustment via `.estimate_pseudocount()`
 #' (recommended for sparse count data where regularization strength should adapt
 #' to sequencing depth).
 #' @param min_valid_frac Numeric scalar in [0, 1]; minimum fraction of valid
@@ -483,13 +483,13 @@
 #' assumes all transcripts have equal effective length. If a named vector, must have
 #' names matching x rownames. If a matrix (rows=transcripts, cols=samples), can be
 #' sample-specific. Typically obtained from salmon quantification (EffectiveLength column).
-#' Example: load(readcounts.RData'); calculate_diversity(salmon_dataset, effective_length=salmon_effective_length)
+#' Example: load(readcounts.RData'); .calculate_diversity(salmon_dataset, effective_length=salmon_effective_length)
 #' @param bootstrap Logical; if TRUE, compute bootstrap confidence intervals around
-#' Tsallis entropy point estimates using \code{calculate_tsallis_entropy_bootstrap()}.
+#' Tsallis entropy point estimates using \code{.calculate_tsallis_entropy_bootstrap()}.
 #' Default: FALSE (disabled for backward compatibility). When TRUE, computes CIs for
 #' each gene and adds assays: ci_lower and ci_upper to output.
 #' @param bootstrap_nboot Integer; number of bootstrap replicates (default: NULL).
-#' If NULL, automatically suggests nboot based on number of genes using \code{suggest_nboot()}.
+#' If NULL, automatically suggests nboot based on number of genes using \code{.suggest_nboot()}.
 #' For detailed inference on few genes (< 5), use 500-1000. For many genes (> 100),
 #' 250-500 is usually sufficient. Set explicitly to override auto-suggestion.
 #' @param bootstrap_method Character; bootstrap CI method: "percentile" (default, fast)
@@ -560,12 +560,13 @@
 #' genes <- rep(paste0("gene_", 1:5), each = 3)
 #' 
 #' # Calculate diversity at q=1 (Shannon entropy)
-#' se <- calculate_diversity(counts, genes = genes, q = 1.0, norm = TRUE)
+#' se <- .calculate_diversity(counts, genes = genes, q = 1.0, norm = TRUE)
 #' head(SummarizedExperiment::assay(se))
 #' 
-#' @keywords internal
+
 #' @noRd
-calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
+
+.calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
     verbose = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",

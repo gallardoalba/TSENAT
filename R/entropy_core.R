@@ -13,7 +13,7 @@
 #'
 #' @return Numeric. Entropy value
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_entropy_core <- function(proportions, q = 1, norm = FALSE, 
                                    log_base = exp(1), q_tol = 1e-6) {
@@ -85,7 +85,7 @@
 #'
 #' @return Numeric vector of entropy values (one per observation)
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_entropy_vectorized <- function(counts, q = 1, norm = FALSE, 
                                         log_base = exp(1), pseudocount = 0) {
@@ -119,7 +119,7 @@
 #'
 #' @return Numeric. Maximum entropy value
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = 1e-6) {
   if (n_species < 1) return(NA_real_)

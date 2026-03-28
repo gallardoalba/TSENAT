@@ -32,12 +32,13 @@
 #' S4Vectors::metadata(se)$tx2gene <- data.frame(
 #'   Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
 #' lm_results <- data.frame(gene = paste0("GENE", 1:10), p_value = runif(10))
-#' validation <- validate_gene_names(
+#' validation <- .validate_gene_names(
 #'   se, lm_results, se_name = "Input SE", results_name = "LM Results"
 #' )
 #'
 #' @noRd
-validate_gene_names <- function(
+
+.validate_gene_names <- function(
     se = NULL,
     results = NULL,
     se_name = "Object1",
@@ -162,7 +163,8 @@ validate_gene_names <- function(
 #' }
 #'
 #' @noRd
-validate_se_dimensions <- function(
+
+.validate_se_dimensions <- function(
     se,
     expected_n_samples = NULL,
     expected_assays = NULL,
@@ -257,7 +259,8 @@ validate_se_dimensions <- function(
 #' }
 #'
 #' @noRd
-validate_lm_results <- function(
+
+.validate_lm_results <- function(
     lm_results,
     expected_genes = NULL,
     required_columns = c("gene"),
@@ -407,7 +410,8 @@ validate_lm_results <- function(
 #' If any check fails, provides consolidated error message.
 #'
 #' @noRd
-validate_plot_data <- function(
+
+.validate_plot_data <- function(
     se,
     lm_results = NULL,
     stop_on_error = TRUE,
@@ -416,21 +420,21 @@ validate_plot_data <- function(
   all_issues <- list()
   
   # 1. Check SE dimensions
-  se_check <- validate_se_dimensions(se, verbose = verbose)
+  se_check <- .validate_se_dimensions(se, verbose = verbose)
   if (!se_check$is_valid) {
     all_issues$se_dimensions <- se_check$issues
   }
   
   # 2. Check LM results if provided
   if (!is.null(lm_results)) {
-    lm_check <- validate_lm_results(lm_results, verbose = verbose)
+    lm_check <- .validate_lm_results(lm_results, verbose = verbose)
     if (!lm_check$is_valid) {
       all_issues$lm_results <- lm_check$issues
     }
     
     # 3. Check gene alignment
     if (nrow(se) > 0 && nrow(lm_results) > 0) {
-      gene_check <- validate_gene_names(
+      gene_check <- .validate_gene_names(
         se = se,
         results = lm_results,
         se_name = "SummarizedExperiment",

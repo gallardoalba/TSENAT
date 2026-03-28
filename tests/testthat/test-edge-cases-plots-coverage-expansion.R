@@ -19,7 +19,7 @@ test_that("infer_samples_from_se: explicit samples parameter is returned as char
   
   # Provide explicit samples parameter
   samples_provided <- c("S1", "S2", "S3", "S4")
-  result <- TSENAT:::infer_samples_from_se(se, samples = samples_provided)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = samples_provided)
   
   expect_true(is.character(result))
   expect_equal(result, samples_provided)
@@ -33,7 +33,7 @@ test_that("infer_samples_from_se: numeric samples are coerced to character", {
   
   # Provide numeric samples (edge case)
   samples_numeric <- c(1, 2, 3, 4)
-  result <- TSENAT:::infer_samples_from_se(se, samples = samples_numeric)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = samples_numeric)
   
   expect_true(is.character(result))
   expect_equal(result, c("1", "2", "3", "4"))
@@ -52,7 +52,7 @@ test_that("infer_samples_from_se: returns NULL when colData is missing/NULL", {
   )
   
   # Do not provide samples parameter
-  result <- TSENAT:::infer_samples_from_se(se, samples = NULL)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = NULL)
   
   # Expected: NULL since colData extraction fails
   expect_null(result)
@@ -73,7 +73,7 @@ test_that("get_readcounts_from_se: errors when specified file doesn't exist", {
   nonexistent_file <- "/tmp/definitely_does_not_exist_12345.txt"
   
   expect_error(
-    TSENAT:::get_readcounts_from_se(se, readcounts_arg = nonexistent_file),
+    TSENAT:::.get_readcounts_from_se(se, readcounts_arg = nonexistent_file),
     "readcounts file not found"
   )
 })
@@ -96,7 +96,7 @@ test_that("infer_samples_from_se: prefers binary column in fallback logic", {
   )
   
   # Without providing samples and without standard column names
-  result <- TSENAT:::infer_samples_from_se(
+  result <- TSENAT:::.infer_samples_from_se(
     se,
     samples = NULL,
     condition_col = "nonexistent_col"
@@ -118,7 +118,7 @@ test_that("get_readcounts_from_se: accepts matrix as readcounts_arg", {
   
   # Provide explicit matrix
   custom_matrix <- matrix(c(10, 20, 30, 40, 50, 60, 70, 80), nrow = 4, ncol = 2)
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = custom_matrix)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = custom_matrix)
   
   expect_true(is.matrix(result))
   expect_equal(dim(result), c(4, 2))
@@ -136,7 +136,7 @@ test_that("get_readcounts_from_se: accepts data.frame as readcounts_arg", {
     Sample2 = c(50, 60, 70, 80),
     stringsAsFactors = FALSE
   )
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = custom_df)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = custom_df)
   
   expect_true(is.matrix(result))
   expect_equal(nrow(result), 4)
@@ -149,7 +149,7 @@ test_that("get_readcounts_from_se: errors on invalid readcounts_arg type", {
   
   # Provide invalid type
   expect_error(
-    TSENAT:::get_readcounts_from_se(se, readcounts_arg = list(invalid = "type")),
+    TSENAT:::.get_readcounts_from_se(se, readcounts_arg = list(invalid = "type")),
     "must be a matrix|data.frame|path"
   )
 })
@@ -175,7 +175,7 @@ test_that("get_tx2gene_from_se: extracts tx2gene from metadata", {
   readcounts_mat <- matrix(1:16, nrow = 4, ncol = 4)
   rownames(readcounts_mat) <- c("TX1", "TX2", "TX3", "TX4")
   
-  result <- TSENAT:::get_tx2gene_from_se(se, readcounts_mat)
+  result <- TSENAT:::.get_tx2gene_from_se(se, readcounts_mat)
   
   expect_true(is.list(result))
   expect_true("mapping" %in% names(result))
@@ -189,7 +189,7 @@ test_that("validate_control_in_samples: returns control when it's in sample list
   samples <- c("control_1", "treatment_1", "control_2", "treatment_2")
   control <- "control_1"
   
-  result <- TSENAT:::validate_control_in_samples(control, samples)
+  result <- TSENAT:::.validate_control_in_samples(control, samples)
   
   expect_equal(result, "control_1")
 })
@@ -198,7 +198,7 @@ test_that("validate_control_in_samples: returns 'Normal' when present and contro
   samples <- c("Normal", "group_B", "group_C")
   control <- "group_D"
   
-  result <- TSENAT:::validate_control_in_samples(control, samples)
+  result <- TSENAT:::.validate_control_in_samples(control, samples)
   
   # Should return "Normal" as fallback
   expect_equal(result, "Normal")
@@ -208,7 +208,7 @@ test_that("validate_control_in_samples: returns first element as fallback", {
   samples <- c("group_A", "group_B", "group_C")
   control <- "group_D"
   
-  result <- TSENAT:::validate_control_in_samples(control, samples)
+  result <- TSENAT:::.validate_control_in_samples(control, samples)
   
   # Should return first unique element
   expect_equal(result, "group_A")
@@ -233,7 +233,7 @@ test_that("get_readcounts_from_se: handles single-column readcounts file", {
     assays = list(counts = matrix(1:15, nrow = 5, ncol = 3))
   )
   
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = temp_file)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = temp_file)
   
   expect_true(is.matrix(result))
   unlink(temp_file)  # Clean up
@@ -252,7 +252,7 @@ test_that("infer_samples_from_se: handles factor columns in colData", {
     )
   )
   
-  result <- TSENAT:::infer_samples_from_se(se, samples = NULL)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = NULL)
   
   expect_true(is.character(result))
   expect_equal(length(result), 4)
@@ -266,7 +266,7 @@ test_that("infer_samples_from_se: handles numeric vector in colData", {
     )
   )
   
-  result <- TSENAT:::infer_samples_from_se(se, samples = NULL)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = NULL)
   
   # Should find group_id with 2 unique values
   expect_true(is.character(result))
@@ -286,7 +286,7 @@ test_that("infer_samples_from_se: finds columns with underscores and hyphens", {
     )
   )
   
-  result <- TSENAT:::infer_samples_from_se(se, samples = NULL)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = NULL)
   
   # Should match the candidate list ("sample_group" is in candidates)
   expect_equal(result, c("A", "A", "B", "B"))
@@ -304,7 +304,7 @@ test_that("get_tx2gene_from_se: returns NULL when readcounts_mat is NULL", {
   )
   # No metadata with tx2gene
   
-  result <- TSENAT:::get_tx2gene_from_se(se, readcounts_mat = NULL)
+  result <- TSENAT:::.get_tx2gene_from_se(se, readcounts_mat = NULL)
   
   # Should return NULL when readcounts_mat is NULL
   expect_null(result)
@@ -322,7 +322,7 @@ test_that("get_readcounts_from_se: falls back to first assay when no preferred a
   )
   
   expect_warning(
-    result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = NULL),
+    result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = NULL),
     "Using first assay"
   )
   
@@ -344,7 +344,7 @@ test_that("get_readcounts_from_se: reads readcounts from metadata when available
   )
   S4Vectors::metadata(se)$readcounts <- metadata_counts
   
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = NULL)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = NULL)
   
   expect_true(is.matrix(result))
   expect_equal(dim(result), c(4, 2))
@@ -371,7 +371,7 @@ test_that("get_readcounts_from_se: extracts numeric columns from multi-column da
     assays = list(counts = matrix(0, nrow = 5, ncol = 4))
   )
   
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = temp_file)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = temp_file)
   
   expect_true(is.matrix(result))
   expect_equal(nrow(result), 4)
@@ -395,7 +395,7 @@ test_that("get_readcounts_from_se: selects 'readcounts' assay when multiple pref
     )
   )
   
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = NULL)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = NULL)
   
   # Should select 'readcounts' assay
   expect_true(is.matrix(result))
@@ -417,7 +417,7 @@ test_that("get_tx2gene_from_se: extracts genes column from rowData when availabl
   readcounts_mat <- matrix(1:16, nrow = 4, ncol = 4)
   rownames(readcounts_mat) <- c("TX1", "TX2", "TX3", "TX4")
   
-  result <- TSENAT:::get_tx2gene_from_se(se, readcounts_mat)
+  result <- TSENAT:::.get_tx2gene_from_se(se, readcounts_mat)
   
   expect_true(is.list(result))
   expect_equal(result$type, "vector")
@@ -438,7 +438,7 @@ test_that("get_tx2gene_from_se: uses rownames as fallback when no tx2gene availa
   readcounts_mat <- matrix(1:16, nrow = 4, ncol = 4)
   rownames(readcounts_mat) <- c("TX1", "TX2", "TX3", "TX4")
   
-  result <- TSENAT:::get_tx2gene_from_se(se, readcounts_mat)
+  result <- TSENAT:::.get_tx2gene_from_se(se, readcounts_mat)
   
   expect_true(is.list(result))
   expect_equal(result$type, "vector")
@@ -457,7 +457,7 @@ test_that("get_readcounts_from_se: uses 'counts' assay when 'readcounts' not ava
     )
   )
   
-  result <- TSENAT:::get_readcounts_from_se(se, readcounts_arg = NULL)
+  result <- TSENAT:::.get_readcounts_from_se(se, readcounts_arg = NULL)
   
   expect_true(is.matrix(result))
   expect_equal(result, matrix(11:20, nrow = 5, ncol = 2))
@@ -474,7 +474,7 @@ test_that("infer_samples_from_se: handles matrix input for samples parameter", {
   
   # Provide matrix with single column (each element becomes a character)
   samples_matrix <- c("S1", "S2", "S3", "S4")
-  result <- TSENAT:::infer_samples_from_se(se, samples = samples_matrix)
+  result <- TSENAT:::.infer_samples_from_se(se, samples = samples_matrix)
   
   expect_true(is.character(result))
   expect_equal(length(result), 4)

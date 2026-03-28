@@ -22,7 +22,7 @@ test_that("calculate_divergence works with basic SE input", {
     colnames(se) <- paste0("Sample_", 1:8)
     
     # Test with bootstrap=TRUE (default)
-    result_bootstrap <- calculate_divergence(
+    result_bootstrap <- .calculate_divergence(
         se = se,
         bootstrap = TRUE,
         nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -64,7 +64,7 @@ test_that("calculate_divergence bootstrap parameter works correctly", {
     SummarizedExperiment::colData(se)$group <- factor(c(rep("A", 4), rep("B", 4)))
     
     # Point estimates only (bootstrap=FALSE)
-    result_point <- calculate_divergence(
+    result_point <- .calculate_divergence(
         se = se,
         bootstrap = FALSE,
         control_group = "A",
@@ -72,7 +72,7 @@ test_that("calculate_divergence bootstrap parameter works correctly", {
     )
     
     # With bootstrap (bootstrap=TRUE)
-    result_boot <- calculate_divergence(
+    result_boot <- .calculate_divergence(
         se = se,
         bootstrap = TRUE,
         nboot = 50,
@@ -136,7 +136,7 @@ test_that("calculate_divergence handles parallel processing", {
     SummarizedExperiment::colData(se)$group <- factor(c(rep("A", 4), rep("B", 4)))
     
     # Sequential (nthreads=1) - uses default nboot=1000, so no warning expected
-    result_seq <- calculate_divergence(
+    result_seq <- .calculate_divergence(
         se = se,
         nthreads = 1,
         control_group = "A",
@@ -166,7 +166,7 @@ test_that("calculate_divergence auto-detects paired samples", {
     SummarizedExperiment::colData(se)$paired_samples <- c("A", "B", "C", "D", "A", "B", "C", "D")
     
     # Test with bootstrap=TRUE (triggers auto-detection)
-    result <- calculate_divergence(
+    result <- .calculate_divergence(
         se = se,
         bootstrap = TRUE,
         nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -202,7 +202,7 @@ test_that("calculate_divergence works without paired_samples column", {
     )
     
     # Test with bootstrap=TRUE (no pairing detected)
-    result <- calculate_divergence(
+    result <- .calculate_divergence(
         se = se,
         bootstrap = TRUE,
         nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -272,7 +272,7 @@ test_that("calculate_divergence all normalization modes are supported", {
     
     # Test all 5 normalization modes with strong assertions
     test_all_normalization_modes(
-        func = calculate_divergence,
+        func = .calculate_divergence,
         se = se,
         q = 1,
         group_col = "group",
@@ -298,7 +298,7 @@ test_that("calculate_divergence normalization backward compatibility", {
     )
     
     # Test norm=TRUE should equal norm="range"
-    result_true <- calculate_divergence(
+    result_true <- .calculate_divergence(
         se = se,
         bootstrap = FALSE,
         norm = TRUE,
@@ -309,7 +309,7 @@ test_that("calculate_divergence normalization backward compatibility", {
     expect_equal(metadata(result_true)$normalization, "range")
     
     # Test norm=FALSE should equal norm="none"
-    result_false <- calculate_divergence(
+    result_false <- .calculate_divergence(
         se = se,
         bootstrap = FALSE,
         norm = FALSE,
@@ -335,7 +335,7 @@ test_that("calculate_divergence norm parameter validation", {
     
     # Test invalid norm value raises error
     expect_error(
-        calculate_divergence(
+        .calculate_divergence(
             se = se,
             bootstrap = FALSE,
             norm = "invalid_mode",
@@ -346,7 +346,7 @@ test_that("calculate_divergence norm parameter validation", {
     
     # Test valid character values all work
     for (valid_mode in c("none", "range", "zscore", "log_odds_ratio", "relative_reference")) {
-        result <- calculate_divergence(
+        result <- .calculate_divergence(
             se = se,
             bootstrap = FALSE,
             norm = valid_mode,

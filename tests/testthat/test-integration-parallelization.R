@@ -1,7 +1,7 @@
 context("Parallelization: Wilcoxon Tests with Multiple Threads")
 
 # Internal helper access for calculate_method
-calculate_method <- TSENAT:::calculate_method
+calculate_method <- TSENAT:::.calculate_method
 
 test_that("wilcoxon serial and parallel produce identical results", {
     set.seed(42)
@@ -12,15 +12,15 @@ test_that("wilcoxon serial and parallel produce identical results", {
     samples <- rep(c("Control", "Treatment"), each = nsamp / 2)
     
     # Run serial version
-    res_serial <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1)
+    res_serial <- .wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1)
     
     # Run parallel version with 2 threads
-    res_parallel_2 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 2)
+    res_parallel_2 <- .wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 2)
     
     # Run parallel version with max available threads (respecting environment limits)
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_parallel_4 <- wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = max_threads)
+    res_parallel_4 <- .wilcoxon(mat, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = max_threads)
     
     # All versions should produce identical results
     expect_equal(as.data.frame(res_serial), as.data.frame(res_parallel_2), tolerance = 1e-10)
@@ -44,8 +44,8 @@ test_that("wilcoxon parallelization handles edge cases correctly", {
     samples <- rep(c("A", "B"), each = nsamp / 2)
     
     # Serial vs parallel should match
-    res_serial <- wilcoxon(mat, samples, nthreads = 1)
-    res_parallel <- wilcoxon(mat, samples, nthreads = 2)
+    res_serial <- .wilcoxon(mat, samples, nthreads = 1)
+    res_parallel <- .wilcoxon(mat, samples, nthreads = 2)
     
     # Convert to data.frame for comparison (handles both matrix and data.frame output)
     res_serial_df <- as.data.frame(res_serial)
@@ -72,13 +72,13 @@ test_that("label_shuffling parallel execution completes and returns valid result
     
     # Run serial version
     set.seed(42)
-    res_serial <- label_shuffling(mat, samples, control = "Control", method = "mean", 
+    res_serial <- .label_shuffling(mat, samples, control = "Control", method = "mean", 
                                    randomizations = 50, pcorr = "BH", nthreads = 1)
     
     # Run parallel version with 2 threads - will have different random stream
     # but should still produce valid p-values in the same range
     set.seed(42)
-    res_parallel_2 <- label_shuffling(mat, samples, control = "Control", method = "mean", 
+    res_parallel_2 <- .label_shuffling(mat, samples, control = "Control", method = "mean", 
                                        randomizations = 50, pcorr = "BH", nthreads = 2)
     
     # Check output structure
@@ -103,9 +103,9 @@ test_that("label_shuffling parallelization produces valid p-values", {
     samples <- rep(c("Normal", "Tumor"), each = nsamp / 2)
     
     # Different randomization counts with parallelization
-    res_100_serial <- label_shuffling(mat, samples, "Normal", "median", 100, 
+    res_100_serial <- .label_shuffling(mat, samples, "Normal", "median", 100, 
                                       pcorr = "none", nthreads = 1)
-    res_100_parallel <- label_shuffling(mat, samples, "Normal", "median", 100, 
+    res_100_parallel <- .label_shuffling(mat, samples, "Normal", "median", 100, 
                                         pcorr = "none", nthreads = 2)
     
     # Results should have valid p-values in first column
@@ -130,11 +130,11 @@ test_that("calculate_method serial and parallel produce identical results", {
     genes <- rep(paste0("Gene_", seq_len(50)), each = 6)
     
     # Single q value
-    res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
-    res_parallel_2 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 2)
+    res_serial <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
+    res_parallel_2 <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 2)
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_parallel_4 <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
+    res_parallel_4 <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
     
     # Should produce identical results
     expect_equal(res_serial, res_parallel_2, tolerance = 1e-10)
@@ -158,8 +158,8 @@ test_that("calculate_method parallelization with multiple q values", {
     # Multiple q values
     qvec <- c(0.5, 1, 2)
     
-    res_serial <- calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 1)
-    res_parallel <- calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 2)
+    res_serial <- .calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 1)
+    res_parallel <- .calculate_method(x, genes, norm = TRUE, q = qvec, nthreads = 2)
     
     expect_equal(res_serial, res_parallel, tolerance = 1e-10)
     
@@ -182,18 +182,18 @@ test_that("calculate_difference serial and parallel produce identical results", 
     samples <- rep(c("Normal", "Tumor"), each = nsamp / 2)
     
     # Wilcoxon test, serial
-    res_wilcox_serial <- calculate_difference(data_df, condition_col = samples, 
+    res_wilcox_serial <- .calculate_difference(data_df, condition_col = samples, 
                                               control = "Normal", test = "wilcoxon",
                                               nthreads = 1, verbose = FALSE)
     
     # Wilcoxon test, parallel
-    res_wilcox_par_2 <- calculate_difference(data_df, condition_col = samples,
+    res_wilcox_par_2 <- .calculate_difference(data_df, condition_col = samples,
                                              control = "Normal", test = "wilcoxon",
                                              nthreads = 2, verbose = FALSE)
     
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_wilcox_par_4 <- calculate_difference(data_df, condition_col = samples,
+    res_wilcox_par_4 <- .calculate_difference(data_df, condition_col = samples,
                                              control = "Normal", test = "wilcoxon",
                                              nthreads = max_threads, verbose = FALSE)
     
@@ -220,7 +220,7 @@ test_that("calculate_difference label_shuffling produces valid results", {
     
     # Label shuffling, serial
     res_shuffle_serial <- suppressWarnings(
-        calculate_difference(data_df, condition_col = samples,
+        .calculate_difference(data_df, condition_col = samples,
                            control = "Ctrl", test = "shuffle",
                            randomizations = 30, nthreads = 1,
                            verbose = FALSE)
@@ -228,7 +228,7 @@ test_that("calculate_difference label_shuffling produces valid results", {
     
     # Label shuffling, parallel
     res_shuffle_par <- suppressWarnings(
-        calculate_difference(data_df, condition_col = samples,
+        .calculate_difference(data_df, condition_col = samples,
                             control = "Ctrl", test = "shuffle",
                             randomizations = 30, nthreads = 2,
                             verbose = FALSE)
@@ -259,11 +259,11 @@ test_that("Large dataset parallelization produces valid results", {
     samples <- rep(c("GroupA", "GroupB"), each = nsamp / 2)
     
     # Wilcoxon with different thread counts
-    res_1 <- wilcoxon(mat, samples, nthreads = 1)
-    res_2 <- wilcoxon(mat, samples, nthreads = 2)
+    res_1 <- .wilcoxon(mat, samples, nthreads = 1)
+    res_2 <- .wilcoxon(mat, samples, nthreads = 2)
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_4 <- wilcoxon(mat, samples, nthreads = max_threads)
+    res_4 <- .wilcoxon(mat, samples, nthreads = max_threads)
     
     # All should match
     expect_equal(res_1, res_2, tolerance = 1e-10)
@@ -286,12 +286,12 @@ test_that("Large calculate_method dataset with single q value", {
     genes <- rep(paste0("Gene_", seq_len(500)), each = 4)
     
     # Serial execution
-    res_serial <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
+    res_serial <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = 1)
     
     # Parallel execution
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    res_parallel <- calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
+    res_parallel <- .calculate_method(x, genes, norm = TRUE, q = 2, nthreads = max_threads)
     
     # Should produce identical results
     expect_equal(res_serial, res_parallel, tolerance = 1e-10)
@@ -313,9 +313,9 @@ test_that("nthreads=1 produces serial results regardless of implementation", {
     samples <- rep(c("A", "B"), each = nsamp / 2)
     
     # Multiple calls with nthreads=1 should give identical results
-    res1 <- wilcoxon(mat, samples, nthreads = 1)
-    res2 <- wilcoxon(mat, samples, nthreads = 1)
-    res3 <- wilcoxon(mat, samples, nthreads = 1)
+    res1 <- .wilcoxon(mat, samples, nthreads = 1)
+    res2 <- .wilcoxon(mat, samples, nthreads = 1)
+    res3 <- .wilcoxon(mat, samples, nthreads = 1)
     
     expect_equal(res1, res2)
     expect_equal(res2, res3)
@@ -331,17 +331,17 @@ test_that("label_shuffling produces reproducible results with different serial c
     
     # Multiple runs with same seed and serial execution should match
     set.seed(777)
-    res_serial_1 <- label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 1)
+    res_serial_1 <- .label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 1)
     
     set.seed(777)
-    res_serial_2 <- label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 1)
+    res_serial_2 <- .label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 1)
     
     # Serial calls should be identical
     expect_equal(res_serial_1, res_serial_2)
     
     # Parallel execution will have different random stream, so just check validity
     set.seed(777)
-    res_parallel <- label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 2)
+    res_parallel <- .label_shuffling(mat, samples, "Ctrl", "mean", 50, nthreads = 2)
     
     expect_true(all(res_parallel[, 1] >= 0 & res_parallel[, 1] <= 1))
     expect_equal(dim(res_parallel), dim(res_serial_1))
@@ -706,13 +706,13 @@ test_that(".tsenat_bpmapply SIMPLIFY=FALSE is respected in parallel execution", 
 })
 
 # ============================================================================
-# Parallelization: calculate_divergence() with nthreads
+# Parallelization: .calculate_divergence() with nthreads
 # ============================================================================
 
 context("Parallelization: calculate_divergence with nthreads")
 
 # ============================================================================
-# Parallelization: calculate_divergence() with nthreads
+# Parallelization: .calculate_divergence() with nthreads
 # ============================================================================
 
 context("Parallelization: calculate_divergence with nthreads")
@@ -740,7 +740,7 @@ test_that("calculate_divergence sequential execution produces valid results", {
     )
     
     # Run sequential calculation (no res or top_n parameters - processes all genes)
-    result_seq <- calculate_divergence(
+    result_seq <- .calculate_divergence(
         se = se,
         q = 1,
         nboot = 100,
@@ -791,7 +791,7 @@ test_that("calculate_divergence sequential vs parallel produce consistent result
     
     # Run sequential (nthreads=1)
     set.seed(42)
-    result_seq <- calculate_divergence(
+    result_seq <- .calculate_divergence(
         se = se,
         q = 1,
         nboot = 100,
@@ -804,7 +804,7 @@ test_that("calculate_divergence sequential vs parallel produce consistent result
     
     # Run parallel with 2 threads
     set.seed(42)
-    result_par2 <- calculate_divergence(
+    result_par2 <- .calculate_divergence(
         se = se,
         q = 1,
         nboot = 100,
@@ -858,19 +858,19 @@ test_that("calculate_divergence multiple thread levels produce consistent nrows"
     )
     
     # Run with different thread counts
-    result_1t <- calculate_divergence(
+    result_1t <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
         nthreads = 1, progress = FALSE, seed = 99
     )
     
-    result_2t <- calculate_divergence(
+    result_2t <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
         nthreads = 2, progress = FALSE, seed = 99
     )
     
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    result_3t <- calculate_divergence(
+    result_3t <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
         nthreads = max_threads, progress = FALSE, seed = 99
     )
@@ -918,7 +918,7 @@ test_that("calculate_divergence handles small gene count correctly", {
     )
     
     # Request parallel computation (should work even though few genes)
-    result <- calculate_divergence(
+    result <- .calculate_divergence(
         se = se,
         q = 1,
         nboot = 100,
@@ -962,7 +962,7 @@ test_that("calculate_divergence auto-detects cores when nthreads=NULL", {
     set.seed(77)
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    result_auto <- calculate_divergence(
+    result_auto <- .calculate_divergence(
         se = se,
         q = 1,
         nboot = 100,
@@ -1003,7 +1003,7 @@ test_that("calculate_divergence processes all genes (top_n no longer used)", {
     )
     
     # New API processes all genes provided, no top_n filtering
-    result <- calculate_divergence(
+    result <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
         nthreads = 1, progress = FALSE, seed = 88
     )
@@ -1022,7 +1022,7 @@ test_that("calculate_divergence error handling for invalid input", {
     
     # Invalid SE (not SummarizedExperiment)
     expect_error(
-        calculate_divergence(
+        .calculate_divergence(
             se = data.frame(x = 1:4),
             q = 1, nthreads = 1
         ),
@@ -1049,7 +1049,7 @@ test_that("calculate_divergence error handling for invalid input", {
     
     # Valid SE should not error
     expect_no_error(
-        calculate_divergence(
+        .calculate_divergence(
             se = se,
             q = 1, nthreads = 1, progress = FALSE
         )
@@ -1078,7 +1078,7 @@ test_that("calculate_divergence output includes required columns", {
         colData = metadata
     )
     
-    result <- calculate_divergence(
+    result <- .calculate_divergence(
         se = se, q = 1, nboot = 100,
         nthreads = 1, progress = FALSE, seed = 33
     )

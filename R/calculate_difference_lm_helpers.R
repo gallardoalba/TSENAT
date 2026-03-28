@@ -1,4 +1,4 @@
-# Helper functions for calculate_lm_interaction()
+# Helper functions for .calculate_lm_interaction()
 # These internal functions decompose the main function logic into
 # focused, testable components that each handle a single responsibility.
 
@@ -6,7 +6,7 @@
 #'
 #' @description
 #' Internal helper that consolidates parameter validation for
-#' \code{calculate_lm_interaction()}. Checks argument types, values,
+#' \code{.calculate_lm_interaction()}. Checks argument types, values,
 #' and inter-dependencies to ensure valid model fitting.
 #'
 #' @param method Character; modeling method (matched from user input)
@@ -33,7 +33,7 @@
 #'     \item subject_col: Auto-detected or user-provided subject column
 #'   }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_lm_interaction_input <- function(
     method,
@@ -94,7 +94,7 @@
                 "paired=TRUE requires either 'paired_samples' or ",
                 "'sample_base' column in colData. Available columns: ",
                 paste(cd_colnames, collapse = ", "),
-                ". Ensure calculate_diversity() or map_metadata() was ",
+                ". Ensure .calculate_diversity() or map_metadata() was ",
                 "called with appropriate metadata.",
                 call. = FALSE
             )
@@ -132,7 +132,7 @@
 #'     \item has_q: Logical vector indicating cols with q=
 #'   }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_parse_sample_metadata <- function(
     se,
@@ -184,7 +184,7 @@
         stop(
             "No sample grouping found: please supply `condition_col` ",
             "or map sample types into `colData(se)` before calling ",
-            "calculate_lm_interaction().",
+            ".calculate_lm_interaction().",
             call. = FALSE
         )
     }
@@ -230,7 +230,7 @@
 #'
 #' @return Data.frame with fitted model results for all genes
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_fit_all_genes <- function(
     mat,
@@ -380,7 +380,7 @@
 #'
 #' @return Adjusted p-values vector
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_adjust_pvalues_multicorr <- function(
     p_values,
@@ -492,7 +492,7 @@
     if (storey) {
         if (requireNamespace("fdrtool", quietly = TRUE)) {
             tryCatch({
-                adj_p <- compute_storey_qvalues(adj_p)
+                adj_p <- .compute_storey_qvalues(adj_p)
                 if (verbose) {
                     message(
                         "[calculate_lm_interaction] Applied Storey ",
@@ -533,7 +533,7 @@
 #'
 #' @return Modified data.frame with gene_id and gene_name columns added
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_map_gene_annotations <- function(
     res,
@@ -661,7 +661,7 @@
 #'     \item notes: Usage information
 #'   }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_assemble_model_metadata <- function(
     se,

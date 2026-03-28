@@ -32,7 +32,7 @@ test_that("validate_gene_names returns TRUE for perfectly aligned genes", {
   se <- make_test_se(n_genes = 10)
   results <- make_test_results(n_genes = 10, gene_col = "gene")
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     se_name = "SE",
@@ -56,7 +56,7 @@ test_that("validate_gene_names detects subset mismatch", {
   se <- make_test_se(n_genes = 10)
   results <- make_test_results(n_genes = 7, gene_col = "gene")
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     se_name = "SE",
@@ -76,7 +76,7 @@ test_that("validate_gene_names detects superset mismatch", {
   se <- make_test_se(n_genes = 5)
   results <- make_test_results(n_genes = 10, gene_col = "gene")
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     se_name = "SE",
@@ -99,7 +99,7 @@ test_that("validate_gene_names handles completely disjoint genes", {
   results$gene <- paste0("RESGENE_", 1:5)
   rownames(results) <- paste0("RESGENE_", 1:5)
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     se_name = "SE",
@@ -120,7 +120,7 @@ test_that("validate_gene_names handles completely disjoint genes", {
 test_that("validate_gene_names handles NULL SE", {
   results <- make_test_results(n_genes = 10, gene_col = "gene")
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = NULL,
     results = results,
     verbose = FALSE
@@ -133,7 +133,7 @@ test_that("validate_gene_names handles NULL SE", {
 test_that("validate_gene_names handles NULL results", {
   se <- make_test_se(n_genes = 10)
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = NULL,
     verbose = FALSE
@@ -151,7 +151,7 @@ test_that("validate_gene_names detects 'gene_id' column", {
   se <- make_test_se(n_genes = 10)
   results <- make_test_results(n_genes = 10, gene_col = "gene_id")
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     verbose = FALSE
@@ -165,7 +165,7 @@ test_that("validate_gene_names detects 'gene_name' column", {
   results <- make_test_results(n_genes = 10, gene_col = "gene_id")
   colnames(results)[which(colnames(results) == "gene_id")] <- "gene_name"
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     verbose = FALSE
@@ -182,7 +182,7 @@ test_that("validate_gene_names uses rownames when gene column absent", {
     row.names = paste0("GENE_", 1:10)
   )
   
-  validation <- validate_gene_names(
+  validation <- .validate_gene_names(
     se = se,
     results = results,
     verbose = FALSE
@@ -200,7 +200,7 @@ context("Data Validation: SummarizedExperiment Dimensions")
 test_that("validate_se_dimensions passes for valid SE", {
   se <- make_test_se(n_genes = 20, n_samples = 10)
   
-  validation <- validate_se_dimensions(se, verbose = FALSE)
+  validation <- .validate_se_dimensions(se, verbose = FALSE)
   
   expect_true(validation$is_valid)
   expect_equal(validation$n_genes, 20)
@@ -211,7 +211,7 @@ test_that("validate_se_dimensions passes for valid SE", {
 test_that("validate_se_dimensions checks expected sample count", {
   se <- make_test_se(n_genes = 20, n_samples = 10)
   
-  validation <- validate_se_dimensions(
+  validation <- .validate_se_dimensions(
     se = se,
     expected_n_samples = 5,
     verbose = FALSE
@@ -225,7 +225,7 @@ test_that("validate_se_dimensions checks expected sample count", {
 test_that("validate_se_dimensions checks expected assays", {
   se <- make_test_se(n_genes = 20, n_samples = 10)
   
-  validation <- validate_se_dimensions(
+  validation <- .validate_se_dimensions(
     se = se,
     expected_assays = c("counts", "missing_assay"),
     verbose = FALSE
@@ -245,7 +245,7 @@ test_that("validate_se_dimensions passes with properly aligned colData", {
     row.names = colnames(se)
   )
   
-  validation <- validate_se_dimensions(se, verbose = FALSE)
+  validation <- .validate_se_dimensions(se, verbose = FALSE)
   
   expect_true(validation$is_valid)
   expect_length(validation$issues, 0)
@@ -260,7 +260,7 @@ test_that("validate_se_dimensions passes with properly aligned rowData", {
     row.names = rownames(se)
   )
   
-  validation <- validate_se_dimensions(se, verbose = FALSE)
+  validation <- .validate_se_dimensions(se, verbose = FALSE)
   
   expect_true(validation$is_valid)
   expect_length(validation$issues, 0)
@@ -275,7 +275,7 @@ context("Data Validation: LM Results Structure")
 test_that("validate_lm_results passes for valid results", {
   results <- make_test_results(n_genes = 10, gene_col = "gene")
   
-  validation <- validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_lm_results(results, verbose = FALSE)
   
   expect_true(validation$is_valid)
   expect_equal(validation$n_results, 10)
@@ -285,7 +285,7 @@ test_that("validate_lm_results passes for valid results", {
 test_that("validate_lm_results rejects non-data.frame", {
   results <- list(a = 1, b = 2)
   
-  validation <- validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_lm_results(results, verbose = FALSE)
   
   expect_false(validation$is_valid)
   expect_length(validation$issues, 1)
@@ -295,7 +295,7 @@ test_that("validate_lm_results accepts list with 'results' element", {
   results_df <- make_test_results(n_genes = 10, gene_col = "gene")
   results_list <- list(results = results_df)
   
-  validation <- validate_lm_results(results_list, verbose = FALSE)
+  validation <- .validate_lm_results(results_list, verbose = FALSE)
   
   expect_true(validation$is_valid)
 })
@@ -306,7 +306,7 @@ test_that("validate_lm_results detects missing p-value column", {
     effect_size = rnorm(10)
   )
   
-  validation <- validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_lm_results(results, verbose = FALSE)
   
   expect_false(validation$is_valid)
   expect_match(validation$issues[1], "Missing p-value column")
@@ -319,7 +319,7 @@ test_that("validate_lm_results accepts various p-value column names", {
     )
     results[[pval_col]] <- runif(10)
     
-    validation <- validate_lm_results(results, verbose = FALSE)
+    validation <- .validate_lm_results(results, verbose = FALSE)
     
     expect_true(validation$is_valid, info = paste("Failed for column:", pval_col))
   }
@@ -331,7 +331,7 @@ test_that("validate_lm_results detects invalid p-values", {
     p_value = c(runif(5), -0.1, 1.5, 2.0, NA, 0.05)
   )
   
-  validation <- validate_lm_results(results, verbose = FALSE)
+  validation <- .validate_lm_results(results, verbose = FALSE)
   
   expect_false(validation$is_valid)
   expect_match(validation$issues[1], "Invalid p-values")
@@ -344,7 +344,7 @@ test_that("validate_lm_results checks gene alignment when expected_genes provide
   )
   expected_genes <- paste0("GENE_", 1:10)
   
-  validation <- validate_lm_results(
+  validation <- .validate_lm_results(
     results,
     expected_genes = expected_genes,
     verbose = FALSE
@@ -364,7 +364,7 @@ test_that("validate_plot_data passes for valid SE and results", {
   se <- make_test_se(n_genes = 10, n_samples = 5)
   results <- make_test_results(n_genes = 10, gene_col = "gene")
   
-  validation <- validate_plot_data(se, results, verbose = FALSE, stop_on_error = FALSE)
+  validation <- .validate_plot_data(se, results, verbose = FALSE, stop_on_error = FALSE)
   
   expect_length(validation, 0)
 })
@@ -372,7 +372,7 @@ test_that("validate_plot_data passes for valid SE and results", {
 test_that("validate_plot_data works without results", {
   se <- make_test_se(n_genes = 10, n_samples = 5)
   
-  validation <- validate_plot_data(se, lm_results = NULL, verbose = FALSE, stop_on_error = FALSE)
+  validation <- .validate_plot_data(se, lm_results = NULL, verbose = FALSE, stop_on_error = FALSE)
   
   expect_length(validation, 0)
 })
@@ -382,7 +382,7 @@ test_that("validate_plot_data stops on error when requested", {
   results <- make_test_results(n_genes = 5, gene_col = "gene")  # Mismatched
   
   expect_error(
-    validate_plot_data(se, results, verbose = FALSE, stop_on_error = TRUE)
+    .validate_plot_data(se, results, verbose = FALSE, stop_on_error = TRUE)
   )
 })
 
@@ -391,7 +391,7 @@ test_that("validate_plot_data returns issues without stopping if requested", {
   results <- make_test_results(n_genes = 5, gene_col = "gene")  # Mismatched
   
   expect_warning(
-    validation <- validate_plot_data(se, results, verbose = FALSE, stop_on_error = FALSE)
+    validation <- .validate_plot_data(se, results, verbose = FALSE, stop_on_error = FALSE)
   )
   
   expect_length(validation, 1)
@@ -409,7 +409,7 @@ test_that("validate_plot_data consolidates multiple issues", {
   results <- make_test_results(n_genes = 5, gene_col = "gene")  # Gene mismatch
   
   expect_warning(
-    validation <- validate_plot_data(se, results, verbose = FALSE, stop_on_error = FALSE)
+    validation <- .validate_plot_data(se, results, verbose = FALSE, stop_on_error = FALSE)
   )
   
   # Should report both SE dimension issue and gene alignment issue

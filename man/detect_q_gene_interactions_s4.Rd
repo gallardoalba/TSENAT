@@ -66,7 +66,7 @@ If NULL, reads from \code{@config$nthreads}.}
 
 \item{verbose}{\code{logical}. If TRUE, prints progress messages. Default: FALSE.}
 
-\item{...}{Additional arguments passed to the base \code{detect_q_gene_interactions()} function.}
+\item{...}{Additional arguments passed to the base \code{.detect_q_gene_interactions()} function.}
 }
 \value{
 Modified TSENATAnalysis with interaction results in @lm_results.
@@ -91,7 +91,7 @@ Analyzes how gene interactions change across q-value spectrum using rank-based
 }
 }
 \examples{
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 

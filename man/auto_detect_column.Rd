@@ -61,4 +61,3 @@ col <- auto_detect_column(available, list(other = "value"),
 # Returns: "group" (first match)
 
 }
-\keyword{internal}

@@ -45,7 +45,7 @@ across genes.
 \details{
 This wrapper extracts the interaction results (with effect size columns)
 from \code{analysis@metadata$effect_sizes_divergence$interaction_results}
-and passes them to the base \code{plot_divergence_distribution()} function.
+and passes them to the base \code{.plot_divergence_distribution()} function.
 
 The function visualizes the distribution of effect sizes using the median
 q-value's divergence (typically around q=1.0, close to Shannon entropy).
@@ -60,7 +60,7 @@ A red dashed line marks the information-theoretic significance threshold.
 }
 \examples{
 # Plot 2: Distribution of effect sizes across genes
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1, 1.5))
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)

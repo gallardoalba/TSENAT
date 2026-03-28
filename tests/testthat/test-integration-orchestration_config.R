@@ -57,7 +57,7 @@ make_test_se <- function() {
   )
   
   # Build SummarizedExperiment with tx2gene metadata
-  se <- build_se(counts, tx2gene)
+  se <- .build_se(counts, tx2gene)
   
   # Ensure TPM assay exists (required for diversity calculation)
   if (!"tpm" %in% names(SummarizedExperiment::assays(se))) {

@@ -3,7 +3,7 @@
 # Internal Helper Functions for Standardization/Normalization
 # ============================================================================
 
-#' @keywords internal
+
 #' @noRd
 .tsenat_normalize_zscore <- function(entropy_matrix, per_q = TRUE) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
@@ -48,7 +48,7 @@
   return(result)
 }
 
-#' @keywords internal
+
 .tsenat_normalize_log_odds_ratio <- function(entropy_matrix, n_isoforms, q = 2) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
     stop("Input must be a matrix or data.frame", call. = FALSE)
@@ -121,7 +121,7 @@
   return(result)
 }
 
-#' @keywords internal
+
 .tsenat_normalize_relative_reference <- function(entropy_matrix, group_vector, 
                                                   reference_group = NULL) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
@@ -369,7 +369,7 @@
 #' @param verbose Logical; if TRUE, print diagnostic information (default: TRUE).
 #'
 #' @return List with elements:
-#'   \item{scalar_pseudocount}{Numeric; recommended pseudocount value for use in \code{calculate_diversity()}}.
+#'   \item{scalar_pseudocount}{Numeric; recommended pseudocount value for use in \code{.calculate_diversity()}}.
 #'   \item{size_factors}{Named numeric vector of library size factors (one per sample)}.
 #'   \item{diagnostics}{List with data quality checks: n_genes, n_samples, total_counts}.
 #'
@@ -403,11 +403,11 @@
 #' genes <- rep(paste0("gene_", 1:5), each = 3)
 #' 
 #' # Estimate pseudocount
-#' result <- estimate_pseudocount(counts, verbose = FALSE)
+#' result <- .estimate_pseudocount(counts, verbose = FALSE)
 #' pseudocount <- result$scalar_pseudocount
 #' 
 #' # Use with calculate_diversity
-#' se <- calculate_diversity(counts, genes = genes, q = 1, pseudocount = pseudocount)
+#' se <- .calculate_diversity(counts, genes = genes, q = 1, pseudocount = pseudocount)
 #'
 #' @references
 #' Robinson, M.D., McCarthy, D.J., Smyth, G.K. (2010).
@@ -418,9 +418,10 @@
 #' Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
 #' *Genome Biology*, 15(12), 550.
 #'
-#' @keywords internal
+
 #' @noRd
-estimate_pseudocount <- function(se, verbose = TRUE) {
+
+.estimate_pseudocount <- function(se, verbose = TRUE) {
     # Extract raw counts
     if (methods::is(se, "SummarizedExperiment")) {
         raw_counts <- SummarizedExperiment::assay(se)
@@ -495,7 +496,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
 #'
 #' @return Numeric vector of bootstrap entropy estimates
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_block_bootstrap <- function(x, q, norm, nboot, log_base, pseudocount, what) {
   n_pairs <- length(x) / 2
@@ -519,7 +520,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     boot_sample <- x[sampled_indices]
     
     # Compute Tsallis entropy for this block bootstrap sample
-    boot_est <- calculate_tsallis_entropy(boot_sample, q = q, norm = norm,
+    boot_est <- .calculate_tsallis_entropy(boot_sample, q = q, norm = norm,
         what = what, log_base = log_base, pseudocount = 0)
     boot_dist[i] <- as.numeric(boot_est)
   }
@@ -553,7 +554,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     
     # Vectorized entropy calculation across columns
     boot_dist <- apply(boot_samples, 2, function(boot_sample) {
-        boot_est <- calculate_tsallis_entropy(as.numeric(boot_sample), q = q, norm = norm,
+        boot_est <- .calculate_tsallis_entropy(as.numeric(boot_sample), q = q, norm = norm,
             what = what, log_base = log_base, pseudocount = 0)
         as.numeric(boot_est)
     })
@@ -577,7 +578,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     z_alpha <- qnorm(alpha / 2)  # Two-tailed critical value
     
     # Bias correction: z0 = Phi^{-1}(#F* <= F / B)
-    point_est <- calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
+    point_est <- .calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
         log_base = log_base, pseudocount = pseudocount)
     point_est <- as.numeric(point_est)
     
@@ -592,7 +593,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
     for (i in seq_len(n)) {
         x_minus_i <- x[-i]
         if (sum(x_minus_i) > 0) {
-            jack_est[i] <- calculate_tsallis_entropy(x_minus_i, q = q, norm = norm,
+            jack_est[i] <- .calculate_tsallis_entropy(x_minus_i, q = q, norm = norm,
                 what = what, log_base = log_base, pseudocount = pseudocount)
             jack_est[i] <- as.numeric(jack_est[i])
         } else {
@@ -655,7 +656,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
 #'     \item{n_samples}{Number of samples (for sample-size weighting; Love et al. 2014).}
 #'   }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_estimate_shrinkage_params <- function(x, genes, entropy_matrix, q = 2, min_count = 1) {
   gene_levels <- unique(genes)
@@ -810,7 +811,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
 #' genes with small expression variance, while protecting genes with genuine
 #' extreme variance signatures.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_apply_shrinkage <- function(entropy_matrix, params, gene_isoform_map = NULL) {
   result <- entropy_matrix
@@ -953,7 +954,7 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
 #' @param effective_length Numeric vector of effective transcript lengths (length = length(x)).
 #'   When provided, counts are normalized by length to remove length bias before
 #'   entropy calculation. This implements SALMON's recommended isoform-level approach.
-#' @keywords internal
+
 #' @noRd
 #' @return For `what = 'S'` or `what = 'D'`: a numeric vector
 #' (named when length(q) > 1). For `what = 'both'`: a list with
@@ -977,8 +978,9 @@ estimate_pseudocount <- function(se, verbose = TRUE) {
 #' Natural logarithms are used for q->1 limits and normalization.
 #' @examples
 #' x <- c(10, 5, 0)
-#' calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
-calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"),
+#' .calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = TRUE)
+
+.calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", "both"),
     log_base = exp(1), pseudocount = 0, effective_length = NULL) {
     what <- match.arg(what)
     if (!is.numeric(q)) {
@@ -1105,7 +1107,7 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.
 #' 
-#' @keywords internal
+
 #' @noRd
 .tsenat_calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none", 
@@ -1225,9 +1227,10 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 #' @param shrinkage Character; shrinkage method ("none" or "empirical_bayes")
 #' @param effective_length Numeric vector; effective transcript lengths (optional)
 #'
-#' @keywords internal
+
 #' @noRd
-calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
+
+.calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none",
     "empirical_bayes"), effective_length = NULL) {
     .tsenat_calculate_method(x = x, genes = genes, norm = norm, verbose = verbose,
@@ -1264,7 +1267,7 @@ calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what
         }
         
         # Calculate entropy on the adjusted counts
-        v <- calculate_tsallis_entropy(counts, q = q, norm = norm, what = what)
+        v <- .calculate_tsallis_entropy(counts, q = q, norm = norm, what = what)
         if (length(v) == length(q) && all(is.finite(v) | is.na(v))) {
             v
         } else {

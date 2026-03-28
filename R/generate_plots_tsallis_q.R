@@ -4,7 +4,7 @@
 #' Supports three modes: aggregate q-curves (default), gene-specific q-curves (when `gene` provided),
 #' or bootstrap confidence interval bands.
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
+#' @param se A `SummarizedExperiment` returned by `.calculate_diversity()` with diversity assay.
 #'   For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.
 #' @param assay_name Character; name of the assay to plot (default: "diversity").
 #' @param condition_col Character or NULL; column name in colData indicating group/sample type.
@@ -17,8 +17,8 @@
 #'   Overrides default aggregate behavior. When provided, uses median +/- SD for each gene.
 #' @param lm_res Data frame (optional); gene interaction test results with `gene` column and
 #'   p-value column. Accepts either:
-#'   - Results from `calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
-#'   - Results from `detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
+#'   - Results from `.calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
+#'   - Results from `.detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
 #'   If provided (and `gene` is NULL), plots top `n_top` genes ranked by p-value.
 #'   Useful for plotting significant genes from any interaction analysis.
 #' @param n_top Integer or NULL; number of top genes to select from `lm_res` when `gene` is NULL
@@ -40,7 +40,7 @@
 #' @details
 #' **Aggregate mode (default, gene=NULL, lm_res=NULL)**:
 #' - Plots median Tsallis entropy +/- IQR across all genes for each group
-#' - Works with any SummarizedExperiment from calculate_diversity()
+#' - Works with any SummarizedExperiment from .calculate_diversity()
 #' - Supports single or multiple q values and any number of groups
 #' - No CI data required for basic plots; bootstrap CIs optional
 #'
@@ -57,7 +57,7 @@
 #' - Displays bootstrap confidence interval bands for each group across q-values
 #' - Requires exactly 2 groups for comparison
 #' - Requires 2+ q values for q-curve visualization
-#' - Requires pre-computed bootstrap CIs from `calculate_diversity(..., bootstrap=TRUE)`
+#' - Requires pre-computed bootstrap CIs from `.calculate_diversity(..., bootstrap=TRUE)`
 #' - Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
 #'
 #' @importFrom ggplot2 ggplot aes geom_line geom_ribbon geom_point theme_minimal
@@ -68,7 +68,7 @@
 #'
 #' @examples
 #' # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 25,
 #'   q_values = seq(0.1, 3, by = 0.1), seed = 123)
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
 #' p <- plot_tsallis_q_curve_s4(analysis)
@@ -126,7 +126,7 @@ plot_tsallis_q_curve_s4 <- function(
   }
   
   # Aggregate or bootstrap mode
-  long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
+  long <- .prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
   if (nrow(long) == 0) stop("No tsallis values found in SummarizedExperiment")
   
   has_bootstrap_ci <- "ci_lower" %in% SummarizedExperiment::assayNames(se) &&
@@ -149,7 +149,7 @@ plot_tsallis_q_curve_s4 <- function(
 .tsenat_plot_tsallis_gene_specific <- function(se, assay_name, condition_col, gene, lm_res, n_top, output_file) {
   require_pkgs(c("ggplot2", "dplyr", "cowplot"))
   
-  long <- prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
+  long <- .prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
   
   if (!("Gene" %in% colnames(long))) {
     if ("gene" %in% colnames(long)) {

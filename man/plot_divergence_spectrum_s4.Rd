@@ -86,7 +86,7 @@ This wrapper extracts the divergence SummarizedExperiment from
 }
 \examples{
 # Plot 1: Global divergence spectrum across all genes
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1, 1.5))
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 p_global <- plot_divergence_spectrum_s4(analysis)

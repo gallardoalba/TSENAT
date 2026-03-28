@@ -62,7 +62,7 @@ This wrapper automatically:
 1. Extracts SummarizedExperiment from \code{@se} slot
 2. Extracts LM results from \code{@lm_results$lm_interaction} slot
 3. Detects condition_col from \code{@config} or uses default
-4. Calls \code{plot_lm_interaction_gam()} with extracted parameters
+4. Calls \code{.plot_lm_interaction_gam()} with extracted parameters
 
 **Parameter Resolution (condition_col):**
 \enumerate{

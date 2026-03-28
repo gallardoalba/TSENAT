@@ -97,7 +97,7 @@ and metadata from object slots.
 This wrapper automatically:
 1. Extracts SummarizedExperiment from \code{@se} slot
 2. Detects condition_col, gene_col, isoform_col from colData/rowData or @config
-3. Calls \code{jackknife_isoform_switching()} with extracted parameters
+3. Calls \code{.jackknife_isoform_switching()} with extracted parameters
 
 **Parameter Auto-Detection:**
 \enumerate{

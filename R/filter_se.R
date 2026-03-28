@@ -57,12 +57,12 @@
 #'   which is incorrect. Use `tpm_assay_name` to specify TPM assay.
 #' @param verbose Logical; print before/after counts and filtering parameters when TRUE.
 #' @return A filtered `SummarizedExperiment`.
-#' @keywords internal
+
 #' @noRd
 #' @examples
 #' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0('tx', 1:3), paste0('S', 1:2)))
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
-#' filt <- filter_se(se, min_samples = 1)
+#' filt <- .filter_se(se, min_samples = 1)
 #' class(filt)
 
 # ============================================================================
@@ -119,7 +119,8 @@
                is_fallback = TRUE))
 }
 
-filter_se <- function(se, min_samples = 5L, stringency = NULL,
+
+.filter_se <- function(se, min_samples = 5L, stringency = NULL,
     pair_col = NULL, min_tpm = 1.0, tpm_assay_name = NULL,
     min_tx_per_gene = 2L, assay_name = "counts", verbose = TRUE) {
     if (!is(se, "SummarizedExperiment")) {

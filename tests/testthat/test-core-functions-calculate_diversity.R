@@ -7,7 +7,7 @@ test_that(
         colnames(x) <- c("Sample1", "Sample2")
         gene <- c("Gene1", "Gene1", "Gene1", "Gene1", "Gene1")
         qvec <- c(1.1, 1.5, 2)
-        result <- calculate_diversity(x, gene, norm = TRUE, q = qvec)
+        result <- .calculate_diversity(x, gene, norm = TRUE, q = qvec)
         # Assay should have columns for each q and sample
         assay_names <- colnames(SummarizedExperiment::assay(result))
         for (qi in qvec) {
@@ -22,9 +22,9 @@ test_that("calculate_diversity passes q parameter for Tsallis entropy", {
     colnames(x) <- c("Sample1", "Sample2")
     gene <- c("Gene1", "Gene1", "Gene1", "Gene1", "Gene1")
     # Calculate with q = 2
-    result_q2 <- calculate_diversity(x, gene, norm = TRUE, q = 2)
+    result_q2 <- .calculate_diversity(x, gene, norm = TRUE, q = 2)
     # Calculate with q = 1.5
-    result_q15 <- calculate_diversity(x, gene, norm = TRUE, q = 1.5)
+    result_q15 <- .calculate_diversity(x, gene, norm = TRUE, q = 1.5)
     # Extract values
     val_q2 <- SummarizedExperiment::assay(result_q2)[1, 1]
     val_q15 <- SummarizedExperiment::assay(result_q15)[1, 1]
@@ -40,7 +40,7 @@ test_that("calculate_diversity supports data.frame input", {
     x_df <- as.data.frame(matrix(c(1, 2, 3, 4, 5, 6), ncol = 2))
     colnames(x_df) <- c("A", "B")
     genes <- c("g1", "g1", "g2")
-    res <- calculate_diversity(x_df, genes, q = 1)
+    res <- .calculate_diversity(x_df, genes, q = 1)
     expect_s4_class(res, "SummarizedExperiment")
     expect_equal(ncol(res), ncol(as.matrix(x_df)))
 })
@@ -53,10 +53,10 @@ test_that("calculate_diversity handles tximport-style list with tpm flag", {
     txlist <- list(counts = counts, abundance = abundance, length = NULL, countsFromAbundance = NULL)
     genes <- c("g1", "g1", "g2")
     # default uses counts
-    res_counts <- calculate_diversity(txlist, genes, q = 1, tpm = FALSE)
+    res_counts <- .calculate_diversity(txlist, genes, q = 1, tpm = FALSE)
     expect_s4_class(res_counts, "SummarizedExperiment")
     # using tpm should switch to abundance
-    res_ab <- calculate_diversity(txlist, genes, q = 1, tpm = TRUE)
+    res_ab <- .calculate_diversity(txlist, genes, q = 1, tpm = TRUE)
     expect_s4_class(res_ab, "SummarizedExperiment")
 })
 
@@ -66,7 +66,7 @@ test_that("calculate_diversity handles object with class DGEList (list with clas
     dgel <- list(counts = counts)
     class(dgel) <- "DGEList"
     genes <- c("g1", "g1", "g2")
-    res <- calculate_diversity(dgel, genes, q = 2)
+    res <- .calculate_diversity(dgel, genes, q = 2)
     expect_s4_class(res, "SummarizedExperiment")
 })
 
@@ -78,7 +78,7 @@ test_that("calculate_diversity uses metadata$readcounts and tx2gene from a Summa
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(dummy = matrix(0, nrow = 3, ncol = 2)))
     S4Vectors::metadata(se)$readcounts <- rc
     S4Vectors::metadata(se)$tx2gene <- tx2gene
-    res <- calculate_diversity(se, genes = NULL, q = 1)
+    res <- .calculate_diversity(se, genes = NULL, q = 1)
     expect_s4_class(res, "SummarizedExperiment")
     expect_true(all(SummarizedExperiment::rowData(res)$genes %in% unique(tx2gene$Gen)))
 })
@@ -86,7 +86,7 @@ test_that("calculate_diversity uses metadata$readcounts and tx2gene from a Summa
 test_that("calculate_diversity errors for invalid assay number in SummarizedExperiment", {
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(a = matrix(1, nrow = 2, ncol = 2)))
     genes <- c("g1", "g2")
-    expect_error(calculate_diversity(se, genes, assayno = 2), "Please provide a valid assay number")
+    expect_error(.calculate_diversity(se, genes, assayno = 2), "Please provide a valid assay number")
 })
 
 # Defensive / error cases
@@ -94,37 +94,37 @@ test_that("calculate_diversity errors for invalid assay number in SummarizedExpe
 test_that("calculate_diversity errors on non-numeric input", {
     x <- matrix(letters[1:6], ncol = 2)
     genes <- c("g1", "g1", "g2")
-    expect_error(calculate_diversity(x, genes), "Input data must be numeric")
+    expect_error(.calculate_diversity(x, genes), "Input data must be numeric")
     colnames(x) <- c("S1", "S2")
 })
 
 test_that("calculate_diversity errors on NA values", {
     x <- matrix(c(1, NA, 3, 4, 5, 6), ncol = 2)
     genes <- c("g1", "g1", "g2")
-    expect_error(calculate_diversity(x, genes), "Input data must be numeric and contain no NAs")
+    expect_error(.calculate_diversity(x, genes), "Input data must be numeric and contain no NAs")
     colnames(x) <- c("S1", "S2")
 })
 
 test_that("calculate_diversity errors when genes length mismatches rows", {
     x <- matrix(1:6, ncol = 2)
     genes <- c("g1", "g2") # wrong length
-    expect_error(calculate_diversity(x, genes), "The number of rows is not equal to the given gene set")
+    expect_error(.calculate_diversity(x, genes), "The number of rows is not equal to the given gene set")
     colnames(x) <- c("S1", "S2")
 })
 
 test_that("calculate_diversity rejects negative q values", {
     x <- matrix(1:6, ncol = 2)
     genes <- c("g1", "g1", "g2")
-    expect_error(calculate_diversity(x, genes, q = -0.5), "must be numeric and >= 0")
+    expect_error(.calculate_diversity(x, genes, q = -0.5), "must be numeric and >= 0")
     # But q=0 should work (species richness)
-    result <- calculate_diversity(x, genes, q = 0)
+    result <- .calculate_diversity(x, genes, q = 0)
     expect_s4_class(result, "SummarizedExperiment")
 })
 
 test_that("calculate_diversity q=0 species richness", {
     x <- matrix(c(1, 0, 2, 1, 0, 3), ncol = 2)
     genes <- c("g1", "g1", "g2")
-    result <- calculate_diversity(x, genes, q = 0)
+    result <- .calculate_diversity(x, genes, q = 0)
     expect_s4_class(result, "SummarizedExperiment")
     # With aggregation by gene, should have 2 rows (g1, g2)
     # If not aggregated, should have 3 rows from original matrix
@@ -135,7 +135,7 @@ test_that("calculate_diversity returns hill numbers when what='D'", {
     x <- matrix(c(1, 2, 3, 4, 5, 6), ncol = 2)
     colnames(x) <- c("S1", "S2")
     genes <- c("g1", "g1", "g2")
-    res <- calculate_diversity(x, genes, q = 2, what = "D")
+    res <- .calculate_diversity(x, genes, q = 2, what = "D")
     expect_true("hill" %in% names(SummarizedExperiment::assays(res)))
 })
 
@@ -145,13 +145,13 @@ test_that("tpm logical on non-list gives informative message", {
     x <- matrix(1:6, ncol = 2)
     colnames(x) <- c("S1", "S2")
     genes <- c("g1", "g1", "g2")
-    expect_message(calculate_diversity(x, genes, tpm = TRUE, verbose = TRUE), "tpm as a logical argument is only interpreted")
+    expect_message(.calculate_diversity(x, genes, tpm = TRUE, verbose = TRUE), "tpm as a logical argument is only interpreted")
 })
 
 test_that("tximport-style list missing counts errors", {
     txbad <- list(a = 1, b = 2, c = 3)
     genes <- c("g1", "g1", "g2")
-    expect_error(calculate_diversity(txbad, genes), "cannot find any expression data")
+    expect_error(.calculate_diversity(txbad, genes), "cannot find any expression data")
 })
 
 test_that("SummarizedExperiment metadata tx2gene with non-standard columns is accepted", {
@@ -162,7 +162,7 @@ test_that("SummarizedExperiment metadata tx2gene with non-standard columns is ac
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(dummy = matrix(0, nrow = 3, ncol = 2)))
     S4Vectors::metadata(se)$readcounts <- rc
     S4Vectors::metadata(se)$tx2gene <- tx2gene
-    res <- calculate_diversity(se, genes = NULL, q = 1)
+    res <- .calculate_diversity(se, genes = NULL, q = 1)
     expect_s4_class(res, "SummarizedExperiment")
     expect_true(all(SummarizedExperiment::rowData(res)$genes %in% unique(tx2gene$geneid)))
 })
@@ -171,7 +171,7 @@ test_that("All-zero counts lead to empty result (no valid genes)", {
     x <- matrix(0, nrow = 4, ncol = 3)
     colnames(x) <- paste0("S", 1:3)
     genes <- c("g1", "g1", "g2", "g3")
-    res <- calculate_diversity(x, genes, q = 1)
+    res <- .calculate_diversity(x, genes, q = 1)
     expect_s4_class(res, "SummarizedExperiment")
     expect_equal(nrow(res), 0)
 })
@@ -185,7 +185,7 @@ test_that("calculate_diversity returns correct Tsallis entropy for single q", {
     colnames(x) <- paste0("Sample", 1:6)
     gene <- c(rep("Gene1", 3), rep("Gene2", 2), rep("Gene3", 3), rep("Gene4", 2))
     q <- 2
-    result <- calculate_diversity(x, gene, q = q)
+    result <- .calculate_diversity(x, gene, q = q)
     expect_s4_class(result, "SummarizedExperiment")
     expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
     expect_equal(nrow(result), length(unique(gene)))
@@ -201,14 +201,14 @@ test_that("calculate_tsallis_entropy computes correct q=1 Shannon entropy", {
     total <- sum(counts)
     p <- counts / total
     expected <- -sum(p[p > 0] * log(p[p > 0]))
-    result <- calculate_tsallis_entropy(counts, q = 1)
+    result <- .calculate_tsallis_entropy(counts, q = 1)
     expect_true(abs(result - expected) < 0.5)
 })
 
 test_that("calculate_tsallis_entropy supports q >= 0", {
     counts <- c(10, 20, 0, 15)
     # q=0 should work (species richness)
-    result_q0 <- calculate_tsallis_entropy(counts, q = 0)
+    result_q0 <- .calculate_tsallis_entropy(counts, q = 0)
     expect_true(is.numeric(result_q0))
     expect_true(!is.na(result_q0))
     expect_true(result_q0 > 0)  # Species richness should be > 0 if any species present
@@ -216,7 +216,7 @@ test_that("calculate_tsallis_entropy supports q >= 0", {
 
 test_that("calculate_tsallis_entropy handles uniform distribution", {
     counts <- c(25, 25, 25, 25)
-    result_q05 <- calculate_tsallis_entropy(counts, q = 0.5)
+    result_q05 <- .calculate_tsallis_entropy(counts, q = 0.5)
     expect_true(is.numeric(result_q05))
     expect_true(!is.na(result_q05))
     expect_true(result_q05 > 0)
@@ -224,23 +224,23 @@ test_that("calculate_tsallis_entropy handles uniform distribution", {
 
 test_that("calculate_tsallis_entropy returns 0 for single taxon", {
     counts <- c(100, 0, 0)
-    result <- calculate_tsallis_entropy(counts, q = 1.5)
+    result <- .calculate_tsallis_entropy(counts, q = 1.5)
     expect_equal(result, 0, tolerance = 1e-6)
 })
 
 test_that("calculate_tsallis_entropy increases with diversity", {
     uniform <- c(50, 50, 50, 50)
     uneven <- c(100, 40, 5, 5)
-    entropy_uniform <- calculate_tsallis_entropy(uniform, q = 1)
-    entropy_uneven <- calculate_tsallis_entropy(uneven, q = 1)
+    entropy_uniform <- .calculate_tsallis_entropy(uniform, q = 1)
+    entropy_uneven <- .calculate_tsallis_entropy(uneven, q = 1)
     expect_true(entropy_uniform > entropy_uneven)
 })
 
 test_that("calculate_tsallis_entropy is invariant to scale", {
     counts1 <- c(10, 20, 30)
     counts2 <- c(100, 200, 300)
-    result1 <- calculate_tsallis_entropy(counts1, q = 1)
-    result2 <- calculate_tsallis_entropy(counts2, q = 1)
+    result1 <- .calculate_tsallis_entropy(counts1, q = 1)
+    result2 <- .calculate_tsallis_entropy(counts2, q = 1)
     expect_equal(result1, result2, tolerance = 1e-10)
 })
 
@@ -248,7 +248,7 @@ test_that("calculate_tsallis_entropy handles different q values (q > 0)", {
     counts <- c(100, 50, 30, 20)
     q_values <- c(0.1, 0.5, 1, 2, 3)
     results <- sapply(q_values, function(q) {
-        calculate_tsallis_entropy(counts, q = q)
+        .calculate_tsallis_entropy(counts, q = q)
     })
     expect_length(results, 5)
     expect_true(all(!is.na(results)))
@@ -257,23 +257,23 @@ test_that("calculate_tsallis_entropy handles different q values (q > 0)", {
 
 test_that("calculate_tsallis_entropy returns numeric scalar", {
     counts <- c(10, 20, 15, 5)
-    result <- calculate_tsallis_entropy(counts, q = 1.2)
+    result <- .calculate_tsallis_entropy(counts, q = 1.2)
     expect_is(result, "numeric")
     expect_length(result, 1)
 })
 
 test_that("calculate_tsallis_entropy handles zero-sum and q=1 correctly", {
     x_uniform <- c(1, 1, 1)
-    s_unif <- calculate_tsallis_entropy(x_uniform, q = c(0.5, 1, 2), norm = TRUE, what = "S")
+    s_unif <- .calculate_tsallis_entropy(x_uniform, q = c(0.5, 1, 2), norm = TRUE, what = "S")
     expect_equal(as.numeric(s_unif), rep(1, 3))
     x_zero <- c(0, 0, 0)
-    s_zero <- calculate_tsallis_entropy(x_zero, q = c(0.5, 1, 2), norm = TRUE, what = "S")
+    s_zero <- .calculate_tsallis_entropy(x_zero, q = c(0.5, 1, 2), norm = TRUE, what = "S")
     expect_true(all(is.na(s_zero)))
     x <- c(10, 5, 0)
     p <- x / sum(x)
     sh <- -sum(ifelse(p > 0, p * log(p), 0))
     expected_D1 <- exp(sh)
-    D1 <- calculate_tsallis_entropy(x, q = 1, what = "D")
+    D1 <- .calculate_tsallis_entropy(x, q = 1, what = "D")
     expect_equal(as.numeric(D1), expected_D1)
 })
 
@@ -281,7 +281,7 @@ test_that("calculate_diversity accepts q >= 0 (including q=0 for species richnes
     mat <- matrix(1, nrow = 3, ncol = 2)
     genes <- letters[1:3]
     # q=0 should work (species richness = number of non-zero species)
-    result <- calculate_diversity(mat, genes = genes, q = 0)
+    result <- .calculate_diversity(mat, genes = genes, q = 0)
     expect_s4_class(result, "SummarizedExperiment")
     # Result should have diversity values (species richness for each sample)
     expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
@@ -293,7 +293,7 @@ test_that("calculate_diversity returns correct Tsallis entropy for vector q", {
     colnames(x) <- paste0("Sample", 1:6)
     gene <- c(rep("Gene1", 3), rep("Gene2", 2), rep("Gene3", 3), rep("Gene4", 2))
     q <- c(1, 2)
-    result <- calculate_diversity(x, gene, q = q)
+    result <- .calculate_diversity(x, gene, q = q)
     expect_s4_class(result, "SummarizedExperiment")
     expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
     expect_equal(nrow(result), length(unique(gene)))
@@ -319,7 +319,7 @@ test_that("calculate_diversity sets se_assay_mat when called directly with matri
     
     # Make sure se_assay_mat doesn't exist in parent environment
     # The function should create it internally from the input matrix
-    result <- calculate_diversity(x, genes, q = 1.5)
+    result <- .calculate_diversity(x, genes, q = 1.5)
     
     # Verify the result is correct
     expect_s4_class(result, "SummarizedExperiment")
@@ -337,7 +337,7 @@ test_that("calculate_diversity with numeric matrix directly uses input as se_ass
     colnames(x) <- c("SA", "SB", "SC", "SD")
     genes <- c("g1", "g1", "g2", "g2", "g3", "g3")  # 2 transcripts per gene
     
-    result <- calculate_diversity(x, genes, norm = TRUE, q = 2)
+    result <- .calculate_diversity(x, genes, norm = TRUE, q = 2)
     
     expect_s4_class(result, "SummarizedExperiment")
     expect_equal(ncol(result), 4)
@@ -352,7 +352,7 @@ test_that("calculate_diversity handles matrix input with multiple q values corre
     genes <- c("Gene1", "Gene1", "Gene2", "Gene2", "Gene3", "Gene3")
     
     q_vec <- c(0.5, 1, 1.5, 2)
-    result <- calculate_diversity(x, genes, q = q_vec)
+    result <- .calculate_diversity(x, genes, q = q_vec)
     
     # Should have columns for each combination of sample and q value
     expect_equal(ncol(result), length(colnames(x)) * length(q_vec))
@@ -379,7 +379,7 @@ test_that("calculate_diversity properly filters genes with insufficient valid va
     genes <- c("A", "B", "B", "C", "C", "C", "D", "D")
     
     # Calculate with strict filtering (min_valid_frac = 0.75)
-    result <- calculate_diversity(read_count_matrix, genes = genes, norm = TRUE, 
+    result <- .calculate_diversity(read_count_matrix, genes = genes, norm = TRUE, 
                                  q = c(1, 2), min_valid_frac = 0.75, verbose = FALSE)
     
     # Gene D has only zero counts, should be filtered
@@ -399,7 +399,7 @@ test_that("calculate_diversity with multiple q returns consistent dimensions", {
     genes <- c("g1", "g1", "g2", "g2")
     
     q_values <- c(0.5, 1)
-    result <- calculate_diversity(mat, genes = genes, norm = TRUE, q = q_values)
+    result <- .calculate_diversity(mat, genes = genes, norm = TRUE, q = q_values)
     
     expect_s4_class(result, "SummarizedExperiment")
     # Expecting gene 'g1' and 'g2' in rows
@@ -412,7 +412,7 @@ test_that("calculate_diversity handles missing sample names correctly", {
     colnames(mat) <- NULL  # Remove sample names
     genes <- letters[1:3]
     
-    result <- calculate_diversity(mat, genes = genes, q = 1, verbose = FALSE)
+    result <- .calculate_diversity(mat, genes = genes, q = 1, verbose = FALSE)
     
     expect_s4_class(result, "SummarizedExperiment")
     # Should have at least created some columns
@@ -434,8 +434,8 @@ test_that("calculate_diversity returns Hill numbers (D) correctly", {
     genes <- c("g1", "g1", "g2", "g2")
     
     # Note: calculate_diversity always returns entropy (what="S" is hardcoded)
-    # but verify consistency with calculate_tsallis_entropy(..., what="D")
-    result <- calculate_diversity(mat, genes = genes, norm = TRUE, q = c(0.5, 1))
+    # but verify consistency with .calculate_tsallis_entropy(..., what="D")
+    result <- .calculate_diversity(mat, genes = genes, norm = TRUE, q = c(0.5, 1))
     
     expect_s4_class(result, "SummarizedExperiment")
     diversity_vals <- SummarizedExperiment::assay(result, "diversity")
@@ -451,10 +451,10 @@ test_that("calculate_diversity with shrinkage parameter works correctly", {
     genes <- rep(c("g1", "g2"), each = 4)  # 4 transcripts per gene
     
     # Test without shrinkage
-    result_none <- calculate_diversity(mat, genes = genes, q = 1, 
+    result_none <- .calculate_diversity(mat, genes = genes, q = 1, 
                                       shrinkage = "none", verbose = FALSE)
     # Test with empirical Bayes shrinkage
-    result_shrink <- calculate_diversity(mat, genes = genes, q = 1, 
+    result_shrink <- .calculate_diversity(mat, genes = genes, q = 1, 
                                         shrinkage = "empirical_bayes", verbose = FALSE)
     
     expect_s4_class(result_none, "SummarizedExperiment")
@@ -465,7 +465,7 @@ test_that("calculate_diversity with shrinkage parameter works correctly", {
 })
 
 # ============================================================
-# Bootstrap Tests for calculate_diversity()
+# Bootstrap Tests for .calculate_diversity()
 # ============================================================
 
 context("Bootstrap Confidence Intervals for calculate_diversity")
@@ -474,7 +474,7 @@ test_that("bootstrap=FALSE (default) produces no CI assays", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
     
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = FALSE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = FALSE, verbose = FALSE)
     
     # Should have diversity and counts, but NOT ci_lower/ci_upper
     assay_names <- names(SummarizedExperiment::assays(result))
@@ -488,7 +488,7 @@ test_that("bootstrap=TRUE with percentile method creates CI assays", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
     
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE, 
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE, 
                                  bootstrap_nboot = 100, 
                                  bootstrap_method = "percentile",
                                  verbose = FALSE)
@@ -509,7 +509,7 @@ test_that("bootstrap CI bounds are monotonic (lower <= upper)", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
     
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100,
                                  verbose = FALSE)
     
@@ -524,7 +524,7 @@ test_that("bootstrap with BCa method stores method in metadata", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
     
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100,
                                  bootstrap_method = "bca",
                                  verbose = FALSE)
@@ -541,7 +541,7 @@ test_that("bootstrap with multiple q values creates CIs for all q", {
     x <- td$x; genes <- td$genes
     
     q_vals <- c(0.5, 1, 2)
-    result <- calculate_diversity(x, genes, q = q_vals, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = q_vals, bootstrap = TRUE,
                                  bootstrap_nboot = 100,
                                  verbose = FALSE)
     
@@ -560,7 +560,7 @@ test_that("bootstrap CI metadata includes nboot parameter", {
     x <- td$x; genes <- td$genes
     
     nboot_val <- 150
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = nboot_val,
                                  verbose = FALSE)
     
@@ -574,7 +574,7 @@ test_that("bootstrap CI metadata includes confidence level", {
     x <- td$x; genes <- td$genes
     
     ci_level <- 0.99
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100,
                                  bootstrap_ci = ci_level,
                                  verbose = FALSE)
@@ -595,7 +595,7 @@ test_that("nboot parameter is validated (must be >= 100)", {
     options(TSENAT.suppress_nboot_warning = FALSE)
     
     expect_warning(
-        calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+        .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                            bootstrap_nboot = 50, verbose = FALSE),
         "nboot.*below.*recommended"
     )
@@ -607,7 +607,7 @@ test_that("ci parameter is validated (must be in (0,1))", {
     
     # Should error with ci outside (0, 1)
     expect_error(
-        calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+        .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                            bootstrap_nboot = 100, bootstrap_ci = 1.5, verbose = FALSE),
         "must be a probability"
     )
@@ -618,7 +618,7 @@ test_that("bootstrap results are consistent with counts assay", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
     
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100, verbose = FALSE)
     
     # Counts assay should match input
@@ -635,7 +635,7 @@ test_that("bootstrap with simple matrix input works correctly", {
     colnames(x) <- c("S1", "S2")
     genes <- c("g1", "g1", "g2", "g2")
     
-    result <- calculate_diversity(x, genes, q = 1,
+    result <- .calculate_diversity(x, genes, q = 1,
                                  bootstrap = TRUE, bootstrap_nboot = 100,
                                  verbose = FALSE)
     
@@ -651,14 +651,14 @@ test_that("bootstrap method parameter is stored and retrieved", {
     x <- td$x; genes <- td$genes
     
     # Test percentile
-    result_pct <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result_pct <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                      bootstrap_nboot = 100,
                                      bootstrap_method = "percentile",
                                      verbose = FALSE)
     expect_equal(S4Vectors::metadata(result_pct)$bootstrap_method, "percentile")
     
     # Test bca
-    result_bca <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result_bca <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                      bootstrap_nboot = 100,
                                      bootstrap_method = "bca",
                                      verbose = FALSE)
@@ -669,7 +669,7 @@ test_that("bootstrap CI values are within [0,1] for normalized entropy", {
     td <- create_diversity_test_matrix_3x2_standard()
     x <- td$x; genes <- td$genes
     
-    result <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100, norm = TRUE,
                                  verbose = FALSE)
     
@@ -685,7 +685,7 @@ test_that("bootstrap CI values are within [0,1] for normalized entropy", {
 })
 
 # ============================================================
-# Numerical Correctness Tests for calculate_diversity()
+# Numerical Correctness Tests for .calculate_diversity()
 # ============================================================
 
 context("Numerical Correctness for calculate_diversity")
@@ -701,7 +701,7 @@ test_that("calculate_diversity correctly aggregates transcripts by gene", {
     colnames(x) <- c("Sample1", "Sample2")
     genes <- c("Gene1", "Gene1", "Gene2")
     
-    result <- calculate_diversity(x, genes, q = 1, norm = FALSE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = 1, norm = FALSE, verbose = FALSE)
     
     # Gene1 should have aggregated counts: [15, 30] (10+5, 20+10)
     # Gene2 should have counts: [20, 15]
@@ -720,7 +720,7 @@ test_that("calculate_diversity q-values produce different results", {
     genes <- c("Gene1", "Gene1", "Gene1", "Gene1")  # Single gene, 4 transcripts
     
     q_values <- c(0.5, 1, 2)
-    result <- calculate_diversity(x, genes, q = q_values, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = q_values, norm = TRUE, verbose = FALSE)
     
     # Extract diversities for the single gene
     diversity <- SummarizedExperiment::assay(result, "diversity")[1, ]
@@ -743,7 +743,7 @@ test_that("calculate_diversity normalized entropy is in [0,1]", {
     genes <- rep(c("g1", "g2", "g3"), each = 2)
     
     q_values <- c(0.5, 1, 1.5, 2, 3)
-    result <- calculate_diversity(x, genes, q = q_values, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = q_values, norm = TRUE, verbose = FALSE)
     
     diversity <- SummarizedExperiment::assay(result, "diversity")
     
@@ -760,7 +760,7 @@ test_that("calculate_diversity single taxon has zero entropy", {
     colnames(x) <- c("Sample1")
     genes <- c("Gene1", "Gene1", "Gene1", "Gene1")
     
-    result <- calculate_diversity(x, genes, q = 1, norm = FALSE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = 1, norm = FALSE, verbose = FALSE)
     
     diversity <- SummarizedExperiment::assay(result, "diversity")[1, 1]
     
@@ -780,8 +780,8 @@ test_that("calculate_diversity maximum entropy is uniform distribution", {
     colnames(x_uniform) <- colnames(x_skewed) <- "S1"
     genes <- c("Gene1", "Gene1", "Gene1", "Gene1")
     
-    result_uniform <- calculate_diversity(x_uniform, genes, q = 1, norm = TRUE, verbose = FALSE)
-    result_skewed <- calculate_diversity(x_skewed, genes, q = 1, norm = TRUE, verbose = FALSE)
+    result_uniform <- .calculate_diversity(x_uniform, genes, q = 1, norm = TRUE, verbose = FALSE)
+    result_skewed <- .calculate_diversity(x_skewed, genes, q = 1, norm = TRUE, verbose = FALSE)
     
     entropy_uniform <- SummarizedExperiment::assay(result_uniform, "diversity")[1, 1]
     entropy_skewed <- SummarizedExperiment::assay(result_skewed, "diversity")[1, 1]
@@ -797,7 +797,7 @@ test_that("calculate_diversity counts assay exists and has right structure", {
     colnames(x) <- c("Sample1", "Sample2")
     genes <- c("Gene1", "Gene1", "Gene2")
     
-    result <- calculate_diversity(x, genes, q = 1, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = 1, verbose = FALSE)
     
     # Result should be valid SummarizedExperiment with counts assay
     expect_s4_class(result, "SummarizedExperiment")
@@ -821,9 +821,9 @@ test_that("calculate_diversity with different q values shows expected patterns",
     colnames(x) <- c("S1", "S2")
     genes <- c("G", "G", "G", "G")
     
-    result_q05 <- calculate_diversity(x, genes, q = 0.5, norm = TRUE, verbose = FALSE)
-    result_q1 <- calculate_diversity(x, genes, q = 1, norm = TRUE, verbose = FALSE)
-    result_q2 <- calculate_diversity(x, genes, q = 2, norm = TRUE, verbose = FALSE)
+    result_q05 <- .calculate_diversity(x, genes, q = 0.5, norm = TRUE, verbose = FALSE)
+    result_q1 <- .calculate_diversity(x, genes, q = 1, norm = TRUE, verbose = FALSE)
+    result_q2 <- .calculate_diversity(x, genes, q = 2, norm = TRUE, verbose = FALSE)
     
     vals <- c(
         SummarizedExperiment::assay(result_q05, "diversity")[1, 1],
@@ -846,8 +846,8 @@ test_that("calculate_diversity is scale-invariant", {
     colnames(x_small) <- colnames(x_large) <- "S1"
     genes <- c("G1", "G1", "G1")
     
-    result_small <- calculate_diversity(x_small, genes, q = 1, norm = TRUE, verbose = FALSE)
-    result_large <- calculate_diversity(x_large, genes, q = 1, norm = TRUE, verbose = FALSE)
+    result_small <- .calculate_diversity(x_small, genes, q = 1, norm = TRUE, verbose = FALSE)
+    result_large <- .calculate_diversity(x_large, genes, q = 1, norm = TRUE, verbose = FALSE)
     
     entropy_small <- SummarizedExperiment::assay(result_small, "diversity")[1, 1]
     entropy_large <- SummarizedExperiment::assay(result_large, "diversity")[1, 1]
@@ -862,10 +862,10 @@ test_that("bootstrap CI width depends on nboot (stability)", {
     genes <- c("G1", "G1", "G2")
     
     # Run with different nboot values
-    result_100 <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result_100 <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                      bootstrap_nboot = 100, verbose = FALSE)
     
-    result_500 <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result_500 <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                      bootstrap_nboot = 500, verbose = FALSE)
     
     # Check if CI assays were added (they should be if bootstrap extraction works)
@@ -901,8 +901,8 @@ test_that("bootstrap point estimate matches non-bootstrap diversity", {
     colnames(x) <- c("S1", "S2")
     genes <- c("G1", "G1", "G2")
     
-    result_no_boot <- calculate_diversity(x, genes, q = 1, bootstrap = FALSE, verbose = FALSE)
-    result_boot <- calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
+    result_no_boot <- .calculate_diversity(x, genes, q = 1, bootstrap = FALSE, verbose = FALSE)
+    result_boot <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                       bootstrap_nboot = 100, verbose = FALSE)
     
     diversity_no_boot <- SummarizedExperiment::assay(result_no_boot, "diversity")
@@ -924,7 +924,7 @@ test_that("calculate_diversity handles sparse transcript counts", {
     colnames(x) <- c("Sample1", "Sample2")
     genes <- c("Gene1", "Gene1", "Gene2", "Gene2")
     
-    result <- calculate_diversity(x, genes, q = 1, verbose = FALSE)
+    result <- .calculate_diversity(x, genes, q = 1, verbose = FALSE)
     
     # Should return a valid SummarizedExperiment with diversity results
     expect_s4_class(result, "SummarizedExperiment")

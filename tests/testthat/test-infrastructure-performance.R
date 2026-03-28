@@ -68,7 +68,7 @@ test_that("calculate_diversity completes in acceptable time", {
   # Benchmark: run 3 times, take median
   bench <- microbenchmark::microbenchmark(
     times = 3,
-    calculate_diversity(counts, genes, q = q_values, norm = FALSE)
+    .calculate_diversity(counts, genes, q = q_values, norm = FALSE)
   )
   
   # REQUIREMENT: Must complete with tight bound to catch regressions
@@ -76,7 +76,7 @@ test_that("calculate_diversity completes in acceptable time", {
   expect_lt(median(bench$time) / 1e6, 1105)
   
   # Enhanced benchmark reporting
-  .report_benchmark("calculate_diversity(1000 genes, 10 samples, 16 q-values)",
+  .report_benchmark(".calculate_diversity(1000 genes, 10 samples, 16 q-values)",
                     bench$time, threshold_ms = 1105)
 })
 
@@ -94,14 +94,14 @@ test_that("calculate_diversity with normalization is efficient", {
   
   bench <- microbenchmark::microbenchmark(
     times = 3,
-    calculate_diversity(counts, genes, q = q_values, norm = TRUE)
+    .calculate_diversity(counts, genes, q = q_values, norm = TRUE)
   )
   
   # Normalized should be only slightly slower than raw (adds z-score computation)
   # Observed: ~1198.8 ms; threshold = 1189 ms (tightened to 90% usage for better regression detection)
   expect_lt(median(bench$time) / 1e6, 1189)
   
-  .report_benchmark("calculate_diversity(1000 genes, 10 samples, norm=TRUE)",
+  .report_benchmark(".calculate_diversity(1000 genes, 10 samples, norm=TRUE)",
                     bench$time, threshold_ms = 1189)
 })
 
@@ -151,7 +151,7 @@ test_that("calculate_diversity scales sublinearly with q-values", {
   for (name in names(q_configs)) {
     bench <- microbenchmark::microbenchmark(
       times = 2,
-      calculate_diversity(counts, genes, q = q_configs[[name]], norm = FALSE)
+      .calculate_diversity(counts, genes, q = q_configs[[name]], norm = FALSE)
     )
     timings[[name]] <- median(bench$time)
   }
@@ -194,7 +194,7 @@ test_that("calculate_diversity scales linearly with gene count", {
     
     bench <- microbenchmark::microbenchmark(
       times = 2,
-      calculate_diversity(counts, genes, q = q_values, norm = FALSE)
+      .calculate_diversity(counts, genes, q = q_values, norm = FALSE)
     )
     
     timings[i] <- median(bench$time)
@@ -264,14 +264,14 @@ test_that("calculate_lm_interaction_s4 completes efficiently", {
   # Benchmark calculate_lm_interaction
   bench <- microbenchmark::microbenchmark(
     times = 2,
-    calculate_lm_interaction(se, condition_col = "condition")
+    .calculate_lm_interaction(se, condition_col = "condition")
   )
   
   # LM fitting should be reasonably fast - tighter threshold for regression tracking
   # Observed: ~112.4 ms; threshold = 108 ms (tightened to 90% usage)
   expect_lt(median(bench$time) / 1e6, 108)
   
-  .report_benchmark("calculate_lm_interaction (50 genes, 6 samples with 3 q-values)",
+  .report_benchmark(".calculate_lm_interaction(50 genes, 6 samples with 3 q-values)",
                     bench$time, threshold_ms = 108)
 })
 
@@ -385,7 +385,7 @@ test_that("filter_se is efficient", {
   
   bench <- microbenchmark::microbenchmark(
     times = 3,
-    filter_se(se, min_tpm = 1.0, min_samples = 5, tpm_assay_name = "tpm")
+    .filter_se(se, min_tpm = 1.0, min_samples = 5, tpm_assay_name = "tpm")
   )
   
   # Filtering should be very fast - tighter threshold for regression detection
@@ -465,14 +465,14 @@ test_that("build_se construction is efficient", {
   
   bench <- microbenchmark::microbenchmark(
     times = 3,
-    build_se(readcounts = counts, tx2gene = tx2gene, skip = TRUE)
+    .build_se(readcounts = counts, tx2gene = tx2gene, skip = TRUE)
   )
   
   # Object construction should be very fast - tighter threshold for regression detection
   # Observed: ~9.6 ms; threshold = 9 ms (tightened to 90% usage)
   expect_lt(median(bench$time) / 1e6, 9)
   
-  .report_benchmark("build_se(1000×20 matrix)",
+  .report_benchmark(".build_se(1000×20 matrix)",
                     bench$time, threshold_ms = 9)
 })
 
@@ -534,7 +534,7 @@ test_that("large analysis doesn't cause memory explosion", {
   initial_obj_size <- object.size(counts)
   
   # Run diversity calculation
-  div_results <- calculate_diversity(counts, genes, q = seq(0.5, 2, 0.5), norm = TRUE)
+  div_results <- .calculate_diversity(counts, genes, q = seq(0.5, 2, 0.5), norm = TRUE)
   
   # Check object size of results
   results_size <- object.size(list(counts = counts, results = div_results))
@@ -577,13 +577,13 @@ test_that("large analysis doesn't cause memory explosion", {
 #   - If a test fails, median runtime likely increased >15-25% from baseline
 #
 # Key Functions Tested:
-#   - calculate_diversity() / calculate_diversity_s4()
-#   - calculate_divergence() / calculate_divergence_s4()
-#   - calculate_lm_interaction()
+#   - .calculate_diversity() / calculate_diversity_s4()
+#   - .calculate_divergence() / calculate_divergence_s4()
+#   - .calculate_lm_interaction()
 #   - jackknife_isoform_switching_s4()
 #   - detect_q_gene_interactions_s4()
-#   - filter_se()
-#   - build_se()
+#   - .filter_se()
+#   - .build_se()
 #   - build_analysis_s4()
 #
 # If any test fails:

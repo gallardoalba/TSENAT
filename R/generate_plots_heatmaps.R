@@ -55,7 +55,7 @@
 #'
 #' @examples
 #' # Example: Create synthetic multi-q switching results
-#' # For real analysis, use jackknife_isoform_switching() output
+#' # For real analysis, use .jackknife_isoform_switching() output
 #' set.seed(123)
 #' gene_names <- paste0("gene_", 1:4)
 #' names(gene_names) <- 1:4
@@ -79,14 +79,15 @@
 #' )
 #' 
 #' # Create heatmap visualization
-#' plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
+#' .plot_multiq_delta_influence_heatmaps(switching_results, n_genes = 2)
 #'
 #' @import grid
 #' @import pheatmap
 #' @importFrom grDevices png dev.off colorRampPalette
-#' @keywords internal
+
 #' @noRd
-plot_multiq_delta_influence_heatmaps <- function(
+
+.plot_multiq_delta_influence_heatmaps <- function(
     switching_results,
   n_genes = 4,
   lm_results = NULL,
@@ -212,23 +213,23 @@ plot_multiq_delta_influence_heatmaps <- function(
 #' Plot top transcripts for a gene using pheatmap
 #' @param se A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
 #'   Must have a "genes" column in rowData specifying which gene each transcript belongs to.
-#'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis_s4()` or `build_se()`).
+#'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis_s4()` or `.build_se()`).
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
 #'   top genes are selected by p-value.
 #' @param condition_col Character; column name in colData(se) to use for sample grouping 
 #'   (default: "sample_type").
 #' @param res Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
 #'   Supported sources:
-#'   - `calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
-#'   - `calculate_lm_interaction(..., return_model_data = FALSE)` returns a data.frame with adj_p_interaction column
-#'   - `detect_q_gene_interactions()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
+#'   - `.calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
+#'   - `.calculate_lm_interaction(..., return_model_data = FALSE)` returns a data.frame with adj_p_interaction column
+#'   - `.detect_q_gene_interactions()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
 #' @param output_file Optional file path to save the plot. If `NULL`, renders to active graphics device.
 #' @param metric Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").
 #' @param use_tpm Logical; if TRUE, uses TPM (Transcripts Per Million) from metadata instead of raw counts 
 #'   (default: FALSE). TPM is normalized for sequencing depth and is recommended for comparing 
-#'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis_s4()` or `build_se()` 
+#'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis_s4()` or `.build_se()` 
 #'   with `tpm` parameter. Raises error if TPM not available and `use_tpm = TRUE`.
 #' @param width Output image width in inches. If NULL, automatically calculated (12 inches).
 #' @param height Output image height in inches. If NULL, automatically calculated based on number of genes.
@@ -244,7 +245,7 @@ plot_multiq_delta_influence_heatmaps <- function(
 #' Uses hierarchical clustering of transcripts and condition-based samples. Following pheatmap best practices: 
 #' publication-quality colors, dynamic cell sizing, and no artificial gaps between cells.
 #'
-#' Architecture follows the pattern established by `plot_multiq_delta_influence_heatmaps()`:
+#' Architecture follows the pattern established by `.plot_multiq_delta_influence_heatmaps()`:
 #' - Phase 1: Input validation and extraction
 #' - Phase 2: Gene/condition selection
 #' - Phase 3: Layout planning (before creating heatmaps)
@@ -261,10 +262,11 @@ plot_multiq_delta_influence_heatmaps <- function(
 #' se <- SummarizedExperiment(assays = list(counts = counts), 
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
-#' plot_top_transcripts(se, gene = "G1", top_n = 2, output_file = "/tmp/heatmap.png")
-#' @keywords internal
+#' .plot_top_transcripts(se, gene = "G1", top_n = 2, output_file = "/tmp/heatmap.png")
+
 #' @noRd
-plot_top_transcripts <- function(
+
+.plot_top_transcripts <- function(
   se,
   gene = NULL,
   condition_col = "sample_type",
@@ -402,7 +404,7 @@ plot_top_transcripts <- function(
 # Internal Helper Functions for Heatmap Refactoring
 # ============================================================================
 # This file contains shared helper functions extracted to support
-# plot_multiq_delta_influence_heatmaps() and plot_top_transcripts()
+# .plot_multiq_delta_influence_heatmaps() and .plot_top_transcripts()
 # refactoring to meet Bioconductor's 50-line function guideline.
 #
 # All functions marked @keywords internal @noRd are NOT exported.
@@ -425,11 +427,11 @@ plot_top_transcripts <- function(
 #'   - gene_ids: unique gene IDs from first result
 #'   - gene_name_map: gene ID to name mapping
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_multiq_input <- function(switching_results) {
   if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
-    stop("switching_results must be a multi-q result from jackknife_isoform_switching()",
+    stop("switching_results must be a multi-q result from .jackknife_isoform_switching()",
          call. = FALSE)
   }
 
@@ -469,7 +471,7 @@ plot_top_transcripts <- function(
 #'   - gene_col: validated gene column name
 #'   - condition_col: validated condition column name
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
   if (!inherits(se, "SummarizedExperiment")) {
@@ -526,7 +528,7 @@ plot_top_transcripts <- function(
 #'
 #' @return Character vector of selected gene IDs
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_heatmap_select_genes_multiq <- function(switching_results, n_genes = 4,
                                                lm_results = NULL) {
@@ -592,7 +594,7 @@ plot_top_transcripts <- function(
 #'
 #' @return Character vector of selected gene IDs
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_heatmap_select_genes_results <- function(se, res, gene_col = "genes",
                                                top_n = 3, tx2gene = NULL) {
@@ -680,7 +682,7 @@ plot_top_transcripts <- function(
 #'   - $n_layout_rows: total number of rows in layout
 #'   - $row_heights: relative heights for each row (if needed)
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_plot_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE,
                                    layout_ncol = 2) {
@@ -760,7 +762,7 @@ plot_top_transcripts <- function(
 #'   - $png_height: height in inches
 #'   - $heatmap_height: height allocated for heatmaps only
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows,
                                           width_in = 12, height_in = NULL) {
@@ -808,7 +810,7 @@ plot_top_transcripts <- function(
 #'   - $cellheight: height for pheatmap cellheight parameter
 #'   - $fontsize_adj: adjusted font size
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_calculate_adaptive_cellsizes <- function(n_cols_mat, n_rows_mat, width_frac = 1,
                                           cellwidth = 0, cellheight = 0,
@@ -866,7 +868,7 @@ plot_top_transcripts <- function(
 #'
 #' @return Pheatmap grob object (from pheatmap::pheatmap)
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35,
                                   cellh = 29, fontsize = 18,
@@ -918,7 +920,7 @@ plot_top_transcripts <- function(
 #'
 #' @return Invisibly returns NULL. Side effects: opens PNG, initializes grid.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_plot_grid_setup <- function(n_layout_rows, output_file = NULL,
                                    png_width = 12, png_height = 8,
@@ -985,7 +987,7 @@ plot_top_transcripts <- function(
 #'
 #' @return Invisibly returns NULL. Side effect: draws heatmaps in grid.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_render_heatmaps_to_grid <- function(heatmap_plots, gene_layout,
                                       layout_ncol = 2) {
@@ -1056,7 +1058,7 @@ plot_top_transcripts <- function(
 #'
 #' @return Invisibly returns output_file (or NULL if rendered to device)
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_plot_grid_finalize <- function(output_file = NULL, verbose = FALSE) {
   grid::popViewport()
@@ -1090,7 +1092,7 @@ plot_top_transcripts <- function(
 #' @return Numeric matrix with q-values as rows and transcripts as columns.
 #'   NAs indicate missing/infinite values. Rownames are q-value labels.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_heatmap_prepare_multiq_data <- function(switching_results, gene_id,
                                          q_result_keys,
@@ -1181,7 +1183,7 @@ plot_top_transcripts <- function(
 #' @return Numeric matrix with conditions as rows and transcripts as columns,
 #'   log2-transformed. Rownames are condition labels, colnames are transcript IDs.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_heatmap_prepare_condition_data <- function(counts, gene_transcripts, conditions,
                                             metric = "median", pseudocount = 1e-6) {

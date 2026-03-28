@@ -15,7 +15,7 @@ test_that("calculate_tsallis_entropy computes correct q=1 Shannon entropy", {
     # Shannon entropy
     expected <- -sum(p[p > 0] * log(p[p > 0]))
 
-    result <- calculate_tsallis_entropy(counts, q = 1)
+    result <- .calculate_tsallis_entropy(counts, q = 1)
     # Due to numerical approximation at q=1, use loose tolerance
     expect_true(abs(result - expected) < 0.5)
 })
@@ -26,22 +26,22 @@ test_that("calculate_tsallis_entropy computes q=0 species richness", {
     counts <- c(10, 20, 0, 15)  # 3 nonzero species
     
     # S_0 = 3 - 1 = 2 (unnormalized)
-    result_s0 <- calculate_tsallis_entropy(counts, q = 0, norm = FALSE, what = "S")
+    result_s0 <- .calculate_tsallis_entropy(counts, q = 0, norm = FALSE, what = "S")
     expect_equal(as.numeric(result_s0), 2)
     
     # D_0 = 3 (true species richness)
-    result_d0 <- calculate_tsallis_entropy(counts, q = 0, what = "D")
+    result_d0 <- .calculate_tsallis_entropy(counts, q = 0, what = "D")
     expect_equal(as.numeric(result_d0), 3)
     
     # Normalized S_0 with n=4: S_0_norm = 2 / (4-1) = 2/3
-    result_s0_norm <- calculate_tsallis_entropy(counts, q = 0, norm = TRUE, what = "S")
+    result_s0_norm <- .calculate_tsallis_entropy(counts, q = 0, norm = TRUE, what = "S")
     expect_equal(as.numeric(result_s0_norm), 2/3)
 })
 
 test_that("calculate_tsallis_entropy handles uniform distribution", {
     # For uniform distribution, entropy should be consistent
     counts <- c(25, 25, 25, 25) # Uniform
-    result_q05 <- calculate_tsallis_entropy(counts, q = 0.5)
+    result_q05 <- .calculate_tsallis_entropy(counts, q = 0.5)
     expect_true(is.numeric(result_q05))
     expect_true(!is.na(result_q05))
     expect_true(result_q05 > 0)
@@ -50,7 +50,7 @@ test_that("calculate_tsallis_entropy handles uniform distribution", {
 test_that("calculate_tsallis_entropy returns 0 for single taxon", {
     # Single taxon should have entropy 0
     counts <- c(100, 0, 0)
-    result <- calculate_tsallis_entropy(counts, q = 1.5)
+    result <- .calculate_tsallis_entropy(counts, q = 1.5)
     expect_equal(result, 0, tolerance = 1e-6)
 })
 
@@ -59,8 +59,8 @@ test_that("calculate_tsallis_entropy increases with diversity", {
     uniform <- c(50, 50, 50, 50)
     uneven <- c(100, 40, 5, 5)
 
-    entropy_uniform <- calculate_tsallis_entropy(uniform, q = 1)
-    entropy_uneven <- calculate_tsallis_entropy(uneven, q = 1)
+    entropy_uniform <- .calculate_tsallis_entropy(uniform, q = 1)
+    entropy_uneven <- .calculate_tsallis_entropy(uneven, q = 1)
 
     expect_true(entropy_uniform > entropy_uneven)
 })
@@ -70,8 +70,8 @@ test_that("calculate_tsallis_entropy is invariant to scale", {
     counts1 <- c(10, 20, 30)
     counts2 <- c(100, 200, 300)
 
-    result1 <- calculate_tsallis_entropy(counts1, q = 1)
-    result2 <- calculate_tsallis_entropy(counts2, q = 1)
+    result1 <- .calculate_tsallis_entropy(counts1, q = 1)
+    result2 <- .calculate_tsallis_entropy(counts2, q = 1)
 
     expect_equal(result1, result2, tolerance = 1e-10)
 })
@@ -81,7 +81,7 @@ test_that("calculate_tsallis_entropy handles different q values (q > 0)", {
     q_values <- c(0.1, 0.5, 1, 2, 3)
 
     results <- sapply(q_values, function(q) {
-        calculate_tsallis_entropy(counts, q = q)
+        .calculate_tsallis_entropy(counts, q = q)
     })
 
     expect_length(results, 5)
@@ -91,7 +91,7 @@ test_that("calculate_tsallis_entropy handles different q values (q > 0)", {
 
 test_that("calculate_tsallis_entropy returns numeric scalar", {
     counts <- c(10, 20, 15, 5)
-    result <- calculate_tsallis_entropy(counts, q = 1.2)
+    result <- .calculate_tsallis_entropy(counts, q = 1.2)
 
     expect_is(result, "numeric")
     expect_length(result, 1)
@@ -100,12 +100,12 @@ test_that("calculate_tsallis_entropy returns numeric scalar", {
 test_that("calculate_tsallis_entropy handles zero-sum and q=1 correctly", {
     x_uniform <- c(1, 1, 1)
     # Uniform distribution normalized entropy should be 1 for any q when norm=TRUE
-    s_unif <- calculate_tsallis_entropy(x_uniform, q = c(0.5, 1, 2), norm = TRUE, what = "S")
+    s_unif <- .calculate_tsallis_entropy(x_uniform, q = c(0.5, 1, 2), norm = TRUE, what = "S")
     expect_equal(as.numeric(s_unif), rep(1, 3))
 
     # Zero-sum input returns NA
     x_zero <- c(0, 0, 0)
-    s_zero <- calculate_tsallis_entropy(x_zero, q = c(0.5, 1, 2), norm = TRUE, what = "S")
+    s_zero <- .calculate_tsallis_entropy(x_zero, q = c(0.5, 1, 2), norm = TRUE, what = "S")
     expect_true(all(is.na(s_zero)))
 
     # D at q = 1 equals exp(Shannon) when using natural log base
@@ -113,7 +113,7 @@ test_that("calculate_tsallis_entropy handles zero-sum and q=1 correctly", {
     p <- x / sum(x)
     sh <- -sum(ifelse(p > 0, p * log(p), 0))
     expected_D1 <- exp(sh)
-    D1 <- calculate_tsallis_entropy(x, q = 1, what = "D")
+    D1 <- .calculate_tsallis_entropy(x, q = 1, what = "D")
     expect_equal(as.numeric(D1), expected_D1)
 })
 
@@ -121,7 +121,7 @@ test_that("calculate_diversity accepts q >= 0 (including q=0 for species richnes
     mat <- matrix(1, nrow = 3, ncol = 2)
     genes <- letters[1:3]
     # q=0 should work (species richness = number of non-zero species)
-    result <- calculate_diversity(mat, genes = genes, q = 0)
+    result <- .calculate_diversity(mat, genes = genes, q = 0)
     expect_s4_class(result, "SummarizedExperiment")
     expect_true("diversity" %in% names(SummarizedExperiment::assays(result)))
 })
@@ -141,7 +141,7 @@ test_that("Tsallis entropy respects lower bound of 0", {
     
     # Single dominant isoform with minor variants
     counts <- c(95, 3, 2)  # Mostly first isoform
-    entropy <- calculate_tsallis_entropy(counts, q = 1, norm = TRUE)
+    entropy <- .calculate_tsallis_entropy(counts, q = 1, norm = TRUE)
     
     # Normalized entropy should be non-negative
     expect_true(entropy >= 0)
@@ -159,13 +159,13 @@ test_that("Tsallis entropy respects upper bound of log(m)", {
     counts <- rep(1, m)
     
     # Test normalized entropy (default: norm = TRUE)
-    entropy_norm <- calculate_tsallis_entropy(counts, q = 1, norm = TRUE)
+    entropy_norm <- .calculate_tsallis_entropy(counts, q = 1, norm = TRUE)
     # Normalized entropy should be close to 1 (maximum)
     expect_true(entropy_norm <= 1 + 1e-6)  # Allow small numerical error
     expect_true(entropy_norm > 0.99)     # Should be very close to maximum (1)
     
     # Test unnormalized entropy (norm = FALSE)
-    entropy_raw <- calculate_tsallis_entropy(counts, q = 1, norm = FALSE)
+    entropy_raw <- .calculate_tsallis_entropy(counts, q = 1, norm = FALSE)
     # Raw entropy should be close to log(m)
     expect_true(entropy_raw <= log(m) + 1e-6)  # Allow small numerical error
     expect_true(entropy_raw > log(m) - 0.1)     # Should be very close to upper bound
@@ -182,7 +182,7 @@ test_that("Entropy bound holds for various q values", {
     
     for (q in q_values) {
         # Use normalized entropy (the default and most important quantity for bounded support)
-        entropy_norm <- calculate_tsallis_entropy(counts, q = q, norm = TRUE)
+        entropy_norm <- .calculate_tsallis_entropy(counts, q = q, norm = TRUE)
         
         # Normalized bounds: 0 ≤ S_norm ≤ 1 (regardless of q)
         expect_true(entropy_norm >= -1e-6, 
@@ -197,7 +197,7 @@ test_that("Entropy reaches lower bound at degenerate distribution", {
     m <- 10
     counts <- c(100, rep(0, m-1))
     
-    entropy <- calculate_tsallis_entropy(counts, q = 1.5)
+    entropy <- .calculate_tsallis_entropy(counts, q = 1.5)
     
     # Should equal 0 within numerical tolerance
     expect_equal(entropy, 0, tolerance = 1e-10)
@@ -209,11 +209,11 @@ test_that("Entropy reaches upper bound at uniform distribution", {
     counts <- rep(42, m)  # Arbitrary equal count
     
     # Default normalized entropy should be 1 (maximum for uniform)
-    entropy_q1_norm <- calculate_tsallis_entropy(counts, q = 1, norm = TRUE)
+    entropy_q1_norm <- .calculate_tsallis_entropy(counts, q = 1, norm = TRUE)
     expect_equal(entropy_q1_norm, 1, tolerance = 1e-6)
     
     # Unnormalized entropy should equal log(m)
-    entropy_q1_unnorm <- calculate_tsallis_entropy(counts, q = 1, norm = FALSE)
+    entropy_q1_unnorm <- .calculate_tsallis_entropy(counts, q = 1, norm = FALSE)
     expect_equal(entropy_q1_unnorm, log(m), tolerance = 1e-6)
 })
 
@@ -231,7 +231,7 @@ test_that("Bounded entropy with realistic transcriptomics data", {
     # This is what's used in bounded support modeling
     q_vals <- c(0.5, 1, 2)
     for (q in q_vals) {
-        entropy_norm <- calculate_tsallis_entropy(isoform_counts, q = q, norm = TRUE)
+        entropy_norm <- .calculate_tsallis_entropy(isoform_counts, q = q, norm = TRUE)
         
         # Normalized entropy should always be bounded [0, 1]
         expect_true(entropy_norm >= 0,
@@ -248,18 +248,18 @@ test_that("Entropy bounds hold with extreme diversity distributions", {
     
     # Case 1: Nearly uniform (high diversity)
     counts_uniform <- rep(1, m)
-    entropy_uniform_norm <- calculate_tsallis_entropy(counts_uniform, q = 1, norm = TRUE)
-    entropy_uniform_unnorm <- calculate_tsallis_entropy(counts_uniform, q = 1, norm = FALSE)
+    entropy_uniform_norm <- .calculate_tsallis_entropy(counts_uniform, q = 1, norm = TRUE)
+    entropy_uniform_unnorm <- .calculate_tsallis_entropy(counts_uniform, q = 1, norm = FALSE)
     
     # Case 2: Highly skewed (low diversity)
     counts_skewed <- c(10000, rep(1, m-1))
-    entropy_skewed_norm <- calculate_tsallis_entropy(counts_skewed, q = 1, norm = TRUE)
-    entropy_skewed_unnorm <- calculate_tsallis_entropy(counts_skewed, q = 1, norm = FALSE)
+    entropy_skewed_norm <- .calculate_tsallis_entropy(counts_skewed, q = 1, norm = TRUE)
+    entropy_skewed_unnorm <- .calculate_tsallis_entropy(counts_skewed, q = 1, norm = FALSE)
     
     # Case 3: Intermediate
     counts_intermediate <- c(rep(100, m/2), rep(1, m/2))
-    entropy_intermediate_norm <- calculate_tsallis_entropy(counts_intermediate, q = 1, norm = TRUE)
-    entropy_intermediate_unnorm <- calculate_tsallis_entropy(counts_intermediate, q = 1, norm = FALSE)
+    entropy_intermediate_norm <- .calculate_tsallis_entropy(counts_intermediate, q = 1, norm = TRUE)
+    entropy_intermediate_unnorm <- .calculate_tsallis_entropy(counts_intermediate, q = 1, norm = FALSE)
     
     # All should be normalized-bounded [0, 1]
     expect_true(entropy_skewed_norm >= 0)
@@ -289,7 +289,7 @@ test_that("Entropy bounds preserved with scaled counts", {
     scales <- c(0.1, 1, 10, 100)
     entropies <- sapply(scales, function(scale) {
         counts_scaled <- counts_original * scale
-        calculate_tsallis_entropy(counts_scaled, q = 1)
+        .calculate_tsallis_entropy(counts_scaled, q = 1)
     })
     
     # All should be equal (scale invariant)
@@ -314,7 +314,7 @@ test_that("Bootstrap entropy estimates respect bounds", {
     bootstrap_entropies <- replicate(n_bootstrap, {
         # Resample with replacement
         counts_boot <- sample(counts, replace = TRUE, size = length(counts))
-        calculate_tsallis_entropy(counts_boot, q = 1.5)
+        .calculate_tsallis_entropy(counts_boot, q = 1.5)
     })
     
     # All bootstrap estimates should be bounded
@@ -333,7 +333,7 @@ test_that("Entropy ranges computed from bootstrap respect bounds", {
     n_bootstrap <- 100
     bootstrap_entropies <- replicate(n_bootstrap, {
         counts_boot <- sample(counts, replace = TRUE)
-        calculate_tsallis_entropy(counts_boot, q = 1)
+        .calculate_tsallis_entropy(counts_boot, q = 1)
     })
     
     entropy_min <- min(bootstrap_entropies)

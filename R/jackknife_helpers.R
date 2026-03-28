@@ -22,7 +22,7 @@
 #'   - outlier_cutoff_value: threshold value used for outlier detection
 #'   - outlier_threshold: percentile used
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_resampling <- function(counts, entropy_fn = .tsenat_entropy_core, 
                                    q = 1, threshold = 90, norm = TRUE, 
@@ -109,7 +109,7 @@
 #'
 #' @return List of jackknife results (one per gene), with class "tsenat_jackknife_list"
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_batch <- function(counts_matrix, entropy_fn = .tsenat_entropy_core,
                               q = 1, threshold = 90, norm = TRUE,

@@ -8,10 +8,10 @@ gs <- rownames(rc)
 
 test_that("Z-score standardization works correctly", {
     # Compute raw diversity
-    raw_se <- calculate_diversity(rc, gs, q = 2, norm = "none", verbose = FALSE)
+    raw_se <- .calculate_diversity(rc, gs, q = 2, norm = "none", verbose = FALSE)
     
     # Compute z-score standardized
-    z_se <- calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
+    z_se <- .calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
     
     raw_vals <- as.numeric(assay(raw_se, "diversity"))
     z_vals <- as.numeric(assay(z_se, "diversity"))
@@ -22,8 +22,8 @@ test_that("Z-score standardization works correctly", {
 })
 
 test_that("Z-score standardization preserves ordering", {
-    raw_se <- calculate_diversity(rc, gs, q = 2, norm = "none", verbose = FALSE)
-    z_se <- calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
+    raw_se <- .calculate_diversity(rc, gs, q = 2, norm = "none", verbose = FALSE)
+    z_se <- .calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
     
     raw_vals <- as.numeric(assay(raw_se, "diversity"))
     z_vals <- as.numeric(assay(z_se, "diversity"))
@@ -38,7 +38,7 @@ test_that("Z-score standardization preserves ordering", {
 
 test_that("Log-odds ratio standardization works correctly", {
     # Test that log_odds_ratio method can be called and returns valid output
-    lor_se <- calculate_diversity(rc, gs, q = 2, norm = "log_odds_ratio", verbose = FALSE)
+    lor_se <- .calculate_diversity(rc, gs, q = 2, norm = "log_odds_ratio", verbose = FALSE)
     
     # Should return a valid SummarizedExperiment
     expect_true(inherits(lor_se, "SummarizedExperiment"))
@@ -58,7 +58,7 @@ test_that("Log-odds ratio handles edge cases", {
     subset_rc <- rc[1:10, ]
     subset_gs <- gs[1:10]
     
-    lor_se <- calculate_diversity(subset_rc, subset_gs, q = 1.5, norm = "log_odds_ratio", verbose = FALSE)
+    lor_se <- .calculate_diversity(subset_rc, subset_gs, q = 1.5, norm = "log_odds_ratio", verbose = FALSE)
     
     # Should return a valid SummarizedExperiment even with smaller dataset
     expect_true(inherits(lor_se, "SummarizedExperiment"))
@@ -82,7 +82,7 @@ test_that("Relative to reference standardization works correctly", {
     )
     
     # Call relative_reference with proper SummarizedExperiment
-    ref_se <- calculate_diversity(test_se, test_gs, q = 2, norm = "relative_reference", verbose = FALSE)
+    ref_se <- .calculate_diversity(test_se, test_gs, q = 2, norm = "relative_reference", verbose = FALSE)
     
     # Should return a valid SummarizedExperiment
     expect_true(inherits(ref_se, "SummarizedExperiment"))
@@ -105,8 +105,8 @@ test_that("Relative to reference preserves log-linear structure", {
         )
     )
     
-    raw_se <- calculate_diversity(test_se, test_gs, q = 2, norm = "none", verbose = FALSE)
-    ref_se <- calculate_diversity(test_se, test_gs, q = 2, norm = "relative_reference", verbose = FALSE)
+    raw_se <- .calculate_diversity(test_se, test_gs, q = 2, norm = "none", verbose = FALSE)
+    ref_se <- .calculate_diversity(test_se, test_gs, q = 2, norm = "relative_reference", verbose = FALSE)
     
     # Both should return valid SummarizedExperiments
     expect_true(inherits(raw_se, "SummarizedExperiment"))
@@ -118,7 +118,7 @@ test_that("Relative to reference preserves log-linear structure", {
 })
 
 test_that("Range standardization [0,1] remains valid", {
-    range_se <- calculate_diversity(rc, gs, q = 2, norm = "range", verbose = FALSE)
+    range_se <- .calculate_diversity(rc, gs, q = 2, norm = "range", verbose = FALSE)
     
     range_vals <- as.numeric(assay(range_se, "diversity"))
     valid_range <- range_vals[!is.na(range_vals)]
@@ -129,7 +129,7 @@ test_that("Range standardization [0,1] remains valid", {
 })
 
 test_that("No standardization ('none') returns raw values", {
-    none_se <- calculate_diversity(rc, gs, q = 2, norm = "none", verbose = FALSE)
+    none_se <- .calculate_diversity(rc, gs, q = 2, norm = "none", verbose = FALSE)
     
     # Should be valid SummarizedExperiment
     expect_true(inherits(none_se, "SummarizedExperiment"),
@@ -142,14 +142,14 @@ test_that("No standardization ('none') returns raw values", {
 
 test_that("Invalid normalization method raises error", {
     expect_error(
-        calculate_diversity(rc, gs, q = 2, norm = "invalid_method", verbose = FALSE)
+        .calculate_diversity(rc, gs, q = 2, norm = "invalid_method", verbose = FALSE)
     )
 })
 
 test_that("Standardization works with multiple q values", {
     q_vals <- c(0.5, 1, 2)
     
-    z_se <- calculate_diversity(rc, gs, q = q_vals, norm = "zscore", verbose = FALSE)
+    z_se <- .calculate_diversity(rc, gs, q = q_vals, norm = "zscore", verbose = FALSE)
     
     # Should return a valid SummarizedExperiment
     expect_true(inherits(z_se, "SummarizedExperiment"))
@@ -180,9 +180,9 @@ test_that("All standardization methods return valid SummarizedExperiment", {
     for (method in methods) {
         # Use SummarizedExperiment for relative_reference, plain matrix for others
         if (method == "relative_reference") {
-            se <- calculate_diversity(test_se, test_gs, q = 1.5, norm = method, verbose = FALSE)
+            se <- .calculate_diversity(test_se, test_gs, q = 1.5, norm = method, verbose = FALSE)
         } else {
-            se <- calculate_diversity(test_rc, test_gs, q = 1.5, norm = method, verbose = FALSE)
+            se <- .calculate_diversity(test_rc, test_gs, q = 1.5, norm = method, verbose = FALSE)
         }
         
         expect_true(inherits(se, "SummarizedExperiment"),
@@ -198,7 +198,7 @@ test_that("All standardization methods return valid SummarizedExperiment", {
 })
 
 test_that("Standardization metadata is correctly stored", {
-    z_se <- calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
+    z_se <- .calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
     
     # Check that it's a valid SummarizedExperiment
     expect_true(inherits(z_se, "SummarizedExperiment"))
@@ -208,7 +208,7 @@ test_that("Standardization metadata is correctly stored", {
 })
 
 test_that("Z-score standardization is symmetric around zero", {
-    z_se <- calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
+    z_se <- .calculate_diversity(rc, gs, q = 2, norm = "zscore", verbose = FALSE)
     
     z_vals <- as.numeric(assay(z_se, "diversity"))
     valid_z <- z_vals[!is.na(z_vals)]
@@ -224,10 +224,10 @@ test_that("Z-score standardization is symmetric around zero", {
 
 test_that("Log-odds ratio standardization detects high vs low diversity", {
     # Test raw diversity first to establish baseline
-    raw_se <- calculate_diversity(rc[1:15, ], gs[1:15], q = 2, norm = "none", verbose = FALSE)
+    raw_se <- .calculate_diversity(rc[1:15, ], gs[1:15], q = 2, norm = "none", verbose = FALSE)
     
     # Test log-odds ratio standardization
-    lor_se <- calculate_diversity(rc[1:15, ], gs[1:15], q = 2, norm = "log_odds_ratio", verbose = FALSE)
+    lor_se <- .calculate_diversity(rc[1:15, ], gs[1:15], q = 2, norm = "log_odds_ratio", verbose = FALSE)
     
     # Both should produce valid matrices
     raw_vals <- assay(raw_se, "diversity")
@@ -252,8 +252,8 @@ test_that("Reference standardization is scale-invariant", {
         )
     )
     
-    ref_se_q1 <- calculate_diversity(test_se, test_gs, q = 1, norm = "relative_reference", verbose = FALSE)
-    ref_se_q2 <- calculate_diversity(test_se, test_gs, q = 2, norm = "relative_reference", verbose = FALSE)
+    ref_se_q1 <- .calculate_diversity(test_se, test_gs, q = 1, norm = "relative_reference", verbose = FALSE)
+    ref_se_q2 <- .calculate_diversity(test_se, test_gs, q = 2, norm = "relative_reference", verbose = FALSE)
     
     # Both should return valid SummarizedExperiments with same dimensions
     expect_true(inherits(ref_se_q1, "SummarizedExperiment"))

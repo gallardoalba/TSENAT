@@ -16,10 +16,10 @@
 #' 
 #' Example workflow:
 #' ```
-#'   1. [For multi-q correlation-adjusted analysis, see calculate_lm_interaction() with multicorr='westfall-young']
-#'   2. Or: Use detect_q_gene_interactions() for rank-based multi-q testing with WY control
-#'   3. Then: pi0_obj <- estimate_storey_pi0(adjusted_pvalues)
-#'   4. Then: qvals <- compute_storey_qvalues(adjusted_pvalues, pi0 = pi0_obj$pi0)
+#'   1. [For multi-q correlation-adjusted analysis, see .calculate_lm_interaction() with multicorr='westfall-young']
+#'   2. Or: Use .detect_q_gene_interactions() for rank-based multi-q testing with WY control
+#'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
+#'   4. Then: qvals <- .compute_storey_qvalues(adjusted_pvalues, pi0 = pi0_obj$pi0)
 #' ```
 #' 
 #' **Why Westfall-Young First?**
@@ -85,11 +85,12 @@
 #'   rbeta(n_signal, 0.5, 1)  # Signal distribution (skewed to small p)
 #' )
 #' 
-#' pi0_est <- estimate_storey_pi0(pvalues)
+#' pi0_est <- .estimate_storey_pi0(pvalues)
 #' print(pi0_est)  # Should be close to 0.9 (450/500)
 #' 
 #' @noRd
-estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda", 
+
+.estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda", 
                                  na.rm = TRUE) {
   
   if (na.rm) {
@@ -213,7 +214,7 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
 #'   **IMPORTANT**: These must be independent or correlation-adjusted. 
 #'   For TSENAT multi-q tests, use Westfall-Young adjusted p-values, not raw p-values.
 #' @param pi0 Estimated proportion of true null hypotheses. If NULL, 
-#'   estimated using estimate_storey_pi0() with default parameters.
+#'   estimated using .estimate_storey_pi0() with default parameters.
 #' @param fdr_level Desired false discovery rate level (default: 0.05)
 #' @param robust Logical: If TRUE, apply robust q-value floor (default: TRUE)
 #' @param na.rm Logical: If TRUE, handle NAs appropriately (default: TRUE)
@@ -250,7 +251,7 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
 #' pvalues <- c(runif(450), rbeta(50, 0.5, 1))
 #'
 #' # Compute Storey q-values
-#' qvalues <- compute_storey_qvalues(pvalues)
+#' qvalues <- .compute_storey_qvalues(pvalues)
 #' 
 #' # Compare with Benjamini-Hochberg
 #' qvalues_bh <- p.adjust(pvalues, method = "BH")
@@ -260,13 +261,14 @@ estimate_storey_pi0 <- function(pvalues, lambda = 0.5, pi0_method = "lambda",
 #' n_sig_bh <- sum(qvalues_bh < 0.05)
 #' 
 #' @details
-#' This is an internal helper function primarily called by \code{calculate_lm_interaction()}
+#' This is an internal helper function primarily called by \code{.calculate_lm_interaction()}
 #' when the \code{storey=TRUE} parameter is enabled. It is kept internal as it requires
 #' proper p-value input validation and correlation-aware preprocessing.
 #' 
-#' @keywords internal
+
 #' @noRd
-compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05, 
+
+.compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05, 
                                     robust = TRUE, na.rm = TRUE) {
   
   # Handle missing values
@@ -284,7 +286,7 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
   
   # Estimate pi0 if not provided
   if (is.null(pi0)) {
-    pi0_obj <- estimate_storey_pi0(pvalues_clean, pi0_method = "lambda")
+    pi0_obj <- .estimate_storey_pi0(pvalues_clean, pi0_method = "lambda")
     pi0 <- pi0_obj$pi0
   } else {
     if (pi0 < 0 || pi0 > 1) {
@@ -334,8 +336,8 @@ compute_storey_qvalues <- function(pvalues, pi0 = NULL, fdr_level = 0.05,
 # WESTFALL-YOUNG PERMUTATION HELPER (March 2026)
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between:
-#   1. calculate_lm_interaction() - parametric tests (GAM, LMM, GEE)
-#   2. detect_q_gene_interactions() - rank-based tests (Kruskal-Wallis, conditional rank)
+#   1. .calculate_lm_interaction() - parametric tests (GAM, LMM, GEE)
+#   2. .detect_q_gene_interactions() - rank-based tests (Kruskal-Wallis, conditional rank)
 #
 # DESIGN PATTERN:
 #   - Core permutation loop is identical in both functions (~70% code duplication)

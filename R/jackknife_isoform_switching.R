@@ -1,7 +1,7 @@
 #' HELPER FUNCTIONS - Internal Implementation Details
 #' ===================================================
 #' Validate input parameters
-#' @keywords internal
+
 #' @noRd
 .tsenat_jis_validate_input <- function(se, condition_col, gene_col, isoform_col) {
   if (is.null(se)) stop("SummarizedExperiment object (se) is required")
@@ -17,7 +17,7 @@
 }
 
 #' Setup paired design if applicable
-#' @keywords internal
+
 #' @noRd
 .tsenat_setup_paired_design_jis <- function(se, subject_col, condition_col) {
   if (is.null(subject_col)) return(list(is_paired = FALSE, pair_info = NULL, subject_col = NULL))
@@ -35,7 +35,7 @@
 }
 
 #' Build gene ID to name mapping
-#' @keywords internal
+
 #' @noRd
 .tsenat_build_gene_id_mapping <- function(se, gene_col) {
   rd_mapping <- rowData(se)
@@ -48,7 +48,7 @@
 }
 
 #' Calculate Tsallis entropy
-#' @keywords internal
+
 #' @noRd
 .tsenat_jis_tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
   raw_col_sums <- colSums(counts)
@@ -82,7 +82,7 @@
 }
 
 #' Calculate jackknife influences
-#' @keywords internal
+
 #' @noRd
 .tsenat_jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
   h_full <- .tsenat_jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
@@ -100,7 +100,7 @@
 }
 
 #' Apply FDR correction
-#' @keywords internal
+
 #' @noRd
 .tsenat_jis_apply_fdr <- function(results_per_gene, all_pvalues) {
   if (length(all_pvalues) == 0) return(invisible(results_per_gene))
@@ -123,11 +123,11 @@
 }
 
 #' Handle multi-q analysis
-#' @keywords internal
+
 #' @noRd
 .tsenat_jis_handle_multi_q <- function(se, q, q_params, verbose) {
   results_list <- lapply(q, function(q_val) {
-    do.call(jackknife_isoform_switching, c(list(se = se, q = q_val, verbose = FALSE), q_params))
+    do.call(.jackknife_isoform_switching, c(list(se = se, q = q_val, verbose = FALSE), q_params))
   })
   names(results_list) <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
   for (gene_idx in seq_along(results_list[[1]]$results_per_gene)) {
@@ -205,7 +205,7 @@
 #' @param threshold Numeric: percentile for outlier detection on influences (default 90).
 #' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
 #' @param verbose Logical: print results and verbose output? (default TRUE).
-#' @param lm_results Data frame: results from calculate_lm_interaction() with 'gene' column.
+#' @param lm_results Data frame: results from .calculate_lm_interaction() with 'gene' column.
 #'   Can contain either gene names or gene IDs; function automatically maps names to IDs
 #'   using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction' columns for
 #'   filtering genes by significance. When provided, only genes passing lm_p_threshold are
@@ -240,10 +240,11 @@
 #' for sample metadata. This eliminates parameter fragmentation and improves API discoverability
 #' across the TSENAT package.
 #'
-#' @keywords internal
+
 #' @noRd
 # MAIN FUNCTION - Refactored to ~45 lines
-jackknife_isoform_switching <- function(
+
+.jackknife_isoform_switching <- function(
   se = NULL,
   condition_col = "condition",
   subject_col = NULL,
@@ -345,7 +346,7 @@ jackknife_isoform_switching <- function(
     
     n_tx_original <- nrow(counts_A)
     delta_influence <- .tsenat_jackknife_influences_jis(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .tsenat_jackknife_influences_jis(counts_B, q, norm, log_base, pseudocount, n_tx_original)
-    delta_stats <- compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap, n_transcripts = nrow(counts_A))
+    delta_stats <- .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap, n_transcripts = nrow(counts_A))
     switching_status <- ifelse(delta_influence > 0, "up", ifelse(delta_influence < 0, "down", "neutral"))
     
     gene_result <- list(gene_id = gene, transcript_ids = as.character(gene_isos), delta_influence = delta_influence, delta_se = delta_stats$se, delta_ci_lower = delta_stats$ci_lower, delta_ci_upper = delta_stats$ci_upper, delta_pvalue = delta_stats$pvalue, switching_status = switching_status)
@@ -435,9 +436,10 @@ jackknife_isoform_switching <- function(
 #' for delta_influence (difference in Tsallis entropy influence between conditions).
 #' Computes per-transcript statistics from bootstrap resamples.
 #'
-#' @keywords internal
+
 #' @noRd
-compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
+
+.compute_delta_statistics <- function(counts_A, counts_B, delta_influence,
                                    q = 1, norm = TRUE, log_base = exp(1),
                                    pseudocount = 0, n_bootstrap = 1000,
                                    seed = 42, confidence = 0.95, n_transcripts = NULL) {

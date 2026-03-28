@@ -1,13 +1,13 @@
 #' Plot GAM q-curves for top genes identified by FPCA/GAM interaction tests
 #'
 #' Visualizes smooth q-curve profiles (GAM fits) for selected genes from
-#' `calculate_lm_interaction()` results. Useful for understanding which q-ranges (rare
+#' `.calculate_lm_interaction()` results. Useful for understanding which q-ranges (rare
 #' vs. dominant isoforms) drive significant PC differences between groups.
 #'
 #' @param se A `SummarizedExperiment` with q-sequence diversity values
-#'   (multiple q values per sample). Typically output from `calculate_diversity()`
+#'   (multiple q values per sample). Typically output from `.calculate_diversity()`
 #'   with multiple q (e.g., q = seq(0.1, 2, by = 0.1)).
-#' @param lm_res A `data.frame` from `calculate_lm_interaction()` with columns
+#' @param lm_res A `data.frame` from `.calculate_lm_interaction()` with columns
 #'   `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method="fpca"
 #'   or method="gam".
 #' @param condition_col Column name in `colData(se)` specifying group
@@ -20,7 +20,7 @@
 #' @param sig_alpha Significance threshold for adjusted p-values (default: 0.05).
 #'   Only used if genes = NULL; filters lm_res to significant genes before selecting top n.
 #' @param assay_name Name of the assay in `se` to extract (default: "diversity").
-#' @param model_data Required list from `calculate_lm_interaction(..., return_model_data = TRUE)$model_data`
+#' @param model_data Required list from `.calculate_lm_interaction(..., return_model_data = TRUE)$model_data`
 #'   containing metadata (q_values, sample configuration, etc.). This is the preferred way to use
 #'   this function as it ensures all visualizations are based on the exact analysis configuration.
 #'
@@ -34,7 +34,7 @@
 #' 3. Generates smooth predictions for visualization
 #' 4. Overlays predicted curves for each group with a distinct color
 #'
-#' By providing `model_data` from `calculate_lm_interaction()`, the function can directly
+#' By providing `model_data` from `.calculate_lm_interaction()`, the function can directly
 #' access the q-values used in the original analysis for more accurate visualization.
 #'
 #' This complements FPCA by providing interpretable visualization of empirical
@@ -52,7 +52,7 @@
 #' genes <- rep(paste0("gene_", 1:5), each = 3)
 #' 
 #' # Calculate diversity across multiple q values
-#' se <- calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by = 0.5), norm = TRUE)
+#' se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by = 0.5), norm = TRUE)
 #' 
 #' # Add sample metadata
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
@@ -61,20 +61,21 @@
 #' )
 #' 
 #' # Run linear model analysis with model_data  
-#' lm_result <- calculate_lm_interaction(se, condition_col = "condition", method = "gam",
+#' lm_result <- .calculate_lm_interaction(se, condition_col = "condition", method = "gam",
 #'                                       return_model_data = TRUE)
 #' 
 #' # Plot GAM curves for top genes
 #' if (nrow(lm_result$results) > 0) {
-#'   grid_plot <- plot_lm_interaction_gam(se, lm_result$results, condition_col = "condition",
+#'   grid_plot <- .plot_lm_interaction_gam(se, lm_result$results, condition_col = "condition",
 #'                                         n_top = 2, model_data = lm_result$model_data)
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
-plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
+
+.plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
     sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL, width = NULL, height = NULL) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr", "cowplot"))
@@ -106,19 +107,19 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     }
     
     if (!is.data.frame(lm_res) || !("gene" %in% colnames(lm_res))) {
-        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from calculate_lm_interaction()\n  2. A list with $results and $model_data from return_model_data = TRUE",
+        stop("lm_res must be either:\n  1. A data.frame with 'gene' column from .calculate_lm_interaction()\n  2. A list with $results and $model_data from return_model_data = TRUE",
             call. = FALSE)
     }
 
     if (nrow(lm_res) == 0) {
-        stop("lm_res has no rows; calculate_lm_interaction() returned no genes", call. = FALSE)
+        stop("lm_res has no rows; .calculate_lm_interaction() returned no genes", call. = FALSE)
     }
     
     # =========================================================================
     # VALIDATE DATA COMPATIBILITY (NEW: Issue #5 validation)
     # =========================================================================
     # Check that SE and LM results have compatible gene sets before processing
-    data_validation <- validate_plot_data(
+    data_validation <- .validate_plot_data(
         se = se,
         lm_results = lm_res,
         stop_on_error = TRUE,
@@ -132,7 +133,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     }
     
     if (!is.list(model_data)) {
-        stop("model_data must be a list from calculate_lm_interaction(..., return_model_data = TRUE)",
+        stop("model_data must be a list from .calculate_lm_interaction(..., return_model_data = TRUE)",
             call. = FALSE)
     }
     

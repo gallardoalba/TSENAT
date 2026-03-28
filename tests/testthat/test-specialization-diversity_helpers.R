@@ -1,4 +1,4 @@
-# Tests for estimate_pseudocount() function
+# Tests for .estimate_pseudocount() function
 # Library size normalization for pseudocount estimation
 
 library(testthat)
@@ -10,7 +10,7 @@ test_that("estimate_pseudocount works with matrix input", {
   counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
   rownames(counts) <- c("Gene1", "Gene2", "Gene3")
   
-  result <- estimate_pseudocount(counts, verbose = FALSE)
+  result <- .estimate_pseudocount(counts, verbose = FALSE)
   
   # Check return structure
   expect_is(result, "list")
@@ -35,7 +35,7 @@ test_that("estimate_pseudocount works with SummarizedExperiment input", {
   rownames(counts) <- c("Gene1", "Gene2", "Gene3")
   se <- suppressWarnings(SummarizedExperiment::SummarizedExperiment(assay = list(data = counts)))
   
-  result <- estimate_pseudocount(se, verbose = FALSE)
+  result <- .estimate_pseudocount(se, verbose = FALSE)
   
   # Check return structure
   expect_is(result, "list")
@@ -46,7 +46,7 @@ test_that("estimate_pseudocount works with SummarizedExperiment input", {
 test_that("estimate_pseudocount diagnostics are valid", {
   counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
   
-  result <- estimate_pseudocount(counts, verbose = FALSE)
+  result <- .estimate_pseudocount(counts, verbose = FALSE)
   
   # Check diagnostics structure
   expect_is(result$diagnostics, "list")
@@ -64,7 +64,7 @@ test_that("estimate_pseudocount size factors are normalized", {
   counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
   rownames(counts) <- c("Gene1", "Gene2", "Gene3")
   
-  result <- estimate_pseudocount(counts, verbose = FALSE)
+  result <- .estimate_pseudocount(counts, verbose = FALSE)
   
   # Size factors should normalize around 1
   expect_equal(mean(result$size_factors), 1, tolerance = 1e-6)
@@ -75,7 +75,7 @@ test_that("estimate_pseudocount size factors are normalized", {
 test_that("estimate_pseudocount returns reasonable pseudocount values", {
   counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
   
-  result <- estimate_pseudocount(counts, verbose = FALSE)
+  result <- .estimate_pseudocount(counts, verbose = FALSE)
   
   # Pseudocount should be reasonably small and positive
   expect_true(result$scalar_pseudocount > 0)
@@ -92,7 +92,7 @@ test_that("estimate_pseudocount handles sparse counts", {
   counts[2, 4:6] <- c(80, 40, 15)
   counts[3, 7:10] <- c(30, 25, 20, 10)  # Ensure all samples have at least some counts
   
-  result <- estimate_pseudocount(counts, verbose = FALSE)
+  result <- .estimate_pseudocount(counts, verbose = FALSE)
   
   expect_equal(length(result$size_factors), 10)
   expect_true(all(is.finite(result$size_factors)))
@@ -103,7 +103,7 @@ test_that("estimate_pseudocount handles sparse counts", {
 test_that("estimate_pseudocount handles all-zero matrix", {
   counts <- matrix(0, nrow = 3, ncol = 3)
   
-  result <- estimate_pseudocount(counts, verbose = FALSE)
+  result <- .estimate_pseudocount(counts, verbose = FALSE)
   
   # Should still return valid structure
   expect_equal(length(result$size_factors), 3)
@@ -113,7 +113,7 @@ test_that("estimate_pseudocount handles all-zero matrix", {
 test_that("estimate_pseudocount rejects invalid input", {
   # Non-matrix, non-SummarizedExperiment input
   expect_error(
-    estimate_pseudocount(c(1, 2, 3), verbose = FALSE),
+    .estimate_pseudocount(c(1, 2, 3), verbose = FALSE),
     "must be a SummarizedExperiment or matrix"
   )
 })
@@ -121,8 +121,8 @@ test_that("estimate_pseudocount rejects invalid input", {
 test_that("estimate_pseudocount is consistent across multiple calls", {
   counts <- matrix(c(10, 5, 1, 20, 8, 3, 15, 10, 5), nrow = 3, ncol = 3)
   
-  result1 <- estimate_pseudocount(counts, verbose = FALSE)
-  result2 <- estimate_pseudocount(counts, verbose = FALSE)
+  result1 <- .estimate_pseudocount(counts, verbose = FALSE)
+  result2 <- .estimate_pseudocount(counts, verbose = FALSE)
   
   # Same input should give identical results
   expect_equal(result1$scalar_pseudocount, result2$scalar_pseudocount)
@@ -132,11 +132,11 @@ test_that("estimate_pseudocount is consistent across multiple calls", {
 test_that("estimate_pseudocount scales appropriately with sequencing depth", {
   # Small library sizes
   counts_small <- matrix(c(10, 5, 1, 20, 8, 3), nrow = 2, ncol = 3)
-  result_small <- estimate_pseudocount(counts_small, verbose = FALSE)
+  result_small <- .estimate_pseudocount(counts_small, verbose = FALSE)
   
   # Large library sizes (same proportions, scaled up by 10x)
   counts_large <- matrix(c(100, 50, 10, 200, 80, 30), nrow = 2, ncol = 3)
-  result_large <- estimate_pseudocount(counts_large, verbose = FALSE)
+  result_large <- .estimate_pseudocount(counts_large, verbose = FALSE)
   
   # Both should return valid results
   expect_equal(length(result_small$size_factors), 3)

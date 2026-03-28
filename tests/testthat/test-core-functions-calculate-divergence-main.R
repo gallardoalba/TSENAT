@@ -17,7 +17,7 @@ test_that("calculate_divergence validates norm parameter", {
   
   # Test norm parameter coercion from logical to character
   # This tests the normalization setup
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -41,7 +41,7 @@ test_that("calculate_divergence sorts q values in ascending order", {
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
   # Pass q values out of order and verify sorting
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -65,7 +65,7 @@ test_that("calculate_divergence rejects non-positive q values", {
   
   # Should reject negative q
   expect_error(
-    calculate_divergence(
+    .calculate_divergence(
       se,
       group_col = "sample_type",
       control_group = "Control",
@@ -92,7 +92,7 @@ test_that("calculate_divergence auto-detects group column", {
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
   # Don't specify group_col, should auto-detect
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     control_group = "Control",
     q = 1,
@@ -117,7 +117,7 @@ test_that("calculate_divergence auto-detects control group", {
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
   # Don't specify control_group, should auto-detect "Normal"
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     q = 1,
@@ -141,7 +141,7 @@ test_that("calculate_divergence fails without gene identifiers", {
   
   # No gene names in rowData or rownames
   expect_error(
-    calculate_divergence(
+    .calculate_divergence(
       se,
       group_col = "sample_type",
       control_group = "Control",
@@ -177,7 +177,7 @@ test_that("classify_q_pattern performs basic classification", {
     "q_2.0" = 0.2
   )
   
-  result <- classify_q_pattern(per_q_divs)
+  result <- .classify_q_pattern(per_q_divs)
   
   expect_true(result %in% c("RARE_DRIVEN", "ABUNDANT_DRIVEN", "BALANCED", NA_character_))
 })
@@ -190,7 +190,7 @@ test_that("classify_q_pattern classifies RARE_DRIVEN correctly", {
     "q_2.0" = 0.4
   )
   
-  result <- classify_q_pattern(per_q_divs)
+  result <- .classify_q_pattern(per_q_divs)
   
   expect_equal(result, "RARE_DRIVEN")
 })
@@ -203,7 +203,7 @@ test_that("classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
     "q_2.0" = 0.9
   )
   
-  result <- classify_q_pattern(per_q_divs)
+  result <- .classify_q_pattern(per_q_divs)
   
   expect_equal(result, "ABUNDANT_DRIVEN")
 })
@@ -215,7 +215,7 @@ test_that("classify_q_pattern classifies ABUNDANT_DRIVEN correctly", {
 test_that("effect_sizes_divergence requires data frame input", {
   # lm_res must be a data frame
   expect_error(
-    effect_sizes_divergence(
+    .effect_sizes_divergence(
       lm_res = list(a = 1, b = 2),
       divergence_results_se = NULL,
       verbose = FALSE
@@ -229,7 +229,7 @@ test_that("effect_sizes_divergence requires required columns", {
   lm_res <- data.frame(some_col = c(1, 2, 3))
   
   expect_error(
-    effect_sizes_divergence(
+    .effect_sizes_divergence(
       lm_res = lm_res,
       divergence_results_se = NULL,
       verbose = FALSE
@@ -250,7 +250,7 @@ test_that("calculate_divergence executes sequential processing (nthreads=1)", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -272,7 +272,7 @@ test_that("calculate_divergence handles multiple q values", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -296,7 +296,7 @@ test_that("calculate_divergence performs bootstrap with auto nboot", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -318,7 +318,7 @@ test_that("calculate_divergence applies normalization (range)", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -339,7 +339,7 @@ test_that("calculate_divergence applies normalization (zscore)", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -360,7 +360,7 @@ test_that("calculate_divergence skips normalization with norm='none'", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -381,7 +381,7 @@ test_that("calculate_divergence classifies per-q patterns with multiple q", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -402,7 +402,7 @@ test_that("calculate_divergence populates reference q columns", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -427,7 +427,7 @@ test_that("calculate_divergence handles single gene correctly", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -447,7 +447,7 @@ test_that("calculate_divergence rejects bootstrap=non-logical", {
   )
   
   expect_error(
-    calculate_divergence(
+    .calculate_divergence(
       se,
       group_col = "sample_type",
       control_group = "Control",
@@ -466,7 +466,7 @@ test_that("calculate_divergence includes metadata in result", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -490,7 +490,7 @@ test_that("calculate_divergence handles custom pseudocount", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -510,7 +510,7 @@ test_that("calculate_divergence handles custom log_base", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -530,7 +530,7 @@ test_that("calculate_divergence handles bootstrap with bca method", {
     group_col_name = "sample_type"
   )
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -556,7 +556,7 @@ test_that("calculate_divergence returns error results gracefully", {
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5", "s6")
   
   # Should complete without crashing
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",

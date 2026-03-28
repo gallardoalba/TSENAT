@@ -22,7 +22,7 @@ test_that("compute_method_concordance computes correlation correctly", {
     effect_size_eta2 = runif(20)
   )
   
-  result <- compute_method_concordance(gam_results, kw_results)
+  result <- .compute_method_concordance(gam_results, kw_results)
   
   expect_true(is.list(result))
   expect_true("comparison_df" %in% names(result))
@@ -48,7 +48,7 @@ test_that("compute_method_concordance identifies agreement categories", {
     adj_p_value = c(0.01, 0.5, 0.05, 0.5, 0.5, 0.5, 0.01, 0.5, 0.5, 0.05)
   )
   
-  result <- compute_method_concordance(gam_results, kw_results)
+  result <- .compute_method_concordance(gam_results, kw_results)
   
   expect_true(nrow(result$comparison_df) > 0)
   expect_true("agreement" %in% colnames(result$comparison_df))
@@ -71,7 +71,7 @@ test_that("compute_method_concordance extracts high-confidence genes", {
     adj_p_value = c(0.01, 0.5, rep(0.5, 8))
   )
   
-  result <- compute_method_concordance(gam_results, kw_results)
+  result <- .compute_method_concordance(gam_results, kw_results)
   
   # First gene should be in high_conf
   expect_true(nrow(result$high_conf) >= 1)
@@ -90,7 +90,7 @@ test_that("compute_method_concordance handles missing p_interaction column", {
   )
   
   expect_error(
-    compute_method_concordance(gam_results, kw_results),
+    .compute_method_concordance(gam_results, kw_results),
     "p_interaction"
   )
 })
@@ -100,7 +100,7 @@ test_that("compute_method_concordance handles non-data.frame input", {
   kw_results <- data.frame(gene = 1:10, p_value = runif(10))
   
   expect_error(
-    compute_method_concordance(gam_results, kw_results),
+    .compute_method_concordance(gam_results, kw_results),
     "data.frame"
   )
 })
@@ -118,7 +118,7 @@ test_that("compute_method_concordance handles mismatched genes", {
     adj_p_value = runif(10)
   )
   
-  result <- compute_method_concordance(gam_results, kw_results)
+  result <- .compute_method_concordance(gam_results, kw_results)
   
   # No common genes - expect NULL or empty results
   expect_true(is.null(result$comparison_df) || nrow(result$comparison_df) == 0)
@@ -143,7 +143,7 @@ test_that("plot_method_concordance creates valid plot", {
                       size = 20, replace = TRUE)
   )
   
-  plot <- plot_method_concordance(comparison_df)
+  plot <- .plot_method_concordance(comparison_df)
   
   # Check that result is a grob object
   expect_true(methods::is(plot, "grob") || methods::is(plot, "gtable"))
@@ -155,7 +155,7 @@ test_that("plot_method_concordance rejects empty data.frame", {
   comparison_df <- data.frame()
   
   expect_error(
-    plot_method_concordance(comparison_df),
+    .plot_method_concordance(comparison_df),
     "non-empty"
   )
 })
@@ -164,7 +164,7 @@ test_that("plot_method_concordance rejects NULL input", {
   skip_if_not_installed("ggplot2")
   
   expect_error(
-    plot_method_concordance(NULL),
+    .plot_method_concordance(NULL),
     "non-empty"
   )
 })
@@ -179,7 +179,7 @@ test_that("plot_method_concordance requires required columns", {
   )
   
   expect_error(
-    plot_method_concordance(comparison_df),
+    .plot_method_concordance(comparison_df),
     "required columns"
   )
 })

@@ -23,7 +23,7 @@ test_that("effect_sizes_divergence aligns gene datasets", {
   
   # Should align and compute effect sizes
   expect_error(
-    effect_sizes_divergence(
+    .effect_sizes_divergence(
       lm_res = lm_res,
       divergence_results_se = div_se,
       verbose = FALSE
@@ -53,7 +53,7 @@ test_that("effect_sizes_divergence filters non-matching genes", {
   )
   
   # Should handle gene filtering gracefully
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -83,7 +83,7 @@ test_that("effect_sizes_divergence handles significance threshold", {
   )
   
   # Test with strict threshold
-  result_strict <- effect_sizes_divergence(
+  result_strict <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.01,
@@ -91,7 +91,7 @@ test_that("effect_sizes_divergence handles significance threshold", {
   )
   
   # Test with lenient threshold
-  result_lenient <- effect_sizes_divergence(
+  result_lenient <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.1,
@@ -128,7 +128,7 @@ test_that("effect_sizes_divergence enriches per-q patterns", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     enrich_per_q_pattern = TRUE,
@@ -157,7 +157,7 @@ test_that("effect_sizes_divergence formats output correctly", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -186,7 +186,7 @@ test_that("effect_sizes_divergence handles zero divergence", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -214,7 +214,7 @@ test_that("effect_sizes_divergence handles NA divergence estimates", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -243,7 +243,7 @@ test_that("effect_sizes_divergence with verbose output", {
   )
   
   # Capture output to verify verbose = TRUE produces messages
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = TRUE
@@ -636,7 +636,7 @@ test_that("effect_sizes_divergence returns list with required components", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -663,7 +663,7 @@ test_that("effect_sizes_divergence validation stats are accurate", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     significance_threshold = 0.05,
@@ -694,7 +694,7 @@ test_that("effect_sizes_divergence with disable enrichment", {
   )
   
   # Run with enrichment disabled
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     enrich_per_q_pattern = FALSE,
@@ -722,7 +722,7 @@ test_that("effect_sizes_divergence handles empty matching results", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE
@@ -749,7 +749,7 @@ test_that("effect_sizes_divergence with mixed NA and valid divergence", {
     )
   )
   
-  result <- effect_sizes_divergence(
+  result <- .effect_sizes_divergence(
     lm_res = lm_res,
     divergence_results_se = div_se,
     verbose = FALSE

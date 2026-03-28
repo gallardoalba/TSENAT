@@ -1,7 +1,7 @@
 context("Statistical Quality Control: min_valid_frac Parameter")
 
 # calculate_method is internal; tests access via triple colon
-calculate_method <- TSENAT:::calculate_method
+calculate_method <- TSENAT:::.calculate_method
 
 test_that("min_valid_frac=0.75 filters out sparse genes correctly", {
     # Create a matrix with 3 genes: 
@@ -25,7 +25,7 @@ test_that("min_valid_frac=0.75 filters out sparse genes correctly", {
     genes <- c(rep("A", 4), rep("B", 4), rep("C", 4))
     
     # With default min_valid_frac=0.75, should keep genes A and B, exclude C
-    res <- calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0.75)
+    res <- .calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0.75)
     expect_equal(nrow(res), 2)
     expect_true(all(c("A", "B") %in% res$Gene))
     expect_false("C" %in% res$Gene)
@@ -45,7 +45,7 @@ test_that("min_valid_frac=0.5 keeps genes with 50% or more valid values", {
     genes <- c(rep("A", 4), rep("B", 4))
     
     # With min_valid_frac=0.5, both should be kept
-    res <- calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0.5)
+    res <- .calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0.5)
     expect_equal(nrow(res), 2)
     expect_true(all(c("A", "B") %in% res$Gene))
 })
@@ -64,7 +64,7 @@ test_that("min_valid_frac=1.0 (strict) only keeps genes with 100% valid values",
     genes <- c(rep("A", 4), rep("B", 4))
     
     # With min_valid_frac=1.0, only A should be kept
-    res <- calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 1.0)
+    res <- .calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 1.0)
     expect_equal(nrow(res), 1)
     expect_equal(res$Gene, "A")
 })
@@ -83,7 +83,7 @@ test_that("min_valid_frac=0 disables filtering (keeps all genes with ≥1 valid 
     genes <- c(rep("A", 4), rep("B", 4))
     
     # With min_valid_frac=0, no filtering applied; both should be kept
-    res <- calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0)
+    res <- .calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0)
     expect_equal(nrow(res), 2)
     expect_true(all(c("A", "B") %in% res$Gene))
 })
@@ -115,7 +115,7 @@ test_that("min_valid_frac works correctly with multiple q values", {
     # Gene A: 48/48 = 100% ✓ kept
     # Gene B: 36/48 = 75% ✓ kept
     # Gene C: 24/48 = 50% ✗ excluded
-    res <- calculate_method(mat, genes, norm = TRUE, q = c(0.5, 1, 2), min_valid_frac = 0.75)
+    res <- .calculate_method(mat, genes, norm = TRUE, q = c(0.5, 1, 2), min_valid_frac = 0.75)
     expect_equal(nrow(res), 2)
     expect_true(all(c("A", "B") %in% res$Gene))
     expect_false("C" %in% res$Gene)
@@ -132,7 +132,7 @@ test_that("min_valid_frac verbose message reports correct percentage threshold",
     
     # No genes should be excluded with default threshold on complete data
     expect_silent(
-        calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0.75, verbose = FALSE)
+        .calculate_method(mat, genes, norm = TRUE, q = 1, min_valid_frac = 0.75, verbose = FALSE)
     )
 })
 
@@ -145,7 +145,7 @@ test_that("min_valid_frac parameter passes through from calculate_diversity", {
     genes <- rep(c("A", "B", "C", "D", "E"), each = 4)
     
     # All genes have data, so all should pass any reasonable threshold
-    res <- calculate_diversity(
+    res <- .calculate_diversity(
         readcounts, 
         genes = genes, 
         norm = TRUE, 
@@ -176,7 +176,7 @@ test_that("min_valid_frac=0.75 default recovers genes when combined with pseudoc
     # With min_valid_frac=0.75, gene A needs 75% of samples valid (3/4)
     # Gene A: only 1/4 = 25% valid, so excluded
     # Gene B: 4/4 = 100% valid, so kept
-    res <- calculate_method(mat, genes, norm = TRUE, q = 1, 
+    res <- .calculate_method(mat, genes, norm = TRUE, q = 1, 
                             pseudocount = 0.5, min_valid_frac = 0.75)
     
     # Gene A: only 1/4 = 25% valid original counts, fails 75% threshold

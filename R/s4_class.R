@@ -483,7 +483,7 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
     return(object@jackknife_results)
   }
 
-  # Format q-value key - must match storage format used by base jackknife_isoform_switching()
+  # Format q-value key - must match storage format used by base .jackknife_isoform_switching()
   # Uses paste0("q_", gsub("\\.", "_", sprintf("%.2f", q))) to store (e.g., "q_0_01", "q_1_00")
   q_key <- paste0("q_", gsub("\\.", "_", sprintf("%.2f", q)))
 
@@ -574,14 +574,14 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #' analysis <- TSENATAnalysis(se)
 #' all_plots <- getPlot(analysis)  # Empty until tsenat() generates plots
 #'
-#' @keywords internal
+
 #' @noRd
 setGeneric("getPlot", function(object, type = NULL) {
   standardGeneric("getPlot")
 })
 
 #' @rdname getPlot
-#' @keywords internal
+
 #' @noRd
 setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
   if (length(object@plots) == 0) {
@@ -622,14 +622,14 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' analysis <- TSENATAnalysis(se)
 #' # analysis <- addPlot(analysis, type = "example", plot = NULL)
 #'
-#' @keywords internal
+
 #' @noRd
 setGeneric("addPlot", function(object, type, plot, replace = FALSE) {
   standardGeneric("addPlot")
 })
 
 #' @rdname addPlot
-#' @keywords internal
+
 #' @noRd
 setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
   if (!replace && type %in% names(object@plots)) {
@@ -898,14 +898,14 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
 #' analysis <- setConfig(analysis, new_config)
 #'
-#' @keywords internal
+
 #' @noRd
 setGeneric("setConfig", function(object, value) {
   standardGeneric("setConfig")
 })
 
 #' @rdname setConfig
-#' @keywords internal
+
 #' @noRd
 setMethod("setConfig", "TSENATAnalysis", function(object, value) {
   if (!is.list(value)) {
@@ -937,14 +937,14 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' analysis <- TSENATAnalysis(se)
 #' analysis <- setConfigValue(analysis, "condition_col", "sample_type")
 #'
-#' @keywords internal
+
 #' @noRd
 setGeneric("setConfigValue", function(object, key, value) {
   standardGeneric("setConfigValue")
 })
 
 #' @rdname setConfigValue
-#' @keywords internal
+
 #' @noRd
 setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
   config <- getConfig(object)

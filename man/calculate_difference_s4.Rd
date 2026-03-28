@@ -105,7 +105,7 @@ between control and treatment groups, not raw abundance data.
 }
 }
 \examples{
-analysis <- TSENAT:::create_test_analysis()
+analysis <- TSENAT:::.create_test_analysis()
 result <- calculate_difference_s4(analysis, control = "control")
 
 }

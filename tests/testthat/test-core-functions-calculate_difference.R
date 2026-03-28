@@ -20,7 +20,7 @@ test_that("Difference calculation methods are correct", {
     msg_invalid_pcorr <- "Invalid p-value correction; see \\?calculate_difference\\."
 
     expect_error(
-        calculate_difference(
+        .calculate_difference(
             diversity,
             samples,
             control,
@@ -31,7 +31,7 @@ test_that("Difference calculation methods are correct", {
     )
 
     expect_error(
-        calculate_difference(
+        .calculate_difference(
             diversity,
             samples,
             control,
@@ -42,7 +42,7 @@ test_that("Difference calculation methods are correct", {
     )
 
     expect_error(
-        calculate_difference(
+        .calculate_difference(
             diversity,
             samples,
             control,
@@ -63,7 +63,7 @@ test_that("Difference calculation input handling is working.", {
             control <- "Healthy"
 
             expect_error(
-                calculate_difference(
+                .calculate_difference(
                     diversity,
                     samples,
                     control,
@@ -82,7 +82,7 @@ test_that("Difference calculation input handling is working.", {
 
 
             expect_error(
-                calculate_difference(
+                .calculate_difference(
                     diversity,
                     samples,
                     control,
@@ -100,7 +100,7 @@ test_that("Difference calculation input handling is working.", {
 
             msg_high_conditions <- "More than two conditions; provide exactly two\\."
             expect_error(
-                calculate_difference(
+                .calculate_difference(
                     diversity,
                     samples,
                     control,
@@ -114,7 +114,7 @@ test_that("Difference calculation input handling is working.", {
 
             msg_low_conditions <- "Fewer than two conditions; provide exactly two\\."
             expect_error(
-                calculate_difference(
+                .calculate_difference(
                     diversity,
                     samples,
                     control,
@@ -127,7 +127,7 @@ test_that("Difference calculation input handling is working.", {
             samples <- c(rep("Healthy", 4), rep("Pathogenic", 4))
 
             expect_error(
-                calculate_difference(
+                .calculate_difference(
                     diversity,
                     samples,
                     "Healthy control",
@@ -148,7 +148,7 @@ test_that("Sample size warnings are working.", {
         test <- "wilcoxon"
 
         expect_message(
-            calculate_difference(diversity,
+            .calculate_difference(diversity,
                 samples,
                 control,
                 method,
@@ -163,7 +163,7 @@ test_that("Sample size warnings are working.", {
         samples <- c(rep("Healthy", 2), rep("Pathogenic", 2))
 
         expect_warning(
-            calculate_difference(
+            .calculate_difference(
                 diversity,
                 samples,
                 control,
@@ -176,7 +176,7 @@ test_that("Sample size warnings are working.", {
         test <- "shuffle"
 
         expect_warning(
-            calculate_difference(
+            .calculate_difference(
                 diversity,
                 samples,
                 control,
@@ -203,7 +203,7 @@ test_that("Calculate difference output is correct.", {
     condition_col <- c(rep("Healthy", 4), rep("Pathogenic", 4))
     control <- "Healthy"
 
-    result <- calculate_difference(diversity, condition_col, control)
+    result <- .calculate_difference(diversity, condition_col, control)
 
     expect_true(is.data.frame(result))
     expect_length(result, 9)
@@ -223,7 +223,7 @@ test_that("calculate_difference accepts SummarizedExperiment and uses sample_typ
     colData_df <- S4Vectors::DataFrame(sample_type = c(rep("Healthy", 4), rep("Pathogenic", 4)), row.names = colnames(mat))
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(counts = mat), colData = colData_df)
 
-    res <- calculate_difference(se, condition_col = NULL, control = "Healthy", method = "mean", test = "wilcoxon")
+    res <- .calculate_difference(se, condition_col = NULL, control = "Healthy", method = "mean", test = "wilcoxon")
     expect_true(is.data.frame(res))
     expect_true("pvalue" %in% colnames(res) || "padj" %in% colnames(res))
 })
@@ -233,7 +233,7 @@ test_that("calculate_difference errors on invalid assayno for SummarizedExperime
     colnames(mat) <- paste0("S", 1:4)
     colData_df <- S4Vectors::DataFrame(sample_type = c("A", "A", "B", "B"), row.names = colnames(mat))
     se <- SummarizedExperiment(assays = S4Vectors::SimpleList(a = mat), colData = colData_df)
-    expect_error(calculate_difference(se, condition_col = NULL, control = "A", assayno = 2), "Invalid 'assayno'|Column count doesn't match length")
+    expect_error(.calculate_difference(se, condition_col = NULL, control = "A", assayno = 2), "Invalid 'assayno'|Column count doesn't match length")
 })
 
 test_that("Genes with insufficient observations are reported with NA p-values (small group)", {
@@ -248,7 +248,7 @@ test_that("Genes with insufficient observations are reported with NA p-values (s
     df <- cbind(df, as.data.frame(rbind(vals_g1, vals_g2, vals_g3)))
     colnames(df)[-1] <- paste0("S", seq_len(20))
     # call calculate_difference; suppress low-sample wilcoxon warning for this case
-    res <- suppressWarnings(calculate_difference(df, condition_col = samples, control = "A", method = "mean", test = "wilcoxon"))
+    res <- suppressWarnings(.calculate_difference(df, condition_col = samples, control = "A", method = "mean", test = "wilcoxon"))
     expect_true(is.data.frame(res))
     # find g2 row and check NA p-values
     row_g2 <- res[res$gene_id == "g2", , drop = FALSE]
@@ -260,8 +260,8 @@ test_that("Genes with insufficient observations are reported with NA p-values (s
 test_that("calculate_fc input validation and pseudocount behavior", {
     mat <- matrix(c(1, 0, -1), nrow = 1)
     samples <- c("A", "A", "B")
-    expect_error(TSENAT:::calculate_fc(mat, samples = samples[-1], control = "A"), "Length of 'samples' must equal")
-    expect_error(TSENAT:::calculate_fc(mat, samples = samples, control = "C"), "Control sample type not found")
+    expect_error(TSENAT:::.calculate_fc(mat, samples = samples[-1], control = "A"), "Length of 'samples' must equal")
+    expect_error(TSENAT:::.calculate_fc(mat, samples = samples, control = "C"), "Control sample type not found")
 
     # zero and negative values trigger pseudocount replacement when pseudocount <= 0
     mat2 <- matrix(c(0, 0, 0, 0), nrow = 1)
@@ -269,7 +269,7 @@ test_that("calculate_fc input validation and pseudocount behavior", {
     # control must be present; expand to two samples per group
     mat2 <- matrix(c(0, 0, 0, 0), nrow = 1)
     samples2 <- c("A", "B", "A", "B")
-    val <- calculate_fc(mat2, samples = samples2, control = "A", method = "mean", pseudocount = 0)
+    val <- .calculate_fc(mat2, samples = samples2, control = "A", method = "mean", pseudocount = 0)
     # pseudocount applied to non-positive entries; ensure finite values
     expect_true(all(is.finite(as.numeric(val[1, 1:2])) | is.na(as.numeric(val[1, 1:2]))))
 })
@@ -280,7 +280,7 @@ test_that("paired signflip permutations enumerate all combos when randomizations
     mat <- matrix(c(1, 2, 3, 4), nrow = 1)
     samples <- c("A", "B", "A", "B")
     # call label_shuffling with paired signflip and randomizations=0 to force enumeration
-    res <- label_shuffling(mat, samples = samples, control = "A", method = "mean", randomizations = 0, pcorr = "none", paired = TRUE, paired_method = "signflip")
+    res <- .label_shuffling(mat, samples = samples, control = "A", method = "mean", randomizations = 0, pcorr = "none", paired = TRUE, paired_method = "signflip")
     expect_true(is.data.frame(res))
     # result should be 1 row and 7 columns (pvalue, padj, log2FC, U, r, and 2 group means)
     expect_equal(nrow(res), 1)
@@ -296,7 +296,7 @@ test_that("calculate_difference returns empty data.frame for zero-row input", {
     # create zero-row data.frame matching 8 sample columns to avoid low-sample warnings
     df <- data.frame(Genes = character(0), S1 = numeric(0), S2 = numeric(0), S3 = numeric(0), S4 = numeric(0), S5 = numeric(0), S6 = numeric(0), S7 = numeric(0), S8 = numeric(0), stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 4)
-    res <- calculate_difference(df, condition_col = samples, control = "A", method = "mean", test = "wilcoxon")
+    res <- .calculate_difference(df, condition_col = samples, control = "A", method = "mean", test = "wilcoxon")
     expect_true(is.data.frame(res) && nrow(res) == 0)
 })
 
@@ -307,11 +307,11 @@ test_that("SummarizedExperiment without sample_type and samples=NULL errors info
     colnames(mat) <- paste0("S", 1:2)
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(counts = mat))
 
-    expect_error(calculate_difference(se, condition_col = NULL, control = "A"), "supply 'condition_col' as a colData column", fixed = FALSE)
+    expect_error(.calculate_difference(se, condition_col = NULL, control = "A"), "supply 'condition_col' as a colData column", fixed = FALSE)
 })
 
 
-test_that("calculate_difference integrates with label_shuffling (shuffle path)", {
+test_that("calculate_difference integrates with .label_shuffling(shuffle path)", {
     set.seed(42)
     # create data.frame with 12 samples (6 per group)
     genes <- paste0("g", seq_len(5))
@@ -319,7 +319,7 @@ test_that("calculate_difference integrates with label_shuffling (shuffle path)",
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
 
-    res <- calculate_difference(df, condition_col = samples, control = "A", method = "mean", test = "shuffle", randomizations = 10, pcorr = "none")
+    res <- .calculate_difference(df, condition_col = samples, control = "A", method = "mean", test = "shuffle", randomizations = 10, pcorr = "none")
     expect_true(is.data.frame(res))
     # when shuffle used we expect pvalue and padj columns
     expect_true(all(c("pvalue", "padj") %in% colnames(res)))
@@ -333,7 +333,7 @@ test_that("Providing multiple samples column names to SummarizedExperiment error
     colData_df <- S4Vectors::DataFrame(sample_type = rep(c("A", "B", "A", "B"), length.out = ncol(mat)), row.names = colnames(mat))
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(counts = mat), colData = colData_df)
 
-    expect_error(calculate_difference(se, condition_col = c("sample_type", "foo"), control = "A"), "'condition_col' must be a single colData column")
+    expect_error(.calculate_difference(se, condition_col = c("sample_type", "foo"), control = "A"), "'condition_col' must be a single colData column")
 })
 
 # Tests for new features: seed parameter and precision weighting
@@ -349,7 +349,7 @@ test_that("Seed parameter produces reproducible shuffle results", {
     samples <- rep(c("A", "B"), each = 6)
 
     # Run shuffle test twice with same seed
-    res1 <- calculate_difference(
+    res1 <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -360,7 +360,7 @@ test_that("Seed parameter produces reproducible shuffle results", {
         seed = 42
     )
 
-    res2 <- calculate_difference(
+    res2 <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -386,7 +386,7 @@ test_that("Different seeds produce different shuffle results", {
     samples <- rep(c("A", "B"), each = 6)
 
     # Run shuffle test with different seeds
-    res1 <- calculate_difference(
+    res1 <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -397,7 +397,7 @@ test_that("Different seeds produce different shuffle results", {
         seed = 42
     )
 
-    res_other_seed <- calculate_difference(
+    res_other_seed <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -423,7 +423,7 @@ test_that("Seed parameter is ignored for wilcoxon test", {
     samples <- rep(c("A", "B"), each = 6)
 
     # Wilcoxon results should be identical regardless of seed
-    res1 <- suppressWarnings(calculate_difference(
+    res1 <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -433,7 +433,7 @@ test_that("Seed parameter is ignored for wilcoxon test", {
         seed = 42
     ))
 
-    res2 <- suppressWarnings(calculate_difference(
+    res2 <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -460,7 +460,7 @@ test_that("calculate_difference preserves r and U columns from wilcoxon test", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
 
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -495,7 +495,7 @@ test_that("r values from wilcoxon are in valid range [-1, 1]", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- c(rep("A", 8), rep("B", 8))
 
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -521,7 +521,7 @@ test_that("U values from wilcoxon are non-negative", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
 
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -548,7 +548,7 @@ test_that("calculate_difference output includes both p-values and effect sizes",
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Ctrl", "Treat"), each = 6)
 
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "Ctrl",
@@ -580,7 +580,7 @@ test_that("shuffle method also includes effect size columns when available", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 5)
 
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -612,7 +612,7 @@ test_that("median method also preserves effect sizes from wilcoxon test", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 5)
 
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -645,7 +645,7 @@ test_that("lowly-expressed genes have NA r and U values", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -680,7 +680,7 @@ test_that("paired wilcoxon test preserves r and U columns", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Pre", "Post"), each = n_samples / 2)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "Pre",
@@ -717,7 +717,7 @@ test_that("r values remain in valid range [-1, 1] for all methods", {
         df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
         samples <- rep(c("A", "B"), each = 7)
         
-        result <- calculate_difference(
+        result <- .calculate_difference(
             df,
             condition_col = samples,
             control = "A",
@@ -743,7 +743,7 @@ test_that("U values are non-negative for all wilcoxon tests", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 6)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -768,7 +768,7 @@ test_that("shuffle method preserves r and U structure", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Ctrl", "Treat"), each = 5)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "Ctrl",
@@ -798,7 +798,7 @@ test_that("shuffle method preserves r and U structure", {
 
 context("Difference Calculation: Permutation Test Effect Sizes (U and r)")
 
-test_that("calculate_difference(test='shuffle') includes U and r columns", {
+test_that(".calculate_difference(test='shuffle') includes U and r columns", {
     set.seed(100)
     
     genes <- paste0("Gene_", seq_len(5))
@@ -806,7 +806,7 @@ test_that("calculate_difference(test='shuffle') includes U and r columns", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Control", "Case"), times = 5)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "Control",
@@ -837,7 +837,7 @@ test_that("calculate_difference: shuffle vs wilcoxon effect sizes match", {
     samples <- c(rep("A", 6), rep("B", 6))
     
     # Shuffle test
-    res_shuffle <- calculate_difference(
+    res_shuffle <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -847,7 +847,7 @@ test_that("calculate_difference: shuffle vs wilcoxon effect sizes match", {
     )
     
     # Wilcoxon test
-    res_wilcox <- calculate_difference(
+    res_wilcox <- .calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -862,7 +862,7 @@ test_that("calculate_difference: shuffle vs wilcoxon effect sizes match", {
                  info = "r values differ between shuffle and wilcoxon")
 })
 
-test_that("calculate_difference(shuffle): Effect sizes in valid ranges", {
+test_that(".calculate_difference(shuffle): Effect sizes in valid ranges", {
     set.seed(102)
     
     genes <- paste0("Gene", seq_len(6))
@@ -870,7 +870,7 @@ test_that("calculate_difference(shuffle): Effect sizes in valid ranges", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Ctrl", "Treat"), times = 6)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "Ctrl",
@@ -892,7 +892,7 @@ test_that("calculate_difference(shuffle): Effect sizes in valid ranges", {
                 info = sprintf("Found negative U values: min=%.3f", min(u_vals)))
 })
 
-test_that("calculate_difference(shuffle) with paired design computes effect sizes", {
+test_that(".calculate_difference(shuffle) with paired design computes effect sizes", {
     set.seed(103)
     
     genes <- paste0("G", seq_len(3))
@@ -912,7 +912,7 @@ test_that("calculate_difference(shuffle) with paired design computes effect size
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Normal", "Tumor"), each = 6)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "Normal",
@@ -932,7 +932,7 @@ test_that("calculate_difference(shuffle) with paired design computes effect size
                 info = "Some r values are NA in paired shuffle test")
 })
 
-test_that("calculate_difference(shuffle): Effect sizes independent of SummarizedExperiment input", {
+test_that(".calculate_difference(shuffle): Effect sizes independent of SummarizedExperiment input", {
     skip_if_not_installed("SummarizedExperiment")
     
     set.seed(104)
@@ -946,7 +946,7 @@ test_that("calculate_difference(shuffle): Effect sizes independent of Summarized
     )
     samples <- rep(c("A", "B"), times = 6)
     
-    result_df <- calculate_difference(
+    result_df <- .calculate_difference(
         mat_df,
         condition_col = samples,
         control = "A",
@@ -962,7 +962,7 @@ test_that("calculate_difference(shuffle): Effect sizes independent of Summarized
     )
     colData(se)$group <- samples
     
-    result_se <- calculate_difference(
+    result_se <- .calculate_difference(
         se,
         condition_col = "group",
         control = "A",
@@ -978,7 +978,7 @@ test_that("calculate_difference(shuffle): Effect sizes independent of Summarized
                  info = "r differs between data.frame and SE")
 })
 
-test_that("calculate_difference(shuffle): Effect sizes robust to small effect distributions", {
+test_that(".calculate_difference(shuffle): Effect sizes robust to small effect distributions", {
     set.seed(105)
     
     genes <- paste0("Gene", seq_len(5))
@@ -988,7 +988,7 @@ test_that("calculate_difference(shuffle): Effect sizes robust to small effect di
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("X", "Y"), times = 5)
     
-    result <- calculate_difference(
+    result <- .calculate_difference(
         df,
         condition_col = samples,
         control = "X",
@@ -1031,7 +1031,7 @@ test_that("calculate_difference rejects multiple q values with helpful error", {
     
     # Expect error about multiple q values
     expect_error(
-        calculate_difference(
+        .calculate_difference(
             se_multi_q,
             control = "normal",
             method = "mean",
@@ -1042,7 +1042,7 @@ test_that("calculate_difference rejects multiple q values with helpful error", {
     
     # Also verify the error message mentions calculate_lm_interaction as alternative
     expect_error(
-        calculate_difference(
+        .calculate_difference(
             se_multi_q,
             control = "normal",
             method = "mean",
@@ -1074,7 +1074,7 @@ test_that("calculate_difference accepts single q value (no error)", {
     
     # Should NOT error
     expect_no_error(
-        result <- calculate_difference(
+        result <- .calculate_difference(
             se_single_q,
             control = "normal",
             method = "mean",

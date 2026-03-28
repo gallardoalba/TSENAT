@@ -16,7 +16,7 @@ plot_tsallis_q_curve_s4(
 )
 }
 \arguments{
-\item{se}{A `SummarizedExperiment` returned by `calculate_diversity()` with diversity assay.
+\item{se}{A `SummarizedExperiment` returned by `.calculate_diversity()` with diversity assay.
 For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.}
 
 \item{assay_name}{Character; name of the assay to plot (default: "diversity").}
@@ -34,8 +34,8 @@ Overrides default aggregate behavior. When provided, uses median +/- SD for each
 
 \item{lm_res}{Data frame (optional); gene interaction test results with `gene` column and
 p-value column. Accepts either:
-- Results from `calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
-- Results from `detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
+- Results from `.calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
+- Results from `.detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
 If provided (and `gene` is NULL), plots top `n_top` genes ranked by p-value.
 Useful for plotting significant genes from any interaction analysis.}
 
@@ -64,7 +64,7 @@ or bootstrap confidence interval bands.
 \details{
 **Aggregate mode (default, gene=NULL, lm_res=NULL)**:
 - Plots median Tsallis entropy +/- IQR across all genes for each group
-- Works with any SummarizedExperiment from calculate_diversity()
+- Works with any SummarizedExperiment from .calculate_diversity()
 - Supports single or multiple q values and any number of groups
 - No CI data required for basic plots; bootstrap CIs optional
 
@@ -81,12 +81,12 @@ or bootstrap confidence interval bands.
 - Displays bootstrap confidence interval bands for each group across q-values
 - Requires exactly 2 groups for comparison
 - Requires 2+ q values for q-curve visualization
-- Requires pre-computed bootstrap CIs from `calculate_diversity(..., bootstrap=TRUE)`
+- Requires pre-computed bootstrap CIs from `.calculate_diversity(..., bootstrap=TRUE)`
 - Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
 }
 \examples{
 # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 25,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 25,
   q_values = seq(0.1, 3, by = 0.1), seed = 123)
 analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
 p <- plot_tsallis_q_curve_s4(analysis)

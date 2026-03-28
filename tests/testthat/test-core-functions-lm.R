@@ -555,7 +555,7 @@ test_that("calculate_lm_interaction works with refactored code", {
     )
 
     # Call refactored function with realistic data
-    results <- calculate_lm_interaction(
+    results <- .calculate_lm_interaction(
         se,
         condition_col = "condition",
         method = "lmm",
@@ -626,7 +626,7 @@ test_that("calculate_lm_interaction returns model_data when requested", {
     )
 
     # Call with return_model_data = TRUE
-    output <- calculate_lm_interaction(
+    output <- .calculate_lm_interaction(
         se,
         condition_col = "condition",
         method = "lmm",

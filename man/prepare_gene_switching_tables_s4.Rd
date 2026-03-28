@@ -43,7 +43,7 @@ A list containing:
   }
 }
 \description{
-S4 wrapper for \code{prepare_gene_switching_tables()} that extracts results
+S4 wrapper for \code{.prepare_gene_switching_tables()} that extracts results
 directly from a TSENATAnalysis object. Automatically retrieves LM results and
 jackknife switching results from the analysis object slots.
 }
@@ -59,7 +59,7 @@ The wrapper automatically handles column detection and parameter extraction,
 providing a simplified interface compared to the base function.
 }
 \examples{
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)

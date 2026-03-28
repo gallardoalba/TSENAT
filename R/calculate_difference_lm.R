@@ -2,10 +2,10 @@
 #' linear model of the form `entropy ~ q * group` and  extract the p-value for
 #' the interaction term (whether the effect of `q`  differs between groups). The
 #' function expects a `SummarizedExperiment`  produced by
-#' `calculate_diversity()` when multiple `q` values have been  computed (column
+#' `.calculate_diversity()` when multiple `q` values have been  computed (column
 #' names contain `_q=`).
 #' @param se A `SummarizedExperiment` containing a `diversity` assay produced
-#' by `calculate_diversity(..., q = <vector>)`.
+#' by `.calculate_diversity(..., q = <vector>)`.
 #' @param condition_col Column name in `colData(se)` that contains
 #' a grouping factor for samples (character). If `NULL`, the function will
 #' attempt to infer group from column names (suffix `_N` interpreted as
@@ -87,7 +87,7 @@
 #' selected multicorr method (default: FALSE). When TRUE, adapts the error threshold based 
 #' on estimated proportion of true null hypotheses, increasing power when many true signals 
 #' are present. Can be applied to any multicorr method. Computationally light enhancement.
-#' Requires: estimate_storey_pi0() and compute_storey_qvalues() functions. Reference: Storey (2002).
+#' Requires: .estimate_storey_pi0() and .compute_storey_qvalues() functions. Reference: Storey (2002).
 #' @param adaptive_knots Logical; whether to use adaptive spline knot selection for GAM method
 #' (default: TRUE). When TRUE, automatically adjusts the number of basis functions (k) per gene
 #' based on entropy curve complexity, measured as coefficient of variation of slopes across
@@ -169,7 +169,7 @@
 #' \emph{Journal of the Royal Statistical Society}, Series B, 64(3), 479-498. 
 #' Adaptive FDR estimation via λ0 proportion (used in multicorr='westfall-young-storey').
 #' More powerful than Hochberg when substantial proportion of nulls are true.
-#' @keywords internal
+
 #' @noRd
 #' @examples
 #' # Create example data
@@ -184,7 +184,7 @@
 #' genes <- rep(paste0("gene_", 1:5), each = 3)
 #' 
 #' # Calculate diversity at multiple q values
-#' se <- calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5), norm = TRUE)
+#' se <- .calculate_diversity(counts, genes = genes, q = c(0.5, 1.0, 1.5), norm = TRUE)
 #' 
 #' # Add sample metadata
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
@@ -193,8 +193,9 @@
 #' )
 #' 
 #' # Run linear model interaction analysis
-#' results <- calculate_lm_interaction(se, condition_col = "condition")
-calculate_lm_interaction <- function(
+#' results <- .calculate_lm_interaction(se, condition_col = "condition")
+
+.calculate_lm_interaction <- function(
     se,
     condition_col = "condition",
     min_obs = 10,

@@ -10,36 +10,36 @@ test_that("Tsallis entropy calculation is mathematically correct", {
     # q = 2 (unnormalized)
     q2 <- 2
     manual_q2 <- (1 - sum(p^q2)) / (q2 - 1)
-    tsallis_q2 <- calculate_tsallis_entropy(read_counts, q = q2, norm = FALSE)
+    tsallis_q2 <- .calculate_tsallis_entropy(read_counts, q = q2, norm = FALSE)
     expect_equal(tsallis_q2, manual_q2, tolerance = 1e-8)
 
     # q = 2 (normalized)
     max_tsallis_q2 <- (1 - length(read_counts)^(1 - q2)) / (q2 - 1)
     manual_q2_norm <- manual_q2 / max_tsallis_q2
-    tsallis_q2_norm <- calculate_tsallis_entropy(read_counts, q = q2, norm = TRUE)
+    tsallis_q2_norm <- .calculate_tsallis_entropy(read_counts, q = q2, norm = TRUE)
     expect_equal(tsallis_q2_norm, manual_q2_norm, tolerance = 1e-8)
     expect_true(tsallis_q2_norm <= 1 && tsallis_q2_norm >= 0)
 
     # q = 1 (Shannon, unnormalized) -- use natural log by default
     manual_shannon <- -sum(ifelse(p > 0, p * log(p), 0))
-    tsallis_q1 <- calculate_tsallis_entropy(read_counts, q = 1, norm = FALSE)
+    tsallis_q1 <- .calculate_tsallis_entropy(read_counts, q = 1, norm = FALSE)
     expect_equal(tsallis_q1, manual_shannon, tolerance = 1e-8)
 
     # q = 1 (Shannon, normalized)
     manual_shannon_norm <- manual_shannon / log(length(read_counts))
-    tsallis_q1_norm <- calculate_tsallis_entropy(read_counts, q = 1, norm = TRUE)
+    tsallis_q1_norm <- .calculate_tsallis_entropy(read_counts, q = 1, norm = TRUE)
     expect_equal(tsallis_q1_norm, manual_shannon_norm, tolerance = 1e-8)
     expect_true(tsallis_q1_norm <= 1 && tsallis_q1_norm >= 0)
 
     # q = 1.5 (unnormalized)
     q15 <- 1.5
     manual_q15 <- (1 - sum(p^q15)) / (q15 - 1)
-    tsallis_q15 <- calculate_tsallis_entropy(read_counts, q = q15, norm = FALSE)
+    tsallis_q15 <- .calculate_tsallis_entropy(read_counts, q = q15, norm = FALSE)
     expect_equal(tsallis_q15, manual_q15, tolerance = 1e-8)
 
     # Vector q
     qvec <- c(1, 1.5, 2)
-    tsallis_vec <- calculate_tsallis_entropy(read_counts, q = qvec, norm = FALSE)
+    tsallis_vec <- .calculate_tsallis_entropy(read_counts, q = qvec, norm = FALSE)
     manual_vec <- vapply(qvec, function(qi) {
         if (abs(qi - 1) < .Machine$double.eps^0.5) {
             -sum(ifelse(p > 0, p * log(p), 0))
@@ -55,12 +55,12 @@ test_that("Tsallis entropy calculation is mathematically correct", {
 
     # Edge cases
     # Single isoform with norm=TRUE: normalized entropy is 0/0 = undefined (NaN)
-    expect_true(is.nan(calculate_tsallis_entropy(c(1), q = 2)))
-    expect_true(is.na(calculate_tsallis_entropy(c(0, 0), q = 2)))
+    expect_true(is.nan(.calculate_tsallis_entropy(c(1), q = 2)))
+    expect_true(is.na(.calculate_tsallis_entropy(c(0, 0), q = 2)))
     # q=0 should work (species richness)
-    q0_result <- calculate_tsallis_entropy(read_counts, q = 0)
+    q0_result <- .calculate_tsallis_entropy(read_counts, q = 0)
     expect_true(is.numeric(q0_result) || is.na(q0_result))
-    expect_error(calculate_tsallis_entropy(read_counts, q = -1))
+    expect_error(.calculate_tsallis_entropy(read_counts, q = -1))
 })
 
 context("Tsallis Entropy: Helper Function Extensions")
@@ -156,16 +156,16 @@ library(TSENAT)
 # calculate_tsallis_entropy argument validation and edge cases
 
 test_that("calculate_tsallis_entropy validates inputs", {
-    expect_error(calculate_tsallis_entropy("notnum", q = 2), "x must be numeric")
-    expect_error(calculate_tsallis_entropy(c(1, 2, 3), q = "a"), "q must be numeric")
-    expect_error(calculate_tsallis_entropy(c(1, 2, 3), q = c(-1, 2)), "q must be >= 0")
+    expect_error(.calculate_tsallis_entropy("notnum", q = 2), "x must be numeric")
+    expect_error(.calculate_tsallis_entropy(c(1, 2, 3), q = "a"), "q must be numeric")
+    expect_error(.calculate_tsallis_entropy(c(1, 2, 3), q = c(-1, 2)), "q must be >= 0")
 })
 
 test_that("calculate_tsallis_entropy handles zero-sum vectors and returns NA", {
     x <- c(0, 0, 0)
-    expect_true(all(is.na(calculate_tsallis_entropy(x, q = 1, what = "S"))))
-    expect_true(all(is.na(calculate_tsallis_entropy(x, q = 1, what = "D"))))
-    both <- calculate_tsallis_entropy(x, q = c(0.5, 1, 2), what = "both")
+    expect_true(all(is.na(.calculate_tsallis_entropy(x, q = 1, what = "S"))))
+    expect_true(all(is.na(.calculate_tsallis_entropy(x, q = 1, what = "D"))))
+    both <- .calculate_tsallis_entropy(x, q = c(0.5, 1, 2), what = "both")
     expect_true(all(is.na(both$S)))
     expect_true(all(is.na(both$D)))
 })
@@ -173,18 +173,18 @@ test_that("calculate_tsallis_entropy handles zero-sum vectors and returns NA", {
 test_that("calculate_tsallis_entropy computes expected values for simple distributions", {
     # single-dominant distribution -> entropy 0, diversity 1 for all q
     x <- c(10, 0, 0)
-    S <- calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = FALSE, what = "S")
-    D <- calculate_tsallis_entropy(x, q = c(0.5, 1, 2), what = "D")
+    S <- .calculate_tsallis_entropy(x, q = c(0.5, 1, 2), norm = FALSE, what = "S")
+    D <- .calculate_tsallis_entropy(x, q = c(0.5, 1, 2), what = "D")
     expect_equal(as.numeric(S), rep(0, 3))
     expect_equal(as.numeric(D), rep(1, 3))
 
     # uniform distribution p = (1/3,1/3,1/3) with norm = TRUE should yield S in [0,1]
     x2 <- c(1, 1, 1)
-    S_unif <- calculate_tsallis_entropy(x2, q = c(0.5, 1, 2), norm = TRUE, what = "S")
+    S_unif <- .calculate_tsallis_entropy(x2, q = c(0.5, 1, 2), norm = TRUE, what = "S")
     expect_true(all(S_unif >= 0 & S_unif <= 1))
 
     # q=1 should match Shannon entropy normalization when norm=TRUE
-    S_q1 <- calculate_tsallis_entropy(x2, q = 1, norm = TRUE, what = "S")
+    S_q1 <- .calculate_tsallis_entropy(x2, q = 1, norm = TRUE, what = "S")
     # For uniform distribution, Shannon entropy = log(n)/log(n) = 1 when normalized
     expect_equal(as.numeric(S_q1), 1)
 })
@@ -243,7 +243,7 @@ test_that("calculate_tsallis_entropy handles scalar pseudocount (existing behavi
     x_vec <- c(10, 5, 2)
     scalar_pc <- 0.5
     
-    entropy_with_pc <- calculate_tsallis_entropy(x_vec, pseudocount = scalar_pc, q = 1, norm = FALSE)
+    entropy_with_pc <- .calculate_tsallis_entropy(x_vec, pseudocount = scalar_pc, q = 1, norm = FALSE)
     
     # Manual calculation: add pseudocount to each element
     x_adjusted <- x_vec + scalar_pc
@@ -263,7 +263,7 @@ test_that("calculate_tsallis_entropy handles vector pseudocount with matrix (fla
     # Vector pseudocount (one per row): will be applied row-wise via sweep then flattened
     pseudocount_vec <- c(0.1, 0.2)
     
-    entropy_with_pc_vec <- calculate_tsallis_entropy(x_mat, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
+    entropy_with_pc_vec <- .calculate_tsallis_entropy(x_mat, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
     
     # Manual calculation: apply row-wise pseudocounts via sweep, then flatten
     x_adjusted <- sweep(x_mat, 1, pseudocount_vec, "+")
@@ -279,7 +279,7 @@ test_that("calculate_tsallis_entropy handles vector pseudocount with vector inpu
     x_vec <- c(10, 5, 2, 8)
     pseudocount_vec <- c(0.1, 0.2, 0.05, 0.15)
     
-    entropy_with_pc <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
+    entropy_with_pc <- .calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
     
     # Manual calculation: element-wise addition
     x_adjusted <- x_vec + pseudocount_vec
@@ -294,7 +294,7 @@ test_that("calculate_tsallis_entropy handles vector pseudocount rescuing zeros",
     x_vec <- c(0, 0, 0, 0)
     pseudocount_vec <- c(1.0, 1.0, 1.0, 1.0)
     
-    entropy_with_pc <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
+    entropy_with_pc <- .calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1, norm = FALSE)
     
     # Should have finite value after pseudocount rescue
     expect_true(is.finite(entropy_with_pc))
@@ -312,8 +312,8 @@ test_that("calculate_tsallis_entropy pseudocount works with different q values",
     pseudocount_vec <- c(0.1, 0.2, 0.05, 0.15)
     
     # Test with multiple q values
-    entropy_q2 <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 2, norm = FALSE)
-    entropy_q15 <- calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1.5, norm = FALSE)
+    entropy_q2 <- .calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 2, norm = FALSE)
+    entropy_q15 <- .calculate_tsallis_entropy(x_vec, pseudocount = pseudocount_vec, q = 1.5, norm = FALSE)
     
     # All should be finite and different
     expect_true(is.finite(entropy_q2))
@@ -325,9 +325,9 @@ test_that("calculate_tsallis_entropy pseudocount=0 matches original behavior", {
     x_vec <- c(10, 5, 2)
     
     # With pseudocount=0 or no pseudocount specified
-    entropy_no_pc <- calculate_tsallis_entropy(x_vec, q = 1, norm = FALSE)
-    entropy_pc0 <- calculate_tsallis_entropy(x_vec, pseudocount = 0, q = 1, norm = FALSE)
-    entropy_pc_vec_zero <- calculate_tsallis_entropy(x_vec, pseudocount = c(0, 0, 0), q = 1, norm = FALSE)
+    entropy_no_pc <- .calculate_tsallis_entropy(x_vec, q = 1, norm = FALSE)
+    entropy_pc0 <- .calculate_tsallis_entropy(x_vec, pseudocount = 0, q = 1, norm = FALSE)
+    entropy_pc_vec_zero <- .calculate_tsallis_entropy(x_vec, pseudocount = c(0, 0, 0), q = 1, norm = FALSE)
     
     expect_equal(entropy_no_pc, entropy_pc0, tolerance = 1e-10)
     expect_equal(entropy_no_pc, entropy_pc_vec_zero, tolerance = 1e-10)
@@ -339,7 +339,7 @@ test_that("calculate_tsallis_entropy vector pseudocount dimension matching", {
     pseudocount_vec <- c(0.1, 0.2, 0.05)
     
     # Should apply successfully without error
-    entropy_result <- calculate_tsallis_entropy(x_mat, pseudocount = pseudocount_vec, q = 2, norm = FALSE)
+    entropy_result <- .calculate_tsallis_entropy(x_mat, pseudocount = pseudocount_vec, q = 2, norm = FALSE)
     expect_true(is.finite(entropy_result))
 })
 
@@ -767,7 +767,7 @@ test_that("calculate_diversity returns SummarizedExperiment with correct structu
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
     # Call orchestrated function
-    result <- calculate_diversity(x, genes = genes, q = 2, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes = genes, q = 2, norm = TRUE, verbose = FALSE)
     
     # Check output structure
     expect_s4_class(result, "SummarizedExperiment")
@@ -788,7 +788,7 @@ test_that("calculate_diversity with multiple q values creates multi-q structure"
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
     # Multi-q call
-    result <- calculate_diversity(x, genes = genes, q = c(1, 1.5, 2), norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes = genes, q = c(1, 1.5, 2), norm = TRUE, verbose = FALSE)
     
     # Should have n_samples * n_q columns
     expect_equal(ncol(result), n_samples * 3)
@@ -805,13 +805,13 @@ test_that("calculate_diversity validates parameter inputs", {
     
     # Invalid norm - match.arg produces specific error format
     expect_error(
-        calculate_diversity(x, genes = genes, norm = "invalid_norm", verbose = FALSE),
+        .calculate_diversity(x, genes = genes, norm = "invalid_norm", verbose = FALSE),
         "should be one of"
     )
     
     # Invalid q (negative)
     expect_error(
-        calculate_diversity(x, genes = genes, q = -1, verbose = FALSE),
+        .calculate_diversity(x, genes = genes, q = -1, verbose = FALSE),
         "must be numeric and >= 0"
     )
 })
@@ -822,11 +822,11 @@ test_that("calculate_diversity with pseudocount auto-estimation", {
     genes <- c("G1", "G1", "G2", "G2", "G3")
     
     # With auto pseudocount
-    result_auto <- calculate_diversity(x, genes = genes, pseudocount = "auto", 
+    result_auto <- .calculate_diversity(x, genes = genes, pseudocount = "auto", 
                                        q = 2, norm = TRUE, verbose = FALSE)
     
     # With fixed pseudocount
-    result_fixed <- calculate_diversity(x, genes = genes, pseudocount = 0.5, 
+    result_fixed <- .calculate_diversity(x, genes = genes, pseudocount = 0.5, 
                                         q = 2, norm = TRUE, verbose = FALSE)
     
     # Both should produce SE with same structure
@@ -853,7 +853,7 @@ test_that("calculate_diversity preserves metadata from SummarizedExperiment inpu
     
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
-    result <- calculate_diversity(se, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(se, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
     
     # Check metadata preservation
     expect_s4_class(result, "SummarizedExperiment")
@@ -882,7 +882,7 @@ test_that("calculate_diversity with SE input uses colData correctly", {
     
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
-    result <- calculate_diversity(se, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(se, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
     
     # Check colData is preserved in output
     col_data <- SummarizedExperiment::colData(result)
@@ -899,15 +899,15 @@ test_that("calculate_diversity applies different normalization methods", {
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
     # Test range normalization
-    result_range <- calculate_diversity(x, genes = genes, norm = "range", q = 2, verbose = FALSE)
+    result_range <- .calculate_diversity(x, genes = genes, norm = "range", q = 2, verbose = FALSE)
     expect_s4_class(result_range, "SummarizedExperiment")
     
     # Test zscore normalization
-    result_zscore <- calculate_diversity(x, genes = genes, norm = "zscore", q = 2, verbose = FALSE)
+    result_zscore <- .calculate_diversity(x, genes = genes, norm = "zscore", q = 2, verbose = FALSE)
     expect_s4_class(result_zscore, "SummarizedExperiment")
     
     # Test no normalization
-    result_none <- calculate_diversity(x, genes = genes, norm = "none", q = 2, verbose = FALSE)
+    result_none <- .calculate_diversity(x, genes = genes, norm = "none", q = 2, verbose = FALSE)
     expect_s4_class(result_none, "SummarizedExperiment")
     
     # Results should differ based on normalization
@@ -926,7 +926,7 @@ test_that("calculate_diversity with Hill numbers (what='D')", {
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
     # Request Hill numbers
-    result <- calculate_diversity(x, genes = genes, q = 2, what = "D", norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes = genes, q = 2, what = "D", norm = TRUE, verbose = FALSE)
     
     # Should return valid SE
     expect_s4_class(result, "SummarizedExperiment")
@@ -947,7 +947,7 @@ test_that("calculate_diversity handles small sample input", {
     colnames(x) <- paste0("S", 1:n_samples)
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
-    result <- calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
     
     expect_s4_class(result, "SummarizedExperiment")
     expect_equal(ncol(result), n_samples)
@@ -963,11 +963,11 @@ test_that("calculate_diversity respects min_valid_frac filter", {
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
     # Strict filtering
-    result_strict <- calculate_diversity(x, genes = genes, min_valid_frac = 0.95, 
+    result_strict <- .calculate_diversity(x, genes = genes, min_valid_frac = 0.95, 
                                         q = 2, norm = TRUE, verbose = FALSE)
     
     # Relaxed filtering
-    result_relaxed <- calculate_diversity(x, genes = genes, min_valid_frac = 0.50, 
+    result_relaxed <- .calculate_diversity(x, genes = genes, min_valid_frac = 0.50, 
                                          q = 2, norm = TRUE, verbose = FALSE)
     
     # Relaxed should have at least as many genes as strict
@@ -984,7 +984,7 @@ test_that("calculate_diversity with bootstrap CI computation", {
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
     # With bootstrap enabled (use nboot=100 to avoid warning about minimum)
-    result <- calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, 
+    result <- .calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, 
                                  bootstrap = TRUE, bootstrap_nboot = 100, 
                                  verbose = FALSE)
     
@@ -1007,7 +1007,7 @@ test_that("calculate_diversity combines vocalization of parameters with helper f
     
     # Should handle all parameter variations and pass through helpers
     # (validation helper, pseudocount handler, extraction helper, prep helper)
-    result <- calculate_diversity(
+    result <- .calculate_diversity(
         x, 
         genes = genes, 
         norm = "range",           # -> validation helper
@@ -1033,7 +1033,7 @@ test_that("calculate_diversity output includes rowData with gene info", {
     x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
-    result <- calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes = genes, q = 1.5, norm = TRUE, verbose = FALSE)
     
     # Check rowData structure
     row_data <- SummarizedExperiment::rowData(result)
@@ -1053,7 +1053,7 @@ test_that("calculate_diversity output includes colData with sample and q info", 
     colnames(x) <- paste0("S", 1:n_samples)
     genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
     
-    result <- calculate_diversity(x, genes = genes, q = c(1, 2), norm = TRUE, verbose = FALSE)
+    result <- .calculate_diversity(x, genes = genes, q = c(1, 2), norm = TRUE, verbose = FALSE)
     
     # Check colData for q values
     col_data <- SummarizedExperiment::colData(result)

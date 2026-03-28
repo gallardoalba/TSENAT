@@ -11,7 +11,7 @@ test_that("M-estimation method is recognized and validated", {
     samples <- c("A", "A", "A", "B", "B", "B")
     
     # M-estimation with wilcoxon test should work
-    result <- suppressWarnings(calculate_difference(
+    result <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -35,7 +35,7 @@ test_that("M-estimation method works with shuffle permutation test", {
     samples <- rep(c("A", "B"), each = 4)
     
     # Test with shuffle
-    result <- suppressWarnings(calculate_difference(
+    result <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -64,7 +64,7 @@ test_that("M-estimation is robust to outliers", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- c("A", "A", "A", "A", "B", "B", "B", "B")
     
-    result_mean <- suppressWarnings(calculate_difference(
+    result_mean <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -72,7 +72,7 @@ test_that("M-estimation is robust to outliers", {
         test = "wilcoxon"
     ))
     
-    result_mest <- suppressWarnings(calculate_difference(
+    result_mest <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -98,7 +98,7 @@ test_that("Robust loss and scale parameters are accepted", {
     samples <- rep(c("A", "B"), each = 4)
     
     # Test with huber loss and MAD scale
-    result_huber <- suppressWarnings(calculate_difference(
+    result_huber <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -110,7 +110,7 @@ test_that("Robust loss and scale parameters are accepted", {
     expect_true(is.data.frame(result_huber))
     
     # Test with tukey loss and proposal2 scale
-    result_tukey <- suppressWarnings(calculate_difference(
+    result_tukey <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -133,7 +133,7 @@ test_that("M-estimation produces consistent log2 fold changes", {
     samples <- rep(c("A", "B"), each = 4)
     
     # Same data should produce identical log2 fold changes
-    result1 <- suppressWarnings(calculate_difference(
+    result1 <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -143,7 +143,7 @@ test_that("M-estimation produces consistent log2 fold changes", {
         seed = 42
     ))
     
-    result2 <- suppressWarnings(calculate_difference(
+    result2 <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -168,7 +168,7 @@ test_that("All three location estimators produce valid results", {
     samples <- rep(c("A", "B"), each = 4)
     
     for (method in c("mean", "median", "m_estimate")) {
-        result <- suppressWarnings(calculate_difference(
+        result <- suppressWarnings(.calculate_difference(
             df,
             condition_col = samples,
             control = "A",
@@ -190,7 +190,7 @@ test_that("calculate_fc works with m_estimate method", {
     mat <- matrix(rnorm(5 * 6), nrow = 5)
     samples <- c("A", "A", "A", "B", "B", "B")
     
-    result <- TSENAT:::calculate_fc(
+    result <- TSENAT:::.calculate_fc(
         mat,
         samples = samples,
         control = "A",
@@ -218,7 +218,7 @@ test_that("M-estimation handles NA values gracefully", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- c("A", "A", "A", "B", "B", "B")
     
-    result <- suppressWarnings(calculate_difference(
+    result <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -240,7 +240,7 @@ test_that("M-estimation works with paired samples", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- c("A", "A", "A", "A", "B", "B", "B", "B")
     
-    result <- suppressWarnings(calculate_difference(
+    result <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -266,7 +266,7 @@ test_that("M-estimation works with multiple genes", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 4)
     
-    result <- suppressWarnings(calculate_difference(
+    result <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -299,7 +299,7 @@ test_that("M-estimation works with SummarizedExperiment input", {
         )
     )
     
-    result <- suppressWarnings(calculate_difference(
+    result <- suppressWarnings(.calculate_difference(
         se,
         condition_col = "sample_type",
         control = "A",
@@ -321,7 +321,7 @@ test_that("Different seeds produce consistent log2 fold changes", {
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("A", "B"), each = 4)
     
-    result1 <- suppressWarnings(calculate_difference(
+    result1 <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",
@@ -331,7 +331,7 @@ test_that("Different seeds produce consistent log2 fold changes", {
         seed = 42
     ))
     
-    result2 <- suppressWarnings(calculate_difference(
+    result2 <- suppressWarnings(.calculate_difference(
         df,
         condition_col = samples,
         control = "A",

@@ -1,14 +1,14 @@
 context("Robust Statistical Methods: Basic Functionality")
 
 # ============================================================================
-# TEST: m_estimate() - M-Estimation with Robust Loss Functions
+# TEST: .m_estimate() - M-Estimation with Robust Loss Functions
 # ============================================================================
 
 test_that("m_estimate returns correct data frame structure", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), nrow(x))
@@ -21,7 +21,7 @@ test_that("m_estimate with Huber loss produces finite results", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(all(is.finite(result$location_diff)))
   expect_true(all(is.finite(result$se_diff)))
@@ -32,7 +32,7 @@ test_that("m_estimate with Tukey loss produces finite results", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "tukey")
+  result <- .m_estimate(x, samples, loss_type = "tukey")
   
   expect_true(all(is.finite(result$location_diff)))
   expect_true(all(is.finite(result$pvalue), na.rm = TRUE))
@@ -42,7 +42,7 @@ test_that("m_estimate with LSQ (ordinary least squares) as baseline", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "lsq")
+  result <- .m_estimate(x, samples, loss_type = "lsq")
   
   # LSQ should produce non-NA results
   expect_true(all(!is.na(result$location_diff)))
@@ -54,7 +54,7 @@ test_that("m_estimate detects down-weighted observations", {
   x <- matrix(c(-100, 100, 1:6, 1:8), nrow = 2, byrow = TRUE)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   # First row has extreme outliers, should be down-weighted
   expect_true(result$n_down_weighted[1] > 0)
@@ -70,7 +70,7 @@ test_that("m_estimate location_diff differs between groups", {
   )
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "lsq")
+  result <- .m_estimate(x, samples, loss_type = "lsq")
   
   # Differences should be non-zero and in opposite directions
   expect_true(result$location_diff[1] < 0)  # Group A > Group B
@@ -81,8 +81,8 @@ test_that("m_estimate handles paired design", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result_paired <- m_estimate(x, samples, loss_type = "huber", paired = TRUE)
-  result_unpaired <- m_estimate(x, samples, loss_type = "huber", paired = FALSE)
+  result_paired <- .m_estimate(x, samples, loss_type = "huber", paired = TRUE)
+  result_unpaired <- .m_estimate(x, samples, loss_type = "huber", paired = FALSE)
   
   expect_true(is.data.frame(result_paired))
   expect_true(is.data.frame(result_unpaired))
@@ -92,7 +92,7 @@ test_that("m_estimate p-values are in [0,1]", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(all(result$pvalue >= 0 & result$pvalue <= 1, na.rm = TRUE))
   expect_true(all(result$padj >= 0 & result$padj <= 1, na.rm = TRUE))
@@ -102,7 +102,7 @@ test_that("m_estimate applies p-value correction", {
   x <- matrix(rnorm(50), nrow = 5, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result <- m_estimate(x, samples, loss_type = "huber", pcorr = "BH")
+  result <- .m_estimate(x, samples, loss_type = "huber", pcorr = "BH")
   
   # Adjusted p-values should be >= raw p-values (for BH)
   expect_true(all(result$padj >= result$pvalue, na.rm = TRUE))
@@ -117,7 +117,7 @@ test_that("m_estimate with MAD scale (default) produces valid results", {
   x <- matrix(rnorm(50), nrow = 5, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  result <- .m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 5)
@@ -129,7 +129,7 @@ test_that("m_estimate with Huber Proposal 2 scale produces valid results", {
   x <- matrix(rnorm(50), nrow = 5, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result <- m_estimate(x, samples, loss_type = "huber", scale_method = "proposal2")
+  result <- .m_estimate(x, samples, loss_type = "huber", scale_method = "proposal2")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 5)
@@ -141,7 +141,7 @@ test_that("m_estimate with S-estimator scale produces valid results", {
   x <- matrix(rnorm(50), nrow = 5, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result <- m_estimate(x, samples, loss_type = "huber", scale_method = "s-estimator")
+  result <- .m_estimate(x, samples, loss_type = "huber", scale_method = "s-estimator")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 5)
@@ -153,9 +153,9 @@ test_that("Different scale methods produce consistent estimates", {
   x <- matrix(rnorm(50), nrow = 5, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result_mad <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
-  result_prop2 <- m_estimate(x, samples, loss_type = "huber", scale_method = "proposal2")
-  result_s <- m_estimate(x, samples, loss_type = "huber", scale_method = "s-estimator")
+  result_mad <- .m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  result_prop2 <- .m_estimate(x, samples, loss_type = "huber", scale_method = "proposal2")
+  result_s <- .m_estimate(x, samples, loss_type = "huber", scale_method = "s-estimator")
   
   # All should produce results with same number of rows
   expect_equal(nrow(result_mad), nrow(result_prop2))
@@ -176,9 +176,9 @@ test_that("Scale methods with outliers show robust behavior", {
   )
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result_mad <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
-  result_prop2 <- m_estimate(x, samples, loss_type = "huber", scale_method = "proposal2")
-  result_s <- m_estimate(x, samples, loss_type = "huber", scale_method = "s-estimator")
+  result_mad <- .m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  result_prop2 <- .m_estimate(x, samples, loss_type = "huber", scale_method = "proposal2")
+  result_s <- .m_estimate(x, samples, loss_type = "huber", scale_method = "s-estimator")
   
   # All should handle outliers without crashing
   expect_true(all(is.finite(result_mad$location_diff)))
@@ -191,7 +191,7 @@ test_that("m_estimate rejects invalid scale_method parameter", {
   samples <- c(rep("A", 5), rep("B", 5))
   
   expect_error(
-    m_estimate(x, samples, loss_type = "huber", scale_method = "invalid"),
+    .m_estimate(x, samples, loss_type = "huber", scale_method = "invalid"),
     "scale_method must be"
   )
 })
@@ -202,9 +202,9 @@ test_that("scale_method parameter works with loss_type combinations", {
   samples <- c(rep("A", 5), rep("B", 5))
   
   # Test MAD with all loss types
-  result_huber <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
-  result_tukey <- m_estimate(x, samples, loss_type = "tukey", scale_method = "mad")
-  result_lsq <- m_estimate(x, samples, loss_type = "lsq", scale_method = "mad")
+  result_huber <- .m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  result_tukey <- .m_estimate(x, samples, loss_type = "tukey", scale_method = "mad")
+  result_lsq <- .m_estimate(x, samples, loss_type = "lsq", scale_method = "mad")
   
   expect_true(all(is.finite(result_huber$location_diff)))
   expect_true(all(is.finite(result_tukey$location_diff)))
@@ -217,9 +217,9 @@ test_that("scale_method parameter preserved in recursive calls", {
   x <- matrix(rnorm(50), nrow = 5, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result_prop2 <- m_estimate(x, samples, loss_type = "huber", 
+  result_prop2 <- .m_estimate(x, samples, loss_type = "huber", 
                              scale_method = "proposal2", paired = TRUE)
-  result_s <- m_estimate(x, samples, loss_type = "huber", 
+  result_s <- .m_estimate(x, samples, loss_type = "huber", 
                          scale_method = "s-estimator", paired = TRUE)
   
   expect_true(all(is.finite(result_prop2$location_diff)))
@@ -232,8 +232,8 @@ test_that("Default scale_method is MAD", {
   samples <- c(rep("A", 5), rep("B", 5))
   
   # Result without specifying scale_method should use MAD
-  result_default <- m_estimate(x, samples, loss_type = "huber")
-  result_explicit_mad <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  result_default <- .m_estimate(x, samples, loss_type = "huber")
+  result_explicit_mad <- .m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
   
   # Should produce identical results
   expect_equal(result_default$location_diff, result_explicit_mad$location_diff)
@@ -269,7 +269,7 @@ test_that("m_estimate with SummarizedExperiment includes all QC metrics", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber", paired = TRUE)
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber", paired = TRUE)
   
   # Check all expected columns present
   expected_cols <- c("Sample", "Condition", "Proportion_Affected", "Genes_Affected",
@@ -296,7 +296,7 @@ test_that("Robustness_Weight values are between 0 and 1", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   expect_true(all(result$Robustness_Weight >= 0))
   expect_true(all(result$Robustness_Weight <= 1))
@@ -320,7 +320,7 @@ test_that("Entropy_Mean and Entropy_SD are positive or zero", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   expect_true(all(result$Entropy_Mean >= 0))
   expect_true(all(result$Entropy_SD >= 0))
@@ -344,7 +344,7 @@ test_that("Distance_from_Centroid is non-negative", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   expect_true(all(result$Distance_from_Centroid >= 0))
   expect_true(all(is.finite(result$Distance_from_Centroid)))
@@ -378,7 +378,7 @@ test_that("Samples closer to centroid have lower distances", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # All samples should have finite, non-negative distances
   expect_true(all(result$Distance_from_Centroid >= 0))
@@ -402,7 +402,7 @@ test_that("Distance_from_Centroid varies across samples (typical data)", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # For typical data, distances should vary (not all identical)
   # Or at minimum should all be finite and non-negative
@@ -430,7 +430,7 @@ test_that("Proportion_Affected and Genes_Affected are consistent", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Genes_Affected should equal Proportion_Affected * nrow
   expected_genes <- round(result$Proportion_Affected * 100, 1)
@@ -458,7 +458,7 @@ test_that("Entropy_Mean within reasonable bounds for data", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Entropy_Mean should be within range of data (approximately)
   expect_true(all(result$Entropy_Mean >= 0.5))  # Lower bound with margin
@@ -486,9 +486,9 @@ test_that("Paired parameter propagates through recursive calls", {
   )
   colnames(se) <- col_names
   
-  result_paired <- m_estimate(se, samples = "sample_type", 
+  result_paired <- .m_estimate(se, samples = "sample_type", 
                               loss_type = "huber", paired = TRUE)
-  result_unpaired <- m_estimate(se, samples = "sample_type", 
+  result_unpaired <- .m_estimate(se, samples = "sample_type", 
                                 loss_type = "huber", paired = FALSE)
   
   # Both should return valid results
@@ -518,7 +518,7 @@ test_that("QC Status correctly flags high-influence samples", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber", 
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber", 
                        influence_threshold = 0.75)
   
   # Check Status column contains only "OK" or "Flag for QC"
@@ -551,9 +551,9 @@ test_that("Different influence thresholds produce different flagging", {
   )
   colnames(se) <- col_names
   
-  result_75 <- m_estimate(se, samples = "sample_type", 
+  result_75 <- .m_estimate(se, samples = "sample_type", 
                           loss_type = "huber", influence_threshold = 0.75)
-  result_90 <- m_estimate(se, samples = "sample_type", 
+  result_90 <- .m_estimate(se, samples = "sample_type", 
                           loss_type = "huber", influence_threshold = 0.90)
   
   # Lower threshold (0.75) should flag more samples than higher threshold (0.90)
@@ -581,9 +581,9 @@ test_that("Robustness metrics work with different loss types", {
   )
   colnames(se) <- col_names
   
-  result_huber <- m_estimate(se, samples = "sample_type", loss_type = "huber")
-  result_tukey <- m_estimate(se, samples = "sample_type", loss_type = "tukey")
-  result_lsq <- m_estimate(se, samples = "sample_type", loss_type = "lsq")
+  result_huber <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result_tukey <- .m_estimate(se, samples = "sample_type", loss_type = "tukey")
+  result_lsq <- .m_estimate(se, samples = "sample_type", loss_type = "lsq")
   
   # All should have the new metrics
   for (result in list(result_huber, result_tukey, result_lsq)) {
@@ -615,7 +615,7 @@ test_that("Pair information is correctly extracted when available", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Pair_ID should be extracted
   expect_true("Pair_ID" %in% colnames(result))
@@ -653,8 +653,8 @@ test_that("Entropy statistics reflect data variance", {
   )
   colnames(se_high) <- col_names
   
-  result_low <- m_estimate(se_low, samples = "sample_type", loss_type = "huber")
-  result_high <- m_estimate(se_high, samples = "sample_type", loss_type = "huber")
+  result_low <- .m_estimate(se_low, samples = "sample_type", loss_type = "huber")
+  result_high <- .m_estimate(se_high, samples = "sample_type", loss_type = "huber")
   
   # High variance data should have higher Entropy_SD on average
   mean_sd_low <- mean(result_low$Entropy_SD)
@@ -683,7 +683,7 @@ test_that("m_estimate SummarizedExperiment path with various data sizes", {
   colnames(se_simple) <- col_names
   
   # Basic test: should return valid results without crashing
-  result <- m_estimate(se_simple, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se_simple, samples = "sample_type", loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_true(nrow(result) > 0)
@@ -721,7 +721,7 @@ test_that(".tsenat_mest_prepare_se_data correctly collapses multi-q data", {
   
   # Call helper via m_estimate which uses it internally
   # Verify it processes data correctly by checking output structure
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Result should have 4 rows (same as input genes)
   expect_equal(nrow(result), 4)
@@ -754,7 +754,7 @@ test_that(".tsenat_mest_prepare_se_data handles median vs mean collapsing", {
   colnames(se) <- col_names
   
   # SE input returns sample-level QC metrics, not gene-level statistics
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 2)  # 2 samples (S1, S2)
@@ -773,7 +773,7 @@ test_that(".tsenat_mest_prepare_se_data rejects invalid column names", {
   
   # Should error when non-existent column is requested
   expect_error(
-    m_estimate(se, samples = "nonexistent_column", loss_type = "huber"),
+    .m_estimate(se, samples = "nonexistent_column", loss_type = "huber"),
     "not found"
   )
 })
@@ -800,7 +800,7 @@ test_that(".tsenat_mest_prepare_se_data preserves gene names and sample order", 
   rownames(se) <- c("GENE_A", "GENE_B")
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Result should have 2 rows (same as number of genes)
   expect_equal(nrow(result), 2)
@@ -834,7 +834,7 @@ test_that(".tsenat_mest_influence_loo identifies high-influence samples", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Should flag high-influence outlier
   expect_true("Proportion_Affected" %in% colnames(result))
@@ -861,7 +861,7 @@ test_that(".tsenat_mest_influence_loo handles identical groups", {
   colnames(se) <- col_names
   
   # SE returns sample-level results (one per unique sample)
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 2)  # 2 unique samples (S1, S2)
@@ -896,7 +896,7 @@ test_that(".tsenat_mest_compute_distances calculates euclidean distances", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Some samples should be closer to centroid than others
   distances <- result$Distance_from_Centroid
@@ -922,7 +922,7 @@ test_that(".tsenat_mest_compute_distances with single-sample groups", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # With 2 samples per group, distance should be to group centroid (may be 0 for single sample)
   expect_true(all(result$Distance_from_Centroid >= 0))
@@ -939,7 +939,7 @@ test_that("m_estimate handles minimum viable data (2 groups, 1 sample each)", {
   x <- matrix(c(1:5, 6:10), nrow = 5, ncol = 2)
   samples <- c("A", "B")
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_true(nrow(result) == 5)
@@ -954,7 +954,7 @@ test_that("m_estimate handles data with zero variance in one gene", {
   )
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 2)
@@ -966,7 +966,7 @@ test_that("m_estimate handles data with NA values gracefully", {
   samples <- c(rep("A", 5), rep("B", 5))
   
   # Should handle NAs without crashing
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(is.data.frame(result))
   # May have NAs or computed values for genes with missing data
@@ -980,7 +980,7 @@ test_that("m_estimate with very large magnitude differences handles scaling", {
   )
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_true(is.data.frame(result))
   expect_true(all(is.finite(result$location_diff)))
@@ -991,8 +991,8 @@ test_that("m_estimate produces consistent results with identical raw data", {
   x <- matrix(rnorm(40), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result1 <- m_estimate(x, samples, loss_type = "huber")
-  result2 <- m_estimate(x, samples, loss_type = "huber")
+  result1 <- .m_estimate(x, samples, loss_type = "huber")
+  result2 <- .m_estimate(x, samples, loss_type = "huber")
   
   expect_equal(result1$location_diff, result2$location_diff)
   expect_equal(result1$pvalue, result2$pvalue)
@@ -1002,7 +1002,7 @@ test_that("m_estimate location_diff=0 when groups are identical", {
   x <- matrix(c(rep(5, 4), rep(5, 4)), nrow = 2, ncol = 8, byrow = TRUE)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   # When groups are identical, difference should be near 0
   expect_true(all(abs(result$location_diff) < 1e-6))
@@ -1019,7 +1019,7 @@ test_that("m_estimate t-statistics follow expected relationship with SE", {
   x <- matrix(rnorm(40, mean = 5, sd = 2), nrow = 5, ncol = 8)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   # t_stat = location_diff / se_diff
   expected_t <- result$location_diff / result$se_diff
@@ -1032,7 +1032,7 @@ test_that("m_estimate rejects invalid loss_type gracefully", {
   samples <- c(rep("A", 4), rep("B", 4))
   
   expect_error(
-    m_estimate(x, samples, loss_type = "invalid_loss"),
+    .m_estimate(x, samples, loss_type = "invalid_loss"),
     "loss_type must be"
   )
 })
@@ -1042,7 +1042,7 @@ test_that("m_estimate rejects insufficient data", {
   samples <- c("A", "B")
   
   # With only 2 samples total (1 per group), should still work as edge case
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   expect_true(is.data.frame(result))
 })
 
@@ -1055,9 +1055,9 @@ test_that("Comparison of loss types shows different down-weighting patterns", {
   )
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result_huber <- m_estimate(x, samples, loss_type = "huber")
-  result_tukey <- m_estimate(x, samples, loss_type = "tukey")
-  result_lsq <- m_estimate(x, samples, loss_type = "lsq")
+  result_huber <- .m_estimate(x, samples, loss_type = "huber")
+  result_tukey <- .m_estimate(x, samples, loss_type = "tukey")
+  result_lsq <- .m_estimate(x, samples, loss_type = "lsq")
   
   # Robust methods should down-weight differently than LSQ
   # (checking that all produce valid results)
@@ -1075,7 +1075,7 @@ test_that("m_estimate weights reflect influence correctly", {
   )
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- m_estimate(x, samples, loss_type = "huber")
+  result <- .m_estimate(x, samples, loss_type = "huber")
   
   # Gene 1 should have more down-weighted observations than Gene 2
   expect_true(result$n_down_weighted[1] >= result$n_down_weighted[2])
@@ -1111,14 +1111,14 @@ test_that("Matrix and SE have different output formats as designed", {
   colnames(se) <- col_names
   
   # Test: SE input produces sample-level QC metrics
-  result_se <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result_se <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   expect_true(is.data.frame(result_se))
   expect_equal(nrow(result_se), 2)  # 2 samples in SE format
   expect_true("Sample" %in% colnames(result_se))  # SE format has Sample column
   
   # Test: Matrix input produces gene-level statistics
-  result_matrix <- m_estimate(x_matrix, samples = samples_vector, loss_type = "huber")
+  result_matrix <- .m_estimate(x_matrix, samples = samples_vector, loss_type = "huber")
   
   expect_true(is.data.frame(result_matrix))
   expect_equal(nrow(result_matrix), 3)  # 3 genes
@@ -1143,7 +1143,7 @@ test_that("QC metrics exist for both matrix and SE input paths", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # SE path should include QC metrics
   qc_cols <- c("Robustness_Weight", "Entropy_Mean", "Entropy_SD", "Distance_from_Centroid")
@@ -1480,7 +1480,7 @@ test_that(".handleMEstimateSEInput returns sample-level results", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
   
   # Should return 1 sample per unique sample ID (4 unique: S1, S2, S3, S4)
   expect_equal(nrow(result), 4)
@@ -1513,7 +1513,7 @@ test_that(".handleMEstimateSEInput preserves paired metadata", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber", paired = TRUE)
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber", paired = TRUE)
   
   # Should include Pair_ID column from colData
   expect_true("Pair_ID" %in% colnames(result))
@@ -1538,7 +1538,7 @@ test_that(".handleMEstimateSEInput combines multi-q data correctly", {
   )
   colnames(se) <- col_names
   
-  result <- m_estimate(se, samples = "sample_type", loss_type = "huber",
+  result <- .m_estimate(se, samples = "sample_type", loss_type = "huber",
                       q_combine_method = "mean")
   
   # Should return 2 rows for 2 unique samples
@@ -1570,7 +1570,7 @@ test_that(".handleMEstimateSEInput metadata for pair_id vs Pair vs pair_id colum
     )
     colnames(se) <- col_names
     
-    result <- m_estimate(se, samples = "sample_type", loss_type = "huber")
+    result <- .m_estimate(se, samples = "sample_type", loss_type = "huber")
     
     # Should extract the pair column
     expect_true("Pair_ID" %in% colnames(result))
@@ -1583,7 +1583,7 @@ test_that("Refactoring maintains backward compatibility with matrix input", {
   samples <- c(rep("A", 5), rep("B", 5))
   
   # Matrix input should still work exactly as before
-  result <- m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
+  result <- .m_estimate(x, samples, loss_type = "huber", scale_method = "mad")
   
   expect_true(is.data.frame(result))
   expect_equal(nrow(result), 6)
@@ -1599,8 +1599,8 @@ test_that("Refactoring maintains p-value adjustment behavior", {
   x <- matrix(rnorm(70), nrow = 7, ncol = 10)
   samples <- c(rep("A", 5), rep("B", 5))
   
-  result_bh <- m_estimate(x, samples, loss_type = "huber", pcorr = "BH")
-  result_bonf <- m_estimate(x, samples, loss_type = "huber", pcorr = "bonferroni")
+  result_bh <- .m_estimate(x, samples, loss_type = "huber", pcorr = "BH")
+  result_bonf <- .m_estimate(x, samples, loss_type = "huber", pcorr = "bonferroni")
   
   # BH should be more lenient (smaller adjusted p-values) than Bonferroni
   # (on average, allowing for individual variation)
@@ -1616,7 +1616,7 @@ test_that("All scale methods work with refactored functions", {
   samples <- c(rep("A", 5), rep("B", 5))
   
   for (scale_method in c("mad", "proposal2", "s-estimator")) {
-    result <- m_estimate(x, samples, loss_type = "huber", scale_method = scale_method)
+    result <- .m_estimate(x, samples, loss_type = "huber", scale_method = scale_method)
     
     expect_true(is.data.frame(result), info = scale_method)
     expect_true(all(is.finite(result$location_diff)), info = scale_method)
@@ -1631,8 +1631,8 @@ test_that("Refactored code maintains loss function behavior", {
   )
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result_huber <- m_estimate(x, samples, loss_type = "huber")
-  result_lsq <- m_estimate(x, samples, loss_type = "lsq")
+  result_huber <- .m_estimate(x, samples, loss_type = "huber")
+  result_lsq <- .m_estimate(x, samples, loss_type = "lsq")
   
   # Huber should down-weight outliers more than LSQ
   expect_true(result_huber$n_down_weighted[2] >= result_lsq$n_down_weighted[2])

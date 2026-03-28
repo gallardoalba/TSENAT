@@ -50,7 +50,7 @@
 #' two different conditions, and raw and corrected p-values.
 #' @import methods
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay colData
-#' @keywords internal
+
 #' @noRd
 #' @details The function calculates diversity changes between two sample
 #' conditions. It uses the output of the diversity calculation function, which
@@ -69,11 +69,12 @@
 #' @examples
 #' x <- data.frame(Genes = letters[seq_len(10)], matrix(runif(80), ncol = 8))
 #' condition_col <- c(rep('Healthy', 4), rep('Pathogenic', 4))
-#' calculate_difference(x, condition_col,
+#' .calculate_difference(x, condition_col,
 #'     control = 'Healthy', method = 'mean', test =
 #'         'wilcoxon'
 #' )
-calculate_difference <- function(x, condition_col = NULL, control, method = "mean", test = "wilcoxon",
+
+.calculate_difference <- function(x, condition_col = NULL, control, method = "mean", test = "wilcoxon",
     randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE, paired = FALSE,
     exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber", 
     robust_scale_method = "mad") {
@@ -151,10 +152,10 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
         unique_q <- unique(q_vals)
         if (length(unique_q) > 1) {
             stop(
-                "calculate_difference() does not accept multiple q values (q-values are mathematically dependent via AR(1) covariance structure).\n",
+                ".calculate_difference() does not accept multiple q values (q-values are mathematically dependent via AR(1) covariance structure).\n",
                 "  Input has q values: ", paste(sort(unique_q), collapse = ", "), "\n",
                 "  For proper multi-q analysis that accounts for correlation:\n",
-                "    Use calculate_lm_interaction() instead, which supports:\n",
+                "    Use .calculate_lm_interaction() instead, which supports:\n",
                 "    - method='lmm': Linear mixed models with AR(1) covariance (recommended)\n",
                 "    - method='gam': Generalized additive models\n",
                 "    - method='fpca': Functional PCA (implicit AR(1) via ordered curves)\n",
@@ -192,11 +193,11 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
         # p-value calculation
         if (test == "wilcoxon") {
             # Standard Wilcoxon test
-            wilcoxon_result <- wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact,
+            wilcoxon_result <- .wilcoxon(ymat, samples, pcorr = pcorr, paired = paired, exact = exact,
                 nthreads = nthreads, pairs = pairs)
             # Extract p-value, effect size (r), and statistic (U) columns
             ptab <- wilcoxon_result[, c("pvalue", "padj", "r", "U"), drop = FALSE]
-            test_results <- data.frame(gene_id = df_keep[, 1], calculate_fc(ymat,
+            test_results <- data.frame(gene_id = df_keep[, 1], .calculate_fc(ymat,
                 samples, control, method, pseudocount = pseudocount,
                 robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
                 verbose = verbose), ptab, stringsAsFactors = FALSE)
@@ -205,13 +206,13 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
             if (!is.null(seed)) {
                 withr::local_seed(as.integer(seed))
             }
-            shuffling_result <- label_shuffling(ymat, samples, control, method, randomizations = randomizations,
+            shuffling_result <- .label_shuffling(ymat, samples, control, method, randomizations = randomizations,
                 pcorr = pcorr, paired = paired, nthreads = nthreads, pairs = pairs,
                 robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method)
             # Extract p-value, effect size (r), and statistic (U) columns
             cols_to_extract <- colnames(shuffling_result)[colnames(shuffling_result) %in% c("pvalue", "padj", "r", "U")]
             ptab <- shuffling_result[, cols_to_extract, drop = FALSE]
-            test_results <- data.frame(gene_id = df_keep[, 1], calculate_fc(ymat,
+            test_results <- data.frame(gene_id = df_keep[, 1], .calculate_fc(ymat,
                 samples, control, method, pseudocount = pseudocount,
                 robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
                 verbose = verbose), ptab, stringsAsFactors = FALSE)
@@ -222,7 +223,7 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
 
     if (nrow(df_small) > 0) {
         small_mat <- sample_matrix(df_small)
-        result_list$small <- data.frame(gene_id = df_small[, 1], calculate_fc(small_mat,
+        result_list$small <- data.frame(gene_id = df_small[, 1], .calculate_fc(small_mat,
             samples, control, method, pseudocount = pseudocount,
             robust_loss_type = robust_loss_type, robust_scale_method = robust_scale_method,
             verbose = verbose), pvalue = NA,
@@ -264,11 +265,11 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
 #' (when return_model_data=TRUE). This ensures compatibility with plotting and 
 #' analysis functions regardless of return format.
 #'
-#' @param lm_result Result from calculate_lm_interaction(), either a data.frame or a list
+#' @param lm_result Result from .calculate_lm_interaction(), either a data.frame or a list
 #'
 #' @return The results data.frame with columns gene, p_interaction, adj_p_interaction, etc.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_extract_lm_results <- function(lm_result) {
     if (is.data.frame(lm_result)) {
@@ -276,7 +277,7 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
     } else if (is.list(lm_result) && "results" %in% names(lm_result)) {
         return(lm_result$results)
     } else {
-        stop("lm_result must be either a data.frame or a list with 'results' component from calculate_lm_interaction()")
+        stop("lm_result must be either a data.frame or a list with 'results' component from .calculate_lm_interaction()")
     }
 }
 
@@ -304,7 +305,8 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
 #' calculate mean or median differences and log2 fold changes between two
 #' conditions.
 #' @noRd
-calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0,
+
+.calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0,
                          robust_loss_type = "huber", robust_scale_method = "mad",
                          verbose = FALSE) {
     # validate control and samples inputs
@@ -390,7 +392,8 @@ calculate_fc <- function(x, samples, control, method = "mean", pseudocount = 0,
 #' provide detailed methodology and mathematical foundations for both unpaired
 #' and paired designs.
 #' @noRd
-wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1, pairs = NULL) {
+
+.wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nthreads = 1, pairs = NULL) {
     # Determine group indices (two groups expected)
     groups <- unique(sort(samples))
     if (length(groups) != 2) {
@@ -592,10 +595,11 @@ wilcoxon <- function(x, samples, pcorr = "BH", paired = FALSE, exact = FALSE, nt
 #' 
 #' # Run label shuffling test with S019 correction (100 permutations)
 #' # P-values will follow (b+1)/(m+1) formula with m=100
-#' result <- label_shuffling(mat, samples, control = 'Normal', 
+#' result <- .label_shuffling(mat, samples, control = 'Normal', 
 #'                           method = 'mean', randomizations = 100, pcorr = 'BH')
 #' head(result)
-label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
+
+.label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",
     paired = FALSE, paired_method = c("swap", "signflip"), nthreads = 1, pairs = NULL,
     robust_loss_type = "huber", robust_scale_method = "mad") {
     paired_method <- match.arg(paired_method)
@@ -608,7 +612,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     
     unique_groups <- unique(samples)
     if (length(unique_groups) != 2) {
-        stop("label_shuffling() requires exactly 2 sample groups (control and case); found ",
+        stop(".label_shuffling() requires exactly 2 sample groups (control and case); found ",
              length(unique_groups), ": ", paste(unique_groups, collapse = ", "), call. = FALSE)
     }
     
@@ -620,13 +624,13 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
     }
     
     # observed log2 fold changes and group-wise means
-    fc_result <- calculate_fc(x, samples, control, method)
+    fc_result <- .calculate_fc(x, samples, control, method)
     log2_fc <- fc_result[, 4]
     group_means <- fc_result[, seq_len(2)]
     
     # ========================================================================
     # OPTIMIZATION: Pre-compute group indices and pseudocount once
-    # Instead of calling calculate_fc() repeatedly in the permutation loop,
+    # Instead of calling .calculate_fc() repeatedly in the permutation loop,
     # use fast vectorized computation with pre-computed structure.
     # This eliminates 49x overhead of aggregate() and data.frame creation.
     # ========================================================================
@@ -685,7 +689,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                 perm_case_idx <- which(perm_samples == case_group)
                 perm_ctrl_idx <- which(perm_samples == control)
                 
-                # Use fast computation instead of calculate_fc (avoids aggregate overhead)
+                # Use fast computation instead of .calculate_fc(avoids aggregate overhead)
                 perm_mat[, r] <- .tsenat_fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx, 
                                                                  method, pseudocount_val,
                                                                  robust_loss_type, robust_scale_method)
@@ -709,7 +713,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
             perm_case_idx <- which(perm_samples == case_group)
             perm_ctrl_idx <- which(perm_samples == control)
             
-            # Use fast computation instead of calculate_fc (avoids aggregate overhead)
+            # Use fast computation instead of .calculate_fc(avoids aggregate overhead)
             perm_mat[, r] <- .tsenat_fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
                                                              method, pseudocount_val,
                                                              robust_loss_type, robust_scale_method)
@@ -1120,7 +1124,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                   perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
                 }
             }
-            df_perm <- calculate_fc(x, perm_samples, control, method)
+            df_perm <- .calculate_fc(x, perm_samples, control, method)
             perm_mat[, r] <- as.numeric(df_perm[, 4])
         }
         return(perm_mat)
@@ -1140,7 +1144,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                     perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
                   }
                 }
-                df_perm <- calculate_fc(x, perm_samples, control, method)
+                df_perm <- .calculate_fc(x, perm_samples, control, method)
                 perm_mat[, r] <- as.numeric(df_perm[, 4])
             }
             return(perm_mat)
@@ -1156,7 +1160,7 @@ label_shuffling <- function(x, samples, control, method, randomizations = 100, p
                     perm_samples[c(i1, i2)] <- perm_samples[c(i2, i1)]
                   }
                 }
-                df_perm <- calculate_fc(x, perm_samples, control, method)
+                df_perm <- .calculate_fc(x, perm_samples, control, method)
                 perm_mat[, r] <- as.numeric(df_perm[, 4])
             }
             return(perm_mat)

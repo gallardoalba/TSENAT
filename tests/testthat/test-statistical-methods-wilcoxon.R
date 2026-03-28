@@ -9,7 +9,7 @@ test_that("wilcoxon handles all-NA and constant rows without error and returns m
     m[2, ] <- rep(5, 6)
     m[3, ] <- c(1, 2, 3, 4, 5, 6)
 
-    res <- wilcoxon(m, samples, pcorr = "none")
+    res <- .wilcoxon(m, samples, pcorr = "none")
     expect_true(is.data.frame(res))
     # four columns: pvalue, padj, U, r
     expect_equal(ncol(res), 4)
@@ -20,10 +20,10 @@ test_that("wilcoxon handles all-NA and constant rows without error and returns m
     expect_true(is.finite(raw[1]))
 })
 
-test_that("wilcoxon() returns named p-value and effect size columns", {
+test_that(".wilcoxon() returns named p-value and effect size columns", {
     mat <- matrix(runif(20), nrow = 5)
     samples <- rep(c("A", "B"), each = 5)
-    res <- wilcoxon(mat, samples, pcorr = "none", paired = FALSE, exact = FALSE)
+    res <- .wilcoxon(mat, samples, pcorr = "none", paired = FALSE, exact = FALSE)
     expect_true(is.data.frame(res))
     expect_true(all(c("pvalue", "padj", "U", "r") %in% colnames(res)))
 })
@@ -39,7 +39,7 @@ test_that("wilcoxon paired matches per-row wilcox.test on ordered pairs", {
     ), nrow = 2, byrow = TRUE)
     samples <- c("Normal", "Tumor", "Normal", "Tumor")
 
-    res <- wilcoxon(x, samples, paired = TRUE, exact = TRUE)
+    res <- .wilcoxon(x, samples, paired = TRUE, exact = TRUE)
 
     # compute expected raw p-values by calling wilcox.test per row with
     # paired=TRUE
@@ -67,7 +67,7 @@ test_that("wilcoxon paired matches per-row wilcox.test on ordered pairs", {
 test_that("wilcoxon paired errors on unequal group sizes", {
     x_bad <- matrix(c(1, 2, 3, 4, 5, 6), nrow = 2, byrow = TRUE)
     samples_bad <- c("Normal", "Tumor", "Normal")
-    expect_error(wilcoxon(x_bad, samples_bad, paired = TRUE), "Paired Wilcoxon requires equal numbers of samples in each group")
+    expect_error(.wilcoxon(x_bad, samples_bad, paired = TRUE), "Paired Wilcoxon requires equal numbers of samples in each group")
 })
 
 
@@ -93,7 +93,7 @@ test_that("wilcoxon paired handles SummarizedExperiment input", {
     )
     
     se_mapped <- TSENAT:::.tsenat_map_metadata_se(se, coldata)
-    res <- wilcoxon(
+    res <- .wilcoxon(
         SummarizedExperiment::assay(se_mapped),
         SummarizedExperiment::colData(se_mapped)$sample_type,
         paired = TRUE,
@@ -117,7 +117,7 @@ test_that("wilcoxon U statistic is computed correctly", {
     ), nrow = 2, byrow = TRUE)
     samples <- c("A", "A", "B", "B")
     
-    res <- wilcoxon(mat, samples, pcorr = "none", paired = FALSE)
+    res <- .wilcoxon(mat, samples, pcorr = "none", paired = FALSE)
     
     # U should be present and non-NA for valid data
     expect_false(anyNA(res$U))
@@ -133,7 +133,7 @@ test_that("wilcoxon r-value is computed correctly", {
     ), nrow = 2, byrow = TRUE)
     samples <- c("A", "A", "B", "B")
     
-    res <- wilcoxon(mat, samples, pcorr = "none", paired = FALSE)
+    res <- .wilcoxon(mat, samples, pcorr = "none", paired = FALSE)
     
     # r-value should be present and non-NA for valid data
     expect_false(anyNA(res$r))
@@ -141,7 +141,7 @@ test_that("wilcoxon r-value is computed correctly", {
     expect_true(all(res$r >= -1 & res$r <= 1))
     # For constant row, r should be 0 (no effect)
     mat_const <- matrix(c(1, 1, 1, 1), nrow = 1)
-    res_const <- wilcoxon(mat_const, samples, pcorr = "none")
+    res_const <- .wilcoxon(mat_const, samples, pcorr = "none")
     expect_true(res_const$r[1] == 0)
 })
 
@@ -151,7 +151,7 @@ test_that("wilcoxon U and r values are NA when pvalue is NA", {
     m[2, ] <- c(1, 2, 3, 4)
     samples <- c("A", "A", "B", "B")
     
-    res <- wilcoxon(m, samples, pcorr = "none")
+    res <- .wilcoxon(m, samples, pcorr = "none")
     
     # All-NA row should have NA U and r value
     expect_true(is.na(res$U[1]))
@@ -169,7 +169,7 @@ test_that("wilcoxon r-value is bounded and non-NA for valid paired data", {
     ), nrow = 2, byrow = TRUE)
     samples <- c("N", "T", "N", "T")
     
-    res <- wilcoxon(mat, samples, pcorr = "none", paired = TRUE)
+    res <- .wilcoxon(mat, samples, pcorr = "none", paired = TRUE)
     
     # Verify r-value is within valid range and non-NA for non-constant rows
     for (i in seq_len(nrow(res))) {

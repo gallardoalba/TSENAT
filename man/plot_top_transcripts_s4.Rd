@@ -46,7 +46,7 @@ One of "median", "mean", "variance", or "iqr" (default: "median").}
 \item{use_tpm}{\code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
 from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
 depth and is recommended for comparing expression across samples. Requires TPM data 
-in metadata from `build_analysis_s4()` or `build_se()` with `tpm` parameter. 
+in metadata from `build_analysis_s4()` or `.build_se()` with `tpm` parameter. 
 Raises error if TPM not available and `use_tpm = TRUE`.}
 
 \item{width}{\code{numeric} or \code{NULL}. Output image width in inches. 
@@ -80,7 +80,7 @@ Invisibly returns the output file path (if `output_file` provided), or invisible
   for capture during vignette compilation.
 }
 \description{
-S4 wrapper for \code{plot_top_transcripts()} that extracts data directly from
+S4 wrapper for \code{.plot_top_transcripts()} that extracts data directly from
 a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
 LM results for visualizing transcript abundance across conditions.
 }
@@ -97,7 +97,7 @@ significant q x condition interaction effects.
 }
 \examples{
 # Plot 6: Top transcripts across groups
-analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 4, n_samples_per_group = 20,
   q_values = c(0.5, 1, 1.5))
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,

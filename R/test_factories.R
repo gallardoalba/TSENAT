@@ -19,9 +19,10 @@
 #' - Sufficient samples (40 total: 20 per group)
 #' - Multiple q-values avoid rank deficiency
 #'
-#' @keywords internal
+
 #' @noRd
-create_test_analysis <- function(
+
+.create_test_analysis <- function(
     n_genes = 8,
     n_samples_per_group = 20,
     control_lambda = 40,
@@ -125,7 +126,7 @@ create_test_analysis <- function(
 #' Lightweight Test Analysis
 #' 
 #' Minimal factory for parameter extraction tests.
-#' Faster than full create_test_analysis().
+#' Faster than full .create_test_analysis().
 #'
 #' @param n_genes Genes (default: 4)
 #' @param n_samples Samples (default: 8)
@@ -133,9 +134,10 @@ create_test_analysis <- function(
 #'
 #' @return Minimal TSENATAnalysis
 #'
-#' @keywords internal
+
 #' @noRd
-create_lightweight_analysis <- function(
+
+.create_lightweight_analysis <- function(
     n_genes = 4,
     n_samples = 8,
     seed = 42) {

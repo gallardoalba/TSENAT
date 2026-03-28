@@ -13,7 +13,7 @@ testthat::test_that("select_top_genes returns correct number of genes", {
   )
 
   # Select top 3
-  top_genes <- select_top_genes(results, n_genes = 3)
+  top_genes <- .select_top_genes(results, n_genes = 3)
   testthat::expect_equal(length(top_genes), 3)
   testthat::expect_equal(top_genes, c("G001", "G002", "G003"))
 })
@@ -25,7 +25,7 @@ testthat::test_that("select_top_genes auto-detects gene column", {
     stringsAsFactors = FALSE
   )
 
-  top_genes <- select_top_genes(results, p_col = "p_col", gene_col = "gene", n_genes = 2)
+  top_genes <- .select_top_genes(results, p_col = "p_col", gene_col = "gene", n_genes = 2)
   testthat::expect_equal(length(top_genes), 2)
   testthat::expect_equal(top_genes, c("A", "B"))
 })
@@ -38,7 +38,7 @@ testthat::test_that("select_top_genes handles empty results", {
   )
 
   testthat::expect_error(
-    select_top_genes(results),
+    .select_top_genes(results),
     "must be a non-empty data frame"
   )
 })
@@ -50,7 +50,7 @@ testthat::test_that("select_top_genes requests more genes than available", {
     stringsAsFactors = FALSE
   )
 
-  top_genes <- select_top_genes(results, n_genes = 5)
+  top_genes <- .select_top_genes(results, n_genes = 5)
   testthat::expect_equal(length(top_genes), 2)
 })
 
@@ -65,7 +65,7 @@ testthat::test_that("filter_genes_by_pvalue returns significant genes", {
     stringsAsFactors = FALSE
   )
 
-  sig_genes <- filter_genes_by_pvalue(results, p_threshold = 0.05)
+  sig_genes <- .filter_genes_by_pvalue(results, p_threshold = 0.05)
   testthat::expect_equal(length(sig_genes), 2)
   testthat::expect_equal(sig_genes, c("G001", "G002"))
 })
@@ -77,7 +77,7 @@ testthat::test_that("filter_genes_by_pvalue returns empty when no significant ge
     stringsAsFactors = FALSE
   )
 
-  sig_genes <- filter_genes_by_pvalue(results, p_threshold = 0.05)
+  sig_genes <- .filter_genes_by_pvalue(results, p_threshold = 0.05)
   testthat::expect_equal(length(sig_genes), 0)
 })
 
@@ -88,7 +88,7 @@ testthat::test_that("filter_genes_by_pvalue auto-detects columns", {
     stringsAsFactors = FALSE
   )
 
-  sig_genes <- filter_genes_by_pvalue(results, p_threshold = 0.06)
+  sig_genes <- .filter_genes_by_pvalue(results, p_threshold = 0.06)
   testthat::expect_equal(length(sig_genes), 2)
 })
 
@@ -100,7 +100,7 @@ testthat::test_that("validate_diversity_se checks for SummarizedExperiment class
   not_se <- data.frame(x = 1:10)
 
   testthat::expect_error(
-    validate_diversity_se(not_se),
+    .validate_diversity_se(not_se),
     "must be a SummarizedExperiment"
   )
 })
@@ -115,7 +115,7 @@ testthat::test_that("validate_diversity_se checks for diversity assay", {
 
   se <- create_test_se_without_diversity()
   testthat::expect_error(
-    validate_diversity_se(se),
+    .validate_diversity_se(se),
     "diversity.*assay not found"
   )
 })
@@ -128,7 +128,7 @@ testthat::test_that("validate_diversity_se passes with valid diversity SE", {
     assays = list(diversity = mat)
   )
 
-  result <- validate_diversity_se(se, check_metadata = FALSE)
+  result <- .validate_diversity_se(se, check_metadata = FALSE)
   testthat::expect_true(result)
 })
 
@@ -140,7 +140,7 @@ testthat::test_that("validate_results_df checks for gene column", {
   )
 
   testthat::expect_error(
-    validate_results_df(results),
+    .validate_results_df(results),
     "No gene identifier column found"
   )
 })
@@ -153,7 +153,7 @@ testthat::test_that("validate_results_df checks for p-value column", {
   )
 
   testthat::expect_error(
-    validate_results_df(results),
+    .validate_results_df(results),
     "No p-value column found"
   )
 })
@@ -165,7 +165,7 @@ testthat::test_that("validate_results_df passes with valid data frame", {
     stringsAsFactors = FALSE
   )
 
-  result <- validate_results_df(results)
+  result <- .validate_results_df(results)
   testthat::expect_true(result)
 })
 
@@ -174,31 +174,31 @@ testthat::test_that("validate_results_df passes with valid data frame", {
 # ============================================================================
 
 testthat::test_that("format_pvalue handles different thresholds", {
-  testthat::expect_equal(format_pvalue(0.0001, threshold = 0.001), "< 0.001")
-  testthat::expect_match(format_pvalue(0.01, threshold = 0.001), "[0-9]")
+  testthat::expect_equal(.format_pvalue(0.0001, threshold = 0.001), "< 0.001")
+  testthat::expect_match(.format_pvalue(0.01, threshold = 0.001), "[0-9]")
 })
 
 testthat::test_that("format_pvalue handles NA values", {
-  testthat::expect_equal(format_pvalue(NA), "NA")
+  testthat::expect_equal(.format_pvalue(NA), "NA")
 })
 
 testthat::test_that("format_q_label formats q values correctly", {
-  label <- format_q_label(1.5)
+  label <- .format_q_label(1.5)
   testthat::expect_match(label, "q = 1\\.50")
 })
 
 testthat::test_that("format_q_label handles NA", {
-  testthat::expect_equal(format_q_label(NA), "NA")
+  testthat::expect_equal(.format_q_label(NA), "NA")
 })
 
 testthat::test_that("format_label removes underscores and capitalizes", {
-  testthat::expect_equal(format_label("fold_change"), "Fold change")
-  testthat::expect_equal(format_label("adjusted_p_values"), "Adjusted p values")
-  testthat::expect_equal(format_label("X"), "X")
+  testthat::expect_equal(.format_label("fold_change"), "Fold change")
+  testthat::expect_equal(.format_label("adjusted_p_values"), "Adjusted p values")
+  testthat::expect_equal(.format_label("X"), "X")
 })
 
 testthat::test_that("format_label handles empty strings", {
-  testthat::expect_equal(format_label(""), "")
+  testthat::expect_equal(.format_label(""), "")
 })
 
 # ============================================================================
@@ -213,7 +213,7 @@ testthat::test_that("read_tx2gene validates required columns", {
   )
 
   testthat::expect_error(
-    read_tx2gene(bad_mapping),
+    .read_tx2gene(bad_mapping),
     "must have columns 'Transcript' and 'Gen'"
   )
 })
@@ -225,7 +225,7 @@ testthat::test_that("read_tx2gene accepts valid data frame", {
     stringsAsFactors = FALSE
   )
 
-  result <- read_tx2gene(mapping)
+  result <- .read_tx2gene(mapping)
   testthat::expect_equal(nrow(result), 3)
   testthat::expect_equal(colnames(result), c("Transcript", "Gen"))
 })
@@ -244,7 +244,7 @@ testthat::test_that("infer_samples_from_coldata handles row-indexed coldata", {
   )
   rownames(coldata) <- colnames(counts)
 
-  samples <- infer_samples_from_coldata(coldata, counts, condition_col = "sample_type")
+  samples <- .infer_samples_from_coldata(coldata, counts, condition_col = "sample_type")
   testthat::expect_equal(samples, c("A", "B", "A", "B"))
 })
 
@@ -258,7 +258,7 @@ testthat::test_that("infer_samples_from_coldata handles sample ID column", {
     stringsAsFactors = FALSE
   )
 
-  samples <- infer_samples_from_coldata(coldata, counts, condition_col = "sample_type")
+  samples <- .infer_samples_from_coldata(coldata, counts, condition_col = "sample_type")
   testthat::expect_equal(samples, c("A", "B", "A", "B"))
 })
 
@@ -273,7 +273,7 @@ testthat::test_that("infer_samples_from_coldata errors on mismatched samples", {
   )
 
   testthat::expect_error(
-    infer_samples_from_coldata(coldata, counts, condition_col = "sample_type"),
+    .infer_samples_from_coldata(coldata, counts, condition_col = "sample_type"),
     "doesn't match"
   )
 })
@@ -283,7 +283,7 @@ testthat::test_that("infer_samples_from_coldata errors on mismatched samples", {
 # ============================================================================
 
 testthat::test_that("create_aggregation_function creates median function by default", {
-  result <- create_aggregation_function(metric = "median")
+  result <- .create_aggregation_function(metric = "median")
 
   testthat::expect_is(result$agg_fun, "function")
   testthat::expect_equal(result$metric_choice, "median")
@@ -293,7 +293,7 @@ testthat::test_that("create_aggregation_function creates median function by defa
 })
 
 testthat::test_that("create_aggregation_function creates mean function", {
-  result <- create_aggregation_function(metric = "mean")
+  result <- .create_aggregation_function(metric = "mean")
 
   testthat::expect_equal(result$metric_choice, "mean")
   test_data <- c(1, 2, 3, 4, 5)
@@ -302,7 +302,7 @@ testthat::test_that("create_aggregation_function creates mean function", {
 })
 
 testthat::test_that("create_aggregation_function creates iqr function", {
-  result <- create_aggregation_function(metric = "iqr")
+  result <- .create_aggregation_function(metric = "iqr")
 
   testthat::expect_equal(result$metric_choice, "iqr")
   test_data <- c(1, 2, 3, 4, 5)
@@ -311,7 +311,7 @@ testthat::test_that("create_aggregation_function creates iqr function", {
 })
 
 testthat::test_that("create_aggregation_function generates appropriate label", {
-  result <- create_aggregation_function(metric = "median")
+  result <- .create_aggregation_function(metric = "median")
 
   testthat::expect_match(result$agg_label_unique, "median")
 })
@@ -336,7 +336,7 @@ testthat::test_that("build_transcript_long creates long-format data", {
 
   samples <- c("A", "B", "A", "B")
 
-  result <- build_transcript_long(
+  result <- .build_transcript_long(
     gene_single = "G1",
     mapping = mapping,
     counts = counts,
@@ -363,7 +363,7 @@ testthat::test_that("build_transcript_long respects top_n parameter", {
 
   samples <- c("A", "B", "A", "B")
 
-  result <- build_transcript_long(
+  result <- .build_transcript_long(
     gene_single = "G1",
     mapping = mapping,
     counts = counts,
@@ -390,7 +390,7 @@ testthat::test_that("build_transcript_long errors on missing gene", {
   samples <- c("A", "B", "A", "B")
 
   testthat::expect_error(
-    build_transcript_long(
+    .build_transcript_long(
       gene_single = "G999",
       mapping = mapping,
       counts = counts,
@@ -413,7 +413,7 @@ testthat::test_that("aggregate_transcript_data computes log2 expression", {
   )
 
   agg_fun <- function(x) median(x, na.rm = TRUE)
-  result <- aggregate_transcript_data(df_long, agg_fun, pseudocount = 0)
+  result <- .aggregate_transcript_data(df_long, agg_fun, pseudocount = 0)
 
   testthat::expect_is(result, "data.frame")
   testthat::expect_true("log2expr" %in% colnames(result))
@@ -431,7 +431,7 @@ testthat::test_that("aggregate_transcript_data applies pseudocount", {
   )
 
   agg_fun <- function(x) median(x, na.rm = TRUE)
-  result <- aggregate_transcript_data(df_long, agg_fun, pseudocount = 1)
+  result <- .aggregate_transcript_data(df_long, agg_fun, pseudocount = 1)
 
   # log2(0 + 1) = 0
   expected_log2 <- log2(0 + 1)
@@ -449,7 +449,7 @@ testthat::test_that("select_genes_from_results orders by p-value", {
     stringsAsFactors = FALSE
   )
 
-  top <- select_genes_from_results(res, top_n = 2)
+  top <- .select_genes_from_results(res, top_n = 2)
   testthat::expect_equal(top, c("G2", "G3"))
 })
 
@@ -460,7 +460,7 @@ testthat::test_that("select_genes_from_results removes duplicates", {
     stringsAsFactors = FALSE
   )
 
-  top <- select_genes_from_results(res, top_n = 2)
+  top <- .select_genes_from_results(res, top_n = 2)
   testthat::expect_equal(length(top), 2)
   testthat::expect_equal(top[1], "G1")
 })
@@ -473,7 +473,7 @@ testthat::test_that("select_genes_from_results errors on missing genes column", 
   )
 
   testthat::expect_error(
-    select_genes_from_results(res, top_n = 1),
+    .select_genes_from_results(res, top_n = 1),
     "must contain a 'genes' column"
   )
 })
@@ -484,7 +484,7 @@ testthat::test_that("select_genes_from_results errors on missing genes column", 
 
 testthat::test_that(".tsenat_prepare_combined_se converts TSENATAnalysis to SE", {
   # Create test TSENATAnalysis object
-  analysis <- TSENAT:::create_test_analysis(
+  analysis <- TSENAT:::.create_test_analysis(
     n_genes = 5, n_samples_per_group = 3,
     q_values = c(1, 2, 3), seed = 42
   )
@@ -509,7 +509,7 @@ testthat::test_that(".tsenat_prepare_combined_se converts TSENATAnalysis to SE",
 })
 
 testthat::test_that(".tsenat_prepare_combined_se creates colData with q column", {
-  analysis <- TSENAT:::create_test_analysis(
+  analysis <- TSENAT:::.create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
@@ -527,7 +527,7 @@ testthat::test_that(".tsenat_prepare_combined_se creates colData with q column",
 })
 
 testthat::test_that(".tsenat_prepare_combined_se creates rowData with gene_id", {
-  analysis <- TSENAT:::create_test_analysis(
+  analysis <- TSENAT:::.create_test_analysis(
     n_genes = 4, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )
@@ -542,7 +542,7 @@ testthat::test_that(".tsenat_prepare_combined_se creates rowData with gene_id", 
 
 testthat::test_that(".tsenat_prepare_combined_se handles dimension mismatches", {
   # Create small test analysis with 2 q values
-  analysis <- TSENAT:::create_test_analysis(
+  analysis <- TSENAT:::.create_test_analysis(
     n_genes = 3, n_samples_per_group = 2,
     q_values = c(1, 2), seed = 42
   )

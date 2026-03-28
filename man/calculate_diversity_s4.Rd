@@ -131,7 +131,7 @@ Modified TSENATAnalysis object with diversity results stored
 Calculate diversity and store in TSENATAnalysis
 }
 \details{
-This wrapper calls \code{calculate_diversity()} once per q-value, storing
+This wrapper calls \code{.calculate_diversity()} once per q-value, storing
 results as SummarizedExperiment objects. It extracts key parameters from
 \code{analysis@config} with priority resolution (explicit > \code{@config} > default).
 
@@ -172,7 +172,7 @@ Spectrum is saved as: \code{*_diversity_spectrum.tsv}
 }
 \examples{
 # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
-analysis <- TSENAT:::create_test_analysis(
+analysis <- TSENAT:::.create_test_analysis(
   n_genes = 8,
   n_samples_per_group = 20,
   control_lambda = 40,

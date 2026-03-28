@@ -4,7 +4,7 @@
 
 #' Validate group columns and auto-detect missing ones
 #' Consolidates duplicated if-pattern for group_col and control_group
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_and_auto_detect_groups <- function(se, group_col, control_group, progress) {
   if (is.null(group_col) || is.null(control_group)) {
@@ -39,7 +39,7 @@
 
 #' Prepare genes for processing (identification + extraction)
 #' Consolidates gene column identification and unique gene extraction
-#' @keywords internal
+
 #' @noRd
 .tsenat_prepare_genes_processing <- function(se) {
   rd <- SummarizedExperiment::rowData(se)
@@ -63,7 +63,7 @@
 
 #' Configure bootstrap and parallel execution parameters
 #' Fixes nboot bug and consolidates configuration logic
-#' @keywords internal
+
 #' @noRd
 .tsenat_bootstrap_configure_parallel <- function(bootstrap, nboot, method, num_genes, nthreads, progress) {
   # Validate bootstrap flag - use isTRUE to safely handle NA
@@ -78,7 +78,7 @@
   # AUTO-SELECT NBOOT WHEN "auto"
   if (isTRUE(bootstrap) && identical(nboot, "auto")) {
     use_bca <- !is.null(method) && identical(method, "bca")
-    nboot <- suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
+    nboot <- .suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
     if (isTRUE(progress)) {
       message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
     }
@@ -96,7 +96,7 @@
 
 #' Prepare paired sample and progress information
 #' Consolidates paired detection and progress message assembly
-#' @keywords internal
+
 #' @noRd
 .tsenat_prepare_divergence_execution <- function(se, bootstrap, paired, nboot, method, nthreads, progress) {
   pair_ids <- NULL
@@ -142,7 +142,7 @@
 
 #' Execute divergence computation (abstracted seq vs parallel dispatch)
 #' Consolidates nearly-identical sequential and parallel blocks
-#' @keywords internal
+
 #' @noRd
 .tsenat_compute_divergence_worker <- function(gene_indices, all_gene_names, se, gene_col, rd,
                                             group_col, control_group, q, nboot, ci, method,
@@ -175,7 +175,7 @@
     on.exit(parallel::stopCluster(cl), add = TRUE)
     
     parallel::clusterExport(cl, 
-      c(".tsenat_process_single_gene_div", "calculate_divergence_bootstrap", ".tsenat_tsallis_divergence_scalar",
+      c(".tsenat_process_single_gene_div", ".calculate_divergence_bootstrap", ".tsenat_tsallis_divergence_scalar",
         ".tsenat_compute_aggregate_counts", ".tsenat_extract_group_counts_gene", ".tsenat_compute_divergence_q",
         ".tsenat_bootstrap_build_args", ".tsenat_make_error_result",
         "rd", "gene_col", "all_gene_names", "se", "q", "nboot", "ci", "method",
@@ -202,7 +202,7 @@
 
 #' Finalize result matrices from results list
 #' Consolidates matrix initialization, population, and reference q handling
-#' @keywords internal
+
 #' @noRd
 .tsenat_finalize_divergence_matrices <- function(results_list, num_genes, q, norm, progress) {
   # Initialize result matrices
@@ -261,7 +261,7 @@
       names(per_q_divs) <- paste0("q_", q)
       
       if (sum(!is.na(per_q_divs)) >= 2) {
-        pattern <- classify_q_pattern(per_q_divs)
+        pattern <- .classify_q_pattern(per_q_divs)
         row_data_df$per_q_pattern[i] <- if (is.na(pattern)) "UNCLASSIFIED" else pattern
       }
     }
@@ -272,7 +272,7 @@
 
 #' Print divergence computation summary
 #' Consolidates logging and summary statistics reporting
-#' @keywords internal
+
 #' @noRd
 .tsenat_print_divergence_summary <- function(num_genes, num_errors, elapsed, row_data_df, progress) {
   num_success <- num_genes - num_errors
@@ -322,7 +322,7 @@
 #'
 #' **INPUT & OUTPUT ARCHITECTURE:**
 #' ```
-#' calculate_divergence(se, res=NULL, ...)  
+#' .calculate_divergence(se, res=NULL, ...)  
 #'   Input:  SummarizedExperiment (raw TRANSCRIPT-level counts)
 #'           Each row is a transcript; rowData must have gene_names/gene_name column
 #'   Step 1: Auto-aggregates transcripts -> genes via colSums
@@ -333,7 +333,7 @@
 #'           - colData: one row per q value
 #'           - metadata: parameters, timing, sample sizes
 #' ```
-#' Matches `calculate_diversity()` input/output pattern: transcript counts SE -> gene-level derivative SE
+#' Matches `.calculate_diversity()` input/output pattern: transcript counts SE -> gene-level derivative SE
 #'
 #' **DESIGN PRINCIPLE - Transcript-to-Gene Aggregation:**
 #' Following Paper I033 ("Application of information theoretical approaches to assess diversity 
@@ -456,9 +456,10 @@
 #' - Transcript aggregation: Paper C105 validates gene-level aggregation
 #' - Divergence normalization: Papers C112, S196, S201 validate normalization
 #'   approaches for effect size comparability (S197 - DESeq2 independent filtering)
-#' @keywords internal
+
 #' @noRd
-calculate_divergence <- function(
+
+.calculate_divergence <- function(
     se,
     group_col = NULL,
     control_group = NULL,
@@ -516,7 +517,7 @@ calculate_divergence <- function(
 }
 
 #' Implementation of calculate_divergence with parameter validation
-#' @keywords internal
+
 #' @noRd
 .tsenat_calculate_divergence_impl <- function(
     se,
@@ -541,7 +542,7 @@ calculate_divergence <- function(
   # INPUT VALIDATION & SETUP
   # =========================================================================
 
-  # Parameters are validated in calculate_divergence() 
+  # Parameters are validated in .calculate_divergence() 
   # Normalize/coerce for internal use
   if (!isTRUE(bootstrap)) {
     bootstrap <- FALSE
@@ -850,7 +851,7 @@ calculate_divergence <- function(
             seed, pair_ids
         )
         
-        result <- do.call(calculate_divergence_bootstrap, bootstrap_args)
+        result <- do.call(.calculate_divergence_bootstrap, bootstrap_args)
         gene_results[[j]] <- result
     }
     

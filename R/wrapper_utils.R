@@ -36,7 +36,7 @@
 #'                    config_key = "nonexistent", default_value = 1)
 #' # Returns: 1
 #'
-#' @keywords internal
+
 #' @export
 resolve_slot_param <- function(user_value, config_list, config_key, 
                                 default_value, description = NULL, allow_null = TRUE) {
@@ -112,7 +112,7 @@ resolve_slot_param <- function(user_value, config_list, config_key,
 #'                           priority_candidates = c("condition", "group"))
 #' # Returns: "group" (first match)
 #'
-#' @keywords internal
+
 #' @export
 auto_detect_column <- function(available_cols, config_list = NULL, config_key = NULL,
                                 priority_candidates = character(0), 
@@ -198,7 +198,7 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 #' p <- ggplot(data.frame(x = 1:10, y = rnorm(10)), aes(x, y)) + geom_point()
 #' save_analysis_output(p, "results/plot.pdf")
 #'
-#' @keywords internal
+
 #' @export
 save_analysis_output <- function(data, output_file, object = NULL, verbose = FALSE,
                                   create_dir = TRUE, func_name = "wrapper_function") {
@@ -322,7 +322,7 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
 #'
 #' @return data.frame with combined results and q_value column
 #'
-#' @keywords internal
+
 #' @export
 extract_multiq_table <- function(result, is_multiq = NULL, extract_fn = NULL,
                                   q_value_col = "q_value") {

@@ -35,16 +35,16 @@ Invisibly returns the modified \code{analysis} object with filtered
   (results, metadata, etc.).
 }
 \description{
-S4 wrapper for \code{filter_se()} that filters low-abundance transcripts
+S4 wrapper for \code{.filter_se()} that filters low-abundance transcripts
 directly within a \code{TSENATAnalysis} object. This maintains the consistent
 S4 workflow pattern where functions accept and return analysis objects.
 }
 \details{
-This wrapper applies \code{filter_se()} to the SummarizedExperiment within
+This wrapper applies \code{.filter_se()} to the SummarizedExperiment within
 the TSENATAnalysis object. The function:
 
 1. Extracts the SE from \code{analysis@se}
-2. Filters using \code{filter_se()} with specified parameters
+2. Filters using \code{.filter_se()} with specified parameters
 3. Stores the filtered SE back in \code{analysis@se}
 4. Returns the modified analysis object invisibly
 

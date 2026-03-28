@@ -85,7 +85,7 @@
 #'   }
 #'
 #' @details
-#' This wrapper calls \code{calculate_diversity()} once per q-value, storing
+#' This wrapper calls \code{.calculate_diversity()} once per q-value, storing
 #' results as SummarizedExperiment objects. It extracts key parameters from
 #' \code{analysis@config} with priority resolution (explicit > \code{@config} > default).
 #'
@@ -126,7 +126,7 @@
 #'
 #' @examples
 #' # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
-#' analysis <- TSENAT:::create_test_analysis(
+#' analysis <- TSENAT:::.create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   control_lambda = 40,
@@ -257,7 +257,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   # Add any additional parameters from dots
   calc_args <- c(calc_args, list(...))
   
-  result_df <- do.call(calculate_diversity, calc_args)
+  result_df <- do.call(.calculate_diversity, calc_args)
 
 
   # Extract and store results for each q-value
@@ -285,7 +285,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   # ===================================================================
   # NO RECONSTRUCTION NEEDED: result_df IS already a SummarizedExperiment!
   # ===================================================================
-  # calculate_diversity() returns a SummarizedExperiment directly.
+  # .calculate_diversity() returns a SummarizedExperiment directly.
   # Use it as-is for caching - no need to rebuild from data.frame
   combined_se <- result_df
   
@@ -553,7 +553,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       # Compute diversity spectrum using the combined SE
       combined_se <- analysis@metadata$diversity_combined$combined_se
       if (!is.null(combined_se) && nrow(combined_se) > 0) {
-        diversity_spectrum <- compute_diversity_spectrum(
+        diversity_spectrum <- .compute_diversity_spectrum(
           se = combined_se,
           metric = "median",
           variability_metric = "iqr",
@@ -635,7 +635,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 #' @details
 #' Extracts diversity results from @diversity_results (prerequisite),
 #' combines across q-values into single SummarizedExperiment,
-#' then runs \code{calculate_lm_interaction()}.
+#' then runs \code{.calculate_lm_interaction()}.
 #' 
 #' **Parameter Priority Resolution:**
 #' \itemize{
@@ -650,7 +650,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 #' @examples
 #' # Create test data with sufficient structure for LM analysis
 #' # Create test analysis with diversity pre-computed
-#' analysis <- TSENAT:::create_test_analysis(
+#' analysis <- TSENAT:::.create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5)
@@ -735,7 +735,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
           paste(cd_cols, collapse = ", "))
     } else {
       message("condition_col not specified and colData is empty. ",
-          "Will be determined by calculate_lm_interaction().")
+          "Will be determined by .calculate_lm_interaction().")
     }
   }
 
@@ -862,7 +862,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 
   # Run LM analysis
   result <- tryCatch({
-    do.call(calculate_lm_interaction, args)
+    do.call(.calculate_lm_interaction, args)
   }, error = function(e) {
     stop("lm_interaction calculation failed:\n", conditionMessage(e),
          call. = FALSE)
@@ -884,7 +884,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
   # CRITICAL VALIDATION: Ensure result has required structure
   # =========================================================================
   # The result MUST be a data.frame with columns 'gene' and 'adj_p_interaction'
-  # to be compatible with downstream functions like effect_sizes_divergence()
+  # to be compatible with downstream functions like .effect_sizes_divergence()
   if (!is.data.frame(lm_results_df)) {
     stop("[calculate_lm_interaction_s4] Result from calculate_lm_interaction must be a data.frame, ",
          "but got: ", class(lm_results_df),
@@ -990,7 +990,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @examples
 #' # Create test analysis with diversity pre-computed
-#' analysis <- TSENAT:::create_test_analysis(
+#' analysis <- TSENAT:::.create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5)
@@ -1050,7 +1050,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 
     # Run jackknife - pass the diversity matrix as x
     tryCatch({
-      result <- jackknife_entropy_outliers(
+      result <- .jackknife_entropy_outliers(
         x = div_matrix,
         q = q_val,
         verbose = verbose,
@@ -1193,7 +1193,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 #' @examples
 #' # Create and run divergence analysis with strong signal
 #' # Create test analysis with diversity pre-computed
-#' analysis <- TSENAT:::create_test_analysis(
+#' analysis <- TSENAT:::.create_test_analysis(
 #'   n_genes = 8,
 #'   n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5)
@@ -1300,7 +1300,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   
   # Run divergence calculation
   result <- tryCatch({
-    do.call(calculate_divergence, args)
+    do.call(.calculate_divergence, args)
   }, error = function(e) {
     # More detailed error handling
     stop("Divergence calculation failed [NA boolean likely in: ",
@@ -1313,7 +1313,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   # =========================================================================
   # Store results in list format (required by @divergence_results slot)
   if (is.null(result)) {
-    warning("[calculate_divergence_s4] Result is NULL. Check calculate_divergence() output.",
+    warning("[calculate_divergence_s4] Result is NULL. Check .calculate_divergence() output.",
             call. = FALSE)
     analysis@divergence_results <- list()
   } else if (is(result, "SummarizedExperiment")) {
@@ -1403,7 +1403,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' @param nthreads \code{numeric} or \code{NULL}. Number of parallel threads for computation.
 #'   If NULL, reads from \code{@config$nthreads}.
 #' @param verbose \code{logical}. If TRUE, prints progress messages. Default: FALSE.
-#' @param ... Additional arguments passed to the base \code{detect_q_gene_interactions()} function.
+#' @param ... Additional arguments passed to the base \code{.detect_q_gene_interactions()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -1424,7 +1424,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' }
 #'
 #' @examples
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
@@ -1439,7 +1439,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
 # Purpose:
-#   Wrapper around detect_q_gene_interactions() that manages TSENATAnalysis object.
+#   Wrapper around .detect_q_gene_interactions() that manages TSENATAnalysis object.
 #   Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns.
 #   Tests whether the effect of q-values DIFFERS between experimental conditions.
 # 
@@ -1503,7 +1503,7 @@ detect_q_gene_interactions_s4 <- function(
   # ========================================================================
   # PREREQUISITE CHECK: Diversity must be pre-calculated
   # ========================================================================
-  # detect_q_gene_interactions() requires a SummarizedExperiment with:
+  # .detect_q_gene_interactions() requires a SummarizedExperiment with:
   #   - assays: entropy values (genes × samples)
   #   - colData: q-values, condition_col, and optional subject information
   if (length(analysis@diversity_results) == 0) {
@@ -1738,7 +1738,7 @@ detect_q_gene_interactions_s4 <- function(
   # ========================================================================
   # RUN CORE RANK-BASED Q-INTERACTION TESTING
   # ========================================================================
-  # Delegate to detect_q_gene_interactions() which performs:
+  # Delegate to .detect_q_gene_interactions() which performs:
   #   1. SummarizedExperiment → long-format data frame conversion
   #   2. Per-gene rank-based test selection (conditional on data characteristics)
   #   3. Westfall-Young permutation procedure (if multicorr="westfall-young")
@@ -1747,7 +1747,7 @@ detect_q_gene_interactions_s4 <- function(
   # 
   # Use merged parameter dictionary: config values + explicit overrides
   result <- tryCatch({
-    do.call(detect_q_gene_interactions, c(list(data = se_multi_q), dots))
+    do.call(.detect_q_gene_interactions, c(list(data = se_multi_q), dots))
   }, error = function(e) {
     stop("q-interaction detection failed:\n", e$message,
          call. = FALSE)
@@ -1852,7 +1852,7 @@ detect_q_gene_interactions_s4 <- function(
 #' \code{\link{calculate_diversity_s4}} for computing diversity.
 #'
 #' @examples
-#' analysis <- TSENAT:::create_test_analysis()
+#' analysis <- TSENAT:::.create_test_analysis()
 #' result <- calculate_difference_s4(analysis, control = "control")
 #'
 #' @export
@@ -1931,7 +1931,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
   # Run difference calculation on diversity results
   # Note: diversity_se and its colData are already prepared by calculate_diversity_s4
   result <- tryCatch({
-    calculate_difference(
+    .calculate_difference(
       x = diversity_se,
       condition_col = condition_col,
       control = control,
@@ -2001,7 +2001,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #'   in \code{@metadata$rankbased_assumptions}.
 #'
 #' @details
-#' This wrapper calls \code{test_rankbased_assumptions()} on diversity data
+#' This wrapper calls \code{.test_rankbased_assumptions()} on diversity data
 #' extracted from the analysis object. Results include:
 #'
 #' \describe{
@@ -2016,7 +2016,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' 3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
 #'
 #' @examples
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 #' names(metadata(analysis, "rankbased_assumptions"))
@@ -2091,7 +2091,7 @@ setMethod(
     if (is.null(diversity_data) && is.null(q) && length(analysis@diversity_results) == 1) {
       div_se <- analysis@diversity_results[[1]]
       diversity_data <- assay(div_se, "diversity")
-      q_used <- extract_q_from_key(names(analysis@diversity_results)[1])
+      q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
     }
     
     # Fallback: use first diversity result
@@ -2099,7 +2099,7 @@ setMethod(
       div_se <- analysis@diversity_results[[1]]
       diversity_data <- assay(div_se, "diversity")
       if (is.null(q_used) || is.na(q_used)) {
-        q_used <- extract_q_from_key(names(analysis@diversity_results)[1])
+        q_used <- .extract_q_from_key(names(analysis@diversity_results)[1])
       }
     }
     
@@ -2117,7 +2117,7 @@ setMethod(
     
     # Run assumptions test
     result <- tryCatch({
-      test_rankbased_assumptions(
+      .test_rankbased_assumptions(
         data = diversity_data,
         checks = checks,
         alpha = alpha
@@ -2147,7 +2147,8 @@ setMethod(
 )
 
 # Helper function to extract q-value from key
-extract_q_from_key <- function(key) {
+
+.extract_q_from_key <- function(key) {
   # Extract numeric part from "q_X.X" format
   as.numeric(sub("^q_", "", key))
 }
@@ -2192,7 +2193,7 @@ extract_q_from_key <- function(key) {
 #' @details
 #' This wrapper extracts the difference results data frame from
 #' \code{analysis@lm_results$difference} and passes it to the base
-#' \code{plot_volcano_ma_grid()} function.
+#' \code{.plot_volcano_ma_grid()} function.
 #'
 #' **Required Data:**
 #' \itemize{
@@ -2228,7 +2229,7 @@ extract_q_from_key <- function(key) {
 #'
 #' @examples
 #' # Create test analysis with diversity and differential results
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_difference_s4(analysis, control = "control",
 #'   verbose = FALSE)
@@ -2297,7 +2298,7 @@ plot_volcano_ma_grid_s4 <- function(
   }
 
   plot_obj <- tryCatch({
-    plot_volcano_ma_grid(
+    .plot_volcano_ma_grid(
       diff_df = diff_df,
       x_col = x_col,
       padj_col = actual_padj_col,
@@ -2367,7 +2368,7 @@ plot_volcano_ma_grid_s4 <- function(
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @examples
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -2454,7 +2455,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   
   # Call the standard function
   concordance_result <- tryCatch({
-    compute_method_concordance(gam_results_final, friedman_results)
+    .compute_method_concordance(gam_results_final, friedman_results)
   }, error = function(e) {
     stop("[compute_method_concordance_s4]", conditionMessage(e), call. = FALSE)
   })
@@ -2558,7 +2559,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #'
 #' @examples
 #' # Plot 1: Global divergence spectrum across all genes
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' p_global <- plot_divergence_spectrum_s4(analysis)
@@ -2644,7 +2645,7 @@ plot_divergence_spectrum_s4 <- function(
 
   # Create the plot using base function
   p <- tryCatch({
-    plot_divergence_spectrum(
+    .plot_divergence_spectrum(
       divergence_results_se = divergence_results_se,
       gene = gene,
       lm_res = lm_res,
@@ -2703,7 +2704,7 @@ plot_divergence_spectrum_s4 <- function(
 #' to populate \code{@metadata$method_concordance}.
 #'
 #' @examples
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' # Note: compute_method_concordance_s4 requires additional LM and Friedman results
 #' # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance
@@ -2743,7 +2744,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
   }
   
   # Call standard plotting function
-  plot_obj <- plot_method_concordance(comparison_df)
+  plot_obj <- .plot_method_concordance(comparison_df)
   
   if (verbose) {
     message("[plot_method_concordance_s4] Plot generated successfully")
@@ -2754,7 +2755,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 
 #' Compute Effect Sizes from Divergence Results (S4 Wrapper)
 #'
-#' S4 wrapper for \code{effect_sizes_divergence()} that extracts divergence and LM
+#' S4 wrapper for \code{.effect_sizes_divergence()} that extracts divergence and LM
 #' results directly from a TSENATAnalysis object.
 #'
 #' @param analysis \code{TSENATAnalysis}. An S4 object containing divergence results
@@ -2783,7 +2784,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' \describe{
 #'   \item{Extracting}{Divergence SE from \code{@divergence_results} and LM results
 #'     from \code{@lm_results$lm_interaction}}
-#'   \item{Computing}{Effect sizes using standard \code{effect_sizes_divergence()} function}
+#'   \item{Computing}{Effect sizes using standard \code{.effect_sizes_divergence()} function}
 #'   \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
 #'     \code{validation_stats}}
 #'   \item{Tracking}{Function call in \code{@metadata$function_calls}}
@@ -2802,7 +2803,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'
 #' @examples
 #' # Setup: Create test analysis with divergence and LM interaction results
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), 
 #'   verbose = FALSE)
@@ -2997,7 +2998,7 @@ effect_sizes_divergence_s4 <- function(
   }
 
   result <- tryCatch({
-    effect_sizes_divergence(
+    .effect_sizes_divergence(
       lm_res = lm_res,
       divergence_results_se = divergence_se,
       significance_threshold = significance_threshold,
@@ -3061,7 +3062,7 @@ effect_sizes_divergence_s4 <- function(
 
 #' Plot Top Transcripts from TSENATAnalysis Object
 #'
-#' S4 wrapper for \code{plot_top_transcripts()} that extracts data directly from
+#' S4 wrapper for \code{.plot_top_transcripts()} that extracts data directly from
 #' a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
 #' LM results for visualizing transcript abundance across conditions.
 #'
@@ -3108,7 +3109,7 @@ effect_sizes_divergence_s4 <- function(
 #' @param use_tpm \code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
 #'   from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
 #'   depth and is recommended for comparing expression across samples. Requires TPM data 
-#'   in metadata from `build_analysis_s4()` or `build_se()` with `tpm` parameter. 
+#'   in metadata from `build_analysis_s4()` or `.build_se()` with `tpm` parameter. 
 #'   Raises error if TPM not available and `use_tpm = TRUE`.
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
@@ -3135,7 +3136,7 @@ effect_sizes_divergence_s4 <- function(
 #'
 #' @examples
 #' # Plot 6: Top transcripts across groups
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 4, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -3244,15 +3245,15 @@ plot_top_transcripts_s4 <- function(
   # =========================================================================
   if (verbose) {
     if (length(gene) > 1) {
-      message("[plot_top_transcripts_s4] Calling plot_top_transcripts() for genes: ", 
+      message("[plot_top_transcripts_s4] Calling .plot_top_transcripts() for genes: ", 
           paste(gene, collapse = ", "))
     } else {
-      message("[plot_top_transcripts_s4] Calling plot_top_transcripts() for gene: ", gene)
+      message("[plot_top_transcripts_s4] Calling .plot_top_transcripts() for gene: ", gene)
     }
   }
 
   plot_file <- tryCatch({
-    plot_top_transcripts(
+    .plot_top_transcripts(
       se = se,
       gene = gene,
       condition_col = condition_col,
@@ -3310,7 +3311,7 @@ plot_top_transcripts_s4 <- function(
 #' @details
 #' This wrapper extracts the interaction results (with effect size columns)
 #' from \code{analysis@metadata$effect_sizes_divergence$interaction_results}
-#' and passes them to the base \code{plot_divergence_distribution()} function.
+#' and passes them to the base \code{.plot_divergence_distribution()} function.
 #'
 #' The function visualizes the distribution of effect sizes using the median
 #' q-value's divergence (typically around q=1.0, close to Shannon entropy).
@@ -3325,7 +3326,7 @@ plot_top_transcripts_s4 <- function(
 #'
 #' @examples
 #' # Plot 2: Distribution of effect sizes across genes
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
@@ -3378,7 +3379,7 @@ plot_divergence_distribution_s4 <- function(
 
   # Create the plot using base function
   p <- tryCatch({
-    plot_divergence_distribution(
+    .plot_divergence_distribution(
       interaction_results = interaction_results,
       threshold = threshold,
       ...
@@ -3411,7 +3412,7 @@ plot_divergence_distribution_s4 <- function(
 
 #' Prepare Gene Switching Tables from TSENATAnalysis Object
 #'
-#' S4 wrapper for \code{prepare_gene_switching_tables()} that extracts results
+#' S4 wrapper for \code{.prepare_gene_switching_tables()} that extracts results
 #' directly from a TSENATAnalysis object. Automatically retrieves LM results and
 #' jackknife switching results from the analysis object slots.
 #'
@@ -3451,7 +3452,7 @@ plot_divergence_distribution_s4 <- function(
 #' providing a simplified interface compared to the base function.
 #'
 #' @examples
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1.0, 1.5))
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -3550,9 +3551,9 @@ prepare_gene_switching_tables_s4 <- function(
   if (verbose) message("  [OK] Extracted jackknife results with ", length(multi_q_results), " q-values")
   
   # Call base function with extracted parameters
-  if (verbose) message("Calling prepare_gene_switching_tables()...")
+  if (verbose) message("Calling .prepare_gene_switching_tables()...")
   
-  result <- prepare_gene_switching_tables(
+  result <- .prepare_gene_switching_tables(
     lm_res = lm_res,
     multi_q_results = multi_q_results,
     n_top_genes = n_top_genes,
@@ -3586,7 +3587,7 @@ prepare_gene_switching_tables_s4 <- function(
 
 #' Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
 #'
-#' S4 wrapper for \code{plot_multiq_delta_influence_heatmaps()} that extracts results
+#' S4 wrapper for \code{.plot_multiq_delta_influence_heatmaps()} that extracts results
 #' directly from a TSENATAnalysis object. Automatically retrieves jackknife switching
 #' results from the analysis object slots.
 #'
@@ -3625,7 +3626,7 @@ prepare_gene_switching_tables_s4 <- function(
 #'
 #' @examples
 #' # Plot 5: Multi-q delta influence (isoform switching) heatmaps
-#' analysis <- TSENAT:::create_test_analysis(n_genes = 4, n_samples_per_group = 20,
+#' analysis <- TSENAT:::.create_test_analysis(n_genes = 4, n_samples_per_group = 20,
 #'   q_values = c(0.5, 1, 1.5))
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
@@ -3705,11 +3706,11 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     }
   }
   
-  if (verbose) message("Calling plot_multiq_delta_influence_heatmaps()...")
+  if (verbose) message("Calling .plot_multiq_delta_influence_heatmaps()...")
   
   # Call base function with extracted parameters
   # Note: output_file parameter can be used to save heatmap as PNG file
-  result <- plot_multiq_delta_influence_heatmaps(
+  result <- .plot_multiq_delta_influence_heatmaps(
     switching_results = switching_results,
     n_genes = n_genes,
     lm_results = lm_results,
@@ -3767,7 +3768,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
 #' 2. Extracts LM results from \code{@lm_results$lm_interaction} slot
 #' 3. Detects condition_col from \code{@config} or uses default
-#' 4. Calls \code{plot_lm_interaction_gam()} with extracted parameters
+#' 4. Calls \code{.plot_lm_interaction_gam()} with extracted parameters
 #'
 #' **Parameter Resolution (condition_col):**
 #' \enumerate{
@@ -3896,7 +3897,7 @@ plot_lm_interaction_gam_s4 <- function(
       FALSE
     }
     
-    calculate_diversity(
+    .calculate_diversity(
       x = analysis@se,
       q = sort(q_computed),
       norm = TRUE,
@@ -3943,7 +3944,7 @@ plot_lm_interaction_gam_s4 <- function(
   # CALL plot_lm_interaction_gam WITH RECONSTRUCTED DIVERSITY SE
   # =========================================================================
   result <- tryCatch({
-    plot_lm_interaction_gam(
+    .plot_lm_interaction_gam(
       se = diversity_combined,
       lm_res = lm_res,
       condition_col = condition_col,
@@ -4057,7 +4058,7 @@ plot_lm_interaction_gam_s4 <- function(
 #' This wrapper automatically:
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
 #' 2. Detects condition_col, gene_col, isoform_col from colData/rowData or @config
-#' 3. Calls \code{jackknife_isoform_switching()} with extracted parameters
+#' 3. Calls \code{.jackknife_isoform_switching()} with extracted parameters
 #'
 #' **Parameter Auto-Detection:**
 #' \enumerate{
@@ -4245,7 +4246,7 @@ jackknife_isoform_switching_s4 <- function(
   # CALL BASE FUNCTION
   # =========================================================================
   result <- tryCatch({
-    jackknife_isoform_switching(
+    .jackknife_isoform_switching(
       se = se,
       condition_col = condition_col,
       subject_col = subject_col,
@@ -4605,7 +4606,7 @@ m_estimate_s4 <- function(
   }
 
   m_est_results <- tryCatch({
-    result <- m_estimate(
+    result <- .m_estimate(
       x = combined_se,
       samples = condition_col,
       loss_type = loss_type,
@@ -4651,7 +4652,7 @@ m_estimate_s4 <- function(
 
 #' Filter Low-Abundance Transcripts in a TSENATAnalysis Object
 #'
-#' S4 wrapper for \code{filter_se()} that filters low-abundance transcripts
+#' S4 wrapper for \code{.filter_se()} that filters low-abundance transcripts
 #' directly within a \code{TSENATAnalysis} object. This maintains the consistent
 #' S4 workflow pattern where functions accept and return analysis objects.
 #'
@@ -4677,11 +4678,11 @@ m_estimate_s4 <- function(
 #'   (results, metadata, etc.).
 #'
 #' @details
-#' This wrapper applies \code{filter_se()} to the SummarizedExperiment within
+#' This wrapper applies \code{.filter_se()} to the SummarizedExperiment within
 #' the TSENATAnalysis object. The function:
 #'
 #' 1. Extracts the SE from \code{analysis@se}
-#' 2. Filters using \code{filter_se()} with specified parameters
+#' 2. Filters using \code{.filter_se()} with specified parameters
 #' 3. Stores the filtered SE back in \code{analysis@se}
 #' 4. Returns the modified analysis object invisibly
 #'
@@ -4720,8 +4721,8 @@ filter_analysis_s4 <- function(analysis, stringency = NULL, min_samples = 5L, ve
   # Extract SE from analysis
   se <- analysis@se
 
-  # Apply filtering via filter_se (colData is already preserved within filter_se)
-  se_filtered <- filter_se(
+  # Apply filtering via .filter_se(colData is already preserved within filter_se)
+  se_filtered <- .filter_se(
     se = se,
     stringency = stringency,
     min_samples = min_samples,
@@ -4737,7 +4738,7 @@ filter_analysis_s4 <- function(analysis, stringency = NULL, min_samples = 5L, ve
 
 #' Build a Complete TSENATAnalysis Object
 #'
-#' Convenience wrapper that combines \code{build_se()} and \code{TSENATAnalysis()}
+#' Convenience wrapper that combines \code{.build_se()} and \code{TSENATAnalysis()}
 #' into a single function call. This creates a complete analysis object ready for
 #' Tsallis entropy computation and downstream analysis.
 #'
@@ -4777,14 +4778,14 @@ filter_analysis_s4 <- function(analysis, stringency = NULL, min_samples = 5L, ve
 #' @details
 #' This wrapper combines two steps into one:
 #' \enumerate{
-#'   \item Call \code{build_se()} to create a SummarizedExperiment from transcript counts
+#'   \item Call \code{.build_se()} to create a SummarizedExperiment from transcript counts
 #'   \item Wrap the result in \code{TSENATAnalysis()} to create the analysis object
 #' }
 #'
 #' The returned object is ready for diversity analysis via \code{calculate_diversity_s4()}.
 #'
 #' If you need to inspect or filter the SummarizedExperiment before creating the
-#' TSENATAnalysis object, call \code{build_se()} and \code{TSENATAnalysis()} separately.
+#' TSENATAnalysis object, call \code{.build_se()} and \code{TSENATAnalysis()} separately.
 #'
 #' @seealso
 #' \code{\link{TSENATAnalysis}} for the S4 class structure
@@ -4828,7 +4829,7 @@ build_analysis_s4 <- function(readcounts, tx2gene, assay_name = "counts",
                              metadata = NULL, tpm = NULL, effective_length = NULL,
                              config = list()) {
   # Build SummarizedExperiment
-  se <- build_se(
+  se <- .build_se(
     readcounts = readcounts,
     tx2gene = tx2gene,
     assay_name = assay_name,

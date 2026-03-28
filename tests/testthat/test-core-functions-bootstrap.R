@@ -548,7 +548,7 @@ test_that(".tsenat_bootstrap_print_results silent when gene_name NULL", {
 # ═══════════════════════════════════════════════════════════════════════════════
 
 test_that("Refactored main function uses helpers correctly (single q, vector input)", {
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts, q = 1, nboot = 50, ci = 0.95,
     method = "percentile", verbose = FALSE, include_diagnostics = FALSE
   )
@@ -559,7 +559,7 @@ test_that("Refactored main function uses helpers correctly (single q, vector inp
 })
 
 test_that("Refactored main function uses helpers correctly (multiple q)", {
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts, q = c(0.5, 1, 2), nboot = 50, ci = 0.95,
     method = "percentile", verbose = FALSE, include_diagnostics = FALSE
   )
@@ -570,7 +570,7 @@ test_that("Refactored main function uses helpers correctly (multiple q)", {
 })
 
 test_that("Refactored main function uses helpers correctly (matrix input)", {
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = test_matrix, q = 1, nboot = 50, ci = 0.95,
     method = "percentile", verbose = FALSE, include_diagnostics = FALSE, nthreads = 1
   )
@@ -583,13 +583,13 @@ test_that("Refactored main function uses helpers correctly (matrix input)", {
 test_that("Helper functions produce consistent results", {
   # Run twice with same seed
   set.seed(42)
-  result1 <- calculate_tsallis_entropy_bootstrap(
+  result1 <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts, q = 1, nboot = 50, ci = 0.95,
     method = "percentile", verbose = FALSE
   )
   
   set.seed(42)
-  result2 <- calculate_tsallis_entropy_bootstrap(
+  result2 <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts, q = 1, nboot = 50, ci = 0.95,
     method = "percentile", verbose = FALSE
   )
@@ -600,12 +600,12 @@ test_that("Helper functions produce consistent results", {
 })
 
 test_that("Balanced vs skewed counts produce different CIs", {
-  result_balanced <- calculate_tsallis_entropy_bootstrap(
+  result_balanced <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts_balanced, q = 1, nboot = 100, ci = 0.95,
     method = "percentile", verbose = FALSE, include_diagnostics = FALSE
   )
   
-  result_skewed <- calculate_tsallis_entropy_bootstrap(
+  result_skewed <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts_skewed, q = 1, nboot = 100, ci = 0.95,
     method = "percentile", verbose = FALSE, include_diagnostics = FALSE
   )
@@ -620,7 +620,7 @@ test_that("Balanced vs skewed counts produce different CIs", {
 })
 
 test_that("Diagnostics provide meaningful information", {
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = test_counts, q = 1, nboot = 100, ci = 0.95,
     method = "percentile", verbose = FALSE, include_diagnostics = TRUE
   )

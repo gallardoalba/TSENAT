@@ -1,5 +1,5 @@
 #' Internal Helper Functions for M-Estimation
-#' @keywords internal
+
 #' @noRd
 NULL
 
@@ -45,7 +45,7 @@ NULL
 #' (3rd ed.). SAGE Publications.
 
 #' Helper function: Huber's Proposal 2 scale
-#' @keywords internal
+
 #' @noRd
 .huber_proposal2_scale <- function(y) {
   # Iteratively determines optimal scale for M-estimation
@@ -117,8 +117,8 @@ NULL
 # ============================================================================
 # Single vector robust location estimation using Iteratively Re-Weighted
 # Least Squares. Extracted into standalone function for reuse in:
-#   1. m_estimate() - full diagnostic output
-#   2. calculate_difference() - efficient group summaries
+#   1. .m_estimate() - full diagnostic output
+#   2. .calculate_difference() - efficient group summaries
 #
 # @param y Numeric vector of observations (may contain NA)
 # @param loss_type Character: "huber" (default), "tukey", or "lsq"
@@ -223,7 +223,7 @@ NULL
 # ============================================================================
 
 #' Prepare SummarizedExperiment data for M-estimation
-#' @keywords internal
+
 #' @noRd
 .tsenat_mest_prepare_se_data <- function(x, samples_col, q_combine_method = "mean") {
   entropy_matrix <- SummarizedExperiment::assay(x)
@@ -273,7 +273,7 @@ NULL
 }
 
 #' Perform leave-one-out influence analysis for M-estimation
-#' @keywords internal
+
 #' @noRd
 .tsenat_mest_influence_loo <- function(entropy_by_sample, group_assignment_unique, 
                                             unique_samples, m_est_full,
@@ -306,7 +306,7 @@ NULL
     }
     
     # LOO M-estimate
-    m_est_subset <- m_estimate(entropy_subset, samples = group_subset,
+    m_est_subset <- .m_estimate(entropy_subset, samples = group_subset,
                                loss_type = loss_type, scale = scale,
                                max_iter = max_iter, tol = tol, paired = FALSE, 
                                pcorr = pcorr, scale_method = scale_method)
@@ -335,7 +335,7 @@ NULL
 }
 
 #' Compute centroid distances for M-estimation
-#' @keywords internal
+
 #' @noRd
 .tsenat_mest_compute_distances <- function(entropy_by_sample, group_assignment_unique, 
                                               unique_samples) {
@@ -367,7 +367,7 @@ NULL
   centroid_distances
 }
 
-#' @keywords internal
+
 #' @noRd
 .handleMEstimateSEInput <- function(x, samples, q_combine_method, paired, scale,
                                      loss_type, max_iter, tol, pcorr, scale_method,
@@ -393,7 +393,7 @@ NULL
   
   # Calculate M-estimate with ALL samples as baseline
   m_est_full <- tryCatch({
-    m_estimate(entropy_by_sample, samples = group_assignment_unique,
+    .m_estimate(entropy_by_sample, samples = group_assignment_unique,
                loss_type = loss_type, scale = scale,
                max_iter = max_iter, tol = tol, paired = paired, pcorr = pcorr,
                scale_method = scale_method)
@@ -478,7 +478,7 @@ NULL
   result_df
 }
 
-#' @keywords internal
+
 #' @noRd
 .validateMEstimateInputs <- function(x, samples, loss_type, scale_method, paired) {
   # Helper: Validate inputs for m_estimate function
@@ -508,7 +508,7 @@ NULL
   invisible(NULL)
 }
 
-#' @keywords internal
+
 #' @noRd
 .determineMEstimateScale <- function(y, scale = NULL, scale_method = "mad") {
   # Helper: Determine scale parameter for M-estimation
@@ -539,7 +539,7 @@ NULL
   scale_local
 }
 
-#' @keywords internal
+
 #' @noRd
 .performIRLSRegression <- function(y, X, loss_type = "huber", scale_local = 1,
                                     max_iter = 50, tol = 1e-6, use_intercept = TRUE) {
@@ -638,7 +638,7 @@ NULL
   list(coef = coef, weights = weights, converged = converged)
 }
 
-#' @keywords internal
+
 #' @noRd
 .processMEstimateFeature <- function(feature_idx, x, samples, loss_type, scale, max_iter, 
                                       tol, paired, scale_method) {
@@ -808,7 +808,7 @@ NULL
 #' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine equivariant 
 #' estimators of multivariate location and covariance matrices. Annals of Statistics, 19(1), 229-248.
 #'
-#' @keywords internal
+
 #' @noRd
 #' @details
 #' M-estimation uses the Huber loss function by default:
@@ -839,7 +839,8 @@ NULL
 #'   More robust to extreme contamination than M-estimation (~25%).
 #'   Recommended when data contamination is suspected.
 #'
-m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
+
+.m_estimate <- function(x, samples, loss_type = "huber", scale = NULL,
                        max_iter = 50, tol = 1e-6, paired = FALSE, pcorr = "BH",
                        q_combine_method = "mean", influence_threshold = 0.75,
                        scale_method = "mad", verbose = FALSE) {

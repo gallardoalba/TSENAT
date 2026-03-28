@@ -13,7 +13,7 @@ test_that("jackknife_entropy_outliers basic vector input", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 1,
     norm = TRUE,
@@ -32,7 +32,7 @@ test_that("jackknife_entropy_outliers multiple q with verbose = TRUE", {
   x <- c(100, 50, 75, 200, 80, 120)
   
   suppressMessages(
-    result <- jackknife_entropy_outliers(
+    result <- .jackknife_entropy_outliers(
       x = x,
       q = c(1.0, 2.0),
       norm = TRUE,
@@ -48,7 +48,7 @@ test_that("jackknife_entropy_outliers matrix with multiple q", {
   set.seed(123)
   x <- matrix(c(100, 50, 200, 75, 150, 80), nrow = 2, ncol = 3)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = c(1.0, 1.5, 2.0),
     norm = TRUE,
@@ -70,7 +70,7 @@ test_that("jackknife_entropy_outliers with SE and res inputs", {
   
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 2,
@@ -97,7 +97,7 @@ test_that("jackknife_entropy_outliers SE gene lookup from rowData gene_name", {
   
   res <- data.frame(gene_id = c("GENEQ", "GENEZ", "GENEX"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 1,
@@ -124,7 +124,7 @@ test_that("jackknife_entropy_outliers SE gene lookup from rowData gene_id", {
   
   res <- data.frame(gene_id = c("G001", "G002", "G003"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 1,
@@ -150,7 +150,7 @@ test_that("jackknife_entropy_outliers SE with missing gene warning", {
   
   # Should handle missing gene gracefully with a warning
   expect_warning(
-    result <- jackknife_entropy_outliers(
+    result <- .jackknife_entropy_outliers(
       se = se,
       res = res,
       top_n = 2,
@@ -176,7 +176,7 @@ test_that("jackknife_entropy_outliers with invalid count values", {
   
   # Should handle invalid counts
   expect_warning(
-    result <- jackknife_entropy_outliers(
+    result <- .jackknife_entropy_outliers(
       se = se,
       res = res,
       top_n = 1,
@@ -199,7 +199,7 @@ test_that("jackknife_entropy_outliers SE with pseudocount and normalization", {
   
   res <- data.frame(gene_id = c("g1", "g2"), pvalue = c(0.001, 0.01))
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 1,
@@ -217,7 +217,7 @@ test_that("jackknife_entropy_outliers with different log bases", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result_e <- jackknife_entropy_outliers(
+  result_e <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -225,7 +225,7 @@ test_that("jackknife_entropy_outliers with different log bases", {
     verbose = FALSE
   )
   
-  result_2 <- jackknife_entropy_outliers(
+  result_2 <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -242,7 +242,7 @@ test_that("jackknife_entropy_outliers with outlier threshold parameter", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result_90 <- jackknife_entropy_outliers(
+  result_90 <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -250,7 +250,7 @@ test_that("jackknife_entropy_outliers with outlier threshold parameter", {
     verbose = FALSE
   )
   
-  result_95 <- jackknife_entropy_outliers(
+  result_95 <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -267,7 +267,7 @@ test_that("jackknife_entropy_outliers with seed for reproducibility", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result1 <- jackknife_entropy_outliers(
+  result1 <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -275,7 +275,7 @@ test_that("jackknife_entropy_outliers with seed for reproducibility", {
     verbose = FALSE
   )
   
-  result2 <- jackknife_entropy_outliers(
+  result2 <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -295,7 +295,7 @@ test_that("compute_delta_statistics with matrices", {
   counts_B <- matrix(c(106, 48, 82, 115, 42, 85), nrow = 3, ncol = 2)
   delta_influence <- c(0.1, 0.05, 0.08)
   
-  result <- compute_delta_statistics(
+  result <- .compute_delta_statistics(
     counts_A = counts_A,
     counts_B = counts_B,
     delta_influence = delta_influence,
@@ -315,7 +315,7 @@ test_that("compute_delta_statistics returns statistics", {
   counts_B <- matrix(c(98, 52, 205, 75), nrow = 2, ncol = 2)
   delta_influence <- c(0.12, 0.08)
   
-  result <- compute_delta_statistics(
+  result <- .compute_delta_statistics(
     counts_A = counts_A,
     counts_B = counts_B,
     delta_influence = delta_influence,
@@ -355,7 +355,7 @@ test_that("jackknife_isoform_switching with SummarizedExperiment", {
     )
   )
   
-  result <- jackknife_isoform_switching(
+  result <- .jackknife_isoform_switching(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -396,7 +396,7 @@ test_that("jackknife_isoform_switching with multiple q", {
     )
   )
   
-  result <- jackknife_isoform_switching(
+  result <- .jackknife_isoform_switching(
     se = se,
     condition_col = "condition",
     gene_col = "gene_id",
@@ -413,7 +413,7 @@ test_that("jackknife_entropy_outliers returns required field structure", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -429,7 +429,7 @@ test_that("jackknife_entropy_outliers identifies outliers", {
   # Create data with one very dominant transcript
   x <- c(1000, 50, 75, 200, 80, 120)  # First value is much larger
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -446,7 +446,7 @@ test_that("jackknife_entropy_outliers with very small counts", {
   set.seed(123)
   x <- c(1, 2, 1, 3, 2, 1)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -463,7 +463,7 @@ test_that("jackknife_entropy_outliers with zero counts", {
   set.seed(123)
   x <- c(100, 0, 75, 200, 0, 120)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -479,7 +479,7 @@ test_that("jackknife_entropy_outliers with q = 1 (Shannon entropy)", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 1.0,
     norm = TRUE,
@@ -495,7 +495,7 @@ test_that("jackknife_entropy_outliers with large q value", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 5.0,
     norm = TRUE,
@@ -518,7 +518,7 @@ test_that("jackknife_entropy_outliers SE with top_n > total genes", {
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
   # top_n = 10 but only 3 genes available - should use all 3
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 10,
@@ -540,7 +540,7 @@ test_that("jackknife_entropy_outliers SE SE validation", {
   res <- data.frame(gene_id = c("g1"), pvalue = c(0.001))
   
   expect_error(
-    jackknife_entropy_outliers(
+    .jackknife_entropy_outliers(
       se = invalid_se,
       res = res,
       q = 2,
@@ -564,7 +564,7 @@ test_that("jackknife_entropy_outliers SE res validation", {
   invalid_res <- list(gene_id = c("g1"))
   
   expect_error(
-    jackknife_entropy_outliers(
+    .jackknife_entropy_outliers(
       se = se,
       res = invalid_res,
       q = 2,
@@ -579,7 +579,7 @@ test_that("jackknife_entropy_outliers summary method", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -595,7 +595,7 @@ test_that("jackknife_entropy_outliers print method", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 2,
     norm = TRUE,
@@ -615,7 +615,7 @@ test_that("jackknife_entropy_outliers nthreads = 1 (sequential)", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 1,
     norm = TRUE,
@@ -635,7 +635,7 @@ test_that("jackknife_entropy_outliers nthreads = 2 with multi-q", {
   set.seed(123)
   x <- c(100, 50, 75, 200, 80)
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = c(0.5, 1, 1.5),  # 3 q values triggers parallel (> 2) but fewer than before
     norm = TRUE,
@@ -680,7 +680,7 @@ test_that("jackknife_entropy_outliers nthreads parameter passes through SE path"
     row.names = c("Gene1", "Gene2")
   )
   
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     se = se,
     res = res,
     top_n = 2,
@@ -703,7 +703,7 @@ test_that("jackknife_entropy_outliers nthreads parameter passes through matrix r
   rownames(x_matrix) <- c("Gene1", "Gene2")
   
   # Single q value (no parallelization but nthreads should still work)
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x_matrix,
     q = 1,
     nthreads = 1,
@@ -721,7 +721,7 @@ test_that("jackknife_entropy_outliers nthreads behavior: nthreads > 1 without mu
   x <- c(100, 50, 75, 200, 80)
   
   # Single q value: should not parallelize even with nthreads = 2
-  result <- jackknife_entropy_outliers(
+  result <- .jackknife_entropy_outliers(
     x = x,
     q = 1,  # Only 1 q value, so no parallelization
     nthreads = 2,

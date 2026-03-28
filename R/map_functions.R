@@ -62,7 +62,7 @@
 }
 
 ## Helper: Map external coldata into a SummarizedExperiment
-#' @keywords internal
+
 #' @noRd
 .tsenat_map_metadata_se <- function(ts_se, coldata, coldata_sample_col = "Sample", coldata_condition_col = "Condition") {
     if (is.null(coldata)) {
@@ -286,7 +286,8 @@
 
 # Map sample names (without '_q=...') to group labels using `colData(se)`.
 # Mapping must be provided via `colData(se)`; no inference fallback is used.
-map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
+
+.map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
     mat = NULL) {
     # Prefer explicit mapping from colData(se)[, condition_col] when
     # provided. If `condition_col` is not provided, allow a single- condition
@@ -323,7 +324,8 @@ map_samples_to_group <- function(sample_names, se = NULL, condition_col = NULL,
 }
 
 # Prepare a long-format data.frame for a simple assay (one value per sample)
-get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
+
+.get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity",
     condition_col = NULL) {
     # OPTIMIZATION: Use .tsenat_check_required_packages() helper
     .tsenat_check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
@@ -371,7 +373,8 @@ get_assay_long <- function(se, assay_name = "diversity", value_name = "diversity
 
 # Internal small helper: prepare long-format tsallis data from a
 # SummarizedExperiment
-prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "sample_type") {
+
+.prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "sample_type") {
     # OPTIMIZATION: Use .tsenat_check_required_packages() helper
     .tsenat_check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
 
@@ -490,9 +493,10 @@ prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "
 #' @param tx_col Name of the transcript ID column in `tx2gene` (default: 'Transcript').
 #' @param verbose Logical; print informative messages (default: FALSE).
 #' @return The input `readcounts` with rownames set to the transcript IDs.
-#' @keywords internal
+
 #' @noRd
-map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", verbose = FALSE) {
+
+.map_tx_to_readcounts <- function(readcounts, tx2gene, tx_col = "Transcript", verbose = FALSE) {
     if (is.character(tx2gene) && length(tx2gene) == 1) {
         if (!file.exists(tx2gene)) {
             stop("tx2gene file not found: ", tx2gene, call. = FALSE)

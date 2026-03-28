@@ -63,4 +63,3 @@ p <- ggplot(data.frame(x = 1:10, y = rnorm(10)), aes(x, y)) + geom_point()
 save_analysis_output(p, "results/plot.pdf")
 
 }
-\keyword{internal}

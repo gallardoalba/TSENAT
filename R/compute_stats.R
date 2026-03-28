@@ -6,7 +6,7 @@
 #' maintainability by removing duplication.
 #'
 #' @name compute_stats
-#' @keywords internal
+
 #' @noRd
 NULL
 
@@ -32,9 +32,10 @@ NULL
 #'   - spread: IQR or SD of divergence
 #'   - count: number of valid measurements
 #'
-#' @keywords internal
+
 #' @noRd
-compute_diversity_spectrum <- function(se,
+
+.compute_diversity_spectrum <- function(se,
                                        q_values = NULL,
                                        metric = c("median", "mean"),
                                        variability_metric = c("iqr", "sd"),
@@ -56,7 +57,7 @@ compute_diversity_spectrum <- function(se,
   variability_metric <- match.arg(variability_metric)
 
   # Prepare long format data
-  long_data <- prepare_tsallis_long(se,
+  long_data <- .prepare_tsallis_long(se,
     assay_name = "diversity",
     condition_col = condition_col
   )
@@ -128,9 +129,10 @@ compute_diversity_spectrum <- function(se,
 #'
 #' @return Character vector of top gene IDs, sorted by p-value (smallest first).
 #'
-#' @keywords internal
+
 #' @noRd
-select_top_genes <- function(results,
+
+.select_top_genes <- function(results,
                              p_col = NULL,
                              gene_col = NULL,
                              n_genes = 4) {
@@ -189,9 +191,10 @@ select_top_genes <- function(results,
 #'
 #' @return Character vector of significant gene IDs.
 #'
-#' @keywords internal
+
 #' @noRd
-filter_genes_by_pvalue <- function(results,
+
+.filter_genes_by_pvalue <- function(results,
                                    p_threshold = 0.05,
                                    p_col = NULL,
                                    gene_col = NULL) {
@@ -245,9 +248,10 @@ filter_genes_by_pvalue <- function(results,
 #'
 #' @return Logical TRUE if valid, else error with message.
 #'
-#' @keywords internal
+
 #' @noRd
-validate_diversity_se <- function(se, check_metadata = TRUE) {
+
+.validate_diversity_se <- function(se, check_metadata = TRUE) {
 
   if (!inherits(se, "SummarizedExperiment")) {
     stop("se must be a SummarizedExperiment object", call. = FALSE)
@@ -296,9 +300,10 @@ validate_diversity_se <- function(se, check_metadata = TRUE) {
 #'
 #' @return Logical TRUE if valid, else error.
 #'
-#' @keywords internal
+
 #' @noRd
-validate_results_df <- function(results, require_pvalue = TRUE) {
+
+.validate_results_df <- function(results, require_pvalue = TRUE) {
 
   if (!is.data.frame(results)) {
     stop("results must be a data frame", call. = FALSE)
@@ -347,9 +352,10 @@ validate_results_df <- function(results, require_pvalue = TRUE) {
 #'
 #' @return Character string formatted p-value.
 #'
-#' @keywords internal
+
 #' @noRd
-format_pvalue <- function(pval, threshold = 0.001, digits = 2) {
+
+.format_pvalue <- function(pval, threshold = 0.001, digits = 2) {
 
   if (is.na(pval)) {
     return("NA")
@@ -375,9 +381,10 @@ format_pvalue <- function(pval, threshold = 0.001, digits = 2) {
 #'
 #' @return Character string label.
 #'
-#' @keywords internal
+
 #' @noRd
-format_q_label <- function(q_val, prefix = "q") {
+
+.format_q_label <- function(q_val, prefix = "q") {
   if (is.na(q_val)) {
     return("NA")
   }
@@ -393,9 +400,10 @@ format_q_label <- function(q_val, prefix = "q") {
 #'
 #' @return Character string, properly capitalized.
 #'
-#' @keywords internal
+
 #' @noRd
-format_label <- function(lbl) {
+
+.format_label <- function(lbl) {
   if (is.null(lbl)) {
     return(NULL)
   }
@@ -448,9 +456,10 @@ format_label <- function(lbl) {
 #'   - pseudocount: pseudocount value
 #'   - output_file: output file path (if provided)
 #'
-#' @keywords internal
+
 #' @noRd
-prepare_transcript_inputs <- function(counts,
+
+.prepare_transcript_inputs <- function(counts,
                                       readcounts = NULL,
                                       samples = NULL,
                                       coldata = NULL,
@@ -467,12 +476,12 @@ prepare_transcript_inputs <- function(counts,
   # Handle SummarizedExperiment input
   if (inherits(counts, "SummarizedExperiment")) {
     se <- counts
-    counts_mat <- get_readcounts_from_se(se, readcounts)
+    counts_mat <- .get_readcounts_from_se(se, readcounts)
     counts <- as.matrix(counts_mat)
-    samples <- infer_samples_from_se(se, samples, condition_col = condition_col)
+    samples <- .infer_samples_from_se(se, samples, condition_col = condition_col)
 
     if (is.null(tx2gene)) {
-      txres <- get_tx2gene_from_se(se, counts)
+      txres <- .get_tx2gene_from_se(se, counts)
       if (!is.null(txres) && !is.null(txres$mapping)) {
         mapping <- data.frame(
           Transcript = rownames(counts),
@@ -499,7 +508,7 @@ prepare_transcript_inputs <- function(counts,
   # Infer samples from coldata if needed
   if (is.null(samples)) {
     if (!is.null(coldata)) {
-      samples <- infer_samples_from_coldata(coldata, counts, condition_col)
+      samples <- .infer_samples_from_coldata(coldata, counts, condition_col)
     } else {
       stop("Either 'samples' or 'coldata' must be provided", call. = FALSE)
     }
@@ -509,7 +518,7 @@ prepare_transcript_inputs <- function(counts,
   if (is.null(tx2gene)) {
     stop("`tx2gene` must be provided", call. = FALSE)
   }
-  mapping <- read_tx2gene(tx2gene)
+  mapping <- .read_tx2gene(tx2gene)
 
   if (length(samples) != ncol(counts)) {
     stop("Length of `samples` must equal columns in `counts`", call. = FALSE)
@@ -550,9 +559,10 @@ prepare_transcript_inputs <- function(counts,
 #'
 #' @return data.frame with columns "Transcript" and "Gen".
 #'
-#' @keywords internal
+
 #' @noRd
-read_tx2gene <- function(tx2gene) {
+
+.read_tx2gene <- function(tx2gene) {
   if (is.null(tx2gene)) {
     stop("`tx2gene` must be provided as file path or data.frame",
       call. = FALSE
@@ -590,9 +600,10 @@ read_tx2gene <- function(tx2gene) {
 #'
 #' @return Character vector of sample group assignments.
 #'
-#' @keywords internal
+
 #' @noRd
-infer_samples_from_coldata <- function(coldata, counts, condition_col) {
+
+.infer_samples_from_coldata <- function(coldata, counts, condition_col) {
   if (is.character(coldata) && length(coldata) == 1) {
     if (!file.exists(coldata)) {
       stop("coldata file not found: ", coldata, call. = FALSE)
@@ -640,9 +651,10 @@ infer_samples_from_coldata <- function(coldata, counts, condition_col) {
 #'   - agg_fun: function that computes the metric
 #'   - agg_label_unique: display label
 #'
-#' @keywords internal
+
 #' @noRd
-create_aggregation_function <- function(metric = c("median", "mean", "variance", "iqr")) {
+
+.create_aggregation_function <- function(metric = c("median", "mean", "variance", "iqr")) {
   metric_choice <- match.arg(metric)
 
   agg_fun <- switch(metric_choice,
@@ -678,9 +690,10 @@ create_aggregation_function <- function(metric = c("median", "mean", "variance",
 #'   - df_long: long-format data.frame (columns: tx, sample, expr, group)
 #'   - txs: selected transcript identifiers
 #'
-#' @keywords internal
+
 #' @noRd
-build_transcript_long <- function(gene_single, mapping, counts, samples, top_n = NULL) {
+
+.build_transcript_long <- function(gene_single, mapping, counts, samples, top_n = NULL) {
   txs <- mapping$Transcript[mapping$Gen == gene_single]
   txs <- intersect(txs, rownames(counts))
 
@@ -714,9 +727,10 @@ build_transcript_long <- function(gene_single, mapping, counts, samples, top_n =
 #'
 #' @return data.frame with columns: tx, group, expr, log2expr.
 #'
-#' @keywords internal
+
 #' @noRd
-aggregate_transcript_data <- function(df_long, agg_fun, pseudocount = 0) {
+
+.aggregate_transcript_data <- function(df_long, agg_fun, pseudocount = 0) {
   df_summary <- stats::aggregate(expr ~ tx + group, data = df_long, FUN = agg_fun)
   df_summary$log2expr <- log2(df_summary$expr + pseudocount)
   df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
@@ -732,9 +746,10 @@ aggregate_transcript_data <- function(df_long, agg_fun, pseudocount = 0) {
 #'
 #' @return Character vector of top gene IDs.
 #'
-#' @keywords internal
+
 #' @noRd
-select_genes_from_results <- function(res, top_n) {
+
+.select_genes_from_results <- function(res, top_n) {
   if (is.null(res)) {
     stop("Either 'gene' or 'res' must be provided", call. = FALSE)
   }
@@ -767,7 +782,7 @@ select_genes_from_results <- function(res, top_n) {
 #'
 #' @param analysis TSENATAnalysis object with diversity_results
 #' @return SummarizedExperiment with combined assay across all q-values
-#' @keywords internal
+
 #' @noRd
 .tsenat_prepare_combined_se <- function(analysis) {
   require_pkgs(c("SummarizedExperiment", "S4Vectors"))
@@ -895,7 +910,7 @@ select_genes_from_results <- function(res, top_n) {
 #'
 #' @param long_data Long-format data frame with Gene, q, group, tsallis columns
 #' @return Data frame with central tendency and spread by gene, group, q
-#' @keywords internal
+
 #' @noRd
 .tsenat_compute_gene_group_stats <- function(long_data) {
   require_pkgs("dplyr")
@@ -915,7 +930,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @param se SummarizedExperiment with ci_lower and ci_upper assays
 #' @param long Long-format data with group, q, sample, tsallis
 #' @return Data frame with q, median, ci_lower, ci_upper, group
-#' @keywords internal
+
 #' @noRd
 .tsenat_bootstrap_aggregate_ci <- function(se, long) {
   require_pkgs(c("SummarizedExperiment", "dplyr"))
@@ -992,7 +1007,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @param cdata SummarizedExperiment colData with sample metadata
 #' @param condition_col Column name for group assignments
 #' @return Named character vector: sample name -> group value
-#' @keywords internal
+
 #' @noRd
 .tsenat_prepare_sample_group_mapping <- function(cdata, condition_col) {
   coldata_rownames <- rownames(cdata)
@@ -1016,7 +1031,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @param mat Assay matrix (genes x samples*q)
 #' @param sample_to_group Named vector mapping sample names to groups
 #' @return Data frame with columns: sample, group, q, entropy (or NULL if invalid)
-#' @keywords internal
+
 #' @noRd
 .tsenat_plot_gam_prepare_gene_data <- function(gene, mat, sample_to_group) {
   if (!(gene %in% rownames(mat))) {
@@ -1060,7 +1075,7 @@ select_genes_from_results <- function(res, top_n) {
 #'
 #' @param plot_df Long-format data frame with sample, group, q, entropy
 #' @return List with $plot_data and $pred_data data frames (or NULL if fitting fails)
-#' @keywords internal
+
 #' @noRd
 .tsenat_plot_gam_fit_group <- function(plot_df) {
   require_pkgs(c("mgcv", "dplyr"))
@@ -1132,7 +1147,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @param n_top Number of top genes to select
 #' @param sig_alpha Significance threshold
 #' @return Character vector of gene IDs to plot (or NULL if none selected)
-#' @keywords internal
+
 #' @noRd
 .tsenat_plot_select_genes <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
   if (!is.null(genes)) {

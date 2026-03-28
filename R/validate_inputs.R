@@ -39,7 +39,7 @@
 #' # Use: se <- SummarizedExperiment::SummarizedExperiment(assays = list(...))
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_se <- function(se, 
                          assay_name = NULL,
@@ -79,7 +79,7 @@
     if (!assay_name %in% assay_names) {
       stop("Assay '", assay_name, "' not found.\n",
            "  Available assays: ", paste(assay_names, collapse = ", "), "\n",
-           "  Ensure you've run: calculate_diversity(..., assay_name = '", assay_name, "')")
+           "  Ensure you've run: .calculate_diversity(..., assay_name = '", assay_name, "')")
     }
   }
   
@@ -115,7 +115,7 @@
 #' # Available columns: gene, estimate, std.error, t.stat
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_df <- function(df,
                          required_cols = NULL,
@@ -177,7 +177,7 @@
 #' # Error: sig_alpha must be between 0 and 1, got 1.5
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_numeric <- function(value,
                               param_name = "parameter",
@@ -234,7 +234,7 @@
 #' # Error: metric must be one of: median, mean, sd (got 'mode')
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_validate_choice <- function(value,
                             param_name = "parameter",

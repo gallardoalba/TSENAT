@@ -37,7 +37,7 @@ Modified TSENATAnalysis with effect size results stored in
   to support piping and method chaining.
 }
 \description{
-S4 wrapper for \code{effect_sizes_divergence()} that extracts divergence and LM
+S4 wrapper for \code{.effect_sizes_divergence()} that extracts divergence and LM
 results directly from a TSENATAnalysis object.
 }
 \details{
@@ -45,7 +45,7 @@ results directly from a TSENATAnalysis object.
 \describe{
   \item{Extracting}{Divergence SE from \code{@divergence_results} and LM results
     from \code{@lm_results$lm_interaction}}
-  \item{Computing}{Effect sizes using standard \code{effect_sizes_divergence()} function}
+  \item{Computing}{Effect sizes using standard \code{.effect_sizes_divergence()} function}
   \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
     \code{validation_stats}}
   \item{Tracking}{Function call in \code{@metadata$function_calls}}
@@ -64,7 +64,7 @@ Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 }
 \examples{
 # Setup: Create test analysis with divergence and LM interaction results
-analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
+analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), 
   verbose = FALSE)

@@ -34,11 +34,12 @@
 #' )
 #' 
 #' # Create concordance plot
-#' plot <- plot_method_concordance(comparison_df)
+#' plot <- .plot_method_concordance(comparison_df)
 #'
-#' @keywords internal
+
 #' @noRd
-plot_method_concordance <- function(comparison_df) {
+
+.plot_method_concordance <- function(comparison_df) {
   
   # Check if data is valid
   if (is.null(comparison_df) || nrow(comparison_df) == 0) {
@@ -122,8 +123,9 @@ plot_method_concordance <- function(comparison_df) {
   gridExtra::arrangeGrob(final_plot)
 }
 
-#' @keywords internal
+
 #' @noRd
+
 print.gtable <- function(x, ...) {
   grid::grid.draw(x)
   invisible(x)
@@ -185,13 +187,14 @@ print.gtable <- function(x, ...) {
 #'   gene = paste0("gene_", 1:10),
 #'   p_value = runif(10)
 #' )
-#' # concordance_result <- compute_method_concordance(
+#' # concordance_result <- .compute_method_concordance(
 #' #   gam_results, kw_results
 #' # )  
 #'
-#' @keywords internal
+
 #' @noRd
-compute_method_concordance <- function(gam_results, kw_results) {
+
+.compute_method_concordance <- function(gam_results, kw_results) {
   
   # Initialize outputs
   comparison_df <- NULL

@@ -42,7 +42,7 @@ if (getRversion() >= "2.15.1") {
 #'   \item{\code{lm_interaction}}{Requires diversity}
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 DEPENDENCIES <- list(
   diversity = character(0),              # No dependencies
@@ -59,7 +59,7 @@ DEPENDENCIES <- list(
 #'
 #' @format Character vector with methods in dependency order.
 #'
-#' @keywords internal
+
 #' @noRd
 METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_interactions")
 
@@ -95,7 +95,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' # Get subset
 #' pal_4 <- .tsenat_palette_discrete(4)
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_palette_discrete <- function(n = 8) {
   palette_dark2 <- c(
@@ -133,7 +133,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Use when all plots should have cohesive blue-red aesthetic (e.g., comparing
 #' upregulated vs downregulated genes across multiple visualizations).
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_palette_blue_red <- function(n = 8) {
   palette_blue_red <- c(
@@ -175,7 +175,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' This is the EXACT palette used in heatmaps for consistency.
 #' Use with ggplot2::scale_color_gradientn() or similar.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_palette_continuous_diverging <- function(n = 100) {
   grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(n)
@@ -201,7 +201,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' This replaces ad-hoc color choices like "black" and "red" across different plots,
 #' ensuring visual consistency in significance indicator colors.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_significance_colors <- function() {
   c(
@@ -243,7 +243,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'   ggplot2::geom_point()
 #' }
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_theme_base <- function(base_size = 11) {
   list(
@@ -307,7 +307,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Usage in plots:
 #' \code{ggplot2::element_text(size = .tsenat_font_sizes$title)}
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_font_sizes <- list(
   title = 19,           # Main plot title (increased from 18)
@@ -339,10 +339,10 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - Optional major gridlines for q-value axis
 #' - Wider plot margins for axis labels
 #'
-#' Used by: plot_tsallis_q_curve_s4(), plot_lm_interaction_gam(),
-#'          plot_tsallis_divergence_profile() and similar spectrum/profile plots.
+#' Used by: plot_tsallis_q_curve_s4(), .plot_lm_interaction_gam(),
+#'          .plot_tsallis_divergence_profile() and similar spectrum/profile plots.
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_theme_spectrum <- function(base_size = 11) {
   list(
@@ -375,7 +375,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' These constants ensure plots maintain readable font sizes and proportions
 #' regardless of absolute output dimensions.
 #'
-#' @keywords internal
+
 #' @noRd
 .aspect_ratio_standard <- 12 / 7.2    # 1.67 (16:10, publication standard)
 .aspect_ratio_tall <- 12 / 10         # 1.20 (taller, for heatmaps)
@@ -411,7 +411,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - Consistent proportions
 #' - Professional appearance across all outputs
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_calculate_plot_dims <- function(width_inches = 12, 
                                   aspect_type = "standard",
@@ -473,7 +473,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' base_font <- 11 * font_scale
 #' ```
 #'
-#' @keywords internal
+
 #' @noRd
 .tsenat_scale_font_by_area <- function(width_inches, height_inches, 
                                  reference_area = 96) {

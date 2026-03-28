@@ -1,7 +1,7 @@
 ################################################################################
 #
 #' Internal: Validate parameters for detect_q_gene_interactions
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_q_validate_params <- function(paired, subject_col, wy_randomizations, 
                                                 nperm_mode, verbose) {
@@ -32,7 +32,7 @@
 }
 
 #' Internal: Convert SE to long format and validate data
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_q_prepare_data <- function(data, entropy_col, q_col, gene_col, paired, 
                                             subject_col, condition_col, verbose) {
@@ -117,7 +117,7 @@
 }
 
 #' Internal: Analyze single gene for q-effects
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition) {
   q_levels <- unique(gene_data$q)
@@ -155,7 +155,7 @@
 }
 
 #' Internal: Apply multiple testing correction
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_q_apply_multicorr <- function(interaction_results, multicorr, wy_randomizations,
                                               nperm_mode, data, paired, subject_col, has_condition,
@@ -188,7 +188,7 @@
 }
 
 #' Internal: Get permutation function for WY test
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
   data_orig <- data
@@ -212,7 +212,7 @@
 }
 
 #' Internal: Refit function for WY permutations
-#' @keywords internal
+
 #' @noRd
 .tsenat_detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col, has_condition) {
   function(data_perm) {
@@ -275,7 +275,7 @@
 #'   procedure (default: 500). Only used when multicorr='westfall-young'. Options:
 #'   - Integer (e.g., 1000): Explicit number of permutations
 #'   - "auto": Automatically estimate optimal permutations based on data complexity
-#'     (number of genes, q-values, heterogeneity, AR(1) structure). See estimate_nperm().
+#'     (number of genes, q-values, heterogeneity, AR(1) structure). See .estimate_nperm().
 #'   - NULL: Uses default 500 permutations (faster, still valid)
 #'   Higher values (500-10000) increase p-value precision but scale computational cost.
 #'   (Updated March 2026 to support "auto" mode)
@@ -284,7 +284,7 @@
 #'   - "standard": Data-driven balance of power and speed (recommended)
 #'   - "conservative": Assumes high heterogeneity, adds 50% margin
 #'   - "interactive": Quick screening mode, reduces estimate by 20%
-#'   See estimate_nperm() for details. (NEW - March 2026)
+#'   See .estimate_nperm() for details. (NEW - March 2026)
 #' @param verbose Logical; if TRUE, print progress messages including Westfall-Young 
 #'   permutation updates (default: FALSE)
 #'
@@ -402,7 +402,6 @@
 #'     - Tests if q-effect varies by condition
 #'     - Works on rank-transformed data
 #'     - No distributional assumptions
-#'
 #'
 #' **BLOCK-PERMUTATION WESTFALL-YOUNG FOR PAIRED DESIGNS (NEW - March 2026):**
 #' 
@@ -540,10 +539,10 @@
 #' genes <- rep(paste0("gene_", 1:4), each = 5)
 #' 
 #' # Calculate diversity across multiple q values
-#' ts_se <- calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by = 0.25))
+#' ts_se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by = 0.25))
 #' 
 #' # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-#' results <- detect_q_gene_interactions(ts_se, multicorr = "hochberg", test = "kruskal-wallis")
+#' results <- .detect_q_gene_interactions(ts_se, multicorr = "hochberg", test = "kruskal-wallis")
 #' head(results)
 #' 
 #' # Paired analysis with metadata
@@ -557,7 +556,7 @@
 #' SummarizedExperiment::colData(ts_se) <- coldata
 #' 
 #' # Paired analysis with blocked permutations
-#' results_paired <- detect_q_gene_interactions(
+#' results_paired <- .detect_q_gene_interactions(
 #'   ts_se, 
 #'   paired = TRUE,
 #'   subject_col = "patient_id",
@@ -566,9 +565,10 @@
 #'   verbose = FALSE
 #' )
 #' head(results_paired)
-#' @keywords internal
+
 #' @noRd
-detect_q_gene_interactions <- function(
+
+.detect_q_gene_interactions <- function(
     data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
     condition_col = NULL,
     paired = FALSE, subject_col = "paired_samples",
@@ -593,7 +593,7 @@ detect_q_gene_interactions <- function(
   
   # PHASE 3: HANDLE AUTOMATIC PERMUTATION ESTIMATION
   if (identical(wy_randomizations, "auto")) {
-    wy_randomizations <- estimate_nperm(data, "entropy", "q", "gene", nperm_mode)
+    wy_randomizations <- .estimate_nperm(data, "entropy", "q", "gene", nperm_mode)
     if (verbose) message(sprintf("Estimated %d permutations", wy_randomizations))
   } else if (!is.numeric(wy_randomizations)) {
     wy_randomizations <- 500
@@ -638,7 +638,7 @@ detect_q_gene_interactions <- function(
   }
   
   # PHASE 6: CLASSIFY RESULTS
-  interaction_results$interaction_class <- classify_q_dependency(interaction_results, 0.05, 0.01, 0.10)
+  interaction_results$interaction_class <- .classify_q_dependency(interaction_results, 0.05, 0.01, 0.10)
   
   # PHASE 7: APPLY MULTIPLE TESTING CORRECTION
   interaction_results <- .tsenat_detect_q_apply_multicorr(interaction_results, multicorr, 

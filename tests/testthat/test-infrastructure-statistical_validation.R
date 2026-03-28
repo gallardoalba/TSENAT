@@ -19,7 +19,7 @@ test_that("label_shuffling produces p-values consistent with null (no effect)", 
   samples <- c(rep("A", 5), rep("B", 5))
   
   # Run permutation test
-  result <- label_shuffling(mat, samples, control = "A", 
+  result <- .label_shuffling(mat, samples, control = "A", 
                            method = "mean", randomizations = 100, 
                            pcorr = "none")
   
@@ -56,7 +56,7 @@ test_that("label_shuffling detects true differences (power test)", {
   mat <- rbind(mat_effect, mat_null)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- label_shuffling(mat, samples, control = "A", 
+  result <- .label_shuffling(mat, samples, control = "A", 
                            method = "mean", randomizations = 200, 
                            pcorr = "none")
   
@@ -147,7 +147,7 @@ test_that("label_shuffling with exact signflip has proper p-value granularity", 
   samples <- c("S1", "S2", "S1", "S2")
   
   # Attempt exact signflip enumeration (should give 2^2 = 4 permutations)
-  result <- label_shuffling(mat, samples, control = "S1", 
+  result <- .label_shuffling(mat, samples, control = "S1", 
                            method = "mean", randomizations = 10,
                            paired = TRUE, paired_method = "signflip")
   
@@ -170,7 +170,7 @@ test_that("normalized entropy for q < 1 can exceed 1 (mathematically valid)", {
   counts <- c(100, 1)
   
   # q < 1 emphasizes rare elements
-  result_q05 <- calculate_tsallis_entropy(counts, q = 0.5, norm = TRUE)
+  result_q05 <- .calculate_tsallis_entropy(counts, q = 0.5, norm = TRUE)
   
   # Should be finite (not NaN)
   expect_true(!is.nan(result_q05))
@@ -184,16 +184,16 @@ test_that("normalized entropy bounds correct for q > 1", {
   # For uniform distribution with q > 1, should equal 1
   counts_uniform <- rep(10, 5)
   
-  result_q15 <- calculate_tsallis_entropy(counts_uniform, q = 1.5, norm = TRUE)
-  result_q2 <- calculate_tsallis_entropy(counts_uniform, q = 2, norm = TRUE)
+  result_q15 <- .calculate_tsallis_entropy(counts_uniform, q = 1.5, norm = TRUE)
+  result_q2 <- .calculate_tsallis_entropy(counts_uniform, q = 2, norm = TRUE)
   
   expect_equal(result_q15, 1.0, tolerance = 1e-6)
   expect_equal(result_q2, 1.0, tolerance = 1e-6)
   
   # Skewed distribution should give <1
   counts_skewed <- c(100, 1, 1, 1, 1)
-  result_skew_q15 <- calculate_tsallis_entropy(counts_skewed, q = 1.5, norm = TRUE)
-  result_skew_q2 <- calculate_tsallis_entropy(counts_skewed, q = 2, norm = TRUE)
+  result_skew_q15 <- .calculate_tsallis_entropy(counts_skewed, q = 1.5, norm = TRUE)
+  result_skew_q2 <- .calculate_tsallis_entropy(counts_skewed, q = 2, norm = TRUE)
   
   expect_true(result_skew_q15 < 1.0)
   expect_true(result_skew_q2 < 1.0)
@@ -209,12 +209,12 @@ test_that("tsallis entropy stable at extreme q values", {
   counts <- c(10, 5, 3, 1)
   
   # Very small q
-  result_q001 <- calculate_tsallis_entropy(counts, q = 0.01, norm = FALSE)
+  result_q001 <- .calculate_tsallis_entropy(counts, q = 0.01, norm = FALSE)
   expect_true(!is.nan(result_q001))
   expect_true(is.finite(result_q001))
   
   # Very large q
-  result_q10 <- calculate_tsallis_entropy(counts, q = 10, norm = FALSE)
+  result_q10 <- .calculate_tsallis_entropy(counts, q = 10, norm = FALSE)
   expect_true(!is.nan(result_q10))
   expect_true(is.finite(result_q10))
   
@@ -227,8 +227,8 @@ test_that("hill numbers stable at extreme q", {
   counts <- c(20, 10, 5, 1)
   
   # D_q at q = 0.1 and q = 5
-  D_q01 <- calculate_tsallis_entropy(counts, q = 0.1, what = "D", norm = FALSE)
-  D_q5 <- calculate_tsallis_entropy(counts, q = 5, what = "D", norm = FALSE)
+  D_q01 <- .calculate_tsallis_entropy(counts, q = 0.1, what = "D", norm = FALSE)
+  D_q5 <- .calculate_tsallis_entropy(counts, q = 5, what = "D", norm = FALSE)
   
   # Should be finite and positive
   expect_true(!is.nan(D_q01))
@@ -252,8 +252,8 @@ test_that("fold change is scale invariant for log scale", {
   
   samples <- c("Normal", "Tumor", "Tumor")
   
-  result1 <- TSENAT:::calculate_fc(mat1, samples, control = "Normal", pseudocount = 1e-6)
-  result2 <- TSENAT:::calculate_fc(mat2, samples, control = "Normal", pseudocount = 1e-6)
+  result1 <- TSENAT:::.calculate_fc(mat1, samples, control = "Normal", pseudocount = 1e-6)
+  result2 <- TSENAT:::.calculate_fc(mat2, samples, control = "Normal", pseudocount = 1e-6)
   
   # Log2 FC should be identical
   expect_equal(result1[, 4], result2[, 4], 
@@ -264,8 +264,8 @@ test_that("entropy is scale invariant", {
   counts1 <- c(10, 20, 30, 40)
   counts2 <- counts1 * 100  # Scale by 100x
   
-  result1 <- calculate_tsallis_entropy(counts1, q = 2, norm = FALSE)
-  result2 <- calculate_tsallis_entropy(counts2, q = 2, norm = FALSE)
+  result1 <- .calculate_tsallis_entropy(counts1, q = 2, norm = FALSE)
+  result2 <- .calculate_tsallis_entropy(counts2, q = 2, norm = FALSE)
   
   # Entropy depends only on proportions, not absolute counts
   expect_equal(result1, result2, tolerance = 1e-10)
@@ -284,7 +284,7 @@ test_that("wilcoxon test matches R's built-in wilcox.test exactly", {
   samples <- c(rep("Normal", 5), rep("Tumor", 5))
   
   # TSENAT wilcoxon
-  tsenat_result <- wilcoxon(mat, samples, pcorr = "none")
+  tsenat_result <- .wilcoxon(mat, samples, pcorr = "none")
   tsenat_p <- tsenat_result[1, "pvalue"]
   
   # R's wilcox.test
@@ -304,7 +304,7 @@ test_that("wilcoxon paired matches paired test from R", {
   samples <- c(rep("Before", 5), rep("After", 5))
   
   # TSENAT with paired = TRUE
-  tsenat_paired <- wilcoxon(mat, samples, paired = TRUE, pcorr = "none")
+  tsenat_paired <- .wilcoxon(mat, samples, paired = TRUE, pcorr = "none")
   tsenat_p <- tsenat_paired[1, "pvalue"]
   
   # R's paired wilcox.test
@@ -324,7 +324,7 @@ test_that("pseudocount selection is data-driven and prevents negative log(0)", {
   samples <- c("A", "A", "B", "B")
   
   # Auto pseudocount (min/2 = 0.5)
-  result <- TSENAT:::calculate_fc(mat, samples, control = "A", pseudocount = 0)
+  result <- TSENAT:::.calculate_fc(mat, samples, control = "A", pseudocount = 0)
   
   # Should not produce NaN or Inf
   expect_true(!any(is.nan(result$log2_fold_change)))
@@ -342,7 +342,7 @@ test_that("BH FDR correction reduces false positives", {
   mat <- matrix(rnorm(100 * 8, mean = 0.5, sd = 0.1), nrow = 100)
   samples <- c(rep("A", 4), rep("B", 4))
   
-  result <- label_shuffling(mat, samples, control = "A", 
+  result <- .label_shuffling(mat, samples, control = "A", 
                            method = "mean", randomizations = 100,
                            pcorr = "BH")
   

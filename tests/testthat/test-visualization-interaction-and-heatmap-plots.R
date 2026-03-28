@@ -1,5 +1,5 @@
 # Test coverage for medium-priority functions
-# Covers: plot_lm_interaction_gam (34 uncovered), plot_tsallis_divergence_profile (22), plot_multiq_delta_influence_heatmaps (45)
+# Covers: .plot_lm_interaction_gam(34 uncovered), .plot_tsallis_divergence_profile(22), .plot_multiq_delta_influence_heatmaps(45)
 
 context("plot_lm_interaction_gam: GAM-based interaction visualization")
 

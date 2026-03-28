@@ -17,7 +17,7 @@ test_that("test_rankbased_assumptions validates assumptions", {
   )
   
   # Call the function and verify it returns a result
-  result <- test_rankbased_assumptions(
+  result <- .test_rankbased_assumptions(
     data = expr_data,
     checks = c("exchangeability", "monotonicity")
   )
@@ -39,7 +39,7 @@ test_that("rank_correlation_bootstrap_ci returns correct structure", {
     q10 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
                                          ci = "percentile", n_bootstrap = 100)
   
   expect_s3_class(result, "rank_correlation_ci")
@@ -56,7 +56,7 @@ test_that("rank_correlation_bootstrap_ci handles percentile CI", {
     q05 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
                                          ci = "percentile", n_bootstrap = 100)
   
   expect_equal(result$ci_type, "percentile")
@@ -74,7 +74,7 @@ test_that("rank_correlation_bootstrap_ci handles BCA CI", {
     q05 = runif(50)
   )
   
-  result <- suppressWarnings(rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
+  result <- suppressWarnings(.rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
                                          ci = "bca", n_bootstrap = 100))
   
   expect_equal(result$ci_type, "bca")
@@ -92,7 +92,7 @@ test_that("rank_correlation_bootstrap_ci handles permutation CI", {
     q05 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman", 
                                          ci = "permutation", n_permutations = 100)
   
   expect_equal(result$ci_type, "permutation")
@@ -109,7 +109,7 @@ test_that("rank_correlation_bootstrap_ci computed correlations in valid range", 
     q10 = runif(50) * 0.7
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                          ci = "percentile", n_bootstrap = 100)
   
   # All correlations should be in [-1, 1]
@@ -126,7 +126,7 @@ test_that("rank_correlation_bootstrap_ci handles kendall method", {
     q05 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "kendall",
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "kendall",
                                          ci = "percentile", n_bootstrap = 100)
   
   expect_true(grepl("kendall", tolower(result$method)))
@@ -141,7 +141,7 @@ test_that("rank_correlation_bootstrap_ci interpretation table is correct", {
     q10 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                          ci = "percentile", n_bootstrap = 100)
   
   # Should have 3 choose 2 = 3 pairs
@@ -157,9 +157,9 @@ test_that("rank_correlation_bootstrap_ci recognizes CI level", {
     q05 = runif(50)
   )
   
-  result_90 <- rank_correlation_bootstrap_ci(pvalues, ci_level = 0.90,
+  result_90 <- .rank_correlation_bootstrap_ci(pvalues, ci_level = 0.90,
                                             ci = "percentile", n_bootstrap = 100)
-  result_99 <- rank_correlation_bootstrap_ci(pvalues, ci_level = 0.99,
+  result_99 <- .rank_correlation_bootstrap_ci(pvalues, ci_level = 0.99,
                                             ci = "percentile", n_bootstrap = 100)
   
   expect_equal(result_90$ci_level, 0.90)
@@ -177,7 +177,7 @@ test_that("rank_correlation_bootstrap_ci handles named list inputs", {
   )
   names(pvalues_named) <- c("q_01", "q_05", "q_10")
   
-  result <- rank_correlation_bootstrap_ci(pvalues_named, method = "spearman",
+  result <- .rank_correlation_bootstrap_ci(pvalues_named, method = "spearman",
                                          ci = "percentile", n_bootstrap = 100)
   
   expect_equal(colnames(result$correlation_matrix), c("q_01", "q_05", "q_10"))
@@ -192,7 +192,7 @@ test_that("rank_correlation_bootstrap_ci stability classification works", {
     q10 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                          ci = "percentile", n_bootstrap = 100)
   
   # Stability should be classified (checks for pattern matching with descriptions)
@@ -210,7 +210,7 @@ test_that("rank_correlation_bootstrap_ci CI bounds respect symmetry", {
     q10 = c(0.015, 0.055, 0.09, 0.51, 0.92)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                          ci = "percentile", n_bootstrap = 100)
   
   # CI matrix should be symmetric for correlation
@@ -224,10 +224,10 @@ test_that("rank_correlation_bootstrap_ci returns distribution when requested", {
     q05 = runif(50)
   )
   
-  result_with_dist <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result_with_dist <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                                    ci = "percentile", n_bootstrap = 100,
                                                    return_distribution = TRUE)
-  result_no_dist <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result_no_dist <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                                  ci = "percentile", n_bootstrap = 100,
                                                  return_distribution = FALSE)
   
@@ -238,7 +238,7 @@ test_that("rank_correlation_bootstrap_ci returns distribution when requested", {
 test_that("rank_correlation_bootstrap_ci minimum requirement is 2 q-values", {
   pvalues_single <- list(q01 = runif(50))
   
-  expect_error(rank_correlation_bootstrap_ci(pvalues_single))
+  expect_error(.rank_correlation_bootstrap_ci(pvalues_single))
 })
 
 test_that("rank_correlation_bootstrap_ci CI order is correct", {
@@ -248,7 +248,7 @@ test_that("rank_correlation_bootstrap_ci CI order is correct", {
     q05 = runif(50)
   )
   
-  result <- rank_correlation_bootstrap_ci(pvalues, method = "spearman",
+  result <- .rank_correlation_bootstrap_ci(pvalues, method = "spearman",
                                          ci = "percentile", n_bootstrap = 100)
   
   # Lower bound should always be <= upper bound
@@ -260,7 +260,7 @@ test_that("rank_correlation_bootstrap_ci CI order is correct", {
 # NEW TESTS FOR GAP 3: INTERACTION DETECTION FUNCTIONS
 # ============================================================================
 
-# Test Suite: detect_q_gene_interactions()
+# Test Suite: .detect_q_gene_interactions()
 test_that("detect_q_gene_interactions basic functionality works", {
   # Create synthetic q×gene interaction data
   set.seed(42)
@@ -288,7 +288,7 @@ test_that("detect_q_gene_interactions basic functionality works", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   
   # Check output structure
   expect_is(result, "data.frame")
@@ -321,7 +321,7 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   
   # Robust gene should have high p-value (not significant)
   expect_true(result$p_value[1] > 0.05)
@@ -349,7 +349,7 @@ test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   
   # Q-dependent gene should have low p-value (significant) and large effect size
   expect_true(result$p_value[1] < 0.05)
@@ -371,7 +371,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   
   # Should complete without error
   expect_is(result, "data.frame")
@@ -389,7 +389,7 @@ test_that("detect_q_gene_interactions requires minimum 2 q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   
   # Should mark as "Insufficient data"
   expect_equal(result$interaction_class[1], "Insufficient data")
@@ -406,7 +406,7 @@ test_that("detect_q_gene_interactions validates column names", {
   
   # Should error on missing entropy column
   expect_error(
-    detect_q_gene_interactions(model_data),
+    .detect_q_gene_interactions(model_data),
     "not found"
   )
 })
@@ -428,7 +428,7 @@ test_that("detect_q_gene_interactions kruskal.test method produces results", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   
   # Should complete successfully
   expect_is(result, "data.frame")
@@ -437,7 +437,7 @@ test_that("detect_q_gene_interactions kruskal.test method produces results", {
 })
 
 
-# Test Suite: classify_q_dependency()
+# Test Suite: .classify_q_dependency()
 test_that("classify_q_dependency produces correct classifications", {
   set.seed(222)
   
@@ -451,7 +451,7 @@ test_that("classify_q_dependency produces correct classifications", {
     stringsAsFactors = FALSE
   )
   
-  classifications <- classify_q_dependency(interaction_results)
+  classifications <- .classify_q_dependency(interaction_results)
   
   expect_equal(classifications[1], "Robust across q")
   expect_equal(classifications[2], "Moderately q-dependent")
@@ -470,12 +470,12 @@ test_that("classify_q_dependency respects custom thresholds", {
   )
   
   # With default thresholds
-  class_default <- classify_q_dependency(interaction_results)
+  class_default <- .classify_q_dependency(interaction_results)
   expect_equal(class_default[1], "Moderately q-dependent")  # p=0.03<0.05, eta2=0.07<0.10
   expect_equal(class_default[2], "Strongly q-dependent")    # p=0.005<0.05, eta2=0.12>0.10
   
   # With custom thresholds (stricter)
-  class_strict <- classify_q_dependency(
+  class_strict <- .classify_q_dependency(
     interaction_results,
     p_threshold = 0.01,
     eta2_threshold_strong = 0.05
@@ -494,7 +494,7 @@ test_that("classify_q_dependency handles all NA p-values", {
     stringsAsFactors = FALSE
   )
   
-  classifications <- classify_q_dependency(interaction_results)
+  classifications <- .classify_q_dependency(interaction_results)
   
   expect_equal(classifications[1], "Insufficient data")
   expect_equal(classifications[2], "Insufficient data")
@@ -510,7 +510,7 @@ test_that("classify_q_dependency is a vector", {
     stringsAsFactors = FALSE
   )
   
-  classifications <- classify_q_dependency(interaction_results)
+  classifications <- .classify_q_dependency(interaction_results)
   
   expect_is(classifications, "character")
   expect_equal(length(classifications), 3)
@@ -568,11 +568,11 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Step 1: Detect interactions
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  results <- suppressWarnings(detect_q_gene_interactions(model_data))
+  results <- suppressWarnings(.detect_q_gene_interactions(model_data))
   expect_equal(nrow(results), 45)
   
   # Step 2: Classify
-  classifications <- classify_q_dependency(results)
+  classifications <- .classify_q_dependency(results)
   expect_equal(length(classifications), 45)
   expect_true(all(classifications %in% c("Robust across q", "Moderately q-dependent", 
                                           "Strongly q-dependent", "Insufficient data")))
@@ -597,7 +597,7 @@ test_that("Functions handle edge case: single sample per q-level", {
   
   # Should handle without error (though with limited power)
   # Suppress expected warnings from edge-case variance calculations with N=1 per group
-  result <- suppressWarnings(detect_q_gene_interactions(model_data))
+  result <- suppressWarnings(.detect_q_gene_interactions(model_data))
   expect_is(result, "data.frame")
 })
 
@@ -615,7 +615,7 @@ test_that("Functions handle edge case: many q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(model_data)
+  result <- .detect_q_gene_interactions(model_data)
   expect_equal(nrow(result), 1)
   expect_is(result$p_value[1], "numeric")
 })
@@ -637,7 +637,7 @@ test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
   )
   
   # Should accept westfall-young without error
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10  # Small number for speed in tests
@@ -664,7 +664,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
     stringsAsFactors = FALSE
   )
   
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 15
@@ -688,7 +688,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
   )
   
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result <- suppressWarnings(detect_q_gene_interactions(
+  result <- suppressWarnings(.detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -713,13 +713,13 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
   
   # Test with different randomization counts
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result_small <- suppressWarnings(detect_q_gene_interactions(
+  result_small <- suppressWarnings(.detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 5
   ))
   
-  result_large <- suppressWarnings(detect_q_gene_interactions(
+  result_large <- suppressWarnings(.detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 25
@@ -747,7 +747,7 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   
   # Capture message output
   expect_message(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 10,
@@ -772,7 +772,7 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
   
   # Suppress warnings that may occur due to chi-squared approximations with small sample sizes
   result <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -801,13 +801,13 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
     stringsAsFactors = FALSE
   )
   
-  result_wy <- detect_q_gene_interactions(
+  result_wy <- .detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 20
   )
   
-  result_hoch <- detect_q_gene_interactions(
+  result_hoch <- .detect_q_gene_interactions(
     model_data,
     multicorr = "hochberg"
   )
@@ -835,7 +835,7 @@ test_that("detect_q_gene_interactions westfall-young handles small randomization
   # Should work with very small wy_randomizations (though less accurate)
   # Suppress expected warning about small randomization count
   result <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 5
@@ -863,7 +863,7 @@ test_that("detect_q_gene_interactions westfall-young handles edge cases graceful
   )
   
   # Should handle without crashing
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -891,7 +891,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
   )
   
   result <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -910,14 +910,14 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
 # ============================================================================
 
 test_that("detect_q_gene_interactions has paired parameter with default FALSE", {
-  sig <- formals(detect_q_gene_interactions)
+  sig <- formals(.detect_q_gene_interactions)
   
   expect_true("paired" %in% names(sig))
   expect_false(sig$paired)  # Default should be FALSE
 })
 
 test_that("detect_q_gene_interactions has subject_col parameter", {
-  sig <- formals(detect_q_gene_interactions)
+  sig <- formals(.detect_q_gene_interactions)
   
   expect_true("subject_col" %in% names(sig))
   # subject_col can have a default value for paired analyses
@@ -934,7 +934,7 @@ test_that("detect_q_gene_interactions paired=TRUE without subject_col raises err
   )
   
   expect_error(
-    detect_q_gene_interactions(model_data, paired = TRUE, subject_col = NULL),
+    .detect_q_gene_interactions(model_data, paired = TRUE, subject_col = NULL),
     "paired=TRUE with subject_col=NULL is invalid"
   )
 })
@@ -951,7 +951,7 @@ test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warnin
   )
   
   expect_warning(
-    detect_q_gene_interactions(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
+    .detect_q_gene_interactions(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
     "subject_col provided but paired=FALSE"
   )
 })
@@ -967,7 +967,7 @@ test_that("detect_q_gene_interactions detects missing subject_col in data", {
   )
   
   expect_error(
-    detect_q_gene_interactions(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
+    .detect_q_gene_interactions(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
     "subject_col.*not found"
   )
 })
@@ -1010,7 +1010,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   
   # Run paired analysis (suppress expected warnings about perfect fits in permutations)
   result <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -1086,7 +1086,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   
   # Run both analyses (expect warnings about perfect fits)
   result_unpaired <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       paired = FALSE,
       multicorr = "hochberg",
@@ -1095,7 +1095,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   )
   
   result_paired <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -1164,7 +1164,7 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
   model_data <- do.call(rbind, model_data_list)
   
   # This should work with paired design
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -1217,7 +1217,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   rownames(model_data) <- NULL
   
   # Should run without error (handles unbalanced designs)
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -1243,7 +1243,7 @@ test_that("estimate_nperm returns valid integer in bounds", {
   )
   
   # Estimate with default parameters
-  nperm <- estimate_nperm(model_data)
+  nperm <- .estimate_nperm(model_data)
   
   expect_is(nperm, "numeric")
   expect_equal(length(nperm), 1)
@@ -1271,8 +1271,8 @@ test_that("estimate_nperm scales with number of genes", {
     stringsAsFactors = FALSE
   )
   
-  nperm_small <- estimate_nperm(data_small)
-  nperm_large <- estimate_nperm(data_large)
+  nperm_small <- .estimate_nperm(data_small)
+  nperm_large <- .estimate_nperm(data_large)
   
   # Large dataset should require more permutations
   expect_gt(nperm_large, nperm_small)
@@ -1289,13 +1289,13 @@ test_that("estimate_nperm respects mode parameter", {
   )
   
   # Standard mode
-  nperm_standard <- estimate_nperm(model_data, mode = "standard")
+  nperm_standard <- .estimate_nperm(model_data, mode = "standard")
   
   # Conservative mode (should be higher)
-  nperm_conservative <- estimate_nperm(model_data, mode = "conservative")
+  nperm_conservative <- .estimate_nperm(model_data, mode = "conservative")
   
   # Interactive mode (should be lower)
-  nperm_interactive <- estimate_nperm(model_data, mode = "interactive")
+  nperm_interactive <- .estimate_nperm(model_data, mode = "interactive")
   
   # Relationships should hold
   expect_gt(nperm_conservative, nperm_standard)
@@ -1322,8 +1322,8 @@ test_that("estimate_nperm detects high heterogeneity", {
     stringsAsFactors = FALSE
   )
   
-  nperm_low <- estimate_nperm(data_low_het)
-  nperm_high <- estimate_nperm(data_high_het)
+  nperm_low <- .estimate_nperm(data_low_het)
+  nperm_high <- .estimate_nperm(data_high_het)
   
   # High heterogeneity should give more permutations
   expect_gt(nperm_high, nperm_low)
@@ -1340,11 +1340,11 @@ test_that("estimate_nperm enforces bounds", {
   )
   
   # Test minimum bound
-  nperm <- estimate_nperm(model_data, min_nperm = 200)
+  nperm <- .estimate_nperm(model_data, min_nperm = 200)
   expect_gte(nperm, 200)
   
   # Test maximum bound
-  nperm <- estimate_nperm(model_data, max_nperm = 300)
+  nperm <- .estimate_nperm(model_data, max_nperm = 300)
   expect_lte(nperm, 300)
 })
 
@@ -1358,7 +1358,7 @@ test_that("estimate_nperm works with data frame", {
     stringsAsFactors = FALSE
   )
   
-  nperm <- estimate_nperm(df)
+  nperm <- .estimate_nperm(df)
   
   expect_is(nperm, "numeric")
   expect_true(nperm >= 100)
@@ -1389,7 +1389,7 @@ test_that("estimate_nperm works with SummarizedExperiment", {
     colData = col_data
   )
   
-  nperm <- estimate_nperm(se)
+  nperm <- .estimate_nperm(se)
   
   expect_is(nperm, "numeric")
   expect_true(nperm >= 100)
@@ -1409,7 +1409,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   
   # Auto mode should estimate and use calculated value
   result_auto <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = "auto",
@@ -1419,9 +1419,9 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   )
   
   # Explicit mode with estimate_nperm
-  nperm_explicit <- estimate_nperm(model_data, mode = "standard")
+  nperm_explicit <- .estimate_nperm(model_data, mode = "standard")
   result_explicit <- suppressWarnings(
-    detect_q_gene_interactions(
+    .detect_q_gene_interactions(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = nperm_explicit,
@@ -1445,7 +1445,7 @@ test_that("estimate_nperm invalid mode raises error", {
   )
   
   expect_error(
-    estimate_nperm(model_data, mode = "invalid_mode"),
+    .estimate_nperm(model_data, mode = "invalid_mode"),
     "should be one of"
   )
 })
@@ -1461,7 +1461,7 @@ test_that("estimate_nperm with single q-value", {
     stringsAsFactors = FALSE
   )
   
-  nperm <- estimate_nperm(model_data)
+  nperm <- .estimate_nperm(model_data)
   
   expect_is(nperm, "numeric")
   expect_true(nperm >= 100)

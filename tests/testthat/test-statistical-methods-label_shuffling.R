@@ -4,7 +4,7 @@ test_that("paired permutation requires even number of samples", {
     x <- matrix(runif(6), nrow = 2)
     samples <- c("A", "B", "A")
     expect_error(
-        label_shuffling(x, samples, control = "A", method = "mean", paired = TRUE),
+        .label_shuffling(x, samples, control = "A", method = "mean", paired = TRUE),
         "Paired permutation requires an even number of samples"
     )
 })
@@ -16,7 +16,7 @@ test_that("signflip exact enumeration runs and returns valid p-values", {
     x <- matrix(rnorm(8), nrow = 2)
     samples <- rep(c("Normal", "Tumor"), times = 2) # two pairs
     # total combinations = 2^2 = 4
-    res <- label_shuffling(x, samples, control = "Normal", method = "mean", randomizations = 4, paired = TRUE, paired_method = "signflip")
+    res <- .label_shuffling(x, samples, control = "Normal", method = "mean", randomizations = 4, paired = TRUE, paired_method = "signflip")
     expect_true(is.data.frame(res))
     # Now expects: pvalue, padj, log2FC, U, r, + 2 group means = 7 columns
     expect_equal(ncol(res), 7)
@@ -30,7 +30,7 @@ test_that("signflip sampled returns same shape and in-range p-values", {
     set.seed(42)
     x <- matrix(rnorm(8), nrow = 2)
     samples <- rep(c("Normal", "Tumor"), times = 2)
-    res <- label_shuffling(x, samples, control = "Normal", method = "mean", randomizations = 10, paired = TRUE, paired_method = "signflip")
+    res <- .label_shuffling(x, samples, control = "Normal", method = "mean", randomizations = 10, paired = TRUE, paired_method = "signflip")
     expect_true(is.data.frame(res))
     # Now expects: pvalue, padj, log2FC, U, r, + 2 group means = 7 columns
     expect_equal(ncol(res), 7)
@@ -55,7 +55,7 @@ test_that("label_shuffling handles constant null distribution correctly", {
 
     # Use a small number of permutations for reproducibility
     set.seed(42)
-    res <- label_shuffling(mat, samples, control = "A", method = "mean", randomizations = 10, pcorr = "none")
+    res <- .label_shuffling(mat, samples, control = "A", method = "mean", randomizations = 10, pcorr = "none")
     expect_true(is.matrix(res) || is.data.frame(res))
     raw <- as.numeric(res[, 1])
 
@@ -67,7 +67,7 @@ test_that("label_shuffling handles constant null distribution correctly", {
     expect_true(raw[2] > 0 && raw[2] <= 1)
 })
 
-test_that("label_shuffling() returns named p-value, log2FC and group mean columns", {
+test_that(".label_shuffling() returns named p-value, log2FC and group mean columns", {
     mat <- matrix(c(
         0.1, 0.2, 0.3, 0.4,
         1.0, 1.2, 0.9, 1.1
@@ -75,7 +75,7 @@ test_that("label_shuffling() returns named p-value, log2FC and group mean column
     colnames(mat) <- paste0("S", 1:4)
     samples <- c("A", "A", "B", "B")
     set.seed(1)
-    res <- label_shuffling(mat, samples, control = "A", method = "mean", randomizations = 10, pcorr = "none")
+    res <- .label_shuffling(mat, samples, control = "A", method = "mean", randomizations = 10, pcorr = "none")
     expect_true(is.data.frame(res))
     expect_true(all(c("pvalue", "padj", "log2FC") %in% colnames(res)))
     # Should have group means columns as well
@@ -105,7 +105,7 @@ test_that("No p-values equal zero (bias correction working)", {
     mat <- matrix(rnorm(32, mean = 0, sd = 1), nrow = 4)
     samples <- c("Control", "Control", "Control", "Control", "Case", "Case", "Case", "Case")
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat, 
         samples, 
         control = "Control", 
@@ -133,7 +133,7 @@ test_that("Minimum p-value equals 1/(m+1) with m permutations", {
     m <- 99  # number of permutations
     theoretical_min <- 1 / (m + 1)  # = 1/100 = 0.01
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -160,7 +160,7 @@ test_that("S019: P-value bounds are correct [1/(m+1), 1]", {
     m <- 1000
     theoretical_min <- 1 / (m + 1)
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "X",
@@ -192,7 +192,7 @@ test_that("S019: Unpaired permutation test uses bias correction", {
     m <- 100
     theoretical_min <- 1 / (m + 1)
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -226,7 +226,7 @@ test_that("S019: Paired permutation test uses bias correction", {
     m <- 100
     theoretical_min <- 1 / (m + 1)
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -256,7 +256,7 @@ test_that("S019: Bias correction with few permutations", {
     m <- 9
     theoretical_min <- 1 / (m + 1)  # = 0.1
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -286,7 +286,7 @@ test_that("S019: Bias correction produces sensible p-value distribution", {
     
     samples <- c(rep("Control", 4), rep("Case", 4))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -319,7 +319,7 @@ test_that("S019: Extreme case - observed statistic is most extreme", {
     m <- 999
     theoretical_min <- 1 / (m + 1)  # ~0.001
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -344,7 +344,7 @@ test_that("S019: Multiple testing correction applied to corrected p-values", {
     mat <- matrix(rnorm(64), nrow = 8)  # 8 genes x 8 samples
     samples <- c(rep("A", 4), rep("B", 4))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -368,7 +368,7 @@ test_that("S019: Bias correction consistent across random seeds", {
     samples <- c("X", "X", "X", "X", "Y", "Y", "Y", "Y")
     
     set.seed(777)
-    res1 <- label_shuffling(
+    res1 <- .label_shuffling(
         mat,
         samples,
         control = "X",
@@ -378,7 +378,7 @@ test_that("S019: Bias correction consistent across random seeds", {
     )
     
     set.seed(777)
-    res2 <- label_shuffling(
+    res2 <- .label_shuffling(
         mat,
         samples,
         control = "X",
@@ -403,7 +403,7 @@ test_that("S019: Both unpaired and paired designs prevent p=0", {
     samples <- c("A", "A", "A", "A", "B", "B", "B", "B")
     
     # Unpaired test
-    res_unpaired <- label_shuffling(
+    res_unpaired <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -415,7 +415,7 @@ test_that("S019: Both unpaired and paired designs prevent p=0", {
     
     # Paired test with explicit pairs
     pairs_vec <- c("P1", "P1", "P2", "P2", "P1", "P1", "P2", "P2")
-    res_paired <- label_shuffling(
+    res_paired <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -453,7 +453,7 @@ test_that("label_shuffling returns U and r columns", {
     mat <- matrix(rnorm(50, mean = 0, sd = 1), nrow = 5)
     samples <- c(rep("A", 5), rep("B", 5))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -489,7 +489,7 @@ test_that("label_shuffling: r values are in valid range [-1, 1]", {
     
     samples <- c(rep("Control", 4), rep("Case", 4))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -511,7 +511,7 @@ test_that("label_shuffling: U values are non-negative", {
     mat <- matrix(rnorm(24), nrow = 4)  # 4 genes x 6 samples
     samples <- c(rep("Control", 3), rep("Case", 3))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -537,7 +537,7 @@ test_that("label_shuffling: Unpaired effect sizes are computed correctly", {
     
     samples <- c(rep("Control", 4), rep("Case", 4))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",
@@ -571,7 +571,7 @@ test_that("label_shuffling: Paired effect sizes are computed correctly", {
     samples <- c(rep("Normal", 4), rep("Tumor", 4))
     pairs <- c("P1", "P2", "P3", "P4", "P1", "P2", "P3", "P4")
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Normal",
@@ -604,7 +604,7 @@ test_that("label_shuffling effect sizes match wilcoxon effect sizes", {
     samples <- c(rep("A", 5), rep("B", 5))
     
     # Get effect sizes from label_shuffling
-    res_shuffle <- label_shuffling(
+    res_shuffle <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -615,7 +615,7 @@ test_that("label_shuffling effect sizes match wilcoxon effect sizes", {
     )
     
     # Get effect sizes from wilcoxon
-    res_wilcox <- wilcoxon(
+    res_wilcox <- .wilcoxon(
         mat,
         samples,
         pcorr = "none",
@@ -637,7 +637,7 @@ test_that("label_shuffling: Effect sizes independent of randomization count", {
     samples <- c(rep("X", 3), rep("Y", 2))
     
     # Run with different permutation counts
-    res_50 <- label_shuffling(
+    res_50 <- .label_shuffling(
         mat,
         samples,
         control = "X",
@@ -646,7 +646,7 @@ test_that("label_shuffling: Effect sizes independent of randomization count", {
         pcorr = "none"
     )
     
-    res_200 <- label_shuffling(
+    res_200 <- .label_shuffling(
         mat,
         samples,
         control = "X",
@@ -673,7 +673,7 @@ test_that("label_shuffling: Output column order includes U and r", {
     mat <- matrix(rnorm(16), nrow = 2)
     samples <- c("A", "A", "B", "B", "A", "A", "B", "B")
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "A",
@@ -703,7 +703,7 @@ test_that("label_shuffling: Handle NAs gracefully in effect sizes", {
     
     samples <- c(rep("Control", 3), rep("Case", 3))
     
-    res <- label_shuffling(
+    res <- .label_shuffling(
         mat,
         samples,
         control = "Control",

@@ -5,7 +5,7 @@
 #' Enables modular, reusable visualization composition.
 #'
 #' @name plot_helpers
-#' @keywords internal
+
 #' @noRd
 NULL
 
@@ -23,9 +23,10 @@ NULL
 #'
 #' @return Combined patchwork plot object.
 #'
-#' @keywords internal
+
 #' @noRd
-combine_plots_patchwork <- function(plots, agg_label_unique) {
+
+.combine_plots_patchwork <- function(plots, agg_label_unique) {
   require_pkgs("patchwork")
 
   # Use 2 columns (2 genes per row) with controlled spacing
@@ -117,9 +118,10 @@ combine_plots_patchwork <- function(plots, agg_label_unique) {
 #'
 #' @return Combined plot object (or invisible NULL if output_file provided).
 #'
-#' @keywords internal
+
 #' @noRd
-combine_plots_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
+
+.combine_plots_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
   require_pkgs("cowplot")
 
   # Extract legend from first plot
@@ -191,9 +193,10 @@ combine_plots_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
 #'
 #' @return Invisible NULL. Outputs to file or current device.
 #'
-#' @keywords internal
+
 #' @noRd
-combine_plots_grid <- function(plots, output_file = NULL, agg_label_unique) {
+
+.combine_plots_grid <- function(plots, output_file = NULL, agg_label_unique) {
   require_pkgs("grid")
 
   # Remove legends from all plots
@@ -241,13 +244,13 @@ combine_plots_grid <- function(plots, output_file = NULL, agg_label_unique) {
     png_width <- 800 * ncol
     png_height <- 480 * nrow
     png(filename = output_file, width = png_width, height = png_height, res = 150)
-    draw_transcript_grid(grobs, agg_label_unique, legend_grob, ncol, heights,
+    .draw_transcript_grid(grobs, agg_label_unique, legend_grob, ncol, heights,
       to_file = output_file
     )
     dev.off()
     return(invisible(NULL))
   } else {
-    draw_transcript_grid(grobs, agg_label_unique, legend_grob, ncol, heights)
+    .draw_transcript_grid(grobs, agg_label_unique, legend_grob, ncol, heights)
     return(invisible(NULL))
   }
 }
@@ -267,9 +270,10 @@ combine_plots_grid <- function(plots, output_file = NULL, agg_label_unique) {
 #' @param heights Unit specification: row heights.
 #' @param to_file Character: optional file path (internal use).
 #'
-#' @keywords internal
+
 #' @noRd
-draw_transcript_grid <- function(grobs,
+
+.draw_transcript_grid <- function(grobs,
                                  agg_label_unique,
                                  legend_grob,
                                  ncol,
@@ -330,9 +334,10 @@ draw_transcript_grid <- function(grobs,
 #'
 #' @return ggplot2 scale object (ggplot2::scale_color_manual or similar).
 #'
-#' @keywords internal
+
 #' @noRd
-create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
+
+.create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL) {
   require_pkgs("ggplot2")
 
   if (palette == "blue_red") {
@@ -367,9 +372,10 @@ create_color_scale <- function(palette = "blue_red", direction = 1, name = NULL)
 #'
 #' @return ggplot2 scale object.
 #'
-#' @keywords internal
+
 #' @noRd
-create_fill_scale <- function(palette = "blue_red",
+
+.create_fill_scale <- function(palette = "blue_red",
                               direction = 1,
                               name = NULL,
                               breaks = 50) {
@@ -405,9 +411,10 @@ create_fill_scale <- function(palette = "blue_red",
 #'
 #' @return ggplot2 theme object.
 #'
-#' @keywords internal
+
 #' @noRd
-apply_tsenat_theme <- function(base_size = 11, color_palette = "blue_red") {
+
+.apply_tsenat_theme <- function(base_size = 11, color_palette = "blue_red") {
   require_pkgs("ggplot2")
 
   theme_result <- .tsenat_theme_base(base_size = base_size) +
@@ -439,9 +446,10 @@ apply_tsenat_theme <- function(base_size = 11, color_palette = "blue_red") {
 #'
 #' @return Modified ggplot2 object.
 #'
-#' @keywords internal
+
 #' @noRd
-set_plot_title <- function(plot,
+
+.set_plot_title <- function(plot,
                            title = NULL,
                            subtitle = NULL,
                            title_size = .tsenat_font_sizes$title,
@@ -491,9 +499,10 @@ set_plot_title <- function(plot,
 #'
 #' @return Heatmap object from pheatmap.
 #'
-#' @keywords internal
+
 #' @noRd
-create_tsenat_heatmap <- function(mat,
+
+.create_tsenat_heatmap <- function(mat,
                                   title = NULL,
                                   colors = NULL,
                                   breaks = NULL,

@@ -1,7 +1,7 @@
 context("Bayesian Shrinkage: Entropy Estimation for Small Sample Sizes")
 
 # calculate_method is internal; expose for tests
-calculate_method <- TSENAT:::calculate_method
+calculate_method <- TSENAT:::.calculate_method
 
 test_that(".tsenat_estimate_shrinkage_params estimates global mean correctly", {
   # Create simple test data: 3 genes x 4 transcripts x 2 samples
@@ -18,7 +18,7 @@ test_that(".tsenat_estimate_shrinkage_params estimates global mean correctly", {
   genes <- c("A", "A", "B", "B", "C", "C")
   
   # Calculate entropy first
-  entropy_result <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S")
+  entropy_result <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S")
   entropy_mat <- as.matrix(entropy_result[, -1])
   
   # Estimate parameters
@@ -57,7 +57,7 @@ test_that(".tsenat_estimate_shrinkage_params detects variable isoform counts", {
   colnames(x) <- c("S1", "S2")
   genes <- c("A", "A", "B", "B", "B", "C")
   
-  entropy_result <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S")
+  entropy_result <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S")
   entropy_mat <- as.matrix(entropy_result[, -1])
   
   params <- TSENAT:::.tsenat_estimate_shrinkage_params(
@@ -159,7 +159,7 @@ test_that("calculate_method with shrinkage='none' returns unmodified estimates",
   genes <- c("A", "A", "B", "B", "C", "C")
   
   # Calculate with no shrinkage
-  result_none <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S", shrinkage = "none")
+  result_none <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S", shrinkage = "none")
   
   # Should be a data frame with Gene column + entropy columns
   expect_true(is.data.frame(result_none))
@@ -181,7 +181,7 @@ test_that("calculate_method with shrinkage='empirical_bayes' returns modified es
   genes <- c("A", "A", "B", "B", "C", "C")
   
   # Calculate with empirical Bayes shrinkage
-  result_eb <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S", 
+  result_eb <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S", 
                                  shrinkage = "empirical_bayes")
   
   # Should return a data frame
@@ -208,8 +208,8 @@ test_that("calculate_method shrinkage='empirical_bayes' differs from 'none'", {
   colnames(x) <- c("S1", "S2")
   genes <- c("A", "A", "A", "B", "B", "C")
   
-  result_none <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S", shrinkage = "none")
-  result_eb <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S", shrinkage = "empirical_bayes")
+  result_none <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S", shrinkage = "none")
+  result_eb <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S", shrinkage = "empirical_bayes")
   
   # With shrinkage, single-isoform genes (like Gene C) get rescued from filtering
   # Expected: shrinkage="empirical_bayes" has more rows than shrinkage="none"
@@ -242,7 +242,7 @@ test_that("calculate_diversity passes shrinkage parameter through", {
   genes <- c("A", "A", "B", "B", "C", "C")
   
   # Call with shrinkage
-  se <- calculate_diversity(x, genes = genes, q = 1, norm = TRUE, 
+  se <- .calculate_diversity(x, genes = genes, q = 1, norm = TRUE, 
                             shrinkage = "empirical_bayes", verbose = FALSE)
   
   # Check that result is SummarizedExperiment
@@ -269,7 +269,7 @@ test_that("calculate_diversity with shrinkage='empirical_bayes' handles verbose 
   genes <- c("A", "A", "B", "B", "C", "C")
   
   # Should not error when called with verbose=TRUE and shrinkage='empirical_bayes'
-  se <- calculate_diversity(x, genes = genes, q = 1, norm = TRUE,
+  se <- .calculate_diversity(x, genes = genes, q = 1, norm = TRUE,
                             shrinkage = "empirical_bayes", verbose = TRUE)
   
   # Check that result is valid
@@ -288,7 +288,7 @@ test_that("shrinkage='empirical_bayes' handles genes with single isoform", {
   colnames(x) <- c("S1", "S2")
   genes <- c("A", "B", "B", "B")
   
-  result <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S",
+  result <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S",
                              shrinkage = "empirical_bayes")
   
   # Should return successfully without errors
@@ -310,7 +310,7 @@ test_that("shrinkage parameter rejects invalid values", {
   
   # Invalid shrinkage method should error
   expect_error(
-    calculate_method(x, genes, norm = TRUE, q = 1, shrinkage = "invalid_method"),
+    .calculate_method(x, genes, norm = TRUE, q = 1, shrinkage = "invalid_method"),
     "should be one of"
   )
 })
@@ -329,7 +329,7 @@ test_that("shrinkage works with multiple q values", {
   genes <- c("A", "A", "B", "B", "C", "C")
   
   # Calculate with multiple q values and shrinkage
-  result <- calculate_method(x, genes, norm = TRUE, q = c(1, 2), what = "S",
+  result <- .calculate_method(x, genes, norm = TRUE, q = c(1, 2), what = "S",
                              shrinkage = "empirical_bayes")
   
   # Should have Gene + 2 samples * 2 q-values = 5 columns
@@ -355,7 +355,7 @@ test_that("shrinkage preserves NA values", {
   colnames(x) <- c("S1", "S2")
   genes <- c("A", "A", "B", "B", "C", "C")
   
-  result <- calculate_method(x, genes, norm = TRUE, q = 1, what = "S",
+  result <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S",
                              shrinkage = "empirical_bayes")
   
   # NA values should be preserved (not converted to numbers)

@@ -6,7 +6,7 @@ context("S4 TSENATAnalysis Class - Coverage for Uncovered Lines")
 
 # ============================================================================
 # TEST SETUP: Create valid test data with sufficient signal
-# Based on working pattern from helpers.R create_test_analysis()
+# Based on working pattern from helpers.R .create_test_analysis()
 # ============================================================================
 
 set.seed(42)
@@ -53,7 +53,7 @@ test_metadata <- data.frame(
 
 # Create valid TSENATAnalysis object with pre-computed diversity
 # Matches working pattern from helpers.R
-create_test_analysis <- function(precompute_diversity = TRUE, q_values = c(0.5, 1.0, 1.5)) {
+.create_test_analysis <- function(precompute_diversity = TRUE, q_values = c(0.5, 1.0, 1.5)) {
   set.seed(42)
   
   # Create SummarizedExperiment with all required metadata
@@ -106,12 +106,12 @@ create_test_analysis <- function(precompute_diversity = TRUE, q_values = c(0.5, 
 # ============================================================================
 
 test_that("TSENATAnalysis: object is created successfully", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_s4_class(analysis, "TSENATAnalysis")
 })
 
 test_that("TSENATAnalysis: contains all required slots", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   slot_names <- slotNames(analysis)
   required_slots <- c("se", "config", "diversity_results", "jackknife_results",
@@ -123,7 +123,7 @@ test_that("TSENATAnalysis: contains all required slots", {
 })
 
 test_that("TSENATAnalysis: se slot contains valid SummarizedExperiment", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   se <- analysis@se
   expect_s4_class(se, "SummarizedExperiment")
@@ -136,21 +136,21 @@ test_that("TSENATAnalysis: se slot contains valid SummarizedExperiment", {
 # ============================================================================
 
 test_that("show: TSENATAnalysis displays basic info", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # show() uses message() for output
   expect_message(show(analysis), "TSENATAnalysis")
 })
 
 test_that("show: TSENATAnalysis shows sample count", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # show() uses message() for output
   expect_message(show(analysis), "Samples")
 })
 
 test_that("show: TSENATAnalysis displays with mock results", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # Add mock results
   analysis@diversity_results <- list(mock_result = "test")
@@ -165,7 +165,7 @@ test_that("show: TSENATAnalysis displays with mock results", {
 # ============================================================================
 
 test_that("getConfig: returns configuration list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   config <- TSENAT::getConfig(analysis)
   expect_is(config, "list")
@@ -174,7 +174,7 @@ test_that("getConfig: returns configuration list", {
 test_that("tsenat_config: creates analysis with custom configuration", {
   # Test that configuration can be set via factory function (public API)
   # Note: setConfig is now internal; configuration should be set at object creation
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # Create new analysis with custom config via factory function
   custom_config <- TSENAT::tsenat_config(
@@ -194,7 +194,7 @@ test_that("tsenat_config: creates analysis with custom configuration", {
 })
 
 test_that("getDiversity: callable on valid object", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   result <- tryCatch(
     TSENAT::getDiversity(analysis, q = 0.5),
@@ -207,7 +207,7 @@ test_that("getDiversity: callable on valid object", {
 })
 
 test_that("getJackknife: callable on valid object", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   result <- tryCatch(
     TSENAT::getJackknife(analysis),
@@ -223,42 +223,42 @@ test_that("getJackknife: callable on valid object", {
 # ============================================================================
 
 test_that("Slot @se: is SummarizedExperiment", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_s4_class(analysis@se, "SummarizedExperiment")
 })
 
 test_that("Slot @config: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@config, "list")
 })
 
 test_that("Slot @diversity_results: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@diversity_results, "list")
 })
 
 test_that("Slot @jackknife_results: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@jackknife_results, "list")
 })
 
 test_that("Slot @divergence_results: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@divergence_results, "list")
 })
 
 test_that("Slot @lm_results: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@lm_results, "list")
 })
 
 test_that("Slot @plots: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@plots, "list")
 })
 
 test_that("Slot @metadata: is list", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   expect_is(analysis@metadata, "list")
 })
 
@@ -267,7 +267,7 @@ test_that("Slot @metadata: is list", {
 # ============================================================================
 
 test_that("summary: callable on TSENATAnalysis object", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   summary_result <- tryCatch(
     summary(analysis),
@@ -283,14 +283,14 @@ test_that("summary: callable on TSENATAnalysis object", {
 # ============================================================================
 
 test_that("show: displays empty analysis clean", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # show() uses message() for output
   expect_message(show(analysis), "TSENATAnalysis")
 })
 
 test_that("show: displays analysis with diversity_combined in metadata", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # Simulate diversity_combined metadata format
   analysis@metadata$diversity_combined <- list(
@@ -305,7 +305,7 @@ test_that("show: displays analysis with diversity_combined in metadata", {
 })
 
 test_that("show: displays analysis with all result types populated", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # Populate all result slots
   analysis@diversity_results <- list(
@@ -336,7 +336,7 @@ test_that("show: displays analysis with all result types populated", {
 # ============================================================================
 
 test_that("getDiversity: handles combined format in metadata", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # Set up diversity_combined format in metadata
   analysis@metadata$diversity_combined <- list(
@@ -363,14 +363,14 @@ test_that("getDiversity: handles combined format in metadata", {
 # ============================================================================
 
 test_that("TSENATAnalysis: object passes basic validity checks", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   # Should be valid object of correct class
   expect_true(is(analysis, "TSENATAnalysis"))
 })
 
 test_that("TSENATAnalysis: rowData contains gene and transcript info", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   se <- analysis@se
   rd <- rowData(se)
@@ -380,7 +380,7 @@ test_that("TSENATAnalysis: rowData contains gene and transcript info", {
 })
 
 test_that("TSENATAnalysis: colData contains sample metadata", {
-  analysis <- create_test_analysis()
+  analysis <- .create_test_analysis()
   
   se <- analysis@se
   cd <- colData(se)
@@ -394,7 +394,7 @@ test_that("TSENATAnalysis: colData contains sample metadata", {
 # ============================================================================
 
 test_that("S4 Wrappers: calculate_diversity_s4 runs successfully with improved data", {
-  analysis <- create_test_analysis(precompute_diversity = FALSE)
+  analysis <- .create_test_analysis(precompute_diversity = FALSE)
   
   result <- tryCatch({
     calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE, nthreads = 1)
@@ -414,7 +414,7 @@ test_that("S4 Wrappers: calculate_diversity_s4 runs successfully with improved d
 })
 
 test_that("S4 Wrappers: all calculate_diversity_s4 arguments are accepted", {
-  analysis <- create_test_analysis(precompute_diversity = FALSE)
+  analysis <- .create_test_analysis(precompute_diversity = FALSE)
   
   # Test that each argument is accepted by the function
   args_to_test <- list(
@@ -447,7 +447,7 @@ test_that("S4 Wrappers: all calculate_diversity_s4 arguments are accepted", {
 
 test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
   # Pre-compute diversity to have valid input data
-  analysis <- create_test_analysis(precompute_diversity = TRUE)
+  analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {
@@ -484,7 +484,7 @@ test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
 
 test_that("S4 Wrappers: calculate_lm_interaction_s4 accepts new arguments", {
   # Pre-compute diversity to have valid input data
-  analysis <- create_test_analysis(precompute_diversity = TRUE)
+  analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {
@@ -520,7 +520,7 @@ test_that("S4 Wrappers: calculate_lm_interaction_s4 accepts new arguments", {
 
 test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
   # Pre-compute diversity to have valid input data
-  analysis <- create_test_analysis(precompute_diversity = TRUE)
+  analysis <- .create_test_analysis(precompute_diversity = TRUE)
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {

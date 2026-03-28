@@ -60,4 +60,3 @@ resolve_slot_param(user_value = NULL, config_list = config,
 # Returns: 1
 
 }
-\keyword{internal}

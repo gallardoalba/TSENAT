@@ -9,7 +9,7 @@ test_that("calculate_divergence handles per-q pattern classification", {
   se <- create_test_se_simple()
   
   # Test with multiple q values to trigger pattern classification
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -33,7 +33,7 @@ test_that("calculate_divergence all normalization modes work correctly", {
   
   # Test all 5 normalization modes (none, range, zscore, log_odds_ratio, relative_reference)
   test_all_normalization_modes(
-    func = calculate_divergence,
+    func = .calculate_divergence,
     se = se,
     q = 1,
     group_col = "sample_type",
@@ -49,7 +49,7 @@ test_that("calculate_divergence skips genes with NA estimates", {
   se <- create_test_se_simple()
   
   # Run with progress to trigger logging paths
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -68,7 +68,7 @@ test_that("calculate_divergence with paired samples", {
   # Tests paired sample handling
   se <- create_test_se_simple(paired = TRUE)
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -87,7 +87,7 @@ test_that("calculate_divergence with unpaired bootstrapping", {
   # Tests bootstrap with unpaired samples
   se <- create_test_se_simple()
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -106,7 +106,7 @@ test_that("calculate_divergence with paired bootstrapping", {
   # Tests bootstrap with paired samples
   se <- create_test_se_simple(paired = TRUE)
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -126,7 +126,7 @@ test_that("calculate_divergence auto-selects nboot", {
   # Tests auto-selection of nboot (covered in bootstrap logic)
   se <- create_test_se_simple()
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -146,7 +146,7 @@ test_that("calculate_divergence uses different CI methods", {
   se <- create_test_se_simple()
   
   # Test percentile method
-  result_percentile <- calculate_divergence(
+  result_percentile <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -166,7 +166,7 @@ test_that("calculate_divergence applies CI threshold", {
   # Tests confidence interval parameter
   se <- create_test_se_simple()
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -186,7 +186,7 @@ test_that("calculate_divergence uses parallel processing", {
   # Tests parallel/multi-threaded execution
   se <- create_test_se_simple()
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -205,7 +205,7 @@ test_that("calculate_divergence with log_base parameter", {
   # Tests alternative log base for entropy computation
   se <- create_test_se_simple()
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",
@@ -224,7 +224,7 @@ test_that("calculate_divergence with pseudocount parameter", {
   # Tests pseudocount handling for zero-count genes
   se <- create_test_se_simple()
   
-  result <- calculate_divergence(
+  result <- .calculate_divergence(
     se,
     group_col = "sample_type",
     control_group = "Control",

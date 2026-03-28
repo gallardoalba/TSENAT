@@ -50,21 +50,21 @@ A \code{TSENATAnalysis} S4 object with:
   \item{@metadata}{Metadata with package version and creation timestamp}
 }
 \description{
-Convenience wrapper that combines \code{build_se()} and \code{TSENATAnalysis()}
+Convenience wrapper that combines \code{.build_se()} and \code{TSENATAnalysis()}
 into a single function call. This creates a complete analysis object ready for
 Tsallis entropy computation and downstream analysis.
 }
 \details{
 This wrapper combines two steps into one:
 \enumerate{
-  \item Call \code{build_se()} to create a SummarizedExperiment from transcript counts
+  \item Call \code{.build_se()} to create a SummarizedExperiment from transcript counts
   \item Wrap the result in \code{TSENATAnalysis()} to create the analysis object
 }
 
 The returned object is ready for diversity analysis via \code{calculate_diversity_s4()}.
 
 If you need to inspect or filter the SummarizedExperiment before creating the
-TSENATAnalysis object, call \code{build_se()} and \code{TSENATAnalysis()} separately.
+TSENATAnalysis object, call \code{.build_se()} and \code{TSENATAnalysis()} separately.
 }
 \examples{
 # Create example transcript count data

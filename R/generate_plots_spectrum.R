@@ -55,14 +55,15 @@
 #' )
 #' 
 #' # Global divergence curve (all genes aggregated)
-#' p_global <- plot_divergence_spectrum(divergence_se)
+#' p_global <- .plot_divergence_spectrum(divergence_se)
 #' 
 #' # Gene-specific divergence spectrum
-#' p_gene <- plot_divergence_spectrum(divergence_se, gene = "gene_1")
+#' p_gene <- .plot_divergence_spectrum(divergence_se, gene = "gene_1")
 #'
-#' @keywords internal
+
 #' @noRd
-plot_divergence_spectrum <- function(divergence_results_se,
+
+.plot_divergence_spectrum <- function(divergence_results_se,
                                      gene = NULL,
                                      lm_res = NULL,
                                      n_genes = 4,

@@ -367,19 +367,19 @@ tsenat <- function(
           plot_obj <- switch(ptype,
             q_curve = plot_tsallis_q_curve_s4(analysis@se, analysis@diversity_results),
             lm_interaction = if ("lm_interaction" %in% names(analysis@lm_results)) {
-              plot_lm_interaction_gam(analysis@lm_results$lm_interaction)
+              .plot_lm_interaction_gam(analysis@lm_results$lm_interaction)
             } else NULL,
             divergence_distribution = if (length(analysis@divergence_results) > 0) {
-              plot_divergence_distribution(analysis@divergence_results)
+              .plot_divergence_distribution(analysis@divergence_results)
             } else NULL,
             divergence_spectrum = if (length(analysis@divergence_results) > 0) {
-              plot_divergence_spectrum(analysis@divergence_results)
+              .plot_divergence_spectrum(analysis@divergence_results)
             } else NULL,
             influence_heatmap = if ("q_interactions" %in% names(analysis@lm_results)) {
-              plot_multiq_delta_influence_heatmaps(analysis@lm_results$q_interactions)
+              .plot_multiq_delta_influence_heatmaps(analysis@lm_results$q_interactions)
             } else NULL,
             volcano = if ("lm_interaction" %in% names(analysis@lm_results)) {
-              plot_volcano_ma_grid(
+              .plot_volcano_ma_grid(
                 analysis@lm_results$lm_interaction,
                 analysis@divergence_results
               )
@@ -432,7 +432,7 @@ tsenat <- function(
 #'
 #' Returns left operand if not NULL, otherwise right operand.
 #'
-#' @keywords internal
+
 #' @noRd
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x

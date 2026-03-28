@@ -44,7 +44,7 @@ test_that("calculate_tsallis_entropy_bootstrap with matrix input and nthreads > 
   
   # Test with nthreads > 1 (should run parallel on Unix, fallback on Windows)
   # nboot must be >= 100
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -71,7 +71,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix input with sequential proc
     dimnames = list(c("GeneA", "GeneB", "GeneC"), NULL)
   )
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 1.5,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -90,7 +90,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix without rownames generates
   set.seed(123)
   x <- matrix(c(100, 50, 200, 75), nrow = 2, ncol = 2)
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -109,7 +109,7 @@ test_that("calculate_tsallis_entropy_bootstrap validates nthreads parameter", {
   
   # nthreads = -1 should error
   expect_error(
-    calculate_tsallis_entropy_bootstrap(
+    .calculate_tsallis_entropy_bootstrap(
       x = x,
       nthreads = -1,
       nboot = 10  # Exploratory: use nboot=10 (faster)
@@ -130,7 +130,7 @@ test_that("calculate_tsallis_entropy_bootstrap with SE and multi-gene (top_n > 1
   
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     se = se,
     res = res,
     top_n = 2,
@@ -158,7 +158,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE skip insufficient genes", {
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
   # Request top 2 genes, but only first has sufficient counts
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     se = se,
     res = res,
     top_n = 2,
@@ -187,7 +187,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE with gene_name in rowData", {
   
   res <- data.frame(gene_id = c("GENEQ", "GENEZ", "GENEX"), pvalue = c(0.001, 0.01, 0.1))
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     se = se,
     res = res,
     top_n = 1,
@@ -206,7 +206,7 @@ test_that("calculate_tsallis_entropy_bootstrap with JOB method (use_job = TRUE)"
   
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -229,7 +229,7 @@ test_that("calculate_tsallis_entropy_bootstrap with paired = TRUE", {
   # Paired data: alternating treatment-control pairs
   x <- c(100, 95, 150, 140, 80, 85, 200, 190)
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -251,7 +251,7 @@ test_that("calculate_tsallis_entropy_bootstrap auto-selects nboot for matrix", {
   
   # When nboot = "auto", should calculate appropriate value
   # Auto-selection should produce nboot >= 100
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = "auto",
@@ -267,24 +267,24 @@ test_that("suggest_nboot recommends proper bootstrap size", {
   # Test suggest_nboot function
   
   # Single gene, percentile method
-  nboot1 <- suggest_nboot(n_genes = 1, use_bca = FALSE, nthreads = 1)
+  nboot1 <- .suggest_nboot(n_genes = 1, use_bca = FALSE, nthreads = 1)
   expect_true(nboot1 >= 100)
   
   # Multiple genes, BCa method
-  nboot2 <- suggest_nboot(n_genes = 10, use_bca = TRUE, nthreads = 2)
+  nboot2 <- .suggest_nboot(n_genes = 10, use_bca = TRUE, nthreads = 2)
   expect_true(nboot2 >= 500)
   
   # BCa method requires more replicates
-  nboot_bca <- suggest_nboot(n_genes = 5, use_bca = TRUE, nthreads = 1)
-  nboot_percentile <- suggest_nboot(n_genes = 5, use_bca = FALSE, nthreads = 1)
+  nboot_bca <- .suggest_nboot(n_genes = 5, use_bca = TRUE, nthreads = 1)
+  nboot_percentile <- .suggest_nboot(n_genes = 5, use_bca = FALSE, nthreads = 1)
   expect_true(nboot_bca >= nboot_percentile)
 })
 
 test_that("suggest_nboot scales with thread count", {
   # Test that nboot recommendations account for parallelization
   
-  nboot_serial <- suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 1)
-  nboot_parallel <- suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 4)
+  nboot_serial <- .suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 1)
+  nboot_parallel <- .suggest_nboot(n_genes = 10, use_bca = FALSE, nthreads = 4)
   
   # Parallel should potentially be higher due to more resources
   expect_true(nboot_serial > 0)
@@ -303,7 +303,7 @@ test_that("compute_bootstrap_qcurve_cis with single q-value", {
   )
   
   # compute_bootstrap_qcurve_cis takes just long, unique_q, groups
-  result <- compute_bootstrap_qcurve_cis(
+  result <- .compute_bootstrap_qcurve_cis(
     long = long,
     unique_q = c(1.0),
     groups = c("g1", "g2")
@@ -324,7 +324,7 @@ test_that("compute_bootstrap_qcurve_cis with multiple q-values", {
     tsallis = rnorm(24, mean = 0.7, sd = 0.1)
   )
   
-  result <- compute_bootstrap_qcurve_cis(
+  result <- .compute_bootstrap_qcurve_cis(
     long = long,
     unique_q = c(0.5, 1.0, 1.5, 2.0),
     groups = c("g1", "g2")
@@ -344,7 +344,7 @@ test_that("compute_bootstrap_qcurve_cis multiple genes", {
     tsallis = c(0.5, 0.55, 0.65, 0.8, 0.82, 0.85, 0.52, 0.58, 0.68, 0.78, 0.81, 0.84)
   )
   
-  result <- compute_bootstrap_qcurve_cis(
+  result <- .compute_bootstrap_qcurve_cis(
     long = long,
     unique_q = c(1.0, 1.5, 2.0),
     groups = c("g1", "g2")
@@ -360,7 +360,7 @@ test_that("calculate_divergence_bootstrap basic functionality", {
   x <- c(100, 50, 75, 200, 80, 120)
   y <- c(110, 45, 80, 190, 85, 115)
   
-  result <- calculate_divergence_bootstrap(
+  result <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,
@@ -382,7 +382,7 @@ test_that("calculate_divergence_bootstrap with multiple q values", {
   y <- c(110, 45, 80, 190, 85, 115)
   
   # Test with q = 1.0
-  result1 <- calculate_divergence_bootstrap(
+  result1 <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 1.0,
@@ -393,7 +393,7 @@ test_that("calculate_divergence_bootstrap with multiple q values", {
   )
   
   # Test with q = 2.0
-  result2 <- calculate_divergence_bootstrap(
+  result2 <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2.0,
@@ -415,7 +415,7 @@ test_that("calculate_divergence_bootstrap with SE input and results data.frame",
   x <- c(100, 50, 75, 200, 80, 120)
   y <- c(110, 45, 80, 190, 85, 115)
   
-  result <- calculate_divergence_bootstrap(
+  result <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,
@@ -433,7 +433,7 @@ test_that("print method for tsenat_bootstrap_ci works correctly", {
   set.seed(123)
   
   x <- c(100, 50, 75, 200, 80, 120)
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -451,7 +451,7 @@ test_that("summary method for tsenat_bootstrap_ci works correctly", {
   set.seed(123)
   
   x <- c(100, 50, 75, 200, 80, 120, 150, 60)
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -471,7 +471,7 @@ test_that("print method for tsenat_divergence_bootstrap_ci", {
   x <- c(100, 50, 75, 200, 80, 120)
   y <- c(110, 45, 80, 190, 85, 115)
   
-  result <- calculate_divergence_bootstrap(
+  result <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,
@@ -492,7 +492,7 @@ test_that("summary method for tsenat_divergence_bootstrap_ci", {
   x <- c(100, 50, 75, 200, 80, 120)
   y <- c(110, 45, 80, 190, 85, 115)
   
-  result <- calculate_divergence_bootstrap(
+  result <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,
@@ -513,7 +513,7 @@ test_that("calculate_tsallis_entropy_bootstrap matrix verbose = TRUE", {
   
   # Suppress output but don't error
   suppressMessages(
-    result <- calculate_tsallis_entropy_bootstrap(
+    result <- .calculate_tsallis_entropy_bootstrap(
       x = x,
       q = 2,
       nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -538,7 +538,7 @@ test_that("calculate_tsallis_entropy_bootstrap SE with verbose = TRUE", {
   res <- data.frame(gene_id = c("g1", "g2", "g3"), pvalue = c(0.001, 0.01, 0.1))
   
   suppressMessages(
-    result <- calculate_tsallis_entropy_bootstrap(
+    result <- .calculate_tsallis_entropy_bootstrap(
       se = se,
       res = res,
       top_n = 2,
@@ -557,7 +557,7 @@ test_that("calculate_tsallis_entropy_bootstrap with include_diagnostics = FALSE"
   
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -574,7 +574,7 @@ test_that("calculate_tsallis_entropy_bootstrap seed parameter reproducibility", 
   # Test that same seed produces same results
   x <- c(100, 50, 75, 200, 80, 120)
   
-  result1 <- calculate_tsallis_entropy_bootstrap(
+  result1 <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -584,7 +584,7 @@ test_that("calculate_tsallis_entropy_bootstrap seed parameter reproducibility", 
     verbose = FALSE
   )
   
-  result2 <- calculate_tsallis_entropy_bootstrap(
+  result2 <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 10,  # Exploratory: use nboot=10 (faster)
@@ -604,7 +604,7 @@ test_that("calculate_tsallis_entropy_bootstrap BCa method", {
   
   x <- c(100, 50, 75, 200, 80, 120, 150, 60, 90, 110)
   
-  result <- calculate_tsallis_entropy_bootstrap(
+  result <- .calculate_tsallis_entropy_bootstrap(
     x = x,
     q = 2,
     nboot = 150,
@@ -630,7 +630,7 @@ test_that("compute_bootstrap_qcurve_cis with single gene", {
     tsallis = c(0.5, 0.52, 0.55, 0.57, 0.6, 0.62, 0.65, 0.67)
   )
   
-  result <- compute_bootstrap_qcurve_cis(
+  result <- .compute_bootstrap_qcurve_cis(
     long = long,
     unique_q = c(0.5, 1.0, 1.5, 2.0),
     groups = c("g1")
@@ -646,7 +646,7 @@ test_that("calculate_divergence_bootstrap pseudocount parameter", {
   x <- c(100, 0, 75, 200, 0, 120)  # Has zeros
   y <- c(110, 0, 80, 190, 0, 115)
   
-  result <- calculate_divergence_bootstrap(
+  result <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,
@@ -667,7 +667,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
   x <- c(100, 50, 75, 200, 80, 120)
   y <- c(110, 45, 80, 190, 85, 115)
   
-  result_e <- calculate_divergence_bootstrap(
+  result_e <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,
@@ -678,7 +678,7 @@ test_that("calculate_divergence_bootstrap log_base parameter", {
     verbose = FALSE
   )
   
-  result_2 <- calculate_divergence_bootstrap(
+  result_2 <- .calculate_divergence_bootstrap(
     x = x,
     y = y,
     q = 2,

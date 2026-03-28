@@ -175,7 +175,7 @@ test_that("Type I error (FWER) is maintained at appropriate alpha level", {
     # Suppress occasional chi-squared warnings from Mood's median test with sparse tables
     result <- suppressWarnings(
       tryCatch(
-        detect_q_gene_interactions(
+        .detect_q_gene_interactions(
           data = data_null,
           entropy_col = "entropy",
           q_col = "q",
@@ -277,7 +277,7 @@ test_that("detect_q_gene_interactions handles paired design correctly", {
   data_paired$condition <- data_paired$sample_type
   
   # Run with paired design
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     data = data_paired,
     entropy_col = "entropy",
     q_col = "q",
@@ -322,7 +322,7 @@ test_that("Westfall-Young permutation maintains FWER with adequate sample sizes"
   data_large$condition <- rep(c("A", "B"), length.out = nrow(data_large))
   
   # Run with Westfall-Young (uses permutation loop)
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     data = data_large,
     entropy_col = "entropy",
     q_col = "q",
@@ -371,7 +371,7 @@ test_that("Westfall-Young permutation works with unpaired rank-based tests", {
   
   # Run with Hochberg correction (more stable for moderate sample sizes)
   # Hochberg is valid under positive regression dependence (satisfied for Tsallis entropy q-values)
-  result <- detect_q_gene_interactions(
+  result <- .detect_q_gene_interactions(
     data = data_sig,
     entropy_col = "entropy",
     q_col = "q",
@@ -469,7 +469,7 @@ test_that("Parallel WY permutation (nthreads=2) produces valid results", {
   
   # Run with WY permutation and nthreads=2
   # Use smaller wy_randomizations for speed
-  result_parallel <- detect_q_gene_interactions(
+  result_parallel <- .detect_q_gene_interactions(
     data = data_parallel,
     entropy_col = "entropy",
     q_col = "q",
@@ -530,7 +530,7 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
   # Set seed identically for both runs
   # Suppress chi-squared approximation warnings (expected with small sample sizes)
   set.seed(777)
-  result_serial <- suppressWarnings(detect_q_gene_interactions(
+  result_serial <- suppressWarnings(.detect_q_gene_interactions(
     data = data_compare,
     entropy_col = "entropy",
     q_col = "q",
@@ -545,7 +545,7 @@ test_that("Serial (nthreads=1) and parallel (nthreads=2) WY produce consistent r
   ))
   
   set.seed(777)
-  result_parallel <- suppressWarnings(detect_q_gene_interactions(
+  result_parallel <- suppressWarnings(.detect_q_gene_interactions(
     data = data_compare,
     entropy_col = "entropy",
     q_col = "q",
