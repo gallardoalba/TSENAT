@@ -1220,7 +1220,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads = NULL, 
                                     output_file = NULL, control_group = NULL, paired = FALSE, 
                                     method = NULL, bootstrap = FALSE, nboot = NULL, 
-                                    seed = NULL, ...) {
+                                    seed = NULL, progress = FALSE, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1280,13 +1280,13 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   }
 
   # Run divergence calculation with extracted parameters
-  # IMPORTANT: Always include progress=FALSE to prevent NA boolean operations
+  # Include progress explicitly to prevent NA boolean operations
   args <- list(
     se = analysis@se,
     q = q,
     verbose = verbose,
     nthreads = nthreads,
-    progress = FALSE  # CRITICAL: Always be explicit to prevent NA issues
+    progress = progress  # Use parameter value, not hardcoded
   )
   
   # Add parameters if they are not NULL/FALSE

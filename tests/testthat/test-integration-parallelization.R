@@ -62,7 +62,7 @@ test_that("wilcoxon parallelization handles edge cases correctly", {
 context("Parallelization: Label Shuffling with Multiple Threads")
 
 test_that("label_shuffling parallel execution completes and returns valid results", {
-    skip("Expensive parallelization test with 50 randomizations")
+    skip_on_cran()
     set.seed(42)
     # Create large dataset: 300 genes, 12 samples
     nfeat <- 300
@@ -248,7 +248,7 @@ test_that("calculate_difference label_shuffling produces valid results", {
 context("Parallelization: Large Dataset Stress Testing")
 
 test_that("Large dataset parallelization produces valid results", {
-    skip("Test skipped to reduce runtime: uses 1000x24 dataset (resource-intensive)")
+    skip_on_cran()
     
     set.seed(444)
     # Very large dataset to ensure parallelization overhead is worth it
@@ -275,7 +275,7 @@ test_that("Large dataset parallelization produces valid results", {
 })
 
 test_that("Large calculate_method dataset with single q value", {
-    skip("Test skipped to reduce runtime: 2000 transcripts with serial/parallel comparison (resource-intensive)")
+    skip_on_cran()
     
     set.seed(555)
     # 500 genes with multiple transcripts, 8 samples, single q value

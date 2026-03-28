@@ -381,12 +381,20 @@ test_that(".jis_apply_fdr maintains p-value ordering relationships", {
 # ============================================================================
 
 test_that(".jis_handle_multi_q returns list of results for multiple q values", {
-  skip("Multi-q handling requires full SE setup - skip for unit testing")
+  skip_on_cran()
   
   se <- create_test_se()
   
   q_values <- c(1.0, 1.5)
-  q_params <- list(norm = TRUE, log_base = exp(1), pseudocount = 0, n_bootstrap = 10)
+  q_params <- list(
+    condition_col = "condition",
+    gene_col = "gene_name",
+    isoform_col = "transcript_id",
+    norm = TRUE,
+    log_base = exp(1),
+    pseudocount = 0,
+    n_bootstrap = 10
+  )
   
   result <- TSENAT:::.jis_handle_multi_q(se, q_values, q_params, verbose = FALSE)
   

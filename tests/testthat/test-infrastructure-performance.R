@@ -13,7 +13,7 @@ if (identical(Sys.getenv("SKIP_PERFORMANCE_TESTS"), "true")) {
   skip("Performance tests skipped during coverage analysis")
 }
 
-skip_on_cran()
+skip("Performance tests skipped by default - resource-intensive")
 
 # Setup: Create realistic test data
 setup_test_counts <- function(n_genes = 1000, n_samples = 10) {

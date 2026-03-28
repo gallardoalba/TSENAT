@@ -36,7 +36,7 @@ test_that("bootstrap multi-q estimates differ across q values", {
 })
 
 test_that("bootstrap multi-q CI bounds are sensible for each q", {
-    skip("Test skipped to reduce runtime: bootstrap CI calculation with multiple q values (resource-intensive)")
+    skip_on_cran()
     
     x <- c(100, 50, 30, 20)
     result <- .calculate_tsallis_entropy_bootstrap(x, q = c(1, 2), nboot = 100, seed = 234)
@@ -98,7 +98,7 @@ test_that("jackknife multi-q estimates differ across q values", {
 })
 
 test_that("jackknife multi-q with matrix input", {
-    skip("Resource intensive: matrix operations")
+    skip_on_cran()
     
     counts_matrix <- rbind(
         "Gene1" = c(100, 50, 30, 20),

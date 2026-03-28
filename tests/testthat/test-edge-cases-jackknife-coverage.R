@@ -329,7 +329,7 @@ test_that("compute_delta_statistics returns statistics", {
 
 test_that("jackknife_isoform_switching with SummarizedExperiment", {
   # Test jackknife_isoform_switching with proper SE input
-  skip("Test skipped to reduce runtime: jackknife_isoform_switching with SummarizedExperiment (resource-intensive)")
+  skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
@@ -369,7 +369,7 @@ test_that("jackknife_isoform_switching with SummarizedExperiment", {
 
 test_that("jackknife_isoform_switching with multiple q", {
   # Test with multi-q 
-  skip("Test skipped to reduce runtime: jackknife_isoform_switching with multiple q-values (resource-intensive)")
+  skip_on_cran()
   
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
@@ -648,15 +648,9 @@ test_that("jackknife_entropy_outliers nthreads = 2 with multi-q", {
   expect_true(all(sapply(result, inherits, "tsenat_jackknife")))
 })
 
-test_that("jackknife_entropy_outliers nthreads = NULL (auto-detect)", {
-  # Test auto-detection of threads
-  # Skip to avoid redundant cluster creation (already tested above with explicit nthreads)
-  skip("Test skipped to reduce runtime: Auto-detect cluster creation is redundant with explicit nthreads test")
-})
-
 test_that("jackknife_entropy_outliers nthreads parameter passes through SE path", {
   # Test nthreads parameter with SummarizedExperiment input
-  skip("Test skipped to reduce runtime: SummarizedExperiment processing is resource-intensive")
+  skip_on_cran()
   skip_if_not_installed("SummarizedExperiment")
   set.seed(123)
   
@@ -694,7 +688,7 @@ test_that("jackknife_entropy_outliers nthreads parameter passes through SE path"
 
 test_that("jackknife_entropy_outliers nthreads parameter passes through matrix recursion", {
   # Test nthreads parameter through matrix input (internal recursion)
-  skip("Test skipped to reduce runtime: nthreads parameter passes through matrix recursion (resource-intensive multi-gene processing)")
+  skip_on_cran()
   set.seed(123)
   x_matrix <- matrix(
     c(100, 50, 75, 80, 200, 120, 150, 160),

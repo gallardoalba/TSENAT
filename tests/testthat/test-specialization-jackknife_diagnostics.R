@@ -182,7 +182,7 @@ test_that("jackknife_entropy_outliers is deterministic", {
 
 # Test 23: Large transcript count
 test_that("jackknife_entropy_outliers works with many transcripts", {
-  skip("Test skipped to reduce runtime: jackknife with many transcripts is resource-intensive")
+  skip_on_cran()
   
   many_transcripts <- rpois(50, lambda = 50)  # Reduced from 100 to 50 for faster testing
 
@@ -382,7 +382,7 @@ test_that("jackknife_isoform_switching accepts subject_col parameter", {
 
 # Test 8: LM results parameter is accepted
 test_that("jackknife_isoform_switching accepts lm_results parameter", {
-  skip("Test skipped to reduce runtime: jackknife_isoform_switching with bootstrap and lm_results (resource-intensive)")
+  skip_on_cran()
   
   suppressPackageStartupMessages({
     library(SummarizedExperiment)
@@ -449,7 +449,7 @@ test_that("Metadata is populated after analysis", {
 
 # Test 10: Results are numeric (not NA/NaN) for small bootstrap
 test_that("Results contain numeric values with small bootstrap", {
-  skip("Test skipped to reduce runtime: jackknife_isoform_switching with bootstrap (resource-intensive)")
+  skip_on_cran()
   
   se <- test_se_basic()
   
@@ -800,7 +800,7 @@ test_that("q-parameter optimization doesn't affect computation results", {
 })
 
 test_that("q-parameter optimization works with multiple q values", {
-  skip("Test skipped to reduce runtime: processes multiple q-values (0.3, 1.0, 2.5) with jackknife computation (resource-intensive)")
+  skip_on_cran()
   
   counts <- c(1000, 500, 200, 100, 50)
   
@@ -810,7 +810,6 @@ test_that("q-parameter optimization works with multiple q values", {
     .jackknife_entropy_outliers(
       x = counts, 
       q = c(0.3, 1.0, 2.5), 
-      verbose = FALSE,
       verbose = FALSE
     ),
     NA  # Expect no error
@@ -818,7 +817,7 @@ test_that("q-parameter optimization works with multiple q values", {
 })
 
 test_that("q-parameter optimization with matrix input", {
-  skip("Test skipped to reduce runtime: jackknife with matrix input and messaging (resource-intensive)")
+  skip_on_cran()
   
   counts_matrix <- rbind(
     "Gene1" = c(1000, 500, 200, 100, 50),

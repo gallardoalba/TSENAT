@@ -150,51 +150,24 @@
                                             nthreads, use_parallel, progress) {
   start_time <- Sys.time()
   num_genes <- length(gene_indices)
-  results_list <- list()
   
-  if (!use_parallel) {
-    # ====== SEQUENTIAL PROCESSING ======
-    for (i in seq_along(gene_indices)) {
-      gene_idx <- gene_indices[i]
-      
-      results_list[[i]] <- .process_single_gene_div(
-        gene_idx, all_gene_names, se, gene_col, rd,
-        group_col, control_group, q, nboot, ci, method,
-        log_base, pseudocount, seed, pair_ids
-      )
-      
-      if (progress && (i %% 10 == 0)) {
-        elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
-        rate <- (i / elapsed) * 60
-        message("[", i, "/", num_genes, "] (", sprintf("%.1f genes/min", rate), ")")
-      }
-    }
-  } else {
-    # ====== PARALLEL PROCESSING ======
-    cl <- parallel::makeCluster(nthreads, type = "PSOCK")
-    on.exit(parallel::stopCluster(cl), add = TRUE)
+  # Define per-gene computation function
+  compute_gene_divergence <- function(i) {
+    gene_idx <- gene_indices[i]
     
-    parallel::clusterExport(cl, 
-      c(".process_single_gene_div", ".calculate_divergence_bootstrap", ".tsallis_divergence_scalar",
-        ".compute_aggregate_counts", ".extract_group_counts_gene", ".compute_divergence_q",
-        ".bootstrap_build_args", ".make_error_result",
-        "rd", "gene_col", "all_gene_names", "se", "q", "nboot", "ci", "method",
-        "log_base", "pseudocount", "seed", "group_col", "control_group", "pair_ids"),
-      envir = environment())
-    
-    parallel::clusterCall(cl, function() {
-      requireNamespace("SummarizedExperiment", quietly = TRUE)
-    })
-    
-    results_list <- parallel::parLapply(cl, seq_along(gene_indices), function(i) {
-      gene_idx <- gene_indices[i]
-      .process_single_gene_div(
-        gene_idx, all_gene_names, se, gene_col, rd,
-        group_col, control_group, q, nboot, ci, method,
-        log_base, pseudocount, seed, pair_ids
-      )
-    })
+    .process_single_gene_div(
+      gene_idx, all_gene_names, se, gene_col, rd,
+      group_col, control_group, q, nboot, ci, method,
+      log_base, pseudocount, seed, pair_ids
+    )
   }
+  
+  # Execute using BiocParallel infrastructure
+  results_list <- .bplapply(
+    X = seq_along(gene_indices),
+    FUN = compute_gene_divergence,
+    nthreads = nthreads
+  )
   
   elapsed <- as.numeric(Sys.time() - start_time, units = "secs")
   list(results = results_list, elapsed = elapsed)
@@ -1111,6 +1084,7 @@
     col_data_output <- data.frame(
         q_value = q_vals,
         sample_type = rep("divergence_estimate", length(q_vals)),
+        computation_mode = rep(if (use_parallel) "parallel" else "sequential", length(q_vals)),
         row.names = paste0("q_", q_vals)
     )
     

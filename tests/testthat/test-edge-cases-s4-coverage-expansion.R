@@ -451,7 +451,7 @@ test_that("S4 Wrappers: calculate_difference_s4 accepts new arguments", {
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {
-    skip("Diversity calculation failed - skipping downstream wrapper tests")
+    skip_on_cran()
   }
   
   # Test each argument individually
@@ -488,7 +488,7 @@ test_that("S4 Wrappers: calculate_lm_interaction_s4 accepts new arguments", {
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {
-    skip("Diversity calculation failed - skipping downstream wrapper tests")
+    skip_on_cran()
   }
   
   # Test each argument individually
@@ -524,7 +524,7 @@ test_that("S4 Wrappers: calculate_divergence_s4 accepts new arguments", {
   
   # Ensure diversity results exist
   if (length(analysis@diversity_results) == 0) {
-    skip("Diversity calculation failed - skipping downstream wrapper tests")
+    skip_on_cran()
   }
   
   # Test each argument individually
