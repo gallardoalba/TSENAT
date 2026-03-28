@@ -59,7 +59,27 @@
       requireNamespace("rlang", quietly = TRUE)
       
       # Mark as loaded to avoid repeated checks
-      assign(".viz_loaded", TRUE, envir = ns)
+      # Handle potential locked binding (can occur during package initialization)
+      tryCatch(
+        {
+          assign(".viz_loaded", TRUE, envir = ns)
+        },
+        error = function(e) {
+          # If binding is locked, try to unlock it first
+          tryCatch(
+            {
+              unlockBinding(".viz_loaded", ns)
+              assign(".viz_loaded", TRUE, envir = ns)
+              lockBinding(".viz_loaded", ns)
+            },
+            error = function(e2) {
+              # If unlock/relock fails, just warn and continue
+              # The flag not being set won't break functionality
+              warning("Could not update lazy-loading flag, but packages are loaded")
+            }
+          )
+        }
+      )
       
       if (verbose) {
         message("Visualization dependencies loaded successfully")

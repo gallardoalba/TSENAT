@@ -1,3 +1,7 @@
+#' @useDynLib TSENAT, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
+NULL
+
 # Package initialization and finalization
 
 .onLoad <- function(libname, pkgname) {

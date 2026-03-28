@@ -1,0 +1,14 @@
+# Makevars for Rcpp/Armadillo compilation
+# 
+# This configuration enables:
+# - Armadillo optimizations (vectorization)
+# - OpenMP parallelization (if available)
+# - C++11 standard and beyond
+# - Aggressive optimization flags
+
+# Use Armadillo with OpenMP
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS)
+
+# Enable C++11 and optimization
+CXX11FLAGS = -O3 -march=native -fPIC
