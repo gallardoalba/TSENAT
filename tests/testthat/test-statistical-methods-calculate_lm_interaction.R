@@ -117,10 +117,10 @@ test_that("lmm fallback used when lmer fails (stubbed)", {
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
     ns <- asNamespace("TSENAT")
-    orig <- get(".tsenat_try_lmer", envir = ns)
+    orig <- get(".try_lmer", envir = ns)
     stub <- function(...) structure("error", class = "try-error")
-    assignInNamespace(".tsenat_try_lmer", stub, ns = "TSENAT")
-    on.exit(assignInNamespace(".tsenat_try_lmer", orig, ns = "TSENAT"), add = TRUE)
+    assignInNamespace(".try_lmer", stub, ns = "TSENAT")
+    on.exit(assignInNamespace(".try_lmer", orig, ns = "TSENAT"), add = TRUE)
 
     res_se <- .calculate_lm_interaction(se, condition_col = "samples", method = "lmm", subject_col = "sample_base", min_obs = 3)
     # function may return a SummarizedExperiment (writing into rowData) or a data.frame fallback
@@ -290,8 +290,8 @@ test_that("paired lmm with subject_col attaches results when lme4 available", {
     expect_true("p_interaction" %in% colnames(rd_out))
 })
 
-test_that("calculate_lm_interaction with nthreads > 1 uses .tsenat_bplapply", {
-    # This test covers the code path: res_list <- .tsenat_bplapply(rownames(mat), fit_one, nthreads = nthreads)
+test_that("calculate_lm_interaction with nthreads > 1 uses .bplapply", {
+    # This test covers the code path: res_list <- .bplapply(rownames(mat), fit_one, nthreads = nthreads)
     qvec <- seq(0.01, 0.1, by = 0.01)
     sample_names <- rep(c("S1_N", "S2_T"), each = length(qvec))
     coln <- paste0(sample_names, "_q=", qvec)
@@ -338,7 +338,7 @@ test_that("calculate_lm_interaction with nthreads > 1 uses .tsenat_bplapply", {
         nthreads = 1
     )
 
-    # Run with nthreads = 2 (parallel, uses .tsenat_bplapply)
+    # Run with nthreads = 2 (parallel, uses .bplapply)
     res_parallel <- .calculate_lm_interaction(se,
         condition_col = "samples",
         min_obs = 8,
@@ -372,7 +372,7 @@ test_that("calculate_lm_interaction with nthreads > 1 uses .tsenat_bplapply", {
 # Tests for GAM interaction helper p-value column extraction
 context("Linear Model Interaction: GAM p-Value Column Extraction")
 
-test_that(".tsenat_gam_interaction handles null cases gracefully", {
+test_that(".gam_interaction handles null cases gracefully", {
     # Test that GAM handles various data conditions
     skip_if_not_installed("mgcv")
     
@@ -383,7 +383,7 @@ test_that(".tsenat_gam_interaction handles null cases gracefully", {
         group = rep(c("A", "B"), each = 4)
     )
     
-    res <- suppressWarnings(TSENAT:::.tsenat_gam_interaction(df, df$q, "gene1", min_obs = 3))
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, df$q, "gene1", min_obs = 3))
     
     # Result should be either NULL or a valid data frame with p_interaction
     if (!is.null(res)) {
@@ -395,7 +395,7 @@ test_that(".tsenat_gam_interaction handles null cases gracefully", {
     }
 })
 
-test_that(".tsenat_gam_interaction extracts p-values from anova", {
+test_that(".gam_interaction extracts p-values from anova", {
     # This test covers: p_interaction <- an[2, "Pr(F)"] (and alternatives)
     skip_if_not_installed("mgcv")
     
@@ -407,7 +407,7 @@ test_that(".tsenat_gam_interaction extracts p-values from anova", {
         group = rep(c("A", "B"), each = length(q_vals))
     )
     
-    res <- suppressWarnings(TSENAT:::.tsenat_gam_interaction(df, df$q, "gene_test", min_obs = 4))
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, df$q, "gene_test", min_obs = 4))
     
     # If result is not NULL, verify structure; otherwise verify it's NULL
     if (!is.null(res)) {
@@ -424,7 +424,7 @@ test_that(".tsenat_gam_interaction extracts p-values from anova", {
     }
 })
 
-test_that(".tsenat_gam_interaction handles anova failures", {
+test_that(".gam_interaction handles anova failures", {
     # Test handling when anova produces invalid results
     skip_if_not_installed("mgcv")
     
@@ -436,7 +436,7 @@ test_that(".tsenat_gam_interaction handles anova failures", {
     )
     
     # Suppress expected warnings from mgcv about fitting failures on problematic data
-    res <- suppressWarnings(TSENAT:::.tsenat_gam_interaction(df, df$q, "problematic", min_obs = 2))
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, df$q, "problematic", min_obs = 2))
     
     # Should either return NULL or handle gracefully
     if (!is.null(res)) {
@@ -453,7 +453,7 @@ test_that(".tsenat_gam_interaction handles anova failures", {
 # Tests for FPCA interaction helper prcomp and try-error handling
 context("Linear Model Interaction: FPCA with prcomp and Error Handling")
 
-test_that(".tsenat_fpca_interaction handles prcomp successfully", {
+test_that(".fpca_interaction handles prcomp successfully", {
     # This test covers: pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
     # and: if (inherits(pca, "try-error")) { return(NULL) }
     
@@ -464,7 +464,7 @@ test_that(".tsenat_fpca_interaction handles prcomp successfully", {
     sample_names <- rep(c("S1", "S2", "S3"), length.out = 10)
     group_vec <- rep(c("A", "B"), length.out = 10)
     
-    res <- TSENAT:::.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, "Gene1", min_obs = 3)
+    res <- TSENAT:::.fpca_interaction(mat, q_vals, sample_names, group_vec, "Gene1", min_obs = 3)
     
     # Should return either NULL or a valid result with p_interaction
     if (!is.null(res)) {
@@ -478,7 +478,7 @@ test_that(".tsenat_fpca_interaction handles prcomp successfully", {
     }
 })
 
-test_that(".tsenat_fpca_interaction returns NULL when prcomp fails", {
+test_that(".fpca_interaction returns NULL when prcomp fails", {
     # Create data that has insufficient variation for prcomp
     # All values the same would cause issues
     mat <- matrix(1.0, nrow = 10, ncol = 10)
@@ -488,7 +488,7 @@ test_that(".tsenat_fpca_interaction returns NULL when prcomp fails", {
     group_vec <- rep(c("A", "B"), 5)
     
     # This should either return NULL or handle gracefully
-    res <- TSENAT:::.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, "Gene1", min_obs = 2)
+    res <- TSENAT:::.fpca_interaction(mat, q_vals, sample_names, group_vec, "Gene1", min_obs = 2)
     
     # Result should be NULL or a valid data frame
     if (!is.null(res)) {
@@ -499,7 +499,7 @@ test_that(".tsenat_fpca_interaction returns NULL when prcomp fails", {
     }
 })
 
-test_that(".tsenat_fpca_interaction with NAs in data", {
+test_that(".fpca_interaction with NAs in data", {
     # Test prcomp with data containing NAs that need imputation
     mat <- matrix(rnorm(80), nrow = 10, ncol = 8)
     # Introduce some NAs
@@ -510,7 +510,7 @@ test_that(".tsenat_fpca_interaction with NAs in data", {
     sample_names <- rep(c("S1", "S2"), each = 4)
     group_vec <- rep(c("A", "B"), 4)
     
-    res <- TSENAT:::.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, "Gene1", min_obs = 2)
+    res <- TSENAT:::.fpca_interaction(mat, q_vals, sample_names, group_vec, "Gene1", min_obs = 2)
     
     # Should handle NAs and return result or NULL
     if (!is.null(res)) {
@@ -525,7 +525,7 @@ test_that(".tsenat_fpca_interaction with NAs in data", {
 # Tests for lmer fitting with withCallingHandlers and warning suppression
 context("Linear Model Interaction: lmer Fitting with Warning Suppression")
 
-test_that(".tsenat_try_lmer suppresses matching warnings", {
+test_that(".try_lmer suppresses matching warnings", {
     # This test covers:
     # fit_try <- withCallingHandlers(try(lme4::lmer(...), silent = TRUE), 
     #                                warning = function(w) {
@@ -545,13 +545,13 @@ test_that(".tsenat_try_lmer suppresses matching warnings", {
     
     # Call with suppress_lme4_warnings = TRUE
     formula <- y ~ x * group + (1 | subject)
-    fit <- TSENAT:::.tsenat_try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
+    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
     
     # Should return either a valid fit or try-error
     expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
 })
 
-test_that(".tsenat_try_lmer returns successful fit when no error", {
+test_that(".try_lmer returns successful fit when no error", {
     # Test successful lmer fitting
     skip_if_not_installed("lme4")
     
@@ -563,13 +563,13 @@ test_that(".tsenat_try_lmer returns successful fit when no error", {
     df$y <- rnorm(nrow(df)) + as.numeric(df$group)
     
     formula <- y ~ x + group + (1 | subject)
-    fit <- TSENAT:::.tsenat_try_lmer(formula, df, suppress_lme4_warnings = FALSE, verbose = FALSE)
+    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = FALSE, verbose = FALSE)
     
     # Should return a valid lmer model
     expect_true(inherits(fit, "lmerMod"))
 })
 
-test_that(".tsenat_try_lmer tries multiple optimizers", {
+test_that(".try_lmer tries multiple optimizers", {
     # Test that multiple optimizers are attempted
     skip_if_not_installed("lme4")
     
@@ -583,13 +583,13 @@ test_that(".tsenat_try_lmer tries multiple optimizers", {
     formula <- y ~ x + group + (1 | subject)
     
     # Should try both bobyqa and nloptwrap optimizers
-    fit <- TSENAT:::.tsenat_try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
+    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
     
     # Should get a result
     expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
 })
 
-test_that(".tsenat_try_lmer handles verbose output correctly", {
+test_that(".try_lmer handles verbose output correctly", {
     # Test verbose parameter interaction
     skip_if_not_installed("lme4")
     
@@ -603,17 +603,17 @@ test_that(".tsenat_try_lmer handles verbose output correctly", {
     formula <- y ~ x + group + (1 | subject)
     
     # With verbose = TRUE, muffle_cond = FALSE
-    fit_verbose <- TSENAT:::.tsenat_try_lmer(formula, df, suppress_lme4_warnings = FALSE, verbose = TRUE)
+    fit_verbose <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = FALSE, verbose = TRUE)
     
     # With verbose = FALSE, muffle_cond = TRUE
-    fit_silent <- TSENAT:::.tsenat_try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
+    fit_silent <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
     
     # Both should return valid results
     expect_true(inherits(fit_verbose, "lmerMod") || inherits(fit_verbose, "try-error"))
     expect_true(inherits(fit_silent, "lmerMod") || inherits(fit_silent, "try-error"))
 })
 
-test_that(".tsenat_try_lmer returns try-error when formula fails", {
+test_that(".try_lmer returns try-error when formula fails", {
     # Test error handling
     skip_if_not_installed("lme4")
     
@@ -622,7 +622,7 @@ test_that(".tsenat_try_lmer returns try-error when formula fails", {
     # Invalid formula
     formula <- y ~ nonexistent_var + (1 | subject)
     
-    fit <- TSENAT:::.tsenat_try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
+    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
     
     # Should return try-error class object
     expect_true(inherits(fit, "try-error"))

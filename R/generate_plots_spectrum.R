@@ -254,10 +254,10 @@
         x = "q value (diversity scale parameter)",
         y = "Tsallis Divergence D_q"
       ) +
-      .tsenat_theme_base(base_size = 11) +
+      .theme_base(base_size = 11) +
       ggplot2::theme(
         plot.title = ggplot2::element_text(
-          size = .tsenat_font_sizes$title,
+          size = .font_sizes$title,
           face = "bold",
           hjust = 0.5
         )
@@ -399,22 +399,22 @@
         x = "q value (diversity scale parameter)",
         y = expression("Divergence D[q]")
       ) +
-      .tsenat_theme_base(base_size = 11) +
+      .theme_base(base_size = 11) +
       ggplot2::theme(
         plot.title = ggplot2::element_text(
-          size = .tsenat_font_sizes$title,
+          size = .font_sizes$title,
           face = "bold",
           hjust = 0.5
         ),
         plot.subtitle = ggplot2::element_text(
           face = "italic",
-          size = .tsenat_font_sizes$subtitle,
+          size = .font_sizes$subtitle,
           hjust = 0.5
         ),
         panel.spacing = ggplot2::unit(1.5, "lines"),
         strip.text = ggplot2::element_text(
           face = "bold",
-          size = .tsenat_font_sizes$subtitle
+          size = .font_sizes$subtitle
         )
       )
     
@@ -500,16 +500,16 @@
         " (", nrow(div_mat_sorted), " genes)"
       )
     ) +
-    .tsenat_theme_base(base_size = 11) +
+    .theme_base(base_size = 11) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(
-        size = .tsenat_font_sizes$title,
+        size = .font_sizes$title,
         face = "bold",
         hjust = 0.5
       ),
       plot.subtitle = ggplot2::element_text(
         face = "italic",
-        size = .tsenat_font_sizes$subtitle,
+        size = .font_sizes$subtitle,
         hjust = 0.5
       )
     )

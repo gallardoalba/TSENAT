@@ -102,7 +102,7 @@ plot_tsallis_q_curve_s4 <- function(
       }
     }
     
-    se <- .tsenat_prepare_combined_se(se)
+    se <- .prepare_combined_se(se)
     assay_name <- "diversity"
   }
   
@@ -122,7 +122,7 @@ plot_tsallis_q_curve_s4 <- function(
   
   # Gene-specific mode
   if (!is.null(gene) || !is.null(lm_res)) {
-    return(.tsenat_plot_tsallis_gene_specific(se, assay_name, condition_col, gene, lm_res, n_top, output_file))
+    return(.plot_tsallis_gene_specific(se, assay_name, condition_col, gene, lm_res, n_top, output_file))
   }
   
   # Aggregate or bootstrap mode
@@ -133,20 +133,20 @@ plot_tsallis_q_curve_s4 <- function(
                       "ci_upper" %in% SummarizedExperiment::assayNames(se)
   
   if (bootstrap && has_bootstrap_ci) {
-    return(.tsenat_plot_tsallis_bootstrap_ci(se, long, output_file))
+    return(.plot_tsallis_bootstrap_ci(se, long, output_file))
   } else if (bootstrap && !has_bootstrap_ci) {
     warning("bootstrap=TRUE but CI data not found. Falling back to basic plot.")
   }
   
   # Basic aggregate mode
-  .tsenat_plot_tsallis_basic(long, output_file)
+  .plot_tsallis_basic(long, output_file)
 }
 
 # ============================================================================
 # GENE-SPECIFIC Q-CURVE PLOTTING
 # ============================================================================
 
-.tsenat_plot_tsallis_gene_specific <- function(se, assay_name, condition_col, gene, lm_res, n_top, output_file) {
+.plot_tsallis_gene_specific <- function(se, assay_name, condition_col, gene, lm_res, n_top, output_file) {
   require_pkgs(c("ggplot2", "dplyr", "cowplot"))
   
   long <- .prepare_tsallis_long(se, assay_name = assay_name, condition_col = condition_col)
@@ -204,15 +204,15 @@ plot_tsallis_q_curve_s4 <- function(
     long_g <- long[as.character(long$Gene) == sel, , drop = FALSE]
     if (nrow(long_g) == 0) stop("Gene not found in assay: ", sel)
     
-    stats_df <- .tsenat_compute_gene_group_stats(long_g)
+    stats_df <- .compute_gene_group_stats(long_g)
     
     p <- ggplot2::ggplot() +
       ggplot2::geom_ribbon(data = stats_df, ggplot2::aes(x = qnum, ymin = central - spread, ymax = central + spread, fill = group), alpha = 0.2) +
       ggplot2::geom_line(data = stats_df, ggplot2::aes(x = qnum, y = central, color = group), linewidth = 1.3) +
       ggplot2::labs(title = sel, x = "q value", y = "Tsallis entropy", color = "Group", fill = "Group") +
-      ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") + 
-      ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
-      .tsenat_theme_base(base_size = 11) +
+      ggplot2::scale_color_manual(values = .palette_blue_red(), name = "Group") + 
+      ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group") +
+      .theme_base(base_size = 11) +
       ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"))
     p
   }
@@ -247,7 +247,7 @@ plot_tsallis_q_curve_s4 <- function(
 # BOOTSTRAP CI Q-CURVE PLOTTING
 # ============================================================================
 
-.tsenat_plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
+.plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
   require_pkgs(c("ggplot2", "SummarizedExperiment"))
   
   long$q <- as.numeric(as.character(long$q))
@@ -261,14 +261,14 @@ plot_tsallis_q_curve_s4 <- function(
     stop("Expected exactly 2 groups for bootstrap comparison")
   }
   
-  plot_df <- .tsenat_bootstrap_aggregate_ci(se, long)
+  plot_df <- .bootstrap_aggregate_ci(se, long)
   
   p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = median, color = group, fill = group)) +
     ggplot2::geom_line(linewidth = 1.2) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin = ci_lower, ymax = ci_upper), alpha = 0.15, color = NA) +
-    ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") +
-    ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
-    .tsenat_theme_base(base_size = 11) +
+    ggplot2::scale_color_manual(values = .palette_blue_red(), name = "Group") +
+    ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group") +
+    .theme_base(base_size = 11) +
     ggplot2::labs(
       title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
       subtitle = "Median with 95% confidence intervals",
@@ -291,7 +291,7 @@ plot_tsallis_q_curve_s4 <- function(
 # BASIC AGGREGATE Q-CURVE PLOTTING
 # ============================================================================
 
-.tsenat_plot_tsallis_basic <- function(long, output_file) {
+.plot_tsallis_basic <- function(long, output_file) {
   require_pkgs("ggplot2")
   
   long$q <- as.numeric(as.character(long$q))
@@ -306,9 +306,9 @@ plot_tsallis_q_curve_s4 <- function(
   p <- ggplot2::ggplot(stats_df, ggplot2::aes(x = q, y = median, color = group, fill = group)) +
     ggplot2::geom_line(linewidth = 1.3) +
     ggplot2::geom_ribbon(ggplot2::aes(ymin = median - IQR / 2, ymax = median + IQR / 2), alpha = 0.2, color = NA) +
-    ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") +
-    ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
-    .tsenat_theme_base(base_size = 11) +
+    ggplot2::scale_color_manual(values = .palette_blue_red(), name = "Group") +
+    ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group") +
+    .theme_base(base_size = 11) +
     ggplot2::labs(
       title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
       subtitle = "Median +/- IQR",

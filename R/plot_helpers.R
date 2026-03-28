@@ -86,13 +86,13 @@ NULL
       theme = ggplot2::theme(
         plot.title = ggplot2::element_text(
           hjust = 0.5,
-          size = .tsenat_font_sizes$title,
+          size = .font_sizes$title,
           face = "bold",
           margin = ggplot2::margin(t = 10, b = 10)
         ),
         plot.subtitle = ggplot2::element_text(
           hjust = 0.5,
-          size = .tsenat_font_sizes$subtitle,
+          size = .font_sizes$subtitle,
           face = "italic",
           margin = ggplot2::margin(t = 5, b = 0.4)
         )
@@ -149,14 +149,14 @@ NULL
     cowplot::draw_label("Transcript level expression",
       fontface = "bold",
       x = 0.5, hjust = 0.5,
-      size = .tsenat_font_sizes$title
+      size = .font_sizes$title
     )
 
   subtitle_grob <- cowplot::ggdraw() +
     cowplot::draw_label(paste0("Top genes with metric ", agg_label_unique),
       fontface = "italic",
       x = 0.5, hjust = 0.5,
-      size = .tsenat_font_sizes$subtitle,
+      size = .font_sizes$subtitle,
       color = "gray40"
     )
 
@@ -293,7 +293,7 @@ NULL
   grid::grid.text("Transcript level expression",
     x = 0.5, y = 0.5,
     gp = grid::gpar(
-      fontsize = .tsenat_font_sizes$title,
+      fontsize = .font_sizes$title,
       fontface = "bold"
     )
   )
@@ -341,13 +341,13 @@ NULL
   require_pkgs("ggplot2")
 
   if (palette == "blue_red") {
-    colors <- .tsenat_palette_blue_red()
+    colors <- .palette_blue_red()
   } else if (palette == "continuous_diverging") {
-    colors <- .tsenat_palette_continuous_diverging()
+    colors <- .palette_continuous_diverging()
   } else if (is.character(palette)) {
     colors <- palette
   } else {
-    colors <- .tsenat_palette_blue_red()
+    colors <- .palette_blue_red()
   }
 
   if (direction == -1) {
@@ -382,9 +382,9 @@ NULL
   require_pkgs("ggplot2")
 
   if (palette == "continuous_diverging") {
-    colors <- .tsenat_palette_continuous_diverging(n = breaks)
+    colors <- .palette_continuous_diverging(n = breaks)
   } else {
-    colors <- .tsenat_palette_blue_red()
+    colors <- .palette_blue_red()
   }
 
   if (direction == -1) {
@@ -417,16 +417,16 @@ NULL
 .apply_tsenat_theme <- function(base_size = 11, color_palette = "blue_red") {
   require_pkgs("ggplot2")
 
-  theme_result <- .tsenat_theme_base(base_size = base_size) +
+  theme_result <- .theme_base(base_size = base_size) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(
         hjust = 0.5,
-        size = .tsenat_font_sizes$title,
+        size = .font_sizes$title,
         face = "bold"
       ),
       plot.subtitle = ggplot2::element_text(
         hjust = 0.5,
-        size = .tsenat_font_sizes$subtitle,
+        size = .font_sizes$subtitle,
         face = "italic"
       )
     )
@@ -452,8 +452,8 @@ NULL
 .set_plot_title <- function(plot,
                            title = NULL,
                            subtitle = NULL,
-                           title_size = .tsenat_font_sizes$title,
-                           subtitle_size = .tsenat_font_sizes$subtitle) {
+                           title_size = .font_sizes$title,
+                           subtitle_size = .font_sizes$subtitle) {
   require_pkgs("ggplot2")
 
   if (!is.null(title)) {
@@ -512,7 +512,7 @@ NULL
   require_pkgs("pheatmap")
 
   if (is.null(colors)) {
-    colors <- .tsenat_palette_continuous_diverging(n = 100)
+    colors <- .palette_continuous_diverging(n = 100)
   }
 
   pheatmap::pheatmap(mat,

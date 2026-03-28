@@ -12,6 +12,7 @@
   registerS3method("print", "rank_correlation_ci", print.rank_correlation_ci)
   registerS3method("print", "gtable", print.gtable)
   registerS3method("summary", "tsenat_bootstrap_ci", summary.tsenat_bootstrap_ci)
+  registerS3method("summary", "tsenat_divergence_bootstrap_ci", summary.tsenat_divergence_bootstrap_ci)
   
   # Wrap ggplot2's print method to suppress spurious base R plotting warnings
   # These warnings come from pretty() with degenerate axis ranges during vignette rendering

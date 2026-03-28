@@ -432,7 +432,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
           
           if (norm_method == "zscore") {
             # Z-score normalization per q-value (columns represent samples within this q)
-            diversity_assay <- .tsenat_normalize_zscore(diversity_assay, per_q = TRUE)
+            diversity_assay <- .normalize_zscore(diversity_assay, per_q = TRUE)
             if (verbose) {
               message("[calculate_diversity_s4] Applied z-score normalization for q=", q_val)
             }
@@ -440,7 +440,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             # Log-odds ratio: requires n_isoforms for each gene
             if (!is.null(genes) && is.vector(genes)) {
               n_isoforms_vec <- table(genes)
-              diversity_assay <- .tsenat_normalize_log_odds_ratio(diversity_assay, 
+              diversity_assay <- .normalize_log_odds_ratio(diversity_assay, 
                                                                    n_isoforms = n_isoforms_vec, 
                                                                    q = q_val)
               if (verbose) {
@@ -455,7 +455,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             coldata <- SummarizedExperiment::colData(result_se)
             if (!is.null(reference_group) && reference_group %in% colnames(coldata)) {
               group_vector <- coldata[[reference_group]]
-              diversity_assay <- .tsenat_normalize_relative_reference(diversity_assay, 
+              diversity_assay <- .normalize_relative_reference(diversity_assay, 
                                                                        group_vector = group_vector,
                                                                        reference_group = reference_group)
               if (verbose) {

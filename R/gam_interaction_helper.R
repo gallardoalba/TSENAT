@@ -2,7 +2,7 @@
 # HELPER FUNCTION: Setup and validate GAM data
 # ===============================================================================
 # Ensures 'group' is a factor and validates package dependencies
-.tsenat_setup_gam_data <- function(df) {
+.setup_gam_data <- function(df) {
     # Ensure 'group' is a factor for 'by' argument in GAM/GAMM smooths
     # This is required for s(q, by = group, ...) to work correctly
     if (!requireNamespace("mgcv", quietly = TRUE)) {
@@ -21,7 +21,7 @@
 # ===============================================================================
 # Selects family based on bounded support and subject info
 # GAMM does NOT support extended families, so falls back to gaussian for paired designs
-.tsenat_select_gam_family <- function(bounded_result, subject) {
+.select_gam_family <- function(bounded_result, subject) {
     # GAMM COMPATIBILITY FIX (March 2026): mgcv::gamm() does NOT support extended families
     # (beta, gamma, Tweedie, etc.). For paired designs (subject != NULL -> uses gamm),
     # fall back to gaussian family instead of extended families.
@@ -61,7 +61,7 @@
 # HELPER FUNCTION: Prepare weights for GAM/GAMM fitting
 # ===============================================================================
 # Handles heteroscedasticity detection and ARIMA differencing
-.tsenat_prepare_gam_weights <- function(df, q_vals, weights_input, hetero_result, subject) {
+.prepare_gam_weights <- function(df, q_vals, weights_input, hetero_result, subject) {
     # PHASE 1 WEIGHTING (March 2026): Use bootstrap CI weights if provided
     # These take precedence over heteroscedasticity-estimated weights
     gam_weights_original <- NULL
@@ -69,7 +69,7 @@
     if (!is.null(weights_input) && length(weights_input) == nrow(df)) {
         gam_weights_original <- weights_input  # Bootstrap CI weights for Phase 1
     } else if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
-        weights_result <- .tsenat_estimate_variance_weights(df, q_vals, method = "power")
+        weights_result <- .estimate_variance_weights(df, q_vals, method = "power")
         if (!is.null(weights_result)) {
             gam_weights_original <- weights_result$weights  # Store original weights
         }
@@ -82,7 +82,7 @@
 # HELPER FUNCTION: Handle ARIMA transformations and weight updates
 # ===============================================================================
 # Applies ARIMA(1,1,0) differencing and updates weights accordingly
-.tsenat_handle_arima_and_weights <- function(df, q_vals, subject, gam_weights_original) {
+.handle_arima_and_weights <- function(df, q_vals, subject, gam_weights_original) {
     # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
     # Differencing removes monotone trend from Tsallis entropy, enabling valid AR(1) inference
     # This is applied when subject information is available (paired design)
@@ -94,7 +94,7 @@
     
     if (!is.null(subject)) {
         # Only apply ARIMA differencing for paired designs (has subject info)
-        arima_result <- .tsenat_compute_arima_differences(df, q_vals, df$group, factor(subject))
+        arima_result <- .compute_arima_differences(df, q_vals, df$group, factor(subject))
         
         if (!is.null(arima_result) && nrow(arima_result$df) >= 3) {
             # Sufficient data for ARIMA differencing
@@ -120,12 +120,12 @@
 # HELPER FUNCTION: Compute adaptive spline knots
 # ===============================================================================
 # Selects knot parameters based on sample size and data complexity
-.tsenat_compute_adaptive_knots <- function(df, q_vals, adaptive_knots) {
+.compute_adaptive_knots <- function(df, q_vals, adaptive_knots) {
     uq_len <- length(unique(na.omit(q_vals)))
     
     # Adaptive knot selection: compute k based on gene's entropy curve complexity
     if (adaptive_knots) {
-        k_q <- .tsenat_adaptive_spline_knots(entropy_vals = df$entropy, q_vals = q_vals,
+        k_q <- .adaptive_spline_knots(entropy_vals = df$entropy, q_vals = q_vals,
                                              n_q_unique = uq_len, min_k = 2, max_k = 10)
     } else {
         # Fallback to static knot selection
@@ -139,9 +139,9 @@
 # HELPER FUNCTION: Fit single GAMM with AR(1) model
 # ===============================================================================
 # Fits null and alternative GAMM models with AR(1) correlation
-.tsenat_fit_gamm_ar1_single <- function(formula, df, family_gam, gam_weights) {
+.fit_gamm_ar1_single <- function(formula, df, family_gam, gam_weights) {
     # Helper to fit GAMM with AR(1) correlation
-    # Used internally by .tsenat_fit_gamm_ar1
+    # Used internally by .fit_gamm_ar1
     
     if (!is.null(gam_weights)) {
         fit <- try(
@@ -171,7 +171,7 @@
 # HELPER FUNCTION: Fit GAMM with AR(1) correlation (both models)
 # ===============================================================================
 # Handles GAMM fitting with AR(1) - both null and alternative models
-.tsenat_fit_gamm_ar1 <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
+.fit_gamm_ar1 <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
     # BUG FIX: Use smooth splines s() instead of poly() for actual GAM fitting
     # Adaptive spline basis with thin-plate (tp) for flexible curve fitting
     # PRIORITY 1: Try GAMM with AR(1) correlation (full autocorrelation model)
@@ -183,13 +183,13 @@
     }
     
     # Fit null model: entropy ~ group + s(q)
-    fit_null <- .tsenat_fit_gamm_ar1_single(
+    fit_null <- .fit_gamm_ar1_single(
         entropy ~ group + s(q, bs="tp", k=k_q_marginal),
         df, family_gam, gam_weights
     )
     
     # Fit alternative model: entropy ~ group + s(q, by=group)
-    fit_alt <- .tsenat_fit_gamm_ar1_single(
+    fit_alt <- .fit_gamm_ar1_single(
         entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
         df, family_gam, gam_weights
     )
@@ -201,7 +201,7 @@
 # HELPER FUNCTION: Fit single GAMM without correlation
 # ===============================================================================
 # Fits GAMM with random intercept only (no AR(1))
-.tsenat_fit_gamm_nocorr_single <- function(formula, df, family_gam, gam_weights) {
+.fit_gamm_nocorr_single <- function(formula, df, family_gam, gam_weights) {
     # Helper to fit GAMM without correlation structure
     # Used when AR(1) convergence fails
     
@@ -231,15 +231,15 @@
 # HELPER FUNCTION: Fit GAMM without correlation (fallback 2)
 # ===============================================================================
 # PRIORITY 2: Falls back from AR(1) GAMM to simple GAMM
-.tsenat_fit_gamm_fallback <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
+.fit_gamm_fallback <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
     # Try GAMM without correlation structure (fallback from AR(1))
     
-    fit_null <- .tsenat_fit_gamm_nocorr_single(
+    fit_null <- .fit_gamm_nocorr_single(
         entropy ~ group + s(q, bs="tp", k=k_q_marginal),
         df, family_gam, gam_weights
     )
     
-    fit_alt <- .tsenat_fit_gamm_nocorr_single(
+    fit_alt <- .fit_gamm_nocorr_single(
         entropy ~ group + s(q, bs="tp", k=k_q_interaction, by=group),
         df, family_gam, gam_weights
     )
@@ -256,7 +256,7 @@
 # HELPER FUNCTION: Compare GAMM/GAM models and extract p-value
 # ===============================================================================
 # Performs model comparison and extracts interaction p-value
-.tsenat_compare_gam_models <- function(fit_null, fit_alt) {
+.compare_gam_models <- function(fit_null, fit_alt) {
     p_interaction <- NA_real_
     
     old_warn <- options(warn = -1)
@@ -298,7 +298,7 @@
 # HELPER FUNCTION: Fit standard GAM (unpaired design)
 # ===============================================================================
 # Fitting GAM without subject/paired structure
-.tsenat_fit_standard_gam <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
+.fit_standard_gam <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
     # BUG FIX: Use smooth splines s() instead of poly() for actual GAM fitting
     # Adaptive spline basis with thin-plate (tp) for flexible curve fitting
     
@@ -343,19 +343,19 @@
 # HELPER FUNCTION: Fit standard GAM fallback (last resort after GAMM fails)
 # ===============================================================================
 # Standard GAM used as fallback when GAMM fitting fails
-.tsenat_fit_gam_fallback <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
+.fit_gam_fallback <- function(df, family_gam, k_q_marginal, k_q_interaction, gam_weights) {
     # PRIORITY 3: Fall back from GAMM to standard GAM (independence assumption)
     # This is used when both AR(1) GAMM and simple GAMM fail
-    # Same implementation as .tsenat_fit_standard_gam
+    # Same implementation as .fit_standard_gam
     
-    .tsenat_fit_standard_gam(df, family_gam, k_q_marginal, k_q_interaction, gam_weights)
+    .fit_standard_gam(df, family_gam, k_q_marginal, k_q_interaction, gam_weights)
 }
 
 # ===============================================================================
 # HELPER FUNCTION: Extract effect size from model summary
 # ===============================================================================
 # Extracts dev.expl or r.sq depending on model type
-.tsenat_extract_effect_size <- function(gam_summary, is_gamm) {
+.extract_effect_size <- function(gam_summary, is_gamm) {
     # For standard GAM: use dev.expl (deviance explained)
     # For GAMM: dev.expl may be NA due to random effects, use r.sq instead
     effect_size <- NA_real_
@@ -379,7 +379,7 @@
 # HELPER FUNCTION: Extract test statistic from anova results
 # ===============================================================================
 # Extracts F, L.Ratio, or Chisq from anova results
-.tsenat_extract_test_statistic <- function(anova_result) {
+.extract_test_statistic <- function(anova_result) {
     # Extract F-statistic or likelihood ratio if anova results are available
     test_statistic <- NA_real_
     
@@ -405,7 +405,7 @@
 # HELPER FUNCTION: Extract GAM/GAMM statistics
 # ===============================================================================
 # Extracts effect size, test statistic, and residual df from fitted model
-.tsenat_extract_gam_statistics <- function(fit_alt, anova_result) {
+.extract_gam_statistics <- function(fit_alt, anova_result) {
     test_statistic <- NA_real_
     effect_size <- NA_real_
     df_residual <- NA_real_
@@ -422,7 +422,7 @@
             tryCatch({
                 gam_summary <- summary(gam_obj)
                 if (!is.null(gam_summary)) {
-                    effect_size <- .tsenat_extract_effect_size(gam_summary, is_gamm)
+                    effect_size <- .extract_effect_size(gam_summary, is_gamm)
                     
                     # Residual df
                     if (!is.null(gam_summary$residual.df)) {
@@ -436,7 +436,7 @@
         }
         
         # Extract test statistic from anova results
-        test_statistic <- .tsenat_extract_test_statistic(anova_result)
+        test_statistic <- .extract_test_statistic(anova_result)
     }
     
     return(list(test_statistic = test_statistic,
@@ -449,7 +449,7 @@
 # HELPER FUNCTION: Compute slope difference between groups
 # ===============================================================================
 # Extracts slope_diff from GAM by computing predicted slopes for each group
-.tsenat_compute_slope_diff <- function(fit_alt, df, q_vals, subject) {
+.compute_slope_diff <- function(fit_alt, df, q_vals, subject) {
     slope_diff <- NA_real_
     
     if (!inherits(fit_alt, "try-error") && !is.null(fit_alt)) {
@@ -499,7 +499,7 @@
 # HELPER FUNCTION: Compile final results and metadata
 # ===============================================================================
 # Creates result data frame with all statistics and metadata
-.tsenat_compile_gam_results <- function(g, bc_result, test_statistic, effect_size, df_residual,
+.compile_gam_results <- function(g, bc_result, test_statistic, effect_size, df_residual,
                                         model_converged, slope_diff, fit_alt, df, bounded_result,
                                         use_arima, subject) {
     # Return result with bias correction information
@@ -542,7 +542,7 @@
     result$fit_method <- ifelse(use_arima, "mgcv::gamm_arima(1,1,0)", "mgcv::gamm")
     
     # Add residual normality testing results
-    shapiro_result <- .tsenat_test_residual_normality(
+    shapiro_result <- .test_residual_normality(
         model = fit_alt,
         model_type = if (!is.null(subject)) "gamm" else "gam",
         verbose = FALSE
@@ -563,7 +563,7 @@
     
     # VALIDATION: Ensure p_interaction is always present
     if (!"p_interaction" %in% colnames(result)) {
-        stop(sprintf("[.tsenat_gam_interaction] CRITICAL: p_interaction missing from result for gene %s",
+        stop(sprintf("[.gam_interaction] CRITICAL: p_interaction missing from result for gene %s",
                      g))
     }
     
@@ -574,7 +574,7 @@
 # MAIN GAM INTERACTION FUNCTION
 # ===============================================================================
 # GAM interaction helper - enhanced with regularization and bias correction support
-.tsenat_gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL,
+.gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL,
                                    regularization = c("pca", "gamsel", "spline"),
                                    bias_correction = TRUE, adaptive_knots = TRUE, weights = NULL) {
     # GAMM with ARIMA(1,1,0) covariance structure for q-dependent entropy measurements
@@ -591,7 +591,7 @@
     regularization <- match.arg(regularization)
     
     # Setup and validate data
-    df <- .tsenat_setup_gam_data(df)
+    df <- .setup_gam_data(df)
     
     # ===============================================================================
     # BOUNDED SUPPORT HANDLING (CRITICAL FIX - March 2026)
@@ -601,10 +601,10 @@
     # 2. Stabilize entropy before any transformations
     # 3. Preserve ARIMA structure for differenced data
     #
-    bounded_result <- .tsenat_handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
+    bounded_result <- .handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
     
     # Select appropriate family (gaussian for GAMM paired designs)
-    family_result <- .tsenat_select_gam_family(bounded_result, subject)
+    family_result <- .select_gam_family(bounded_result, subject)
     family_gam <- family_result$family_gam
     if (family_result$use_bounded_family && !is.null(bounded_result$stabilized_df)) {
         df <- bounded_result$stabilized_df
@@ -614,25 +614,25 @@
     # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (FIXED - March 2026)
     # ===============================================================================
     # CRITICAL FIX: Detect heteroscedasticity on ORIGINAL entropy BEFORE ARIMA differencing
-    hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals, df$group)
-    gam_weights_original <- .tsenat_prepare_gam_weights(df, q_vals, weights, hetero_result, subject)
+    hetero_result <- .detect_heteroscedasticity(df, q_vals, df$group)
+    gam_weights_original <- .prepare_gam_weights(df, q_vals, weights, hetero_result, subject)
     
     # Handle ARIMA and weight updates
-    arima_weights_result <- .tsenat_handle_arima_and_weights(df, q_vals, subject, gam_weights_original)
+    arima_weights_result <- .handle_arima_and_weights(df, q_vals, subject, gam_weights_original)
     df <- arima_weights_result$df
     use_arima <- arima_weights_result$use_arima
     gam_weights <- arima_weights_result$gam_weights
     n_samples <- arima_weights_result$n_samples
     
     # Compute adaptive knots based on sample size and complexity
-    knot_result <- .tsenat_compute_adaptive_knots(df, q_vals, adaptive_knots)
+    knot_result <- .compute_adaptive_knots(df, q_vals, adaptive_knots)
     k_q <- knot_result$k_q
     uq_len <- knot_result$uq_len
     
     # Apply regularization for variable selection if requested (not "pca")
     reg_result <- NULL
     if (regularization != "pca") {
-        reg_result <- .tsenat_gam_regularization(entropy_vals = df$entropy, 
+        reg_result <- .gam_regularization(entropy_vals = df$entropy, 
                                                  q_vals = q_vals,
                                                  group_vec = df$group,
                                                  regularization = regularization)
@@ -688,13 +688,13 @@
         k_q_interaction <- as.integer(max(3L, min(k_q / 2, 4L)))  # Min 3 for tp splines, cap at 4
         
         # PRIORITY 1: Try GAMM with AR(1) correlation
-        fit_result <- .tsenat_fit_gamm_ar1(df, family_gam, k_q_marginal, k_q_interaction, gam_weights)
+        fit_result <- .fit_gamm_ar1(df, family_gam, k_q_marginal, k_q_interaction, gam_weights)
         fit_null <- fit_result$fit_null
         fit_alt <- fit_result$fit_alt
         
         # PRIORITY 2: If AR(1) convergence failed, try GAMM without correlation structure
         if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
-            fit_result <- .tsenat_fit_gamm_fallback(df, family_gam, 
+            fit_result <- .fit_gamm_fallback(df, family_gam, 
                                                     k_q_marginal, k_q_interaction, gam_weights)
             fit_null <- fit_result$fit_null
             fit_alt <- fit_result$fit_alt
@@ -702,7 +702,7 @@
         
         # PRIORITY 3: If GAMM fails entirely, fall back to standard GAM
         if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
-            fit_result <- .tsenat_fit_gam_fallback(df, family_gam, 
+            fit_result <- .fit_gam_fallback(df, family_gam, 
                                                    k_q_marginal, k_q_interaction, gam_weights)
             fit_null <- fit_result$fit_null
             fit_alt <- fit_result$fit_alt
@@ -713,7 +713,7 @@
         }
         
         # Compare models and extract p-value
-        compare_result <- .tsenat_compare_gam_models(fit_null, fit_alt)
+        compare_result <- .compare_gam_models(fit_null, fit_alt)
         p_interaction <- compare_result$p_interaction
         anova_result <- compare_result$anova_result
         
@@ -727,7 +727,7 @@
         k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, max(min_k_adaptive, nrow(df) / 25))))
         k_q_interaction <- as.integer(max(2L, min(k_q, max(2L, nrow(df) / 20))))
         
-        fit_result <- .tsenat_fit_standard_gam(df, family_gam, k_q_marginal, k_q_interaction, gam_weights)
+        fit_result <- .fit_standard_gam(df, family_gam, k_q_marginal, k_q_interaction, gam_weights)
         fit_null <- fit_result$fit_null
         fit_alt <- fit_result$fit_alt
         
@@ -763,7 +763,7 @@
     # Account for ARIMA(1,1,0) correlation structure in Tsallis entropy measurements
     # n_observations = total data points; n_subjects = independent observational units
     n_subjects_bc <- if (!is.null(subject)) length(unique(na.omit(subject))) else NULL
-    bc_result <- .tsenat_gam_bias_correct(p_interaction, n_observations = n_samples,
+    bc_result <- .gam_bias_correct(p_interaction, n_observations = n_samples,
                                           n_subjects = n_subjects_bc,
                                           ar1_correlation = TRUE,
                                           bias_correction = bias_correction,
@@ -771,13 +771,13 @@
                                           subject_data = df$subject)
     
     # Extract test statistic and effect size from models
-    stats_result <- .tsenat_extract_gam_statistics(fit_alt, anova_result)
+    stats_result <- .extract_gam_statistics(fit_alt, anova_result)
     
     # Compute slope difference between groups
-    slope_diff <- .tsenat_compute_slope_diff(fit_alt, df, q_vals, subject)
+    slope_diff <- .compute_slope_diff(fit_alt, df, q_vals, subject)
     
     # Compile final results with all metadata
-    result <- .tsenat_compile_gam_results(g, bc_result, stats_result$test_statistic,
+    result <- .compile_gam_results(g, bc_result, stats_result$test_statistic,
                                          stats_result$effect_size, stats_result$df_residual,
                                          stats_result$model_converged, slope_diff, fit_alt,
                                          df, bounded_result, use_arima, subject)

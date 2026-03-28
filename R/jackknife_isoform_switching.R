@@ -3,7 +3,7 @@
 #' Validate input parameters
 
 #' @noRd
-.tsenat_jis_validate_input <- function(se, condition_col, gene_col, isoform_col) {
+.jis_validate_input <- function(se, condition_col, gene_col, isoform_col) {
   if (is.null(se)) stop("SummarizedExperiment object (se) is required")
   if (!inherits(se, "SummarizedExperiment")) stop("se must be a SummarizedExperiment object")
   if (!(condition_col %in% colnames(colData(se)))) stop("condition_col '", condition_col, "' not found in colData")
@@ -19,7 +19,7 @@
 #' Setup paired design if applicable
 
 #' @noRd
-.tsenat_setup_paired_design_jis <- function(se, subject_col, condition_col) {
+.setup_paired_design_jis <- function(se, subject_col, condition_col) {
   if (is.null(subject_col)) return(list(is_paired = FALSE, pair_info = NULL, subject_col = NULL))
   if (!(subject_col %in% colnames(colData(se)))) stop("subject_col '", subject_col, "' not found in colData")
   pairs <- colData(se)[[subject_col]]
@@ -37,7 +37,7 @@
 #' Build gene ID to name mapping
 
 #' @noRd
-.tsenat_build_gene_id_mapping <- function(se, gene_col) {
+.build_gene_id_mapping <- function(se, gene_col) {
   rd_mapping <- rowData(se)
   gene_id_to_name <- character(0)
   if ("gene_name" %in% colnames(rd_mapping)) {
@@ -50,7 +50,7 @@
 #' Calculate Tsallis entropy
 
 #' @noRd
-.tsenat_jis_tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+.jis_tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
   raw_col_sums <- colSums(counts)
   with_zero_counts <- raw_col_sums == 0
   if (pseudocount == 0) pseudocount <- 1e-8
@@ -84,15 +84,15 @@
 #' Calculate jackknife influences
 
 #' @noRd
-.tsenat_jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
-  h_full <- .tsenat_jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
+.jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+  h_full <- .jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
   n_tx <- nrow(counts)
   influences <- numeric(n_tx)
   if (n_tx < 2) return(influences)
   for (i in seq_len(n_tx)) {
     counts_leave_i <- counts[-i, , drop = FALSE]
     # Keep leave-one-out on same normalization scale as full set for proper jackknife comparison
-    h_leave_i <- .tsenat_jis_tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed = n_tx_fixed)
+    h_leave_i <- .jis_tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed = n_tx_fixed)
     diffs <- abs(h_full - h_leave_i)
     influences[i] <- mean(diffs, na.rm = TRUE)
   }
@@ -102,7 +102,7 @@
 #' Apply FDR correction
 
 #' @noRd
-.tsenat_jis_apply_fdr <- function(results_per_gene, all_pvalues) {
+.jis_apply_fdr <- function(results_per_gene, all_pvalues) {
   if (length(all_pvalues) == 0) return(invisible(results_per_gene))
   pvals_vec <- vapply(all_pvalues, function(x) x$pvalue, FUN.VALUE = numeric(1))
   fdr_vec <- p.adjust(pvals_vec, method = "BH")
@@ -125,7 +125,7 @@
 #' Handle multi-q analysis
 
 #' @noRd
-.tsenat_jis_handle_multi_q <- function(se, q, q_params, verbose) {
+.jis_handle_multi_q <- function(se, q, q_params, verbose) {
   results_list <- lapply(q, function(q_val) {
     do.call(.jackknife_isoform_switching, c(list(se = se, q = q_val, verbose = FALSE), q_params))
   })
@@ -262,17 +262,17 @@
   use_lm_fdr = TRUE
 ) {
   # 1. Validate input
-  conditions <- .tsenat_jis_validate_input(se, condition_col, gene_col, isoform_col)
+  conditions <- .jis_validate_input(se, condition_col, gene_col, isoform_col)
   
   # 2. Handle multiple q values
   if (is.numeric(q) && length(q) > 1) {
     q_params <- list(condition_col = condition_col, subject_col = subject_col, gene_col = gene_col, isoform_col = isoform_col, norm = norm, log_base = log_base, pseudocount = pseudocount, threshold = threshold, n_bootstrap = n_bootstrap, lm_results = lm_results, lm_p_threshold = lm_p_threshold, use_lm_fdr = use_lm_fdr)
-    return(.tsenat_jis_handle_multi_q(se, q, q_params, verbose))
+    return(.jis_handle_multi_q(se, q, q_params, verbose))
   }
   
   # 3. Setup paired design and gene mapping
-  paired_info <- .tsenat_setup_paired_design_jis(se, subject_col, condition_col)
- gene_id_to_name <- .tsenat_build_gene_id_mapping(se, gene_col)
+  paired_info <- .setup_paired_design_jis(se, subject_col, condition_col)
+ gene_id_to_name <- .build_gene_id_mapping(se, gene_col)
   gene_ids <- unique(rowData(se)[[gene_col]])
   
   # 4. Setup LM filtering (simplified inline to keep main function < 50 lines)
@@ -345,7 +345,7 @@
     }
     
     n_tx_original <- nrow(counts_A)
-    delta_influence <- .tsenat_jackknife_influences_jis(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .tsenat_jackknife_influences_jis(counts_B, q, norm, log_base, pseudocount, n_tx_original)
+    delta_influence <- .jackknife_influences_jis(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .jackknife_influences_jis(counts_B, q, norm, log_base, pseudocount, n_tx_original)
     delta_stats <- .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap, n_transcripts = nrow(counts_A))
     switching_status <- ifelse(delta_influence > 0, "up", ifelse(delta_influence < 0, "down", "neutral"))
     
@@ -368,7 +368,7 @@
   }
   
   # 6. Apply FDR correction FIRST (capture the result)
-  results_per_gene <- .tsenat_jis_apply_fdr(results_per_gene, all_pvalues)
+  results_per_gene <- .jis_apply_fdr(results_per_gene, all_pvalues)
   
   # 7. Build results summary WITH updated FDR values
   all_transcript_stats <- do.call(rbind, lapply(names(results_per_gene), function(gene) {

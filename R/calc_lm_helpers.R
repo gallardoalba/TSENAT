@@ -47,7 +47,7 @@
 # ================================================================================
 
 # Summary reporting helper
-.tsenat_report_fit_summary <- function(res, verbose = TRUE) {
+.report_fit_summary <- function(res, verbose = TRUE) {
     if (verbose && "fit_method" %in% colnames(res)) {
         total_genes <- nrow(res)
         fallback_mask <- !is.na(res$fit_method) & res$fit_method != "lmer"
@@ -91,7 +91,7 @@
 # GAM regularization helper: applies spline constraints or GAMSEL for variable selection
 # Supports pca (no regularization), gamsel (automatic variable selection), and
 # spline (controlled smoothness) modes. Based on papers C057, C063, C065, C082, C083.
-.tsenat_gam_regularization <- function(entropy_vals, q_vals, group_vec,
+.gam_regularization <- function(entropy_vals, q_vals, group_vec,
                                        regularization = c("pca", "gamsel", "spline")) {
     regularization <- match.arg(regularization)
     
@@ -176,7 +176,7 @@
 #     - Appropriate for ordered measurements (like q-values)
 #     - Applied to differenced data (ARIMA(1,1,0) stationarity)
 #
-.tsenat_ar1_design_effect <- function(rho, cluster_size) {
+.ar1_design_effect <- function(rho, cluster_size) {
     # Compute design effect for AR(1) correlation
     # Args:
     #   rho: autocorrelation coefficient phi on differenced data (0 <= phi <= 1)
@@ -211,7 +211,7 @@
     return(d_eff)
 }
 
-.tsenat_estimate_ar1_rho <- function(entropy_diff, subject_vec = NULL) {
+.estimate_ar1_rho <- function(entropy_diff, subject_vec = NULL) {
     # Estimate first-order autocorrelation rho from differenced entropy
     # Input: entropy_diff = first-differenced entropy values DeltaH_q = H_q - H_{q-1}
     # Returns: rho estimate in [0, 1], or NULL if insufficient data
@@ -275,7 +275,7 @@
 # GAM bias correction helper: adjusts for smoothing bias in small samples (C071)
 # When n_samples < 20, small sample smoothing can inflate Type I error rates
 # Applies degrees of freedom adjustment based on sample size
-.tsenat_gam_bias_correct <- function(p_value, n_observations = NULL, n_samples = NULL,
+.gam_bias_correct <- function(p_value, n_observations = NULL, n_samples = NULL,
                                     n_subjects = NULL, 
                                     ar1_correlation = TRUE, bias_correction = TRUE,
                                     entropy_data = NULL, subject_data = NULL) {
@@ -299,7 +299,7 @@
     # 
     # CRITICAL FIX (March 2026): Calling functions now properly difference entropy
     # before fitting AR(1) correlations. This guarantees stationarity assumptions.
-    # See: .tsenat_compute_arima_differences() helper function added March 2026.
+    # See: .compute_arima_differences() helper function added March 2026.
     
     # If n_subjects not provided, attempt to estimate from ARIMA structure
     # Conservative: assume ~sqrt(n_obs) independent units under ARIMA(1,1,0)
@@ -328,7 +328,7 @@
         data_driven_rho <- FALSE
         
         if (!is.null(entropy_data) && !is.null(subject_data)) {
-            rho_est <- .tsenat_estimate_ar1_rho(entropy_data, subject_data)
+            rho_est <- .estimate_ar1_rho(entropy_data, subject_data)
             if (!is.null(rho_est) && rho_est >= 0 && rho_est <= 1) {
                 rho_avg <- rho_est
                 data_driven_rho <- TRUE
@@ -350,7 +350,7 @@
         }
         
         # Design effect: Use AR(1)-specific formula (NOT Kish exchangeable formula)
-        design_effect <- .tsenat_ar1_design_effect(rho_avg, cluster_size)
+        design_effect <- .ar1_design_effect(rho_avg, cluster_size)
         
         # Effective sample size accounting for AR(1) within-subject correlation
         n_eff <- n_subjects / design_effect
@@ -546,7 +546,7 @@
 #
 # Implementation: Extract residuals from fitted model, apply shapiro.test()
 
-.tsenat_test_residual_normality <- function(model, model_type = c("gam", "gamm", "lme", "gee"),
+.test_residual_normality <- function(model, model_type = c("gam", "gamm", "lme", "gee"),
                                             verbose = FALSE) {
     # Args:
     #   model: fitted model object (GAM, GAMM, lme, or geeglm)
@@ -624,7 +624,7 @@
         }
     }, error = function(e) {
         if (verbose) {
-            message("[.tsenat_test_residual_normality] Could not extract residuals: ", e$message)
+            message("[.test_residual_normality] Could not extract residuals: ", e$message)
         }
     })
     
@@ -677,7 +677,7 @@
     
     if (verbose) {
         status_text <- if (is_normal) "PASS [OK]" else "FAIL ?"
-        message(sprintf("[.tsenat_test_residual_normality] %s (p=%.4f, n=%d residuals)",
+        message(sprintf("[.test_residual_normality] %s (p=%.4f, n=%d residuals)",
                        status_text, p_value, n_res))
     }
     
@@ -696,7 +696,7 @@
 
 # Helper: Check visual monotonicity of entropy values
 # Purpose: Detect ordering issues or data quality problems before statistical testing
-.tsenat_check_monotonicity <- function(entropy_vals, q_vals, tolerance = 0.05) {
+.check_monotonicity <- function(entropy_vals, q_vals, tolerance = 0.05) {
     # Args:
     #   entropy_vals: numeric vector of entropy values
     #   q_vals: numeric vector of q-values (should match entropy_vals length)
@@ -751,7 +751,7 @@
 
 # Helper: Augmented Dickey-Fuller (ADF) test for unit root
 # Simple implementation without external package dependencies
-.tsenat_adf_test <- function(time_series, max_lag = 3, alpha = 0.05) {
+.adf_test <- function(time_series, max_lag = 3, alpha = 0.05) {
     # Args:
     #   time_series: numeric vector (observations)
     #   max_lag: maximum lag order for augmentation (default 3)
@@ -890,7 +890,7 @@
 
 # Helper: KPSS Test for stationarity (reverse of ADF)
 # H0: Series IS stationary
-.tsenat_kpss_test <- function(time_series, trend = "constant", alpha = 0.05) {
+.kpss_test <- function(time_series, trend = "constant", alpha = 0.05) {
     # Args:
     #   time_series: numeric vector
     #   trend: "constant" or "ct" (constant + time trend)
@@ -1005,7 +1005,7 @@
 
 # Comprehensive stationarity validation
 # Returns diagnostic report comparing raw and differenced data
-.tsenat_validate_stationarity <- function(entropy_vals, q_vals, subject_vec = NULL, gene_name = NULL) {
+.validate_stationarity <- function(entropy_vals, q_vals, subject_vec = NULL, gene_name = NULL) {
     # Args:
     #   entropy_vals: raw entropy values
     #   q_vals: corresponding q-values
@@ -1017,11 +1017,11 @@
     if (is.null(gene_name)) gene_name <- "Unknown"
     
     # Test 1: Monotonicity
-    mono_check <- .tsenat_check_monotonicity(entropy_vals, q_vals)
+    mono_check <- .check_monotonicity(entropy_vals, q_vals)
     
     # Test 2-3: ADF and KPSS on raw data
-    adf_raw <- .tsenat_adf_test(entropy_vals)
-    kpss_raw <- .tsenat_kpss_test(entropy_vals, trend = "constant")
+    adf_raw <- .adf_test(entropy_vals)
+    kpss_raw <- .kpss_test(entropy_vals, trend = "constant")
     
     # Test 4-5: ADF and KPSS on first differences
     if (length(entropy_vals) > 1) {
@@ -1030,8 +1030,8 @@
         entropy_sorted <- entropy_vals[sort_idx]
         entropy_diff <- diff(entropy_sorted)
         
-        adf_diff <- .tsenat_adf_test(entropy_diff)
-        kpss_diff <- .tsenat_kpss_test(entropy_diff, trend = "constant")
+        adf_diff <- .adf_test(entropy_diff)
+        kpss_diff <- .kpss_test(entropy_diff, trend = "constant")
     } else {
         adf_diff <- list(test_stat = NA, p_value = NA, stationary = NA, conclusion = "NO_DATA")
         kpss_diff <- list(test_stat = NA, p_value = NA, stationary = NA, conclusion = "NO_DATA")
@@ -1084,7 +1084,7 @@
     ))
 }
 
-.tsenat_compute_arima_differences <- function(df, q_vals, group_vec, subject_vec = NULL) {
+.compute_arima_differences <- function(df, q_vals, group_vec, subject_vec = NULL) {
     # ARIMA(1,1,0) implementation: compute first differences of entropy
     # 
     # Background:
@@ -1177,7 +1177,7 @@
     ))
 }
 
-.tsenat_adaptive_spline_knots <- function(entropy_vals, q_vals, n_q_unique, min_k = 2, max_k = 10) {
+.adaptive_spline_knots <- function(entropy_vals, q_vals, n_q_unique, min_k = 2, max_k = 10) {
     # K-selection strategy for Tsallis entropy curves:
     # Tsallis entropy is GUARANTEED monotone decreasing in q (mathematical property)
     # Therefore, use a FIXED k based on number of unique q-values
@@ -1202,7 +1202,7 @@
 
 # Helper: Check if entropy data is truly bounded in [0, 1]
 # Returns TRUE if data appears normalized/proportional
-.tsenat_is_bounded_0_1 <- function(entropy_vals) {
+.is_bounded_0_1 <- function(entropy_vals) {
     entropy_clean <- na.omit(entropy_vals)
     if (length(entropy_clean) == 0) return(FALSE)
     finite_clean <- is.finite(entropy_clean)
@@ -1222,7 +1222,7 @@
 # Helper: Compute skewness of a vector
 # Positive skew: right tail longer (mode < median < mean)
 # Negative skew: left tail longer (mean < median < mode)
-.tsenat_compute_skewness <- function(x, na.rm = TRUE) {
+.compute_skewness <- function(x, na.rm = TRUE) {
     if (na.rm) x <- na.omit(x)
     if (length(x) < 3) return(NA)
     
@@ -1243,9 +1243,9 @@
 # Database Support (March 2026):
 #   - S223: "Information entropy of generalized beta distribution"
 #   - S220-S222: Beta regression applications with robustness validation
-.tsenat_handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
+.handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
     # ========================================================================
-    # INLINE: Family selection logic (previously .tsenat_select_gam_family)
+    # INLINE: Family selection logic (previously .select_gam_family)
     # Select appropriate GAM family based on data characteristics
     # Priority: Beta (if [0,1] bounded) > Gamma (if heteroscedastic) > Gaussian (default)
     # Tsallis entropy is mathematically bounded [0, log(m)], but Beta is ideal for [0,1]
@@ -1254,12 +1254,12 @@
     # INDICATOR 1: Check if data is [0,1] bounded (ideal for Beta regression)
     # =====================================================================
     entropy_vals <- na.omit(df$entropy)
-    is_bounded_01 <- .tsenat_is_bounded_0_1(entropy_vals)
+    is_bounded_01 <- .is_bounded_0_1(entropy_vals)
     
     # INDICATOR 2: Heteroscedasticity detection
     # =========================================
     hetero_result <- try(
-        .tsenat_detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
+        .detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
         silent = TRUE
     )
     
@@ -1296,7 +1296,7 @@
     # INDICATOR 4: Skewness (asymmetry indicates non-Gaussian behavior)
     # ===============================================================
     # Skewness = (mean - median) / sd * constant; values > 1 or < -1 indicate strong asymmetry
-    skewness_val <- .tsenat_compute_skewness(entropy_vals)
+    skewness_val <- .compute_skewness(entropy_vals)
     has_strong_skew <- abs(skewness_val) > 1.0
     
     # DECISION LOGIC (March 2026)
@@ -1437,7 +1437,7 @@
 # Solution: Detect heteroscedasticity and apply appropriate variance adjustment/weighting
 
 # Detect heteroscedasticity using Breusch-Pagan test
-.tsenat_detect_heteroscedasticity <- function(df, q_vals, group_vec, verbose = FALSE) {
+.detect_heteroscedasticity <- function(df, q_vals, group_vec, verbose = FALSE) {
     # Fit OLS to get residuals
     fit_ols <- try(
         lm(entropy ~ q + group, data = df),
@@ -1522,7 +1522,7 @@
 }
 
 # Estimate variance weights for heteroscedasticity adjustment
-.tsenat_estimate_variance_weights <- function(df, q_vals, method = "power", verbose = FALSE) {
+.estimate_variance_weights <- function(df, q_vals, method = "power", verbose = FALSE) {
     # Estimate weights to model variance heterogeneity
     # method = "power": Model Var ~ q^?, compute weights w_i = q_i^(-?)
     # method = "residual": Use residual variance from OLS as observation weights
@@ -1660,7 +1660,7 @@
 # - TEST L.1.6 Validation confirms differenced data follow AR(1) pattern: rho(k) = phi^|k|
 # - Stationarity is achieved via differencing; functional basis (smooth PCs) is appropriate for resulting stationary data
 #
-.tsenat_fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 10, subject = NULL, 
+.fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 10, subject = NULL, 
                                     regularization = c("pca", "lasso", "elasticnet"), weights = NULL) {
     regularization <- match.arg(regularization)
     
@@ -1999,7 +1999,7 @@
 
 # LMM regularization helper: performs feature selection on q-value interactions
 # before fitting mixed model. Reduces overfitting with high-dimensional q-interaction terms.
-.tsenat_lmm_regularization <- function(q_vals, entropy_vals, group_vec, subject_vec = NULL,
+.lmm_regularization <- function(q_vals, entropy_vals, group_vec, subject_vec = NULL,
                                       regularization = c("pca", "lasso", "elasticnet")) {
     regularization <- match.arg(regularization)
     
@@ -2077,7 +2077,7 @@
 }
 
 # Fit function extracted from calculate_lm_interaction
-.tsenat_fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec,
+.fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec,
     method, pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings,
     progress, bias_correction = TRUE, regularization = c("pca", "lasso", "elasticnet", "gamsel", "spline"),
     corstr = c("ar1", "exchangeable", "independence"), adaptive_knots = TRUE, weights = NULL) {
@@ -2091,12 +2091,12 @@
     if (!is.null(weights) && length(weights) == nrow(df)) {
         df$weight <- weights
         if (verbose) {
-            message(sprintf("[.tsenat_fit_one_interaction] Gene '%s': weights applied (n=%d, mean=%.4f, min=%.4f, max=%.4f)",
+            message(sprintf("[.fit_one_interaction] Gene '%s': weights applied (n=%d, mean=%.4f, min=%.4f, max=%.4f)",
                            g, length(weights), mean(weights, na.rm=TRUE), min(weights, na.rm=TRUE), max(weights, na.rm=TRUE)))
         }
     } else {
         if (verbose && !is.null(weights)) {
-            message(sprintf("[.tsenat_fit_one_interaction] Gene '%s': weights NOT applied - length mismatch (weights=%d, df rows=%d)",
+            message(sprintf("[.fit_one_interaction] Gene '%s': weights NOT applied - length mismatch (weights=%d, df rows=%d)",
                            g, length(weights), nrow(df)))
         }
     }
@@ -2180,7 +2180,7 @@
         # Differencing removes monotone trend from Tsallis entropy, enabling valid AR(1) inference
         # BONUS: First differencing of bounded [0, log(m)] data helps normalize distribution
         # (bounded support becomes approximately normal after differencing in many cases)
-        arima_result <- .tsenat_compute_arima_differences(df, q_vals, df$group, df$subject)
+        arima_result <- .compute_arima_differences(df, q_vals, df$group, df$subject)
         
         if (is.null(arima_result) || nrow(arima_result$df) < 3) {
             # Insufficient data for ARIMA differencing; fall back to raw data with warning
@@ -2209,7 +2209,7 @@
         formula_alt <- entropy ~ q * group
         
         if (regularization != "pca") {
-            fs_result <- .tsenat_lmm_regularization(q_vals = df_model$q, entropy_vals = df_model$entropy,
+            fs_result <- .lmm_regularization(q_vals = df_model$q, entropy_vals = df_model$entropy,
                                                     group_vec = df_model$group, subject_vec = df_model$subject,
                                                     regularization = regularization)
             if (!is.null(fs_result)) {
@@ -2234,7 +2234,7 @@
         # ===============================================================================
         # Detect q-dependent and group-dependent variance heterogeneity
         # Apply nlme::varPower() to model variance heterogeneity if detected
-        hetero_result <- .tsenat_detect_heteroscedasticity(df_model, df_model$q, df_model$group)
+        hetero_result <- .detect_heteroscedasticity(df_model, df_model$q, df_model$group)
         use_var_structure <- FALSE
         
         if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
@@ -2287,7 +2287,7 @@
             if ((verbose && progress) || (!verbose && progress)) {
                 message("[calculate_lm_interaction] mixed model failed; trying simpler fixed-effects fallback")
             }
-            fb <- .tsenat_try_lm_fallbacks(df_model, verbose = verbose)
+            fb <- .try_lm_fallbacks(df_model, verbose = verbose)
             if (!is.null(fb)) {
                 fallback_lm <- fb
                 used_fit_method <- fb$method
@@ -2299,13 +2299,13 @@
         lrt_p <- NA_real_
         msg <- NULL
         if (!is.null(fallback_lm)) {
-            lrt_p <- .tsenat_extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1)
+            lrt_p <- .extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1)
             # If glmmTMB fallback failed due to convergence, propagate message
             if (!is.null(fallback_lm$message)) {
                 msg <- fallback_lm$message
             }
         } else {
-            lrt_p <- .tsenat_extract_lrt_p(fit0, fit1)
+            lrt_p <- .extract_lrt_p(fit0, fit1)
         }
 
         # nlme models use LRT for hypothesis testing (not Satterthwaite)
@@ -2398,7 +2398,7 @@
         }
 
         # Pass subject info, regularization, bias correction, adaptive knots parameters, and weights to GAM
-        return(.tsenat_gam_interaction(df, q_vals, g, min_obs = min_obs, subject = subject,
+        return(.gam_interaction(df, q_vals, g, min_obs = min_obs, subject = subject,
                                        regularization = regularization, bias_correction = bias_correction,
                                        adaptive_knots = adaptive_knots, weights = weights))
     }
@@ -2448,7 +2448,7 @@
         # then applies PCA which naturally captures smooth functional dependence structure (S168-S171).
         # This implicitly models AR(1) correlation: rho(k) = phi^|k| across ordered q-values.
         # Test L.1.6 validates this AR(1) pattern for entropy across q-values.
-        return(.tsenat_fpca_interaction(mat, q_vals, sample_names, group_vec, g,
+        return(.fpca_interaction(mat, q_vals, sample_names, group_vec, g,
             min_obs = min_obs, subject = subject, regularization = regularization, weights = weights))
     }
 
@@ -2498,7 +2498,7 @@
             subject <- sample_names
         }
         # Pass subject info to GEE helper with AR(1) correlation structure (default)
-        return(.tsenat_gee_interaction(df, q_vals, g, subject = subject, min_obs = min_obs, 
+        return(.gee_interaction(df, q_vals, g, subject = subject, min_obs = min_obs, 
                                        corstr = corstr, bias_correction = bias_correction, weights = weights))
     }
 
@@ -2507,7 +2507,7 @@
 ## All helpers for calculate_lm_interaction
 
 # Try lme4::lmer with multiple optimizers and controlled warnings.
-.tsenat_try_lmer <- function(formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
+.try_lmer <- function(formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
     mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
     if (!requireNamespace("lme4", quietly = TRUE)) {
         stop("Package 'lme4' is required for mixed-model fitting")
@@ -2544,7 +2544,7 @@
 # NOTE: Satterthwaite p-value extraction consolidated below (see line 2683)
 
 # FPCA matrix preparation
-.tsenat_prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
+.prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
     if (!is.matrix(mat)) {
         mat <- as.matrix(mat)
     }
@@ -2560,7 +2560,7 @@
 
 ## Consolidated helpers for calculate_lm_interaction fallbacks, LRT and Satterthwaite
 ## Improved mixed model handling with multiple fallback strategies
-.tsenat_try_lm_fallbacks <- function(df, verbose = FALSE) {
+.try_lm_fallbacks <- function(df, verbose = FALSE) {
     # Strategy 1: Try nlme::lme() - more stable than lme4 for some datasets
     if (requireNamespace("nlme", quietly = TRUE)) {
         fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
@@ -2593,7 +2593,7 @@
             } else {
                 msg <- paste0("glmmTMB model did not converge: ",
                               "fit0 converged=", conv0, ", fit1 converged=", conv1)
-                if (verbose) message("[.tsenat_try_lm_fallbacks] ", msg)
+                if (verbose) message("[.try_lm_fallbacks] ", msg)
                 return(list(fit0 = NA, fit1 = NA, method = "glmmTMB", message = msg))
             }
         }
@@ -2610,7 +2610,7 @@
                    silent = TRUE)
     if (!inherits(fit0_lm, "try-error") && !inherits(fit1_lm, "try-error")) {
         if (verbose) {
-            message("[.tsenat_try_lm_fallbacks] Using fixed-effect lm with factor(subject)")
+            message("[.try_lm_fallbacks] Using fixed-effect lm with factor(subject)")
         }
         return(list(fit0 = fit0_lm, fit1 = fit1_lm, method = "lm_subject_fixed"))
     }
@@ -2624,7 +2624,7 @@
                     silent = TRUE)
     if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
         if (verbose) {
-            message("[.tsenat_try_lm_fallbacks] Subject removed - reduced power expected")
+            message("[.try_lm_fallbacks] Subject removed - reduced power expected")
         }
         return(list(fit0 = fit0_lm2, fit1 = fit1_lm2, method = "lm_nosubject"))
     }
@@ -2632,7 +2632,7 @@
     return(NULL)
 }
 
-.tsenat_extract_lrt_p <- function(fit0, fit1) {
+.extract_lrt_p <- function(fit0, fit1) {
     an <- try(stats::anova(fit0, fit1), silent = TRUE)
     if (!inherits(an, "try-error") && nrow(an) >= 2) {
         pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
@@ -2651,7 +2651,7 @@
 # Helper for FPCA-style preprocessing used in calculate_lm_interaction fpca
 # method.  Builds curve_mat, filters good rows, imputes column means, and
 # returns list(mat_sub, used_samples)
-.tsenat_prepare_fpca_matrix <- function(mat, sample_names, q_vals, min_obs = 10) {
+.prepare_fpca_matrix <- function(mat, sample_names, q_vals, min_obs = 10) {
     uq <- sort(unique(q_vals))
     samples_u <- unique(sample_names)
     curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
@@ -2710,7 +2710,7 @@
 # Reference:
 #   Pan, W. (2001). Akaike's information criterion in generalized estimating equations.
 #     Biometrics, 57(1), 120-125.
-.tsenat_select_gee_correlation <- function(df, formula_null, formula_alt, subject, 
+.select_gee_correlation <- function(df, formula_null, formula_alt, subject, 
                                            criteria = "qic", verbose = FALSE) {
     # Args:
     #   df: data frame with response, predictors, and subject/id column
@@ -2899,7 +2899,7 @@
 # @param bias_correction logical; apply Kenward-Roger correction for small clusters
 #
 # @return data.frame with gene, p_interaction, correlation_structure, and bias correction status
-.tsenat_gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 10, corstr = "auto", bias_correction = TRUE, weights = NULL) {
+.gee_interaction <- function(df, q_vals, g, subject = NULL, min_obs = 10, corstr = "auto", bias_correction = TRUE, weights = NULL) {
     if (!requireNamespace("geepack", quietly = TRUE)) {
         stop("Package 'geepack' is required for method = 'gee'")
     }
@@ -2971,7 +2971,7 @@
     
     # HETEROSCEDASTICITY ADJUSTMENT: Detect variance dependence on q and group
     # Breusch-Pagan test to determine if weights are needed
-    hetero_result <- .tsenat_detect_heteroscedasticity(df, q_vals = df$q, group_vec = df$group)
+    hetero_result <- .detect_heteroscedasticity(df, q_vals = df$q, group_vec = df$group)
     gee_weights <- NULL
     
     # PHASE 1 WEIGHTING (March 2026): Bootstrap CI weights take precedence over heteroscedasticity weights
@@ -2980,7 +2980,7 @@
         gee_weights <- df$weight
     } else if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
         # Estimate variance weights using power-law model: Var ~ q^theta
-        weights_result <- .tsenat_estimate_variance_weights(df, q_vals = df$q, method = "power")
+        weights_result <- .estimate_variance_weights(df, q_vals = df$q, method = "power")
         if (!is.null(weights_result) && !is.null(weights_result$weights)) {
             gee_weights <- weights_result$weights
         }
@@ -3012,7 +3012,7 @@
     
     if (corstr == "auto") {
         # Test all correlation structures and select best via QIC
-        selection_result <- .tsenat_select_gee_correlation(
+        selection_result <- .select_gee_correlation(
             df = df,
             formula_null = entropy ~ q + group,
             formula_alt = entropy ~ q * group,
@@ -3226,7 +3226,7 @@
     # RESIDUAL NORMALITY TESTING (NEW - March 2026)
     # Database Evidence: B001, B004, C017 (Normality testing in regression)
     # ===============================================================================
-    shapiro_result <- .tsenat_test_residual_normality(
+    shapiro_result <- .test_residual_normality(
         model = fit_alt,
         model_type = "gee",
         verbose = FALSE

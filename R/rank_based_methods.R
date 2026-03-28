@@ -264,6 +264,7 @@
 #'
 
 #' @noRd
+#' @method print rank_assumptions
 
 print.rank_assumptions <- function(x, ...) {
   message("RANK-BASED METHOD ASSUMPTIONS (Rigorous Statistical Tests)")
@@ -614,6 +615,7 @@ print.rank_assumptions <- function(x, ...) {
 #'
 
 #' @noRd
+#' @method print rank_correlation_ci
 
 print.rank_correlation_ci <- function(x, ...) {
   message("RANK CORRELATION CONFIDENCE INTERVALS")
@@ -739,7 +741,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param pvalues Numeric vector of p-values to adjust
 #' @return Numeric vector of adjusted p-values
 #' @noRd
-.tsenat_hochberg_stepup <- function(pvalues) {
+.hochberg_stepup <- function(pvalues) {
     m <- length(pvalues)
     if (m == 0) return(numeric(0))
     if (m == 1) return(pmin(1, pvalues[1]))
@@ -799,7 +801,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param pvalues Numeric vector of p-values to adjust
 #' @return Numeric vector of adjusted p-values
 #' @noRd
-.tsenat_benjamini_yekutieli <- function(pvalues) {
+.benjamini_yekutieli <- function(pvalues) {
     m <- length(pvalues)
     if (m == 0) return(numeric(0))
     if (m == 1) return(pmin(1, pvalues[1]))
@@ -1072,7 +1074,7 @@ print.rank_correlation_ci <- function(x, ...) {
 # * Default -> Standard Kruskal-Wallis (already robust)
 # ================================================================================
 
-# NOTE: Uses .tsenat_compute_skewness from calc_lm_helpers.R
+# NOTE: Uses .compute_skewness from calc_lm_helpers.R
 
 #' Select appropriate rank-based test based on data characteristics
 #'
@@ -1092,7 +1094,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - characteristics: List of detected characteristics
 #' - reasons: Character vector of reasons for selection
 #' @noRd
-.tsenat_select_rank_test <- function(data, value_col = "entropy", group_col = "q", verbose = FALSE) {
+.select_rank_test <- function(data, value_col = "entropy", group_col = "q", verbose = FALSE) {
     
     values <- data[[value_col]]
     groups <- data[[group_col]]
@@ -1224,7 +1226,7 @@ print.rank_correlation_ci <- function(x, ...) {
     # 3. EXTREME SKEWNESS DETECTION
     # -----------------------------------------------------------------------------
     
-    skewness_val <- .tsenat_compute_skewness(values)
+    skewness_val <- .compute_skewness(values)
     
     # Bug #2 Fix (March 2026): Skewness should be independent condition
     # (was: if (abs(skewness_val) > 1 && characteristics$heteroscedastic))
@@ -1282,7 +1284,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - p_value: P-value from test
 #' - method: "ART-Kruskal-Wallis" or similar
 #' @noRd
-.tsenat_apply_art_kw <- function(data, value_col = "entropy", group_col = "q") {
+.apply_art_kw <- function(data, value_col = "entropy", group_col = "q") {
     
     values <- data[[value_col]]
     groups <- data[[group_col]]
@@ -1395,7 +1397,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - method: "Quantile-based test"
 #'
 #' @noRd
-.tsenat_apply_quantile_test <- function(data, value_col = "entropy", group_col = "q",
+.apply_quantile_test <- function(data, value_col = "entropy", group_col = "q",
                                        quantiles = c(0.25, 0.50, 0.75)) {
     
     values <- data[[value_col]]
@@ -1477,7 +1479,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - p_value: P-value from median test
 #' - method: "Mood's median test"
 #' @noRd
-.tsenat_apply_robust_median_test <- function(data, value_col = "entropy", group_col = "q") {
+.apply_robust_median_test <- function(data, value_col = "entropy", group_col = "q") {
     
     values <- data[[value_col]]
     groups <- data[[group_col]]
@@ -1552,7 +1554,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' and returns results in standardized format.
 #'
 #' @noRd
-.tsenat_apply_friedman_test <- function(data, value_col = "entropy", 
+.apply_friedman_test <- function(data, value_col = "entropy", 
                                         group_col = "q", subject_col) {
     
     values <- data[[value_col]]
@@ -1634,7 +1636,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #' - characteristics: Data characteristics detected
 #'
 #' @noRd
-.tsenat_apply_conditional_rank_test <- function(data, value_col = "entropy", group_col = "q",
+.apply_conditional_rank_test <- function(data, value_col = "entropy", group_col = "q",
                                                paired = FALSE, subject_col = NULL,
                                                verbose = FALSE) {
     
@@ -1642,17 +1644,17 @@ print.rank_correlation_ci <- function(x, ...) {
     if (paired && !is.null(subject_col) && subject_col %in% colnames(data)) {
         # NEW (March 2026): Conditional selection for paired tests
         # Detect data characteristics and select appropriate paired rank test
-        selection <- .tsenat_select_rank_test_paired(
+        selection <- .select_rank_test_paired(
             data, value_col, group_col, subject_col, verbose = verbose
         )
         
         # Apply selected paired test
         test_func <- switch(
             selection$test_selected,
-            "art_friedman" = .tsenat_apply_art_friedman,
-            "robust_friedman" = .tsenat_apply_robust_friedman,
+            "art_friedman" = .apply_art_friedman,
+            "robust_friedman" = .apply_robust_friedman,
             # Default: standard Friedman
-            .tsenat_apply_friedman_test
+            .apply_friedman_test
         )
         
         # Call selected test function
@@ -1672,14 +1674,14 @@ print.rank_correlation_ci <- function(x, ...) {
     
     # Priority 2: If unpaired, use conditional selection logic
     # Step 1: Detect data characteristics
-    selection <- .tsenat_select_rank_test(data, value_col, group_col, verbose = verbose)
+    selection <- .select_rank_test(data, value_col, group_col, verbose = verbose)
     
     # Step 2: Apply selected test
     test_func <- switch(
         selection$test_selected,
-        "art_kw" = .tsenat_apply_art_kw,
-        "quantile_test" = .tsenat_apply_quantile_test,
-        "robust_median_test" = .tsenat_apply_robust_median_test,
+        "art_kw" = .apply_art_kw,
+        "quantile_test" = .apply_quantile_test,
+        "robust_median_test" = .apply_robust_median_test,
         # Default: standard Kruskal-Wallis
         function(d, v, g) {
             res <- try(kruskal.test(d[[v]] ~ d[[g]]), silent = TRUE)
@@ -1747,7 +1749,7 @@ print.rank_correlation_ci <- function(x, ...) {
 
 #' @noRd
 #' @importFrom stats ave as.formula
-.tsenat_test_q_condition_interaction <- function(
+.test_q_condition_interaction <- function(
     data,
     value_col = "entropy",
     q_col = "q",

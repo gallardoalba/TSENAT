@@ -36,7 +36,7 @@
 #'
 
 #' @noRd
-.tsenat_auto_detect_groups <- function(se) {
+.auto_detect_groups <- function(se) {
   
   cd <- SummarizedExperiment::colData(se)
   cd_colnames <- colnames(cd)
@@ -162,7 +162,7 @@
 #'
 
 #' @noRd
-.tsenat_detect_pair_ids <- function(se) {
+.detect_pair_ids <- function(se) {
   
   cd <- SummarizedExperiment::colData(se)
   sample_names <- colnames(se)
@@ -239,7 +239,7 @@
 #'
 
 #' @noRd
-.tsenat_jis_resample_paired_data <- function(
+.jis_resample_paired_data <- function(
     control_samples,
     treatment_samples,
     pair_ids,
@@ -326,7 +326,7 @@
   # Seed handling left to caller for Bioconductor compliance
 
   # Compute point estimate
-  point_est <- .tsenat_tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
+  point_est <- .tsallis_divergence_scalar(x, y, q, pseudocount, log_base)
 
   # Bootstrap confidence interval
   if (nboot > 0) {
@@ -392,7 +392,7 @@
         y_boot <- sample(y, size = length(y), replace = TRUE)
       }
 
-      bootstrap_dist[b] <- .tsenat_tsallis_divergence_scalar(x_boot, y_boot, q, pseudocount, log_base)
+      bootstrap_dist[b] <- .tsallis_divergence_scalar(x_boot, y_boot, q, pseudocount, log_base)
     }
 
     alpha <- (1 - ci) / 2
@@ -428,7 +428,7 @@
 #'
 
 #' @noRd
-.tsenat_tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
+.tsallis_divergence_scalar <- function(x, y, q_val, pseudocount = 0.5, log_base = exp(1)) {
   # Validate input vectors
   if (length(x) == 0 || length(y) == 0) {
     return(NA_real_)
@@ -510,155 +510,5 @@
   # a positive divergence. We must take absolute value and ensure non-negativity.
   # Divergence should always be >= 0.
   return(abs(div))
-}
-
-#' Classify a per-q divergence spectrum into biological pattern types
-#'
-#' When Tsallis divergence has been computed across multiple q values
-#' for a gene, the resulting vector can be summarised by its trend across the
-#' spectrum. This helper computes the Pearson correlation between the numeric
-#' q values and their corresponding divergences and interprets the
-#' slope as one of three categories:
-#' \describe{
-#'   \item{RARE_DRIVEN}{Divergence decreases with q (high at q=0.5);
-#'     indicates changes driven by low-abundance isoforms.}
-#'   \item{ABUNDANT_DRIVEN}{Divergence increases with q (high at q=2);
-#'     indicates shifts among the most abundant transcripts.}
-#'   \item{BALANCED}{Little or no trend across q; effects are proportional.}
-#' }
-#'
-#' If the input vector is too short, contains only NAs, or the
-#' correlation cannot be calculated, NA is returned.
-#'
-#' @param per_q_divs Named numeric vector of divergences. Names should be of form
-#'   "q_0.5", "q_1.0", etc. (or similar with separators "_", "=", or ".").
-#' @param threshold Numeric; correlation threshold for classification. Absolute
-#'   correlation values below this threshold are classified as BALANCED (default: 0.5).
-#' @return Character scalar giving the pattern type, or NA if classification
-#'   cannot be performed.
-
-#' @noRd
-#' @examples
-#' per_q <- c(q_0.5=0.5, q_1=0.3, q_2=0.1)
-#' .classify_q_pattern(per_q)
-#'
-#' # handling missing values
-#' .classify_q_pattern(c(q_0.5=NA, q_1=0.2))
-
-.classify_q_pattern <- function(per_q_divs, threshold = 0.5) {
-  # Input validation
-  if (!is.numeric(per_q_divs) || length(per_q_divs) < 2) {
-    return(NA_character_)
-  }
-  
-  # Validate names format
-  nm <- names(per_q_divs)
-  if (is.null(nm) || any(is.na(nm))) {
-    return(NA_character_)
-  }
-  
-  # Handle flexible name formats: try multiple patterns
-  q_vals <- NA
-  
-  # Try format: "q_0.5" (standard)
-  if (all(grepl("^q_", nm))) {
-    q_vals <- as.numeric(gsub("^q_", "", nm))
-  } else if (all(grepl("^q[_=.]", nm))) {
-    # Try other separators
-    q_vals <- as.numeric(gsub("^q[_=.]", "", gsub("_", ".", nm)))
-  }
-  
-  # Fallback: try to extract numeric directly after "q"
-  if (all(is.na(q_vals))) {
-    extracted_q <- gsub("^q", "", nm)
-    q_vals <- as.numeric(extracted_q)
-  }
-  
-  # If we still can't extract numeric q values, return NA
-  if (any(is.na(q_vals))) {
-    return(NA_character_)
-  }
-  
-  # Check if all divergence values are NA
-  if (all(is.na(per_q_divs))) {
-    return(NA_character_)
-  }
-  
-  # Need at least 2 non-NA pairs for correlation
-  valid_pairs <- !is.na(per_q_divs)
-  if (sum(valid_pairs) < 2) {
-    return(NA_character_)
-  }
-  
-  # IMPROVED CLASSIFICATION: Compare q-regions instead of just endpoints
-  # Split into rare-region (q < 1) and abundant-region (q >= 1)
-  rare_mask <- q_vals < 1
-  abund_mask <- q_vals >= 1
-  
-  # Calculate median divergence in each region
-  if (sum(rare_mask & valid_pairs) > 0) {
-    rare_div_median <- median(per_q_divs[rare_mask & valid_pairs], na.rm = TRUE)
-  } else {
-    rare_div_median <- NA
-  }
-  
-  if (sum(abund_mask & valid_pairs) > 0) {
-    abund_div_median <- median(per_q_divs[abund_mask & valid_pairs], na.rm = TRUE)
-  } else {
-    abund_div_median <- NA
-  }
-  
-  # If we have both regions, compare them
-  if (!is.na(rare_div_median) && !is.na(abund_div_median) && abund_div_median > 0) {
-    ratio <- rare_div_median / abund_div_median
-    
-    # Use a proper ratio threshold (not the correlation threshold)
-    # Ratio threshold should be > 1 to distinguish RARE from ABUNDANT
-    # Use 1.3 as the ratio threshold (30% difference = sensitive but not overly permissive)
-    ratio_threshold <- 1.3
-    
-    # RARE_DRIVEN: rare region has notably higher divergence (ratio > threshold)
-    # ABUNDANT_DRIVEN: abundant region has notably higher divergence (ratio < 1/threshold)
-    # BALANCED: similar divergence across regions (ratio near 1)
-    
-    if (!is.na(ratio) && ratio > ratio_threshold) {
-      return("RARE_DRIVEN")
-    } else if (!is.na(ratio) && ratio < 1 / ratio_threshold) {
-      return("ABUNDANT_DRIVEN")
-    } else {
-      return("BALANCED")
-    }
-  }
-  
-  # Fallback: Use original correlation-based approach
-  # Check for constant values (zero variance) before computing correlation
-  # This avoids errors from cor() when one variable has no variance
-  q_sd <- sd(q_vals, na.rm = TRUE)
-  div_sd <- sd(per_q_divs, na.rm = TRUE)
-  
-  # Use isTRUE for safe comparison (handles NA)
-  if (isTRUE(q_sd == 0) || isTRUE(div_sd == 0)) {
-    return("BALANCED")
-  }
-  
-  slope <- cor(q_vals, per_q_divs, use = "complete.obs")
-  
-  # If correlation is NA (e.g., constant divergence), treat as balanced
-  if (is.na(slope)) {
-    return("BALANCED")
-  }
-  
-  # Classify based on slope and threshold
-  abs_slope <- abs(slope)
-  
-  if (abs_slope < threshold) {
-    "BALANCED"
-  } else if (slope < -threshold) {
-    "RARE_DRIVEN"
-  } else if (slope > threshold) {
-    "ABUNDANT_DRIVEN"
-  } else {
-    "BALANCED"
-  }
 }
 

@@ -16,7 +16,7 @@
 #'
 
 #' @noRd
-.tsenat_get_gene_ids <- function(se) {
+.get_gene_ids <- function(se) {
   rd <- SummarizedExperiment::rowData(se)
   if (is.null(rd)) {
     return(NULL)
@@ -533,7 +533,7 @@
 
     # Apply metadata mapping if metadata is provided
     if (!is.null(metadata)) {
-        se <- .tsenat_map_metadata_se(se, metadata)
+        se <- .map_metadata_se(se, metadata)
     }
 
     return(se)

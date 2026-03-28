@@ -146,7 +146,7 @@ test_that("GAM with GAMSEL regularization works", {
     }
 })
 
-test_that(".tsenat_gam_regularization handles feature selection correctly", {
+test_that(".gam_regularization handles feature selection correctly", {
     # Create synthetic data for feature selection test
     set.seed(42)
     n_samples <- 20
@@ -158,7 +158,7 @@ test_that(".tsenat_gam_regularization handles feature selection correctly", {
     group_vec <- rep(c("A", "B"), each = n_samples / 2)
     
     # Call regularization function with GAMSEL
-    fs_result <- TSENAT:::.tsenat_gam_regularization(
+    fs_result <- TSENAT:::.gam_regularization(
         entropy_vals = entropy_vals,
         q_vals = q_vals,
         group_vec = group_vec,
@@ -169,7 +169,7 @@ test_that(".tsenat_gam_regularization handles feature selection correctly", {
     expect_true(is.null(fs_result) || is.list(fs_result))
     
     # Call regularization function with spline
-    fs_spline <- TSENAT:::.tsenat_gam_regularization(
+    fs_spline <- TSENAT:::.gam_regularization(
         entropy_vals = entropy_vals,
         q_vals = q_vals,
         group_vec = group_vec,
@@ -342,7 +342,7 @@ test_that("Smoothness parameter is applied in GAM regularization", {
     group_vec <- rep(c("control", "treatment"), each = n_samples / 2)
     
     # Test spline mode
-    fs_spline <- TSENAT:::.tsenat_gam_regularization(
+    fs_spline <- TSENAT:::.gam_regularization(
         entropy_vals = entropy_vals,
         q_vals = q_expanded,
         group_vec = group_vec,
@@ -353,7 +353,7 @@ test_that("Smoothness parameter is applied in GAM regularization", {
     expect_true(is.null(fs_spline) || is.list(fs_spline))
     
     # Test PCA mode
-    fs_pca <- TSENAT:::.tsenat_gam_regularization(
+    fs_pca <- TSENAT:::.gam_regularization(
         entropy_vals = entropy_vals,
         q_vals = q_expanded,
         group_vec = group_vec,
@@ -661,7 +661,7 @@ test_that("FPCA regularization methods produce reasonable p-value differences", 
     }
 })
 
-test_that(".tsenat_fpca_interaction works with all regularization methods", {
+test_that(".fpca_interaction works with all regularization methods", {
     skip_on_ci()  # Expensive: tests all 3 regularization modes. Keep locally for comprehensive validation
     skip_if_not_installed("glmnet")
     # Test via main function to verify all regularization methods are properly integrated
@@ -1207,7 +1207,7 @@ test_that("PCA mode disables LMM regularization", {
     expect_true(nrow(result_pca) >= 0)
 })
 
-test_that(".tsenat_lmm_regularization handles feature selection correctly", {
+test_that(".lmm_regularization handles feature selection correctly", {
     # Create synthetic data for feature selection test
     set.seed(42)
     n_samples <- 20
@@ -1220,7 +1220,7 @@ test_that(".tsenat_lmm_regularization handles feature selection correctly", {
     subject_vec <- rep(1:(n_samples / 2), times = 2)
     
     # Call regularization function
-    fs_result <- TSENAT:::.tsenat_lmm_regularization(
+    fs_result <- TSENAT:::.lmm_regularization(
         q_vals = q_vals,
         entropy_vals = entropy_vals,
         group_vec = group_vec,
@@ -1377,7 +1377,7 @@ test_that("Feature selection reduces model complexity as expected", {
     subject_vec <- rep(1:(n_samples / 2), times = 2)
     
     # Apply LASSO regularization
-    fs_lasso <- TSENAT:::.tsenat_lmm_regularization(
+    fs_lasso <- TSENAT:::.lmm_regularization(
         q_vals = q_expanded,
         entropy_vals = entropy_vals,
         group_vec = group_vec,
@@ -1386,7 +1386,7 @@ test_that("Feature selection reduces model complexity as expected", {
     )
     
     # Apply Elastic Net regularization  
-    fs_elasticnet <- TSENAT:::.tsenat_lmm_regularization(
+    fs_elasticnet <- TSENAT:::.lmm_regularization(
         q_vals = q_expanded,
         entropy_vals = entropy_vals,
         group_vec = group_vec,
@@ -1449,7 +1449,7 @@ test_that("K-C correction needed for GEE: sandwich variance underestimation", {
   # - K-C correction (bias reduction in HC1-HC3) addresses this
   # - Result: p-value inflation without correction
   #
-  # Implementation: .tsenat_kc_bias_correct() in R/effect_size.R
+  # Implementation: .kc_bias_correct() in R/effect_size.R
   # Status: ✓ IMPLEMENTED
   
   expect_true(TRUE)  # K-C correction essential for GEE small samples
@@ -1463,7 +1463,7 @@ test_that("Bias correction needed for GAM: smoothing spline bias", {
   # - p-values can be anticonservative (Type I error inflation) when n < 20
   # - Adjustment: Scale p-value by correction factor = 1 + (20-n)/20
   # 
-  # Implementation: .tsenat_gam_bias_correct() in R/calc_lm_helpers.R (lines 80-121)
+  # Implementation: .gam_bias_correct() in R/calc_lm_helpers.R (lines 80-121)
   # Status: ✓ IMPLEMENTED, tests ready
   
   expect_true(TRUE)  # GAM smoothing bias correction essential for small samples
@@ -1683,11 +1683,11 @@ test_that("GAM bias correction is applied for small samples", {
     })
 })
 
-test_that(".tsenat_gam_bias_correct returns correct adjustment for small samples", {
+test_that(".gam_bias_correct returns correct adjustment for small samples", {
     # Test p-value adjustment for sample sizes below 20
     
     # Large sample (should not be adjusted)
-    result_large <- TSENAT:::.tsenat_gam_bias_correct(
+    result_large <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 25,
         bias_correction = TRUE
@@ -1697,7 +1697,7 @@ test_that(".tsenat_gam_bias_correct returns correct adjustment for small samples
     expect_equal(result_large$p_value, 0.05)
     
     # Small sample (should be adjusted)
-    result_small <- TSENAT:::.tsenat_gam_bias_correct(
+    result_small <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 10,
         bias_correction = TRUE
@@ -1711,14 +1711,14 @@ test_that(".tsenat_gam_bias_correct returns correct adjustment for small samples
 
 test_that("GAM bias correction scales with sample size", {
     # Very small sample should have larger adjustment
-    result_tiny <- TSENAT:::.tsenat_gam_bias_correct(
+    result_tiny <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 5,
         bias_correction = TRUE
     )
     
     # Moderate small sample
-    result_moderate <- TSENAT:::.tsenat_gam_bias_correct(
+    result_moderate <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 15,
         bias_correction = TRUE
@@ -1739,7 +1739,7 @@ test_that("GAM bias correction scales with sample size", {
 
 test_that("GAM bias correction handles NA p-values gracefully", {
     # Test with NA p-value
-    result <- TSENAT:::.tsenat_gam_bias_correct(
+    result <- TSENAT:::.gam_bias_correct(
         p_value = NA_real_,
         n_observations = 10,
         bias_correction = TRUE
@@ -1751,7 +1751,7 @@ test_that("GAM bias correction handles NA p-values gracefully", {
 
 test_that("GAM bias correction respects bias_correction=FALSE parameter", {
     # Test with bias_correction=FALSE even for small samples
-    result <- TSENAT:::.tsenat_gam_bias_correct(
+    result <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 10,
         bias_correction = FALSE
@@ -1831,7 +1831,7 @@ test_that("Bias correction consistency with paired GAM", {
 
 test_that("P-value capping at 1.0 after adjustment", {
     # Test that p-values are never adjusted above 1.0
-    result <- TSENAT:::.tsenat_gam_bias_correct(
+    result <- TSENAT:::.gam_bias_correct(
         p_value = 0.95,
         n_observations = 5,
         bias_correction = TRUE
@@ -1841,7 +1841,7 @@ test_that("P-value capping at 1.0 after adjustment", {
 })
 
 test_that("Bias correction returns proper metadata structure", {
-    result <- TSENAT:::.tsenat_gam_bias_correct(
+    result <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 10,
         bias_correction = TRUE
@@ -1861,7 +1861,7 @@ test_that("Bias correction returns proper metadata structure", {
 })
 
 test_that("GAM bias correction method identification", {
-    result <- TSENAT:::.tsenat_gam_bias_correct(
+    result <- TSENAT:::.gam_bias_correct(
         p_value = 0.05,
         n_observations = 10,
         bias_correction = TRUE

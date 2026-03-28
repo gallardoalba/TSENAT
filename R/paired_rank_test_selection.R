@@ -42,7 +42,7 @@
 #'
 
 #' @noRd
-.tsenat_select_rank_test_paired <- function(
+.select_rank_test_paired <- function(
     data,
     value_col = "entropy",
     group_col = "q",
@@ -133,7 +133,7 @@
   # 2. EXTREME SKEWNESS DETECTION
   # -----------------------------------------------------------------------------
   
-  skewness_val <- .tsenat_compute_skewness(values)
+  skewness_val <- .compute_skewness(values)
   
   if (abs(skewness_val) > 2) {
     characteristics$highly_skewed <- TRUE
@@ -200,7 +200,7 @@
 #'
 
 #' @noRd
-.tsenat_apply_robust_friedman <- function(
+.apply_robust_friedman <- function(
     data,
     value_col = "entropy",
     group_col = "q",
@@ -310,7 +310,7 @@
 #'
 
 #' @noRd
-.tsenat_apply_art_friedman <- function(
+.apply_art_friedman <- function(
     data,
     value_col = "entropy",
     group_col = "q",

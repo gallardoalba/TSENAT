@@ -7,7 +7,7 @@
 #' Internal: Validate jackknife parameters
 
 #' @noRd
-.tsenat_jackknife_validate_params <- function(q, threshold) {
+.jackknife_validate_params <- function(q, threshold) {
   if (!is.numeric(q) || any(q <= 0)) {
     stop("'q' must be positive numeric value(s)")
   }
@@ -19,11 +19,11 @@
 #' Internal: Determine number of parallel threads
 
 #' @noRd
-.tsenat_jackknife_get_nthreads <- function(nthreads) {
+.jackknife_get_nthreads <- function(nthreads) {
   if (is.null(nthreads)) {
     n_cores <- max(1, parallel::detectCores() - 1)
-    if (exists(".tsenat_get_effective_nthreads", mode = "function")) {
-      n_cores <- .tsenat_get_effective_nthreads(n_cores)
+    if (exists(".get_effective_nthreads", mode = "function")) {
+      n_cores <- .get_effective_nthreads(n_cores)
     } else {
       core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)
       if (!is.na(core_limit)) {
@@ -44,9 +44,9 @@
 #' Internal: Process multi-q values with optional parallelization
 
 #' @noRd
-.tsenat_jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, 
+.jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, 
                                       pseudocount, threshold, seed, verbose, nthreads, .cluster) {
-  n_cores <- .tsenat_jackknife_get_nthreads(nthreads)
+  n_cores <- .jackknife_get_nthreads(nthreads)
   create_cluster <- is.null(.cluster) && n_cores > 1 && length(q) > 2 && requireNamespace("parallel", quietly = TRUE)
   
   if (create_cluster) {
@@ -63,12 +63,12 @@
     # Export main function and all helper functions needed for parallel execution
     # Use asNamespace to get functions from the TSENAT package namespace
     helper_funcs <- c(
-      ".jackknife_entropy_outliers", ".tsenat_entropy_single",
-      ".tsenat_jackknife_validate_params", ".tsenat_jackknife_process_multiq", 
-      ".tsenat_jackknife_process_se", ".tsenat_jackknife_process_matrix", 
-      ".tsenat_jackknife_process_vector_core", ".tsenat_jackknife_compute_estimates",
-      ".tsenat_jackknife_calculate_influence_and_outliers", ".tsenat_jackknife_warn_on_q_parameters",
-      ".tsenat_jackknife_format_verbose_output_matrix", ".tsenat_jackknife_get_nthreads"
+      ".jackknife_entropy_outliers", ".entropy_single",
+      ".jackknife_validate_params", ".jackknife_process_multiq", 
+      ".jackknife_process_se", ".jackknife_process_matrix", 
+      ".jackknife_process_vector_core", ".jackknife_compute_estimates",
+      ".jackknife_calculate_influence_and_outliers", ".jackknife_warn_on_q_parameters",
+      ".jackknife_format_verbose_output_matrix", ".jackknife_get_nthreads"
     )
     parallel::clusterExport(.cluster, helper_funcs, envir = asNamespace("TSENAT"))
   }
@@ -113,7 +113,7 @@
 #' Internal: Process SummarizedExperiment input
 
 #' @noRd
-.tsenat_jackknife_process_se <- function(se, res, top_n, q, norm, log_base, pseudocount, 
+.jackknife_process_se <- function(se, res, top_n, q, norm, log_base, pseudocount, 
                                   threshold, seed, verbose, nthreads, .cluster) {
   if (!methods::is(se, "SummarizedExperiment")) {
     stop("'se' must be a SummarizedExperiment object")
@@ -186,17 +186,17 @@
 #' Internal: Process matrix input (multiple genes)
 
 #' @noRd
-.tsenat_jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold, 
+.jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold, 
                                       seed, verbose) {
   results <- lapply(seq_len(nrow(x)), function(i) {
-    .tsenat_jackknife_process_vector_core(x[i, ], q, norm, log_base, pseudocount, threshold, 
+    .jackknife_process_vector_core(x[i, ], q, norm, log_base, pseudocount, threshold, 
                                    paste0("Gene", i), verbose = FALSE)
   })
   names(results) <- rownames(x)
   class(results) <- c("tsenat_jackknife_list", "list")
   
   if (verbose) {
-    message(.tsenat_jackknife_format_verbose_output_matrix(results))
+    message(.jackknife_format_verbose_output_matrix(results))
   }
   results
 }
@@ -204,18 +204,18 @@
 #' Internal: Core jackknife computation for a vector
 
 #' @noRd
-.tsenat_jackknife_process_vector_core <- function(x, q, norm, log_base, pseudocount, 
+.jackknife_process_vector_core <- function(x, q, norm, log_base, pseudocount, 
                                            threshold, gene_name = NULL, verbose = FALSE) {
   n <- length(x)
   if (n < 2) stop("Need at least 2 transcripts")
   
-  .tsenat_jackknife_warn_on_q_parameters(x, q, verbose)
+  .jackknife_warn_on_q_parameters(x, q, verbose)
   
   p <- (x + pseudocount) / (sum(x) + length(x) * pseudocount)
-  jackknife_estimates <- .tsenat_jackknife_compute_estimates(p, q, log_base, n)
+  jackknife_estimates <- .jackknife_compute_estimates(p, q, log_base, n)
   
   if (norm) {
-    estimate <- .tsenat_entropy_single(x, q = q, norm = TRUE, log_base = log_base, pseudocount = pseudocount)
+    estimate <- .entropy_single(x, q = q, norm = TRUE, log_base = log_base, pseudocount = pseudocount)
     n_jackknife <- n - 1
     if (abs(q - 1) < 1e-6) {
       max_entropy <- log(n_jackknife) / log(log_base)
@@ -234,14 +234,14 @@
     }
   }
   
-  .tsenat_jackknife_calculate_influence_and_outliers(jackknife_estimates, estimate, threshold, 
+  .jackknife_calculate_influence_and_outliers(jackknife_estimates, estimate, threshold, 
                                               q, n, norm)
 }
 
 #' Internal: Compute jackknife estimates
 
 #' @noRd
-.tsenat_jackknife_compute_estimates <- function(p, q, log_base, n) {
+.jackknife_compute_estimates <- function(p, q, log_base, n) {
   jackknife_estimates <- numeric(n)
   if (abs(q - 1) < 1e-6) {
     for (i in seq_len(n)) {
@@ -267,7 +267,7 @@
 #' Internal: Calculate influence and outliers
 
 #' @noRd
-.tsenat_jackknife_calculate_influence_and_outliers <- function(jackknife_estimates, estimate, 
+.jackknife_calculate_influence_and_outliers <- function(jackknife_estimates, estimate, 
                                                         threshold, q, n, norm) {
   influence <- abs(jackknife_estimates - estimate)
   theta_jack_mean <- mean(jackknife_estimates, na.rm = TRUE)
@@ -287,7 +287,7 @@
 #' Internal: Warn on q parameters
 
 #' @noRd
-.tsenat_jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
+.jackknife_warn_on_q_parameters <- function(x, q, verbose = FALSE) {
   total_count <- sum(x)
   if (total_count < 10) {
     warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
@@ -320,7 +320,7 @@
 #' Internal: Format verbose output for matrix results
 
 #' @noRd
-.tsenat_jackknife_format_verbose_output_matrix <- function(results) {
+.jackknife_format_verbose_output_matrix <- function(results) {
   output_lines <- c("Jackknife Stability Analysis for Top Genes", 
                    "==========================================")
   for (i in seq_along(results)) {
@@ -389,15 +389,15 @@
 #' @details
 #' **Implementation Architecture (Refactored for Bioconductor Compliance):**
 #' The main function uses modular helper functions for clarity and performance:
-#' - `.tsenat_jackknife_validate_params()`: Input parameter validation
-#' - `.tsenat_jackknife_process_multiq()`: Multi-q value handling with optional parallelization
-#' - `.tsenat_jackknife_process_se()`: SummarizedExperiment input processing
-#' - `.tsenat_jackknife_process_matrix()`: Matrix input dispatch
-#' - `.tsenat_jackknife_process_vector_core()`: Core jackknife computation (leave-one-out)
-#' - `.tsenat_jackknife_compute_estimates()`: Jackknife estimate calculation
-#' - `.tsenat_jackknife_calculate_influence_and_outliers()`: Influence and outlier detection
-#' - `.tsenat_jackknife_warn_on_q_parameters()`: q-parameter guidance messages
-#' - `.tsenat_jackknife_format_verbose_output_matrix()`: Result formatting for display
+#' - `.jackknife_validate_params()`: Input parameter validation
+#' - `.jackknife_process_multiq()`: Multi-q value handling with optional parallelization
+#' - `.jackknife_process_se()`: SummarizedExperiment input processing
+#' - `.jackknife_process_matrix()`: Matrix input dispatch
+#' - `.jackknife_process_vector_core()`: Core jackknife computation (leave-one-out)
+#' - `.jackknife_compute_estimates()`: Jackknife estimate calculation
+#' - `.jackknife_calculate_influence_and_outliers()`: Influence and outlier detection
+#' - `.jackknife_warn_on_q_parameters()`: q-parameter guidance messages
+#' - `.jackknife_format_verbose_output_matrix()`: Result formatting for display
 #'
 #' This design reduces main function complexity to ~37 lines (Bioconductor ≤50 line guideline)
 #' while preserving all functionality and optimizations. All helper functions are marked
@@ -554,17 +554,17 @@
                                        pseudocount = 0, threshold = 90, seed = NULL,
                                        verbose = FALSE, nthreads = 1, .cluster = NULL) {
   # Input validation
-  .tsenat_jackknife_validate_params(q, threshold)
+  .jackknife_validate_params(q, threshold)
   
   # Phase 1: Handle multiple q values
   if (length(q) > 1) {
-    return(.tsenat_jackknife_process_multiq(x, se, res, top_n, q, norm, log_base, 
+    return(.jackknife_process_multiq(x, se, res, top_n, q, norm, log_base, 
                                      pseudocount, threshold, seed, verbose, nthreads, .cluster))
   }
   
   # Phase 2: Handle SummarizedExperiment input
   if (!is.null(se) && !is.null(res)) {
-    return(.tsenat_jackknife_process_se(se, res, top_n, q, norm, log_base, pseudocount, 
+    return(.jackknife_process_se(se, res, top_n, q, norm, log_base, pseudocount, 
                                  threshold, seed, verbose, nthreads, .cluster))
   }
   
@@ -576,7 +576,7 @@
   # Phase 4: Handle matrix/data.frame input
   if (is.matrix(x) || is.data.frame(x)) {
     x <- as.matrix(x)
-    return(.tsenat_jackknife_process_matrix(x, q, norm, log_base, pseudocount, threshold, seed, verbose))
+    return(.jackknife_process_matrix(x, q, norm, log_base, pseudocount, threshold, seed, verbose))
   }
   
   # Phase 5: Handle vector input (core jackknife)
@@ -596,7 +596,7 @@
     stop("Need at least 2 transcripts for jackknife analysis")
   }
   
-  return(.tsenat_jackknife_process_vector_core(x, q, norm, log_base, pseudocount, threshold, NULL, verbose))
+  return(.jackknife_process_vector_core(x, q, norm, log_base, pseudocount, threshold, NULL, verbose))
 }
 
 
@@ -606,7 +606,7 @@
 #'
 
 #' @noRd
-.tsenat_entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
+.entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
                                     pseudocount = 0) {
 
   # Normalize to proportions (OPTIMIZED - single normalization with pseudocount)
@@ -656,6 +656,7 @@
 #'
 
 #' @noRd
+#' @method print tsenat_jackknife
 
 print.tsenat_jackknife <- function(x, ...) {
   message("Jackknife Diagnostics for Tsallis Entropy (q = ", x$q, ")")
@@ -673,6 +674,7 @@ print.tsenat_jackknife <- function(x, ...) {
 #'
 
 #' @noRd
+#' @method print tsenat_jackknife_list
 
 print.tsenat_jackknife_list <- function(x, ...) {
   message("Jackknife Results for Multiple Genes")

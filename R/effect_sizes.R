@@ -659,7 +659,7 @@
         
         # Create named vector for classify_q_pattern
         # Column names in divs should be like "q_0.01", "q_0.5", "q_1.0", etc.
-        per_q_patterns[i] <- .tsenat_classify_q_pattern(divs)
+        per_q_patterns[i] <- .classify_q_pattern(divs)
         
         # If classification failed, return "UNCLASSIFIED"
         if (is.na(per_q_patterns[i])) {
@@ -676,7 +676,7 @@
 
 
 #' @noRd
-.tsenat_classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
+.classify_q_pattern <- function(per_q_divs, ratio_threshold = 1.3) {
   # Classify q-value divergence pattern based on median divergence in rare vs abundant regions
   # per_q_divs: named vector where names are like "q_0.01", "q_0.5", "q_1.0", "q_2.0"
   #             or unnamed numeric vector (classification by position)
@@ -786,6 +786,12 @@
   
   # Case 2: Unnamed vector (truly unnamed, no names attribute set)
   # Only reach here if has_names is FALSE
+  # Unnamed vectors must have q-value names for valid classification
+  if (!has_names) {
+    # Unnamed vector without q-value naming is invalid for classification
+    return(NA_character_)
+  }
+  
   valid_divs <- divs_numeric[!is.na(divs_numeric)]
   
   if (length(valid_divs) == 0) {

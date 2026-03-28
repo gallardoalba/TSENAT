@@ -348,60 +348,60 @@ test_that("label_shuffling produces reproducible results with different serial c
 })
 context("Parallel helper functions")
 
-test_that(".tsenat_get_bpparam returns SerialParam for nthreads=1", {
-    bpparam <- TSENAT:::.tsenat_get_bpparam(nthreads = 1)
+test_that(".get_bpparam returns SerialParam for nthreads=1", {
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 1)
     expect_is(bpparam, "SerialParam")
 })
 
-test_that(".tsenat_get_bpparam returns MulticoreParam for nthreads>1 on Unix", {
+test_that(".get_bpparam returns MulticoreParam for nthreads>1 on Unix", {
     skip_if_not(identical(.Platform$OS.type, "unix"))
-    bpparam <- TSENAT:::.tsenat_get_bpparam(nthreads = 2)
+    bpparam <- TSENAT:::.get_bpparam(nthreads = 2)
     expect_is(bpparam, "MulticoreParam")
 })
 
-test_that(".tsenat_bplapply with FUN.VALUE uses vapply simplification", {
+test_that(".bplapply with FUN.VALUE uses vapply simplification", {
     # Test the code path: result_list <- BiocParallel::bplapply(...); return(vapply(...))
     X <- 1:5
     FUN <- function(x) x * 2
     FUN.VALUE <- numeric(1)
     
-    result <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     # Should return a numeric vector
     expect_is(result, "numeric")
     expect_equal(result, c(2, 4, 6, 8, 10))
 })
 
-test_that(".tsenat_bplapply without FUN.VALUE returns list", {
+test_that(".bplapply without FUN.VALUE returns list", {
     X <- 1:5
     FUN <- function(x) x * 2
     
-    result <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = NULL)
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = NULL)
     
     # Should return a list
     expect_is(result, "list")
     expect_equal(result, list(2, 4, 6, 8, 10))
 })
 
-test_that(".tsenat_bplapply with FUN.VALUE and nthreads=1 uses vapply", {
+test_that(".bplapply with FUN.VALUE and nthreads=1 uses vapply", {
     # Test serial execution with FUN.VALUE specified
     X <- c("a", "b", "c")
     FUN <- function(x) nchar(x)
     FUN.VALUE <- integer(1)
     
-    result <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, SIMPLIFY = TRUE, FUN.VALUE = FUN.VALUE)
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 1, SIMPLIFY = TRUE, FUN.VALUE = FUN.VALUE)
     
     expect_is(result, "integer")
     expect_equal(result, c(1L, 1L, 1L))
 })
 
-test_that(".tsenat_bplapply with matrix FUN.VALUE returns matrix", {
+test_that(".bplapply with matrix FUN.VALUE returns matrix", {
     # Test with more complex FUN.VALUE (matrix)
     X <- 1:3
     FUN <- function(x) c(x, x ^ 2)
     FUN.VALUE <- numeric(2)
     
-    result <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     expect_is(result, "matrix")
     expect_equal(dim(result), c(2, 3))
@@ -409,25 +409,25 @@ test_that(".tsenat_bplapply with matrix FUN.VALUE returns matrix", {
     expect_equal(result[, 2], c(2, 4))
 })
 
-test_that(".tsenat_bpmapply serial execution with mapply", {
+test_that(".bpmapply serial execution with mapply", {
     # Test the code path: return(mapply(FUN, X, Y, SIMPLIFY = FALSE))
     X <- 1:5
     Y <- 10:14
     FUN <- function(x, y) x + y
     
-    result <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_is(result, "list")
     # Expected: 1+10=11, 2+11=13, 3+12=15, 4+13=17, 5+14=19
     expect_equal(result, list(11, 13, 15, 17, 19))
 })
 
-test_that(".tsenat_bpmapply with vectors of different lengths", {
+test_that(".bpmapply with vectors of different lengths", {
     X <- 1:3
     Y <- 10:12
     FUN <- function(x, y) c(x, y)
     
-    result <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_is(result, "list")
     expect_equal(length(result), 3)
@@ -435,19 +435,19 @@ test_that(".tsenat_bpmapply with vectors of different lengths", {
     expect_equal(result[[3]], c(3, 12))
 })
 
-test_that(".tsenat_bpmapply preserves order", {
+test_that(".bpmapply preserves order", {
     X <- c("a", "b", "c")
     Y <- c(1, 2, 3)
     FUN <- function(x, y) paste(x, y, sep = "-")
     
-    result <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_equal(result, list("a-1", "b-2", "c-3"))
 })
 
-context("Parallel helpers: .tsenat_bplapply with parallel execution (nthreads > 1)")
+context("Parallel helpers: .bplapply with parallel execution (nthreads > 1)")
 
-test_that(".tsenat_bplapply with nthreads > 1 and FUN.VALUE uses BiocParallel::bplapply + vapply", {
+test_that(".bplapply with nthreads > 1 and FUN.VALUE uses BiocParallel::bplapply + vapply", {
     # This test specifically covers lines 43-44:
     # result_list <- BiocParallel::bplapply(X, FUN, BPPARAM = bpparam)
     # return(vapply(result_list, identity, FUN.VALUE = FUN.VALUE))
@@ -456,8 +456,8 @@ test_that(".tsenat_bplapply with nthreads > 1 and FUN.VALUE uses BiocParallel::b
     FUN.VALUE <- numeric(1)
     
     # Use nthreads = 2 to trigger parallel execution path
-    result_parallel <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     # Parallel and serial should produce identical results
     expect_equal(result_parallel, result_serial, tolerance = 1e-10)
@@ -465,28 +465,28 @@ test_that(".tsenat_bplapply with nthreads > 1 and FUN.VALUE uses BiocParallel::b
     expect_equal(result_parallel, c(3, 6, 9, 12, 15, 18, 21, 24, 27, 30))
 })
 
-test_that(".tsenat_bplapply parallel execution with integer FUN.VALUE", {
+test_that(".bplapply parallel execution with integer FUN.VALUE", {
     # Test parallel execution with integer simplification
     X <- c("cat", "dog", "elephant")
     FUN <- function(x) nchar(x)
     FUN.VALUE <- integer(1)
     
-    result_parallel <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     expect_equal(result_parallel, result_serial)
     expect_is(result_parallel, "integer")
     expect_equal(result_parallel, c(3L, 3L, 8L))
 })
 
-test_that(".tsenat_bplapply parallel execution with numeric matrix FUN.VALUE", {
+test_that(".bplapply parallel execution with numeric matrix FUN.VALUE", {
     # Test parallel execution with matrix simplification (result_list -> vapply with identity)
     X <- 1:5
     FUN <- function(x) c(x, x ^ 2, sqrt(x))
     FUN.VALUE <- numeric(3)
     
-    result_parallel <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     expect_equal(result_parallel, result_serial, tolerance = 1e-10)
     expect_is(result_parallel, "matrix")
@@ -498,17 +498,17 @@ test_that(".tsenat_bplapply parallel execution with numeric matrix FUN.VALUE", {
     expect_equal(result_parallel[2, 2], 4)
 })
 
-test_that(".tsenat_bplapply parallel execution with nthreads=3", {
+test_that(".bplapply parallel execution with nthreads=3", {
     # Test with more threads
     X <- seq(1, 100, by = 10)
     FUN <- function(x) log(x)
     FUN.VALUE <- numeric(1)
     
-    result_parallel_2 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
+    result_parallel_2 <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    result_parallel_4 <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = max_threads, FUN.VALUE = FUN.VALUE)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result_parallel_4 <- TSENAT:::.bplapply(X, FUN, nthreads = max_threads, FUN.VALUE = FUN.VALUE)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     # All should be equal
     expect_equal(result_parallel_2, result_serial, tolerance = 1e-10)
@@ -516,70 +516,70 @@ test_that(".tsenat_bplapply parallel execution with nthreads=3", {
     expect_is(result_parallel_4, "numeric")
 })
 
-test_that(".tsenat_bplapply parallel execution with complex function", {
+test_that(".bplapply parallel execution with complex function", {
     # Test with a more realistic function that does computation
     X <- list(c(1, 2, 3), c(4, 5, 6), c(7, 8, 9))
     FUN <- function(vec) mean(vec)
     FUN.VALUE <- numeric(1)
     
-    result_parallel <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     expect_equal(result_parallel, result_serial, tolerance = 1e-10)
     expect_equal(result_parallel, c(2, 5, 8), tolerance = 1e-10)
 })
 
-test_that(".tsenat_bplapply parallel execution with logical FUN.VALUE", {
+test_that(".bplapply parallel execution with logical FUN.VALUE", {
     # Test parallel with logical output simplification
     X <- c(1, 2, 3, 4, 5)
     FUN <- function(x) x > 2
     FUN.VALUE <- logical(1)
     
-    result_parallel <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = FUN.VALUE)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = FUN.VALUE)
     
     expect_equal(result_parallel, result_serial)
     expect_is(result_parallel, "logical")
     expect_equal(result_parallel, c(FALSE, FALSE, TRUE, TRUE, TRUE))
 })
 
-test_that(".tsenat_bplapply parallel without FUN.VALUE returns list", {
+test_that(".bplapply parallel without FUN.VALUE returns list", {
     # Test parallel execution without FUN.VALUE (different code path)
     X <- 1:5
     FUN <- function(x) list(x = x, squared = x ^ 2)
     
-    result_parallel <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 2, FUN.VALUE = NULL)
-    result_serial <- TSENAT:::.tsenat_bplapply(X, FUN, nthreads = 1, FUN.VALUE = NULL)
+    result_parallel <- TSENAT:::.bplapply(X, FUN, nthreads = 2, FUN.VALUE = NULL)
+    result_serial <- TSENAT:::.bplapply(X, FUN, nthreads = 1, FUN.VALUE = NULL)
     
     expect_is(result_parallel, "list")
     expect_equal(length(result_parallel), 5)
     expect_equal(result_parallel, result_serial)
 })
 
-context("Parallel helpers: .tsenat_bpmapply with parallel execution (nthreads > 1)")
+context("Parallel helpers: .bpmapply with parallel execution (nthreads > 1)")
 
-test_that(".tsenat_bpmapply with nthreads > 1 uses BiocParallel::bpmapply", {
+test_that(".bpmapply with nthreads > 1 uses BiocParallel::bpmapply", {
     # Test parallel execution for bpmapply
     X <- 1:5
     Y <- 10:14
     FUN <- function(x, y) x + y
     
-    result_parallel <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
-    result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result_parallel <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
+    result_serial <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_is(result_parallel, "list")
     expect_equal(result_parallel, result_serial)
     expect_equal(result_parallel, list(11, 13, 15, 17, 19))
 })
 
-test_that(".tsenat_bpmapply parallel with complex operation", {
+test_that(".bpmapply parallel with complex operation", {
     # Test with more complex function
     X <- list(c(1, 2, 3), c(4, 5, 6))
     Y <- list(c(10, 20, 30), c(40, 50, 60))
     FUN <- function(x, y) list(sum = sum(x) + sum(y), means = mean(c(x, y)))
     
-    result_parallel <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
-    result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result_parallel <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
+    result_serial <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_equal(result_parallel, result_serial)
     expect_is(result_parallel, "list")
@@ -587,15 +587,15 @@ test_that(".tsenat_bpmapply parallel with complex operation", {
     expect_equal(result_parallel[[2]]$sum, 165)  # (4+5+6) + (40+50+60) = 165
 })
 
-test_that(".tsenat_bpmapply parallel with nthreads=2 initializes bpparam correctly", {
+test_that(".bpmapply parallel with nthreads=2 initializes bpparam correctly", {
     # This test specifically covers lines 57-59:
-    # bpparam <- .tsenat_get_bpparam(nthreads)
+    # bpparam <- .get_bpparam(nthreads)
     # return(unname(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE)))
     X <- 1:10
     Y <- 11:20
     FUN <- function(x, y) x * y
     
-    result <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
+    result <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
     
     expect_is(result, "list")
     expect_equal(length(result), 10)
@@ -605,7 +605,7 @@ test_that(".tsenat_bpmapply parallel with nthreads=2 initializes bpparam correct
     expect_equal(result[[10]], 200)
 })
 
-test_that(".tsenat_bpmapply parallel with nthreads=3 uses MulticoreParam", {
+test_that(".bpmapply parallel with nthreads=3 uses MulticoreParam", {
     # Test with 3 threads to ensure bpparam initialization works correctly
     X <- c("a", "b", "c", "d")
     Y <- c(1, 2, 3, 4)
@@ -613,8 +613,8 @@ test_that(".tsenat_bpmapply parallel with nthreads=3 uses MulticoreParam", {
     
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    result_parallel_4 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = max_threads)
-    result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result_parallel_4 <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = max_threads)
+    result_serial <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_equal(result_parallel_4, result_serial)
     expect_is(result_parallel_4, "list")
@@ -623,13 +623,13 @@ test_that(".tsenat_bpmapply parallel with nthreads=3 uses MulticoreParam", {
     expect_equal(result_parallel_4[[4]], c("d", "d", "d", "d"))
 })
 
-test_that(".tsenat_bpmapply parallel returns unnamned list with BiocParallel", {
+test_that(".bpmapply parallel returns unnamned list with BiocParallel", {
     # Verify that unname() is applied to the BiocParallel::bpmapply result
     X <- 1:3
     Y <- c("x", "y", "z")
     FUN <- function(x, y) paste0(y, x)
     
-    result <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
+    result <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
     
     # Result should be a list with no names
     expect_is(result, "list")
@@ -639,28 +639,28 @@ test_that(".tsenat_bpmapply parallel returns unnamned list with BiocParallel", {
     expect_equal(result[[3]], "z3")
 })
 
-test_that(".tsenat_bpmapply parallel with numeric vectors and bpparam initialization", {
+test_that(".bpmapply parallel with numeric vectors and bpparam initialization", {
     # Test with numeric computations to verify bpparam is correctly initialized
     X <- c(0.5, 1.5, 2.5, 3.5)
     Y <- c(10, 20, 30, 40)
     FUN <- function(x, y) x * y + sqrt(x)
     
-    result_parallel <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
-    result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result_parallel <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
+    result_serial <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_equal(result_parallel, result_serial, tolerance = 1e-10)
     # Verify: 0.5*10 + sqrt(0.5) ≈ 5.707
     expect_equal(result_parallel[[1]], 0.5 * 10 + sqrt(0.5), tolerance = 1e-10)
 })
 
-test_that(".tsenat_bpmapply parallel with large vectors and bpparam", {
+test_that(".bpmapply parallel with large vectors and bpparam", {
     # Test with larger data to ensure BiocParallel::bpmapply with bpparam works efficiently
     X <- 1:100
     Y <- 101:200
     FUN <- function(x, y) (x + y) / 2  # mean of x and y
     
-    result_parallel <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
-    result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result_parallel <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
+    result_serial <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     expect_equal(result_parallel, result_serial, tolerance = 1e-10)
     expect_equal(length(result_parallel), 100)
@@ -669,17 +669,17 @@ test_that(".tsenat_bpmapply parallel with large vectors and bpparam", {
     expect_equal(result_parallel[[100]], 150)
 })
 
-test_that(".tsenat_bpmapply parallel executes correctly with different nthreads values", {
+test_that(".bpmapply parallel executes correctly with different nthreads values", {
     # Test that bpparam initialization works for various thread counts
     X <- 1:6
     Y <- 6:1
     FUN <- function(x, y) c(x, y)
     
-    result_parallel_2 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
+    result_parallel_2 <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
     core_limit <- suppressWarnings(as.integer(Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)))
     max_threads <- if (is.na(core_limit)) min(2, parallel::detectCores()) else min(2, core_limit)
-    result_parallel_4 <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = max_threads)
-    result_serial <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 1)
+    result_parallel_4 <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = max_threads)
+    result_serial <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 1)
     
     # All should be equal
     expect_equal(result_parallel_2, result_serial)
@@ -687,13 +687,13 @@ test_that(".tsenat_bpmapply parallel executes correctly with different nthreads 
     expect_is(result_parallel_2, "list")
 })
 
-test_that(".tsenat_bpmapply SIMPLIFY=FALSE is respected in parallel execution", {
+test_that(".bpmapply SIMPLIFY=FALSE is respected in parallel execution", {
     # Verify that SIMPLIFY=FALSE is correctly passed to BiocParallel::bpmapply
     X <- 1:4
     Y <- 1:4
     FUN <- function(x, y) list(sum = x + y, product = x * y)
     
-    result <- TSENAT:::.tsenat_bpmapply(X, Y, FUN, nthreads = 2)
+    result <- TSENAT:::.bpmapply(X, Y, FUN, nthreads = 2)
     
     # Result should be a list of lists, not simplified
     expect_is(result, "list")

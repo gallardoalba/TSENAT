@@ -5,25 +5,25 @@
 
 context("Gamma Family Conditional Selection")
 
-testthat::test_that(".tsenat_compute_skewness calculates skewness correctly", {
+testthat::test_that(".compute_skewness calculates skewness correctly", {
     # Test symmetric distribution (skewness ≈ 0)
     symmetric <- c(1, 2, 3, 4, 5)
-    expect_lt(abs(.tsenat_compute_skewness(symmetric)), 0.1)
+    expect_lt(abs(.compute_skewness(symmetric)), 0.1)
     
     # Test right-skewed distribution (positive skewness)
     right_skewed <- c(1, 1, 2, 3, 10)
-    expect_gt(.tsenat_compute_skewness(right_skewed), 0)
+    expect_gt(.compute_skewness(right_skewed), 0)
     
     # Test left-skewed distribution (negative skewness)
     left_skewed <- c(-10, 1, 2, 3, 3)
-    expect_lt(.tsenat_compute_skewness(left_skewed), 0)
+    expect_lt(.compute_skewness(left_skewed), 0)
     
     # Test with NA handling
     with_na <- c(1, 2, 3, NA, 4, 5)
-    expect_true(!is.na(.tsenat_compute_skewness(with_na, na.rm = TRUE)))
+    expect_true(!is.na(.compute_skewness(with_na, na.rm = TRUE)))
 })
 
-testthat::test_that(".tsenat_detect_heteroscedasticity identifies variance changes", {
+testthat::test_that(".detect_heteroscedasticity identifies variance changes", {
     set.seed(42)
     n_q <- 10
     n_samples <- 4
@@ -35,7 +35,7 @@ testthat::test_that(".tsenat_detect_heteroscedasticity identifies variance chang
         group = rep(c("A", "B"), each = n_q * n_samples / 2)
     )
     
-    result_homo <- .tsenat_detect_heteroscedasticity(df_homo, 
+    result_homo <- .detect_heteroscedasticity(df_homo, 
                                                      q_vals = sort(unique(df_homo$q)),
                                                      group_vec = df_homo$group)
     
@@ -58,7 +58,7 @@ testthat::test_that(".tsenat_detect_heteroscedasticity identifies variance chang
         df_hetero$entropy[idx] <- 0.3 + rnorm(length(idx), 0, sd_i)
     }
     
-    result_hetero <- .tsenat_detect_heteroscedasticity(df_hetero,
+    result_hetero <- .detect_heteroscedasticity(df_hetero,
                                                        q_vals = sort(unique(df_hetero$q)),
                                                        group_vec = df_hetero$group)
     
@@ -66,7 +66,7 @@ testthat::test_that(".tsenat_detect_heteroscedasticity identifies variance chang
     expect_true(!is.na(result_hetero$p_value))
 })
 
-testthat::test_that(".tsenat_select_gam_family chooses Gaussian for normal data", {
+testthat::test_that(".select_gam_family chooses Gaussian for normal data", {
     set.seed(42)
     n_q <- 8
     n_samples <- 4
@@ -81,7 +81,7 @@ testthat::test_that(".tsenat_select_gam_family chooses Gaussian for normal data"
     # Ensure all positive
     df$entropy <- pmax(df$entropy, 0.001)
     
-    bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    bounded_result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                         group_vec = df$group, verbose = FALSE)
     result <- bounded_result$family_info
     
@@ -94,7 +94,7 @@ testthat::test_that(".tsenat_select_gam_family chooses Gaussian for normal data"
     expect_true(result$use_gaussian)
 })
 
-testthat::test_that(".tsenat_select_gam_family triggers Gamma for strong heteroscedasticity", {
+testthat::test_that(".select_gam_family triggers Gamma for strong heteroscedasticity", {
     skip_if_not_installed("mgcv")
     set.seed(42)
     n_q <- 10
@@ -116,7 +116,7 @@ testthat::test_that(".tsenat_select_gam_family triggers Gamma for strong heteros
     
     df$entropy <- pmax(df$entropy, 0.001)  # Ensure positive
     
-    bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    bounded_result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                         group_vec = df$group, verbose = FALSE)
     result <- bounded_result$family_info
     
@@ -128,7 +128,7 @@ testthat::test_that(".tsenat_select_gam_family triggers Gamma for strong heteros
     expect_gt(result$var_ratio_q, 1)  # Should show some variance change
 })
 
-testthat::test_that(".tsenat_select_gam_family detects boundary clustering", {
+testthat::test_that(".select_gam_family detects boundary clustering", {
     set.seed(42)
     n_q <- 10
     n_samples <- 4
@@ -142,7 +142,7 @@ testthat::test_that(".tsenat_select_gam_family detects boundary clustering", {
         group = rep(c("A", "B"), each = n_q * n_samples / 2)
     )
     
-    bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    bounded_result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                         group_vec = df$group, verbose = FALSE)
     result <- bounded_result$family_info
     
@@ -152,7 +152,7 @@ testthat::test_that(".tsenat_select_gam_family detects boundary clustering", {
     expect_gt(result$boundary_pct, 30)
 })
 
-testthat::test_that(".tsenat_handle_bounded_support returns correct family structure", {
+testthat::test_that(".handle_bounded_support returns correct family structure", {
     set.seed(42)
     n_q <- 8
     n_samples <- 4
@@ -165,7 +165,7 @@ testthat::test_that(".tsenat_handle_bounded_support returns correct family struc
     
     df$entropy <- pmax(df$entropy, 0.001)
     
-    result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                              group_vec = df$group, verbose = FALSE)
     
     expect_true(is.list(result))
@@ -188,7 +188,7 @@ testthat::test_that(".tsenat_handle_bounded_support returns correct family struc
     expect_equal(length(test_pred), length(test_eta))
 })
 
-testthat::test_that(".tsenat_handle_bounded_support inverse link for Gaussian is identity", {
+testthat::test_that(".handle_bounded_support inverse link for Gaussian is identity", {
     set.seed(42)
     df <- data.frame(
         entropy = rnorm(32, mean = 0.3, sd = 0.05),
@@ -198,7 +198,7 @@ testthat::test_that(".tsenat_handle_bounded_support inverse link for Gaussian is
     
     df$entropy <- pmax(df$entropy, 0.001)
     
-    result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                              group_vec = df$group)
     
     # If using Gaussian, inverse link should be identity
@@ -209,7 +209,7 @@ testthat::test_that(".tsenat_handle_bounded_support inverse link for Gaussian is
     }
 })
 
-testthat::test_that(".tsenat_handle_bounded_support inverse link for Gamma is exp", {
+testthat::test_that(".handle_bounded_support inverse link for Gamma is exp", {
     skip_if_not_installed("mgcv")
     set.seed(42)
     n_q <- 10
@@ -230,7 +230,7 @@ testthat::test_that(".tsenat_handle_bounded_support inverse link for Gamma is ex
     
     df$entropy <- pmax(df$entropy, 0.001)
     
-    result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                              group_vec = df$group)
     
     # Test inverse link function
@@ -266,7 +266,7 @@ testthat::test_that("GAM fitting with selected family produces valid predictions
     df$entropy <- pmax(df$entropy, 0.001)
     
     # Get selected family
-    family_info <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    family_info <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                                   group_vec = df$group)
     
     # Fit GAM with selected family
@@ -286,7 +286,7 @@ testthat::test_that("GAM fitting with selected family produces valid predictions
     expect_equal(length(pred), nrow(df))
 })
 
-testthat::test_that(".tsenat_gam_interaction uses conditional family selection", {
+testthat::test_that(".gam_interaction uses conditional family selection", {
     skip_if_not_installed("mgcv")
     set.seed(42)
     
@@ -298,7 +298,7 @@ testthat::test_that(".tsenat_gam_interaction uses conditional family selection",
     df <- data.frame(entropy = pmax(entropy, 0.001), q = q, group = factor(group))
     
     # Call GAM interaction
-    result <- suppressWarnings(.tsenat_gam_interaction(df, q_vals = unique(q), g = "test_gene", min_obs = 5))
+    result <- suppressWarnings(.gam_interaction(df, q_vals = unique(q), g = "test_gene", min_obs = 5))
     
     skip_if(is.null(result), "GAM interaction returned NULL")
     
@@ -328,7 +328,7 @@ testthat::test_that("Family selection is stable across repeated calls", {
     # Call family selection multiple times
     results <- list()
     for (i in seq_len(3)) {
-        bounded_result <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+        bounded_result <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                                    group_vec = df$group, verbose = FALSE)
         results[[i]] <- bounded_result$family_info
     }
@@ -353,7 +353,7 @@ testthat::test_that("Near-zero entropy values are handled correctly", {
     
     # Should handle without error
     result <- tryCatch({
-        bounded_result <- .tsenat_handle_bounded_support(df, q_vals = rep(0.5, nrow(df)),
+        bounded_result <- .handle_bounded_support(df, q_vals = rep(0.5, nrow(df)),
                                  group_vec = df$group)
         bounded_result$family_info
     }, error = function(e) NULL)
@@ -384,7 +384,7 @@ testthat::test_that("Gamma predictions are always positive for log link", {
     df$entropy <- pmax(df$entropy, 0.001)
     
     # Get family
-    family_info <- .tsenat_handle_bounded_support(df, q_vals = sort(unique(df$q)),
+    family_info <- .handle_bounded_support(df, q_vals = sort(unique(df$q)),
                                                   group_vec = df$group)
     
     # Fit model

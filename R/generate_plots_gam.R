@@ -184,10 +184,10 @@
     }
 
     # Build sample-to-group mapping using helper
-    sample_to_group <- .tsenat_prepare_sample_group_mapping(cdata, condition_col)
+    sample_to_group <- .prepare_sample_group_mapping(cdata, condition_col)
 
     # Determine which genes to plot using helper
-    top_genes <- .tsenat_plot_select_genes(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
+    top_genes <- .plot_select_genes(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
     
     if (is.null(top_genes)) {
         warning(sprintf("No genes significant at alpha = %g", sig_alpha), call. = FALSE)
@@ -214,13 +214,13 @@
         }
         
         # Prepare plot data for this gene using helper
-        plot_df <- .tsenat_plot_gam_prepare_gene_data(g, mat, sample_to_group)
+        plot_df <- .plot_gam_prepare_gene_data(g, mat, sample_to_group)
         if (is.null(plot_df)) {
             return(NULL)
         }
         
         # Fit GAM models and generate predictions using helper
-        gam_result <- .tsenat_plot_gam_fit_group(plot_df)
+        gam_result <- .plot_gam_fit_group(plot_df)
         if (is.null(gam_result)) {
             return(NULL)
         }
@@ -230,7 +230,7 @@
         group_levels <- gam_result$group_levels
         
         # Create explicit color mapping for all groups
-        palette_colors <- .tsenat_palette_blue_red()
+        palette_colors <- .palette_blue_red()
         color_mapping <- c()
         for (i in seq_along(group_levels)) {
             color_idx <- ((i - 1) %% length(palette_colors)) + 1
@@ -260,7 +260,7 @@
                 y = "Tsallis entropy",
                 title = ifelse(gene_display_name != g, sprintf("%s (%s)", gene_display_name, g), gene_display_name)
             ) +
-            .tsenat_theme_spectrum(base_size = 11) +
+            .theme_spectrum(base_size = 11) +
             ggplot2::theme(
                 legend.position = "none"
             )
@@ -300,8 +300,8 @@
     # Extract legend from first plot
     legend <- cowplot::get_legend(plots[[1]] + 
         ggplot2::theme(legend.position = "bottom",
-                      legend.title = ggplot2::element_text(size = .tsenat_font_sizes$legend_title),
-                      legend.text = ggplot2::element_text(size = .tsenat_font_sizes$legend_text)))
+                      legend.title = ggplot2::element_text(size = .font_sizes$legend_title),
+                      legend.text = ggplot2::element_text(size = .font_sizes$legend_text)))
     
     # Create grid without legends
     combined_plot <- cowplot::plot_grid(

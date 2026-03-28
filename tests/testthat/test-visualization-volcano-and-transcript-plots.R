@@ -212,7 +212,7 @@ test_that("plot_divergence_distribution: density plot overlay", {
   expect_is(p, "ggplot")
 })
 
-test_that(".tsenat_plot_transcript_grid_draw: grid arrangement helper", {
+test_that(".plot_transcript_grid_draw: grid arrangement helper", {
   config <- list()
   skip_if_not_installed("cowplot")
   library("cowplot")
@@ -381,7 +381,7 @@ test_that("make_plot_for_generead_tx2gene: read tx2gene mapping", {
   expect_equal(nrow(tx2gene_map), 3)
 })
 
-test_that(".tsenat_prepare_volcano_df: prepare volcano plot data", {
+test_that(".prepare_volcano_df: prepare volcano plot data", {
   config <- list()
   
   volcano_df <- data.frame(

@@ -3,7 +3,7 @@
 #' Internal: Validate parameters for detect_q_gene_interactions
 
 #' @noRd
-.tsenat_detect_q_validate_params <- function(paired, subject_col, wy_randomizations, 
+.detect_q_validate_params <- function(paired, subject_col, wy_randomizations, 
                                                 nperm_mode, verbose) {
   nperm_mode <- tolower(nperm_mode)
   nperm_mode <- match.arg(nperm_mode, c("standard", "conservative", "interactive"))
@@ -34,7 +34,7 @@
 #' Internal: Convert SE to long format and validate data
 
 #' @noRd
-.tsenat_detect_q_prepare_data <- function(data, entropy_col, q_col, gene_col, paired, 
+.detect_q_prepare_data <- function(data, entropy_col, q_col, gene_col, paired, 
                                             subject_col, condition_col, verbose) {
   if (methods::is(data, "SummarizedExperiment")) {
     if (verbose) message("Converting SummarizedExperiment to long-format...")
@@ -119,14 +119,14 @@
 #' Internal: Analyze single gene for q-effects
 
 #' @noRd
-.tsenat_detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition) {
+.detect_q_analyze_gene <- function(gene_data, paired, subject_col, has_condition) {
   q_levels <- unique(gene_data$q)
   if (length(q_levels) < 2) {
     return(list(test_failed = TRUE, class = "Insufficient data", method = "insufficient"))
   }
   
   # Always run Q×Condition interaction test (condition is now REQUIRED)
-  test_result <- tryCatch(.tsenat_test_q_condition_interaction(
+  test_result <- tryCatch(.test_q_condition_interaction(
     gene_data, "entropy", "q", "condition", paired, if (paired) subject_col else NULL),
     error = function(e) NULL)
   
@@ -157,14 +157,14 @@
 #' Internal: Apply multiple testing correction
 
 #' @noRd
-.tsenat_detect_q_apply_multicorr <- function(interaction_results, multicorr, wy_randomizations,
+.detect_q_apply_multicorr <- function(interaction_results, multicorr, wy_randomizations,
                                               nperm_mode, data, paired, subject_col, has_condition,
                                               nthreads, verbose) {
   if (multicorr == "westfall-young") {
-    permute_fn <- .tsenat_detect_q_get_permute_function(data, paired, subject_col, has_condition)
-    perm_result <- .tsenat_westfall_young_permutation_rank(
+    permute_fn <- .detect_q_get_permute_function(data, paired, subject_col, has_condition)
+    perm_result <- .westfall_young_permutation_rank(
       nrow(interaction_results), wy_randomizations, permute_fn,
-      .tsenat_detect_q_refit_permuted_tests(interaction_results, data, paired, subject_col, has_condition),
+      .detect_q_refit_permuted_tests(interaction_results, data, paired, subject_col, has_condition),
       nthreads, verbose)
     
     max_stats <- apply(perm_result$perm_stats_matrix, 2, max, na.rm = TRUE)
@@ -177,9 +177,9 @@
     interaction_results <- interaction_results[order(interaction_results$p_value), , drop = FALSE]
     interaction_results$adj_p_value <- cummax(interaction_results$adj_p_value)
   } else if (multicorr == "hochberg") {
-    interaction_results$adj_p_value <- .tsenat_hochberg_stepup(interaction_results$p_value)
+    interaction_results$adj_p_value <- .hochberg_stepup(interaction_results$p_value)
   } else if (multicorr == "benjamini-yekutieli") {
-    interaction_results$adj_p_value <- .tsenat_benjamini_yekutieli(interaction_results$p_value)
+    interaction_results$adj_p_value <- .benjamini_yekutieli(interaction_results$p_value)
   } else {
     interaction_results$adj_p_value <- interaction_results$p_value
   }
@@ -190,7 +190,7 @@
 #' Internal: Get permutation function for WY test
 
 #' @noRd
-.tsenat_detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
+.detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
   data_orig <- data
   # Always test Q×Condition interaction (condition is now REQUIRED)
   if (paired) {
@@ -214,14 +214,14 @@
 #' Internal: Refit function for WY permutations
 
 #' @noRd
-.tsenat_detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col, has_condition) {
+.detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col, has_condition) {
   function(data_perm) {
     perm_stats <- perm_pvals <- numeric(nrow(interaction_results))
     for (i in seq_len(nrow(interaction_results))) {
       gene_data_perm <- data_perm[data_perm$gene == interaction_results$gene[i], ]
       if (nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >= 2) {
         # Always run Q×Condition interaction test (condition is now REQUIRED)
-        test_result <- tryCatch(.tsenat_test_q_condition_interaction(gene_data_perm, "entropy", "q", "condition",
+        test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm, "entropy", "q", "condition",
                                                        paired, if (paired) subject_col else NULL), error = function(e) NULL)
         if (!is.null(test_result) && !is.na(test_result$statistic)) {
           perm_stats[i] <- test_result$statistic
@@ -458,8 +458,8 @@
 #'   - Null: entropy independent of q (H0)
 #' 
 #' Conditional test refitting:
-#' - If condition_col != NULL: Refit .tsenat_test_q_condition_interaction()
-#' - If condition_col = NULL: Refit .tsenat_apply_conditional_rank_test()
+#' - If condition_col != NULL: Refit .test_q_condition_interaction()
+#' - If condition_col = NULL: Refit .apply_conditional_rank_test()
 #' 
 #' **Technical notes:**
 #' 1. Paired parameter IGNORED if paired=FALSE (global permutation used instead)
@@ -580,13 +580,13 @@
   multicorr <- match.arg(multicorr)
   
   # PHASE 1: VALIDATE PARAMETERS
-  params <- .tsenat_detect_q_validate_params(paired, subject_col, wy_randomizations, 
+  params <- .detect_q_validate_params(paired, subject_col, wy_randomizations, 
                                                 nperm_mode, verbose)
   wy_randomizations <- params$wy_randomizations
   nperm_mode <- params$nperm_mode
   
   # PHASE 2: PREPARE DATA (SE conversion, column validation)
-  prep_result <- .tsenat_detect_q_prepare_data(data, entropy_col, q_col, gene_col, 
+  prep_result <- .detect_q_prepare_data(data, entropy_col, q_col, gene_col, 
                                                   paired, subject_col, condition_col, verbose)
   data <- prep_result$data
   has_condition <- prep_result$has_condition
@@ -615,7 +615,7 @@
   # PHASE 5: PER-GENE ANALYSIS LOOP
   for (g_idx in seq_len(n_genes)) {
     gene_data <- data[data$gene == all_genes[g_idx], ]
-    result <- .tsenat_detect_q_analyze_gene(gene_data, paired, subject_col, has_condition)
+    result <- .detect_q_analyze_gene(gene_data, paired, subject_col, has_condition)
     
     if (result$test_failed) {
       interaction_results[g_idx, c("interaction_class", "p_value", "test_method")] <- 
@@ -641,7 +641,7 @@
   interaction_results$interaction_class <- .classify_q_dependency(interaction_results, 0.05, 0.01, 0.10)
   
   # PHASE 7: APPLY MULTIPLE TESTING CORRECTION
-  interaction_results <- .tsenat_detect_q_apply_multicorr(interaction_results, multicorr, 
+  interaction_results <- .detect_q_apply_multicorr(interaction_results, multicorr, 
                                                              wy_randomizations, nperm_mode, 
                                                              data, paired, subject_col, has_condition,
                                                              nthreads, verbose)

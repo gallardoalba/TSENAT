@@ -172,7 +172,7 @@ test_that("plot_tsallis_q_curve_s4 returns ggplot with valid SE", {
         stringsAsFactors = FALSE
     )
 
-    ts_se <- TSENAT:::.tsenat_map_metadata_se(ts_se, coldata_df)
+    ts_se <- TSENAT:::.map_metadata_se(ts_se, coldata_df)
 
     p <- plot_tsallis_q_curve_s4(ts_se)
     expect_true(inherits(p, "ggplot"))
@@ -247,12 +247,12 @@ test_that("validate_control_in_samples picks 'Normal' when present or first leve
     expect_equal(.validate_control_in_samples("B", samples2), "B")
 })
 
-test_that(".tsenat_plot_ma_core errors when fold-change column missing or x axis missing", {
+test_that(".plot_ma_core errors when fold-change column missing or x axis missing", {
     skip_if_not_installed("ggplot2")
     df <- data.frame(genes = paste0("g", 1:4), val = runif(4))
-    expect_error(.tsenat_plot_ma_core(df), "Could not find a fold-change column")
+    expect_error(.plot_ma_core(df), "Could not find a fold-change column")
     df2 <- data.frame(genes = paste0("g", 1:4), log2_fold_change = rnorm(4))
-    expect_s3_class(.tsenat_plot_ma_core(df2), "ggplot")
+    expect_s3_class(.plot_ma_core(df2), "ggplot")
 })
 
 context("Visualization: Top Transcripts Plotting")
@@ -530,14 +530,14 @@ test_that("plot_volcano auto-detects a numeric x column when x_col is NULL", {
     expect_s3_class(p, "ggplot")
 })
 
-# .tsenat_plot_ma_core uses fc_df values when provided; verify y values in plot data correspond to fc_df
+# .plot_ma_core uses fc_df values when provided; verify y values in plot data correspond to fc_df
 
-test_that(".tsenat_plot_ma_core uses fc_df values when provided", {
+test_that(".plot_ma_core uses fc_df values when provided", {
     skip_if_not_installed("ggplot2")
     x <- data.frame(genes = paste0("g", seq_len(5)), mean = runif(5), log2_fold_change = rnorm(5), stringsAsFactors = FALSE)
     fc <- data.frame(genes = x$genes, log2_fold_change = rnorm(5, mean = 5, sd = 0.1), stringsAsFactors = FALSE)
 
-    p <- TSENAT:::.tsenat_plot_ma_core(x, fc_df = fc)
+    p <- TSENAT:::.plot_ma_core(x, fc_df = fc)
     expect_s3_class(p, "ggplot")
     pb <- ggplot2::ggplot_build(p)
     plotted_y <- pb$data[[1]]$y
@@ -689,17 +689,17 @@ context("Visualization: Plot Helper Functions")
 
 library(testthat)
 
-test_that(".tsenat_format_label handles various inputs", {
-    expect_null(.tsenat_format_label(NULL))
-    expect_equal(.tsenat_format_label("__FOO_bar  "), "Foo bar")
-    expect_equal(.tsenat_format_label(" a "), "A")
-    expect_equal(.tsenat_format_label("   "), "")
-    expect_equal(.tsenat_format_label("SINGLE"), "Single")
+test_that(".format_label handles various inputs", {
+    expect_null(.format_label(NULL))
+    expect_equal(.format_label("__FOO_bar  "), "Foo bar")
+    expect_equal(.format_label(" a "), "A")
+    expect_equal(.format_label("   "), "")
+    expect_equal(.format_label("SINGLE"), "Single")
 })
 
-test_that(".tsenat_prepare_ma_plot_df handles mean_cols length >=2 and significance detection", {
+test_that(".prepare_ma_plot_df handles mean_cols length >=2 and significance detection", {
     df <- data.frame(genes = c("g1", "g2", "g3"), meanA = c(1, 2, 3), meanB = c(1.5, 1.5, 1.5), log2fc = c(0, 1.2, -0.5), padj = c(0.2, 0.01, NA), stringsAsFactors = FALSE)
-    res <- .tsenat_prepare_ma_plot_df(df, fold_col = "log2fc", mean_cols = c("meanA", "meanB"), x_label = NULL, y_label = "Log2FC")
+    res <- .prepare_ma_plot_df(df, fold_col = "log2fc", mean_cols = c("meanA", "meanB"), x_label = NULL, y_label = "Log2FC")
     expect_is(res, "list")
     # when mean_cols length>=2 and x_label is NULL, default to 'meanA vs meanB'
     expect_equal(res$x_label, "meanA vs meanB")
@@ -710,26 +710,26 @@ test_that(".tsenat_prepare_ma_plot_df handles mean_cols length >=2 and significa
     expect_equal(sig, c("non-significant", "significant", "non-significant"))
 })
 
-test_that(".tsenat_prepare_ma_plot_df handles single mean col and fallback mean/index", {
+test_that(".prepare_ma_plot_df handles single mean col and fallback mean/index", {
     df1 <- data.frame(genes = c("g1", "g2"), m = c(5, 6), fc = c(0, 2), stringsAsFactors = FALSE)
-    r1 <- .tsenat_prepare_ma_plot_df(df1, fold_col = "fc", mean_cols = c("m"), x_label = NULL, y_label = NULL)
+    r1 <- .prepare_ma_plot_df(df1, fold_col = "fc", mean_cols = c("m"), x_label = NULL, y_label = NULL)
     expect_equal(r1$x_label, "m")
     expect_equal(r1$plot_df$x, as.numeric(c(5, 6)))
 
     df2 <- data.frame(genes = c("g1", "g2"), mean = c(3, 4), fc = c(1, 0), stringsAsFactors = FALSE)
-    r2 <- .tsenat_prepare_ma_plot_df(df2, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
+    r2 <- .prepare_ma_plot_df(df2, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
     expect_equal(r2$x_label, "Mean")
 
     df3 <- data.frame(genes = c("g1", "g2"), fc = c(1, 2), stringsAsFactors = FALSE)
-    r3 <- .tsenat_prepare_ma_plot_df(df3, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
+    r3 <- .prepare_ma_plot_df(df3, fold_col = "fc", mean_cols = character(0), x_label = NULL, y_label = NULL)
     expect_equal(r3$x_label, "Index")
     expect_equal(r3$plot_df$x, c(1, 2))
 })
 
 
-test_that(".tsenat_prepare_volcano_df detects _difference column and formats labels", {
+test_that(".prepare_volcano_df detects _difference column and formats labels", {
     df <- data.frame(gene = c("a", "b", "c"), median_difference = c(0.2, -0.5, 0.6), adjusted_p_values = c(0.2, 0.01, 0.001), stringsAsFactors = FALSE)
-    res <- .tsenat_prepare_volcano_df(df)
+    res <- .prepare_volcano_df(df)
     expect_equal(res$x_col, "median_difference")
     expect_equal(res$padj_col, "adjusted_p_values")
     expect_true("df" %in% names(res))
@@ -737,20 +737,20 @@ test_that(".tsenat_prepare_volcano_df detects _difference column and formats lab
     expect_match(res$padj_label_formatted, "Adjusted p values|Adjusted p values")
 })
 
-test_that(".tsenat_prepare_volcano_df errors for missing columns and empty data", {
+test_that(".prepare_volcano_df errors for missing columns and empty data", {
     df <- data.frame(g = 1:3, something = letters[1:3], stringsAsFactors = FALSE)
     # Because 'g' is numeric it will be chosen as x_col but the default padj
     # column 'adjusted_p_values' is missing and an informative error is raised
-    expect_error(.tsenat_prepare_volcano_df(df), "Column 'adjusted_p_values' not found")
+    expect_error(.prepare_volcano_df(df), "Column 'adjusted_p_values' not found")
 
     df2 <- data.frame(x = c(NA, Inf), adjusted_p_values = c(NA, NA), stringsAsFactors = FALSE)
-    expect_error(.tsenat_prepare_volcano_df(df2, x_col = "x"), "No valid points to plot")
+    expect_error(.prepare_volcano_df(df2, x_col = "x"), "No valid points to plot")
 
     df3 <- data.frame(x = c(1, 2), adj = c(0.01, 0.02), stringsAsFactors = FALSE)
-    expect_error(.tsenat_prepare_volcano_df(df3, x_col = "x", padj_col = "nope"), "Column 'nope' not found")
+    expect_error(.prepare_volcano_df(df3, x_col = "x", padj_col = "nope"), "Column 'nope' not found")
 })
 
-test_that(".tsenat_prepare_volcano_df errors when x_col is not found in data", {
+test_that(".prepare_volcano_df errors when x_col is not found in data", {
     # Test the error: stop(sprintf("Column '%s' not found in diff_df", x_col))
     df <- data.frame(
         gene = c("g1", "g2", "g3"),
@@ -761,12 +761,12 @@ test_that(".tsenat_prepare_volcano_df errors when x_col is not found in data", {
     
     # Explicitly provide non-existent x_col
     expect_error(
-        .tsenat_prepare_volcano_df(df, x_col = "missing_column"),
+        .prepare_volcano_df(df, x_col = "missing_column"),
         "Column 'missing_column' not found in diff_df"
     )
 })
 
-test_that(".tsenat_prepare_volcano_df errors when padj_col is not found in data", {
+test_that(".prepare_volcano_df errors when padj_col is not found in data", {
     # Test the error: stop(sprintf("Column '%s' not found in diff_df", padj_col))
     df <- data.frame(
         gene = c("g1", "g2", "g3"),
@@ -777,18 +777,18 @@ test_that(".tsenat_prepare_volcano_df errors when padj_col is not found in data"
     
     # Use default padj_col which doesn't exist
     expect_error(
-        .tsenat_prepare_volcano_df(df, x_col = "log2fc"),
+        .prepare_volcano_df(df, x_col = "log2fc"),
         "Column 'adjusted_p_values' not found in diff_df"
     )
     
     # Explicitly provide non-existent padj_col
     expect_error(
-        .tsenat_prepare_volcano_df(df, x_col = "log2fc", padj_col = "wrong_padj"),
+        .prepare_volcano_df(df, x_col = "log2fc", padj_col = "wrong_padj"),
         "Column 'wrong_padj' not found in diff_df"
     )
 })
 
-test_that(".tsenat_prepare_volcano_df handles all valid column combinations", {
+test_that(".prepare_volcano_df handles all valid column combinations", {
     # Test with various valid column names to ensure error catching is precise
     df <- data.frame(
         gene = c("g1", "g2", "g3"),
@@ -798,7 +798,7 @@ test_that(".tsenat_prepare_volcano_df handles all valid column combinations", {
     )
     
     # Should work with valid columns
-    result <- .tsenat_prepare_volcano_df(df, x_col = "mean_difference", padj_col = "p_adj")
+    result <- .prepare_volcano_df(df, x_col = "mean_difference", padj_col = "p_adj")
     expect_is(result, "list")
     expect_true("df" %in% names(result))
     expect_equal(result$x_col, "mean_difference")
@@ -807,9 +807,9 @@ test_that(".tsenat_prepare_volcano_df handles all valid column combinations", {
 
 
 
-test_that(".tsenat_prepare_volcano_df handles padj <=0 and signficance logic", {
+test_that(".prepare_volcano_df handles padj <=0 and signficance logic", {
     df <- data.frame(g = 1:4, value = c(0.2, 0.5, -0.2, 1), adjusted_p_values = c(0, 1e-10, 0.5, 0.001), stringsAsFactors = FALSE)
-    res <- .tsenat_prepare_volcano_df(df, x_col = "value")
+    res <- .prepare_volcano_df(df, x_col = "value")
     expect_true(all(res$df$padj > 0))
     # label_thresh default 0.1: check significance assignment
     sig <- res$df$significant
@@ -1032,19 +1032,19 @@ test_that("get_tx2gene_from_se fallback works", {
     expect_equal(res2$mapping, c("g1", "g1"))
 })
 
-test_that(".tsenat_plot_ma_core handles more edge cases", {
+test_that(".plot_ma_core handles more edge cases", {
     # No genes column, but rownames are present
     df <- data.frame(mean = runif(5), log2_fold_change = rnorm(5))
     rownames(df) <- paste0("g", 1:5)
-    p <- TSENAT:::.tsenat_plot_ma_core(df)
+    p <- TSENAT:::.plot_ma_core(df)
     expect_s3_class(p, "ggplot")
 
     # fc_df without 'log2_fold_change' column
     fc_df_bad <- data.frame(genes = paste0("g", 1:5))
-    expect_error(TSENAT:::.tsenat_plot_ma_core(df, fc_df = fc_df_bad), "Provided `fc_df` must contain 'log2_fold_change' column")
+    expect_error(TSENAT:::.plot_ma_core(df, fc_df = fc_df_bad), "Provided `fc_df` must contain 'log2_fold_change' column")
 
     # y_label_formatted branch
-    p2 <- TSENAT:::.tsenat_plot_ma_core(df, y_label = "log2")
+    p2 <- TSENAT:::.plot_ma_core(df, y_label = "log2")
     expect_s3_class(p2, "ggplot")
 })
 
@@ -1068,31 +1068,31 @@ test_that("plot_tsallis_q_curve_s4 handles single group and empty long df", {
 })
 
 
-test_that(".tsenat_plot_transcript_fill_limits handles no transcripts found", {
+test_that(".plot_transcript_fill_limits handles no transcripts found", {
     counts <- matrix(1:4, 2)
     rownames(counts) <- c("tx1", "tx2")
     mapping <- data.frame(Transcript = c("tx3"), Gen = c("g1"))
     samples <- c("a", "b")
-    expect_error(TSENAT:::.tsenat_plot_transcript_fill_limits(genes = "g1", mapping = mapping, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1), "No transcripts found for provided genes")
+    expect_error(TSENAT:::.plot_transcript_fill_limits(genes = "g1", mapping = mapping, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1), "No transcripts found for provided genes")
 
     # case where one gene has no txs, but other does
     mapping2 <- data.frame(Transcript = c("tx1", "tx4"), Gen = c("g2", "g3"))
-    limits <- TSENAT:::.tsenat_plot_transcript_fill_limits(genes = c("g1", "g2"), mapping = mapping2, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1)
+    limits <- TSENAT:::.plot_transcript_fill_limits(genes = c("g1", "g2"), mapping = mapping2, counts = counts, samples = samples, top_n = 1, agg_fun = mean, pseudocount = 1)
     expect_is(limits, "numeric")
 })
 
-test_that(".tsenat_plot_transcript_grid_draw creates a temporary pdf in non-interactive sessions", {
+test_that(".plot_transcript_grid_draw creates a temporary pdf in non-interactive sessions", {
     # This is hard to test directly, but we can check the logic.
     # We can't easily force a non-interactive session in a test.
     # We can check that it doesn't error when no device is open.
     grob <- grid::rectGrob()
-    expect_silent(TSENAT:::.tsenat_plot_transcript_grid_draw(list(grob), "title", NULL, 1, grid::unit(1, "null")))
+    expect_silent(TSENAT:::.plot_transcript_grid_draw(list(grob), "title", NULL, 1, grid::unit(1, "null")))
 
     # test with file (open a device so the function can close it)
     tf <- tempfile(fileext = ".png")
     png(tf, width = 400, height = 300)
     on.exit(if (grDevices::dev.cur() > 1) grDevices::dev.off(), add = TRUE)
-    expect_silent(TSENAT:::.tsenat_plot_transcript_grid_draw(list(grob), "title", NULL, 1, grid::unit(1, "null"), to_file = tf))
+    expect_silent(TSENAT:::.plot_transcript_grid_draw(list(grob), "title", NULL, 1, grid::unit(1, "null"), to_file = tf))
     expect_true(file.exists(tf))
     if (file.exists(tf)) unlink(tf)
 })
@@ -5313,7 +5313,7 @@ test_that("plot_ma_tsallis: error when fc_df missing log2_fold_change (line 253)
   
   # This test checks that the error handling catches invalid fc_df
   # Note: plot_ma_tsallis doesn't accept fc_df, so we test the logic path
-  # by checking if .tsenat_plot_ma_core would handle it
+  # by checking if .plot_ma_core would handle it
   # For now, just verify the scenario is tested
   expect_true(!"log2_fold_change" %in% colnames(fc_df))
 })
@@ -5532,7 +5532,7 @@ test_that("plot_divergence_distribution: density plot overlay", {
   expect_is(p, "ggplot")
 })
 
-test_that(".tsenat_plot_transcript_grid_draw: grid arrangement helper", {
+test_that(".plot_transcript_grid_draw: grid arrangement helper", {
   config <- list()
   skip_if_not_installed("cowplot")
   library("cowplot")
@@ -5701,7 +5701,7 @@ test_that("make_plot_for_generead_tx2gene: read tx2gene mapping", {
   expect_equal(nrow(tx2gene_map), 3)
 })
 
-test_that(".tsenat_prepare_volcano_df: prepare volcano plot data", {
+test_that(".prepare_volcano_df: prepare volcano plot data", {
   config <- list()
   
   volcano_df <- data.frame(

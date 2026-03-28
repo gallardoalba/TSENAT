@@ -345,7 +345,7 @@
 #   - Solution: Extract permutation machinery, supply model-specific refit_fn callback
 #
 # USAGE:
-#   perm_result <- .tsenat_westfall_young_permutation(
+#   perm_result <- .westfall_young_permutation(
 #       n_genes = nrow(results),
 #       wy_randomizations = 1000,
 #       permute_fn = function() { ... return permutation_assignment ... },
@@ -366,7 +366,7 @@
 #   Note: If signal is very strong, all permutation minima may be >>observed p-values,
 #   leading to identical adjusted p-values = (0+1)/(B+1). This is CORRECT behavior!
 #
-.tsenat_westfall_young_permutation <- function(n_genes, wy_randomizations,
+.westfall_young_permutation <- function(n_genes, wy_randomizations,
                                                permute_fn, refit_fn,
                                                nthreads = 1,
                                                verbose = FALSE) {
@@ -494,7 +494,7 @@
 # Solution: Track test statistics (H, W, etc.) instead for better effect size differentiation
 #
 
-.tsenat_westfall_young_permutation_rank <- function(n_genes, wy_randomizations,
+.westfall_young_permutation_rank <- function(n_genes, wy_randomizations,
                                                      permute_fn, refit_fn,
                                                      nthreads = 1,
                                                      verbose = FALSE) {

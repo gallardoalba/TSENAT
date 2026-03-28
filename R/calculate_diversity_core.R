@@ -7,7 +7,7 @@
 #' Validate and normalize diversity parameters
 
 #' @noRd
-.tsenat_validate_diversity_parameters <- function(norm, q, what, shrinkage, pseudocount) {
+.validate_diversity_parameters <- function(norm, q, what, shrinkage, pseudocount) {
   # Coerce logical norm to character for backward compatibility
   if (is.logical(norm)) {
     norm <- if (norm) "range" else "none"
@@ -35,7 +35,7 @@
 #' Handle pseudocount auto-estimation
 
 #' @noRd
-.tsenat_handle_pseudocount_auto <- function(pseudocount, x, verbose) {
+.handle_pseudocount_auto <- function(pseudocount, x, verbose) {
   if (!is.character(pseudocount) || tolower(pseudocount) != "auto") {
     return(pseudocount)  # Return as-is if not "auto"
   }
@@ -56,7 +56,7 @@
 #' Extract gene names from SummarizedExperiment rowData
 
 #' @noRd
-.tsenat_extract_gene_names <- function(original_x, genes, result) {
+.extract_gene_names <- function(original_x, genes, result) {
   gene_names <- NULL
   
   if (!is(original_x, "SummarizedExperiment") && !is(original_x, "RangedSummarizedExperiment")) {
@@ -105,16 +105,16 @@
 #' Prepare column and row data for diversity result#' Prepare and validate diversity input data
 #'
 #' Internal helper: Prepares input matrix, validates dimensions, looks up effective_length
-#' in metadata, and computes initial diversity values via .tsenat_calculate_method().
+#' in metadata, and computes initial diversity values via .calculate_method().
 #'
 
 #' @noRd
-.tsenat_prepare_diversity_data <- function(x, genes, original_x, effective_length, 
+.prepare_diversity_data <- function(x, genes, original_x, effective_length, 
     norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose, 
     tpm, assayno) {
     
     # Prepare input data
-    inp <- .tsenat_prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno,
+    inp <- .prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno,
         verbose = verbose)
     x <- inp$x
     genes <- inp$genes
@@ -147,7 +147,7 @@
         message("Calculating diversity with EFFECTIVE LENGTH NORMALIZATION")
     }
     
-    result <- .tsenat_calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
+    result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
         nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
         shrinkage = shrinkage, effective_length = effective_length)
     
@@ -160,7 +160,7 @@
 #'
 
 #' @noRd
-.tsenat_bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
+.bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
     bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
     bootstrap_include_diagnostics, verbose) {
     
@@ -212,7 +212,7 @@
 #'
 
 #' @noRd
-.tsenat_build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
+.build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
     bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes) {
     
     result_assay <- output_structure$result_assay
@@ -348,14 +348,14 @@
     
     # Apply metadata mapping if provided
     if (!is.null(metadata)) {
-        result <- .tsenat_map_metadata_se(result, metadata)
+        result <- .map_metadata_se(result, metadata)
     }
     
     result
 }
 
 #' @noRd
-.tsenat_prepare_diversity_metadata <- function(x, result, original_x, genes, q, gene_names = NULL) {
+.prepare_diversity_metadata <- function(x, result, original_x, genes, q, gene_names = NULL) {
   # Get gene IDs from first column of result
   gene_ids <- as.character(result[, 1])
   row_ids <- if (!is.null(gene_names)) gene_names else gene_ids
@@ -503,7 +503,7 @@
 #' Set to FALSE to reduce computation time for large datasets.
 #' @param metadata Optional list or data frame used to enrich the result. If provided,
 #' the function applies metadata mapping to the output SummarizedExperiment via
-#' `.tsenat_map_metadata_se()`. This allows adding additional context or derived annotations to
+#' `.map_metadata_se()`. This allows adding additional context or derived annotations to
 #' the result object. Common use cases: adding phenotype information, batch labels,
 #' or other experimental metadata. Default: NULL (no metadata mapping applied).
 #'
@@ -574,17 +574,17 @@
     
     # Store original input and validate parameters
     original_x <- x
-    validated <- .tsenat_validate_diversity_parameters(norm, q, what, shrinkage, pseudocount)
+    validated <- .validate_diversity_parameters(norm, q, what, shrinkage, pseudocount)
     norm <- validated$norm
     q <- validated$q
     what <- validated$what
     shrinkage <- validated$shrinkage
     
     # Handle pseudocount auto-estimation
-    pseudocount <- .tsenat_handle_pseudocount_auto(pseudocount, x, verbose)
+    pseudocount <- .handle_pseudocount_auto(pseudocount, x, verbose)
     
     # Prepare input and calculate diversity
-    prep <- .tsenat_prepare_diversity_data(x, genes, original_x, effective_length,
+    prep <- .prepare_diversity_data(x, genes, original_x, effective_length,
         norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose,
         tpm, assayno)
     result <- prep$result
@@ -593,16 +593,16 @@
     se_assay_mat <- prep$se_assay_mat
     
     # Optional: Compute bootstrap CIs
-    bootstrap_ci_results <- .tsenat_bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
+    bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
         bootstrap_include_diagnostics, verbose)
     
     # Prepare output structure
-    gene_names <- .tsenat_extract_gene_names(original_x, genes, result)
-    output_structure <- .tsenat_prepare_diversity_metadata(x, result, original_x, genes, q, gene_names)
+    gene_names <- .extract_gene_names(original_x, genes, result)
+    output_structure <- .prepare_diversity_metadata(x, result, original_x, genes, q, gene_names)
     
     # Build and return SummarizedExperiment
-    .tsenat_build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
+    .build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
         bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes)
 }
 

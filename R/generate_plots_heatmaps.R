@@ -98,17 +98,17 @@
   layout_ncol = 2,
   output_file = NULL) {
   # Phase 1: Validate input
-  result_data <- .tsenat_validate_multiq_input(switching_results)
+  result_data <- .validate_multiq_input(switching_results)
   q_result_keys <- result_data$q_result_keys
   gene_ids <- result_data$gene_ids
   gene_name_map <- result_data$gene_name_map
 
   # Phase 2: Select genes
-  top_genes <- .tsenat_heatmap_select_genes_multiq(switching_results, n_genes, lm_results)
+  top_genes <- .heatmap_select_genes_multiq(switching_results, n_genes, lm_results)
 
   # Phase 3: Collect gene info for layout planning
   gene_info_list <- lapply(seq_along(top_genes), function(i) {
-    mat <- .tsenat_heatmap_prepare_multiq_data(switching_results, top_genes[i], q_result_keys)
+    mat <- .heatmap_prepare_multiq_data(switching_results, top_genes[i], q_result_keys)
     if (is.null(mat)) {
       list(n_transcripts = 0)
     } else {
@@ -117,12 +117,12 @@
   })
 
   # Phase 4: Plan layout and calculate dimensions
-  layout_result <- .tsenat_plot_adaptive_layout(gene_info_list,
+  layout_result <- .plot_adaptive_layout(gene_info_list,
                                          use_fixed_layout = !is.null(layout_ncol) && layout_ncol > 0,
                                          layout_ncol = layout_ncol)
   gene_layout <- layout_result$layout
   n_layout_rows <- layout_result$n_layout_rows
-  dims <- .tsenat_calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
+  dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
 
   # Phase 5: Create heatmaps (using refactored loop)
   all_gene_matrices <- list()
@@ -130,7 +130,7 @@
 
   for (gene_idx in seq_along(top_genes)) {
     gene_id <- top_genes[gene_idx]
-    mat <- .tsenat_heatmap_prepare_multiq_data(switching_results, gene_id, q_result_keys)
+    mat <- .heatmap_prepare_multiq_data(switching_results, gene_id, q_result_keys)
 
     if (is.null(mat) || nrow(mat) == 0 || ncol(mat) == 0) {
       all_gene_matrices[[gene_idx]] <- NULL
@@ -179,11 +179,11 @@
     width_frac <- if (!is.null(layout_info)) layout_info$width else 1
 
     # Calculate cell sizes
-    cells <- .tsenat_calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
+    cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
                                             cellwidth, cellheight, fontsize)
 
     # Create pheatmap grob
-    heatmap_plots[[gene_idx]] <- .tsenat_create_pheatmap_grob(mat,
+    heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat,
       title = gene_info$gene_name,
       cellw = cells$cellwidth,
       cellh = cells$cellheight,
@@ -194,14 +194,14 @@
 
   # Phase 7: Render grid
   tryCatch({
-    .tsenat_plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
+    .plot_grid_setup(n_layout_rows, output_file, dims$png_width, dims$png_height,
       title = "Delta Influence Across Diversity Scales",
       subtitle = "Jackknife weights across q-spectrum for selected genes"
     )
 
-    .tsenat_render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+    .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
     
-    .tsenat_plot_grid_finalize(output_file, verbose = verbose)
+    .plot_grid_finalize(output_file, verbose = verbose)
   }, error = function(e) {
     if (!is.null(output_file)) {
       tryCatch(grDevices::dev.off(), silent = TRUE)
@@ -287,7 +287,7 @@
   }
   
   # Phase 1: Validate input and extract components
-  se_data <- .tsenat_validate_se_for_heatmaps(se, condition_col = condition_col)
+  se_data <- .validate_se_for_heatmaps(se, condition_col = condition_col)
   counts <- se_data$counts
   rd <- se_data$rowdata
   cd <- se_data$coldata
@@ -317,7 +317,7 @@
   # Phase 2: Select genes
   metric_choice <- match.arg(metric)
   if (is.null(gene) && !is.null(res)) {
-    gene <- .tsenat_heatmap_select_genes_results(se, res, gene_col, top_n, tx2gene)
+    gene <- .heatmap_select_genes_results(se, res, gene_col, top_n, tx2gene)
   }
   if (is.null(gene)) {
     stop("gene must be provided or derivable from res", call. = FALSE)
@@ -329,7 +329,7 @@
     list(n_transcripts = length(tx_idx))
   })
   
-  layout_result <- .tsenat_plot_adaptive_layout(gene_info_list,
+  layout_result <- .plot_adaptive_layout(gene_info_list,
     use_fixed_layout = !is.null(layout_ncol) && layout_ncol > 0,
     layout_ncol = layout_ncol)
   n_layout_rows <- layout_result$n_layout_rows
@@ -352,7 +352,7 @@
     }
     
     gene_counts <- counts[tx_indices, , drop = FALSE]
-    mat <- .tsenat_heatmap_prepare_condition_data(gene_counts, seq_along(tx_indices),
+    mat <- .heatmap_prepare_condition_data(gene_counts, seq_along(tx_indices),
       conditions, metric_choice)
     
     if (is.null(mat) || nrow(mat) == 0) {
@@ -363,11 +363,11 @@
     # Calculate cell sizes
     layout_info <- gene_layout[[gene_idx]]
     width_frac <- if (!is.null(layout_info)) layout_info$width else 1
-    cells <- .tsenat_calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
+    cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
       cellwidth, cellheight, fontsize)
     
     # Create pheatmap
-    heatmap_plots[[gene_idx]] <- .tsenat_create_pheatmap_grob(mat,
+    heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat,
       title = gene_name,
       cellw = cells$cellwidth,
       cellh = cells$cellheight,
@@ -384,14 +384,14 @@
   tryCatch({
     metric_label <- if (metric_choice == "iqr") "IQR" else metric_choice
     
-    .tsenat_plot_grid_setup(n_layout_rows, output_file,
+    .plot_grid_setup(n_layout_rows, output_file,
       dims$png_width, dims$png_height,
       title = "Isoform Expression Profiles",
       subtitle = paste("Log2-normalized", metric_label, "by condition")
     )
     
-    .tsenat_render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
-    .tsenat_plot_grid_finalize(output_file, verbose = FALSE)
+    .render_heatmaps_to_grid(heatmap_plots, gene_layout, layout_ncol)
+    .plot_grid_finalize(output_file, verbose = FALSE)
   }, error = function(e) {
     if (!is.null(output_file)) {
       tryCatch(grDevices::dev.off(), silent = TRUE)
@@ -429,7 +429,7 @@
 #'
 
 #' @noRd
-.tsenat_validate_multiq_input <- function(switching_results) {
+.validate_multiq_input <- function(switching_results) {
   if (!inherits(switching_results, "tsenat_isoform_switching_multiq")) {
     stop("switching_results must be a multi-q result from .jackknife_isoform_switching()",
          call. = FALSE)
@@ -473,7 +473,7 @@
 #'
 
 #' @noRd
-.tsenat_validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
+.validate_se_for_heatmaps <- function(se, gene_col = NULL, condition_col = NULL) {
   if (!inherits(se, "SummarizedExperiment")) {
     stop("se must be a SummarizedExperiment object", call. = FALSE)
   }
@@ -530,7 +530,7 @@
 #'
 
 #' @noRd
-.tsenat_heatmap_select_genes_multiq <- function(switching_results, n_genes = 4,
+.heatmap_select_genes_multiq <- function(switching_results, n_genes = 4,
                                                lm_results = NULL) {
   q_key <- names(switching_results)[grepl("^q_", names(switching_results))][1]
   first_result <- switching_results[[q_key]]
@@ -596,7 +596,7 @@
 #'
 
 #' @noRd
-.tsenat_heatmap_select_genes_results <- function(se, res, gene_col = "genes",
+.heatmap_select_genes_results <- function(se, res, gene_col = "genes",
                                                top_n = 3, tx2gene = NULL) {
   if (!is.data.frame(res)) {
     stop("res must be a data.frame", call. = FALSE)
@@ -684,7 +684,7 @@
 #'
 
 #' @noRd
-.tsenat_plot_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE,
+.plot_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE,
                                    layout_ncol = 2) {
   n_genes <- length(gene_info_list)
 
@@ -764,7 +764,7 @@
 #'
 
 #' @noRd
-.tsenat_calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows,
+.calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows,
                                           width_in = 12, height_in = NULL) {
   png_width <- width_in
 
@@ -812,7 +812,7 @@
 #'
 
 #' @noRd
-.tsenat_calculate_adaptive_cellsizes <- function(n_cols_mat, n_rows_mat, width_frac = 1,
+.calculate_adaptive_cellsizes <- function(n_cols_mat, n_rows_mat, width_frac = 1,
                                           cellwidth = 0, cellheight = 0,
                                           fontsize = 18) {
   # Base sizes (in pixels, for ~1200px wide plots)
@@ -870,7 +870,7 @@
 #'
 
 #' @noRd
-.tsenat_create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35,
+.create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35,
                                   cellh = 29, fontsize = 18,
                                   cluster_rows = FALSE,
                                   color_palette = NULL) {
@@ -922,7 +922,7 @@
 #'
 
 #' @noRd
-.tsenat_plot_grid_setup <- function(n_layout_rows, output_file = NULL,
+.plot_grid_setup <- function(n_layout_rows, output_file = NULL,
                                    png_width = 12, png_height = 8,
                                    title = "Heatmap Analysis",
                                    subtitle = "") {
@@ -979,17 +979,17 @@
 #' Render Heatmaps into Grid Layout
 #'
 #' Positions and draws heatmap grob objects into the grid layout
-#' established by .tsenat_plot_grid_setup().
+#' established by .plot_grid_setup().
 #'
 #' @param heatmap_plots List of pheatmap grob objects
-#' @param gene_layout List of layout positions (from .tsenat_plot_adaptive_layout)
+#' @param gene_layout List of layout positions (from .plot_adaptive_layout)
 #' @param layout_ncol Integer: columns in fixed layout (or NULL for adaptive)
 #'
 #' @return Invisibly returns NULL. Side effect: draws heatmaps in grid.
 #'
 
 #' @noRd
-.tsenat_render_heatmaps_to_grid <- function(heatmap_plots, gene_layout,
+.render_heatmaps_to_grid <- function(heatmap_plots, gene_layout,
                                       layout_ncol = 2) {
   if (is.null(gene_layout)) {
     # Simple rendering: assume layout_ncol columns per row
@@ -1060,7 +1060,7 @@
 #'
 
 #' @noRd
-.tsenat_plot_grid_finalize <- function(output_file = NULL, verbose = FALSE) {
+.plot_grid_finalize <- function(output_file = NULL, verbose = FALSE) {
   grid::popViewport()
 
   if (!is.null(output_file)) {
@@ -1094,7 +1094,7 @@
 #'
 
 #' @noRd
-.tsenat_heatmap_prepare_multiq_data <- function(switching_results, gene_id,
+.heatmap_prepare_multiq_data <- function(switching_results, gene_id,
                                          q_result_keys,
                                          cap_outliers_pctl = 0.95) {
   heatmap_data <- NULL
@@ -1185,7 +1185,7 @@
 #'
 
 #' @noRd
-.tsenat_heatmap_prepare_condition_data <- function(counts, gene_transcripts, conditions,
+.heatmap_prepare_condition_data <- function(counts, gene_transcripts, conditions,
                                             metric = "median", pseudocount = 1e-6) {
   unique_conditions <- unique(conditions)
 

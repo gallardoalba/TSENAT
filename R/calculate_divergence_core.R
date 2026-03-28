@@ -6,9 +6,9 @@
 #' Consolidates duplicated if-pattern for group_col and control_group
 
 #' @noRd
-.tsenat_validate_and_auto_detect_groups <- function(se, group_col, control_group, progress) {
+.validate_and_auto_detect_groups <- function(se, group_col, control_group, progress) {
   if (is.null(group_col) || is.null(control_group)) {
-    auto_groups <- .tsenat_auto_detect_groups(se)
+    auto_groups <- .auto_detect_groups(se)
     
     if (is.null(group_col)) {
       if (is.na(auto_groups$group_col)) {
@@ -41,10 +41,10 @@
 #' Consolidates gene column identification and unique gene extraction
 
 #' @noRd
-.tsenat_prepare_genes_processing <- function(se) {
+.prepare_genes_processing <- function(se) {
   rd <- SummarizedExperiment::rowData(se)
-  gene_col <- .tsenat_identify_gene_column(se)
-  all_gene_names <- .tsenat_extract_gene_list(se, gene_col)
+  gene_col <- .identify_gene_column(se)
+  all_gene_names <- .extract_gene_list(se, gene_col)
   gene_indices <- seq_along(all_gene_names)
   
   if (length(gene_indices) == 0) {
@@ -65,7 +65,7 @@
 #' Fixes nboot bug and consolidates configuration logic
 
 #' @noRd
-.tsenat_bootstrap_configure_parallel <- function(bootstrap, nboot, method, num_genes, nthreads, progress) {
+.bootstrap_configure_parallel <- function(bootstrap, nboot, method, num_genes, nthreads, progress) {
   # Validate bootstrap flag - use isTRUE to safely handle NA
   if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
     bootstrap <- FALSE  # Default to no bootstrap if invalid
@@ -85,7 +85,7 @@
   }
   
   # Configure parallel execution (fixes line 257 bug by using num_genes parameter)
-  parallel_config <- .tsenat_configure_parallel(nthreads, num_genes)
+  parallel_config <- .configure_parallel(nthreads, num_genes)
   
   list(
     nboot = nboot,
@@ -98,13 +98,13 @@
 #' Consolidates paired detection and progress message assembly
 
 #' @noRd
-.tsenat_prepare_divergence_execution <- function(se, bootstrap, paired, nboot, method, nthreads, progress) {
+.prepare_divergence_execution <- function(se, bootstrap, paired, nboot, method, nthreads, progress) {
   pair_ids <- NULL
   pairing_info <- ""
   
   if (isTRUE(bootstrap)) {  # Use isTRUE to safely handle NA
     # Auto-detect paired samples
-    pair_detected <- .tsenat_detect_pair_ids(se)
+    pair_detected <- .detect_pair_ids(se)
     
     if (pair_detected$num_pairs > 0) {
       pair_ids <- pair_detected$pair_ids
@@ -144,7 +144,7 @@
 #' Consolidates nearly-identical sequential and parallel blocks
 
 #' @noRd
-.tsenat_compute_divergence_worker <- function(gene_indices, all_gene_names, se, gene_col, rd,
+.compute_divergence_worker <- function(gene_indices, all_gene_names, se, gene_col, rd,
                                             group_col, control_group, q, nboot, ci, method,
                                             log_base, pseudocount, seed, pair_ids, 
                                             nthreads, use_parallel, progress) {
@@ -157,7 +157,7 @@
     for (i in seq_along(gene_indices)) {
       gene_idx <- gene_indices[i]
       
-      results_list[[i]] <- .tsenat_process_single_gene_div(
+      results_list[[i]] <- .process_single_gene_div(
         gene_idx, all_gene_names, se, gene_col, rd,
         group_col, control_group, q, nboot, ci, method,
         log_base, pseudocount, seed, pair_ids
@@ -175,9 +175,9 @@
     on.exit(parallel::stopCluster(cl), add = TRUE)
     
     parallel::clusterExport(cl, 
-      c(".tsenat_process_single_gene_div", ".calculate_divergence_bootstrap", ".tsenat_tsallis_divergence_scalar",
-        ".tsenat_compute_aggregate_counts", ".tsenat_extract_group_counts_gene", ".tsenat_compute_divergence_q",
-        ".tsenat_bootstrap_build_args", ".tsenat_make_error_result",
+      c(".process_single_gene_div", ".calculate_divergence_bootstrap", ".tsallis_divergence_scalar",
+        ".compute_aggregate_counts", ".extract_group_counts_gene", ".compute_divergence_q",
+        ".bootstrap_build_args", ".make_error_result",
         "rd", "gene_col", "all_gene_names", "se", "q", "nboot", "ci", "method",
         "log_base", "pseudocount", "seed", "group_col", "control_group", "pair_ids"),
       envir = environment())
@@ -188,7 +188,7 @@
     
     results_list <- parallel::parLapply(cl, seq_along(gene_indices), function(i) {
       gene_idx <- gene_indices[i]
-      .tsenat_process_single_gene_div(
+      .process_single_gene_div(
         gene_idx, all_gene_names, se, gene_col, rd,
         group_col, control_group, q, nboot, ci, method,
         log_base, pseudocount, seed, pair_ids
@@ -204,14 +204,14 @@
 #' Consolidates matrix initialization, population, and reference q handling
 
 #' @noRd
-.tsenat_finalize_divergence_matrices <- function(results_list, num_genes, q, norm, progress) {
+.finalize_divergence_matrices <- function(results_list, num_genes, q, norm, progress) {
   # Initialize result matrices
-  matrices <- .tsenat_initialize_matrices(num_genes, q)
+  matrices <- .initialize_matrices(num_genes, q)
   assay_matrix <- matrices$assay
   row_data_df <- matrices$rowData
   
   # Populate matrices from results_list
-  populated <- .tsenat_populate_matrices(results_list, assay_matrix, row_data_df, q)
+  populated <- .populate_matrices(results_list, assay_matrix, row_data_df, q)
   assay_matrix <- populated$assay
   row_data_df <- populated$rowData
   
@@ -243,7 +243,7 @@
       message(sprintf("Applying '%s' normalization to divergence estimates...", norm))
     }
     
-    normalized <- .tsenat_normalize_divergence_matrix(
+    normalized <- .normalize_divergence_matrix(
       assay_matrix = assay_matrix,
       row_data_df = row_data_df,
       q_vals = q,
@@ -274,7 +274,7 @@
 #' Consolidates logging and summary statistics reporting
 
 #' @noRd
-.tsenat_print_divergence_summary <- function(num_genes, num_errors, elapsed, row_data_df, progress) {
+.print_divergence_summary <- function(num_genes, num_errors, elapsed, row_data_df, progress) {
   num_success <- num_genes - num_errors
   
   if (progress) {
@@ -510,7 +510,7 @@
   }
   
   # Call implementation directly - errors will propagate clearly
-  .tsenat_calculate_divergence_impl(
+  .calculate_divergence_impl(
     se, group_col, control_group, q, paired, bootstrap, nboot, ci, method,
     norm, log_base, pseudocount, nthreads, progress, verbose, seed
   )
@@ -519,7 +519,7 @@
 #' Implementation of calculate_divergence with parameter validation
 
 #' @noRd
-.tsenat_calculate_divergence_impl <- function(
+.calculate_divergence_impl <- function(
     se,
     group_col = NULL,
     control_group = NULL,
@@ -571,15 +571,15 @@
     FALSE
   }
   
-  norm <- .tsenat_validate_norm_parameter(norm)
-  q <- .tsenat_validate_and_sort_q_values(q)
-  .tsenat_validate_se_input(se)
+  norm <- .validate_norm_parameter(norm)
+  q <- .validate_and_sort_q_values(q)
+  .validate_se_input(se)
 
   # =========================================================================
   # AUTO-DETECT GROUP COLUMN AND CONTROL GROUP
   # =========================================================================
 
-  group_info <- .tsenat_validate_and_auto_detect_groups(se, group_col, control_group, progress)
+  group_info <- .validate_and_auto_detect_groups(se, group_col, control_group, progress)
   group_col <- group_info$group_col
   control_group <- group_info$control_group
 
@@ -587,7 +587,7 @@
   # PREPARE GENES FOR PROCESSING
   # =========================================================================
 
-  genes_info <- .tsenat_prepare_genes_processing(se)
+  genes_info <- .prepare_genes_processing(se)
   gene_col <- genes_info$gene_col
   all_gene_names <- genes_info$all_gene_names
   gene_indices <- genes_info$gene_indices
@@ -598,7 +598,7 @@
   # BOOTSTRAP & PARALLEL CONFIGURATION
   # =========================================================================
 
-  boot_config <- .tsenat_bootstrap_configure_parallel(
+  boot_config <- .bootstrap_configure_parallel(
     bootstrap, nboot, method, num_genes, nthreads, progress
   )
   nboot <- boot_config$nboot
@@ -609,7 +609,7 @@
   # PAIRED SAMPLE DETECTION & EXECUTION SETUP
   # =========================================================================
 
-  exec_setup <- .tsenat_prepare_divergence_execution(
+  exec_setup <- .prepare_divergence_execution(
     se, bootstrap, paired, nboot, method, nthreads, progress
   )
   pair_ids <- exec_setup$pair_ids
@@ -618,7 +618,7 @@
   # EXECUTE DIVERGENCE COMPUTATION (SEQUENTIAL OR PARALLEL)
   # =========================================================================
 
-  comp_result <- .tsenat_compute_divergence_worker(
+  comp_result <- .compute_divergence_worker(
     gene_indices, all_gene_names, se, gene_col, rd,
     group_col, control_group, q, nboot, ci, method,
     log_base, pseudocount, seed, pair_ids,
@@ -631,7 +631,7 @@
   # FINALIZE MATRICES & APPLY NORMALIZATION
   # =========================================================================
 
-  matrices_final <- .tsenat_finalize_divergence_matrices(
+  matrices_final <- .finalize_divergence_matrices(
     results_list, num_genes, q, norm, progress
   )
   assay_matrix <- matrices_final$assay
@@ -642,13 +642,13 @@
   # =========================================================================
 
   num_errors <- sum(!is.na(row_data_df$error))
-  .tsenat_print_divergence_summary(num_genes, num_errors, elapsed, row_data_df, progress)
+  .print_divergence_summary(num_genes, num_errors, elapsed, row_data_df, progress)
 
   # =========================================================================
   # CREATE & RETURN SUMMARIZED EXPERIMENT
   # =========================================================================
 
-  result_se <- .tsenat_construct_result_se(
+  result_se <- .construct_result_se(
     assay_matrix = assay_matrix,
     row_data_df = row_data_df,
     q_vals = q,
@@ -676,7 +676,7 @@
 #' Normalize norm parameter for backward compatibility
 #' Coerces logical values to character strings
 #' @noRd
-.tsenat_validate_norm_parameter <- function(norm) {
+.validate_norm_parameter <- function(norm) {
     if (is.logical(norm)) {
         norm <- if (norm) "range" else "none"
     }
@@ -687,7 +687,7 @@
 #' Validate and sort q-parameter values
 #' Ensures q >= 0 and returns sorted vector
 #' @noRd
-.tsenat_validate_and_sort_q_values <- function(q) {
+.validate_and_sort_q_values <- function(q) {
     q <- sort(as.numeric(q))
     if (any(q < 0)) {
         stop("q parameter must be >= 0. ",
@@ -700,7 +700,7 @@
 
 #' Validate SummarizedExperiment input
 #' @noRd
-.tsenat_validate_se_input <- function(se) {
+.validate_se_input <- function(se) {
     if (!methods::is(se, "SummarizedExperiment")) {
         stop("se must be a SummarizedExperiment object")
     }
@@ -710,7 +710,7 @@
 #' Identify gene name/ID column in rowData
 #' Preference: gene_name (human-readable) > gene_id (ensembl)
 #' @noRd
-.tsenat_identify_gene_column <- function(se) {
+.identify_gene_column <- function(se) {
     rd <- SummarizedExperiment::rowData(se)
     gene_col_candidates <- c("gene_name", "gene_id")
     
@@ -726,7 +726,7 @@
 
 #' Extract unique gene list from SummarizedExperiment
 #' @noRd
-.tsenat_extract_gene_list <- function(se, gene_col) {
+.extract_gene_list <- function(se, gene_col) {
     rd <- SummarizedExperiment::rowData(se)
     
     if (!is.na(gene_col) && !is.null(rd)) {
@@ -745,7 +745,7 @@
 #' Configure parallel execution parameters
 #' Auto-detects cores and decides between sequential/parallel
 #' @noRd
-.tsenat_configure_parallel <- function(nthreads, num_genes) {
+.configure_parallel <- function(nthreads, num_genes) {
     if (is.null(nthreads) || is.na(nthreads)) {
         nthreads <- parallel::detectCores() - 1
         nthreads <- max(1, nthreads)
@@ -768,7 +768,7 @@
 #' Aggregate transcript-level counts to gene-level
 #' Sums counts across all transcripts for a given gene
 #' @noRd
-.tsenat_compute_aggregate_counts <- function(se, target_gene, gene_col, rd) {
+.compute_aggregate_counts <- function(se, target_gene, gene_col, rd) {
     # Find ALL transcripts for this gene
     if (!is.na(gene_col) && !is.null(rd)) {
         gene_transcript_indices <- which(as.character(rd[[gene_col]]) == target_gene)
@@ -788,7 +788,7 @@
 #' Extract group-specific counts
 #' Splits gene-level counts by group membership
 #' @noRd
-.tsenat_extract_group_counts_gene <- function(counts_gene, groups, control_group) {
+.extract_group_counts_gene <- function(counts_gene, groups, control_group) {
     if (length(counts_gene) != length(groups)) {
         stop("Length mismatch: counts_gene and groups must have same length")
     }
@@ -802,7 +802,7 @@
 #' Construct error result structure
 #' Standardized format for failed gene computations
 #' @noRd
-.tsenat_make_error_result <- function(gene_name, q_vals, error_msg, elapsed_sec = NA_real_) {
+.make_error_result <- function(gene_name, q_vals, error_msg, elapsed_sec = NA_real_) {
     list(
         gene_name = gene_name,
         results_per_q = rep(list(list(
@@ -817,7 +817,7 @@
 #' Build bootstrap arguments for calculate_divergence_bootstrap
 #' Conditionally includes pair_ids if detected
 #' @noRd
-.tsenat_bootstrap_build_args <- function(x, y, q_val, nboot, ci, method, 
+.bootstrap_build_args <- function(x, y, q_val, nboot, ci, method, 
                                    log_base, pseudocount, gene_name, 
                                    seed, pair_ids = NULL) {
     args <- list(
@@ -837,7 +837,7 @@
 #' Compute divergence for all q values for a single gene
 #' Returns list of results, one per q value
 #' @noRd
-.tsenat_compute_divergence_q <- function(x, y, q_vals, nboot, ci, method,
+.compute_divergence_q <- function(x, y, q_vals, nboot, ci, method,
                                        log_base, pseudocount, gene_name,
                                        seed, pair_ids = NULL) {
     gene_results <- list()
@@ -845,7 +845,7 @@
     for (j in seq_along(q_vals)) {
         q_val <- q_vals[j]
         
-        bootstrap_args <- .tsenat_bootstrap_build_args(
+        bootstrap_args <- .bootstrap_build_args(
             x, y, q_val, nboot, ci, method, 
             log_base, pseudocount, gene_name, 
             seed, pair_ids
@@ -864,7 +864,7 @@
 #' Initialize result matrices for results compilation
 #' Creates assay matrix and rowData structure
 #' @noRd
-.tsenat_initialize_matrices <- function(num_genes, q_vals) {
+.initialize_matrices <- function(num_genes, q_vals) {
     num_q_vals <- length(q_vals)
     
     assay_matrix <- matrix(NA_real_, nrow = num_genes, ncol = num_q_vals,
@@ -893,7 +893,7 @@
 #' Populate result matrices from results_list
 #' Extracts individual gene results and fills matrices
 #' @noRd
-.tsenat_populate_matrices <- function(results_list, assay_matrix, row_data_df, q_vals) {
+.populate_matrices <- function(results_list, assay_matrix, row_data_df, q_vals) {
     num_q_vals <- length(q_vals)
     
     for (i in seq_along(results_list)) {
@@ -931,7 +931,7 @@
 
 #' Apply range normalization [0,1]
 #' @noRd
-.tsenat_normalize_range_matrix <- function(assay_matrix, row_data_df, q_vals) {
+.normalize_range_matrix <- function(assay_matrix, row_data_df, q_vals) {
     for (j in seq_len(ncol(assay_matrix))) {
         col_vals <- assay_matrix[, j]
         valid_vals <- col_vals[!is.na(col_vals)]
@@ -963,7 +963,7 @@
 
 #' Apply z-score normalization
 #' @noRd
-.tsenat_divergence_normalize_zscore <- function(assay_matrix, row_data_df, q_vals) {
+.divergence_normalize_zscore <- function(assay_matrix, row_data_df, q_vals) {
     for (j in seq_len(ncol(assay_matrix))) {
         col_vals <- assay_matrix[, j]
         valid_vals <- col_vals[!is.na(col_vals)]
@@ -995,7 +995,7 @@
 #' Apply log odds ratio normalization
 #' D_norm = log(D_q / D_max) where D_max depends on q
 #' @noRd
-.tsenat_divergence_normalize_log_odds_ratio <- function(assay_matrix, row_data_df, q_vals) {
+.divergence_normalize_log_odds_ratio <- function(assay_matrix, row_data_df, q_vals) {
     for (j in seq_len(ncol(assay_matrix))) {
         q_val <- q_vals[j]
         col_vals <- assay_matrix[, j]
@@ -1026,7 +1026,7 @@
 #' Apply relative reference normalization
 #' Ratio to reference group mean per q value
 #' @noRd
-.tsenat_normalize_reference <- function(assay_matrix, row_data_df, q_vals) {
+.normalize_reference <- function(assay_matrix, row_data_df, q_vals) {
     for (j in seq_len(ncol(assay_matrix))) {
         col_vals <- assay_matrix[, j]
         valid_vals <- col_vals[!is.na(col_vals)]
@@ -1057,25 +1057,25 @@
 #' Apply normalization to results
 #' Dispatcher that calls appropriate normalization method
 #' @noRd
-.tsenat_normalize_divergence_matrix <- function(assay_matrix, row_data_df, q_vals, norm) {
+.normalize_divergence_matrix <- function(assay_matrix, row_data_df, q_vals, norm) {
     if (norm == "none") {
         return(list(assay = assay_matrix, rowData = row_data_df))
     }
     
     if (norm == "range") {
-        return(.tsenat_normalize_range_matrix(assay_matrix, row_data_df, q_vals))
+        return(.normalize_range_matrix(assay_matrix, row_data_df, q_vals))
     }
     
     if (norm == "zscore") {
-        return(.tsenat_divergence_normalize_zscore(assay_matrix, row_data_df, q_vals))
+        return(.divergence_normalize_zscore(assay_matrix, row_data_df, q_vals))
     }
     
     if (norm == "log_odds_ratio") {
-        return(.tsenat_divergence_normalize_log_odds_ratio(assay_matrix, row_data_df, q_vals))
+        return(.divergence_normalize_log_odds_ratio(assay_matrix, row_data_df, q_vals))
     }
     
     if (norm == "relative_reference") {
-        return(.tsenat_normalize_reference(assay_matrix, row_data_df, q_vals))
+        return(.normalize_reference(assay_matrix, row_data_df, q_vals))
     }
     
     list(assay = assay_matrix, rowData = row_data_df)
@@ -1084,7 +1084,7 @@
 #' Generate computation summary statistics
 #' Formats timing information for progress messages
 #' @noRd
-.tsenat_generate_summary <- function(elapsed, num_genes, num_errors, row_data_df) {
+.generate_summary <- function(elapsed, num_genes, num_errors, row_data_df) {
     num_success <- num_genes - num_errors
     
     list(
@@ -1103,7 +1103,7 @@
 #' Construct final SummarizedExperiment output
 #' Builds SE with assays, rowData, colData, and metadata
 #' @noRd
-.tsenat_construct_result_se <- function(assay_matrix, row_data_df, q_vals, 
+.construct_result_se <- function(assay_matrix, row_data_df, q_vals, 
                                   elapsed, nboot, ci, method, norm, 
                                   use_parallel, num_genes, num_errors) {
     assays_list <- list(divergence = assay_matrix)
@@ -1143,7 +1143,7 @@
 #' Process a single gene for divergence computation
 #' Consolidates logic shared between sequential and parallel processing
 #' @noRd
-.tsenat_process_single_gene_div <- function(gene_idx, all_gene_names, se, gene_col, rd, 
+.process_single_gene_div <- function(gene_idx, all_gene_names, se, gene_col, rd, 
                                  group_col, control_group, q, nboot, ci, method,
                                  log_base, pseudocount, seed, pair_ids) {
     target_gene <- all_gene_names[gene_idx]
@@ -1152,24 +1152,24 @@
     
     tryCatch({
         # Get gene-level counts via transcript aggregation
-        counts_gene <- .tsenat_compute_aggregate_counts(se, target_gene, gene_col, rd)
+        counts_gene <- .compute_aggregate_counts(se, target_gene, gene_col, rd)
         
         if (is.null(counts_gene)) {
-            return(.tsenat_make_error_result(gene_name, q, "No transcripts found for gene"))
+            return(.make_error_result(gene_name, q, "No transcripts found for gene"))
         }
         
         # Extract group-specific counts
         groups <- se[[group_col]]
-        group_counts <- .tsenat_extract_group_counts_gene(counts_gene, groups, control_group)
+        group_counts <- .extract_group_counts_gene(counts_gene, groups, control_group)
         x <- group_counts$control
         y <- group_counts$treatment
         
         if (length(x) == 0 || length(y) == 0) {
-            return(.tsenat_make_error_result(gene_name, q, "Insufficient group samples"))
+            return(.make_error_result(gene_name, q, "Insufficient group samples"))
         }
         
         # Compute divergence for each q value
-        gene_results <- .tsenat_compute_divergence_q(x, y, q, nboot, ci, method,
+        gene_results <- .compute_divergence_q(x, y, q, nboot, ci, method,
                                                    log_base, pseudocount, gene_name,
                                                    seed, pair_ids)
         
@@ -1182,7 +1182,7 @@
             error = NA_character_
         )
     }, error = function(e) {
-        .tsenat_make_error_result(gene_name, q, as.character(e$message),
+        .make_error_result(gene_name, q, as.character(e$message),
                           as.numeric(Sys.time() - gene_start, units = "secs"))
     })
 }

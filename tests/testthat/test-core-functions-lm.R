@@ -2,7 +2,7 @@ library(testthat)
 
 context("LM Core Functions: Input Validation")
 
-test_that(".tsenat_validate_lm_interaction_input rejects invalid storey", {
+test_that(".validate_lm_interaction_input rejects invalid storey", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Create minimal SE object for validation
@@ -24,7 +24,7 @@ test_that(".tsenat_validate_lm_interaction_input rejects invalid storey", {
 
     # Should reject non-logical storey
     expect_error(
-        TSENAT:::.tsenat_validate_lm_interaction_input(
+        TSENAT:::.validate_lm_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -43,7 +43,7 @@ test_that(".tsenat_validate_lm_interaction_input rejects invalid storey", {
     )
 })
 
-test_that(".tsenat_validate_lm_interaction_input rejects invalid wy_randomizations", {
+test_that(".validate_lm_interaction_input rejects invalid wy_randomizations", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -64,7 +64,7 @@ test_that(".tsenat_validate_lm_interaction_input rejects invalid wy_randomizatio
 
     # Should reject negative wy_randomizations
     expect_error(
-        TSENAT:::.tsenat_validate_lm_interaction_input(
+        TSENAT:::.validate_lm_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -83,7 +83,7 @@ test_that(".tsenat_validate_lm_interaction_input rejects invalid wy_randomizatio
     )
 })
 
-test_that(".tsenat_validate_lm_interaction_input warns on low wy_randomizations", {
+test_that(".validate_lm_interaction_input warns on low wy_randomizations", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -104,7 +104,7 @@ test_that(".tsenat_validate_lm_interaction_input warns on low wy_randomizations"
 
     # Should warn on wy_randomizations < 100
     expect_warning(
-        TSENAT:::.tsenat_validate_lm_interaction_input(
+        TSENAT:::.validate_lm_interaction_input(
             method = "lmm",
             pvalue = "lrt",
             corstr = "ar1",
@@ -123,7 +123,7 @@ test_that(".tsenat_validate_lm_interaction_input warns on low wy_randomizations"
     )
 })
 
-test_that(".tsenat_validate_lm_interaction_input auto-detects subject_col when paired", {
+test_that(".validate_lm_interaction_input auto-detects subject_col when paired", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(10), nrow = 2)
@@ -144,7 +144,7 @@ test_that(".tsenat_validate_lm_interaction_input auto-detects subject_col when p
     )
 
     # Should auto-detect paired_samples column
-    result <- TSENAT:::.tsenat_validate_lm_interaction_input(
+    result <- TSENAT:::.validate_lm_interaction_input(
         method = "lmm",
         pvalue = "lrt",
         corstr = "ar1",
@@ -164,7 +164,7 @@ test_that(".tsenat_validate_lm_interaction_input auto-detects subject_col when p
 
 context("LM Core Functions: Sample Metadata Parsing")
 
-test_that(".tsenat_parse_sample_metadata extracts q-values correctly", {
+test_that(".parse_sample_metadata extracts q-values correctly", {
     skip_if_not_installed("SummarizedExperiment")
 
     qvec <- c(0.5, 1.0, 1.5)
@@ -190,7 +190,7 @@ test_that(".tsenat_parse_sample_metadata extracts q-values correctly", {
         colData = cd
     )
 
-    metadata <- TSENAT:::.tsenat_parse_sample_metadata(
+    metadata <- TSENAT:::.parse_sample_metadata(
         se = se,
         condition_col = "condition",
         assay_name = "diversity",
@@ -208,7 +208,7 @@ test_that(".tsenat_parse_sample_metadata extracts q-values correctly", {
     expect_equal(metadata$sample_names, rep(sample_ids, each = length(qvec)))
 })
 
-test_that(".tsenat_parse_sample_metadata rejects missing _q=", {
+test_that(".parse_sample_metadata rejects missing _q=", {
     skip_if_not_installed("SummarizedExperiment")
 
     # Column names without _q= should be rejected
@@ -229,7 +229,7 @@ test_that(".tsenat_parse_sample_metadata rejects missing _q=", {
     )
 
     expect_error(
-        TSENAT:::.tsenat_parse_sample_metadata(
+        TSENAT:::.parse_sample_metadata(
             se = se,
             condition_col = "condition",
             assay_name = "diversity",
@@ -240,7 +240,7 @@ test_that(".tsenat_parse_sample_metadata rejects missing _q=", {
     )
 })
 
-test_that(".tsenat_parse_sample_metadata rejects missing condition_col", {
+test_that(".parse_sample_metadata rejects missing condition_col", {
     skip_if_not_installed("SummarizedExperiment")
 
     qvec <- c(0.5, 1.0)
@@ -262,7 +262,7 @@ test_that(".tsenat_parse_sample_metadata rejects missing condition_col", {
     )
 
     expect_error(
-        TSENAT:::.tsenat_parse_sample_metadata(
+        TSENAT:::.parse_sample_metadata(
             se = se,
             condition_col = "nonexistent_col",
             assay_name = "diversity",
@@ -275,7 +275,7 @@ test_that(".tsenat_parse_sample_metadata rejects missing condition_col", {
 
 context("LM Core Functions: Gene Annotation Mapping")
 
-test_that(".tsenat_map_gene_annotations adds gene names from rowData", {
+test_that(".map_gene_annotations adds gene names from rowData", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(8), nrow = 2)
@@ -306,7 +306,7 @@ test_that(".tsenat_map_gene_annotations adds gene names from rowData", {
         adj_p_interaction = c(0.02, 0.1)
     )
 
-    mapped <- TSENAT:::.tsenat_map_gene_annotations(
+    mapped <- TSENAT:::.map_gene_annotations(
         res = results,
         se = se,
         verbose = FALSE
@@ -319,7 +319,7 @@ test_that(".tsenat_map_gene_annotations adds gene names from rowData", {
     expect_true("gene_id" %in% colnames(mapped))
 })
 
-test_that(".tsenat_map_gene_annotations handles missing gene_name gracefully", {
+test_that(".map_gene_annotations handles missing gene_name gracefully", {
     skip_if_not_installed("SummarizedExperiment")
 
     mat <- matrix(runif(8), nrow = 2)
@@ -349,7 +349,7 @@ test_that(".tsenat_map_gene_annotations handles missing gene_name gracefully", {
         adj_p_interaction = c(0.02, 0.1)
     )
 
-    mapped <- TSENAT:::.tsenat_map_gene_annotations(
+    mapped <- TSENAT:::.map_gene_annotations(
         res = results,
         se = se,
         verbose = FALSE
@@ -362,7 +362,7 @@ test_that(".tsenat_map_gene_annotations handles missing gene_name gracefully", {
 
 context("LM Core Functions: Model Metadata Assembly")
 
-test_that(".tsenat_assemble_model_metadata returns required fields", {
+test_that(".assemble_model_metadata returns required fields", {
     skip_if_not_installed("SummarizedExperiment")
 
     qvec <- c(0.5, 1.0)
@@ -388,7 +388,7 @@ test_that(".tsenat_assemble_model_metadata returns required fields", {
         colData = cd
     )
 
-    metadata <- TSENAT:::.tsenat_parse_sample_metadata(
+    metadata <- TSENAT:::.parse_sample_metadata(
         se = se,
         condition_col = "condition",
         assay_name = "diversity",
@@ -401,7 +401,7 @@ test_that(".tsenat_assemble_model_metadata returns required fields", {
         adj_p_interaction = c(0.02, 0.1)
     )
 
-    model_data <- TSENAT:::.tsenat_assemble_model_metadata(
+    model_data <- TSENAT:::.assemble_model_metadata(
         se = se,
         res = results,
         mat = mat,
@@ -434,7 +434,7 @@ test_that(".tsenat_assemble_model_metadata returns required fields", {
     expect_equal(model_data$q_values, c(0.5, 1.0))
 })
 
-test_that(".tsenat_assemble_model_metadata computes per-group statistics", {
+test_that(".assemble_model_metadata computes per-group statistics", {
     skip_if_not_installed("SummarizedExperiment")
 
     qvec <- c(0.5, 1.0)
@@ -461,7 +461,7 @@ test_that(".tsenat_assemble_model_metadata computes per-group statistics", {
         colData = cd
     )
 
-    metadata <- TSENAT:::.tsenat_parse_sample_metadata(
+    metadata <- TSENAT:::.parse_sample_metadata(
         se = se,
         condition_col = "condition",
         assay_name = "diversity",
@@ -474,7 +474,7 @@ test_that(".tsenat_assemble_model_metadata computes per-group statistics", {
         adj_p_interaction = c(0.02, 0.1)
     )
 
-    model_data <- TSENAT:::.tsenat_assemble_model_metadata(
+    model_data <- TSENAT:::.assemble_model_metadata(
         se = se,
         res = results,
         mat = mat,

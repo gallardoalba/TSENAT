@@ -699,7 +699,7 @@ test_that("m_estimate SummarizedExperiment path with various data sizes", {
 
 context("Helper Functions: Data Preparation and Analysis")
 
-test_that(".tsenat_mest_prepare_se_data correctly collapses multi-q data", {
+test_that(".mest_prepare_se_data correctly collapses multi-q data", {
   library(SummarizedExperiment)
   set.seed(1001)
   
@@ -728,7 +728,7 @@ test_that(".tsenat_mest_prepare_se_data correctly collapses multi-q data", {
   expect_true("Entropy_Mean" %in% colnames(result))
 })
 
-test_that(".tsenat_mest_prepare_se_data handles median vs mean collapsing", {
+test_that(".mest_prepare_se_data handles median vs mean collapsing", {
   library(SummarizedExperiment)
   set.seed(1002)
   
@@ -762,7 +762,7 @@ test_that(".tsenat_mest_prepare_se_data handles median vs mean collapsing", {
   expect_true("Robustness_Weight" %in% colnames(result))
 })
 
-test_that(".tsenat_mest_prepare_se_data rejects invalid column names", {
+test_that(".mest_prepare_se_data rejects invalid column names", {
   library(SummarizedExperiment)
   
   se <- SummarizedExperiment(
@@ -778,7 +778,7 @@ test_that(".tsenat_mest_prepare_se_data rejects invalid column names", {
   )
 })
 
-test_that(".tsenat_mest_prepare_se_data preserves gene names and sample order", {
+test_that(".mest_prepare_se_data preserves gene names and sample order", {
   library(SummarizedExperiment)
   set.seed(1003)
   
@@ -810,7 +810,7 @@ test_that(".tsenat_mest_prepare_se_data preserves gene names and sample order", 
 # TEST: Helper Functions - LOO Influence Analysis
 # ============================================================================
 
-test_that(".tsenat_mest_influence_loo identifies high-influence samples", {
+test_that(".mest_influence_loo identifies high-influence samples", {
   library(SummarizedExperiment)
   set.seed(1004)
   
@@ -840,7 +840,7 @@ test_that(".tsenat_mest_influence_loo identifies high-influence samples", {
   expect_true("Proportion_Affected" %in% colnames(result))
 })
 
-test_that(".tsenat_mest_influence_loo handles identical groups", {
+test_that(".mest_influence_loo handles identical groups", {
   library(SummarizedExperiment)
   set.seed(1005)
   
@@ -872,7 +872,7 @@ test_that(".tsenat_mest_influence_loo handles identical groups", {
 # TEST: Helper Functions - Centroid Distance Computation
 # ============================================================================
 
-test_that(".tsenat_mest_compute_distances calculates euclidean distances", {
+test_that(".mest_compute_distances calculates euclidean distances", {
   library(SummarizedExperiment)
   set.seed(1006)
   
@@ -903,7 +903,7 @@ test_that(".tsenat_mest_compute_distances calculates euclidean distances", {
   expect_true(length(unique(round(distances, 3))) >= 1)
 })
 
-test_that(".tsenat_mest_compute_distances with single-sample groups", {
+test_that(".mest_compute_distances with single-sample groups", {
   library(SummarizedExperiment)
   set.seed(1007)
   

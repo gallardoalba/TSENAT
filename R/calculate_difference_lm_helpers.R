@@ -35,7 +35,7 @@
 #'
 
 #' @noRd
-.tsenat_validate_lm_interaction_input <- function(
+.validate_lm_interaction_input <- function(
     method,
     pvalue,
     corstr,
@@ -134,7 +134,7 @@
 #'
 
 #' @noRd
-.tsenat_parse_sample_metadata <- function(
+.parse_sample_metadata <- function(
     se,
     condition_col,
     assay_name,
@@ -215,7 +215,7 @@
 #'
 #' @param mat Matrix; diversity assay data
 #' @param se SummarizedExperiment object
-#' @param metadata List; output from .tsenat_parse_sample_metadata()
+#' @param metadata List; output from .parse_sample_metadata()
 #' @param method Character; modeling method
 #' @param pvalue Character; p-value type
 #' @param subject_col Character or NULL; subject column
@@ -232,7 +232,7 @@
 #'
 
 #' @noRd
-.tsenat_fit_all_genes <- function(
+.fit_all_genes <- function(
     mat,
     se,
     metadata,
@@ -261,7 +261,7 @@
             metadata$group_vec
         }
 
-        .tsenat_fit_one_interaction(
+        .fit_one_interaction(
             g = g,
             se = se,
             mat = mat,
@@ -285,7 +285,7 @@
     }
 
     if (nthreads > 1) {
-        res_list <- .tsenat_bplapply(rownames(mat), fit_one,
+        res_list <- .bplapply(rownames(mat), fit_one,
                                       nthreads = nthreads)
     } else {
         res_list <- lapply(rownames(mat), fit_one)
@@ -360,7 +360,7 @@
 #' @param multicorr Character; primary correction method
 #' @param wy_randomizations Integer; number of permutations (WY only)
 #' @param fit_one_fn Function; function to refit models (WY only)
-#' @param metadata List; output from .tsenat_parse_sample_metadata()
+#' @param metadata List; output from .parse_sample_metadata()
 #' @param mat Matrix; diversity assay data (WY only)
 #' @param rownames_mat Character; rownames of matrix (WY only)
 #' @param se SummarizedExperiment object (WY only)
@@ -382,7 +382,7 @@
 #'
 
 #' @noRd
-.tsenat_adjust_pvalues_multicorr <- function(
+.adjust_pvalues_multicorr <- function(
     p_values,
     multicorr,
     wy_randomizations,
@@ -406,7 +406,7 @@
     storey = FALSE
 ) {
     if (multicorr == "hochberg") {
-        adj_p <- .tsenat_hochberg_stepup(p_values)
+        adj_p <- .hochberg_stepup(p_values)
         if (verbose) {
             message(
                 "[calculate_lm_interaction] Applied Hochberg stepup ",
@@ -426,7 +426,7 @@
         group_vec_orig <- metadata$group_vec
 
         # Run Westfall-Young permutation
-        perm_result <- .tsenat_westfall_young_permutation(
+        perm_result <- .westfall_young_permutation(
             n_genes = length(p_values),
             wy_randomizations = wy_randomizations,
             permute_fn = function() {
@@ -477,7 +477,7 @@
             )
         }
     } else if (multicorr == "benjamini-yekutieli") {
-        adj_p <- .tsenat_benjamini_yekutieli(p_values)
+        adj_p <- .benjamini_yekutieli(p_values)
         if (verbose) {
             message(
                 "[calculate_lm_interaction] Applied ",
@@ -535,7 +535,7 @@
 #'
 
 #' @noRd
-.tsenat_map_gene_annotations <- function(
+.map_gene_annotations <- function(
     res,
     se,
     verbose
@@ -636,7 +636,7 @@
 #' @param se SummarizedExperiment object
 #' @param res Data.frame; fitted model results
 #' @param mat Matrix; diversity assay data
-#' @param metadata List; output from .tsenat_parse_sample_metadata()
+#' @param metadata List; output from .parse_sample_metadata()
 #' @param method Character; modeling method name
 #' @param pvalue Character; p-value type
 #' @param multicorr Character; multi-q correction method
@@ -663,7 +663,7 @@
 #'
 
 #' @noRd
-.tsenat_assemble_model_metadata <- function(
+.assemble_model_metadata <- function(
     se,
     res,
     mat,

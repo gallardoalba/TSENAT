@@ -118,14 +118,14 @@ test_that("zscore normalization is fast enough (internal bottleneck)", {
   
   bench <- microbenchmark::microbenchmark(
     times = 5,
-    .tsenat_normalize_zscore(entropy_matrix, per_q = TRUE)
+    .normalize_zscore(entropy_matrix, per_q = TRUE)
   )
   
   # Internal helper should be very fast - tighten threshold for regression detection
   # Observed: ~2.3 ms; threshold = 2.5 ms (tightened to ~90% usage with variance margin)
   expect_lt(median(bench$time) / 1e6, 2.5)
   
-  .report_benchmark(".tsenat_normalize_zscore(1000 rows × 50 cols)",
+  .report_benchmark(".normalize_zscore(1000 rows × 50 cols)",
                     bench$time, threshold_ms = 2.5)
 })
 

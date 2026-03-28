@@ -236,7 +236,7 @@
     }
 
     # Validate input parameters
-    validated <- .tsenat_validate_lm_interaction_input(
+    validated <- .validate_lm_interaction_input(
         method = method,
         pvalue = pvalue,
         corstr = corstr,
@@ -255,7 +255,7 @@
     subject_col <- validated$subject_col
 
     # Parse sample metadata and q-values
-    metadata <- .tsenat_parse_sample_metadata(
+    metadata <- .parse_sample_metadata(
         se = se,
         condition_col = condition_col,
         assay_name = assay_name,
@@ -265,7 +265,7 @@
     mat <- SummarizedExperiment::assay(se, assay_name)
 
     # Fit models to all genes
-    res <- .tsenat_fit_all_genes(
+    res <- .fit_all_genes(
         mat = mat,
         se = se,
         metadata = metadata,
@@ -287,7 +287,7 @@
     }
 
     # Adjust p-values for multiple q-values
-    res$adj_p_interaction <- .tsenat_adjust_pvalues_multicorr(
+    res$adj_p_interaction <- .adjust_pvalues_multicorr(
         p_values = res$p_interaction,
         multicorr = multicorr,
         wy_randomizations = wy_randomizations,
@@ -301,10 +301,10 @@
                , drop = FALSE]
     rownames(res) <- NULL
 
-    .tsenat_report_fit_summary(res, verbose = verbose)
+    .report_fit_summary(res, verbose = verbose)
 
     # Map gene identifiers to annotations
-    res <- .tsenat_map_gene_annotations(
+    res <- .map_gene_annotations(
         res = res,
         se = se,
         verbose = verbose
@@ -312,7 +312,7 @@
 
     # Optionally return model data alongside results
     if (return_model_data) {
-        model_data <- .tsenat_assemble_model_metadata(
+        model_data <- .assemble_model_metadata(
             se = se,
             res = res,
             mat = mat,

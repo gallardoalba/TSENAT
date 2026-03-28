@@ -97,6 +97,9 @@
 #' @name TSENATAnalysis-class
 #' @rdname TSENATAnalysis-class
 #' @exportClass TSENATAnalysis
+#' @importFrom SummarizedExperiment SummarizedExperiment colData rowData
+#' @importFrom S4Vectors metadata
+
 setClass(
   "TSENATAnalysis",
   slots = list(
@@ -992,6 +995,13 @@ setGeneric("se", function(object) {
   standardGeneric("se")
 })
 
+#' @noRd
+if (!isGeneric("metadata")) {
+  setGeneric("metadata", function(x, key = NULL) {
+    standardGeneric("metadata")
+  })
+}
+
 #' @rdname se
 #' @export
 setMethod("se", "TSENATAnalysis", function(object) {
@@ -1023,8 +1033,9 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' analysis <- TSENATAnalysis(se)
 #' all_meta <- metadata(analysis)
 #'
-#' @export
+#' @noRd
 #' @rdname metadata
+
 setMethod("metadata", "TSENATAnalysis", function(x, key = NULL) {
   if (is.null(key)) {
     return(x@metadata)

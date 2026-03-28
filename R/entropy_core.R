@@ -15,7 +15,7 @@
 #'
 
 #' @noRd
-.tsenat_entropy_core <- function(proportions, q = 1, norm = FALSE, 
+.entropy_core <- function(proportions, q = 1, norm = FALSE, 
                                    log_base = exp(1), q_tol = 1e-6) {
   # Input validation
   if (!is.numeric(proportions) || length(proportions) == 0) {
@@ -87,7 +87,7 @@
 #'
 
 #' @noRd
-.tsenat_entropy_vectorized <- function(counts, q = 1, norm = FALSE, 
+.entropy_vectorized <- function(counts, q = 1, norm = FALSE, 
                                         log_base = exp(1), pseudocount = 0) {
   counts <- as.matrix(counts)
   
@@ -102,7 +102,7 @@
     if (total <= 0) return(NA_real_)
     
     p <- (row + pseudocount) / total
-    .tsenat_entropy_core(p, q = q, norm = norm, log_base = log_base)
+    .entropy_core(p, q = q, norm = norm, log_base = log_base)
   })
   
   return(unname(entropy_vals))
@@ -121,7 +121,7 @@
 #'
 
 #' @noRd
-.tsenat_entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = 1e-6) {
+.entropy_max <- function(n_species, q = 1, log_base = exp(1), q_tol = 1e-6) {
   if (n_species < 1) return(NA_real_)
   
   if (q < q_tol) {

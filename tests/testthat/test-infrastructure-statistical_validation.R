@@ -108,7 +108,7 @@ test_that("lm_subject_fixed fallback preserves power vs. lm_nosubject", {
   expect_true(p_with_subj < p_no_subj)
 })
 
-test_that(".tsenat_try_lm_fallbacks uses factor(subject), not numeric subject", {
+test_that(".try_lm_fallbacks uses factor(subject), not numeric subject", {
   set.seed(103)
   
   # Create test data
@@ -120,7 +120,7 @@ test_that(".tsenat_try_lm_fallbacks uses factor(subject), not numeric subject", 
   )
   
   # Run fallback function
-  fb <- .tsenat_try_lm_fallbacks(df, verbose = FALSE)
+  fb <- .try_lm_fallbacks(df, verbose = FALSE)
   
   expect_true(!is.null(fb))
   expect_true(!is.null(fb$fit1))

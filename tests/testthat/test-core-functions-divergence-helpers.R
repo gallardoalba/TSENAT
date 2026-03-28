@@ -8,133 +8,133 @@ context("Divergence Helper Functions")
 # INPUT VALIDATION HELPERS
 # ============================================================================
 
-test_that(".tsenat_validate_norm_parameter coerces logical to character", {
-    expect_equal(.tsenat_validate_norm_parameter(TRUE), "range")
-    expect_equal(.tsenat_validate_norm_parameter(FALSE), "none")
-    expect_equal(.tsenat_validate_norm_parameter("zscore"), "zscore")
+test_that(".validate_norm_parameter coerces logical to character", {
+    expect_equal(.validate_norm_parameter(TRUE), "range")
+    expect_equal(.validate_norm_parameter(FALSE), "none")
+    expect_equal(.validate_norm_parameter("zscore"), "zscore")
 })
 
-test_that(".tsenat_validate_norm_parameter rejects invalid values", {
-    expect_error(.tsenat_validate_norm_parameter("invalid"),
+test_that(".validate_norm_parameter rejects invalid values", {
+    expect_error(.validate_norm_parameter("invalid"),
                  "should be one of")
 })
 
-test_that(".tsenat_validate_and_sort_q_values sorts and validates", {
-    result <- .tsenat_validate_and_sort_q_values(c(2, 0.5, 1))
+test_that(".validate_and_sort_q_values sorts and validates", {
+    result <- .validate_and_sort_q_values(c(2, 0.5, 1))
     expect_equal(result, c(0.5, 1, 2))
 })
 
-test_that(".tsenat_validate_and_sort_q_values rejects negative q", {
-    expect_error(.tsenat_validate_and_sort_q_values(c(1, -0.5)),
+test_that(".validate_and_sort_q_values rejects negative q", {
+    expect_error(.validate_and_sort_q_values(c(1, -0.5)),
                  "q parameter must be >= 0")
 })
 
-test_that(".tsenat_validate_se_input accepts SummarizedExperiment", {
+test_that(".validate_se_input accepts SummarizedExperiment", {
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:10, 2, 5))
     )
-    expect_true(.tsenat_validate_se_input(se))
+    expect_true(.validate_se_input(se))
 })
 
-test_that(".tsenat_validate_se_input rejects non-SE objects", {
-    expect_error(.tsenat_validate_se_input(data.frame(x = 1:5)),
+test_that(".validate_se_input rejects non-SE objects", {
+    expect_error(.validate_se_input(data.frame(x = 1:5)),
                  "SummarizedExperiment")
 })
 
 # GENE COLUMN IDENTIFICATION
 # ============================================================================
 
-test_that(".tsenat_identify_gene_column finds gene_name column", {
+test_that(".identify_gene_column finds gene_name column", {
     rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE2"))
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:10, 2, 5)),
         rowData = rd
     )
-    expect_equal(.tsenat_identify_gene_column(se), "gene_name")
+    expect_equal(.identify_gene_column(se), "gene_name")
 })
 
-test_that(".tsenat_identify_gene_column falls back to gene_id", {
+test_that(".identify_gene_column falls back to gene_id", {
     rd <- S4Vectors::DataFrame(gene_id = c("ENSG001", "ENSG002"))
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:10, 2, 5)),
         rowData = rd
     )
-    expect_equal(.tsenat_identify_gene_column(se), "gene_id")
+    expect_equal(.identify_gene_column(se), "gene_id")
 })
 
-test_that(".tsenat_identify_gene_column returns NA when no gene columns", {
+test_that(".identify_gene_column returns NA when no gene columns", {
     rd <- S4Vectors::DataFrame(other_col = c("A", "B"))
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:10, 2, 5)),
         rowData = rd
     )
-    expect_true(is.na(.tsenat_identify_gene_column(se)))
+    expect_true(is.na(.identify_gene_column(se)))
 })
 
 # GENE LIST EXTRACTION
 # ============================================================================
 
-test_that(".tsenat_extract_gene_list extracts unique genes from gene_name", {
+test_that(".extract_gene_list extracts unique genes from gene_name", {
     rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE1", "GENE2"))
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:15, 3, 5)),
         rowData = rd
     )
-    result <- .tsenat_extract_gene_list(se, "gene_name")
+    result <- .extract_gene_list(se, "gene_name")
     expect_equal(sort(result), c("GENE1", "GENE2"))
 })
 
-test_that(".tsenat_extract_gene_list uses rownames when no gene column", {
+test_that(".extract_gene_list uses rownames when no gene column", {
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(1:10, 2, 5)),
         rowData = S4Vectors::DataFrame(x = 1:2)
     )
     rownames(se) <- c("GENE1", "GENE2")
-    result <- .tsenat_extract_gene_list(se, NA_character_)
+    result <- .extract_gene_list(se, NA_character_)
     expect_equal(result, c("GENE1", "GENE2"))
 })
 
-test_that(".tsenat_extract_gene_list rejects empty gene lists", {
+test_that(".extract_gene_list rejects empty gene lists", {
     se <- SummarizedExperiment::SummarizedExperiment(
         assays = list(counts = matrix(nrow = 0, ncol = 0))
     )
-    expect_error(.tsenat_extract_gene_list(se, NA_character_),
+    expect_error(.extract_gene_list(se, NA_character_),
                  "gene identifiers")
 })
 
 # PARALLEL CONFIGURATION
 # ============================================================================
 
-test_that(".tsenat_configure_parallel auto-detects cores", {
-    result <- .tsenat_configure_parallel(NULL, 10)
+test_that(".configure_parallel auto-detects cores", {
+    result <- .configure_parallel(NULL, 10)
     expect_true(result$nthreads >= 1)
     expect_true(is.logical(result$use_parallel))
 })
 
-test_that(".tsenat_configure_parallel uses specified threads", {
-    result <- .tsenat_configure_parallel(2, 10)
+test_that(".configure_parallel uses specified threads", {
+    result <- .configure_parallel(2, 10)
     expect_equal(result$nthreads, 2L)
 })
 
-test_that(".tsenat_configure_parallel decides parallel correctly", {
-    result_seq <- .tsenat_configure_parallel(1, 3)
+test_that(".configure_parallel decides parallel correctly", {
+    result_seq <- .configure_parallel(1, 3)
     expect_false(result_seq$use_parallel)
     
-    result_par <- .tsenat_configure_parallel(2, 10)
+    result_par <- .configure_parallel(2, 10)
     expect_true(result_par$use_parallel)
 })
 
-test_that(".tsenat_configure_parallel rejects invalid threads", {
-    expect_error(.tsenat_configure_parallel(-1, 10),
+test_that(".configure_parallel rejects invalid threads", {
+    expect_error(.configure_parallel(-1, 10),
                  "positive integer")
-    expect_error(.tsenat_configure_parallel("invalid", 10),
+    expect_error(.configure_parallel("invalid", 10),
                  "positive integer")
 })
 
 # GENE PROCESSING HELPERS
 # ============================================================================
 
-test_that(".tsenat_compute_aggregate_counts sums transcript counts", {
+test_that(".compute_aggregate_counts sums transcript counts", {
     counts_matrix <- matrix(c(1, 2, 3, 4, 5, 6), 2, 3)
     rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE1"))
     
@@ -143,11 +143,11 @@ test_that(".tsenat_compute_aggregate_counts sums transcript counts", {
         rowData = rd
     )
     
-    result <- .tsenat_compute_aggregate_counts(se, "GENE1", "gene_name", rd)
+    result <- .compute_aggregate_counts(se, "GENE1", "gene_name", rd)
     expect_equal(result, c(3, 7, 11))  # colSums of the two rows
 })
 
-test_that(".tsenat_compute_aggregate_counts returns NULL when gene not found", {
+test_that(".compute_aggregate_counts returns NULL when gene not found", {
     counts_matrix <- matrix(1:6, 2, 3)
     rd <- S4Vectors::DataFrame(gene_name = c("GENE1", "GENE2"))
     
@@ -156,29 +156,29 @@ test_that(".tsenat_compute_aggregate_counts returns NULL when gene not found", {
         rowData = rd
     )
     
-    result <- .tsenat_compute_aggregate_counts(se, "MISSING", "gene_name", rd)
+    result <- .compute_aggregate_counts(se, "MISSING", "gene_name", rd)
     expect_null(result)
 })
 
-test_that(".tsenat_extract_group_counts_gene splits by group", {
+test_that(".extract_group_counts_gene splits by group", {
     counts <- c(10, 20, 30, 40, 50)
     groups <- c("A", "A", "B", "B", "B")
     
-    result <- .tsenat_extract_group_counts_gene(counts, groups, "A")
+    result <- .extract_group_counts_gene(counts, groups, "A")
     expect_equal(result$control, c(10, 20))
     expect_equal(result$treatment, c(30, 40, 50))
 })
 
-test_that(".tsenat_extract_group_counts_gene errors on length mismatch", {
+test_that(".extract_group_counts_gene errors on length mismatch", {
     counts <- c(10, 20, 30)
     groups <- c("A", "B")
     
-    expect_error(.tsenat_extract_group_counts_gene(counts, groups, "A"),
+    expect_error(.extract_group_counts_gene(counts, groups, "A"),
                  "Length mismatch")
 })
 
-test_that(".tsenat_make_error_result creates proper error structure", {
-    result <- .tsenat_make_error_result("GENE1", c(0.5, 1, 2), "Test error", 1.5)
+test_that(".make_error_result creates proper error structure", {
+    result <- .make_error_result("GENE1", c(0.5, 1, 2), "Test error", 1.5)
     
     expect_equal(result$gene_name, "GENE1")
     expect_equal(result$error, "Test error")
@@ -187,11 +187,11 @@ test_that(".tsenat_make_error_result creates proper error structure", {
     expect_true(is.na(result$results_per_q[[1]]$estimate))
 })
 
-test_that(".tsenat_bootstrap_build_args builds arguments correctly", {
+test_that(".bootstrap_build_args builds arguments correctly", {
     x <- rnorm(10)
     y <- rnorm(10)
     
-    result <- .tsenat_bootstrap_build_args(x, y, 1.0, 100, 0.95, "percentile",
+    result <- .bootstrap_build_args(x, y, 1.0, 100, 0.95, "percentile",
                                      exp(1), 0.5, "GENE1", 42, NULL)
     
     expect_equal(result$x, x)
@@ -201,12 +201,12 @@ test_that(".tsenat_bootstrap_build_args builds arguments correctly", {
     expect_null(result$pair_ids)
 })
 
-test_that(".tsenat_bootstrap_build_args includes pair_ids when provided", {
+test_that(".bootstrap_build_args includes pair_ids when provided", {
     x <- rnorm(10)
     y <- rnorm(10)
     pair_ids <- c(1, 1, 2, 2, 3)
     
-    result <- .tsenat_bootstrap_build_args(x, y, 1.0, 100, 0.95, "percentile",
+    result <- .bootstrap_build_args(x, y, 1.0, 100, 0.95, "percentile",
                                      exp(1), 0.5, "GENE1", 42, pair_ids)
     
     expect_equal(result$pair_ids, pair_ids)
@@ -216,8 +216,8 @@ test_that(".tsenat_bootstrap_build_args includes pair_ids when provided", {
 # RESULTS COMPILATION HELPERS
 # ============================================================================
 
-test_that(".tsenat_initialize_matrices creates proper structure", {
-    result <- .tsenat_initialize_matrices(5, c(0.5, 1, 2))
+test_that(".initialize_matrices creates proper structure", {
+    result <- .initialize_matrices(5, c(0.5, 1, 2))
     
     expect_equal(nrow(result$assay), 5)
     expect_equal(ncol(result$assay), 3)
@@ -227,9 +227,9 @@ test_that(".tsenat_initialize_matrices creates proper structure", {
     expect_true("estimate_q0.5" %in% colnames(result$rowData))
 })
 
-test_that(".tsenat_initialize_matrices creates all q columns", {
+test_that(".initialize_matrices creates all q columns", {
     q_vals <- c(0.5, 1, 1.5, 2)
-    result <- .tsenat_initialize_matrices(3, q_vals)
+    result <- .initialize_matrices(3, q_vals)
     
     for (q in q_vals) {
         expect_true(paste0("estimate_q", q) %in% colnames(result$rowData))
@@ -244,7 +244,7 @@ test_that(".tsenat_initialize_matrices creates all q columns", {
 # NORMALIZATION HELPERS
 # ============================================================================
 
-test_that(".tsenat_normalize_range_matrix scales to [0,1]", {
+test_that(".normalize_range_matrix scales to [0,1]", {
     assay <- matrix(c(0, 5, 10, 1, 6, 11), 2, 3)
     row_data <- data.frame(
         estimate_q1 = c(0, 5),
@@ -253,7 +253,7 @@ test_that(".tsenat_normalize_range_matrix scales to [0,1]", {
         stringsAsFactors = FALSE
     )
     
-    result <- .tsenat_normalize_range_matrix(assay, row_data, c(1))
+    result <- .normalize_range_matrix(assay, row_data, c(1))
     
     expect_true(all(result$assay >= 0, na.rm = TRUE))
     expect_true(all(result$assay <= 1, na.rm = TRUE))
@@ -261,7 +261,7 @@ test_that(".tsenat_normalize_range_matrix scales to [0,1]", {
     expect_equal(result$assay[2, ncol(result$assay)], 1)
 })
 
-test_that(".tsenat_divergence_normalize_zscore normalizes each column", {
+test_that(".divergence_normalize_zscore normalizes each column", {
     assay <- matrix(c(1:6), 2, 3)
     row_data <- data.frame(
         estimate_q1 = c(1, 4),
@@ -270,7 +270,7 @@ test_that(".tsenat_divergence_normalize_zscore normalizes each column", {
         stringsAsFactors = FALSE
     )
     
-    result <- .tsenat_divergence_normalize_zscore(assay, row_data, c(1))
+    result <- .divergence_normalize_zscore(assay, row_data, c(1))
     
     # Z-score normalization is applied per column, so check individual columns
     col1 <- na.omit(result$assay[, 1])
@@ -289,7 +289,7 @@ test_that(".tsenat_divergence_normalize_zscore normalizes each column", {
 # APPLY NORMALIZATION DISPATCHER
 # ============================================================================
 
-test_that(".tsenat_normalize_divergence_matrix handles all methods", {
+test_that(".normalize_divergence_matrix handles all methods", {
     assay <- matrix(1:6, 2, 3)
     row_data <- data.frame(
         estimate_q1 = 1:2,
@@ -298,27 +298,27 @@ test_that(".tsenat_normalize_divergence_matrix handles all methods", {
     )
     
     # Test each method
-    result_none <- .tsenat_normalize_divergence_matrix(assay, row_data, c(1), "none")
+    result_none <- .normalize_divergence_matrix(assay, row_data, c(1), "none")
     expect_equal(result_none$assay, assay)
     
-    result_range <- .tsenat_normalize_divergence_matrix(assay, row_data, c(1), "range")
+    result_range <- .normalize_divergence_matrix(assay, row_data, c(1), "range")
     expect_true(all(result_range$assay >= 0, na.rm = TRUE))
     
-    result_zscore <- .tsenat_normalize_divergence_matrix(assay, row_data, c(1), "zscore")
+    result_zscore <- .normalize_divergence_matrix(assay, row_data, c(1), "zscore")
     expect_true(!is.null(result_zscore))
 })
 
 # COMPUTE SUMMARY STATISTICS
 # ============================================================================
 
-test_that(".tsenat_generate_summary creates summary", {
+test_that(".generate_summary creates summary", {
     row_data_df <- data.frame(
         gene_name = c("G1", "G2", "G3"),
         error = c(NA_character_, NA_character_, "error"),
         stringsAsFactors = FALSE
     )
     
-    result <- .tsenat_generate_summary(elapsed = 10, num_genes = 3, 
+    result <- .generate_summary(elapsed = 10, num_genes = 3, 
                                             num_errors = 1, row_data_df)
     
     expect_equal(result$successful, 2)
@@ -330,7 +330,7 @@ test_that(".tsenat_generate_summary creates summary", {
 # SE CONSTRUCTION
 # ============================================================================
 
-test_that(".tsenat_construct_result_se creates SummarizedExperiment", {
+test_that(".construct_result_se creates SummarizedExperiment", {
     assay <- matrix(0.1, 3, 2, dimnames = list(NULL, c("q_0.5", "q_1")))
     row_data <- data.frame(
         gene_name = c("G1", "G2", "G3"),
@@ -339,7 +339,7 @@ test_that(".tsenat_construct_result_se creates SummarizedExperiment", {
         stringsAsFactors = FALSE
     )
     
-    result <- .tsenat_construct_result_se(
+    result <- .construct_result_se(
         assay, row_data, c(0.5, 1),
         elapsed = 5, nboot = 1000, ci = 0.95, method = "percentile",
         norm = "none", use_parallel = FALSE, num_genes = 3, num_errors = 0
@@ -351,7 +351,7 @@ test_that(".tsenat_construct_result_se creates SummarizedExperiment", {
     expect_true("divergence" %in% names(SummarizedExperiment::assays(result)))
 })
 
-test_that(".tsenat_construct_result_se preserves metadata", {
+test_that(".construct_result_se preserves metadata", {
     assay <- matrix(0.1, 2, 1)
     row_data <- data.frame(
         gene_name = c("G1", "G2"),
@@ -359,7 +359,7 @@ test_that(".tsenat_construct_result_se preserves metadata", {
         computation_time_sec = c(1, 1)
     )
     
-    result <- .tsenat_construct_result_se(
+    result <- .construct_result_se(
         assay, row_data, c(1),
         elapsed = 2, nboot = 500, ci = 0.95, method = "bca",
         norm = "range", use_parallel = TRUE, num_genes = 2, num_errors = 0

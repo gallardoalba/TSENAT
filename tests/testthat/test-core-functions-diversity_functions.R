@@ -67,84 +67,84 @@ context("Tsallis Entropy: Helper Function Extensions")
 
 library(testthat)
 
-# .tsenat_calc_S: q ~= 1 and q != 1, normalized and not
-test_that(".tsenat_calc_S computes Shannon and Tsallis correctly", {
+# .calc_S: q ~= 1 and q != 1, normalized and not
+test_that(".calc_S computes Shannon and Tsallis correctly", {
     p <- c(0.5, 0.5)
     # Shannon with base 2: entropy = 1; normalized dividing by log2(2)=1 -> still 1
-    s1 <- .tsenat_calc_S(p = p, q = 1, tol = 1e-8, n = 2, log_base = 2, norm = TRUE)
+    s1 <- .calc_S(p = p, q = 1, tol = 1e-8, n = 2, log_base = 2, norm = TRUE)
     expect_equal(s1, 1)
     # Tsallis q=2: S_2 = (1 - sum(p^2)) / (2-1) = 1 - (0.25 + 0.25) = 0.5
-    s2 <- .tsenat_calc_S(p = p, q = 2, tol = 1e-8, n = 2, log_base = 2, norm = FALSE)
+    s2 <- .calc_S(p = p, q = 2, tol = 1e-8, n = 2, log_base = 2, norm = FALSE)
     expect_equal(s2, 0.5)
 })
 
-# .tsenat_calc_D: q close to 1 and other q
-test_that(".tsenat_calc_D computes Hill numbers for q=1 and q!=1", {
+# .calc_D: q close to 1 and other q
+test_that(".calc_D computes Hill numbers for q=1 and q!=1", {
     p <- c(0.5, 0.5)
-    d1 <- .tsenat_calc_D(p = p, q = 1, tol = 1e-8, log_base = 2)
+    d1 <- .calc_D(p = p, q = 1, tol = 1e-8, log_base = 2)
     # For q=1, sh = 1 (base 2), D1 = (log_base)^sh = 2^1 = 2
     expect_equal(d1, 2)
-    d2 <- .tsenat_calc_D(p = p, q = 2, tol = 1e-8, log_base = 2)
+    d2 <- .calc_D(p = p, q = 2, tol = 1e-8, log_base = 2)
     # For q=2, spq = sum(p^2)=0.5, Dq = spq^(1/(1-2)) = 0.5^( -1) = 2
     expect_equal(d2, 2)
 })
 
 # Input preparation errors and conversion
-test_that(".tsenat_prepare_diversity_input rejects unsupported input types", {
-    expect_error(.tsenat_prepare_diversity_input(1:5), "Input data type is not supported")
+test_that(".prepare_diversity_input rejects unsupported input types", {
+    expect_error(.prepare_diversity_input(1:5), "Input data type is not supported")
 })
 
-test_that(".tsenat_prepare_diversity_input handles data.frame conversion and provided genes", {
+test_that(".prepare_diversity_input handles data.frame conversion and provided genes", {
     df <- data.frame(a = 1:3, b = 2:4)
-    res <- .tsenat_prepare_diversity_input(df, genes = c("g1", "g2", "g3"))
+    res <- .prepare_diversity_input(df, genes = c("g1", "g2", "g3"))
     expect_true(is.matrix(res$x))
     expect_equal(res$genes, c("g1", "g2", "g3"))
 })
 
-test_that(".tsenat_prepare_diversity_input handles tximport-like lists and tpm flag", {
+test_that(".prepare_diversity_input handles tximport-like lists and tpm flag", {
     counts <- matrix(1:6, nrow = 3)
     abundance <- matrix(7:12, nrow = 3)
     # tximport-like lists are typically length 4 and contain named elements
     xlist <- list(counts = counts, abundance = abundance, txOut = TRUE, other = NULL)
     # default tpm = FALSE uses counts
-    r1 <- .tsenat_prepare_diversity_input(xlist, genes = c("g1", "g2", "g3"))
+    r1 <- .prepare_diversity_input(xlist, genes = c("g1", "g2", "g3"))
     expect_true(is.matrix(r1$x))
     expect_equal(r1$x[1, 1], counts[1, 1])
 
     # tpm = TRUE uses abundance
-    r2 <- .tsenat_prepare_diversity_input(xlist, genes = c("g1", "g2", "g3"), tpm = TRUE)
+    r2 <- .prepare_diversity_input(xlist, genes = c("g1", "g2", "g3"), tpm = TRUE)
     expect_equal(r2$x[1, 1], abundance[1, 1])
 
     # improper list should error
-    expect_error(.tsenat_prepare_diversity_input(list(foo = 1)), "cannot find any expression data")
+    expect_error(.prepare_diversity_input(list(foo = 1)), "cannot find any expression data")
 })
 
-test_that(".tsenat_prepare_diversity_input handles DGEList-like objects and messages when verbose", {
+test_that(".prepare_diversity_input handles DGEList-like objects and messages when verbose", {
     counts <- matrix(rpois(6, lambda = 10), nrow = 3)
     dge <- list(counts = counts)
     class(dge) <- "DGEList"
-    expect_message(.tsenat_prepare_diversity_input(dge, genes = c("g1", "g2", "g3"), verbose = TRUE), "DGEList contains transcript-level")
-    expect_message(.tsenat_prepare_diversity_input(dge, genes = c("g1", "g2", "g3"), verbose = TRUE, tpm = TRUE), "tpm as a logical argument")
+    expect_message(.prepare_diversity_input(dge, genes = c("g1", "g2", "g3"), verbose = TRUE), "DGEList contains transcript-level")
+    expect_message(.prepare_diversity_input(dge, genes = c("g1", "g2", "g3"), verbose = TRUE, tpm = TRUE), "tpm as a logical argument")
 })
 
-test_that(".tsenat_prepare_diversity_input handles SummarizedExperiment variants and tx2gene mapping", {
+test_that(".prepare_diversity_input handles SummarizedExperiment variants and tx2gene mapping", {
     mat <- matrix(1:6, nrow = 3)
     rownames(mat) <- paste0("tx", 1:3)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
     # when genes not provided, should use rownames
-    res <- .tsenat_prepare_diversity_input(se, genes = NULL)
+    res <- .prepare_diversity_input(se, genes = NULL)
     expect_true(is.matrix(res$x))
     expect_equal(res$genes, rownames(mat))
 
     # when metadata contains readcounts and tx2gene, prefer metadata mapping
     md <- list(readcounts = mat, tx2gene = data.frame(Transcript = paste0("tx", 1:3), Gen = c("gA", "gA", "gB"), stringsAsFactors = FALSE))
     se2 <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), metadata = md)
-    res2 <- .tsenat_prepare_diversity_input(se2, genes = NULL)
+    res2 <- .prepare_diversity_input(se2, genes = NULL)
     expect_true(is.matrix(res2$x))
     expect_equal(res2$genes, c("gA", "gA", "gB"))
 
     # invalid assay number should error
-    expect_error(.tsenat_prepare_diversity_input(se, genes = NULL, assayno = 10), "provide a valid assay number")
+    expect_error(.prepare_diversity_input(se, genes = NULL, assayno = 10), "provide a valid assay number")
 })
 
 skip_on_bioc()
@@ -189,23 +189,23 @@ test_that("calculate_tsallis_entropy computes expected values for simple distrib
     expect_equal(as.numeric(S_q1), 1)
 })
 
-# .tsenat_prepare_diversity_input behaviours
+# .prepare_diversity_input behaviours
 
-test_that(".tsenat_prepare_diversity_input accepts data.frame and emits matrices", {
+test_that(".prepare_diversity_input accepts data.frame and emits matrices", {
     df <- data.frame(S1 = c(1, 2), S2 = c(3, 4))
     rownames(df) <- c("g1", "g2")
-    res <- TSENAT:::.tsenat_prepare_diversity_input(df)
+    res <- TSENAT:::.prepare_diversity_input(df)
     expect_true(is.matrix(res$x))
     expect_null(res$se_assay_mat)
 })
 
-test_that(".tsenat_prepare_diversity_input warns/messages for tpm non-list inputs", {
+test_that(".prepare_diversity_input warns/messages for tpm non-list inputs", {
     mat <- matrix(1:6, nrow = 3)
     rownames(mat) <- c("g1", "g2", "g3")
-    expect_message(TSENAT:::.tsenat_prepare_diversity_input(mat, tpm = TRUE, verbose = TRUE), "tpm as a logical argument is only interpreted")
+    expect_message(TSENAT:::.prepare_diversity_input(mat, tpm = TRUE, verbose = TRUE), "tpm as a logical argument is only interpreted")
 })
 
-test_that(".tsenat_prepare_diversity_input handles SummarizedExperiment metadata readcounts and tx2gene mapping", {
+test_that(".prepare_diversity_input handles SummarizedExperiment metadata readcounts and tx2gene mapping", {
     # Construct SE with metadata readcounts and tx2gene
     rc <- matrix(1:6, nrow = 3)
     rownames(rc) <- paste0("tx", 1:3)
@@ -215,7 +215,7 @@ test_that(".tsenat_prepare_diversity_input handles SummarizedExperiment metadata
     S4Vectors::metadata(se)$readcounts <- rc
     S4Vectors::metadata(se)$tx2gene <- tx2
 
-    res <- TSENAT:::.tsenat_prepare_diversity_input(se)
+    res <- TSENAT:::.prepare_diversity_input(se)
     expect_true(is.matrix(res$x))
     expect_equal(res$genes, c("g1", "g1", "g2"))
     expect_true(!is.null(res$se_assay_mat))
@@ -223,16 +223,16 @@ test_that(".tsenat_prepare_diversity_input handles SummarizedExperiment metadata
 
 # invalid input types
 
-test_that(".tsenat_prepare_diversity_input errors on unsupported input types", {
-    expect_error(TSENAT:::.tsenat_prepare_diversity_input(12345), "Input data type is not supported")
+test_that(".prepare_diversity_input errors on unsupported input types", {
+    expect_error(TSENAT:::.prepare_diversity_input(12345), "Input data type is not supported")
 })
 
 # invalid assayno should error
 
-test_that(".tsenat_prepare_diversity_input errors on invalid assayno for SummarizedExperiment", {
+test_that(".prepare_diversity_input errors on invalid assayno for SummarizedExperiment", {
     rc <- matrix(1:4, nrow = 2)
     se <- SummarizedExperiment::SummarizedExperiment(assays = S4Vectors::SimpleList(a = rc))
-    expect_error(TSENAT:::.tsenat_prepare_diversity_input(se, assayno = 2), "Please provide a valid assay number")
+    expect_error(TSENAT:::.prepare_diversity_input(se, assayno = 2), "Please provide a valid assay number")
 })
 
 # Tests for vector pseudocount support in calculate_tsallis_entropy
@@ -382,7 +382,7 @@ test_that("estimate_shrinkage_params returns correct structure with var_trend an
     }
     
     # Call estimate_shrinkage_params (wrapped to suppress loess warnings from synthetic data)
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
     
     # Verify all 6 components
     expect_named(params, c("global_mean", "global_var", "var_trend", "outlier_genes", "n_isoforms", "n_samples"))
@@ -432,7 +432,7 @@ test_that("Loess variance trend fits successfully with sufficient data", {
     }
     
     # Call estimate_shrinkage_params (wrapped to suppress loess warnings from synthetic data)
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(x, genes, entropy_matrix, q = 1))
     
     # Verify successful fit
     expect_true(is.list(params$var_trend))
@@ -472,7 +472,7 @@ test_that("Outlier genes with extreme variance are detected correctly", {
     entropy_matrix["Gene2", grep("_q=1$", colnames(entropy_matrix))] <- rnorm(n_samples, mean = 0.15, sd = 0.08)
     
     # Estimate parameters (wrapped to suppress loess warnings from synthetic data)
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -521,11 +521,11 @@ test_that("Sample-size weight is computed correctly and decreases with more samp
     entropy_large <- create_entropy_matrix(20, n_genes)
     
     # Get parameters for both (wrapped to suppress loess warnings from synthetic data)
-    params_small <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params_small <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x_small, genes = genes, entropy_matrix = entropy_small, q = 1
     ))
     
-    params_large <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params_large <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x_large, genes = genes, entropy_matrix = entropy_large, q = 1
     ))
     
@@ -558,7 +558,7 @@ test_that("Shrinkage weights are computed correctly for normal genes", {
     colnames(entropy_matrix) <- paste0("Sample", 1:n_samples, "_q=", 1)
     
     # Estimate parameters (wrapped to suppress loess warnings from synthetic data)
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -566,7 +566,7 @@ test_that("Shrinkage weights are computed correctly for normal genes", {
     ))
     
     # Apply shrinkage
-    shrunk <- TSENAT:::.tsenat_apply_shrinkage(
+    shrunk <- TSENAT:::.apply_shrinkage(
         entropy_matrix = entropy_matrix,
         params = params,
         gene_isoform_map = params$n_isoforms[rownames(entropy_matrix)]
@@ -614,7 +614,7 @@ test_that("Outlier genes skip shrinkage (w=1) and maintain original values", {
     entropy_matrix["Gene1", ] <- c(0.95, 0.02, 0.98, 0.01, 0.96)
     
     # Manually create params with Gene1 marked as outlier (suppress loess warnings)
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -625,7 +625,7 @@ test_that("Outlier genes skip shrinkage (w=1) and maintain original values", {
     params$outlier_genes[[1]] <- "Gene1"
     
     # Apply shrinkage
-    shrunk <- TSENAT:::.tsenat_apply_shrinkage(
+    shrunk <- TSENAT:::.apply_shrinkage(
         entropy_matrix = entropy_matrix,
         params = params,
         gene_isoform_map = params$n_isoforms[rownames(entropy_matrix)]
@@ -662,7 +662,7 @@ test_that("Shrinkage formula produces correct weighted average of observation an
     colnames(entropy_matrix) <- paste0("Sample", 1:n_samples, "_q=1")
     
     # Estimate parameters (wrapped to suppress loess warnings from synthetic data)
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -670,7 +670,7 @@ test_that("Shrinkage formula produces correct weighted average of observation an
     ))
     
     # Apply shrinkage
-    shrunk <- TSENAT:::.tsenat_apply_shrinkage(
+    shrunk <- TSENAT:::.apply_shrinkage(
         entropy_matrix = entropy_matrix,
         params = params,
         gene_isoform_map = params$n_isoforms[rownames(entropy_matrix)]
@@ -726,7 +726,7 @@ test_that("Shrinkage with NA and NaN values handled correctly", {
     # Estimate parameters
     # Suppress expected loess warnings about fitting with NA/NaN data
     # The graceful fallback to global variance is the expected behavior
-    params <- suppress_loess_warnings(TSENAT:::.tsenat_estimate_shrinkage_params(
+    params <- suppress_loess_warnings(TSENAT:::.estimate_shrinkage_params(
         x = x,
         genes = genes,
         entropy_matrix = entropy_matrix,
@@ -735,7 +735,7 @@ test_that("Shrinkage with NA and NaN values handled correctly", {
     
     # Apply shrinkage (should handle NA/NaN gracefully)
     expect_no_error(
-        shrunk <- TSENAT:::.tsenat_apply_shrinkage(
+        shrunk <- TSENAT:::.apply_shrinkage(
             entropy_matrix = entropy_matrix,
             params = params,
             gene_isoform_map = params$n_isoforms[rownames(entropy_matrix)]

@@ -784,7 +784,7 @@ NULL
 #' @return SummarizedExperiment with combined assay across all q-values
 
 #' @noRd
-.tsenat_prepare_combined_se <- function(analysis) {
+.prepare_combined_se <- function(analysis) {
   require_pkgs(c("SummarizedExperiment", "S4Vectors"))
   
   div_list <- analysis@diversity_results
@@ -912,7 +912,7 @@ NULL
 #' @return Data frame with central tendency and spread by gene, group, q
 
 #' @noRd
-.tsenat_compute_gene_group_stats <- function(long_data) {
+.compute_gene_group_stats <- function(long_data) {
   require_pkgs("dplyr")
   
   long_data$qnum <- as.numeric(as.character(long_data$q))
@@ -932,7 +932,7 @@ NULL
 #' @return Data frame with q, median, ci_lower, ci_upper, group
 
 #' @noRd
-.tsenat_bootstrap_aggregate_ci <- function(se, long) {
+.bootstrap_aggregate_ci <- function(se, long) {
   require_pkgs(c("SummarizedExperiment", "dplyr"))
   
   ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
@@ -1009,7 +1009,7 @@ NULL
 #' @return Named character vector: sample name -> group value
 
 #' @noRd
-.tsenat_prepare_sample_group_mapping <- function(cdata, condition_col) {
+.prepare_sample_group_mapping <- function(cdata, condition_col) {
   coldata_rownames <- rownames(cdata)
   coldata_sample_names <- sub("_q=.*", "", coldata_rownames)
   
@@ -1033,7 +1033,7 @@ NULL
 #' @return Data frame with columns: sample, group, q, entropy (or NULL if invalid)
 
 #' @noRd
-.tsenat_plot_gam_prepare_gene_data <- function(gene, mat, sample_to_group) {
+.plot_gam_prepare_gene_data <- function(gene, mat, sample_to_group) {
   if (!(gene %in% rownames(mat))) {
     return(NULL)
   }
@@ -1077,7 +1077,7 @@ NULL
 #' @return List with $plot_data and $pred_data data frames (or NULL if fitting fails)
 
 #' @noRd
-.tsenat_plot_gam_fit_group <- function(plot_df) {
+.plot_gam_fit_group <- function(plot_df) {
   require_pkgs(c("mgcv", "dplyr"))
   
   unique_groups <- unique(plot_df$group)
@@ -1149,7 +1149,7 @@ NULL
 #' @return Character vector of gene IDs to plot (or NULL if none selected)
 
 #' @noRd
-.tsenat_plot_select_genes <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
+.plot_select_genes <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
   if (!is.null(genes)) {
     if (!is.character(genes)) {
       stop("genes must be a character vector of gene names", call. = FALSE)

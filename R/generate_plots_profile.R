@@ -380,11 +380,11 @@
                 x = "q value (diversity scale parameter)",
                 y = "Divergence D[q]"
             ) +
-            .tsenat_theme_spectrum(base_size = 11) +
+            .theme_spectrum(base_size = 11) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title),
-                axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
-                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text)
+                plot.title = ggplot2::element_text(size = .font_sizes$title),
+                axis.title = ggplot2::element_text(size = .font_sizes$axis_title),
+                axis.text = ggplot2::element_text(size = .font_sizes$axis_text)
             )
     } else {
         p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = q, y = divergence, color = gene)) +
@@ -396,11 +396,11 @@
                 y = "Divergence D[q] (Absolute)",
                 color = "Gene"
             ) +
-            .tsenat_theme_spectrum(base_size = 11) +
+            .theme_spectrum(base_size = 11) +
             ggplot2::theme(
-                plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title),
-                axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title),
-                axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text)
+                plot.title = ggplot2::element_text(size = .font_sizes$title),
+                axis.title = ggplot2::element_text(size = .font_sizes$axis_title),
+                axis.text = ggplot2::element_text(size = .font_sizes$axis_text)
             )
     }
     
@@ -453,9 +453,9 @@
                     y = expression("Divergence D[q]"),
                     subtitle = paste0("Red = ", groups[1], " higher | Blue = ", groups[2], " higher")
                 ) +
-                .tsenat_theme_spectrum(base_size = 11) +
+                .theme_spectrum(base_size = 11) +
                 ggplot2::theme(
-                    plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold"),
+                    plot.title = ggplot2::element_text(hjust = 0.5, size = .font_sizes$title, face = "bold"),
                     panel.grid.minor = ggplot2::element_blank(),
                     legend.position = "right"
                 )
@@ -468,9 +468,9 @@
                     x = "q value",
                     y = "Divergence D[q] (Absolute)"
                 ) +
-                .tsenat_theme_spectrum(base_size = 11) +
+                .theme_spectrum(base_size = 11) +
                 ggplot2::theme(
-                    plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold"),
+                    plot.title = ggplot2::element_text(hjust = 0.5, size = .font_sizes$title, face = "bold"),
                     panel.grid.minor = ggplot2::element_blank()
                 )
         }

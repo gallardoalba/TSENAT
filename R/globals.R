@@ -90,14 +90,14 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 #' @examples
 #' # Get default 8 colors
-#' pal <- .tsenat_palette_discrete()
+#' pal <- .palette_discrete()
 #' 
 #' # Get subset
-#' pal_4 <- .tsenat_palette_discrete(4)
+#' pal_4 <- .palette_discrete(4)
 #'
 
 #' @noRd
-.tsenat_palette_discrete <- function(n = 8) {
+.palette_discrete <- function(n = 8) {
   palette_dark2 <- c(
     "#1B9E77", "#D95F02", "#7570B3", "#E7298A",
     "#66A61E", "#E6AB02", "#A6761D", "#666666"
@@ -135,7 +135,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.tsenat_palette_blue_red <- function(n = 8) {
+.palette_blue_red <- function(n = 8) {
   palette_blue_red <- c(
     "#4575B4",  # Blue (heatmap primary)
     "#D73027",  # Red (heatmap primary)
@@ -177,7 +177,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.tsenat_palette_continuous_diverging <- function(n = 100) {
+.palette_continuous_diverging <- function(n = 100) {
   grDevices::colorRampPalette(c("#4575B4", "#FFFFFF", "#D73027"))(n)
 }
 
@@ -196,14 +196,14 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - **Significant**: Red (#D73027) from heatmap palette for consistency
 #'
 #' Apply in ggplot2 with:
-#' \code{ggplot2::scale_color_manual(values = .tsenat_significance_colors())}
+#' \code{ggplot2::scale_color_manual(values = .significance_colors())}
 #'
 #' This replaces ad-hoc color choices like "black" and "red" across different plots,
 #' ensuring visual consistency in significance indicator colors.
 #'
 
 #' @noRd
-.tsenat_significance_colors <- function() {
+.significance_colors <- function() {
   c(
     "non-significant" = "#CCCCCC",  # Grey (neutral, understated)
     "significant" = "#D73027"        # Red (heatmap red, emphatic)
@@ -239,13 +239,13 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' \dontrun{
 #' # Apply to a ggplot2 plot
 #' ggplot2::ggplot(data) +
-#'   .tsenat_theme_base(base_size = 11) +
+#'   .theme_base(base_size = 11) +
 #'   ggplot2::geom_point()
 #' }
 #'
 
 #' @noRd
-.tsenat_theme_base <- function(base_size = 11) {
+.theme_base <- function(base_size = 11) {
   list(
     ggplot2::theme_minimal(base_size = base_size),
     ggplot2::theme(
@@ -305,11 +305,11 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' readability regardless of panel dimensions.
 #'
 #' Usage in plots:
-#' \code{ggplot2::element_text(size = .tsenat_font_sizes$title)}
+#' \code{ggplot2::element_text(size = .font_sizes$title)}
 #'
 
 #' @noRd
-.tsenat_font_sizes <- list(
+.font_sizes <- list(
   title = 19,           # Main plot title (increased from 18)
   subtitle = 15,        # Plot subtitle (increased from 14)
   axis_title = 15,      # X/Y axis titles (increased from 14)
@@ -327,7 +327,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' TSENAT Spectrum Theme Variant
 #'
 #' Returns a specialized variant of the base theme optimized for spectrum/profile plots.
-#' Inherits from \code{\link{.tsenat_theme_base}} and adds spectrum-specific overrides.
+#' Inherits from \code{\link{.theme_base}} and adds spectrum-specific overrides.
 #'
 #' @param base_size Numeric; base font size in points (default: 11).
 #'
@@ -344,9 +344,9 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.tsenat_theme_spectrum <- function(base_size = 11) {
+.theme_spectrum <- function(base_size = 11) {
   list(
-    .tsenat_theme_base(base_size = base_size),
+    .theme_base(base_size = base_size),
     ggplot2::theme(
       legend.position = "right",
       panel.grid.major.y = ggplot2::element_line(color = "gray90", linewidth = 0.25),
@@ -397,12 +397,12 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 #' ```r
 #' # Standard aspect ratio plot
-#' dims <- .tsenat_calculate_plot_dims(width_inches = 12, aspect_type = "standard")
+#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard")
 #' ggplot2::ggsave("plot.pdf", plot_obj, width = dims$width, 
 #'                  height = dims$height, dpi = dims$dpi)
 #'
 #' # Heatmap with many rows (use tall aspect)
-#' dims <- .tsenat_calculate_plot_dims(width_inches = 12, aspect_type = "tall")
+#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall")
 #' # ... render and save
 #' ```
 #'
@@ -413,7 +413,7 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 
 #' @noRd
-.tsenat_calculate_plot_dims <- function(width_inches = 12, 
+.calculate_plot_dims <- function(width_inches = 12, 
                                   aspect_type = "standard",
                                   dpi_output = 100) {
   # Validate aspect_type
@@ -465,17 +465,17 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Example:
 #' ```r
 #' # For a heatmap that's 15 inches wide and 12 inches tall
-#' scale <- .tsenat_scale_font_by_area(width_inches = 15, height_inches = 12)
+#' scale <- .scale_font_by_area(width_inches = 15, height_inches = 12)
 #' # Results in scale ~ 1.38, increasing fonts for larger output
 #'
 #' # Use in custom plotting:
-#' font_scale <- .tsenat_scale_font_by_area(12, 10)
+#' font_scale <- .scale_font_by_area(12, 10)
 #' base_font <- 11 * font_scale
 #' ```
 #'
 
 #' @noRd
-.tsenat_scale_font_by_area <- function(width_inches, height_inches, 
+.scale_font_by_area <- function(width_inches, height_inches, 
                                  reference_area = 96) {
   actual_area <- width_inches * height_inches
   sqrt(actual_area / reference_area)

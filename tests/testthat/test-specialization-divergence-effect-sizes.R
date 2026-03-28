@@ -565,53 +565,53 @@ test_that(".formatMultiQResult returns NULL when all estimates are NA", {
   expect_null(result)
 })
 
-test_that(".tsenat_classify_q_pattern classifies RARE_DRIVEN pattern", {
+test_that(".classify_q_pattern classifies RARE_DRIVEN pattern", {
   # Divergence higher at low q (rare)
   divs <- c(0.9, 0.7, 0.5)  # Decreasing - rare driven
   
-  result <- TSENAT:::.tsenat_classify_q_pattern(divs)
+  result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_equal(result, "RARE_DRIVEN")
 })
 
-test_that(".tsenat_classify_q_pattern classifies ABUNDANT_DRIVEN pattern", {
+test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN pattern", {
   # Divergence higher at high q (abundant)
   divs <- c(0.5, 0.7, 0.9)  # Increasing - abundant driven
   
-  result <- TSENAT:::.tsenat_classify_q_pattern(divs)
+  result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_equal(result, "ABUNDANT_DRIVEN")
 })
 
-test_that(".tsenat_classify_q_pattern classifies BALANCED pattern", {
+test_that(".classify_q_pattern classifies BALANCED pattern", {
   # Divergence similar across q (balanced)
   divs <- c(0.6, 0.7, 0.8)  # Peak in middle
   
-  result <- TSENAT:::.tsenat_classify_q_pattern(divs)
+  result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_equal(result, "BALANCED")
 })
 
-test_that(".tsenat_classify_q_pattern handles single value", {
+test_that(".classify_q_pattern handles single value", {
   divs <- c(0.75)
   
-  result <- TSENAT:::.tsenat_classify_q_pattern(divs)
+  result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_equal(result, "BALANCED")
 })
 
-test_that(".tsenat_classify_q_pattern returns NA for all-NA input", {
+test_that(".classify_q_pattern returns NA for all-NA input", {
   divs <- c(NA_real_, NA_real_, NA_real_)
   
-  result <- TSENAT:::.tsenat_classify_q_pattern(divs)
+  result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_true(is.na(result))
 })
 
-test_that(".tsenat_classify_q_pattern returns NA for empty input", {
+test_that(".classify_q_pattern returns NA for empty input", {
   divs <- numeric(0)
   
-  result <- TSENAT:::.tsenat_classify_q_pattern(divs)
+  result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_true(is.na(result))
 })

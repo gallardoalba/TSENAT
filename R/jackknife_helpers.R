@@ -6,7 +6,7 @@
 #' Performs leave-one-out resampling and computes influence values.
 #'
 #' @param counts Matrix/data.frame where rows are genes/observations, columns are samples
-#' @param entropy_fn Function to compute entropy (default: .tsenat_entropy_core)
+#' @param entropy_fn Function to compute entropy (default: .entropy_core)
 #' @param q Numeric. Tsallis parameter. Default: 1.0
 #' @param threshold Numeric. Percentile cutoff for outlier detection (0-100). Default: 90
 #' @param norm Logical. Normalize entropy. Default: TRUE
@@ -24,7 +24,7 @@
 #'
 
 #' @noRd
-.tsenat_jackknife_resampling <- function(counts, entropy_fn = .tsenat_entropy_core, 
+.jackknife_resampling <- function(counts, entropy_fn = .entropy_core, 
                                    q = 1, threshold = 90, norm = TRUE, 
                                    log_base = exp(1), pseudocount = 0) {
   # Ensure matrix format
@@ -99,7 +99,7 @@
 #' Apply jackknife resampling to multiple genes/observations efficiently
 #'
 #' @param counts_matrix Matrix where rows = samples, columns = genes/species
-#' @param entropy_fn Function to compute entropy. Default: .tsenat_entropy_core
+#' @param entropy_fn Function to compute entropy. Default: .entropy_core
 #' @param q Numeric. Tsallis parameter. Default: 1.0
 #' @param threshold Numeric. Outlier detection percentile. Default: 90
 #' @param norm Logical. Normalize entropy. Default: TRUE
@@ -111,7 +111,7 @@
 #'
 
 #' @noRd
-.tsenat_jackknife_batch <- function(counts_matrix, entropy_fn = .tsenat_entropy_core,
+.jackknife_batch <- function(counts_matrix, entropy_fn = .entropy_core,
                               q = 1, threshold = 90, norm = TRUE,
                               log_base = exp(1), pseudocount = 0, verbose = FALSE) {
   counts_matrix <- as.matrix(counts_matrix)
@@ -127,7 +127,7 @@
   for (gene_idx in seq_len(ncol(counts_matrix))) {
     gene_counts <- counts_matrix[, gene_idx, drop = FALSE]
     
-    result <- .tsenat_jackknife_resampling(
+    result <- .jackknife_resampling(
       gene_counts,
       entropy_fn = entropy_fn,
       q = q,

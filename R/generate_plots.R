@@ -206,7 +206,7 @@ if (getRversion() >= "2.15.1") {
     title_use <- title %||% "Tsallis-based MA plot"
     x_label_use <- x_label %||% "mean_difference"
     y_label_use <- y_label %||% "Log10 fold-change of entropy"
-    .tsenat_plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label_use, y_label = y_label_use, title = title_use)
+    .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label_use, y_label = y_label_use, title = title_use)
 }
 
 
@@ -220,7 +220,7 @@ if (getRversion() >= "2.15.1") {
 #' This is an internal helper used by `.plot_ma_tsallis()`.
 #' It is documented here for developers but is not exported.
 #' @noRd
-.tsenat_plot_ma_core <- function(x,
+.plot_ma_core <- function(x,
                           fc_df = NULL,
                           diff_res = NULL,
                           sig_alpha = 0.05,
@@ -310,11 +310,11 @@ if (getRversion() >= "2.15.1") {
 
     plot_df <- data.frame(genes = df$genes, x = xvals, y = yvals, padj = padj, significant = sig_flag, stringsAsFactors = FALSE)
 
-    prep <- .tsenat_prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols, x_label = x_label, y_label = y_label)
+    prep <- .prepare_ma_plot_df(df, fold_col = fold_col, mean_cols = mean_cols, x_label = x_label, y_label = y_label)
     plot_df <- prep$plot_df
-    x_label_formatted <- .tsenat_format_label(prep$x_label)
+    x_label_formatted <- .format_label(prep$x_label)
     y_label_raw <- prep$y_label %||% fold_col
-    y_label_formatted <- .tsenat_format_label(y_label_raw)
+    y_label_formatted <- .format_label(y_label_raw)
     if (!is.null(y_label_formatted)) {
         y_label_formatted <- sub("\\blog2\\b", "log10", y_label_formatted, ignore.case = TRUE)
     }
@@ -322,7 +322,7 @@ if (getRversion() >= "2.15.1") {
     p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = x, y = y, color = significant)) +
         ggplot2::geom_point(alpha = 0.75, size = 3.2) +
         ggplot2::scale_color_manual(
-            values = .tsenat_significance_colors(),
+            values = .significance_colors(),
             guide = "none"
         ) +
         ggplot2::labs(
@@ -330,7 +330,7 @@ if (getRversion() >= "2.15.1") {
             x = x_label_formatted,
             y = y_label_formatted
         ) +
-        .tsenat_theme_base(base_size = 11) +
+        .theme_base(base_size = 11) +
         ggplot2::theme(
             axis.title = ggplot2::element_text(face = "bold")
         )
@@ -398,8 +398,8 @@ if (getRversion() >= "2.15.1") {
             outlier.shape = NA,
             alpha = 0.8
         ) +
-        .tsenat_theme_base(base_size = 11) +
-        ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group", guide = "none") +
+        .theme_base(base_size = 11) +
+        ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group", guide = "none") +
         ggplot2::labs(
             title = title_use,
             x = "Group",
@@ -407,7 +407,7 @@ if (getRversion() >= "2.15.1") {
             fill = "Group"
         ) +
         ggplot2::theme(
-            axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title)
+            axis.title = ggplot2::element_text(size = .font_sizes$axis_title)
         )
 }
 
@@ -462,9 +462,9 @@ if (getRversion() >= "2.15.1") {
         ggplot2::aes(x = tsallis, color = group, fill = group)
     ) +
         ggplot2::geom_density(alpha = 0.3, linewidth = 1) +
-        .tsenat_theme_base(base_size = 11) +
-        ggplot2::scale_color_manual(values = .tsenat_palette_blue_red(), name = "Group") +
-        ggplot2::scale_fill_manual(values = .tsenat_palette_blue_red(), name = "Group") +
+        .theme_base(base_size = 11) +
+        ggplot2::scale_color_manual(values = .palette_blue_red(), name = "Group") +
+        ggplot2::scale_fill_manual(values = .palette_blue_red(), name = "Group") +
         ggplot2::labs(
             title = title_use,
             x = "Tsallis entropy",
@@ -473,7 +473,7 @@ if (getRversion() >= "2.15.1") {
             fill = "Group"
         ) +
         ggplot2::theme(
-            axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title)
+            axis.title = ggplot2::element_text(size = .font_sizes$axis_title)
         )
 }
 
@@ -618,7 +618,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         stop("ggplot2 required")
     }
 
-    prep_volcano <- .tsenat_prepare_volcano_df(diff_df = diff_df, x_col = x_col, padj_col = padj_col, label_thresh = label_thresh, sig_alpha = sig_alpha, title = title)
+    prep_volcano <- .prepare_volcano_df(diff_df = diff_df, x_col = x_col, padj_col = padj_col, label_thresh = label_thresh, sig_alpha = sig_alpha, title = title)
     df <- prep_volcano$df
     x_col <- prep_volcano$x_col
     padj_col <- prep_volcano$padj_col
@@ -632,7 +632,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     ) +
         ggplot2::geom_point(alpha = 0.75, size = 3.4) +
         ggplot2::scale_color_manual(
-            values = .tsenat_significance_colors(),
+            values = .significance_colors(),
             guide = "none"
         ) +
         ggplot2::geom_hline(
@@ -650,7 +650,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
             x = x_label_formatted,
             y = paste0("-Log10(", padj_label_formatted, ")")
         ) +
-        .tsenat_theme_base(base_size = 11) +
+        .theme_base(base_size = 11) +
         ggplot2::theme(
             axis.title = ggplot2::element_text(face = "bold")
         )
@@ -741,7 +741,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 #' Internal helper to compute fill limits across multiple genes (not exported)
 #' @noRd
-.tsenat_plot_transcript_fill_limits <- function(genes, mapping, counts, samples, top_n, agg_fun, pseudocount) {
+.plot_transcript_fill_limits <- function(genes, mapping, counts, samples, top_n, agg_fun, pseudocount) {
     mins <- maxs <- c()
     for (g in genes) {
         txs <- mapping$Transcript[mapping$Gen == g]
@@ -764,7 +764,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 #' Internal helper to draw grid layout with title, plots, and legend using base grid
 #' @noRd
-.tsenat_plot_transcript_grid_draw <- function(grobs, title, legend_grob, ncol, heights, to_file = NULL) {
+.plot_transcript_grid_draw <- function(grobs, title, legend_grob, ncol, heights, to_file = NULL) {
     # If no output file is provided and no graphics device is open, render to a
     # temporary pdf device so that plotting in non-interactive sessions does not
     # create `Rplots.pdf` in the working directory.
@@ -1092,7 +1092,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
             limits = fill_limits,
             name = "log2(expr)"
         ) + 
-        .tsenat_theme_base(base_size = base_font) +
+        .theme_base(base_size = base_font) +
         ggplot2::labs(title = agg_label_unique, x = NULL, y = NULL, fill = "log2(expr)") +
         ggplot2::theme(
             axis.text.y = ggplot2::element_text(size = y_axis_font, face = "plain"), 
@@ -1170,8 +1170,8 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
             title = "Transcript level expression",
             subtitle = paste0("Top genes with metric ", agg_label_unique),
             theme = ggplot2::theme(
-                plot.title = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$title, face = "bold", margin = ggplot2::margin(t = 10, b = 10)),
-                plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .tsenat_font_sizes$subtitle, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4)),
+                plot.title = ggplot2::element_text(hjust = 0.5, size = .font_sizes$title, face = "bold", margin = ggplot2::margin(t = 10, b = 10)),
+                plot.subtitle = ggplot2::element_text(hjust = 0.5, size = .font_sizes$subtitle, face = "italic", margin = ggplot2::margin(t = 5, b = 0.4)),
                 legend.position = "bottom"
             )
         ) +
@@ -1239,10 +1239,10 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         png_width <- 800 * ncol
         png_height <- 480 * nrow
         png(filename = output_file, width = png_width, height = png_height, res = 150)
-        .tsenat_plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights, to_file = output_file)
+        .plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights, to_file = output_file)
         invisible(NULL)
     } else {
-        .tsenat_plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights)
+        .plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights)
         invisible(NULL)
     }
 }
@@ -1271,7 +1271,7 @@ if (getRversion() >= "2.15.1") {
 
 # Internal plot helpers
 
-.tsenat_format_label <- function(lbl) {
+.format_label <- function(lbl) {
     if (is.null(lbl)) {
         return(NULL)
     }
@@ -1288,7 +1288,7 @@ if (getRversion() >= "2.15.1") {
     paste0(toupper(substr(s, 1, 1)), substr(s, 2, nchar(s)))
 }
 
-.tsenat_prepare_ma_plot_df <- function(df, fold_col, mean_cols, x_label, y_label) {
+.prepare_ma_plot_df <- function(df, fold_col, mean_cols, x_label, y_label) {
     # Detect x-axis values
     if (length(mean_cols) >= 2) {
         xvals <- rowMeans(df[, mean_cols[seq_len(2)], drop = FALSE], na.rm = TRUE)
@@ -1329,7 +1329,7 @@ if (getRversion() >= "2.15.1") {
     list(plot_df = plot_df, x_label = x_label, y_label = y_label)
 }
 
-.tsenat_prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
+.prepare_volcano_df <- function(diff_df, x_col = NULL, padj_col = "adjusted_p_values",
     label_thresh = 0.1, sig_alpha = 0.05, title = NULL) {
     df <- as.data.frame(diff_df)
     cn <- colnames(df)
@@ -1382,8 +1382,8 @@ if (getRversion() >= "2.15.1") {
 
     title_use <- title %||% "Volcano plot: fold-change vs significance"
 
-    x_label_formatted <- .tsenat_format_label(x_col)
-    padj_label_formatted <- .tsenat_format_label(padj_col)
+    x_label_formatted <- .format_label(x_col)
+    padj_label_formatted <- .format_label(padj_col)
 
     list(df = df, x_col = x_col, padj_col = padj_col, x_label_formatted = x_label_formatted,
         padj_label_formatted = padj_label_formatted, title_use = title_use)
@@ -1466,7 +1466,7 @@ if (getRversion() >= "2.15.1") {
   
   # Create visualization of effect size distribution
   p_effect <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data[[median_col]])) +
-    ggplot2::geom_histogram(binwidth = 0.02, fill = .tsenat_palette_blue_red()[1], alpha = 0.7, color = "black") +
+    ggplot2::geom_histogram(binwidth = 0.02, fill = .palette_blue_red()[1], alpha = 0.7, color = "black") +
     ggplot2::geom_vline(xintercept = threshold, linetype = "dashed", color = "red", linewidth = 1) +
     ggplot2::labs(
       title = expression("Distribution of Tsallis Divergence (" ~ D[q] ~ ") effect sizes across genes"),
@@ -1475,10 +1475,10 @@ if (getRversion() >= "2.15.1") {
       y = "Number of genes",
       caption = paste("Red dashed line: D =", threshold, "filtering threshold (information-theoretic significance for q-dependent entropy)")
     ) +
-    .tsenat_theme_base(base_size = 11) +
+    .theme_base(base_size = 11) +
     ggplot2::theme(
-      plot.title = ggplot2::element_text(size = .tsenat_font_sizes$title, face = "bold", hjust = 0.5),
-      plot.subtitle = ggplot2::element_text(face = "italic", size = .tsenat_font_sizes$subtitle, hjust = 0.5),
+      plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(face = "italic", size = .font_sizes$subtitle, hjust = 0.5),
       panel.grid.major = ggplot2::element_line(color = "gray90")
     ) +
     ggplot2::annotate("text", x = threshold, y = Inf, 
@@ -1783,7 +1783,7 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
       
       # Create base plot
       p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-        .tsenat_theme_base(base_size = 11) +
+        .theme_base(base_size = 11) +
         ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
         ggplot2::geom_point(color = "#4575B4", size = 2.8, alpha = 0.8) +
         ggplot2::geom_vline(xintercept = 1, linetype = 3, color = "gray60", linewidth = 0.8, alpha = 0.7) +
@@ -1800,8 +1800,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
           ),
           plot.margin = ggplot2::margin(t = 8, b = 8, l = 6, r = 6),
           panel.grid.major = ggplot2::element_line(color = "gray92", linewidth = 0.25),
-          axis.text = ggplot2::element_text(size = .tsenat_font_sizes$axis_text),
-          axis.title = ggplot2::element_text(size = .tsenat_font_sizes$axis_title, face = "plain")
+          axis.text = ggplot2::element_text(size = .font_sizes$axis_text),
+          axis.title = ggplot2::element_text(size = .font_sizes$axis_title, face = "plain")
         )
       
       plot_list[[i]] <- p
@@ -1858,8 +1858,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
                      title = "Tsallis Divergence q-Spectrum Profiles",
                      subtitle = "Per-q divergence curves for top-ranked genes",
                      theme = ggplot2::theme(
-                       plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = .tsenat_font_sizes$title, margin = ggplot2::margin(b = 8)),
-                       plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = .tsenat_font_sizes$subtitle, color = "gray40", margin = ggplot2::margin(b = 12))
+                       plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", size = .font_sizes$title, margin = ggplot2::margin(b = 8)),
+                       plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "italic", size = .font_sizes$subtitle, color = "gray40", margin = ggplot2::margin(b = 12))
                      )
                    )
   

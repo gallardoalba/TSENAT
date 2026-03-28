@@ -5,7 +5,7 @@
 
 
 #' @noRd
-.tsenat_normalize_zscore <- function(entropy_matrix, per_q = TRUE) {
+.normalize_zscore <- function(entropy_matrix, per_q = TRUE) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
     stop("Input must be a matrix or data.frame", call. = FALSE)
   }
@@ -49,7 +49,7 @@
 }
 
 
-.tsenat_normalize_log_odds_ratio <- function(entropy_matrix, n_isoforms, q = 2) {
+.normalize_log_odds_ratio <- function(entropy_matrix, n_isoforms, q = 2) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
     stop("Input must be a matrix or data.frame", call. = FALSE)
   }
@@ -122,7 +122,7 @@
 }
 
 
-.tsenat_normalize_relative_reference <- function(entropy_matrix, group_vector, 
+.normalize_relative_reference <- function(entropy_matrix, group_vector, 
                                                   reference_group = NULL) {
   if (!is.matrix(entropy_matrix) && !is.data.frame(entropy_matrix)) {
     stop("Input must be a matrix or data.frame", call. = FALSE)
@@ -174,7 +174,7 @@
 
 # Helpers for Tsallis entropy calculations
 
-.tsenat_calc_S <- function(p, q, tol, n, log_base, norm) {
+.calc_S <- function(p, q, tol, n, log_base, norm) {
     vapply(q, function(qi) {
         if (abs(qi) < tol) {
             # q=0: Species richness (number of nonzero species) - 1
@@ -221,7 +221,7 @@
     }, numeric(1))
 }
 
-.tsenat_calc_D <- function(p, q, tol, log_base) {
+.calc_D <- function(p, q, tol, log_base) {
     vapply(q, function(qi) {
         if (abs(qi) < tol) {
             # q=0: Hill number D_0 = number of nonzero species (true species richness)
@@ -240,7 +240,7 @@
     }, numeric(1))
 }
 # Input preparation
-.tsenat_prepare_diversity_input <- function(x, genes = NULL, tpm = FALSE, assayno = 1,
+.prepare_diversity_input <- function(x, genes = NULL, tpm = FALSE, assayno = 1,
     verbose = FALSE) {
     if (!(is.matrix(x) || is.data.frame(x) || is.list(x) || is(x, "DGEList") || is(x,
         "RangedSummarizedExperiment") || is(x, "SummarizedExperiment"))) {
@@ -498,7 +498,7 @@
 #'
 
 #' @noRd
-.tsenat_block_bootstrap <- function(x, q, norm, nboot, log_base, pseudocount, what) {
+.block_bootstrap <- function(x, q, norm, nboot, log_base, pseudocount, what) {
   n_pairs <- length(x) / 2
   
   # Organize data as pairs (each pair is 2 indices)
@@ -530,10 +530,10 @@
 
 # ============================================================================
 
-.tsenat_bootstrap_resample <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
+.bootstrap_resample <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
     # Dispatch to block bootstrap for paired samples (paper S112)
     if (paired) {
-        return(.tsenat_block_bootstrap(x, q = q, norm = norm, nboot = nboot,
+        return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
             log_base = log_base, pseudocount = pseudocount, what = what))
     }
     
@@ -562,7 +562,7 @@
     return(boot_dist)
 }
 
-.tsenat_ci_percentile <- function(bootstrap_dist, ci) {
+.ci_percentile <- function(bootstrap_dist, ci) {
     alpha <- 1 - ci
     lower_p <- alpha / 2
     upper_p <- 1 - alpha / 2
@@ -573,7 +573,7 @@
     return(list(lower = lower, upper = upper))
 }
 
-.tsenat_ci_bca <- function(x, bootstrap_dist, q, norm, ci, log_base, pseudocount, what) {
+.ci_bca <- function(x, bootstrap_dist, q, norm, ci, log_base, pseudocount, what) {
     alpha <- 1 - ci
     z_alpha <- qnorm(alpha / 2)  # Two-tailed critical value
     
@@ -605,7 +605,7 @@
     jack_est_clean <- jack_est[!is.na(jack_est)]
     if (length(jack_est_clean) < 2) {
         # Fall back to percentile if jackknife fails
-        return(.tsenat_ci_percentile(bootstrap_dist, ci = ci))
+        return(.ci_percentile(bootstrap_dist, ci = ci))
     }
     
     # Acceleration: a = (sum(jack_mean - jack_i)^3) / (6 * (sum(jack_mean - jack_i)^2)^1.5)
@@ -658,7 +658,7 @@
 #'
 
 #' @noRd
-.tsenat_estimate_shrinkage_params <- function(x, genes, entropy_matrix, q = 2, min_count = 1) {
+.estimate_shrinkage_params <- function(x, genes, entropy_matrix, q = 2, min_count = 1) {
   gene_levels <- unique(genes)
   
   # Count expressed isoforms per gene (non-zero after filtering)
@@ -785,7 +785,7 @@
 #' Outlier genes with extreme variance are protected (w=1, no shrinkage).
 #'
 #' @param entropy_matrix Matrix of raw entropy estimates (genes x assays).
-#' @param params List from \code{.tsenat_estimate_shrinkage_params()} with
+#' @param params List from \code{.estimate_shrinkage_params()} with
 #'   global_mean, global_var, n_isoforms, n_samples, var_trend, and outlier_genes.
 #' @param gene_isoform_map Optional vector mapping row names of entropy_matrix
 #'   to n_isoforms (if names don't match indices).
@@ -813,7 +813,7 @@
 #'
 
 #' @noRd
-.tsenat_apply_shrinkage <- function(entropy_matrix, params, gene_isoform_map = NULL) {
+.apply_shrinkage <- function(entropy_matrix, params, gene_isoform_map = NULL) {
   result <- entropy_matrix
   
   global_mean <- params$global_mean
@@ -1043,9 +1043,9 @@
     }
 
     tol <- sqrt(.Machine$double.eps)
-    S_vec <- .tsenat_calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base,
+    S_vec <- .calc_S(p = p, q = q, tol = tol, n = n, log_base = log_base,
         norm = norm)
-    D_vec <- .tsenat_calc_D(p = p, q = q, tol = tol, log_base = log_base)
+    D_vec <- .calc_D(p = p, q = q, tol = tol, log_base = log_base)
 
     if (what == "S") {
         out <- S_vec
@@ -1109,7 +1109,7 @@
 #' 
 
 #' @noRd
-.tsenat_calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
+.calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none", 
     "empirical_bayes"), effective_length = NULL) {
     what <- match.arg(what)
@@ -1133,8 +1133,8 @@
     rown <- gene_levels
 
     # compute requested quantity ('S' or 'D') in parallel
-    result_list <- .tsenat_bplapply(gene_levels, function(gene) {
-        .tsenat_tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
+    result_list <- .bplapply(gene_levels, function(gene) {
+        .tsallis_row(x = x, genes = genes, gene = gene, q = q, norm = norm,
             what = what, pseudocount = pseudocount, effective_length = effective_length)
     }, nthreads = nthreads)
 
@@ -1158,7 +1158,7 @@
         }
         
         # Estimate shrinkage hyperparameters
-        params <- .tsenat_estimate_shrinkage_params(
+        params <- .estimate_shrinkage_params(
             x = x, 
             genes = genes, 
             entropy_matrix = result_mat,
@@ -1169,7 +1169,7 @@
         gene_to_isoforms <- params$n_isoforms[rownames(result_mat)]
         
         # Apply shrinkage
-        result_mat_shrink <- .tsenat_apply_shrinkage(
+        result_mat_shrink <- .apply_shrinkage(
             entropy_matrix = result_mat,
             params = params,
             gene_isoform_map = gene_to_isoforms
@@ -1207,41 +1207,11 @@
     return(out_df)
 }
 
-#' Internal wrapper around calculate_method
-#'
-#' This thin helper around \code{.tsenat_calculate_method} is intended for use in
-#' package-internal tests and by advanced developers.  It is **not exported**
-#' for general user workflows; callers should normally use
-#' \code{calculate_diversity} which works on
-#' \link[SummarizedExperiment]{SummarizedExperiment} objects.
-#'
-#' @param x Numeric matrix; gene expression data (rows = genes, columns = samples)
-#' @param genes Character vector; gene assignments for each row
-#' @param norm Logical; normalize results by per-sample sum
-#' @param verbose Logical; print diagnostic messages
-#' @param q Numeric; Tsallis parameter (default 2)
-#' @param what Character; output type ("S" or "D")
-#' @param nthreads Integer; number of threads for parallel computation
-#' @param pseudocount Numeric; pseudocount to add before computation
-#' @param min_valid_frac Numeric; minimum fraction of valid values per gene
-#' @param shrinkage Character; shrinkage method ("none" or "empirical_bayes")
-#' @param effective_length Numeric vector; effective transcript lengths (optional)
-#'
 
-#' @noRd
-
-.calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
-    "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none",
-    "empirical_bayes"), effective_length = NULL) {
-    .tsenat_calculate_method(x = x, genes = genes, norm = norm, verbose = verbose,
-        q = q, what = what, nthreads = nthreads, pseudocount = pseudocount,
-        min_valid_frac = min_valid_frac, shrinkage = shrinkage,
-        effective_length = effective_length)
-}
 
 # Internal helpers for calculate_method
 
-.tsenat_tsallis_row <- function(x, genes, gene, q, norm, what, pseudocount = 0, effective_length = NULL) {
+.tsallis_row <- function(x, genes, gene, q, norm, what, pseudocount = 0, effective_length = NULL) {
     idx <- which(genes == gene)
     out <- unlist(lapply(seq_len(ncol(x)), function(j) {
         # Get counts for this gene and sample

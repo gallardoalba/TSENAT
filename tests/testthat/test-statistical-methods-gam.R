@@ -43,10 +43,10 @@ create_gam_test_data <- function(n_q = 10, n_samples = 4, add_weights = FALSE) {
 }
 
 # =============================================================================
-# TESTS: .tsenat_setup_gam_data
+# TESTS: .setup_gam_data
 # =============================================================================
 
-test_that(".tsenat_setup_gam_data converts group to factor", {
+test_that(".setup_gam_data converts group to factor", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     
@@ -54,18 +54,18 @@ test_that(".tsenat_setup_gam_data converts group to factor", {
     expect_false(is.factor(df$group))
     
     # Apply setup function
-    df_setup <- .tsenat_setup_gam_data(df)
+    df_setup <- .setup_gam_data(df)
     
     # Verify group is now factor
     expect_true(is.factor(df_setup$group))
     expect_true(all(levels(df_setup$group) %in% c("GroupA", "GroupB")))
 })
 
-test_that(".tsenat_setup_gam_data preserves data integrity", {
+test_that(".setup_gam_data preserves data integrity", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     
-    df_setup <- .tsenat_setup_gam_data(df)
+    df_setup <- .setup_gam_data(df)
     
     # Verify dimensions unchanged
     expect_equal(nrow(df_setup), nrow(df))
@@ -76,18 +76,18 @@ test_that(".tsenat_setup_gam_data preserves data integrity", {
     expect_equal(df_setup$q, df$q)
 })
 
-test_that(".tsenat_setup_gam_data handles NULL group", {
+test_that(".setup_gam_data handles NULL group", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     df$group <- NULL
     
-    df_setup <- .tsenat_setup_gam_data(df)
+    df_setup <- .setup_gam_data(df)
     
     # Should not error and should return df without group column
     expect_null(df_setup$group)
 })
 
-test_that(".tsenat_setup_gam_data requires mgcv package", {
+test_that(".setup_gam_data requires mgcv package", {
     # This test verifies the package check works
     # We assume mgcv is available (it's required for the main package)
     test_data <- create_gam_test_data()
@@ -95,16 +95,16 @@ test_that(".tsenat_setup_gam_data requires mgcv package", {
     
     # Should not raise error since mgcv is installed
     expect_error(
-        .tsenat_setup_gam_data(df),
+        .setup_gam_data(df),
         NA  # Expect no error
     )
 })
 
 # =============================================================================
-# TESTS: .tsenat_select_gam_family
+# TESTS: .select_gam_family
 # =============================================================================
 
-test_that(".tsenat_select_gam_family returns required components", {
+test_that(".select_gam_family returns required components", {
     # Create mock bounded_result (simplified)
     bounded_result <- list(
         use_gamma = FALSE,
@@ -114,7 +114,7 @@ test_that(".tsenat_select_gam_family returns required components", {
         stabilized_df = NULL
     )
     
-    result <- .tsenat_select_gam_family(bounded_result, subject = NULL)
+    result <- .select_gam_family(bounded_result, subject = NULL)
     
     expect_true(is.list(result))
     expect_true("use_bounded_family" %in% names(result))
@@ -122,7 +122,7 @@ test_that(".tsenat_select_gam_family returns required components", {
     expect_true("inverse_link_fn" %in% names(result))
 })
 
-test_that(".tsenat_select_gam_family forces gaussian for paired designs", {
+test_that(".select_gam_family forces gaussian for paired designs", {
     # Simulate bounded family with subject info
     bounded_result <- list(
         use_gamma = TRUE,
@@ -135,13 +135,13 @@ test_that(".tsenat_select_gam_family forces gaussian for paired designs", {
     # With subject, should override to gaussian
     # Suppress expected warning about GAMM not supporting extended families
     result <- suppressWarnings({
-        .tsenat_select_gam_family(bounded_result, subject = rep(1:3, each = 5))
+        .select_gam_family(bounded_result, subject = rep(1:3, each = 5))
     })
     
     expect_equal(result$family_gam$family, "gaussian")
 })
 
-test_that(".tsenat_select_gam_family preserves unbounded family for unpaired designs", {
+test_that(".select_gam_family preserves unbounded family for unpaired designs", {
     bounded_result <- list(
         use_gamma = FALSE,
         use_beta = FALSE,
@@ -150,16 +150,16 @@ test_that(".tsenat_select_gam_family preserves unbounded family for unpaired des
         stabilized_df = NULL
     )
     
-    result <- .tsenat_select_gam_family(bounded_result, subject = NULL)
+    result <- .select_gam_family(bounded_result, subject = NULL)
     
     expect_equal(result$family_gam$family, "gaussian")
 })
 
 # =============================================================================
-# TESTS: .tsenat_prepare_gam_weights
+# TESTS: .prepare_gam_weights
 # =============================================================================
 
-test_that(".tsenat_prepare_gam_weights returns NULL when no weights provided", {
+test_that(".prepare_gam_weights returns NULL when no weights provided", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     q_vals <- test_data$q_vals
@@ -167,12 +167,12 @@ test_that(".tsenat_prepare_gam_weights returns NULL when no weights provided", {
     # Mock hetero_result
     hetero_result <- list(is_heteroscedastic = FALSE)
     
-    weights <- .tsenat_prepare_gam_weights(df, q_vals, NULL, hetero_result, NULL)
+    weights <- .prepare_gam_weights(df, q_vals, NULL, hetero_result, NULL)
     
     expect_null(weights)
 })
 
-test_that(".tsenat_prepare_gam_weights returns input weights when provided", {
+test_that(".prepare_gam_weights returns input weights when provided", {
     test_data <- create_gam_test_data(add_weights = TRUE)
     df <- test_data$df
     q_vals <- test_data$q_vals
@@ -180,12 +180,12 @@ test_that(".tsenat_prepare_gam_weights returns input weights when provided", {
     input_weights <- runif(nrow(df))
     hetero_result <- list(is_heteroscedastic = FALSE)
     
-    weights <- .tsenat_prepare_gam_weights(df, q_vals, input_weights, hetero_result, NULL)
+    weights <- .prepare_gam_weights(df, q_vals, input_weights, hetero_result, NULL)
     
     expect_equal(weights, input_weights)
 })
 
-test_that(".tsenat_prepare_gam_weights validates weight length", {
+test_that(".prepare_gam_weights validates weight length", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     q_vals <- test_data$q_vals
@@ -194,28 +194,28 @@ test_that(".tsenat_prepare_gam_weights validates weight length", {
     wrong_weights <- runif(nrow(df) - 1)
     hetero_result <- list(is_heteroscedastic = FALSE)
     
-    weights <- .tsenat_prepare_gam_weights(df, q_vals, wrong_weights, hetero_result, NULL)
+    weights <- .prepare_gam_weights(df, q_vals, wrong_weights, hetero_result, NULL)
     
     expect_null(weights)
 })
 
 # =============================================================================
-# TESTS: .tsenat_handle_arima_and_weights
+# TESTS: .handle_arima_and_weights
 # =============================================================================
 
-test_that(".tsenat_handle_arima_and_weights returns data without subject", {
+test_that(".handle_arima_and_weights returns data without subject", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     q_vals <- test_data$q_vals
     
     # Without subject, no ARIMA applied
-    result <- .tsenat_handle_arima_and_weights(df, q_vals, subject = NULL, gam_weights_original = NULL)
+    result <- .handle_arima_and_weights(df, q_vals, subject = NULL, gam_weights_original = NULL)
     
     expect_false(result$use_arima)
     expect_equal(nrow(result$df), nrow(df))
 })
 
-test_that(".tsenat_handle_arima_and_weights preserves weights when no ARIMA", {
+test_that(".handle_arima_and_weights preserves weights when no ARIMA", {
     test_data <- create_gam_test_data()
     df <- test_data$df
     q_vals <- test_data$q_vals
@@ -223,12 +223,12 @@ test_that(".tsenat_handle_arima_and_weights preserves weights when no ARIMA", {
     input_weights <- runif(nrow(df))
     
     # Without subject, weights should be preserved
-    result <- .tsenat_handle_arima_and_weights(df, q_vals, subject = NULL, gam_weights_original = input_weights)
+    result <- .handle_arima_and_weights(df, q_vals, subject = NULL, gam_weights_original = input_weights)
     
     expect_equal(result$gam_weights, input_weights)
 })
 
-test_that(".tsenat_handle_arima_and_weights clears weights when ARIMA applied", {
+test_that(".handle_arima_and_weights clears weights when ARIMA applied", {
     test_data <- create_gam_test_data(n_samples = 4)
     df <- test_data$df
     q_vals <- test_data$q_vals
@@ -237,7 +237,7 @@ test_that(".tsenat_handle_arima_and_weights clears weights when ARIMA applied", 
     input_weights <- runif(nrow(df))
     
     # With subject, ARIMA attempts to be applied
-    result <- .tsenat_handle_arima_and_weights(df, q_vals, subject = subject, gam_weights_original = input_weights)
+    result <- .handle_arima_and_weights(df, q_vals, subject = subject, gam_weights_original = input_weights)
     
     # Weights should be cleared if ARIMA is applied (due to variance structure change)
     # or preserved if ARIMA fails
@@ -245,14 +245,14 @@ test_that(".tsenat_handle_arima_and_weights clears weights when ARIMA applied", 
 })
 
 # =============================================================================
-# TESTS: .tsenat_compute_adaptive_knots
+# TESTS: .compute_adaptive_knots
 # =============================================================================
 
-test_that(".tsenat_compute_adaptive_knots returns valid knot numbers", {
+test_that(".compute_adaptive_knots returns valid knot numbers", {
     test_data <- create_gam_test_data(n_q = 10)
     df <- test_data$df
     
-    result <- .tsenat_compute_adaptive_knots(df, df$q, adaptive_knots = TRUE)
+    result <- .compute_adaptive_knots(df, df$q, adaptive_knots = TRUE)
     
     expect_true(is.list(result))
     expect_true("k_q" %in% names(result))
@@ -261,32 +261,32 @@ test_that(".tsenat_compute_adaptive_knots returns valid knot numbers", {
     expect_true(result$k_q <= 10)
 })
 
-test_that(".tsenat_compute_adaptive_knots respects adaptive_knots flag", {
+test_that(".compute_adaptive_knots respects adaptive_knots flag", {
     test_data <- create_gam_test_data(n_q = 10)
     df <- test_data$df
     
-    result_adaptive <- .tsenat_compute_adaptive_knots(df, df$q, adaptive_knots = TRUE)
-    result_static <- .tsenat_compute_adaptive_knots(df, df$q, adaptive_knots = FALSE)
+    result_adaptive <- .compute_adaptive_knots(df, df$q, adaptive_knots = TRUE)
+    result_static <- .compute_adaptive_knots(df, df$q, adaptive_knots = FALSE)
     
     # Both should return valid k values
     expect_true(result_adaptive$k_q >= 2)
     expect_true(result_static$k_q >= 2)
 })
 
-test_that(".tsenat_compute_adaptive_knots counts unique q values correctly", {
+test_that(".compute_adaptive_knots counts unique q values correctly", {
     test_data <- create_gam_test_data(n_q = 8)
     df <- test_data$df
     
-    result <- .tsenat_compute_adaptive_knots(df, test_data$q_vals, adaptive_knots = FALSE)
+    result <- .compute_adaptive_knots(df, test_data$q_vals, adaptive_knots = FALSE)
     
     expect_equal(result$uq_len, length(unique(test_data$q_vals)))
 })
 
 # =============================================================================
-# TESTS: .tsenat_fit_gamm_ar1_single
+# TESTS: .fit_gamm_ar1_single
 # =============================================================================
 
-test_that(".tsenat_fit_gamm_ar1_single handles simple GAMM fitting", {
+test_that(".fit_gamm_ar1_single handles simple GAMM fitting", {
     skip_if_not_installed("mgcv")
     skip_if_not_installed("nlme")
     
@@ -298,16 +298,16 @@ test_that(".tsenat_fit_gamm_ar1_single handles simple GAMM fitting", {
     formula <- entropy ~ group + s(q, bs = "tp", k = 3)
     
     # Should return a model or try-error
-    result <- .tsenat_fit_gamm_ar1_single(formula, df, stats::gaussian(), NULL)
+    result <- .fit_gamm_ar1_single(formula, df, stats::gaussian(), NULL)
     
     expect_true(is.list(result) || inherits(result, "try-error"))
 })
 
 # =============================================================================
-# TESTS: .tsenat_extract_effect_size
+# TESTS: .extract_effect_size
 # =============================================================================
 
-test_that(".tsenat_extract_effect_size extracts dev.expl from GAM summary", {
+test_that(".extract_effect_size extracts dev.expl from GAM summary", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10)
@@ -322,26 +322,26 @@ test_that(".tsenat_extract_effect_size extracts dev.expl from GAM summary", {
     
     if (!is.null(gam_mod)) {
         gam_summary <- summary(gam_mod)
-        effect_size <- .tsenat_extract_effect_size(gam_summary, is_gamm = FALSE)
+        effect_size <- .extract_effect_size(gam_summary, is_gamm = FALSE)
         
         expect_true(is.numeric(effect_size))
         expect_true(effect_size >= 0 || is.na(effect_size))
     }
 })
 
-test_that(".tsenat_extract_effect_size returns NA for invalid inputs", {
+test_that(".extract_effect_size returns NA for invalid inputs", {
     invalid_summary <- list(dev.expl = NA, r.sq = NA)
     
-    effect_size <- .tsenat_extract_effect_size(invalid_summary, is_gamm = FALSE)
+    effect_size <- .extract_effect_size(invalid_summary, is_gamm = FALSE)
     
     expect_true(is.na(effect_size))
 })
 
 # =============================================================================
-# TESTS: .tsenat_extract_test_statistic
+# TESTS: .extract_test_statistic
 # =============================================================================
 
-test_that(".tsenat_extract_test_statistic extracts F-statistic", {
+test_that(".extract_test_statistic extracts F-statistic", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10)
@@ -365,23 +365,23 @@ test_that(".tsenat_extract_test_statistic extracts F-statistic", {
         )
         
         if (!is.null(anova_result)) {
-            test_stat <- .tsenat_extract_test_statistic(anova_result)
+            test_stat <- .extract_test_statistic(anova_result)
             expect_true(is.numeric(test_stat))
         }
     }
 })
 
-test_that(".tsenat_extract_test_statistic returns NA for NULL input", {
-    test_stat <- .tsenat_extract_test_statistic(NULL)
+test_that(".extract_test_statistic returns NA for NULL input", {
+    test_stat <- .extract_test_statistic(NULL)
     
     expect_true(is.na(test_stat))
 })
 
 # =============================================================================
-# TESTS: .tsenat_extract_gam_statistics (integration)
+# TESTS: .extract_gam_statistics (integration)
 # =============================================================================
 
-test_that(".tsenat_extract_gam_statistics returns all required components", {
+test_that(".extract_gam_statistics returns all required components", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10)
@@ -394,7 +394,7 @@ test_that(".tsenat_extract_gam_statistics returns all required components", {
     )
     
     if (!is.null(gam_mod)) {
-        result <- .tsenat_extract_gam_statistics(gam_mod, NULL)
+        result <- .extract_gam_statistics(gam_mod, NULL)
         
         expect_true(is.list(result))
         expect_true("test_statistic" %in% names(result))
@@ -404,19 +404,19 @@ test_that(".tsenat_extract_gam_statistics returns all required components", {
     }
 })
 
-test_that(".tsenat_extract_gam_statistics handles failed models", {
+test_that(".extract_gam_statistics handles failed models", {
     failed_model <- try(stop("Model fitting failed"), silent = TRUE)
     
-    result <- .tsenat_extract_gam_statistics(failed_model, NULL)
+    result <- .extract_gam_statistics(failed_model, NULL)
     
     expect_equal(result$model_converged, FALSE)
 })
 
 # =============================================================================
-# TESTS: .tsenat_compute_slope_diff
+# TESTS: .compute_slope_diff
 # =============================================================================
 
-test_that(".tsenat_compute_slope_diff returns numeric or NA", {
+test_that(".compute_slope_diff returns numeric or NA", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10)
@@ -429,33 +429,33 @@ test_that(".tsenat_compute_slope_diff returns numeric or NA", {
     )
     
     if (!is.null(gam_mod)) {
-        slope_diff <- .tsenat_compute_slope_diff(gam_mod, df, df$q, NULL)
+        slope_diff <- .compute_slope_diff(gam_mod, df, df$q, NULL)
         
         expect_true(is.numeric(slope_diff))
     }
 })
 
-test_that(".tsenat_compute_slope_diff handles failed models gracefully", {
+test_that(".compute_slope_diff handles failed models gracefully", {
     failed_model <- try(stop("Model failed"), silent = TRUE)
     
     test_data <- create_gam_test_data(n_q = 10)
-    slope_diff <- .tsenat_compute_slope_diff(failed_model, test_data$df, test_data$q_vals, NULL)
+    slope_diff <- .compute_slope_diff(failed_model, test_data$df, test_data$q_vals, NULL)
     
     expect_true(is.na(slope_diff))
 })
 
 # =============================================================================
-# TESTS: .tsenat_fit_standard_gam
+# TESTS: .fit_standard_gam
 # =============================================================================
 
-test_that(".tsenat_fit_standard_gam returns null and alt models", {
+test_that(".fit_standard_gam returns null and alt models", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10)
     df <- test_data$df
     df$group <- factor(df$group)
     
-    result <- .tsenat_fit_standard_gam(
+    result <- .fit_standard_gam(
         df, 
         family_gam = stats::gaussian(), 
         k_q_marginal = 3, 
@@ -469,10 +469,10 @@ test_that(".tsenat_fit_standard_gam returns null and alt models", {
 })
 
 # =============================================================================
-# TESTS: .tsenat_compare_gam_models
+# TESTS: .compare_gam_models
 # =============================================================================
 
-test_that(".tsenat_compare_gam_models returns p-value and anova result", {
+test_that(".compare_gam_models returns p-value and anova result", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10)
@@ -489,7 +489,7 @@ test_that(".tsenat_compare_gam_models returns p-value and anova result", {
     )
     
     if (!is.null(gam1) && !is.null(gam2)) {
-        result <- .tsenat_compare_gam_models(gam1, gam2)
+        result <- .compare_gam_models(gam1, gam2)
         
         expect_true(is.list(result))
         expect_true("p_interaction" %in% names(result))
@@ -498,10 +498,10 @@ test_that(".tsenat_compare_gam_models returns p-value and anova result", {
 })
 
 # =============================================================================
-# TESTS: .tsenat_compile_gam_results
+# TESTS: .compile_gam_results
 # =============================================================================
 
-test_that(".tsenat_compile_gam_results creates valid result data frame", {
+test_that(".compile_gam_results creates valid result data frame", {
     skip_if_not_installed("mgcv")
     
     # Create minimal bc_result
@@ -530,7 +530,7 @@ test_that(".tsenat_compile_gam_results creates valid result data frame", {
             family_info = list(heteroscedastic = FALSE, var_ratio_q = 1.0)
         )
         
-        result <- .tsenat_compile_gam_results(
+        result <- .compile_gam_results(
             g = "test_gene",
             bc_result = bc_result,
             test_statistic = 5.0,
@@ -553,12 +553,12 @@ test_that(".tsenat_compile_gam_results creates valid result data frame", {
 })
 
 # =============================================================================
-# TESTS: Main integration test for .tsenat_gam_interaction
+# TESTS: Main integration test for .gam_interaction
 # =============================================================================
 
 context("GAM Interaction Helper Functions - Main Integration")
 
-test_that(".tsenat_gam_interaction processes unpaired data correctly", {
+test_that(".gam_interaction processes unpaired data correctly", {
     skip_if_not_installed("mgcv")
     skip_if_not_installed("nlme")
     
@@ -570,7 +570,7 @@ test_that(".tsenat_gam_interaction processes unpaired data correctly", {
     # We'll test with Gaussian family directly
     
     result <- tryCatch({
-        suppressWarnings(.tsenat_gam_interaction(
+        suppressWarnings(.gam_interaction(
             df = df,
             q_vals = test_data$q_vals,
             g = "test_gene_1",
@@ -589,7 +589,7 @@ test_that(".tsenat_gam_interaction processes unpaired data correctly", {
     expect_true(is.null(result) || is.data.frame(result))
 })
 
-test_that(".tsenat_gam_interaction handles edge case: too few observations", {
+test_that(".gam_interaction handles edge case: too few observations", {
     skip_if_not_installed("mgcv")
     
     # Create very small dataset
@@ -597,7 +597,7 @@ test_that(".tsenat_gam_interaction handles edge case: too few observations", {
     df <- test_data$df
     
     result <- tryCatch({
-        .tsenat_gam_interaction(
+        .gam_interaction(
             df = df,
             q_vals = test_data$q_vals,
             g = "test_gene_small"
@@ -608,7 +608,7 @@ test_that(".tsenat_gam_interaction handles edge case: too few observations", {
     expect_true(is.null(result) || is.data.frame(result))
 })
 
-test_that(".tsenat_gam_interaction validates input parameters", {
+test_that(".gam_interaction validates input parameters", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data()
@@ -616,7 +616,7 @@ test_that(".tsenat_gam_interaction validates input parameters", {
     
     # Test with invalid regularization (should fail match.arg)
     expect_error({
-        .tsenat_gam_interaction(
+        .gam_interaction(
             df = df,
             q_vals = test_data$q_vals,
             g = "test_gene",
@@ -625,14 +625,14 @@ test_that(".tsenat_gam_interaction validates input parameters", {
     })
 })
 
-test_that(".tsenat_gam_interaction produces expected output columns", {
+test_that(".gam_interaction produces expected output columns", {
     skip_if_not_installed("mgcv")
     
     test_data <- create_gam_test_data(n_q = 10, n_samples = 4)
     df <- test_data$df
     
     result <- tryCatch({
-        suppressWarnings(.tsenat_gam_interaction(
+        suppressWarnings(.gam_interaction(
             df = df,
             q_vals = test_data$q_vals,
             g = "test_gene",
@@ -673,7 +673,7 @@ test_that("Helper functions handle NA and NaN values gracefully", {
     
     # Should not error on setup
     df_setup <- tryCatch({
-        .tsenat_setup_gam_data(df)
+        .setup_gam_data(df)
     }, error = function(e) {
         NULL
     })
@@ -685,7 +685,7 @@ test_that("GAM utilities return NA/NULL on invalid models", {
     # Test with try-error results
     invalid_fit <- try(stop("Test error"), silent = TRUE)
     
-    stats <- .tsenat_extract_gam_statistics(invalid_fit, NULL)
+    stats <- .extract_gam_statistics(invalid_fit, NULL)
     
     expect_equal(stats$model_converged, FALSE)
     expect_true(is.na(stats$effect_size))
@@ -704,11 +704,11 @@ test_that("Data flows correctly through helper function pipeline", {
     df <- test_data$df
     
     # Step 1: Setup
-    df <- .tsenat_setup_gam_data(df)
+    df <- .setup_gam_data(df)
     expect_true(is.factor(df$group))
     
     # Step 2: Knots
-    knot_result <- .tsenat_compute_adaptive_knots(df, test_data$q_vals, FALSE)
+    knot_result <- .compute_adaptive_knots(df, test_data$q_vals, FALSE)
     expect_true(knot_result$k_q >= 2)
     
     # Data integrity maintained throughout pipeline
@@ -722,12 +722,12 @@ test_that("Weight handling maintains consistency", {
     
     # Test weights without hetero detection
     hetero_result <- list(is_heteroscedastic = FALSE)
-    weights_none <- .tsenat_prepare_gam_weights(df, q_vals, NULL, hetero_result, NULL)
+    weights_none <- .prepare_gam_weights(df, q_vals, NULL, hetero_result, NULL)
     expect_null(weights_none)
     
     # Test with provided weights
     input_w <- runif(nrow(df))
-    weights_provided <- .tsenat_prepare_gam_weights(df, q_vals, input_w, hetero_result, NULL)
+    weights_provided <- .prepare_gam_weights(df, q_vals, input_w, hetero_result, NULL)
     expect_equal(weights_provided, input_w)
 })
 
@@ -735,7 +735,7 @@ test_that("knot selection produces reasonable values", {
     # Test across different dataset sizes
     for (n_q in c(5, 10, 15, 20)) {
         test_data <- create_gam_test_data(n_q = n_q)
-        knot_result <- .tsenat_compute_adaptive_knots(test_data$df, test_data$q_vals, FALSE)
+        knot_result <- .compute_adaptive_knots(test_data$df, test_data$q_vals, FALSE)
         
         # Knots should be between 2 and n_q
         expect_true(knot_result$k_q >= 2)

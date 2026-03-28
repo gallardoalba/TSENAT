@@ -137,7 +137,7 @@ test_that("paired test selection detects heteroscedasticity", {
   heteroscedastic_data$paired_samples <- factor(heteroscedastic_data$paired_samples)
   
   # Call selection function
-  selection <- .tsenat_select_rank_test_paired(
+  selection <- .select_rank_test_paired(
     heteroscedastic_data,
     value_col = "entropy",
     group_col = "q",
@@ -162,7 +162,7 @@ test_that("paired test selection detects heteroscedasticity", {
 # TEST 3: Standard Friedman test application
 # ════════════════════════════════════════════════════════════════════════════════
 
-test_that(".tsenat_apply_friedman_test produces valid output", {
+test_that(".apply_friedman_test produces valid output", {
   set.seed(456)
   
   # Balanced paired data
@@ -174,7 +174,7 @@ test_that(".tsenat_apply_friedman_test produces valid output", {
   )
   
   # Apply Friedman test
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = friedman_data,
     value_col = "entropy",
     group_col = "q",
@@ -513,7 +513,7 @@ context("Friedman Test for Paired Rank-Based Analysis")
 # Test 1: Basic Friedman Test Function
 # ============================================================================
 
-test_that(".tsenat_apply_friedman_test returns correct structure", {
+test_that(".apply_friedman_test returns correct structure", {
   # Create simple paired test data (3 subjects, 3 treatments)
   data <- data.frame(
     value = c(1.2, 1.5, 1.8, 2.1, 2.3, 2.5, 3.0, 3.2, 3.5),
@@ -521,7 +521,7 @@ test_that(".tsenat_apply_friedman_test returns correct structure", {
     treatment = factor(c("A", "A", "A", "B", "B", "B", "C", "C", "C"))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "value",
     group_col = "treatment",
@@ -545,7 +545,7 @@ test_that(".tsenat_apply_friedman_test returns correct structure", {
   expect_gte(result$statistic, 0)
 })
 
-test_that(".tsenat_apply_friedman_test accepts data frame input", {
+test_that(".apply_friedman_test accepts data frame input", {
   # Real entropy-like data
   set.seed(123)
   n_subjects <- 5
@@ -558,7 +558,7 @@ test_that(".tsenat_apply_friedman_test accepts data frame input", {
     q = factor(rep(1:n_q, each = n_subjects))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -574,7 +574,7 @@ test_that(".tsenat_apply_friedman_test accepts data frame input", {
 # Test 2: Friedman Test Comparison with Known Values
 # ============================================================================
 
-test_that(".tsenat_apply_friedman_test matches base R friedman.test", {
+test_that(".apply_friedman_test matches base R friedman.test", {
   # Create controlled test data
   set.seed(42)
   n_subjects <- 4
@@ -592,7 +592,7 @@ test_that(".tsenat_apply_friedman_test matches base R friedman.test", {
   )
   
   # Call our function
-  our_result <- .tsenat_apply_friedman_test(
+  our_result <- .apply_friedman_test(
     data = long_data,
     value_col = "entropy",
     group_col = "treatment",
@@ -612,7 +612,7 @@ test_that(".tsenat_apply_friedman_test matches base R friedman.test", {
 # Test 3: Error Handling
 # ============================================================================
 
-test_that(".tsenat_apply_friedman_test handles missing data gracefully", {
+test_that(".apply_friedman_test handles missing data gracefully", {
   # Data with only 1 subject
   data <- data.frame(
     value = c(1.0, 2.0, 3.0),
@@ -620,7 +620,7 @@ test_that(".tsenat_apply_friedman_test handles missing data gracefully", {
     treatment = factor(c("A", "B", "C"))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "value",
     group_col = "treatment",
@@ -633,7 +633,7 @@ test_that(".tsenat_apply_friedman_test handles missing data gracefully", {
   expect_true(is.na(result$p_value))
 })
 
-test_that(".tsenat_apply_friedman_test handles single treatment", {
+test_that(".apply_friedman_test handles single treatment", {
   # Data with only 1 treatment
   data <- data.frame(
     value = c(1.0, 2.0, 3.0),
@@ -641,7 +641,7 @@ test_that(".tsenat_apply_friedman_test handles single treatment", {
     treatment = factor(c("A", "A", "A"))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "value",
     group_col = "treatment",
@@ -656,7 +656,7 @@ test_that(".tsenat_apply_friedman_test handles single treatment", {
 # Test 4: Conditional Rank Test Dispatcher with Pairing
 # ============================================================================
 
-test_that(".tsenat_apply_conditional_rank_test selects Friedman for paired", {
+test_that(".apply_conditional_rank_test selects Friedman for paired", {
   # Create balanced paired data
   set.seed(99)
   data <- data.frame(
@@ -665,7 +665,7 @@ test_that(".tsenat_apply_conditional_rank_test selects Friedman for paired", {
     subject = factor(rep(1:6, each = 5))
   )
   
-  result <- .tsenat_apply_conditional_rank_test(
+  result <- .apply_conditional_rank_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -679,7 +679,7 @@ test_that(".tsenat_apply_conditional_rank_test selects Friedman for paired", {
   expect_match(result$method, "Friedman")
 })
 
-test_that(".tsenat_apply_conditional_rank_test uses Kruskal-Wallis when unpaired", {
+test_that(".apply_conditional_rank_test uses Kruskal-Wallis when unpaired", {
   # Create data without subject column (unpaired)
   set.seed(99)
   data <- data.frame(
@@ -687,7 +687,7 @@ test_that(".tsenat_apply_conditional_rank_test uses Kruskal-Wallis when unpaired
     q = factor(rep(1:5, 30))
   )
   
-  result <- .tsenat_apply_conditional_rank_test(
+  result <- .apply_conditional_rank_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -702,14 +702,14 @@ test_that(".tsenat_apply_conditional_rank_test uses Kruskal-Wallis when unpaired
   expect_true(result$p_value >= 0 && result$p_value <= 1)
 })
 
-test_that(".tsenat_apply_conditional_rank_test requires subject_col for paired", {
+test_that(".apply_conditional_rank_test requires subject_col for paired", {
   # Create data without explicit subject column for paired analysis
   data <- data.frame(
     entropy = rnorm(20, mean = 2, sd = 0.3),
     q = factor(rep(1:4, 5))
   )
   
-  result <- .tsenat_apply_conditional_rank_test(
+  result <- .apply_conditional_rank_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -734,7 +734,7 @@ test_that("Friedman result includes characteristics metadata", {
     subject = factor(rep(1:6, each = 4))
   )
   
-  result <- .tsenat_apply_conditional_rank_test(
+  result <- .apply_conditional_rank_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -860,7 +860,7 @@ test_that("Friedman p-values are valid (between 0 and 1)", {
       subject = factor(rep(1:n_subjects, n_q))
     )
     
-    result <- .tsenat_apply_friedman_test(
+    result <- .apply_friedman_test(
       data = data,
       value_col = "entropy",
       group_col = "q",
@@ -907,7 +907,7 @@ test_that("Friedman test can have better p-values than Kruskal-Wallis for paired
   )
   
   # Friedman test (paired)
-  friedman_result <- .tsenat_apply_friedman_test(
+  friedman_result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -936,7 +936,7 @@ test_that("Friedman works with different entropy scales", {
     subject = factor(rep(1:10, each = 2))
   )
   
-  result_low <- .tsenat_apply_friedman_test(
+  result_low <- .apply_friedman_test(
     data = data_low,
     value_col = "entropy",
     group_col = "q",
@@ -954,7 +954,7 @@ test_that("Friedman works with different entropy scales", {
     subject = factor(rep(1:10, each = 2))
   )
   
-  result_high <- .tsenat_apply_friedman_test(
+  result_high <- .apply_friedman_test(
     data = data_high,
     value_col = "entropy",
     group_col = "q",
@@ -978,14 +978,14 @@ test_that("Friedman test results are reproducible", {
     subject = factor(rep(1:8, each = 5))
   )
   
-  result1 <- .tsenat_apply_friedman_test(
+  result1 <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
     subject_col = "subject"
   )
   
-  result2 <- .tsenat_apply_friedman_test(
+  result2 <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1030,7 +1030,7 @@ test_that("Paired analysis produces different results than unpaired on same data
   )
   
   # Paired analysis
-  paired_result <- .tsenat_apply_conditional_rank_test(
+  paired_result <- .apply_conditional_rank_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1040,7 +1040,7 @@ test_that("Paired analysis produces different results than unpaired on same data
   )
   
   # Unpaired analysis (data without subject column in conditional context)
-  unpaired_result <- .tsenat_apply_conditional_rank_test(
+  unpaired_result <- .apply_conditional_rank_test(
     data = data[, c("entropy", "q")],
     value_col = "entropy",
     group_col = "q",
@@ -1069,7 +1069,7 @@ test_that("Friedman works with minimal paired structure (3 subjects, 2 treatment
     treatment = factor(c("A", "A", "B", "B"))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "treatment",
@@ -1097,7 +1097,7 @@ test_that("Friedman handles large number of subjects", {
     q = factor(rep(1:n_q, each = n_subjects))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1125,7 +1125,7 @@ test_that("Friedman handles large number of q-values (treatments)", {
     q = factor(rep(1:n_q, each = n_subjects))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1162,7 +1162,7 @@ test_that("Friedman detects strong q-effect (low p-value)", {
     q = factor(rep(1:n_q, n_subjects))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1188,7 +1188,7 @@ test_that("Friedman shows weak effect (high p-value) for random data", {
     q = factor(rep(1:n_q, n_subjects))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1215,7 +1215,7 @@ test_that("Friedman statistic follows chi-square distribution (df = k-1)", {
     q = factor(rep(1:k_treatments, each = n_subjects))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1245,7 +1245,7 @@ test_that("Friedman works with different column names", {
     my_block = factor(rep(1:5, each = 4))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "my_entropy",
     group_col = "my_treatment",
@@ -1271,7 +1271,7 @@ test_that("Friedman handles both factor and numeric group identifiers", {
   )
   
   # Should still work (function converts internally)
-  result_numeric <- .tsenat_apply_friedman_test(
+  result_numeric <- .apply_friedman_test(
     data = data_numeric,
     value_col = "entropy",
     group_col = "q",
@@ -1285,7 +1285,7 @@ test_that("Friedman handles both factor and numeric group identifiers", {
     q = factor(rep(paste0("Q", 1:4), 4))  # Factor with character
   )
   
-  result_char <- .tsenat_apply_friedman_test(
+  result_char <- .apply_friedman_test(
     data = data_char,
     value_col = "entropy",
     group_col = "q",
@@ -1309,7 +1309,7 @@ test_that("Friedman handles data with tied (identical) values", {
     q = factor(c(rep("A", 6), rep("B", 6)))
   )
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1336,7 +1336,7 @@ test_that("Friedman fails gracefully with missing values in matrix", {
   )
   # This has only 1 subject but 2 treatments - Friedman needs at least 2 subjects
   
-  result <- .tsenat_apply_friedman_test(
+  result <- .apply_friedman_test(
     data = data,
     value_col = "entropy",
     group_col = "q",
@@ -1370,21 +1370,21 @@ test_that("Friedman p-value invariant to monotonic transformations", {
   data_sq <- data_original
   data_sq$entropy <- entropy_original^2
   
-  result_original <- .tsenat_apply_friedman_test(
+  result_original <- .apply_friedman_test(
     data = data_original,
     value_col = "entropy",
     group_col = "q",
     subject_col = "subject"
   )
   
-  result_log <- .tsenat_apply_friedman_test(
+  result_log <- .apply_friedman_test(
     data = data_log,
     value_col = "entropy",
     group_col = "q",
     subject_col = "subject"
   )
   
-  result_sq <- .tsenat_apply_friedman_test(
+  result_sq <- .apply_friedman_test(
     data = data_sq,
     value_col = "entropy",
     group_col = "q",
@@ -1414,7 +1414,7 @@ test_that("Friedman handles extreme values correctly", {
     q = factor(rep(1:2, each = 4))
   )
   
-  result_small <- .tsenat_apply_friedman_test(
+  result_small <- .apply_friedman_test(
     data = data_small,
     value_col = "entropy",
     group_col = "q",
@@ -1428,7 +1428,7 @@ test_that("Friedman handles extreme values correctly", {
     q = factor(rep(1:2, each = 4))
   )
   
-  result_large <- .tsenat_apply_friedman_test(
+  result_large <- .apply_friedman_test(
     data = data_large,
     value_col = "entropy",
     group_col = "q",

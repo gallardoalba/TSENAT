@@ -31,17 +31,17 @@
 #' @examples
 #' \dontrun{
 #' # Valid SE object
-#' .tsenat_validate_se(se, assay_name = "diversity")
+#' .validate_se(se, assay_name = "diversity")
 #'
 #' # Invalid will stop with helpful message
-#' .tsenat_validate_se(df, assay_name = "diversity")
+#' .validate_se(df, assay_name = "diversity")
 #' # Error: Input must be a SummarizedExperiment, not data.frame
 #' # Use: se <- SummarizedExperiment::SummarizedExperiment(assays = list(...))
 #' }
 #'
 
 #' @noRd
-.tsenat_validate_se <- function(se, 
+.validate_se <- function(se, 
                          assay_name = NULL,
                          min_genes = 1,
                          min_samples = 1,
@@ -108,7 +108,7 @@
 #' @examples
 #' \dontrun{
 #' # Valid data frame
-#' .tsenat_validate_df(lm_results, required_cols = c("gene", "p_value"))
+#' .validate_df(lm_results, required_cols = c("gene", "p_value"))
 #'
 #' # Missing column error:
 #' # Error: 'p_value' column missing in lm_results
@@ -117,7 +117,7 @@
 #'
 
 #' @noRd
-.tsenat_validate_df <- function(df,
+.validate_df <- function(df,
                          required_cols = NULL,
                          allow_null = FALSE,
                          df_name = "Input data") {
@@ -170,16 +170,16 @@
 #' @examples
 #' \dontrun{
 #' # Valid
-#' .tsenat_validate_numeric(n_genes, "n_genes", min = 1, integer_only = TRUE)
+#' .validate_numeric(n_genes, "n_genes", min = 1, integer_only = TRUE)
 #'
 #' # Invalid - will stop with message
-#' .tsenat_validate_numeric(sig_alpha = 1.5, "sig_alpha", min = 0, max = 1)
+#' .validate_numeric(sig_alpha = 1.5, "sig_alpha", min = 0, max = 1)
 #' # Error: sig_alpha must be between 0 and 1, got 1.5
 #' }
 #'
 
 #' @noRd
-.tsenat_validate_numeric <- function(value,
+.validate_numeric <- function(value,
                               param_name = "parameter",
                               allow_null = FALSE,
                               min = NULL,
@@ -226,17 +226,17 @@
 #' @examples
 #' \dontrun{
 #' # Valid
-#' .tsenat_validate_choice(metric, "metric", allowed_values = c("median", "mean", "sd"))
+#' .validate_choice(metric, "metric", allowed_values = c("median", "mean", "sd"))
 #'
 #' # Invalid
-#' .tsenat_validate_choice(metric = "mode", "metric", 
+#' .validate_choice(metric = "mode", "metric", 
 #'                 allowed_values = c("median", "mean", "sd"))
 #' # Error: metric must be one of: median, mean, sd (got 'mode')
 #' }
 #'
 
 #' @noRd
-.tsenat_validate_choice <- function(value,
+.validate_choice <- function(value,
                             param_name = "parameter",
                             allowed_values = NULL,
                             allow_null = FALSE) {

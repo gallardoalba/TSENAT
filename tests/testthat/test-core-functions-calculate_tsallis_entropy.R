@@ -351,7 +351,7 @@ test_that("Entropy ranges computed from bootstrap respect bounds", {
 context("Bounded Support: GAM Model Fitting")
 
 test_that("Helper function detects bounded support data", {
-    # .tsenat_handle_bounded_support() should correctly identify bounded vs unbounded data
+    # .handle_bounded_support() should correctly identify bounded vs unbounded data
     
     # Create bounded entropy data (typical for Tsallis entropy)
     df_bounded <- data.frame(

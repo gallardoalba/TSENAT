@@ -74,9 +74,9 @@ create_test_multiq_results <- function() {
 # SECTION 1: VALIDATION HELPERS
 # ============================================================================
 
-describe(".tsenat_validate_se_for_heatmaps()", {
+describe(".validate_se_for_heatmaps()", {
   test_that("validates correct SummarizedExperiment with auto-detected gene column", {
-    result <- TSENAT:::.tsenat_validate_se_for_heatmaps(test_se)
+    result <- TSENAT:::.validate_se_for_heatmaps(test_se)
     expect_is(result, "list")
     expect_named(result, c("counts", "rowdata", "coldata", "gene_col", "condition_col"))
     expect_equal(result$gene_col, "gene_name")
@@ -86,42 +86,42 @@ describe(".tsenat_validate_se_for_heatmaps()", {
   })
 
   test_that("validates correct SummarizedExperiment with specified gene column", {
-    result <- TSENAT:::.tsenat_validate_se_for_heatmaps(test_se, gene_col = "gene_id")
+    result <- TSENAT:::.validate_se_for_heatmaps(test_se, gene_col = "gene_id")
     expect_equal(result$gene_col, "gene_id")
   })
 
   test_that("validates with specified condition column", {
-    result <- TSENAT:::.tsenat_validate_se_for_heatmaps(test_se, condition_col = "sample_type")
+    result <- TSENAT:::.validate_se_for_heatmaps(test_se, condition_col = "sample_type")
     expect_equal(result$condition_col, "sample_type")
   })
 
   test_that("throws error for invalid SummarizedExperiment", {
     expect_error(
-      TSENAT:::.tsenat_validate_se_for_heatmaps(data.frame(a = 1:5)),
+      TSENAT:::.validate_se_for_heatmaps(data.frame(a = 1:5)),
       "must be a SummarizedExperiment"
     )
   })
 
   test_that("throws error for missing gene column", {
     expect_error(
-      TSENAT:::.tsenat_validate_se_for_heatmaps(test_se, gene_col = "nonexistent"),
+      TSENAT:::.validate_se_for_heatmaps(test_se, gene_col = "nonexistent"),
       "not found in rowData"
     )
   })
 
   test_that("throws error for missing condition column", {
     expect_error(
-      TSENAT:::.tsenat_validate_se_for_heatmaps(test_se, condition_col = "nonexistent"),
+      TSENAT:::.validate_se_for_heatmaps(test_se, condition_col = "nonexistent"),
       "not found in colData"
     )
   })
 })
 
-describe(".tsenat_validate_multiq_input()", {
+describe(".validate_multiq_input()", {
   test_that("validates correct multi-q results object", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
-    result <- TSENAT:::.tsenat_validate_multiq_input(multiq_results)
+    result <- TSENAT:::.validate_multiq_input(multiq_results)
     
     expect_is(result, "list")
     expect_named(result, c("q_result_keys", "first_result", "gene_ids", "gene_name_map"))
@@ -131,7 +131,7 @@ describe(".tsenat_validate_multiq_input()", {
 
   test_that("throws error for invalid class", {
     expect_error(
-      TSENAT:::.tsenat_validate_multiq_input(list()),
+      TSENAT:::.validate_multiq_input(list()),
       "must be a multi-q result"
     )
   })
@@ -140,7 +140,7 @@ describe(".tsenat_validate_multiq_input()", {
     invalid_results <- list(other_result = list(gene_ids = 1:5))
     class(invalid_results) <- "tsenat_isoform_switching_multiq"
     expect_error(
-      TSENAT:::.tsenat_validate_multiq_input(invalid_results),
+      TSENAT:::.validate_multiq_input(invalid_results),
       "No multi-q results found"
     )
   })
@@ -151,7 +151,7 @@ describe(".tsenat_validate_multiq_input()", {
     )
     class(bad_results) <- "tsenat_isoform_switching_multiq"
     expect_error(
-      TSENAT:::.tsenat_validate_multiq_input(bad_results),
+      TSENAT:::.validate_multiq_input(bad_results),
       "No genes found"
     )
   })
@@ -161,12 +161,12 @@ describe(".tsenat_validate_multiq_input()", {
 # SECTION 2: GENE SELECTION HELPERS
 # ============================================================================
 
-describe(".tsenat_heatmap_select_genes_multiq()", {
+describe(".heatmap_select_genes_multiq()", {
   test_that("selects first N genes when no lm_results provided", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_multiq(multiq_results, n_genes = 3)
+    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 3)
     expect_equal(length(selected), 3)
     expect_equal(selected, c("G1", "G2", "G3"))
   })
@@ -175,7 +175,7 @@ describe(".tsenat_heatmap_select_genes_multiq()", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_multiq(multiq_results, n_genes = 100)
+    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 100)
     expect_equal(length(selected), 5)
   })
 
@@ -188,7 +188,7 @@ describe(".tsenat_heatmap_select_genes_multiq()", {
       adj_p_interaction = c(0.001, 0.01, 0.05, 0.1, 0.5)
     )
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_multiq(
+    selected <- TSENAT:::.heatmap_select_genes_multiq(
       multiq_results,
       n_genes = 2,
       lm_results = lm_results
@@ -205,7 +205,7 @@ describe(".tsenat_heatmap_select_genes_multiq()", {
       p_value = c(0.001, 0.01, 0.05)
     )
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_multiq(multiq_results, n_genes = 2, lm_results = lm_results)
+    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 2, lm_results = lm_results)
     expect_equal(length(selected), 2)
   })
 
@@ -213,12 +213,12 @@ describe(".tsenat_heatmap_select_genes_multiq()", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_multiq(multiq_results, n_genes = 0)
+    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 0)
     expect_equal(length(selected), 0)
   })
 })
 
-describe(".tsenat_heatmap_select_genes_results()", {
+describe(".heatmap_select_genes_results()", {
   test_that("selects top genes by p-value from results", {
     # Use actual gene names from test_se
     se_genes <- rownames(test_se)[1:3]
@@ -228,7 +228,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
       stringsAsFactors = FALSE
     )
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_results(
+    selected <- TSENAT:::.heatmap_select_genes_results(
       test_se, results, gene_col = "gene_name", top_n = 2
     )
     expect_equal(length(selected), 2)
@@ -243,7 +243,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
       stringsAsFactors = FALSE
     )
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_results(
+    selected <- TSENAT:::.heatmap_select_genes_results(
       test_se, results, gene_col = "gene_name", top_n = 2
     )
     expect_equal(length(selected), 2)
@@ -255,7 +255,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
       adj_p_value = c(0.001, 0.01, 0.5)
     )
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_results(
+    selected <- TSENAT:::.heatmap_select_genes_results(
       test_se, results, gene_col = "gene_name", top_n = 2
     )
     expect_true(all(selected %in% rownames(test_se)))
@@ -263,7 +263,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
 
   test_that("throws error for invalid results class", {
     expect_error(
-      TSENAT:::.tsenat_heatmap_select_genes_results(test_se, "not_a_dataframe"),
+      TSENAT:::.heatmap_select_genes_results(test_se, "not_a_dataframe"),
       "must be a data.frame"
     )
   })
@@ -276,7 +276,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
     )
     
     expect_error(
-      TSENAT:::.tsenat_heatmap_select_genes_results(test_se, results, gene_col = "gene_name"),
+      TSENAT:::.heatmap_select_genes_results(test_se, results, gene_col = "gene_name"),
       "must contain.*gene"
     )
   })
@@ -288,7 +288,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
       stringsAsFactors = FALSE
     )
     
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_results(
+    selected <- TSENAT:::.heatmap_select_genes_results(
       test_se, results, gene_col = "gene_name", top_n = 2
     )
     expect_equal(length(selected), 2)
@@ -299,7 +299,7 @@ describe(".tsenat_heatmap_select_genes_results()", {
 # SECTION 3: LAYOUT PLANNING HELPERS
 # ============================================================================
 
-describe(".tsenat_plot_adaptive_layout()", {
+describe(".plot_adaptive_layout()", {
   test_that("fixed layout: 2 columns per row with 5 genes", {
     gene_info <- list(
       list(n_transcripts = 10),
@@ -309,7 +309,7 @@ describe(".tsenat_plot_adaptive_layout()", {
       list(n_transcripts = 5)
     )
     
-    result <- TSENAT:::.tsenat_plot_adaptive_layout(
+    result <- TSENAT:::.plot_adaptive_layout(
       gene_info, use_fixed_layout = TRUE, layout_ncol = 2
     )
     
@@ -327,7 +327,7 @@ describe(".tsenat_plot_adaptive_layout()", {
       list(n_transcripts = 2)    # Half width
     )
     
-    result <- TSENAT:::.tsenat_plot_adaptive_layout(
+    result <- TSENAT:::.plot_adaptive_layout(
       gene_info, use_fixed_layout = FALSE
     )
     
@@ -339,7 +339,7 @@ describe(".tsenat_plot_adaptive_layout()", {
   test_that("handles single gene", {
     gene_info <- list(list(n_transcripts = 10))
     
-    result <- TSENAT:::.tsenat_plot_adaptive_layout(
+    result <- TSENAT:::.plot_adaptive_layout(
       gene_info, use_fixed_layout = TRUE, layout_ncol = 2
     )
     
@@ -349,7 +349,7 @@ describe(".tsenat_plot_adaptive_layout()", {
 
   test_that("handles single gene in adaptive layout", {
     gene_info <- list(list(n_transcripts = 10))
-    result <- TSENAT:::.tsenat_plot_adaptive_layout(
+    result <- TSENAT:::.plot_adaptive_layout(
       gene_info, use_fixed_layout = FALSE
     )
     
@@ -362,9 +362,9 @@ describe(".tsenat_plot_adaptive_layout()", {
 # SECTION 4: SIZING HELPERS
 # ============================================================================
 
-describe(".tsenat_calculate_heatmap_dimensions()", {
+describe(".calculate_heatmap_dimensions()", {
   test_that("calculates PNG dimensions based on layout rows", {
-    dims <- TSENAT:::.tsenat_calculate_heatmap_dimensions(n_layout_rows = 2, n_data_rows = 5)
+    dims <- TSENAT:::.calculate_heatmap_dimensions(n_layout_rows = 2, n_data_rows = 5)
     
     expect_is(dims, "list")
     expect_true("png_width" %in% names(dims))
@@ -374,23 +374,23 @@ describe(".tsenat_calculate_heatmap_dimensions()", {
   })
 
   test_that("scales height with number of layout rows", {
-    dims_1 <- TSENAT:::.tsenat_calculate_heatmap_dimensions(n_layout_rows = 1, n_data_rows = 5)
-    dims_2 <- TSENAT:::.tsenat_calculate_heatmap_dimensions(n_layout_rows = 2, n_data_rows = 5)
+    dims_1 <- TSENAT:::.calculate_heatmap_dimensions(n_layout_rows = 1, n_data_rows = 5)
+    dims_2 <- TSENAT:::.calculate_heatmap_dimensions(n_layout_rows = 2, n_data_rows = 5)
     
     expect_true(dims_2$png_height > dims_1$png_height)
   })
 
   test_that("handles edge case: single row", {
-    dims <- TSENAT:::.tsenat_calculate_heatmap_dimensions(n_layout_rows = 1, n_data_rows = 1)
+    dims <- TSENAT:::.calculate_heatmap_dimensions(n_layout_rows = 1, n_data_rows = 1)
     
     expect_true(dims$png_height > 0)
     expect_equal(dims$png_width, 12)
   })
 })
 
-describe(".tsenat_calculate_adaptive_cellsizes()", {
+describe(".calculate_adaptive_cellsizes()", {
   test_that("calculates cell sizes for full-width heatmap", {
-    sizes <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 10, n_rows = 5, width_frac = 1, cellwidth = 0, cellheight = 0
     )
     
@@ -401,10 +401,10 @@ describe(".tsenat_calculate_adaptive_cellsizes()", {
   })
 
   test_that("calculates cell sizes for half-width heatmap", {
-    sizes_half <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes_half <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 5, n_rows = 5, width_frac = 0.5
     )
-    sizes_full <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes_full <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 5, n_rows = 5, width_frac = 1
     )
     
@@ -412,7 +412,7 @@ describe(".tsenat_calculate_adaptive_cellsizes()", {
   })
 
   test_that("returns positive cell sizes", {
-    sizes <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 10, n_rows = 5, cellwidth = 50
     )
     
@@ -420,7 +420,7 @@ describe(".tsenat_calculate_adaptive_cellsizes()", {
   })
 
   test_that("returns positive cellheight", {
-    sizes <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 10, n_rows = 5, cellheight = 20
     )
     
@@ -428,7 +428,7 @@ describe(".tsenat_calculate_adaptive_cellsizes()", {
   })
 
   test_that("handles very large matrices", {
-    sizes <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 100, n_rows = 50
     )
     
@@ -437,7 +437,7 @@ describe(".tsenat_calculate_adaptive_cellsizes()", {
   })
 
   test_that("handles very small matrices", {
-    sizes <- TSENAT:::.tsenat_calculate_adaptive_cellsizes(
+    sizes <- TSENAT:::.calculate_adaptive_cellsizes(
       n_cols = 1, n_rows = 1
     )
     
@@ -450,11 +450,11 @@ describe(".tsenat_calculate_adaptive_cellsizes()", {
 # SECTION 5: DATA PREPARATION HELPERS
 # ============================================================================
 
-describe(".tsenat_heatmap_prepare_multiq_data()", {
+describe(".heatmap_prepare_multiq_data()", {
   test_that("extracts delta_influence matrix for given gene", {
     multiq_results <- create_test_multiq_results()
     
-    mat <- TSENAT:::.tsenat_heatmap_prepare_multiq_data(
+    mat <- TSENAT:::.heatmap_prepare_multiq_data(
       multiq_results, "G1",
       q_result_keys = c("q_0_01", "q_0_50", "q_2_00")
     )
@@ -477,7 +477,7 @@ describe(".tsenat_heatmap_prepare_multiq_data()", {
     )
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    mat <- TSENAT:::.tsenat_heatmap_prepare_multiq_data(
+    mat <- TSENAT:::.heatmap_prepare_multiq_data(
       multiq_results, "G1", q_result_keys = "q_0_01"
     )
     
@@ -490,7 +490,7 @@ describe(".tsenat_heatmap_prepare_multiq_data()", {
     multiq_results <- create_test_multiq_results()
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
-    mat <- TSENAT:::.tsenat_heatmap_prepare_multiq_data(
+    mat <- TSENAT:::.heatmap_prepare_multiq_data(
       multiq_results, "NonexistentGene",
       q_result_keys = c("q_0_01", "q_0_50")
     )
@@ -499,13 +499,13 @@ describe(".tsenat_heatmap_prepare_multiq_data()", {
   })
 })
 
-describe(".tsenat_heatmap_prepare_condition_data()", {
+describe(".heatmap_prepare_condition_data()", {
   test_that("aggregates transcript counts by condition", {
     # Subset of test_se with 3 transcripts
     tx_counts <- assay(test_se)[1:3, ]
     conditions <- colData(test_se)$sample_type
     
-    mat <- TSENAT:::.tsenat_heatmap_prepare_condition_data(
+    mat <- TSENAT:::.heatmap_prepare_condition_data(
       tx_counts, seq_len(nrow(tx_counts)), conditions, metric = "median"
     )
     
@@ -520,7 +520,7 @@ describe(".tsenat_heatmap_prepare_condition_data()", {
     conditions <- colData(test_se)$sample_type
     
     for (metric in c("median", "mean", "variance", "iqr")) {
-      mat <- TSENAT:::.tsenat_heatmap_prepare_condition_data(
+      mat <- TSENAT:::.heatmap_prepare_condition_data(
         tx_counts, seq_len(nrow(tx_counts)), conditions, metric = metric
       )
       expect_is(mat, "matrix")
@@ -532,7 +532,7 @@ describe(".tsenat_heatmap_prepare_condition_data()", {
     tx_counts <- assay(test_se)[1:3, ]
     conditions <- colData(test_se)$sample_type
     
-    mat <- TSENAT:::.tsenat_heatmap_prepare_condition_data(
+    mat <- TSENAT:::.heatmap_prepare_condition_data(
       tx_counts, integer(0), conditions, metric = "median"
     )
     
@@ -544,7 +544,7 @@ describe(".tsenat_heatmap_prepare_condition_data()", {
     tx_counts <- assay(test_se)[1:3, ]
     conditions <- colData(test_se)$sample_type
     
-    mat <- TSENAT:::.tsenat_heatmap_prepare_condition_data(
+    mat <- TSENAT:::.heatmap_prepare_condition_data(
       tx_counts, seq_len(nrow(tx_counts)), conditions, metric = "median"
     )
     
@@ -557,11 +557,11 @@ describe(".tsenat_heatmap_prepare_condition_data()", {
 # SECTION 6: PHEATMAP CREATION HELPER
 # ============================================================================
 
-describe(".tsenat_create_pheatmap_grob()", {
+describe(".create_pheatmap_grob()", {
   test_that("creates valid pheatmap object", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
-    grob <- TSENAT:::.tsenat_create_pheatmap_grob(mat, title = "Test Heatmap")
+    grob <- TSENAT:::.create_pheatmap_grob(mat, title = "Test Heatmap")
     
     expect_is(grob, "pheatmap")
   })
@@ -571,7 +571,7 @@ describe(".tsenat_create_pheatmap_grob()", {
     rownames(mat) <- paste0("Row", 1:5)
     colnames(mat) <- paste0("Col", 1:10)
     
-    grob <- TSENAT:::.tsenat_create_pheatmap_grob(mat, title = "Test")
+    grob <- TSENAT:::.create_pheatmap_grob(mat, title = "Test")
     
     expect_is(grob, "pheatmap")
   })
@@ -579,7 +579,7 @@ describe(".tsenat_create_pheatmap_grob()", {
   test_that("respects custom cell dimensions", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
-    grob <- TSENAT:::.tsenat_create_pheatmap_grob(
+    grob <- TSENAT:::.create_pheatmap_grob(
       mat, cellw = 50, cellh = 20
     )
     
@@ -589,7 +589,7 @@ describe(".tsenat_create_pheatmap_grob()", {
   test_that("respects fontsize parameter", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
-    grob <- TSENAT:::.tsenat_create_pheatmap_grob(mat, fontsize = 10)
+    grob <- TSENAT:::.create_pheatmap_grob(mat, fontsize = 10)
     
     expect_is(grob, "pheatmap")
   })
@@ -597,7 +597,7 @@ describe(".tsenat_create_pheatmap_grob()", {
   test_that("handles cluster_rows = FALSE", {
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
     
-    grob <- TSENAT:::.tsenat_create_pheatmap_grob(mat, cluster_rows = FALSE)
+    grob <- TSENAT:::.create_pheatmap_grob(mat, cluster_rows = FALSE)
     
     expect_is(grob, "pheatmap")
   })
@@ -607,12 +607,12 @@ describe(".tsenat_create_pheatmap_grob()", {
 # SECTION 7: GRID RENDERING HELPERS
 # ============================================================================
 
-describe(".tsenat_plot_grid_setup()", {
+describe(".plot_grid_setup()", {
   test_that("opens PNG device when output_file provided", {
     temp_file <- tempfile(fileext = ".png")
     on.exit(unlink(temp_file), add = TRUE)
     
-    TSENAT:::.tsenat_plot_grid_setup(
+    TSENAT:::.plot_grid_setup(
       n_layout_rows = 2, output_file = temp_file,
       png_width = 12, png_height = 8
     )
@@ -623,7 +623,7 @@ describe(".tsenat_plot_grid_setup()", {
   })
 
   test_that("creates grid layout with titles", {
-    TSENAT:::.tsenat_plot_grid_setup(
+    TSENAT:::.plot_grid_setup(
       n_layout_rows = 1, output_file = NULL,
       png_width = 12, png_height = 8,
       title = "Test Title", subtitle = "Test Subtitle"
@@ -635,7 +635,7 @@ describe(".tsenat_plot_grid_setup()", {
   })
 
   test_that("handles multiple layout rows", {
-    TSENAT:::.tsenat_plot_grid_setup(
+    TSENAT:::.plot_grid_setup(
       n_layout_rows = 3, output_file = NULL,
       png_width = 12, png_height = 12,
       title = "Multi-row Test"
@@ -646,11 +646,11 @@ describe(".tsenat_plot_grid_setup()", {
   })
 })
 
-describe(".tsenat_render_heatmaps_to_grid()", {
+describe(".render_heatmaps_to_grid()", {
   test_that("renders heatmap grobs to grid", {
     # Create simple pheatmap
     mat <- matrix(rnorm(50), nrow = 5, ncol = 10)
-    grob <- TSENAT:::.tsenat_create_pheatmap_grob(mat)
+    grob <- TSENAT:::.create_pheatmap_grob(mat)
     
     heatmap_plots <- list(grob, NULL, grob)  # Include NULL for missing heatmap
     
@@ -660,41 +660,41 @@ describe(".tsenat_render_heatmaps_to_grid()", {
       list(row = 2, col = 1, width = 1)
     )
     
-    TSENAT:::.tsenat_plot_grid_setup(
+    TSENAT:::.plot_grid_setup(
       n_layout_rows = 2, output_file = NULL,
       png_width = 12, png_height = 8
     )
     
-    TSENAT:::.tsenat_render_heatmaps_to_grid(heatmap_plots, gene_info, layout_ncol = 2)
+    TSENAT:::.render_heatmaps_to_grid(heatmap_plots, gene_info, layout_ncol = 2)
     grDevices::dev.off()
     
     expect_true(TRUE)
   })
 })
 
-describe(".tsenat_plot_grid_finalize()", {
+describe(".plot_grid_finalize()", {
   test_that("closes PNG device without error", {
     temp_file <- tempfile(fileext = ".png")
     on.exit(unlink(temp_file), add = TRUE)
     
-    TSENAT:::.tsenat_plot_grid_setup(
+    TSENAT:::.plot_grid_setup(
       n_layout_rows = 1, output_file = temp_file,
       png_width = 12, png_height = 8
     )
     
-    result <- TSENAT:::.tsenat_plot_grid_finalize(temp_file)
+    result <- TSENAT:::.plot_grid_finalize(temp_file)
     
     expect_true(file.exists(temp_file))
     expect_true(file.size(temp_file) > 0)
   })
 
   test_that("handles NULL output_file gracefully", {
-    TSENAT:::.tsenat_plot_grid_setup(
+    TSENAT:::.plot_grid_setup(
       n_layout_rows = 1, output_file = NULL,
       png_width = 12, png_height = 8
     )
     
-    result <- TSENAT:::.tsenat_plot_grid_finalize(NULL)
+    result <- TSENAT:::.plot_grid_finalize(NULL)
     grDevices::dev.off()
     
     expect_null(result)
@@ -708,14 +708,14 @@ describe(".tsenat_plot_grid_finalize()", {
 describe("Integration: Complete helper workflow", {
   test_that("workflow: SE validation → layout planning → heatmap creation", {
     # Step 1: Validate SE
-    se_data <- TSENAT:::.tsenat_validate_se_for_heatmaps(
+    se_data <- TSENAT:::.validate_se_for_heatmaps(
       test_se, condition_col = "sample_type"
     )
     expect_is(se_data, "list")
     
     # Step 2: Select genes
     se_genes <- rownames(test_se)[1:3]
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_results(
+    selected <- TSENAT:::.heatmap_select_genes_results(
       test_se,
       data.frame(gene = se_genes, adj_p_value = c(0.001, 0.01, 0.05), stringsAsFactors = FALSE),
       gene_col = "gene_name",
@@ -727,11 +727,11 @@ describe("Integration: Complete helper workflow", {
     gene_info <- lapply(seq_along(selected), function(i) {
       list(n_transcripts = 5)
     })
-    layout <- TSENAT:::.tsenat_plot_adaptive_layout(gene_info, use_fixed_layout = TRUE)
+    layout <- TSENAT:::.plot_adaptive_layout(gene_info, use_fixed_layout = TRUE)
     expect_is(layout, "list")
     
     # Step 4: Calculate dimensions
-    dims <- TSENAT:::.tsenat_calculate_heatmap_dimensions(layout$n_layout_rows, 3)
+    dims <- TSENAT:::.calculate_heatmap_dimensions(layout$n_layout_rows, 3)
     expect_true(dims$png_width > 0)
   })
 
@@ -740,16 +740,16 @@ describe("Integration: Complete helper workflow", {
     class(multiq_results) <- "tsenat_isoform_switching_multiq"
     
     # Step 1: Validate multi-Q
-    validated <- TSENAT:::.tsenat_validate_multiq_input(multiq_results)
+    validated <- TSENAT:::.validate_multiq_input(multiq_results)
     expect_equal(length(validated$q_result_keys), 3)
     
     # Step 2: Select genes
-    selected <- TSENAT:::.tsenat_heatmap_select_genes_multiq(multiq_results, n_genes = 2)
+    selected <- TSENAT:::.heatmap_select_genes_multiq(multiq_results, n_genes = 2)
     expect_equal(length(selected), 2)
     
     # Step 3: Prepare data for each gene
     for (gene_id in selected) {
-      mat <- TSENAT:::.tsenat_heatmap_prepare_multiq_data(
+      mat <- TSENAT:::.heatmap_prepare_multiq_data(
         multiq_results, gene_id,
         q_result_keys = validated$q_result_keys
       )

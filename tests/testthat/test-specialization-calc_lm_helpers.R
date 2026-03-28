@@ -3,14 +3,14 @@ context("Linear Model Helpers: Basic Calculations")
 library(testthat)
 
 # Report summary messages
-test_that(".tsenat_report_fit_summary prints fallback and singular messages", {
+test_that(".report_fit_summary prints fallback and singular messages", {
     df <- data.frame(fit_method = c("lm_nosubject", "lmer", NA), singular = c(TRUE, FALSE, NA), stringsAsFactors = FALSE)
-    expect_message(.tsenat_report_fit_summary(df, verbose = TRUE), "Alternative method")
-    expect_message(.tsenat_report_fit_summary(df, verbose = TRUE), "Singular fits")
+    expect_message(.report_fit_summary(df, verbose = TRUE), "Alternative method")
+    expect_message(.report_fit_summary(df, verbose = TRUE), "Singular fits")
 })
 
 # GAM interaction: skip if mgcv not available
-test_that(".tsenat_gam_interaction returns a data.frame with p_interaction when mgcv present", {
+test_that(".gam_interaction returns a data.frame with p_interaction when mgcv present", {
     skip_if_not_installed("mgcv")
     set.seed(1)
     # build small dataset with group and q, per-sample entropy
@@ -19,7 +19,7 @@ test_that(".tsenat_gam_interaction returns a data.frame with p_interaction when 
     group <- rep(c("A", "B"), length.out = n)
     entropy <- 0.5 + 0.2 * (q) + ifelse(group == "A", 0.05, -0.05) + rnorm(n, 0, 0.01)
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
-    res <- suppressWarnings(.tsenat_gam_interaction(df, q_vals = q, g = "g1", min_obs = 5))
+    res <- suppressWarnings(.gam_interaction(df, q_vals = q, g = "g1", min_obs = 5))
     expect_true(is.data.frame(res) || is.null(res))
     if (is.data.frame(res)) {
         expect_true("p_interaction" %in% colnames(res))
@@ -27,7 +27,7 @@ test_that(".tsenat_gam_interaction returns a data.frame with p_interaction when 
 })
 
 # FPCA interaction: synthetic matrix
-test_that(".tsenat_fpca_interaction computes a p-value with reasonable input", {
+test_that(".fpca_interaction computes a p-value with reasonable input", {
     set.seed(2)
     # Create matrix genes x observations
     genes <- paste0("g", 1:3)
@@ -40,12 +40,12 @@ test_that(".tsenat_fpca_interaction computes a p-value with reasonable input", {
     sample_names <- rep(samples[1:4], 2)
     group_vec <- rep(c("A", "B"), each = 4)
     # use min_obs small to allow test
-    res <- .tsenat_fpca_interaction(mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 2)
+    res <- .fpca_interaction(mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 2)
     expect_true(is.null(res) || (is.data.frame(res) && "p_interaction" %in% colnames(res)))
 })
 
 # Try lm fallbacks and LRT extraction
-test_that(".tsenat_try_lm_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
+test_that(".try_lm_fallbacks returns lm fits and LRT extractor returns numeric p-values", {
     # build small long-format df
     df <- data.frame(
         entropy = rnorm(30),
@@ -54,10 +54,10 @@ test_that(".tsenat_try_lm_fallbacks returns lm fits and LRT extractor returns nu
         subject = rep(paste0("sub", 1:10), 3),
         stringsAsFactors = FALSE
     )
-    fb <- .tsenat_try_lm_fallbacks(df, verbose = TRUE)
+    fb <- .try_lm_fallbacks(df, verbose = TRUE)
     expect_true(is.null(fb) || (is.list(fb) && all(c("fit0", "fit1", "method") %in% names(fb))))
     if (!is.null(fb)) {
-        lrt_p <- .tsenat_extract_lrt_p(fb$fit0, fb$fit1)
+        lrt_p <- .extract_lrt_p(fb$fit0, fb$fit1)
         expect_true(is.numeric(lrt_p) || is.na(lrt_p))
     }
 })
@@ -67,17 +67,17 @@ test_that(".tsenat_try_lm_fallbacks returns lm fits and LRT extractor returns nu
 ## below use the variant that accepts (mat, sample_names, q_vals, min_obs).
 
 # Alternative FPCA matrix builder that returns mat_sub/used_samples
-test_that(".tsenat_prepare_fpca_matrix (fpca variant) builds sub-matrix or returns NULL when insufficient", {
+test_that(".prepare_fpca_matrix (fpca variant) builds sub-matrix or returns NULL when insufficient", {
     # Use a single-gene matrix so element assignment in the helper is scalar
     mat <- matrix(rnorm(1 * 8), nrow = 1) # 1 gene x 8 observations
     sample_names <- rep(paste0("S", 1:4), 2)
     q_vals <- rep(c(0.1, 0.5, 1, 2), 2)
-    res <- .tsenat_prepare_fpca_matrix(mat, sample_names = sample_names, q_vals = q_vals, min_obs = 2)
+    res <- .prepare_fpca_matrix(mat, sample_names = sample_names, q_vals = q_vals, min_obs = 2)
     expect_true(is.null(res) || (is.list(res) && all(c("mat_sub", "used_samples") %in% names(res))))
 })
 
 # Test lmer wrapper if available
-test_that(".tsenat_try_lmer attempts lmer fitting when lme4 is installed", {
+test_that(".try_lmer attempts lmer fitting when lme4 is installed", {
     skip_if_not_installed("lme4")
     set.seed(5)
     # Build a small balanced dataset for mixed model
@@ -89,7 +89,7 @@ test_that(".tsenat_try_lmer attempts lmer fitting when lme4 is installed", {
     entropy <- rnorm(length(subject), mean = 0.5 + as.numeric(group == "A") * 0.1 + 0.2 * q, sd = 0.05)
     df <- data.frame(entropy = entropy, q = q, group = group, subject = subject, stringsAsFactors = FALSE)
     f <- as.formula("entropy ~ q * group + (1 | subject)")
-    fit_try <- .tsenat_try_lmer(f, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
+    fit_try <- .try_lmer(f, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
     expect_true(inherits(fit_try, "try-error") || inherits(fit_try, "lmerMod"))
 })
 
@@ -106,7 +106,7 @@ testthat::test_that("FPCA helper and interaction work on simple synthetic data",
     obs <- rnorm(8)
     obs[q_vals == 2 & sample_names %in% c("s3", "s4")] <- obs[q_vals == 2 & sample_names %in% c("s3", "s4")] + 1
     mat <- matrix(obs, nrow = 1)
-    res <- .tsenat_fpca_interaction(
+    res <- .fpca_interaction(
         mat = mat, q_vals = q_vals, sample_names = sample_names,
         group_vec = group_vec, g = 1, min_obs = 2
     )
@@ -125,7 +125,7 @@ testthat::test_that("FPCA matrix preparation filters low-variance rows and scale
     # prepare sample / q vectors matching 10 columns
     sample_names <- rep(paste0("s", 1:5), each = 2)
     q_vals <- rep(1:2, times = 5)
-    out <- .tsenat_prepare_fpca_matrix(mat,
+    out <- .prepare_fpca_matrix(mat,
         sample_names = sample_names, q_vals = q_vals,
         min_obs = 2
     )
@@ -142,7 +142,7 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     group <- rep(c("A", "B"), length.out = n)
     entropy <- 0.5 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1)
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
-    res <- .tsenat_try_lm_fallbacks(df)
+    res <- .try_lm_fallbacks(df)
     testthat::expect_type(res, "list")
     # AR(1) implementation now tries nlme first, then glmmTMB, then lm_subject_fixed, then lm_nosubject
     testthat::expect_true(res$method %in% c("nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject"))
@@ -151,7 +151,7 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
 
     # drop subject -> should pick nosubject fallback
     df2 <- df[, c("entropy", "q", "group")]
-    res2 <- .tsenat_try_lm_fallbacks(df2)
+    res2 <- .try_lm_fallbacks(df2)
     testthat::expect_type(res2, "list")
     testthat::expect_equal(res2$method, "lm_nosubject")
 })
@@ -165,7 +165,7 @@ testthat::test_that("LRT p extraction returns numeric p-value for nested lm mode
     df <- data.frame(entropy = entropy, q = q, group = factor(group))
     fit0 <- stats::lm(entropy ~ q + group, data = df)
     fit1 <- stats::lm(entropy ~ q * group, data = df)
-    p <- .tsenat_extract_lrt_p(fit0, fit1)
+    p <- .extract_lrt_p(fit0, fit1)
     testthat::expect_true(is.numeric(p) || is.na(p))
     if (!is.na(p)) testthat::expect_true(p >= 0 && p <= 1)
 })
@@ -179,7 +179,7 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
     group <- rep(c("A", "B"), length.out = n)
     entropy <- 0.2 * q + ifelse(group == "B", 0.6 * q, 0) + rnorm(n, 0, 0.15)
     df <- data.frame(entropy = entropy, q = q, group = factor(group))
-    res <- .tsenat_gam_interaction(df, q_vals = q, g = "geneX", min_obs = 5)
+    res <- .gam_interaction(df, q_vals = q, g = "geneX", min_obs = 5)
     testthat::expect_true(is.data.frame(res) || is.null(res))
     if (!is.null(res)) {
         # GAM returns at minimum (gene, p_interaction); may include bias correction columns
@@ -197,7 +197,7 @@ testthat::test_that("try_lmer returns an lmer object when lme4 available", {
     entropy <- 0.25 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1)
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
     fmla <- stats::as.formula("entropy ~ q * group + (1|subject)")
-    fit <- .tsenat_try_lmer(fmla, data = df, suppress_lme4_warnings = TRUE)
+    fit <- .try_lmer(fmla, data = df, suppress_lme4_warnings = TRUE)
     testthat::expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
 })
 
@@ -205,14 +205,14 @@ context("Linear Model Helpers: Edge Cases and Validation")
 
 library(testthat)
 
-# .tsenat_report_fit_summary should be silent when no fallback/singular
-test_that(".tsenat_report_fit_summary is silent when no messages to print", {
+# .report_fit_summary should be silent when no fallback/singular
+test_that(".report_fit_summary is silent when no messages to print", {
     df <- data.frame(x = 1:3)
-    expect_silent(.tsenat_report_fit_summary(df, verbose = TRUE))
+    expect_silent(.report_fit_summary(df, verbose = TRUE))
 })
 
 # linear branch: insufficient observations returns NULL, good data returns p-value
-test_that(".tsenat_fit_one_interaction linear branch handles min_obs and returns p", {
+test_that(".fit_one_interaction linear branch handles min_obs and returns p", {
     set.seed(1)
     # construct tiny matrix: 1 gene x 3 observations
     mat <- matrix(rnorm(3), nrow = 1)
@@ -221,7 +221,7 @@ test_that(".tsenat_fit_one_interaction linear branch handles min_obs and returns
     sample_names <- paste0("s", seq_along(q_vals))
     group_vec <- c("A", "A", "B")
     # min_obs > non-missing -> NULL
-    res_null <- .tsenat_fit_one_interaction("g1",
+    res_null <- .fit_one_interaction("g1",
         se = NULL, mat = mat, q_vals = q_vals,
         sample_names = sample_names, group_vec = group_vec, method = "lmm",
         pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 10, verbose = FALSE,
@@ -236,7 +236,7 @@ test_that(".tsenat_fit_one_interaction linear branch handles min_obs and returns
     obs <- 0.5 * qv + ifelse(group == "B", 0.6 * qv, 0) + rnorm(length(qv), 0, 0.05)
     mat2 <- matrix(obs, nrow = 1)
     rownames(mat2) <- "gX"
-    res <- .tsenat_fit_one_interaction("gX",
+    res <- .fit_one_interaction("gX",
         se = NULL, mat = mat2, q_vals = qv,
         sample_names = paste0("s", seq_along(qv)), group_vec = group, method = "lmm",
         pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
@@ -247,7 +247,7 @@ test_that(".tsenat_fit_one_interaction linear branch handles min_obs and returns
 })
 
 # lmm branch: errors when subject_col missing or paired but no sample_base
-test_that(".tsenat_fit_one_interaction lmm errors when subject_col missing or paired with no sample_base", {
+test_that(".fit_one_interaction lmm errors when subject_col missing or paired with no sample_base", {
     skip_if_not_installed("SummarizedExperiment")
     set.seed(2)
     # small dataset to attach to se
@@ -262,7 +262,7 @@ test_that(".tsenat_fit_one_interaction lmm errors when subject_col missing or pa
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), colData = coldata)
 
     # subject_col provided but not present
-    expect_error(.tsenat_fit_one_interaction("g1",
+    expect_error(.fit_one_interaction("g1",
         se = se, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
         subject_col = "foo", paired = FALSE, min_obs = 2, verbose = FALSE,
@@ -270,7 +270,7 @@ test_that(".tsenat_fit_one_interaction lmm errors when subject_col missing or pa
     ), "subject_col")
 
     # paired = TRUE but no sample_base column
-    expect_error(.tsenat_fit_one_interaction("g1",
+    expect_error(.fit_one_interaction("g1",
         se = se, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
         subject_col = NULL, paired = TRUE, min_obs = 2, verbose = FALSE,
@@ -279,7 +279,7 @@ test_that(".tsenat_fit_one_interaction lmm errors when subject_col missing or pa
 })
 
 # lmm branch returns NULL when only one subject is present
-test_that(".tsenat_fit_one_interaction lmm returns NULL with <2 subjects", {
+test_that(".fit_one_interaction lmm returns NULL with <2 subjects", {
     skip_if_not_installed("SummarizedExperiment")
     set.seed(3)
     qv <- rep(c(0.1, 0.5), times = 3)
@@ -291,7 +291,7 @@ test_that(".tsenat_fit_one_interaction lmm returns NULL with <2 subjects", {
     mat <- matrix(rnorm(length(qv)), nrow = 1)
     rownames(mat) <- "g1"
 
-    res <- .tsenat_fit_one_interaction("g1",
+    res <- .fit_one_interaction("g1",
         se = se, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
         subject_col = NULL, paired = TRUE, min_obs = 2, verbose = FALSE,
@@ -300,25 +300,25 @@ test_that(".tsenat_fit_one_interaction lmm returns NULL with <2 subjects", {
     expect_null(res)
 })
 
-# .tsenat_extract_lrt_p returns NA when anova errors
-test_that(".tsenat_extract_lrt_p returns NA for invalid models", {
-    p <- .tsenat_extract_lrt_p("not_a_model", "also_not")
+# .extract_lrt_p returns NA when anova errors
+test_that(".extract_lrt_p returns NA for invalid models", {
+    p <- .extract_lrt_p("not_a_model", "also_not")
     expect_true(is.na(p))
 })
 
 
 
-# .tsenat_prepare_fpca_matrix returns NULL when insufficient good rows (min_obs large)
-test_that(".tsenat_prepare_fpca_matrix returns NULL when min_obs larger than available", {
+# .prepare_fpca_matrix returns NULL when insufficient good rows (min_obs large)
+test_that(".prepare_fpca_matrix returns NULL when min_obs larger than available", {
     mat <- matrix(rnorm(6), nrow = 1)
     sample_names <- rep(paste0("s", 1:3), each = 2)
     q_vals <- rep(c(1, 2), times = 3)
-    res <- .tsenat_prepare_fpca_matrix(mat = mat, sample_names = sample_names, q_vals = q_vals, min_obs = 10)
+    res <- .prepare_fpca_matrix(mat = mat, sample_names = sample_names, q_vals = q_vals, min_obs = 10)
     expect_null(res)
 })
 
-# .tsenat_try_lmer sets 'singular' attribute (when lme4 present and fit succeeded)
-test_that(".tsenat_try_lmer sets singular attribute when fitting succeeds", {
+# .try_lmer sets 'singular' attribute (when lme4 present and fit succeeded)
+test_that(".try_lmer sets singular attribute when fitting succeeds", {
     set.seed(7)
     nsub <- 10
     nper <- 3
@@ -327,7 +327,7 @@ test_that(".tsenat_try_lmer sets singular attribute when fitting succeeds", {
     group <- rep(rep(c("A", "B"), length.out = nper), times = nsub)
     entropy <- rnorm(length(subject), mean = 0.5 + as.numeric(group == "A") * 0.1 + 0.2 * q, sd = 0.05)
     df <- data.frame(entropy = entropy, q = q, group = group, subject = subject, stringsAsFactors = FALSE)
-    fit_try <- .tsenat_try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = TRUE, verbose = FALSE)
+    fit_try <- .try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = TRUE, verbose = FALSE)
     if (inherits(fit_try, "try-error")) {
         succeed()
     } else {
@@ -339,11 +339,11 @@ test_that(".tsenat_try_lmer sets singular attribute when fitting succeeds", {
 
 test_that("lmm branch falls back to lm when mixed model fitting fails and respects pvalue selection", {
     skip_if_not_installed("lme4")
-    # Temporarily force .tsenat_try_lmer to fail so the code uses the lm fallbacks
+    # Temporarily force .try_lmer to fail so the code uses the lm fallbacks
     ns <- asNamespace("TSENAT")
-    orig_try <- get(".tsenat_try_lmer", envir = ns)
-    assignInNamespace(".tsenat_try_lmer", function(...) structure("error", class = "try-error"), ns = "TSENAT")
-    on.exit(assignInNamespace(".tsenat_try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
+    orig_try <- get(".try_lmer", envir = ns)
+    assignInNamespace(".try_lmer", function(...) structure("error", class = "try-error"), ns = "TSENAT")
+    on.exit(assignInNamespace(".try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
 
     set.seed(42)
     n <- 40
@@ -355,7 +355,7 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
     rownames(mat) <- "g_fallback"
 
     # pvalue = 'both' should return p_lrt (no Satterthwaite with nlme AR(1))
-    res_both <- .tsenat_fit_one_interaction("g_fallback",
+    res_both <- .fit_one_interaction("g_fallback",
         se = NULL, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both",
         subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
@@ -372,7 +372,7 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
     ))
 
     # pvalue = 'lrt' should use the LRT p-value
-    res_lrt <- .tsenat_fit_one_interaction("g_fallback",
+    res_lrt <- .fit_one_interaction("g_fallback",
         se = NULL, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
         subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
@@ -382,7 +382,7 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
     expect_true(is.numeric(res_lrt$p_interaction) || is.na(res_lrt$p_interaction))
 
     # pvalue = 'satterthwaite' (ignored for nlme but parameter still accepted for compatibility)
-    res_sat <- .tsenat_fit_one_interaction("g_fallback",
+    res_sat <- .fit_one_interaction("g_fallback",
         se = NULL, mat = mat, q_vals = qv,
         sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "satterthwaite",
         subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
@@ -395,7 +395,7 @@ test_that("lmm branch falls back to lm when mixed model fitting fails and respec
 
 # Additional tests to cover less exercised branches
 
-test_that(".tsenat_gam_interaction returns NULL when mgcv::gam errors", {
+test_that(".gam_interaction returns NULL when mgcv::gam errors", {
     skip_if_not_installed("mgcv")
     ns_mgcv <- asNamespace("mgcv")
     orig_gam <- get("gam", envir = ns_mgcv)
@@ -403,12 +403,12 @@ test_that(".tsenat_gam_interaction returns NULL when mgcv::gam errors", {
     on.exit(assignInNamespace("gam", orig_gam, ns = "mgcv"), add = TRUE)
 
     df <- data.frame(entropy = rnorm(5), q = rep(1, 5), group = factor(rep(c("A", "B"), length.out = 5)))
-    res <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 3)
+    res <- .gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 3)
     expect_null(res)
 })
 
 
-test_that(".tsenat_fpca_interaction returns NULL for non-diverse groups and handles imputation path", {
+test_that(".fpca_interaction returns NULL for non-diverse groups and handles imputation path", {
     # non-diverse groups -> NULL
     genes <- 1
     samples <- paste0("s", 1:6)
@@ -416,7 +416,7 @@ test_that(".tsenat_fpca_interaction returns NULL for non-diverse groups and hand
     mat <- matrix(rnorm(length(q_vals)), nrow = 1)
     rownames(mat) <- "g1"
     group_vec <- rep("A", length.out = length(q_vals))
-    res <- .tsenat_fpca_interaction(mat, q_vals = q_vals, sample_names = samples, group_vec = group_vec, g = 1, min_obs = 2)
+    res <- .fpca_interaction(mat, q_vals = q_vals, sample_names = samples, group_vec = group_vec, g = 1, min_obs = 2)
     expect_null(res)
 
     # imputation path: create NA entries that are later imputed
@@ -426,19 +426,19 @@ test_that(".tsenat_fpca_interaction returns NULL for non-diverse groups and hand
     mat2[1, c(1, 4)] <- c(1.2, 2.3)
     rownames(mat2) <- "g1"
     sample_names2 <- paste0("s", 1:6)
-    res2 <- .tsenat_fpca_interaction(mat2, q_vals = q_vals, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1)
+    res2 <- .fpca_interaction(mat2, q_vals = q_vals, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1)
     expect_true(is.null(res2) || (is.data.frame(res2) && "p_interaction" %in% colnames(res2)))
 
     # q_vals with NA should be skipped during mapping (match returns NA)
     q_vals_na <- c(1, NA, 2, 3, NA, 2)
     mat_naq <- matrix(rnorm(length(q_vals_na)), nrow = 1)
     rownames(mat_naq) <- "g1"
-    res_naq <- .tsenat_fpca_interaction(mat_naq, q_vals = q_vals_na, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1)
+    res_naq <- .fpca_interaction(mat_naq, q_vals = q_vals_na, sample_names = sample_names2, group_vec = group_vec2, g = 1, min_obs = 1)
     expect_true(is.null(res_naq) || is.data.frame(res_naq))
 })
 
 
-test_that(".tsenat_fit_one_interaction dispatches to gam and fpca methods", {
+test_that(".fit_one_interaction dispatches to gam and fpca methods", {
     # FPCA dispatch
     sample_names <- rep(paste0("s", 1:4), each = 2)
     q_vals <- rep(1:2, times = 4)
@@ -446,7 +446,7 @@ test_that(".tsenat_fit_one_interaction dispatches to gam and fpca methods", {
     obs <- rnorm(8)
     mat <- matrix(obs, nrow = 1)
     rownames(mat) <- "g1"
-    out_fpca <- .tsenat_fit_one_interaction("g1", se = NULL, mat = mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, method = "fpca", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 2, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
+    out_fpca <- .fit_one_interaction("g1", se = NULL, mat = mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, method = "fpca", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 2, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
     expect_true(is.null(out_fpca) || (is.data.frame(out_fpca) && "p_interaction" %in% colnames(out_fpca)))
 
     # GAM dispatch - if mgcv available
@@ -459,7 +459,7 @@ test_that(".tsenat_fit_one_interaction dispatches to gam and fpca methods", {
         df <- data.frame(entropy = entropy, q = q, group = group)
         mat_gam <- matrix(entropy, nrow = 1)
         rownames(mat_gam) <- "g1"
-        out_gam <- suppressWarnings(.tsenat_fit_one_interaction("g1", se = NULL, mat = mat_gam, q_vals = q, sample_names = paste0("s", seq_along(q)), group_vec = group, method = "gam", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE))
+        out_gam <- suppressWarnings(.fit_one_interaction("g1", se = NULL, mat = mat_gam, q_vals = q, sample_names = paste0("s", seq_along(q)), group_vec = group, method = "gam", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE))
         expect_true(is.null(out_gam) || (is.data.frame(out_gam) && "p_interaction" %in% colnames(out_gam)))
     } else {
         succeed()
@@ -470,15 +470,15 @@ test_that(".tsenat_fit_one_interaction dispatches to gam and fpca methods", {
 test_that("lmm branch uses fallback when lmer returns singular fits", {
     skip_if_not_installed("lme4")
     ns <- asNamespace("TSENAT")
-    orig_try <- get(".tsenat_try_lmer", envir = ns)
+    orig_try <- get(".try_lmer", envir = ns)
     fake_lmer <- function(...) {
         m <- list()
         class(m) <- "lmerMod"
         attr(m, "singular") <- TRUE
         return(m)
     }
-    assignInNamespace(".tsenat_try_lmer", fake_lmer, ns = "TSENAT")
-    on.exit(assignInNamespace(".tsenat_try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
+    assignInNamespace(".try_lmer", fake_lmer, ns = "TSENAT")
+    on.exit(assignInNamespace(".try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
 
     set.seed(7)
     qv <- rep(seq(0.1, 1, length.out = 20), 2)
@@ -491,7 +491,7 @@ test_that("lmm branch uses fallback when lmer returns singular fits", {
     # AR(1) implementation tries nlme first, which may succeed or require fallback
     # If nlme fails, a fallback message is printed
     tryCatch({
-        res <- .tsenat_fit_one_interaction("g_sing", se = NULL, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = TRUE, suppress_lme4_warnings = TRUE, progress = TRUE)
+        res <- .fit_one_interaction("g_sing", se = NULL, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = TRUE, suppress_lme4_warnings = TRUE, progress = TRUE)
     }, error = function(e) { res <<- NULL })
     
     expect_true(is.data.frame(res))
@@ -507,15 +507,15 @@ test_that("lmm branch uses fallback when lmer returns singular fits", {
 test_that("lmm branch uses subject_col and returns lmer method when available", {
     skip_if_not_installed("lme4")
     ns <- asNamespace("TSENAT")
-    orig_try <- get(".tsenat_try_lmer", envir = ns)
+    orig_try <- get(".try_lmer", envir = ns)
     fake_lmer_ok <- function(...) {
         m <- list()
         class(m) <- "lmerMod"
         attr(m, "singular") <- FALSE
         return(m)
     }
-    assignInNamespace(".tsenat_try_lmer", fake_lmer_ok, ns = "TSENAT")
-    on.exit(assignInNamespace(".tsenat_try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
+    assignInNamespace(".try_lmer", fake_lmer_ok, ns = "TSENAT")
+    on.exit(assignInNamespace(".try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
 
     # Build sample metadata with custom subject column
     qv <- rep(seq(0.1, 1, length.out = 20), 2)
@@ -528,14 +528,14 @@ test_that("lmm branch uses subject_col and returns lmer method when available", 
     coldata <- S4Vectors::DataFrame(samples = sample_names, my_subject = rep(paste0("sub", 1:20), 2))
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), colData = coldata)
 
-    res <- .tsenat_fit_one_interaction("g_sub", se = se, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt", subject_col = "my_subject", paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
+    res <- .fit_one_interaction("g_sub", se = se, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt", subject_col = "my_subject", paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
     expect_true(is.data.frame(res))
     expect_true(res$fit_method %in% c("nlme::lme", "nlme::lme_ar1", "nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject", "lmer", "lmer_singular", "fallback", "lm_subject"))
 })
 
 
-# Test that .tsenat_gam_interaction handles different anova.gam column names
-test_that(".tsenat_gam_interaction extracts p_interaction from different column names", {
+# Test that .gam_interaction handles different anova.gam column names
+test_that(".gam_interaction extracts p_interaction from different column names", {
     skip_if_not_installed("mgcv")
     suppressWarnings({
         ns_mgcv <- asNamespace("mgcv")
@@ -555,19 +555,19 @@ test_that(".tsenat_gam_interaction extracts p_interaction from different column 
         # Case 1: 'Pr(F)' column
         assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `Pr(F)` = c(1, 0.004)), ns = "mgcv")
         df <- data.frame(entropy = rnorm(10), q = rep(1:5, each = 2), group = factor(rep(c("A", "B"), 5)))
-        res1 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
+        res1 <- .gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
         expect_true(is.data.frame(res1))
         expect_true(is.numeric(res1$p_interaction) || is.na(res1$p_interaction))
 
         # Case 2: 'Pr(>F)' column
         assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `Pr(>F)` = c(1, 0.02)), ns = "mgcv")
-        res2 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
+        res2 <- .gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
         expect_true(is.data.frame(res2))
         expect_true(is.numeric(res2$p_interaction) || is.na(res2$p_interaction))
 
         # Case 3: 'p-value' column
         assignInNamespace("anova.gam", function(...) data.frame(DF = c(1, 1), `p-value` = c(1, 0.5)), ns = "mgcv")
-        res3 <- .tsenat_gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
+        res3 <- .gam_interaction(df, q_vals = df$q, g = "g1", min_obs = 5)
         expect_true(is.data.frame(res3))
         expect_true(is.numeric(res3$p_interaction) || is.na(res3$p_interaction))
     })
@@ -575,7 +575,7 @@ test_that(".tsenat_gam_interaction extracts p_interaction from different column 
 
 
 # Test FPCA edge behaviors: prcomp error, zero components, and t.test error
-test_that(".tsenat_fpca_interaction handles prcomp and t.test failures gracefully", {
+test_that(".fpca_interaction handles prcomp and t.test failures gracefully", {
     set.seed(101)
     genes <- paste0("g", 1)
     samples <- paste0("s", 1:6)
@@ -591,14 +591,14 @@ test_that(".tsenat_fpca_interaction handles prcomp and t.test failures gracefull
     mat3 <- matrix(NA_real_, nrow = 1, ncol = 6)
     mat3[1, c(1, 4)] <- c(1.2, 2.3)
     rownames(mat3) <- "g1"
-    res3 <- .tsenat_fpca_interaction(mat3, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 2)
+    res3 <- .fpca_interaction(mat3, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, g = 1, min_obs = 2)
     expect_true(is.null(res3) || (is.data.frame(res3) && "p_interaction" %in% colnames(res3)))
 })
 
 context("Heteroscedasticity Detection and Weighting")
 
 # Test heteroscedasticity detection with homoscedastic data
-test_that(".tsenat_detect_heteroscedasticity returns FALSE for homoscedastic data", {
+test_that(".detect_heteroscedasticity returns FALSE for homoscedastic data", {
     set.seed(123)
     n <- 100
     q <- runif(n, 0.1, 2)
@@ -607,7 +607,7 @@ test_that(".tsenat_detect_heteroscedasticity returns FALSE for homoscedastic dat
     entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.05)
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
     
-    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    result <- .detect_heteroscedasticity(df, q_vals = q, group_vec = group)
     
     expect_type(result, "list")
     expect_true("is_heteroscedastic" %in% names(result))
@@ -618,7 +618,7 @@ test_that(".tsenat_detect_heteroscedasticity returns FALSE for homoscedastic dat
 })
 
 # Test heteroscedasticity detection with heteroscedastic data
-test_that(".tsenat_detect_heteroscedasticity detects heteroscedasticity in variance structure", {
+test_that(".detect_heteroscedasticity detects heteroscedasticity in variance structure", {
     set.seed(456)
     n <- 100
     q <- runif(n, 0.1, 2)
@@ -627,7 +627,7 @@ test_that(".tsenat_detect_heteroscedasticity detects heteroscedasticity in varia
     entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1 * q)
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
     
-    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    result <- .detect_heteroscedasticity(df, q_vals = q, group_vec = group)
     
     expect_type(result, "list")
     expect_true("is_heteroscedastic" %in% names(result))
@@ -636,21 +636,21 @@ test_that(".tsenat_detect_heteroscedasticity detects heteroscedasticity in varia
 })
 
 # Test heteroscedasticity detection with insufficient data
-test_that(".tsenat_detect_heteroscedasticity handles insufficient observations", {
+test_that(".detect_heteroscedasticity handles insufficient observations", {
     n <- 5
     q <- runif(n)
     group <- rep(c("A", "B"), length.out = n)
     entropy <- rnorm(n)
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
     
-    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    result <- .detect_heteroscedasticity(df, q_vals = q, group_vec = group)
     
     expect_type(result, "list")
     expect_true(is.na(result$is_heteroscedastic) || is.logical(result$is_heteroscedastic))
 })
 
 # Test variance weight estimation with power-law method
-test_that(".tsenat_estimate_variance_weights computes weights correctly", {
+test_that(".estimate_variance_weights computes weights correctly", {
     set.seed(789)
     n <- 80
     q <- runif(n, 0.1, 2)
@@ -658,7 +658,7 @@ test_that(".tsenat_estimate_variance_weights computes weights correctly", {
     entropy <- 0.5 + 0.2 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1 * q)
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
     
-    result <- .tsenat_estimate_variance_weights(df, q_vals = q, method = "power")
+    result <- .estimate_variance_weights(df, q_vals = q, method = "power")
     
     expect_type(result, "list")
     expect_true("weights" %in% names(result))
@@ -674,14 +674,14 @@ test_that(".tsenat_estimate_variance_weights computes weights correctly", {
 })
 
 # Test variance weight estimation with residual method
-test_that(".tsenat_estimate_variance_weights works with residual method", {
+test_that(".estimate_variance_weights works with residual method", {
     set.seed(234)
     n <- 60
     q <- runif(n, 0.1, 2)
     entropy <- 0.5 + 0.2 * q + rnorm(n, 0, 0.1 * q)
     df <- data.frame(entropy = entropy, q = q, stringsAsFactors = FALSE)
     
-    result <- .tsenat_estimate_variance_weights(df, q_vals = q, method = "residual")
+    result <- .estimate_variance_weights(df, q_vals = q, method = "residual")
     
     # Residual method should return a list
     expect_type(result, "list")
@@ -694,7 +694,7 @@ test_that(".tsenat_estimate_variance_weights works with residual method", {
 })
 
 # Test GAM with heteroscedasticity detection and weighting
-test_that(".tsenat_gam_interaction applies weights when heteroscedasticity detected", {
+test_that(".gam_interaction applies weights when heteroscedasticity detected", {
     skip_if_not_installed("mgcv")
     suppressWarnings({
         set.seed(111)
@@ -706,7 +706,7 @@ test_that(".tsenat_gam_interaction applies weights when heteroscedasticity detec
                    rnorm(n, 0, sd = ifelse(group == "B", 0.1 * q, 0.01))
         df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
         
-        res <- .tsenat_gam_interaction(df, q_vals = q, g = "geneHetero", min_obs = 10)
+        res <- .gam_interaction(df, q_vals = q, g = "geneHetero", min_obs = 10)
         
         expect_true(is.data.frame(res) || is.null(res))
         if (is.data.frame(res)) {
@@ -717,7 +717,7 @@ test_that(".tsenat_gam_interaction applies weights when heteroscedasticity detec
 })
 
 # Test LMM with heteroscedasticity detection
-test_that(".tsenat_fit_one_interaction LMM applies variance structure for heteroscedasticity", {
+test_that(".fit_one_interaction LMM applies variance structure for heteroscedasticity", {
     skip_if_not_installed("nlme")
     set.seed(222)
     
@@ -752,14 +752,14 @@ test_that(".tsenat_fit_one_interaction LMM applies variance structure for hetero
     )
     
     # Call the function with LMM method
-    # Extract necessary components for .tsenat_fit_one_interaction
+    # Extract necessary components for .fit_one_interaction
     mat <- SummarizedExperiment::assays(se)$counts
     coldata <- SummarizedExperiment::colData(se)
     sample_names <- coldata$sample
     q_vals <- coldata$q
     group_vec <- coldata$group
     
-    result <- .tsenat_fit_one_interaction(
+    result <- .fit_one_interaction(
         g = "gene1",
         se = se,
         mat = mat,
@@ -779,7 +779,7 @@ test_that(".tsenat_fit_one_interaction LMM applies variance structure for hetero
 })
 
 # Test GEE with heteroscedasticity detection
-test_that(".tsenat_gee_interaction applies weights when heteroscedasticity detected", {
+test_that(".gee_interaction applies weights when heteroscedasticity detected", {
     skip_if_not_installed("geepack")
     set.seed(333)
     
@@ -801,7 +801,7 @@ test_that(".tsenat_gee_interaction applies weights when heteroscedasticity detec
         stringsAsFactors = FALSE
     )
     
-    result <- .tsenat_gee_interaction(
+    result <- .gee_interaction(
         df = df,
         q_vals = q,
         g = "geneGEE",
@@ -818,14 +818,14 @@ test_that(".tsenat_gee_interaction applies weights when heteroscedasticity detec
 })
 
 # Test that weights sum to approximately n (normal scaling)
-test_that(".tsenat_estimate_variance_weights returns normalized weights", {
+test_that(".estimate_variance_weights returns normalized weights", {
     set.seed(555)
     n <- 50
     q <- runif(n, 0.5, 2)
     entropy <- rnorm(n, mean = 0.5, sd = 0.1 * q)
     df <- data.frame(entropy = entropy, q = q, stringsAsFactors = FALSE)
     
-    result <- .tsenat_estimate_variance_weights(df, q_vals = q, method = "power")
+    result <- .estimate_variance_weights(df, q_vals = q, method = "power")
     
     if (!is.null(result$weights)) {
         # Weights should sum close to n (since they're normalized)
@@ -834,7 +834,7 @@ test_that(".tsenat_estimate_variance_weights returns normalized weights", {
 })
 
 # Test heteroscedasticity with missing data
-test_that(".tsenat_detect_heteroscedasticity handles missing values gracefully", {
+test_that(".detect_heteroscedasticity handles missing values gracefully", {
     set.seed(666)
     n <- 40
     q <- runif(n, 0.1, 2)
@@ -846,7 +846,7 @@ test_that(".tsenat_detect_heteroscedasticity handles missing values gracefully",
     
     df <- data.frame(entropy = entropy, q = q, group = group, stringsAsFactors = FALSE)
     
-    result <- .tsenat_detect_heteroscedasticity(df, q_vals = q, group_vec = group)
+    result <- .detect_heteroscedasticity(df, q_vals = q, group_vec = group)
     
     expect_type(result, "list")
     expect_true(all(c("is_heteroscedastic", "p_value") %in% names(result)))
@@ -857,15 +857,15 @@ test_that(".tsenat_detect_heteroscedasticity handles missing values gracefully",
 # Database Evidence: B001, B004, C017
 # ═══════════════════════════════════════════════════════════════════════════
 
-testthat::test_that(".tsenat_test_residual_normality returns list with shapiro test results", {
+testthat::test_that(".test_residual_normality returns list with shapiro test results", {
     # Test with NULL model
-    result_null <- .tsenat_test_residual_normality(NULL, "gam", verbose = FALSE)
+    result_null <- .test_residual_normality(NULL, "gam", verbose = FALSE)
     expect_type(result_null, "list")
     expect_true(all(c("shapiro_p_value", "residuals_normal", "test_status") %in% names(result_null)))
     expect_true(is.na(result_null$shapiro_p_value))
 })
 
-testthat::test_that(".tsenat_test_residual_normality detects normal residuals in GAM", {
+testthat::test_that(".test_residual_normality detects normal residuals in GAM", {
     skip_if_not_installed("mgcv")
     
     set.seed(123)
@@ -888,7 +888,7 @@ testthat::test_that(".tsenat_test_residual_normality detects normal residuals in
     skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")
     
     # Test residual normality
-    result <- .tsenat_test_residual_normality(fit_gam, "gam", verbose = FALSE)
+    result <- .test_residual_normality(fit_gam, "gam", verbose = FALSE)
     
     expect_type(result, "list")
     expect_true(all(c("shapiro_p_value", "residuals_normal", "n_residuals", "test_status") %in% names(result)))
@@ -904,7 +904,7 @@ testthat::test_that(".tsenat_test_residual_normality detects normal residuals in
 # Tests for slope_diff extraction from LM interaction coefficient
 # ═══════════════════════════════════════════════════════════════════════════
 
-test_that(".tsenat_fit_one_interaction LMM method includes slope_diff in results", {
+test_that(".fit_one_interaction LMM method includes slope_diff in results", {
     skip_if_not_installed("nlme")
     set.seed(1001)
     
@@ -938,7 +938,7 @@ test_that(".tsenat_fit_one_interaction LMM method includes slope_diff in results
         colData = coldata
     )
     
-    result <- .tsenat_fit_one_interaction(
+    result <- .fit_one_interaction(
         "gene1",
         se = se,
         mat = mat,
@@ -967,7 +967,7 @@ test_that(".tsenat_fit_one_interaction LMM method includes slope_diff in results
     }
 })
 
-test_that(".tsenat_gam_interaction includes slope_diff in results", {
+test_that(".gam_interaction includes slope_diff in results", {
     skip_if_not_installed("mgcv")
     set.seed(1002)
     
@@ -986,7 +986,7 @@ test_that(".tsenat_gam_interaction includes slope_diff in results", {
         stringsAsFactors = FALSE
     )
     
-    result <- suppressWarnings(.tsenat_gam_interaction(
+    result <- suppressWarnings(.gam_interaction(
         df,
         q_vals = q,
         g = "geneGAM",
@@ -1003,7 +1003,7 @@ test_that(".tsenat_gam_interaction includes slope_diff in results", {
     }
 })
 
-test_that(".tsenat_fpca_interaction includes slope_diff in results", {
+test_that(".fpca_interaction includes slope_diff in results", {
     set.seed(1003)
     
     # Create synthetic matrix for FPCA
@@ -1017,7 +1017,7 @@ test_that(".tsenat_fpca_interaction includes slope_diff in results", {
     sample_names <- samples
     group_vec <- rep(c("A", "B"), each = 4)
     
-    result <- .tsenat_fpca_interaction(
+    result <- .fpca_interaction(
         mat,
         q_vals = q_vals,
         sample_names = sample_names,
@@ -1036,7 +1036,7 @@ test_that(".tsenat_fpca_interaction includes slope_diff in results", {
     }
 })
 
-test_that(".tsenat_gee_interaction includes slope_diff in results", {
+test_that(".gee_interaction includes slope_diff in results", {
     skip_if_not_installed("geepack")
     set.seed(1004)
     
@@ -1059,7 +1059,7 @@ test_that(".tsenat_gee_interaction includes slope_diff in results", {
         stringsAsFactors = FALSE
     )
     
-    result <- suppressWarnings(.tsenat_gee_interaction(
+    result <- suppressWarnings(.gee_interaction(
         df = df,
         q_vals = q,
         g = "geneGEE",
@@ -1103,7 +1103,7 @@ test_that("slope_diff reflects interaction strength correctly", {
         colData = coldata_strong
     )
     
-    result_strong <- .tsenat_fit_one_interaction(
+    result_strong <- .fit_one_interaction(
         "gene1", 
         se = se_strong, 
         mat = mat_strong,
@@ -1130,7 +1130,7 @@ test_that("slope_diff reflects interaction strength correctly", {
     }
 })
 
-testthat::test_that(".tsenat_test_residual_normality detects non-normal residuals", {
+testthat::test_that(".test_residual_normality detects non-normal residuals", {
     skip_if_not_installed("mgcv")
     
     set.seed(456)
@@ -1153,7 +1153,7 @@ testthat::test_that(".tsenat_test_residual_normality detects non-normal residual
     skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")
     
     # Test residual normality
-    result <- .tsenat_test_residual_normality(fit_gam, "gam", verbose = FALSE)
+    result <- .test_residual_normality(fit_gam, "gam", verbose = FALSE)
     
     # With skewed errors, Shapiro-Wilk should detect non-normality (p < 0.05)
     expect_type(result$shapiro_p_value, "double")
@@ -1161,7 +1161,7 @@ testthat::test_that(".tsenat_test_residual_normality detects non-normal residual
     expect_true(result$shapiro_p_value < 0.05 || !is.na(result$shapiro_p_value))
 })
 
-testthat::test_that(".tsenat_test_residual_normality works with GEE models", {
+testthat::test_that(".test_residual_normality works with GEE models", {
     skip_if_not_installed("geepack")
     
     set.seed(789)
@@ -1188,7 +1188,7 @@ testthat::test_that(".tsenat_test_residual_normality works with GEE models", {
     skip_if(inherits(fit_gee, "try-error"), "GEE fitting failed")
     
     # Test residual normality
-    result <- .tsenat_test_residual_normality(fit_gee, "gee", verbose = FALSE)
+    result <- .test_residual_normality(fit_gee, "gee", verbose = FALSE)
     
     expect_type(result, "list")
     expect_true(all(c("shapiro_p_value", "residuals_normal", "test_status") %in% names(result)))
@@ -1196,7 +1196,7 @@ testthat::test_that(".tsenat_test_residual_normality works with GEE models", {
     expect_true(result$test_status %in% c("pass", "fail", "error"))
 })
 
-testthat::test_that(".tsenat_test_residual_normality returns error status for insufficient data", {
+testthat::test_that(".test_residual_normality returns error status for insufficient data", {
     # Create a model with very few residuals
     skip_if_not_installed("mgcv")
     
@@ -1225,7 +1225,7 @@ testthat::test_that(".tsenat_test_residual_normality returns error status for in
     skip_if(inherits(fit_gam, "try-error"), "GAM fitting failed")
     
     # Test residual normality - should handle gracefully
-    result <- .tsenat_test_residual_normality(fit_gam, "gam", verbose = FALSE)
+    result <- .test_residual_normality(fit_gam, "gam", verbose = FALSE)
     
     # Either passes or returns N/A - main thing is it doesn't crash
     expect_type(result, "list")
@@ -1244,7 +1244,7 @@ testthat::test_that("GAM method integrates Shapiro-Wilk results into output", {
     df <- data.frame(entropy = entropy, q = q, group = factor(group))
     
     # Call GAM interaction function
-    result <- .tsenat_gam_interaction(df, q_vals = q, g = "gene1", min_obs = 5)
+    result <- .gam_interaction(df, q_vals = q, g = "gene1", min_obs = 5)
     
     skip_if(is.null(result), "GAM interaction returned NULL")
     
@@ -1269,7 +1269,7 @@ testthat::test_that("GEE method integrates Shapiro-Wilk results into output", {
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = subject)
     
     # Call GEE interaction function
-    result <- .tsenat_gee_interaction(df, q_vals = q, g = "gene2", subject = subject, min_obs = 5)
+    result <- .gee_interaction(df, q_vals = q, g = "gene2", subject = subject, min_obs = 5)
     
     skip_if(is.null(result), "GEE interaction returned NULL")
     

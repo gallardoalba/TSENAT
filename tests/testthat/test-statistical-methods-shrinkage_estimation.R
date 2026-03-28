@@ -3,7 +3,7 @@ context("Bayesian Shrinkage: Entropy Estimation for Small Sample Sizes")
 # calculate_method is internal; expose for tests
 calculate_method <- TSENAT:::.calculate_method
 
-test_that(".tsenat_estimate_shrinkage_params estimates global mean correctly", {
+test_that(".estimate_shrinkage_params estimates global mean correctly", {
   # Create simple test data: 3 genes x 4 transcripts x 2 samples
   x <- matrix(c(
     10, 5,    # Gene A, transcript 1
@@ -22,7 +22,7 @@ test_that(".tsenat_estimate_shrinkage_params estimates global mean correctly", {
   entropy_mat <- as.matrix(entropy_result[, -1])
   
   # Estimate parameters
-  params <- TSENAT:::.tsenat_estimate_shrinkage_params(
+  params <- TSENAT:::.estimate_shrinkage_params(
     x = x,
     genes = genes,
     entropy_matrix = entropy_mat,
@@ -43,7 +43,7 @@ test_that(".tsenat_estimate_shrinkage_params estimates global mean correctly", {
   expect_equal(params$n_isoforms, c(A = 2, B = 2, C = 2))
 })
 
-test_that(".tsenat_estimate_shrinkage_params detects variable isoform counts", {
+test_that(".estimate_shrinkage_params detects variable isoform counts", {
   # Gene A: 2 isoforms, Gene B: 3 isoforms, Gene C: 1 isoform
   x <- matrix(c(
     10, 5,     # Gene A, transcript 1
@@ -60,7 +60,7 @@ test_that(".tsenat_estimate_shrinkage_params detects variable isoform counts", {
   entropy_result <- .calculate_method(x, genes, norm = TRUE, q = 1, what = "S")
   entropy_mat <- as.matrix(entropy_result[, -1])
   
-  params <- TSENAT:::.tsenat_estimate_shrinkage_params(
+  params <- TSENAT:::.estimate_shrinkage_params(
     x = x,
     genes = genes,
     entropy_matrix = entropy_mat,
@@ -73,7 +73,7 @@ test_that(".tsenat_estimate_shrinkage_params detects variable isoform counts", {
   expect_equal(as.numeric(params$n_isoforms["C"]), 1)
 })
 
-test_that(".tsenat_apply_shrinkage shrinks estimates toward global mean", {
+test_that(".apply_shrinkage shrinks estimates toward global mean", {
   # Create test entropy matrix
   entropy_mat <- matrix(c(
     0.3, 0.5,    # Gene A
@@ -92,7 +92,7 @@ test_that(".tsenat_apply_shrinkage shrinks estimates toward global mean", {
   )
   
   # Apply shrinkage
-  shrunk <- TSENAT:::.tsenat_apply_shrinkage(
+  shrunk <- TSENAT:::.apply_shrinkage(
     entropy_matrix = entropy_mat,
     params = params,
     gene_isoform_map = c(2, 2, 2)
@@ -107,7 +107,7 @@ test_that(".tsenat_apply_shrinkage shrinks estimates toward global mean", {
   expect_true(all(is.finite(shrunk)))
 })
 
-test_that(".tsenat_apply_shrinkage provides more shrinkage for genes with fewer isoforms", {
+test_that(".apply_shrinkage provides more shrinkage for genes with fewer isoforms", {
   # Create test entropy matrix
   entropy_mat <- matrix(c(
     0.2, 0.9,    # Gene few (will be shrunk more)
@@ -123,7 +123,7 @@ test_that(".tsenat_apply_shrinkage provides more shrinkage for genes with fewer 
     n_isoforms = c(few = 1, many = 10)  # Different isoform counts
   )
   
-  shrunk <- TSENAT:::.tsenat_apply_shrinkage(
+  shrunk <- TSENAT:::.apply_shrinkage(
     entropy_matrix = entropy_mat,
     params = params,
     gene_isoform_map = c(1, 10)

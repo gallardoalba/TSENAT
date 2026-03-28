@@ -413,7 +413,7 @@ test_that("Conditional rank test selection adapts to data characteristics", {
     q = factor(rep(c(1, 2, 3, 4), 15))
   )
   
-  result_normal <- .tsenat_apply_conditional_rank_test(
+  result_normal <- .apply_conditional_rank_test(
     data = data_normal,
     value_col = "entropy",
     group_col = "q",
@@ -434,7 +434,7 @@ test_that("Conditional rank test selection adapts to data characteristics", {
     q = factor(rep(c(1, 2, 3, 4), 15))
   )
   
-  result_hetero <- .tsenat_apply_conditional_rank_test(
+  result_hetero <- .apply_conditional_rank_test(
     data = data_hetero,
     value_col = "entropy",
     group_col = "q",

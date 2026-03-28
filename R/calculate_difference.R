@@ -79,7 +79,7 @@
     exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber", 
     robust_scale_method = "mad") {
     # internal small helpers (kept here to avoid adding new files)
-    .tsenat_prepare_df <- function(x, condition_col, assayno) {
+    .prepare_df <- function(x, condition_col, assayno) {
         pairs_vec <- NULL
         if (inherits(x, "RangedSummarizedExperiment") || inherits(x, "SummarizedExperiment")) {
             # allow condition_col to be NULL (use default 'sample_type' col)
@@ -124,7 +124,7 @@
         }
     }
 
-    .tsenat_sample_matrix <- function(dfr) {
+    .sample_matrix <- function(dfr) {
         as.matrix(dfr[, -c(1, ncol(dfr) - 1, ncol(dfr)), drop = FALSE])
     }
 
@@ -139,7 +139,7 @@
     }
 
     # prepare data.frame and sample vector (handles SummarizedExperiment)
-    pd <- .tsenat_prepare_df(x, condition_col, assayno)
+    pd <- .prepare_df(x, condition_col, assayno)
     df <- pd$df
     samples <- pd$samples
     pairs <- pd$pairs
@@ -167,7 +167,7 @@
     }
 
     # Partition and validate inputs
-    part <- .tsenat_calculate_difference_partition(df = df, samples = samples, control = control,
+    part <- .calculate_difference_partition(df = df, samples = samples, control = control,
         method = method, test = test, pcorr = pcorr, randomizations = randomizations,
         verbose = verbose)
     df <- part$df
@@ -182,7 +182,7 @@
 
     # Helper to extract the numeric matrix of sample columns (keeps original
     # order)
-    sample_matrix <- .tsenat_sample_matrix
+    sample_matrix <- .sample_matrix
 
     if (nrow(df_keep) > 0) {
         if (nrow(df_small) > 0 && verbose) {
@@ -250,7 +250,7 @@
 
 
 # Internal: Hochberg Stepup Procedure for FWER Control
-# NOTE (March 2026): .tsenat_hochberg_stepup() and .tsenat_benjamini_yekutieli()
+# NOTE (March 2026): .hochberg_stepup() and .benjamini_yekutieli()
 # are now imported from rank_based_methods.R to eliminate duplication.
 # These functions are defined there with full NA/Inf handling for robustness.
 
@@ -271,7 +271,7 @@
 #'
 
 #' @noRd
-.tsenat_extract_lm_results <- function(lm_result) {
+.extract_lm_results <- function(lm_result) {
     if (is.data.frame(lm_result)) {
         return(lm_result)
     } else if (is.list(lm_result) && "results" %in% names(lm_result)) {
@@ -332,7 +332,7 @@
         message("  Scales are pre-computed once then reused in permutations.")
     }
     
-    agg <- .tsenat_aggregate_fc_values(x = x, samples = samples, method = method,
+    agg <- .aggregate_fc_values(x = x, samples = samples, method = method,
         control = control, robust_loss_type = robust_loss_type,
         robust_scale_method = robust_scale_method)
     value <- agg$value
@@ -345,7 +345,7 @@
     value[!is.finite(value)] <- NA
 
     # compute and apply pseudocount based on observed group summaries
-    value <- .tsenat_apply_pseudocount(value, pseudocount)
+    value <- .apply_pseudocount(value, pseudocount)
 
     # compute difference and log2 fold-change with NA-safe handling
     diff_vec <- value[, 1] - value[, 2]
@@ -460,7 +460,7 @@
     }
 
     # Apply in parallel
-    test_results <- .tsenat_bplapply(seq_len(nrow(x)), .wilcox_one, nthreads = nthreads)
+    test_results <- .bplapply(seq_len(nrow(x)), .wilcox_one, nthreads = nthreads)
 
     # Extract components
     raw_p_values <- vapply(test_results, function(r) if(is.na(r$p.value)) 1 else r$p.value, FUN.VALUE = numeric(1))
@@ -690,13 +690,13 @@
                 perm_ctrl_idx <- which(perm_samples == control)
                 
                 # Use fast computation instead of .calculate_fc(avoids aggregate overhead)
-                perm_mat[, r] <- .tsenat_fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx, 
+                perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx, 
                                                                  method, pseudocount_val,
                                                                  robust_loss_type, robust_scale_method)
             }
         } else {
             # Fall back to position-based paired permutation
-            perm_mat <- .tsenat_permute_paired(x = x, samples = samples, control = control,
+            perm_mat <- .permute_paired(x = x, samples = samples, control = control,
                 method = method, randomizations = randomizations, paired_method = paired_method)
         }
     } else {
@@ -714,7 +714,7 @@
             perm_ctrl_idx <- which(perm_samples == control)
             
             # Use fast computation instead of .calculate_fc(avoids aggregate overhead)
-            perm_mat[, r] <- .tsenat_fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
+            perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
                                                              method, pseudocount_val,
                                                              robust_loss_type, robust_scale_method)
         }
@@ -739,7 +739,7 @@
     }
 
     # compute two-sided permutation p-value with pseudocount, in parallel
-    raw_p_values <- unlist(.tsenat_bplapply(seq_len(nrow(perm_mat)), .compute_pval,
+    raw_p_values <- unlist(.bplapply(seq_len(nrow(perm_mat)), .compute_pval,
         nthreads = nthreads))
 
     adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
@@ -805,7 +805,7 @@
     }
     
     # Compute effect sizes in parallel
-    effect_sizes <- .tsenat_bplapply(seq_len(nrow(x)), .compute_effect_sizes, nthreads = nthreads)
+    effect_sizes <- .bplapply(seq_len(nrow(x)), .compute_effect_sizes, nthreads = nthreads)
     u_statistics <- vapply(effect_sizes, function(es) es["U"], FUN.VALUE = numeric(1))
     r_values <- vapply(effect_sizes, function(es) es["r"], FUN.VALUE = numeric(1))
     
@@ -832,7 +832,7 @@
 
 # Helper utilities for calculate_difference
 
-.tsenat_calculate_difference_partition <- function(df, samples, control, method,
+.calculate_difference_partition <- function(df, samples, control, method,
     test, pcorr, randomizations, verbose) {
     if (ncol(df) - 1 != length(samples)) {
         stop("Column count doesn't match length(samples).", call. = FALSE)
@@ -904,7 +904,7 @@
 }
 
 # Helpers for calculate_fc
-.tsenat_aggregate_fc_values <- function(x, samples, method, control, robust_loss_type = "huber",
+.aggregate_fc_values <- function(x, samples, method, control, robust_loss_type = "huber",
                                         robust_scale_method = "mad") {
     if (method == "mean") {
         value <- aggregate(t(x), by = list(samples), mean, na.rm = TRUE)
@@ -942,8 +942,8 @@
             group2_medians <- vapply(seq_len(nrow(x)), function(feat)
                 median(x[feat, group2_idx], na.rm = TRUE), FUN.VALUE = numeric(1))
             
-            scale1 <- .tsenat_mest_s_estimator_scale(group1_medians)
-            scale2 <- .tsenat_mest_s_estimator_scale(group2_medians)
+            scale1 <- .mest_s_estimator_scale(group1_medians)
+            scale2 <- .mest_s_estimator_scale(group2_medians)
         } else {
             # DEFAULT: MAD-based scale on aggregate (fastest)
             # Use MAD computed from pooled residuals
@@ -961,7 +961,7 @@
         }
         
         # Now compute location for each feature using pre-computed scales
-        # This avoids re-computing scales inside .tsenat_mest_irls_location()
+        # This avoids re-computing scales inside .mest_irls_location()
         value_list <- list()
         
         for (feat in seq_len(nrow(x))) {
@@ -971,12 +971,12 @@
             group2_vals <- feat_vals[group2_idx]
             
             # Pass pre-computed scales to IRLS, skipping scale computation inside the function
-            est1 <- .tsenat_mest_irls_location(group1_vals, 
+            est1 <- .mest_irls_location(group1_vals, 
                                             loss_type = robust_loss_type,
                                             scale = scale1,  # <- PRE-COMPUTED, avoids recomputation!
                                             max_iter = 20,
                                             tol = 1e-4)
-            est2 <- .tsenat_mest_irls_location(group2_vals,
+            est2 <- .mest_irls_location(group2_vals,
                                             loss_type = robust_loss_type,
                                             scale = scale2,  # <- PRE-COMPUTED, avoids recomputation!
                                             max_iter = 20,
@@ -1007,7 +1007,7 @@
     return(list(value = value, sorted = sorted))
 }
 
-.tsenat_apply_pseudocount <- function(value, pseudocount) {
+.apply_pseudocount <- function(value, pseudocount) {
     if (!is.numeric(pseudocount) || length(pseudocount) != 1) {
         pseudocount <- 0
     }
@@ -1030,7 +1030,7 @@
 # Pre-computes group indices and pseudocount once, avoiding aggregate() overhead
 # Reduces permutation test overhead by 20-30% via direct matrix operations
 # For m_estimate: pre-computes scales once per permutation (not per-feature)
-.tsenat_fast_log2fc_permutation <- function(x, group1_idx, group2_idx, method, pseudocount,
+.fast_log2fc_permutation <- function(x, group1_idx, group2_idx, method, pseudocount,
                                             robust_loss_type = "huber", 
                                             robust_scale_method = "mad") {
     # Compute group summaries using pre-computed indices (vectorized, no aggregate)
@@ -1057,8 +1057,8 @@
             group1_all <- as.numeric(x[, group1_idx])
             group2_all <- as.numeric(x[, group2_idx])
             
-            scale1 <- .tsenat_mest_s_estimator_scale(group1_all)
-            scale2 <- .tsenat_mest_s_estimator_scale(group2_all)
+            scale1 <- .mest_s_estimator_scale(group1_all)
+            scale2 <- .mest_s_estimator_scale(group2_all)
         } else {
             # DEFAULT: MAD-based scale (fastest, most robust)
             group1_all <- as.numeric(x[, group1_idx])
@@ -1076,12 +1076,12 @@
         
         # Apply location estimation to each feature using pre-computed scales
         g1_val <- apply(x[, group1_idx, drop = FALSE], 1, function(row) {
-            .tsenat_mest_irls_location(row, loss_type = robust_loss_type,
+            .mest_irls_location(row, loss_type = robust_loss_type,
                                     scale = scale1,  # <- Use pre-computed scale!
                                     max_iter = 20, tol = 1e-4)
         })
         g2_val <- apply(x[, group2_idx, drop = FALSE], 1, function(row) {
-            .tsenat_mest_irls_location(row, loss_type = robust_loss_type,
+            .mest_irls_location(row, loss_type = robust_loss_type,
                                     scale = scale2,  # <- Use pre-computed scale!
                                     max_iter = 20, tol = 1e-4)
         })
@@ -1105,7 +1105,7 @@
 }
 
 # Paired permutation helpers
-.tsenat_permute_paired <- function(x, samples, control, method, randomizations, paired_method) {
+.permute_paired <- function(x, samples, control, method, randomizations, paired_method) {
     ncols <- ncol(x)
     if (ncols%%2 != 0) {
         stop("Paired permutation requires an even number of samples and paired column ordering",

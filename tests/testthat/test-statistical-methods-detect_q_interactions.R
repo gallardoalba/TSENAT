@@ -3,13 +3,13 @@ library(TSENAT)
 context("detect_q_gene_interactions: Internal Helper Functions")
 
 # ============================================================================
-# Test 1: .tsenat_detect_q_validate_params
+# Test 1: .detect_q_validate_params
 # ============================================================================
 
-test_that(".tsenat_detect_q_validate_params: validates paired parameter", {
+test_that(".detect_q_validate_params: validates paired parameter", {
   # Should error when paired=TRUE but subject_col is NULL
   expect_error(
-    TSENAT:::.tsenat_detect_q_validate_params(
+    TSENAT:::.detect_q_validate_params(
       paired = TRUE, subject_col = NULL, wy_randomizations = 100,
       nperm_mode = "standard", verbose = FALSE
     ),
@@ -17,8 +17,8 @@ test_that(".tsenat_detect_q_validate_params: validates paired parameter", {
   )
 })
 
-test_that(".tsenat_detect_q_validate_params: handles 'auto' wy_randomizations", {
-  result <- TSENAT:::.tsenat_detect_q_validate_params(
+test_that(".detect_q_validate_params: handles 'auto' wy_randomizations", {
+  result <- TSENAT:::.detect_q_validate_params(
     paired = FALSE, subject_col = NULL, wy_randomizations = "auto",
     nperm_mode = "standard", verbose = FALSE
   )
@@ -26,8 +26,8 @@ test_that(".tsenat_detect_q_validate_params: handles 'auto' wy_randomizations", 
   expect_equal(result$wy_randomizations, "auto")
 })
 
-test_that(".tsenat_detect_q_validate_params: converts numeric wy_randomizations to integer", {
-  result <- TSENAT:::.tsenat_detect_q_validate_params(
+test_that(".detect_q_validate_params: converts numeric wy_randomizations to integer", {
+  result <- TSENAT:::.detect_q_validate_params(
     paired = FALSE, subject_col = NULL, wy_randomizations = 100.5,
     nperm_mode = "standard", verbose = FALSE
   )
@@ -36,8 +36,8 @@ test_that(".tsenat_detect_q_validate_params: converts numeric wy_randomizations 
   expect_is(result$wy_randomizations, "integer")
 })
 
-test_that(".tsenat_detect_q_validate_params: defaults NULL to 500", {
-  result <- TSENAT:::.tsenat_detect_q_validate_params(
+test_that(".detect_q_validate_params: defaults NULL to 500", {
+  result <- TSENAT:::.detect_q_validate_params(
     paired = FALSE, subject_col = NULL, wy_randomizations = NULL,
     nperm_mode = "standard", verbose = FALSE
   )
@@ -45,9 +45,9 @@ test_that(".tsenat_detect_q_validate_params: defaults NULL to 500", {
   expect_equal(result$wy_randomizations, 500)
 })
 
-test_that(".tsenat_detect_q_validate_params: warns on small wy_randomizations", {
+test_that(".detect_q_validate_params: warns on small wy_randomizations", {
   expect_warning(
-    TSENAT:::.tsenat_detect_q_validate_params(
+    TSENAT:::.detect_q_validate_params(
       paired = FALSE, subject_col = NULL, wy_randomizations = 5,
       nperm_mode = "standard", verbose = FALSE
     ),
@@ -55,8 +55,8 @@ test_that(".tsenat_detect_q_validate_params: warns on small wy_randomizations", 
   )
 })
 
-test_that(".tsenat_detect_q_validate_params: validates nperm_mode", {
-  result <- TSENAT:::.tsenat_detect_q_validate_params(
+test_that(".detect_q_validate_params: validates nperm_mode", {
+  result <- TSENAT:::.detect_q_validate_params(
     paired = FALSE, subject_col = NULL, wy_randomizations = 100,
     nperm_mode = "conservative", verbose = FALSE
   )
@@ -64,9 +64,9 @@ test_that(".tsenat_detect_q_validate_params: validates nperm_mode", {
   expect_equal(result$nperm_mode, "conservative")
 })
 
-test_that(".tsenat_detect_q_validate_params: warns on subject_col with paired=FALSE", {
+test_that(".detect_q_validate_params: warns on subject_col with paired=FALSE", {
   expect_warning(
-    TSENAT:::.tsenat_detect_q_validate_params(
+    TSENAT:::.detect_q_validate_params(
       paired = FALSE, subject_col = "subject", wy_randomizations = 100,
       nperm_mode = "standard", verbose = FALSE
     ),
@@ -75,17 +75,17 @@ test_that(".tsenat_detect_q_validate_params: warns on subject_col with paired=FA
 })
 
 # ============================================================================
-# Test 2: .tsenat_detect_q_prepare_data
+# Test 2: .detect_q_prepare_data
 # ============================================================================
 
-test_that(".tsenat_detect_q_prepare_data: validates required columns", {
+test_that(".detect_q_prepare_data: validates required columns", {
   df <- data.frame(
     value = rnorm(20),
     group = rep(c("A", "B"), 10)
   )
   
   expect_error(
-    TSENAT:::.tsenat_detect_q_prepare_data(
+    TSENAT:::.detect_q_prepare_data(
       data = df, entropy_col = "nonexistent", q_col = "q", gene_col = "gene",
       paired = FALSE, subject_col = NULL, condition_col = NULL, verbose = FALSE
     ),
@@ -93,7 +93,7 @@ test_that(".tsenat_detect_q_prepare_data: validates required columns", {
   )
 })
 
-test_that(".tsenat_detect_q_prepare_data: standardizes column names", {
+test_that(".detect_q_prepare_data: standardizes column names", {
   df <- data.frame(
     my_entropy = c(1, 2, 3, 4, 5, 6),
     my_q = c("q1", "q1", "q1", "q2", "q2", "q2"),
@@ -102,7 +102,7 @@ test_that(".tsenat_detect_q_prepare_data: standardizes column names", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_prepare_data(
+  result <- TSENAT:::.detect_q_prepare_data(
     data = df, entropy_col = "my_entropy", q_col = "my_q", gene_col = "my_gene",
     paired = FALSE, subject_col = NULL, condition_col = "my_condition", verbose = FALSE
   )
@@ -117,7 +117,7 @@ test_that(".tsenat_detect_q_prepare_data: standardizes column names", {
   expect_true(result$has_condition)
 })
 
-test_that(".tsenat_detect_q_prepare_data: requires condition column", {
+test_that(".detect_q_prepare_data: requires condition column", {
   df <- data.frame(
     entropy = c(1, 2, 3, 4, 5, 6),
     q = c("q1", "q1", "q1", "q2", "q2", "q2"),
@@ -126,7 +126,7 @@ test_that(".tsenat_detect_q_prepare_data: requires condition column", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_prepare_data(
+  result <- TSENAT:::.detect_q_prepare_data(
     data = df, entropy_col = "entropy", q_col = "q", gene_col = "gene",
     paired = FALSE, subject_col = NULL, condition_col = "condition", verbose = FALSE
   )
@@ -135,7 +135,7 @@ test_that(".tsenat_detect_q_prepare_data: requires condition column", {
   expect_true("condition" %in% colnames(result$data))
 })
 
-test_that(".tsenat_detect_q_prepare_data: handles paired designs", {
+test_that(".detect_q_prepare_data: handles paired designs", {
   df <- data.frame(
     entropy = rnorm(12),
     q = rep(c("q1", "q2", "q3"), 4),
@@ -145,7 +145,7 @@ test_that(".tsenat_detect_q_prepare_data: handles paired designs", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_prepare_data(
+  result <- TSENAT:::.detect_q_prepare_data(
     data = df, entropy_col = "entropy", q_col = "q", gene_col = "gene",
     paired = TRUE, subject_col = "subject", condition_col = "condition", verbose = FALSE
   )
@@ -157,10 +157,10 @@ test_that(".tsenat_detect_q_prepare_data: handles paired designs", {
 })
 
 # ============================================================================
-# Test 3: .tsenat_detect_q_analyze_gene
+# Test 3: .detect_q_analyze_gene
 # ============================================================================
 
-test_that(".tsenat_detect_q_analyze_gene: identifies insufficient data", {
+test_that(".detect_q_analyze_gene: identifies insufficient data", {
   gene_data <- data.frame(
     entropy = c(1, 2),
     q = c("q1", "q1"),
@@ -169,7 +169,7 @@ test_that(".tsenat_detect_q_analyze_gene: identifies insufficient data", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_analyze_gene(
+  result <- TSENAT:::.detect_q_analyze_gene(
     gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
@@ -177,7 +177,7 @@ test_that(".tsenat_detect_q_analyze_gene: identifies insufficient data", {
   expect_equal(result$class, "Insufficient data")
 })
 
-test_that(".tsenat_detect_q_analyze_gene: computes test statistics for valid data", {
+test_that(".detect_q_analyze_gene: computes test statistics for valid data", {
   set.seed(123)
   gene_data <- data.frame(
     entropy = rnorm(12),
@@ -187,7 +187,7 @@ test_that(".tsenat_detect_q_analyze_gene: computes test statistics for valid dat
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_analyze_gene(
+  result <- TSENAT:::.detect_q_analyze_gene(
     gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
@@ -199,7 +199,7 @@ test_that(".tsenat_detect_q_analyze_gene: computes test statistics for valid dat
   expect_equal(result$n_q, 3)
 })
 
-test_that(".tsenat_detect_q_analyze_gene: computes valid effect sizes", {
+test_that(".detect_q_analyze_gene: computes valid effect sizes", {
   set.seed(456)
   # Create data with strong q-effect
   gene_data <- data.frame(
@@ -214,7 +214,7 @@ test_that(".tsenat_detect_q_analyze_gene: computes valid effect sizes", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_analyze_gene(
+  result <- TSENAT:::.detect_q_analyze_gene(
     gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
@@ -224,7 +224,7 @@ test_that(".tsenat_detect_q_analyze_gene: computes valid effect sizes", {
   expect_true(result$eta2 > 0.5)
 })
 
-test_that(".tsenat_detect_q_analyze_gene: sums of squares are consistent", {
+test_that(".detect_q_analyze_gene: sums of squares are consistent", {
   set.seed(789)
   gene_data <- data.frame(
     entropy = rnorm(12),
@@ -234,7 +234,7 @@ test_that(".tsenat_detect_q_analyze_gene: sums of squares are consistent", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_analyze_gene(
+  result <- TSENAT:::.detect_q_analyze_gene(
     gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   
@@ -245,7 +245,7 @@ test_that(".tsenat_detect_q_analyze_gene: sums of squares are consistent", {
   expect_true(result$eta2 >= 0 && result$eta2 <= 1)
 })
 
-test_that(".tsenat_detect_q_analyze_gene: handles condition column", {
+test_that(".detect_q_analyze_gene: handles condition column", {
   set.seed(321)
   gene_data <- data.frame(
     entropy = rnorm(12),
@@ -255,7 +255,7 @@ test_that(".tsenat_detect_q_analyze_gene: handles condition column", {
     stringsAsFactors = FALSE
   )
   
-  result <- TSENAT:::.tsenat_detect_q_analyze_gene(
+  result <- TSENAT:::.detect_q_analyze_gene(
     gene_data, paired = FALSE, subject_col = NULL, has_condition = TRUE
   )
   

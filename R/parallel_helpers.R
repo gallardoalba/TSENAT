@@ -2,7 +2,7 @@
 # package
 
 # Get effective number of threads, respecting environment constraints
-.tsenat_get_effective_nthreads <- function(nthreads = 1) {
+.get_effective_nthreads <- function(nthreads = 1) {
     if (nthreads <= 1) {
         return(1)
     }
@@ -21,9 +21,9 @@
 
 # Select and initialize parallel backend @param nthreads Number of threads to
 # use (default: 1) @return BiocParallel BPPARAM object
-.tsenat_get_bpparam <- function(nthreads = 1) {
+.get_bpparam <- function(nthreads = 1) {
     # Apply environment variable constraints
-    nthreads <- .tsenat_get_effective_nthreads(nthreads)
+    nthreads <- .get_effective_nthreads(nthreads)
 
     if (nthreads <= 1) {
         return(BiocParallel::SerialParam())
@@ -41,7 +41,7 @@
 # or list to iterate over @param FUN Function to apply @param nthreads Number
 # of threads (default: 1) @param SIMPLIFY Whether to simplify results (default:
 # TRUE) @param FUN.VALUE Template for vapply (optional)
-.tsenat_bplapply <- function(X, FUN, nthreads = 1, SIMPLIFY = TRUE, FUN.VALUE = NULL) {
+.bplapply <- function(X, FUN, nthreads = 1, SIMPLIFY = TRUE, FUN.VALUE = NULL) {
     if (nthreads <= 1) {
         # Serial execution
         if (is.null(FUN.VALUE)) {
@@ -52,7 +52,7 @@
     }
 
     # Parallel execution
-    bpparam <- .tsenat_get_bpparam(nthreads)
+    bpparam <- .get_bpparam(nthreads)
 
     if (is.null(FUN.VALUE)) {
         return(BiocParallel::bplapply(X, FUN, BPPARAM = bpparam))
@@ -66,11 +66,11 @@
 # Apply function over two vectors in parallel @param X First vector or list
 # @param Y Second vector or list @param FUN Function to apply (takes two
 # arguments) @param nthreads Number of threads (default: 1)
-.tsenat_bpmapply <- function(X, Y, FUN, nthreads = 1) {
+.bpmapply <- function(X, Y, FUN, nthreads = 1) {
     if (nthreads <= 1) {
         return(unname(mapply(FUN, X, Y, SIMPLIFY = FALSE)))
     }
 
-    bpparam <- .tsenat_get_bpparam(nthreads)
+    bpparam <- .get_bpparam(nthreads)
     return(unname(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE)))
 }

@@ -459,7 +459,7 @@ testthat::test_that("scale creation works with theme application", {
 
 context("generate_plots_spectrum: Helper Functions")
 
-testthat::test_that(".tsenat_divergence_profile_extract_q_values parses q_ prefix format", {
+testthat::test_that(".divergence_profile_extract_q_values parses q_ prefix format", {
   # Test with "q_" format - column names should start with q_
   col_names <- c("q_0.5", "q_1.0", "q_2.0")
   q_vals <- vapply(col_names, function(name) {
@@ -472,7 +472,7 @@ testthat::test_that(".tsenat_divergence_profile_extract_q_values parses q_ prefi
   testthat::expect_equal(unname(q_vals), c(0.5, 1.0, 2.0), tolerance = 1e-10)
 })
 
-testthat::test_that(".tsenat_divergence_profile_extract_q_values parses q= format", {
+testthat::test_that(".divergence_profile_extract_q_values parses q= format", {
   # Test with "q=" format - column names should start with q=
   col_names <- c("q=0.5", "q=1.0", "q=2.0")
   q_vals <- vapply(col_names, function(name) {
@@ -485,7 +485,7 @@ testthat::test_that(".tsenat_divergence_profile_extract_q_values parses q= forma
   testthat::expect_equal(unname(q_vals), c(0.5, 1.0, 2.0), tolerance = 1e-10)
 })
 
-testthat::test_that(".tsenat_divergence_profile_extract_q_values handles malformed names gracefully", {
+testthat::test_that(".divergence_profile_extract_q_values handles malformed names gracefully", {
   # Test with invalid format
   col_names <- c("sample_invalid", "another_bad")
   q_vals <- suppressWarnings(as.numeric(gsub("^q[_=]", "", col_names)))

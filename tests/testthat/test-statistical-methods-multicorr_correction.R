@@ -6,10 +6,10 @@ context("Multiple Testing Correction for Tsallis Entropy Q-Dependence")
 # Helper Function Tests: Hochberg Stepup Procedure
 # ============================================================================
 
-test_that(".tsenat_hochberg_stepup produces valid p-values", {
+test_that(".hochberg_stepup produces valid p-values", {
   # Test basic functionality
   raw_pvalues <- c(0.001, 0.01, 0.05, 0.1, 0.5)
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   expect_is(adjusted, "numeric")
   expect_equal(length(adjusted), 5)
@@ -19,10 +19,10 @@ test_that(".tsenat_hochberg_stepup produces valid p-values", {
   expect_true(all(adjusted <= 1))
 })
 
-test_that(".tsenat_hochberg_stepup respects monotone increasing property", {
+test_that(".hochberg_stepup respects monotone increasing property", {
   # Adjusted p-values should be monotone increasing when sorted
   raw_pvalues <- c(0.001, 0.01, 0.05, 0.1, 0.5)
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   # Sort by raw p-value and check monotonicity of adjusted
   order_idx <- order(raw_pvalues)
@@ -32,9 +32,9 @@ test_that(".tsenat_hochberg_stepup respects monotone increasing property", {
   expect_true(all(diff(sorted_adj) >= -1e-10))  # Allow tiny numerical error
 })
 
-test_that(".tsenat_hochberg_stepup handles NA and Inf values gracefully", {
+test_that(".hochberg_stepup handles NA and Inf values gracefully", {
   raw_pvalues <- c(0.01, NA, 0.05, Inf, 0.1)
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   # Invalid values should be preserved
   expect_true(is.na(adjusted[2]))
@@ -46,16 +46,16 @@ test_that(".tsenat_hochberg_stepup handles NA and Inf values gracefully", {
   expect_true(!is.na(adjusted[5]))
 })
 
-test_that(".tsenat_hochberg_stepup single p-value returns same value bounded to 1", {
+test_that(".hochberg_stepup single p-value returns same value bounded to 1", {
   raw_pvalues <- 0.5
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   expect_equal(adjusted, 0.5)
 })
 
-test_that(".tsenat_hochberg_stepup very small p-values receive larger inflation", {
+test_that(".hochberg_stepup very small p-values receive larger inflation", {
   raw_pvalues <- c(0.0001, 0.01, 0.5)
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   m <- length(raw_pvalues)
   # Hochberg adjustment: adjusted = (m - rank + 1) * raw_p
@@ -66,16 +66,16 @@ test_that(".tsenat_hochberg_stepup very small p-values receive larger inflation"
   expect_true(inflation_factor[1] >= inflation_factor[3])
 })
 
-test_that(".tsenat_hochberg_stepup with all NA returns all NA", {
+test_that(".hochberg_stepup with all NA returns all NA", {
   raw_pvalues <- c(NA, NA, NA)
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   expect_true(all(is.na(adjusted)))
 })
 
-test_that(".tsenat_hochberg_stepup empty vector returns empty vector", {
+test_that(".hochberg_stepup empty vector returns empty vector", {
   raw_pvalues <- numeric(0)
-  adjusted <- .tsenat_hochberg_stepup(raw_pvalues)
+  adjusted <- .hochberg_stepup(raw_pvalues)
   
   expect_equal(length(adjusted), 0)
 })
@@ -85,9 +85,9 @@ test_that(".tsenat_hochberg_stepup empty vector returns empty vector", {
 # Helper Function Tests: Benjamini-Yekutieli FDR Control
 # ============================================================================
 
-test_that(".tsenat_benjamini_yekutieli produces valid p-values", {
+test_that(".benjamini_yekutieli produces valid p-values", {
   raw_pvalues <- c(0.001, 0.01, 0.05, 0.1, 0.5)
-  adjusted <- .tsenat_benjamini_yekutieli(raw_pvalues)
+  adjusted <- .benjamini_yekutieli(raw_pvalues)
   
   expect_is(adjusted, "numeric")
   expect_equal(length(adjusted), 5)
@@ -97,9 +97,9 @@ test_that(".tsenat_benjamini_yekutieli produces valid p-values", {
   expect_true(all(adjusted <= 1))
 })
 
-test_that(".tsenat_benjamini_yekutieli respects monotone decreasing property", {
+test_that(".benjamini_yekutieli respects monotone decreasing property", {
   raw_pvalues <- c(0.001, 0.01, 0.05, 0.1, 0.5)
-  adjusted <- .tsenat_benjamini_yekutieli(raw_pvalues)
+  adjusted <- .benjamini_yekutieli(raw_pvalues)
   
   # When sorted by raw p-value, adjusted should be non-decreasing
   order_idx <- order(raw_pvalues)
@@ -109,9 +109,9 @@ test_that(".tsenat_benjamini_yekutieli respects monotone decreasing property", {
   expect_true(all(diff(sorted_adj) >= -1e-10))  # Allow tiny numerical error
 })
 
-test_that(".tsenat_benjamini_yekutieli handles NA gracefully", {
+test_that(".benjamini_yekutieli handles NA gracefully", {
   raw_pvalues <- c(0.01, NA, 0.05, 0.1)
-  adjusted <- .tsenat_benjamini_yekutieli(raw_pvalues)
+  adjusted <- .benjamini_yekutieli(raw_pvalues)
   
   # NA should be preserved
   expect_true(is.na(adjusted[2]))
@@ -119,30 +119,30 @@ test_that(".tsenat_benjamini_yekutieli handles NA gracefully", {
   expect_true(all(!is.na(adjusted[-2])))
 })
 
-test_that(".tsenat_benjamini_yekutieli single p-value returns same value", {
+test_that(".benjamini_yekutieli single p-value returns same value", {
   raw_pvalues <- 0.5
-  adjusted <- .tsenat_benjamini_yekutieli(raw_pvalues)
+  adjusted <- .benjamini_yekutieli(raw_pvalues)
   
   expect_equal(adjusted, 0.5)
 })
 
-test_that(".tsenat_benjamini_yekutieli is less conservative than Hochberg", {
+test_that(".benjamini_yekutieli is less conservative than Hochberg", {
   # For the same p-values, BY should be more conservative (larger adjustments) than Hochberg
   # because it accounts for arbitrary dependence while Hochberg assumes positive regression dependence
   raw_pvalues <- c(0.001, 0.01, 0.05, 0.1, 0.5)
   
-  adjusted_hochberg <- .tsenat_hochberg_stepup(raw_pvalues)
-  adjusted_by <- .tsenat_benjamini_yekutieli(raw_pvalues)
+  adjusted_hochberg <- .hochberg_stepup(raw_pvalues)
+  adjusted_by <- .benjamini_yekutieli(raw_pvalues)
   
   # BY should give larger adjusted p-values (more conservative) due to harmonic sum correction
   # This is because BY controls FDR under arbitrary dependence vs Hochberg under positive regression dependence
   expect_true(mean(adjusted_by) >= mean(adjusted_hochberg) - 0.05)
 })
 
-test_that(".tsenat_benjamini_yekutieli uses Harmonic constant c_m correctly", {
+test_that(".benjamini_yekutieli uses Harmonic constant c_m correctly", {
   # For m=5, c_m = sum(1/i for i=1..5) = 1 + 1/2 + 1/3 + 1/4 + 1/5
   raw_pvalues <- c(0.001, 0.01, 0.05, 0.1, 0.5)
-  adjusted <- .tsenat_benjamini_yekutieli(raw_pvalues)
+  adjusted <- .benjamini_yekutieli(raw_pvalues)
   
   m <- 5
   c_m <- sum(1 / (1:m))
@@ -176,49 +176,49 @@ test_that(".tsenat_benjamini_yekutieli uses Harmonic constant c_m correctly", {
 # Skewness Function Tests
 # ============================================================================
 
-test_that(".tsenat_compute_skewness calculates symmetry correctly", {
+test_that(".compute_skewness calculates symmetry correctly", {
   # Symmetric distribution should have near-zero skewness
   symmetric_data <- c(-2, -1, 0, 1, 2)
-  skew_sym <- .tsenat_compute_skewness(symmetric_data)
+  skew_sym <- .compute_skewness(symmetric_data)
   
   expect_true(abs(skew_sym) < 0.5)
 })
 
-test_that(".tsenat_compute_skewness detects right skewness", {
+test_that(".compute_skewness detects right skewness", {
   # Right-skewed distribution (tail to the right)
   right_skewed <- c(1, 2, 2, 3, 3, 3, 10)
-  skew_right <- .tsenat_compute_skewness(right_skewed)
+  skew_right <- .compute_skewness(right_skewed)
   
   expect_true(skew_right > 0)
 })
 
-test_that(".tsenat_compute_skewness detects left skewness", {
+test_that(".compute_skewness detects left skewness", {
   # Left-skewed distribution (tail to the left)
   left_skewed <- c(-10, 3, 3, 3, 2, 2, 1)
-  skew_left <- .tsenat_compute_skewness(left_skewed)
+  skew_left <- .compute_skewness(left_skewed)
   
   expect_true(skew_left < 0)
 })
 
-test_that(".tsenat_compute_skewness handles NA values", {
+test_that(".compute_skewness handles NA values", {
   data_with_na <- c(1, 2, NA, 3, 4, NA, 5)
-  skew <- .tsenat_compute_skewness(data_with_na, na.rm = TRUE)
+  skew <- .compute_skewness(data_with_na, na.rm = TRUE)
   
   expect_true(!is.na(skew))
   expect_is(skew, "numeric")
 })
 
-test_that(".tsenat_compute_skewness returns NA for < 3 observations", {
-  skew_two <- .tsenat_compute_skewness(c(1, 2))
-  skew_one <- .tsenat_compute_skewness(1)
+test_that(".compute_skewness returns NA for < 3 observations", {
+  skew_two <- .compute_skewness(c(1, 2))
+  skew_one <- .compute_skewness(1)
   
   expect_true(is.na(skew_two))
   expect_true(is.na(skew_one))
 })
 
-test_that(".tsenat_compute_skewness handles constant data", {
+test_that(".compute_skewness handles constant data", {
   constant_data <- c(5, 5, 5, 5, 5)
-  skew <- .tsenat_compute_skewness(constant_data)
+  skew <- .compute_skewness(constant_data)
   
   # When SD=0, skewness is zero
   expect_equal(skew, 0)
