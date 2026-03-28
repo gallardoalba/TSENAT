@@ -505,10 +505,8 @@ if (getRversion() >= "2.15.1") {
 #' if (!is.null(p)) print(p)
 #'
 plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", title = NULL, output_file = NULL) {
-    # Require cowplot for grid arrangement
-    if (!requireNamespace("cowplot", quietly = TRUE)) {
-        stop("cowplot package required for plot_tsallis_violin_density_grid_s4()")
-    }
+    # Load visualization dependencies (ggplot2, cowplot, etc.)
+    .load_visualization_deps()
     
     # Handle TSENATAnalysis objects - extract first diversity result
     if (methods::is(se, "TSENATAnalysis")) {
@@ -1590,7 +1588,8 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
                                            verbose = TRUE,
                                            output_file = NULL) {
   
-  require_pkgs(c("ggplot2", "patchwork", "SummarizedExperiment"))
+  # Load visualization dependencies (ggplot2, patchwork, etc.)
+  .load_visualization_deps()
   
   # Handle TSENATAnalysis S4 object
   if (methods::is(eff_res, "TSENATAnalysis")) {

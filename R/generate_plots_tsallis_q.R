@@ -85,7 +85,8 @@ plot_tsallis_q_curve_s4 <- function(
   n_top = NULL,
   output_file = NULL
 ) {
-  require_pkgs(c("ggplot2", "dplyr", "tidyr", "SummarizedExperiment", "cowplot"))
+  # Load visualization dependencies (ggplot2, dplyr, tidyr, cowplot, etc.)
+  .load_visualization_deps()
   
   # Convert TSENATAnalysis to combined SE if needed
   if (methods::is(se, "TSENATAnalysis")) {

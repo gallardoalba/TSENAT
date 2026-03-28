@@ -2276,6 +2276,9 @@ plot_volcano_ma_grid_s4 <- function(
     width = 12,
     height = 7.2,
     ...) {
+  
+  # Load visualization dependencies (ggplot2, cowplot, etc.)
+  .load_visualization_deps()
 
   # Extract verbose parameter if not provided
   verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
@@ -2603,6 +2606,9 @@ plot_divergence_spectrum_s4 <- function(
     verbose = TRUE,
     ...) {
 
+  # Load visualization dependencies (ggplot2, cowplot, etc.)
+  .load_visualization_deps()
+
   # Extract verbose parameter if not provided
   verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
 
@@ -2737,6 +2743,9 @@ setGeneric("plot_method_concordance_s4", function(analysis, verbose = FALSE) {
 
 #' @rdname plot_method_concordance_s4
 setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, verbose = FALSE) {
+  
+  # Load visualization dependencies (ggplot2, cowplot, etc.)
+  .load_visualization_deps()
   
   # Validate that concordance results exist
   if (is.null(analysis@metadata$method_concordance)) {
@@ -3185,6 +3194,9 @@ plot_top_transcripts_s4 <- function(
     verbose = FALSE,
     ...) {
 
+  # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
+  .load_visualization_deps()
+
   # Extract verbose parameter if not provided
   verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
@@ -3368,6 +3380,9 @@ plot_divergence_distribution_s4 <- function(
     height = 6,
     verbose = TRUE,
     ...) {
+
+  # Load visualization dependencies (ggplot2, cowplot, etc.)
+  .load_visualization_deps()
 
   # Extract verbose parameter if not provided
   verbose <- resolve_slot_param(verbose, analysis@config, "verbose", TRUE)
@@ -3669,6 +3684,9 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
     output_file = NULL,
     ...) {
   
+  # Load visualization dependencies (ggplot2, cowplot, pheatmap, etc.)
+  .load_visualization_deps()
+  
   # Extract verbose parameter if not provided
   verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
 
@@ -3853,6 +3871,9 @@ plot_lm_interaction_gam_s4 <- function(
   height = NULL,
   ...
 ) {
+  # Load visualization dependencies (ggplot2, cowplot, mgcv, etc.)
+  .load_visualization_deps()
+  
   # =========================================================================
   # INPUT VALIDATION
   # =========================================================================

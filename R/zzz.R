@@ -1,6 +1,10 @@
 # Package initialization and finalization
 
 .onLoad <- function(libname, pkgname) {
+  # Initialize lazy-loading flag for visualization dependencies
+  # See R/lazy_load.R for lazy-loading implementation details
+  assign(".viz_loaded", FALSE, envir = asNamespace(pkgname))
+  
   # Ensure S3 method registration for print methods
   # This makes sure R recognizes our custom print methods
   registerS3method("print", "tsenat_bootstrap_ci", print.tsenat_bootstrap_ci)
