@@ -785,12 +785,8 @@
   }
   
   # Case 2: Unnamed vector (truly unnamed, no names attribute set)
-  # Only reach here if has_names is FALSE
-  # Unnamed vectors must have q-value names for valid classification
-  if (!has_names) {
-    # Unnamed vector without q-value naming is invalid for classification
-    return(NA_character_)
-  }
+  # Only reach here if has_q_names is FALSE
+  # Unnamed vectors are classified by position (rare/abundant regions)
   
   valid_divs <- divs_numeric[!is.na(divs_numeric)]
   
