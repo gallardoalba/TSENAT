@@ -566,8 +566,8 @@ test_that(".formatMultiQResult returns NULL when all estimates are NA", {
 })
 
 test_that(".classify_q_pattern classifies RARE_DRIVEN pattern", {
-  # Divergence higher at low q (rare)
-  divs <- c(0.9, 0.7, 0.5)  # Decreasing - rare driven
+  # Divergence higher at low q (rare): use named q-values
+  divs <- c(q_0.5 = 0.9, q_1.0 = 0.7, q_2.0 = 0.5)  # Decreasing - rare driven
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
@@ -575,8 +575,8 @@ test_that(".classify_q_pattern classifies RARE_DRIVEN pattern", {
 })
 
 test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN pattern", {
-  # Divergence higher at high q (abundant)
-  divs <- c(0.5, 0.7, 0.9)  # Increasing - abundant driven
+  # Divergence higher at high q (abundant): use named q-values
+  divs <- c(q_0.5 = 0.5, q_1.0 = 0.7, q_2.0 = 0.9)  # Increasing - abundant driven
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
@@ -584,24 +584,26 @@ test_that(".classify_q_pattern classifies ABUNDANT_DRIVEN pattern", {
 })
 
 test_that(".classify_q_pattern classifies BALANCED pattern", {
-  # Divergence similar across q (balanced)
-  divs <- c(0.6, 0.7, 0.8)  # Peak in middle
+  # Divergence similar across q (balanced): use named q-values
+  # For balanced, need rare_median/abundant_median between 1/1.3 and 1.3
+  divs <- c(q_0.5 = 0.7, q_1.0 = 0.75, q_2.0 = 0.8)  # ratio = 0.7/0.8 = 0.875 = BALANCED
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
   expect_equal(result, "BALANCED")
 })
 
-test_that(".classify_q_pattern handles single value", {
+test_that(".classify_q_pattern requires named q-values for classification", {
+  # Unnamed vector (without q_ names) should return NA
   divs <- c(0.75)
   
   result <- TSENAT:::.classify_q_pattern(divs)
   
-  expect_equal(result, "BALANCED")
+  expect_true(is.na(result))
 })
 
 test_that(".classify_q_pattern returns NA for all-NA input", {
-  divs <- c(NA_real_, NA_real_, NA_real_)
+  divs <- c(q_0.5 = NA_real_, q_1.0 = NA_real_, q_2.0 = NA_real_)
   
   result <- TSENAT:::.classify_q_pattern(divs)
   

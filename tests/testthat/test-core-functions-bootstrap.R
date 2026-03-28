@@ -78,15 +78,21 @@ test_that(".bootstrap_validate_inputs rejects negative values", {
   )
 })
 
-test_that(".bootstrap_validate_inputs rejects non-positive q", {
-  expect_error(
-    TSENAT:::.bootstrap_validate_inputs(x = test_counts, q = 0, nboot = 100, ci = 0.95, paired = FALSE),
-    "q.*positive"
+test_that(".bootstrap_validate_inputs accepts q >= 0 including q=0", {
+  # q=0 should be accepted (species richness measure)
+  expect_no_error(
+    TSENAT:::.bootstrap_validate_inputs(x = test_counts, q = 0, nboot = 100, ci = 0.95, paired = FALSE)
   )
   
+  expect_no_error(
+    TSENAT:::.bootstrap_validate_inputs(x = test_counts, q = 1, nboot = 100, ci = 0.95, paired = FALSE)
+  )
+})
+
+test_that(".bootstrap_validate_inputs rejects negative q", {
   expect_error(
     TSENAT:::.bootstrap_validate_inputs(x = test_counts, q = -1, nboot = 100, ci = 0.95, paired = FALSE),
-    "q.*positive"
+    "non-negative"
   )
 })
 

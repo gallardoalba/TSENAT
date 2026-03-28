@@ -784,47 +784,10 @@
     return(NA_character_)
   }
   
-  # Case 2: Unnamed vector (truly unnamed, no names attribute set)
-  # Only reach here if has_q_names is FALSE
-  # Unnamed vectors are classified by position (rare/abundant regions)
-  
-  valid_divs <- divs_numeric[!is.na(divs_numeric)]
-  
-  if (length(valid_divs) == 0) {
-    return(NA_character_)
-  }
-  
-  # If only one value, classify as balanced
-  if (length(valid_divs) == 1) {
-    return("BALANCED")
-  }
-  
-  # Calculate coefficient of variation to determine if pattern is balanced
-  mean_div <- mean(valid_divs, na.rm = TRUE)
-  sd_div <- sd(valid_divs, na.rm = TRUE)
-  cv <- if (mean_div > 0) sd_div / mean_div else 0
-  
-  # If coefficient of variation is low (< 0.2), classify as balanced
-  if (cv < 0.2) {
-    return("BALANCED")
-  }
-  
-  # Otherwise, classify based on position of maximum divergence
-  max_pos <- which.max(valid_divs)
-  n_vals <- length(valid_divs)
-  
-  # Low q (rare) if max is in first third
-  if (max_pos <= n_vals / 3) {
-    return("RARE_DRIVEN")
-  }
-  # High q (abundant) if max is in last third
-  else if (max_pos >= 2 * n_vals / 3) {
-    return("ABUNDANT_DRIVEN")
-  }
-  # Otherwise balanced (max in middle)
-  else {
-    return("BALANCED")
-  }
+  # Case 2: Unnamed vector
+  # Unnamed vectors lack semantic meaning (no q-value labels) → return NA
+  # This requires proper q-value names for meaningful classification
+  return(NA_character_)
 }
 
 

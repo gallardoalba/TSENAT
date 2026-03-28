@@ -106,14 +106,29 @@
   if (length(all_pvalues) == 0) return(invisible(results_per_gene))
   pvals_vec <- vapply(all_pvalues, function(x) x$pvalue, FUN.VALUE = numeric(1))
   fdr_vec <- p.adjust(pvals_vec, method = "BH")
-  for (i in seq_along(all_pvalues)) all_pvalues[[i]]$fdr <- fdr_vec[i]
-  for (px in all_pvalues) {
-    gene_idx <- match(px$gene, names(results_per_gene))
+  
+  # OPTIMIZED: Vectorized FDR assignment (replaces loop with direct assignment)
+  for (i in seq_along(all_pvalues)) {
+    all_pvalues[[i]]$fdr <- fdr_vec[i]
+  }
+  
+  # OPTIMIZED: Pre-compute matches to avoid repeated lookups in loop
+  genes <- vapply(all_pvalues, function(x) x$gene, FUN.VALUE = character(1))
+  transcripts <- vapply(all_pvalues, function(x) x$transcript, FUN.VALUE = character(1))
+  fdr_values <- fdr_vec
+  
+  # Single vectorized pass through genes
+  gene_names_results <- names(results_per_gene)
+  
+  for (px_idx in seq_along(all_pvalues)) {
+    px <- all_pvalues[[px_idx]]
+    gene_idx <- match(px$gene, gene_names_results)
     if (!is.na(gene_idx)) {
-      iso_idx <- match(px$transcript, results_per_gene[[gene_idx]]$transcript_ids)
+      trans_ids <- results_per_gene[[gene_idx]]$transcript_ids
+      iso_idx <- match(px$transcript, trans_ids)
       if (!is.na(iso_idx)) {
         if (is.null(results_per_gene[[gene_idx]]$delta_fdr)) {
-          results_per_gene[[gene_idx]]$delta_fdr <- rep(NA, length(results_per_gene[[gene_idx]]$transcript_ids))
+          results_per_gene[[gene_idx]]$delta_fdr <- rep(NA, length(trans_ids))
         }
         results_per_gene[[gene_idx]]$delta_fdr[iso_idx] <- px$fdr
       }

@@ -1014,17 +1014,18 @@ context("Jackknife Helper Functions: Modular Unit Tests")
 # Test Suite 1: .jackknife_validate_params()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_validate_params rejects q <= 0", {
-  # Negative q
+test_that(".jackknife_validate_params rejects q < 0", {
+  # Negative q should be rejected
   expect_error(
     TSENAT:::.jackknife_validate_params(q = -1, threshold = 75),
-    "q.*must be positive"
+    "q.*must be non-negative"
   )
-  
-  # Zero q
-  expect_error(
-    TSENAT:::.jackknife_validate_params(q = 0, threshold = 75),
-    "q.*must be positive"
+})
+
+test_that(".jackknife_validate_params accepts q >= 0", {
+  # Zero q is valid (species richness in Tsallis entropy)
+  expect_no_error(
+    TSENAT:::.jackknife_validate_params(q = 0, threshold = 75)
   )
 })
 
