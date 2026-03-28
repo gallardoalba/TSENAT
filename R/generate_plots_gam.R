@@ -186,7 +186,7 @@ plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", g
     sample_to_group <- .prepare_sample_to_group_mapping(cdata, condition_col)
 
     # Determine which genes to plot using helper
-    top_genes <- .select_genes_for_plotting(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
+    top_genes <- .tsenat_plot_select_genes(lm_res, genes = genes, n_top = n_top, sig_alpha = sig_alpha)
     
     if (is.null(top_genes)) {
         warning(sprintf("No genes significant at alpha = %g", sig_alpha), call. = FALSE)

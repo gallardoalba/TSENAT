@@ -13,6 +13,14 @@ test_rankbased_assumptions_s4(
   ...
 )
 
+test_rankbased_assumptions_s4(
+  analysis,
+  q = NULL,
+  checks = c("exchangeability", "monotonicity", "consistency"),
+  alpha = 0.05,
+  ...
+)
+
 \S4method{test_rankbased_assumptions_s4}{TSENATAnalysis}(
   analysis,
   q = NULL,

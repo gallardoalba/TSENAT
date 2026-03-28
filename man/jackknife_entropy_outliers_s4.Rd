@@ -25,7 +25,8 @@ If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 If > 1 and multiple q-values provided, uses parallel PSOCK cluster.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+Supported formats: .tsv, .csv, .txt (for jackknife results table with estimates, influence, outliers),
+.rds (for entire S4 object). Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
 }

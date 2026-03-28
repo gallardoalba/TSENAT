@@ -15,6 +15,7 @@ tsenat_config(
   generate_plots = TRUE,
   plot_types = NULL,
   seed = NULL,
+  condition_col = "condition",
   ...
 )
 }
@@ -46,6 +47,9 @@ Default: TRUE.}
 Default: all available types.}
 
 \item{seed}{\code{numeric}. Random seed for reproducibility.}
+
+\item{condition_col}{\code{character}. Name of condition column in colData.
+Default: "condition".}
 
 \item{...}{Additional configuration parameters (stored as-is).}
 }

@@ -1068,7 +1068,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return Data frame with central tendency and spread by gene, group, q
 #' @keywords internal
 #' @noRd
-.compute_gene_stats_by_group <- function(long_data) {
+.tsenat_compute_gene_group_stats <- function(long_data) {
   require_pkgs("dplyr")
   
   long_data$qnum <- as.numeric(as.character(long_data$q))
@@ -1088,7 +1088,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return Data frame with q, median, ci_lower, ci_upper, group
 #' @keywords internal
 #' @noRd
-.aggregate_bootstrap_ci_by_group <- function(se, long) {
+.tsenat_bootstrap_aggregate_ci <- function(se, long) {
   require_pkgs(c("SummarizedExperiment", "dplyr"))
   
   ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
@@ -1305,7 +1305,7 @@ select_genes_from_results <- function(res, top_n) {
 #' @return Character vector of gene IDs to plot (or NULL if none selected)
 #' @keywords internal
 #' @noRd
-.select_genes_for_plotting <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
+.tsenat_plot_select_genes <- function(lm_res, genes = NULL, n_top = 6, sig_alpha = 0.05) {
   if (!is.null(genes)) {
     if (!is.character(genes)) {
       stop("genes must be a character vector of gene names", call. = FALSE)

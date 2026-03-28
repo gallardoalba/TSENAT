@@ -459,7 +459,7 @@ testthat::test_that("scale creation works with theme application", {
 
 context("generate_plots_spectrum: Helper Functions")
 
-testthat::test_that(".extract_q_values parses q_ prefix format", {
+testthat::test_that(".tsenat_divergence_profile_extract_q_values parses q_ prefix format", {
   # Test with "q_" format - column names should start with q_
   col_names <- c("q_0.5", "q_1.0", "q_2.0")
   q_vals <- vapply(col_names, function(name) {
@@ -472,7 +472,7 @@ testthat::test_that(".extract_q_values parses q_ prefix format", {
   testthat::expect_equal(unname(q_vals), c(0.5, 1.0, 2.0), tolerance = 1e-10)
 })
 
-testthat::test_that(".extract_q_values parses q= format", {
+testthat::test_that(".tsenat_divergence_profile_extract_q_values parses q= format", {
   # Test with "q=" format - column names should start with q=
   col_names <- c("q=0.5", "q=1.0", "q=2.0")
   q_vals <- vapply(col_names, function(name) {
@@ -485,7 +485,7 @@ testthat::test_that(".extract_q_values parses q= format", {
   testthat::expect_equal(unname(q_vals), c(0.5, 1.0, 2.0), tolerance = 1e-10)
 })
 
-testthat::test_that(".extract_q_values handles malformed names gracefully", {
+testthat::test_that(".tsenat_divergence_profile_extract_q_values handles malformed names gracefully", {
   # Test with invalid format
   col_names <- c("sample_invalid", "another_bad")
   q_vals <- suppressWarnings(as.numeric(gsub("^q[_=]", "", col_names)))
@@ -544,7 +544,7 @@ testthat::test_that(".find_pvalue_column identifies p_interaction", {
 
 context("generate_plots_profile: Helper Functions")
 
-testthat::test_that(".profile_select_genes handles user-provided gene vector", {
+testthat::test_that("select_genesselect_genes handles user-provided gene vector", {
   gene_vec <- c("GENE1", "GENE2", "GENE3")
   result <- as.character(unique(gene_vec))
   
@@ -552,7 +552,7 @@ testthat::test_that(".profile_select_genes handles user-provided gene vector", {
   testthat::expect_equal(result, gene_vec)
 })
 
-testthat::test_that(".profile_select_genes handles NULL gene input", {
+testthat::test_that("select_genesselect_genes handles NULL gene input", {
   # Create sample lm_res data.frame
   lm_res <- data.frame(
     gene = c("G1", "G2", "G3", "G4", "G5"),
@@ -567,7 +567,7 @@ testthat::test_that(".profile_select_genes handles NULL gene input", {
   testthat::expect_equal(top_genes, c("G1", "G2", "G3"))
 })
 
-testthat::test_that(".profile_extract_q_values parses column names correctly", {
+testthat::test_that("select_genesextract_q_values parses column names correctly", {
   # Simulate column names with q-values (realistic SE column names)
   col_names <- c("sample1_q_0.5", "sample2_q_0.5", "sample1_q_1.0", "sample2_q_1.0")
   
@@ -586,7 +586,7 @@ testthat::test_that(".profile_extract_q_values parses column names correctly", {
   testthat::expect_equal(unique_q, c(0.5, 1.0))
 })
 
-testthat::test_that(".profile_extract_q_values returns sorted unique q values", {
+testthat::test_that("select_genesextract_q_values returns sorted unique q values", {
   col_names <- c("s1_q_2.0", "s2_q_0.5", "s1_q_1.5", "s2_q_2.0", "s1_q_0.5")
   
   extract_q <- function(name) {
@@ -604,7 +604,7 @@ testthat::test_that(".profile_extract_q_values returns sorted unique q values", 
   testthat::expect_true(is.ordered(unique_q) || all(diff(unique_q) > 0))
 })
 
-testthat::test_that(".profile_build_facet_plot returns ggplot object", {
+testthat::test_that("select_genesbuild_facet_plot returns ggplot object", {
   require_pkgs("ggplot2")
   
   # Create sample plot data with realistic q values
@@ -626,7 +626,7 @@ testthat::test_that(".profile_build_facet_plot returns ggplot object", {
   testthat::expect_is(p, "ggplot")
 })
 
-testthat::test_that(".profile_build_facet_plot handles signed divergence", {
+testthat::test_that("select_genesbuild_facet_plot handles signed divergence", {
   require_pkgs("ggplot2")
   
   # Create signed plot data
@@ -650,7 +650,7 @@ testthat::test_that(".profile_build_facet_plot handles signed divergence", {
   testthat::expect_is(p, "ggplot")
 })
 
-testthat::test_that(".profile_build_list_plots returns named list of ggplot objects", {
+testthat::test_that("select_genesbuild_list_plots returns named list of ggplot objects", {
   require_pkgs("ggplot2")
   
   # Create sample plot data
@@ -679,14 +679,14 @@ testthat::test_that(".profile_build_list_plots returns named list of ggplot obje
   testthat::expect_true(all(vapply(plots, inherits, FUN.VALUE = logical(1), "ggplot")))
 })
 
-testthat::test_that(".profile_build_list_plots handles empty gene list", {
+testthat::test_that("select_genesbuild_list_plots handles empty gene list", {
   plots <- list()
   
   testthat::expect_type(plots, "list")
   testthat::expect_length(plots, 0)
 })
 
-testthat::test_that(".profile_select_genes prioritizes adj_p_lmm over adj_p_interaction", {
+testthat::test_that("select_genesselect_genes prioritizes adj_p_lmm over adj_p_interaction", {
   lm_res <- data.frame(
     gene = c("G1", "G2", "G3"),
     adj_p_lmm = c(0.02, 0.01, 0.05),

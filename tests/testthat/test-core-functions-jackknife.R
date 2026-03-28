@@ -126,23 +126,23 @@ test_that(".validate_jis_input returns sorted conditions", {
 })
 
 # ============================================================================
-# TEST: .setup_paired_design_jis()
+# TEST: .tsenat_setup_paired_design_jis()
 # ============================================================================
 
-test_that(".setup_paired_design_jis returns FALSE for unpaired design", {
+test_that(".tsenat_setup_paired_design_jis returns FALSE for unpaired design", {
   se <- create_test_se()
   
-  result <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
+  result <- TSENAT:::.tsenat_setup_paired_design_jis(se, NULL, "condition")
   
   expect_false(result$is_paired)
   expect_null(result$pair_info)
   expect_null(result$subject_col)
 })
 
-test_that(".setup_paired_design_jis detects paired design", {
+test_that(".tsenat_setup_paired_design_jis detects paired design", {
   se <- create_paired_se()
   
-  result <- TSENAT:::.setup_paired_design_jis(se, "individual_id", "condition")
+  result <- TSENAT:::.tsenat_setup_paired_design_jis(se, "individual_id", "condition")
   
   expect_true(result$is_paired)
   expect_true("n_pairs" %in% names(result$pair_info))
@@ -150,32 +150,32 @@ test_that(".setup_paired_design_jis detects paired design", {
   expect_equal(result$subject_col, "individual_id")
 })
 
-test_that(".setup_paired_design_jis handles unpaired scenario with high ratio", {
+test_that(".tsenat_setup_paired_design_jis handles unpaired scenario with high ratio", {
   se <- create_paired_se()
   
   # Even with high pairing ratio, if subject_col is NULL, should be unpaired
-  result <- TSENAT:::.setup_paired_design_jis(se, NULL, "condition")
+  result <- TSENAT:::.tsenat_setup_paired_design_jis(se, NULL, "condition")
   
   expect_false(result$is_paired)
 })
 
-test_that(".setup_paired_design_jis detects missing subject_col", {
+test_that(".tsenat_setup_paired_design_jis detects missing subject_col", {
   se <- create_paired_se()
   
   expect_error(
-    TSENAT:::.setup_paired_design_jis(se, "missing_col", "condition"),
+    TSENAT:::.tsenat_setup_paired_design_jis(se, "missing_col", "condition"),
     "not found in colData"
   )
 })
 
 # ============================================================================
-# TEST: .build_gene_id_mapping()
+# TEST: .tsenat_build_gene_id_mapping()
 # ============================================================================
 
-test_that(".build_gene_id_mapping creates gene_id to gene_name mapping", {
+test_that(".tsenat_build_gene_id_mapping creates gene_id to gene_name mapping", {
   se <- create_test_se()
   
-  mapping <- TSENAT:::.build_gene_id_mapping(se, "gene_id")
+  mapping <- TSENAT:::.tsenat_build_gene_id_mapping(se, "gene_id")
   
   expect_true(is.character(mapping))
   expect_true(length(mapping) > 0)
@@ -183,17 +183,17 @@ test_that(".build_gene_id_mapping creates gene_id to gene_name mapping", {
   expect_true(any(c("g1", "g2") %in% names(mapping)))
 })
 
-test_that(".build_gene_id_mapping handles genes with same transpose multiple rows", {
+test_that(".tsenat_build_gene_id_mapping handles genes with same transpose multiple rows", {
   # Some genes appear in multiple rows, mapping should have unique genes only
   se <- create_test_se()
   
-  mapping <- TSENAT:::.build_gene_id_mapping(se, "gene_id")
+  mapping <- TSENAT:::.tsenat_build_gene_id_mapping(se, "gene_id")
   
   # Should have only 2 unique genes, not 6 (one per transcript)
   expect_true(length(mapping) <= 2)
 })
 
-test_that(".build_gene_id_mapping returns empty for missing gene_name column", {
+test_that(".tsenat_build_gene_id_mapping returns empty for missing gene_name column", {
   se <- create_test_se()
   
   # Remove gene_name column
@@ -201,7 +201,7 @@ test_that(".build_gene_id_mapping returns empty for missing gene_name column", {
   rd$gene_name <- NULL
   SummarizedExperiment::rowData(se) <- rd
   
-  mapping <- TSENAT:::.build_gene_id_mapping(se, "gene_id")
+  mapping <- TSENAT:::.tsenat_build_gene_id_mapping(se, "gene_id")
   
   expect_true(length(mapping) == 0 || all(is.na(mapping)))
 })
@@ -286,36 +286,36 @@ test_that(".tsallis_entropy_jis respects log base parameter", {
 })
 
 # ============================================================================
-# TEST: .jackknife_influences_jis()
+# TEST: .tsenat_jackknife_influences_jis()
 # ============================================================================
 
-test_that(".jackknife_influences_jis calculates influences for all transcripts", {
+test_that(".tsenat_jackknife_influences_jis calculates influences for all transcripts", {
   counts_matrix <- matrix(c(100, 50, 75, 110, 45, 80), nrow = 3, ncol = 2)
   
-  influences <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  influences <- TSENAT:::.tsenat_jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   expect_true(is.numeric(influences))
   expect_equal(length(influences), 3)  # One influence per row (transcript)
   expect_true(all(influences >= 0))
 })
 
-test_that(".jackknife_influences_jis identifies outlier transcripts", {
+test_that(".tsenat_jackknife_influences_jis identifies outlier transcripts", {
   # Create data where first transcript is dominant
   counts_matrix <- matrix(c(1000, 50, 75, 900, 45, 80), nrow = 3, ncol = 2)
   
-  influences <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  influences <- TSENAT:::.tsenat_jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   # First transcript (dominant) should have higher influence
   expect_true(influences[1] > influences[2])
   expect_true(influences[1] > influences[3])
 })
 
-test_that(".jackknife_influences_jis with n_tx_fixed parameter", {
+test_that(".tsenat_jackknife_influences_jis with n_tx_fixed parameter", {
   counts_matrix <- matrix(c(100, 50, 75, 110, 45, 80), nrow = 3, ncol = 2)
   
-  influences_fixed <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, 
+  influences_fixed <- TSENAT:::.tsenat_jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, 
                                                           log_base = exp(1), pseudocount = 0, n_tx_fixed = 5)
-  influences_unfixed <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE,
+  influences_unfixed <- TSENAT:::.tsenat_jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE,
                                                             log_base = exp(1), pseudocount = 0, n_tx_fixed = NULL)
   
   # Results should differ when n_tx_fixed is specified
@@ -406,7 +406,7 @@ test_that("Validation and pairing helpers work together", {
   expect_equal(conditions, c("A", "B"))
   
   # Then setup paired design
-  paired_info <- TSENAT:::.setup_paired_design_jis(se, "individual_id", "condition")
+  paired_info <- TSENAT:::.tsenat_setup_paired_design_jis(se, "individual_id", "condition")
   expect_true(paired_info$is_paired)
 })
 
@@ -414,7 +414,7 @@ test_that("Gene mapping and entropy calculation work together", {
   se <- create_test_se()
   
   # Build gene mapping
-  mapping <- TSENAT:::.build_gene_id_mapping(se, "gene_id")
+  mapping <- TSENAT:::.tsenat_build_gene_id_mapping(se, "gene_id")
   expect_true(length(mapping) > 0)
   
   # Extract counts for a gene and calculate entropy

@@ -543,12 +543,12 @@ scale_fill_tsenat_diverging <- function(...) {
 #'
 #' ```r
 #' # Standard aspect ratio plot
-#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "standard")
+#' dims <- .tsenat_calculate_plot_dims(width_inches = 12, aspect_type = "standard")
 #' ggplot2::ggsave("plot.pdf", plot_obj, width = dims$width, 
 #'                  height = dims$height, dpi = dims$dpi)
 #'
 #' # Heatmap with many rows (use tall aspect)
-#' dims <- .calculate_plot_dims(width_inches = 12, aspect_type = "tall")
+#' dims <- .tsenat_calculate_plot_dims(width_inches = 12, aspect_type = "tall")
 #' # ... render and save
 #' ```
 #'
@@ -559,7 +559,7 @@ scale_fill_tsenat_diverging <- function(...) {
 #'
 #' @keywords internal
 #' @noRd
-.calculate_plot_dims <- function(width_inches = 12, 
+.tsenat_calculate_plot_dims <- function(width_inches = 12, 
                                   aspect_type = "standard",
                                   dpi_output = 100) {
   # Validate aspect_type

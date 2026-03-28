@@ -216,7 +216,7 @@ test_that("calculate_divergence works without paired_samples column", {
     expect_false(all(is.na(rd$estimate)))
 })
 
-test_that(".detect_pair_ids correctly identifies paired structures", {
+test_that(".tsenat_detect_pair_ids correctly identifies paired structures", {
     skip_if_not_installed("SummarizedExperiment")
     
     # Test 1: paired_samples column detected
@@ -230,7 +230,7 @@ test_that(".detect_pair_ids correctly identifies paired structures", {
     
     SummarizedExperiment::colData(se)$paired_samples <- c("Pair_A", "Pair_B", "Pair_C", "Pair_A", "Pair_B", "Pair_C")
     
-    detected <- TSENAT:::.detect_pair_ids(se)
+    detected <- TSENAT:::.tsenat_detect_pair_ids(se)
     
     expect_equal(detected$num_pairs, 3)
     expect_equal(detected$column_name, "paired_samples")
@@ -246,7 +246,7 @@ test_that(".detect_pair_ids correctly identifies paired structures", {
         assays = list(counts = SummarizedExperiment::assays(se)[[1]]),
         colData = metadata_no_pairs
     )
-    detected_no_pairs <- TSENAT:::.detect_pair_ids(se_no_pairs)
+    detected_no_pairs <- TSENAT:::.tsenat_detect_pair_ids(se_no_pairs)
     
     expect_equal(detected_no_pairs$num_pairs, 0)
     expect_null(detected_no_pairs$pair_ids)

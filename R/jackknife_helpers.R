@@ -24,7 +24,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.jackknife_resampling <- function(counts, entropy_fn = .tsenat_entropy_core, 
+.tsenat_jackknife_resampling <- function(counts, entropy_fn = .tsenat_entropy_core, 
                                    q = 1, threshold = 90, norm = TRUE, 
                                    log_base = exp(1), pseudocount = 0) {
   # Ensure matrix format
@@ -111,7 +111,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.jackknife_batch <- function(counts_matrix, entropy_fn = .tsenat_entropy_core,
+.tsenat_jackknife_batch <- function(counts_matrix, entropy_fn = .tsenat_entropy_core,
                               q = 1, threshold = 90, norm = TRUE,
                               log_base = exp(1), pseudocount = 0, verbose = FALSE) {
   counts_matrix <- as.matrix(counts_matrix)
@@ -127,7 +127,7 @@
   for (gene_idx in seq_len(ncol(counts_matrix))) {
     gene_counts <- counts_matrix[, gene_idx, drop = FALSE]
     
-    result <- .jackknife_resampling(
+    result <- .tsenat_jackknife_resampling(
       gene_counts,
       entropy_fn = entropy_fn,
       q = q,

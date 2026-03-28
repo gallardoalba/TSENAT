@@ -270,7 +270,7 @@ calculate_difference <- function(x, condition_col = NULL, control, method = "mea
 #'
 #' @keywords internal
 #' @noRd
-.extract_lm_results <- function(lm_result) {
+.tsenat_extract_lm_results <- function(lm_result) {
     if (is.data.frame(lm_result)) {
         return(lm_result)
     } else if (is.list(lm_result) && "results" %in% names(lm_result)) {

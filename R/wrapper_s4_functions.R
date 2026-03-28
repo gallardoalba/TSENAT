@@ -2932,7 +2932,7 @@ effect_sizes_divergence_s4 <- function(
 #' @param use_tpm \code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
 #'   from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
 #'   depth and is recommended for comparing expression across samples. Requires TPM data 
-#'   in metadata from `build_analysis()` or `build_se()` with `tpm` parameter. 
+#'   in metadata from `build_analysis_s4()` or `build_se()` with `tpm` parameter. 
 #'   Raises error if TPM not available and `use_tpm = TRUE`.
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
@@ -4515,7 +4515,7 @@ m_estimate_s4 <- function(
 #' may not align with the filtered SE dimensions.
 #'
 #' @seealso
-#' \code{\link{build_analysis}} for creating a new analysis object
+#' \code{\link{build_analysis_s4}} for creating a new analysis object
 #'
 #' @examples
 #' library(SummarizedExperiment)
@@ -4525,17 +4525,17 @@ m_estimate_s4 <- function(
 #' se <- SummarizedExperiment(assays = list(counts = tx_counts))
 #' S4Vectors::metadata(se)$tx2gene <- data.frame(
 #'   Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
-#' # Add sample metadata with pair column required by filter_analysis
+#' # Add sample metadata with pair column required by filter_analysis_s4
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
 #'   sample_id = paste0("Sample", 1:10),
 #'   sample_type = rep(c("Control", "Treatment"), 5),
 #'   pair = rep(1:5, 2),
 #'   row.names = colnames(se))
 #' analysis <- TSENATAnalysis(se)
-#' analysis <- filter_analysis(analysis, stringency = "medium")
+#' analysis <- filter_analysis_s4(analysis, stringency = "medium")
 #'
 #' @export
-filter_analysis <- function(analysis, stringency = NULL, min_samples = 5L, verbose = FALSE) {
+filter_analysis_s4 <- function(analysis, stringency = NULL, min_samples = 5L, verbose = FALSE) {
   # Validate input
   if (!inherits(analysis, "TSENATAnalysis")) {
     stop("analysis must be a TSENATAnalysis object", call. = FALSE)
@@ -4639,7 +4639,7 @@ filter_analysis <- function(analysis, stringency = NULL, min_samples = 5L, verbo
 #'   row.names = colnames(counts))
 #'
 #' # Build analysis object
-#' analysis <- build_analysis(
+#' analysis <- build_analysis_s4(
 #'   readcounts = counts,
 #'   tx2gene = tx2gene,
 #'   metadata = metadata)
@@ -4648,9 +4648,9 @@ filter_analysis <- function(analysis, stringency = NULL, min_samples = 5L, verbo
 #' analysis
 #'
 #' @export
-build_analysis <- function(readcounts, tx2gene, assay_name = "counts",
-                          metadata = NULL, tpm = NULL, effective_length = NULL,
-                          config = list()) {
+build_analysis_s4 <- function(readcounts, tx2gene, assay_name = "counts",
+                             metadata = NULL, tpm = NULL, effective_length = NULL,
+                             config = list()) {
   # Build SummarizedExperiment
   se <- build_se(
     readcounts = readcounts,

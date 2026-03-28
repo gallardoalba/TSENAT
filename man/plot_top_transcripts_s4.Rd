@@ -46,7 +46,7 @@ One of "median", "mean", "variance", or "iqr" (default: "median").}
 \item{use_tpm}{\code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
 from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
 depth and is recommended for comparing expression across samples. Requires TPM data 
-in metadata from `build_analysis()` or `build_se()` with `tpm` parameter. 
+in metadata from `build_analysis_s4()` or `build_se()` with `tpm` parameter. 
 Raises error if TPM not available and `use_tpm = TRUE`.}
 
 \item{width}{\code{numeric} or \code{NULL}. Output image width in inches. 

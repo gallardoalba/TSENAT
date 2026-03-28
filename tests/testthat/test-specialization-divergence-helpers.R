@@ -1,7 +1,7 @@
 # Tests for calculate_divergence.R helper functions
 # Covers uncovered lines from divergence_coverage.txt
 
-test_that(".auto_detect_groups returns NAs when no group column found", {
+test_that(".tsenat_auto_detect_groups returns NAs when no group column found", {
   # Uncovered lines 69-73: no group column detected
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:10, nrow = 2)),
@@ -11,7 +11,7 @@ test_that(".auto_detect_groups returns NAs when no group column found", {
     )
   )
   
-  result <- TSENAT:::.auto_detect_groups(se)
+  result <- TSENAT:::.tsenat_auto_detect_groups(se)
   
   expect_true(is.na(result$group_col))
   expect_true(is.na(result$control_group))
@@ -19,7 +19,7 @@ test_that(".auto_detect_groups returns NAs when no group column found", {
   expect_equal(length(result$sample_counts), 0)
 })
 
-test_that(".auto_detect_groups handles single group correctly", {
+test_that(".tsenat_auto_detect_groups handles single group correctly", {
   # Uncovered lines 112-113: single group edge case
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:10, nrow = 2)),
@@ -28,7 +28,7 @@ test_that(".auto_detect_groups handles single group correctly", {
     )
   )
   
-  result <- TSENAT:::.auto_detect_groups(se)
+  result <- TSENAT:::.tsenat_auto_detect_groups(se)
   
   expect_equal(result$group_col, "sample_type")
   expect_equal(result$control_group, "Normal")
@@ -36,7 +36,7 @@ test_that(".auto_detect_groups handles single group correctly", {
   expect_equal(as.numeric(result$sample_counts), 5)
 })
 
-test_that(".auto_detect_groups detects Control group correctly", {
+test_that(".tsenat_auto_detect_groups detects Control group correctly", {
   # Basic functionality test
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 4)),
@@ -45,14 +45,14 @@ test_that(".auto_detect_groups detects Control group correctly", {
     )
   )
   
-  result <- TSENAT:::.auto_detect_groups(se)
+  result <- TSENAT:::.tsenat_auto_detect_groups(se)
   
   expect_equal(result$group_col, "sample_type")
   expect_equal(result$control_group, "Control")
   expect_setequal(result$groups, c("Control", "Treatment"))
 })
 
-test_that(".auto_detect_groups uses fallback detection for non-standard names", {
+test_that(".tsenat_auto_detect_groups uses fallback detection for non-standard names", {
   # When no standard control name found, uses heuristics
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:48, nrow = 8, ncol = 6)),
@@ -61,14 +61,14 @@ test_that(".auto_detect_groups uses fallback detection for non-standard names", 
     )
   )
   
-  result <- TSENAT:::.auto_detect_groups(se)
+  result <- TSENAT:::.tsenat_auto_detect_groups(se)
   
   expect_equal(result$group_col, "group")
   # Should select GroupA (fewer samples) as control
   expect_equal(result$control_group, "GroupA")
 })
 
-test_that(".auto_detect_groups prioritizes standard column names", {
+test_that(".tsenat_auto_detect_groups prioritizes standard column names", {
   # Should find "sample_type" over "group"
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 4)),
@@ -78,17 +78,17 @@ test_that(".auto_detect_groups prioritizes standard column names", {
     )
   )
   
-  result <- TSENAT:::.auto_detect_groups(se)
+  result <- TSENAT:::.tsenat_auto_detect_groups(se)
   
   # Should use sample_type (higher priority)
   expect_equal(result$group_col, "sample_type")
 })
 
 # =====================================================================
-# Tests for .detect_pair_ids
+# Tests for .tsenat_detect_pair_ids
 # =====================================================================
 
-test_that(".detect_pair_ids skips column with NAs", {
+test_that(".tsenat_detect_pair_ids skips column with NAs", {
   # Uncovered line 187: skip column if any NAs
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 4, ncol = 5)),
@@ -99,14 +99,14 @@ test_that(".detect_pair_ids skips column with NAs", {
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5")
   
-  result <- TSENAT:::.detect_pair_ids(se)
+  result <- TSENAT:::.tsenat_detect_pair_ids(se)
   
   # Should skip paired_samples (has NAs) and use pair_id
   expect_equal(result$column_name, "pair_id")
   expect_equal(result$num_pairs, 3)
 })
 
-test_that(".detect_pair_ids returns NULL when no pairing detected", {
+test_that(".tsenat_detect_pair_ids returns NULL when no pairing detected", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 4)),
     colData = data.frame(
@@ -115,14 +115,14 @@ test_that(".detect_pair_ids returns NULL when no pairing detected", {
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5")
   
-  result <- TSENAT:::.detect_pair_ids(se)
+  result <- TSENAT:::.tsenat_detect_pair_ids(se)
   
   expect_null(result$pair_ids)
   expect_true(is.na(result$column_name))
   expect_equal(result$num_pairs, 0)
 })
 
-test_that(".detect_pair_ids detects paired_samples column", {
+test_that(".tsenat_detect_pair_ids detects paired_samples column", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = matrix(1:20, nrow = 4, ncol = 5)),
     colData = data.frame(
@@ -131,7 +131,7 @@ test_that(".detect_pair_ids detects paired_samples column", {
   )
   colnames(se) <- c("s1", "s2", "s3", "s4", "s5")
   
-  result <- TSENAT:::.detect_pair_ids(se)
+  result <- TSENAT:::.tsenat_detect_pair_ids(se)
   
   expect_equal(result$column_name, "paired_samples")
   expect_equal(result$num_pairs, 3)

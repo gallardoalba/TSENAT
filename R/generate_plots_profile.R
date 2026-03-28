@@ -118,14 +118,14 @@ plot_tsallis_divergence_profile <- function(se,
     }
     
     # Determine genes to plot
-    genes <- .profile_select_genes(gene, lm_res, n_top)
+    genes <- select_genesselect_genes(gene, lm_res, n_top)
     
     if (length(genes) == 0) {
         stop("No genes selected for plotting after validation")
     }
     
     # Extract q values from column names
-    q_info <- .profile_extract_q_values(se)
+    q_info <- select_genesextract_q_values(se)
     unique_q <- q_info$unique_q
     q_values <- q_info$q_values
     
@@ -136,7 +136,7 @@ plot_tsallis_divergence_profile <- function(se,
     
     # ===== COMPUTE DIVERGENCE =====
     
-    plot_data <- .profile_compute_divergence(
+    plot_data <- select_genescompute_divergence(
         se = se,
         genes = genes,
         q_values = q_values,
@@ -156,9 +156,9 @@ plot_tsallis_divergence_profile <- function(se,
     # ===== BUILD PLOT =====
     
     if (arrange_type == "list") {
-        return(.profile_build_list_plots(plot_data, genes, groups, signed, assay_name))
+        return(select_genesbuild_list_plots(plot_data, genes, groups, signed, assay_name))
     } else {
-        return(.profile_build_facet_plot(plot_data, groups, signed))
+        return(select_genesbuild_facet_plot(plot_data, groups, signed))
     }
 }
 
@@ -167,7 +167,7 @@ plot_tsallis_divergence_profile <- function(se,
 #' Select genes for plotting
 #' @keywords internal
 #' @noRd
-.profile_select_genes <- function(gene, lm_res, n_top) {
+select_genesselect_genes <- function(gene, lm_res, n_top) {
     if (!is.null(gene)) {
         # User provided specific genes
         if (!is.character(gene)) {
@@ -211,7 +211,7 @@ plot_tsallis_divergence_profile <- function(se,
 #' Extract q values from SE column names
 #' @keywords internal
 #' @noRd
-.profile_extract_q_values <- function(se) {
+select_genesextract_q_values <- function(se) {
     col_names <- colnames(se)
     
     extract_q <- function(name) {
@@ -235,13 +235,13 @@ plot_tsallis_divergence_profile <- function(se,
 #' Compute divergence for all gene-q combinations
 #' @keywords internal
 #' @noRd
-.profile_compute_divergence <- function(se, genes, q_values, unique_q, groups, group_col,
+select_genescompute_divergence <- function(se, genes, q_values, unique_q, groups, group_col,
                                         assay_name, readcounts, tx2gene_map, signed) {
     plot_data_list <- list()
     
     for (gene_name in genes) {
         divergences <- vapply(unique_q, function(q) {
-            .profile_calc_div_for_gene_q(
+            select_genescalc_div_for_gene_q(
                 se = se,
                 gene_name = gene_name,
                 q_val = q,
@@ -285,7 +285,7 @@ plot_tsallis_divergence_profile <- function(se,
 #' Calculate divergence for a single gene at a specific q value
 #' @keywords internal
 #' @noRd
-.profile_calc_div_for_gene_q <- function(se, gene_name, q_val, q_values, groups, group_col,
+select_genescalc_div_for_gene_q <- function(se, gene_name, q_val, q_values, groups, group_col,
                                          assay_name, readcounts, tx2gene_map, signed) {
     # Get columns matching this q value
     cols_q <- which(q_values == q_val)
@@ -355,7 +355,7 @@ plot_tsallis_divergence_profile <- function(se,
 #' Build faceted plot with all genes
 #' @keywords internal
 #' @noRd
-.profile_build_facet_plot <- function(plot_data, groups, signed) {
+select_genesbuild_facet_plot <- function(plot_data, groups, signed) {
     if (signed) {
         p <- ggplot2::ggplot(plot_data, ggplot2::aes(x = q, y = divergence, color = direction)) +
             ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", linewidth = 0.8) +
@@ -410,7 +410,7 @@ plot_tsallis_divergence_profile <- function(se,
 #' Build list of individual plots per gene
 #' @keywords internal
 #' @noRd
-.profile_build_list_plots <- function(plot_data, genes, groups, signed, assay_name) {
+select_genesbuild_list_plots <- function(plot_data, genes, groups, signed, assay_name) {
     plots <- list()
     
     for (gene_name in genes) {

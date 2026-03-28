@@ -103,7 +103,7 @@ plot_multiq_delta_influence_heatmaps <- function(
   gene_name_map <- result_data$gene_name_map
 
   # Phase 2: Select genes
-  top_genes <- .select_genes_from_multiq(switching_results, n_genes, lm_results)
+  top_genes <- .tsenat_heatmap_select_genes_multiq(switching_results, n_genes, lm_results)
 
   # Phase 3: Collect gene info for layout planning
   gene_info_list <- lapply(seq_along(top_genes), function(i) {
@@ -116,12 +116,12 @@ plot_multiq_delta_influence_heatmaps <- function(
   })
 
   # Phase 4: Plan layout and calculate dimensions
-  layout_result <- .plan_adaptive_layout(gene_info_list,
+  layout_result <- .tsenat_plot_adaptive_layout(gene_info_list,
                                          use_fixed_layout = !is.null(layout_ncol) && layout_ncol > 0,
                                          layout_ncol = layout_ncol)
   gene_layout <- layout_result$layout
   n_layout_rows <- layout_result$n_layout_rows
-  dims <- .calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
+  dims <- .tsenat_calculate_heatmap_dimensions(n_layout_rows, length(q_result_keys))
 
   # Phase 5: Create heatmaps (using refactored loop)
   all_gene_matrices <- list()
@@ -178,11 +178,11 @@ plot_multiq_delta_influence_heatmaps <- function(
     width_frac <- if (!is.null(layout_info)) layout_info$width else 1
 
     # Calculate cell sizes
-    cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
+    cells <- .tsenat_calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
                                             cellwidth, cellheight, fontsize)
 
     # Create pheatmap grob
-    heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat,
+    heatmap_plots[[gene_idx]] <- .tsenat_create_pheatmap_grob(mat,
       title = gene_info$gene_name,
       cellw = cells$cellwidth,
       cellh = cells$cellheight,
@@ -212,7 +212,7 @@ plot_multiq_delta_influence_heatmaps <- function(
 #' Plot top transcripts for a gene using pheatmap
 #' @param se A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
 #'   Must have a "genes" column in rowData specifying which gene each transcript belongs to.
-#'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis()` or `build_se()`).
+#'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis_s4()` or `build_se()`).
 #' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
 #'   top genes are selected by p-value.
 #' @param condition_col Character; column name in colData(se) to use for sample grouping 
@@ -228,7 +228,7 @@ plot_multiq_delta_influence_heatmaps <- function(
 #' @param metric Aggregation metric: "median", "mean", "variance", or "iqr" (default: "median").
 #' @param use_tpm Logical; if TRUE, uses TPM (Transcripts Per Million) from metadata instead of raw counts 
 #'   (default: FALSE). TPM is normalized for sequencing depth and is recommended for comparing 
-#'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis()` or `build_se()` 
+#'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis_s4()` or `build_se()` 
 #'   with `tpm` parameter. Raises error if TPM not available and `use_tpm = TRUE`.
 #' @param width Output image width in inches. If NULL, automatically calculated (12 inches).
 #' @param height Output image height in inches. If NULL, automatically calculated based on number of genes.
@@ -315,7 +315,7 @@ plot_top_transcripts <- function(
   # Phase 2: Select genes
   metric_choice <- match.arg(metric)
   if (is.null(gene) && !is.null(res)) {
-    gene <- .select_genes_from_results_df(se, res, gene_col, top_n, tx2gene)
+    gene <- .tsenat_heatmap_select_genes_results(se, res, gene_col, top_n, tx2gene)
   }
   if (is.null(gene)) {
     stop("gene must be provided or derivable from res", call. = FALSE)
@@ -327,7 +327,7 @@ plot_top_transcripts <- function(
     list(n_transcripts = length(tx_idx))
   })
   
-  layout_result <- .plan_adaptive_layout(gene_info_list,
+  layout_result <- .tsenat_plot_adaptive_layout(gene_info_list,
     use_fixed_layout = !is.null(layout_ncol) && layout_ncol > 0,
     layout_ncol = layout_ncol)
   n_layout_rows <- layout_result$n_layout_rows
@@ -361,11 +361,11 @@ plot_top_transcripts <- function(
     # Calculate cell sizes
     layout_info <- gene_layout[[gene_idx]]
     width_frac <- if (!is.null(layout_info)) layout_info$width else 1
-    cells <- .calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
+    cells <- .tsenat_calculate_adaptive_cellsizes(ncol(mat), nrow(mat), width_frac,
       cellwidth, cellheight, fontsize)
     
     # Create pheatmap
-    heatmap_plots[[gene_idx]] <- .create_pheatmap_grob(mat,
+    heatmap_plots[[gene_idx]] <- .tsenat_create_pheatmap_grob(mat,
       title = gene_name,
       cellw = cells$cellwidth,
       cellh = cells$cellheight,
@@ -528,8 +528,8 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.select_genes_from_multiq <- function(switching_results, n_genes = 4,
-                                      lm_results = NULL) {
+.tsenat_heatmap_select_genes_multiq <- function(switching_results, n_genes = 4,
+                                               lm_results = NULL) {
   q_key <- names(switching_results)[grepl("^q_", names(switching_results))][1]
   first_result <- switching_results[[q_key]]
   gene_ids <- first_result$gene_ids
@@ -594,8 +594,8 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.select_genes_from_results_df <- function(se, res, gene_col = "genes",
-                                          top_n = 3, tx2gene = NULL) {
+.tsenat_heatmap_select_genes_results <- function(se, res, gene_col = "genes",
+                                               top_n = 3, tx2gene = NULL) {
   if (!is.data.frame(res)) {
     stop("res must be a data.frame", call. = FALSE)
   }
@@ -682,7 +682,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.plan_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE,
+.tsenat_plot_adaptive_layout <- function(gene_info_list, use_fixed_layout = TRUE,
                                    layout_ncol = 2) {
   n_genes <- length(gene_info_list)
 
@@ -762,7 +762,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows,
+.tsenat_calculate_heatmap_dimensions <- function(n_layout_rows, n_data_rows,
                                           width_in = 12, height_in = NULL) {
   png_width <- width_in
 
@@ -810,7 +810,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.calculate_adaptive_cellsizes <- function(n_cols_mat, n_rows_mat, width_frac = 1,
+.tsenat_calculate_adaptive_cellsizes <- function(n_cols_mat, n_rows_mat, width_frac = 1,
                                           cellwidth = 0, cellheight = 0,
                                           fontsize = 18) {
   # Base sizes (in pixels, for ~1200px wide plots)
@@ -868,7 +868,7 @@ plot_top_transcripts <- function(
 #'
 #' @keywords internal
 #' @noRd
-.create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35,
+.tsenat_create_pheatmap_grob <- function(matrix_data, title = "", cellw = 35,
                                   cellh = 29, fontsize = 18,
                                   cluster_rows = FALSE,
                                   color_palette = NULL) {
@@ -980,7 +980,7 @@ plot_top_transcripts <- function(
 #' established by .setup_grid_rendering().
 #'
 #' @param heatmap_plots List of pheatmap grob objects
-#' @param gene_layout List of layout positions (from .plan_adaptive_layout)
+#' @param gene_layout List of layout positions (from .tsenat_plot_adaptive_layout)
 #' @param layout_ncol Integer: columns in fixed layout (or NULL for adaptive)
 #'
 #' @return Invisibly returns NULL. Side effect: draws heatmaps in grid.

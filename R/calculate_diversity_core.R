@@ -7,7 +7,7 @@
 #' Validate and normalize diversity parameters
 #' @keywords internal
 #' @noRd
-.validate_diversity_parameters <- function(norm, q, what, shrinkage, pseudocount) {
+.tsenat_validate_diversity_parameters <- function(norm, q, what, shrinkage, pseudocount) {
   # Coerce logical norm to character for backward compatibility
   if (is.logical(norm)) {
     norm <- if (norm) "range" else "none"
@@ -35,7 +35,7 @@
 #' Handle pseudocount auto-estimation
 #' @keywords internal
 #' @noRd
-.handle_pseudocount_auto <- function(pseudocount, x, verbose) {
+.tsenat_handle_pseudocount_auto <- function(pseudocount, x, verbose) {
   if (!is.character(pseudocount) || tolower(pseudocount) != "auto") {
     return(pseudocount)  # Return as-is if not "auto"
   }
@@ -105,7 +105,7 @@
 #' Prepare column and row data for diversity result#' Prepare and validate diversity input data
 #'
 #' Internal helper: Prepares input matrix, validates dimensions, looks up effective_length
-#' in metadata, and computes initial diversity values via .calculate_method().
+#' in metadata, and computes initial diversity values via .tsenat_calculate_method().
 #'
 #' @keywords internal
 #' @noRd
@@ -147,7 +147,7 @@
         message("Calculating diversity with EFFECTIVE LENGTH NORMALIZATION")
     }
     
-    result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
+    result <- .tsenat_calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
         nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
         shrinkage = shrinkage, effective_length = effective_length)
     
@@ -212,7 +212,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
+.tsenat_build_diversity_se_output <- function(result, output_structure, original_x, se_assay_mat,
     bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes) {
     
     result_assay <- output_structure$result_assay
@@ -573,14 +573,14 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     
     # Store original input and validate parameters
     original_x <- x
-    validated <- .validate_diversity_parameters(norm, q, what, shrinkage, pseudocount)
+    validated <- .tsenat_validate_diversity_parameters(norm, q, what, shrinkage, pseudocount)
     norm <- validated$norm
     q <- validated$q
     what <- validated$what
     shrinkage <- validated$shrinkage
     
     # Handle pseudocount auto-estimation
-    pseudocount <- .handle_pseudocount_auto(pseudocount, x, verbose)
+    pseudocount <- .tsenat_handle_pseudocount_auto(pseudocount, x, verbose)
     
     # Prepare input and calculate diversity
     prep <- .prepare_and_validate_diversity_data(x, genes, original_x, effective_length,
@@ -601,7 +601,7 @@ calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assay
     output_structure <- .prepare_diversity_colrowdata(x, result, original_x, genes, q, gene_names)
     
     # Build and return SummarizedExperiment
-    .build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
+    .tsenat_build_diversity_se_output(result, output_structure, original_x, se_assay_mat,
         bootstrap_ci_results, bootstrap, metadata, verbose, what, q, genes)
 }
 

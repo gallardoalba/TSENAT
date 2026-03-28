@@ -557,7 +557,7 @@ testthat::test_that(".prepare_combined_se_from_analysis handles dimension mismat
   testthat::expect_equal(ncol(se_combined), 8)
 })
 
-testthat::test_that(".compute_gene_stats_by_group computes median and sd", {
+testthat::test_that(".tsenat_compute_gene_group_stats computes median and sd", {
   # Create sample long-format data
   long_data <- data.frame(
     Gene = c("G1", "G1", "G1", "G1", "G1", "G1"),
@@ -567,7 +567,7 @@ testthat::test_that(".compute_gene_stats_by_group computes median and sd", {
     stringsAsFactors = FALSE
   )
   
-  stats <- TSENAT:::.compute_gene_stats_by_group(long_data)
+  stats <- TSENAT:::.tsenat_compute_gene_group_stats(long_data)
   
   # Verify output structure
   testthat::expect_true(is.data.frame(stats))
@@ -577,7 +577,7 @@ testthat::test_that(".compute_gene_stats_by_group computes median and sd", {
   testthat::expect_true("qnum" %in% colnames(stats))
 })
 
-testthat::test_that(".compute_gene_stats_by_group calculates correct values", {
+testthat::test_that(".tsenat_compute_gene_group_stats calculates correct values", {
   long_data <- data.frame(
     Gene = c("G1", "G1", "G1"),
     q = c(1, 1, 1),
@@ -586,7 +586,7 @@ testthat::test_that(".compute_gene_stats_by_group calculates correct values", {
     stringsAsFactors = FALSE
   )
   
-  stats <- TSENAT:::.compute_gene_stats_by_group(long_data)
+  stats <- TSENAT:::.tsenat_compute_gene_group_stats(long_data)
   
   # Median should be 2.0
   testthat::expect_equal(stats$central[1], 2.0)
@@ -595,7 +595,7 @@ testthat::test_that(".compute_gene_stats_by_group calculates correct values", {
   testthat::expect_equal(stats$spread[1], 1.0)
 })
 
-testthat::test_that(".compute_gene_stats_by_group handles multiple groups and q values", {
+testthat::test_that(".tsenat_compute_gene_group_stats handles multiple groups and q values", {
   long_data <- data.frame(
     Gene = rep("G1", 12),
     q = rep(c(1, 2), each = 6),
@@ -604,7 +604,7 @@ testthat::test_that(".compute_gene_stats_by_group handles multiple groups and q 
     stringsAsFactors = FALSE
   )
   
-  stats <- TSENAT:::.compute_gene_stats_by_group(long_data)
+  stats <- TSENAT:::.tsenat_compute_gene_group_stats(long_data)
   
   # Should have 4 rows: 2 groups × 2 q_values (A-1, A-2, B-1, B-2)
   testthat::expect_equal(nrow(stats), 4)
@@ -612,7 +612,7 @@ testthat::test_that(".compute_gene_stats_by_group handles multiple groups and q 
   testthat::expect_equal(nrow(stats[stats$group == "B", ]), 2)
 })
 
-testthat::test_that(".aggregate_bootstrap_ci_by_group aggregates CI bounds", {
+testthat::test_that(".tsenat_bootstrap_aggregate_ci aggregates CI bounds", {
   # Create SE with CI assays
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(
@@ -636,7 +636,7 @@ testthat::test_that(".aggregate_bootstrap_ci_by_group aggregates CI bounds", {
     stringsAsFactors = FALSE
   )
   
-  plot_df <- TSENAT:::.aggregate_bootstrap_ci_by_group(se, long)
+  plot_df <- TSENAT:::.tsenat_bootstrap_aggregate_ci(se, long)
   
   # Verify output structure
   testthat::expect_true(is.data.frame(plot_df))
@@ -646,7 +646,7 @@ testthat::test_that(".aggregate_bootstrap_ci_by_group aggregates CI bounds", {
   testthat::expect_true("group" %in% colnames(plot_df))
 })
 
-testthat::test_that(".aggregate_bootstrap_ci_by_group handles multiple q values", {
+testthat::test_that(".tsenat_bootstrap_aggregate_ci handles multiple q values", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(
       diversity = matrix(rnorm(24), nrow = 4, ncol = 6),
@@ -668,14 +668,14 @@ testthat::test_that(".aggregate_bootstrap_ci_by_group handles multiple q values"
     stringsAsFactors = FALSE
   )
   
-  plot_df <- TSENAT:::.aggregate_bootstrap_ci_by_group(se, long)
+  plot_df <- TSENAT:::.tsenat_bootstrap_aggregate_ci(se, long)
   
   # Should have rows for each group-q combination
   testthat::expect_true(nrow(plot_df) >= 2)
   testthat::expect_true(all(plot_df$ci_lower <= plot_df$ci_upper))
 })
 
-testthat::test_that(".aggregate_bootstrap_ci_by_group CI bounds are valid", {
+testthat::test_that(".tsenat_bootstrap_aggregate_ci CI bounds are valid", {
   se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(
       diversity = matrix(seq(1, 20), nrow = 5, ncol = 4),
@@ -698,7 +698,7 @@ testthat::test_that(".aggregate_bootstrap_ci_by_group CI bounds are valid", {
     stringsAsFactors = FALSE
   )
   
-  plot_df <- TSENAT:::.aggregate_bootstrap_ci_by_group(se, long)
+  plot_df <- TSENAT:::.tsenat_bootstrap_aggregate_ci(se, long)
   
   # All ci_lower should be less than or equal to ci_upper
   testthat::expect_true(all(plot_df$ci_lower <= plot_df$ci_upper))
@@ -812,7 +812,7 @@ testthat::test_that(".fit_gam_per_group returns NULL for insufficient data", {
   testthat::expect_null(result)
 })
 
-testthat::test_that(".select_genes_for_plotting returns user-specified genes", {
+testthat::test_that(".tsenat_plot_select_genes returns user-specified genes", {
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3", "gene4"),
     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1),
@@ -820,12 +820,12 @@ testthat::test_that(".select_genes_for_plotting returns user-specified genes", {
   )
   
   genes_specified <- c("gene2", "gene4")
-  selected <- TSENAT:::.select_genes_for_plotting(lm_res, genes = genes_specified, n_top = 2)
+  selected <- TSENAT:::.tsenat_plot_select_genes(lm_res, genes = genes_specified, n_top = 2)
   
   testthat::expect_equal(selected, genes_specified)
 })
 
-testthat::test_that(".select_genes_for_plotting filters by significance", {
+testthat::test_that(".tsenat_plot_select_genes filters by significance", {
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3", "gene4"),
     adj_p_interaction = c(0.001, 0.01, 0.05, 0.1),
@@ -833,7 +833,7 @@ testthat::test_that(".select_genes_for_plotting filters by significance", {
   )
   
   # Select top 2 with sig_alpha = 0.05 should get gene1, gene2, gene3
-  selected <- TSENAT:::.select_genes_for_plotting(lm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
+  selected <- TSENAT:::.tsenat_plot_select_genes(lm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
   
   # Should return exactly 2 genes (top 2 by p-value)
   testthat::expect_equal(length(selected), 2)
@@ -843,14 +843,14 @@ testthat::test_that(".select_genes_for_plotting filters by significance", {
   testthat::expect_true("gene2" %in% selected)
 })
 
-testthat::test_that(".select_genes_for_plotting returns NULL when no significant genes", {
+testthat::test_that(".tsenat_plot_select_genes returns NULL when no significant genes", {
   lm_res <- data.frame(
     gene = c("gene1", "gene2", "gene3"),
     adj_p_interaction = c(0.1, 0.2, 0.3),
     stringsAsFactors = FALSE
   )
   
-  selected <- TSENAT:::.select_genes_for_plotting(lm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
+  selected <- TSENAT:::.tsenat_plot_select_genes(lm_res, genes = NULL, n_top = 2, sig_alpha = 0.05)
   
   testthat::expect_null(selected)
 })

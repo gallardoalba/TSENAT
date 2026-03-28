@@ -7,14 +7,14 @@
 #' Internal: Auto-select nboot based on input size and method
 #' @keywords internal
 #' @noRd
-.bootstrap_auto_select_nboot <- function(n_genes, use_bca, nthreads) {
+.tsenat_bootstrap_auto_select_nboot <- function(n_genes, use_bca, nthreads) {
   suggest_nboot(n_genes, use_bca = use_bca, nthreads = nthreads)
 }
 
 #' Internal: Validate all bootstrap input parameters
 #' @keywords internal
 #' @noRd
-.bootstrap_validate_inputs <- function(x, q, nboot, ci, paired) {
+.tsenat_bootstrap_validate_inputs <- function(x, q, nboot, ci, paired) {
   if (!is.numeric(x) || any(x < 0, na.rm = TRUE)) {
     stop("x must be a vector of non-negative numeric values.")
   }
@@ -47,7 +47,7 @@
 #' Internal: Process matrix input with parallelization
 #' @keywords internal
 #' @noRd
-.bootstrap_process_matrix_input <- function(x, q, norm, nboot, ci, method, log_base,
+.tsenat_bootstrap_process_matrix <- function(x, q, norm, nboot, ci, method, log_base,
                                             pseudocount, what, seed, gene_name, verbose,
                                             include_diagnostics, use_job, nthreads, paired) {
   if (!is.numeric(nthreads) || nthreads < 1) stop("'nthreads' must be positive")
@@ -82,7 +82,7 @@
 #' Internal: Extract gene counts from SummarizedExperiment
 #' @keywords internal
 #' @noRd
-.bootstrap_extract_gene_from_se <- function(se, target_gene) {
+.tsenat_bootstrap_extract_gene <- function(se, target_gene) {
   gene_tx_idx <- which(rownames(se) == target_gene)
   
   if (length(gene_tx_idx) == 0) {
@@ -104,7 +104,7 @@
 #' Internal: Process SummarizedExperiment and results data.frame
 #' @keywords internal
 #' @noRd
-.bootstrap_process_se_and_results <- function(se, res, top_n, q, norm, nboot, ci, method,
+.tsenat_bootstrap_process_se <- function(se, res, top_n, q, norm, nboot, ci, method,
                                               log_base, pseudocount, what, seed, gene_name,
                                               verbose, include_diagnostics, use_job, paired) {
   if (!methods::is(se, "SummarizedExperiment")) stop("'se' must be SummarizedExperiment")
@@ -121,7 +121,7 @@
   
   for (gene in head(res_genes, top_n * 2)) {
     if (length(valid_genes) >= top_n) break
-    gene_counts <- tryCatch(.bootstrap_extract_gene_from_se(se, gene), error = function(e) NULL)
+    gene_counts <- tryCatch(.tsenat_bootstrap_extract_gene(se, gene), error = function(e) NULL)
     if (!is.null(gene_counts) && sum(gene_counts, na.rm = TRUE) >= min_count_threshold) {
       valid_genes <- c(valid_genes, gene)
     }
@@ -148,7 +148,7 @@
   
   target_gene <- top_genes[1]
   if (is.null(gene_name)) gene_name <- target_gene
-  gene_counts <- .bootstrap_extract_gene_from_se(se, target_gene)
+  gene_counts <- .tsenat_bootstrap_extract_gene(se, target_gene)
   
   calculate_tsallis_entropy_bootstrap(x = gene_counts, q = q, norm = norm, nboot = nboot,
     ci = ci, method = method, log_base = log_base, pseudocount = pseudocount, what = what,
@@ -159,7 +159,7 @@
 #' Internal: Process multiple q values
 #' @keywords internal
 #' @noRd
-.bootstrap_process_multiple_q <- function(x, q, norm, nboot, ci, method, log_base,
+.tsenat_bootstrap_process_multiple_q <- function(x, q, norm, nboot, ci, method, log_base,
                                           pseudocount, what, seed, gene_name, verbose,
                                           include_diagnostics, use_job, paired) {
   results_list <- lapply(q, function(q_val) {
@@ -175,7 +175,7 @@
 #' Internal: Compute bootstrap CI
 #' @keywords internal
 #' @noRd
-.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired) {
+.tsenat_bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired) {
   point_est <- calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
     log_base = log_base, pseudocount = pseudocount)
   bootstrap_dist <- .tsenat_bootstrap_resample(x, q = q, norm = norm, nboot = nboot,
@@ -197,7 +197,7 @@
 #' Internal: Compute bootstrap diagnostics and JOB
 #' @keywords internal
 #' @noRd
-.bootstrap_compute_diag <- function(point_est, bootstrap_dist, use_job, paired, x, q, norm,
+.tsenat_bootstrap_compute_diag <- function(point_est, bootstrap_dist, use_job, paired, x, q, norm,
                                     nboot, ci, method, log_base, pseudocount, what, accel_factor = NA_real_) {
   diagnostics <- list(
     effective_sample_size = .tsenat_compute_effective_n(bootstrap_dist),
@@ -222,7 +222,7 @@
 #' Internal: Assemble final bootstrap result
 #' @keywords internal
 #' @noRd
-.bootstrap_assemble_result <- function(point_est, ci_result, bootstrap_dist, ci, method,
+.tsenat_bootstrap_assemble_result <- function(point_est, ci_result, bootstrap_dist, ci, method,
                                        nboot, diag_list, include_diagnostics, use_job) {
   result <- list(
     estimate = as.numeric(point_est),
@@ -249,7 +249,7 @@
 #' Internal: Print bootstrap results to console
 #' @keywords internal
 #' @noRd
-.bootstrap_print_results <- function(result, gene_name, ci, verbose) {
+.tsenat_bootstrap_print_results <- function(result, gene_name, ci, verbose) {
   if (!is.null(gene_name) && verbose) {
     message("\nBootstrap Confidence Intervals: ", gene_name)
     message("Point estimate: ", sprintf("%.6f", result$estimate))
@@ -462,18 +462,18 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
   # Auto-select nboot if requested
   if (identical(nboot, "auto")) {
     n_genes <- if (!is.null(x) && is.matrix(x)) nrow(x) else if (!is.null(se)) nrow(se) else 1
-    nboot <- .bootstrap_auto_select_nboot(n_genes, method == "bca", nthreads)
+    nboot <- .tsenat_bootstrap_auto_select_nboot(n_genes, method == "bca", nthreads)
   }
   
   # PHASE 1: Handle matrix input (vectorized processing)
   if (!is.null(x) && is.matrix(x)) {
-    return(invisible(.bootstrap_process_matrix_input(x, q, norm, nboot, ci, method, log_base,
+    return(invisible(.tsenat_bootstrap_process_matrix(x, q, norm, nboot, ci, method, log_base,
       pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, nthreads, paired)))
   }
   
   # PHASE 2: Handle SummarizedExperiment + results data.frame input
   if (!is.null(se) && !is.null(res)) {
-    result <- .bootstrap_process_se_and_results(se, res, top_n, q, norm, nboot, ci, method,
+    result <- .tsenat_bootstrap_process_se(se, res, top_n, q, norm, nboot, ci, method,
       log_base, pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, paired)
     return(invisible(result))
   }
@@ -484,11 +484,11 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
   }
   
   # PHASE 4: Validate inputs
-  .bootstrap_validate_inputs(x, q, nboot, ci, paired)
+  .tsenat_bootstrap_validate_inputs(x, q, nboot, ci, paired)
   
   # PHASE 5: Handle multiple q values
   if (length(q) > 1) {
-    result <- .bootstrap_process_multiple_q(x, q, norm, nboot, ci, method, log_base,
+    result <- .tsenat_bootstrap_process_multiple_q(x, q, norm, nboot, ci, method, log_base,
       pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, paired)
     if (verbose && !is.null(gene_name)) {
       message("Bootstrap Confidence Intervals for ", gene_name, " (multiple q values)")
@@ -502,17 +502,17 @@ calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL,
   }
   
   # PHASE 6: Compute single q bootstrap CI
-  ci_data <- .bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired)
+  ci_data <- .tsenat_bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired)
   
   # PHASE 7: Compute diagnostics (if requested)
-  diag_list <- .bootstrap_compute_diag(ci_data$point_est, ci_data$bootstrap_dist, use_job,
+  diag_list <- .tsenat_bootstrap_compute_diag(ci_data$point_est, ci_data$bootstrap_dist, use_job,
     paired, x, q, norm, nboot, ci, method, log_base, pseudocount, what, ci_data$accel_factor)
   
   # PHASE 8: Assemble and return result
-  result <- .bootstrap_assemble_result(ci_data$point_est, ci_data$ci_result,
+  result <- .tsenat_bootstrap_assemble_result(ci_data$point_est, ci_data$ci_result,
     ci_data$bootstrap_dist, ci, method, nboot, diag_list, include_diagnostics, use_job)
   
-  .bootstrap_print_results(result, gene_name, ci, verbose)
+  .tsenat_bootstrap_print_results(result, gene_name, ci, verbose)
   invisible(result)
 }
 
@@ -1060,18 +1060,18 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #' # Example 1: Direct vector input (two distributions)
 #' x <- c(100, 50, 25, 10, 5)      # Reference group counts
 #' y <- c(60, 80, 15, 20, 25)      # Comparison group counts
-#' result <- .bootstrap_divergence_with_results(x, y, q = 1, nboot = 500)
+#' result <- .tsenat_bootstrap_divergence(x, y, q = 1, nboot = 500)
 #' result
 #'
 #' # Example 2: With gene name and automatic display
-#' result2 <- .bootstrap_divergence_with_results(
+#' result2 <- .tsenat_bootstrap_divergence(
 #'   x, y, q = 1, nboot = 500,
 #'   gene_name = "GENE_TOP_1",
 #'   verbose = TRUE
 #' )
 #'
 #' # Example 3: Multiple q values for robustness
-#' result3 <- .bootstrap_divergence_with_results(
+#' result3 <- .tsenat_bootstrap_divergence(
 #'   x, y, q = c(0.5, 1.0, 1.5, 2.0), nboot = 500,
 #'   gene_name = "GENE_TOP_1",
 #'   verbose = TRUE
@@ -1085,13 +1085,13 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
 #'   colData = data.frame(group = rep(c("Control", "Treatment"), 25))
 #' )
 #' res <- data.frame(gene = rownames(se), divergence = runif(100))
-#' result_paired <- .bootstrap_divergence_with_results(
+#' result_paired <- .tsenat_bootstrap_divergence(
 #'   se = se, res = res, paired = TRUE, group_col = "group",
 #'   control_group = "Control", nboot = 100, q = 1
 #' )
 #'
 #' @noRd
-.bootstrap_divergence_with_results <- function(x = NULL, y = NULL, se = NULL, res = NULL,
+.tsenat_bootstrap_divergence <- function(x = NULL, y = NULL, se = NULL, res = NULL,
     top_n = 1, group_col = "group", control_group = "Normal", q = 1, norm = FALSE,
     nboot = 1000, ci = 0.95, method = c("percentile", "bca"), log_base = exp(1),
     pseudocount = 0.5, seed = NULL, gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
@@ -1182,7 +1182,7 @@ suggest_nboot <- function(n_genes, use_bca = FALSE, nthreads = 1) {
     
     if (length(q) > 1) {
         results_list <- lapply(q, function(qi) {
-            .bootstrap_divergence_with_results(
+            .tsenat_bootstrap_divergence(
                 x = x, y = y, se = NULL, res = NULL,
                 q = qi, norm = norm, nboot = nboot, ci = ci, method = method,
                 log_base = log_base, pseudocount = pseudocount, seed = seed,

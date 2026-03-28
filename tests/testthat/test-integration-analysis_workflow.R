@@ -215,7 +215,7 @@ test_that("filter_analysis modifies SE in analysis object", {
   analysis <- TSENATAnalysis(se)
   
   # Apply filtering
-  filtered_analysis <- filter_analysis(analysis, stringency = "severe", verbose = FALSE)
+  filtered_analysis <- filter_analysis_s4(analysis, stringency = "severe", verbose = FALSE)
   
   # Check that analysis is returned
   expect_true(inherits(filtered_analysis, "TSENATAnalysis"))
@@ -234,7 +234,7 @@ test_that("filter_analysis preserves colData", {
   SummarizedExperiment::colData(se) <- coldata
   
   analysis <- TSENATAnalysis(se)
-  filtered_analysis <- filter_analysis(analysis, stringency = "soft", verbose = FALSE)
+  filtered_analysis <- filter_analysis_s4(analysis, stringency = "soft", verbose = FALSE)
   
   # colData should preserve original columns (sample_id is added by constructor)
   filtered_coldata <- SummarizedExperiment::colData(filtered_analysis@se)
@@ -249,7 +249,7 @@ test_that("filter_analysis validates input type", {
   bad_input <- "not_an_analysis"
   
   expect_error(
-    filter_analysis(bad_input),
+    filter_analysis_s4(bad_input),
     "TSENATAnalysis"
   )
 })
@@ -265,7 +265,7 @@ test_that("filter_analysis accepts stringency parameter", {
   
   # Test different stringency levels
   for (stringency in c("soft", "medium", "severe")) {
-    result <- filter_analysis(analysis, stringency = stringency, verbose = FALSE)
+    result <- filter_analysis_s4(analysis, stringency = stringency, verbose = FALSE)
     expect_true(inherits(result, "TSENATAnalysis"))
   }
 })
@@ -286,7 +286,7 @@ test_that("build_analysis creates valid TSENATAnalysis object", {
     Gene = paste0("GENE_", rep(1:5, 2))
   )
   
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
   
   expect_true(inherits(analysis, "TSENATAnalysis"))
   expect_true(inherits(analysis@se, "SummarizedExperiment"))
@@ -307,7 +307,7 @@ test_that("build_analysis includes metadata in config when provided", {
     row.names = colnames(counts)
   )
   
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene, metadata = metadata)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene, metadata = metadata)
   
   expect_true("metadata" %in% names(analysis@config))
 })
@@ -323,7 +323,7 @@ test_that("build_analysis accepts custom config parameters", {
   )
   
   config <- list(analysis_id = "TEST001", version = "1.0")
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene, config = config)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene, config = config)
   
   expect_equal(analysis@config$analysis_id, "TEST001")
   expect_equal(analysis@config$version, "1.0")
@@ -339,7 +339,7 @@ test_that("build_analysis initializes empty result slots", {
     Gene = paste0("GENE_", rep(1:5, 2))
   )
   
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
   
   expect_true(is.list(analysis@diversity_results) && length(analysis@diversity_results) == 0)
   expect_true(is.list(analysis@divergence_results) && length(analysis@divergence_results) == 0)
@@ -360,7 +360,7 @@ test_that("build_analysis accepts TPM and effective_length", {
   tpm <- t(t(counts) / colSums(counts) * 1e6)
   eff_len <- rep(1000, nrow(counts))
   
-  analysis <- build_analysis(
+  analysis <- build_analysis_s4(
     readcounts = counts,
     tx2gene = tx2gene,
     tpm = tpm,
@@ -380,7 +380,7 @@ test_that("build_analysis with custom assay name", {
     Gene = paste0("GENE_", rep(1:5, 2))
   )
   
-  analysis <- build_analysis(
+  analysis <- build_analysis_s4(
     readcounts = counts,
     tx2gene = tx2gene,
     assay_name = "normalized_counts"

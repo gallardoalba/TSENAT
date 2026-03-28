@@ -6,11 +6,11 @@
 \usage{
 detect_q_gene_interactions_s4(
   analysis,
+  condition_col,
   q = NULL,
   output_file = NULL,
   paired = NULL,
   subject_col = NULL,
-  condition_col = NULL,
   test = c("auto", "kruskal-wallis", "friedman", "art"),
   multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young", "none"),
   entropy_col = "diversity",
@@ -26,6 +26,10 @@ detect_q_gene_interactions_s4(
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
 
+\item{condition_col}{\code{character}. Column name for sample grouping/condition (REQUIRED).
+Specifies the condition/treatment variable for testing q×condition interactions.
+Example: "sample_type", "treatment", "disease_status".}
+
 \item{q}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
 If NULL, auto-detects from \code{@config$q_values} or diversity results.}
 
@@ -37,9 +41,6 @@ Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 
 \item{subject_col}{\code{character} or \code{NULL}. Column name for subject/block identifiers
 (required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.}
-
-\item{condition_col}{\code{character} or \code{NULL}. Column name for grouping/condition.
-If NULL, reads from \code{@config$condition_col}.}
 
 \item{test}{\code{character}. Test method: "auto" (default), "kruskal-wallis" (unpaired),
 "friedman" (paired), or "art" (aligned rank transform).}
@@ -79,10 +80,10 @@ Analyzes how gene interactions change across q-value spectrum using rank-based
 
 **Parameter resolution priority** (explicit > @config > default/auto-detect):
 \itemize{
+  \item \code{condition_col}: REQUIRED - must be explicitly provided
   \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
-  \item \code{condition_col}: explicit arg > \code{@config$condition_col}
   \item \code{multicorr}: explicit arg > \code{@config$multicorr} > "hochberg"
   \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
   \item \code{test}: explicit arg > \code{@config$test} > "auto" (auto-selection)
@@ -94,8 +95,9 @@ analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
 analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 
-# Use config-stored parameters (paired design)
-analysis <- detect_q_gene_interactions_s4(analysis, multicorr = "hochberg")
+# Test Q×Condition interaction (condition_col is REQUIRED)
+analysis <- detect_q_gene_interactions_s4(analysis, condition_col = "condition", 
+                                           multicorr = "hochberg")
 head(lmResults(analysis)$q_interactions)
 
 }

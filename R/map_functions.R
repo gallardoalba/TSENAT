@@ -13,14 +13,14 @@
 
 # Create sample-to-condition mapping (OPTIMIZATION: consolidated from 4 duplicate implementations)
 # @noRd
-.create_sample_type_map <- function(coldata, sample_col_idx, condition_col_idx) {
+.tsenat_create_sample_type_map <- function(coldata, sample_col_idx, condition_col_idx) {
     setNames(as.character(coldata[[condition_col_idx]]), 
              as.character(coldata[[sample_col_idx]]))
 }
 
 # Create pairing/batch mapping
 # @noRd
-.create_mapping <- function(coldata, col_idx, name_col_idx) {
+.tsenat_create_mapping <- function(coldata, col_idx, name_col_idx) {
     setNames(as.character(coldata[[col_idx]]), 
              as.character(coldata[[name_col_idx]]))
 }
@@ -35,7 +35,7 @@
     }
     
     # Step 2: Try gene_ids from metadata
-    gene_ids <- .get_gene_ids(se)
+    gene_ids <- .tsenat_get_gene_ids(se)
     if (!is.null(gene_ids) && length(gene_ids) == df_nrows) {
         return(gene_ids)
     }
@@ -164,15 +164,15 @@
         pairing_map <- setNames(coldata_base, coldata_sample_col_values)
     } else {
         # Use explicit pairing column (column 3)
-        pairing_map <- .create_mapping(coldata, 3, sample_col_idx)
+        pairing_map <- .tsenat_create_mapping(coldata, 3, sample_col_idx)
     }
     sample_pairing <- unname(pairing_map[sample_base_names])
     
     # Create a mapping for actual sample base names (always from Sample column)
     sample_name_map <- setNames(coldata_sample_col_values, coldata_sample_col_values)
     
-    # OPTIMIZATION: Use .create_sample_type_map() helper
-    st_map <- .create_sample_type_map(coldata, sample_col_idx, condition_col_idx)
+    # OPTIMIZATION: Use .tsenat_create_sample_type_map() helper
+    st_map <- .tsenat_create_sample_type_map(coldata, sample_col_idx, condition_col_idx)
     sample_types <- unname(st_map[sample_base_names])
     has_na <- is.na(sample_types)
     if (any(has_na)) {
@@ -268,7 +268,7 @@
             samples_vec <- as.character(SummarizedExperiment::colData(ts_se)$sample_type)
         }
         div_df <- as.data.frame(div_mat)
-        genes_col <- .get_gene_ids(ts_se)
+        genes_col <- .tsenat_get_gene_ids(ts_se)
         if (is.null(genes_col)) {
             genes_col <- rownames(div_df)
         }

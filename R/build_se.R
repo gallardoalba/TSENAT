@@ -16,7 +16,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.get_gene_ids <- function(se) {
+.tsenat_get_gene_ids <- function(se) {
   rd <- SummarizedExperiment::rowData(se)
   if (is.null(rd)) {
     return(NULL)

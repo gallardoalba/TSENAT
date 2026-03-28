@@ -115,10 +115,10 @@ metadata_df <- read.table(
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
 # Create analysis object with transcript counts, annotation, and metadata
-analysis <- build_analysis(readcounts, gff3_file, metadata = metadata_df)
+analysis <- build_analysis_s4(readcounts, gff3_file, metadata = metadata_df)
 
 # Filter low-abundance transcripts
-analysis <- filter_analysis(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(analysis, stringency = "medium")
 
 # Compute Tsallis entropy using S4 wrapper (using single q value for quick start)
 analysis <- calculate_diversity_s4(analysis, q = 1, norm = TRUE)
@@ -332,7 +332,7 @@ improved analysis:
 ```{r build-analysis}
 ## Build a complete `TSENATAnalysis` object from readcounts + GFF3.gz annotation
 ## Include TPM and effective length for filtering and QC purposes
-analysis <- build_analysis(
+analysis <- build_analysis_s4(
   readcounts, 
   gff3_dataset, 
   metadata = metadata_df,
@@ -395,7 +395,7 @@ prefiltering on differential transcript usage, see
 ## Filter lowly-expressed transcripts and report counts
 # Filter analysis using stringency parameter
 # Medium stringency keeps transcripts present in >= 50% of samples
-analysis <- filter_analysis(
+analysis <- filter_analysis_s4(
     analysis, 
     stringency = "medium"
 )

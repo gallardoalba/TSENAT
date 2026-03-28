@@ -1107,7 +1107,7 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 #' 
 #' @keywords internal
 #' @noRd
-.calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
+.tsenat_calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none", 
     "empirical_bayes"), effective_length = NULL) {
     what <- match.arg(what)
@@ -1207,7 +1207,7 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 
 #' Internal wrapper around calculate_method
 #'
-#' This thin helper around \code{.calculate_method} is intended for use in
+#' This thin helper around \code{.tsenat_calculate_method} is intended for use in
 #' package-internal tests and by advanced developers.  It is **not exported**
 #' for general user workflows; callers should normally use
 #' \code{calculate_diversity} which works on
@@ -1230,7 +1230,7 @@ calculate_tsallis_entropy <- function(x, q = 2, norm = TRUE, what = c("S", "D", 
 calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none",
     "empirical_bayes"), effective_length = NULL) {
-    .calculate_method(x = x, genes = genes, norm = norm, verbose = verbose,
+    .tsenat_calculate_method(x = x, genes = genes, norm = norm, verbose = verbose,
         q = q, what = what, nthreads = nthreads, pseudocount = pseudocount,
         min_valid_frac = min_valid_frac, shrinkage = shrinkage,
         effective_length = effective_length)

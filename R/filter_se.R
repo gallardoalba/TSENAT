@@ -69,7 +69,7 @@
 # HELPER: Resolve assay by name/index with fallback logic
 # OPTIMIZATION: Consolidated from 3 duplicate implementations
 # @noRd
-.resolve_assay_index <- function(assay_ref, assay_names) {
+.tsenat_resolve_assay_index <- function(assay_ref, assay_names) {
     if (is.character(assay_ref)) {
         idx <- which(assay_names == assay_ref)
         if (length(idx) == 1) return(idx)
@@ -84,7 +84,7 @@
 # ============================================================================
 # HELPER: Get assay matrix with TPM priority logic (OPTIMIZATION: single call point)
 # @noRd
-.get_assay_for_filtering <- function(se, assays_list, tpm_assay_name, assay_name) {
+.tsenat_get_assay_filtering <- function(se, assays_list, tpm_assay_name, assay_name) {
     # Priority 1: explicit TPM assay
     if (!is.null(tpm_assay_name) && tpm_assay_name %in% names(assays_list)) {
         return(list(mat = as.matrix(assays_list[[tpm_assay_name]]), 
@@ -113,7 +113,7 @@
     }
     
     # Fallback with warning
-    idx <- .resolve_assay_index(assay_name, names(assays_list))
+    idx <- .tsenat_resolve_assay_index(assay_name, names(assays_list))
     return(list(mat = as.matrix(assays_list[[idx]]), 
                source = sprintf("assay '%s' (fallback - NOT TPM!)", names(assays_list)[idx]),
                is_fallback = TRUE))
@@ -131,7 +131,7 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
     
     # ========================================================================
     # LOCATE TPM DATA FOR FILTERING (OPTIMIZATION: consolidated helper)
-    tpm_result <- .get_assay_for_filtering(se, assays_list, tpm_assay_name, assay_name)
+    tpm_result <- .tsenat_get_assay_filtering(se, assays_list, tpm_assay_name, assay_name)
     tpm_assay_mat <- tpm_result$mat
     tpm_source <- tpm_result$source
     
@@ -258,7 +258,7 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
     if (!is.null(tpm_assay_mat)) {
         assay_mat <- tpm_assay_mat
     } else {
-        idx <- .resolve_assay_index(assay_name, names(assays_list))
+        idx <- .tsenat_resolve_assay_index(assay_name, names(assays_list))
         assay_mat <- as.matrix(assays_list[[idx]])
         if (idx != 1 && !(is.character(assay_name) && assay_name %in% names(assays_list)) && !is.null(assay_name)) {
             warning("Requested assay not found; using first assay.", call. = FALSE)
@@ -301,7 +301,7 @@ filter_se <- function(se, min_samples = 5L, stringency = NULL,
     
     # Filter out genes with fewer than min_tx_per_gene transcripts (entropy = 0 for single transcripts)
     if (min_tx_per_gene > 1) {
-        genes_vec <- .get_gene_ids(se)
+        genes_vec <- .tsenat_get_gene_ids(se)
         if (!is.null(genes_vec)) {
             # Count transcripts per gene among those that pass count filtering
             tx_per_gene <- table(genes_vec[tokeep])

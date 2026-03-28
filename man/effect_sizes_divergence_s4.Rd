@@ -63,12 +63,22 @@ results directly from a TSENATAnalysis object.
 Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
 }
 \examples{
+# Setup: Create test analysis with divergence and LM interaction results
 analysis <- TSENAT:::create_test_analysis(n_genes = 8, n_samples_per_group = 20,
   q_values = c(0.5, 1.0, 1.5))
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), 
+  verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)
-nrow(lmResults(analysis)$lm_interaction)
+  
+# Compute effect sizes from divergence results
+analysis <- effect_sizes_divergence_s4(analysis, 
+  significance_threshold = 0.05, verbose = FALSE)
+
+# Access results
+if (!is.null(analysis@metadata$effect_sizes_divergence)) {
+  cat("Effect sizes computed successfully\n")
+}
 
 }
 \seealso{

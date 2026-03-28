@@ -19,7 +19,7 @@
 #' Setup paired design if applicable
 #' @keywords internal
 #' @noRd
-.setup_paired_design_jis <- function(se, subject_col, condition_col) {
+.tsenat_setup_paired_design_jis <- function(se, subject_col, condition_col) {
   if (is.null(subject_col)) return(list(is_paired = FALSE, pair_info = NULL, subject_col = NULL))
   if (!(subject_col %in% colnames(colData(se)))) stop("subject_col '", subject_col, "' not found in colData")
   pairs <- colData(se)[[subject_col]]
@@ -37,7 +37,7 @@
 #' Build gene ID to name mapping
 #' @keywords internal
 #' @noRd
-.build_gene_id_mapping <- function(se, gene_col) {
+.tsenat_build_gene_id_mapping <- function(se, gene_col) {
   rd_mapping <- rowData(se)
   gene_id_to_name <- character(0)
   if ("gene_name" %in% colnames(rd_mapping)) {
@@ -84,7 +84,7 @@
 #' Calculate jackknife influences
 #' @keywords internal
 #' @noRd
-.jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+.tsenat_jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
   h_full <- .tsallis_entropy_jis(counts, q, norm, log_base, pseudocount, n_tx_fixed)
   n_tx <- nrow(counts)
   influences <- numeric(n_tx)
@@ -270,8 +270,8 @@ jackknife_isoform_switching <- function(
   }
   
   # 3. Setup paired design and gene mapping
-  paired_info <- .setup_paired_design_jis(se, subject_col, condition_col)
- gene_id_to_name <- .build_gene_id_mapping(se, gene_col)
+  paired_info <- .tsenat_setup_paired_design_jis(se, subject_col, condition_col)
+ gene_id_to_name <- .tsenat_build_gene_id_mapping(se, gene_col)
   gene_ids <- unique(rowData(se)[[gene_col]])
   
   # 4. Setup LM filtering (simplified inline to keep main function < 50 lines)
@@ -344,7 +344,7 @@ jackknife_isoform_switching <- function(
     }
     
     n_tx_original <- nrow(counts_A)
-    delta_influence <- .jackknife_influences_jis(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .jackknife_influences_jis(counts_B, q, norm, log_base, pseudocount, n_tx_original)
+    delta_influence <- .tsenat_jackknife_influences_jis(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .tsenat_jackknife_influences_jis(counts_B, q, norm, log_base, pseudocount, n_tx_original)
     delta_stats <- compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap, n_transcripts = nrow(counts_A))
     switching_status <- ifelse(delta_influence > 0, "up", ifelse(delta_influence < 0, "down", "neutral"))
     

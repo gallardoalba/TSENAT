@@ -93,24 +93,24 @@ test_that(".tsenat_entropy_max computes Tsallis maximum correctly", {
 })
 
 # ============================================================================
-# Test .jackknife_resampling
+# Test .tsenat_jackknife_resampling
 # ============================================================================
 
-test_that(".jackknife_resampling detects insufficient data", {
+test_that(".tsenat_jackknife_resampling detects insufficient data", {
   # Need at least 2 observations
   counts <- matrix(rnorm(5), nrow = 1)
   expect_warning(
-    result <- TSENAT:::.jackknife_resampling(counts, q = 1),
+    result <- TSENAT:::.tsenat_jackknife_resampling(counts, q = 1),
     "Insufficient observations"
   )
   expect_null(result)
 })
 
-test_that(".jackknife_resampling computes valid influence values", {
+test_that(".tsenat_jackknife_resampling computes valid influence values", {
   set.seed(42)
   # Matrix: rows=samples, cols=species/genes
   counts <- matrix(c(100, 50, 25, 10), nrow = 4, ncol = 1)
-  result <- TSENAT:::.jackknife_resampling(counts, q = 1, norm = FALSE)
+  result <- TSENAT:::.tsenat_jackknife_resampling(counts, q = 1, norm = FALSE)
   
   expect_false(is.null(result))
   expect_is(result$influence, "numeric")
@@ -118,17 +118,17 @@ test_that(".jackknife_resampling computes valid influence values", {
   expect_true(all(result$influence >= 0))
 })
 
-test_that(".jackknife_resampling computes jackknife standard error", {
+test_that(".tsenat_jackknife_resampling computes jackknife standard error", {
   # Matrix: rows=samples (leave-one-out), cols=species
   counts <- matrix(c(100, 50, 50, 20), nrow = 4, ncol = 1)
-  result <- TSENAT:::.jackknife_resampling(counts, q = 1, norm = FALSE)
+  result <- TSENAT:::.tsenat_jackknife_resampling(counts, q = 1, norm = FALSE)
   
   expect_true(is.numeric(result$jackknife_se))
   expect_true(result$jackknife_se >= 0)
   expect_true(!is.na(result$jackknife_se))
 })
 
-test_that(".jackknife_resampling detects outliers correctly", {
+test_that(".tsenat_jackknife_resampling detects outliers correctly", {
   # Create data with multiple species where one sample is extreme
   set.seed(123)
   # 6 samples, 3 species - last row is extreme outlier
@@ -141,53 +141,53 @@ test_that(".jackknife_resampling detects outliers correctly", {
     1, 1, 100       # sample 6 - extreme outlier
   ), nrow = 6, ncol = 3, byrow = TRUE)
   
-  result <- TSENAT:::.jackknife_resampling(counts, q = 1, threshold = 80)
+  result <- TSENAT:::.tsenat_jackknife_resampling(counts, q = 1, threshold = 80)
   
   # With multiple species, the outlier effect is more pronounced
   # The last sample with extreme composition should be detected
   expect_true(length(result$outlier_indices) > 0 || result$outlier_threshold >= 80)
 })
 
-test_that(".jackknife_resampling respects threshold parameter", {
+test_that(".tsenat_jackknife_resampling respects threshold parameter", {
   # Multiple samples with varying influence
   counts <- matrix(c(100, 50, 25, 10), nrow = 4, ncol = 1)
   
-  result_high <- TSENAT:::.jackknife_resampling(counts, threshold = 95)
-  result_low <- TSENAT:::.jackknife_resampling(counts, threshold = 50)
+  result_high <- TSENAT:::.tsenat_jackknife_resampling(counts, threshold = 95)
+  result_low <- TSENAT:::.tsenat_jackknife_resampling(counts, threshold = 50)
   
   # Higher threshold = fewer outliers
   expect_true(length(result_high$outlier_indices) <= length(result_low$outlier_indices))
 })
 
 # ============================================================================
-# Test .jackknife_batch
+# Test .tsenat_jackknife_batch
 # ============================================================================
 
-test_that(".jackknife_batch processes multiple genes", {
+test_that(".tsenat_jackknife_batch processes multiple genes", {
   set.seed(456)
   # Matrix: rows = samples, cols = genes
   counts <- matrix(rpois(20, lambda = 50), nrow = 5, ncol = 4)
   colnames(counts) <- paste0("Gene_", 1:4)
   
-  results <- TSENAT:::.jackknife_batch(counts, q = 1, verbose = FALSE)
+  results <- TSENAT:::.tsenat_jackknife_batch(counts, q = 1, verbose = FALSE)
   
   expect_length(results, 4)
   expect_equal(names(results), colnames(counts))
   expect_true(all(vapply(results, inherits, "tsenat_jackknife", FUN.VALUE = logical(1))))
 })
 
-test_that(".jackknife_batch returns list with correct class", {
+test_that(".tsenat_jackknife_batch returns list with correct class", {
   # rows = samples, cols = genes
   counts <- matrix(rpois(12, 50), nrow = 6, ncol = 2)
-  results <- TSENAT:::.jackknife_batch(counts, q = 1)
+  results <- TSENAT:::.tsenat_jackknife_batch(counts, q = 1)
   
   expect_s3_class(results, c("tsenat_jackknife_list", "list"))
 })
 
-test_that(".jackknife_batch handles empty input", {
+test_that(".tsenat_jackknife_batch handles empty input", {
   # Empty matrix means no columns (genes)
   counts <- matrix(numeric(0), nrow = 5, ncol = 0)
-  results <- TSENAT:::.jackknife_batch(counts)
+  results <- TSENAT:::.tsenat_jackknife_batch(counts)
   
   expect_length(results, 0)
 })

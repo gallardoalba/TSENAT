@@ -296,7 +296,7 @@ test_that("jackknife_isoform_switching_s4 completes in reasonable time", {
   )
   
   # Create analysis and compute diversity
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
   
   # Add sample metadata (required for jackknife)
   sample_metadata <- S4Vectors::DataFrame(
@@ -350,7 +350,7 @@ test_that("detect_q_gene_interactions_s4 completes efficiently", {
   )
   
   # Create analysis and compute diversity for multiple q-values
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
   q_vals <- c(0.5, 1.0, 1.5, 2.0)
   analysis <- calculate_diversity_s4(analysis, q = q_vals, norm = TRUE)
   
@@ -417,7 +417,7 @@ test_that("calculate_divergence_s4 completes efficiently", {
   )
   
   # Create analysis with diversity
-  analysis <- build_analysis(readcounts = counts, tx2gene = tx2gene)
+  analysis <- build_analysis_s4(readcounts = counts, tx2gene = tx2gene)
   
   # Add sample metadata (required for divergence calculation)
   sample_metadata <- S4Vectors::DataFrame(
@@ -499,7 +499,7 @@ test_that("full orchestration pipeline completes in acceptable time", {
   
   bench <- microbenchmark::microbenchmark(
     times = 1,  # Just once - full pipeline is expensive
-    build_analysis(
+    build_analysis_s4(
       readcounts = counts,
       tx2gene = tx2gene
     )
@@ -584,7 +584,7 @@ test_that("large analysis doesn't cause memory explosion", {
 #   - detect_q_gene_interactions_s4()
 #   - filter_se()
 #   - build_se()
-#   - build_analysis()
+#   - build_analysis_s4()
 #
 # If any test fails:
 #   1. Check what changed in the code

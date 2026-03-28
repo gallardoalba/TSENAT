@@ -36,7 +36,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.auto_detect_groups <- function(se) {
+.tsenat_auto_detect_groups <- function(se) {
   
   cd <- SummarizedExperiment::colData(se)
   cd_colnames <- colnames(cd)
@@ -162,7 +162,7 @@
 #'
 #' @keywords internal
 #' @noRd
-.detect_pair_ids <- function(se) {
+.tsenat_detect_pair_ids <- function(se) {
   
   cd <- SummarizedExperiment::colData(se)
   sample_names <- colnames(se)

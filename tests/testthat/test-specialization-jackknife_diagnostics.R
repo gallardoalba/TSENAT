@@ -1011,130 +1011,130 @@ test_that("Block jackknife results are visualizable", {
 context("Jackknife Helper Functions: Modular Unit Tests")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 1: .jackknife_validate_params()
+# Test Suite 1: .tsenat_jackknife_validate_params()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_validate_params rejects q <= 0", {
+test_that(".tsenat_jackknife_validate_params rejects q <= 0", {
   # Negative q
   expect_error(
-    TSENAT:::.jackknife_validate_params(q = -1, threshold = 75),
+    TSENAT:::.tsenat_jackknife_validate_params(q = -1, threshold = 75),
     "q.*must be positive"
   )
   
   # Zero q
   expect_error(
-    TSENAT:::.jackknife_validate_params(q = 0, threshold = 75),
+    TSENAT:::.tsenat_jackknife_validate_params(q = 0, threshold = 75),
     "q.*must be positive"
   )
 })
 
-test_that(".jackknife_validate_params accepts valid q values", {
+test_that(".tsenat_jackknife_validate_params accepts valid q values", {
   # Should not error for valid q values
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = 0.5, threshold = 75))
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 75))
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = 2, threshold = 75))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = 0.5, threshold = 75))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = 1, threshold = 75))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = 2, threshold = 75))
 })
 
-test_that(".jackknife_validate_params accepts vector of q values", {
+test_that(".tsenat_jackknife_validate_params accepts vector of q values", {
   # Vector of q values should be accepted
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = c(0.5, 1, 1.5, 2), threshold = 75))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = c(0.5, 1, 1.5, 2), threshold = 75))
 })
 
-test_that(".jackknife_validate_params rejects invalid threshold", {
+test_that(".tsenat_jackknife_validate_params rejects invalid threshold", {
   # Negative threshold
   expect_error(
-    TSENAT:::.jackknife_validate_params(q = 1, threshold = -1),
+    TSENAT:::.tsenat_jackknife_validate_params(q = 1, threshold = -1),
     "threshold.*between 0 and 100"
   )
   
   # Threshold > 100
   expect_error(
-    TSENAT:::.jackknife_validate_params(q = 1, threshold = 101),
+    TSENAT:::.tsenat_jackknife_validate_params(q = 1, threshold = 101),
     "threshold.*between 0 and 100"
   )
 })
 
-test_that(".jackknife_validate_params accepts valid threshold values", {
+test_that(".tsenat_jackknife_validate_params accepts valid threshold values", {
   # Boundary values
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 0))
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 50))
-  expect_no_error(TSENAT:::.jackknife_validate_params(q = 1, threshold = 100))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = 1, threshold = 0))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = 1, threshold = 50))
+  expect_no_error(TSENAT:::.tsenat_jackknife_validate_params(q = 1, threshold = 100))
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 2: .jackknife_get_nthreads()
+# Test Suite 2: .tsenat_jackknife_get_nthreads()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_get_nthreads returns positive integer", {
-  result <- TSENAT:::.jackknife_get_nthreads(NULL)
+test_that(".tsenat_jackknife_get_nthreads returns positive integer", {
+  result <- TSENAT:::.tsenat_jackknife_get_nthreads(NULL)
   expect_true(is.numeric(result))
   expect_true(result >= 1)
 })
 
-test_that(".jackknife_get_nthreads respects explicit nthreads=1", {
-  result <- TSENAT:::.jackknife_get_nthreads(nthreads = 1)
+test_that(".tsenat_jackknife_get_nthreads respects explicit nthreads=1", {
+  result <- TSENAT:::.tsenat_jackknife_get_nthreads(nthreads = 1)
   expect_equal(result, 1)
 })
 
-test_that(".jackknife_get_nthreads respects explicit nthreads > 1", {
-  result <- TSENAT:::.jackknife_get_nthreads(nthreads = 4)
+test_that(".tsenat_jackknife_get_nthreads respects explicit nthreads > 1", {
+  result <- TSENAT:::.tsenat_jackknife_get_nthreads(nthreads = 4)
   expect_equal(result, 4)
 })
 
-test_that(".jackknife_get_nthreads auto-detects cores when NULL", {
-  result <- TSENAT:::.jackknife_get_nthreads(NULL)
+test_that(".tsenat_jackknife_get_nthreads auto-detects cores when NULL", {
+  result <- TSENAT:::.tsenat_jackknife_get_nthreads(NULL)
   max_cores <- parallel::detectCores()
   expect_true(result <= max_cores)
   expect_true(result >= 1)
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 3: .jackknife_compute_estimates()
+# Test Suite 3: .tsenat_jackknife_compute_estimates()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_compute_estimates returns numeric vector", {
+test_that(".tsenat_jackknife_compute_estimates returns numeric vector", {
   p <- c(0.25, 0.25, 0.25, 0.25)
-  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
+  result <- TSENAT:::.tsenat_jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
   
   expect_true(is.numeric(result))
   expect_length(result, 4)
 })
 
-test_that(".jackknife_compute_estimates handles q=1 (Shannon)", {
+test_that(".tsenat_jackknife_compute_estimates handles q=1 (Shannon)", {
   # Balanced distribution
   p <- c(0.25, 0.25, 0.25, 0.25)
-  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
+  result <- TSENAT:::.tsenat_jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
   
   # All should be valid numbers
   expect_true(all(is.finite(result)))
   expect_true(all(result > 0))
 })
 
-test_that(".jackknife_compute_estimates handles q != 1 (Tsallis)", {
+test_that(".tsenat_jackknife_compute_estimates handles q != 1 (Tsallis)", {
   # Balanced distribution
   p <- c(0.25, 0.25, 0.25, 0.25)
-  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 2, log_base = 2, n = 4)
+  result <- TSENAT:::.tsenat_jackknife_compute_estimates(p = p, q = 2, log_base = 2, n = 4)
   
   # All should be valid numbers
   expect_true(all(is.finite(result)))
   expect_true(all(result >= 0))
 })
 
-test_that(".jackknife_compute_estimates handles skewed distribution", {
+test_that(".tsenat_jackknife_compute_estimates handles skewed distribution", {
   # Heavily skewed - first transcript dominates
   p <- c(0.7, 0.15, 0.1, 0.05)
-  result <- TSENAT:::.jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
+  result <- TSENAT:::.tsenat_jackknife_compute_estimates(p = p, q = 1, log_base = 2, n = 4)
   
   # Removing the dominant transcript should increase entropy
   # (because remaining distribution becomes more even)
   expect_true(result[1] > mean(result[-1]))
 })
 
-test_that(".jackknife_compute_estimates handles different log bases", {
+test_that(".tsenat_jackknife_compute_estimates handles different log bases", {
   p <- c(0.25, 0.25, 0.25, 0.25)
   
-  result_base2 <- TSENAT:::.jackknife_compute_estimates(p, q = 1, log_base = 2, n = 4)
-  result_base10 <- TSENAT:::.jackknife_compute_estimates(p, q = 1, log_base = 10, n = 4)
+  result_base2 <- TSENAT:::.tsenat_jackknife_compute_estimates(p, q = 1, log_base = 2, n = 4)
+  result_base10 <- TSENAT:::.tsenat_jackknife_compute_estimates(p, q = 1, log_base = 10, n = 4)
   
   # Results should differ due to different log base
   expect_false(isTRUE(all.equal(result_base2, result_base10)))
@@ -1144,14 +1144,14 @@ test_that(".jackknife_compute_estimates handles different log bases", {
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 4: .jackknife_calculate_influence_and_outliers()
+# Test Suite 4: .tsenat_jackknife_calculate_influence_and_outliers()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_calculate_influence_and_outliers returns correct structure", {
+test_that(".tsenat_jackknife_calculate_influence_and_outliers returns correct structure", {
   jackknife_ests <- c(2.0, 2.1, 1.95, 2.05, 1.98)
   estimate <- 2.0
   
-  result <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+  result <- TSENAT:::.tsenat_jackknife_calculate_influence_and_outliers(
     jackknife_estimates = jackknife_ests,
     estimate = estimate,
     threshold = 75,
@@ -1169,11 +1169,11 @@ test_that(".jackknife_calculate_influence_and_outliers returns correct structure
   expect_true("outlier_cutoff_value" %in% names(result))
 })
 
-test_that(".jackknife_calculate_influence_and_outliers computes influence correctly", {
+test_that(".tsenat_jackknife_calculate_influence_and_outliers computes influence correctly", {
   jackknife_ests <- c(1.0, 3.0, 2.0, 2.5, 1.5)
   estimate <- 2.0
   
-  result <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+  result <- TSENAT:::.tsenat_jackknife_calculate_influence_and_outliers(
     jackknife_estimates = jackknife_ests,
     estimate = estimate,
     threshold = 75,
@@ -1187,11 +1187,11 @@ test_that(".jackknife_calculate_influence_and_outliers computes influence correc
   expect_equal(result$influence, expected_influence)
 })
 
-test_that(".jackknife_calculate_influence_and_outliers respects threshold", {
+test_that(".tsenat_jackknife_calculate_influence_and_outliers respects threshold", {
   jackknife_ests <- c(1.0, 3.0, 2.0, 2.5, 1.5)
   estimate <- 2.0
   
-  result_high <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+  result_high <- TSENAT:::.tsenat_jackknife_calculate_influence_and_outliers(
     jackknife_estimates = jackknife_ests,
     estimate = estimate,
     threshold = 90,
@@ -1200,7 +1200,7 @@ test_that(".jackknife_calculate_influence_and_outliers respects threshold", {
     norm = FALSE
   )
   
-  result_low <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+  result_low <- TSENAT:::.tsenat_jackknife_calculate_influence_and_outliers(
     jackknife_estimates = jackknife_ests,
     estimate = estimate,
     threshold = 50,
@@ -1213,12 +1213,12 @@ test_that(".jackknife_calculate_influence_and_outliers respects threshold", {
   expect_true(length(result_low$outlier_indices) >= length(result_high$outlier_indices))
 })
 
-test_that(".jackknife_calculate_influence_and_outliers computes SE correctly", {
+test_that(".tsenat_jackknife_calculate_influence_and_outliers computes SE correctly", {
   jackknife_ests <- c(1.9, 2.0, 2.1, 2.05, 1.95)  # Small variance
   estimate <- 2.0
   n <- 5
   
-  result <- TSENAT:::.jackknife_calculate_influence_and_outliers(
+  result <- TSENAT:::.tsenat_jackknife_calculate_influence_and_outliers(
     jackknife_estimates = jackknife_ests,
     estimate = estimate,
     threshold = 75,
@@ -1237,13 +1237,13 @@ test_that(".jackknife_calculate_influence_and_outliers computes SE correctly", {
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 5: .jackknife_process_vector_core()
+# Test Suite 5: .tsenat_jackknife_process_vector_core()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_process_vector_core returns tsenat_jackknife object", {
+test_that(".tsenat_jackknife_process_vector_core returns tsenat_jackknife object", {
   counts <- c(100, 80, 60, 40, 20)
   
-  result <- TSENAT:::.jackknife_process_vector_core(
+  result <- TSENAT:::.tsenat_jackknife_process_vector_core(
     x = counts,
     q = 1,
     norm = FALSE,
@@ -1257,11 +1257,11 @@ test_that(".jackknife_process_vector_core returns tsenat_jackknife object", {
   expect_is(result, "tsenat_jackknife")
 })
 
-test_that(".jackknife_process_vector_core rejects < 2 transcripts", {
+test_that(".tsenat_jackknife_process_vector_core rejects < 2 transcripts", {
   single_count <- c(100)
   
   expect_error(
-    TSENAT:::.jackknife_process_vector_core(
+    TSENAT:::.tsenat_jackknife_process_vector_core(
       x = single_count,
       q = 1,
       norm = FALSE,
@@ -1273,10 +1273,10 @@ test_that(".jackknife_process_vector_core rejects < 2 transcripts", {
   )
 })
 
-test_that(".jackknife_process_vector_core handles normalization", {
+test_that(".tsenat_jackknife_process_vector_core handles normalization", {
   counts <- c(100, 80, 60, 40, 20)
   
-  result_norm <- TSENAT:::.jackknife_process_vector_core(
+  result_norm <- TSENAT:::.tsenat_jackknife_process_vector_core(
     x = counts,
     q = 1,
     norm = TRUE,
@@ -1285,7 +1285,7 @@ test_that(".jackknife_process_vector_core handles normalization", {
     threshold = 75
   )
   
-  result_unnorm <- TSENAT:::.jackknife_process_vector_core(
+  result_unnorm <- TSENAT:::.tsenat_jackknife_process_vector_core(
     x = counts,
     q = 1,
     norm = FALSE,
@@ -1302,11 +1302,11 @@ test_that(".jackknife_process_vector_core handles normalization", {
   expect_false(abs(result_norm$estimate - result_unnorm$estimate) < 1e-6)
 })
 
-test_that(".jackknife_process_vector_core handles pseudocount", {
+test_that(".tsenat_jackknife_process_vector_core handles pseudocount", {
   counts <- c(100, 0, 60, 40, 20)
   
   # With pseudocount, should not error
-  result <- TSENAT:::.jackknife_process_vector_core(
+  result <- TSENAT:::.tsenat_jackknife_process_vector_core(
     x = counts,
     q = 1,
     norm = FALSE,
@@ -1320,10 +1320,10 @@ test_that(".jackknife_process_vector_core handles pseudocount", {
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 6: .jackknife_process_matrix()
+# Test Suite 6: .tsenat_jackknife_process_matrix()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_process_matrix returns list with correct class", {
+test_that(".tsenat_jackknife_process_matrix returns list with correct class", {
   counts_mat <- matrix(
     c(100, 80, 60, 40, 20, 150, 100, 50, 30, 10),
     nrow = 2,
@@ -1331,7 +1331,7 @@ test_that(".jackknife_process_matrix returns list with correct class", {
     dimnames = list(c("Gene1", "Gene2"), NULL)
   )
   
-  result <- TSENAT:::.jackknife_process_matrix(
+  result <- TSENAT:::.tsenat_jackknife_process_matrix(
     x = counts_mat,
     q = 1,
     norm = FALSE,
@@ -1345,7 +1345,7 @@ test_that(".jackknife_process_matrix returns list with correct class", {
   expect_equal(length(result), 2)
 })
 
-test_that(".jackknife_process_matrix processes each row independently", {
+test_that(".tsenat_jackknife_process_matrix processes each row independently", {
   counts_mat <- matrix(
     c(100, 80, 60, 40, 20, 150, 100, 50, 30, 10),
     nrow = 2,
@@ -1353,7 +1353,7 @@ test_that(".jackknife_process_matrix processes each row independently", {
     dimnames = list(c("Gene1", "Gene2"), NULL)
   )
   
-  result <- TSENAT:::.jackknife_process_matrix(
+  result <- TSENAT:::.tsenat_jackknife_process_matrix(
     x = counts_mat,
     q = 1,
     norm = FALSE,
@@ -1371,7 +1371,7 @@ test_that(".jackknife_process_matrix processes each row independently", {
   expect_false(abs(result[[1]]$estimate - result[[2]]$estimate) < 1e-6)
 })
 
-test_that(".jackknife_process_matrix preserves row names", {
+test_that(".tsenat_jackknife_process_matrix preserves row names", {
   counts_mat <- matrix(
     c(100, 80, 60, 40, 20, 150, 100, 50, 30, 10),
     nrow = 2,
@@ -1379,7 +1379,7 @@ test_that(".jackknife_process_matrix preserves row names", {
     dimnames = list(c("GeneA", "GeneB"), NULL)
   )
   
-  result <- TSENAT:::.jackknife_process_matrix(
+  result <- TSENAT:::.tsenat_jackknife_process_matrix(
     x = counts_mat,
     q = 1,
     norm = FALSE,
@@ -1393,58 +1393,58 @@ test_that(".jackknife_process_matrix preserves row names", {
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 7: .jackknife_warn_on_q_parameters()
+# Test Suite 7: .tsenat_jackknife_warn_on_q_parameters()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_warn_on_q_parameters warns on low total count", {
+test_that(".tsenat_jackknife_warn_on_q_parameters warns on low total count", {
   counts <- c(1, 1, 1, 1, 1)  # Total = 5, below 10
   
   expect_warning(
-    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
+    TSENAT:::.tsenat_jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
     "Total count"
   )
 })
 
-test_that(".jackknife_warn_on_q_parameters does not warn on normal count", {
+test_that(".tsenat_jackknife_warn_on_q_parameters does not warn on normal count", {
   counts <- c(100, 80, 60, 40, 20)  # Total = 300
   
   expect_no_warning(
-    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE)
+    TSENAT:::.tsenat_jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE)
   )
 })
 
-test_that(".jackknife_warn_on_q_parameters mentions paper citations", {
+test_that(".tsenat_jackknife_warn_on_q_parameters mentions paper citations", {
   counts <- c(1, 1, 1, 1, 1)
   
   expect_warning(
-    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
+    TSENAT:::.tsenat_jackknife_warn_on_q_parameters(counts, q = 1, verbose = FALSE),
     "S111|S114"
   )
 })
 
-test_that(".jackknife_warn_on_q_parameters warns on low q", {
+test_that(".tsenat_jackknife_warn_on_q_parameters warns on low q", {
   counts <- c(100, 80, 60, 40, 20)
   
   expect_message(
-    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 0.3, verbose = TRUE),
+    TSENAT:::.tsenat_jackknife_warn_on_q_parameters(counts, q = 0.3, verbose = TRUE),
     "Low q"
   )
 })
 
-test_that(".jackknife_warn_on_q_parameters warns on high q", {
+test_that(".tsenat_jackknife_warn_on_q_parameters warns on high q", {
   counts <- c(100, 80, 60, 40, 20)
   
   expect_message(
-    TSENAT:::.jackknife_warn_on_q_parameters(counts, q = 5, verbose = TRUE),
+    TSENAT:::.tsenat_jackknife_warn_on_q_parameters(counts, q = 5, verbose = TRUE),
     "High q"
   )
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 8: .jackknife_format_verbose_output_matrix()
+# Test Suite 8: .tsenat_jackknife_format_verbose_output_matrix()
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_format_verbose_output_matrix returns character string", {
+test_that(".tsenat_jackknife_format_verbose_output_matrix returns character string", {
   # Create mock result structure
   results <- list(
     Gene1 = list(
@@ -1462,13 +1462,13 @@ test_that(".jackknife_format_verbose_output_matrix returns character string", {
   )
   class(results) <- c("tsenat_jackknife_list", "list")
   
-  output <- TSENAT:::.jackknife_format_verbose_output_matrix(results)
+  output <- TSENAT:::.tsenat_jackknife_format_verbose_output_matrix(results)
   
   expect_is(output, "character")
   expect_true(nchar(output) > 0)
 })
 
-test_that(".jackknife_format_verbose_output_matrix includes gene names", {
+test_that(".tsenat_jackknife_format_verbose_output_matrix includes gene names", {
   results <- list(
     GeneAlpha = list(
       estimate = 2.5,
@@ -1485,13 +1485,13 @@ test_that(".jackknife_format_verbose_output_matrix includes gene names", {
   )
   class(results) <- c("tsenat_jackknife_list", "list")
   
-  output <- TSENAT:::.jackknife_format_verbose_output_matrix(results)
+  output <- TSENAT:::.tsenat_jackknife_format_verbose_output_matrix(results)
   
   expect_match(output, "GeneAlpha")
   expect_match(output, "GeneBeta")
 })
 
-test_that(".jackknife_format_verbose_output_matrix includes statistics", {
+test_that(".tsenat_jackknife_format_verbose_output_matrix includes statistics", {
   results <- list(
     Gene1 = list(
       estimate = 2.5,
@@ -1502,7 +1502,7 @@ test_that(".jackknife_format_verbose_output_matrix includes statistics", {
   )
   class(results) <- c("tsenat_jackknife_list", "list")
   
-  output <- TSENAT:::.jackknife_format_verbose_output_matrix(results)
+  output <- TSENAT:::.tsenat_jackknife_format_verbose_output_matrix(results)
   
   expect_match(output, "2\\.5|estimate|SE|influence|outlier")
 })

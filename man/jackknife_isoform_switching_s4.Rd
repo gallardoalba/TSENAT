@@ -64,7 +64,14 @@ lm_results (default: 0.05).}
 (default: TRUE).}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+Supported formats: .tsv, .csv, .txt (for tables), or .rds (for S4 objects).
+When text format is specified, generates TWO files:
+\itemize{
+  \item \code{output_file}: Gene-level summary (one row per gene with switching statistics)
+  \item \code{output_file_transcripts.ext}: Transcript-level details (one row per transcript with p-values and FDR)
+}
+For .rds format, saves only the full analysis object.
+Default: NULL (no file output).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 

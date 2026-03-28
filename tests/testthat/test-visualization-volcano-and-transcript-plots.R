@@ -227,7 +227,7 @@ test_that(".draw_transcript_grid: grid arrangement helper", {
   expect_equal(length(plots), 3)
 })
 
-test_that(".ptt_combine_plots: combine multiple plots", {
+test_that("make_plot_for_genecombine_plots: combine multiple plots", {
   config <- list()
   skip_if_not_installed("cowplot")
   library("cowplot")
@@ -240,7 +240,7 @@ test_that(".ptt_combine_plots: combine multiple plots", {
   expect_is(p2, "ggplot")
 })
 
-test_that(".ptt_combine_grid: arrange plots in grid", {
+test_that("make_plot_for_genecombine_grid: arrange plots in grid", {
   config <- list()
   
   ncol <- 2
@@ -249,7 +249,7 @@ test_that(".ptt_combine_grid: arrange plots in grid", {
   expect_equal(ncol * nrow, 4)
 })
 
-test_that(".ptt_combine_cowplot: cowplot arrangement wrapper", {
+test_that("make_plot_for_genecombine_cowplot: cowplot arrangement wrapper", {
   config <- list()
   skip_if_not_installed("cowplot")
   library("cowplot")
@@ -333,7 +333,7 @@ test_that("plot_tsallis_violin_density_grid_s4: multi-q faceting", {
   expect_is(p, "ggplot")
 })
 
-test_that(".ptt_prepare_inputs: data preparation helper", {
+test_that("make_plot_for_geneprepare_inputs: data preparation helper", {
   config <- list()
   
   # Mock input validation
@@ -346,7 +346,7 @@ test_that(".ptt_prepare_inputs: data preparation helper", {
   expect_equal(length(inputs$gene_list), 3)
 })
 
-test_that(".ptt_select_genes_from_res: gene selection from results", {
+test_that("make_plot_for_geneselect_genes_from_res: gene selection from results", {
   config <- list()
   
   results <- data.frame(
@@ -359,7 +359,7 @@ test_that(".ptt_select_genes_from_res: gene selection from results", {
   expect_equal(top_genes, c("g1", "g2", "g3"))
 })
 
-test_that(".ptt_infer_samples_from_coldata: infer sample names from coldata", {
+test_that("make_plot_for_geneinfer_samples_from_coldata: infer sample names from coldata", {
   config <- list()
   
   col_names <- c("s1_q=0.5", "s2_q=0.5", "s1_q=1.0", "s2_q=1.0")
@@ -369,7 +369,7 @@ test_that(".ptt_infer_samples_from_coldata: infer sample names from coldata", {
   expect_equal(unique_samples, c("s1", "s2"))
 })
 
-test_that(".ptt_read_tx2gene: read tx2gene mapping", {
+test_that("make_plot_for_generead_tx2gene: read tx2gene mapping", {
   config <- list()
   
   # Mock tx2gene mapping
@@ -410,7 +410,7 @@ test_that("make_plot_for_gene: single gene plot wrapper", {
   expect_is(p, "ggplot")
 })
 
-test_that(".ptt_combine_grid: grid calculation edge case (odd number)", {
+test_that("make_plot_for_genecombine_grid: grid calculation edge case (odd number)", {
   config <- list()
   
   n_plots <- 7

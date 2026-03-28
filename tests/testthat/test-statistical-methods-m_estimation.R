@@ -810,7 +810,7 @@ test_that(".prepare_se_data_for_m_estimate preserves gene names and sample order
 # TEST: Helper Functions - LOO Influence Analysis
 # ============================================================================
 
-test_that(".perform_influence_loo_analysis identifies high-influence samples", {
+test_that(".tsenat_mest_influence_loo identifies high-influence samples", {
   library(SummarizedExperiment)
   set.seed(1004)
   
@@ -840,7 +840,7 @@ test_that(".perform_influence_loo_analysis identifies high-influence samples", {
   expect_true("Proportion_Affected" %in% colnames(result))
 })
 
-test_that(".perform_influence_loo_analysis handles identical groups", {
+test_that(".tsenat_mest_influence_loo handles identical groups", {
   library(SummarizedExperiment)
   set.seed(1005)
   
@@ -872,7 +872,7 @@ test_that(".perform_influence_loo_analysis handles identical groups", {
 # TEST: Helper Functions - Centroid Distance Computation
 # ============================================================================
 
-test_that(".compute_centroid_distances_m_est calculates euclidean distances", {
+test_that(".tsenat_mest_compute_distances calculates euclidean distances", {
   library(SummarizedExperiment)
   set.seed(1006)
   
@@ -903,7 +903,7 @@ test_that(".compute_centroid_distances_m_est calculates euclidean distances", {
   expect_true(length(unique(round(distances, 3))) >= 1)
 })
 
-test_that(".compute_centroid_distances_m_est with single-sample groups", {
+test_that(".tsenat_mest_compute_distances with single-sample groups", {
   library(SummarizedExperiment)
   set.seed(1007)
   

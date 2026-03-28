@@ -275,7 +275,7 @@ NULL
 #' Perform leave-one-out influence analysis for M-estimation
 #' @keywords internal
 #' @noRd
-.perform_influence_loo_analysis <- function(entropy_by_sample, group_assignment_unique, 
+.tsenat_mest_influence_loo <- function(entropy_by_sample, group_assignment_unique, 
                                             unique_samples, m_est_full,
                                             loss_type = "huber", scale = NULL, max_iter = 50, 
                                             tol = 1e-6, pcorr = "BH", scale_method = "mad") {
@@ -337,7 +337,7 @@ NULL
 #' Compute centroid distances for M-estimation
 #' @keywords internal
 #' @noRd
-.compute_centroid_distances_m_est <- function(entropy_by_sample, group_assignment_unique, 
+.tsenat_mest_compute_distances <- function(entropy_by_sample, group_assignment_unique, 
                                               unique_samples) {
   centroid_distances <- numeric(length(unique_samples))
   names(centroid_distances) <- unique_samples
@@ -402,7 +402,7 @@ NULL
   })
   
   # Perform leave-one-out influence analysis
-  loo_result <- .perform_influence_loo_analysis(
+  loo_result <- .tsenat_mest_influence_loo(
     entropy_by_sample, group_assignment_unique, unique_samples, m_est_full,
     loss_type = loss_type, scale = scale, max_iter = max_iter, tol = tol,
     pcorr = pcorr, scale_method = scale_method
@@ -422,7 +422,7 @@ NULL
   }
   
   # Calculate centroid distances
-  centroid_distances <- .compute_centroid_distances_m_est(
+  centroid_distances <- .tsenat_mest_compute_distances(
     entropy_by_sample, group_assignment_unique, unique_samples
   )
   

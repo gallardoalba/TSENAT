@@ -202,7 +202,7 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
     title_use <- title %||% "Tsallis-based MA plot"
     x_label_use <- x_label %||% "mean_difference"
     y_label_use <- y_label %||% "Log10 fold-change of entropy"
-    .plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label_use, y_label = y_label_use, title = title_use)
+    .tsenat_plot_ma_core(x, fc_df = NULL, sig_alpha = sig_alpha, x_label = x_label_use, y_label = y_label_use, title = title_use)
 }
 
 
@@ -216,7 +216,7 @@ plot_ma_tsallis <- function(x, sig_alpha = 0.05, x_label = NULL, y_label = NULL,
 #' This is an internal helper used by `plot_ma_tsallis()`.
 #' It is documented here for developers but is not exported.
 #' @noRd
-.plot_ma_core <- function(x,
+.tsenat_plot_ma_core <- function(x,
                           fc_df = NULL,
                           diff_res = NULL,
                           sig_alpha = 0.05,
@@ -820,14 +820,14 @@ plot_volcano_ma_grid <- function(
 
 ## Internal helpers for `plot_top_transcripts` refactor
 ## Create per-gene plot and combine multiple gene plots into final output
-.ptt_make_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1.0) {
+make_plot_for_genemake_plot_for_gene <- function(gene_single, mapping, counts, samples, top_n, agg_fun, pseudocount, agg_label_unique, fill_limits = NULL, font_scale = 1.0) {
     require_pkgs(c("ggplot2", "tidyr"))
-    built <- .ptt_build_tx_long(gene_single, mapping, counts, samples, NULL)
-    df_summary <- .ptt_aggregate_df_long(built$df_long, agg_fun, pseudocount)
-    .ptt_build_plot_from_summary(df_summary, agg_label_unique, fill_limits, font_scale = font_scale)
+    built <- make_plot_for_genebuild_tx_long(gene_single, mapping, counts, samples, NULL)
+    df_summary <- make_plot_for_geneaggregate_df_long(built$df_long, agg_fun, pseudocount)
+    make_plot_for_genebuild_plot_from_summary(df_summary, agg_label_unique, fill_limits, font_scale = font_scale)
 }
 
-.ptt_combine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
+make_plot_for_genecombine_plots <- function(plots, output_file = NULL, agg_label_unique = NULL) {
     require_pkgs(c("ggplot2"))
     # Allow callers to pass a single character second argument as the
     # `agg_label_unique` for convenience (legacy test call patterns).
@@ -836,16 +836,16 @@ plot_volcano_ma_grid <- function(
         output_file <- NULL
     }
     if (requireNamespace("patchwork", quietly = TRUE)) {
-        .ptt_combine_patchwork(plots, agg_label_unique)
+        make_plot_for_genecombine_patchwork(plots, agg_label_unique)
     } else if (requireNamespace("cowplot", quietly = TRUE)) {
-        .ptt_combine_cowplot(plots, output_file = output_file, agg_label_unique = agg_label_unique)
+        make_plot_for_genecombine_cowplot(plots, output_file = output_file, agg_label_unique = agg_label_unique)
     } else {
-        .ptt_combine_grid(plots, output_file = output_file, agg_label_unique = agg_label_unique)
+        make_plot_for_genecombine_grid(plots, output_file = output_file, agg_label_unique = agg_label_unique)
     }
 }
 
 ## Prepare and validate inputs for `plot_top_transcripts`
-.ptt_prepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
+make_plot_for_geneprepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
     # handle selecting genes from `res` is left to caller; this function focuses
     # on normalizing counts, samples and tx2gene mapping and preparing agg functions
     if (inherits(counts, "SummarizedExperiment")) {
@@ -937,7 +937,7 @@ plot_volcano_ma_grid <- function(
 
 # Helpers for plot_top_transcripts internals
 
-.ptt_select_genes_from_res <- function(res, top_n) {
+make_plot_for_geneselect_genes_from_res <- function(res, top_n) {
     if (is.null(res)) {
         stop("Either 'gene' or 'res' must be provided")
     }
@@ -961,7 +961,7 @@ plot_volcano_ma_grid <- function(
     head(genes_sel, top_n)
 }
 
-.ptt_infer_samples_from_coldata <- function(coldata, counts, condition_col) {
+make_plot_for_geneinfer_samples_from_coldata <- function(coldata, counts, condition_col) {
     if (is.character(coldata) && length(coldata) == 1) {
         if (!file.exists(coldata)) {
             stop("coldata file not found: ", coldata)
@@ -991,7 +991,7 @@ plot_volcano_ma_grid <- function(
     }
 }
 
-.ptt_read_tx2gene <- function(tx2gene) {
+make_plot_for_generead_tx2gene <- function(tx2gene) {
     if (is.null(tx2gene)) {
         stop("`tx2gene` must be provided as a file path or data.frame (or include mapping in metadata of provided SummarizedExperiment)")
     }
@@ -1011,7 +1011,7 @@ plot_volcano_ma_grid <- function(
     mapping
 }
 
-.ptt_make_agg <- function(metric = c("median", "mean", "variance", "iqr")) {
+make_plot_for_genemake_agg <- function(metric = c("median", "mean", "variance", "iqr")) {
     metric_choice <- match.arg(metric)
     agg_fun <- switch(metric_choice, median = function(x) stats::median(x, na.rm = TRUE),
         mean = function(x) base::mean(x, na.rm = TRUE), variance = function(x) {
@@ -1029,7 +1029,7 @@ plot_volcano_ma_grid <- function(
     list(metric_choice = metric_choice, agg_fun = agg_fun, agg_label_unique = agg_label_unique)
 }
 
-.ptt_build_tx_long <- function(gene_single, mapping, counts, samples, top_n) {
+make_plot_for_genebuild_tx_long <- function(gene_single, mapping, counts, samples, top_n) {
     txs <- mapping$Transcript[mapping$Gen == gene_single]
     txs <- intersect(txs, rownames(counts))
     if (length(txs) == 0) {
@@ -1046,14 +1046,14 @@ plot_volcano_ma_grid <- function(
     list(df_long = df_long, txs = txs)
 }
 
-.ptt_aggregate_df_long <- function(df_long, agg_fun, pseudocount) {
+make_plot_for_geneaggregate_df_long <- function(df_long, agg_fun, pseudocount) {
     df_summary <- stats::aggregate(expr ~ tx + group, data = df_long, FUN = agg_fun)
     df_summary$log2expr <- log2(df_summary$expr + pseudocount)
     df_summary$tx <- factor(df_summary$tx, levels = unique(df_summary$tx))
     df_summary
 }
 
-.ptt_build_plot_from_summary <- function(df_summary, agg_label_unique, fill_limits = NULL, 
+make_plot_for_genebuild_plot_from_summary <- function(df_summary, agg_label_unique, fill_limits = NULL, 
                                         font_scale = 1.0) {
     # Calculate font sizes proportionally to output dimensions
     # Reference: 12x8 inches (96 sq in) uses font_base=11
@@ -1098,7 +1098,7 @@ plot_volcano_ma_grid <- function(
     p
 }
 
-.ptt_combine_patchwork <- function(plots, agg_label_unique) {
+make_plot_for_genecombine_patchwork <- function(plots, agg_label_unique) {
     # Use 2 columns (2 genes per row) with controlled spacing between rows
     n_cols <- 2
     n_rows <- ceiling(length(plots) / n_cols)
@@ -1163,7 +1163,7 @@ plot_volcano_ma_grid <- function(
     combined
 }
 
-.ptt_combine_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
+make_plot_for_genecombine_cowplot <- function(plots, output_file = NULL, agg_label_unique) {
     p_for_legend <- plots[[1]] + ggplot2::theme(legend.position = "bottom")
     legend <- cowplot::get_legend(p_for_legend)
     plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
@@ -1188,7 +1188,7 @@ plot_volcano_ma_grid <- function(
     result_plot
 }
 
-.ptt_combine_grid <- function(plots, output_file = NULL, agg_label_unique) {
+make_plot_for_genecombine_grid <- function(plots, output_file = NULL, agg_label_unique) {
     plots_nolegend <- lapply(plots, function(pp) pp + ggplot2::theme(legend.position = "none"))
     grobs <- lapply(plots_nolegend, ggplot2::ggplotGrob)
     g_full <- ggplot2::ggplotGrob(plots[[1]])
