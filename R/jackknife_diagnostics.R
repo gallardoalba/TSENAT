@@ -8,8 +8,8 @@
 
 #' @noRd
 .jackknife_validate_params <- function(q, threshold) {
-  if (!is.numeric(q) || any(q <= 0)) {
-    stop("'q' must be positive numeric value(s)")
+  if (!is.numeric(q) || any(q < 0)) {
+    stop("'q' must be non-negative numeric value(s) (q >= 0)")
   }
   if (!is.numeric(threshold) || threshold < 0 || threshold > 100) {
     stop("'threshold' must be between 0 and 100")

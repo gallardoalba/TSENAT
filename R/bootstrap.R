@@ -18,8 +18,8 @@
   if (!is.numeric(x) || any(x < 0, na.rm = TRUE)) {
     stop("x must be a vector of non-negative numeric values.")
   }
-  if (!is.numeric(q) || any(q <= 0)) {
-    stop("q must be positive numeric value(s).")
+  if (!is.numeric(q) || any(q < 0)) {
+    stop("q must be non-negative numeric value(s) (q >= 0).")
   }
   if (!is.numeric(nboot) || nboot < 1) {
     stop("nboot must be a numeric value >= 1.")

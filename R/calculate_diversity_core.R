@@ -162,7 +162,7 @@
 #' @noRd
 .bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
     bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
-    bootstrap_include_diagnostics, verbose) {
+    bootstrap_include_diagnostics, verbose, seed = NULL) {
     
     bootstrap_ci_results <- NULL
     
@@ -198,7 +198,8 @@
     bootstrap_ci_results <- .calculate_tsallis_entropy_bootstrap(
         x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
         ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
-        nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics)
+        nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
+        seed = seed)
     
     if (verbose) message("  [OK] Bootstrap CIs computed")
     
@@ -570,7 +571,7 @@
     verbose = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
-    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE) {
+    bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, seed = NULL) {
     
     # Store original input and validate parameters
     original_x <- x
@@ -595,7 +596,7 @@
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
-        bootstrap_include_diagnostics, verbose)
+        bootstrap_include_diagnostics, verbose, seed)
     
     # Prepare output structure
     gene_names <- .extract_gene_names(original_x, genes, result)

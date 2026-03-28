@@ -38,8 +38,8 @@
 #' @param metadata \code{list} or \code{NULL}. Additional metadata. Default: NULL.
 #' @param bootstrap \code{logical}. Compute bootstrap confidence intervals. Default: FALSE.
 #'   If not specified, reads from \code{@config$bootstrap} if available.
-#' @param bootstrap_nboot \code{numeric} or \code{NULL}. Number of bootstrap iterations. Default: NULL.
-#'   If NULL, reads from \code{@config$bootstrap_nboot} if available.
+#' @param nboot \code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
+#'   If NULL, reads from \code{@config$nboot} if available.
 #' @param bootstrap_method \code{character}. Bootstrap method: "percentile" or others. Default: "percentile".
 #'   If NULL, reads from \code{@config$bootstrap_method} if available.
 #' @param bootstrap_ci \code{numeric}. Bootstrap confidence interval level (0-1). Default: 0.95.
@@ -154,8 +154,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
                                    verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
                                    min_valid_frac = NULL, shrinkage = NULL, genes = NULL,
                                    effective_length = NULL, metadata = NULL, bootstrap = NULL,
-                                   bootstrap_nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL,
-                                   bootstrap_include_diagnostics = NULL, output_file = NULL, ...) {
+                                   nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL,
+                                   bootstrap_include_diagnostics = NULL, seed = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -194,6 +194,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   shrinkage <- resolve_slot_param(shrinkage, analysis@config, "shrinkage", "none")
   bootstrap_method <- resolve_slot_param(bootstrap_method, analysis@config, "bootstrap_method", "percentile")
   bootstrap_ci <- resolve_slot_param(bootstrap_ci, analysis@config, "bootstrap_ci", 0.95)
+  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
   
   # TPM parameter (special case: logical, default FALSE, check config if FALSE)
   if (!tpm && "tpm" %in% names(analysis@config)) {
@@ -203,7 +204,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   # Optional parameters (may be NULL)
   genes <- resolve_slot_param(genes, analysis@config, "genes", NULL)
   effective_length <- resolve_slot_param(effective_length, analysis@config, "effective_length", NULL)
-  bootstrap_nboot <- resolve_slot_param(bootstrap_nboot, analysis@config, "bootstrap_nboot", NULL)
+  nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
   bootstrap_include_diagnostics <- resolve_slot_param(bootstrap_include_diagnostics, analysis@config, "bootstrap_include_diagnostics", TRUE)
   metadata <- resolve_slot_param(metadata, analysis@config, "metadata", NULL)
   norm_method <- resolve_slot_param(norm_method, analysis@config, "norm_method", NULL)
@@ -237,10 +238,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     min_valid_frac = min_valid_frac,
     shrinkage = shrinkage,
     bootstrap = bootstrap,
-    bootstrap_nboot = bootstrap_nboot,
+    bootstrap_nboot = nboot,
     bootstrap_method = bootstrap_method,
     bootstrap_ci = bootstrap_ci,
-    bootstrap_include_diagnostics = bootstrap_include_diagnostics
+    bootstrap_include_diagnostics = bootstrap_include_diagnostics,
+    seed = seed
   )
   
   # Add optional parameters if provided
@@ -1177,6 +1179,10 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 #'   If NULL, reads from \code{@config$method} if available.
 #' @param bootstrap \code{logical}. Whether to compute bootstrap confidence intervals. Default: FALSE.
 #'   If not specified, reads from \code{@config$bootstrap} if available.
+#' @param nboot \code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
+#'   If NULL, reads from \code{@config$nboot} if available.
+#' @param seed \code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
+#'   If NULL, reads from \code{@config$seed} if available.
 #' @param ... Additional arguments passed to the base divergence function.
 #'
 #' @return Modified TSENATAnalysis with divergence metrics in @divergence_results
@@ -1209,7 +1215,8 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 #' @importFrom utils write.table
 calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads = NULL, 
                                     output_file = NULL, control_group = NULL, paired = FALSE, 
-                                    method = NULL, bootstrap = FALSE, ...) {
+                                    method = NULL, bootstrap = FALSE, nboot = NULL, 
+                                    seed = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -1229,6 +1236,8 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   control_group <- resolve_slot_param(control_group, analysis@config, "control_group", NULL)
   method <- resolve_slot_param(method, analysis@config, "method", "percentile")
   nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  nboot <- resolve_slot_param(nboot, analysis@config, "nboot", NULL)
+  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
   
   # Replace q=0 with q=0.01 for practical approximation
   # (q=0 divergence always returns 0, which is mathematically correct but uninformative)
@@ -1293,6 +1302,13 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
   # Use isTRUE to safely handle NA values
   if (isTRUE(bootstrap)) {
     args$bootstrap <- bootstrap
+    # Add bootstrap parameters if bootstrap is TRUE
+    if (!is.null(nboot)) {
+      args$nboot <- nboot
+    }
+    if (!is.null(seed)) {
+      args$seed <- seed
+    }
   }
   
   # Merge with additional args (which may override values)
