@@ -201,7 +201,8 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 
 #' @export
 save_analysis_output <- function(data, output_file, object = NULL, verbose = FALSE,
-                                  create_dir = TRUE, func_name = "wrapper_function") {
+                                  create_dir = TRUE, func_name = "wrapper_function",
+                                  width = NULL, height = NULL) {
   
   if (is.null(output_file)) {
     return(invisible(FALSE))
@@ -265,12 +266,16 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
         return(invisible(FALSE))
       }
       
+      # Use provided dimensions or defaults
+      plot_width <- if (is.null(width)) 8 else width
+      plot_height <- if (is.null(height)) 6 else height
+      
       if (ext == ".pdf") {
-        grDevices::pdf(output_file, width = 8, height = 6)
+        grDevices::pdf(output_file, width = plot_width, height = plot_height)
         print(data)
         grDevices::dev.off()
       } else {
-        grDevices::png(output_file, width = 8, height = 6, units = "in", res = 300)
+        grDevices::png(output_file, width = plot_width, height = plot_height, units = "in", res = 300)
         print(data)
         grDevices::dev.off()
       }

@@ -5,8 +5,24 @@ entropy_cpp <- function(p, q = 1.0, normalize = TRUE, log_base = 2.718281828) {
     .Call(`_TSENAT_entropy_cpp`, p, q, normalize, log_base)
 }
 
+hill_number_cpp <- function(p, q = 1.0, log_base = 2.718281828) {
+    .Call(`_TSENAT_hill_number_cpp`, p, q, log_base)
+}
+
 jackknife_resampling_cpp <- function(counts, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0) {
     .Call(`_TSENAT_jackknife_resampling_cpp`, counts, q, normalize, log_base, pseudocount)
+}
+
+bootstrap_compute_cpp <- function(x, nboot = 1000L, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0) {
+    .Call(`_TSENAT_bootstrap_compute_cpp`, x, nboot, q, normalize, log_base, pseudocount)
+}
+
+bootstrap_entropy_vec_cpp <- function(boot_samples, q = 1.0, normalize = TRUE, log_base = 2.718281828) {
+    .Call(`_TSENAT_bootstrap_entropy_vec_cpp`, boot_samples, q, normalize, log_base)
+}
+
+block_bootstrap_compute_cpp <- function(x, nboot = 1000L, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0) {
+    .Call(`_TSENAT_block_bootstrap_compute_cpp`, x, nboot, q, normalize, log_base, pseudocount)
 }
 
 #' @keywords internal

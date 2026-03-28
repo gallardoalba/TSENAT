@@ -10,7 +10,9 @@ save_analysis_output(
   object = NULL,
   verbose = FALSE,
   create_dir = TRUE,
-  func_name = "wrapper_function"
+  func_name = "wrapper_function",
+  width = NULL,
+  height = NULL
 )
 }
 \arguments{

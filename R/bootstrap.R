@@ -172,13 +172,202 @@
   structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
 }
 
+# ============================================================================
+# C++ BOOTSTRAP WRAPPERS (Optimized resampling)
+# ============================================================================
+
+#' @keywords internal
+#' @export
+# C++ wrapper for Hill numbers (effective number of species)
+# Returns: scalar Hill number for given q and proportions
+hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
+  # p should be proportions (sum to 1)
+  if (!is.numeric(p)) {
+    stop("p must be numeric")
+  }
+  
+  .Call("_TSENAT_hill_number_cpp", PACKAGE = "TSENAT",
+        as.numeric(p), as.numeric(q), as.numeric(log_base))
+}
+
+#' @keywords internal
+#' @export
+# C++ wrapper for block bootstrap (paired samples) with vector pseudocount support
+# Returns: numeric vector of nboot bootstrap entropy estimates for paired data
+block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
+                                                nboot = 1000L, log_base = exp(1), 
+                                                pseudocount = 0.0) {
+  # Input must have even length (pairs)
+  if (length(x) %% 2 != 0) {
+    stop("For paired bootstrap, input vector must have even length")
+  }
+  
+  # Handle vector pseudocount
+  if (length(pseudocount) > 1) {
+    if (length(pseudocount) != length(x)) {
+      stop("pseudocount must have length 1 or equal to x length")
+    }
+    # For bootstrap, apply vector pseudocount once upfront
+    x_adj <- x + pseudocount
+    pseudocount_scalar <- 0.0  # Already applied above
+  } else {
+    x_adj <- x
+    pseudocount_scalar <- pseudocount
+  }
+  
+  .Call("_TSENAT_block_bootstrap_compute_cpp", PACKAGE = "TSENAT",
+        as.numeric(x_adj), as.integer(nboot), as.numeric(q), 
+        as.logical(normalize), as.numeric(log_base), as.numeric(pseudocount_scalar))
+}
+
+# ============================================================================
+# C++ BOOTSTRAP WRAPPERS (Optimized resampling)
+# ============================================================================
+
+#' @keywords internal
+#' @export
+# C++ wrapper for standard bootstrap with vector pseudocount support
+bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
+                                          nboot = 1000L, log_base = exp(1), 
+                                          pseudocount = 0.0) {
+  # Handle vector pseudocount by converting to scalar (sum per-element effects)
+  if (length(pseudocount) > 1) {
+    if (length(pseudocount) != length(x)) {
+      stop("pseudocount must have length 1 or equal to x length")
+    }
+    # For bootstrap, apply vector pseudocount once upfront
+    x_adj <- x + pseudocount
+    pseudocount_scalar <- 0.0  # Already applied above
+  } else {
+    x_adj <- x
+    pseudocount_scalar <- pseudocount
+  }
+  
+  .Call("_TSENAT_bootstrap_compute_cpp", PACKAGE = "TSENAT",
+        as.numeric(x_adj), as.integer(nboot), as.numeric(q), 
+        as.logical(normalize), as.numeric(log_base), as.numeric(pseudocount_scalar))
+}
+
+#' @keywords internal
+#' @export
+# C++ wrapper for vectorized entropy computation across bootstrap samples
+# Takes pre-computed bootstrap_samples matrix from rmultinom()
+bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1.0, 
+                                              normalize = TRUE, log_base = exp(1)) {
+  .Call("_TSENAT_bootstrap_entropy_vec_cpp", PACKAGE = "TSENAT",
+        as.matrix(bootstrap_samples), as.numeric(q), 
+        as.logical(normalize), as.numeric(log_base))
+}
+
+# ============================================================================
+# OPTIMIZED BOOTSTRAP RESAMPLE (C++ accelerated when available)
+# ============================================================================
+
+#' Enhanced .bootstrap_resample with C++ acceleration
+#'
+#' @noRd
+.bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
+  # Check if C++ version is available
+  rcpp_available <- tryCatch({
+    .initialize_rcpp_check()  # Checks if Rcpp is compiled and available
+  }, error = function(e) FALSE)
+  
+  # Dispatch to C++ block bootstrap for paired samples
+  if (paired) {
+    if (length(x) %% 2 != 0) {
+      stop("For paired=TRUE, data must have even length (n_pairs * 2)")
+    }
+    
+    if (!isTRUE(rcpp_available)) {
+      # Fall back to R implementation
+      return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
+          log_base = log_base, pseudocount = pseudocount, what = what))
+    }
+    
+    # C++ fast path for block bootstrap
+    tryCatch({
+      if (what == "S") {
+        # For entropy
+        bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
+          x = x, q = q, normalize = norm, nboot = nboot,
+          log_base = log_base, pseudocount = pseudocount
+        )
+      } else if (what == "D") {
+        # For Hill numbers: call entropy then convert
+        bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
+          x = x, q = q, normalize = FALSE, nboot = nboot,
+          log_base = log_base, pseudocount = pseudocount
+        )
+        # Hill number conversion
+        if (abs(q - 1.0) < 1e-6) {
+          bootstrap_dist <- exp(bootstrap_dist)
+        } else {
+          bootstrap_dist <- (1 - (q - 1.0) * bootstrap_dist) ^ (1 / (1 - q))
+        }
+      } else {
+        stop("Invalid 'what' parameter: must be 'S' (entropy) or 'D' (Hill numbers)")
+      }
+      
+      return(bootstrap_dist)
+    }, error = function(e) {
+      # If C++ fails, fall back to pure R version
+      warning("C++ block bootstrap failed: ", e$message, ". Falling back to R version.")
+      return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
+          log_base = log_base, pseudocount = pseudocount, what = what))
+    })
+  }
+  
+  # Standard (independent) bootstrap resampling
+  if (!isTRUE(rcpp_available)) {
+    # Fall back to R implementation
+    return(.bootstrap_resample(x, q = q, norm = norm, nboot = nboot,
+        log_base = log_base, pseudocount = pseudocount, what = what, paired = paired))
+  }
+  
+  # C++ fast path: Use optimized bootstrap computation
+  tryCatch({
+    # Note: what="S" for entropy, what="D" for Hill numbers
+    # .calculate_tsallis_entropy handles both internally
+    if (what == "S") {
+      # For entropy: what parameter affects normalization
+      bootstrap_dist <- bootstrap_compute_cpp_wrapper(
+        x = x, q = q, normalize = norm, nboot = nboot,
+        log_base = log_base, pseudocount = pseudocount
+      )
+    } else if (what == "D") {
+      # For Hill numbers: call entropy then convert
+      bootstrap_dist <- bootstrap_compute_cpp_wrapper(
+        x = x, q = q, normalize = FALSE, nboot = nboot,
+        log_base = log_base, pseudocount = pseudocount
+      )
+      # Hill number = exp(H_q) for q=1, D_q(1-q) for other q
+      if (abs(q - 1.0) < 1e-6) {
+        bootstrap_dist <- exp(bootstrap_dist)
+      } else {
+        bootstrap_dist <- (1 - (q - 1.0) * bootstrap_dist) ^ (1 / (1 - q))
+      }
+    } else {
+      stop("Invalid 'what' parameter: must be 'S' (entropy) or 'D' (Hill numbers)")
+    }
+    
+    return(bootstrap_dist)
+  }, error = function(e) {
+    # If C++ fails, fall back to pure R version
+    warning("C++ bootstrap failed: ", e$message, ". Falling back to R version.")
+    return(.bootstrap_resample(x, q = q, norm = norm, nboot = nboot,
+        log_base = log_base, pseudocount = pseudocount, what = what, paired = paired))
+  })
+}
+
 #' Internal: Compute bootstrap CI
 
 #' @noRd
-.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired) {
+.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired = FALSE) {
   point_est <- .calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
     log_base = log_base, pseudocount = pseudocount)
-  bootstrap_dist <- .bootstrap_resample(x, q = q, norm = norm, nboot = nboot,
+  
+  # Use optimized bootstrap resampling
+  bootstrap_dist <- .bootstrap_resample_optimized(x, q = q, norm = norm, nboot = nboot,
     log_base = log_base, pseudocount = pseudocount, what = what, paired = paired)
   
   if (method == "percentile") {
@@ -197,7 +386,7 @@
 #' Internal: Compute bootstrap diagnostics and JOB
 
 #' @noRd
-.bootstrap_compute_diag <- function(point_est, bootstrap_dist, use_job, paired, x, q, norm,
+.bootstrap_compute_diag <- function(point_est, bootstrap_dist, use_job, paired = FALSE, x, q, norm,
                                     nboot, ci, method, log_base, pseudocount, what, accel_factor = NA_real_) {
   diagnostics <- list(
     effective_sample_size = .compute_effective_n(bootstrap_dist),
