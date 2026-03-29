@@ -2864,7 +2864,7 @@ effect_sizes_divergence_s4 <- function(
     ...) {
 
   # Extract verbose parameter if not provided
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+  verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
 
   # =========================================================================
   # INPUT VALIDATION
@@ -2874,58 +2874,60 @@ effect_sizes_divergence_s4 <- function(
   }
 
   # Check for required results
-  if (length(analysis@divergence_results) == 0) {
+  if (length(divRes(analysis)) == 0) {
     stop("Divergence results required. Run calculate_divergence_s4() first.",
          call. = FALSE)
   }
 
-  if (is.null(analysis@lm_results) || length(analysis@lm_results) == 0) {
+  if (is.null(lmRes(analysis)) || length(lmRes(analysis)) == 0) {
     stop("LM results required. Run calculate_lm_interaction_s4() first.",
          call. = FALSE)
   }
 
   # =========================================================================
   # PARAMETER EXTRACTION using utility functions
-  significance_threshold <- resolve_slot_param(significance_threshold, analysis@config, 
+  significance_threshold <- resolve_slot_param(significance_threshold, getConfig(analysis), 
                                                "significance_threshold", 0.05)
-  enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, analysis@config, 
+  enrich_per_q_pattern <- resolve_slot_param(enrich_per_q_pattern, getConfig(analysis), 
                                              "enrich_per_q_pattern", TRUE)
-  verbose <- resolve_slot_param(verbose, analysis@config, "verbose", FALSE)
+  verbose <- resolve_slot_param(verbose, getConfig(analysis), "verbose", FALSE)
 
   # =========================================================================
   # EXTRACT RESULTS FROM ANALYSIS OBJECT
   # =========================================================================
   
   # Extract divergence SE
-  divergence_se <- if ("divergence_se" %in% names(analysis@divergence_results)) {
-    analysis@divergence_results$divergence_se
-  } else if (is(analysis@divergence_results, "SummarizedExperiment")) {
-    analysis@divergence_results
-  } else if (is.list(analysis@divergence_results) && length(analysis@divergence_results) > 0) {
+  analysis_divres <- divRes(analysis)
+  divergence_se <- if (is(analysis_divres, "SummarizedExperiment")) {
+    analysis_divres
+  } else if (is.list(analysis_divres) && "divergence_se" %in% names(analysis_divres)) {
+    analysis_divres$divergence_se
+  } else if (is.list(analysis_divres) && length(analysis_divres) > 0) {
     # Fallback: check if first element is SE
-    analysis@divergence_results[[1]]
+    analysis_divres[[1]]
   } else {
     NULL
   }
 
   if (is.null(divergence_se) || !is(divergence_se, "SummarizedExperiment")) {
-    stop("Could not extract divergence SummarizedExperiment from analysis@divergence_results",
+    stop("Could not extract divergence SummarizedExperiment from divergence results",
          call. = FALSE)
   }
 
   # Extract LM results
-  lm_res <- if ("lm_interaction" %in% names(analysis@lm_results)) {
-    analysis@lm_results$lm_interaction
-  } else if (is.data.frame(analysis@lm_results)) {
-    analysis@lm_results
-  } else if (is.list(analysis@lm_results) && length(analysis@lm_results) > 0) {
-    analysis@lm_results[[1]]
+  analysis_lmres <- lmRes(analysis)
+  lm_res <- if (is.data.frame(analysis_lmres)) {
+    analysis_lmres
+  } else if (is.list(analysis_lmres) && "lm_interaction" %in% names(analysis_lmres)) {
+    analysis_lmres$lm_interaction
+  } else if (is.list(analysis_lmres) && length(analysis_lmres) > 0) {
+    analysis_lmres[[1]]
   } else {
     NULL
   }
 
   if (is.null(lm_res) || !is.data.frame(lm_res)) {
-    stop("Could not extract LM results data.frame from analysis@lm_results",
+    stop("Could not extract LM results data.frame from LM results",
          call. = FALSE)
   }
 
@@ -2957,7 +2959,8 @@ effect_sizes_divergence_s4 <- function(
     gene_names_added <- FALSE
     
     # Try tx2gene mapping first
-    tx2gene <- metadata(analysis@se)$tx2gene
+    base_se <- getSE(analysis)
+    tx2gene <- metadata(base_se)$tx2gene
     if (!is.null(tx2gene) && nrow(tx2gene) > 0 && ncol(tx2gene) >= 2) {
       # Find transcript and gene columns by name
       col_names <- tolower(colnames(tx2gene))
@@ -3044,20 +3047,25 @@ effect_sizes_divergence_s4 <- function(
   # STORE RESULTS IN ANALYSIS OBJECT
   # =========================================================================
   # Store result list in metadata (not in dedicated slot since none exists)
-  if (is.null(analysis@metadata)) {
+  current_meta <- getMeta(analysis)
+  if (is.null(current_meta)) {
     analysis@metadata <- list()
   }
 
   analysis@metadata$effect_sizes_divergence <- result
 
   # Track function call
+  current_calls <- getMeta(analysis, "function_calls")
+  if (is.null(current_calls)) {
+    current_calls <- character(0)
+  }
   analysis@metadata$function_calls <- c(
-    analysis@metadata$function_calls,
+    current_calls,
     paste0("effect_sizes_divergence[threshold=", significance_threshold, "]")
   )
 
   if (verbose) {
-    message("[effect_sizes_divergence_s4] Results stored in @metadata$effect_sizes_divergence")
+    message("[effect_sizes_divergence_s4] Results stored in metadata")
     if (!is.null(result$interaction_results)) {
       message("  - Effect size results: ", nrow(result$interaction_results), " genes")
     }

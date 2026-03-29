@@ -47,37 +47,33 @@
   }
   
   # Load visualization package dependencies
+  # Load packages (no-op if already in memory from another source)
+  # These use quietly=TRUE to suppress duplicate namespace warnings
+  requireNamespace("ggplot2", quietly = TRUE)
+  requireNamespace("cowplot", quietly = TRUE)
+  requireNamespace("pheatmap", quietly = TRUE)
+  requireNamespace("dplyr", quietly = TRUE)
+  requireNamespace("tidyr", quietly = TRUE)
+  requireNamespace("rlang", quietly = TRUE)
+  
+  # Mark as loaded to avoid repeated checks
+  # Handle potential locked binding (can occur during package initialization)
   tryCatch(
     {
-      # Load packages (no-op if already in memory from another source)
-      # These use quietly=TRUE to suppress duplicate namespace warnings
-      requireNamespace("ggplot2", quietly = TRUE)
-      requireNamespace("cowplot", quietly = TRUE)
-      requireNamespace("pheatmap", quietly = TRUE)
-      requireNamespace("dplyr", quietly = TRUE)
-      requireNamespace("tidyr", quietly = TRUE)
-      requireNamespace("rlang", quietly = TRUE)
-      
-      # Mark as loaded to avoid repeated checks
-      # Handle potential locked binding (can occur during package initialization)
+      assign(".viz_loaded", TRUE, envir = ns)
+    },
+    error = function(e) {
+      # If binding is locked, try to unlock it first
       tryCatch(
         {
+          unlockBinding(".viz_loaded", ns)
           assign(".viz_loaded", TRUE, envir = ns)
+          lockBinding(".viz_loaded", ns)
         },
-        error = function(e) {
-          # If binding is locked, try to unlock it first
-          tryCatch(
-            {
-              unlockBinding(".viz_loaded", ns)
-              assign(".viz_loaded", TRUE, envir = ns)
-              lockBinding(".viz_loaded", ns)
-            },
-            error = function(e2) {
-              # If unlock/relock fails, just warn and continue
-              # The flag not being set won't break functionality
-              warning("Could not update lazy-loading flag, but packages are loaded")
-            }
-          )
+        error = function(e2) {
+          # If unlock/relock fails, just warn and continue
+          # The flag not being set won't break functionality
+          warning("Could not update lazy-loading flag, but packages are loaded")
         }
       )
       

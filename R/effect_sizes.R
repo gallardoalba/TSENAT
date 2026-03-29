@@ -691,7 +691,8 @@
   }
   
   # Check if input can be converted to numeric
-  divs_numeric <- suppressWarnings(as.numeric(per_q_divs))
+  # as.numeric() naturally produces NAs for non-numeric values—no wrapping needed
+  divs_numeric <- as.numeric(per_q_divs)
   
   if (all(is.na(divs_numeric))) {
     return(NA_character_)
@@ -727,16 +728,13 @@
     }
     
     # Extract q values from names and classify by ratio
-    q_values <- tryCatch({
-      # Try to extract numeric part after "q_" prefix  
-      # Handle both "q_0.01" and "q_0_01" formats
-      name_parts <- sub("q_", "", names(per_q_divs))
-      # Replace underscore with dot for parsing
-      name_parts_normalized <- gsub("_", ".", name_parts)
-      suppressWarnings(as.numeric(name_parts_normalized))
-    }, error = function(e) {
-      rep(NA_real_, length(per_q_divs))
-    })
+    # Try to extract numeric part after "q_" prefix  
+    # Handle both "q_0.01" and "q_0_01" formats
+    name_parts <- sub("q_", "", names(per_q_divs))
+    # Replace underscore with dot for parsing
+    name_parts_normalized <- gsub("_", ".", name_parts)
+    # as.numeric() naturally produces NAs for non-numeric values
+    q_values <- as.numeric(name_parts_normalized)
     
     # Check if all q values parsed successfully (all non-NA)
     if (all(is.na(q_values))) {

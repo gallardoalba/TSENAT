@@ -219,11 +219,8 @@
     
     extract_q <- function(name) {
         if (grepl("_q=", name)) {
-            tryCatch({
-                as.numeric(gsub(".*_q=", "", name))
-            }, error = function(e) {
-                NA_real_
-            })
+            # as.numeric() naturally produces NA for non-numeric strings
+            as.numeric(gsub(".*_q=", "", name))
         } else {
             NA_real_
         }

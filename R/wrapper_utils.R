@@ -272,11 +272,11 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
       
       if (ext == ".pdf") {
         grDevices::pdf(output_file, width = plot_width, height = plot_height)
-        print(data)
+        message(data)
         grDevices::dev.off()
       } else {
         grDevices::png(output_file, width = plot_width, height = plot_height, units = "in", res = 300)
-        print(data)
+        message(data)
         grDevices::dev.off()
       }
       
