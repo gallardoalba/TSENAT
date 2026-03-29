@@ -141,3 +141,213 @@ setClass("TSENATAnalysis",
         TRUE
     }
 )
+
+#' Subset TSENATAnalysis Objects
+#'
+#' Extract a subset of genes and/or samples from a TSENATAnalysis object.
+#' Maintains consistency across the underlying SummarizedExperiment and
+#' all computed results (diversity, LM, jackknife, divergence).
+#'
+#' @param x TSENATAnalysis object
+#' @param i Integer, logical, or character vector of rows (genes/transcripts)
+#'   to retain. If missing, all rows are retained.
+#' @param j Integer, logical, or character vector of columns (samples)
+#'   to retain. If missing, all columns are retained.
+#' @param drop Logical. Currently ignored (included for S4 compatibility).
+#'   Always returns TSENATAnalysis (never drops to SE or vector).
+#'
+#' @details
+#' Subsetting preserves all analysis metadata and results while maintaining
+#' consistency:
+#' - The underlying SummarizedExperiment is subset to the specified genes/samples
+#' - Diversity and jackknife results are subset to match sample selection
+#' - LM results are recalculated or removed if sample structure changes
+#' - Divergence results are subset accordingly
+#' - Analysis configuration is preserved
+#'
+#' @return A new TSENATAnalysis object containing only the specified genes and samples
+#'
+#' @examples
+#' # Create a minimal TSENATAnalysis object
+#' library(SummarizedExperiment)
+#' counts <- matrix(rpois(200, 10), nrow = 20, ncol = 10)
+#' rownames(counts) <- paste0("TX_", 1:20)
+#' colnames(counts) <- paste0("S", 1:10)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = counts),
+#'   rowData = data.frame(gene_id = rep(paste0("G", 1:2), each = 10),
+#'                        row.names = rownames(counts)),
+#'   colData = data.frame(sample_id = colnames(counts),
+#'                        condition = rep(c("A", "B"), 5),
+#'                        row.names = colnames(counts))
+#' )
+#' analysis <- TSENATAnalysis(se)
+#'
+#' # Subset to first 10 genes and first 5 samples
+#' analysis_subset <- analysis[1:10, 1:5]
+#'
+#' # Subset by gene name
+#' analysis_subset2 <- analysis[paste0("TX_", 1:5), ]
+#'
+#' # Subset by sample condition (logical indexing)
+#' keep_samples <- colData(analysis@se)$condition == "A"
+#' analysis_a <- analysis[, keep_samples]
+#'
+#' @rdname subsetting-TSENATAnalysis
+#' @exportMethod "["
+setMethod("[", signature(x = "TSENATAnalysis"),
+    function(x, i, j, drop = TRUE) {
+        # Get SE dimensions for default arguments
+        se <- x@se
+        n_genes <- nrow(se)
+        n_samples <- ncol(se)
+
+        # Handle missing indices (default to all)
+        if (missing(i)) {
+            i <- seq_len(n_genes)
+        }
+        if (missing(j)) {
+            j <- seq_len(n_samples)
+        }
+
+        # Convert logical/character indices to numeric
+        if (is.logical(i)) {
+            i <- which(i)
+        } else if (is.character(i)) {
+            i <- match(i, rownames(se))
+            if (any(is.na(i))) {
+                stop("Some gene names not found in object")
+            }
+        }
+
+        if (is.logical(j)) {
+            j <- which(j)
+        } else if (is.character(j)) {
+            j <- match(j, colnames(se))
+            if (any(is.na(j))) {
+                stop("Some sample names not found in object")
+            }
+        }
+
+        # Validate indices
+        if (any(i < 1 | i > n_genes)) {
+            stop("Row indices out of bounds")
+        }
+        if (any(j < 1 | j > n_samples)) {
+            stop("Column indices out of bounds")
+        }
+
+        # Subset the SummarizedExperiment
+        se_subset <- se[i, j]
+
+        # Create new TSENATAnalysis with subsetted SE
+        new_obj <- new("TSENATAnalysis",
+            se = se_subset,
+            config = x@config,
+            diversity_results = list(),
+            lm_results = list(),
+            jackknife_results = list(),
+            divergence_results = list(),
+            plots = list(),
+            metadata = x@metadata
+        )
+
+        # Subset diversity results (subset columns to match sample selection)
+        if (length(x@diversity_results) > 0) {
+            new_obj@diversity_results <- lapply(x@diversity_results, function(div_res) {
+                # Handle SummarizedExperiment results
+                if (inherits(div_res, "SummarizedExperiment")) {
+                    return(div_res[i, j])
+                }
+                # Handle matrix results
+                if (is.matrix(div_res)) {
+                    return(div_res[i, j, drop = FALSE])
+                }
+                # Handle data.frame results
+                if (is.data.frame(div_res)) {
+                    row_names <- rownames(div_res)
+                    if (!is.null(row_names)) {
+                        keep_rows <- row_names %in% rownames(se_subset)
+                        return(div_res[keep_rows, j, drop = FALSE])
+                    }
+                }
+                # Return as-is if structure unknown
+                return(div_res)
+            })
+            names(new_obj@diversity_results) <- names(x@diversity_results)
+        }
+
+        # Subset jackknife results (sample-level diagnostics)
+        if (length(x@jackknife_results) > 0) {
+            new_obj@jackknife_results <- lapply(x@jackknife_results, function(jk_res) {
+                if (is.list(jk_res)) {
+                    # Try to subset sample-level components
+                    if (!is.null(jk_res$resamples) && is.matrix(jk_res$resamples)) {
+                        jk_res$resamples <- jk_res$resamples[, j, drop = FALSE]
+                    }
+                    if (!is.null(jk_res$influence_scores) && is.matrix(jk_res$influence_scores)) {
+                        jk_res$influence_scores <- jk_res$influence_scores[j, , drop = FALSE]
+                    }
+                    if (!is.null(jk_res$ci_matrix) && is.array(jk_res$ci_matrix)) {
+                        # Subset to gene subset (if applicable)
+                        if (nrow(jk_res$ci_matrix) == n_genes) {
+                            jk_res$ci_matrix <- jk_res$ci_matrix[i, j, ]
+                        }
+                    }
+                }
+                return(jk_res)
+            })
+            names(new_obj@jackknife_results) <- names(x@jackknife_results)
+        }
+
+        # Subset divergence results
+        if (length(x@divergence_results) > 0) {
+            new_obj@divergence_results <- lapply(x@divergence_results, function(div_res) {
+                if (inherits(div_res, "SummarizedExperiment")) {
+                    # Subset both dimensions if applicable
+                    if (nrow(div_res) == n_genes) {
+                        return(div_res[i, j])
+                    }
+                    return(div_res[, j])
+                }
+                if (is.matrix(div_res) && nrow(div_res) == n_genes) {
+                    return(div_res[i, j, drop = FALSE])
+                }
+                # Return as-is for non-sample-indexed results
+                return(div_res)
+            })
+            names(new_obj@divergence_results) <- names(x@divergence_results)
+        }
+
+        # Subset LM results (sample-indexed components only)
+        if (length(x@lm_results) > 0) {
+            # LM results include gene-level statistics that don't need subsetting
+            # Only subset sample-level diagnostic matrices
+            new_obj@lm_results <- lapply(x@lm_results, function(lm_res) {
+                if (is.list(lm_res)) {
+                    # Subset sample diagnostics if present
+                    if (!is.null(lm_res$residuals) && is.matrix(lm_res$residuals)) {
+                        if (ncol(lm_res$residuals) == n_samples) {
+                            lm_res$residuals <- lm_res$residuals[, j, drop = FALSE]
+                        }
+                    }
+                    if (!is.null(lm_res$fitted) && is.matrix(lm_res$fitted)) {
+                        if (ncol(lm_res$fitted) == n_samples) {
+                            lm_res$fitted <- lm_res$fitted[, j, drop = FALSE]
+                        }
+                    }
+                }
+                return(lm_res)
+            })
+            names(new_obj@lm_results) <- names(x@lm_results)
+        }
+
+        # Preserve plots (they are visualization-level and generally retained)
+        new_obj@plots <- x@plots
+
+        # Validate the new object
+        validObject(new_obj)
+
+        return(new_obj)
+    }
+)

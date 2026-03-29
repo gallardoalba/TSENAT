@@ -36,14 +36,10 @@ Use \code{lmResults(analysis)} to get all components, or specify component type
 for targeted extraction.
 }
 \examples{
-# With an analysis object that has lm results
-library(SummarizedExperiment)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-  colData = data.frame(sample_id = paste0("S", 1:10))
-)
-analysis <- TSENATAnalysis(se)
-all_lm <- lmResults(analysis)  # Returns empty list until analysis runs
+# Create a complete analysis object with all required results
+analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10)
+# Access LM results
+all_lm <- lmResults(analysis)
 
 }
 \seealso{

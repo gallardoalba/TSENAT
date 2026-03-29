@@ -28,14 +28,10 @@ Use \code{diversity(analysis)} to get all results as a list, or
 \code{diversity(analysis, q=1.0)} for a specific q-value.
 }
 \examples{
-# Create minimal SummarizedExperiment
-library(SummarizedExperiment)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-  colData = data.frame(sample_id = paste0("S", 1:10))
-)
-analysis <- TSENATAnalysis(se)
-diversity_list <- diversity(analysis)  # Empty until analysis runs
+# Create a complete analysis object with all required results
+analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10)
+# Access diversity results
+diversity_list <- diversity(analysis)
 
 }
 \seealso{

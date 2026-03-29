@@ -46,12 +46,22 @@ Requires diversity results to exist first. Will error if
 }
 }
 \examples{
-# Create test analysis with diversity pre-computed
-analysis <- TSENAT:::.create_test_analysis(
-  n_genes = 8,
-  n_samples_per_group = 20,
-  q_values = c(0.5, 1.0, 1.5)
+# Load example data (matching TSENAT.Rmd workflow)
+data(readcounts)
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
 )
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+# Build analysis from vignette data
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+
+# Compute diversity first (required for jackknife)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 
 # Run jackknife estimation
 analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)

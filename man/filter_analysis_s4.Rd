@@ -54,20 +54,18 @@ have been computed, those results will be based on unfiltered data and
 may not align with the filtered SE dimensions.
 }
 \examples{
-library(SummarizedExperiment)
-set.seed(42)
-tx_counts <- matrix(sample(10:100, 400, replace = TRUE), nrow = 40, ncol = 10,
-  dimnames = list(paste0("TX", 1:40), paste0("Sample", 1:10)))
-se <- SummarizedExperiment(assays = list(counts = tx_counts))
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = paste0("TX", 1:40), Gen = rep(paste0("GENE", 1:10), each = 4))
-# Add sample metadata with pair column required by filter_analysis_s4
-SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  sample_id = paste0("Sample", 1:10),
-  sample_type = rep(c("Control", "Treatment"), 5),
-  pair = rep(1:5, 2),
-  row.names = colnames(se))
-analysis <- TSENATAnalysis(se)
+# Create test analysis and filter
+data(readcounts)
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
+)
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 analysis <- filter_analysis_s4(analysis, stringency = "medium")
 
 }

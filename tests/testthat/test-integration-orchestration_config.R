@@ -76,7 +76,7 @@ make_test_se <- function() {
   # Ensure colData has required fields
   if (!"condition" %in% colnames(SummarizedExperiment::colData(se))) {
     coldata <- S4Vectors::DataFrame(
-      condition = rep(c("control", "treatment"), length.out = ncol(se)),
+      condition = rep(c("normal", "tumor"), length.out = ncol(se)),
       row.names = colnames(se)
     )
     SummarizedExperiment::colData(se) <- coldata

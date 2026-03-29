@@ -463,7 +463,7 @@ NULL
                                       readcounts = NULL,
                                       samples = NULL,
                                       coldata = NULL,
-                                      condition_col = "sample_type",
+                                      condition_col = "condition",
                                       tx2gene = NULL,
                                       res = NULL,
                                       top_n = NULL,

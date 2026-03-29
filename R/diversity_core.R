@@ -191,12 +191,11 @@
     }
     
     # For multi-q case, replicate counts for each q value
-    # Only replicate if we have rows and multiple q values
-    if (nrow(result_assay) > 0 && length(output_structure$col_ids) > ncol(counts_assay)) {
-        n_q <- length(output_structure$col_ids) / ncol(counts_assay)
-        if (n_q == as.integer(n_q)) {
-            counts_assay <- do.call(cbind, replicate(as.integer(n_q), counts_assay, simplify = FALSE))
-        }
+    # Check independently of result_assay rows to handle empty result case
+    n_q <- length(output_structure$col_ids) / ncol(counts_assay)
+    if (is.finite(n_q) && n_q == as.integer(n_q) && n_q > 1) {
+        # Need to replicate counts_assay for each q value
+        counts_assay <- do.call(cbind, replicate(as.integer(n_q), counts_assay, simplify = FALSE))
     }
     
     # Set assay dimnames to match rowData/colData rownames

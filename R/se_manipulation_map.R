@@ -217,13 +217,18 @@
         rownames(SummarizedExperiment::colData(ts_se)) <- assay_cols
     }
     
-    # NOW set sample_type and pairing column after colData expansion is complete
+    # NOW set condition and pairing column after colData expansion is complete
     # This ensures all rows have these values properly assigned
     col_data_final <- SummarizedExperiment::colData(ts_se)
     # OPTIMIZATION: Use .strip_q_suffix() helper
     sample_names_final <- .strip_q_suffix(rownames(col_data_final))
     
-    # Map each expanded row's sample name to its condition and pairing
+    # Map each expanded row's sample name to its condition using the actual column name from metadata
+    # Preserve the original condition column name from the input metadata (column 2)
+    condition_col_name <- colnames(coldata)[condition_col_idx]
+    col_data_final[[condition_col_name]] <- unname(st_map[sample_names_final])
+    
+    # Also create standardized sample_type column for backward compatibility
     col_data_final$sample_type <- unname(st_map[sample_names_final])
     
     # Always create standardized sample_base column with pairing identifiers
@@ -374,7 +379,7 @@
 # Internal small helper: prepare long-format tsallis data from a
 # SummarizedExperiment
 
-.prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "sample_type") {
+.prepare_tsallis_long <- function(se, assay_name = "diversity", condition_col = "condition") {
     # OPTIMIZATION: Use .check_required_packages() helper
     .check_required_packages(c("tidyr", "dplyr", "SummarizedExperiment"))
 

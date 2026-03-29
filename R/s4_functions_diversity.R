@@ -132,17 +132,22 @@
 #' }
 #'
 #' @examples
-#' # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
-#' analysis <- TSENAT:::.create_test_analysis(
-#'   n_genes = 8,
-#'   n_samples_per_group = 20,
-#'   control_lambda = 40,
-#'   treatment_lambda = 150,
-#'   q_values = c(0.5, 1.0, 1.5),
-#'   verbose = FALSE
+#' # Load vignette data and build analysis
+#' data(readcounts)
+#' metadata_df <- read.table(
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
 #' )
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' readcounts <- as.matrix(salmon_dataset)
+#' mode(readcounts) <- 'numeric'
 #' 
-#' # Diversity results are pre-computed by factory
+#' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' 
+#' # Compute diversity and access results
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
 #' head(diversity(analysis, q = 1.0))
 #' 
 #' # Apply z-score normalization

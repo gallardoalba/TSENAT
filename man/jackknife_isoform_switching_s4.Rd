@@ -107,24 +107,14 @@ This wrapper automatically:
 }
 }
 \examples{
-library(SummarizedExperiment)
-set.seed(42)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
-    dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-  colData = data.frame(sample_id = paste0("Sample", 1:10),
-    sample_type = rep(c("A", "B"), 5),
-    pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
-)
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = paste0("TX", 1:20),
-  Gene = rep(paste0("GENE", 1:10), each = 2))
-analysis <- TSENATAnalysis(se)
-# Basic usage with single q-value
-# analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
-# results <- jackknife_isoform_switching_s4(
-#   analysis, condition_col = "sample_type", q = 1
-# )
+data(readcounts)
+metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+                          header = TRUE, sep = "\t")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+                             tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 20, n_samples = 8)
+analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
 
 }
 \seealso{

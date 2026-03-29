@@ -86,9 +86,19 @@ or bootstrap confidence interval bands.
 }
 \examples{
 # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
-analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 25,
-  q_values = seq(0.1, 3, by = 0.1), seed = 123)
-analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
+data(readcounts)
+metadata_df <- read.table(
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
+)
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- 'numeric'
+
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5), verbose = FALSE)
 p <- plot_tsallis_q_curve_s4(analysis)
 if (!is.null(p)) print(p)
 

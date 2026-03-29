@@ -74,41 +74,23 @@ This wrapper automatically:
 }
 \examples{
 # Plot 3: GAM q-curves for genes with q-by-condition interactions
-n_genes <- 4
-n_samples_per_group <- 15
-n_transcripts <- n_genes * 20
-n_samples <- 2 * n_samples_per_group
-q_vals <- seq(0.2, 2.5, by = 0.15)
-
-# Create interaction-rich test data
-control_counts <- matrix(rpois(n_transcripts * n_samples_per_group, lambda = 40),
-  nrow = n_transcripts, ncol = n_samples_per_group)
-treatment_counts <- matrix(rpois(n_transcripts * n_samples_per_group, lambda = 150),
-  nrow = n_transcripts, ncol = n_samples_per_group)
-counts <- cbind(control_counts, treatment_counts)
-counts <- pmax(counts, 30)
-rownames(counts) <- paste0("TX_", 1:n_transcripts)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
-
-se <- SummarizedExperiment::SummarizedExperiment(
-  assays = list(counts = counts),
-  colData = S4Vectors::DataFrame(
-    sample_id = colnames(counts),
-    sample_type = rep(c("control", "treatment"), each = n_samples_per_group),
-    row.names = colnames(counts)))
-
-tx2gene_df <- data.frame(
-  Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_transcripts / n_genes))
-S4Vectors::metadata(se)$tx2gene <- tx2gene_df
-
-analysis <- TSENAT::TSENATAnalysis(se = se, config = list())
-analysis <- calculate_diversity_s4(analysis, q = q_vals, verbose = FALSE, min_valid_frac = 0)
+data(readcounts)
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
+)
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,
-  condition_col = "sample_type", verbose = FALSE)
+  condition_col = "condition", verbose = FALSE)
 
 p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2,
-  condition_col = "sample_type", sig_alpha = 0.15)
+  condition_col = "condition", sig_alpha = 0.15)
 if (!is.null(p_gam)) print(p_gam)
 
 }

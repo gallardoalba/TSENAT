@@ -163,6 +163,16 @@
 #' @noRd
 .jackknife_process_matrix <- function(x, q, norm, log_base, pseudocount, threshold, 
                                       seed, verbose) {
+  # Guard against empty matrices
+  if (nrow(x) == 0) {
+    stop("Cannot compute jackknife on empty matrix (0 genes). ",
+         "All genes may have been filtered during diversity calculation. ",
+         "Try using a larger gene selection or relaxing filtering thresholds.",
+         call. = FALSE)
+  }
+  
+  # Direct processing without tryCatch: .jackknife_process_vector_core() now handles
+  # invalid estimates by returning NA result structures instead of throwing errors
   results <- lapply(seq_len(nrow(x)), function(i) {
     .jackknife_process_vector_core(x[i, ], q, norm, log_base, pseudocount, threshold, 
                                    paste0("Gene", i), verbose = FALSE)
@@ -211,6 +221,27 @@
     }
   }
   
+  # Return NA result structure if estimate is invalid
+  # This is mathematically and statistically appropriate: invalid estimates mean
+  # the gene cannot be reliably analyzed, so we return NA values instead of failing
+  if (is.na(estimate) || is.nan(estimate) || !is.finite(estimate)) {
+    warning("Gene unable to compute jackknife (diversity estimate is ", 
+            if (is.na(estimate)) "NA" else if (is.nan(estimate)) "NaN" else "Inf",
+            "). Likely cause: zero or near-zero counts. Returning NA result.", call. = FALSE)
+    return(list(
+      estimate = NA_real_, 
+      jackknife_estimates = rep(NA_real_, n),
+      influence = rep(NA_real_, n),
+      jackknife_se = NA_real_,
+      outlier_indices = integer(0),
+      outlier_threshold = threshold,
+      outlier_cutoff_value = NA_real_,
+      n_transcripts = n,
+      q = q,
+      norm = norm
+    ))
+  }
+  
   .jackknife_calculate_influence_and_outliers(jackknife_estimates, estimate, threshold, 
                                               q, n, norm)
 }
@@ -223,7 +254,8 @@
   if (abs(q - 1) < 1e-6) {
     for (i in seq_len(n)) {
       denom <- 1.0 - p[i]
-      if (denom > 1e-10) {
+      # Guard against NA/NaN in denom before using in if() statement
+      if (!is.na(denom) && !is.nan(denom) && denom > 1e-10) {
         p_minus_i <- p / denom
         p_minus_i[i] <- 0
         p_nonzero <- p_minus_i[p_minus_i > 1e-15]
@@ -235,7 +267,8 @@
   } else {
     for (i in seq_len(n)) {
       denom <- 1.0 - p[i]
-      jackknife_estimates[i] <- if (denom > 1e-10) (1.0 / (q - 1.0)) * (1.0 - sum((p / denom)^q)) / log(log_base) else NA_real_
+      # Guard against NA/NaN in denom before using in if() statement
+      jackknife_estimates[i] <- if (!is.na(denom) && !is.nan(denom) && denom > 1e-10) (1.0 / (q - 1.0)) * (1.0 - sum((p / denom)^q)) / log(log_base) else NA_real_
     }
   }
   jackknife_estimates
@@ -251,7 +284,12 @@
   jackknife_se <- sqrt(((n - 1) / n) * sum((jackknife_estimates - theta_jack_mean)^2, na.rm = TRUE))
   
   outlier_cutoff <- stats::quantile(influence, threshold / 100, na.rm = TRUE)
-  outlier_indices <- which(influence > outlier_cutoff & !is.na(influence))
+  # Guard against NA in outlier_cutoff (happens if influence is all NAs)
+  if (is.na(outlier_cutoff)) {
+    outlier_indices <- integer(0)
+  } else {
+    outlier_indices <- which(influence > outlier_cutoff & !is.na(influence))
+  }
   
   result <- list(
     estimate = estimate, jackknife_estimates = jackknife_estimates, influence = influence,

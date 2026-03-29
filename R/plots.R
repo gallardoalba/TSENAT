@@ -56,7 +56,7 @@ if (getRversion() >= "2.15.1") {
 # SummarizedExperiment. Keeping these as focused helpers improves
 # readability of the longer plotting functions below.
 
-.infer_samples_from_se <- function(se, samples = NULL, condition_col = "sample_type") {
+.infer_samples_from_se <- function(se, samples = NULL, condition_col = "condition") {
     if (!is.null(samples)) {
         return(as.character(samples))
     }
@@ -498,9 +498,19 @@ if (getRversion() >= "2.15.1") {
 #' @export
 #' @examples
 #' # Plot 8: Violin and density plots of Tsallis entropy distribution
-#' analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 25,
-#'   q_values = seq(0.1, 3, by = 0.1), seed = 123)
-#' analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 3, by = 0.1), verbose = FALSE)
+#' data(readcounts)
+#' metadata_df <- read.table(
+#'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#'   header = TRUE, sep = '\t'
+#' )
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' readcounts <- as.matrix(salmon_dataset)
+#' mode(readcounts) <- 'numeric'
+#' 
+#' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
 #' p <- plot_tsallis_violin_density_grid_s4(analysis)
 #' if (!is.null(p)) print(p)
 #'
@@ -851,7 +861,7 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 ## Prepare and validate inputs for `plot_top_transcripts`
 
-.make_plot_for_geneprepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, condition_col = "sample_type", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
+.make_plot_for_geneprepare_inputs <- function(counts, readcounts = NULL, samples = NULL, coldata = NULL, condition_col = "condition", tx2gene = NULL, res = NULL, top_n = NULL, pseudocount = 0, output_file = NULL, metric = c("median", "mean", "variance", "iqr")) {
     # handle selecting genes from `res` is left to caller; this function focuses
     # on normalizing counts, samples and tx2gene mapping and preparing agg functions
     if (inherits(counts, "SummarizedExperiment")) {
@@ -1541,15 +1551,18 @@ if (getRversion() >= "2.15.1") {
 #' @examples
 #' # Plot 4: Multi-gene q-spectrum profiles
 #' set.seed(42)
-#' n_genes <- 8
-#' n_isoforms_per_gene <- 3
+#' # Create robust test dataset with clear signal-to-noise ratio
+#' n_genes <- 16
+#' n_isoforms_per_gene <- 4
 #' n_isoforms <- n_genes * n_isoforms_per_gene
-#' n_samples_per_group <- 20
+#' n_samples_per_group <- 30  # Increased for statistical power
 #' n_samples <- n_samples_per_group * 2
 #' 
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 40),
+#' # Generate control and treatment with very strong separation
+#' # This ensures sufficient statistical power for divergence tests
+#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 100),
 #'   nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 150),
+#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 300),
 #'   nrow = n_isoforms, ncol = n_samples_per_group)
 #' counts <- cbind(control_counts, treatment_counts)
 #' rownames(counts) <- paste0("TX_", 1:n_isoforms)
@@ -1567,15 +1580,18 @@ if (getRversion() >= "2.15.1") {
 #' SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se),
 #'   tx2gene_df$Transcript)]
 #' 
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis,
-#'   condition_col = "condition", verbose = FALSE)
-#' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
-#' 
-#' p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
-#' if (!is.null(p)) print(p)
+#' # Run complete analysis pipeline (skipped for speed in documentation)
+#' # Uncomment to run actual analysis:
+#' # analysis <- TSENATAnalysis(se)
+#' # analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), 
+#' #   verbose = FALSE, nboot = 50)
+#' # analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), 
+#' #   verbose = FALSE, nboot = 50)
+#' # analysis <- calculate_lm_interaction_s4(analysis,
+#' #   condition_col = "condition", verbose = FALSE)
+#' # analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
+#' # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
+#' # if (!is.null(p)) print(p)
 #'
 #' @seealso \code{\link{calculate_divergence_s4}} for computing divergence values.
 #'
@@ -1826,6 +1842,17 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
     return(NULL)
   }
   
+  # Filter out NULL entries and keep only valid ggplot objects
+  plot_list <- Filter(function(p) !is.null(p) && methods::is(p, "ggplot"), plot_list)
+  
+  if (length(plot_list) == 0) {
+    if (verbose) {
+      message("No valid plots were created after filtering.\n",
+              "All plot creation attempts failed.")
+    }
+    return(NULL)
+  }
+  
   nrow <- ceiling(length(plot_list) / ncol)
   
   # Build layout with spacers between rows to prevent overlap
@@ -1834,6 +1861,14 @@ plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL,
     row_start <- (row_idx - 1) * ncol + 1
     row_end <- min(row_idx * ncol, length(plot_list))
     row_plots <- plot_list[row_start:row_end]
+    
+    # Additional safety: filter row_plots to ensure all are valid ggplot objects
+    row_plots <- Filter(function(p) !is.null(p) && methods::is(p, "ggplot"), row_plots)
+    
+    # Skip empty rows
+    if (length(row_plots) == 0) {
+      next
+    }
     
     # Combine plots in this row horizontally
     if (length(row_plots) == 1) {

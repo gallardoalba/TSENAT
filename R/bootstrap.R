@@ -328,86 +328,36 @@ bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1.0,
 # OPTIMIZED BOOTSTRAP RESAMPLE (C++ accelerated when available)
 # ============================================================================
 
-#' Enhanced .bootstrap_resample with C++ acceleration
+#' C++ Accelerated Bootstrap Resampling
+#'
+#' @description
+#' Optimized bootstrap resampling using C++ via Rcpp. Handles both independent
+#' and paired (block) bootstrap with entropy computation.
 #'
 #' @noRd
 .bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
-  # Check if C++ version is available
-  rcpp_available <- tryCatch({
-    .initialize_rcpp_check()  # Checks if Rcpp is compiled and available
-  }, error = function(e) FALSE)
-  
   # Dispatch to C++ block bootstrap for paired samples
   if (paired) {
     if (length(x) %% 2 != 0) {
       stop("For paired=TRUE, data must have even length (n_pairs * 2)")
     }
     
-    if (!isTRUE(rcpp_available)) {
-      # Fall back to R implementation
-      return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
-          log_base = log_base, pseudocount = pseudocount, what = what))
-    }
-    
-    # C++ fast path for block bootstrap
-    tryCatch({
-      if (what == "S") {
-        # For entropy
-        bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
-          x = x, q = q, normalize = norm, nboot = nboot,
-          log_base = log_base, pseudocount = pseudocount
-        )
-      } else if (what == "D") {
-        # For Hill numbers: call entropy then convert
-        bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
-          x = x, q = q, normalize = FALSE, nboot = nboot,
-          log_base = log_base, pseudocount = pseudocount
-        )
-        # Hill number conversion
-        if (abs(q - 1.0) < 1e-6) {
-          bootstrap_dist <- exp(bootstrap_dist)
-        } else {
-          bootstrap_dist <- (1 - (q - 1.0) * bootstrap_dist) ^ (1 / (1 - q))
-        }
-      } else {
-        stop("Invalid 'what' parameter: must be 'S' (entropy) or 'D' (Hill numbers)")
-      }
-      
-      return(bootstrap_dist)
-    }, error = function(e) {
-      # If C++ fails, fall back to pure R version
-      warning("C++ block bootstrap failed: ", e$message, ". Falling back to R version.")
-      return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
-          log_base = log_base, pseudocount = pseudocount, what = what))
-    })
-  }
-  
-  # Standard (independent) bootstrap resampling
-  if (!isTRUE(rcpp_available)) {
-    # Fall back to R implementation
-    return(.bootstrap_resample(x, q = q, norm = norm, nboot = nboot,
-        log_base = log_base, pseudocount = pseudocount, what = what, paired = paired))
-  }
-  
-  # C++ fast path: Use optimized bootstrap computation
-  tryCatch({
-    # Note: what="S" for entropy, what="D" for Hill numbers
-    # .calculate_tsallis_entropy handles both internally
+    # Block bootstrap for paired samples
     if (what == "S") {
-      # For entropy: what parameter affects normalization
-      bootstrap_dist <- bootstrap_compute_cpp_wrapper(
+      # For entropy
+      bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
         x = x, q = q, normalize = norm, nboot = nboot,
         log_base = log_base, pseudocount = pseudocount
       )
     } else if (what == "D") {
-      # For Hill numbers: call entropy then convert
-      bootstrap_dist <- bootstrap_compute_cpp_wrapper(
+      # For Hill numbers: compute entropy then convert
+      bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
         x = x, q = q, normalize = FALSE, nboot = nboot,
         log_base = log_base, pseudocount = pseudocount
       )
-      # Hill number = exp(H_q) for q=1, D_q(1-q) for other q
+      # Hill number conversion: D_q = (1 - (q-1) * H_q)^(1/(1-q))
       if (abs(q - 1.0) < 1e-6) {
-        bootstrap_dist <- exp(bootstrap_dist)
+        bootstrap_dist <- exp(bootstrap_dist)  # exp(H) for q=1
       } else {
         bootstrap_dist <- (1 - (q - 1.0) * bootstrap_dist) ^ (1 / (1 - q))
       }
@@ -416,12 +366,32 @@ bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1.0,
     }
     
     return(bootstrap_dist)
-  }, error = function(e) {
-    # If C++ fails, fall back to pure R version
-    warning("C++ bootstrap failed: ", e$message, ". Falling back to R version.")
-    return(.bootstrap_resample(x, q = q, norm = norm, nboot = nboot,
-        log_base = log_base, pseudocount = pseudocount, what = what, paired = paired))
-  })
+  }
+  
+  # Standard (independent) bootstrap resampling
+  if (what == "S") {
+    # For entropy
+    bootstrap_dist <- bootstrap_compute_cpp_wrapper(
+      x = x, q = q, normalize = norm, nboot = nboot,
+      log_base = log_base, pseudocount = pseudocount
+    )
+  } else if (what == "D") {
+    # For Hill numbers: compute entropy then convert
+    bootstrap_dist <- bootstrap_compute_cpp_wrapper(
+      x = x, q = q, normalize = FALSE, nboot = nboot,
+      log_base = log_base, pseudocount = pseudocount
+    )
+    # Hill number conversion: D_q = (1 - (q-1) * H_q)^(1/(1-q))
+    if (abs(q - 1.0) < 1e-6) {
+      bootstrap_dist <- exp(bootstrap_dist)  # exp(H) for q=1
+    } else {
+      bootstrap_dist <- (1 - (q - 1.0) * bootstrap_dist) ^ (1 / (1 - q))
+    }
+  } else {
+    stop("Invalid 'what' parameter: must be 'S' (entropy) or 'D' (Hill numbers)")
+  }
+  
+  return(bootstrap_dist)
 }
 
 #' Internal: Compute bootstrap CI
@@ -970,7 +940,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' @noRd
 .ci_from_bootstrap <- function(x, q, norm, nboot, ci, method,
                                       log_base, pseudocount, what, paired = FALSE) {
-  bootstrap_dist <- .bootstrap_resample(
+  bootstrap_dist <- .bootstrap_resample_optimized(
     x, q = q, norm = norm, nboot = nboot,
     log_base = log_base, pseudocount = pseudocount, what = what, paired = paired
   )
@@ -2090,39 +2060,6 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     }
     
     args
-}
-
-# From diversity_helpers.R: Bootstrap resampling for diversity
-.bootstrap_resample <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
-    # Dispatch to block bootstrap for paired samples (paper S112)
-    if (paired) {
-        return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
-            log_base = log_base, pseudocount = pseudocount, what = what))
-    }
-    
-    # Standard bootstrap resampling for independent samples
-    # Estimate proportions from original data
-    x_adj <- x + pseudocount
-    total <- sum(x_adj)
-    p_hat <- x_adj / total
-    n_isoforms <- length(x)
-    
-    # OPTIMIZATION (March 2026): Batch rmultinom call for 20-30% speedup
-    # Previous: nboot separate rmultinom(1, ...) calls - slow
-    # New: Single rmultinom(nboot, ...) call returns n_isoforms × nboot matrix
-    # Fully equivalent numerically but ~2x faster due to single C-level call
-    # Reference: paper C017 (Bootstrap computational efficiency)
-    
-    boot_samples <- rmultinom(nboot, size = total, prob = p_hat)  # n_isoforms × nboot matrix
-    
-    # Vectorized entropy calculation across columns
-    boot_dist <- apply(boot_samples, 2, function(boot_sample) {
-        boot_est <- .calculate_tsallis_entropy(as.numeric(boot_sample), q = q, norm = norm,
-            what = what, log_base = log_base, pseudocount = 0)
-        as.numeric(boot_est)
-    })
-    
-    return(boot_dist)
 }
 
 # ============================================================================

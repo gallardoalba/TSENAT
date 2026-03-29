@@ -27,13 +27,11 @@ corresponding to different divergence metrics. Use \code{divergence(analysis)}
 to retrieve all components or specify a component for targeted extraction.
 }
 \examples{
-library(SummarizedExperiment)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-  colData = data.frame(sample_id = paste0("S", 1:10))
-)
-analysis <- TSENATAnalysis(se)
-div <- divergence(analysis)  # Returns empty list until divergence analysis runs
+# Create a complete analysis with diversity and divergence results
+analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10,
+  include_divergence = TRUE)
+# Access divergence results
+div <- divergence(analysis)
 
 }
 \seealso{

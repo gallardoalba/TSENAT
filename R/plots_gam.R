@@ -75,7 +75,7 @@
 #' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 
-.plot_lm_interaction_gam <- function(se, lm_res, condition_col = "sample_type", genes = NULL, n_top = 6,
+.plot_lm_interaction_gam <- function(se, lm_res, condition_col = "condition", genes = NULL, n_top = 6,
     sig_alpha = 0.05, assay_name = "diversity", model_data = NULL, output_file = NULL, width = NULL, height = NULL) {
 
     require_pkgs(c("ggplot2", "mgcv", "SummarizedExperiment", "dplyr", "tidyr", "cowplot"))

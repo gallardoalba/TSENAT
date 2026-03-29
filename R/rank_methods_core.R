@@ -73,7 +73,7 @@
     entropy_col <- "entropy"
     q_col <- "q"
     gene_col <- "gene"
-    condition_col <- "condition"
+    condition_col <- "condition"  # Already extracted and named as "condition" above
   }
   
   # Validate columns exist
@@ -83,11 +83,13 @@
   
   # Handle condition_col: it must exist in the data
   if (is.null(condition_col)) {
-    # Try default "condition" column if no condition_col specified
-    if ("condition" %in% colnames(data)) {
+    # Try default "sample_type" column if no condition_col specified, fallback to "condition"
+    if ("sample_type" %in% colnames(data)) {
+      condition_col <- "sample_type"
+    } else if ("condition" %in% colnames(data)) {
       condition_col <- "condition"
     } else {
-      stop("'condition_col' must be specified or 'condition' column must exist in data. ",
+      stop("'condition_col' must be specified or 'sample_type'/'condition' column must exist in data. ",
            "This function requires Q\u00d7Condition interaction testing.", call. = FALSE)
     }
   } else if (!condition_col %in% colnames(data)) {
@@ -383,7 +385,7 @@
 #'   - Tests whether q itself influences entropy (ignoring grouping)
 #'   - Useful for: Detecting which genes show q-value dependence broadly
 #'
-#' 2. **Q * Condition Interaction** (condition_col = "sample_type" or similar):
+#' 2. **Q * Condition Interaction** (condition_col = "condition" or similar):
 #'   - H0: The q-effect does NOT differ between conditions (groups)
 #'   - Accounts for both within-q and condition differences
 #'   - Tests whether entropy's pattern across q-values DIFFERS by condition (e.g., tumor vs normal)

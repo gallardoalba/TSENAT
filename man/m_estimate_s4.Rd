@@ -100,26 +100,25 @@ unusual diversity patterns.
 }
 }
 \examples{
-library(SummarizedExperiment)
-set.seed(42)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
-    dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-  colData = data.frame(sample_id = paste0("Sample", 1:10),
-    sample_type = rep(c("A", "B"), 5),
-    pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
+# Create test analysis and compute M-estimation
+data(readcounts)
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
 )
-S4Vectors::metadata(se)$tx2gene <- data.frame(
-  Transcript = paste0("TX", 1:20),
-  Gene = rep(paste0("GENE", 1:10), each = 2))
-analysis <- TSENATAnalysis(se)
-# First compute diversity
-analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- m_estimate_s4(
   analysis,
-  condition_col = "sample_type",
+  condition_col = "condition",
   loss_type = "huber",
   verbose = FALSE
+)
 )
 
 }

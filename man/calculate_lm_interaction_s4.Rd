@@ -89,13 +89,23 @@ Parameters are resolved in priority order:
 3. Function defaults
 }
 \examples{
-# Create test data with sufficient structure for LM analysis
-# Create test analysis with diversity pre-computed
-analysis <- TSENAT:::.create_test_analysis(
-  n_genes = 8,
-  n_samples_per_group = 20,
-  q_values = c(0.5, 1.0, 1.5)
+# Load example data (matching TSENAT.Rmd workflow)
+data(readcounts)
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
 )
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+
+# Build analysis from vignette data and create small subset
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+
+# Compute diversity first (required for LM interaction analysis)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 
 # Calculate q × condition interactions (LM)
 analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)

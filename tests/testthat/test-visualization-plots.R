@@ -68,7 +68,7 @@ test_that("plot_top_transcripts renders without error for synthetic data", {
     se <- SummarizedExperiment(
         assays = list(counts = counts),
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
-        colData = S4Vectors::DataFrame(sample_type = samples)
+        colData = S4Vectors::DataFrame(condition = samples)
     )
     # Function now renders to active device (grid), returns invisible(NULL)
     # Note: suppressWarnings() used because function warns when TPM metadata unavailable
@@ -99,7 +99,7 @@ test_that("plot_top_transcripts selects genes from res when gene is NULL", {
     se <- SummarizedExperiment(
         assays = list(counts = counts),
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
-        colData = S4Vectors::DataFrame(sample_type = samples)
+        colData = S4Vectors::DataFrame(condition = samples)
     )
     # Function renders to active device, returns invisible(NULL)
     # Note: suppressWarnings() used because function warns when TPM metadata unavailable
@@ -270,7 +270,7 @@ test_that("plot_top_transcripts works on simple matrix input", {
     se <- SummarizedExperiment(
         assays = list(counts = tx_counts),
         rowData = S4Vectors::DataFrame(genes = tx2gene$Gen),
-        colData = S4Vectors::DataFrame(sample_type = samples)
+        colData = S4Vectors::DataFrame(condition = samples)
     )
     # Function renders to active device, returns invisible(NULL)
     # Note: suppressWarnings() used because function warns when TPM metadata unavailable
@@ -484,7 +484,7 @@ test_that("plot_top_transcripts writes output files for single and multiple gene
     se <- SummarizedExperiment(
         assays = list(counts = counts),
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
-        colData = S4Vectors::DataFrame(sample_type = samples)
+        colData = S4Vectors::DataFrame(condition = samples)
     )
 
     tf1 <- tempfile(fileext = ".png")
@@ -508,7 +508,7 @@ test_that("plot_top_transcripts supports metric 'iqr'", {
     se <- SummarizedExperiment(
         assays = list(counts = counts),
         rowData = S4Vectors::DataFrame(genes = tx2$Gen),
-        colData = S4Vectors::DataFrame(sample_type = samples)
+        colData = S4Vectors::DataFrame(condition = samples)
     )
     # Function renders with metric = "iqr", returns invisible(NULL)
     # Note: suppressWarnings() used because function warns when TPM metadata unavailable

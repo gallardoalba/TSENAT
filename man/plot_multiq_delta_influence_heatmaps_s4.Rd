@@ -55,14 +55,22 @@ interface compared to the base function.
 }
 \examples{
 # Plot 5: Multi-q delta influence (isoform switching) heatmaps
-analysis <- TSENAT:::.create_test_analysis(n_genes = 4, n_samples_per_group = 20,
-  q_values = c(0.5, 1, 1.5))
+data(readcounts)
+readcounts <- as.matrix(salmon_dataset)
+mode(readcounts) <- "numeric"
+metadata_df <- read.table(
+  system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t"
+)
+gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)
 analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
-  n_bootstrap = 5, verbose = FALSE)
+  n_bootstrap = 50, verbose = FALSE)
 heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)
 
 }

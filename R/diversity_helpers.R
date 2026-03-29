@@ -505,52 +505,6 @@
 #'
 
 #' @noRd
-# OPTIMIZED VERSION: Vectorized block bootstrap (30-50x faster for large nboot)
-.block_bootstrap <- function(x, q, norm, nboot, log_base, pseudocount, what) {
-  n_pairs <- length(x) / 2
-  
-  # VECTORIZATION 1: Pre-create pair index matrix instead of list loop
-  # Instead of building pair_indices_list in a loop, use matrix indexing
-  pair_indices_matrix <- rbind(
-    seq(1, by = 2, length.out = n_pairs),      # First element of each pair (odd indices: 1,3,5,...)
-    seq(2, by = 2, length.out = n_pairs)       # Second element of each pair (even indices: 2,4,6,...)
-  )
-  
-  # Preallocate bootstrap distribution
-  boot_dist <- numeric(nboot)
-  
-  # VECTORIZATION 2: Vectorized pair sampling with one sample() call instead of loop
-  # Sample pair indices once for all bootstrap replicates
-  sampled_pair_indices <- sample(seq_len(n_pairs), size = nboot * n_pairs, replace = TRUE)
-  
-  # Reshape into nboot rows × n_pairs columns matrix
-  sampled_pairs_matrix <- matrix(sampled_pair_indices, nrow = nboot, ncol = n_pairs, byrow = TRUE)
-  
-  # VECTORIZATION 3: Vectorized entropy calculation across all bootstrap replicates
-  # For each bootstrap replicate, construct the bootstrap sample and compute entropy
-  for (i in seq_len(nboot)) {
-    # Get sampled pair indices for this replicate
-    pair_idx <- sampled_pairs_matrix[i, ]
-    
-    # VECTORIZATION 3a: Use vectorized indexing to extract resampled data
-    # Extract both elements of each sampled pair at once using matrix indexing
-    pair_1_indices <- pair_indices_matrix[1, pair_idx]
-    pair_2_indices <- pair_indices_matrix[2, pair_idx]
-    
-    # Interleave the two elements to reconstruct boot sample
-    # More efficient than unlist(pair_indices_list[...])
-    boot_sample <- c(rbind(x[pair_1_indices], x[pair_2_indices]))
-    
-    # Compute Tsallis entropy for this block bootstrap sample
-    boot_est <- .calculate_tsallis_entropy(boot_sample, q = q, norm = norm,
-        what = what, log_base = log_base, pseudocount = 0)
-    boot_dist[i] <- as.numeric(boot_est)
-  }
-  
-  return(boot_dist)
-}
-
-# NOTE (March 2026): .bootstrap_resample() moved to bootstrap.R for consolidation
 
 .ci_percentile <- function(bootstrap_dist, ci) {
     alpha <- 1 - ci

@@ -1,6 +1,17 @@
 # Makevars for Windows (use LTO optimization on Windows)
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS)
+# Coverage-aware configuration
 
-# Windows-specific C++11 flags
-CXX11FLAGS = -O3 -flto
+# Check if running coverage analysis
+ifdef R_COVERAGE
+  # Coverage build: no optimization, no LTO
+  CXX11FLAGS = -O0 -fprofile-arcs -ftest-coverage
+  PKG_CXXFLAGS = 
+  PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) -fprofile-arcs -ftest-coverage
+else
+  # Release build: use LTO optimization
+  PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+  PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS)
+  
+  # Windows-specific C++11 flags with LTO
+  CXX11FLAGS = -O3 -flto
+endif

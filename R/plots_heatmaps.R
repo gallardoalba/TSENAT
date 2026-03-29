@@ -269,7 +269,7 @@
 .plot_top_transcripts <- function(
   se,
   gene = NULL,
-  condition_col = "sample_type",
+  condition_col = "condition",
   res = NULL,
   top_n = 3,
   output_file = NULL,

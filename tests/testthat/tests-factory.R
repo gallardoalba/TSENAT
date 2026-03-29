@@ -17,12 +17,16 @@
 #' @param control_lambda Poisson lambda for control condition (default: 40)
 #' @param treatment_lambda Poisson lambda for treatment condition (default: 150)
 #' @param q_values Vector of q-values for diversity calculation (default: c(0.5, 1.0, 1.5))
+#' @param include_divergence If TRUE, compute divergence results (default: TRUE)
+#' @param include_lm_results If TRUE, add placeholder LM results (default: TRUE)
 #' @param seed Random seed for reproducibility (default: 42)
 #' @param verbose Logical for progress messages (default: FALSE)
 #'
 #' @return TSENATAnalysis object with:
 #'   - SummarizedExperiment with count matrix, rowData, and colData
 #'   - Computed diversity results across q-values
+#'   - Computed divergence results (optional)
+#'   - Placeholder LM results (optional)
 #'   - Proper tx2gene metadata mapping
 #'
 #' @details
@@ -31,22 +35,26 @@
 #' - Sufficient samples: 40 total (20 per group) for stable LM fitting
 #' - Multiple q-values: c(0.5, 1.0, 1.5) avoids rank deficiency
 #' - Valid S4 object structure: passes all TSENATAnalysis validity checks
+#' - Optional divergence and LM results to support testing without warnings
 #'
 #' @examples
 #' \dontrun{
-#'   # Create with defaults (8 genes, 20 samples/group, multi-q)
-#'   analysis <- .create_test_analysis()
+#'   # Create with defaults (8 genes, 20 samples/group, multi-q, with all results)
+#'   analysis <- create_test_analysis()
 #'   
 #'   # Create with custom parameters
-#'   analysis <- .create_test_analysis(
+#'   analysis <- create_test_analysis(
 #'     n_genes = 16,
 #'     n_samples_per_group = 30,
 #'     control_lambda = 50,
 #'     treatment_lambda = 200,
-#'     q_values = c(0.1, 0.5, 1.0, 1.5, 2.0)
+#'     q_values = c(0.1, 0.5, 1.0, 1.5, 2.0),
+#'     include_divergence = TRUE,
+#'     include_lm_results = TRUE
 #'   )
 #' }
 #'
+#' @keywords internal
 #' @export
 create_test_analysis <- function(
     n_genes = 8,
@@ -54,6 +62,8 @@ create_test_analysis <- function(
     control_lambda = 40,
     treatment_lambda = 150,
     q_values = c(0.5, 1.0, 1.5),
+    include_divergence = TRUE,
+    include_lm_results = TRUE,
     seed = 42,
     verbose = FALSE) {
   
@@ -140,11 +150,50 @@ create_test_analysis <- function(
     min_valid_frac = 0
   )
   
+  # Calculate divergence if requested
+  if (include_divergence) {
+    analysis <- tryCatch({
+      TSENAT::calculate_divergence_s4(
+        analysis,
+        verbose = FALSE
+      )
+    }, error = function(e) {
+      # If divergence fails, continue without it
+      if (verbose) {
+        message("[create_test_analysis] Warning: divergence calculation failed: ", e$message)
+      }
+      analysis
+    })
+  }
+  
+  # Add placeholder LM results if requested
+  if (include_lm_results) {
+    # Create a simple placeholder LM result (empty data frame structure)
+    # This prevents "No LM results found" warnings in tests
+    lm_placeholder <- list(
+      overall = data.frame(
+        gene = character(0),
+        term = character(0),
+        estimate = numeric(0),
+        std.error = numeric(0),
+        statistic = numeric(0),
+        p.value = numeric(0)
+      )
+    )
+    analysis@lm_results <- lm_placeholder
+  }
+  
   if (verbose) {
     message("[create_test_analysis] Analysis created with ",
             length(q_values), " q-values")
     message("[create_test_analysis] Diversity results: ",
             nrow(TSENAT::diversity(analysis)), " genes")
+    if (include_divergence) {
+      message("[create_test_analysis] Divergence results included")
+    }
+    if (include_lm_results) {
+      message("[create_test_analysis] Placeholder LM results included")
+    }
   }
   
   return(analysis)
@@ -218,11 +267,27 @@ create_test_se <- function(
     gene_name = rownames(counts)
   )
   
-  SummarizedExperiment::SummarizedExperiment(
+  # Generate TPM data (normalized counts)
+  tpm <- counts
+  for (j in seq_len(ncol(tpm))) {
+    lib_size <- sum(tpm[, j])
+    if (lib_size > 0) {
+      tpm[, j] <- (tpm[, j] / lib_size) * 1e6
+    }
+  }
+  rownames(tpm) <- rownames(counts)
+  colnames(tpm) <- colnames(counts)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = counts),
     colData = colData,
     rowData = rowData
   )
+  
+  # Add TPM to metadata
+  S4Vectors::metadata(se)$salmon_tpm <- tpm
+  
+  se
 }
 
 #' Create a standard SummarizedExperiment with simple colnames
@@ -286,11 +351,27 @@ create_test_se_simple <- function(
     gene_name = paste0("gene", seq_len(n_genes))
   )
   
-  SummarizedExperiment::SummarizedExperiment(
+  # Generate TPM data (normalized counts)
+  tpm <- counts
+  for (j in seq_len(ncol(tpm))) {
+    lib_size <- sum(tpm[, j])
+    if (lib_size > 0) {
+      tpm[, j] <- (tpm[, j] / lib_size) * 1e6
+    }
+  }
+  rownames(tpm) <- rownames(counts)
+  colnames(tpm) <- colnames(counts)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
     assays = list(counts = counts),
     colData = colData,
     rowData = rowData
   )
+  
+  # Add TPM to metadata
+  S4Vectors::metadata(se)$salmon_tpm <- tpm
+  
+  se
 }
 
 #' Get multiple standard test SE configurations

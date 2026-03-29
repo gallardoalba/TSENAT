@@ -2,13 +2,24 @@
 # 
 # This configuration enables:
 # - Armadillo optimizations (vectorization)
-# - OpenMP parallelization (if available)
+# - OpenMP parallelization (if available, except during coverage)
 # - C++11 standard and beyond
-# - Aggressive optimization flags
+# - Aggressive optimization flags (except during coverage)
 
-# Use Armadillo with OpenMP
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
-
-# Enable C++11 and optimization
-CXX11FLAGS = -O3 -fPIC
+# Check if running coverage analysis
+# When R_COVERAGE=1 (set by covr), disable optimization and parallelization
+# to avoid corruption of coverage data (.gcno/.gcda files)
+ifdef R_COVERAGE
+  # Coverage build: no optimization, no parallelization
+  CXX11FLAGS = -O0 -fPIC -fprofile-arcs -ftest-coverage
+  PKG_CXXFLAGS = 
+  PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) -fprofile-arcs -ftest-coverage
+else
+  # Release build: full optimization with OpenMP
+  # Use Armadillo with OpenMP
+  PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+  PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+  
+  # Enable C++11 and aggressive optimization
+  CXX11FLAGS = -O3 -fPIC
+endif
