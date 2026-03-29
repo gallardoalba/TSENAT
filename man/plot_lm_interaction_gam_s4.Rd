@@ -91,7 +91,7 @@ analysis <- calculate_lm_interaction_s4(analysis,
 
 p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2,
   condition_col = "condition", sig_alpha = 0.15)
-if (!is.null(p_gam)) print(p_gam)
+print(p_gam)
 
 }
 \seealso{

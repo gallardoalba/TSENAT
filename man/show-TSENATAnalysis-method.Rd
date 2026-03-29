@@ -25,11 +25,14 @@ Provides a concise summary of: data dimensions, completed analyses,
 number of results, and metadata tracking.
 }
 \examples{
-library(SummarizedExperiment)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
-)
-analysis <- TSENATAnalysis(se)
+# Load real TSENAT data
+data(readcounts)
+metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 show(analysis)
 
 }

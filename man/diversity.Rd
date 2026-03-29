@@ -28,10 +28,18 @@ Use \code{diversity(analysis)} to get all results as a list, or
 \code{diversity(analysis, q=1.0)} for a specific q-value.
 }
 \examples{
-# Create a complete analysis object with all required results
-analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10)
-# Access diversity results
-diversity_list <- diversity(analysis)
+# Load real TSENAT data
+data(readcounts)
+metadata_df <- read.table(system.file("extdata", "metadata.tsv",
+  package = "TSENAT"), header = TRUE, sep = "\t")
+gff3_file <- system.file("extdata", "annotation.gff3.gz",
+  package = "TSENAT")
+analysis <- build_analysis_s4(salmon_dataset, gff3_file,
+  metadata = metadata_df, tpm = salmon_tpm,
+  effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
+diversity_results <- diversity(analysis)
 
 }
 \seealso{

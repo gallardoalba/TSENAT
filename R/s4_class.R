@@ -80,18 +80,14 @@
 #'   SummarizedExperiment and all slots are correct types.
 #'
 #' @examples
-#' # Create minimal SummarizedExperiment for example
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   rowData = data.frame(gene_id = paste0("GENE", 1:10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
-#' )
-#' 
-#' # Create TSENATAnalysis object
-#' analysis <- TSENATAnalysis(se)
-#' 
-#' # Show the object
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' @name TSENATAnalysis-class
 #' @rdname TSENATAnalysis-class
 #' @exportClass TSENATAnalysis
@@ -120,15 +116,14 @@ NULL
 #' @importFrom S4Vectors metadata
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' set.seed(42)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
-#' )
-#' analysis <- TSENATAnalysis(se)
-#' show(analysis)  # Display empty initialized object
-#'
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' @export
 TSENATAnalysis <- function(se, config = list()) {
   # Validate input
@@ -190,12 +185,19 @@ TSENATAnalysis <- function(se, config = list()) {
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{divergence}}, \code{\link{jackKnife}},
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
-#'
 #' @examples
-#' # Create a complete analysis object with all required results
-#' analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10)
-#' # Access diversity results
-#' diversity_list <- diversity(analysis)
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv",
+#'   package = "TSENAT"), header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz",
+#'   package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file,
+#'   metadata = metadata_df, tpm = salmon_tpm,
+#'   effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
+#' diversity_results <- diversity(analysis)
 #'
 #' @export
 setGeneric("diversity", function(object, q = NULL) {
@@ -296,10 +298,11 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' \code{\link{jackKnife}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
-#' # Create a complete analysis object with all required results
-#' analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10)
-#' # Access LM results
-#' all_lm <- lmResults(analysis)
+#' data(readcounts)
+#' analysis <- build_analysis_s4(salmon_dataset,
+#'   system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT'))
+#' analysis <- subset_analysis(analysis, n_genes = 15, n_samples = 6)
+#' res <- lmResults(analysis)
 #'
 #' @export
 setGeneric("lmResults", function(object, component = NULL) {
@@ -381,22 +384,15 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' library(S4Vectors)
-#' set.seed(42)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
-#'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-#'   colData = data.frame(sample_id = paste0("Sample", 1:10),
-#'     condition = rep(c("A", "B"), 5), pair = rep(1:5, 2), 
-#'     row.names = paste0("Sample", 1:10))
-#' )
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = paste0("TX", 1:20),
-#'   Gene = rep(paste0("GENE", 1:10), each = 2))
-#' analysis <- TSENATAnalysis(se)
-#' # Access jackknife results (if they exist after resampling)
-#' # jk_results <- jackKnife(analysis, q = 1.0)
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' jk_results <- jackKnife(analysis)
 #'
 #' @export
 setGeneric("jackKnife", function(object, q = NULL) {
@@ -449,13 +445,16 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{jackKnife}},
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
-#'
 #' @examples
-#' # Create a complete analysis with diversity and divergence results
-#' analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10,
-#'   include_divergence = TRUE)
-#' # Access divergence results
-#' div <- divergence(analysis)
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' div_res <- divergence(analysis)
 #'
 #' @export
 setGeneric("divergence", function(object, component = NULL) {
@@ -498,14 +497,16 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #' @return ggplot object or list of plots.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
-#' )
-#' analysis <- TSENATAnalysis(se)
-#' all_plots <- getPlot(analysis)  # Empty until tsenat() generates plots
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' all_plots <- getPlot(analysis)
 #'
-
 #' @noRd
 setGeneric("getPlot", function(object, type = NULL) {
   standardGeneric("getPlot")
@@ -589,11 +590,14 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #' number of results, and metadata tracking.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
-#' )
-#' analysis <- TSENATAnalysis(se)
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' show(analysis)
 #'
 #' @export
@@ -666,11 +670,14 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #' counts, validation status, and metadata tracking.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10))
-#' )
-#' analysis <- TSENATAnalysis(se)
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' summary(analysis)
 #'
 #' @export
@@ -800,16 +807,17 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' at the start of an analysis via \code{tsenat_config()} rather than directly.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10))
-#' )
-#' analysis <- TSENATAnalysis(se)
-#' new_config <- list(q_values = seq(0.5, 2, 0.1), nthreads = 4)
-#' analysis <- setConfig(analysis, new_config)
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' config_list <- list(q_values = c(0.5, 1.0, 1.5))
+#' analysis <- setConfig(analysis, config_list)
 #'
-
 #' @noRd
 setGeneric("setConfig", function(object, value) {
   standardGeneric("setConfig")
@@ -845,15 +853,16 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' needing to retrieve, merge, and set the entire config list.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10), sample_type = rep(c("A", "B"), 5))
-#' )
-#' analysis <- TSENATAnalysis(se)
-#' analysis <- setConfigValue(analysis, "condition_col", "sample_type")
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.0, 1.5))
 #'
-
 #' @noRd
 setGeneric("setConfigValue", function(object, key, value) {
   standardGeneric("setConfigValue")
@@ -885,24 +894,14 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' library(S4Vectors)
-#' set.seed(42)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10,
-#'     dimnames = list(paste0("TX", 1:20), paste0("Sample", 1:10)))),
-#'   colData = data.frame(sample_id = paste0("Sample", 1:10),
-#'     condition = rep(c("A", "B"), 5),
-#'     pair = rep(1:5, 2), row.names = paste0("Sample", 1:10))
-#' )
-#' S4Vectors::metadata(se)$tx2gene <- data.frame(
-#'   Transcript = paste0("TX", 1:20),
-#'   Gene = rep(paste0("GENE", 1:10), each = 2))
-#' analysis <- TSENATAnalysis(se)
-#' # Extract the SummarizedExperiment from the analysis object
-#' se_extracted <- se(analysis)
-#' nrow(se_extracted)  # Number of genes/transcripts
-#'
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' @export
 setGeneric("se", function(object) {
   standardGeneric("se")
@@ -938,14 +937,14 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{se}}
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10))
-#' )
-#' analysis <- TSENATAnalysis(se)
-#' all_meta <- metadata(analysis)
-#'
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' @noRd
 #' @rdname metadata
 

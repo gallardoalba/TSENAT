@@ -102,7 +102,7 @@ analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 p_global <- plot_divergence_spectrum_s4(analysis)
-if (!is.null(p_global)) print(p_global)
+print(p_global)
 
 }
 \seealso{

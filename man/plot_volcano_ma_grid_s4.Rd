@@ -126,7 +126,7 @@ analysis <- calculate_difference_s4(analysis, control = "normal", verbose = FALS
   
 # Plot volcano and MA plots
 p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
-if (!is.null(p)) print(p)
+print(p)
 
 }
 \seealso{

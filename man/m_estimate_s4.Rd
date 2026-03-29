@@ -119,7 +119,6 @@ analysis <- m_estimate_s4(
   loss_type = "huber",
   verbose = FALSE
 )
-)
 
 }
 \seealso{

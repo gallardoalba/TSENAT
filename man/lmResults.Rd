@@ -36,10 +36,11 @@ Use \code{lmResults(analysis)} to get all components, or specify component type
 for targeted extraction.
 }
 \examples{
-# Create a complete analysis object with all required results
-analysis <- create_test_analysis(n_genes = 4, n_samples_per_group = 10)
-# Access LM results
-all_lm <- lmResults(analysis)
+data(readcounts)
+analysis <- build_analysis_s4(salmon_dataset,
+  system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT'))
+analysis <- subset_analysis(analysis, n_genes = 15, n_samples = 6)
+res <- lmResults(analysis)
 
 }
 \seealso{

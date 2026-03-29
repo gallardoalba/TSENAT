@@ -27,13 +27,12 @@ which must be provided. The @metadata slot automatically records:
 - initial function call
 }
 \examples{
-library(SummarizedExperiment)
-set.seed(42)
-se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(200, 10), nrow = 20, ncol = 10)),
-  colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
-)
-analysis <- TSENATAnalysis(se)
-show(analysis)  # Display empty initialized object
-
+# Load real TSENAT data
+data(readcounts)
+metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+  header = TRUE, sep = "\t")
+gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+  tpm = salmon_tpm, effective_length = salmon_effective_length)
+analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 }

@@ -426,10 +426,12 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Compute diversity first (required for jackknife)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#'   verbose = FALSE)
 #' 
 #' # Run jackknife estimation
-#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5),
+#'   verbose = FALSE)
 #' # Check jackknife results
 #' names(jackKnife(analysis))
 #'
@@ -1758,7 +1760,7 @@ setMethod(
 #'   
 #' # Plot volcano and MA plots
 #' p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
-#' if (!is.null(p)) print(p)
+#' print(p)
 #'
 #' @seealso
 #' \code{\link{calculate_difference_s4}} for computing differential analysis.
@@ -2113,7 +2115,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' p_global <- plot_divergence_spectrum_s4(analysis)
-#' if (!is.null(p_global)) print(p_global)
+#' print(p_global)
 #'
 #' @seealso
 #' \code{\link{calculate_divergence_s4}} for computing divergence.
@@ -2380,7 +2382,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- subset_analysis(analysis, n_genes = 80, n_samples = 10)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -2933,14 +2935,14 @@ plot_top_transcripts_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- subset_analysis(analysis, n_genes = 80, n_samples = 10)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 #' p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
-#' if (!is.null(p_dist)) print(p_dist)
+#' print(p_dist)
 #'
 #' @seealso
 #' \code{\link{effect_sizes_divergence_s4}} for computing effect sizes.
@@ -3071,6 +3073,7 @@ plot_divergence_distribution_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -3254,6 +3257,7 @@ prepare_gene_switching_tables_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -3429,7 +3433,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' 
 #' p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2,
 #'   condition_col = "condition", sig_alpha = 0.15)
-#' if (!is.null(p_gam)) print(p_gam)
+#' print(p_gam)
 #'
 #' @export
 plot_lm_interaction_gam_s4 <- function(
@@ -4086,7 +4090,6 @@ jackknife_isoform_switching_s4 <- function(
 #'   condition_col = "condition",
 #'   loss_type = "huber",
 #'   verbose = FALSE
-#' )
 #' )
 #'
 #' @seealso

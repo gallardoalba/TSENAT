@@ -70,14 +70,14 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- subset_analysis(analysis, n_genes = 80, n_samples = 10)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)
 analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
-if (!is.null(p_dist)) print(p_dist)
+print(p_dist)
 
 }
 \seealso{

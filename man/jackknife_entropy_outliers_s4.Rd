@@ -61,10 +61,12 @@ analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Compute diversity first (required for jackknife)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+  verbose = FALSE)
 
 # Run jackknife estimation
-analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5),
+  verbose = FALSE)
 # Check jackknife results
 names(jackKnife(analysis))
 
