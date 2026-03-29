@@ -166,10 +166,35 @@
     stop("'q' must be numeric", call. = FALSE)
   }
   
+  # Validate q values are finite
+  if (any(!is.finite(q))) {
+    stop("'q' values must be finite (not Inf or NaN)", call. = FALSE)
+  }
+  
   # Resolve all parameters using centralized handler
+  nthreads_resolved <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  
+  # Validate nthreads is positive
+  if (!is.numeric(nthreads_resolved) || nthreads_resolved < 1) {
+    stop("'nthreads' must be a positive integer", call. = FALSE)
+  }
+  
+  # Ensure tpm is logical
+  if (is.null(tpm)) {
+    # If tpm is NULL, check config
+    tpm <- if ("tpm" %in% names(analysis@config)) {
+      as.logical(analysis@config$tpm)
+    } else {
+      FALSE  # Default to FALSE
+    }
+  } else {
+    # If tpm is provided, coerce to logical
+    tpm <- as.logical(tpm)
+  }
+  
   list(
     q = q,
-    nthreads = resolve_slot_param(nthreads, analysis@config, "nthreads", 1),
+    nthreads = nthreads_resolved,
     verbose = resolve_slot_param(verbose, analysis@config, "verbose", TRUE),
     bootstrap = resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE),
     pseudocount = resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0),
@@ -181,7 +206,7 @@
     bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config, "bootstrap_method", "percentile"),
     bootstrap_ci = resolve_slot_param(bootstrap_ci, analysis@config, "bootstrap_ci", 0.95),
     seed = resolve_slot_param(seed, analysis@config, "seed", NULL),
-    tpm = if (!tpm && "tpm" %in% names(analysis@config)) analysis@config$tpm else tpm,
+    tpm = tpm,
     genes = resolve_slot_param(genes, analysis@config, "genes", NULL),
     effective_length = resolve_slot_param(effective_length, analysis@config, "effective_length", NULL),
     nboot = resolve_slot_param(nboot, analysis@config, "nboot", NULL),

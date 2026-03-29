@@ -11,6 +11,7 @@
   }
   
   result <- as.matrix(entropy_matrix)  # Ensure matrix for consistent behavior
+  original_dims <- dim(result)  # Preserve original dimensions
   
   if (per_q) {
     # OPTIMIZED: Vectorized z-score per column using apply (VECTORIZED - 5-15% faster)
@@ -29,6 +30,12 @@
       }
       col_data
     })
+    
+    # Preserve matrix structure (apply can drop dimensions for single-row matrices)
+    if (!is.matrix(result)) {
+      result <- matrix(result, nrow = original_dims[1], ncol = original_dims[2], byrow = FALSE)
+      dimnames(result) <- dimnames(entropy_matrix)
+    }
   } else {
     # Global z-score across all values
     valid_idx <- !is.na(entropy_matrix) & is.finite(entropy_matrix)
