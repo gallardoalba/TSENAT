@@ -210,30 +210,30 @@ test_that(".build_gene_id_mapping returns empty for missing gene_name column", {
 # TEST: .jis_tsallis_entropy()
 # ============================================================================
 
-test_that(".jis_tsallis_entropy calculates entropy for vector input", {
+test_that(".jis_tsallis_entropy_fast calculates entropy via C++", {
   # Convert vector to matrix (rows=transcripts, cols=samples)
   counts <- matrix(c(100, 50, 75, 200, 80, 120), nrow = 6, ncol = 1)
   
-  result <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   expect_true(is.numeric(result))
   expect_equal(length(result), 1)
   expect_true(result >= 0)
 })
 
-test_that(".jis_tsallis_entropy with q=1 (Shannon entropy)", {
+test_that(".jis_tsallis_entropy_fast with q=1 via C++", {
   counts <- matrix(c(100, 100, 100, 100), nrow = 4, ncol = 1)  # Balanced distribution
   
   # Balanced distribution should have high entropy
-  result <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
   
   expect_true(result > 1.3)  # Shannon entropy of balanced 4-item distribution
 })
 
-test_that(".jis_tsallis_entropy with q=2 (Renyi entropy)", {
+test_that(".jis_tsallis_entropy_fast with q=2 via C++", {
   counts <- matrix(c(100, 50, 75), nrow = 3, ncol = 1)
   
-  result <- TSENAT:::.jis_tsallis_entropy(counts, q = 2, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 2, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   # Tsallis entropy with q > 1 can be negative - this is mathematically correct
   # The normalized value should be in [-1, 1] approximately
@@ -242,38 +242,38 @@ test_that(".jis_tsallis_entropy with q=2 (Renyi entropy)", {
   expect_true(result <= 1.1)
 })
 
-test_that(".jis_tsallis_entropy handles normalization", {
+test_that(".jis_tsallis_entropy_fast handles normalization via C++", {
   counts <- matrix(c(100, 50, 75), nrow = 3, ncol = 1)
   
-  result_norm <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
-  result_no_norm <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
+  result_norm <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result_no_norm <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
   
   expect_true(result_norm <= result_no_norm)  # Normalized should be smaller or equal
 })
 
-test_that(".jis_tsallis_entropy handles matrix input (per-sample)", {
+test_that(".jis_tsallis_entropy_fast handles matrix input (per-sample via C++)", {
   counts_matrix <- matrix(c(100, 50, 75, 110, 45, 80), nrow = 3, ncol = 2)
   
-  result <- TSENAT:::.jis_tsallis_entropy(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  result <- TSENAT:::.jis_tsallis_entropy_fast(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   expect_true(is.numeric(result))
   expect_equal(length(result), 2)  # One entropy per column (sample)
 })
 
-test_that(".jis_tsallis_entropy handles pseudocount", {
+test_that(".jis_tsallis_entropy_fast handles pseudocount via C++", {
   counts <- matrix(c(100, 0, 75), nrow = 3, ncol = 1)  # Has zero count
   
   # Without pseudocount might have numerical issues
-  result_with_pc <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0.5)
+  result_with_pc <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0.5)
   
   expect_true(is.finite(result_with_pc))
 })
 
-test_that(".jis_tsallis_entropy respects log base parameter", {
+test_that(".jis_tsallis_entropy_fast respects log base via C++", {
   counts <- matrix(c(100, 50, 75), nrow = 3, ncol = 1)
   
-  result_e <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
-  result_2 <- TSENAT:::.jis_tsallis_entropy(counts, q = 1, norm = FALSE, log_base = 2, pseudocount = 0)
+  result_e <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = FALSE, log_base = exp(1), pseudocount = 0)
+  result_2 <- TSENAT:::.jis_tsallis_entropy_fast(counts, q = 1, norm = FALSE, log_base = 2, pseudocount = 0)
   
   # Results should differ due to different log base
   expect_false(isTRUE(all.equal(result_e, result_2)))
@@ -289,34 +289,34 @@ test_that(".jis_tsallis_entropy respects log base parameter", {
 # TEST: .jackknife_influences_jis()
 # ============================================================================
 
-test_that(".jackknife_influences_jis calculates influences for all transcripts", {
+test_that(".jis_jackknife_influences_fast calculates influences via C++", {
   counts_matrix <- matrix(c(100, 50, 75, 110, 45, 80), nrow = 3, ncol = 2)
   
-  influences <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  influences <- TSENAT:::.jis_jackknife_influences_fast(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   expect_true(is.numeric(influences))
   expect_equal(length(influences), 3)  # One influence per row (transcript)
   expect_true(all(influences >= 0))
 })
 
-test_that(".jackknife_influences_jis identifies outlier transcripts", {
+test_that(".jis_jackknife_influences_fast identifies outliers via C++", {
   # Create data where first transcript is dominant
   counts_matrix <- matrix(c(1000, 50, 75, 900, 45, 80), nrow = 3, ncol = 2)
   
-  influences <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  influences <- TSENAT:::.jis_jackknife_influences_fast(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   
   # First transcript (dominant) should have higher influence
   expect_true(influences[1] > influences[2])
   expect_true(influences[1] > influences[3])
 })
 
-test_that(".jackknife_influences_jis with n_tx_fixed parameter", {
+test_that(".jis_jackknife_influences_fast with n_tx_fixed via C++", {
   counts_matrix <- matrix(c(100, 50, 75, 110, 45, 80), nrow = 3, ncol = 2)
   
-  influences_fixed <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE, 
-                                                          log_base = exp(1), pseudocount = 0, n_tx_fixed = 5)
-  influences_unfixed <- TSENAT:::.jackknife_influences_jis(counts_matrix, q = 1, norm = TRUE,
-                                                            log_base = exp(1), pseudocount = 0, n_tx_fixed = NULL)
+  influences_fixed <- TSENAT:::.jis_jackknife_influences_fast(counts_matrix, q = 1, norm = TRUE, 
+                                                               log_base = exp(1), pseudocount = 0, n_tx_fixed = 5)
+  influences_unfixed <- TSENAT:::.jis_jackknife_influences_fast(counts_matrix, q = 1, norm = TRUE,
+                                                                 log_base = exp(1), pseudocount = 0, n_tx_fixed = NULL)
   
   # Results should differ when n_tx_fixed is specified
   expect_false(isTRUE(all.equal(influences_fixed, influences_unfixed)))
@@ -429,7 +429,7 @@ test_that("Gene mapping and entropy calculation work together", {
   gene_mask <- rowData(se)$gene_id == "g1"
   counts_matrix <- assays(se)$counts[gene_mask, ]
   
-  entropy <- TSENAT:::.jis_tsallis_entropy(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
+  entropy <- TSENAT:::.jis_tsallis_entropy_fast(counts_matrix, q = 1, norm = TRUE, log_base = exp(1), pseudocount = 0)
   expect_true(is.numeric(entropy))
   expect_true(all(entropy >= 0 & entropy <= 1))
 })

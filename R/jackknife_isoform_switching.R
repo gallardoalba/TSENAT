@@ -63,57 +63,6 @@
   gene_id_to_name
 }
 
-#' Calculate Tsallis entropy
-
-#' @noRd
-.jis_tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
-  raw_col_sums <- colSums(counts)
-  with_zero_counts <- raw_col_sums == 0
-  # BUG FIX #2: Centralize pseudocount normalization
-  pseudocount <- .jis_normalize_pseudocount(pseudocount)
-  counts <- counts + pseudocount
-  col_sums <- colSums(counts)
-  if (any(col_sums <= 0)) return(rep(NA_real_, ncol(counts)))
-  h_result <- rep(NA_real_, ncol(counts))
-  if (all(with_zero_counts)) return(h_result)
-  col_sums_safe <- pmax(col_sums, 1)
-  # Normalize by column (sample): divide each sample (column) by its total
-  p <- t(t(counts) / col_sums_safe)
-  if (q == 1) {
-    # Shannon entropy: H = -sum(p_i * log(p_i))
-    # Use epsilon offset to avoid log(0) while preserving probability conservation
-    eps <- 1e-15
-    if (log_base == exp(1)) {
-      h <- -colSums(p * log(pmax(p, eps)))
-    } else {
-      h <- -colSums(p * log(pmax(p, eps))) / log(log_base)
-    }
-  } else {
-    # Tsallis entropy: (1 - sum(p^q)) / (q - 1)
-    p_q_sum <- colSums(p^q)
-    h <- (1 - p_q_sum) / (q - 1)
-  }
-  h[!is.finite(h)] <- NA_real_
-  h[with_zero_counts] <- NA_real_
-  if (norm) {
-    n_tx_use <- if (!is.null(n_tx_fixed)) n_tx_fixed else nrow(counts)
-    if (q == 1) {
-      max_h <- log(n_tx_use) / log(log_base)
-    } else {
-      # Tsallis normalization: (1 - n^(1-q)) / (q - 1)
-      # CRITICAL: Use (q - 1), not (1 - q), to get correct sign for all q
-      max_h <- (1 - n_tx_use^(1 - q)) / (q - 1)
-    }
-    # Only normalize if max_h is valid and positive (for Tsallis, always true)
-    if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
-      h <- h / max_h
-    }
-  }
-  h
-}
-
-#' Calculate jackknife influences
-
 #' Normalize pseudocount parameter
 
 #' @noRd
@@ -121,40 +70,28 @@
   if (pseudocount <= 0) min_value else pseudocount
 }
 
-#' C++ Wrapper: Fast Tsallis entropy computation
+#' Tsallis Entropy - C++ Wrapper [PRODUCTION]
 #' 
-#' Calls C++ implementation if available (Rcpp compiled), 
-#' otherwise falls back to pure R
+#' Optimized C++ implementation for Tsallis entropy computation.
+#' Requires compiled Rcpp code.
 #' 
 #' @noRd
 .jis_tsallis_entropy_fast <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
-  tryCatch({
-    if (exists("jis_tsallis_entropy_cpp", mode = "function")) {
-      return(jis_tsallis_entropy_cpp(counts, q = q, normalize = norm, log_base = log_base, 
-                                      pseudocount = pseudocount, n_tx_fixed = n_tx_fixed))
-    }
-    .jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
-  }, error = function(e) {
-    .jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
-  })
+  if (is.null(n_tx_fixed)) n_tx_fixed <- -1L
+  jis_tsallis_entropy_cpp(counts, q = q, normalize = norm, log_base = log_base, 
+                          pseudocount = pseudocount, n_tx_fixed = n_tx_fixed)
 }
 
-#' C++ Wrapper: Fast jackknife influence computation
+#' Jackknife Influences - C++ Wrapper [PRODUCTION]
 #' 
-#' Calls C++ implementation if available (Rcpp compiled), 
-#' otherwise falls back to pure R
+#' Optimized C++ implementation for jackknife influence computation.
+#' Requires compiled Rcpp code.
 #' 
 #' @noRd
 .jis_jackknife_influences_fast <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
-  tryCatch({
-    if (exists("jis_jackknife_influences_cpp", mode = "function")) {
-      return(jis_jackknife_influences_cpp(counts, q = q, normalize = norm, log_base = log_base, 
-                                          pseudocount = pseudocount, n_tx_fixed = n_tx_fixed))
-    }
-    .jackknife_influences_jis(counts, q, norm, log_base, pseudocount, n_tx_fixed)
-  }, error = function(e) {
-    .jackknife_influences_jis(counts, q, norm, log_base, pseudocount, n_tx_fixed)
-  })
+  if (is.null(n_tx_fixed)) n_tx_fixed <- -1L
+  jis_jackknife_influences_cpp(counts, q = q, normalize = norm, log_base = log_base, 
+                               pseudocount = pseudocount, n_tx_fixed = n_tx_fixed)
 }
 
 #' C++ Wrapper: Fast bootstrap delta statistics computation
@@ -201,23 +138,7 @@
   })
 }
 
-#' Calculate jackknife influences
 
-#' @noRd
-.jackknife_influences_jis <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
-  h_full <- .jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
-  n_tx <- nrow(counts)
-  influences <- numeric(n_tx)
-  if (n_tx < 2) return(influences)
-  for (i in seq_len(n_tx)) {
-    counts_leave_i <- counts[-i, , drop = FALSE]
-    # Keep leave-one-out on same normalization scale as full set for proper jackknife comparison
-    h_leave_i <- .jis_tsallis_entropy(counts_leave_i, q, norm, log_base, pseudocount, n_tx_fixed = n_tx_fixed)
-    diffs <- abs(h_full - h_leave_i)
-    influences[i] <- mean(diffs, na.rm = TRUE)
-  }
-  influences
-}
 
 #' Apply FDR correction
 

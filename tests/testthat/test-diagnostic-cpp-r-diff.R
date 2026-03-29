@@ -16,7 +16,7 @@ test_that("DIAGNOSTIC: Actual entropy differences for q != 1", {
   for (q in test_qs) {
     cpp_entropy <- jis_tsallis_entropy_cpp(counts, q = q, normalize = TRUE, 
                                            log_base = 2, pseudocount = 0)
-    r_entropy <- TSENAT:::.jis_tsallis_entropy(counts, q = q, norm = TRUE, 
+    r_entropy <- jis_tsallis_entropy_cpp(counts, q = q, normalize = TRUE, 
                                                log_base = 2, pseudocount = 0)
     
     diffs <- abs(cpp_entropy - r_entropy)

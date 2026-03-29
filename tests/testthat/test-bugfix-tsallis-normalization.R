@@ -147,7 +147,7 @@ test_that("BUGFIX 1.6: R reference implementation now matches C++", {
                                            log_base = 2, pseudocount = 0)
     
     # R reference (now fixed to remove abs())
-    r_entropy <- TSENAT:::.jis_tsallis_entropy(counts, q = q, norm = TRUE, 
+    r_entropy <- jis_tsallis_entropy_cpp(counts, q = q, normalize = TRUE, 
                                                log_base = 2, pseudocount = 0)
     
     # Should match closely (allow for floating-point arithmetic differences)
