@@ -832,7 +832,7 @@
                           "kc" = "Kauermann-Carroll")
     
     report <- sprintf(
-        "K-C Bias Correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f → %.4f%s",
+        "K-C Bias Correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f \u2192 %.4f%s",
         method_label,
         n_clusters, n_parameters,
         n_effective, design_effect,
@@ -864,9 +864,9 @@
 .print_kc_correction_report <- function(kc_result) {
     if (is.null(kc_result)) return(invisible(NULL))
     
-    cat("\n", strrep("─", 70), "\n", sep = "")
+    cat("\n", strrep("\u2500", 70), "\n", sep = "")
     cat("Kauermann-Carroll Bias Correction Report\n")
-    cat(strrep("─", 70), "\n", sep = "")
+    cat(strrep("\u2500", 70), "\n", sep = "")
     
     if (!is.null(kc_result$report)) {
         cat(kc_result$report)
@@ -883,9 +883,9 @@
     cat("\n")
     
     cat(sprintf("  Degrees of freedom (t-dist): %d\n", max(1, kc_result$n_clusters - 1)))
-    cat(sprintf("  P-value: %.6f → %.6f\n", kc_result$p_raw, kc_result$p_value))
+    cat(sprintf("  P-value: %.6f \u2192 %.6f\n", kc_result$p_raw, kc_result$p_value))
     
-    cat(strrep("─", 70), "\n\n", sep = "")
+    cat(strrep("\u2500", 70), "\n\n", sep = "")
     
     invisible(kc_result)
 }

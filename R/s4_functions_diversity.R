@@ -40,7 +40,9 @@
 #'   If NULL, reads from \code{@config$bootstrap_ci} if available.
 #' @param bootstrap_include_diagnostics \code{logical}. Include bootstrap diagnostics. Default: TRUE.
 #'   If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.
-#' @param norm_method \code{character}. Post-hoc normalization method to apply after entropy calculation.
+#' @param seed \\code{numeric} or \\code{NULL}. Random seed for reproducibility. Default: NULL.
+#'   If NULL, reads from \\code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.
+#' @param output_file \\code{character} or \\code{NULL}. Optional file path to save results.
 #'   Options:
 #'   \itemize{
 #'     \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
@@ -68,6 +70,7 @@
 #'   The spectrum file contains columns: q, central (median diversity), 
 #'   spread (IQR), count, and group (if grouping variable available).
 #'   Default: NULL (no file output).
+#' @param ... Additional arguments passed to underlying functions for extensibility.
 #'
 #' @return Modified TSENATAnalysis object with diversity results stored
 #'   in \code{@diversity_results}, keyed by "q_X.XX..." format (e.g., "q_1.000").
@@ -138,8 +141,9 @@
 #' # Apply log-odds ratio normalization (q and isoform-aware)
 #' # analysis <- calculate_diversity_s4(analysis, norm_method = "log_odds_ratio")
 #'
-#' @seealso
-#' \code{\link{compute_diversity_spectrum}} for spectrum computation details.
+#' @details
+#' For additional details on diversity spectrum calculations and normalization methods,
+#' see the package vignettes.
 #'
 #' @export
 #' @importFrom utils write.table

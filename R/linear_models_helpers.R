@@ -985,16 +985,16 @@
 if (getOption("TSENAT.memoization", TRUE)) {
     # Cache knot selection: input = (entropy, q_vals, n_unique, ...)
     # Avoids recomputing knots for same entropy data across iterations
-    .adaptive_spline_knots_memo <- memoise::memoise(
+    .adaptive_spline_knots_memo <- memoise(
         .adaptive_spline_knots,
-        cache = memoise::cache_memory()
+        cache = cache_memory()
     )
     
     # Cache design effect: input = (rho, cluster_size)
     # Avoids recomputing design effect for repeated (rho, cluster_size) pairs
-    .ar1_design_effect_memo <- memoise::memoise(
+    .ar1_design_effect_memo <- memoise(
         .ar1_design_effect,
-        cache = memoise::cache_memory()
+        cache = cache_memory()
     )
 } else {
     # Fallback: no memoization if disabled globally
@@ -1007,8 +1007,8 @@ if (getOption("TSENAT.memoization", TRUE)) {
 #' @noRd
 .clear_lm_helper_cache <- function() {
     if (getOption("TSENAT.memoization", TRUE)) {
-        memoise::forget(.adaptive_spline_knots_memo)
-        memoise::forget(.ar1_design_effect_memo)
+        forget(.adaptive_spline_knots_memo)
+        forget(.ar1_design_effect_memo)
     }
 }
 

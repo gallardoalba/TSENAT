@@ -12,6 +12,7 @@
 #' @importFrom rlang .data
 #' @importFrom S4Vectors metadata DataFrame
 #' @importFrom SummarizedExperiment rowData<-
+#' @importFrom memoise memoise cache_memory forget
 NULL
 
 # # Declare package global variables to satisfy R CMD check NOTES
@@ -20,7 +21,7 @@ if (getRversion() >= "2.15.1") {
         "label_flag", "sample_q", "qnum", "significant", "prcomp", "predict",
         ".data", "divergence", "lower", "upper", "central", "spread", 
         "ci_lower", "ci_upper", "entropy", "entropy_fit", "p_gam", "p_friedman",
-        "agreement", "p_value", "method", "direction", "calculate_tsallis_divergence_paired_gene"))
+        "agreement", "p_value", "method", "direction", "gene", "calculate_tsallis_divergence_paired_gene"))
 }
 
 # ============================================================================

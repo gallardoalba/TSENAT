@@ -46,5 +46,5 @@ analysis <- TSENATAnalysis(se)
 }
 \seealso{
 Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-\code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+\code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 }

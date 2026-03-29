@@ -593,6 +593,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 #'   If NULL, reads from \code{@config$nboot} if available.
 #' @param seed \code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
 #'   If NULL, reads from \code{@config$seed} if available.
+#' @param progress \code{logical}. Show progress bar during computation. Default: FALSE.
 #' @param ... Additional arguments passed to the base divergence function.
 #'
 #' @return Modified TSENATAnalysis with divergence metrics in @divergence_results

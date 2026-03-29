@@ -66,6 +66,7 @@
       # If binding is locked, try to unlock it first
       tryCatch(
         {
+          # nolint: This is required for lazy loading mechanism to work
           unlockBinding(".viz_loaded", ns)
           assign(".viz_loaded", TRUE, envir = ns)
           lockBinding(".viz_loaded", ns)

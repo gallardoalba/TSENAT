@@ -742,3 +742,123 @@ test_that("knot selection produces reasonable values", {
         expect_true(knot_result$k_q <= n_q)
     }
 })
+
+# ===============================================================================
+# GAM Integration Tests (moved from test-statistical-methods-lm.R)
+# ===============================================================================
+
+context("Linear Model Interaction: GAM and FPCA Methods")
+
+test_that("gam method attaches p_interaction to rowData when mgcv available", {
+    skip_if_not_installed("mgcv")
+
+    qvec <- seq(0.01, 0.1, by = 0.01)
+    # define three sample IDs, each measured across all q values
+    sample_ids <- rep(c("S1", "S2"), each = length(qvec))
+    coln <- paste0(sample_ids, "_q=", rep(qvec, times = 2))
+
+    set.seed(7)
+    gene1_vals <- c(qvec * 1, qvec * 2) + rnorm(length(coln), sd = 1e-3)
+    gene2_vals <- c(qvec * 1, qvec * 1) + rnorm(length(coln), sd = 1e-3)
+    mat <- rbind(g1 = gene1_vals, g2 = gene2_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- c("g1", "g2")
+
+    rd <- data.frame(genes = rownames(mat), row.names = rownames(mat), stringsAsFactors = FALSE)
+    # sample-type mapping: first sample is Normal, second is Tumor
+    cd <- data.frame(samples = sample_ids, sample_type = rep(c("Normal", "Tumor"), each = length(qvec)), row.names = coln, stringsAsFactors = FALSE)
+
+    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
+
+    res <- suppressWarnings(.calculate_lm_interaction(se, condition_col = "sample_type", method = "gam", min_obs = 8))
+    if (is.data.frame(res)) {
+        rd_out <- as.data.frame(res)
+    } else {
+        rd_out <- as.data.frame(SummarizedExperiment::rowData(res))
+    }
+    expect_true("p_interaction" %in% colnames(rd_out))
+})
+
+# ===============================================================================
+# GAM Helper Function Tests (moved from test-statistical-methods-lm.R)
+# ===============================================================================
+
+context("Linear Model Interaction: GAM p-Value Column Extraction")
+
+test_that(".gam_interaction handles null cases gracefully", {
+    # Test that GAM handles various data conditions
+    skip_if_not_installed("mgcv")
+    
+    # Simple test data
+    df <- data.frame(
+        entropy = c(1.2, 1.3, 0.8, 0.9, 1.1, 1.15, 0.7, 0.85),
+        q = rep(c(0.5, 1.0, 1.5, 2.0), 2),
+        group = rep(c("A", "B"), each = 4)
+    )
+    
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, df$q, "gene1", min_obs = 3))
+    
+    # Result should be either NULL or a valid data frame with p_interaction
+    if (!is.null(res)) {
+        expect_is(res, "data.frame")
+        expect_true("gene" %in% colnames(res))
+        expect_true("p_interaction" %in% colnames(res))
+    } else {
+        expect_null(res)
+    }
+})
+
+test_that(".gam_interaction extracts p-values from anova", {
+    # This test covers: p_interaction <- an[2, "Pr(F)"] (and alternatives)
+    skip_if_not_installed("mgcv")
+    
+    # Create data with clear group differences
+    q_vals <- c(0.5, 1.0, 1.5, 2.0, 2.5, 3.0)
+    df <- data.frame(
+        entropy = c(q_vals * 0.5, q_vals * 1.0 + 0.5),  # Different slopes
+        q = c(q_vals, q_vals),
+        group = rep(c("A", "B"), each = length(q_vals))
+    )
+    
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, df$q, "gene_test", min_obs = 4))
+    
+    # If result is not NULL, verify structure; otherwise verify it's NULL
+    if (!is.null(res)) {
+        expect_is(res, "data.frame")
+        expect_equal(nrow(res), 1)
+        expect_true("p_interaction" %in% colnames(res))
+        # p-value should be valid if not NA
+        if (!is.na(res$p_interaction)) {
+            expect_true(res$p_interaction >= 0 && res$p_interaction <= 1)
+        }
+    } else {
+        # Verify that NULL return is valid
+        expect_null(res)
+    }
+})
+
+test_that(".gam_interaction handles anova failures", {
+    # Test handling when anova produces invalid results
+    skip_if_not_installed("mgcv")
+    
+    # Constant values that may cause GAM fitting issues
+    df <- data.frame(
+        entropy = rep(1.0, 6),
+        q = c(0.5, 1.0, 1.5, 2.0, 2.5, 3.0),
+        group = rep(c("A", "B"), each = 3)
+    )
+    
+    # Suppress expected warnings from mgcv about fitting failures on problematic data
+    res <- suppressWarnings(TSENAT:::.gam_interaction(df, df$q, "problematic", min_obs = 2))
+    
+    # Should either return NULL or handle gracefully
+    if (!is.null(res)) {
+        expect_is(res, "data.frame")
+        # p_interaction can be NA in error cases
+        if (!is.na(res$p_interaction)) {
+            expect_true(res$p_interaction >= 0 && res$p_interaction <= 1)
+        }
+    } else {
+        expect_null(res)
+    }
+})

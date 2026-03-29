@@ -43,5 +43,5 @@ nrow(se_extracted)  # Number of genes/transcripts
 }
 \seealso{
 Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-\code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{metadata}}
+\code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link[S4Vectors]{metadata}}
 }

@@ -39,10 +39,27 @@
 }
 
 
+#' Jackknife Resampling Computation
+#'
+#' @description
+#' C++ wrapper for leave-one-out jackknife resampling to estimate
+#' influence and confidence intervals for diversity metrics.
+#'
+#' @param counts \\code{matrix}. Count matrix (rows=features, columns=samples).
+#' @param q \\code{numeric}. Tsallis q parameter. Default: 1.0.
+#' @param normalize \\code{logical}. Normalize entropy? Default: TRUE.
+#' @param log_base \\code{numeric}. Logarithm base. Default: e (natural log).
+#' @param pseudocount \\code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#'
+#' @return \\code{list}. Results including jackknife estimates, confidence intervals,
+#'   and influence diagnostics.
+#'
+#' @details
+#' Performs leave-one-out jackknife resampling with C++ acceleration for efficiency.
+#' Estimates confidence intervals and diagnostic influence scores.
+#'
 #' @keywords internal
 #' @export
-# Internal wrapper function for C++ jackknife resampling
-# (exported in NAMESPACE but no man page)
 jackknife_resampling_cpp <- function(counts, q = 1.0, normalize = TRUE, 
                                      log_base = exp(1), pseudocount = 0.0) {
   # Call the Rcpp-generated function - defaults are handled by C++

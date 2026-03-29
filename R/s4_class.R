@@ -189,7 +189,7 @@ TSENATAnalysis <- function(se, config = list()) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{divergence}}, \code{\link{jackKnife}},
-#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
 #' # Create minimal SummarizedExperiment
@@ -297,7 +297,7 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-#' \code{\link{jackKnife}}, \code{\link{se}}, \code{\link{metadata}}
+#' \code{\link{jackKnife}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
 #' # With an analysis object that has lm results
@@ -386,7 +386,7 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
 #' library(SummarizedExperiment)
@@ -456,7 +456,7 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{jackKnife}},
-#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link{metadata}}
+#' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
 #' library(SummarizedExperiment)
@@ -786,32 +786,12 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 # CONFIGURATION ACCESSORS (GAP 3 FIX)
 # ============================================================================
 
-#' Extract analysis configuration
-#'
-#' @param object \code{TSENATAnalysis} object.
-#'
-#' @return List containing all configuration parameters (q-values, column names, etc.)
-#'
-#' @details
-#' Provides type-safe access to @config slot. After calling wrapper functions like
-#' \code{calculate_diversity_s4()}, the configuration is updated with
-#' \code{last_diversity_run}, showing which parameters were actually used.
-#'
-#' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0("S", 1:10))
-#' )
-#' analysis <- TSENATAnalysis(se, config = list(q_values = c(0.5, 1.0, 2.0)))
-#' config <- getConfig(analysis)
-#'
-#' @export
+#' @rdname divResults
 setGeneric("getConfig", function(object) {
   standardGeneric("getConfig")
 })
 
-#' @rdname getConfig
+#' @rdname divResults
 #' @export
 setMethod("getConfig", "TSENATAnalysis", function(object) {
   object@config
@@ -912,7 +892,7 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #'
 #' @seealso
 #' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-#' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link{metadata}}
+#' \code{\link{jackKnife}}, \code{\link{lmResults}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
 #' library(SummarizedExperiment)

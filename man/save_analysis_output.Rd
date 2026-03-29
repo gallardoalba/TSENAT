@@ -27,6 +27,10 @@ save_analysis_output(
 \item{create_dir}{Logical. Create directory if it doesn't exist. Default: TRUE.}
 
 \item{func_name}{Function name for error messages (e.g., "calculate_diversity_s4"). Default: "wrapper_function"}
+
+\item{width}{Numeric or NULL. Plot width in inches (for ggplot/PDF/PNG output). Default: NULL (use ggplot defaults).}
+
+\item{height}{Numeric or NULL. Plot height in inches (for ggplot/PDF/PNG output). Default: NULL (use ggplot defaults).}
 }
 \value{
 Invisibly returns TRUE if successful, FALSE if error suppressed

@@ -176,10 +176,24 @@
 # C++ BOOTSTRAP WRAPPERS (Optimized resampling)
 # ============================================================================
 
+#' Hill Number (Effective Number of Species)
+#'
+#' @description
+#' C++ wrapper computing Hill numbers (effective number of species equivalent)
+#' for given diversity parameter q and proportions.
+#'
+#' @param p \code{numeric}. Vector of proportions (should sum to 1).
+#' @param q \code{numeric}. Diversity parameter. Default: 1.0.
+#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
+#'
+#' @return \code{numeric}. Scalar Hill number value.
+#'
+#' @details
+#' Hill numbers provide intuitive species diversity metrics at different
+#' sensitivity levels via parameter q. Accelerated with C++ for performance.
+#'
 #' @keywords internal
 #' @export
-# C++ wrapper for Hill numbers (effective number of species)
-# Returns: scalar Hill number for given q and proportions
 hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
   # p should be proportions (sum to 1)
   if (!is.numeric(p)) {
@@ -190,10 +204,27 @@ hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
         as.numeric(p), as.numeric(q), as.numeric(log_base))
 }
 
+#' Block Bootstrap Entropy Computation
+#'
+#' @description
+#' C++ wrapper for block bootstrap computation on paired resampling data.
+#' Performs multiple bootstrap iterations for entropy estimation.
+#'
+#' @param x \code{numeric}. Data vector (must have even length for paired design).
+#' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
+#' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
+#' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
+#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
+#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#'
+#' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
+#'
+#' @details
+#' Performs block bootstrap for paired samples with C++ acceleration.
+#' Input must have even length (pairs). Accelerated for speed.
+#'
 #' @keywords internal
 #' @export
-# C++ wrapper for block bootstrap (paired samples) with vector pseudocount support
-# Returns: numeric vector of nboot bootstrap entropy estimates for paired data
 block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
                                                 nboot = 1000L, log_base = exp(1), 
                                                 pseudocount = 0.0) {
@@ -224,9 +255,27 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
 # C++ BOOTSTRAP WRAPPERS (Optimized resampling)
 # ============================================================================
 
+#' Standard Bootstrap Entropy Computation
+#'
+#' @description
+#' C++ wrapper for standard bootstrap computation with independent resampling.
+#' Performs multiple bootstrap iterations for entropy estimation.
+#'
+#' @param x \\code{numeric}. Data vector.
+#' @param q \\code{numeric}. Tsallis q parameter. Default: 1.0.
+#' @param normalize \\code{logical}. Normalize entropy? Default: TRUE.
+#' @param nboot \\code{integer}. Number of bootstrap samples. Default: 1000.
+#' @param log_base \\code{numeric}. Logarithm base. Default: e (natural log).
+#' @param pseudocount \\code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#'
+#' @return \\code{numeric}. Vector of nboot bootstrap entropy estimates.
+#'
+#' @details
+#' Performs standard (independent) bootstrap with C++ acceleration.
+#' Handles vector pseudocounts by applying them upfront.
+#'
 #' @keywords internal
 #' @export
-# C++ wrapper for standard bootstrap with vector pseudocount support
 bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
                                           nboot = 1000L, log_base = exp(1), 
                                           pseudocount = 0.0) {
@@ -248,10 +297,26 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
         as.logical(normalize), as.numeric(log_base), as.numeric(pseudocount_scalar))
 }
 
+#' Bootstrap Entropy Vector Computation
+#'
+#' @description
+#' C++ wrapper for vectorized entropy computation across pre-computed
+#' bootstrap sample matrices.
+#'
+#' @param bootstrap_samples \code{matrix}. Pre-computed bootstrap samples
+#'   (typically from \code{rmultinom()}).
+#' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
+#' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
+#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
+#'
+#' @return \code{numeric}. Vector of entropy estimates for each bootstrap sample.
+#'
+#' @details
+#' Efficiently computes entropy for multiple bootstrap samples using C++ acceleration.
+#' Input must be a matrix of samples (typically from multinomial resampling).
+#'
 #' @keywords internal
 #' @export
-# C++ wrapper for vectorized entropy computation across bootstrap samples
-# Takes pre-computed bootstrap_samples matrix from rmultinom()
 bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1.0, 
                                               normalize = TRUE, log_base = exp(1)) {
   .Call("_TSENAT_bootstrap_entropy_vec_cpp", PACKAGE = "TSENAT",

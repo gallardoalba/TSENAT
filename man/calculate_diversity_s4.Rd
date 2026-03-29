@@ -40,17 +40,6 @@ If NULL, uses q_values from \code{analysis@config$q_values} if available, else d
 \item{norm}{\code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
 If NULL, reads from \code{@config$norm} or defaults to TRUE.}
 
-\item{norm_method}{\code{character}. Post-hoc normalization method to apply after entropy calculation.
-Options:
-\itemize{
-  \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
-  \item \code{"zscore"} - Z-score normalization per q-value
-  \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
-  \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
-  \item \code{NULL} - No post-hoc normalization (default)
-}
-If NULL, reads from \code{@config$norm_method} if available.}
-
 \item{reference_group}{\code{character}. For \code{norm_method = "relative_reference"}, 
 the reference group column name (e.g., from colData). If NULL, uses first group in colData.
 If NULL, reads from \code{@config$reference_group} if available.}
@@ -102,6 +91,9 @@ If NULL, reads from \code{@config$bootstrap_ci} if available.}
 \item{bootstrap_include_diagnostics}{\code{logical}. Include bootstrap diagnostics. Default: TRUE.
 If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.}
 
+\item{seed}{\\code{numeric} or \\code{NULL}. Random seed for reproducibility. Default: NULL.
+If NULL, reads from \\code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.}
+
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 When provided, generates TWO files:
 \enumerate{
@@ -117,6 +109,8 @@ Example: output_file = "analysis.rds" generates:
 The spectrum file contains columns: q, central (median diversity), 
 spread (IQR), count, and group (if grouping variable available).
 Default: NULL (no file output).}
+
+\item{...}{Additional arguments passed to underlying functions for extensibility.}
 }
 \value{
 Modified TSENATAnalysis object with diversity results stored
@@ -170,6 +164,9 @@ Spectrum is saved as: \code{*_diversity_spectrum.tsv}
   \item \code{attr(diversity(analysis, q=X), "computed_with")}: Per-q-value metadata
         (timestamp, bootstrap setting, nthreads, etc.)
 }
+
+For additional details on diversity spectrum calculations and normalization methods,
+see the package vignettes.
 }
 \examples{
 # Create test analysis using factory (8 genes, 20 samples/group, multi-q setup)
@@ -191,7 +188,4 @@ head(diversity(analysis, q = 1.0))
 # Apply log-odds ratio normalization (q and isoform-aware)
 # analysis <- calculate_diversity_s4(analysis, norm_method = "log_odds_ratio")
 
-}
-\seealso{
-\code{\link{compute_diversity_spectrum}} for spectrum computation details.
 }

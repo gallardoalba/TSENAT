@@ -33,7 +33,7 @@ NULL
 #' se <- SummarizedExperiment(assays = list(counts = counts))
 #' 
 #' # Create TSENATAnalysis object
-#' example_analysis <- new("TSENATAnalysis", SummarizedExperiment = se)
+#' example_analysis <- new("TSENATAnalysis", se = se)
 #' 
 #' # Access SummarizedExperiment
 #' se_retrieved <- getSE(example_analysis)

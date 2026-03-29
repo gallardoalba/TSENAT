@@ -165,6 +165,8 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 #' @param verbose Logical. Print saving status. Default: FALSE.
 #' @param create_dir Logical. Create directory if it doesn't exist. Default: TRUE.
 #' @param func_name Function name for error messages (e.g., "calculate_diversity_s4"). Default: "wrapper_function"
+#' @param width Numeric or NULL. Plot width in inches (for ggplot/PDF/PNG output). Default: NULL (use ggplot defaults).
+#' @param height Numeric or NULL. Plot height in inches (for ggplot/PDF/PNG output). Default: NULL (use ggplot defaults).
 #'
 #' @return Invisibly returns TRUE if successful, FALSE if error suppressed
 #'

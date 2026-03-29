@@ -52,6 +52,8 @@ If NULL, reads from \code{@config$nboot} if available.}
 \item{seed}{\code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
 If NULL, reads from \code{@config$seed} if available.}
 
+\item{progress}{\code{logical}. Show progress bar during computation. Default: FALSE.}
+
 \item{...}{Additional arguments passed to the base divergence function.}
 }
 \value{
