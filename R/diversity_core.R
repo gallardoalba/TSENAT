@@ -154,58 +154,7 @@
     list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat)
 }
 
-#' Compute bootstrap confidence intervals for diversity
-#'
-#' Internal helper: Performs bootstrap CI computation if requested.
-#'
-
-#' @noRd
-.bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
-    bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
-    bootstrap_include_diagnostics, verbose, seed = NULL) {
-    
-    bootstrap_ci_results <- NULL
-    
-    if (!bootstrap) return(NULL)
-    
-    if (verbose) message("Computing bootstrap confidence intervals...")
-    
-    # Validate bootstrap parameters
-    if (!(bootstrap_method %in% c("percentile", "bca"))) {
-        stop("bootstrap_method must be 'percentile' or 'bca'", call. = FALSE)
-    }
-    if (!is.numeric(bootstrap_ci) || bootstrap_ci <= 0 || bootstrap_ci >= 1) {
-        stop("bootstrap_ci must be a probability in (0, 1)", call. = FALSE)
-    }
-    
-    # Auto-suggest nboot if needed
-    if (is.null(bootstrap_nboot)) {
-        n_genes_filtered <- nrow(result) - 1
-        if (n_genes_filtered < 1) {
-            stop("After filtering, no genes remain. Try relaxing filter parameters.", call. = FALSE)
-        }
-        bootstrap_nboot <- .suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
-        if (verbose) message(sprintf("  -> Auto-suggested nboot = %d for %d genes", bootstrap_nboot, n_genes_filtered))
-    }
-    
-    # Prepare data and compute bootstrap CIs
-    filtered_genes <- as.character(result[, 1])
-    gene_indices <- which(genes %in% filtered_genes)
-    counts_for_bootstrap <- se_assay_mat[gene_indices, , drop = FALSE]
-    counts_for_bootstrap <- counts_for_bootstrap[match(filtered_genes, genes[gene_indices]), , drop = FALSE]
-    rownames(counts_for_bootstrap) <- filtered_genes
-    
-    bootstrap_ci_results <- .calculate_tsallis_entropy_bootstrap(
-        x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
-        ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
-        nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
-        seed = seed)
-    
-    if (verbose) message("  [OK] Bootstrap CIs computed")
-    
-    list(bootstrap_ci_results = bootstrap_ci_results, bootstrap_nboot = bootstrap_nboot,
-        bootstrap_method = bootstrap_method, bootstrap_ci = bootstrap_ci)
-}
+# NOTE (March 2026): .bootstrap_diversity_ci() moved to bootstrap.R for consolidation
 
 #' Build SummarizedExperiment output for diversity
 #'

@@ -927,76 +927,7 @@ NULL
 
 #' Aggregate bootstrap CI bounds by group and q-value
 #'
-#' @param se SummarizedExperiment with ci_lower and ci_upper assays
-#' @param long Long-format data with group, q, sample, tsallis
-#' @return Data frame with q, median, ci_lower, ci_upper, group
-
-#' @noRd
-.bootstrap_aggregate_ci <- function(se, long) {
-  require_pkgs(c("SummarizedExperiment", "dplyr"))
-  
-  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
-  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
-  
-  sample_names <- colnames(ci_lower_mat)
-  if (is.null(sample_names)) {
-    sample_names <- paste0("Sample", seq_len(ncol(ci_lower_mat)))
-  }
-  
-  groups <- unique(sort(long$group))
-  unique_q <- sort(unique(long$q))
-  
-  plot_df <- data.frame(
-    q = numeric(),
-    median = numeric(),
-    ci_lower = numeric(),
-    ci_upper = numeric(),
-    group = character(),
-    stringsAsFactors = FALSE
-  )
-  
-  for (group_val in groups) {
-    for (q_val in unique_q) {
-      group_q_data <- long %>%
-        dplyr::filter(group == group_val, q == q_val)
-      
-      if (nrow(group_q_data) > 0) {
-        median_val <- median(group_q_data$tsallis, na.rm = TRUE)
-        
-        group_samples <- unique(group_q_data$sample)
-        all_ci_lower <- c()
-        all_ci_upper <- c()
-        
-        for (samp in group_samples) {
-          samp_idx <- which(sample_names == samp)
-          if (length(samp_idx) > 0) {
-            all_ci_lower <- c(all_ci_lower, mean(ci_lower_mat[, samp_idx], na.rm = TRUE))
-            all_ci_upper <- c(all_ci_upper, mean(ci_upper_mat[, samp_idx], na.rm = TRUE))
-          }
-        }
-        
-        if (length(all_ci_lower) > 0) {
-          ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
-          ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
-        } else {
-          ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
-          ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
-        }
-        
-        plot_df <- rbind(plot_df, data.frame(
-          q = q_val,
-          median = median_val,
-          ci_lower = ci_lower_final,
-          ci_upper = ci_upper_final,
-          group = group_val,
-          stringsAsFactors = FALSE
-        ))
-      }
-    }
-  }
-  
-  plot_df
-}
+# NOTE (March 2026): .bootstrap_aggregate_ci() moved to bootstrap.R for consolidation
 
 # ============================================================================
 # GAM INTERACTION HELPERS

@@ -550,39 +550,7 @@
   return(boot_dist)
 }
 
-# ============================================================================
-
-.bootstrap_resample <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
-    # Dispatch to block bootstrap for paired samples (paper S112)
-    if (paired) {
-        return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
-            log_base = log_base, pseudocount = pseudocount, what = what))
-    }
-    
-    # Standard bootstrap resampling for independent samples
-    # Estimate proportions from original data
-    x_adj <- x + pseudocount
-    total <- sum(x_adj)
-    p_hat <- x_adj / total
-    n_isoforms <- length(x)
-    
-    # OPTIMIZATION (March 2026): Batch rmultinom call for 20-30% speedup
-    # Previous: nboot separate rmultinom(1, ...) calls - slow
-    # New: Single rmultinom(nboot, ...) call returns n_isoforms × nboot matrix
-    # Fully equivalent numerically but ~2x faster due to single C-level call
-    # Reference: paper C017 (Bootstrap computational efficiency)
-    
-    boot_samples <- rmultinom(nboot, size = total, prob = p_hat)  # n_isoforms × nboot matrix
-    
-    # Vectorized entropy calculation across columns
-    boot_dist <- apply(boot_samples, 2, function(boot_sample) {
-        boot_est <- .calculate_tsallis_entropy(as.numeric(boot_sample), q = q, norm = norm,
-            what = what, log_base = log_base, pseudocount = 0)
-        as.numeric(boot_est)
-    })
-    
-    return(boot_dist)
-}
+# NOTE (March 2026): .bootstrap_resample() moved to bootstrap.R for consolidation
 
 .ci_percentile <- function(bootstrap_dist, ci) {
     alpha <- 1 - ci

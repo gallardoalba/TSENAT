@@ -65,34 +65,7 @@
 #' Fixes nboot bug and consolidates configuration logic
 
 #' @noRd
-.bootstrap_configure_parallel <- function(bootstrap, nboot, method, num_genes, nthreads, progress) {
-  # Validate bootstrap flag - use isTRUE to safely handle NA
-  if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
-    bootstrap <- FALSE  # Default to no bootstrap if invalid
-  }
-  
-  if (!isTRUE(bootstrap)) {
-    nboot <- 0
-  }
-  
-  # AUTO-SELECT NBOOT WHEN "auto"
-  if (isTRUE(bootstrap) && identical(nboot, "auto")) {
-    use_bca <- !is.null(method) && identical(method, "bca")
-    nboot <- .suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
-    if (isTRUE(progress)) {
-      message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
-    }
-  }
-  
-  # Configure parallel execution (fixes line 257 bug by using num_genes parameter)
-  parallel_config <- .configure_parallel(nthreads, num_genes)
-  
-  list(
-    nboot = nboot,
-    nthreads = parallel_config$nthreads,
-    use_parallel = parallel_config$use_parallel
-  )
-}
+# NOTE (March 2026): .bootstrap_configure_parallel() moved to bootstrap.R for consolidation
 
 #' Prepare paired sample and progress information
 #' Consolidates paired detection and progress message assembly
@@ -790,22 +763,7 @@
 #' Build bootstrap arguments for calculate_divergence_bootstrap
 #' Conditionally includes pair_ids if detected
 #' @noRd
-.bootstrap_build_args <- function(x, y, q_val, nboot, ci, method, 
-                                   log_base, pseudocount, gene_name, 
-                                   seed, pair_ids = NULL) {
-    args <- list(
-        x = x, y = y, q = q_val, nboot = nboot, ci = ci, method = method,
-        log_base = log_base, pseudocount = pseudocount,
-        gene_name = gene_name, verbose = FALSE, seed = seed,
-        paired = !is.null(pair_ids)
-    )
-    
-    if (!is.null(pair_ids)) {
-        args$pair_ids <- pair_ids
-    }
-    
-    args
-}
+# NOTE (March 2026): .bootstrap_build_args() moved to bootstrap.R for consolidation
 
 #' Compute divergence for all q values for a single gene
 #' Returns list of results, one per q value

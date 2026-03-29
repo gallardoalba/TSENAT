@@ -1797,6 +1797,208 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 #' Provides summary statistics and diagnostic information for divergence
 #' bootstrap confidence interval objects.
 #'
+# ============================================================================
+# CONSOLIDATED BOOTSTRAP UTILITIES (moved from other files, March 2026)
+# ============================================================================
+
+# From compute_stats.R: Aggregate bootstrap CIs
+.bootstrap_aggregate_ci <- function(se, long) {
+  require_pkgs(c("SummarizedExperiment", "dplyr"))
+  
+  ci_lower_mat <- SummarizedExperiment::assay(se, "ci_lower")
+  ci_upper_mat <- SummarizedExperiment::assay(se, "ci_upper")
+  
+  sample_names <- colnames(ci_lower_mat)
+  if (is.null(sample_names)) {
+    sample_names <- paste0("Sample", seq_len(ncol(ci_lower_mat)))
+  }
+  
+  groups <- unique(sort(long$group))
+  unique_q <- sort(unique(long$q))
+  
+  plot_df <- data.frame(
+    q = numeric(),
+    median = numeric(),
+    ci_lower = numeric(),
+    ci_upper = numeric(),
+    group = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  for (group_val in groups) {
+    for (q_val in unique_q) {
+      group_q_data <- long %>%
+        dplyr::filter(group == group_val, q == q_val)
+      
+      if (nrow(group_q_data) > 0) {
+        median_val <- median(group_q_data$tsallis, na.rm = TRUE)
+        
+        group_samples <- unique(group_q_data$sample)
+        all_ci_lower <- c()
+        all_ci_upper <- c()
+        
+        for (samp in group_samples) {
+          samp_idx <- which(sample_names == samp)
+          if (length(samp_idx) > 0) {
+            all_ci_lower <- c(all_ci_lower, mean(ci_lower_mat[, samp_idx], na.rm = TRUE))
+            all_ci_upper <- c(all_ci_upper, mean(ci_upper_mat[, samp_idx], na.rm = TRUE))
+          }
+        }
+        
+        if (length(all_ci_lower) > 0) {
+          ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
+          ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
+        } else {
+          ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
+          ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
+        }
+        
+        plot_df <- rbind(plot_df, data.frame(
+          q = q_val,
+          median = median_val,
+          ci_lower = ci_lower_final,
+          ci_upper = ci_upper_final,
+          group = group_val,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+  }
+  
+  plot_df
+}
+
+# From diversity_core.R: Compute bootstrap CI for diversity measures
+.bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
+    bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
+    bootstrap_include_diagnostics, verbose, seed = NULL) {
+    
+    bootstrap_ci_results <- NULL
+    
+    if (!bootstrap) return(NULL)
+    
+    if (verbose) message("Computing bootstrap confidence intervals...")
+    
+    # Validate bootstrap parameters
+    if (!(bootstrap_method %in% c("percentile", "bca"))) {
+        stop("bootstrap_method must be 'percentile' or 'bca'", call. = FALSE)
+    }
+    if (!is.numeric(bootstrap_ci) || bootstrap_ci <= 0 || bootstrap_ci >= 1) {
+        stop("bootstrap_ci must be a probability in (0, 1)", call. = FALSE)
+    }
+    
+    # Auto-suggest nboot if needed
+    if (is.null(bootstrap_nboot)) {
+        n_genes_filtered <- nrow(result) - 1
+        if (n_genes_filtered < 1) {
+            stop("After filtering, no genes remain. Try relaxing filter parameters.", call. = FALSE)
+        }
+        bootstrap_nboot <- .suggest_nboot(n_genes_filtered, use_bca = (bootstrap_method == "bca"))
+        if (verbose) message(sprintf("  -> Auto-suggested nboot = %d for %d genes", bootstrap_nboot, n_genes_filtered))
+    }
+    
+    # Prepare data and compute bootstrap CIs
+    filtered_genes <- as.character(result[, 1])
+    gene_indices <- which(genes %in% filtered_genes)
+    counts_for_bootstrap <- se_assay_mat[gene_indices, , drop = FALSE]
+    counts_for_bootstrap <- counts_for_bootstrap[match(filtered_genes, genes[gene_indices]), , drop = FALSE]
+    rownames(counts_for_bootstrap) <- filtered_genes
+    
+    bootstrap_ci_results <- .calculate_tsallis_entropy_bootstrap(
+        x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
+        ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
+        nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
+        seed = seed)
+    
+    if (verbose) message("  [OK] Bootstrap CIs computed")
+    
+    list(bootstrap_ci_results = bootstrap_ci_results, bootstrap_nboot = bootstrap_nboot,
+        bootstrap_method = bootstrap_method, bootstrap_ci = bootstrap_ci)
+}
+
+# From divergence_core.R: Configure parallel bootstrap execution
+.bootstrap_configure_parallel <- function(bootstrap, nboot, method, num_genes, nthreads, progress) {
+  # Validate bootstrap flag - use isTRUE to safely handle NA
+  if (!isTRUE(bootstrap) && !isFALSE(bootstrap)) {
+    bootstrap <- FALSE  # Default to no bootstrap if invalid
+  }
+  
+  if (!isTRUE(bootstrap)) {
+    nboot <- 0
+  }
+  
+  # AUTO-SELECT NBOOT WHEN "auto"
+  if (isTRUE(bootstrap) && identical(nboot, "auto")) {
+    use_bca <- !is.null(method) && identical(method, "bca")
+    nboot <- .suggest_nboot(num_genes, use_bca = use_bca, nthreads = nthreads)
+    if (isTRUE(progress)) {
+      message("Auto-selected nboot =", nboot, "for", num_genes, "genes")
+    }
+  }
+  
+  # Configure parallel execution (fixes line 257 bug by using num_genes parameter)
+  parallel_config <- .configure_parallel(nthreads, num_genes)
+  
+  list(
+    nboot = nboot,
+    nthreads = parallel_config$nthreads,
+    use_parallel = parallel_config$use_parallel
+  )
+}
+
+# From divergence_core.R: Build bootstrap arguments for divergence
+.bootstrap_build_args <- function(x, y, q_val, nboot, ci, method, 
+                                   log_base, pseudocount, gene_name, 
+                                   seed, pair_ids = NULL) {
+    args <- list(
+        x = x, y = y, q = q_val, nboot = nboot, ci = ci, method = method,
+        log_base = log_base, pseudocount = pseudocount,
+        gene_name = gene_name, verbose = FALSE, seed = seed,
+        paired = !is.null(pair_ids)
+    )
+    
+    if (!is.null(pair_ids)) {
+        args$pair_ids <- pair_ids
+    }
+    
+    args
+}
+
+# From diversity_helpers.R: Bootstrap resampling for diversity
+.bootstrap_resample <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
+    # Dispatch to block bootstrap for paired samples (paper S112)
+    if (paired) {
+        return(.block_bootstrap(x, q = q, norm = norm, nboot = nboot,
+            log_base = log_base, pseudocount = pseudocount, what = what))
+    }
+    
+    # Standard bootstrap resampling for independent samples
+    # Estimate proportions from original data
+    x_adj <- x + pseudocount
+    total <- sum(x_adj)
+    p_hat <- x_adj / total
+    n_isoforms <- length(x)
+    
+    # OPTIMIZATION (March 2026): Batch rmultinom call for 20-30% speedup
+    # Previous: nboot separate rmultinom(1, ...) calls - slow
+    # New: Single rmultinom(nboot, ...) call returns n_isoforms × nboot matrix
+    # Fully equivalent numerically but ~2x faster due to single C-level call
+    # Reference: paper C017 (Bootstrap computational efficiency)
+    
+    boot_samples <- rmultinom(nboot, size = total, prob = p_hat)  # n_isoforms × nboot matrix
+    
+    # Vectorized entropy calculation across columns
+    boot_dist <- apply(boot_samples, 2, function(boot_sample) {
+        boot_est <- .calculate_tsallis_entropy(as.numeric(boot_sample), q = q, norm = norm,
+            what = what, log_base = log_base, pseudocount = 0)
+        as.numeric(boot_est)
+    })
+    
+    return(boot_dist)
+}
+
+# ============================================================================
+
 #' @param object An object of class \code{tsenat_divergence_bootstrap_ci}.
 #' @param ... Additional arguments (ignored).
 #'
