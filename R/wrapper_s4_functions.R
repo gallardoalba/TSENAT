@@ -2804,31 +2804,30 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'
 #' @param ... Additional arguments passed to the base function.
 #'
-#' @return Modified TSENATAnalysis with effect size results stored in
-#'   \code{@metadata$effect_sizes_divergence}. Returns the analysis object visibly
+#' @return Modified TSENATAnalysis with effect size results stored via
+#'   \code{metadata(analysis)$effect_sizes_divergence}. Returns the analysis object visibly
 #'   to support piping and method chaining.
 #'
 #' @details
 #' **Workflow steps:**
 #' \describe{
-#'   \item{Extracting}{Divergence SE from \code{@divergence_results} and LM results
-#'     from \code{@lm_results$lm_interaction}}
+#'   \item{Extracting}{Divergence results (via accessors) and LM interaction results}
 #'   \item{Computing}{Effect sizes using standard \code{.effect_sizes_divergence()} function}
 #'   \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
 #'     \code{validation_stats}}
-#'   \item{Tracking}{Function call in \code{@metadata$function_calls}}
+#'   \item{Tracking}{Function call in analysis metadata}
 #' }
 #'
-#' **Parameter resolution priority** (explicit > @config > default):
+#' **Parameter resolution priority** (explicit > metadata > default):
 #' \itemize{
-#'   \item \code{significance_threshold}: Uses explicit arg, else \code{@config$significance_threshold},
+#'   \item \code{significance_threshold}: Uses explicit arg, else \code{metadata(analysis)$significance_threshold},
 #'     else 0.05
-#'   \item \code{enrich_per_q_pattern}: Uses explicit arg, else \code{@config$enrich_per_q_pattern},
+#'   \item \code{enrich_per_q_pattern}: Uses explicit arg, else \code{metadata(analysis)$enrich_per_q_pattern},
 #'     else TRUE
-#'   \item \code{verbose}: Uses explicit arg, else \code{@config$verbose}, else TRUE
+#'   \item \code{verbose}: Uses explicit arg, else \code{metadata(analysis)$verbose}, else TRUE
 #' }
 #'
-#' Results are accessed via: \code{analysis@metadata$effect_sizes_divergence}
+#' Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}
 #'
 #' @examples
 #' # Setup: Create test analysis with divergence and LM interaction results
@@ -2843,8 +2842,9 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' analysis <- effect_sizes_divergence_s4(analysis, 
 #'   significance_threshold = 0.05, verbose = FALSE)
 #' 
-#' # Access results
-#' if (!is.null(analysis@metadata$effect_sizes_divergence)) {
+#' # Access results using metadata accessor
+#' effect_size_results <- metadata(analysis)$effect_sizes_divergence
+#' if (!is.null(effect_size_results)) {
 #'   cat("Effect sizes computed successfully\n")
 #' }
 #'

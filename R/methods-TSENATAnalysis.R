@@ -152,25 +152,23 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #' Summary method for TSENATAnalysis
 #' @param object TSENATAnalysis object
 setMethod("summary", "TSENATAnalysis", function(object) {
-    cat("TSENATAnalysis Summary\n")
-    cat("======================\n\n")
+    message("TSENATAnalysis Summary\n======================\n")
     
-    cat("Data dimensions:\n")
-    cat("  -", nrow(object@se), "genes x", ncol(object@se), "samples\n")
-    cat("  - Assays:", paste(names(assays(object@se)), collapse = ", "), "\n\n")
+    message("Data dimensions:")
+    message("  - ", nrow(object@se), " genes x ", ncol(object@se), " samples")
+    message("  - Assays: ", paste(names(assays(object@se)), collapse = ", "), "\n")
     
-    cat("Configuration:\n")
+    message("Configuration:")
     if (length(object@config) > 0) {
         for (key in names(object@config)) {
             val <- object@config[[key]]
             if (is.vector(val) && length(val) <= 3) {
-                cat("  -", key, ":", paste(val, collapse = ", "), "\n")
+                message("  - ", key, ": ", paste(val, collapse = ", "))
             } else {
-                cat("  -", key, ": [set]\n")
+                message("  - ", key, ": [set]")
             }
         }
     }
-    cat("\n")
     
     invisible(object)
 })
