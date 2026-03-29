@@ -1213,7 +1213,7 @@ test_calculate_divergence_input_validation <- function(
   if ("se_type" %in% test_types) {
     # Invalid SE (not SummarizedExperiment)
     expect_error(
-      .calculate_divergence(se = list()),
+      TSENAT:::.calculate_divergence(se = list()),
       "must be a SummarizedExperiment|SummarizedExperiment",
       ignore.case = TRUE
     )
@@ -1222,7 +1222,7 @@ test_calculate_divergence_input_validation <- function(
   if ("bootstrap_type" %in% test_types) {
     # Invalid bootstrap parameter
     expect_error(
-      .calculate_divergence(se = se, bootstrap = "yes"),
+      TSENAT:::.calculate_divergence(se = se, bootstrap = "yes"),
       "bootstrap must be a logical"
     )
   }
@@ -1230,7 +1230,7 @@ test_calculate_divergence_input_validation <- function(
   if ("q_values" %in% test_types) {
     # Invalid q values (non-positive)
     expect_error(
-      .calculate_divergence(
+      TSENAT:::.calculate_divergence(
         se = se,
         group_col = "group",
         control_group = "A",
@@ -1253,7 +1253,7 @@ test_calculate_divergence_input_validation <- function(
     colnames(se_no_genes) <- c("s1", "s2", "s3", "s4", "s5", "s6")
     
     expect_error(
-      .calculate_divergence(
+      TSENAT:::.calculate_divergence(
         se = se_no_genes,
         group_col = "group",
         control_group = "A",

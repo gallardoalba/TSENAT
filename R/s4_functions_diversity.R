@@ -9,6 +9,16 @@
 #'   If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).
 #' @param norm \code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
 #'   If NULL, reads from \code{@config$norm} or defaults to TRUE.
+#' @param norm_method \code{character}. Post-hoc normalization method applied after diversity computation.
+#'   Options:
+#'   \itemize{
+#'     \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
+#'     \item \code{"zscore"} - Z-score normalization per q-value
+#'     \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
+#'     \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
+#'     \item \code{NULL} - No post-hoc normalization (default)
+#'   }
+#'   If NULL, reads from \code{@config$norm_method} if available.
 #' @param tpm \code{logical}. TPM normalization. Default: FALSE.
 #'   If not specified, reads from \code{@config$tpm} if available.
 #' @param assayno \code{numeric}. Assay number to use. Default: 1.

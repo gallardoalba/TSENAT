@@ -116,8 +116,15 @@ setMethod("getPlot", "TSENATAnalysis", function(object, type = NULL) {
 #' @param object TSENATAnalysis object
 #' @param type character. Plot type identifier
 #' @param plot ggplot or list. The plot object to cache
+#' @param replace logical. If TRUE, replace existing plot of same type.
+#'   If FALSE (default), warn if plot already exists and do not overwrite.
 #' @rdname divResults
-setMethod("addPlot", "TSENATAnalysis", function(object, type, plot) {
+setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FALSE) {
+    if (!replace && type %in% names(object@plots)) {
+        warning("Plot type '", type, "' already exists. Set replace=TRUE to overwrite.",
+                call. = FALSE)
+        return(object)
+    }
     object@plots[[type]] <- plot
     object
 })

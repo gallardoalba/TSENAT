@@ -115,7 +115,12 @@ S4Vectors::metadata(se)$tx2gene <- data.frame(
 analysis <- TSENATAnalysis(se)
 # First compute diversity
 analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
-analysis <- m_estimate_s4(analysis, condition_col = "sample_type", loss_type = "huber", verbose = FALSE)
+analysis <- m_estimate_s4(
+  analysis,
+  condition_col = "sample_type",
+  loss_type = "huber",
+  verbose = FALSE
+)
 
 }
 \seealso{

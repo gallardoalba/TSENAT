@@ -3935,7 +3935,12 @@ jackknife_isoform_switching_s4 <- function(
 #' analysis <- TSENATAnalysis(se)
 #' # First compute diversity
 #' analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
-#' analysis <- m_estimate_s4(analysis, condition_col = "sample_type", loss_type = "huber", verbose = FALSE)
+#' analysis <- m_estimate_s4(
+#'   analysis,
+#'   condition_col = "sample_type",
+#'   loss_type = "huber",
+#'   verbose = FALSE
+#' )
 #'
 #' @seealso
 #' \code{\link{calculate_diversity_s4}} for computing diversity
