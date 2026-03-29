@@ -21,14 +21,16 @@
 #   * When applied: GAM method with n_observations < 20 and bias_correction=TRUE
 #   * Test file: test-integration-linear_models.R (lines 1686-1754+) - 10+ tests passing
 #
-# [X] LMM: NOT IMPLEMENTED - Not literature-supported for hypothesis testing
-#   * Analysis: Papers S160-S164 (Phase 12 integration) address ESTIMATION bias
-#   * Finding: These papers discuss bias in parameter estimation (coefficients, variance components)
-#   * NOT discussed: Bias in hypothesis testing (p-values) for linear mixed models
-#   * Reason: Satterthwaite/Kenward-Roger t-distribution inherently accounts for small-sample effects
-#   * Type I error: Already controlled in LMM hypothesis testing even with n < 20
-#   * Future work: Parameter estimation bias correction (not currently needed)
-#   * Documentation: Decision documented in this file (lmm behavior verified in tests)
+# [X] LMM: ENHANCED (Phase 14) - AR(1) correlation & sample size tracking
+#   * Analysis: Papers S88, S90, S92, S93, S135, S147 confirm LMM best practices
+#   * New Feature 1: AR(1) correlation structure option (.try_lmm_ar1)
+#     - Implements corAR1(form = ~time_idx | subject) for ordered q-values
+#     - Appropriate for entropy curves with autocorrelated differences
+#     - Tries AR(1) FIRST in fallback hierarchy
+#   * New Feature 2: Sample size documentation (.extract_lrt_p returns list)
+#     - Returns: p_value, n_subjects, small_sample_flag (TRUE if n < 5)
+#     - Results include n_subjects column for transparency
+#     - Flag indicates LOW POWER region (requires caution)
 #
 # LITERATURE BASIS:
 # Papers confirming proposed strategy:
@@ -1451,21 +1453,24 @@ if (getOption("TSENAT.memoization", TRUE)) {
             used_fit_method <- if (use_arima) "nlme::lme_arima(1,1,0)" else "nlme::lme_ar1_raw"
         }
 
-        lrt_p <- NA_real_
+        lrt_result <- list(p_value = NA_real_, n_subjects = NA_integer_, small_sample_flag = FALSE)
         msg <- NULL
         if (!is.null(fallback_lm)) {
-            lrt_p <- .extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1)
+            lrt_result <- .extract_lrt_p(fallback_lm$fit0, fallback_lm$fit1, df = df_model)
             # If glmmTMB fallback failed due to convergence, propagate message
             if (!is.null(fallback_lm$message)) {
                 msg <- fallback_lm$message
             }
         } else {
-            lrt_p <- .extract_lrt_p(fit0, fit1)
+            lrt_result <- .extract_lrt_p(fit0, fit1, df = df_model)
         }
 
         # nlme models use LRT for hypothesis testing (not Satterthwaite)
         # pvalue argument is ignored for nlme method
         satter_p <- NA_real_
+        lrt_p <- lrt_result$p_value
+        n_subj_lmm <- lrt_result$n_subjects
+        small_sample_lmm <- lrt_result$small_sample_flag
 
         # nlme always uses LRT for hypothesis testing
         p_interaction <- lrt_p
@@ -1497,10 +1502,22 @@ if (getOption("TSENAT.memoization", TRUE)) {
         # Add weighting information to results (Phase 1)
         has_weights <- !is.null(df$weight)
 
-        res <- data.frame(gene = g, p_interaction = p_interaction, p_lrt = lrt_p,
-            p_satterthwaite = NA_real_, slope_diff = slope_diff, fit_method = used_fit_method, 
-            singular = used_singular, arima_transformation = use_arima, ci_weighted = has_weights, 
-            stringsAsFactors = FALSE)
+        # PHASE 14 ENHANCEMENT: Document sample size and power flags
+        # Report n_subjects for transparency and small_sample_flag for caution
+        res <- data.frame(
+            gene = g, 
+            p_interaction = p_interaction, 
+            p_lrt = lrt_p,
+            p_satterthwaite = NA_real_, 
+            slope_diff = slope_diff, 
+            fit_method = used_fit_method, 
+            singular = used_singular, 
+            arima_transformation = use_arima, 
+            ci_weighted = has_weights,
+            n_subjects = n_subj_lmm,
+            small_sample_flag = small_sample_lmm,
+            stringsAsFactors = FALSE
+        )
         if (!is.null(msg)) res$message <- msg
         return(res)
     }

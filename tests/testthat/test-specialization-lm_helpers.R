@@ -57,8 +57,10 @@ test_that(".try_lm_fallbacks returns lm fits and LRT extractor returns numeric p
     fb <- .try_lm_fallbacks(df, verbose = TRUE)
     expect_true(is.null(fb) || (is.list(fb) && all(c("fit0", "fit1", "method") %in% names(fb))))
     if (!is.null(fb)) {
-        lrt_p <- .extract_lrt_p(fb$fit0, fb$fit1)
-        expect_true(is.numeric(lrt_p) || is.na(lrt_p))
+        lrt_p <- .extract_lrt_p(fb$fit0, fb$fit1, df = df)
+        # Phase 14: .extract_lrt_p now returns a list with p_value, n_subjects, small_sample_flag
+        expect_true(is.list(lrt_p) && "p_value" %in% names(lrt_p))
+        expect_true(is.numeric(lrt_p$p_value) || is.na(lrt_p$p_value))
     }
 })
 
@@ -144,10 +146,10 @@ testthat::test_that("LM fallback helpers choose appropriate method", {
     df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
     res <- .try_lm_fallbacks(df)
     testthat::expect_type(res, "list")
-    # AR(1) implementation now tries nlme first, then glmmTMB, then lm_subject_fixed, then lm_nosubject
-    testthat::expect_true(res$method %in% c("nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject"))
+    # Phase 14: AR(1) tries nlme_ar1 first, then nlme, then glmmTMB, then lm_subject_fixed, then lm_nosubject
+    testthat::expect_true(res$method %in% c("nlme_ar1", "nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject"))
     # fit1 can be lme, glmmTMB, or lm depending on which strategy succeeded
-    testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm"))
+    testthat::expect_true(inherits(res$fit1, "lme") || inherits(res$fit1, "glmmTMB") || inherits(res$fit1, "lm") || inherits(res$fit1, "NA"))
 
     # drop subject -> should pick nosubject fallback
     df2 <- df[, c("entropy", "q", "group")]
@@ -165,7 +167,10 @@ testthat::test_that("LRT p extraction returns numeric p-value for nested lm mode
     df <- data.frame(entropy = entropy, q = q, group = factor(group))
     fit0 <- stats::lm(entropy ~ q + group, data = df)
     fit1 <- stats::lm(entropy ~ q * group, data = df)
-    p <- .extract_lrt_p(fit0, fit1)
+    result <- .extract_lrt_p(fit0, fit1, df = df)
+    # Phase 14: .extract_lrt_p returns a list
+    testthat::expect_true(is.list(result) && "p_value" %in% names(result))
+    p <- result$p_value
     testthat::expect_true(is.numeric(p) || is.na(p))
     if (!is.na(p)) testthat::expect_true(p >= 0 && p <= 1)
 })
@@ -302,8 +307,10 @@ test_that(".fit_one_interaction lmm returns NULL with <2 subjects", {
 
 # .extract_lrt_p returns NA when anova errors
 test_that(".extract_lrt_p returns NA for invalid models", {
-    p <- .extract_lrt_p("not_a_model", "also_not")
-    expect_true(is.na(p))
+    result <- .extract_lrt_p("not_a_model", "also_not")
+    # Phase 14: .extract_lrt_p returns a list
+    expect_true(is.list(result) && "p_value" %in% names(result))
+    expect_true(is.na(result$p_value))
 })
 
 

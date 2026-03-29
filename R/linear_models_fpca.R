@@ -177,7 +177,8 @@
             n_pc_max_by_var <- ncol(pca$x)
         }
         # Apply bounds: minimum 2 for stability, maximum 5 for parsimony
-        n_pc_use <- max(2, min(5, n_pc_max_by_var))
+        # Also bound by actual number of available PCs to prevent indexing errors
+        n_pc_use <- max(2, min(5, n_pc_max_by_var, ncol(pca$x)))
         
         # For each PC, test if it explains group differences
         pc_pvals <- numeric(n_pc_use)
@@ -388,7 +389,10 @@
             next
         }
         if (s %in% rownames(curve_mat)) {
-            curve_mat[s, qi] <- as.numeric(mat[, i])
+            # BUG FIX (March 2026): Extract scalar from 1-row matrix, not vector
+            # mat is passed from fpca_interaction as mat[g, ] (1-row matrix)
+            # Extract the i-th value: mat[1, i] (scalar for this sample-q combo)
+            curve_mat[s, qi] <- mat[1, i]
         }
     }
     # keep samples with at least half of q points present

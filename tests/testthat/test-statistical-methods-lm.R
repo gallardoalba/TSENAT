@@ -74,7 +74,8 @@ test_that("missing sample_type_col produces informative error", {
     cd <- data.frame(samples = sample_ids, row.names = coln, stringsAsFactors = FALSE)
     se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
 
-    expect_error(.calculate_lm_interaction(se), "No sample grouping found|map sample types into `colData\\(se\\)`", fixed = FALSE)
+    # When condition_col is not specified and not found in colData, expect an informative error
+    expect_error(.calculate_lm_interaction(se), "condition_col|not found|Available columns", fixed = FALSE)
 })
 
 test_that("column names without _q= are rejected", {

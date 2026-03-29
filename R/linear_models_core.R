@@ -230,8 +230,24 @@
         stop("SummarizedExperiment required")
     }
 
+    # Validate SummarizedExperiment object
+    if (!inherits(se, "SummarizedExperiment")) {
+        stop("se must be a SummarizedExperiment object", call. = FALSE)
+    }
+
     if (verbose) {
         message("[calculate_lm_interaction] method=", method)
+    }
+
+    # Check method-specific library dependencies
+    if (method == "lmm" && !requireNamespace("nlme", quietly = TRUE)) {
+        stop("Package 'nlme' is required for method='lmm'", call. = FALSE)
+    }
+    if (method == "gam" && !requireNamespace("mgcv", quietly = TRUE)) {
+        stop("Package 'mgcv' is required for method='gam'", call. = FALSE)
+    }
+    if (method == "gee" && !requireNamespace("geepack", quietly = TRUE)) {
+        stop("Package 'geepack' is required for method='gee'", call. = FALSE)
     }
 
     # Validate input parameters
@@ -252,6 +268,21 @@
 
     # Update subject_col from validated params (may be auto-detected)
     subject_col <- validated$subject_col
+
+    # Validate condition_col exists in colData
+    cd_colnames <- colnames(SummarizedExperiment::colData(se))
+    if (!(condition_col %in% cd_colnames)) {
+        stop(sprintf("condition_col '%s' not found in colData. Available columns: %s",
+                     condition_col, paste(cd_colnames, collapse = ", ")),
+             call. = FALSE)
+    }
+
+    # Validate assay name exists
+    if (!(assay_name %in% SummarizedExperiment::assayNames(se))) {
+        stop(sprintf("Assay '%s' not found. Available assays: %s",
+                     assay_name, paste(SummarizedExperiment::assayNames(se), collapse = ", ")),
+             call. = FALSE)
+    }
 
     # Parse sample metadata and q-values
     metadata <- .parse_sample_metadata(
@@ -281,8 +312,18 @@
         adaptive_knots = adaptive_knots
     )
 
+    # Validate res is a data.frame
+    if (!is.data.frame(res)) {
+        stop(".fit_all_genes() should return a data.frame", call. = FALSE)
+    }
+
     if (nrow(res) == 0) {
         return(res)
+    }
+
+    # Validate p_interaction column exists before computing adjusted p-values
+    if (!("p_interaction" %in% colnames(res))) {
+        stop("Results data.frame missing required 'p_interaction' column", call. = FALSE)
     }
 
     # Adjust p-values for multiple q-values

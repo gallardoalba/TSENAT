@@ -112,9 +112,57 @@
     return(structure("error", class = "try-error"))
 }
 
+## AR(1) correlation structure helper for ordered q-values (Phase 14 enhancement)
+## Implements autocorrelated errors for entropy curves respecting q-order
+.try_lmm_ar1 <- function(df, verbose = FALSE) {
+    if (!requireNamespace("nlme", quietly = TRUE)) {
+        return(NULL)
+    }
+    
+    # AR(1) structure: Cov(ε_i,j, ε_i,k) = σ² * φ^|j-k|
+    # Appropriate for entropy curves where H(q) is ordered and autocorrelated
+    # Based on validation: papers confirm AR(1) decreasing covariance structure
+    tryCatch({
+        # Create time index for AR(1) ordering by q within each subject
+        df <- df[order(df$subject, df$q), ]
+        df$time_idx <- sequence(rle(as.character(df$subject))$lengths)
+        
+        fit0_ar1 <- nlme::lme(
+            entropy ~ q + group,
+            random = ~1 | subject,
+            correlation = nlme::corAR1(form = ~time_idx | subject),
+            data = df,
+            method = "ML"
+        )
+        fit1_ar1 <- nlme::lme(
+            entropy ~ q * group,
+            random = ~1 | subject,
+            correlation = nlme::corAR1(form = ~time_idx | subject),
+            data = df,
+            method = "ML"
+        )
+        
+        if (!inherits(fit0_ar1, "try-error") && !inherits(fit1_ar1, "try-error")) {
+            if (verbose) message("[.try_lmm_ar1] AR(1) correlation structure fitted successfully")
+            return(list(fit0 = fit0_ar1, fit1 = fit1_ar1, method = "nlme_ar1"))
+        }
+        NULL
+    }, error = function(e) {
+        if (verbose) message("[.try_lmm_ar1] AR(1) fitting failed: ", conditionMessage(e))
+        NULL
+    })
+}
+
 ## Consolidated helpers for calculate_lm_interaction fallbacks, LRT and Satterthwaite
-## Improved mixed model handling with multiple fallback strategies
+## Improved mixed model handling with multiple fallback strategies (Phase 14 enhanced)
 .try_lm_fallbacks <- function(df, verbose = FALSE) {
+    # Strategy 0: Try AR(1) correlation for ordered q-values (NEW - Phase 14)
+    ar1_result <- .try_lmm_ar1(df, verbose = verbose)
+    if (!is.null(ar1_result)) {
+        if (verbose) message("[.try_lm_fallbacks] Strategy 0 SUCCESS: AR(1) correlated random intercept")
+        return(ar1_result)
+    }
+    
     # Strategy 1: Try nlme::lme() - more stable than lme4 for some datasets
     if (requireNamespace("nlme", quietly = TRUE)) {
         fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
@@ -122,6 +170,7 @@
         fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
             method = "ML"), silent = TRUE)
         if (!inherits(fit0_nlme, "try-error") && !inherits(fit1_nlme, "try-error")) {
+            if (verbose) message("[.try_lm_fallbacks] Strategy 1 SUCCESS: nlme random intercept")
             return(list(fit0 = fit0_nlme, fit1 = fit1_nlme, method = "nlme"))
         }
     }
@@ -178,24 +227,53 @@
                     silent = TRUE)
     if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
         if (verbose) {
-            message("[.try_lm_fallbacks] Subject removed - reduced power expected")
+            message("[.try_lm_fallbacks] Strategy 4: Subject removed - reduced power expected")
         }
         return(list(fit0 = fit0_lm2, fit1 = fit1_lm2, method = "lm_nosubject"))
     }
 
+    if (verbose) message("[.try_lm_fallbacks] ALL STRATEGIES FAILED - no model fitted")
     return(NULL)
 }
 
 
-.extract_lrt_p <- function(fit0, fit1) {
+.extract_lrt_p <- function(fit0, fit1, df = NULL) {
+    # Extract LRT p-value and related statistics from nested model comparison
+    # NEW (Phase 14): Also return sample size info and power flags
     an <- try(stats::anova(fit0, fit1), silent = TRUE)
     if (!inherits(an, "try-error") && nrow(an) >= 2) {
         pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-        if (length(pcol) == 0) {
-            return(as.numeric(an[2, ncol(an)]))
+        pval <- if (length(pcol) == 0) {
+            as.numeric(an[2, ncol(an)])
         } else {
-            return(as.numeric(an[2, pcol[1]]))
+            as.numeric(an[2, pcol[1]])
         }
+        
+        # Compute sample size info for flagging
+        n_subjects <- NA_integer_
+        if (!is.null(df) && "subject" %in% colnames(df)) {
+            n_subjects <- length(unique(df$subject))
+        }
+        
+        # Flag: Type I error may be inflated with n_subjects < 5 (LOW POWER)
+        small_sample_flag <- if (!is.na(n_subjects) && n_subjects < 5) TRUE else FALSE
+        
+        return(list(
+            p_value = pval,
+            n_subjects = n_subjects,
+            small_sample_flag = small_sample_flag
+        ))
     }
-    return(NA_real_)
+    
+    # Fallback if anova fails
+    n_subjects <- NA_integer_
+    if (!is.null(df) && "subject" %in% colnames(df)) {
+        n_subjects <- length(unique(df$subject))
+    }
+    
+    return(list(
+        p_value = NA_real_,
+        n_subjects = n_subjects,
+        small_sample_flag = if (!is.na(n_subjects) && n_subjects < 5) TRUE else FALSE
+    ))
 }
