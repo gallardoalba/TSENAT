@@ -26,7 +26,13 @@
     return(NA_real_)
   }
   
-  if (!is.numeric(q) || q < 0) {
+  if (!is.numeric(q)) {
+    stop("q must be numeric")
+  }
+  if (length(q) > 1) {
+    stop("q must be a scalar (length 1), not a vector")
+  }
+  if (q < 0) {
     stop("q must be non-negative")
   }
   
@@ -133,9 +139,71 @@
     # Shannon max: log(n)
     H_max <- log(n_species) / log(log_base)
   } else {
-    # Tsallis max: (1 - n^(1-q)) / (q-1)
-    H_max <- (1.0 - n_species^(1.0 - q)) / ((q - 1.0) * log(log_base))
+    # Tsallis max: (1 - n^(1-q)) / (q-1)  [log_base NOT applied to Tsallis]
+    H_max <- (1.0 - n_species^(1.0 - q)) / (q - 1.0)
   }
   
   return(H_max)
+}
+
+#' Internal: Entropy calculation for a single vector with pseudocount support
+#'
+#' Compute Tsallis, Shannon, or species richness entropy for a single counts vector,
+#' with optional pseudocount and log base parameters. Used by jackknife and other
+#' internal calculations.
+#'
+#' @param counts Numeric vector of (non-negative) counts
+#' @param q Numeric. Generalization parameter. Default: 1.0 (Shannon entropy)
+#' @param norm Logical. Normalize by maximum entropy [0,1]. Default: TRUE
+#' @param log_base Numeric. Logarithm base. Default: exp(1) (natural log)
+#' @param pseudocount Numeric. Add to each count before normalization. Default: 0
+#' @param q_tol Numeric. Tolerance for detecting q=1 case. Default: 1e-6
+#'
+#' @return Numeric scalar: entropy value
+#'
+#' @references
+#'   Originally from jackknife_diagnostics.R, consolidated into entropy_core.R
+#'   for unified entropy calculations across the package.
+#'
+#' @noRd
+.entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
+                           pseudocount = 0, q_tol = 1e-6) {
+  # Normalize to proportions with pseudocount
+  total <- sum(counts) + length(counts) * pseudocount
+  if (total <= 0) return(NA_real_)
+  
+  p <- (counts + pseudocount) / total
+  n <- length(p)
+  
+  # Calculate entropy using standardized core logic
+  if (abs(q - 1) < q_tol) {
+    # Shannon entropy as q -> 1
+    p_nonzero <- p[p > 0]
+    if (length(p_nonzero) > 0) {
+      entropy <- -sum(p_nonzero * log(p_nonzero) / log(log_base))
+    } else {
+      entropy <- 0
+    }
+  } else {
+    # Generalized Tsallis entropy: (1 - sum(p^q)) / (q-1)  [log_base NOT applied]
+    entropy <- (1 / (q - 1)) * (1 - sum(p^q))
+  }
+  
+  # Normalize to [0, 1] if requested
+  if (norm) {
+    # Maximum entropy achieved with uniform distribution
+    if (abs(q - 1) < q_tol) {
+      max_entropy <- log(n) / log(log_base)
+    } else {
+      # Tsallis: no log_base applied to maximum
+      max_entropy <- (1 / (q - 1)) * (1 - n^(1 - q))
+    }
+    
+    if (!is.na(max_entropy) && !is.nan(max_entropy) && 
+        max_entropy > 0 && is.finite(max_entropy)) {
+      entropy <- entropy / max_entropy
+    }
+  }
+  
+  return(as.numeric(entropy))
 }

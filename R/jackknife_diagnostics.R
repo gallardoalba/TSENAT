@@ -38,7 +38,7 @@
     # Export main function and all helper functions needed for parallel execution
     # Use asNamespace to get functions from the TSENAT package namespace
     helper_funcs <- c(
-      ".jackknife_entropy_outliers", ".entropy_single",
+      ".jackknife_entropy_outliers", ".entropy_single",  # .entropy_single in entropy_core.R
       ".jackknife_validate_params", ".jackknife_process_multiq", 
       ".jackknife_process_se", ".jackknife_process_matrix", 
       ".jackknife_process_vector_core", ".jackknife_compute_estimates",
@@ -190,6 +190,7 @@
   jackknife_estimates <- .jackknife_compute_estimates(p, q, log_base, n)
   
   if (norm) {
+    # .entropy_single now consolidated in entropy_core.R
     estimate <- .entropy_single(x, q = q, norm = TRUE, log_base = log_base, pseudocount = pseudocount)
     n_jackknife <- n - 1
     if (abs(q - 1) < 1e-6) {
@@ -575,63 +576,11 @@
   return(.jackknife_process_vector_core(x, q, norm, log_base, pseudocount, threshold, NULL, verbose))
 }
 
-
-#' Single Entropy Calculation
-#'
-#' Internal helper function to compute Tsallis entropy for a vector of counts.
-#'
-
-#' @noRd
-.entropy_single <- function(counts, q = 1, norm = TRUE, log_base = exp(1),
-                                    pseudocount = 0) {
-
-  # Normalize to proportions (OPTIMIZED - single normalization with pseudocount)
-  total <- sum(counts) + length(counts) * pseudocount
-  p <- (counts + pseudocount) / total
-
-  n <- length(p)
-
-  if (abs(q - 1) < 1e-6) {
-    # Shannon entropy as q -> 1
-    # Filter out zeros to avoid 0 * log(0) = NaN
-    p_nonzero <- p[p > 0]
-    if (length(p_nonzero) > 0) {
-      entropy <- -sum(p_nonzero * log(p_nonzero) / log(log_base))
-    } else {
-      entropy <- 0
-    }
-  } else {
-    # Generalized Tsallis entropy
-    entropy <- (1 / (q - 1)) * (1 - sum(p^q)) / log(log_base)
-  }
-
-  # Normalize to [0, 1]
-  if (norm) {
-    # Maximum entropy is achieved with uniform distribution
-    # For q != 1: S_max = (1/(q-1)) * (1 - n^(1-q)) [no log_base]
-    # For q = 1: S_max = log(n) / log_base
-    if (abs(q - 1) < 1e-6) {
-      max_entropy <- log(n) / log(log_base)
-    } else {
-      # Tsallis: no log_base applied (unlike Shannon)
-      max_entropy <- (1 / (q - 1)) * (1 - n^(1 - q))
-    }
-
-    if (!is.na(max_entropy) && !is.nan(max_entropy) && max_entropy > 0 && is.finite(max_entropy)) {
-      entropy <- entropy / max_entropy
-    }
-  }
-
-  return(as.numeric(entropy))
-}
-
-
 #' Print Jackknife Diagnostics Results
 #'
 #' @param x A \code{tsenat_jackknife} object
 #' @param ... Additional arguments (unused)
 #'
-
 #' @noRd
 #' @method print tsenat_jackknife
 

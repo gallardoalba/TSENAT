@@ -313,6 +313,7 @@
   result_se
 }
 
+#' @export
 calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method = NULL, 
                                    reference_group = NULL, tpm = FALSE, assayno = NULL,
                                    verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,

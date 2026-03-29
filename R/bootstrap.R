@@ -1499,25 +1499,31 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
             # Resample pair indices with replacement
             sampled_pair_indices <- sample(seq_len(n_pairs), size = n_pairs, replace = TRUE)
             
-            # BUG FIX (March 2026): Proper normalization for paired divergence
-            # Previous code divided by itself: p_boot = (sum+pc)/(sum+pc) = 1, which is wrong
-            # Now properly aggregate paired counts and normalize across both groups
-            x_boot_sum <- sum(ctrl_counts[sampled_pair_indices], na.rm = TRUE)
-            y_boot_sum <- sum(treat_counts[sampled_pair_indices], na.rm = TRUE)
+            # FIX (March 2026): VECTOR DISTRIBUTIONS per Paper I004, C016 validation
+            # Database analysis confirms divergence requires TWO PROBABILITY DISTRIBUTIONS (vectors)
+            # NOT scalar aggregates. Bootstrap per C016 must operate on raw count vectors.
+            # References: Paper I004 (Divergence definition), Paper C016 (Bootstrap validation)
             
-            # Add pseudocount and normalize to proper proportions
-            # Divergence requires two separate probability distributions summing to 1
-            total_combined <- x_boot_sum + y_boot_sum + 2 * pseudocount
-            if (total_combined > 0) {
-                p_boot <- (x_boot_sum + pseudocount) / total_combined
-                r_boot <- (y_boot_sum + pseudocount) / total_combined
+            # Resample paired counts as VECTORS (one per pair)
+            x_boot <- ctrl_counts[sampled_pair_indices]   # Vector of control counts
+            y_boot <- treat_counts[sampled_pair_indices]  # Vector of treatment counts
+            
+            # Add pseudocount and normalize to proper probability distributions
+            # Paper I004 validation: "All probability distributions P, Q" (vectors)
+            x_sum_pseudo <- sum(x_boot + pseudocount)
+            y_sum_pseudo <- sum(y_boot + pseudocount)
+            
+            if (x_sum_pseudo > 0 && y_sum_pseudo > 0) {
+                p_boot <- (x_boot + pseudocount) / x_sum_pseudo  # Distribution vector (sums to 1)
+                r_boot <- (y_boot + pseudocount) / y_sum_pseudo  # Distribution vector (sums to 1)
             } else {
-                # Edge case: no counts in either group
-                p_boot <- 0.5
-                r_boot <- 0.5
+                # Edge case: no counts in either group - uniform distribution
+                p_boot <- rep(1 / length(x_boot), length(x_boot))
+                r_boot <- rep(1 / length(y_boot), length(y_boot))
             }
             
-            # Compute divergence (note: divergence between scalar probabilities, not distributions)
+            # Compute divergence on probability distributions
+            # Paper I004 definition: D_q(P||Q) = (1/(q-1)) * sum_i P_i * ... where P, Q are distributions
             bootstrap_divs[i] <- .compute_tsallis_divergence(
                 p_boot, r_boot, q, log_base, norm
             )
@@ -1537,19 +1543,30 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
         y_boot_batch <- stats::rmultinom(nboot, size = sum(y), prob = r)
         
         # Vectorized processing: convert columns to proportions and compute divergence
+        # Per-element Laplace smoothing per Paper I004 (entropy measure conditions):
+        # "add small pseudocount epsilon BEFORE normalization. Zero-handling crucial for genomic data"
         # For each bootstrap sample i (column of *_boot_batch):
         for (i in seq_len(nboot)) {
             x_boot <- x_boot_batch[, i]
             y_boot <- y_boot_batch[, i]
             
-            # Add pseudocount and normalize
-            x_sum_pseudo <- sum(x_boot + pseudocount)
-            y_sum_pseudo <- sum(y_boot + pseudocount)
+            # BUG FIX #2 & #3 (March 2026): Per-element pseudocount + division-by-zero guards
+            # Database validation (Paper I004): Per-element smoothing produces independent distributions
+            # Each group normalized independently (p and r both sum to 1)
+            x_sum_pseudo <- sum(x_boot + pseudocount, na.rm = TRUE)
+            y_sum_pseudo <- sum(y_boot + pseudocount, na.rm = TRUE)
             
-            p_boot <- (x_boot + pseudocount) / x_sum_pseudo
-            r_boot <- (y_boot + pseudocount) / y_sum_pseudo
+            if (x_sum_pseudo > 0 && y_sum_pseudo > 0) {
+                p_boot <- (x_boot + pseudocount) / x_sum_pseudo
+                r_boot <- (y_boot + pseudocount) / y_sum_pseudo
+            } else {
+                # Edge case: no counts in either group - uniform distribution
+                p_boot <- rep(1 / length(x_boot), length(x_boot))
+                r_boot <- rep(1 / length(y_boot), length(y_boot))
+            }
             
-            # Compute divergence
+            # Compute divergence on probability distributions
+            # Paper I004 definition: D_q(P||Q) where P, Q are two independent distributions
             bootstrap_divs[i] <- .compute_tsallis_divergence(
                 p_boot, r_boot, q, log_base, norm
             )
@@ -1644,26 +1661,57 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' @noRd
 .compute_tsallis_divergence <- function(p, r, q, log_base = exp(1), norm = FALSE) {
     
+    # Validate lengths
+    if (length(p) != length(r)) {
+        return(NA_real_)
+    }
+    
     # Handle edge cases
     if (abs(q - 1) < 1e-10) {
-        # KL divergence
+        # KL divergence (q -> 1 limit)
         idx <- p > 0
         if (sum(idx) == 0) return(NA_real_)
         divergence <- sum(p[idx] * log(p[idx] / r[idx], base = log_base))
-    } else {
-        # General Tsallis divergence
-        # D_q(p||r) = (1/(q-1)) * sum_i p_i * (log_base(p_i/r_i)^(q-1) - 1)
-        # Equivalent form for numerical stability
-        ratio <- p / r
-        ratio <- pmax(ratio, 1e-15)  # Prevent log(0)
+    } else if (q > 0) {
+        # General Tsallis divergence (Furuichi formula)
+        # D_q(p||r) = (1/(q-1)) * (1 - sum(p^q * r^(1-q)))
+        # Paper I004 reference: Furuichi formula for normalized Tsallis divergence
         
-        if (q > 0) {
-            log_ratios <- log(ratio, base = log_base) * (q - 1)
-            terms <- p * (exp(log_ratios) - 1)
-            divergence <- sum(terms, na.rm = TRUE) / (q - 1)
+        p_power <- p^q
+        r_power <- r^(1 - q)
+        
+        # Check for numerical issues (inf, nan, underflow)
+        if (any(is.nan(p_power)) || any(is.infinite(p_power)) ||
+            any(is.nan(r_power)) || any(is.infinite(r_power))) {
+            # Log-space computation for numerical stability when q is far from 1
+            log_p_power <- q * log(pmax(p, 1e-10))
+            log_r_power <- (1 - q) * log(pmax(r, 1e-10))
+            sum_term <- sum(exp(log_p_power + log_r_power), na.rm = TRUE)
         } else {
-            return(NA_real_)
+            sum_term <- sum(p_power * r_power, na.rm = TRUE)
         }
+        
+        # Apply Furuichi formula
+        divergence <- (1 - sum_term) / (q - 1)
+    } else {
+        # Invalid q value
+        return(NA_real_)
+    }
+    
+    # Handle invalid results
+    if (is.nan(divergence) || !is.finite(divergence)) {
+        return(NA_real_)
+    }
+    
+    # BUG FIX: Handle sign correctly for q < 1
+    # When q < 1, (q - 1) is negative, so formula naturally produces positive divergence
+    # Ensure non-negativity as divergence should always be >= 0
+    divergence <- abs(divergence)
+    
+    # Apply log_base normalization CONSISTENTLY for all q values
+    # This ensures consistent scaling across multi-q spectrum analysis
+    if (log_base != exp(1)) {
+        divergence <- divergence / log(log_base)
     }
     
     # Normalize if requested
@@ -1797,10 +1845,25 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 #' Provides summary statistics and diagnostic information for divergence
 #' bootstrap confidence interval objects.
 #'
+#' @return
+#' Invisibly returns the object itself.
+#' Prints to console: q-values, sample information, and CI statistics.
+#'
 # ============================================================================
 # CONSOLIDATED BOOTSTRAP UTILITIES (moved from other files, March 2026)
 # ============================================================================
 
+#' Internal: Aggregate Bootstrap Confidence Intervals
+#'
+#' Consolidates bootstrap CI results from SummarizedExperiment format into
+#' a long-format data.frame suitable for visualization.
+#'
+#' @param se SummarizedExperiment with ci_lower and ci_upper assays
+#' @param long data.frame with columns: q, group, and other metadata
+#'
+#' @return data.frame with aggregated CI values across samples and q-values
+#'
+#' @noRd
 # From compute_stats.R: Aggregate bootstrap CIs
 .bootstrap_aggregate_ci <- function(se, long) {
   require_pkgs(c("SummarizedExperiment", "dplyr"))

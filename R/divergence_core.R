@@ -63,12 +63,9 @@
 
 #' Configure bootstrap and parallel execution parameters
 #' Fixes nboot bug and consolidates configuration logic
-
 #' @noRd
-# NOTE (March 2026): .bootstrap_configure_parallel() moved to bootstrap.R for consolidation
 
-#' Prepare paired sample and progress information
-#' Consolidates paired detection and progress message assembly
+# NOTE (March 2026): .bootstrap_configure_parallel() moved to bootstrap.R
 
 #' @noRd
 .prepare_divergence_execution <- function(se, bootstrap, paired, nboot, method, nthreads, progress) {
@@ -763,10 +760,9 @@
 #' Build bootstrap arguments for calculate_divergence_bootstrap
 #' Conditionally includes pair_ids if detected
 #' @noRd
-# NOTE (March 2026): .bootstrap_build_args() moved to bootstrap.R for consolidation
 
-#' Compute divergence for all q values for a single gene
-#' Returns list of results, one per q value
+# NOTE (March 2026): .bootstrap_build_args() moved to bootstrap.R
+
 #' @noRd
 .compute_divergence_q <- function(x, y, q_vals, nboot, ci, method,
                                        log_base, pseudocount, gene_name,

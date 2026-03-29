@@ -3,6 +3,18 @@
 \name{methods-TSENATAnalysis}
 \alias{methods-TSENATAnalysis}
 \title{TSENATAnalysis S4 Methods}
+\value{
+Methods return different components of TSENATAnalysis:
+- getSE: SummarizedExperiment object with count data
+- divResults: data.frame or list of diversity values per gene
+- lmRes: list of linear model fitting results
+- jkResults: list of jackknife diagnostics
+- divRes: list of divergence analysis results
+- getMeta: list or atomic value of metadata
+- getConfig: list of analysis configuration
+- getPlot: ggplot object or NULL
+- addPlot: invisible(object) (adds plot to cache)
+}
 \description{
 Implementation of accessor and utility methods for TSENATAnalysis objects.
 These methods follow Bioconductor best practices for accessing object slots.

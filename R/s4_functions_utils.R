@@ -327,7 +327,25 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
 #'
 #' @return data.frame with combined results and q_value column
 #'
-
+#' @examples
+#' # Create sample multi-q result structure
+#' q_result <- list(
+#'   q_0.5 = list(summary_table = data.frame(
+#'     gene_id = c("GENE1", "GENE2"),
+#'     entropy = c(1.2, 1.5),
+#'     psi_mean = c(0.3, 0.7)
+#'   )),
+#'   q_1.0 = list(summary_table = data.frame(
+#'     gene_id = c("GENE1", "GENE2"),
+#'     entropy = c(1.1, 1.4),
+#'     psi_mean = c(0.32, 0.68)
+#'   ))
+#' )
+#' 
+#' # Extract and combine results across q-values
+#' combined_results <- extract_multiq_table(q_result)
+#' head(combined_results)
+#' 
 #' @export
 extract_multiq_table <- function(result, is_multiq = NULL, extract_fn = NULL,
                                   q_value_col = "q_value") {
