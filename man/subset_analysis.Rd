@@ -122,8 +122,8 @@ random_subset <- subset_analysis(
 # Keep specific samples only
 control_only <- subset_analysis(
   analysis,
-  samples = colnames(analysis@se)[
-    colData(analysis@se)$condition == "control"
+  samples = colnames(se(analysis))[
+    colData(se(analysis))$condition == "control"
   ]
 )
 

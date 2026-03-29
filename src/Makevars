@@ -1,23 +1,18 @@
 # Makevars for Rcpp/Armadillo compilation
+# Bioconductor-compliant portable configuration with coverage support
 # 
 # This configuration enables:
 # - Armadillo optimizations (vectorization)
-# - OpenMP parallelization (if available, except during coverage)
+# - OpenMP parallelization (if available)
+# - Coverage analysis support (R_COVERAGE=1)
 # - C++11 standard and beyond
-# - Aggressive optimization flags (except during coverage)
+# - Portable make syntax (no GNU extensions)
 
-# Check if running coverage analysis
-# When R_COVERAGE=1 (set by covr), disable optimization and parallelization
-# to avoid corruption of coverage data (.gcno/.gcda files)
+# Handle coverage mode (set by covr::package_coverage)
+# Use portable $(if ...) instead of ifdef/else/endif
+CXXFLAGS = $(if $(R_COVERAGE),-O0 -fprofile-arcs -ftest-coverage,)
+COVERAGE_LIBS = $(if $(R_COVERAGE),-fprofile-arcs -ftest-coverage,)
 
-# Use $(if ...) for portable conditional assignment
-# Portable alternative to ifdef R_COVERAGE ... else ... endif
-# During coverage, disable _FORTIFY_SOURCE (incompatible with -O0)
-CXX11FLAGS = $(if $(R_COVERAGE),-O0 -fPIC -fprofile-arcs -ftest-coverage -U_FORTIFY_SOURCE,-O3 -fPIC)
-
-# Coverage build: no parallelization; Release build: with OpenMP
+# Release mode: enable OpenMP for parallelization (unless in coverage mode)
 PKG_CXXFLAGS = $(if $(R_COVERAGE),,$(SHLIB_OPENMP_CXXFLAGS))
-
-# Add coverage flags to libs if in coverage mode
-COVERAGE_FLAGS = $(if $(R_COVERAGE),-fprofile-arcs -ftest-coverage,)
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(COVERAGE_FLAGS)
+PKG_LIBS = $(if $(R_COVERAGE),,$(SHLIB_OPENMP_CXXFLAGS)) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(COVERAGE_LIBS)

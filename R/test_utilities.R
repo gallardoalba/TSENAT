@@ -67,7 +67,7 @@
     seed = 42,
     verbose = FALSE) {
   
-  set.seed(seed)
+  withr::local_seed(seed)
   
   # Dimensions
   n_samples <- n_samples_per_group * 2
@@ -92,13 +92,13 @@
   }
   counts <- pmax(counts, 50)
   
-  rownames(counts) <- paste0("TX_", 1:n_transcripts)
-  colnames(counts) <- paste0("Sample_", 1:n_samples)
+  rownames(counts) <- paste0("TX_", seq_len(n_transcripts))
+  colnames(counts) <- paste0("Sample_", seq_len(n_samples))
   
   # Create rowData with gene mappings
   rowData <- S4Vectors::DataFrame(
     transcript_id = rownames(counts),
-    gene_id = paste0("GENE_", rep(1:n_genes, each = 50, length.out = n_transcripts)),
+    gene_id = paste0("GENE_", rep(seq_len(n_genes), each = 50, length.out = n_transcripts)),
     row.names = rownames(counts)
   )
   
@@ -297,8 +297,8 @@
 #' # Keep specific samples only
 #' control_only <- subset_analysis(
 #'   analysis,
-#'   samples = colnames(analysis@se)[
-#'     colData(analysis@se)$condition == "control"
+#'   samples = colnames(se(analysis))[
+#'     colData(se(analysis))$condition == "control"
 #'   ]
 #' )
 #'
@@ -321,7 +321,7 @@ subset_analysis <- function(
   }
   
   select_by <- match.arg(select_by)
-  set.seed(seed)
+  withr::local_seed(seed)
   
   se <- analysis@se
   n_genes_total <- nrow(se)
@@ -362,7 +362,7 @@ subset_analysis <- function(
     if (select_by == "variance") {
       # Compute variance per transcript
       tx_vars <- matrixStats::rowVars(counts_matrix)
-      gene_idx <- order(tx_vars, decreasing = TRUE)[1:n_genes]
+      gene_idx <- order(tx_vars, decreasing = TRUE)[seq_len(n_genes)]
       if (verbose) {
         message("[subset_analysis] Selected ", n_genes, 
                 " genes with highest variance")
@@ -370,7 +370,7 @@ subset_analysis <- function(
     } else if (select_by == "mean") {
       # Compute mean per transcript
       tx_means <- rowMeans(counts_matrix)
-      gene_idx <- order(tx_means, decreasing = TRUE)[1:n_genes]
+      gene_idx <- order(tx_means, decreasing = TRUE)[seq_len(n_genes)]
       if (verbose) {
         message("[subset_analysis] Selected ", n_genes, 
                 " genes with highest mean expression")

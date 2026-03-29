@@ -10,8 +10,12 @@
     # Check for _R_CHECK_LIMIT_CORES_ environment variable (used by R CMD check)
     core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", "")
     if (nchar(core_limit) > 0) {
-        # Suppress coercion warning when converting environment variable
-        core_limit <- suppressWarnings(as.integer(core_limit))
+        # Safely coerce environment variable (will return NA if not valid integer)
+        core_limit <- tryCatch(
+            as.integer(core_limit),
+            warning = function(w) NA_integer_,
+            error = function(e) NA_integer_
+        )
         if (!is.na(core_limit) && is.finite(core_limit) && core_limit > 0) {
             nthreads <- min(nthreads, core_limit)
         }

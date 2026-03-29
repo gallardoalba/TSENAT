@@ -58,7 +58,7 @@ analysis_subset <- analysis[1:10, 1:5]
 analysis_subset2 <- analysis[paste0("TX_", 1:5), ]
 
 # Subset by sample condition (logical indexing)
-keep_samples <- colData(analysis@se)$condition == "A"
+keep_samples <- colData(se(analysis))$condition == "A"
 analysis_a <- analysis[, keep_samples]
 
 }

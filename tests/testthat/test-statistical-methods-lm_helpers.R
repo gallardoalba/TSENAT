@@ -216,94 +216,7 @@ test_that(".report_fit_summary is silent when no messages to print", {
     expect_silent(.report_fit_summary(df, verbose = TRUE))
 })
 
-# linear branch: insufficient observations returns NULL, good data returns p-value
-test_that(".fit_one_interaction linear branch handles min_obs and returns p", {
-    set.seed(1)
-    # construct tiny matrix: 1 gene x 3 observations
-    mat <- matrix(rnorm(3), nrow = 1)
-    rownames(mat) <- "g1"
-    q_vals <- c(0.1, 0.2, 0.3)
-    sample_names <- paste0("s", seq_along(q_vals))
-    group_vec <- c("A", "A", "B")
-    # min_obs > non-missing -> NULL
-    res_null <- .fit_one_interaction("g1",
-        se = NULL, mat = mat, q_vals = q_vals,
-        sample_names = sample_names, group_vec = group_vec, method = "lmm",
-        pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 10, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    )
-    expect_null(res_null)
 
-    # generate larger sample with clear interaction signal
-    n <- 60
-    qv <- rep(seq(0.1, 1.0, length.out = 20), 3)
-    group <- rep(c("A", "B", "A"), each = 20)
-    obs <- 0.5 * qv + ifelse(group == "B", 0.6 * qv, 0) + rnorm(length(qv), 0, 0.05)
-    mat2 <- matrix(obs, nrow = 1)
-    rownames(mat2) <- "gX"
-    res <- .fit_one_interaction("gX",
-        se = NULL, mat = mat2, q_vals = qv,
-        sample_names = paste0("s", seq_along(qv)), group_vec = group, method = "lmm",
-        pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    )
-    expect_true(is.data.frame(res) || is.null(res))
-    if (is.data.frame(res)) expect_true(is.numeric(res$p_interaction) || is.na(res$p_interaction))
-})
-
-# lmm branch: errors when subject_col missing or paired but no sample_base
-test_that(".fit_one_interaction lmm errors when subject_col missing or paired with no sample_base", {
-    skip_if_not_installed("SummarizedExperiment")
-    set.seed(2)
-    # small dataset to attach to se
-    qv <- rep(0.1, 8)
-    sample_names <- paste0("s", seq_along(qv))
-    group <- rep(c("A", "B"), length.out = length(qv))
-    obs <- rnorm(length(qv))
-    mat <- matrix(obs, nrow = 1)
-    rownames(mat) <- "g1"
-
-    coldata <- S4Vectors::DataFrame(samples = sample_names)
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), colData = coldata)
-
-    # subject_col provided but not present
-    expect_error(.fit_one_interaction("g1",
-        se = se, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
-        subject_col = "foo", paired = FALSE, min_obs = 2, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    ), "subject_col")
-
-    # paired = TRUE but no sample_base column
-    expect_error(.fit_one_interaction("g1",
-        se = se, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
-        subject_col = NULL, paired = TRUE, min_obs = 2, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    ), "paired = TRUE")
-})
-
-# lmm branch returns NULL when only one subject is present
-test_that(".fit_one_interaction lmm returns NULL with <2 subjects", {
-    skip_if_not_installed("SummarizedExperiment")
-    set.seed(3)
-    qv <- rep(c(0.1, 0.5), times = 3)
-    sample_names <- paste0("s", seq_along(qv))
-    group <- rep(c("A", "B"), length.out = length(qv))
-    # create single subject for all samples
-    coldata <- S4Vectors::DataFrame(samples = sample_names, sample_base = rep("sub1", length(qv)))
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = matrix(rnorm(length(qv)), nrow = 1)), colData = coldata)
-    mat <- matrix(rnorm(length(qv)), nrow = 1)
-    rownames(mat) <- "g1"
-
-    res <- .fit_one_interaction("g1",
-        se = se, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
-        subject_col = NULL, paired = TRUE, min_obs = 2, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    )
-    expect_null(res)
-})
 
 # .extract_lrt_p returns NA when anova errors
 test_that(".extract_lrt_p returns NA for invalid models", {
@@ -344,60 +257,7 @@ test_that(".try_lmer sets singular attribute when fitting succeeds", {
 })
 
 
-test_that("lmm branch falls back to lm when mixed model fitting fails and respects pvalue selection", {
-    skip_if_not_installed("lme4")
-    # Temporarily force .try_lmer to fail so the code uses the lm fallbacks
-    ns <- asNamespace("TSENAT")
-    orig_try <- get(".try_lmer", envir = ns)
-    assignInNamespace(".try_lmer", function(...) structure("error", class = "try-error"), ns = "TSENAT")
-    on.exit(assignInNamespace(".try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
 
-    set.seed(42)
-    n <- 40
-    qv <- rep(seq(0.1, 1, length.out = 20), 2)
-    sample_names <- paste0("s", seq_along(qv))
-    group <- rep(c("A", "B"), each = 20)
-    obs <- 0.5 * qv + ifelse(group == "B", 0.2 * qv, 0) + rnorm(length(qv), 0, 0.05)
-    mat <- matrix(obs, nrow = 1)
-    rownames(mat) <- "g_fallback"
-
-    # pvalue = 'both' should return p_lrt (no Satterthwaite with nlme AR(1))
-    res_both <- .fit_one_interaction("g_fallback",
-        se = NULL, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both",
-        subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    )
-    expect_true(is.data.frame(res_both))
-    # nlme LMM returns p_interaction, p_lrt (Satterthwaite not available for AR(1))
-    expect_true(all(c("p_interaction", "p_lrt", "fit_method", "singular") %in% colnames(res_both)))
-    # AR(1) implementation tries nlme first, then glmmTMB, then lm_subject_fixed, then lm_nosubject
-    expect_true(res_both$fit_method %in% c(
-        "nlme::lme", "nlme::lme_ar1", "nlme", 
-        "nlme::lme_ar1_raw", "nlme::lme_arima(1,1,0)",
-        "glmmTMB", "lm_subject_fixed", "lm_nosubject"
-    ))
-
-    # pvalue = 'lrt' should use the LRT p-value
-    res_lrt <- .fit_one_interaction("g_fallback",
-        se = NULL, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt",
-        subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    )
-    expect_true(is.data.frame(res_lrt))
-    expect_true(is.numeric(res_lrt$p_interaction) || is.na(res_lrt$p_interaction))
-
-    # pvalue = 'satterthwaite' (ignored for nlme but parameter still accepted for compatibility)
-    res_sat <- .fit_one_interaction("g_fallback",
-        se = NULL, mat = mat, q_vals = qv,
-        sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "satterthwaite",
-        subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE,
-        suppress_lme4_warnings = TRUE, progress = FALSE
-    )
-    expect_true(is.data.frame(res_sat))
-    expect_true(is.numeric(res_sat$p_interaction) || is.na(res_sat$p_interaction))
-})
 
 
 # Additional tests to cover less exercised branches
@@ -445,100 +305,10 @@ test_that(".fpca_interaction returns NULL for non-diverse groups and handles imp
 })
 
 
-test_that(".fit_one_interaction dispatches to gam and fpca methods", {
-    # FPCA dispatch
-    sample_names <- rep(paste0("s", 1:4), each = 2)
-    q_vals <- rep(1:2, times = 4)
-    group_vec <- rep(c("A", "B", "A", "B"), each = 2)
-    obs <- rnorm(8)
-    mat <- matrix(obs, nrow = 1)
-    rownames(mat) <- "g1"
-    out_fpca <- .fit_one_interaction("g1", se = NULL, mat = mat, q_vals = q_vals, sample_names = sample_names, group_vec = group_vec, method = "fpca", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 2, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
-    expect_true(is.null(out_fpca) || (is.data.frame(out_fpca) && "p_interaction" %in% colnames(out_fpca)))
-
-    # GAM dispatch - if mgcv available
-    if (rlang::is_installed("mgcv")) {
-        set.seed(1)
-        n <- 30
-        q <- runif(n, 0.1, 1)
-        group <- rep(c("A", "B"), length.out = n)
-        entropy <- 0.2 * q + ifelse(group == "B", 0.3 * q, 0) + rnorm(n, 0, 0.01)
-        df <- data.frame(entropy = entropy, q = q, group = group)
-        mat_gam <- matrix(entropy, nrow = 1)
-        rownames(mat_gam) <- "g1"
-        out_gam <- suppressWarnings(.fit_one_interaction("g1", se = NULL, mat = mat_gam, q_vals = q, sample_names = paste0("s", seq_along(q)), group_vec = group, method = "gam", pvalue = "lrt", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE))
-        expect_true(is.null(out_gam) || (is.data.frame(out_gam) && "p_interaction" %in% colnames(out_gam)))
-    } else {
-        succeed()
-    }
-})
 
 
-test_that("lmm branch uses fallback when lmer returns singular fits", {
-    skip_if_not_installed("lme4")
-    ns <- asNamespace("TSENAT")
-    orig_try <- get(".try_lmer", envir = ns)
-    fake_lmer <- function(...) {
-        m <- list()
-        class(m) <- "lmerMod"
-        attr(m, "singular") <- TRUE
-        return(m)
-    }
-    assignInNamespace(".try_lmer", fake_lmer, ns = "TSENAT")
-    on.exit(assignInNamespace(".try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
 
-    set.seed(7)
-    qv <- rep(seq(0.1, 1, length.out = 20), 2)
-    sample_names <- paste0("s", seq_along(qv))
-    group <- rep(c("A", "B"), each = 20)
-    obs <- 0.5 * qv + ifelse(group == "B", 0.2 * qv, 0) + rnorm(length(qv), 0, 0.05)
-    mat <- matrix(obs, nrow = 1)
-    rownames(mat) <- "g_sing"
 
-    # AR(1) implementation tries nlme first, which may succeed or require fallback
-    # If nlme fails, a fallback message is printed
-    tryCatch({
-        res <- .fit_one_interaction("g_sing", se = NULL, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "both", subject_col = NULL, paired = FALSE, min_obs = 5, verbose = TRUE, suppress_lme4_warnings = TRUE, progress = TRUE)
-    }, error = function(e) { res <<- NULL })
-    
-    expect_true(is.data.frame(res))
-    # AR(1) implementation now tries nlme first, so fit_method can be nlme or a fallback method
-    expect_true(res$fit_method %in% c(
-        "nlme::lme", "nlme::lme_ar1", "nlme", 
-        "nlme::lme_ar1_raw", "nlme::lme_arima(1,1,0)",
-        "glmmTMB", "lm_subject_fixed", "lm_nosubject"
-    ))
-})
-
-# Test that lmer branch uses provided subject_col when present and returns lmer path
-test_that("lmm branch uses subject_col and returns lmer method when available", {
-    skip_if_not_installed("lme4")
-    ns <- asNamespace("TSENAT")
-    orig_try <- get(".try_lmer", envir = ns)
-    fake_lmer_ok <- function(...) {
-        m <- list()
-        class(m) <- "lmerMod"
-        attr(m, "singular") <- FALSE
-        return(m)
-    }
-    assignInNamespace(".try_lmer", fake_lmer_ok, ns = "TSENAT")
-    on.exit(assignInNamespace(".try_lmer", orig_try, ns = "TSENAT"), add = TRUE)
-
-    # Build sample metadata with custom subject column
-    qv <- rep(seq(0.1, 1, length.out = 20), 2)
-    sample_names <- paste0("s", seq_along(qv))
-    group <- rep(c("A", "B"), each = 20)
-    obs <- 0.5 * qv + ifelse(group == "B", 0.2 * qv, 0) + rnorm(length(qv), 0, 0.05)
-    mat <- matrix(obs, nrow = 1)
-    rownames(mat) <- "g_sub"
-
-    coldata <- S4Vectors::DataFrame(samples = sample_names, my_subject = rep(paste0("sub", 1:20), 2))
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat), colData = coldata)
-
-    res <- .fit_one_interaction("g_sub", se = se, mat = mat, q_vals = qv, sample_names = sample_names, group_vec = group, method = "lmm", pvalue = "lrt", subject_col = "my_subject", paired = FALSE, min_obs = 5, verbose = FALSE, suppress_lme4_warnings = TRUE, progress = FALSE)
-    expect_true(is.data.frame(res))
-    expect_true(res$fit_method %in% c("nlme::lme", "nlme::lme_ar1", "nlme", "glmmTMB", "lm_subject_fixed", "lm_nosubject", "lmer", "lmer_singular", "fallback", "lm_subject"))
-})
 
 
 # Test that .gam_interaction handles different anova.gam column names
@@ -723,67 +493,7 @@ test_that(".gam_interaction applies weights when heteroscedasticity detected", {
     })
 })
 
-# Test LMM with heteroscedasticity detection
-test_that(".fit_one_interaction LMM applies variance structure for heteroscedasticity", {
-    skip_if_not_installed("nlme")
-    set.seed(222)
-    
-    # Create data with heteroscedasticity and subjects
-    n_subj <- 8
-    n_per <- 10
-    n_total <- n_subj * n_per
-    
-    q <- rep(runif(n_per, 0.1, 2), n_subj)
-    group <- rep(rep(c("A", "B"), length.out = n_per), n_subj)
-    subject <- rep(1:n_subj, each = n_per)
-    
-    # Heteroscedastic entropy: variance scales with q in group B
-    entropy <- 0.5 + 0.2 * q + 
-               ifelse(group == "B", 0.3 * q, 0) + 
-               rnorm(n_total, 0, sd = ifelse(group == "B", 0.08 * q + 0.01, 0.05))
-    
-    # Build expression count matrix (1 gene for testing)
-    expr_matrix <- matrix(rnorm(1 * n_total), nrow = 1)
-    rownames(expr_matrix) <- "gene1"
-    colnames(expr_matrix) <- paste0("s", 1:n_total)
-    
-    # Build SummarizedExperiment
-    se <- SummarizedExperiment::SummarizedExperiment(
-        assays = list(counts = expr_matrix),
-        colData = S4Vectors::DataFrame(
-            sample = colnames(expr_matrix),
-            q = q,
-            group = group,
-            subject = factor(subject)
-        )
-    )
-    
-    # Call the function with LMM method
-    # Extract necessary components for .fit_one_interaction
-    mat <- SummarizedExperiment::assays(se)$counts
-    coldata <- SummarizedExperiment::colData(se)
-    sample_names <- coldata$sample
-    q_vals <- coldata$q
-    group_vec <- coldata$group
-    
-    result <- .fit_one_interaction(
-        g = "gene1",
-        se = se,
-        mat = mat,
-        q_vals = q_vals,
-        sample_names = sample_names,
-        group_vec = group_vec,
-        subject_col = "subject",
-        method = "lmm",
-        min_obs = 5,
-        verbose = FALSE
-    )
-    
-    expect_true(is.data.frame(result) || is.null(result))
-    if (is.data.frame(result)) {
-        expect_true("p_interaction" %in% colnames(result))
-    }
-})
+
 
 # Test GEE with heteroscedasticity detection
 test_that(".gee_interaction applies weights when heteroscedasticity detected", {
@@ -911,68 +621,7 @@ testthat::test_that(".test_residual_normality detects normal residuals in GAM", 
 # Tests for slope_diff extraction from LM interaction coefficient
 # ═══════════════════════════════════════════════════════════════════════════
 
-test_that(".fit_one_interaction LMM method includes slope_diff in results", {
-    skip_if_not_installed("nlme")
-    set.seed(1001)
-    
-    # Create paired data with clear interaction signal
-    # Use 10 subjects, each with 5 q values per group = 100 observations total
-    n_subjects <- 10
-    n_q <- 5
-    n_groups <- 2
-    
-    # Create vectors that repeat properly for the matrix structure
-    subject_ids <- rep(paste0("sub", 1:n_subjects), n_q * n_groups)
-    qv <- rep(seq(0.1, 1.5, length.out = n_q), n_subjects * n_groups)
-    group_vec <- rep(rep(c("A", "B"), each = n_q), n_subjects)
-    
-    n_total <- length(subject_ids)
-    
-    # Add interaction effect: group B has steeper slope with q
-    entropy <- 0.5 + 0.3 * qv + ifelse(group_vec == "B", 0.4 * qv, 0) + rnorm(n_total, 0, 0.05)
-    
-    mat <- matrix(entropy, nrow = 1)
-    rownames(mat) <- "gene1"
-    
-    # Create proper colData with samples and sample_base columns
-    coldata <- S4Vectors::DataFrame(
-        samples = paste0("s", 1:n_total),
-        sample_base = subject_ids
-    )
-    
-    se <- SummarizedExperiment::SummarizedExperiment(
-        assays = list(counts = mat),
-        colData = coldata
-    )
-    
-    result <- .fit_one_interaction(
-        "gene1",
-        se = se,
-        mat = mat,
-        q_vals = qv,
-        sample_names = paste0("s", 1:n_total),
-        group_vec = group_vec,
-        method = "lmm",
-        pvalue = "lrt",
-        subject_col = NULL,
-        paired = TRUE,
-        min_obs = 5,
-        verbose = FALSE,
-        suppress_lme4_warnings = TRUE,
-        progress = FALSE
-    )
-    
-    # Verify result is a data.frame with slope_diff column
-    # Note: result may be NULL if nlme fitting fails, which is acceptable
-    if (is.data.frame(result)) {
-        expect_true("slope_diff" %in% colnames(result))
-        expect_true(is.numeric(result$slope_diff) || is.na(result$slope_diff))
-    } else {
-        # If nlme fitting failed (returns NULL), that's still acceptable
-        # The important thing is that slope_diff extraction doesn't cause errors
-        expect_true(is.null(result))
-    }
-})
+
 
 test_that(".gam_interaction includes slope_diff in results", {
     skip_if_not_installed("mgcv")

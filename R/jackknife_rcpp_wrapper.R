@@ -59,6 +59,7 @@
 #' Estimates confidence intervals and diagnostic influence scores.
 #'
 #' @keywords internal
+#' @noRd
 #' @export
 jackknife_resampling_cpp <- function(counts, q = 1.0, normalize = TRUE, 
                                      log_base = exp(1), pseudocount = 0.0) {

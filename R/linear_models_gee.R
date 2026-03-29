@@ -654,7 +654,7 @@
     multiplier <- n_effective / (n_effective - n_parameters)
     
     if (verbose) {
-        cat(sprintf(
+        message(sprintf(
             "Design Effect Adjustment:\n  n_clusters = %d\n  design_effect = %.3f\n  n_effective = %.1f\n  HC1 multiplier = %.4f\n",
             n_clusters, design_effect, n_effective, multiplier
         ))
@@ -741,7 +741,7 @@
             }
             
             if (verbose) {
-                cat(sprintf("AR(1) Design Effect: rho=%.3f, D_eff=%.3f, cluster_size=%d\n",
+                message(sprintf("AR(1) Design Effect: rho=%.3f, D_eff=%.3f, cluster_size=%d\n",
                            rho_ar1, design_effect, cluster_size))
             }
         } else {
@@ -864,28 +864,30 @@
 .print_kc_correction_report <- function(kc_result) {
     if (is.null(kc_result)) return(invisible(NULL))
     
-    cat("\n", strrep("\u2500", 70), "\n", sep = "")
-    cat("Kauermann-Carroll Bias Correction Report\n")
-    cat(strrep("\u2500", 70), "\n", sep = "")
+    message(paste(rep("\u2500", 70), collapse = ""))
+    message("Kauermann-Carroll Bias Correction Report")
+    message(paste(rep("\u2500", 70), collapse = ""))
     
     if (!is.null(kc_result$report)) {
-        cat(kc_result$report)
+        message(kc_result$report)
     }
     
-    cat("\n\nCorrection Details:\n")
-    cat(sprintf("  Method applied: %s\n", kc_result$method_applied))
-    cat(sprintf("  Multiplier (HC1): %.6f\n", kc_result$multiplier))
-    cat(sprintf("  Design effect: %.3f", kc_result$design_effect))
+    message("")
+    message("Correction Details:")
+    message(sprintf("  Method applied: %s", kc_result$method_applied))
+    message(sprintf("  Multiplier (HC1): %.6f", kc_result$multiplier))
     
+    msg <- sprintf("  Design effect: %.3f", kc_result$design_effect)
     if (!is.null(kc_result$rho_ar1)) {
-        cat(sprintf(" (AR(1) rho=%.3f)", kc_result$rho_ar1))
+        msg <- paste0(msg, sprintf(" (AR(1) rho=%.3f)", kc_result$rho_ar1))
     }
-    cat("\n")
+    message(msg)
     
-    cat(sprintf("  Degrees of freedom (t-dist): %d\n", max(1, kc_result$n_clusters - 1)))
-    cat(sprintf("  P-value: %.6f \u2192 %.6f\n", kc_result$p_raw, kc_result$p_value))
+    message(sprintf("  Degrees of freedom (t-dist): %d", max(1, kc_result$n_clusters - 1)))
+    message(sprintf("  P-value: %.6f \u2192 %.6f", kc_result$p_raw, kc_result$p_value))
     
-    cat(strrep("\u2500", 70), "\n\n", sep = "")
+    message(paste(rep("\u2500", 70), collapse = ""))
+    message("")
     
     invisible(kc_result)
 }
