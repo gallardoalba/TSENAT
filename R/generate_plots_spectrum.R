@@ -62,7 +62,191 @@
 #'
 
 #' @noRd
+.spectrum_extract_q_values <- function(col_names) {
+  extracted <- gsub("^q[_=]", "", col_names)
+  q_vals <- as.numeric(extracted)
+  if (any(is.na(q_vals))) {
+    stop("Cannot extract numeric q-values from column names. ",
+         "Expected format like 'q_0.5'. Got: ", paste(head(col_names, 3), collapse=", "),
+         call. = FALSE)
+  }
+  return(q_vals)
+}
 
+#' @noRd
+.spectrum_get_gene_identifiers <- function(se, div_mat) {
+  rd <- SummarizedExperiment::rowData(se)
+  if (!is.null(rd) && "gene_name" %in% colnames(rd)) return(rd$gene_name)
+  rn <- rownames(div_mat)
+  if (is.null(rn)) {
+    stop("'divergence_results_se' has no gene identifiers in rowData or rownames",
+         call. = FALSE)
+  }
+  return(rn)
+}
+
+#' @noRd
+.spectrum_find_gene_column <- function(df) {
+  valid_cols <- c("gene", "gene_name", "gene_id")
+  found <- valid_cols[valid_cols %in% colnames(df)]
+  if (length(found) == 0) {
+    stop("'lm_res' must have a column named 'gene', 'gene_name', or 'gene_id'",
+         call. = FALSE)
+  }
+  return(found[1])
+}
+
+#' @noRd
+.spectrum_find_pvalue_column <- function(df) {
+  valid_cols <- c("adj_p_interaction", "p_interaction", "adj_p_value", "p_value")
+  found <- valid_cols[valid_cols %in% colnames(df)]
+  if (length(found) == 0) {
+    stop("'lm_res' must have a p-value column like adj_p_interaction or p_value",
+         call. = FALSE)
+  }
+  return(found[1])
+}
+
+#' @noRd
+.spectrum_validate_inputs <- function(divergence_results_se, gene, lm_res, n_genes, ncol) {
+  if (!inherits(divergence_results_se, "SummarizedExperiment")) {
+    stop("'divergence_results_se' must be a SummarizedExperiment", call. = FALSE)
+  }
+  div_mat <- tryCatch({
+    SummarizedExperiment::assay(divergence_results_se, 1)
+  }, error = function(e) {
+    stop("Failed to extract assay: ", e$message, call. = FALSE)
+  })
+  if (is.null(div_mat) || nrow(div_mat) == 0 || ncol(div_mat) == 0) {
+    stop("'divergence_results_se' assay is empty", call. = FALSE)
+  }
+  if (!is.null(gene) && (!is.character(gene) || length(gene) != 1)) {
+    stop("'gene' must be a single character string or NULL", call. = FALSE)
+  }
+  if (!is.null(lm_res) && (!is.data.frame(lm_res) || nrow(lm_res) == 0)) {
+    stop("'lm_res' must be a non-empty data.frame or NULL", call. = FALSE)
+  }
+  if (!is.numeric(n_genes) || n_genes < 1) stop("'n_genes' must be positive", call. = FALSE)
+  if (!is.numeric(ncol) || ncol < 1) stop("'ncol' must be positive", call. = FALSE)
+  return(div_mat)
+}
+
+#' @noRd
+.spectrum_plot_single_gene <- function(gene_name, div_mat_sorted, q_vals_sorted, gene_names) {
+  gene_idx <- which(gene_names == gene_name)[1]
+  if (is.na(gene_idx)) {
+    stop("Gene '", gene_name, "' not found. Available: ",
+         paste(head(gene_names, 5), collapse=", "), call. = FALSE)
+  }
+  plot_df <- data.frame(q = q_vals_sorted, divergence = as.numeric(div_mat_sorted[gene_idx, ]),
+                        stringsAsFactors = FALSE)
+  ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
+    ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
+    ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) +
+    ggplot2::labs(title = paste("Divergence Spectrum:", gene_name),
+                  x = "q value", y = "Divergence D_q") +
+    .theme_base(base_size = 11) + ggplot2::theme(plot.title = ggplot2::element_text(
+      size = .font_sizes$title, face = "bold", hjust = 0.5))
+}
+
+#' @noRd
+.spectrum_plot_top_genes <- function(lm_res, n_genes_use, ncol, div_mat_sorted, q_vals_sorted,
+                                     gene_names, metric, divergence_results_se) {
+  gene_col <- .spectrum_find_gene_column(lm_res)
+  p_col <- .spectrum_find_pvalue_column(lm_res)
+  lm_sorted <- lm_res[order(lm_res[[p_col]], na.last = TRUE), , drop = FALSE]
+  top_genes_vec <- head(lm_sorted[[gene_col]], n_genes_use)
+  
+  if (length(top_genes_vec) == 0) {
+    stop("No genes found in 'lm_res'", call. = FALSE)
+  }
+  
+  gene_indices <- match(top_genes_vec, gene_names)
+  unmatched <- is.na(gene_indices)
+  if (all(unmatched)) {
+    stop("None of the top genes found in divergence matrix", call. = FALSE)
+  }
+  if (any(unmatched)) {
+    warning("Some genes not found. Proceeding with ", sum(!unmatched), " matches",
+            call. = FALSE)
+    gene_indices <- gene_indices[!unmatched]
+    top_genes_vec <- top_genes_vec[!unmatched]
+  }
+  
+  plot_list <- lapply(seq_along(gene_indices), function(i) {
+    data.frame(q = q_vals_sorted, divergence = as.numeric(div_mat_sorted[gene_indices[i], ]),
+               gene = gene_names[gene_indices[i]], p_value = lm_sorted[[p_col]][i],
+               stringsAsFactors = FALSE)
+  })
+  
+  multi_gene_df <- do.call(rbind, plot_list)
+  rownames(multi_gene_df) <- NULL
+  gene_order <- multi_gene_df[!duplicated(multi_gene_df$gene), ]
+  gene_order <- gene_order[order(gene_order$p_value), ]$gene
+  multi_gene_df$gene <- factor(multi_gene_df$gene, levels = gene_order)
+  
+  p <- ggplot2::ggplot(multi_gene_df, ggplot2::aes(x = q, y = divergence)) +
+    ggplot2::facet_wrap(~ gene, ncol = ncol, scales = "free_y") +
+    ggplot2::geom_line(color = "#4575B4", linewidth = 1.2, alpha = 0.8) +
+    ggplot2::geom_point(color = "#4575B4", size = 3, alpha = 0.8) +
+    ggplot2::labs(title = "Divergence Spectra: Per-gene Comparisons",
+                  subtitle = paste0("Ranked by interaction significance (", metric, ")"),
+                  x = "q value", y = expression("Divergence D[q]")) +
+    .theme_base(base_size = 11) + ggplot2::theme(
+      plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(face = "italic", size = .font_sizes$subtitle,
+                                           hjust = 0.5),
+      panel.spacing = ggplot2::unit(1.5, "lines"),
+      strip.text = ggplot2::element_text(face = "bold", size = .font_sizes$subtitle))
+  return(p)
+}
+
+#' @noRd
+.spectrum_plot_global <- function(div_mat_sorted, q_vals_sorted, metric, variability_metric) {
+  if (variability_metric == "iqr") {
+    summary_stats <- data.frame(
+      q = q_vals_sorted,
+      central = apply(div_mat_sorted, 2, function(x) {
+        if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+      }),
+      spread = apply(div_mat_sorted, 2, function(x) stats::IQR(x, na.rm = TRUE)),
+      stringsAsFactors = FALSE)
+    spread_factor <- 0.5
+    spread_label <- "IQR"
+  } else {
+    summary_stats <- data.frame(
+      q = q_vals_sorted,
+      central = apply(div_mat_sorted, 2, function(x) {
+        if (metric == "median") median(x, na.rm = TRUE) else mean(x, na.rm = TRUE)
+      }),
+      spread = apply(div_mat_sorted, 2, function(x) sqrt(stats::var(x, na.rm = TRUE))),
+      stringsAsFactors = FALSE)
+    spread_factor <- 1
+    spread_label <- "SD"
+  }
+  
+  if (all(is.na(summary_stats$spread)) || all(is.na(summary_stats$central))) {
+    stop("Cannot compute statistics. Check divergence matrix values", call. = FALSE)
+  }
+  
+  metric_label <- if (metric == "median") "Median" else "Mean"
+  ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
+    ggplot2::geom_ribbon(ggplot2::aes(ymin = central - spread * spread_factor,
+                                       ymax = central + spread * spread_factor),
+                        alpha = 0.1, fill = "#4575B4", color = NA) +
+    ggplot2::geom_line(color = "#4575B4", linewidth = 1.3) +
+    ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) +
+    ggplot2::labs(title = expression("Global Divergence Spectrum: Average " * D[q]),
+                  x = "q value", y = expression("Divergence D[q]"),
+                  subtitle = paste0(metric_label, " +/- ", spread_label,
+                                   " (", nrow(summary_stats), " genes)")) +
+    .theme_base(base_size = 11) + ggplot2::theme(
+      plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
+      plot.subtitle = ggplot2::element_text(face = "italic", size = .font_sizes$subtitle,
+                                           hjust = 0.5))
+}
+
+#' @noRd
 .plot_divergence_spectrum <- function(divergence_results_se,
                                      gene = NULL,
                                      lm_res = NULL,
@@ -70,449 +254,35 @@
                                      ncol = 2,
                                      metric = c("median", "mean"),
                                      variability_metric = c("iqr", "sd")) {
-  # =========================================================================
-  # INPUT VALIDATION (Bioconductor: Fail fast with clear messages)
-  # =========================================================================
-  
-  # Validate divergence_results_se
-  if (!inherits(divergence_results_se, "SummarizedExperiment")) {
-    stop("'divergence_results_se' must be a SummarizedExperiment object",
-         call. = FALSE)
-  }
-  
-  # Extract and validate divergence matrix
-  div_mat <- tryCatch({
-    SummarizedExperiment::assay(divergence_results_se, 1)
-  }, error = function(e) {
-    stop("Failed to extract assay from 'divergence_results_se': ", e$message,
-         call. = FALSE)
-  })
-  
-  if (is.null(div_mat) || nrow(div_mat) == 0 || ncol(div_mat) == 0) {
-    stop("'divergence_results_se' assay is empty. Expected at least 1 gene and 1 q-value",
-         call. = FALSE)
-  }
-  
-  # Match and validate metric parameter
+  # Validate inputs and extract matrix
   metric <- match.arg(metric)
-  
-  # Match and validate variability_metric parameter
   variability_metric <- match.arg(variability_metric)
-  
-  # Validate n_genes parameter
-  if (!is.numeric(n_genes) || length(n_genes) != 1 || is.na(n_genes) || n_genes < 1) {
-    stop("'n_genes' must be a positive integer", call. = FALSE)
-  }
   n_genes <- as.integer(n_genes)
-  
-  # Validate ncol parameter
-  if (!is.numeric(ncol) || length(ncol) != 1 || is.na(ncol) || ncol < 1) {
-    stop("'ncol' must be a positive integer", call. = FALSE)
-  }
   ncol <- as.integer(ncol)
   
-  # Validate gene parameter if provided
-  if (!is.null(gene)) {
-    if (!is.character(gene) || length(gene) != 1 || is.na(gene)) {
-      stop("'gene' must be a single character string or NULL", call. = FALSE)
-    }
-  }
+  div_mat <- .spectrum_validate_inputs(divergence_results_se, gene, lm_res, n_genes, ncol)
   
-  # Validate lm_res parameter if provided
-  if (!is.null(lm_res)) {
-    if (!is.data.frame(lm_res)) {
-      stop("'lm_res' must be a data.frame or NULL", call. = FALSE)
-    }
-    if (nrow(lm_res) == 0) {
-      stop("'lm_res' data.frame is empty", call. = FALSE)
-    }
-  }
+  # Prepare data
+  q_vals <- .spectrum_extract_q_values(colnames(div_mat))
+  gene_names <- .spectrum_get_gene_identifiers(divergence_results_se, div_mat)
   
-  # =========================================================================
-  # HELPER FUNCTIONS
-  # =========================================================================
-  
-  # Extract q-values from column names
-  .extract_q_values <- function(col_names) {
-    # Try to extract numeric values after "q_" or "q="
-    extracted <- gsub("^q[_=]", "", col_names)
-    q_vals <- as.numeric(extracted)
-    
-    # All must parse successfully
-    if (any(is.na(q_vals))) {
-      stop("Cannot extract numeric q-values from column names. ",
-           "Expected format like 'q_0.5' or 'q=0.5'. ",
-           "Got: ", paste(head(col_names, 3), collapse=", "),
-           call. = FALSE)
-    }
-    
-    return(q_vals)
-  }
-  
-  # Get gene identifiers, validating existence
-  .get_gene_identifiers <- function(se, div_mat) {
-    rd <- SummarizedExperiment::rowData(se)
-    
-    # Prefer gene_name if available
-    if (!is.null(rd) && "gene_name" %in% colnames(rd)) {
-      return(rd$gene_name)
-    }
-    
-    # Fall back to rownames
-    rn <- rownames(div_mat)
-    if (is.null(rn)) {
-      stop("'divergence_results_se' has no gene identifiers in rowData('gene_name') ",
-           "or rownames()", call. = FALSE)
-    }
-    
-    return(rn)
-  }
-  
-  # Find gene column in data.frame
-  .find_gene_column <- function(df) {
-    valid_cols <- c("gene", "gene_name", "gene_id")
-    found <- valid_cols[valid_cols %in% colnames(df)]
-    
-    if (length(found) == 0) {
-      stop("'lm_res' must have a column named 'gene', 'gene_name', or 'gene_id'",
-           call. = FALSE)
-    }
-    
-    return(found[1])
-  }
-  
-  # Find p-value column in data.frame
-  .find_pvalue_column <- function(df) {
-    valid_cols <- c("adj_p_interaction", "p_interaction", "adj_p_value", "p_value")
-    found <- valid_cols[valid_cols %in% colnames(df)]
-    
-    if (length(found) == 0) {
-      stop("'lm_res' must have a p-value column: ",
-           "adj_p_interaction, p_interaction, adj_p_value, or p_value",
-           call. = FALSE)
-    }
-    
-    return(found[1])
-  }
-  
-  # =========================================================================
-  # DATA PREPARATION
-  # =========================================================================
-  
-  # Extract q-values from column names
-  col_names <- colnames(div_mat)
-  q_vals <- .extract_q_values(col_names)
-  
-  # Get gene identifiers
-  gene_names <- .get_gene_identifiers(divergence_results_se, div_mat)
-  
-  # Validate gene identifiers
   if (length(gene_names) != nrow(div_mat)) {
-    stop("Number of gene identifiers (", length(gene_names), ") does not match ",
-         "number of rows in divergence matrix (", nrow(div_mat), ")",
-         call. = FALSE)
+    stop("Gene identifier count doesn't match matrix rows", call. = FALSE)
   }
   
-  # Sort by q-values for consistent ordering
   sort_idx <- order(q_vals)
   q_vals_sorted <- q_vals[sort_idx]
   div_mat_sorted <- div_mat[, sort_idx]
   
-  # =========================================================================
-  # CASE 1: GENE-SPECIFIC SPECTRUM (single gene)
-  # =========================================================================
-  # =========================================================================
-  # CASE 1: GENE-SPECIFIC SPECTRUM (single gene)
-  # =========================================================================
-  
+  # Dispatch to appropriate case
   if (!is.null(gene)) {
-    # Validate gene exists in our data
-    gene_idx <- which(gene_names == gene)[1]
-    if (is.na(gene_idx)) {
-      stop("Gene '", gene, "' not found. ",
-           "Available genes: ", paste(head(gene_names, 5), collapse=", "),
-           if (length(gene_names) > 5) paste0(", ... (", length(gene_names), " total)"),
-           call. = FALSE)
-    }
-    
-    # Extract divergence values for this gene
-    gene_div <- as.numeric(div_mat_sorted[gene_idx, ])
-    
-    # Build plot data
-    plot_df <- data.frame(
-      q = q_vals_sorted,
-      divergence = gene_div,
-      stringsAsFactors = FALSE
-    )
-    
-    # Create plot
-    p <- ggplot2::ggplot(plot_df, ggplot2::aes(x = q, y = divergence)) +
-      ggplot2::geom_line(color = "#4575B4", linewidth = 1.2) +
-      ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) +
-      ggplot2::labs(
-        title = paste("Divergence Spectrum:", gene),
-        x = "q value (diversity scale parameter)",
-        y = "Tsallis Divergence D_q"
-      ) +
-      .theme_base(base_size = 11) +
-      ggplot2::theme(
-        plot.title = ggplot2::element_text(
-          size = .font_sizes$title,
-          face = "bold",
-          hjust = 0.5
-        )
-      )
-    
-    return(p)
+    return(.spectrum_plot_single_gene(gene, div_mat_sorted, q_vals_sorted, gene_names))
   }
-  
-  # =========================================================================
-  # CASE 2: TOP N GENES SPECTRA (multi-gene faceted plot)
-  # =========================================================================
   
   if (!is.null(lm_res)) {
-    # Find gene and p-value columns
-    gene_col <- .find_gene_column(lm_res)
-    p_col <- .find_pvalue_column(lm_res)
-    
-    # Sort lm_res by p-value and get top genes
-    lm_sorted <- lm_res[order(lm_res[[p_col]], na.last = TRUE), , drop = FALSE]
-    top_genes_vec <- head(lm_sorted[[gene_col]], n_genes)
-    
-    # Validate that we found genes
-    if (length(top_genes_vec) == 0) {
-      stop("No genes found in 'lm_res', cannot create plot", call. = FALSE)
-    }
-    
-    # Match top genes to divergence matrix
-    gene_indices <- match(top_genes_vec, gene_names)
-    
-    # Filter out unmatched genes
-    unmatched <- is.na(gene_indices)
-    if (all(unmatched)) {
-      stop("None of the top genes from 'lm_res' found in divergence matrix. ",
-           "Check that gene identifiers match",
-           call. = FALSE)
-    }
-    if (any(unmatched)) {
-      warning("Some genes from 'lm_res' not found in divergence matrix. ",
-              "Proceeding with ", sum(!unmatched), " matching genes",
-              call. = FALSE)
-      gene_indices <- gene_indices[!unmatched]
-      top_genes_vec <- top_genes_vec[!unmatched]
-    }
-    
-    # Build plot data for each gene
-    plot_list <- list()
-    
-    for (i in seq_along(gene_indices)) {
-      gene_idx <- gene_indices[i]
-      gene_name_i <- gene_names[gene_idx]
-      gene_div <- as.numeric(div_mat_sorted[gene_idx, ])
-      p_val <- lm_sorted[[p_col]][i]
-      
-      plot_list[[i]] <- data.frame(
-        q = q_vals_sorted,
-        divergence = gene_div,
-        gene = gene_name_i,
-        p_value = p_val,
-        stringsAsFactors = FALSE
-      )
-    }
-    
-    multi_gene_df <- do.call(rbind, plot_list)
-    rownames(multi_gene_df) <- NULL
-    
-    # Extract confidence intervals if available
-    rd <- SummarizedExperiment::rowData(divergence_results_se)
-    ci_df <- NULL
-    
-    if (!is.null(rd)) {
-      ci_data_list <- list()
-      
-      for (idx in seq_along(gene_indices)) {
-        gene_idx <- gene_indices[idx]
-        gene_name_i <- gene_names[gene_idx]
-        
-        # Extract CIs for this gene across all q-values
-        ci_lower <- numeric(length(q_vals_sorted))
-        ci_upper <- numeric(length(q_vals_sorted))
-        
-        for (j in seq_along(q_vals_sorted)) {
-          q_val <- q_vals_sorted[j]
-          lower_col <- paste0("lower_ci_q", q_val)
-          upper_col <- paste0("upper_ci_q", q_val)
-          
-          if (lower_col %in% colnames(rd) && upper_col %in% colnames(rd)) {
-            ci_lower[j] <- rd[[lower_col]][gene_idx]
-            ci_upper[j] <- rd[[upper_col]][gene_idx]
-          } else {
-            ci_lower[j] <- NA_real_
-            ci_upper[j] <- NA_real_
-          }
-        }
-        
-        ci_data_list[[idx]] <- data.frame(
-          q = q_vals_sorted,
-          lower = ci_lower,
-          upper = ci_upper,
-          gene = gene_name_i,
-          stringsAsFactors = FALSE
-        )
-      }
-      
-      if (length(ci_data_list) > 0) {
-        ci_df <- do.call(rbind, ci_data_list)
-        rownames(ci_df) <- NULL
-      }
-    }
-    
-    # Sort genes by p-value for proper facet order
-    gene_p_values <- multi_gene_df[!duplicated(multi_gene_df$gene), c("gene", "p_value")]
-    gene_p_values <- gene_p_values[order(gene_p_values$p_value), ]
-    gene_order <- gene_p_values$gene
-    multi_gene_df$gene <- factor(multi_gene_df$gene, levels = gene_order)
-    
-    # Create faceted plot
-    p <- ggplot2::ggplot(multi_gene_df, ggplot2::aes(x = q, y = divergence)) +
-      ggplot2::facet_wrap(~ gene, ncol = ncol, scales = "free_y")
-    
-    # Add CI ribbons if available
-    if (!is.null(ci_df)) {
-      ci_df$gene <- factor(ci_df$gene, levels = gene_order)
-      p <- p + ggplot2::geom_ribbon(
-        data = ci_df,
-        ggplot2::aes(x = q, ymin = lower, ymax = upper),
-        inherit.aes = FALSE,
-        alpha = 0.15,
-        fill = "#4575B4",
-        color = NA
-      )
-    }
-    
-    p <- p +
-      ggplot2::geom_line(color = "#4575B4", linewidth = 1.2, alpha = 0.8) +
-      ggplot2::geom_point(color = "#4575B4", size = 3, alpha = 0.8) +
-      ggplot2::labs(
-        title = "Divergence Spectra: Per-gene Comparisons",
-        subtitle = paste0("Ranked by interaction significance (", metric, ")"),
-        x = "q value (diversity scale parameter)",
-        y = expression("Divergence D[q]")
-      ) +
-      .theme_base(base_size = 11) +
-      ggplot2::theme(
-        plot.title = ggplot2::element_text(
-          size = .font_sizes$title,
-          face = "bold",
-          hjust = 0.5
-        ),
-        plot.subtitle = ggplot2::element_text(
-          face = "italic",
-          size = .font_sizes$subtitle,
-          hjust = 0.5
-        ),
-        panel.spacing = ggplot2::unit(1.5, "lines"),
-        strip.text = ggplot2::element_text(
-          face = "bold",
-          size = .font_sizes$subtitle
-        )
-      )
-    
-    return(p)
+    return(.spectrum_plot_top_genes(lm_res, n_genes, ncol, div_mat_sorted, q_vals_sorted,
+                                    gene_names, metric, divergence_results_se))
   }
   
-  # =========================================================================
-  # CASE 3: GLOBAL DIVERGENCE CURVE (all genes aggregated)
-  # =========================================================================
-  # =========================================================================
-  # CASE 3: GLOBAL DIVERGENCE CURVE (all genes aggregated)
-  # =========================================================================
-  
-  # Build summary statistics for global curve
-  if (variability_metric == "iqr") {
-    summary_stats <- data.frame(
-      q = q_vals_sorted,
-      central = apply(div_mat_sorted, 2, function(x) {
-        if (metric == "median") {
-          median(x, na.rm = TRUE)
-        } else {
-          mean(x, na.rm = TRUE)
-        }
-      }),
-      spread = apply(div_mat_sorted, 2, function(x) {
-        stats::IQR(x, na.rm = TRUE)
-      }),
-      stringsAsFactors = FALSE
-    )
-    spread_factor <- 1 / 2  # IQR/2 for symmetric ribbon
-    spread_label <- "IQR"
-  } else {  # sd
-    summary_stats <- data.frame(
-      q = q_vals_sorted,
-      central = apply(div_mat_sorted, 2, function(x) {
-        if (metric == "median") {
-          median(x, na.rm = TRUE)
-        } else {
-          mean(x, na.rm = TRUE)
-        }
-      }),
-      spread = apply(div_mat_sorted, 2, function(x) {
-        sqrt(stats::var(x, na.rm = TRUE))
-      }),
-      stringsAsFactors = FALSE
-    )
-    spread_factor <- 1
-    spread_label <- "SD"
-  }
-  
-  # Validate that spread values are not all NA
-  if (all(is.na(summary_stats$spread))) {
-    stop("Cannot compute variability metric (", variability_metric, "). ",
-         "Check that divergence matrix contains valid numeric values",
-         call. = FALSE)
-  }
-  
-  if (all(is.na(summary_stats$central))) {
-    stop("Cannot compute central tendency (", metric, "). ",
-         "Check that divergence matrix contains valid numeric values",
-         call. = FALSE)
-  }
-  
-  metric_label <- if (metric == "median") "Median" else "Mean"
-  
-  # Create plot
-  p <- ggplot2::ggplot(summary_stats, ggplot2::aes(x = q, y = central)) +
-    ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = central - spread * spread_factor,
-                   ymax = central + spread * spread_factor),
-      alpha = 0.1,
-      fill = "#4575B4",
-      color = NA
-    ) +
-    ggplot2::geom_line(color = "#4575B4", linewidth = 1.3) +
-    ggplot2::geom_point(color = "#4575B4", size = 3.5, alpha = 0.8) +
-    ggplot2::labs(
-      title = expression("Global Divergence Spectrum: Average " * D[q] * " Across All Genes"),
-      x = "q value (diversity scale parameter)",
-      y = expression("Divergence D[q]"),
-      subtitle = paste0(
-        metric_label, " +/- ", spread_label,
-        " (", nrow(div_mat_sorted), " genes)"
-      )
-    ) +
-    .theme_base(base_size = 11) +
-    ggplot2::theme(
-      plot.title = ggplot2::element_text(
-        size = .font_sizes$title,
-        face = "bold",
-        hjust = 0.5
-      ),
-      plot.subtitle = ggplot2::element_text(
-        face = "italic",
-        size = .font_sizes$subtitle,
-        hjust = 0.5
-      )
-    )
-  
-  return(p)
+  return(.spectrum_plot_global(div_mat_sorted, q_vals_sorted, metric, variability_metric))
 }

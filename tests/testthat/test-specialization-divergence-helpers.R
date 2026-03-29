@@ -377,7 +377,8 @@ test_that(".classify_q_pattern rejects non-numeric input", {
   # Uncovered line 332-333: input validation
   per_q_divs <- c("q_0.01" = "a", "q_1.0" = "b")
   
-  result <- TSENAT:::.classify_q_pattern(per_q_divs)
+  # suppressWarnings for expected coercion of non-numeric strings to NA
+  result <- suppressWarnings(TSENAT:::.classify_q_pattern(per_q_divs))
   
   expect_true(is.na(result))
 })

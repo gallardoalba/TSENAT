@@ -136,6 +136,11 @@ TSENATAnalysis <- function(se, config = list()) {
     stop("se must be a SummarizedExperiment object", call. = FALSE)
   }
 
+  # Convert TSENATConfig S4 object to list if needed
+  if (inherits(config, "TSENATConfig")) {
+    config <- unclass(config)
+  }
+
   # Ensure sample_id column exists in colData (required by validator)
   if (!"sample_id" %in% colnames(SummarizedExperiment::colData(se))) {
     SummarizedExperiment::colData(se)$sample_id <- colnames(se)
@@ -844,8 +849,13 @@ setGeneric("setConfig", function(object, value) {
 
 #' @noRd
 setMethod("setConfig", "TSENATAnalysis", function(object, value) {
+  # Convert TSENATConfig S4 object to list if needed
+  if (inherits(value, "TSENATConfig")) {
+    value <- unclass(value)
+  }
+  
   if (!is.list(value)) {
-    stop("Configuration must be a list", call. = FALSE)
+    stop("Configuration must be a list or TSENATConfig object", call. = FALSE)
   }
   object@config <- value
   validObject(object)
