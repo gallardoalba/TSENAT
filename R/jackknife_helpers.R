@@ -1,4 +1,4 @@
-# DEPRECATED: R implementation moved to C++ in src/jackknife_rcpp.cpp
+# DEPRECATED: R implementation moved to C++ in src/resampling_entropy_rcpp.cpp
 # This function is no longer used. All jackknife operations now use the
 # optimized C++/Rcpp implementation for better performance.
 #

@@ -1,10 +1,20 @@
-// Jackknife resampling implementation in Rcpp + Armadillo
+// =============================================================================
+// Core Resampling and Entropy Computation in Rcpp + Armadillo
+// =============================================================================
 // 
-// Purpose: Accelerate leave-one-out jackknife computation
-// Target speedup: 2-3x compared to pure R implementation
+// Purpose: Accelerate core statistical computations with Rcpp/Armadillo
+// Target speedup: 2-3x~ compared to pure R implementation
 // 
-// This implementation uses Armadillo (via RcppArmadillo) for efficient matrix operations
-// and vectorized computation to replace the R's row-by-row loop.
+// This file contains:
+//   1. Entropy computations: entropy_cpp, hill_number_cpp
+//   2. Jackknife resampling: jackknife_resampling_cpp, jis_jackknife_influences_cpp
+//   3. Bootstrap resampling: bootstrap_compute_cpp, block_bootstrap_compute_cpp
+//   4. Bootstrap entropy: bootstrap_entropy_vec_cpp, jis_bootstrap_delta_cpp
+//   5. Utility functions: check_rcpp_available
+//
+// Implementation uses Armadillo (via RcppArmadillo) for efficient matrix operations
+// and vectorized computation to replace R's row-by-row loops.
+// =============================================================================
 
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
