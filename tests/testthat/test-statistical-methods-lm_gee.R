@@ -2045,9 +2045,9 @@ test_that(".print_kc_correction_report generates output", {
     
     # Should not error when printing (capture and suppress output)
     expect_silent({
-        invisible(capture.output(
+        invisible(capture.output(suppressMessages(
             .print_kc_correction_report(kc_result)
-        ))
+        )))
     })
 })
 

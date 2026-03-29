@@ -1187,3 +1187,558 @@ test_that(".fit_one_interaction with many subjects", {
     # Should handle many subjects without issue
     expect_true(is.data.frame(result) || is.null(result))
 })
+
+context("Helper Functions for .fit_one_interaction() Tests")
+
+library(testthat)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# .setup_interaction_data() - Data frame initialization and validation
+# ═══════════════════════════════════════════════════════════════════════════
+
+test_that(".setup_interaction_data validates gene exists in matrix", {
+    # Valid gene in matrix
+    mat <- matrix(c(1, 2, 3), nrow = 1)
+    rownames(mat) <- "gene1"
+    q_vals <- c(0.1, 0.2, 0.3)
+    group_vec <- c("A", "B", "A")
+    
+    result <- TSENAT:::.setup_interaction_data("gene1", mat, q_vals, group_vec)
+    
+    expect_true(is.data.frame(result))
+    expect_equal(nrow(result), 3)
+    expect_equal(colnames(result), c("entropy", "q", "group"))
+    expect_equal(result$entropy, c(1, 2, 3))
+    expect_equal(result$q, q_vals)
+})
+
+test_that(".setup_interaction_data throws error for missing gene", {
+    mat <- matrix(c(1, 2, 3), nrow = 1)
+    rownames(mat) <- "known_gene"
+    q_vals <- c(0.1, 0.2, 0.3)
+    group_vec <- c("A", "B", "A")
+    
+    expect_error(
+        TSENAT:::.setup_interaction_data("missing_gene", mat, q_vals, group_vec),
+        "not found in matrix rownames"
+    )
+})
+
+test_that(".setup_interaction_data returns correct data frame structure", {
+    mat <- matrix(c(0.5, 1.5, 2.5, 3.5), nrow = 1)
+    rownames(mat) <- "g1"
+    q_vals <- c(0.1, 0.5, 1.0, 1.5)
+    group_vec <- c("ctrl", "ctrl", "treat", "treat")
+    
+    result <- TSENAT:::.setup_interaction_data("g1", mat, q_vals, group_vec)
+    
+    expect_equal(result$entropy, c(0.5, 1.5, 2.5, 3.5))
+    expect_equal(result$q, q_vals)
+    expect_equal(levels(result$group), c("ctrl", "treat"))
+    expect_true(is.factor(result$group))
+})
+
+test_that(".setup_interaction_data handles numeric entropy values correctly", {
+    mat <- matrix(as.numeric(NA), nrow = 1)
+    rownames(mat) <- "g1"
+    q_vals <- c(0.1, 0.2)
+    group_vec <- c("A", "B")
+    
+    result <- TSENAT:::.setup_interaction_data("g1", mat, q_vals, group_vec)
+    
+    expect_true(is.data.frame(result))
+    # Entropy values should be NA (converted to numeric)
+    expect_true(all(is.na(result$entropy)))
+})
+
+test_that(".setup_interaction_data preserves matrix column order in entropy extraction", {
+    mat <- matrix(c(5, 3, 1, 4, 2, 6), nrow = 2)
+    rownames(mat) <- c("gene_A", "gene_B")
+    q_vals <- c(0.1, 0.2, 0.3)
+    group_vec <- c("A", "B", "A")
+    
+    result <- TSENAT:::.setup_interaction_data("gene_B", mat, q_vals, group_vec)
+    
+    # Matrix fills by column: [5,1,2; 3,4,6], so gene_B (row 2) is c(3, 4, 6)
+    expect_equal(result$entropy, c(3, 4, 6))
+})
+
+test_that(".setup_interaction_data with large number of features", {
+    # Test with many q values (high-dimensional case)
+    n_features <- 500
+    mat <- matrix(rnorm(n_features), nrow = 1)
+    rownames(mat) <- "big_gene"
+    q_vals <- seq(0.01, 5, length.out = n_features)
+    group_vec <- rep(c("A", "B"), length.out = n_features)
+    
+    result <- TSENAT:::.setup_interaction_data("big_gene", mat, q_vals, group_vec)
+    
+    expect_equal(nrow(result), n_features)
+    expect_equal(length(unique(result$group)), 2)
+})
+
+# ═══════════════════════════════════════════════════════════════════════════
+# .apply_weights_to_df() - Weight parameter handling
+# ═══════════════════════════════════════════════════════════════════════════
+
+test_that(".apply_weights_to_df applies matching weights correctly", {
+    df <- data.frame(entropy = c(1, 2, 3), q = c(0.1, 0.2, 0.3))
+    weights <- c(0.5, 1.0, 1.5)
+    
+    result <- TSENAT:::.apply_weights_to_df(df, weights, "g1", verbose = FALSE)
+    
+    expect_true("weight" %in% colnames(result))
+    expect_equal(result$weight, weights)
+    expect_equal(nrow(result), nrow(df))
+})
+
+test_that(".apply_weights_to_df ignores NULL weights", {
+    df <- data.frame(entropy = c(1, 2, 3), q = c(0.1, 0.2, 0.3))
+    
+    result <- TSENAT:::.apply_weights_to_df(df, NULL, "g1", verbose = FALSE)
+    
+    expect_false("weight" %in% colnames(result))
+    expect_equal(nrow(result), nrow(df))
+})
+
+test_that(".apply_weights_to_df handles mismatched weight length", {
+    df <- data.frame(entropy = c(1, 2, 3, 4), q = c(0.1, 0.2, 0.3, 0.4))
+    weights <- c(0.5, 1.0)  # Only 2 weights for 4 rows
+    
+    result <- TSENAT:::.apply_weights_to_df(df, weights, "g1", verbose = FALSE)
+    
+    # Weights should NOT be added due to length mismatch
+    expect_false("weight" %in% colnames(result))
+    expect_equal(nrow(result), nrow(df))
+})
+
+test_that(".apply_weights_to_df verbose mode prints messages", {
+    df <- data.frame(entropy = c(1, 2, 3), q = c(0.1, 0.2, 0.3))
+    weights <- c(0.5, 1.0, 1.5)
+    
+    # Capture message output
+    expect_message(
+        TSENAT:::.apply_weights_to_df(df, weights, "gene_test", verbose = TRUE),
+        "weights applied"
+    )
+})
+
+test_that(".apply_weights_to_df verbose message for mismatched weights", {
+    df <- data.frame(entropy = c(1, 2, 3, 4), q = c(0.1, 0.2, 0.3, 0.4))
+    weights <- c(0.5, 1.0)
+    
+    expect_message(
+        TSENAT:::.apply_weights_to_df(df, weights, "gene_test", verbose = TRUE),
+        "NOT applied"
+    )
+})
+
+test_that(".apply_weights_to_df handles zero and negative weights", {
+    df <- data.frame(entropy = c(1, 2, 3), q = c(0.1, 0.2, 0.3))
+    
+    # Zero weights are technically valid for inverse variance weighting
+    weights_with_zero <- c(0, 1.0, 1.5)
+    result <- TSENAT:::.apply_weights_to_df(df, weights_with_zero, "g1", verbose = FALSE)
+    expect_true("weight" %in% colnames(result))
+    expect_equal(result$weight, weights_with_zero)
+    
+    # Negative weights might be used for contrast - should still be applied
+    weights_negative <- c(-0.5, 1.0, 1.5)
+    result2 <- TSENAT:::.apply_weights_to_df(df, weights_negative, "g1", verbose = FALSE)
+    expect_equal(result2$weight, weights_negative)
+})
+
+test_that(".apply_weights_to_df calculates weight statistics correctly", {
+    df <- data.frame(entropy = c(1, 2, 3), q = c(0.1, 0.2, 0.3))
+    weights <- c(1, 2, 3)
+    
+    # Capture output with verbose=TRUE to verify statistics are calculated
+    expect_message(
+        TSENAT:::.apply_weights_to_df(df, weights, "g1", verbose = TRUE),
+        "mean=2\\.0000"  # Mean of 1,2,3 is 2.0
+    )
+})
+
+test_that(".apply_weights_to_df preserves all original columns", {
+    df <- data.frame(
+        entropy = c(1, 2, 3),
+        q = c(0.1, 0.2, 0.3),
+        group = factor(c("A", "B", "A")),
+        extra_col = c("x", "y", "z")
+    )
+    weights <- c(0.5, 1.0, 1.5)
+    
+    result <- TSENAT:::.apply_weights_to_df(df, weights, "g1", verbose = FALSE)
+    
+    expect_equal(colnames(result), c("entropy", "q", "group", "extra_col", "weight"))
+    expect_equal(result$extra_col, df$extra_col)
+})
+
+# ═══════════════════════════════════════════════════════════════════════════
+# .get_subject_ids() - Subject identifier extraction
+# ═══════════════════════════════════════════════════════════════════════════
+
+test_that(".get_subject_ids returns sample_names as fallback", {
+    sample_names <- c("s1", "s2", "s3", "s4")
+    
+    result <- TSENAT:::.get_subject_ids(
+        se = NULL,
+        subject_col = NULL,
+        paired = FALSE,
+        mat = NULL,
+        sample_names = sample_names
+    )
+    
+    expect_equal(result, sample_names)
+})
+
+test_that(".get_subject_ids extracts from explicit subject_col", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    sample_names <- c("s1", "s2", "s3", "s4")
+    coldata <- S4Vectors::DataFrame(
+        samples = sample_names,
+        my_subject = c("subA", "subA", "subB", "subB")
+    )
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(rnorm(4), nrow = 1)),
+        colData = coldata
+    )
+    
+    result <- TSENAT:::.get_subject_ids(
+        se = se,
+        subject_col = "my_subject",
+        paired = FALSE,
+        mat = NULL,
+        sample_names = sample_names
+    )
+    
+    expect_equal(result, c("subA", "subA", "subB", "subB"))
+})
+
+test_that(".get_subject_ids errors on missing subject_col", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    sample_names <- c("s1", "s2", "s3", "s4")
+    coldata <- S4Vectors::DataFrame(
+        samples = sample_names,
+        other_col = c(1, 2, 3, 4)
+    )
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(rnorm(4), nrow = 1)),
+        colData = coldata
+    )
+    
+    expect_error(
+        TSENAT:::.get_subject_ids(
+            se = se,
+            subject_col = "nonexistent_col",
+            paired = FALSE,
+            mat = NULL,
+            sample_names = sample_names
+        ),
+        "not found in colData"
+    )
+})
+
+test_that(".get_subject_ids extracts from paired=TRUE with sample_base", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    sample_names <- c("s1", "s2", "s3", "s4")
+    coldata <- S4Vectors::DataFrame(
+        samples = sample_names,
+        sample_base = c("pair1", "pair1", "pair2", "pair2")
+    )
+    # Set rownames to match sample identifiers for proper indexing
+    rownames(coldata) <- sample_names
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(rnorm(4), nrow = 1)),
+        colData = coldata
+    )
+    
+    result <- TSENAT:::.get_subject_ids(
+        se = se,
+        subject_col = NULL,
+        paired = TRUE,
+        mat = NULL,
+        sample_names = sample_names
+    )
+    
+    expect_equal(result, c("pair1", "pair1", "pair2", "pair2"))
+})
+
+test_that(".get_subject_ids errors on paired=TRUE without sample_base", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    sample_names <- c("s1", "s2", "s3", "s4")
+    coldata <- S4Vectors::DataFrame(
+        samples = sample_names,
+        other_col = c(1, 2, 3, 4)
+    )
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(rnorm(4), nrow = 1)),
+        colData = coldata
+    )
+    
+    expect_error(
+        TSENAT:::.get_subject_ids(
+            se = se,
+            subject_col = NULL,
+            paired = TRUE,
+            mat = NULL,
+            sample_names = sample_names
+        ),
+        "paired = TRUE"
+    )
+})
+
+test_that(".get_subject_ids handles paired_samples column alternative", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    sample_names <- c("s1", "s2", "s3", "s4")
+    coldata <- S4Vectors::DataFrame(
+        samples = sample_names,
+        paired_samples = c("subX", "subX", "subY", "subY")
+    )
+    # Set rownames to match sample identifiers for proper indexing
+    rownames(coldata) <- sample_names
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = matrix(rnorm(4), nrow = 1)),
+        colData = coldata
+    )
+    
+    result <- TSENAT:::.get_subject_ids(
+        se = se,
+        subject_col = NULL,
+        paired = TRUE,
+        mat = NULL,
+        sample_names = sample_names
+    )
+    
+    expect_equal(result, c("subX", "subX", "subY", "subY"))
+})
+
+test_that(".get_subject_ids with subject_col removes _q= suffix", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Test matrix column names with _q= suffix
+    mat <- matrix(rnorm(4), nrow = 1)
+    colnames(mat) <- c("s1_q=0.1", "s2_q=0.2", "s3_q=0.5", "s4_q=1.0")
+    
+    coldata <- S4Vectors::DataFrame(
+        samples = c("s1", "s2", "s3", "s4"),
+        my_subject = c("subA", "subA", "subB", "subB")
+    )
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(counts = mat),
+        colData = coldata
+    )
+    
+    result <- TSENAT:::.get_subject_ids(
+        se = se,
+        subject_col = "my_subject",
+        paired = FALSE,
+        mat = mat,
+        sample_names = c("s1", "s2", "s3", "s4")
+    )
+    
+    expect_equal(result, c("subA", "subA", "subB", "subB"))
+})
+
+# ═══════════════════════════════════════════════════════════════════════════
+# .check_lmm_sample_sizes() - Sample and subject minimum validation
+# ═══════════════════════════════════════════════════════════════════════════
+
+test_that(".check_lmm_sample_sizes returns TRUE when requirements met", {
+    df <- data.frame(
+        entropy = rnorm(10),
+        q = seq(0.1, 1, length.out = 10),
+        group = rep(c("A", "B"), 5),
+        subject = rep(c(1, 2, 3, 4, 5), 2)
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 5)
+    
+    expect_true(result)
+})
+
+test_that(".check_lmm_sample_sizes returns NULL when insufficient observations", {
+    df <- data.frame(
+        entropy = rnorm(3),
+        q = c(0.1, 0.5, 1.0),
+        group = c("A", "B", "A"),
+        subject = c(1, 2, 3)
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 5)
+    
+    expect_null(result)
+})
+
+test_that(".check_lmm_sample_sizes returns NULL with <2 subjects", {
+    df <- data.frame(
+        entropy = rnorm(10),
+        q = seq(0.1, 1, length.out = 10),
+        group = rep(c("A", "B"), 5),
+        subject = rep(1, 10)  # Only one subject
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 3)
+    
+    expect_null(result)
+})
+
+test_that(".check_lmm_sample_sizes handles NA subjects correctly", {
+    df <- data.frame(
+        entropy = rnorm(10),
+        q = seq(0.1, 1, length.out = 10),
+        group = rep(c("A", "B"), 5),
+        subject = c(1, 2, NA, 3, 4, 1, 2, NA, 3, 4)
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 5)
+    
+    # Should count 4 unique non-NA subjects: 1, 2, 3, 4
+    expect_true(result)
+})
+
+test_that(".check_lmm_sample_sizes with exact boundary conditions", {
+    # Exactly min_obs observations
+    df_exact <- data.frame(
+        entropy = rnorm(5),
+        q = seq(0.1, 1, length.out = 5),
+        group = c("A", "B", "A", "B", "A"),
+        subject = c(1, 2, 1, 2, 3)
+    )
+    
+    result_exact <- TSENAT:::.check_lmm_sample_sizes(df_exact, min_obs = 5)
+    expect_true(result_exact)
+    
+    # Just below min_obs
+    df_below <- df_exact[-5, ]
+    result_below <- TSENAT:::.check_lmm_sample_sizes(df_below, min_obs = 5)
+    expect_null(result_below)
+})
+
+test_that(".check_lmm_sample_sizes with exactly 2 subjects (boundary)", {
+    df <- data.frame(
+        entropy = rnorm(6),
+        q = seq(0.1, 1, length.out = 6),
+        group = rep(c("A", "B"), 3),
+        subject = rep(c(1, 2), 3)
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 3)
+    
+    # Exactly 2 subjects (minimum for random intercept)
+    expect_true(result)
+})
+
+test_that(".check_lmm_sample_sizes default min_obs value works", {
+    df <- data.frame(
+        entropy = rnorm(5),
+        q = seq(0.1, 1, length.out = 5),
+        group = c("A", "B", "A", "B", "A"),
+        subject = c(1, 2, 3, 2, 1)
+    )
+    
+    # Default min_obs = 3
+    result <- TSENAT:::.check_lmm_sample_sizes(df)
+    
+    expect_true(result)
+})
+
+test_that(".check_lmm_sample_sizes with large datasets", {
+    n_large <- 1000
+    df <- data.frame(
+        entropy = rnorm(n_large),
+        q = runif(n_large, 0.1, 1),
+        group = rep(c("A", "B"), length.out = n_large),
+        subject = rep(1:50, length.out = n_large)
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 500)
+    
+    expect_true(result)
+})
+
+test_that(".check_lmm_sample_sizes only counts unique non-NA subjects", {
+    df <- data.frame(
+        entropy = rnorm(8),
+        q = seq(0.1, 1, length.out = 8),
+        group = c("A", "B", "A", "B", "A", "B", "A", "B"),
+        subject = c(1, 1, 1, 2, 2, 2, NA, NA)  # Actually only 2 subjects
+    )
+    
+    result <- TSENAT:::.check_lmm_sample_sizes(df, min_obs = 4)
+    
+    # 8 observations, but only 2 subjects - should pass obs check and subject check
+    expect_true(result)
+})
+
+# ═══════════════════════════════════════════════════════════════════════════
+# INTEGRATION TESTS - Helper functions working together
+# ═══════════════════════════════════════════════════════════════════════════
+
+test_that("Helper functions work together in workflow", {
+    skip_if_not_installed("SummarizedExperiment")
+    
+    # Step 1: Create matrix and setup data
+    mat <- matrix(c(1.5, 2.5, 3.5, 4.5), nrow = 1)
+    rownames(mat) <- "g1"
+    q_vals <- c(0.1, 0.5, 1.0, 1.5)
+    group_vec <- c("ctrl", "ctrl", "treat", "treat")
+    
+    df <- TSENAT:::.setup_interaction_data("g1", mat, q_vals, group_vec)
+    
+    # Step 2: Apply weights
+    weights <- c(1, 1, 0.5, 0.5)
+    df_weighted <- TSENAT:::.apply_weights_to_df(df, weights, "g1", verbose = FALSE)
+    
+    # Step 3: Create subject column for validation
+    df_weighted$subject <- c(1, 1, 2, 2)
+    
+    # Step 4: Check sample sizes
+    check_result <- TSENAT:::.check_lmm_sample_sizes(df_weighted, min_obs = 2)
+    
+    expect_true(check_result)
+    expect_equal(nrow(df_weighted), 4)
+    expect_true("weight" %in% colnames(df_weighted))
+})
+
+test_that("Helper functions handle problematic data gracefully", {
+    # Setup with valid data but will fail checks
+    mat <- matrix(c(1, 2), nrow = 1)
+    rownames(mat) <- "g1"
+    q_vals <- c(0.1, 0.2)
+    group_vec <- c("A", "B")
+    
+    df <- TSENAT:::.setup_interaction_data("g1", mat, q_vals, group_vec)
+    
+    # Apply weights with wrong length - should not crash
+    weights <- c(1)
+    df_weighted <- TSENAT:::.apply_weights_to_df(df, weights, "g1", verbose = FALSE)
+    
+    # Add single subject for validation
+    df_weighted$subject <- c(1, 1)
+    
+    # Will fail because <2 subjects
+    check_result <- TSENAT:::.check_lmm_sample_sizes(df_weighted, min_obs = 1)
+    
+    expect_null(check_result)
+})
+
+test_that("Helper error messages are informative", {
+    mat <- matrix(c(1, 2, 3), nrow = 1)
+    rownames(mat) <- "known_gene"
+    q_vals <- c(0.1, 0.2, 0.3)
+    group_vec <- c("A", "B", "A")
+    
+    error_msg <- tryCatch(
+        TSENAT:::.setup_interaction_data("unknown", mat, q_vals, group_vec),
+        error = function(e) e$message
+    )
+    
+    expect_match(error_msg, "unknown")
+    expect_match(error_msg, "not found in matrix rownames")
+})
