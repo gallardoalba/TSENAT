@@ -40,6 +40,17 @@ If NULL, uses q_values from \code{analysis@config$q_values} if available, else d
 \item{norm}{\code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
 If NULL, reads from \code{@config$norm} or defaults to TRUE.}
 
+\item{norm_method}{\code{character}. Post-hoc normalization method applied after diversity computation.
+Options:
+\itemize{
+  \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
+  \item \code{"zscore"} - Z-score normalization per q-value
+  \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
+  \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
+  \item \code{NULL} - No post-hoc normalization (default)
+}
+If NULL, reads from \code{@config$norm_method} if available.}
+
 \item{reference_group}{\code{character}. For \code{norm_method = "relative_reference"}, 
 the reference group column name (e.g., from colData). If NULL, uses first group in colData.
 If NULL, reads from \code{@config$reference_group} if available.}
@@ -91,8 +102,8 @@ If NULL, reads from \code{@config$bootstrap_ci} if available.}
 \item{bootstrap_include_diagnostics}{\code{logical}. Include bootstrap diagnostics. Default: TRUE.
 If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.}
 
-\item{seed}{\\code{numeric} or \\code{NULL}. Random seed for reproducibility. Default: NULL.
-If NULL, reads from \\code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.}
+\item{seed}{\code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
+If NULL, reads from \code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 When provided, generates TWO files:

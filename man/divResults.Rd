@@ -71,6 +71,9 @@ getConfig(object)
 
 \item{plot}{ggplot or list. The plot object to cache}
 
+\item{replace}{logical. If TRUE, replace existing plot of same type.
+If FALSE (default), warn if plot already exists and do not overwrite.}
+
 \item{q}{numeric or character. Q-value to extract (e.g., "q_0.5").
 If NULL, returns all jackknife results.}
 

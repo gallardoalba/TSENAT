@@ -50,9 +50,9 @@
 #'   If NULL, reads from \code{@config$bootstrap_ci} if available.
 #' @param bootstrap_include_diagnostics \code{logical}. Include bootstrap diagnostics. Default: TRUE.
 #'   If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.
-#' @param seed \\code{numeric} or \\code{NULL}. Random seed for reproducibility. Default: NULL.
-#'   If NULL, reads from \\code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.
-#' @param output_file \\code{character} or \\code{NULL}. Optional file path to save results.
+#' @param seed \code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
+#'   If NULL, reads from \code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.
+#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
 #'   Options:
 #'   \itemize{
 #'     \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)

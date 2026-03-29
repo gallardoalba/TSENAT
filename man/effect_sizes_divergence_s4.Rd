@@ -75,10 +75,10 @@ analysis <- effect_sizes_divergence_s4(analysis,
   significance_threshold = 0.05, verbose = FALSE)
 
 # Access results using metadata accessor
-effect_size_results <- metadata(analysis)$effect_sizes_divergence
-if (!is.null(effect_size_results)) {
-  cat("Effect sizes computed successfully\n")
-}
+effect_size_results <- getMeta(analysis, "effect_sizes_divergence")
+
+# View structure of results
+str(effect_size_results, max.level = 1)
 
 }
 \seealso{

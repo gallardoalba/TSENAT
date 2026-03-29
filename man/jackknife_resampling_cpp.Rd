@@ -13,18 +13,18 @@ jackknife_resampling_cpp(
 )
 }
 \arguments{
-\item{counts}{\\code{matrix}. Count matrix (rows=features, columns=samples).}
+\item{counts}{\code{matrix}. Count matrix (rows=features, columns=samples).}
 
-\item{q}{\\code{numeric}. Tsallis q parameter. Default: 1.0.}
+\item{q}{\code{numeric}. Tsallis q parameter. Default: 1.0.}
 
-\item{normalize}{\\code{logical}. Normalize entropy? Default: TRUE.}
+\item{normalize}{\code{logical}. Normalize entropy? Default: TRUE.}
 
-\item{log_base}{\\code{numeric}. Logarithm base. Default: e (natural log).}
+\item{log_base}{\code{numeric}. Logarithm base. Default: e (natural log).}
 
-\item{pseudocount}{\\code{numeric}. Pseudocount for abundance inflation. Default: 0.0.}
+\item{pseudocount}{\code{numeric}. Pseudocount for abundance inflation. Default: 0.0.}
 }
 \value{
-\\code{list}. Results including jackknife estimates, confidence intervals,
+\code{list}. Results including jackknife estimates, confidence intervals,
   and influence diagnostics.
 }
 \description{

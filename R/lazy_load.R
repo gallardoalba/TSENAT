@@ -13,36 +13,38 @@
 # Plot S4 wrappers call .load_visualization_deps() at function entry,
 # ensuring packages are available before plot creation.
 
-# Load visualization dependencies on demand (INTERNAL FUNCTION)
-#
-# Deferred loading of visualization packages (ggplot2, cowplot, pheatmap, dplyr, tidyr)
-# to optimize package startup time. Called automatically by plot functions.
-#
-# Arguments:
-#   strict - logical. If TRUE (default), raise error if packages cannot be loaded.
-#            If FALSE, issue warning instead.
-#   verbose - logical. If TRUE, print loading status message. Default: FALSE.
-#
-# Returns:
-#   Invisibly returns logical:
-#   - TRUE: Packages were already loaded
-#   - FALSE: Packages just loaded by this call
-#   - NA: Loading failed (only if strict=FALSE)
-#
-# Details:
-#   This function is called automatically by all S4 plot wrapper functions
-#   (plot_volcano_ma_grid_s4, plot_divergence_spectrum_s4, etc.).
-#   Users should not need to call this directly.
-#
-#   The loading state is tracked in namespace variable .viz_loaded to ensure
-#   packages are only loaded once.
-#
+#' Load visualization dependencies on demand
+#'
+#' @description
+#' Deferred loading of visualization packages (ggplot2, cowplot, pheatmap, dplyr, tidyr)
+#' to optimize package startup time. Called automatically by plot functions.
+#'
+#' @param strict \code{logical}. If TRUE (default), raise error if packages cannot be loaded.
+#'   If FALSE, issue warning instead.
+#' @param verbose \code{logical}. If TRUE, print loading status message. Default: FALSE.
+#'
+#' @return
+#' Invisibly returns logical:
+#' - TRUE: Packages were already loaded
+#' - FALSE: Packages just loaded by this call
+#' - NA: Loading failed (only if strict=FALSE)
+#'
+#' @details
+#' This function is called automatically by all S4 plot wrapper functions
+#' (plot_volcano_ma_grid_s4, plot_divergence_spectrum_s4, etc.).
+#' Users should not need to call this directly.
+#'
+#' The loading state is tracked in namespace variable .viz_loaded to ensure
+#' packages are only loaded once.
+#'
+#' Uses \code{unlockBinding} to manage namespace state as part of lazy-loading
+#' infrastructure. This is necessary to set internal state during package operation.
+#'
+#' @keywords internal
+#' @noRd
 .load_visualization_deps <- function(strict = TRUE, verbose = FALSE) {
-  # Fetch package namespace (more efficient than asNamespace())
-  ns <- asNamespace("TSENAT")
-  
-  # Check if already loaded
-  if (isTRUE(get0(".viz_loaded", envir = ns, inherits = FALSE))) {
+  # Check if already loaded using package options (safer than namespace binding)
+  if (isTRUE(getOption("tsenat.viz_deps_loaded", default = FALSE))) {
     return(invisible(TRUE))
   }
   
@@ -56,61 +58,27 @@
   requireNamespace("tidyr", quietly = TRUE)
   requireNamespace("rlang", quietly = TRUE)
   
-  # Mark as loaded to avoid repeated checks
-  # Handle potential locked binding (can occur during package initialization)
-  tryCatch(
-    {
-      assign(".viz_loaded", TRUE, envir = ns)
-    },
-    error = function(e) {
-      # If binding is locked, try to unlock it first
-      tryCatch(
-        {
-          # nolint: This is required for lazy loading mechanism to work
-          unlockBinding(".viz_loaded", ns)
-          assign(".viz_loaded", TRUE, envir = ns)
-          lockBinding(".viz_loaded", ns)
-        },
-        error = function(e2) {
-          # If unlock/relock fails, just warn and continue
-          # The flag not being set won't break functionality
-          warning("Could not update lazy-loading flag, but packages are loaded")
-        }
-      )
-      
-      if (verbose) {
-        message("Visualization dependencies loaded successfully")
-      }
-      
-      return(invisible(FALSE))  # FALSE = just loaded
-    },
-    error = function(e) {
-      msg <- paste0(
-        "Failed to load visualization dependencies for plotting. ",
-        "Make sure ggplot2, cowplot, pheatmap, dplyr, and tidyr are installed.\n",
-        "Error: ", conditionMessage(e)
-      )
-      
-      if (strict) {
-        stop(msg, call. = FALSE)
-      } else {
-        warning(msg)
-        return(invisible(NA))
-      }
-    }
-  )
+  # Mark as loaded using options (safer than namespace binding)
+  options(tsenat.viz_deps_loaded = TRUE)
+  
+  if (verbose) {
+    message("Visualization dependencies loaded successfully")
+  }
+  
+  return(invisible(FALSE))  # FALSE = just loaded
 }
 
-# Check if visualization dependencies are loaded (INTERNAL FUNCTION)
-#
-# Simple utility to check whether visualization packages have been loaded
-# (either at startup or via lazy-loading).
-#
-# Returns:
-#   logical. TRUE if visualization packages are loaded, FALSE otherwise.
-#
+#' Check if visualization dependencies are loaded
+#'
+#' Simple utility to check whether visualization packages have been loaded
+#' (either at startup or via lazy-loading).
+#'
+#' @return logical. TRUE if visualization packages are loaded, FALSE otherwise.
+#'
+#' @keywords internal
+#' @noRd
 .viz_available <- function() {
-  isTRUE(get0(".viz_loaded", envir = asNamespace("TSENAT"), inherits = FALSE))
+  isTRUE(getOption("tsenat.viz_deps_loaded", default = FALSE))
 }
 
 # Get lazy-loading status report (INTERNAL FUNCTION)

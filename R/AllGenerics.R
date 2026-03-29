@@ -68,8 +68,12 @@ setGeneric("getConfig", function(object, ...) standardGeneric("getConfig"))
 setGeneric("getPlot", function(object, ...) standardGeneric("getPlot"))
 
 #' @rdname divResults
+#' @param type character. Plot type identifier
+#' @param plot ggplot or list. The plot object to cache
+#' @param replace logical. If TRUE, replace existing plot of same type.
+#'   If FALSE (default), warn if plot already exists and do not overwrite.
 #' @export
-setGeneric("addPlot", function(object, ...) standardGeneric("addPlot"))
+setGeneric("addPlot", function(object, type, plot, replace = FALSE) standardGeneric("addPlot"))
 
 #' @rdname divResults
 #' @export

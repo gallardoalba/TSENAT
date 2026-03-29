@@ -261,14 +261,14 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
 #' C++ wrapper for standard bootstrap computation with independent resampling.
 #' Performs multiple bootstrap iterations for entropy estimation.
 #'
-#' @param x \\code{numeric}. Data vector.
-#' @param q \\code{numeric}. Tsallis q parameter. Default: 1.0.
-#' @param normalize \\code{logical}. Normalize entropy? Default: TRUE.
-#' @param nboot \\code{integer}. Number of bootstrap samples. Default: 1000.
-#' @param log_base \\code{numeric}. Logarithm base. Default: e (natural log).
-#' @param pseudocount \\code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#' @param x \code{numeric}. Data vector.
+#' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
+#' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
+#' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
+#' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
+#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
 #'
-#' @return \\code{numeric}. Vector of nboot bootstrap entropy estimates.
+#' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
 #'
 #' @details
 #' Performs standard (independent) bootstrap with C++ acceleration.

@@ -2250,10 +2250,10 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'   significance_threshold = 0.05, verbose = FALSE)
 #' 
 #' # Access results using metadata accessor
-#' effect_size_results <- metadata(analysis)$effect_sizes_divergence
-#' if (!is.null(effect_size_results)) {
-#'   cat("Effect sizes computed successfully\n")
-#' }
+#' effect_size_results <- getMeta(analysis, "effect_sizes_divergence")
+#' 
+#' # View structure of results
+#' str(effect_size_results, max.level = 1)
 #'
 #' @seealso
 #' \code{\link{calculate_divergence_s4}} for divergence wrapper,
