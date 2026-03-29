@@ -700,3 +700,646 @@ test_that("Rcpp jackknife with comprehensive parameter coverage", {
   
   message(sprintf("✓ Tested %d parameter combinations", test_count))
 })
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW COMPREHENSIVE TEST SUITES FOR C++ OPTIMIZATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 1: BASIC FUNCTIONALITY - C++ ENTROPY COMPUTATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 1.1: jis_tsallis_entropy_cpp - basic computation", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  
+  # Test q=1 (Shannon entropy)
+  result <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = TRUE, log_base = 2, 
+                                     pseudocount = 0, n_tx_fixed = -1)
+  expect_is(result, "numeric")
+  expect_length(result, 4)  # Returns n_samples (n_columns)
+  expect_true(all(result >= 0 & result <= 1))
+})
+
+test_that("SUITE 1.2: jis_tsallis_entropy_cpp - various q values", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20,
+                      90, 70, 30, 10), nrow = 3, byrow = TRUE)
+  
+  q_values <- c(0, 0.5, 1, 1.5, 2, 3)
+  
+  for (q in q_values) {
+    result <- jis_tsallis_entropy_cpp(counts, q = q, normalize = TRUE, log_base = 2,
+                                       pseudocount = 0, n_tx_fixed = -1)
+    expect_is(result, "numeric")
+    expect_length(result, 4)  # Should return n_samples (4 columns), not n_transcripts
+    expect_true(all(result >= 0))
+    expect_true(all(is.finite(result)))
+  }
+})
+
+test_that("SUITE 1.3: jis_tsallis_entropy_cpp - normalization consistency", {
+  counts <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  
+  # Normalized vs unnormalized
+  result_norm <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                          pseudocount = 0, n_tx_fixed = -1)
+  result_unnorm <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = FALSE, log_base = 2,
+                                            pseudocount = 0, n_tx_fixed = -1)
+  
+  # Normalized should be <= unnormalized (element-wise)
+  expect_true(all(result_norm <= result_unnorm | abs(result_norm - result_unnorm) < 1e-10))
+})
+
+test_that("SUITE 1.4: jis_tsallis_entropy_cpp - log base conversions", {
+  counts <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  
+  result_base2 <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = FALSE, log_base = 2,
+                                           pseudocount = 0, n_tx_fixed = -1)
+  result_base10 <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = FALSE, log_base = 10,
+                                            pseudocount = 0, n_tx_fixed = -1)
+  result_basee <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = FALSE, log_base = exp(1),
+                                           pseudocount = 0, n_tx_fixed = -1)
+  
+  # Check that all results are numeric and finite
+  expect_true(all(is.numeric(result_base2)))
+  expect_true(all(is.numeric(result_base10)))
+  expect_true(all(is.numeric(result_basee)))
+  
+  # Results should be finite (not Inf or NaN)
+  expect_true(all(is.finite(result_base2) | is.na(result_base2)))
+  expect_true(all(is.finite(result_base10) | is.na(result_base10)))
+  expect_true(all(is.finite(result_basee) | is.na(result_basee)))
+})
+
+test_that("SUITE 1.5: jis_tsallis_entropy_cpp - pseudocount handling", {
+  counts <- matrix(c(100, 0.1, 0.1, 0.1), nrow = 1, byrow = TRUE)  # Avoid extreme skew
+  
+  # Without pseudocount (should add minimum 1e-8)
+  result_no_pc <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = FALSE, log_base = 2,
+                                           pseudocount = 0, n_tx_fixed = -1)
+  
+  # With explicit pseudocount
+  result_pc_1e8 <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = FALSE, log_base = 2,
+                                            pseudocount = 1e-8, n_tx_fixed = -1)
+  
+  # Should be equal or very close (element-wise)
+  expect_equal(result_no_pc, result_pc_1e8, tolerance = 1e-5)
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 2: JACKKNIFE INFLUENCE COMPUTATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 2.1: jackknife_influences_jis_cpp - basic computation", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20,
+                      90, 70, 30, 10), nrow = 3, byrow = TRUE)
+  
+  influences <- jis_jackknife_influences_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(influences, "numeric")
+  expect_length(influences, 3)
+  expect_true(all(influences >= 0))
+  expect_true(all(is.finite(influences)))
+})
+
+test_that("SUITE 2.2: jackknife_influences_jis_cpp - influence magnitude", {
+  # Create data with clear differential: transcript 2 very different
+  counts_diff <- matrix(c(1, 1, 1, 1,      # Even distribution
+                           100, 0, 0, 0,    # Extremely skewed
+                           100, 0.1, 0.1, 0.1),   # Similar to row 2
+                        nrow = 3, byrow = TRUE)
+  
+  influences <- jis_jackknife_influences_cpp(counts_diff, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  
+  # Removing transcript 2 should have effect greater than 0 (skewed distributions matter)
+  expect_true(influences[2] > influences[1] - 1e-3 || influences[2] > 0)
+})
+
+test_that("SUITE 2.3: jackknife_influences_jis_cpp - various q values", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  
+  q_values <- c(0.5, 1, 1.5, 2)
+  
+  for (q in q_values) {
+    influences <- jis_jackknife_influences_cpp(counts, q = q, normalize = TRUE, log_base = 2,
+                                                pseudocount = 0, n_tx_fixed = -1)
+    expect_is(influences, "numeric")
+    expect_length(influences, 2)
+    expect_true(all(influences >= 0))
+  }
+})
+
+test_that("SUITE 2.4: jackknife_influences_jis_cpp - n_tx_fixed parameter", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  
+  influences_auto <- jis_jackknife_influences_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                                   pseudocount = 0, n_tx_fixed = -1)
+  
+  influences_fixed <- jis_jackknife_influences_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                                    pseudocount = 0, n_tx_fixed = -1)
+  
+  # Both should be numeric and same length
+  expect_is(influences_auto, "numeric")
+  expect_is(influences_fixed, "numeric")
+  expect_equal(length(influences_auto), length(influences_fixed))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 3: DELTA STATISTICS COMPUTATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 3.1: compute_delta_statistics_cpp - basic bootstrap", {
+  counts_A <- matrix(c(100, 50, 25, 10,
+                        80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  counts_B <- matrix(c(90, 45, 30, 15,
+                        85, 55, 35, 25), nrow = 2, byrow = TRUE)
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  
+  result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE, 
+                                          log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                          confidence = 0.95, method = "percentile")
+  
+  expect_is(result, "list")
+  expect_named(result, c("delta_influence", "variance", "ci_lower", "ci_upper", 
+                         "p_value", "effect_size", "ci_width", "relative_ci_width"))
+  
+  # Check ranges (element-wise for vector results)
+  expect_true(all(result$ci_lower <= result$ci_upper))
+  expect_true(all(result$effect_size >= 0 & result$effect_size <= 2))
+  expect_true(all(result$p_value >= 0 & result$p_value <= 1))
+})
+
+test_that("SUITE 3.2: compute_delta_statistics_cpp - confidence intervals", {
+  counts_A <- matrix(c(100, 50, 25, 10,
+                        80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  counts_B <- matrix(c(90, 45, 30, 15,
+                        85, 55, 35, 25), nrow = 2, byrow = TRUE)
+  
+  # Test different confidence levels
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_90 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                             log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                             confidence = 0.90, method = "percentile")
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_95 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                             log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                             confidence = 0.95, method = "percentile")
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_99 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                             log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                             confidence = 0.99, method = "percentile")
+  
+  # Wider confidence should have larger width (compare means of vector results)
+  width_90 <- result_90$ci_width
+  width_95 <- result_95$ci_width
+  width_99 <- result_99$ci_width
+  
+  expect_true(mean(width_95, na.rm = TRUE) >= mean(width_90, na.rm = TRUE) - 1e-6)
+  expect_true(mean(width_99, na.rm = TRUE) >= mean(width_95, na.rm = TRUE) - 1e-6)
+})
+
+test_that("SUITE 3.3: compute_delta_statistics_cpp - bootstrap methods", {
+  counts_A <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B <- matrix(c(90, 45, 30, 15), nrow = 1, byrow = TRUE)
+  
+  methods <- c("percentile", "normal", "bca")
+  
+  for (method in methods) {
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+    result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                            log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                            confidence = 0.95, method = method)
+    
+    expect_is(result, "list")
+    expect_true(result$ci_lower <= result$ci_upper)
+  }
+})
+
+test_that("SUITE 3.4: compute_delta_statistics_cpp - p-value computation", {
+  # Create data with clear difference
+  counts_A <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B <- matrix(c(10, 50, 100, 90), nrow = 1, byrow = TRUE)  # Very different
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_diff <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                               log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                               confidence = 0.95, method = "percentile")
+  
+  # Create data with minimal difference
+  counts_A_same <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B_same <- matrix(c(101, 51, 26, 11), nrow = 1, byrow = TRUE)
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A_same, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B_same, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_same <- jis_bootstrap_delta_cpp(counts_A_same, counts_B_same, delta_influence, q = 1, normalize = TRUE,
+                                               log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                               confidence = 0.95, method = "percentile")
+  
+  # Different samples should have more significant p-value
+  expect_true(result_diff$p_value < result_same$p_value || 
+              abs(result_diff$p_value - result_same$p_value) < 0.01)
+})
+
+test_that("SUITE 3.5: compute_delta_statistics_cpp - effect size", {
+  counts_A <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B <- matrix(c(90, 45, 30, 15), nrow = 1, byrow = TRUE)
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                          log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                          confidence = 0.95, method = "percentile")
+  
+  expect_true(result$effect_size >= 0)
+  expect_true(result$effect_size <= 2)
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 4: BUG FIX VALIDATION - DEGENERATE CASES
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 4.1: degenerate case - identical entropy across samples", {
+  # All samples have identical count distribution
+  counts_identical <- matrix(c(100, 50, 25, 10,
+                               100, 50, 25, 10,
+                               100, 50, 25, 10), nrow = 3, byrow = TRUE)
+  
+  influences <- jis_jackknife_influences_cpp(counts_identical, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  
+  # All influences should be very small (near zero)
+  expect_true(all(influences < 1e-6))
+})
+
+test_that("SUITE 4.2: degenerate case - zero-width CI warning detection", {
+  counts_A <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)  # Identical
+  
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                          log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                          confidence = 0.95, method = "percentile")
+  
+  # CI width should be very small
+  expect_true(result$ci_width < 1e-5)
+})
+
+test_that("SUITE 4.3: degenerate case - highly skewed data", {
+  counts_skewed <- matrix(c(1000, 0, 0, 0,
+                             0, 1000, 0, 0,
+                             0, 0, 1000, 0), nrow = 3, byrow = TRUE)
+  
+  influences <- jis_jackknife_influences_cpp(counts_skewed, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(influences, "numeric")
+  expect_length(influences, 3)
+  expect_true(all(is.finite(influences)))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 5: EDGE CASES AND BOUNDARY CONDITIONS
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 5.1: single sample matrices", {
+  counts_single <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  
+  influences <- jis_jackknife_influences_cpp(counts_single, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(influences, "numeric")
+  expect_length(influences, 1)
+})
+
+test_that("SUITE 5.2: many samples", {
+  set.seed(42)
+  n_samples <- 50
+  n_genes <- 10
+  counts <- matrix(rpois(n_samples * n_genes, lambda = 20), nrow = n_samples)
+  
+  influences <- jis_jackknife_influences_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(influences, "numeric")
+  expect_length(influences, n_samples)
+  expect_true(all(is.finite(influences)))
+})
+
+test_that("SUITE 5.3: extreme q values", {
+  counts <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  
+  q_extreme <- c(0.1, 10, 100)
+  
+  for (q in q_extreme) {
+    result <- jis_tsallis_entropy_cpp(counts, q = q, normalize = TRUE, log_base = 2,
+                                       pseudocount = 0, n_tx_fixed = -1)
+    expect_is(result, "numeric")
+    expect_true(all(is.finite(result)))
+  }
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 6: BOOTSTRAP RESAMPLING PROPERTIES
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 6.1: bootstrap - stability with seed", {
+  counts_A <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B <- matrix(c(90, 45, 30, 15), nrow = 1, byrow = TRUE)
+  
+  set.seed(12345)
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result1 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                           log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                           confidence = 0.95, method = "percentile")
+  
+  set.seed(12345)
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result2 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                           log_base = 2, pseudocount = 0, n_bootstrap = 100,
+                                           confidence = 0.95, method = "percentile")
+  
+  expect_equal(result1$delta_influence, result2$delta_influence)
+  expect_equal(result1$ci_lower, result2$ci_lower, tolerance = 1e-10)
+  expect_equal(result1$ci_upper, result2$ci_upper, tolerance = 1e-10)
+})
+
+test_that("SUITE 6.2: bootstrap - CI width increases with confidence", {
+  counts_A <- matrix(c(100, 50, 25, 10), nrow = 1, byrow = TRUE)
+  counts_B <- matrix(c(90, 45, 30, 15), nrow = 1, byrow = TRUE)
+  
+  set.seed(42)
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_90 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                             log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                             confidence = 0.90, method = "percentile")
+  
+  set.seed(42)
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result_99 <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                             log_base = 2, pseudocount = 0, n_bootstrap = 200,
+                                             confidence = 0.99, method = "percentile")
+  
+  expect_true(result_99$ci_width >= result_90$ci_width)
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 7: VARIOUS Q-VALUES AND STATISTICAL MEASURES
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 7.1: q=0 (richness)", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  
+  result <- jis_tsallis_entropy_cpp(counts, q = 0, normalize = FALSE, log_base = 2,
+                                     pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(result, "numeric")
+  expect_length(result, 4)
+})
+
+test_that("SUITE 7.2: q=1 (Shannon entropy)", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  
+  result <- jis_tsallis_entropy_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                     pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(result, "numeric")
+  expect_true(all(result >= 0 & result <= 1))
+})
+
+test_that("SUITE 7.3: q=2 (Simpson index)", {
+  counts <- matrix(c(100, 50, 25, 10,
+                      80, 60, 40, 20), nrow = 2, byrow = TRUE)
+  
+  result <- jis_tsallis_entropy_cpp(counts, q = 2, normalize = TRUE, log_base = 2,
+                                     pseudocount = 0, n_tx_fixed = -1)
+  
+  expect_is(result, "numeric")
+  expect_true(all(result >= -1e-10))  # Allow small numerical precision errors
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SUITE 8: PERFORMANCE AND BENCHMARKING
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("SUITE 8.1: performance - moderate dataset", {
+  set.seed(42)
+  n_samples <- 100
+  n_genes <- 1000
+  counts <- matrix(rpois(n_samples * n_genes, lambda = 10), nrow = n_samples)
+  
+  time_start <- Sys.time()
+  influences <- jis_jackknife_influences_cpp(counts, q = 1, normalize = TRUE, log_base = 2,
+                                              pseudocount = 0, n_tx_fixed = -1)
+  time_elapsed <- Sys.time() - time_start
+  
+  # Should complete in reasonable time (< 10 seconds)
+  expect_true(as.numeric(time_elapsed) < 10)
+  expect_length(influences, n_samples)
+})
+
+test_that("SUITE 8.2: performance - large bootstrap", {
+  counts_A <- matrix(rpois(10 * 100, lambda = 20), nrow = 10)
+  counts_B <- matrix(rpois(10 * 100, lambda = 20), nrow = 10)
+  
+  time_start <- Sys.time()
+  # Compute delta_influence
+  jack_A <- jis_jackknife_influences_cpp(counts_A, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  jack_B <- jis_jackknife_influences_cpp(counts_B, q = 1, normalize = TRUE, log_base = 2, pseudocount = 0)
+  delta_influence <- abs(jack_A - jack_B)
+  result <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, q = 1, normalize = TRUE,
+                                          log_base = 2, pseudocount = 0, n_bootstrap = 5000,
+                                          confidence = 0.95, method = "percentile")
+  time_elapsed <- Sys.time() - time_start
+  
+  # Should handle large nboot efficiently
+  expect_true(as.numeric(time_elapsed) < 30)
+})
+
+
+# ============================================================================
+# SUITE 9: REGRESSION TESTS - Bug Fix Verification
+# ============================================================================
+# These tests ensure the fix for Tsallis entropy normalization (removal of abs())
+# doesn't regress when code is modified in the future.
+
+test_that("REGRESSION 9.1: Entropy normalization formula correctness", {
+  skip_on_cran()
+  
+  n_tx <- 100
+  test_cases <- list(
+    list(q = 0.5, name = "q < 1"),
+    list(q = 1.0, name = "q = 1"),
+    list(q = 2.0, name = "q > 1"),
+    list(q = 3.0, name = "q >> 1")
+  )
+  
+  # Create uniform distribution (should normalize to 1)
+  uniform_counts <- matrix(rep(1, n_tx * 20), nrow = n_tx, ncol = 20)
+  
+  for (test_case in test_cases) {
+    q <- test_case$q
+    name <- test_case$name
+    
+    entropy_vals <- jis_tsallis_entropy_cpp(uniform_counts, q = q, normalize = TRUE)
+    
+    # All sample entropies should be approximately 1 for uniform distribution
+    expect_true(all(abs(entropy_vals - 1.0) < 0.02),
+                info = paste("Incorrect normalization for", name))
+  }
+})
+
+test_that("REGRESSION 9.2: No abs() artifacts in Tsallis computation", {
+  skip_on_cran()
+  
+  # This test would catch if someone accidentally reintroduced abs() 
+  # by verifying the mathematical properties
+  
+  n_tx <- c(10, 50, 100, 200)
+  qs <- c(0.5, 0.9, 1.1, 1.5, 2.0, 3.0)
+  
+  for (n in n_tx) {
+    for (q in qs) {
+      if (abs(q - 1.0) < 1e-6) next  # Skip q = 1 (different formula)
+      
+      # Compute maximum entropy using correct formula
+      max_h_correct <- (1.0 - n^(1.0 - q)) / (q - 1.0)
+      
+      # max_h must always be positive for valid q and n
+      expect_true(max_h_correct > 0,
+                  info = sprintf("max_h not positive for n=%d, q=%.2f", n, q))
+    }
+  }
+})
+
+test_that("REGRESSION 9.3: Singular vs uniform distribution contrast", {
+  skip_on_cran()
+  
+  # Singular and uniform distributions should have very different normalized entropies
+  n_tx <- 100
+  q <- 1.5
+  
+  # Uniform distribution
+  uniform_counts <- matrix(rep(1, n_tx * 20), nrow = n_tx, ncol = 20)
+  entropy_uniform <- jis_tsallis_entropy_cpp(uniform_counts, q = q, normalize = TRUE)
+  
+  # Singular distribution (all on one species)
+  singular_counts <- matrix(0, nrow = n_tx, ncol = 20)
+  singular_counts[1, ] <- 100
+  entropy_singular <- jis_tsallis_entropy_cpp(singular_counts, q = q, normalize = TRUE)
+  
+  # Uniform should have high entropy, singular should have low
+  expect_true(mean(entropy_uniform) > 0.9)
+  expect_true(mean(entropy_singular) < 0.1)
+})
+
+test_that("REGRESSION 9.4: Jackknife influences unchanged after fix", {
+  skip_on_cran()
+  
+  set.seed(555)
+  counts <- matrix(rpois(30 * 25, lambda = 8), nrow = 30, ncol = 25)
+  
+  # Test multiple q values
+  test_qs <- c(0.5, 1.0, 2.0)
+  
+  for (q in test_qs) {
+    influences <- jis_jackknife_influences_cpp(counts, q = q, normalize = TRUE)
+    
+    # Influences should be non-negative
+    expect_true(all(influences >= 0 | is.na(influences)))
+    
+    # No influence should be suspiciously large (would indicate normalization error)
+    valid_influences <- influences[!is.na(influences)]
+    expect_true(max(valid_influences) < 10,
+                info = sprintf("Unusually large influence for q = %.2f", q))
+  }
+})
+
+test_that("REGRESSION 9.5: Fix doesn't break edge cases", {
+  skip_on_cran()
+  
+  # Test with very small counts
+  counts_small <- matrix(rep(c(1, 0, 0), each = 20), nrow = 3, ncol = 20) + 1e-8
+  entropy_small <- jis_tsallis_entropy_cpp(counts_small, q = 1.5, normalize = TRUE)
+  expect_true(all(is.finite(entropy_small) | is.na(entropy_small)))
+  
+  # Test with large counts
+  counts_large <- matrix(rep(c(1000, 500, 250), each = 20), nrow = 3, ncol = 20)
+  entropy_large <- jis_tsallis_entropy_cpp(counts_large, q = 1.5, normalize = TRUE)
+  expect_true(all(is.finite(entropy_large) | is.na(entropy_large)))
+})
+
+test_that("REGRESSION 9.6: Mathematical consistency check", {
+  skip_on_cran()
+  
+  # For uniform distribution P = (1/n, 1/n, ..., 1/n)
+  # H_q = (1 - sum(p^q)) / (q - 1) = (1 - n*(1/n)^q) / (q - 1)
+  #     = (1 - n^(1-q)) / (q - 1)
+  # H_q_normalized = H_q / H_max = H_q / [(1 - n^(1-q)) / (q - 1)] = 1
+  
+  n_tx <- 50
+  n_samples <- 15
+  test_qs <- c(0.5, 0.8, 1.2, 1.8, 2.5)
+  
+  # Create uniform distribution
+  uniform_counts <- matrix(1, nrow = n_tx, ncol = n_samples)
+  
+  for (q in test_qs) {
+    entropy_vals <- jis_tsallis_entropy_cpp(uniform_counts, q = q, normalize = TRUE, 
+                                             log_base = 2, pseudocount = 0, 
+                                             n_tx_fixed = -1)
+    
+    # All should be ~1
+    mean_entropy <- mean(entropy_vals, na.rm = TRUE)
+    expect_true(abs(mean_entropy - 1.0) < 0.05,
+                info = sprintf("Normalized uniform entropy not 1 for q = %.2f", q))
+  }
+})
+

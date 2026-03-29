@@ -220,7 +220,8 @@
     if (abs(q - 1) < 1e-6) {
       max_entropy <- log(n_jackknife) / log(log_base)
     } else {
-      max_entropy <- (1.0 / (q - 1.0)) * (1.0 - n_jackknife^(1.0 - q)) / log(log_base)
+      # Tsallis: no log_base applied (unlike Shannon)
+      max_entropy <- (1.0 / (q - 1.0)) * (1.0 - n_jackknife^(1.0 - q))
     }
     if (!is.na(max_entropy) && !is.nan(max_entropy) && max_entropy > 0 && is.finite(max_entropy)) {
       jackknife_estimates <- jackknife_estimates / max_entropy
@@ -632,12 +633,13 @@
   # Normalize to [0, 1]
   if (norm) {
     # Maximum entropy is achieved with uniform distribution
-    # For q != 1: S_max = (1/(q-1)) * (1 - n^(1-q))
-    # For q = 1: S_max = log(n)
+    # For q != 1: S_max = (1/(q-1)) * (1 - n^(1-q)) [no log_base]
+    # For q = 1: S_max = log(n) / log_base
     if (abs(q - 1) < 1e-6) {
       max_entropy <- log(n) / log(log_base)
     } else {
-      max_entropy <- (1 / (q - 1)) * (1 - n^(1 - q)) / log(log_base)
+      # Tsallis: no log_base applied (unlike Shannon)
+      max_entropy <- (1 / (q - 1)) * (1 - n^(1 - q))
     }
 
     if (!is.na(max_entropy) && !is.nan(max_entropy) && max_entropy > 0 && is.finite(max_entropy)) {

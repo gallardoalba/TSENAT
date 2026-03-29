@@ -25,6 +25,22 @@
   pairs <- colData(se)[[subject_col]]
   conds <- colData(se)[[condition_col]]
   pair_conds <- table(pairs, conds)
+  
+  # BUG FIX #3: Validate paired design - check for unmatched subjects
+  conditions <- unique(conds)
+  matched_info <- list()
+  for (condition in conditions) {
+    subjects_in_cond <- names(which(pair_conds[, condition] > 0))
+    matched_info[[condition]] <- subjects_in_cond
+  }
+  
+  unmatched_subjects <- setdiff(matched_info[[1]], matched_info[[2]])
+  if (length(unmatched_subjects) > 0 && length(unmatched_subjects) < length(matched_info[[1]])) {
+    warning(sprintf("Paired design: %d/%d subjects unmatched in condition '%s'. ",
+                    length(unmatched_subjects), length(matched_info[[1]]), conditions[1]),
+            "Only matched subjects will be analyzed.")
+  }
+  
   paired_ratio <- sum(apply(pair_conds > 0, 1, sum) == 2) / nrow(pair_conds)
   if (paired_ratio >= 0.5) {
     paired_indices <- apply(pair_conds > 0, 1, sum) == 2
@@ -53,19 +69,29 @@
 .jis_tsallis_entropy <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
   raw_col_sums <- colSums(counts)
   with_zero_counts <- raw_col_sums == 0
-  if (pseudocount == 0) pseudocount <- 1e-8
+  # BUG FIX #2: Centralize pseudocount normalization
+  pseudocount <- .jis_normalize_pseudocount(pseudocount)
   counts <- counts + pseudocount
   col_sums <- colSums(counts)
   if (any(col_sums <= 0)) return(rep(NA_real_, ncol(counts)))
   h_result <- rep(NA_real_, ncol(counts))
   if (all(with_zero_counts)) return(h_result)
   col_sums_safe <- pmax(col_sums, 1)
-  p <- counts / col_sums_safe
+  # Normalize by column (sample): divide each sample (column) by its total
+  p <- t(t(counts) / col_sums_safe)
   if (q == 1) {
-    h <- if (log_base == exp(1)) -colSums(p * log(p + 1e-100)) else -colSums(p * log(p + 1e-100, log_base))
+    # Shannon entropy: H = -sum(p_i * log(p_i))
+    # Use epsilon offset to avoid log(0) while preserving probability conservation
+    eps <- 1e-15
+    if (log_base == exp(1)) {
+      h <- -colSums(p * log(pmax(p, eps)))
+    } else {
+      h <- -colSums(p * log(pmax(p, eps))) / log(log_base)
+    }
   } else {
+    # Tsallis entropy: (1 - sum(p^q)) / (q - 1)
     p_q_sum <- colSums(p^q)
-    h <- (1 / (1 - q)) * (1 - p_q_sum)
+    h <- (1 - p_q_sum) / (q - 1)
   }
   h[!is.finite(h)] <- NA_real_
   h[with_zero_counts] <- NA_real_
@@ -74,11 +100,105 @@
     if (q == 1) {
       max_h <- log(n_tx_use) / log(log_base)
     } else {
-      max_h <- abs((1 / (1 - q)) * (1 - n_tx_use^(1 - q)))
+      # Tsallis normalization: (1 - n^(1-q)) / (q - 1)
+      # CRITICAL: Use (q - 1), not (1 - q), to get correct sign for all q
+      max_h <- (1 - n_tx_use^(1 - q)) / (q - 1)
     }
-    if (!is.na(max_h) && is.finite(max_h) && max_h > 0) h <- h / max_h
+    # Only normalize if max_h is valid and positive (for Tsallis, always true)
+    if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
+      h <- h / max_h
+    }
   }
   h
+}
+
+#' Calculate jackknife influences
+
+#' Normalize pseudocount parameter
+
+#' @noRd
+.jis_normalize_pseudocount <- function(pseudocount, min_value = 1e-8) {
+  if (pseudocount <= 0) min_value else pseudocount
+}
+
+#' C++ Wrapper: Fast Tsallis entropy computation
+#' 
+#' Calls C++ implementation if available (Rcpp compiled), 
+#' otherwise falls back to pure R
+#' 
+#' @noRd
+.jis_tsallis_entropy_fast <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+  tryCatch({
+    if (exists("jis_tsallis_entropy_cpp", mode = "function")) {
+      return(jis_tsallis_entropy_cpp(counts, q = q, normalize = norm, log_base = log_base, 
+                                      pseudocount = pseudocount, n_tx_fixed = n_tx_fixed))
+    }
+    .jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
+  }, error = function(e) {
+    .jis_tsallis_entropy(counts, q, norm, log_base, pseudocount, n_tx_fixed)
+  })
+}
+
+#' C++ Wrapper: Fast jackknife influence computation
+#' 
+#' Calls C++ implementation if available (Rcpp compiled), 
+#' otherwise falls back to pure R
+#' 
+#' @noRd
+.jis_jackknife_influences_fast <- function(counts, q, norm, log_base, pseudocount, n_tx_fixed = NULL) {
+  tryCatch({
+    if (exists("jis_jackknife_influences_cpp", mode = "function")) {
+      return(jis_jackknife_influences_cpp(counts, q = q, normalize = norm, log_base = log_base, 
+                                          pseudocount = pseudocount, n_tx_fixed = n_tx_fixed))
+    }
+    .jackknife_influences_jis(counts, q, norm, log_base, pseudocount, n_tx_fixed)
+  }, error = function(e) {
+    .jackknife_influences_jis(counts, q, norm, log_base, pseudocount, n_tx_fixed)
+  })
+}
+
+#' C++ Wrapper: Fast bootstrap delta statistics computation
+#' 
+#' Calls C++ implementation if available (Rcpp compiled) and translates field names,
+#' otherwise falls back to pure R
+#' 
+#' @noRd
+.jis_bootstrap_delta_fast <- function(counts_A, counts_B, delta_influence, q = 1, norm = TRUE, 
+                                      log_base = exp(1), pseudocount = 0, n_bootstrap = 1000,
+                                      confidence = 0.95, method = "percentile", n_transcripts = NULL) {
+  tryCatch({
+    if (exists("jis_bootstrap_delta_cpp", mode = "function")) {
+      result_cpp <- jis_bootstrap_delta_cpp(counts_A, counts_B, delta_influence, 
+                                            q = q, normalize = norm, log_base = log_base,
+                                            pseudocount = pseudocount, n_bootstrap = n_bootstrap,
+                                            confidence = confidence, method = method)
+      
+      # Translate field names from C++ (p_value) to R (pvalue) convention
+      result_R <- list(
+        delta_influence = if (!is.null(result_cpp$delta_influence)) result_cpp$delta_influence else delta_influence,
+        variance = result_cpp$variance,
+        se = sqrt(result_cpp$variance),  # Compute SE from variance
+        ci_lower = result_cpp$ci_lower,
+        ci_upper = result_cpp$ci_upper,
+        pvalue = result_cpp$p_value,  # Rename p_value -> pvalue
+        effect_size = result_cpp$effect_size,
+        ci_width = result_cpp$ci_width,
+        relative_ci_width = result_cpp$relative_ci_width,
+        power_assessment = NA  # C++ doesn't compute this yet
+      )
+      return(result_R)
+    }
+    
+    # Fallback to R implementation
+    .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, 
+                              log_base = log_base, pseudocount = pseudocount, 
+                              n_bootstrap = n_bootstrap, n_transcripts = n_transcripts)
+  }, error = function(e) {
+    # Fallback to R if C++ fails
+    .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, 
+                              log_base = log_base, pseudocount = pseudocount, 
+                              n_bootstrap = n_bootstrap, n_transcripts = n_transcripts)
+  })
 }
 
 #' Calculate jackknife influences
@@ -360,11 +480,18 @@
     }
     
     n_tx_original <- nrow(counts_A)
-    delta_influence <- .jackknife_influences_jis(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .jackknife_influences_jis(counts_B, q, norm, log_base, pseudocount, n_tx_original)
-    delta_stats <- .compute_delta_statistics(counts_A, counts_B, delta_influence, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap, n_transcripts = nrow(counts_A))
+    delta_influence <- .jis_jackknife_influences_fast(counts_A, q, norm, log_base, pseudocount, n_tx_original) - .jis_jackknife_influences_fast(counts_B, q, norm, log_base, pseudocount, n_tx_original)
+    delta_stats <- .jis_bootstrap_delta_fast(counts_A, counts_B, delta_influence, q = q, norm = norm, log_base = log_base, pseudocount = pseudocount, n_bootstrap = n_bootstrap, confidence = 0.95, method = "percentile", n_transcripts = nrow(counts_A))
     switching_status <- ifelse(delta_influence > 0, "up", ifelse(delta_influence < 0, "down", "neutral"))
     
-    gene_result <- list(gene_id = gene, transcript_ids = as.character(gene_isos), delta_influence = delta_influence, delta_se = delta_stats$se, delta_ci_lower = delta_stats$ci_lower, delta_ci_upper = delta_stats$ci_upper, delta_pvalue = delta_stats$pvalue, switching_status = switching_status)
+    # IMPROVEMENT #1: Add effect size metrics
+    max_abs_influence <- max(abs(c(.jis_jackknife_influences_fast(counts_A, q, norm, log_base, pseudocount, nrow(counts_A)),
+                                    .jis_jackknife_influences_fast(counts_B, q, norm, log_base, pseudocount, nrow(counts_A)))), na.rm = TRUE)
+    effect_size <- ifelse(max_abs_influence > 0, abs(delta_influence) / max_abs_influence, 0)
+    ci_width <- delta_stats$ci_upper - delta_stats$ci_lower
+    relative_ci_width <- ifelse(abs(delta_influence) > 1e-10, ci_width / (abs(delta_influence) + 1e-10), NA)
+    
+    gene_result <- list(gene_id = gene, transcript_ids = as.character(gene_isos), delta_influence = delta_influence, delta_se = delta_stats$se, delta_ci_lower = delta_stats$ci_lower, delta_ci_upper = delta_stats$ci_upper, delta_pvalue = delta_stats$pvalue, switching_status = switching_status, effect_size = effect_size, ci_width = ci_width, relative_ci_width = relative_ci_width, power_assessment = delta_stats$power_assessment)
     
     if (!is.null(lm_gene_mapping)) {
       lm_row <- lm_gene_mapping[lm_gene_mapping$gene == gene, ]
@@ -465,10 +592,8 @@
     raw_col_sums <- colSums(counts)
     with_zero_counts <- raw_col_sums == 0
     
-    # CRITICAL FIX: Enforce minimum pseudocount to avoid zero-count edge cases
-    if (pseudocount <= 0) {
-      pseudocount <- 1e-8
-    }
+    # BUG FIX #2: Use centralized pseudocount normalization
+    pseudocount <- .jis_normalize_pseudocount(pseudocount)
     counts <- counts + pseudocount
     
     col_sums <- colSums(counts)
@@ -481,21 +606,22 @@
     # For zero-count columns, set col_sums to 1 to avoid division by near-zero
     col_sums_safe <- pmax(col_sums, 1)
     
-    p <- counts / col_sums_safe
+    # Normalize by column (sample): divide each column by its total
+    p <- t(t(counts) / col_sums_safe)
     
     if (q == 1) {
+      # Shannon entropy: H = -sum(p_i * log(p_i))
+      # Use epsilon offset to avoid log(0) while preserving probability conservation
+      eps <- 1e-15
       if (log_base == exp(1)) {
-        h <- -colSums(p * log(p + 1e-100))
+        h <- -colSums(p * log(pmax(p, eps)))
       } else {
-        h <- -colSums(p * log(p + 1e-100, log_base))
+        h <- -colSums(p * log(pmax(p, eps))) / log(log_base)
       }
     } else {
+      # Tsallis entropy: (1 - sum(p^q)) / (q - 1)
       p_q_sum <- colSums(p^q)
-      if (log_base == exp(1)) {
-        h <- (1 / (1 - q)) * (1 - p_q_sum)
-      } else {
-        h <- (1 / (1 - q)) * (1 - p_q_sum)
-      }
+      h <- (1 - p_q_sum) / (q - 1)
     }
     
     h[!is.finite(h)] <- NA_real_
@@ -509,8 +635,9 @@
         max_h <- log(n_tx) / log(log_base)
       } else {
         n_tx <- if (!is.null(n_transcripts_fixed)) n_transcripts_fixed else nrow(counts)
-        # Use absolute value because the formula produces negative values for q<1 and q>1
-        max_h <- abs((1 / (1 - q)) * (1 - n_tx^(1 - q)))
+        # Tsallis: (1 - n^(1-q)) / (q - 1) is always positive by definition
+        # CRITICAL: Use (q - 1), not (1/(1-q)), to get correct sign
+        max_h <- (1 - n_tx^(1 - q)) / (q - 1)
       }
       if (!is.na(max_h) && is.finite(max_h) && max_h > 0) {
         h <- h / max_h
@@ -552,8 +679,9 @@
   
   # Compute per-transcript statistics
   alpha <- 1 - confidence
-  ci_lower <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, alpha / 2, na.rm = TRUE))
-  ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha / 2, na.rm = TRUE))
+  # Use type=1 (nearest-rank) quantile method for consistency with C++ implementation
+  ci_lower <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, alpha / 2, na.rm = TRUE, type = 1))
+  ci_upper <- apply(bootstrap_deltas_matrix, 2, function(x) quantile(x, 1 - alpha / 2, na.rm = TRUE, type = 1))
   
   # Compute two-tailed bootstrap p-values
   # Two-tailed test: proportion of bootstrap samples with |bootstrap_delta| >= |observed_delta|
@@ -575,10 +703,32 @@
   # Standard error per transcript
   se <- apply(bootstrap_deltas_matrix, 2, sd, na.rm = TRUE)
   
+  # BUG FIX #1: Handle degenerate cases (zero-width CIs)
+  ci_width <- ci_upper - ci_lower
+  degenerate_idx <- which(ci_width < 1e-10)
+  if (length(degenerate_idx) > 0) {
+    warning(sprintf("Degenerate bootstrap distributions detected for %d transcript(s). ",
+                    length(degenerate_idx)),
+            "CI width = 0. Consider increasing nboot or checking data quality.")
+  }
+  
+  # IMPROVEMENT #2: Add power/sample size assessment
+  power_assessment <- data.frame(
+    n_effective = n_bootstrap * (1 - sum(is.na(bootstrap_deltas_matrix)) / length(bootstrap_deltas_matrix)),
+    avg_ci_width = mean(ci_width, na.rm = TRUE),
+    min_recommended_nboot = NA_integer_
+  )
+  
+  if (power_assessment$avg_ci_width > 0.05) {
+    power_assessment$min_recommended_nboot <- ceiling(n_bootstrap * 
+      (power_assessment$avg_ci_width / 0.05)^2)
+  }
+  
   return(list(
     ci_lower = as.numeric(ci_lower),
     ci_upper = as.numeric(ci_upper),
     pvalue = pvalues,
-    se = se
+    se = se,
+    power_assessment = power_assessment
   ))
 }

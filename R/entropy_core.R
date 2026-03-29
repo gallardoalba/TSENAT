@@ -51,7 +51,8 @@
     H <- -sum(p * log(p)) / log(log_base)
   } else {
     # Tsallis entropy: (1 - sum(p^q)) / (q-1)
-    H <- (1.0 - sum(p^q)) / ((q - 1.0) * log(log_base))
+    # Note: Unlike Shannon, log_base is NOT applied to Tsallis
+    H <- (1.0 - sum(p^q)) / (q - 1.0)
   }
   
   # Normalize by maximum entropy if requested
@@ -62,7 +63,8 @@
     } else if (abs(q - 1) < q_tol) {
       H_max <- log(n) / log(log_base)
     } else {
-      H_max <- (1.0 - n^(1.0 - q)) / ((q - 1.0) * log(log_base))
+      # Tsallis: max entropy without log_base (unlike Shannon)
+      H_max <- (1.0 - n^(1.0 - q)) / (q - 1.0)
     }
     
     if (!is.na(H_max) && !is.nan(H_max) && H_max > 0 && is.finite(H_max)) {
