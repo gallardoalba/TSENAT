@@ -1,4 +1,5 @@
-# GEE interaction helper with correlation structure validation
+# ============================================================================
+# MAIN: GEE interaction helper with correlation structure validation
 # @param df data frame with entropy, q, group columns
 # @param q_vals numeric vector of q-values
 # @param g gene identifier
@@ -14,114 +15,45 @@
         stop("Package 'geepack' is required for method = 'gee'")
     }
     
-    # Handle corstr options: if not "auto", validate it's one of the standard options
+    # Validate correlation structure
     if (corstr != "auto" && !(corstr %in% c("ar1", "exchangeable", "independence"))) {
         corstr <- "auto"
         warning("Invalid corstr; using 'auto' to select via QIC")
     }
     
     # Validate inputs
-    # PHASE 1 WEIGHTING (March 2026): Use bootstrap CI weights if provided
-    # Add weights to df if available and valid
-    if (!is.null(weights) && length(weights) == nrow(df)) {
-        df$weight <- weights
-    }
-    
-    if (sum(!is.na(df$entropy)) < min_obs) {
+    validation <- .validate_gee_inputs(df, subject, min_obs, weights)
+    if (!validation$valid) {
         return(NULL)
     }
-    if (length(unique(na.omit(df$group))) < 2) {
-        return(NULL)
-    }
+    df <- validation$df
+    subject <- validation$subject
     
-    # If no subject specified, use row indices (independent observations)
-    if (is.null(subject)) {
-        subject <- factor(seq_len(nrow(df)))
-    } else {
-        subject <- factor(subject)
-    }
-    
-    # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
-    # Tsallis entropy is monotone decreasing in q -> apply AR(1) to DeltaH_q instead of H_q
-    use_arima <- FALSE
-    df_orig_nrows <- nrow(df)
-    
-    if (length(unique(subject)) > 1) {
-        # Sort by subject and q for proper within-subject differencing
-        sort_idx <- order(subject, df$q)
-        df_sorted <- df[sort_idx, ]
-        subject_sorted <- subject[sort_idx]
-        
-        # Compute first differences within subjects
-        df_diff_list <- list()
-        for (subj in unique(subject_sorted)) {
-            subj_idx <- which(subject_sorted == subj)
-            if (length(subj_idx) >= 2) {
-                subj_data <- df_sorted[subj_idx, ]
-                n_diff <- nrow(subj_data) - 1
-                df_diff_list[[as.character(subj)]] <- data.frame(
-                    entropy = diff(subj_data$entropy),
-                    q = subj_data$q[-nrow(subj_data)],
-                    group = subj_data$group[-nrow(subj_data)],
-                    stringsAsFactors = FALSE
-                )
-            }
-        }
-        
-        if (length(df_diff_list) > 0) {
-            df <- do.call(rbind, df_diff_list)
-            rownames(df) <- NULL
-            # Rebuild subject factor for differenced data
-            subject <- rep(names(df_diff_list), vapply(df_diff_list, nrow, FUN.VALUE = integer(1)))
-            use_arima <- TRUE
-        }
-    }
+    # Apply ARIMA(1,1,0) differencing for stationarity
+    arima_result <- .apply_arima_differencing(df, subject)
+    df <- arima_result$df
+    subject <- arima_result$subject
+    use_arima <- arima_result$use_arima
+    df_orig_nrows <- arima_result$df_orig_nrows
     
     df$subject <- factor(subject)
     
-    # HETEROSCEDASTICITY ADJUSTMENT: Detect variance dependence on q and group
-    # Breusch-Pagan test to determine if weights are needed
-    hetero_result <- .detect_heteroscedasticity(df, q_vals = df$q, group_vec = df$group)
-    gee_weights <- NULL
-    
-    # PHASE 1 WEIGHTING (March 2026): Bootstrap CI weights take precedence over heteroscedasticity weights
-    if (!is.null(df$weight)) {
-        # Use bootstrap CI weights if provided
-        gee_weights <- df$weight
-    } else if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
-        # Estimate variance weights using power-law model: Var ~ q^theta
-        weights_result <- .estimate_variance_weights(df, q_vals = df$q, method = "power")
-        if (!is.null(weights_result) && !is.null(weights_result$weights)) {
-            gee_weights <- weights_result$weights
-        }
-    }
+    # Prepare weights (heteroscedasticity or bootstrap CI)
+    weights_result <- .prepare_gee_weights(df)
+    df <- weights_result$df
+    gee_weights <- weights_result$gee_weights
     
     # Count clusters for bias correction decisions
     n_clusters <- length(unique(as.numeric(df$subject)))
     
-    # Ensure we have at least 2 groups and data isn't all NA
+    # Final validation
     if (sum(!is.na(df$entropy)) < 2) {
         return(NULL)
     }
     
-    # Log differencing information if applied
-    if (use_arima && nrow(df) < df_orig_nrows) {
-        # ARIMA(1,1,0) was applied: note observation loss in result metadata
-        arima_note <- sprintf("ARIMA(1,1,0): %d observations -> %d after differencing", df_orig_nrows, nrow(df))
-    } else {
-        arima_note <- NULL
-    }
-    
-    # Fit GEE models using Gaussian (normal) family for continuous entropy values
-    # Null model: entropy ~ q + group (no interaction)
-    # Alternative model: entropy ~ q * group (with interaction)
-    
-    # Determine correlation structure to use
+    # Select correlation structure
     selected_corstr <- corstr
-    corstr_selection_info <- NULL
-    
     if (corstr == "auto") {
-        # Test all correlation structures and select best via QIC
         selection_result <- .select_gee_correlation(
             df = df,
             formula_null = entropy ~ q + group,
@@ -129,220 +61,106 @@
             subject = df$subject,
             criteria = "qic"
         )
-        
         selected_corstr <- selection_result$best_corstr
-        corstr_selection_info <- list(
-            method = "QIC-based selection",
-            qic_values = selection_result$qic_values,
-            reason = selection_result$reason,
-            report = selection_result$report
-        )
     }
     
-    # Fit models with selected correlation structure
-    # If heteroscedasticity detected, apply variance weights
-    if (!is.null(gee_weights)) {
-        df$gee_weights <- gee_weights
-        
-        fit_null <- try(
-            geepack::geeglm(
-                entropy ~ q + group,
-                id = df$subject,
-                data = df,
-                family = stats::gaussian(),
-                weights = gee_weights,
-                corstr = selected_corstr,
-                na.action = stats::na.omit
-            ),
-            silent = TRUE
-        )
-        
-        fit_alt <- try(
-            geepack::geeglm(
-                entropy ~ q * group,
-                id = df$subject,
-                data = df,
-                family = stats::gaussian(),
-                weights = gee_weights,
-                corstr = selected_corstr,
-                na.action = stats::na.omit
-            ),
-            silent = TRUE
-        )
-    } else {
-        # Standard GEE fitting without weights
-        fit_null <- try(
-            geepack::geeglm(
-                entropy ~ q + group,
-                id = df$subject,
-                data = df,
-                family = stats::gaussian(),
-                corstr = selected_corstr,
-                na.action = stats::na.omit
-            ),
-            silent = TRUE
-        )
-        
-        fit_alt <- try(
-            geepack::geeglm(
-                entropy ~ q * group,
-                id = df$subject,
-                data = df,
-                family = stats::gaussian(),
-                corstr = selected_corstr,
-                na.action = stats::na.omit
-            ),
-            silent = TRUE
-        )
-    }
-    
-    # If either fit failed, return NULL
-    if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
+    # Fit GEE models
+    model_result <- .fit_gee_models(df, selected_corstr, gee_weights)
+    if (is.null(model_result)) {
         return(NULL)
     }
+    fit_null <- model_result$fit_null
+    fit_alt <- model_result$fit_alt
     
-    # Ensure both models have valid results
-    if (is.null(fit_null) || is.null(fit_alt)) {
-        return(NULL)
-    }
+    # Extract interaction p-value with bias correction
+    p_interaction <- .extract_interaction_pvalue(fit_alt, n_clusters, bias_correction)
     
-    # Extract interaction term p-value using Wald test
-    # The interaction term is the coefficient for the q:group interaction
-    coefs_alt <- stats::coef(fit_alt)
+    # ========================================================================
+    # PHASE 9: Kauermann-Carroll Bias Correction with Design Effect
+    # ========================================================================
+    # Estimate AR(1) autocorrelation from residuals (for multi-q Tsallis)
+    kc_metadata <- NULL
+    rho_ar1 <- NA_real_
+    design_effect_value <- 1.0
     
-    # Find interaction term (usually named something like "q:groupTumor" or similar)
-    ia_names <- names(coefs_alt)[grepl("^q:", names(coefs_alt), ignore.case = TRUE)]
-    
-    if (length(ia_names) == 0) {
-        return(NULL)
-    }
-    
-    # Use summary to get standard errors and Wald test statistics/p-values
-    summ <- try(summary(fit_alt), silent = TRUE)
-    
-    if (inherits(summ, "try-error") || is.null(summ)) {
-        return(NULL)
-    }
-    
-    # Wald test p-value for interaction (two-sided)
-    # Extract from coefficients table if available
-    coef_table <- summ$coefficients
-    
-    if (is.null(coef_table)) {
-        return(NULL)
-    }
-    
-    # Find p-value corresponding to interaction term
-    p_interaction <- NA_real_
-    z_stat_value <- NA_real_  # Store for potential K-C correction
-    se_robust_value <- NA_real_  # Store for potential K-C correction
-    
-    # Try to find interaction term in coefficient table (rownames contain "q:group" pattern)
-    for (ia_name in ia_names) {
-        if (ia_name %in% rownames(coef_table)) {
-            row_idx <- which(rownames(coef_table) == ia_name)[1]
-            # Usually column 4 or 5 contains the p-value (Pr(>|Z|) or Pr(>|W|))
-            # Check multiple possible column names
-            p_col <- grep("Pr\\(>", colnames(coef_table))[1]
-            if (!is.na(p_col) && p_col <= ncol(coef_table)) {
-                p_int_candidate <- coef_table[row_idx, p_col]
-                # Convert NaN to NA (occurs with numerical instability in geeglm summary)
-                if (!is.na(p_int_candidate) && !is.nan(p_int_candidate)) {
-                    p_interaction <- p_int_candidate
-                    break
-                }
-            }
-        }
-    }
-    
-    # If we couldn't extract p-value from table, try computing Wald test manually
-    # using sandwich (robust) variance estimator
-    if (is.na(p_interaction)) {
-        # Wald test: (coef / SE)^2 ~ chi2(1) or t-dist for small samples
-        ia_idx <- which(names(coefs_alt) %in% ia_names)[1]
-        if (!is.na(ia_idx)) {
-            # Get robust SE from covariance matrix
-            vcov_robust <- try(
-                {
-                    # Compute sandwich estimator (robust variance)
-                    X <- model.matrix(fit_alt)
-                    residuals_vec <- fit_alt$y - fit_alt$fitted.values
-                    
-                    # Define meat of sandwich
-                    W <- diag(1 / fit_alt$scale)
-                    meat <- t(X) %*% W %*% (residuals_vec^2 * diag(nrow(X))) %*% W %*% X
-                    
-                    # Bread is X'VX (inverted)
-                    bread <- solve(t(X) %*% W %*% X)
-                    
-                    # Sandwich: bread %*% meat %*% bread
-                    bread %*% meat %*% bread
-                },
-                silent = TRUE
-            )
+    if (!is.na(p_interaction)) {
+        residuals_alt <- residuals(fit_alt)
+        if (!is.null(residuals_alt) && length(residuals_alt) > 2) {
+            rho_ar1 <- .estimate_ar1_correlation(residuals_alt)
             
-            if (!inherits(vcov_robust, "try-error") && !is.null(vcov_robust)) {
-                se_robust <- sqrt(diag(vcov_robust)[ia_idx])
-                if (!is.na(se_robust) && se_robust > 0) {
-                    z_stat <- coefs_alt[ia_idx] / se_robust
-                    z_stat_value <- z_stat
-                    se_robust_value <- se_robust
-                    
-                    # For small number of clusters, use t-distribution (Kauermann-Carroll style correction)
-                    # This is a conservative approach that maintains Type I error rate (bias correction)
-                    # Reference: Li & Redden (2015), Statistics in Medicine
-                    if (bias_correction && n_clusters < 20) {
-                        # Using t-distribution with df = n_clusters - 1 (conservative)
-                        # This approximates the Kauermann-Carroll correction
-                        df_corr <- max(1, n_clusters - 1)
-                        p_interaction <- 2 * stats::pt(abs(z_stat), df = df_corr, lower.tail = FALSE)
-                    } else {
-                        # Standard normal (Wald test)
-                        p_interaction <- 2 * stats::pnorm(abs(z_stat), lower.tail = FALSE)
-                    }
-                }
+            # Compute design effect if AR(1) significant
+            cluster_size <- length(unique(df$q))
+            if (!is.na(rho_ar1) && abs(rho_ar1) > 0.05) {
+                design_effect_value <- .compute_ar1_design_effect(rho_ar1, cluster_size)
             }
         }
-    } else if (bias_correction && n_clusters < 20) {
-        # If we extracted p-value from table but have small clusters, recompute with t-distribution
-        # This provides K-C bias correction
-        ia_idx <- which(names(coefs_alt) %in% ia_names)[1]
-        if (!is.na(ia_idx)) {
-            # Try to extract robust SE and recompute with t-distribution
-            vcov_robust <- try(
-                {
-                    X <- model.matrix(fit_alt)
-                    residuals_vec <- fit_alt$y - fit_alt$fitted.values
-                    W <- diag(1 / fit_alt$scale)
-                    meat <- t(X) %*% W %*% (residuals_vec^2 * diag(nrow(X))) %*% W %*% X
-                    bread <- solve(t(X) %*% W %*% X)
-                    bread %*% meat %*% bread
-                },
-                silent = TRUE
-            )
+        
+        # Apply Kauermann-Carroll bias correction if small clusters
+        if (bias_correction && n_clusters < 30) {
+            # Get interaction term coefficients for K-C correction
+            coefs_alt <- stats::coef(fit_alt)
+            ia_names <- names(coefs_alt)[grepl("^q:", names(coefs_alt), ignore.case = TRUE)]
             
-            if (!inherits(vcov_robust, "try-error") && !is.null(vcov_robust)) {
-                se_robust <- sqrt(diag(vcov_robust)[ia_idx])
-                if (!is.na(se_robust) && se_robust > 0) {
-                    z_stat <- coefs_alt[ia_idx] / se_robust
-                    df_corr <- max(1, n_clusters - 1)
-                    p_interaction <- 2 * stats::pt(abs(z_stat), df = df_corr, lower.tail = FALSE)
+            if (length(ia_names) > 0) {
+                ia_name <- ia_names[1]
+                ia_idx <- which(names(coefs_alt) == ia_name)[1]
+                
+                # Compute z-statistic for interaction
+                z_interact <- .compute_wald_statistic(fit_alt, ia_idx)
+                
+                if (!is.na(z_interact)) {
+                    # Apply K-C correction with design effect
+                    kc_result <- .kc_bias_correct(
+                        p_value = p_interaction,
+                        z_statistic = z_interact,
+                        vcov_sandwich_raw = NULL,
+                        n_clusters = n_clusters,
+                        n_parameters = length(coefs_alt),
+                        rho_ar1 = rho_ar1,
+                        cluster_size = cluster_size,
+                        design_effect = design_effect_value,
+                        bias_correction_method = "hc1",
+                        use_t_distribution = TRUE,
+                        apply_correction = TRUE,
+                        verbose = FALSE
+                    )
+                    
+                    # Update p-value with K-C correction
+                    p_interaction <- kc_result$p_value
+                    kc_metadata <- list(
+                        kc_applied = TRUE,
+                        p_raw = kc_result$p_raw,
+                        p_corrected = kc_result$p_value,
+                        multiplier = kc_result$multiplier,
+                        n_effective = kc_result$n_effective,
+                        design_effect = kc_result$design_effect,
+                        rho_ar1 = kc_result$rho_ar1,
+                        method = kc_result$method_applied
+                    )
                 }
             }
         }
     }
     
-    # ===============================================================================
-    # RESIDUAL NORMALITY TESTING (NEW - March 2026)
-    # Database Evidence: B001, B004, C017 (Normality testing in regression)
-    # ===============================================================================
+    if (is.null(kc_metadata)) {
+        kc_metadata <- list(
+            kc_applied = FALSE,
+            design_effect = design_effect_value,
+            rho_ar1 = rho_ar1
+        )
+    }
+    
+    # Test residual normality (Shapiro-Wilk test)
     shapiro_result <- .test_residual_normality(
         model = fit_alt,
         model_type = "gee",
         verbose = FALSE
     )
     
-    # Return result with Shapiro-Wilk test
+    # Extract slope difference
+    slope_diff <- .extract_slope_diff(fit_alt)
+    
+    # Compile result
     gee_result <- data.frame(
         gene = g,
         p_interaction = p_interaction,
@@ -366,20 +184,708 @@
     
     # Add Phase 1 bootstrap CI weighting tracking (March 2026)
     gee_result$ci_weighted <- !is.null(df$weight)
-    
-    # Extract slope_diff from GEE interaction coefficient
-    slope_diff <- NA_real_
-    if (!inherits(fit_alt, "try-error") && !is.null(fit_alt)) {
-        tryCatch({
-            coefs_alt <- stats::coef(fit_alt)
-            ia_names <- names(coefs_alt)[grepl("^q:", names(coefs_alt), ignore.case = TRUE)]
-            
-            if (length(ia_names) > 0) {
-                slope_diff <- coefs_alt[ia_names[1]]
-            }
-        }, error = function(e) { NULL })
-    }
     gee_result$slope_diff <- slope_diff
     
+    # Add Phase 9 Kauermann-Carroll bias correction metadata
+    gee_result$kc_bias_correction_applied <- !is.null(kc_metadata) && isTRUE(kc_metadata$kc_applied)
+    gee_result$design_effect_ar1 <- if (!is.null(kc_metadata)) kc_metadata$design_effect else NA_real_
+    gee_result$rho_ar1_estimate <- if (!is.null(kc_metadata)) kc_metadata$rho_ar1 else NA_real_
+    
+    if (!is.null(kc_metadata) && isTRUE(kc_metadata$kc_applied)) {
+        gee_result$p_interaction_raw <- kc_metadata$p_raw
+        gee_result$kc_multiplier <- kc_metadata$multiplier
+        gee_result$n_effective <- kc_metadata$n_effective
+        gee_result$kc_method <- kc_metadata$method
+    } else {
+        gee_result$p_interaction_raw <- NA_real_
+        gee_result$kc_multiplier <- NA_real_
+        gee_result$n_effective <- NA_real_
+        gee_result$kc_method <- NA_character_
+    }
+    
     return(gee_result)
+}
+
+# ============================================================================
+# HELPER: Validate GEE inputs and handle initial data setup
+# ============================================================================
+.validate_gee_inputs <- function(df, subject, min_obs, weights) {
+    # Add weights to df if available and valid (Phase 1 weighting)
+    if (!is.null(weights) && length(weights) == nrow(df)) {
+        df$weight <- weights
+    }
+    
+    if (sum(!is.na(df$entropy)) < min_obs) {
+        return(list(valid = FALSE, subject = NULL, df = NULL))
+    }
+    if (length(unique(na.omit(df$group))) < 2) {
+        return(list(valid = FALSE, subject = NULL, df = NULL))
+    }
+    
+    # If no subject specified, use row indices (independent observations)
+    if (is.null(subject)) {
+        subject <- factor(seq_len(nrow(df)))
+    } else {
+        subject <- factor(subject)
+    }
+    
+    list(valid = TRUE, subject = subject, df = df)
+}
+
+# ============================================================================
+# HELPER: Apply ARIMA(1,1,0) differencing for stationarity
+# ============================================================================
+.apply_arima_differencing <- function(df, subject) {
+    use_arima <- FALSE
+    df_orig_nrows <- nrow(df)
+    
+    if (length(unique(subject)) > 1) {
+        # Sort by subject and q for proper within-subject differencing
+        sort_idx <- order(subject, df$q)
+        df_sorted <- df[sort_idx, ]
+        subject_sorted <- subject[sort_idx]
+        
+        # Compute first differences within subjects
+        df_diff_list <- list()
+        for (subj in unique(subject_sorted)) {
+            subj_idx <- which(subject_sorted == subj)
+            if (length(subj_idx) >= 2) {
+                subj_data <- df_sorted[subj_idx, ]
+                df_diff_list[[as.character(subj)]] <- data.frame(
+                    entropy = diff(subj_data$entropy),
+                    q = subj_data$q[-nrow(subj_data)],
+                    group = subj_data$group[-nrow(subj_data)],
+                    stringsAsFactors = FALSE
+                )
+            }
+        }
+        
+        if (length(df_diff_list) > 0) {
+            df <- do.call(rbind, df_diff_list)
+            rownames(df) <- NULL
+            subject <- rep(names(df_diff_list), vapply(df_diff_list, nrow, FUN.VALUE = integer(1)))
+            use_arima <- TRUE
+        }
+    }
+    
+    list(df = df, subject = subject, use_arima = use_arima, df_orig_nrows = df_orig_nrows)
+}
+
+# ============================================================================
+# HELPER: Prepare GEE weights (heteroscedasticity or bootstrap CI)
+# ============================================================================
+.prepare_gee_weights <- function(df) {
+    gee_weights <- NULL
+    
+    # Heteroscedasticity detection
+    hetero_result <- .detect_heteroscedasticity(df, q_vals = df$q, group_vec = df$group)
+    
+    # Phase 1 weighting: Bootstrap CI weights take precedence
+    if (!is.null(df$weight)) {
+        gee_weights <- df$weight
+    } else if (!is.na(hetero_result$is_heteroscedastic) && hetero_result$is_heteroscedastic) {
+        weights_result <- .estimate_variance_weights(df, q_vals = df$q, method = "power")
+        if (!is.null(weights_result) && !is.null(weights_result$weights)) {
+            gee_weights <- weights_result$weights
+        }
+    }
+    
+    if (!is.null(gee_weights)) {
+        df$gee_weights <- gee_weights
+    }
+    
+    list(df = df, gee_weights = gee_weights)
+}
+
+# ============================================================================
+# HELPER: Fit null and alternative GEE models
+# ============================================================================
+.fit_gee_models <- function(df, selected_corstr, gee_weights) {
+    if (!is.null(gee_weights)) {
+        fit_null <- try(
+            geepack::geeglm(
+                entropy ~ q + group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                weights = gee_weights,
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+        
+        fit_alt <- try(
+            geepack::geeglm(
+                entropy ~ q * group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                weights = gee_weights,
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+    } else {
+        fit_null <- try(
+            geepack::geeglm(
+                entropy ~ q + group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+        
+        fit_alt <- try(
+            geepack::geeglm(
+                entropy ~ q * group,
+                id = df$subject,
+                data = df,
+                family = stats::gaussian(),
+                corstr = selected_corstr,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+    }
+    
+    # Validate fits
+    if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error") ||
+        is.null(fit_null) || is.null(fit_alt)) {
+        return(NULL)
+    }
+    
+    list(fit_null = fit_null, fit_alt = fit_alt)
+}
+
+# ============================================================================
+# HELPER: Extract interaction p-value with bias correction
+# ============================================================================
+.extract_interaction_pvalue <- function(fit_alt, n_clusters, bias_correction) {
+    coefs_alt <- stats::coef(fit_alt)
+    ia_names <- names(coefs_alt)[grepl("^q:", names(coefs_alt), ignore.case = TRUE)]
+    
+    if (length(ia_names) == 0) {
+        return(NA_real_)
+    }
+    
+    # Try extracting from summary coefficient table first
+    summ <- try(summary(fit_alt), silent = TRUE)
+    if (!inherits(summ, "try-error") && !is.null(summ)) {
+        coef_table <- summ$coefficients
+        if (!is.null(coef_table)) {
+            for (ia_name in ia_names) {
+                if (ia_name %in% rownames(coef_table)) {
+                    row_idx <- which(rownames(coef_table) == ia_name)[1]
+                    p_col <- grep("Pr\\(>", colnames(coef_table))[1]
+                    if (!is.na(p_col) && p_col <= ncol(coef_table)) {
+                        p_int_candidate <- coef_table[row_idx, p_col]
+                        if (!is.na(p_int_candidate) && !is.nan(p_int_candidate)) {
+                            p_interaction <- p_int_candidate
+                            
+                            # Apply bias correction if needed
+                            if (bias_correction && n_clusters < 20) {
+                                p_corrected <- .apply_bias_correction(fit_alt, ia_name, ia_names, n_clusters)
+                                return(if (!is.na(p_corrected)) p_corrected else p_interaction)
+                            }
+                            return(p_interaction)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    # Fallback: compute Wald test with sandwich variance
+    p_wald <- .compute_wald_pvalue(fit_alt, ia_names, n_clusters, bias_correction)
+    if (!is.na(p_wald)) {
+        return(p_wald)
+    }
+    
+    # If all extraction methods fail, still return NA (don't return NULL)
+    NA_real_
+}
+
+# ============================================================================
+# HELPER: Apply Kauermann-Carroll bias correction (small cluster correction)
+# ============================================================================
+.apply_bias_correction <- function(fit_alt, ia_name, ia_names, n_clusters) {
+    ia_idx <- which(names(stats::coef(fit_alt)) %in% ia_names)[1]
+    if (is.na(ia_idx)) return(NA_real_)
+    
+    z_stat <- .compute_wald_statistic(fit_alt, ia_idx)
+    if (is.na(z_stat)) return(NA_real_)
+    
+    # Use t-distribution (conservative, maintains Type I error for small clusters)
+    df_corr <- max(1, n_clusters - 1)
+    2 * stats::pt(abs(z_stat), df = df_corr, lower.tail = FALSE)
+}
+
+# ============================================================================
+# HELPER: Compute Wald test statistic with sandwich variance
+# ============================================================================
+.compute_wald_statistic <- function(fit_alt, ia_idx) {
+    coefs_alt <- stats::coef(fit_alt)
+    
+    vcov_robust <- try({
+        X <- model.matrix(fit_alt)
+        residuals_vec <- fit_alt$y - fit_alt$fitted.values
+        W <- diag(1 / fit_alt$scale)
+        meat <- t(X) %*% W %*% (residuals_vec^2 * diag(nrow(X))) %*% W %*% X
+        bread <- solve(t(X) %*% W %*% X)
+        bread %*% meat %*% bread
+    }, silent = TRUE)
+    
+    if (inherits(vcov_robust, "try-error") || is.null(vcov_robust)) {
+        return(NA_real_)
+    }
+    
+    se_robust <- sqrt(diag(vcov_robust)[ia_idx])
+    if (is.na(se_robust) || se_robust <= 0) {
+        return(NA_real_)
+    }
+    
+    coefs_alt[ia_idx] / se_robust
+}
+
+# ============================================================================
+# HELPER: Compute Wald p-value (normal or t-distribution)
+# ============================================================================
+.compute_wald_pvalue <- function(fit_alt, ia_names, n_clusters, bias_correction) {
+    ia_idx <- which(names(stats::coef(fit_alt)) %in% ia_names)[1]
+    if (is.na(ia_idx)) return(NA_real_)
+    
+    z_stat <- .compute_wald_statistic(fit_alt, ia_idx)
+    if (is.na(z_stat)) return(NA_real_)
+    
+    # Apply bias correction if specified and small clusters
+    if (bias_correction && n_clusters < 20) {
+        df_corr <- max(1, n_clusters - 1)
+        2 * stats::pt(abs(z_stat), df = df_corr, lower.tail = FALSE)
+    } else {
+        2 * stats::pnorm(abs(z_stat), lower.tail = FALSE)
+    }
+}
+
+# ============================================================================
+# HELPER: Extract slope difference from interaction coefficient
+# ============================================================================
+.extract_slope_diff <- function(fit_alt) {
+    slope_diff <- NA_real_
+    if (inherits(fit_alt, "try-error") || is.null(fit_alt)) {
+        return(slope_diff)
+    }
+    
+    tryCatch({
+        coefs_alt <- stats::coef(fit_alt)
+        ia_names <- names(coefs_alt)[grepl("^q:", names(coefs_alt), ignore.case = TRUE)]
+        if (length(ia_names) > 0) {
+            coefs_alt[ia_names[1]]
+        } else {
+            NA_real_
+        }
+    }, error = function(e) { NA_real_ })
+}
+
+# ============================================================================
+# HELPER: Estimate AR(1) autocorrelation from residuals/differenced data
+# ============================================================================
+.estimate_ar1_correlation <- function(residuals, max_lag = 1) {
+    # Estimate AR(1) autocorrelation from residuals
+    # Input: numeric vector of residuals/differenced data
+    # Output: correlation coefficient (rho) between x(t) and x(t-1)
+    
+    if (length(residuals) < 3) {
+        return(NA_real_)
+    }
+    
+    # Remove NAs
+    residuals <- residuals[!is.na(residuals)]
+    
+    if (length(residuals) < 3) {
+        return(NA_real_)
+    }
+    
+    # Compute lag-1 autocorrelation
+    n <- length(residuals)
+    rho <- stats::cor(residuals[1:(n-1)], residuals[2:n], use = "complete.obs")
+    
+    if (is.na(rho)) rho <- 0
+    
+    # Bound to valid correlation range (-1, 1)
+    pmin(pmax(rho, -0.99), 0.99)
+}
+
+# ============================================================================
+# HELPER: Compute design effect for AR(1) structure
+# ============================================================================
+.compute_ar1_design_effect <- function(rho, cluster_size) {
+    # Design effect for AR(1) repeated measures
+    # D_eff = (1 + rho) / (1 - rho) for positive correlation
+    # This accounts for reduction in effective sample size due to within-subject correlation
+    #
+    # For multi-q Tsallis: cluster_size = number of q-values per subject
+    # Result: effective sample size = n_subjects_observed / design_effect
+    
+    if (is.null(rho) || is.na(rho) || abs(rho) < 0.001) {
+        return(1.0)
+    }
+    
+    # Bound rho to avoid numerical issues
+    rho <- pmin(pmax(rho, -0.99), 0.99)
+    
+    # Standard design effect formula
+    if (abs(rho) < 1) {
+        design_effect <- (1 + rho) / (1 - rho)
+    } else {
+        design_effect <- 1.0
+    }
+    
+    # Ensure positive
+    max(1.0, design_effect)
+}
+
+
+
+# ============================================================================
+# Kauermann-Carroll Bias Correction for GEE Sandwich Variance Estimation
+# ============================================================================
+#
+# Phase 9 Implementation (March 2026)
+# Extended for Tsallis multi-q measurements with AR(1) correlation structure
+#
+# References:
+# - Kauermann & Carroll (2001). "A note on the efficiency of sandwich covariance 
+#   matrix estimation." JASA 96(456): 1387-1396.
+# - Mancl & DeRouen (2001). "A covariate-adjusted ANOVA-type test for correlated 
+#   data." Biometrics 57(1): 126-131.
+# - Li & Redden (2015). "Comparing logistic and linear models: bias reduction via 
+#   Kauermann-Carroll adjustment." Biometrical Journal 57(5): 808-820.
+#
+# ============================================================================
+
+# ============================================================================
+# HELPER: Compute HC1 and HC3 bias reduction multipliers
+# ============================================================================
+.compute_hc_multipliers <- function(
+    residuals_vec,
+    X_matrix,
+    leverage_vec = NULL,
+    n_clusters = NULL,
+    n_parameters = NULL
+) {
+    # HC1: multiply by n / (n - p)
+    # Accounts for reduced degrees of freedom in small samples
+    n <- nrow(X_matrix)
+    p <- ncol(X_matrix)
+    
+    hc1_multiplier <- n / (n - p)
+    
+    # HC3: leverage-adjusted, multiply by 1 / (1 - h_i)^2
+    # Accounts for high-leverage observations
+    if (is.null(leverage_vec)) {
+        # Compute leverage (diagonal of hat matrix)
+        # hat = X(X'X)^{-1}X'
+        XtX_inv <- tryCatch(
+            solve(t(X_matrix) %*% X_matrix),
+            error = function(e) NULL
+        )
+        
+        if (is.null(XtX_inv)) {
+            leverage_vec <- rep(1 / n, n)  # Fallback: uniform leverage
+        } else {
+            leverage_vec <- rowSums((X_matrix %*% XtX_inv) * X_matrix)
+        }
+    }
+    
+    # Ensure leverage is in (0, 1)
+    leverage_vec <- pmin(pmax(leverage_vec, 1e-6), 1 - 1e-6)
+    
+    # HC3 divisor for each observation: (1 - h_i)^2
+    hc3_divisor <- (1 - leverage_vec)^2
+    
+    list(
+        hc1_multiplier = hc1_multiplier,
+        hc3_divisor = hc3_divisor,
+        leverage = leverage_vec
+    )
+}
+
+# ============================================================================
+# HELPER: Apply HC1 divisor to sandwich variance
+# ============================================================================
+.apply_hc1_correction <- function(vcov_sandwich_raw, n_clusters, n_parameters) {
+    # HC1 multiplier: accounts for degrees of freedom adjustment
+    # More conservative (larger variance) when n - p is small
+    multiplier <- n_clusters / (n_clusters - n_parameters)
+    
+    vcov_corrected <- multiplier * vcov_sandwich_raw
+    
+    list(
+        vcov = vcov_corrected,
+        multiplier = multiplier
+    )
+}
+
+# ============================================================================
+# HELPER: Apply design effect adjustment for multi-q correlation
+# ============================================================================
+.adjust_for_design_effect <- function(
+    n_clusters,
+    n_parameters,
+    design_effect,
+    verbose = FALSE
+) {
+    # Effective sample size accounts for within-subject correlation
+    # n_eff = n / design_effect
+    # HC1 multiplier uses n_eff instead of n
+    
+    if (is.null(design_effect) || design_effect <= 0) {
+        design_effect <- 1.0
+    }
+    
+    n_effective <- n_clusters / design_effect
+    
+    # HC1 with effective sample size
+    multiplier <- n_effective / (n_effective - n_parameters)
+    
+    if (verbose) {
+        cat(sprintf(
+            "Design Effect Adjustment:\n  n_clusters = %d\n  design_effect = %.3f\n  n_effective = %.1f\n  HC1 multiplier = %.4f\n",
+            n_clusters, design_effect, n_effective, multiplier
+        ))
+    }
+    
+    list(
+        n_effective = n_effective,
+        multiplier = multiplier,
+        design_effect = design_effect
+    )
+}
+
+# ============================================================================
+# MAIN: Kauermann-Carroll Bias Correction for GEE
+# ============================================================================
+#
+# @param p_value numeric; unadjusted p-value from Wald test
+# @param z_statistic numeric; Wald z-statistic (or coefficient / SE)
+# @param vcov_sandwich_raw matrix; raw sandwich variance (HC0) - optional if coef provided
+# @param coef_value numeric; coefficient estimate (for HC1 adjustment)
+# @param coef_index integer; index into vcov matrix for this coefficient
+# @param n_clusters integer; number of independent clusters (subjects)
+# @param n_parameters integer; number of model parameters
+# @param rho_ar1 numeric; AR(1) autocorrelation (0-1), NULL if not available
+# @param cluster_size integer; observations per cluster (q-values in multi-q)
+# @param design_effect numeric; pre-computed design effect, auto-computed if NULL
+# @param bias_correction_method character; "hc1", "hc3", or "kc" (default: "hc1")
+# @param use_t_distribution logical; use t-dist (TRUE) or standard normal (FALSE)
+# @param apply_correction logical; whether to apply correction (can be FALSE)
+# @param verbose logical; print diagnostic information
+#
+# @return list with corrected results:
+#   - p_value: corrected p-value
+#   - p_raw: original unadjusted p-value
+#   - z_corrected: corrected z-statistic (if applicable)
+#   - vcov_corrected: bias-corrected variance-covariance matrix (if provided)
+#   - multiplier: HC1/HC3 adjustment factor
+#   - n_effective: effective sample size after design effect
+#   - design_effect: multiplier accounting for within-subject correlation
+#   - method_applied: "none", "hc1", "hc3", "kc"
+#   - report: human-readable summary
+#
+.kc_bias_correct <- function(
+    p_value = NA_real_,
+    z_statistic = NA_real_,
+    vcov_sandwich_raw = NULL,
+    coef_value = NULL,
+    coef_index = NULL,
+    n_clusters = NULL,
+    n_parameters = NULL,
+    rho_ar1 = NULL,
+    cluster_size = NULL,
+    design_effect = NULL,
+    bias_correction_method = c("hc1", "hc3", "kc"),
+    use_t_distribution = TRUE,
+    apply_correction = TRUE,
+    verbose = FALSE
+) {
+    # ========================================================================
+    # Input validation
+    # ========================================================================
+    
+    if (is.null(n_clusters) || is.null(n_parameters)) {
+        stop("n_clusters and n_parameters are required")
+    }
+    
+    bias_correction_method <- match.arg(bias_correction_method)
+    
+    # ========================================================================
+    # Compute effective sample size with design effect
+    # ========================================================================
+    
+    # If design effect not provided, compute from AR(1)
+    if (is.null(design_effect)) {
+        if (!is.null(rho_ar1) && !is.null(cluster_size) && cluster_size > 1) {
+            # Design effect for AR(1): D_eff = (1 + rho) / (1 - rho)
+            # Accounts for within-subject correlation in multi-q measurements
+            rho_ar1 <- pmin(pmax(rho_ar1, -0.99), 0.99)  # Bound in (-1, 1)
+            
+            if (abs(rho_ar1) < 0.001) {
+                design_effect <- 1.0
+            } else {
+                design_effect <- (1 + rho_ar1) / (1 - rho_ar1)
+            }
+            
+            if (verbose) {
+                cat(sprintf("AR(1) Design Effect: rho=%.3f, D_eff=%.3f, cluster_size=%d\n",
+                           rho_ar1, design_effect, cluster_size))
+            }
+        } else {
+            design_effect <- 1.0
+        }
+    }
+    
+    # Effective sample size
+    n_effective <- n_clusters / design_effect
+    
+    # ========================================================================
+    # Decision: Apply correction?
+    # ========================================================================
+    
+    # Correction typically applied when n_effective < 30 (small clusters)
+    # But make it data-adaptive
+    correction_threshold <- 30
+    
+    if (!apply_correction || n_effective > correction_threshold) {
+        # No correction needed
+        return(list(
+            p_value = p_value,
+            p_raw = p_value,
+            z_corrected = z_statistic,
+            vcov_corrected = vcov_sandwich_raw,
+            multiplier = 1.0,
+            n_clusters = n_clusters,
+            n_parameters = n_parameters,
+            n_effective = n_effective,
+            design_effect = design_effect,
+            method_applied = "none",
+            report = sprintf(
+                "No K-C correction (n_eff=%.1f > threshold=%d)",
+                n_effective, correction_threshold
+            )
+        ))
+    }
+    
+    # ========================================================================
+    # Apply HC1 or HC3 bias reduction multiplier
+    # ========================================================================
+    
+    multiplier <- NA_real_
+    
+    if (bias_correction_method %in% c("hc1", "kc")) {
+        # HC1: multiply by n_eff / (n_eff - p)
+        # More conservative for small n_eff
+        multiplier <- n_effective / (n_effective - n_parameters)
+    }
+    
+    if (is.na(multiplier)) multiplier <- 1.0
+    
+    # Apply multiplier to sandwich variance if provided
+    vcov_corrected <- NULL
+    if (!is.null(vcov_sandwich_raw)) {
+        vcov_corrected <- multiplier * vcov_sandwich_raw
+    }
+    
+    # ========================================================================
+    # Recompute z-statistic and p-value with bias correction
+    # ========================================================================
+    
+    z_corrected <- z_statistic  # Default: no change
+    p_corrected <- p_value      # Default: no change
+    
+    if (!is.na(z_statistic)) {
+        # For Wald test: z ~ N(0,1) or t with df = n_clusters - 1
+        z_corrected <- z_statistic  # Statistic itself doesn't change (same estimate)
+        
+        if (use_t_distribution) {
+            # Use t-distribution (Kauermann-Carroll approach)
+            # More conservative p-values for small samples
+            df_t <- max(1, n_clusters - 1)
+            p_corrected <- 2 * stats::pt(abs(z_corrected), df = df_t, lower.tail = FALSE)
+        } else {
+            # Standard normal
+            p_corrected <- 2 * stats::pnorm(abs(z_corrected), lower.tail = FALSE)
+        }
+    }
+    
+    # ========================================================================
+    # Return results with diagnostics
+    # ========================================================================
+    
+    method_label <- switch(bias_correction_method,
+                          "hc1" = "HC1 (bias-reduced)",
+                          "hc3" = "HC3 (leverage-adjusted)",
+                          "kc" = "Kauermann-Carroll")
+    
+    report <- sprintf(
+        "K-C Bias Correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f → %.4f%s",
+        method_label,
+        n_clusters, n_parameters,
+        n_effective, design_effect,
+        multiplier,
+        p_value, p_corrected,
+        if (use_t_distribution) sprintf(" (df=%d, t-dist)", max(1, n_clusters - 1)) else " (normal)"
+    )
+    
+    list(
+        p_value = p_corrected,
+        p_raw = p_value,
+        z_corrected = z_corrected,
+        vcov_corrected = vcov_corrected,
+        multiplier = multiplier,
+        n_clusters = n_clusters,
+        n_parameters = n_parameters,
+        n_effective = n_effective,
+        design_effect = design_effect,
+        rho_ar1 = rho_ar1,
+        method_applied = bias_correction_method,
+        use_t_distribution = use_t_distribution,
+        report = report
+    )
+}
+
+# ============================================================================
+# UTILITY: Generate diagnostic report for K-C correction
+# ============================================================================
+.print_kc_correction_report <- function(kc_result) {
+    if (is.null(kc_result)) return(invisible(NULL))
+    
+    cat("\n", strrep("─", 70), "\n", sep = "")
+    cat("Kauermann-Carroll Bias Correction Report\n")
+    cat(strrep("─", 70), "\n", sep = "")
+    
+    if (!is.null(kc_result$report)) {
+        cat(kc_result$report)
+    }
+    
+    cat("\n\nCorrection Details:\n")
+    cat(sprintf("  Method applied: %s\n", kc_result$method_applied))
+    cat(sprintf("  Multiplier (HC1): %.6f\n", kc_result$multiplier))
+    cat(sprintf("  Design effect: %.3f", kc_result$design_effect))
+    
+    if (!is.null(kc_result$rho_ar1)) {
+        cat(sprintf(" (AR(1) rho=%.3f)", kc_result$rho_ar1))
+    }
+    cat("\n")
+    
+    cat(sprintf("  Degrees of freedom (t-dist): %d\n", max(1, kc_result$n_clusters - 1)))
+    cat(sprintf("  P-value: %.6f → %.6f\n", kc_result$p_raw, kc_result$p_value))
+    
+    cat(strrep("─", 70), "\n\n", sep = "")
+    
+    invisible(kc_result)
 }
