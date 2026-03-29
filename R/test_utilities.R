@@ -107,8 +107,8 @@
     sample_id = colnames(counts),
     condition = rep(c("control", "treatment"), length.out = n_samples),
     sample_type = rep(c("typeA", "typeB"), length.out = n_samples),
-    subject = rep(paste0("S", 1:10), length.out = n_samples),
-    paired_samples = rep(paste0("pair", 1:10), length.out = n_samples),
+    subject = rep(paste0("S", seq_len(10)), length.out = n_samples),
+    paired_samples = rep(paste0("pair", seq_len(10)), length.out = n_samples),
     row.names = colnames(counts)
   )
   

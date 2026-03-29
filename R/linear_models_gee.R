@@ -512,7 +512,7 @@
     
     # Compute lag-1 autocorrelation
     n <- length(residuals)
-    rho <- stats::cor(residuals[1:(n-1)], residuals[2:n], use = "complete.obs")
+    rho <- stats::cor(residuals[seq_len(n-1)], residuals[seq.int(2, n)], use = "complete.obs")
     
     if (is.na(rho)) rho <- 0
     
