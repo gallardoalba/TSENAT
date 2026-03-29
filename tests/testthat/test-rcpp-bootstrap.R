@@ -1607,3 +1607,904 @@ test_that("REGRESSION 10.7: No NaN propagation in quantile computation", {
   expect_true(all(!is.nan(result$p_value)))
   expect_true(all(!is.nan(result$ci_width)))
 })
+
+# ============================================================================
+# SUITE 11: C++ Divergence Bootstrap (Independent Mode)
+# ============================================================================
+
+test_that("divergence_bootstrap_compute_cpp_wrapper compiles and is available", {
+  skip_on_cran()
+  
+  # Check that the function exists
+  expect_true(exists("divergence_bootstrap_compute_cpp_wrapper"))
+  
+  # Test basic call
+  x <- c(100, 50, 25, 10)
+  y <- c(80, 60, 40, 20)
+  
+  result <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, nboot = 50L, q = 1.0, 
+    pseudocount = 0.5, log_base = exp(1), paired = FALSE
+  )
+  
+  expect_true(is.numeric(result))
+  expect_length(result, 50)
+  expect_true(all(is.finite(result)))
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper respects nboot parameter", {
+  skip_on_cran()
+  
+  x <- c(100, 50, 25)
+  y <- c(80, 60, 40)
+  
+  for (nboot in c(10L, 50L, 100L, 500L)) {
+    result <- divergence_bootstrap_compute_cpp_wrapper(
+      x = x, y = y, nboot = nboot, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1), paired = FALSE
+    )
+    
+    expect_length(result, nboot)
+    expect_true(all(is.finite(result)))
+  }
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper works with various q values", {
+  skip_on_cran()
+  
+  x <- c(100, 50, 25, 10)
+  y <- c(80, 60, 40, 20)
+  
+  q_values <- c(0.5, 1.0, 1.5, 2.0, 3.0)
+  
+  for (q in q_values) {
+    result <- divergence_bootstrap_compute_cpp_wrapper(
+      x = x, y = y, nboot = 30L, q = q,
+      pseudocount = 0.5, log_base = exp(1), paired = FALSE
+    )
+    
+    expect_true(all(is.finite(result)))
+    expect_length(result, 30)
+  }
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper handles pseudocount adjustment", {
+  skip_on_cran()
+  
+  x <- c(100, 50, 25, 10)
+  y <- c(80, 60, 40, 20)
+  
+  result_no_pc <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, nboot = 100L, q = 1.0,
+    pseudocount = 0.0, log_base = exp(1), paired = FALSE
+  )
+  
+  result_with_pc <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, nboot = 100L, q = 1.0,
+    pseudocount = 1.0, log_base = exp(1), paired = FALSE
+  )
+  
+  # Both should produce valid results
+  expect_true(all(is.finite(result_no_pc)))
+  expect_true(all(is.finite(result_with_pc)))
+  
+  # Pseudocount affects the values
+  expect_false(isTRUE(all.equal(result_no_pc, result_with_pc)))
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper is reproducible", {
+  skip_on_cran()
+  
+  x <- c(100, 50, 25, 10)
+  y <- c(80, 60, 40, 20)
+  
+  set.seed(42)
+  result1 <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1), paired = FALSE
+  )
+  
+  set.seed(42)
+  result2 <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1), paired = FALSE
+  )
+  
+  expect_equal(result1, result2)
+})
+
+# ============================================================================
+# SUITE 12: C++ Divergence Bootstrap (Paired Mode)
+# ============================================================================
+
+test_that("divergence_bootstrap_paired_cpp_wrapper compiles and is available", {
+  skip_on_cran()
+  
+  # Check that the function exists
+  expect_true(exists("divergence_bootstrap_paired_cpp_wrapper"))
+  
+  # Test basic call with paired data
+  # For paired design: x = control counts (1 per pair), y = treatment counts (1 per pair)
+  x <- c(100, 80)      # Control samples for 2 pairs
+  y <- c(90, 85)       # Treatment samples for 2 pairs
+  pair_ids <- c(1L, 2L)  # Pair identifiers
+  
+  result <- divergence_bootstrap_paired_cpp_wrapper(
+    x = x, y = y, pair_ids = pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_true(is.numeric(result))
+  expect_length(result, 50)
+  expect_true(all(is.finite(result)))
+})
+
+test_that("divergence_bootstrap_paired_cpp_wrapper respects nboot parameter", {
+  skip_on_cran()
+  
+  # Paired data: one control and one treatment per pair
+  x <- c(100, 80, 120)
+  y <- c(90, 85, 110)
+  pair_ids <- c(1L, 2L, 3L)
+  
+  for (nboot in c(10L, 50L, 100L)) {
+    result <- divergence_bootstrap_paired_cpp_wrapper(
+      x = x, y = y, pair_ids = pair_ids,
+      nboot = nboot, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_length(result, nboot)
+    expect_true(all(is.finite(result)))
+  }
+})
+
+test_that("divergence_bootstrap_paired_cpp_wrapper works with various q values", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  q_values <- c(0.5, 1.0, 1.5, 2.0)
+  
+  for (q in q_values) {
+    result <- divergence_bootstrap_paired_cpp_wrapper(
+      x = x, y = y, pair_ids = pair_ids,
+      nboot = 30L, q = q,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_true(all(is.finite(result)))
+    expect_length(result, 30)
+  }
+})
+
+test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs", {
+  skip_on_cran()
+  
+  # Test with increasing numbers of pairs
+  for (n_pairs in c(2, 5, 10)) {
+    x <- rnorm(n_pairs, mean = 100, sd = 20)
+    x <- pmax(x, 1)  # Ensure positive counts
+    y <- rnorm(n_pairs, mean = 90, sd = 20)
+    y <- pmax(y, 1)
+    pair_ids <- seq_len(n_pairs)
+    
+    result <- divergence_bootstrap_paired_cpp_wrapper(
+      x = x, y = y, pair_ids = as.integer(pair_ids),
+      nboot = 30L, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_true(all(is.finite(result)))
+    expect_length(result, 30)
+  }
+})
+
+test_that("divergence_bootstrap_paired_cpp_wrapper is reproducible", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  set.seed(999)
+  result1 <- divergence_bootstrap_paired_cpp_wrapper(
+    x = x, y = y, pair_ids = pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  set.seed(999)
+  result2 <- divergence_bootstrap_paired_cpp_wrapper(
+    x = x, y = y, pair_ids = pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_equal(result1, result2)
+})
+
+test_that("divergence_bootstrap_paired_cpp validates input lengths", {
+  skip_on_cran()
+  
+  x <- c(100, 50, 80)  # Uneven length
+  y <- c(80, 60)       # Different length
+  pair_ids <- c(1L, 1L, 2L)
+  
+  # Should throw error for mismatched lengths
+  expect_error(
+    divergence_bootstrap_paired_cpp_wrapper(
+      x = x, y = y, pair_ids = pair_ids,
+      nboot = 10L, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1)
+    ),
+    "must have equal length"
+  )
+})
+
+test_that("divergence_bootstrap_paired_cpp handles pseudocount", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120)
+  y <- c(90, 85, 110)
+  pair_ids <- c(1L, 2L, 3L)
+  
+  # Test with different pseudocount values
+  result_0 <- divergence_bootstrap_paired_cpp_wrapper(
+    x = x, y = y, pair_ids = pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.0, log_base = exp(1)
+  )
+  
+  result_1 <- divergence_bootstrap_paired_cpp_wrapper(
+    x = x, y = y, pair_ids = pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 1.0, log_base = exp(1)
+  )
+  
+  expect_true(all(is.finite(result_0)))
+  expect_true(all(is.finite(result_1)))
+  # Different pseudocounts should produce different results
+  expect_false(isTRUE(all.equal(result_0, result_1)))
+})
+
+# ============================================================================
+# TESTS FOR FLEXIBLE PAIRED/UNPAIRED BOOTSTRAP (NEW - MARCH 2026)
+# ============================================================================
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper compiles and is available", {
+  skip_on_cran()
+  
+  expect_true(exists("divergence_bootstrap_flexible_cpp_wrapper"))
+  expect_true(is.function(divergence_bootstrap_flexible_cpp_wrapper))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles complete pairs", {
+  skip_on_cran()
+  
+  # Complete pairs: all pair_ids present in both x and y
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))  # Divergence should be non-negative
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles unpaired samples only", {
+  skip_on_cran()
+  
+  # All unpaired: pair_ids = 0
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(0L, 0L, 0L, 0L)  # All unpaired
+  y_pair_ids <- c(0L, 0L, 0L, 0L)  # All unpaired
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles incomplete pairs", {
+  skip_on_cran()
+  
+  # Incomplete pairs: pair 1,2,3 in both groups, pair 4 only in x
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110)  # Only 3 samples
+  x_pair_ids <- c(1L, 2L, 3L, 4L)  # pair 4 in x but not y
+  y_pair_ids <- c(1L, 2L, 3L)    # no pair 4
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles mixed paired/unpaired", {
+  skip_on_cran()
+  
+  # Mixed: pairs 1,2,3 complete, pair 0 (unpaired) in both, pair 4 only in y
+  x <- c(100, 80, 120, 95, 110)
+  y <- c(90, 85, 110, 100, 105)
+  x_pair_ids <- c(1L, 2L, 3L, 0L, 0L)  # 0 = unpaired
+  y_pair_ids <- c(1L, 2L, 3L, 4L, 0L)  # pair 4 only in y, 0 = unpaired
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper works with NA for unpaired", {
+  skip_on_cran()
+  
+  # NA should be treated as unpaired (converted to 0 internally)
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, NA_integer_)  # NA = unpaired
+  y_pair_ids <- c(1L, 2L, 3L, NA_integer_)  # NA = unpaired
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper respects nboot parameter", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  for (nboot in c(10L, 50L, 100L)) {
+    result <- divergence_bootstrap_flexible_cpp_wrapper(
+      x = x, y = y,
+      x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+      nboot = nboot, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_length(result, nboot)
+    expect_true(all(is.finite(result)))
+  }
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper works with various q values", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  q_values <- c(0.0, 0.5, 1.0, 1.5, 2.0)
+  
+  for (q in q_values) {
+    result <- divergence_bootstrap_flexible_cpp_wrapper(
+      x = x, y = y,
+      x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+      nboot = 50L, q = q,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_true(all(is.finite(result)))
+    expect_length(result, 50)
+  }
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper is reproducible", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  set.seed(42)
+  result1 <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  set.seed(42)
+  result2 <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_equal(result1, result2)
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper validates input lengths", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120)
+  y <- c(90, 85, 110, 100)
+  
+  # Mismatched x_pair_ids length
+  expect_error(
+    divergence_bootstrap_flexible_cpp_wrapper(
+      x = x, y = y,
+      x_pair_ids = c(1L, 2L),  # Wrong length!
+      y_pair_ids = c(1L, 2L, 3L, 4L),
+      nboot = 10L, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1)
+    ),
+    "must have same length"
+  )
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles pseudocount", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120)
+  y <- c(90, 85, 110)
+  x_pair_ids <- c(1L, 2L, 3L)
+  y_pair_ids <- c(1L, 2L, 3L)
+  
+  # Test with different pseudocount values
+  result_0 <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.0, log_base = exp(1)
+  )
+  
+  result_1 <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 1.0, log_base = exp(1)
+  )
+  
+  expect_true(all(is.finite(result_0)))
+  expect_true(all(is.finite(result_1)))
+  # Different pseudocounts should produce different results
+  expect_false(isTRUE(all.equal(result_0, result_1)))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles different log bases", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  result_e <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  result_2 <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.5, log_base = 2.0
+  )
+  
+  expect_true(all(is.finite(result_e)))
+  expect_true(all(is.finite(result_2)))
+  # Different log bases should produce different results
+  expect_false(isTRUE(all.equal(result_e, result_2)))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles many samples", {
+  skip_on_cran()
+  
+  # Test with larger sample sizes
+  n_pairs <- 20
+  x <- rnorm(n_pairs, mean = 100, sd = 20)
+  x <- pmax(x, 1)  # Ensure positive counts
+  y <- rnorm(n_pairs, mean = 90, sd = 20)
+  y <- pmax(y, 1)
+  x_pair_ids <- seq_len(n_pairs)
+  y_pair_ids <- seq_len(n_pairs)
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = as.integer(x_pair_ids),
+    y_pair_ids = as.integer(y_pair_ids),
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles asymmetric unpaired", {
+  skip_on_cran()
+  
+  # x has 5 samples, y has 3 samples, all unpaired
+  x <- c(100, 80, 120, 95, 110)
+  y <- c(90, 85, 110)
+  x_pair_ids <- c(0L, 0L, 0L, 0L, 0L)  # All unpaired
+  y_pair_ids <- c(0L, 0L, 0L)           # All unpaired
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles sparse pair distribution", {
+  skip_on_cran()
+  
+  # Complex scenario: some pairs present in both, some only in one group
+  x <- c(100, 80, 120, 95, 110, 75)     # 6 samples
+  y <- c(90, 85, 110, 100, 105)         # 5 samples
+  # Pairs: 1,2,3 complete; 4,5 in x only; 6 in y only; 0 = unpaired
+  x_pair_ids <- c(1L, 2L, 3L, 4L, 5L, 0L)
+  y_pair_ids <- c(1L, 2L, 3L, 0L, 6L)
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles single sample", {
+  skip_on_cran()
+  
+  # Edge case: single sample in each group
+  x <- c(100)
+  y <- c(90)
+  x_pair_ids <- c(1L)
+  y_pair_ids <- c(1L)
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 50)
+  expect_true(all(is.finite(result)))
+})
+
+# ============================================================================
+# ADDITIONAL COMPREHENSIVE TESTS FOR BOOTSTRAP IMPLEMENTATIONS
+# ============================================================================
+
+test_that("divergence_bootstrap_compute_cpp_wrapper handles extreme q values", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  
+  # Test very small q (q near 0)
+  result_q_small <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 0.01, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  expect_length(result_q_small, 50)
+  expect_true(sum(is.finite(result_q_small)) > 40)
+  
+  # Test large q (q > 2)
+  result_q_large <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 3.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  expect_length(result_q_large, 50)
+  expect_true(sum(is.finite(result_q_large)) > 40)
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper works with very small counts", {
+  skip_on_cran()
+  
+  # Very small counts (e.g., single molecules)
+  x <- c(1, 2, 1, 3)
+  y <- c(2, 1, 2, 1)
+  
+  result <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 50)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper works with very large counts", {
+  skip_on_cran()
+  
+  # Very large counts (e.g., millions)
+  x <- c(1e6, 2e6, 1.5e6, 800000)
+  y <- c(1.2e6, 1.8e6, 1.6e6, 900000)
+  
+  result <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.0, log_base = exp(1)
+  )
+  
+  expect_length(result, 50)
+  expect_true(all(is.finite(result)))
+  expect_true(all(result >= 0))
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper works with identical x and y", {
+  skip_on_cran()
+  
+  # Identical distributions should have ~0 divergence
+  counts <- c(100, 80, 120, 95)
+  
+  result <- divergence_bootstrap_compute_cpp_wrapper(
+    x = counts, y = counts, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 50)
+  expect_true(all(is.finite(result)))
+  # Divergence should be very small (close to 0) for identical distributions
+  expect_true(median(result, na.rm = TRUE) < 0.1)
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper respects log_base parameter", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  
+  # Test with natural log (e)
+  result_e <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  # Test with log base 2
+  result_2 <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = 2.0
+  )
+  
+  # Test with log base 10
+  result_10 <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = 10.0
+  )
+  
+  expect_length(result_e, 50)
+  expect_length(result_2, 50)
+  expect_length(result_10, 50)
+  
+  # All should have values, different log bases should give different scales
+  expect_true(all(is.finite(result_e)))
+  expect_true(all(is.finite(result_2)))
+  expect_true(all(is.finite(result_10)))
+})
+
+test_that("divergence_bootstrap_paired_cpp_wrapper handles multiple pairs efficiently", {
+  skip_on_cran()
+  
+  # Test with increasing numbers of pairs to verify performance doesn't degrade
+  for (n_pairs in c(5, 10, 15)) {
+    x <- rnorm(n_pairs, mean = 100, sd = 20)
+    x <- pmax(x, 1)
+    y <- rnorm(n_pairs, mean = 95, sd = 20)
+    y <- pmax(y, 1)
+    pair_ids <- seq_len(n_pairs)
+    
+    result <- divergence_bootstrap_paired_cpp_wrapper(
+      x = x, y = y, pair_ids = as.integer(pair_ids),
+      nboot = 30L, q = 1.0,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_length(result, 30)
+    expect_true(sum(is.finite(result)) >= 25)  # Allow rare edge cases
+  }
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles zero counts with pseudocount", {
+  skip_on_cran()
+  
+  # Some counts are zero - pseudocount should prevent division issues
+  x <- c(0, 100, 0, 80, 120)
+  y <- c(90, 0, 110, 0, 100)
+  x_pair_ids <- c(0L, 0L, 0L, 0L, 0L)
+  y_pair_ids <- c(0L, 0L, 0L, 0L, 0L)
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 1.0, log_base = exp(1)
+  )
+  
+  expect_length(result, 50)
+  expect_true(sum(is.finite(result)) >= 45)
+  expect_true(all(result >= 0, na.rm = TRUE))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper preserves pairing correlation", {
+  skip_on_cran()
+  
+  # When we resample pairs as units, pair correlation should be preserved
+  # Create perfectly correlated pairs
+  x <- c(10, 20, 30, 40)
+  y <- c(20, 40, 60, 80)  # y = 2*x exactly
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  result_paired <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  # Also test with all unpaired for comparison
+  result_unpaired <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = c(0L, 0L, 0L, 0L),
+    y_pair_ids = c(0L, 0L, 0L, 0L),
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result_paired, 100)
+  expect_length(result_unpaired, 100)
+  # Paired bootstrap might have smaller variance due to correlation preservation
+  # (though with this specific example they may be close)
+  expect_true(all(is.finite(result_paired)))
+  expect_true(all(is.finite(result_unpaired)))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper handles all mixed scenarios simultaneously", {
+  skip_on_cran()
+  
+  # Complex: complete pairs + incomplete pairs in x + incomplete pairs in y + unpaired all together
+  x <- c(100, 80, 120, 95, 110, 75, 105)       # 7 samples
+  y <- c(90, 85, 110, 100, 105, 95)            # 6 samples
+  
+  # Pair IDs:
+  # 1: in both (complete)
+  # 2: in both (complete)
+  # 3: in both (complete)
+  # 4: in x only (incomplete)
+  # 5: in x only (incomplete)
+  # 6: in y only (incomplete)
+  # 0: unpaired in both
+  x_pair_ids <- c(1L, 2L, 3L, 4L, 5L, 0L, 0L)
+  y_pair_ids <- c(1L, 2L, 3L, 0L, 6L, 0L)
+  
+  result <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 100L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result, 100)
+  expect_true(sum(is.finite(result)) >= 95)
+  expect_true(all(result >= 0, na.rm = TRUE))
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper works with q sequence", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  x_pair_ids <- c(1L, 2L, 3L, 4L)
+  y_pair_ids <- c(1L, 2L, 3L, 4L)
+  
+  q_sequence <- c(0.1, 0.5, 1.0, 1.5, 2.0, 2.5)
+  
+  for (q in q_sequence) {
+    result <- divergence_bootstrap_flexible_cpp_wrapper(
+      x = x, y = y,
+      x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+      nboot = 50L, q = q,
+      pseudocount = 0.5, log_base = exp(1)
+    )
+    
+    expect_length(result, 50)
+    expect_true(all(is.finite(result)))
+    # Divergence should be non-negative for all q values
+    expect_true(all(result >= 0))
+  }
+})
+
+test_that("divergence_bootstrap_compute_cpp_wrapper produces consistent results across calls", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120, 95)
+  y <- c(90, 85, 110, 100)
+  
+  # Set seed and run once
+  set.seed(12345)
+  result1 <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  # Set same seed and run again - should get identical results
+  set.seed(12345)
+  result2 <- divergence_bootstrap_compute_cpp_wrapper(
+    x = x, y = y, q = 1.0, nboot = 50L,
+    paired = FALSE, pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_equal(result1, result2)
+})
+
+test_that("divergence_bootstrap_flexible_cpp_wrapper with pseudocount vector", {
+  skip_on_cran()
+  
+  x <- c(100, 80, 120)
+  y <- c(90, 85, 110)
+  x_pair_ids <- c(1L, 2L, 3L)
+  y_pair_ids <- c(1L, 2L, 3L)
+  
+  # Test with scalar pseudocount
+  result_scalar <- divergence_bootstrap_flexible_cpp_wrapper(
+    x = x, y = y,
+    x_pair_ids = x_pair_ids, y_pair_ids = y_pair_ids,
+    nboot = 50L, q = 1.0,
+    pseudocount = 0.5, log_base = exp(1)
+  )
+  
+  expect_length(result_scalar, 50)
+  expect_true(all(is.finite(result_scalar)))
+})

@@ -160,6 +160,70 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// tsallis_divergence_cpp
+double tsallis_divergence_cpp(NumericVector p, NumericVector r, double q, double log_base);
+RcppExport SEXP _TSENAT_tsallis_divergence_cpp(SEXP pSEXP, SEXP rSEXP, SEXP qSEXP, SEXP log_baseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type p(pSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type r(rSEXP);
+    Rcpp::traits::input_parameter< double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    rcpp_result_gen = Rcpp::wrap(tsallis_divergence_cpp(p, r, q, log_base));
+    return rcpp_result_gen;
+END_RCPP
+}
+// divergence_bootstrap_compute_cpp
+NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y, int nboot, double q, bool paired, double pseudocount, double log_base);
+RcppExport SEXP _TSENAT_divergence_bootstrap_compute_cpp(SEXP xSEXP, SEXP ySEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP pairedSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
+    Rcpp::traits::input_parameter< double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< bool >::type paired(pairedSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    rcpp_result_gen = Rcpp::wrap(divergence_bootstrap_compute_cpp(x, y, nboot, q, paired, pseudocount, log_base));
+    return rcpp_result_gen;
+END_RCPP
+}
+// divergence_bootstrap_paired_cpp
+NumericVector divergence_bootstrap_paired_cpp(NumericVector x, NumericVector y, IntegerVector pair_ids, int nboot, double q, double pseudocount, double log_base);
+RcppExport SEXP _TSENAT_divergence_bootstrap_paired_cpp(SEXP xSEXP, SEXP ySEXP, SEXP pair_idsSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type pair_ids(pair_idsSEXP);
+    Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
+    Rcpp::traits::input_parameter< double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    rcpp_result_gen = Rcpp::wrap(divergence_bootstrap_paired_cpp(x, y, pair_ids, nboot, q, pseudocount, log_base));
+    return rcpp_result_gen;
+END_RCPP
+}
+// divergence_bootstrap_flexible_cpp
+NumericVector divergence_bootstrap_flexible_cpp(NumericVector x, NumericVector y, IntegerVector x_pair_ids, IntegerVector y_pair_ids, int nboot, double q, double pseudocount, double log_base);
+RcppExport SEXP _TSENAT_divergence_bootstrap_flexible_cpp(SEXP xSEXP, SEXP ySEXP, SEXP x_pair_idsSEXP, SEXP y_pair_idsSEXP, SEXP nbootSEXP, SEXP qSEXP, SEXP pseudocountSEXP, SEXP log_baseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type x_pair_ids(x_pair_idsSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type y_pair_ids(y_pair_idsSEXP);
+    Rcpp::traits::input_parameter< int >::type nboot(nbootSEXP);
+    Rcpp::traits::input_parameter< double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudocount(pseudocountSEXP);
+    Rcpp::traits::input_parameter< double >::type log_base(log_baseSEXP);
+    rcpp_result_gen = Rcpp::wrap(divergence_bootstrap_flexible_cpp(x, y, x_pair_ids, y_pair_ids, nboot, q, pseudocount, log_base));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_TSENAT_entropy_cpp", (DL_FUNC) &_TSENAT_entropy_cpp, 4},
@@ -172,6 +236,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TSENAT_jis_tsallis_entropy_cpp", (DL_FUNC) &_TSENAT_jis_tsallis_entropy_cpp, 6},
     {"_TSENAT_jis_jackknife_influences_cpp", (DL_FUNC) &_TSENAT_jis_jackknife_influences_cpp, 6},
     {"_TSENAT_jis_bootstrap_delta_cpp", (DL_FUNC) &_TSENAT_jis_bootstrap_delta_cpp, 11},
+    {"_TSENAT_tsallis_divergence_cpp", (DL_FUNC) &_TSENAT_tsallis_divergence_cpp, 4},
+    {"_TSENAT_divergence_bootstrap_compute_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_compute_cpp, 7},
+    {"_TSENAT_divergence_bootstrap_paired_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_paired_cpp, 7},
+    {"_TSENAT_divergence_bootstrap_flexible_cpp", (DL_FUNC) &_TSENAT_divergence_bootstrap_flexible_cpp, 8},
     {NULL, NULL, 0}
 };
 

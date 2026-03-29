@@ -43,3 +43,19 @@ jis_bootstrap_delta_cpp <- function(counts_A, counts_B, delta_influence, q = 1.0
     .Call(`_TSENAT_jis_bootstrap_delta_cpp`, counts_A, counts_B, delta_influence, q, normalize, log_base, pseudocount, n_bootstrap, confidence, method, n_transcripts_fixed)
 }
 
+tsallis_divergence_cpp <- function(p, r, q = 1.0, log_base = 2.718281828) {
+    .Call(`_TSENAT_tsallis_divergence_cpp`, p, r, q, log_base)
+}
+
+divergence_bootstrap_compute_cpp <- function(x, y, nboot = 1000L, q = 1.0, paired = FALSE, pseudocount = 0.0, log_base = 2.718281828) {
+    .Call(`_TSENAT_divergence_bootstrap_compute_cpp`, x, y, nboot, q, paired, pseudocount, log_base)
+}
+
+divergence_bootstrap_paired_cpp <- function(x, y, pair_ids, nboot = 1000L, q = 1.0, pseudocount = 0.0, log_base = 2.718281828) {
+    .Call(`_TSENAT_divergence_bootstrap_paired_cpp`, x, y, pair_ids, nboot, q, pseudocount, log_base)
+}
+
+divergence_bootstrap_flexible_cpp <- function(x, y, x_pair_ids, y_pair_ids, nboot = 1000L, q = 1.0, pseudocount = 0.0, log_base = 2.718281828) {
+    .Call(`_TSENAT_divergence_bootstrap_flexible_cpp`, x, y, x_pair_ids, y_pair_ids, nboot, q, pseudocount, log_base)
+}
+

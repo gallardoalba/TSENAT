@@ -84,15 +84,23 @@ If NULL, returns all divergence results.}
 If NULL, returns entire config.}
 }
 \value{
-Generic function that dispatches to specific methods:
-\item{divResults}{data.frame} Tsallis entropy or Hill numbers for genes across q-values
-\item{lmRes}{list} Linear model results including interaction tests
-\item{jkResults}{list} Jackknife diagnostics and confidence intervals
-\item{divRes}{list} Divergence analysis results (effect sizes, p-values)
-\item{getMeta}{list or value} Metadata stored in object
-\item{getConfig}{list} Analysis configuration parameters
-\item{getSE}{SummarizedExperiment} The count matrix and sample metadata
-\item{getPlot}{ggplot or NULL} Cached plot objects
+data.frame or list depending on accessor method. See Details for specific return types.
+
+list containing linear model interaction test results
+
+list containing jackknife diagnostics and confidence intervals
+
+list containing divergence analysis results (effect sizes, p-values)
+
+list or value containing stored metadata
+
+list containing analysis configuration parameters
+
+ggplot object or NULL if no plot cached
+
+invisible(object) for method chaining
+
+SummarizedExperiment containing count matrix and sample metadata
 }
 \description{
 Access analysis results via recommended accessor methods

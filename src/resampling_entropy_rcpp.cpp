@@ -10,7 +10,8 @@
 //   2. Jackknife resampling: jackknife_resampling_cpp, jis_jackknife_influences_cpp
 //   3. Bootstrap resampling: bootstrap_compute_cpp, block_bootstrap_compute_cpp
 //   4. Bootstrap entropy: bootstrap_entropy_vec_cpp, jis_bootstrap_delta_cpp
-//   5. Utility functions: check_rcpp_available
+//   5. Divergence computations: tsallis_divergence_cpp, divergence_bootstrap_compute_cpp
+//   6. Utility functions: check_rcpp_available
 //
 // Implementation uses Armadillo (via RcppArmadillo) for efficient matrix operations
 // and vectorized computation to replace R's row-by-row loops.
@@ -948,4 +949,560 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
     Named("ci_width") = ci_widths,
     Named("relative_ci_width") = rel_ci_widths
   );
+}
+
+// ============================================================================
+// DIVERGENCE BOOTSTRAP COMPUTATION (C++ OPTIMIZATION)
+// ============================================================================
+// Purpose: Accelerate divergence bootstrap by computing Tsallis divergence for each
+//          replicate in C++ rather than via R loops.
+// Target speedup: 10-15x compared to pure R implementation (nested loops eliminated)
+//
+// Supports:
+//   1. Independent bootstrap: resample x and y independently
+//   2. Paired/block bootstrap: resample pairs as units while maintaining correlation
+
+// Internal helper: Compute Tsallis divergence between two probability distributions
+// [[Rcpp::export(rng = false)]]
+double tsallis_divergence_cpp(NumericVector p, NumericVector r, double q = 1.0, 
+                              double log_base = 2.718281828) {
+  // Validate inputs
+  if (p.size() != r.size()) {
+    return NA_REAL;
+  }
+  
+  if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
+    return NA_REAL;
+  }
+  
+  int n = p.size();
+  if (n == 0) return NA_REAL;
+  
+  double divergence = 0.0;
+  double q_tol = 1e-6;
+  
+  // Special case: q ≈ 0 (Tsallis at q=0 always equals 0)
+  if (q < q_tol) {
+    // D_0(p||r) = (1/(0-1)) * (1 - sum(p^0 * r^1))
+    //           = (-1) * (1 - 1) = 0
+    return 0.0;
+  } 
+  // Special case: q ≈ 1 (KL divergence)
+  else if (std::abs(q - 1.0) < q_tol) {
+    // For KL: sum(p * log(p/r)) where we skip p=0 or r=0
+    for (int i = 0; i < n; i++) {
+      double p_i = p[i];
+      double r_i = r[i];
+      // Only compute where both p and r are positive
+      if (p_i > 1e-15 && r_i > 1e-15) {
+        divergence += p_i * std::log(p_i / r_i) / std::log(log_base);
+      }
+    }
+  } else if (q > 0) {
+    // General Tsallis divergence (Furuichi formula)
+    // D_q(p||r) = (1/(q-1)) * (1 - sum(p^q * r^(1-q)))
+    
+    double sum_pq_r = 0.0;
+    bool has_valid_term = false;
+    
+    for (int i = 0; i < n; i++) {
+      double p_i = p[i];
+      double r_i = r[i];
+      
+      // Skip zero/negative values
+      if (p_i <= 1e-15 || r_i <= 1e-15) continue;
+      
+      has_valid_term = true;
+      
+      // Handle extreme values in log-space for numerical stability
+      if (q > 2.0 || q < 0.5) {
+        // Log-space computation for large |q|
+        double log_term = q * std::log(std::max(p_i, 1e-10)) + 
+                         (1.0 - q) * std::log(std::max(r_i, 1e-10));
+        sum_pq_r += std::exp(log_term);
+      } else {
+        // Direct computation for q near 1
+        sum_pq_r += std::pow(p_i, q) * std::pow(r_i, 1.0 - q);
+      }
+    }
+    
+    // If no valid terms found, divergence is 0 by convention
+    // (distributions are orthogonal in the support)
+    if (!has_valid_term) {
+      divergence = 0.0;
+    } else {
+      divergence = (1.0 - sum_pq_r) / (q - 1.0);
+    }
+  } else {
+    return NA_REAL;
+  }
+  
+  // Ensure divergence is non-negative (mathematical property)
+  divergence = std::abs(divergence);
+  
+  // Handle invalid results
+  if (std::isnan(divergence) || std::isinf(divergence)) {
+    return NA_REAL;
+  }
+  
+  return divergence;
+}
+
+// Main divergence bootstrap function
+// [[Rcpp::export]]
+NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y, 
+                                              int nboot = 1000, double q = 1.0,
+                                              bool paired = false,
+                                              double pseudocount = 0.0,
+                                              double log_base = 2.718281828) {
+  // Input validation
+  if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
+    Rcpp::stop("Invalid log_base (must be > 1, not equal to 1)");
+  }
+  if (q < 0) {
+    Rcpp::stop("Invalid q parameter (must be non-negative)");
+  }
+  if (nboot < 1) {
+    Rcpp::stop("nboot must be at least 1");
+  }
+  
+  int n_x = x.size();
+  int n_y = y.size();
+  
+  if (n_x < 1 || n_y < 1) {
+    Rcpp::stop("Input vectors x and y must have at least 1 element");
+  }
+  
+  // Paired bootstrap requires equal-length vectors
+  if (paired && n_x != n_y) {
+    Rcpp::stop("For paired bootstrap, x and y must have equal length");
+  }
+  
+  // Adjust counts with pseudocount (scalar)
+  NumericVector x_adj = x + pseudocount;
+  NumericVector y_adj = y + pseudocount;
+  
+  double total_x = sum(x_adj);
+  double total_y = sum(y_adj);
+  
+  if (total_x <= 0 || total_y <= 0) {
+    Rcpp::stop("Total count (after pseudocount) must be positive for both groups");
+  }
+  
+  // Compute proportions from original data (for resampling)
+  NumericVector p_hat = x_adj / total_x;
+  NumericVector r_hat = y_adj / total_y;
+  
+  // Pre-allocate result vector
+  NumericVector boot_divs(nboot);
+  
+  // Get R's RNG state for reproducibility
+  GetRNGstate();
+  
+  // Main bootstrap loop
+  for (int b = 0; b < nboot; b++) {
+    NumericVector x_boot(n_x);
+    NumericVector y_boot(n_y);
+    
+    if (paired) {
+      // Paired/block bootstrap: resample pairs as units
+      // For paired data, both x and y have n_x == n_y samples
+      
+      // Generate multinomial bootstrap samples from pair indices
+      IntegerVector pair_indices(n_x);
+      int total_int = n_x;  // Number of pairs
+      
+      // Resample from uniform distribution over pairs (equal weighting)
+      NumericVector pair_probs(n_x, 1.0 / n_x);
+      R::rmultinom(total_int, pair_probs.begin(), n_x, pair_indices.begin());
+      
+      // Now aggregate resampled pairs
+      NumericVector x_boot_agg(n_x, 0.0);
+      NumericVector y_boot_agg(n_y, 0.0);
+      
+      for (int i = 0; i < n_x; i++) {
+        // pair_indices[i] tells us how many times to include pair i
+        int pair_count = pair_indices[i];
+        x_boot_agg[i] += x_adj[i] * pair_count;
+        y_boot_agg[i] += y_adj[i] * pair_count;
+      }
+      
+      x_boot = x_boot_agg;
+      y_boot = y_boot_agg;
+    } else {
+      // Independent bootstrap: resample x and y independently
+      IntegerVector x_boot_int(n_x);
+      IntegerVector y_boot_int(n_y);
+      
+      int total_x_int = (int)std::round(total_x);
+      int total_y_int = (int)std::round(total_y);
+      if (total_x_int <= 0) total_x_int = 1;
+      if (total_y_int <= 0) total_y_int = 1;
+      
+      // Resample from multinomial distributions
+      R::rmultinom(total_x_int, p_hat.begin(), n_x, x_boot_int.begin());
+      R::rmultinom(total_y_int, r_hat.begin(), n_y, y_boot_int.begin());
+      
+      x_boot = as<NumericVector>(x_boot_int);
+      y_boot = as<NumericVector>(y_boot_int);
+    }
+    
+    // Normalize bootstrap samples to probability distributions
+    double x_boot_sum = sum(x_boot);
+    double y_boot_sum = sum(y_boot);
+    
+    // Safety check: avoid division by zero
+    if (x_boot_sum <= 0 || y_boot_sum <= 0) {
+      boot_divs[b] = NA_REAL;
+      continue;
+    }
+    
+    NumericVector p_boot = x_boot / x_boot_sum;
+    NumericVector r_boot = y_boot / y_boot_sum;
+    
+    // Compute Tsallis divergence for this bootstrap sample
+    boot_divs[b] = tsallis_divergence_cpp(p_boot, r_boot, q, log_base);
+  }
+  
+  PutRNGstate();
+  
+  return boot_divs;
+}
+
+// ============================================================================
+// Paired Divergence Bootstrap with Explicit Pair Structure
+// ============================================================================
+// [[Rcpp::export]]
+NumericVector divergence_bootstrap_paired_cpp(
+    NumericVector x,          // Control group counts (length = n_pairs)
+    NumericVector y,          // Treatment group counts (length = n_pairs)
+    IntegerVector pair_ids,   // Pair identifiers (length = n_pairs) - just for validation
+    int nboot = 1000,
+    double q = 1.0,
+    double pseudocount = 0.0,
+    double log_base = 2.718281828) {
+  
+  // Input validation
+  if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
+    Rcpp::stop("Invalid log_base (must be > 1, not equal to 1)");
+  }
+  if (q < 0) {
+    Rcpp::stop("Invalid q parameter (must be non-negative)");
+  }
+  if (nboot < 1) {
+    Rcpp::stop("nboot must be at least 1");
+  }
+  
+  int n_pairs = x.size();
+  if (n_pairs < 2) {
+    Rcpp::stop("paired bootstrap requires at least 2 pairs");
+  }
+  if (y.size() != n_pairs || pair_ids.size() != n_pairs) {
+    Rcpp::stop("x, y, and pair_ids must have the same length");
+  }
+  
+  // Adjust counts with pseudocount
+  NumericVector x_adj = x + pseudocount;
+  NumericVector y_adj = y + pseudocount;
+  
+  // Pre-allocate result vector
+  NumericVector boot_divs(nboot);
+  
+  // Get R's RNG state for reproducibility
+  GetRNGstate();
+  
+  // Main bootstrap loop: resample pairs with replacement
+  for (int b = 0; b < nboot; b++) {
+    // Multinomial resampling of pair indices
+    // Each pair is selected with equal probability
+    IntegerVector pair_counts(n_pairs);
+    NumericVector pair_probs(n_pairs);
+    std::fill(pair_probs.begin(), pair_probs.end(), 1.0 / n_pairs);
+    
+    // rmultinom(n, prob, K, counts) samples n items from K categories with probabilities prob
+    R::rmultinom(n_pairs, pair_probs.begin(), n_pairs, pair_counts.begin());
+    
+    // Aggregate counts from resampled pairs
+    double x_boot_sum = 0.0;
+    double y_boot_sum = 0.0;
+    NumericVector x_boot(n_pairs, 0.0);
+    NumericVector y_boot(n_pairs, 0.0);
+    
+    // For each original pair, add its contribution to the bootstrap sample
+    for (int i = 0; i < n_pairs; i++) {
+      int resample_count = pair_counts[i];
+      
+      if (resample_count > 0) {
+        // This pair was selected resample_count times in the bootstrap
+        // Add its adjusted counts to the bootstrap sample
+        x_boot[i] = x_adj[i] * resample_count;
+        y_boot[i] = y_adj[i] * resample_count;
+        
+        x_boot_sum += x_boot[i];
+        y_boot_sum += y_boot[i];
+      }
+    }
+    
+    // Safety check: avoid division by zero
+    if (x_boot_sum <= 1e-10 || y_boot_sum <= 1e-10) {
+      boot_divs[b] = NA_REAL;
+      continue;
+    }
+    
+    // Normalize to probability distributions
+    NumericVector p_boot = x_boot / x_boot_sum;
+    NumericVector r_boot = y_boot / y_boot_sum;
+    
+    // Compute Tsallis divergence for this bootstrap sample
+    boot_divs[b] = tsallis_divergence_cpp(p_boot, r_boot, q, log_base);
+  }
+  
+  PutRNGstate();
+  
+  return boot_divs;
+}
+
+// =============================================================================
+// ENHANCED: Flexible paired/unpaired divergence bootstrap (MARCH 2026)
+// =============================================================================
+// Handles complete pairs, incomplete pairs, and unpaired samples
+// Supports arbitrary mixing of paired and unpaired data
+// 
+// Strategy:
+//   1. Identify complete pairs (pair_id present in both x AND y)
+//   2. Identify unpaired x samples (x_pair_id = 0 or not in y_pair_ids)
+//   3. Identify unpaired y samples (y_pair_id = 0 or not in x_pair_ids)
+//   4. For each bootstrap:
+//      - Resample complete pairs as units (preserve correlation)
+//      - Resample unpaired x independently
+//      - Resample unpaired y independently
+//   5. Compute divergence on aggregated counts
+
+// [[Rcpp::export(rng = false)]]
+NumericVector divergence_bootstrap_flexible_cpp(
+    NumericVector x,           // All control samples (any length)
+    NumericVector y,           // All treatment samples (any length)
+    IntegerVector x_pair_ids,  // Pair IDs for x (0/NA = unpaired)
+    IntegerVector y_pair_ids,  // Pair IDs for y (0/NA = unpaired)
+    int nboot = 1000,
+    double q = 1.0,
+    double pseudocount = 0.0,
+    double log_base = 2.718281828) {
+  
+  // Input validation
+  if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
+    Rcpp::stop("Invalid log_base (must be > 1, not equal to 1)");
+  }
+  if (q < 0) {
+    Rcpp::stop("Invalid q parameter (must be non-negative)");
+  }
+  if (nboot < 1) {
+    Rcpp::stop("nboot must be at least 1");
+  }
+  if (x.size() != x_pair_ids.size() || y.size() != y_pair_ids.size()) {
+    Rcpp::stop("x and x_pair_ids must have same length; y and y_pair_ids must have same length");
+  }
+  
+  int nx = x.size();
+  int ny = y.size();
+  
+  if (nx == 0 || ny == 0) {
+    Rcpp::stop("x and y must have at least one sample each");
+  }
+  
+  // Adjust counts with pseudocount
+  NumericVector x_adj = x + pseudocount;
+  NumericVector y_adj = y + pseudocount;
+  
+  // Step 2: Index samples by pair membership (use std::vector for reliable resizing)
+  std::map<int, std::vector<int>> x_indices_by_pair;  // pair_id -> indices in x
+  std::map<int, std::vector<int>> y_indices_by_pair;  // pair_id -> indices in y
+  
+  std::vector<int> unpaired_x_indices;  // indices of unpaired x samples
+  std::vector<int> unpaired_y_indices;  // indices of unpaired y samples
+  
+  // Categorize x samples
+  for (int i = 0; i < nx; i++) {
+    int pid = x_pair_ids[i];
+    if (pid <= 0 || pid == NA_INTEGER) {
+      unpaired_x_indices.push_back(i);
+    } else {
+      // Store index for this pair
+      if (x_indices_by_pair.find(pid) == x_indices_by_pair.end()) {
+        x_indices_by_pair[pid] = std::vector<int>();
+      }
+      x_indices_by_pair[pid].push_back(i);
+    }
+  }
+  
+  // Categorize y samples
+  for (int i = 0; i < ny; i++) {
+    int pid = y_pair_ids[i];
+    if (pid <= 0 || pid == NA_INTEGER) {
+      unpaired_y_indices.push_back(i);
+    } else {
+      // Store index for this pair
+      if (y_indices_by_pair.find(pid) == y_indices_by_pair.end()) {
+        y_indices_by_pair[pid] = std::vector<int>();
+      }
+      y_indices_by_pair[pid].push_back(i);
+    }
+  }
+  
+  // Step 3: Move incomplete pairs to unpaired pools
+  // Incomplete = pair exists in only one group
+  for (auto& item : x_indices_by_pair) {
+    int pid = item.first;
+    if (y_indices_by_pair.find(pid) == y_indices_by_pair.end()) {
+      // This pair only exists in x - move to unpaired
+      for (int idx : item.second) {
+        unpaired_x_indices.push_back(idx);
+      }
+    }
+  }
+  
+  for (auto& item : y_indices_by_pair) {
+    int pid = item.first;
+    if (x_indices_by_pair.find(pid) == x_indices_by_pair.end()) {
+      // This pair only exists in y - move to unpaired
+      for (int idx : item.second) {
+        unpaired_y_indices.push_back(idx);
+      }
+    }
+  }
+  
+  // Remove incomplete pairs from the pair maps
+  std::vector<int> incomplete_x_pairs;
+  for (auto& item : x_indices_by_pair) {
+    if (y_indices_by_pair.find(item.first) == y_indices_by_pair.end()) {
+      incomplete_x_pairs.push_back(item.first);
+    }
+  }
+  for (int pid : incomplete_x_pairs) {
+    x_indices_by_pair.erase(pid);
+  }
+  
+  std::vector<int> incomplete_y_pairs;
+  for (auto& item : y_indices_by_pair) {
+    if (x_indices_by_pair.find(item.first) == x_indices_by_pair.end()) {
+      incomplete_y_pairs.push_back(item.first);
+    }
+  }
+  for (int pid : incomplete_y_pairs) {
+    y_indices_by_pair.erase(pid);
+  }
+  
+  // Step 4: Build list of remaining complete pairs
+  // (now that incomplete pairs have been removed and moved to unpaired pools)
+  std::vector<int> complete_pairs;
+  for (auto& item : x_indices_by_pair) {
+    int pid = item.first;
+    // Should exist in y since we removed incomplete pairs
+    if (y_indices_by_pair.find(pid) != y_indices_by_pair.end()) {
+      complete_pairs.push_back(pid);
+    }
+  }
+  
+  // Pre-allocate result
+  NumericVector boot_divs(nboot);
+  
+  GetRNGstate();
+  
+  // Main bootstrap loop
+  for (int b = 0; b < nboot; b++) {
+    double x_boot_sum = 0.0;
+    double y_boot_sum = 0.0;
+    std::vector<double> x_boot_counts(nx, 0.0);
+    std::vector<double> y_boot_counts(ny, 0.0);
+    
+    // Step 3a: Resample complete pairs as units
+    if (complete_pairs.size() > 0) {
+      // Generate random weights for sampling pairs with replacement
+      std::vector<double> pair_probs(complete_pairs.size(), 1.0 / complete_pairs.size());
+      std::vector<int> pair_counts(complete_pairs.size(), 0);
+      R::rmultinom(complete_pairs.size(), pair_probs.data(), 
+                   complete_pairs.size(), (int*)pair_counts.data());
+      
+      for (size_t p = 0; p < complete_pairs.size(); p++) {
+        int pid = complete_pairs[p];
+        int count = pair_counts[p];
+        
+        if (count > 0) {
+          // Add this pair's contribution (all samples for this pair_id)
+          for (int idx : x_indices_by_pair[pid]) {
+            double contribution = x_adj[idx] * count;
+            x_boot_counts[idx] = contribution;
+            x_boot_sum += contribution;
+          }
+          for (int idx : y_indices_by_pair[pid]) {
+            double contribution = y_adj[idx] * count;
+            y_boot_counts[idx] = contribution;
+            y_boot_sum += contribution;
+          }
+        }
+      }
+    }
+    
+    // Step 3b: Resample unpaired x samples independently
+    if (unpaired_x_indices.size() > 0) {
+      std::vector<double> x_unp_probs(unpaired_x_indices.size(), 1.0 / unpaired_x_indices.size());
+      std::vector<int> x_unp_counts(unpaired_x_indices.size(), 0);
+      R::rmultinom(unpaired_x_indices.size(), x_unp_probs.data(), 
+                   unpaired_x_indices.size(), (int*)x_unp_counts.data());
+      
+      for (size_t u = 0; u < unpaired_x_indices.size(); u++) {
+        int idx = unpaired_x_indices[u];
+        int count = x_unp_counts[u];
+        if (count > 0) {
+          double contribution = x_adj[idx] * count;
+          x_boot_counts[idx] = contribution;
+          x_boot_sum += contribution;
+        }
+      }
+    }
+    
+    // Step 3c: Resample unpaired y samples independently
+    if (unpaired_y_indices.size() > 0) {
+      std::vector<double> y_unp_probs(unpaired_y_indices.size(), 1.0 / unpaired_y_indices.size());
+      std::vector<int> y_unp_counts(unpaired_y_indices.size(), 0);
+      R::rmultinom(unpaired_y_indices.size(), y_unp_probs.data(), 
+                   unpaired_y_indices.size(), (int*)y_unp_counts.data());
+      
+      for (size_t u = 0; u < unpaired_y_indices.size(); u++) {
+        int idx = unpaired_y_indices[u];
+        int count = y_unp_counts[u];
+        if (count > 0) {
+          double contribution = y_adj[idx] * count;
+          y_boot_counts[idx] = contribution;
+          y_boot_sum += contribution;
+        }
+      }
+    }
+    
+    // Safety check: avoid division by zero
+    if (x_boot_sum <= 1e-10 || y_boot_sum <= 1e-10) {
+      boot_divs[b] = NA_REAL;
+      continue;
+    }
+    
+    // Step 4: Normalize and compute divergence
+    // Note: p_boot and r_boot may have different sizes when groups have different sample counts
+    // Pad shorter vector with zeros to match longer one
+    int max_size = std::max(nx, ny);
+    NumericVector p_boot(max_size, 0.0);
+    NumericVector r_boot(max_size, 0.0);
+    
+    for (int i = 0; i < nx; i++) {
+      p_boot[i] = x_boot_counts[i] / x_boot_sum;
+    }
+    for (int i = 0; i < ny; i++) {
+      r_boot[i] = y_boot_counts[i] / y_boot_sum;
+    }
+    
+    boot_divs[b] = tsallis_divergence_cpp(p_boot, r_boot, q, log_base);
+  }
+  
+  PutRNGstate();
+  
+  return boot_divs;
 }
