@@ -143,177 +143,6 @@
 #'
 #' @export
 #' @importFrom utils write.table
-
-# ============================================================================
-# HELPER: Prepare and resolve all parameters for diversity calculation
-# ============================================================================
-#' @noRd
-.prepare_diversity_params <- function(analysis, q, norm, norm_method, reference_group,
-                                      tpm, assayno, verbose, what, nthreads, pseudocount,
-                                      min_valid_frac, shrinkage, genes, effective_length,
-                                      metadata, bootstrap, nboot, bootstrap_method,
-                                      bootstrap_ci, bootstrap_include_diagnostics, seed) {
-  # Extract q parameter with default range
-  if (is.null(q)) {
-    q <- if ("q_values" %in% names(analysis@config)) {
-      analysis@config$q_values
-    } else {
-      seq(0.01, 2, by = 0.05)
-    }
-  }
-  
-  if (!is.numeric(q)) {
-    stop("'q' must be numeric", call. = FALSE)
-  }
-  
-  # Validate q values are finite
-  if (any(!is.finite(q))) {
-    stop("'q' values must be finite (not Inf or NaN)", call. = FALSE)
-  }
-  
-  # Resolve all parameters using centralized handler
-  nthreads_resolved <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
-  
-  # Validate nthreads is positive
-  if (!is.numeric(nthreads_resolved) || nthreads_resolved < 1) {
-    stop("'nthreads' must be a positive integer", call. = FALSE)
-  }
-  
-  # Ensure tpm is logical
-  if (is.null(tpm)) {
-    # If tpm is NULL, check config
-    tpm <- if ("tpm" %in% names(analysis@config)) {
-      as.logical(analysis@config$tpm)
-    } else {
-      FALSE  # Default to FALSE
-    }
-  } else {
-    # If tpm is provided, coerce to logical
-    tpm <- as.logical(tpm)
-  }
-  
-  list(
-    q = q,
-    nthreads = nthreads_resolved,
-    verbose = resolve_slot_param(verbose, analysis@config, "verbose", TRUE),
-    bootstrap = resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE),
-    pseudocount = resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0),
-    norm = resolve_slot_param(norm, analysis@config, "norm", TRUE),
-    what = resolve_slot_param(what, analysis@config, "what", "S"),
-    assayno = resolve_slot_param(assayno, analysis@config, "assayno", 1),
-    min_valid_frac = resolve_slot_param(min_valid_frac, analysis@config, "min_valid_frac", 0.75),
-    shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage", "none"),
-    bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config, "bootstrap_method", "percentile"),
-    bootstrap_ci = resolve_slot_param(bootstrap_ci, analysis@config, "bootstrap_ci", 0.95),
-    seed = resolve_slot_param(seed, analysis@config, "seed", NULL),
-    tpm = tpm,
-    genes = resolve_slot_param(genes, analysis@config, "genes", NULL),
-    effective_length = resolve_slot_param(effective_length, analysis@config, "effective_length", NULL),
-    nboot = resolve_slot_param(nboot, analysis@config, "nboot", NULL),
-    bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics, analysis@config, "bootstrap_include_diagnostics", TRUE),
-    metadata = resolve_slot_param(metadata, analysis@config, "metadata", NULL),
-    norm_method = resolve_slot_param(norm_method, analysis@config, "norm_method", NULL),
-    reference_group = resolve_slot_param(reference_group, analysis@config, "reference_group", NULL)
-  )
-}
-
-# ============================================================================
-# HELPER: Build calculation arguments for .calculate_diversity()
-# ============================================================================
-#' @noRd
-.build_calc_diversity_args <- function(params, analysis, dots) {
-  calc_args <- list(
-    x = analysis@se,
-    q = params$q,
-    norm = params$norm,
-    tpm = params$tpm,
-    assayno = params$assayno,
-    verbose = params$verbose,
-    what = params$what,
-    nthreads = params$nthreads,
-    pseudocount = params$pseudocount,
-    min_valid_frac = params$min_valid_frac,
-    shrinkage = params$shrinkage,
-    bootstrap = params$bootstrap,
-    bootstrap_nboot = params$nboot,
-    bootstrap_method = params$bootstrap_method,
-    bootstrap_ci = params$bootstrap_ci,
-    bootstrap_include_diagnostics = params$bootstrap_include_diagnostics,
-    seed = params$seed
-  )
-  
-  # Add optional parameters
-  if (!is.null(params$genes)) {
-    calc_args$genes <- params$genes
-  }
-  if (!is.null(params$effective_length)) {
-    calc_args$effective_length <- params$effective_length
-  }
-  if (!is.null(params$metadata)) {
-    calc_args$metadata <- params$metadata
-  }
-  
-  # Add any additional parameters from dots
-  c(calc_args, dots)
-}
-
-# ============================================================================
-# HELPER: Extract q-value metadata from result dataframe
-# ============================================================================
-#' @noRd
-.extract_q_metadata_from_result <- function(result_df, q_values) {
-  col_q_values <- NA
-  
-  if (length(q_values) > 1 && nrow(result_df) > 0) {
-    col_names <- colnames(result_df)
-    q_col_indices <- grep("_q=", col_names)
-    if (length(q_col_indices) > 0) {
-      q_vals_str <- sub(".*_q=", "", col_names[q_col_indices])
-      col_q_values <- as.numeric(q_vals_str)
-      if (any(!is.na(col_q_values))) {
-        names(col_q_values) <- q_col_indices
-      } else {
-        col_q_values <- NA
-      }
-    }
-  }
-  
-  col_q_values
-}
-
-# ============================================================================
-# HELPER: Apply post-hoc normalization to a single result SE
-# ============================================================================
-#' @noRd
-.apply_diversity_post_hoc_norm <- function(result_se, norm_method, params, q_val, verbose) {
-  if (is.null(norm_method) || norm_method == "default" || !is(result_se, "SummarizedExperiment")) {
-    return(result_se)
-  }
-  
-  diversity_assay <- SummarizedExperiment::assay(result_se, "diversity")
-  
-  if (norm_method == "zscore") {
-    diversity_assay <- .normalize_zscore(diversity_assay, per_q = TRUE)
-    if (verbose) message("[calculate_diversity_s4] Applied z-score normalization for q=", q_val)
-  } else if (norm_method == "log_odds_ratio" && !is.null(params$genes)) {
-    n_isoforms_vec <- table(params$genes)
-    diversity_assay <- .normalize_log_odds_ratio(diversity_assay, n_isoforms = n_isoforms_vec, q = q_val)
-    if (verbose) message("[calculate_diversity_s4] Applied log-odds ratio normalization for q=", q_val)
-  } else if (norm_method == "relative_reference" && !is.null(params$reference_group)) {
-    coldata <- SummarizedExperiment::colData(result_se)
-    if (params$reference_group %in% colnames(coldata)) {
-      group_vector <- coldata[[params$reference_group]]
-      diversity_assay <- .normalize_relative_reference(diversity_assay, group_vector = group_vector,
-                                                       reference_group = params$reference_group)
-      if (verbose) message("[calculate_diversity_s4] Applied relative reference normalization for q=", q_val)
-    }
-  }
-  
-  SummarizedExperiment::assay(result_se, "diversity") <- diversity_assay
-  result_se
-}
-
-#' @export
 calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method = NULL, 
                                    reference_group = NULL, tpm = FALSE, assayno = NULL,
                                    verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
@@ -549,4 +378,175 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   
   analysis
 }
+
+# ============================================================================
+# HELPER: Prepare and resolve all parameters for diversity calculation
+# ============================================================================
+#' @noRd
+.prepare_diversity_params <- function(analysis, q, norm, norm_method, reference_group,
+                                      tpm, assayno, verbose, what, nthreads, pseudocount,
+                                      min_valid_frac, shrinkage, genes, effective_length,
+                                      metadata, bootstrap, nboot, bootstrap_method,
+                                      bootstrap_ci, bootstrap_include_diagnostics, seed) {
+  # Extract q parameter with default range
+  if (is.null(q)) {
+    q <- if ("q_values" %in% names(analysis@config)) {
+      analysis@config$q_values
+    } else {
+      seq(0.01, 2, by = 0.05)
+    }
+  }
+  
+  if (!is.numeric(q)) {
+    stop("'q' must be numeric", call. = FALSE)
+  }
+  
+  # Validate q values are finite
+  if (any(!is.finite(q))) {
+    stop("'q' values must be finite (not Inf or NaN)", call. = FALSE)
+  }
+  
+  # Resolve all parameters using centralized handler
+  nthreads_resolved <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  
+  # Validate nthreads is positive
+  if (!is.numeric(nthreads_resolved) || nthreads_resolved < 1) {
+    stop("'nthreads' must be a positive integer", call. = FALSE)
+  }
+  
+  # Ensure tpm is logical
+  if (is.null(tpm)) {
+    # If tpm is NULL, check config
+    tpm <- if ("tpm" %in% names(analysis@config)) {
+      as.logical(analysis@config$tpm)
+    } else {
+      FALSE  # Default to FALSE
+    }
+  } else {
+    # If tpm is provided, coerce to logical
+    tpm <- as.logical(tpm)
+  }
+  
+  list(
+    q = q,
+    nthreads = nthreads_resolved,
+    verbose = resolve_slot_param(verbose, analysis@config, "verbose", TRUE),
+    bootstrap = resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE),
+    pseudocount = resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0),
+    norm = resolve_slot_param(norm, analysis@config, "norm", TRUE),
+    what = resolve_slot_param(what, analysis@config, "what", "S"),
+    assayno = resolve_slot_param(assayno, analysis@config, "assayno", 1),
+    min_valid_frac = resolve_slot_param(min_valid_frac, analysis@config, "min_valid_frac", 0.75),
+    shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage", "none"),
+    bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config, "bootstrap_method", "percentile"),
+    bootstrap_ci = resolve_slot_param(bootstrap_ci, analysis@config, "bootstrap_ci", 0.95),
+    seed = resolve_slot_param(seed, analysis@config, "seed", NULL),
+    tpm = tpm,
+    genes = resolve_slot_param(genes, analysis@config, "genes", NULL),
+    effective_length = resolve_slot_param(effective_length, analysis@config, "effective_length", NULL),
+    nboot = resolve_slot_param(nboot, analysis@config, "nboot", NULL),
+    bootstrap_include_diagnostics = resolve_slot_param(bootstrap_include_diagnostics, analysis@config, "bootstrap_include_diagnostics", TRUE),
+    metadata = resolve_slot_param(metadata, analysis@config, "metadata", NULL),
+    norm_method = resolve_slot_param(norm_method, analysis@config, "norm_method", NULL),
+    reference_group = resolve_slot_param(reference_group, analysis@config, "reference_group", NULL)
+  )
+}
+
+# ============================================================================
+# HELPER: Build calculation arguments for .calculate_diversity()
+# ============================================================================
+#' @noRd
+.build_calc_diversity_args <- function(params, analysis, dots) {
+  calc_args <- list(
+    x = analysis@se,
+    q = params$q,
+    norm = params$norm,
+    tpm = params$tpm,
+    assayno = params$assayno,
+    verbose = params$verbose,
+    what = params$what,
+    nthreads = params$nthreads,
+    pseudocount = params$pseudocount,
+    min_valid_frac = params$min_valid_frac,
+    shrinkage = params$shrinkage,
+    bootstrap = params$bootstrap,
+    bootstrap_nboot = params$nboot,
+    bootstrap_method = params$bootstrap_method,
+    bootstrap_ci = params$bootstrap_ci,
+    bootstrap_include_diagnostics = params$bootstrap_include_diagnostics,
+    seed = params$seed
+  )
+  
+  # Add optional parameters
+  if (!is.null(params$genes)) {
+    calc_args$genes <- params$genes
+  }
+  if (!is.null(params$effective_length)) {
+    calc_args$effective_length <- params$effective_length
+  }
+  if (!is.null(params$metadata)) {
+    calc_args$metadata <- params$metadata
+  }
+  
+  # Add any additional parameters from dots
+  c(calc_args, dots)
+}
+
+# ============================================================================
+# HELPER: Extract q-value metadata from result dataframe
+# ============================================================================
+#' @noRd
+.extract_q_metadata_from_result <- function(result_df, q_values) {
+  col_q_values <- NA
+  
+  if (length(q_values) > 1 && nrow(result_df) > 0) {
+    col_names <- colnames(result_df)
+    q_col_indices <- grep("_q=", col_names)
+    if (length(q_col_indices) > 0) {
+      q_vals_str <- sub(".*_q=", "", col_names[q_col_indices])
+      col_q_values <- as.numeric(q_vals_str)
+      if (any(!is.na(col_q_values))) {
+        names(col_q_values) <- q_col_indices
+      } else {
+        col_q_values <- NA
+      }
+    }
+  }
+  
+  col_q_values
+}
+
+# ============================================================================
+# HELPER: Apply post-hoc normalization to a single result SE
+# ============================================================================
+#' @noRd
+.apply_diversity_post_hoc_norm <- function(result_se, norm_method, params, q_val, verbose) {
+  if (is.null(norm_method) || norm_method == "default" || !is(result_se, "SummarizedExperiment")) {
+    return(result_se)
+  }
+  
+  diversity_assay <- SummarizedExperiment::assay(result_se, "diversity")
+  
+  if (norm_method == "zscore") {
+    diversity_assay <- .normalize_zscore(diversity_assay, per_q = TRUE)
+    if (verbose) message("[calculate_diversity_s4] Applied z-score normalization for q=", q_val)
+  } else if (norm_method == "log_odds_ratio" && !is.null(params$genes)) {
+    n_isoforms_vec <- table(params$genes)
+    diversity_assay <- .normalize_log_odds_ratio(diversity_assay, n_isoforms = n_isoforms_vec, q = q_val)
+    if (verbose) message("[calculate_diversity_s4] Applied log-odds ratio normalization for q=", q_val)
+  } else if (norm_method == "relative_reference" && !is.null(params$reference_group)) {
+    coldata <- SummarizedExperiment::colData(result_se)
+    if (params$reference_group %in% colnames(coldata)) {
+      group_vector <- coldata[[params$reference_group]]
+      diversity_assay <- .normalize_relative_reference(diversity_assay, group_vector = group_vector,
+                                                       reference_group = params$reference_group)
+      if (verbose) message("[calculate_diversity_s4] Applied relative reference normalization for q=", q_val)
+    }
+  }
+  
+  SummarizedExperiment::assay(result_se, "diversity") <- diversity_assay
+  result_se
+}
+
+
 
