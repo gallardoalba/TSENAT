@@ -194,7 +194,12 @@
     message("  - divergence rowData rows:", nrow(rd))
     message("  - use_gene_name_col:", use_gene_name_col)
   }
-  
+
+  # OPTIMIZATION: Pre-allocate list to collect results instead of using rbind in loop
+  # This avoids O(n²) behavior of repeated rbind operations
+  result_list <- vector("list", length(significant_genes))
+  debug_messages <- character(0)
+
   for (i in seq_along(significant_genes)) {
     gene_id <- significant_genes[i]
     
@@ -205,20 +210,28 @@
       next
     }
 
-    # Show debug info for first few genes
+    # Collect debug info for first few genes (batch print after loop)
     if (verbose && i <= min(3, length(significant_genes))) {
-      message("  [Gene ", i, "] gene_id='", gene_id, "' match_name='", lmm_data$match_name, "'")
+      debug_messages <- c(debug_messages, 
+        sprintf("  [Gene %d] gene_id='%s' match_name='%s'", i, gene_id, lmm_data$match_name))
     }
 
     # Extract divergence data for this gene
-    div_data <- .extractDivergenceData(rd, lmm_data$match_name, verbose, i, length(significant_genes))
-    if (is.null(div_data)) {
+    div_idx <- which(rd$gene_name == lmm_data$match_name)
+    if (length(div_idx) == 0) {
+      div_idx <- which(rownames(rd) == lmm_data$match_name)
+    }
+    
+    if (length(div_idx) == 0) {
       validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
       next
     }
+    
+    div_data <- as.data.frame(rd[div_idx[1], , drop = FALSE])
 
     if (verbose && i <= min(3, length(significant_genes))) {
-      message(" -> found ", 1, " row(s)")
+      debug_messages[length(debug_messages)] <- paste0(debug_messages[length(debug_messages)], 
+        " -> found 1 row(s)")
     }
 
     # Format result row
@@ -227,7 +240,8 @@
       if (is.na(div_data$estimate[1])) {
         validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
         if (verbose) {
-          message("  [Skipped] ", lmm_data$match_name, " - divergence estimate is NA")
+          debug_messages <- c(debug_messages, 
+            sprintf("  [Skipped] %s - divergence estimate is NA", lmm_data$match_name))
         }
         next
       }
@@ -251,18 +265,38 @@
       if (is.null(new_row)) {
         validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
         if (verbose) {
-          message("  [Skipped] ", lmm_data$match_name, " - all divergence estimates are NA")
+          debug_messages <- c(debug_messages, 
+            sprintf("  [Skipped] %s - all divergence estimates are NA", lmm_data$match_name))
         }
         next
       }
     }
 
-    # Add to results
-    interaction_results <- rbind(interaction_results, new_row)
+    # Store in list (OPTIMIZATION: avoid rbind in loop)
+    result_list[[i]] <- new_row
     validation_stats$passed_lmm <- validation_stats$passed_lmm + 1
 
-    if (verbose) {
-      .printMergeSuccess(lmm_data, div_data, q_values, use_generic)
+    if (verbose && i <= min(3, length(significant_genes))) {
+      debug_messages <- c(debug_messages, 
+        sprintf("  [SUCCESS] %s - p=%.3e, D_spectrum=[...]", 
+          lmm_data$match_name, lmm_data$p_interaction))
+    }
+  }
+
+  # OPTIMIZATION: Replace rbind loop with do.call(rbind) - converts O(n²) to O(n)
+  result_list <- result_list[!vapply(result_list, is.null, logical(1))]
+  
+  if (length(result_list) > 0) {
+    interaction_results <- do.call(rbind, result_list)
+    rownames(interaction_results) <- NULL  # Reset rownames
+  } else {
+    interaction_results <- .createResultsDataFrame(q_values, use_generic)
+  }
+
+  # Print batched debug messages after loop completes (OPTIMIZATION: move verbose logging outside loop)
+  if (verbose && length(debug_messages) > 0) {
+    for (msg in debug_messages) {
+      message(msg)
     }
   }
 
