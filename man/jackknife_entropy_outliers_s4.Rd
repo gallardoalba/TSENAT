@@ -60,6 +60,9 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
+# Filter low-abundance genes (required for reliable jackknife estimates)
+analysis <- filter_analysis_s4(analysis, stringency = "severe")
+
 # Compute diversity first (required for jackknife)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
   verbose = FALSE)

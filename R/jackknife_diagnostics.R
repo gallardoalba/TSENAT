@@ -8,10 +8,11 @@
 
 #' @noRd
 .jackknife_validate_params <- function(q, threshold) {
-  if (!is.numeric(q) || any(q < 0)) {
+  # Guard against NA values in q before comparison
+  if (!is.numeric(q) || any(is.na(q)) || any(q < 0, na.rm = TRUE)) {
     stop("'q' must be non-negative numeric value(s) (q >= 0)")
   }
-  if (!is.numeric(threshold) || threshold < 0 || threshold > 100) {
+  if (!is.numeric(threshold) || is.na(threshold) || threshold < 0 || threshold > 100) {
     stop("'threshold' must be between 0 and 100")
   }
 }
@@ -308,6 +309,11 @@
     warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
       "Jackknife estimates may be unreliable (per papers S111, S114).\n",
       "Consider aggregating samples or filtering genes with low abundance.")
+  }
+  
+  # Guard against NA or non-scalar q values
+  if (is.na(q) || length(q) != 1 || !is.numeric(q)) {
+    return(invisible(NULL))
   }
   
   if (q < 0.5) {

@@ -424,6 +424,9 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #' # Build analysis from vignette data
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'
+#' # Filter low-abundance genes (required for reliable jackknife estimates)
+#' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' 
 #' # Compute diversity first (required for jackknife)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -458,7 +461,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
   }
 
   for (q_val in q) {
-    # Check if diversity at this q-value exists
+    # Verify diversity was computed for this q-value (prerequisite for jackknife)
     div_key <- paste0("q_", formatC(q_val, format = "f", digits = 3))
     if (!(div_key %in% names(analysis@diversity_results))) {
       stop("Diversity not calculated for q=", q_val,
@@ -466,41 +469,14 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
            call. = FALSE)
     }
 
-    # Get diversity result (SummarizedExperiment with diversity assay)
-    div_result <- analysis@diversity_results[[div_key]]
-    
-    # Extract diversity matrix from the SummarizedExperiment
-    if (is(div_result, "SummarizedExperiment")) {
-      # Get the diversity assay (should be named "diversity" from calculate_diversity_s4)
-      if (length(SummarizedExperiment::assays(div_result)) > 0) {
-        div_matrix <- as.matrix(SummarizedExperiment::assay(div_result, 1))
-      } else {
-        stop("Diversity SE for q=", q_val, " has no assays", call. = FALSE)
-      }
-    } else {
-      # If not a SE, assume it's already a matrix
-      div_matrix <- as.matrix(div_result)
-    }
-
-    # Filter out genes with NA values (cannot compute jackknife on NA)
-    valid_genes <- apply(div_matrix, 1, function(row) !any(is.na(row)))
-    if (sum(!valid_genes) > 0) {
-      warning("Removing ", sum(!valid_genes), " genes with NA values before jackknife for q=",
-              q_val, " (", sum(valid_genes), " valid genes remain)",
-              call. = FALSE)
-      div_matrix <- div_matrix[valid_genes, , drop = FALSE]
-    }
-    
-    if (nrow(div_matrix) == 0) {
-      stop("No valid genes for jackknife at q=", q_val,
-           " (all genes have NA values). Check diversity calculation.",
-           call. = FALSE)
-    }
-
-    # Run jackknife - pass the diversity matrix as x
+    # Run jackknife - pass the COUNTS (not diversity values!) to jackknife function
+    # Jackknife stability analysis requires raw count data, not pre-computed diversity
     tryCatch({
+      # Extract counts matrix from SummarizedExperiment
+      counts_matrix <- SummarizedExperiment::assay(analysis@se, "counts")
+      
       result <- .jackknife_entropy_outliers(
-        x = div_matrix,
+        x = counts_matrix,
         q = q_val,
         verbose = verbose,
         nthreads = nthreads,
@@ -1532,7 +1508,8 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
-#' names(metadata(analysis, "rankbased_assumptions"))
+#' # Access results using getMeta S4 accessor
+#' names(getMeta(analysis, "rankbased_assumptions"))
 #'
 #' @export
 #' @rdname test_rankbased_assumptions_s4

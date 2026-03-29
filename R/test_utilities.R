@@ -532,7 +532,7 @@ subset_analysis <- function(
     
     if (verbose) {
       message("[subset_analysis] Filtered tx2gene: ", 
-              nrow(tx2gene_full), " → ", nrow(tx2gene_subset), " transcripts")
+              nrow(tx2gene_full), " \u2192 ", nrow(tx2gene_subset), " transcripts")
     }
   }
   
@@ -545,7 +545,7 @@ subset_analysis <- function(
     
     if (verbose) {
       message("[subset_analysis] Filtered readcounts: ", 
-              nrow(readcounts_full), " → ", nrow(readcounts_subset), " transcripts")
+              nrow(readcounts_full), " \u2192 ", nrow(readcounts_subset), " transcripts")
     }
   }
   
@@ -557,7 +557,7 @@ subset_analysis <- function(
     
     if (verbose) {
       message("[subset_analysis] Filtered salmon_tpm: ", 
-              nrow(tpm_full), " → ", nrow(tpm_subset), " transcripts")
+              nrow(tpm_full), " \u2192 ", nrow(tpm_subset), " transcripts")
     }
   }
   
@@ -582,7 +582,7 @@ subset_analysis <- function(
   
   if (verbose) {
     message("[subset_analysis] Subset complete: ", 
-            nrow(analysis_subset@se), " genes × ", 
+            nrow(analysis_subset@se), " genes \u00d7 ", 
             ncol(analysis_subset@se), " samples")
   }
   

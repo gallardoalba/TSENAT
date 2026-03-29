@@ -50,9 +50,10 @@ double entropy_cpp(NumericVector p, double q = 1.0, bool normalize = true, doubl
   
   if (p_valid.size() == 0) return NA_REAL;
   
-  // Convert sizes from size_t to int safely (check against INT_MAX)
-  if (p_valid.size() > static_cast<size_t>(INT_MAX)) {
-    Rcpp::warning("Input size exceeds maximum integer value");
+  // Convert size to int safely
+  int n = static_cast<int>(p_valid.size());
+  if (n <= 0) {
+    Rcpp::warning("Input size invalid");
     return NA_REAL;
   }
   
@@ -61,7 +62,6 @@ double entropy_cpp(NumericVector p, double q = 1.0, bool normalize = true, doubl
   
   // Special case for q ≈ 0 (species richness)
   if (q < q_tol) {
-    int n = p_valid.size();
     // D_0 = effective richness = number of species (entropy of richness is just species count)
     entropy = std::log(n);  // Raw richness in natural log
     if (normalize) {
@@ -77,7 +77,7 @@ double entropy_cpp(NumericVector p, double q = 1.0, bool normalize = true, doubl
   
   if (std::abs(q - 1.0) < q_tol) {
     // Shannon entropy (q = 1)
-    for (size_t i = 0; i < p_valid.size(); i++) {
+    for (int i = 0; i < n; i++) {
       double pi = p_valid[i];
       if (pi > 1e-15) {  // BUG FIX: Use machine epsilon threshold not arbitrary 0
         entropy -= pi * std::log(pi) / std::log(log_base);
@@ -87,7 +87,7 @@ double entropy_cpp(NumericVector p, double q = 1.0, bool normalize = true, doubl
     // Tsallis entropy (q != 1): (1 - sum(p^q)) / (q - 1)
     // NOTE: This formula does NOT include log_base
     double sum_pq = 0.0;
-    for (size_t i = 0; i < p_valid.size(); i++) {
+    for (int i = 0; i < n; i++) {
       sum_pq += std::pow(p_valid[i], q);
     }
     
@@ -171,7 +171,7 @@ double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.7182
   } else if (std::abs(q - 1.0) < q_tol) {
     // D_1 = exp(Shannon entropy)
     double shannon = 0.0;
-    for (size_t i = 0; i < p_valid.size(); i++) {
+    for (int i = 0; i < n; i++) {
       double pi = p_valid[i];
       if (pi > 1e-15) {  // BUG FIX: Use machine epsilon threshold not arbitrary 0
         shannon -= pi * std::log(pi) / std::log(log_base);
@@ -181,7 +181,7 @@ double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.7182
   } else {
     // D_q = (Σp^q)^(1/(1-q))
     double sum_pq = 0.0;
-    for (size_t i = 0; i < p_valid.size(); i++) {
+    for (int i = 0; i < n; i++) {
       sum_pq += std::pow(p_valid[i], q);
     }
     
@@ -202,6 +202,7 @@ double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.7182
     return std::pow(sum_pq, exponent);
   }
 }
+//' @keywords internal
 // [[Rcpp::export]]
 List jackknife_resampling_cpp(NumericMatrix counts, double q = 1.0, 
                               bool normalize = true, double log_base = 2.718281828,

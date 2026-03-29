@@ -8,13 +8,12 @@ Description: Tsallis entropy generalizes Shannon entropy with a parameter
     of Tsallis entropy for transcript-level expression data and differential analyses 
     between two sample conditions. For power analysis and sample size planning, 
     see the companion package TSENATPower.
-License: GPL (>= 3)
-LicenseFile: LICENSE
+License: GPL (>= 3) + file LICENSE
 Encoding: UTF-8
 LazyData: false
 RoxygenNote: 7.3.3
 Depends: R (>= 4.5.0)
-Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, lme4, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise
+Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, lme4, matrixStats, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise
 LinkingTo: Rcpp, RcppArmadillo
 Suggests: testthat, knitr, rmarkdown, kableExtra, ggrepel, patchwork, covr, fda, nortest, RColorBrewer, gamsel, glmmTMB, glmnet, gridExtra, lmerTest, nlme, fdrtool, MASS, SplicingFactory, devtools, microbenchmark
 VignetteBuilder: knitr

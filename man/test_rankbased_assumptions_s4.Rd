@@ -89,6 +89,7 @@ analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
-names(metadata(analysis, "rankbased_assumptions"))
+# Access results using getMeta S4 accessor
+names(getMeta(analysis, "rankbased_assumptions"))
 
 }

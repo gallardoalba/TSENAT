@@ -9,17 +9,15 @@
 # Check if running coverage analysis
 # When R_COVERAGE=1 (set by covr), disable optimization and parallelization
 # to avoid corruption of coverage data (.gcno/.gcda files)
-ifdef R_COVERAGE
-  # Coverage build: no optimization, no parallelization
-  CXX11FLAGS = -O0 -fPIC -fprofile-arcs -ftest-coverage
-  PKG_CXXFLAGS = 
-  PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) -fprofile-arcs -ftest-coverage
-else
-  # Release build: full optimization with OpenMP
-  # Use Armadillo with OpenMP
-  PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-  PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
-  
-  # Enable C++11 and aggressive optimization
-  CXX11FLAGS = -O3 -fPIC
-endif
+
+# Use $(if ...) for portable conditional assignment
+# Portable alternative to ifdef R_COVERAGE ... else ... endif
+# During coverage, disable _FORTIFY_SOURCE (incompatible with -O0)
+CXX11FLAGS = $(if $(R_COVERAGE),-O0 -fPIC -fprofile-arcs -ftest-coverage -U_FORTIFY_SOURCE,-O3 -fPIC)
+
+# Coverage build: no parallelization; Release build: with OpenMP
+PKG_CXXFLAGS = $(if $(R_COVERAGE),,$(SHLIB_OPENMP_CXXFLAGS))
+
+# Add coverage flags to libs if in coverage mode
+COVERAGE_FLAGS = $(if $(R_COVERAGE),-fprofile-arcs -ftest-coverage,)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(COVERAGE_FLAGS)
