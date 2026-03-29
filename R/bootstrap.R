@@ -193,7 +193,7 @@
 #' sensitivity levels via parameter q. Accelerated with C++ for performance.
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
   # p should be proportions (sum to 1)
   if (!is.numeric(p)) {
@@ -224,7 +224,7 @@ hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
 #' Input must have even length (pairs). Accelerated for speed.
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
                                                 nboot = 1000L, log_base = exp(1), 
                                                 pseudocount = 0.0) {
@@ -275,7 +275,7 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
 #' Handles vector pseudocounts by applying them upfront.
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
                                           nboot = 1000L, log_base = exp(1), 
                                           pseudocount = 0.0) {
@@ -316,7 +316,7 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
 #' Input must be a matrix of samples (typically from multinomial resampling).
 #'
 #' @keywords internal
-#' @export
+#' @noRd
 bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1.0, 
                                               normalize = TRUE, log_base = exp(1)) {
   .Call("_TSENAT_bootstrap_entropy_vec_cpp", PACKAGE = "TSENAT",

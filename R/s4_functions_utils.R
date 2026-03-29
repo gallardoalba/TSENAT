@@ -37,7 +37,7 @@
 #' # Returns: 1
 #'
 
-#' @export
+#' @noRd
 resolve_slot_param <- function(user_value, config_list, config_key, 
                                 default_value, description = NULL, allow_null = TRUE) {
   
@@ -113,7 +113,7 @@ resolve_slot_param <- function(user_value, config_list, config_key,
 #' # Returns: "group" (first match)
 #'
 
-#' @export
+#' @noRd
 auto_detect_column <- function(available_cols, config_list = NULL, config_key = NULL,
                                 priority_candidates = character(0), 
                                 default_fallback = NULL, verbose = FALSE,
@@ -201,7 +201,7 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 #' save_analysis_output(p, "results/plot.pdf")
 #'
 
-#' @export
+#' @noRd
 save_analysis_output <- function(data, output_file, object = NULL, verbose = FALSE,
                                   create_dir = TRUE, func_name = "wrapper_function",
                                   width = NULL, height = NULL) {
