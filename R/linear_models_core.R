@@ -194,7 +194,6 @@
 #' 
 #' # Run linear model interaction analysis
 #' results <- .calculate_lm_interaction(se, condition_col = "condition")
-
 .calculate_lm_interaction <- function(
     se,
     condition_col = "condition",

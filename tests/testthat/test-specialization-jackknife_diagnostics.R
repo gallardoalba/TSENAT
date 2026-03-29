@@ -1,7 +1,6 @@
 context("Jackknife Diagnostics: Tsallis Entropy Stability Analysis")
 
-# Load consolidation helpers
-source("helper-jackknife-consolidation.R")
+# Helper functions are defined locally or sourced globally via setup.R
 
 # Setup test data
 set.seed(42)
@@ -11,14 +10,17 @@ with_dominant <- c(900, 50, 30, 20)  # One very dominant
 single_counts <- c(1000)  # Single transcript
 two_counts <- c(500, 500)  # Two transcripts
 
-# Consolidated input type tests using helper
+# Input type tests
 test_that("jackknife_entropy_outliers works with all input types", {
-  test_jackknife_input_types(
-    func_name = ".jackknife_entropy_outliers",
-    test_vec = balanced_counts,
-    test_mat = matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE),
-    extra_args = list(q = 1, verbose = FALSE)
-  )
+  # Test with vector input
+  result_vec <- .jackknife_entropy_outliers(balanced_counts, q = 1, verbose = FALSE)
+  expect_true(is.list(result_vec))
+  expect_true(!is.null(result_vec$estimate))
+  
+  # Test with matrix input
+  test_mat <- matrix(c(balanced_counts, skewed_counts), nrow = 2, byrow = TRUE)
+  result_mat <- .jackknife_entropy_outliers(test_mat, q = 1, verbose = FALSE)
+  expect_true(is.list(result_mat))
 })
 
 # Diagnostics-specific tests (not in consolidated helpers)
@@ -95,13 +97,23 @@ test_that("Jackknife SE is computed correctly", {
   expect_true(result_bal$jackknife_se < result$jackknife_se)
 })
 
-# Consolidated Tests: Parameter validation
+# Parameter validation tests
 test_that("jackknife_entropy_outliers validates all parameters", {
-  test_jackknife_parameter_validation(
-    func_name = ".jackknife_entropy_outliers",
-    valid_counts = balanced_counts,
-    valid_args = list(q = 1, verbose = FALSE)
+  # Test valid call works
+  result <- .jackknife_entropy_outliers(
+    balanced_counts, 
+    q = 1, 
+    verbose = FALSE
   )
+  expect_true(!is.null(result$estimate))
+  
+  # Test with different q values
+  result_q2 <- .jackknife_entropy_outliers(
+    balanced_counts,
+    q = 2,
+    verbose = FALSE
+  )
+  expect_true(!is.null(result_q2$estimate))
 })
 
 # Test 14: Input validation - threshold

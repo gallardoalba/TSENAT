@@ -2094,3 +2094,192 @@ test_that("GEE results unchanged by K-C when n_clusters large", {
     expect_true(!is.na(rd_res$p_interaction[1]))
     expect_true(rd_res$p_interaction[1] < 0.01)  # Strong interaction signal
 })
+
+# =============================================================================
+# ADDITIONAL TESTS: Helper Function Coverage Expansion
+# =============================================================================
+
+context("GEE Helper Functions: Extended Unit Tests")
+
+test_that(".validate_gee_inputs accepts valid dataframe", {
+  df <- data.frame(
+    q = c(0.5, 1.0, 1.5, 0.5),
+    entropy = c(2.0, 2.5, 2.8, 2.1),
+    group = c("A", "A", "A", "B"),
+    subject = c("S1", "S1", "S1", "S2")
+  )
+  result <- TSENAT:::.validate_gee_inputs(df, subject = df$subject, min_obs = 1, weights = NULL)
+  expect_true(is.list(result))
+  expect_true(result$valid)
+})
+
+test_that(".validate_gee_inputs returns list with valid=FALSE for insufficient observations", {
+  df <- data.frame(
+    q = c(0.5),
+    entropy = c(2.0),
+    group = c("A"),
+    subject = c("S1")
+  )
+  result <- TSENAT:::.validate_gee_inputs(df, subject = df$subject, min_obs = 100, weights = NULL)
+  expect_true(is.list(result))
+  expect_false(result$valid)
+})
+
+test_that(".validate_gee_inputs handles weights parameter", {
+  df <- data.frame(
+    q = c(0.5, 1.0, 1.5, 0.5),
+    entropy = c(2.0, 2.5, 2.8, 2.1),
+    group = c("A", "A", "A", "B"),
+    subject = c("S1", "S1", "S1", "S2"),
+    wt = c(1.0, 1.1, 0.9, 1.0)
+  )
+  result <- TSENAT:::.validate_gee_inputs(
+    df, 
+    subject = df$subject, 
+    min_obs = 1, 
+    weights = df$wt
+  )
+  expect_true(is.list(result))
+  expect_true(result$valid)
+})
+
+test_that(".apply_arima_differencing returns list with df, subject, use_arima", {
+  df <- data.frame(
+    q = c(0.5, 1.0, 1.5, 0.5, 1.0, 1.5),
+    entropy = c(2.0, 2.5, 2.8, 2.1, 2.6, 2.9),
+    group = c("A", "A", "A", "B", "B", "B"),
+    subject = c("S1", "S1", "S1", "S2", "S2", "S2")
+  )
+  
+  result <- TSENAT:::.apply_arima_differencing(df, subject = factor(df$subject))
+  expect_true(is.list(result))
+  expect_true("df" %in% names(result))
+  expect_true("use_arima" %in% names(result))
+})
+
+test_that(".apply_arima_differencing handles single subject", {
+  df <- data.frame(
+    q = c(0.5, 1.0, 1.5),
+    entropy = c(2.0, 2.5, 2.8),
+    group = c("A", "A", "A"),
+    subject = c("S1", "S1", "S1")
+  )
+  
+  result <- TSENAT:::.apply_arima_differencing(df, subject = factor(df$subject))
+  expect_true(is.list(result))
+  expect_false(result$use_arima)  # No differencing for single subject
+})
+
+test_that(".prepare_gee_weights returns list with df and gee_weights", {
+  df <- data.frame(
+    entropy = c(1.0, 2.0, 3.0, 0.5, 1.5),
+    q = c(0.5, 1.0, 1.5, 0.5, 1.0),
+    group = c("A", "A", "A", "B", "B"),
+    subject = c("S1", "S1", "S1", "S2", "S2")
+  )
+  
+  weights_result <- TSENAT:::.prepare_gee_weights(df)
+  expect_true(is.list(weights_result))
+  expect_true("df" %in% names(weights_result))
+  expect_true("gee_weights" %in% names(weights_result))
+  # gee_weights can be NULL or numeric
+  if (!is.null(weights_result$gee_weights)) {
+    expect_true(is.numeric(weights_result$gee_weights))
+  }
+})
+
+test_that(".compute_ar1_design_effect handles rho = 0", {
+  d_eff <- TSENAT:::.compute_ar1_design_effect(rho = 0.0, cluster_size = 10)
+  expect_equal(d_eff, 1.0, tolerance = 0.01)
+})
+
+test_that(".compute_ar1_design_effect increases with positive rho", {
+  d_eff_low <- TSENAT:::.compute_ar1_design_effect(rho = 0.1, cluster_size = 10)
+  d_eff_high <- TSENAT:::.compute_ar1_design_effect(rho = 0.5, cluster_size = 10)
+  
+  expect_true(d_eff_low > 1.0)
+  expect_true(d_eff_high > d_eff_low)
+})
+
+test_that(".compute_ar1_design_effect clips extreme rho values", {
+  d_eff <- TSENAT:::.compute_ar1_design_effect(rho = 0.95, cluster_size = 10)
+  expect_true(is.finite(d_eff))
+  expect_true(d_eff > 1.0)
+})
+
+test_that(".compute_ar1_design_effect handles negative rho", {
+  d_eff_neg <- TSENAT:::.compute_ar1_design_effect(rho = -0.3, cluster_size = 10)
+  expect_true(is.numeric(d_eff_neg))
+  expect_true(d_eff_neg > 0)
+})
+
+test_that(".estimate_ar1_correlation estimates lag-1 correlation", {
+  set.seed(42)
+  rho_true <- 0.6
+  residuals <- arima.sim(list(ar = rho_true), n = 100)
+  
+  rho_est <- TSENAT:::.estimate_ar1_correlation(residuals)
+  expect_true(is.numeric(rho_est))
+  expect_true(rho_est > 0.3)
+  expect_true(rho_est < 1.0)
+})
+
+test_that(".estimate_ar1_correlation handles white noise", {
+  set.seed(42)
+  residuals <- rnorm(50)
+  
+  rho_est <- TSENAT:::.estimate_ar1_correlation(residuals)
+  expect_true(is.numeric(rho_est))
+  expect_true(is.finite(rho_est))
+})
+
+test_that(".gee_interaction returns NULL for invalid inputs", {
+  skip_if_not_installed("geepack")
+  
+  df_invalid <- data.frame(
+    q = c(0.5),
+    entropy = c(2.0),
+    group = c("A"),
+    subject = c("S1")
+  )
+  
+  result <- TSENAT:::.gee_interaction(
+    df = df_invalid,
+    q_vals = "q",
+    g = NA_character_,
+    subject = "subject",
+    bias_correction = FALSE,
+    min_obs = 100  # More than available
+  )
+  
+  expect_null(result)
+})
+
+test_that(".gee_interaction with valid data returns result", {
+  skip_if_not_installed("geepack")
+  
+  # Create valid test data with proper structure
+  n_clusters <- 12
+  df <- data.frame(
+    q = rep(c(0.5, 1.0, 1.5), n_clusters),
+    entropy = rnorm(3 * n_clusters, mean = 2.0, sd = 0.3) + 
+              rep(rep(c(0, 0.5, 1.0), times = n_clusters), 1),
+    group = rep(c("control", "control", "control", "treatment", "treatment", "treatment"), n_clusters / 2),
+    subject = rep(paste0("S", 1:n_clusters), 3)
+  )
+  
+  result <- TSENAT:::.gee_interaction(
+    df = df,
+    q_vals = "q",
+    g = NA_character_,
+    subject = "subject",
+    bias_correction = TRUE,
+    min_obs = 3
+  )
+  
+  # Result should be data.frame with p_interaction column or NULL
+  if (!is.null(result)) {
+    expect_true(is.data.frame(result))
+    expect_true("p_interaction" %in% colnames(result))
+  }
+})

@@ -92,60 +92,6 @@
         }
     }
 }
-# GAM regularization helper: applies spline constraints or GAMSEL for variable selection
-# Supports pca (no regularization), gamsel (automatic variable selection), and
-# spline (controlled smoothness) modes. Based on papers C057, C063, C065, C082, C083.
-.gam_regularization <- function(entropy_vals, q_vals, group_vec,
-                                       regularization = c("pca", "gamsel", "spline")) {
-    regularization <- match.arg(regularization)
-    
-    if (regularization == "pca") {
-        # PCA mode: no regularization, return NULL
-        return(NULL)
-    }
-    
-    if (regularization == "gamsel") {
-        # GAMSEL mode: automatic variable selection using gamsel package
-        # Requires gamsel package; if not available, fall back to spline mode
-        if (!requireNamespace("gamsel", quietly = TRUE)) {
-            # Fallback to spline mode if gamsel not available
-            return(list(mode = "spline_fallback", constraint = "auto"))
-        }
-        
-        # GAMSEL expects matrix X and vector y
-        # We'll use q values as the feature to select
-        X <- as.matrix(q_vals)
-        y <- entropy_vals
-        
-        # Fit GAMSEL model
-        gs_fit <- try(
-            gamsel::gamsel(x = X, y = y, family = "gaussian"),
-            silent = TRUE
-        )
-        
-        if (inherits(gs_fit, "try-error")) {
-            return(list(mode = "spline_fallback", constraint = "auto"))
-        }
-        
-        # Return GAMSEL result with information for model construction
-        return(list(
-            mode = "gamsel",
-            gamsel_fit = gs_fit,
-            q_values = unique(sort(q_vals))
-        ))
-    }
-    
-    if (regularization == "spline") {
-        # Spline mode: use controlled smoothness with mgcv's automatic smoothing
-        # This applies automatic smoothness selection (GCV/REML)
-        return(list(
-            mode = "spline",
-            constraint = "auto"  # Let mgcv handle smoothness via GCV
-        ))
-    }
-    
-    return(NULL)
-}
 
 # Helper: Estimate autocorrelation rho from differenced entropy data
 # Used to compute design effect for bias correction
@@ -180,6 +126,7 @@
 #     - Appropriate for ordered measurements (like q-values)
 #     - Applied to differenced data (ARIMA(1,1,0) stationarity)
 #
+
 .ar1_design_effect <- function(rho, cluster_size) {
     # Compute design effect for AR(1) correlation
     # Args:
@@ -274,178 +221,6 @@
     }
     
     return(rho_est)
-}
-
-# GAM bias correction helper: adjusts for smoothing bias in small samples (C071)
-# When n_samples < 20, small sample smoothing can inflate Type I error rates
-# Applies degrees of freedom adjustment based on sample size
-.gam_bias_correct <- function(p_value, n_observations = NULL, n_samples = NULL,
-                                    n_subjects = NULL, 
-                                    ar1_correlation = TRUE, bias_correction = TRUE,
-                                    entropy_data = NULL, subject_data = NULL) {
-    # `n_samples` is provided for backward compatibility with earlier versions
-    # that accepted this argument name.  If `n_observations` is NULL we fall
-    # back to the user-supplied `n_samples` value so that tests and external
-    # code using either name will continue to work.
-    if (is.null(n_observations) && !is.null(n_samples)) {
-        n_observations <- n_samples
-    }
-
-    # validate presence of at least one of the size arguments
-    if (is.null(n_observations)) {
-        stop("must supply either 'n_observations' or 'n_samples'", call. = FALSE)
-    }
-    # For Tsallis multi-q design with ARIMA(1,1,0) covariance:
-    # - First differences DeltaH_q = H_q - H_{q-1} are modeled as AR(1) [IMPLEMENTED]
-    # - Differencing removes monotone trend in Tsallis entropy (dH/dq < 0) [VERIFIED]
-    # - True independent units are subjects, not observations
-    # - Bias correction threshold should use n_subjects, not n_observations
-    # 
-    # CRITICAL FIX (March 2026): Calling functions now properly difference entropy
-    # before fitting AR(1) correlations. This guarantees stationarity assumptions.
-    # See: .compute_arima_differences() helper function added March 2026.
-    
-    # If n_subjects not provided, attempt to estimate from ARIMA structure
-    # Conservative: assume ~sqrt(n_obs) independent units under ARIMA(1,1,0)
-    if (is.null(n_subjects)) {
-        # For ARIMA(1,1,0), we lose 1 observation per subject via differencing
-        # Estimate: (observations - n_subjects) / n_subjects gives adjusted count
-        # Conservative: use sqrt(n_obs) which is robust estimate
-        n_subjects <- max(2, ceiling(sqrt(n_observations)))
-    }
-    
-    # For ARIMA(1,1,0) correlation, effective degrees of freedom are reduced
-    # CRITICAL FIX March 2026: Use AR(1)-specific design effect formula (NOT Kish exchangeable formula)
-    # 
-    # Background:
-    # - Previous code used: D_eff = 1 + (m-1)rho [Kish formula for ICC/exchangeable]
-    # - Correct for AR(1): D_eff = (1+phi)/(1-phi) [Diggle et al. 2002]
-    # - These formulas apply to VERY different correlation structures
-    # - AR(1) is appropriate for ordered q-values with geometric decay: Corr(t,t+k) = phi^k
-    
-    if (ar1_correlation && n_observations > n_subjects && n_observations > 0) {
-        # Compute intra-subject cluster size
-        cluster_size <- n_observations / n_subjects
-        
-        # Estimate rho from data if available; otherwise use conservative default
-        rho_avg <- NULL
-        data_driven_rho <- FALSE
-        
-        if (!is.null(entropy_data) && !is.null(subject_data)) {
-            rho_est <- .estimate_ar1_rho(entropy_data, subject_data)
-            if (!is.null(rho_est) && rho_est >= 0 && rho_est <= 1) {
-                rho_avg <- rho_est
-                data_driven_rho <- TRUE
-            }
-        }
-        
-        if (is.null(rho_avg)) {
-            # ARIMA(1,1,0) average correlation on first differences (trend-removed)
-            # Conservative default: rho = 0.35 based on AR(1) applied to differenced data
-            # SENSITIVITY ANALYSIS for AR(1) design effect:
-            #   - rho = 0.20: D_eff = (1.2)/(0.8) = 1.5, n_eff = n_subjects / 1.5
-            #   - rho = 0.35: D_eff = (1.35)/(0.65) = 2.08, n_eff = n_subjects / 2.08
-            #   - rho = 0.50: D_eff = (1.5)/(0.5) = 3.0, n_eff = n_subjects / 3.0
-            # (Accounting for finite-m corrections depending on cluster_size)
-            # Note: Much higher D_eff than Kish (which gave 1.2-1.6 for same rho)
-            # This demonstrates importance of using AR(1)-specific formula
-            rho_avg <- 0.35
-            data_driven_rho <- FALSE
-        }
-        
-        # Design effect: Use AR(1)-specific formula (NOT Kish exchangeable formula)
-        # OPTIMIZATION: Use memoized version to cache repeated (rho, cluster_size) pairs
-        design_effect <- .ar1_design_effect_memo(rho_avg, cluster_size)
-        
-        # Effective sample size accounting for AR(1) within-subject correlation
-        n_eff <- n_subjects / design_effect
-    } else {
-        # No ARIMA(1,1,0) or independence: effective n = n_subjects
-        n_eff <- n_subjects
-        design_effect <- NA_real_
-        rho_avg <- NA_real_
-        data_driven_rho <- FALSE
-    }
-    
-    # Bias correction decision: use raw observation count rather than
-    # ARIMA-adjusted effective units.  Historical tests (and published C071
-    # guidance) trigger correction when the number of samples is small
-    # (<20); the original implementation compared against n_eff, which
-    # under AR(1) dependency could fall below 20 even for reasonably large
-    # datasets and therefore caused over-conservative adjustments.  To keep
-    # behaviour compatible with existing user expectations we now only
-    # suppress bias correction when the *observed* sample size is large.
-    if (!bias_correction || n_observations >= 20) {
-        return(list(
-            p_value = p_value,
-            p_raw = p_value,
-            bias_correction_applied = FALSE,
-            n_observations = n_observations,
-            n_samples = n_observations,  # alias for compatibility
-            n_subjects = n_subjects,
-            n_effective = n_eff,
-            design_effect_ar1 = design_effect,
-            rho_estimate = rho_avg,
-            rho_data_driven = data_driven_rho,
-            correction_method = "none",
-            correction_rationale = sprintf(
-                "n_observations=%.0f >= 20; GAM smoothing bias minimal (AR(1) D_eff=%.2f, rho=%.2f %s)",
-                n_observations, if(is.na(design_effect)) 0 else design_effect,
-                if(is.na(rho_avg)) 0 else rho_avg,
-                if(data_driven_rho) "[data-driven]" else "[default]")
-        ))
-    }
-    
-    # For small samples (n_eff < 20), smoothing bias can affect p-values (C071)
-    # Apply conservative adjustment accounting for ARIMA(1,1,0) structure
-    
-    if (is.na(p_value)) {
-        return(list(
-            p_value = p_value,
-            p_raw = p_value,
-            bias_correction_applied = FALSE,
-            n_observations = n_observations,
-            n_samples = n_observations,
-            n_subjects = n_subjects,
-            n_effective = n_eff,
-            design_effect_ar1 = design_effect,
-            rho_estimate = rho_avg,
-            rho_data_driven = data_driven_rho,
-            correction_method = "na_value",
-            correction_rationale = "p-value is NA"
-        ))
-    }
-    
-    # Compute adjustment factor based on effective sample size
-    # Smaller effective samples get larger adjustments (less power, more conservative)
-    # Linear scaling: at n_eff=5, factor=2.0; at n_eff=19, factor=1.05
-    adjustment_factor <- 1 + (20 - n_eff) / 20
-    
-    # Apply multiplicative adjustment (Bonferroni-style, conservative for GAM smoothing bias)
-    # Reference: C071 (empirical correction for GAM smoothing bias in small samples)
-    # This is more conservative than K-C correction but appropriate for GAM bias
-    p_corrected <- min(p_value * adjustment_factor, 1.0)
-    
-    return(list(
-        p_value = p_corrected,
-        bias_correction_applied = TRUE,
-        n_observations = n_observations,
-        n_samples = n_observations,
-        n_subjects = n_subjects,
-        n_effective = n_eff,
-        design_effect_ar1 = design_effect,
-        rho_estimate = rho_avg,
-        rho_data_driven = data_driven_rho,
-        adjustment_factor = adjustment_factor,
-        p_raw = p_value,
-        correction_method = "gam_smoothing_bias_c071",
-        correction_rationale = sprintf(
-            "n_eff=%.1f < 20; Adjusted for ARIMA(1,1,0) correlation: AR(1) D_eff=%.2f (rho=%.2f %s); adjustment_factor=%.2f",
-            n_eff, design_effect, if(is.na(rho_avg)) 0 else rho_avg, 
-            if(data_driven_rho) "[data-driven]" else "[default]",
-            adjustment_factor
-        )
-    ))
 }
 
 # Helper: Knot selection for Tsallis entropy curve fitting
@@ -1182,29 +957,6 @@
     ))
 }
 
-.adaptive_spline_knots <- function(entropy_vals, q_vals, n_q_unique, min_k = 2, max_k = 10) {
-    # K-selection strategy for Tsallis entropy curves:
-    # Tsallis entropy is GUARANTEED monotone decreasing in q (mathematical property)
-    # Therefore, use a FIXED k based on number of unique q-values
-    # Do NOT use CV-based adaptation for monotone data
-    #
-    # HISTORICAL ISSUE: Earlier code computed CV of first differences and allocated MORE knots for HIGH CV.
-    # This is BACKWARDS for monotone data because:
-    # - High CV in first differences indicates DEVIATION FROM MONOTONICITY (i.e., noise)
-    # - Allocating more knots to noisy data increases overfitting, not model appropriateness
-    # - For truly monotone data, CV should reflect measurement error, not true complexity
-    #
-    # SOLUTION: Use fixed k based on number of unique q-values (conservative, data-driven minimum)
-    # This ensures smooth monotone fitting without noise-driven over-complexity
-    
-    # Fixed selection: k = max(min_k, min(max_k, n_q_unique - 1))
-    # Principle: use at most (number of unique q values - 1) basis functions
-    # This leaves at least one degree of freedom for residual fitting
-    k_final <- max(min_k, min(max_k, n_q_unique - 1))
-    
-    return(k_final)
-}
-
 # Helper: Check if entropy data is truly bounded in [0, 1]
 # Returns TRUE if data appears normalized/proportional
 .is_bounded_0_1 <- function(entropy_vals) {
@@ -1276,194 +1028,6 @@ if (getOption("TSENAT.memoization", TRUE)) {
     # Unbiased skewness estimate
     skew <- (sum((x - m)^3) / n) / (s^3)
     return(skew)
-}
-
-# Helper: Handle bounded support for Tsallis entropy via appropriate GAM family selection
-# Tsallis entropy is bounded [0, log(m)] where m = number of isoforms
-# Priority: Beta (if [0,1]) > Gamma (if heteroscedastic) > Gaussian (default)
-# Database Support (March 2026):
-#   - S223: "Information entropy of generalized beta distribution"
-#   - S220-S222: Beta regression applications with robustness validation
-.handle_bounded_support <- function(df, q_vals, group_vec = NULL, verbose = FALSE) {
-    # ========================================================================
-    # INLINE: Family selection logic (previously .select_gam_family)
-    # Select appropriate GAM family based on data characteristics
-    # Priority: Beta (if [0,1] bounded) > Gamma (if heteroscedastic) > Gaussian (default)
-    # Tsallis entropy is mathematically bounded [0, log(m)], but Beta is ideal for [0,1]
-    # ========================================================================
-    
-    # INDICATOR 1: Check if data is [0,1] bounded (ideal for Beta regression)
-    # =====================================================================
-    entropy_vals <- na.omit(df$entropy)
-    is_bounded_01 <- .is_bounded_0_1(entropy_vals)
-    
-    # INDICATOR 2: Heteroscedasticity detection
-    # =========================================
-    hetero_result <- try(
-        .detect_heteroscedasticity(df, q_vals = q_vals, group_vec = group_vec, verbose = verbose),
-        silent = TRUE
-    )
-    
-    heteroscedastic <- FALSE
-    var_ratio_q <- 1
-    var_ratio_group <- 1
-    
-    if (!inherits(hetero_result, "try-error") && !is.na(hetero_result$is_heteroscedastic)) {
-        heteroscedastic <- hetero_result$is_heteroscedastic
-        var_ratio_q <- if (is.null(hetero_result$var_ratio_q)) 1 else hetero_result$var_ratio_q
-        var_ratio_group <- if (is.null(hetero_result$var_ratio_group)) 1 else hetero_result$var_ratio_group
-    }
-    
-    # INDICATOR 3: Boundary clustering (values near 0 or 1)
-    # ====================================================
-    n_total <- length(entropy_vals)
-    finite_entropy <- is.finite(entropy_vals)
-    if (any(finite_entropy)) {
-        entropy_min <- min(entropy_vals[finite_entropy])
-        entropy_max <- max(entropy_vals[finite_entropy])
-        entropy_range <- entropy_max - entropy_min
-    } else {
-        entropy_min <- NA
-        entropy_max <- NA
-        entropy_range <- NA
-    }
-    boundary_threshold <- if (is.finite(entropy_range)) 0.1 * entropy_range else NA  # 10% of range is "near boundary"
-    
-    # Count values near boundaries
-    n_near_min <- sum(entropy_vals <= entropy_min + boundary_threshold)
-    n_near_max <- sum(entropy_vals >= entropy_max - boundary_threshold)
-    pct_boundary_clustering <- 100 * (n_near_min + n_near_max) / n_total
-    
-    # INDICATOR 4: Skewness (asymmetry indicates non-Gaussian behavior)
-    # ===============================================================
-    # Skewness = (mean - median) / sd * constant; values > 1 or < -1 indicate strong asymmetry
-    skewness_val <- .compute_skewness(entropy_vals)
-    has_strong_skew <- abs(skewness_val) > 1.0
-    
-    # DECISION LOGIC (March 2026)
-    # Priority: Beta > Gamma > Gaussian
-    # ================================
-    use_beta <- FALSE
-    use_gamma <- FALSE
-    family_choice <- "gaussian"
-    reasons <- c()
-    
-    # *** PRIORITY 1: Use Beta if data is [0,1] bounded ***
-    # Beta regression is mathematically ideal for bounded (0,1) data
-    # Database paper S223: "Information entropy of the generalized beta distribution"
-    if (is_bounded_01) {
-        use_beta <- TRUE
-        family_choice <- "beta"
-        reasons <- c(reasons, "Data bounded in [0,1] - Beta regression ideal (S223)")
-    } else {
-        # *** PRIORITY 2: Use Gamma if strong evidence of non-Gaussian behavior ***
-        # Criterion 1: Strong heteroscedasticity (p < 0.05) AND variance changes much
-        if (heteroscedastic && (var_ratio_q > 3 || var_ratio_group > 3)) {
-            use_gamma <- TRUE
-            family_choice <- "gamma"
-            reasons <- c(reasons, sprintf("Heteroscedasticity detected (p<0.05, var_ratio=%.2f)", 
-                                         max(var_ratio_q, var_ratio_group)))
-        }
-        
-        # Criterion 2: EXTREME boundary clustering only (> 40% of data near bounds)
-        # Most entropy distributions naturally have some clustering - must be severe
-        if (pct_boundary_clustering > 40 && !use_gamma) {
-            use_gamma <- TRUE
-            family_choice <- "gamma"
-            reasons <- c(reasons, sprintf("Extreme boundary clustering: %.1f%% near bounds", pct_boundary_clustering))
-        }
-        
-        # Criterion 3: Extreme skewness (|skew| > 1) AND evidence of heteroscedasticity
-        # Require combination of indicators rather than skewness alone
-        if (has_strong_skew && abs(skewness_val) > 1.0 && heteroscedastic && var_ratio_q > 3 && !use_gamma) {
-            use_gamma <- TRUE
-            family_choice <- "gamma"
-            reasons <- c(reasons, sprintf("Extreme skewness (|skew|=%.2f) with heteroscedasticity (var_ratio=%.2f)", 
-                                         skewness_val, var_ratio_q))
-        }
-    }
-    
-    if (verbose) {
-        if (length(reasons) > 0) {
-            message(sprintf("[GAM Family Selection] Using %s because: %s", 
-                          toupper(family_choice), paste(reasons, collapse="; ")))
-        } else {
-            message(sprintf("[GAM Family Selection] Using Gaussian (no strong indicators); bounded=[%s], hetero_p=%.4f, hetero_vars=(%.2f,%.2f), boundary=%.1f%%, |skew|=%.2f",
-                          is_bounded_01, 
-                          if(is.na(hetero_result$p_value)) NA else hetero_result$p_value,
-                          var_ratio_q, var_ratio_group, pct_boundary_clustering, skewness_val))
-        }
-    }
-    
-    family_info <- list(
-        use_beta = use_beta,
-        use_gamma = use_gamma,
-        use_gaussian = !use_beta && !use_gamma,
-        is_bounded_01 = is_bounded_01,
-        heteroscedastic = heteroscedastic,
-        var_ratio_q = var_ratio_q,
-        var_ratio_group = var_ratio_group,
-        boundary_pct = pct_boundary_clustering,
-        skewness = skewness_val,
-        reasons = reasons,
-        family_choice = family_choice
-    )
-    
-    if (family_info$use_beta) {
-        # Use Beta family with logit link (BEST for [0,1] bounded entropy data)
-        # Beta regression respects bounds and handles skewness naturally
-        #
-        # CRITICAL: For continuous data in (0,1), use quasibinomial NOT binomial
-        # - binomial() expects count/binary data -> gives warnings for continuous values
-        # - quasibinomial() is designed for continuous proportions in (0,1)
-        # - Alternatively, mgcv::betar() (v1.8.41+) is specialized for beta regression
-        #
-        # Numerical stability: Ensure no exact 0 or 1 values which cause singularities
-        # FIX (March 2026): Return the stabilized dataframe so calling code uses it!
-        df$entropy <- pmax(pmin(df$entropy, 1 - 1e-7), 1e-7)
-        
-        # Try to use betar() from mgcv if available (v1.8.41+), otherwise quasibinomial
-        family_obj <- try(mgcv::betar(), silent = TRUE)
-        if (inherits(family_obj, "try-error")) {
-            # Fallback to quasibinomial for continuous (0,1) data
-            family_obj <- stats::quasibinomial(link = "logit")
-        }
-        
-        return(list(
-            use_bounded = TRUE,
-            use_beta = TRUE,
-            use_gamma = FALSE,
-            use_gaussian = FALSE,
-            family_obj = family_obj,
-            inverse_link = function(eta) 1 / (1 + exp(-eta)),  # logistic function
-            stabilized_df = df,  # FIX: Return stabilized dataframe!
-            family_info = family_info
-        ))
-    } else if (family_info$use_gamma) {
-        # Use Gamma family with log link (appropriate for positive bounded data)
-        return(list(
-            use_bounded = TRUE,
-            use_beta = FALSE,
-            use_gamma = TRUE,
-            use_gaussian = FALSE,
-            family_obj = stats::Gamma(link = "log"),
-            inverse_link = function(eta) exp(eta),
-            stabilized_df = NULL,  # No stabilization needed for Gamma
-            family_info = family_info
-        ))
-    } else {
-        # Default to Gaussian (safer, works for most real entropy data)
-        return(list(
-            use_bounded = FALSE,
-            use_beta = FALSE,
-            use_gamma = FALSE,
-            use_gaussian = TRUE,
-            family_obj = stats::gaussian(),
-            inverse_link = function(eta) eta,
-            stabilized_df = NULL,  # No stabilization needed for Gaussian
-            family_info = family_info
-        ))
-    }
 }
 
 # ================================================================================
@@ -1666,456 +1230,6 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
 
 
-# FPCA interaction helper with paired design support
-# 
-# Functional Principal Component Analysis (FPCA) for entropy curves
-# RESPECTS Q-VALUE ORDERING:
-# - Unlike independent q analysis, this method treats q-values as ORDERED measurements
-# - Creates "curve matrix" with q-values as columns (ordered) and samples as rows
-# - PCA on ordered curves naturally yields smooth functional components
-# - This implicitly captures the AR(1) correlation structure (Zimmerman & Harville, 1991)
-#
-# Papers S168-S171 validate AR(1) for ordered measurements:
-# - S171 (PRIMARY): Generalized AR(1) covariance in functional/smooth data contexts
-# - S168-S170: Theoretical foundation and empirical validation of AR(1) ordering
-# - S170: ACF structure confirms correlation decays geometrically across q-order
-#
-# How FPCA respects ordering and stationarity:
-# 1. ARIMA(1,1,0) differencing (applied BEFORE curve matrix) ensures stationarity
-#    - Removes monotone trend by differencing: DeltaH_q = H_q - H_{q-1}
-#    - AR(1) correlation model fits to DeltaH_q (differenced data), not raw H_q
-# 2. Curve matrix has q-values as columns (preserves sequential order)
-# 3. PCA on differenced curves decomposes VARIANCE around mean (centered data)
-#    - PC1 captures primary mode of shape variation (e.g., steepness of decrease)
-#    - PC2, PC3 capture secondary shape variations
-#    - Each PC is orthogonal functional basis (smooth patterns)
-# 4. t-test on each PC tests whether curve SHAPES differ by group (not AR(1) structure)
-#    - If groups have same curve shape but different intercepts: PC1 differs, PC2+ match
-#    - If groups have different curve shapes: multiple PCs differ
-#    - This tests functional/shape differences, not correlation structure per se
-#
-# IMPORTANT CLARIFICATION:
-# - AR(1) correlation structure is modeled in differenced data (before PCA)
-# - PCA does NOT model AR(1) structure; it decomposes centered variance
-# - FPCA testing detects curve SHAPE differences between groups
-# - TEST L.1.6 Validation confirms differenced data follow AR(1) pattern: rho(k) = phi^|k|
-# - Stationarity is achieved via differencing; functional basis (smooth PCs) is appropriate for resulting stationary data
-#
-.fpca_interaction <- function(mat, q_vals, sample_names, group_vec, g, min_obs = 10, subject = NULL, 
-                                    regularization = c("pca", "lasso", "elasticnet"), weights = NULL) {
-    regularization <- match.arg(regularization)
-    
-    # ARIMA(1,1,0) IMPLEMENTATION: Compute first differences for stationarity
-    # Apply differencing BEFORE curve matrix construction to ensure PCA respects stationarity
-    # Tsallis entropy is monotone decreasing in q -> apply AR(1) to DeltaH_q instead of H_q
-    df_for_diff <- data.frame(
-        entropy = as.numeric(mat[g, ]),
-        q = as.numeric(q_vals),
-        group = factor(group_vec),
-        subject = if (!is.null(subject)) factor(subject) else factor(seq_along(q_vals)),
-        sample_name = sample_names,
-        stringsAsFactors = FALSE
-    )
-    
-    # Remove NA entropy values
-    df_for_diff <- df_for_diff[!is.na(df_for_diff$entropy), ]
-    
-    # Apply differencing if we have subject information (paired design)
-    use_arima <- FALSE
-    if (!is.null(subject) && length(unique(df_for_diff$subject)) > 1) {
-        # Sort by subject and q for proper within-subject differencing
-        df_for_diff <- df_for_diff[order(df_for_diff$subject, df_for_diff$q), ]
-        
-        # Compute first differences within subjects
-        df_diff_list <- list()
-        for (subj in unique(df_for_diff$subject)) {
-            subj_idx <- which(df_for_diff$subject == subj)
-            if (length(subj_idx) >= 2) {
-                subj_data <- df_for_diff[subj_idx, ]
-                n_diff <- nrow(subj_data) - 1
-                df_diff_list[[as.character(subj)]] <- data.frame(
-                    entropy = diff(subj_data$entropy),
-                    q = subj_data$q[-1],
-                    group = subj_data$group[-nrow(subj_data)],
-                    subject = rep(subj, n_diff),
-                    sample_name = subj_data$sample_name[-nrow(subj_data)],
-                    stringsAsFactors = FALSE
-                )
-            }
-        }
-        
-        if (length(df_diff_list) > 0) {
-            df_for_diff <- do.call(rbind, df_diff_list)
-            rownames(df_for_diff) <- NULL
-            use_arima <- TRUE
-        }
-    }
-    
-    # Update working vectors with potentially differenced data
-    entropy_vals <- df_for_diff$entropy
-    q_vals_work <- df_for_diff$q
-    sample_names_work <- df_for_diff$sample_name
-    group_vec_work <- df_for_diff$group
-    subject_work <- df_for_diff$subject
-    
-    # Create curve matrix: rows = samples, columns = sorted unique q-values (ORDERED structure)
-    # This preserves the fundamental property of Tsallis entropy: q-values are ORDERED measurements
-    # The ordering is critical: PCA on adjacent q-values captures smooth functional dependence
-    # that respects the AR(1) pattern validated in TEST L.1.6 (rho(k) = phi^|k|)
-    uq <- sort(unique(q_vals_work))
-    samples_u <- unique(sample_names_work)
-    curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
-    if (length(samples_u) > 0) {
-        rownames(curve_mat) <- samples_u
-    }
-    for (i in seq_along(sample_names_work)) {
-        s <- sample_names_work[i]
-        qv <- q_vals_work[i]
-        qi <- match(qv, uq)  # Column index respects q ordering (sorted unique q-values)
-        if (is.na(qi)) {
-            next
-        }
-        if (s %in% rownames(curve_mat)) {
-            curve_mat[s, qi] <- as.numeric(entropy_vals[i])  # Fill entropy value for sample-q pair (differenced if ARIMA applied)
-        }
-    }
-    good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
-    if (length(good_rows) < min_obs) {
-        return(NULL)
-    }
-    mat_sub <- curve_mat[good_rows, , drop = FALSE]
-    col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
-    # OPTIMIZATION (March 2026): Vectorized matrix imputation (10-20x faster)
-    # Replaces row-by-row loop with single vectorized operation
-    na_mask <- is.na(mat_sub)
-    mat_sub[na_mask] <- col_means[col(mat_sub)[na_mask]]
-    
-    used_samples <- rownames(mat_sub)
-    grp_vals <- group_vec_work[match(used_samples, sample_names_work)]
-    if (length(unique(na.omit(grp_vals))) < 2) {
-        return(NULL)
-    }
-    
-    # Extract subject info for paired samples
-    subj_vals <- NULL
-    if (!is.null(subject)) {
-        subj_vals <- subject_work[match(used_samples, sample_names_work)]
-    }
-    
-    # Select dimensionality reduction method
-    reduction_vals <- NULL  # Will store the reduced dimension values (PC1 or regularized scores)
-    
-    if (regularization == "pca") {
-        # PCA on ordered curve matrix detects curve SHAPE differences by group:
-        # - Rows = samples, columns = ordered q-values (preserves sequential structure)
-        # - PCA decomposes centered variance (NOT correlation structure)
-        # - PC1 captures primary shape variance (e.g., overall decrease rate)
-        # - PC2, PC3 capture secondary shape variations
-        #
-        # CRITICAL CLARIFICATION: What FPCA testing actually validates:
-        # - Tests whether curve SHAPES differ between groups (functional difference)
-        # - If groups have SAME shape but different intercepts: only PC1 differs (level shift)
-        # - If groups have DIFFERENT shapes: multiple PCs differ (shape variation)
-        # - AR(1) structure is modeled in differenced data (before PCA)
-        # - PCA tests shape differences, not AR(1) correlation structure
-        pca <- try(stats::prcomp(mat_sub, center = TRUE, scale. = FALSE), silent = TRUE)
-        if (inherits(pca, "try-error")) {
-            return(NULL)
-        }
-        if (ncol(pca$x) < 1) {
-            return(NULL)
-        }
-        
-        # Define group values for this PCA section
-        g1 <- unique(na.omit(grp_vals))[1]
-        g2 <- unique(na.omit(grp_vals))[2]
-        
-        # Test multiple PCs to detect curve shape differences
-        # PC selection strategy: Include enough PCs to explain 80% of variance
-        # - Minimum 2 PCs (ensure sufficient multi-dimensional testing)
-        # - Maximum 5 PCs (avoid testing too many highly-correlated features)
-        # Rationale: 80% threshold balances parsimony (fewer PCs) against capturing
-        # true functional variation in q-curves. 2-5 PCs provides stable dimension
-        # reduction while remaining interpretable for shape-difference detection.
-        cumsum_var <- cumsum(pca$sdev^2) / sum(pca$sdev^2)
-        var_threshold <- 0.80  # Explains 80% of total curve variance
-        n_pc_max_by_var <- which(cumsum_var >= var_threshold)[1]
-        if (is.na(n_pc_max_by_var)) {
-            # If 80% not achieved, use all PCs (rare with dense q-grids)
-            n_pc_max_by_var <- ncol(pca$x)
-        }
-        # Apply bounds: minimum 2 for stability, maximum 5 for parsimony
-        n_pc_use <- max(2, min(5, n_pc_max_by_var))
-        
-        # For each PC, test if it explains group differences
-        pc_pvals <- numeric(n_pc_use)
-        for (pc_idx in seq_len(n_pc_use)) {
-            pc_vals <- pca$x[, pc_idx]
-            pc_g1 <- pc_vals[grp_vals == g1]
-            pc_g2 <- pc_vals[grp_vals == g2]
-            
-            if (length(pc_g1) < 2 || length(pc_g2) < 2) {
-                pc_pvals[pc_idx] <- NA
-                next
-            }
-            
-            # Test this PC for group difference
-            if (!is.null(subj_vals)) {
-                subj_1 <- subj_vals[grp_vals == g1]
-                subj_2 <- subj_vals[grp_vals == g2]
-                
-                # BUG FIX (March 2026): Aggregate PC values by subject before paired test
-                # The original code required length(unique(subj_1)) == length(subj_1) 
-                # (each subject appears once), which never happens with multiple q-values per subject.
-                # Solution: Compute mean PC value per subject, then do paired t-test on means.
-                
-                unique_subj <- unique(as.character(subj_1))
-                
-                # Aggregate PC scores to subject level (mean across q-values within each subject)
-                pc_g1_by_subj <- vapply(unique_subj, function(s) {
-                    idx_g1 <- grp_vals == g1 & as.character(subj_vals) == s
-                    mean(pc_vals[idx_g1], na.rm = TRUE)
-                }, FUN.VALUE = numeric(1))
-                
-                pc_g2_by_subj <- vapply(unique_subj, function(s) {
-                    idx_g2 <- grp_vals == g2 & as.character(subj_vals) == s
-                    mean(pc_vals[idx_g2], na.rm = TRUE)
-                }, FUN.VALUE = numeric(1))
-                
-                # Only proceed with paired test if we have valid subject-aggregated data
-                if (length(pc_g1_by_subj) >= 2 && length(pc_g2_by_subj) >= 2 && 
-                    !anyNA(pc_g1_by_subj) && !anyNA(pc_g2_by_subj)) {
-                    # Paired t-test on aggregated PC values
-                    t_res <- try(stats::t.test(pc_g1_by_subj, pc_g2_by_subj, paired = TRUE), silent = TRUE)
-                    if (!inherits(t_res, "try-error")) {
-                        pc_pvals[pc_idx] <- as.numeric(t_res$p.value)
-                    } else {
-                        pc_pvals[pc_idx] <- NA
-                    }
-                } else {
-                    # Fallback to unpaired t-test if pairing fails
-                    t_res <- try(stats::t.test(pc_g1, pc_g2), silent = TRUE)
-                    if (!inherits(t_res, "try-error")) {
-                        pc_pvals[pc_idx] <- as.numeric(t_res$p.value)
-                    } else {
-                        pc_pvals[pc_idx] <- NA
-                    }
-                }
-            } else {
-                # No pairing: unpaired t-test on this PC
-                t_res <- try(stats::t.test(pc_g1, pc_g2), silent = TRUE)
-                if (!inherits(t_res, "try-error")) {
-                    pc_pvals[pc_idx] <- as.numeric(t_res$p.value)
-                } else {
-                    pc_pvals[pc_idx] <- NA
-                }
-            }
-        }
-        
-        # Multiple testing correction across PCs
-        # Collect valid p-values from individual PC tests
-        pc_pvals_valid <- pc_pvals[!is.na(pc_pvals)]
-        if (length(pc_pvals_valid) == 0) {
-            return(NULL)
-        }
-        
-        # Apply Benjamini-Hochberg (BH) correction for multiple testing
-        # Rationale: PCs are orthogonal by construction but testing across multiple PCs
-        # introduces multiple comparisons problem. BH controls False Discovery Rate (FDR)
-        # which is more appropriate than FWER (Bonferroni) for exploratory testing,
-        # especially when PCs capture inter-related aspects of the same phenomenon
-        # (curve shape differences). BH is less conservative than Bonferroni and accounts
-        # for structure in the test dependency (orthogonal features).
-        pc_pvals_adj <- stats::p.adjust(pc_pvals, method = "BH")
-        pc_pvals_adj_valid <- pc_pvals_adj[!is.na(pc_pvals_adj)]
-        p_interaction <- if (length(pc_pvals_adj_valid) > 0) min(pc_pvals_adj_valid) else 1.0
-        p_interaction <- min(p_interaction, 1.0)  # Cap at 1.0
-        
-        min_pc_pvalue_val <- if (length(pc_pvals_valid) > 0) min(pc_pvals_valid) else NA_real_
-        return(data.frame(gene = g, p_interaction = p_interaction, n_pcs_tested = n_pc_use,
-                         min_pc_pvalue = min_pc_pvalue_val, slope_diff = NA_real_, 
-                         ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
-    } else if (regularization %in% c("lasso", "elasticnet")) {
-        # Regularized regression (LASSO/ElasticNet) on ordered curve matrix:
-        # - Uses full curve (all q-values) to predict group membership
-        # - Regularization selects features (q-values) important for group discrimination
-        # - Predicted probabilities capture group-specific curve patterns (respecting q-order)
-        # - This inherently tests for curve SHAPE difference since it uses the full curve
-        if (!requireNamespace("glmnet", quietly = TRUE)) {
-            stop("Package 'glmnet' is required for regularization methods")
-        }
-        
-        # Convert group to numeric (0/1) for glmnet
-        grp_numeric <- as.numeric(factor(grp_vals)) - 1
-        
-        # Fit penalized regression model using cross-validation on ordered curve matrix
-        alpha_val <- if (regularization == "lasso") 1 else 0.5  # 1 for LASSO, 0.5 for Elastic Net
-        
-        cv_fit <- try(
-            glmnet::cv.glmnet(
-                x = mat_sub,  # Each column is a q-value (ordered), each row is a sample
-                y = grp_numeric,
-                family = "binomial",
-                alpha = alpha_val,
-                nfolds = min(5, nrow(mat_sub) - 1),  # Adaptive folds for small samples
-                standardize = TRUE
-            ),
-            silent = TRUE
-        )
-        
-        if (inherits(cv_fit, "try-error")) {
-            return(NULL)
-        }
-        
-        # Use the lambda that gives minimum cross-validated error
-        # Get predicted probabilities (discriminating power for distinguishing groups)
-        pred_probs <- try(
-            stats::predict(cv_fit, newx = mat_sub, s = "lambda.min", type = "response"),
-            silent = TRUE
-        )
-        
-        if (inherits(pred_probs, "try-error") || is.null(pred_probs)) {
-            return(NULL)
-        }
-        
-        # Use predicted probabilities as the metric for testing
-        reduction_vals <- as.numeric(pred_probs)
-        
-        g1 <- unique(na.omit(grp_vals))[1]
-        g2 <- unique(na.omit(grp_vals))[2]
-        x1_idx <- grp_vals == g1
-        x2_idx <- grp_vals == g2
-        x1 <- reduction_vals[x1_idx]
-        x2 <- reduction_vals[x2_idx]
-        
-        if (length(x1) < 2 || length(x2) < 2) {
-            return(NULL)
-        }
-        
-        # Use paired t-test if subject info available and pairs match
-        if (!is.null(subj_vals)) {
-            subj_1 <- subj_vals[x1_idx]
-            subj_2 <- subj_vals[x2_idx]
-            
-            # BUG FIX (March 2026): Aggregate values by subject before paired test
-            # Compute mean value per subject, then do paired t-test on means
-            unique_subj <- unique(as.character(subj_1))
-            
-            # Aggregate reduction values to subject level (mean across q-values within each subject)
-            x1_by_subj <- vapply(unique_subj, function(s) {
-                idx_x1 <- x1_idx & as.character(subj_vals) == s
-                mean(reduction_vals[idx_x1], na.rm = TRUE)
-            }, FUN.VALUE = numeric(1))
-            
-            x2_by_subj <- vapply(unique_subj, function(s) {
-                idx_x2 <- x2_idx & as.character(subj_vals) == s
-                mean(reduction_vals[idx_x2], na.rm = TRUE)
-            }, FUN.VALUE = numeric(1))
-            
-            # Only proceed with paired test if we have valid subject-aggregated data
-            if (length(x1_by_subj) >= 2 && length(x2_by_subj) >= 2 &&
-                !anyNA(x1_by_subj) && !anyNA(x2_by_subj)) {
-                # Paired t-test on aggregated values
-                t_res <- try(stats::t.test(x1_by_subj, x2_by_subj, paired = TRUE), silent = TRUE)
-                if (!inherits(t_res, "try-error")) {
-                    pval <- as.numeric(t_res$p.value)
-                    return(data.frame(gene = g, p_interaction = pval, slope_diff = NA_real_,
-                                     ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
-                }
-            }
-        }
-        
-        # Fallback to unpaired t-test if no subject pairing available
-        t_res <- try(stats::t.test(x1, x2), silent = TRUE)
-        if (inherits(t_res, "try-error")) {
-            return(NULL)
-        }
-        pval <- as.numeric(t_res$p.value)
-        return(data.frame(gene = g, p_interaction = pval, slope_diff = NA_real_,
-                         ci_weighted = !is.null(weights), stringsAsFactors = FALSE))
-    } else {
-        return(NULL)
-    }
-}
-
-# LMM regularization helper: performs feature selection on q-value interactions
-# before fitting mixed model. Reduces overfitting with high-dimensional q-interaction terms.
-.lmm_regularization <- function(q_vals, entropy_vals, group_vec, subject_vec = NULL,
-                                      regularization = c("pca", "lasso", "elasticnet")) {
-    regularization <- match.arg(regularization)
-    
-    if (regularization == "pca") {
-        # PCA mode: no regularization, return NULL to skip feature selection
-        return(NULL)
-    }
-    
-    # Build feature matrix: create q-by-group interactions
-    uq <- sort(unique(q_vals))
-    group_levels <- unique(as.character(na.omit(group_vec)))
-    
-    if (length(group_levels) < 2) {
-        return(NULL)
-    }
-    
-    # Create design matrix with q and group:q interactions
-    X <- cbind(q_vals)  # Include q as baseline
-    
-    # Add group indicator variable (for first group comparison)
-    group_indicator <- as.numeric(factor(group_vec)) - 1
-    X <- cbind(X, group_indicator)
-    
-    # Add q:group interaction terms
-    for (qv in head(uq, -1)) {  # Avoid perfect collinearity with all q values
-        X <- cbind(X, q_vals * group_indicator * (q_vals == qv))
-    }
-    
-    # Remove columns with zero variance
-    col_vars <- apply(X, 2, var, na.rm = TRUE)
-    X <- X[, col_vars > 1e-10, drop = FALSE]
-    
-    if (ncol(X) < 2) {
-        return(NULL)  # Not enough features for regularization
-    }
-    
-    if (!requireNamespace("glmnet", quietly = TRUE)) {
-        stop("Package 'glmnet' is required for LMM regularization")
-    }
-    
-    # Fit regularized regression to identify important q:group interactions
-    alpha_val <- if (regularization == "lasso") 1 else 0.5  # 1 for LASSO, 0.5 for Elastic Net
-    
-    cv_fit <- try(
-        glmnet::cv.glmnet(
-            x = X,
-            y = entropy_vals,
-            family = "gaussian",
-            alpha = alpha_val,
-            nfolds = min(5, length(entropy_vals) - 1),
-            standardize = TRUE
-        ),
-        silent = TRUE
-    )
-    
-    if (inherits(cv_fit, "try-error")) {
-        return(NULL)
-    }
-    
-    # Extract feature selection: which columns have non-zero coefficients at lambda.min
-    coef_lambda_min <- stats::coef(cv_fit, s = "lambda.min")
-    selected_features <- which(as.numeric(coef_lambda_min[-1]) != 0)  # Exclude intercept
-    
-    # If all features selected or none selected, return NULL to use full model
-    if (length(selected_features) == 0 | length(selected_features) >= ncol(X) - 1) {
-        return(NULL)
-    }
-    
-    # Return the selected feature indices (these correspond to q-value interaction terms)
-    list(
-        selected_features = selected_features,
-        feature_names = colnames(X)[selected_features],
-        q_values = uq
-    )
-}
 
 # Fit function extracted from calculate_lm_interaction
 .fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec,
@@ -2545,389 +1659,738 @@ if (getOption("TSENAT.memoization", TRUE)) {
 
     return(NULL)
 }
-## All helpers for calculate_lm_interaction
 
-# Try lme4::lmer with multiple optimizers and controlled warnings.
-.try_lmer <- function(formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
-    mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
-    if (!requireNamespace("lme4", quietly = TRUE)) {
-        stop("Package 'lme4' is required for mixed-model fitting")
-    }
-    opts <- list(list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e+05)), list(optimizer = "nloptwrap",
-        optCtrl = list(maxfun = 5e+05)))
-    for (o in opts) {
-        ctrl <- lme4::lmerControl(optimizer = o$optimizer, optCtrl = o$optCtrl)
-        muffle_cond <- suppress_lme4_warnings || (!verbose)
-        fit_try <- withCallingHandlers(try(lme4::lmer(formula, data = data, REML = FALSE,
-            control = ctrl), silent = TRUE), warning = function(w) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
-                invokeRestart("muffleWarning")
-            }
-        }, message = function(m) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
-                invokeRestart("muffleMessage")
-            }
-        })
-        if (!inherits(fit_try, "try-error")) {
-            # check singularity if function available
-            is_sing <- FALSE
-            if (exists("isSingular", where = asNamespace("lme4"), inherits = FALSE)) {
-                is_sing <- tryCatch(lme4::isSingular(fit_try, tol = 1e-04), error = function(e) FALSE)
-            }
-            attr(fit_try, "singular") <- is_sing
-            return(fit_try)
-        }
-    }
-    # all attempts failed
-    return(structure("error", class = "try-error"))
-}
+# Helper functions for .calculate_lm_interaction()
+# These internal functions decompose the main function logic into
+# focused, testable components that each handle a single responsibility.
 
-# NOTE: Satterthwaite p-value extraction consolidated below (see line 2683)
+#' @title Validate Input Parameters for LM Interaction Testing
+#'
+#' @description
+#' Internal helper that consolidates parameter validation for
+#' \code{.calculate_lm_interaction()}. Checks argument types, values,
+#' and inter-dependencies to ensure valid model fitting.
+#'
+#' @param method Character; modeling method (matched from user input)
+#' @param pvalue Character; p-value type specification
+#' @param corstr Character; correlation structure
+#' @param regularization Character; dimensionality reduction method
+#' @param multicorr Character; multi-q correction method
+#' @param pcorr Character; legacy p-value correction method
+#' @param storey Logical; whether to apply Storey correction
+#' @param wy_randomizations Integer; number of permutations
+#' @param paired Logical; whether design is paired
+#' @param subject_col Character or NULL; subject column name
+#' @param se SummarizedExperiment object
+#' @param verbose Logical; print diagnostic messages
+#'
+#' @return List with validated and normalized parameters:
+#'   \itemize{
+#'     \item method: Validated method name
+#'     \item pvalue: Validated p-value type
+#'     \item corstr: Validated correlation structure
+#'     \item regularization: Validated regularization method
+#'     \item multicorr: Validated multicorr method
+#'     \item pcorr: Validated legacy pcorr
+#'     \item subject_col: Auto-detected or user-provided subject column
+#'   }
+#'
 
-# FPCA matrix preparation
-.prepare_fpca_matrix <- function(mat, min_frac = 0.01) {
-    if (!is.matrix(mat)) {
-        mat <- as.matrix(mat)
-    }
-    row_vars <- apply(mat, 1, stats::var, na.rm = TRUE)
-    keep <- row_vars > (min_frac * max(row_vars, na.rm = TRUE))
-    if (sum(keep) == 0) {
-        keep <- rep(TRUE, nrow(mat))
-    }
-    m2 <- mat[keep, , drop = FALSE]
-    m2 <- t(scale(t(m2)))
-    return(list(mat = m2, keep = keep))
-}
-
-## Consolidated helpers for calculate_lm_interaction fallbacks, LRT and Satterthwaite
-## Improved mixed model handling with multiple fallback strategies
-.try_lm_fallbacks <- function(df, verbose = FALSE) {
-    # Strategy 1: Try nlme::lme() - more stable than lme4 for some datasets
-    if (requireNamespace("nlme", quietly = TRUE)) {
-        fit0_nlme <- try(nlme::lme(entropy ~ q + group, random = ~1 | subject, data = df,
-            method = "ML"), silent = TRUE)
-        fit1_nlme <- try(nlme::lme(entropy ~ q * group, random = ~1 | subject, data = df,
-            method = "ML"), silent = TRUE)
-        if (!inherits(fit0_nlme, "try-error") && !inherits(fit1_nlme, "try-error")) {
-            return(list(fit0 = fit0_nlme, fit1 = fit1_nlme, method = "nlme"))
-        }
+#' @noRd
+.validate_lm_interaction_input <- function(
+    method,
+    pvalue,
+    corstr,
+    regularization,
+    multicorr,
+    pcorr,
+    storey,
+    wy_randomizations,
+    paired,
+    subject_col,
+    se,
+    verbose
+) {
+    # Validate storey parameter
+    if (!is.logical(storey)) {
+        stop("storey must be TRUE or FALSE", call. = FALSE)
     }
 
-    # Strategy 2: Try glmmTMB::glmmTMB() - newer, often more robust
-    if (requireNamespace("glmmTMB", quietly = TRUE)) {
-        fit0_tmb <- try(glmmTMB::glmmTMB(entropy ~ q + group + (1 | subject), data = df,
-            REML = FALSE, verbose = FALSE), silent = TRUE)
-        fit1_tmb <- try(glmmTMB::glmmTMB(entropy ~ q * group + (1 | subject), data = df,
-            REML = FALSE, verbose = FALSE), silent = TRUE)
-        if (!inherits(fit0_tmb, "try-error") && !inherits(fit1_tmb, "try-error")) {
-            # Check for model convergence for both fits
-            conv0 <- tryCatch({
-                c0 <- fit0_tmb$fit$converged
-                if (is.null(c0)) FALSE else isTRUE(c0)
-            }, error = function(e) FALSE)
-            conv1 <- tryCatch({
-                c1 <- fit1_tmb$fit$converged
-                if (is.null(c1)) FALSE else isTRUE(c1)
-            }, error = function(e) FALSE)
-            if (conv0 && conv1) {
-                return(list(fit0 = fit0_tmb, fit1 = fit1_tmb, method = "glmmTMB"))
-            } else {
-                msg <- paste0("glmmTMB model did not converge: ",
-                              "fit0 converged=", conv0, ", fit1 converged=", conv1)
-                if (verbose) message("[.try_lm_fallbacks] ", msg)
-                return(list(fit0 = NA, fit1 = NA, method = "glmmTMB", message = msg))
-            }
-        }
+    # Validate wy_randomizations
+    if (!is.numeric(wy_randomizations) || wy_randomizations < 1) {
+        stop("wy_randomizations must be numeric and >= 1", call. = FALSE)
     }
-
-    # Strategy 3: Linear model with subject as fixed effect (treated as factor)
-    # Use factor() to ensure proper dummy variable coding, not raw numeric
-    # Apply inverse-variance weights if available (Phase 1 weighting)
-    fit0_lm <- try(stats::lm(entropy ~ q + group + factor(subject), data = df,
-                             weights = if (!is.null(df$weight)) df$weight else NULL),
-                   silent = TRUE)
-    fit1_lm <- try(stats::lm(entropy ~ q * group + factor(subject), data = df,
-                             weights = if (!is.null(df$weight)) df$weight else NULL),
-                   silent = TRUE)
-    if (!inherits(fit0_lm, "try-error") && !inherits(fit1_lm, "try-error")) {
-        if (verbose) {
-            message("[.try_lm_fallbacks] Using fixed-effect lm with factor(subject)")
-        }
-        return(list(fit0 = fit0_lm, fit1 = fit1_lm, method = "lm_subject_fixed"))
-    }
-
-    # Strategy 4: Last resort - drop subject entirely
-    fit0_lm2 <- try(stats::lm(entropy ~ q + group, data = df,
-                              weights = if (!is.null(df$weight)) df$weight else NULL),
-                    silent = TRUE)
-    fit1_lm2 <- try(stats::lm(entropy ~ q * group, data = df,
-                              weights = if (!is.null(df$weight)) df$weight else NULL),
-                    silent = TRUE)
-    if (!inherits(fit0_lm2, "try-error") && !inherits(fit1_lm2, "try-error")) {
-        if (verbose) {
-            message("[.try_lm_fallbacks] Subject removed - reduced power expected")
-        }
-        return(list(fit0 = fit0_lm2, fit1 = fit1_lm2, method = "lm_nosubject"))
-    }
-
-    return(NULL)
-}
-
-.extract_lrt_p <- function(fit0, fit1) {
-    an <- try(stats::anova(fit0, fit1), silent = TRUE)
-    if (!inherits(an, "try-error") && nrow(an) >= 2) {
-        pcol <- grep("Pr\\(>F\\)|Pr\\(>Chisq\\)|Pr\\(>Chi\\)", colnames(an), value = TRUE)
-        if (length(pcol) == 0) {
-            return(as.numeric(an[2, ncol(an)]))
-        } else {
-            return(as.numeric(an[2, pcol[1]]))
-        }
-    }
-    return(NA_real_)
-}
-
-## Consolidated helpers for calculate_lm_interaction fallbacks and LRT
-## Improved mixed model handling with multiple fallback strategies
-
-# Helper for FPCA-style preprocessing used in calculate_lm_interaction fpca
-# method.  Builds curve_mat, filters good rows, imputes column means, and
-# returns list(mat_sub, used_samples)
-.prepare_fpca_matrix <- function(mat, sample_names, q_vals, min_obs = 10) {
-    uq <- sort(unique(q_vals))
-    samples_u <- unique(sample_names)
-    curve_mat <- matrix(NA_real_, nrow = length(samples_u), ncol = length(uq))
-    if (length(samples_u) > 0) {
-        rownames(curve_mat) <- samples_u
-    }
-    for (i in seq_along(sample_names)) {
-        s <- sample_names[i]
-        qv <- q_vals[i]
-        qi <- match(qv, uq)
-        if (is.na(qi)) {
-            next
-        }
-        if (s %in% rownames(curve_mat)) {
-            curve_mat[s, qi] <- as.numeric(mat[, i])
-        }
-    }
-    # keep samples with at least half of q points present
-    good_rows <- which(rowSums(!is.na(curve_mat)) >= max(2, ceiling(ncol(curve_mat)/2)))
-    if (length(good_rows) < min_obs) {
-        return(NULL)
-    }
-    mat_sub <- curve_mat[good_rows, , drop = FALSE]
-    col_means <- apply(mat_sub, 2, function(col) mean(col, na.rm = TRUE))
-    # OPTIMIZATION (March 2026): Vectorized matrix imputation (10-20x faster)
-    na_mask <- is.na(mat_sub)
-    mat_sub[na_mask] <- col_means[col(mat_sub)[na_mask]]
-    
-    list(mat_sub = mat_sub, used_samples = rownames(mat_sub))
-}
-# GEE interaction helper for calculate_lm_interaction
-# Generalized Estimating Equations (GEE) with AR(1) correlation structure
-# for q-dependent entropy measurements. GEE is robust for correlated data and 
-# doesn't assume normality of random effects.
-#
-# Paper S171 (Zimmerman & Harville, 1991): "Linear Models with Generalized AR(1) 
-# Covariance Structure for Longitudinal and Spatial Data" validates AR(1) for 
-# ordered covariate structures (like q-values).
-# Papers S168-S170: Theoretical foundation and empirical estimation of AR(1) parameters.
-# TEST L.1.6: Confirms q-value correlation follows AR(1) pattern (rho(k) = phi^|k|).
-#
-# @param df data.frame with columns: entropy, q, group, subject (if paired)
-# @param q_vals numeric vector of q values used  
-# Helper: Compare GEE correlation structures and select best via QIC
-# Purpose: Validate that AR(1) is appropriate for Tsallis entropy or test alternatives
-# 
-# Quasi-likelihood Information Criterion (QIC) is the GEE analog of AIC/BIC
-# Selects the correlation structure that best balances fit and parsimony
-# Lower QIC = better model
-#
-# Correlation structures tested:
-#   - AR(1): Geometric decay Corr(i,j) = phi^|i-j| [for ordered measurements]
-#   - Exchangeable: Equal correlation Corr(i,j) = rho [for unordered clusters]
-#   - Independence: No correlation [null/reference model]
-#
-# Reference:
-#   Pan, W. (2001). Akaike's information criterion in generalized estimating equations.
-#     Biometrics, 57(1), 120-125.
-.select_gee_correlation <- function(df, formula_null, formula_alt, subject, 
-                                           criteria = "qic", verbose = FALSE) {
-    # Args:
-    #   df: data frame with response, predictors, and subject/id column
-    #   formula_null: formula for null model (e.g., entropy ~ q + group)
-    #   formula_alt: formula for alternative model (e.g., entropy ~ q * group)
-    #   subject: vector of subject/cluster IDs
-    #   criteria: model selection criterion ("qic" or "hybrid")
-    #   verbose: whether to print comparison results
-    # Returns:
-    #   List with: best_corstr, qic_table, recommendation, report (string)
-    
-    if (!requireNamespace("geepack", quietly = TRUE)) {
-        return(list(
-            best_corstr = "ar1",
-            reason = "geepack not available; defaulting to AR(1)",
-            qic_table = NULL,
-            report = "geepack not available"
-        ))
-    }
-    
-    corstr_options <- c("ar1", "exchangeable", "independence")
-    results_list <- list()
-    qic_values <- numeric(3)
-    names(qic_values) <- corstr_options
-    
-    # Store correlation estimates for comparison
-    corr_estimates <- list()
-    
-    for (corstr_candidate in corstr_options) {
-        # Fit alternative model with this correlation structure
-        fit_try <- try(
-            geepack::geeglm(
-                formula = formula_alt,
-                id = subject,
-                data = df,
-                family = stats::gaussian(),
-                corstr = corstr_candidate,
-                na.action = stats::na.omit
-            ),
-            silent = TRUE
-        )
-        
-        if (inherits(fit_try, "try-error") || is.null(fit_try)) {
-            # Model failed to fit: assign worst possible QIC
-            qic_values[corstr_candidate] <- Inf
-            corr_estimates[[corstr_candidate]] <- NA
-            results_list[[corstr_candidate]] <- list(
-                corstr = corstr_candidate,
-                fit_status = "FAILED",
-                qic = Inf,
-                n_obs = NA,
-                dispersion = NA,
-                corr_estimate = NA
-            )
-            next
-        }
-        
-        # Compute QIC (Quasi-likelihood Information Criterion)
-        # For GEE: QIC = -2 * quasi-likelihood + 2 * trace(M_hat)
-        # where quasi-lik = -0.5 * sum((y - mu)^2 / phi) for gaussian family
-        
-        qic_val <- NA_real_
-        corr_estimate <- NA_real_
-        try({
-            # Extract components from geepack object
-            residuals_vec <- as.numeric(fit_try$residuals)
-            dispersion <- fit_try$geese$gamma[1]  # Scale parameter from geese
-            
-            # Extract correlation estimate if available
-            if (!is.null(fit_try$geese$alpha) && length(fit_try$geese$alpha) > 0) {
-                corr_estimate <- as.numeric(fit_try$geese$alpha[1])
-            }
-            
-            # For gaussian family, quasi-likelihood = -0.5 * sum((y - mu)^2 / phi)
-            if (!is.na(dispersion) && dispersion > 0) {
-                quasi_ll <- -0.5 * sum(residuals_vec^2 / dispersion)
-                
-                # Penalty term: BIC-like penalty based on correlation structure complexity
-                # Number of observations
-                n_obs <- nrow(df)
-                
-                # Penalty = number of correlation parameters
-                # adjusted by small sample correction factor log(n)
-                penalty <- switch(corstr_candidate,
-                                 ar1 = 1 * log(n_obs),
-                                 exchangeable = 1 * log(n_obs),
-                                 independence = 0)
-                
-                qic_val <- -2 * quasi_ll + penalty
-            }
-        }, silent = TRUE)
-        
-        qic_values[corstr_candidate] <- ifelse(is.na(qic_val), Inf, qic_val)
-        corr_estimates[[corstr_candidate]] <- corr_estimate
-        
-        results_list[[corstr_candidate]] <- list(
-            corstr = corstr_candidate,
-            fit_status = "SUCCESS",
-            qic = qic_val,
-            n_obs = nrow(df),
-            dispersion = ifelse(is.null(fit_try$geese$gamma[1]), NA, fit_try$geese$gamma[1]),
-            corr_estimate = corr_estimate
+    if (wy_randomizations < 100) {
+        warning(
+            "wy_randomizations < 100 may give unreliable p-values; ",
+            "recommend >= 100",
+            call. = FALSE
         )
     }
-    
-    # Select best model (lowest QIC)
-    valid_qics <- qic_values[!is.infinite(qic_values)]
-    
-    if (length(valid_qics) == 0) {
-        # All models failed: default to AR(1)
-        best_corstr <- "ar1"
-        reason <- "All correlation structures failed to fit; defaulting to AR(1)"
-    } else {
-        best_idx <- which.min(qic_values)
-        best_corstr <- names(qic_values)[best_idx]
-        
-        # Create detailed reasoning based on QIC values and observed correlations
-        ar1_qic <- qic_values["ar1"]
-        exch_qic <- qic_values["exchangeable"]
-        indep_qic <- qic_values["independence"]
-        ar1_corr <- corr_estimates[["ar1"]]
-        
-        if (best_corstr == "ar1") {
-            reason <- sprintf(
-                "AR(1) selected: QIC=%.3f (Exchangeable: %.3f, Independence: %.3f). Estimated AR(1) correlation=%.3f.",
-                ar1_qic, exch_qic, indep_qic, ifelse(is.na(ar1_corr), 0, ar1_corr)
-            )
-        } else if (best_corstr == "exchangeable") {
-            reason <- sprintf(
-                "Exchangeable selected: QIC=%.3f (AR(1): %.3f, Independence: %.3f). Suggests uniform correlation.",
-                exch_qic, ar1_qic, indep_qic
-            )
+
+    # Auto-detect subject_col from colData if paired=TRUE and subject_col=NULL
+    # Prioritize 'paired_samples' or 'sample_base' columns
+    if (paired && is.null(subject_col)) {
+        cd_colnames <- colnames(SummarizedExperiment::colData(se))
+
+        # Check for paired_samples or sample_base columns
+        if ("paired_samples" %in% cd_colnames) {
+            subject_col <- "paired_samples"
+            if (verbose) {
+                message(
+                    "[calculate_lm_interaction] paired=TRUE detected; ",
+                    "auto-using subject_col='paired_samples'"
+                )
+            }
+        } else if ("sample_base" %in% cd_colnames) {
+            subject_col <- "sample_base"
+            if (verbose) {
+                message(
+                    "[calculate_lm_interaction] paired=TRUE detected; ",
+                    "auto-using subject_col='sample_base'"
+                )
+            }
         } else {
-            reason <- sprintf(
-                "Independence selected: QIC=%.3f (AR(1): %.3f, Exchangeable: %.3f). No significant correlation detected.",
-                indep_qic, ar1_qic, exch_qic
+            # Error if paired=TRUE but no recognized pairing column found
+            stop(
+                "paired=TRUE requires either 'paired_samples' or ",
+                "'sample_base' column in colData. Available columns: ",
+                paste(cd_colnames, collapse = ", "),
+                ". Ensure .calculate_diversity() or map_metadata() was ",
+                "called with appropriate metadata.",
+                call. = FALSE
             )
         }
     }
-    
-    # Create comparison table
-    qic_table <- data.frame(
-        correlation_structure = corstr_options,
-        fit_status = vapply(corstr_options, function(cs) results_list[[cs]]$fit_status, FUN.VALUE = character(1)),
-        qic = qic_values,
-        corr_estimate = vapply(corstr_options, function(cs) {
-            est <- corr_estimates[[cs]]
-            if (is.na(est)) "NA" else sprintf("%.4f", est)
-        }, FUN.VALUE = character(1)),
-        selected = ifelse(corstr_options == best_corstr, "YES", ""),
-        stringsAsFactors = FALSE
-    )
-    
-    # Generate report
-    report_lines <- c(
-        sprintf("GEE Correlation Structure Selection:"),
-        sprintf(""),
-        sprintf("QIC Comparison (lower = better):"),
-        sprintf("  AR(1):           QIC = %.3f  (Est. corr = %s)", ar1_qic, 
-                ifelse(is.na(ar1_corr), "NA", sprintf("%.4f", ar1_corr))),
-        sprintf("  Exchangeable:   QIC = %.3f", exch_qic),
-        sprintf("  Independence:    QIC = %.3f", indep_qic),
-        sprintf(""),
-        sprintf("Selected: %s", best_corstr),
-        sprintf("Reasoning: %s", reason)
-    )
-    
+
     return(list(
-        best_corstr = best_corstr,
-        reason = reason,
-        qic_table = qic_table,
-        qic_values = qic_values,
-        corr_estimates = corr_estimates,
-        report = paste(report_lines, collapse = "\n")
+        method = method,
+        pvalue = pvalue,
+        corstr = corstr,
+        regularization = regularization,
+        multicorr = multicorr,
+        pcorr = pcorr,
+        subject_col = subject_col
     ))
 }
+
+#' @title Parse Sample Metadata from SummarizedExperiment
+#'
+#' @description
+#' Internal helper that extracts sample names, q-values, and group
+#' assignments from the diversity assay column names and colData.
+#'
+#' @param se SummarizedExperiment object
+#' @param condition_col Character; colData column with group assignments
+#' @param assay_name Character; name of diversity assay
+#' @param verbose Logical; print diagnostic messages
+#'
+#' @return List containing:
+#'   \itemize{
+#'     \item sample_q: Full column names with q= values
+#'     \item sample_names: Unique sample identifiers
+#'     \item q_vals: Parsed q-value parameters
+#'     \item group_vec: Group assignment for each observation
+#'     \item has_q: Logical vector indicating cols with q=
+#'   }
+#'
+
+#' @noRd
+.parse_sample_metadata <- function(
+    se,
+    condition_col,
+    assay_name,
+    verbose
+) {
+    mat <- SummarizedExperiment::assay(se, assay_name)
+    if (is.null(mat)) {
+        stop(sprintf("Assay '%s' not found in SummarizedExperiment",
+                     assay_name))
+    }
+
+    sample_q <- colnames(mat)
+    if (is.null(sample_q) || length(sample_q) == 0) {
+        stop("No column names found on diversity assay")
+    }
+
+    # Parse sample names and q values from column names like
+    # 'Sample_q=0.01'
+    sample_names <- sub("_q=.*", "", sample_q)
+    has_q <- grepl("_q=", sample_q)
+    if (!any(has_q)) {
+        stop(
+            "Could not parse q values; expected '_q=' in column names",
+            call. = FALSE
+        )
+    }
+    if (!all(has_q)) {
+        stop(
+            "Some column names are missing '_q='; ensure all diversity ",
+            "columns include a q value",
+            call. = FALSE
+        )
+    }
+    q_vals <- as.numeric(sub(".*_q=", "", sample_q))
+
+    # Determine group for each sample
+    condition_in_coldata <- !is.null(condition_col) &&
+        condition_col %in% colnames(SummarizedExperiment::colData(se))
+    if (condition_in_coldata) {
+        st <- as.character(
+            SummarizedExperiment::colData(se)[, condition_col]
+        )
+        names(st) <- rownames(SummarizedExperiment::colData(se))
+        # Index by the FULL column names (sample_q), not by sample_names
+        group_vec <- unname(st[sample_q])
+    } else {
+        stop(
+            "No sample grouping found: please supply `condition_col` ",
+            "or map sample types into `colData(se)` before calling ",
+            ".calculate_lm_interaction().",
+            call. = FALSE
+        )
+    }
+
+    if (verbose) {
+        message(
+            "[calculate_lm_interaction] parsed samples and groups: ",
+            length(unique(sample_names)), " samples, ",
+            length(unique(q_vals)), " q-values"
+        )
+    }
+
+    return(list(
+        sample_q = sample_q,
+        sample_names = sample_names,
+        q_vals = q_vals,
+        group_vec = group_vec,
+        has_q = has_q
+    ))
+}
+
+#' @title Fit Linear Models for All Genes
+#'
+#' @description
+#' Internal helper that orchestrates parallel or sequential fitting
+#' of models to all genes in the diversity matrix. Consolidates the
+#' fitting loop and result collection logic.
+#'
+#' @param mat Matrix; diversity assay data
+#' @param se SummarizedExperiment object
+#' @param metadata List; output from .parse_sample_metadata()
+#' @param method Character; modeling method
+#' @param pvalue Character; p-value type
+#' @param subject_col Character or NULL; subject column
+#' @param paired Logical; whether design is paired
+#' @param min_obs Integer; minimum observations per gene
+#' @param nthreads Integer; number of parallel threads
+#' @param verbose Logical; print diagnostics
+#' @param bias_correction Logical; apply KC bias correction (GEE)
+#' @param regularization Character; dimensionality reduction method
+#' @param corstr Character; correlation structure
+#' @param adaptive_knots Logical; adaptive knot selection (GAM)
+#'
+#' @return Data.frame with fitted model results for all genes
+#'
+
+#' @noRd
+.fit_all_genes <- function(
+    mat,
+    se,
+    metadata,
+    method,
+    pvalue,
+    subject_col,
+    paired,
+    min_obs,
+    nthreads,
+    verbose,
+    bias_correction,
+    regularization,
+    corstr,
+    adaptive_knots
+) {
+    suppress_lme4_warnings <- TRUE
+    progress <- FALSE
+    gene_weights <- NULL
+
+    fit_one <- function(g, group_vec_override = NULL) {
+        # Use override group_vec if provided (for permutation testing),
+        # otherwise use outer scope
+        gv <- if (!is.null(group_vec_override)) {
+            group_vec_override
+        } else {
+            metadata$group_vec
+        }
+
+        .fit_one_interaction(
+            g = g,
+            se = se,
+            mat = mat,
+            q_vals = metadata$q_vals,
+            sample_names = metadata$sample_names,
+            group_vec = gv,
+            method = method,
+            pvalue = pvalue,
+            subject_col = subject_col,
+            paired = paired,
+            min_obs = min_obs,
+            verbose = verbose,
+            suppress_lme4_warnings = suppress_lme4_warnings,
+            progress = progress,
+            bias_correction = bias_correction,
+            regularization = regularization,
+            corstr = corstr,
+            adaptive_knots = adaptive_knots,
+            weights = gene_weights
+        )
+    }
+
+    if (nthreads > 1) {
+        res_list <- .bplapply(rownames(mat), fit_one,
+                                      nthreads = nthreads)
+    } else {
+        res_list <- lapply(rownames(mat), fit_one)
+    }
+    all_results <- Filter(Negate(is.null), res_list)
+
+    if (length(all_results) == 0) {
+        return(data.frame())
+    }
+    res <- do.call(rbind, all_results)
+
+    # VALIDATION: Ensure critical columns exist after rbind
+    if (nrow(res) == 0) {
+        warning(
+            "[calculate_lm_interaction] No genes analyzed (all filtered out)",
+            call. = FALSE
+        )
+        return(res)
+    }
+
+    critical_cols <- c("p_interaction", "gene")
+    missing_cols <- setdiff(critical_cols, colnames(res))
+    if (length(missing_cols) > 0) {
+        stop(
+            "[calculate_lm_interaction] CRITICAL: Missing columns in ",
+            "results for ", method, " method: ",
+            paste(missing_cols, collapse = ", "),
+            "\nAvailable columns: ",
+            paste(colnames(res), collapse = ", "),
+            call. = FALSE
+        )
+    }
+
+    # Ensure Shapiro-Wilk columns exist for methods that add them
+    if (method %in% c("gam", "gee")) {
+        if (!"shapiro_p_value" %in% colnames(res)) {
+            res$shapiro_p_value <- NA_real_
+        }
+        if (!"residuals_normal" %in% colnames(res)) {
+            res$residuals_normal <- NA
+        }
+        if (!"n_residuals_tested" %in% colnames(res)) {
+            res$n_residuals_tested <- NA_integer_
+        }
+    }
+
+    # Ensure ci_weighted column exists (Phase 1 tracking)
+    if (!"ci_weighted" %in% colnames(res)) {
+        res$ci_weighted <- NA  # Fallback
+        if (verbose) {
+            warning(
+                "[calculate_lm_interaction] ci_weighted column was ",
+                "missing; added as NAs. This suggests a method helper ",
+                "did not properly set ci_weighted.",
+                call. = FALSE
+            )
+        }
+    }
+
+    return(res)
+}
+
+#' @title Adjust P-Values for Multiple Q-Values
+#'
+#' @description
+#' Internal router function that applies the specified primary multi-q
+#' p-value correction method (Hochberg, Westfall-Young, or
+#' Benjamini-Yekutieli), then optionally applies Storey adaptive FDR
+#' enhancement.
+#'
+#' @param p_values Numeric vector; raw p-values to adjust
+#' @param multicorr Character; primary correction method
+#' @param wy_randomizations Integer; number of permutations (WY only)
+#' @param fit_one_fn Function; function to refit models (WY only)
+#' @param metadata List; output from .parse_sample_metadata()
+#' @param mat Matrix; diversity assay data (WY only)
+#' @param rownames_mat Character; rownames of matrix (WY only)
+#' @param se SummarizedExperiment object (WY only)
+#' @param assay_name Character; assay name (WY only)
+#' @param method Character; modeling method (WY only)
+#' @param pvalue Character; p-value type (WY only)
+#' @param subject_col Character or NULL; subject column (WY only)
+#' @param paired Logical; paired design (WY only)
+#' @param min_obs Integer; min observations (WY only)
+#' @param nthreads Integer; parallel threads (WY only)
+#' @param verbose Logical; print diagnostics
+#' @param bias_correction Logical; KC bias correction (WY/GEE)
+#' @param regularization Character; dimensionality reduction (WY/FPCA)
+#' @param corstr Character; correlation structure (WY/GEE)
+#' @param adaptive_knots Logical; adaptive knots (WY/GAM)
+#' @param storey Logical; apply Storey after primary correction
+#'
+#' @return Adjusted p-values vector
+#'
+
+#' @noRd
+.adjust_pvalues_multicorr <- function(
+    p_values,
+    multicorr,
+    wy_randomizations,
+    fit_one_fn = NULL,
+    metadata = NULL,
+    mat = NULL,
+    rownames_mat = NULL,
+    se = NULL,
+    assay_name = "diversity",
+    method = NULL,
+    pvalue = NULL,
+    subject_col = NULL,
+    paired = FALSE,
+    min_obs = 10,
+    nthreads = 1,
+    verbose = FALSE,
+    bias_correction = TRUE,
+    regularization = NULL,
+    corstr = "ar1",
+    adaptive_knots = TRUE,
+    storey = FALSE
+) {
+    if (multicorr == "hochberg") {
+        adj_p <- .hochberg_stepup(p_values)
+        if (verbose) {
+            message(
+                "[calculate_lm_interaction] Applied Hochberg stepup ",
+                "adjustment for multi-q correlation"
+            )
+        }
+    } else if (multicorr == "westfall-young") {
+        if (verbose) {
+            message(
+                "[calculate_lm_interaction] Computing true ",
+                "Westfall-Young via ", wy_randomizations,
+                " permutations (may be slow)..."
+            )
+        }
+
+        # Save original group vector for safe restoration
+        group_vec_orig <- metadata$group_vec
+
+        # Run Westfall-Young permutation
+        perm_result <- .westfall_young_permutation(
+            n_genes = length(p_values),
+            wy_randomizations = wy_randomizations,
+            permute_fn = function() {
+                # Shuffle group labels separately within each q-level
+                q_unique <- unique(metadata$q_vals)
+                perm_assignment <- group_vec_orig
+                for (q_val in q_unique) {
+                    q_idx <- which(metadata$q_vals == q_val)
+                    perm_assignment[q_idx] <-
+                        sample(group_vec_orig[q_idx])
+                }
+                return(perm_assignment)
+            },
+            refit_fn = function(perm_assignment) {
+                # Refit all genes with permuted group assignment
+                perm_pvalues <- numeric(length(p_values))
+                for (g_idx in seq_along(rownames_mat)) {
+                    gene_name <- rownames_mat[g_idx]
+                    tryCatch({
+                        gene_result <- fit_one_fn(
+                            gene_name,
+                            group_vec_override = perm_assignment
+                        )
+                        if (!is.null(gene_result) &&
+                            !is.na(gene_result$p_interaction)) {
+                            perm_pvalues[g_idx] <-
+                                gene_result$p_interaction
+                        }
+                    }, error = function(e) { NULL })
+                }
+                return(perm_pvalues)
+            },
+            nthreads = nthreads,
+            verbose = verbose
+        )
+
+        # Adjust p-values based on permutation distribution
+        adj_p <- vapply(p_values, function(p_obs) {
+            pmin(1.0,
+                 (sum(perm_result$perm_minima <= p_obs) + 1) /
+                     (wy_randomizations + 1))
+        }, FUN.VALUE = numeric(1))
+
+        if (verbose) {
+            message(
+                "[calculate_lm_interaction] Applied true ",
+                "Westfall-Young (permutation) adjustment"
+            )
+        }
+    } else if (multicorr == "benjamini-yekutieli") {
+        adj_p <- .benjamini_yekutieli(p_values)
+        if (verbose) {
+            message(
+                "[calculate_lm_interaction] Applied ",
+                "Benjamini-Yekutieli adjustment for dependent tests"
+            )
+        }
+    } else {
+        stop("Unknown multicorr method: ", multicorr, call. = FALSE)
+    }
+
+    # Apply optional Storey adaptive FDR enhancement layer
+    if (storey) {
+        if (requireNamespace("fdrtool", quietly = TRUE)) {
+            tryCatch({
+                adj_p <- .compute_storey_qvalues(adj_p)
+                if (verbose) {
+                    message(
+                        "[calculate_lm_interaction] Applied Storey ",
+                        "adaptive FDR pi0 correction to ",
+                        multicorr, " p-values"
+                    )
+                }
+            }, error = function(e) {
+                if (verbose) {
+                    message(
+                        "[calculate_lm_interaction] Storey adjustment ",
+                        "failed: ", conditionMessage(e)
+                    )
+                }
+            })
+        } else if (verbose) {
+            message(
+                "[calculate_lm_interaction] fdrtool package not ",
+                "available for Storey (install with: ",
+                "install.packages('fdrtool'))"
+            )
+        }
+    }
+
+    return(adj_p)
+}
+
+#' @title Map Gene Identifiers to Annotations
+#'
+#' @description
+#' Internal helper that maps gene rownames to gene_id and gene_name
+#' columns using rowData from the SummarizedExperiment. Ensures
+#' consistent gene annotation across downstream analyses.
+#'
+#' @param res Data.frame; results with gene column (rownames)
+#' @param se SummarizedExperiment object
+#' @param verbose Logical; print diagnostic messages
+#'
+#' @return Modified data.frame with gene_id and gene_name columns added
+#'
+
+#' @noRd
+.map_gene_annotations <- function(
+    res,
+    se,
+    verbose
+) {
+    rd <- SummarizedExperiment::rowData(se)
+
+    # Look for gene_name column from calculate_diversity or build_se
+    gene_name_col <- if ("gene_name" %in% colnames(rd)) {
+        "gene_name"
+    } else {
+        NULL
+    }
+
+    if (verbose) {
+        message(
+            "[calculate_lm_interaction] Gene annotations: ",
+            paste(colnames(rd), collapse = ", ")
+        )
+    }
+
+    if (!is.null(gene_name_col)) {
+        # Determine gene_id column if it exists
+        id_col <- if ("genes" %in% colnames(rd)) {
+            "genes"
+        } else if ("gene_id" %in% colnames(rd)) {
+            "gene_id"
+        } else {
+            NA  # rownames will be used as ID
+        }
+
+        # Build lookup tables: rowname -> gene_id and rowname -> gene_name
+        if (is.na(id_col)) {
+            # rownames ARE the gene IDs
+            rowname_to_id <- setNames(
+                as.character(rownames(rd)),
+                as.character(rownames(rd))
+            )
+        } else {
+            # gene IDs are in a column
+            rowname_to_id <- setNames(
+                as.character(rd[[id_col]]),
+                as.character(rownames(rd))
+            )
+        }
+
+        rowname_to_name <- setNames(
+            as.character(rd[[gene_name_col]]),
+            as.character(rownames(rd))
+        )
+
+        # Vectorized lookup: map res$gene to gene_id and gene_name
+        res$gene_id <- unname(rowname_to_id[as.character(res$gene)])
+        res$gene_name <- unname(rowname_to_name[as.character(res$gene)])
+
+        # For any unmapped genes, use gene column as fallback
+        unmapped_idx <- is.na(res$gene_name)
+        n_mapped <- sum(!unmapped_idx)
+        n_unmapped <- sum(unmapped_idx)
+
+        if (any(unmapped_idx)) {
+            res$gene_name[unmapped_idx] <- res$gene[unmapped_idx]
+        }
+
+        if (verbose && n_unmapped > 0) {
+            message(
+                "[calculate_lm_interaction] Gene mapping: ",
+                n_mapped, " mapped, ", n_unmapped,
+                " used ID as fallback"
+            )
+        }
+    } else if (verbose) {
+        message(
+            "[calculate_lm_interaction] gene_name column not found ",
+            "in rowData - using gene ID as fallback"
+        )
+    }
+
+    # Ensure gene_name column is always present and populated
+    if (is.null(res$gene_name) || !"gene_name" %in% colnames(res)) {
+        res$gene_name <- res$gene
+    }
+
+    # Ensure gene_id column is always present and populated
+    if (is.null(res$gene_id) || !"gene_id" %in% colnames(res)) {
+        res$gene_id <- res$gene
+    }
+
+    return(res)
+}
+
+#' @title Assemble Model Metadata for Diagnostics
+#'
+#' @description
+#' Internal helper that builds the comprehensive metadata list returned
+#' when \code{return_model_data = TRUE}. Contains method info, q-values,
+#' per-group statistics, and test configuration for downstream visualization.
+#'
+#' @param se SummarizedExperiment object
+#' @param res Data.frame; fitted model results
+#' @param mat Matrix; diversity assay data
+#' @param metadata List; output from .parse_sample_metadata()
+#' @param method Character; modeling method name
+#' @param pvalue Character; p-value type
+#' @param multicorr Character; multi-q correction method
+#' @param assay_name Character; assay name
+#' @param bias_correction Logical; KC bias correction setting
+#' @param regularization Character; dimensionality reduction method
+#' @param corstr Character; correlation structure
+#' @param adaptive_knots Logical; adaptive knot selection setting
+#'
+#' @return List with comprehensive model metadata:
+#'   \itemize{
+#'     \item method: Modeling method used
+#'     \item n_genes: Number of genes analyzed
+#'     \item n_q_values: Number of q parameters
+#'     \item q_values: The specific q-value vector
+#'     \item sample_names: Unique sample identifiers
+#'     \item group_levels: Group factor levels
+#'     \item per_group_statistics: Summary statistics by group
+#'     \item test_configuration: Complete test settings
+#'     \item genes_analyzed: Vector of gene identifiers
+#'     \item call_time: Timestamp of analysis
+#'     \item notes: Usage information
+#'   }
+#'
+
+#' @noRd
+.assemble_model_metadata <- function(
+    se,
+    res,
+    mat,
+    metadata,
+    method,
+    pvalue,
+    multicorr,
+    assay_name = "diversity",
+    bias_correction = TRUE,
+    regularization = "pca",
+    corstr = "ar1",
+    adaptive_knots = TRUE
+) {
+    # Extract per-group statistics from SE
+    per_group_stats <- list()
+
+    for (gr in unique(metadata$group_vec)) {
+        gr_idx <- which(metadata$group_vec == gr)
+        gr_mat <- mat[, gr_idx, drop = FALSE]
+
+        per_group_stats[[gr]] <- list(
+            group = gr,
+            n_samples = length(unique(metadata$sample_names[gr_idx])),
+            n_observations = ncol(gr_mat),
+            entropy_mean = mean(as.numeric(gr_mat), na.rm = TRUE),
+            entropy_sd = sd(as.numeric(gr_mat), na.rm = TRUE),
+            entropy_min = min(as.numeric(gr_mat), na.rm = TRUE),
+            entropy_max = max(as.numeric(gr_mat), na.rm = TRUE),
+            entropy_median = median(as.numeric(gr_mat), na.rm = TRUE),
+            n_na = sum(is.na(gr_mat))
+        )
+    }
+
+    model_data <- list(
+        method = method,
+        n_genes = nrow(res),
+        n_q_values = length(unique(metadata$q_vals)),
+        q_values = sort(unique(metadata$q_vals)),
+        sample_names = unique(metadata$sample_names),
+        group_levels = levels(factor(metadata$group_vec)),
+        per_group_statistics = per_group_stats,
+        test_configuration = list(
+            method = method,
+            pvalue_method = pvalue,
+            multicorr = multicorr,
+            bias_correction = bias_correction,
+            regularization = regularization,
+            corstr = corstr,
+            adaptive_knots = adaptive_knots
+        ),
+        genes_analyzed = res$gene,
+        call_time = Sys.time(),
+        notes = paste(
+            "Use this model_data with plotting functions to ",
+            "visualize model fits and diagnostics. See ",
+            "per_group_statistics for condition-specific ",
+            "entropy summaries."
+        )
+    )
+
+    return(model_data)
+}
+
+
+
 
 
 

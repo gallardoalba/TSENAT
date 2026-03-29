@@ -1,7 +1,80 @@
 context("Core Internal Functions: Jackknife Isoform Switching")
 
-# Load helpers
-source("helper-jackknife-consolidation.R")
+# Helper functions are defined locally below
+# (Previously sourced from helper-jackknife-consolidation.R, now integrated)
+
+# ============================================================================
+# ASSERTION HELPER FUNCTIONS FOR JACKKNIFE TESTS
+# ============================================================================
+
+#' Assert Jackknife Result Structure
+#'
+#' Validates that a jackknife result has required fields and correct types
+#'
+#' @param result Jackknife result object
+#' @param n_transcripts Expected number of jackknife estimates
+#' @param check_influence Whether to check influence field
+#'
+#' @keywords internal
+assert_jackknife_result_valid <- function(result, n_transcripts = NULL, check_influence = TRUE) {
+  expect_is(result, "tsenat_jackknife", info = "Result should be tsenat_jackknife object")
+  
+  # Check required fields
+  expect_true(!is.null(result$estimate), info = "estimate field required")
+  expect_true(!is.null(result$jackknife_estimates), info = "jackknife_estimates field required")
+  expect_true(!is.null(result$jackknife_se), info = "jackknife_se field required")
+  
+  # Check types
+  expect_is(result$estimate, "numeric", info = "estimate must be numeric")
+  expect_is(result$jackknife_se, "numeric", info = "jackknife_se must be numeric")
+  expect_is(result$jackknife_estimates, "numeric", info = "jackknife_estimates must be numeric")
+  
+  # Check sizes match if specified
+  if (!is.null(n_transcripts)) {
+    expect_equal(length(result$jackknife_estimates), n_transcripts,
+                 info = "jackknife_estimates length should match n_transcripts")
+  }
+  
+  # Check influence optionally
+  if (check_influence) {
+    expect_true(!is.null(result$influence), info = "influence field expected")
+    expect_is(result$influence, "numeric", info = "influence should be numeric")
+  }
+  
+  invisible(result)
+}
+
+#' Assert Jackknife List Structure
+#'
+#' Validates that a jackknife list result has correct structure
+#'
+#' @param result Result from jackknife with matrix/multi-gene input
+#' @param expected_length Expected number of genes/rows
+#'
+#' @keywords internal
+assert_jackknife_list_valid <- function(result, expected_length = NULL) {
+  expect_is(result, "tsenat_jackknife_list", info = "Result should be tsenat_jackknife_list")
+  
+  # Check it's a list
+  expect_true(is.list(result), info = "Result should be a list")
+  
+  # Check each element is valid jackknife result
+  for (i in seq_along(result)) {
+    assert_jackknife_result_valid(result[[i]], check_influence = FALSE)
+  }
+  
+  # Check length if specified
+  if (!is.null(expected_length)) {
+    expect_equal(length(result), expected_length,
+                 info = "List length should match expected_length")
+  }
+  
+  invisible(result)
+}
+
+# ============================================================================
+# TEST DATA SETUP
+# ============================================================================
 
 # Setup test data
 set.seed(42)
@@ -441,8 +514,7 @@ test_that("Gene mapping and entropy calculation work together", {
 # - Print/summary methods for jackknife results
 # - Outlier detection, influence metrics
 
-# Load consolidation helpers
-source("helper-jackknife-consolidation.R")
+# Helper functions are defined locally or sourced globally via setup.R
 
 test_that("jackknife_entropy_outliers basic vector input", {
   # Test basic vector input

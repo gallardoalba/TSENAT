@@ -889,3 +889,209 @@
     
     invisible(kc_result)
 }
+
+# GEE interaction helper for calculate_lm_interaction
+# Generalized Estimating Equations (GEE) with AR(1) correlation structure
+# for q-dependent entropy measurements. GEE is robust for correlated data and 
+# doesn't assume normality of random effects.
+#
+# Paper S171 (Zimmerman & Harville, 1991): "Linear Models with Generalized AR(1) 
+# Covariance Structure for Longitudinal and Spatial Data" validates AR(1) for 
+# ordered covariate structures (like q-values).
+# Papers S168-S170: Theoretical foundation and empirical estimation of AR(1) parameters.
+# TEST L.1.6: Confirms q-value correlation follows AR(1) pattern (rho(k) = phi^|k|).
+#
+# @param df data.frame with columns: entropy, q, group, subject (if paired)
+# @param q_vals numeric vector of q values used  
+# Helper: Compare GEE correlation structures and select best via QIC
+# Purpose: Validate that AR(1) is appropriate for Tsallis entropy or test alternatives
+# 
+# Quasi-likelihood Information Criterion (QIC) is the GEE analog of AIC/BIC
+# Selects the correlation structure that best balances fit and parsimony
+# Lower QIC = better model
+#
+# Correlation structures tested:
+#   - AR(1): Geometric decay Corr(i,j) = phi^|i-j| [for ordered measurements]
+#   - Exchangeable: Equal correlation Corr(i,j) = rho [for unordered clusters]
+#   - Independence: No correlation [null/reference model]
+#
+# Reference:
+#   Pan, W. (2001). Akaike's information criterion in generalized estimating equations.
+#     Biometrics, 57(1), 120-125.
+.select_gee_correlation <- function(df, formula_null, formula_alt, subject, 
+                                           criteria = "qic", verbose = FALSE) {
+    # Args:
+    #   df: data frame with response, predictors, and subject/id column
+    #   formula_null: formula for null model (e.g., entropy ~ q + group)
+    #   formula_alt: formula for alternative model (e.g., entropy ~ q * group)
+    #   subject: vector of subject/cluster IDs
+    #   criteria: model selection criterion ("qic" or "hybrid")
+    #   verbose: whether to print comparison results
+    # Returns:
+    #   List with: best_corstr, qic_table, recommendation, report (string)
+    
+    if (!requireNamespace("geepack", quietly = TRUE)) {
+        return(list(
+            best_corstr = "ar1",
+            reason = "geepack not available; defaulting to AR(1)",
+            qic_table = NULL,
+            report = "geepack not available"
+        ))
+    }
+    
+    corstr_options <- c("ar1", "exchangeable", "independence")
+    results_list <- list()
+    qic_values <- numeric(3)
+    names(qic_values) <- corstr_options
+    
+    # Store correlation estimates for comparison
+    corr_estimates <- list()
+    
+    for (corstr_candidate in corstr_options) {
+        # Fit alternative model with this correlation structure
+        fit_try <- try(
+            geepack::geeglm(
+                formula = formula_alt,
+                id = subject,
+                data = df,
+                family = stats::gaussian(),
+                corstr = corstr_candidate,
+                na.action = stats::na.omit
+            ),
+            silent = TRUE
+        )
+        
+        if (inherits(fit_try, "try-error") || is.null(fit_try)) {
+            # Model failed to fit: assign worst possible QIC
+            qic_values[corstr_candidate] <- Inf
+            corr_estimates[[corstr_candidate]] <- NA
+            results_list[[corstr_candidate]] <- list(
+                corstr = corstr_candidate,
+                fit_status = "FAILED",
+                qic = Inf,
+                n_obs = NA,
+                dispersion = NA,
+                corr_estimate = NA
+            )
+            next
+        }
+        
+        # Compute QIC (Quasi-likelihood Information Criterion)
+        # For GEE: QIC = -2 * quasi-likelihood + 2 * trace(M_hat)
+        # where quasi-lik = -0.5 * sum((y - mu)^2 / phi) for gaussian family
+        
+        qic_val <- NA_real_
+        corr_estimate <- NA_real_
+        try({
+            # Extract components from geepack object
+            residuals_vec <- as.numeric(fit_try$residuals)
+            dispersion <- fit_try$geese$gamma[1]  # Scale parameter from geese
+            
+            # Extract correlation estimate if available
+            if (!is.null(fit_try$geese$alpha) && length(fit_try$geese$alpha) > 0) {
+                corr_estimate <- as.numeric(fit_try$geese$alpha[1])
+            }
+            
+            # For gaussian family, quasi-likelihood = -0.5 * sum((y - mu)^2 / phi)
+            if (!is.na(dispersion) && dispersion > 0) {
+                quasi_ll <- -0.5 * sum(residuals_vec^2 / dispersion)
+                
+                # Penalty term: BIC-like penalty based on correlation structure complexity
+                # Number of observations
+                n_obs <- nrow(df)
+                
+                # Penalty = number of correlation parameters
+                # adjusted by small sample correction factor log(n)
+                penalty <- switch(corstr_candidate,
+                                 ar1 = 1 * log(n_obs),
+                                 exchangeable = 1 * log(n_obs),
+                                 independence = 0)
+                
+                qic_val <- -2 * quasi_ll + penalty
+            }
+        }, silent = TRUE)
+        
+        qic_values[corstr_candidate] <- ifelse(is.na(qic_val), Inf, qic_val)
+        corr_estimates[[corstr_candidate]] <- corr_estimate
+        
+        results_list[[corstr_candidate]] <- list(
+            corstr = corstr_candidate,
+            fit_status = "SUCCESS",
+            qic = qic_val,
+            n_obs = nrow(df),
+            dispersion = ifelse(is.null(fit_try$geese$gamma[1]), NA, fit_try$geese$gamma[1]),
+            corr_estimate = corr_estimate
+        )
+    }
+    
+    # Select best model (lowest QIC)
+    valid_qics <- qic_values[!is.infinite(qic_values)]
+    
+    if (length(valid_qics) == 0) {
+        # All models failed: default to AR(1)
+        best_corstr <- "ar1"
+        reason <- "All correlation structures failed to fit; defaulting to AR(1)"
+    } else {
+        best_idx <- which.min(qic_values)
+        best_corstr <- names(qic_values)[best_idx]
+        
+        # Create detailed reasoning based on QIC values and observed correlations
+        ar1_qic <- qic_values["ar1"]
+        exch_qic <- qic_values["exchangeable"]
+        indep_qic <- qic_values["independence"]
+        ar1_corr <- corr_estimates[["ar1"]]
+        
+        if (best_corstr == "ar1") {
+            reason <- sprintf(
+                "AR(1) selected: QIC=%.3f (Exchangeable: %.3f, Independence: %.3f). Estimated AR(1) correlation=%.3f.",
+                ar1_qic, exch_qic, indep_qic, ifelse(is.na(ar1_corr), 0, ar1_corr)
+            )
+        } else if (best_corstr == "exchangeable") {
+            reason <- sprintf(
+                "Exchangeable selected: QIC=%.3f (AR(1): %.3f, Independence: %.3f). Suggests uniform correlation.",
+                exch_qic, ar1_qic, indep_qic
+            )
+        } else {
+            reason <- sprintf(
+                "Independence selected: QIC=%.3f (AR(1): %.3f, Exchangeable: %.3f). No significant correlation detected.",
+                indep_qic, ar1_qic, exch_qic
+            )
+        }
+    }
+    
+    # Create comparison table
+    qic_table <- data.frame(
+        correlation_structure = corstr_options,
+        fit_status = vapply(corstr_options, function(cs) results_list[[cs]]$fit_status, FUN.VALUE = character(1)),
+        qic = qic_values,
+        corr_estimate = vapply(corstr_options, function(cs) {
+            est <- corr_estimates[[cs]]
+            if (is.na(est)) "NA" else sprintf("%.4f", est)
+        }, FUN.VALUE = character(1)),
+        selected = ifelse(corstr_options == best_corstr, "YES", ""),
+        stringsAsFactors = FALSE
+    )
+    
+    # Generate report
+    report_lines <- c(
+        sprintf("GEE Correlation Structure Selection:"),
+        sprintf(""),
+        sprintf("QIC Comparison (lower = better):"),
+        sprintf("  AR(1):           QIC = %.3f  (Est. corr = %s)", ar1_qic, 
+                ifelse(is.na(ar1_corr), "NA", sprintf("%.4f", ar1_corr))),
+        sprintf("  Exchangeable:   QIC = %.3f", exch_qic),
+        sprintf("  Independence:    QIC = %.3f", indep_qic),
+        sprintf(""),
+        sprintf("Selected: %s", best_corstr),
+        sprintf("Reasoning: %s", reason)
+    )
+    
+    return(list(
+        best_corstr = best_corstr,
+        reason = reason,
+        qic_table = qic_table,
+        qic_values = qic_values,
+        corr_estimates = corr_estimates,
+        report = paste(report_lines, collapse = "\n")
+    ))
+}
