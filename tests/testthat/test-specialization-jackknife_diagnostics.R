@@ -1062,27 +1062,27 @@ test_that(".jackknife_validate_params accepts valid threshold values", {
 })
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Test Suite 2: .jackknife_get_nthreads()
+# Test Suite 2: .get_nthreads_auto_detect() (consolidated from parallel_helpers.R)
 # ─────────────────────────────────────────────────────────────────────────────
 
-test_that(".jackknife_get_nthreads returns positive integer", {
-  result <- TSENAT:::.jackknife_get_nthreads(NULL)
+test_that(".get_nthreads_auto_detect returns positive integer", {
+  result <- TSENAT:::.get_nthreads_auto_detect(NULL)
   expect_true(is.numeric(result))
   expect_true(result >= 1)
 })
 
-test_that(".jackknife_get_nthreads respects explicit nthreads=1", {
-  result <- TSENAT:::.jackknife_get_nthreads(nthreads = 1)
+test_that(".get_nthreads_auto_detect respects explicit nthreads=1", {
+  result <- TSENAT:::.get_nthreads_auto_detect(nthreads = 1)
   expect_equal(result, 1)
 })
 
-test_that(".jackknife_get_nthreads respects explicit nthreads > 1", {
-  result <- TSENAT:::.jackknife_get_nthreads(nthreads = 4)
+test_that(".get_nthreads_auto_detect respects explicit nthreads > 1", {
+  result <- TSENAT:::.get_nthreads_auto_detect(nthreads = 4)
   expect_equal(result, 4)
 })
 
-test_that(".jackknife_get_nthreads auto-detects cores when NULL", {
-  result <- TSENAT:::.jackknife_get_nthreads(NULL)
+test_that(".get_nthreads_auto_detect auto-detects cores when NULL", {
+  result <- TSENAT:::.get_nthreads_auto_detect(NULL)
   max_cores <- parallel::detectCores()
   expect_true(result <= max_cores)
   expect_true(result >= 1)
