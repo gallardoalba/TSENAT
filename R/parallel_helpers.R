@@ -74,3 +74,20 @@
     bpparam <- .get_bpparam(nthreads)
     return(unname(BiocParallel::bpmapply(FUN, X, Y, BPPARAM = bpparam, SIMPLIFY = FALSE)))
 }
+
+# Auto-detect and validate number of threads for parallel execution
+# If nthreads is NULL or < 1, auto-detects available cores (minus 1)
+# Otherwise uses provided value. Always applies environment constraints.
+# @param nthreads Integer or NULL; number of threads (default: NULL for auto-detect)
+# @return Validated number of threads respecting environment limits
+.get_nthreads_auto_detect <- function(nthreads = NULL) {
+    if (is.null(nthreads) || nthreads < 1) {
+        # Auto-detect available cores, leaving one free for system
+        nthreads <- max(1, parallel::detectCores() - 1)
+    } else {
+        nthreads <- as.integer(nthreads)
+    }
+
+    # Apply environment variable constraints (R CMD check limits)
+    return(.get_effective_nthreads(nthreads))
+}

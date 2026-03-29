@@ -14,7 +14,7 @@
 #'    - Spearman rank correlation matrix showing which genes rank similarly
 #'    - Tells whether entropy signal is stable or q-dependent
 #'
-#' 3. **MULTI-Q FWER CONTROL**: See `.detect_q_gene_interactions(multicorr='westfall-young')`
+#' 3. **MULTI-Q FWER CONTROL**: See `.rank_test_q_condition(multicorr='westfall-young')`
 #'    - Built-in Westfall-Young permutation procedure for rank-based tests
 #'    - Permutation-based Family-Wise Error Rate control
 #'    - Accounts for correlations between multi-q tests
@@ -646,7 +646,7 @@ print.rank_correlation_ci <- function(x, ...) {
 #'
 #' Stratifies genes based on their sensitivity to q-parameter changes.
 #'
-#' @param interaction_results Data frame output from .detect_q_gene_interactions()
+#' @param interaction_results Data frame output from .rank_test_q_condition()
 #' @param p_threshold Numeric: p-value threshold for significance (default: 0.05)
 #' @param eta2_threshold_moderate Numeric: Effect size threshold for moderate dependency (default 0.01)
 #' @param eta2_threshold_strong Numeric: Effect size threshold for strong dependency (default 0.10)

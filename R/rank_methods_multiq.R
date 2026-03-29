@@ -1,6 +1,6 @@
 ################################################################################
 #
-#' Internal: Validate parameters for detect_q_gene_interactions
+#' Internal: Validate parameters for rank_test_q_condition
 
 #' @noRd
 .detect_q_validate_params <- function(paired, subject_col, wy_randomizations, 
@@ -542,7 +542,7 @@
 #' ts_se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by = 0.25))
 #' 
 #' # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-#' results <- .detect_q_gene_interactions(ts_se, multicorr = "hochberg", test = "kruskal-wallis")
+#' results <- .rank_test_q_condition(ts_se, multicorr = "hochberg", test = "kruskal-wallis")
 #' head(results)
 #' 
 #' # Paired analysis with metadata
@@ -556,7 +556,7 @@
 #' SummarizedExperiment::colData(ts_se) <- coldata
 #' 
 #' # Paired analysis with blocked permutations
-#' results_paired <- .detect_q_gene_interactions(
+#' results_paired <- .rank_test_q_condition(
 #'   ts_se, 
 #'   paired = TRUE,
 #'   subject_col = "patient_id",
@@ -568,7 +568,7 @@
 
 #' @noRd
 
-.detect_q_gene_interactions <- function(
+.rank_test_q_condition <- function(
     data, entropy_col = "diversity", q_col = "q", gene_col = "gene",
     condition_col = NULL,
     paired = FALSE, subject_col = "paired_samples",

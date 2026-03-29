@@ -163,7 +163,7 @@ tsenat_config <- function(
   #'   \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
 #'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
 #'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-#'   \item \code{detect_q_gene_interactions_s4()} - Q-dependent interactions
+#'   \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
 #'   \item Plot generation (if enabled)
 #' }
 #'
@@ -337,7 +337,7 @@ tsenat <- function(
       if (verbose) message("Step 5: Detecting Q-dependent interactions...")
 
       tryCatch({
-        analysis <- detect_q_gene_interactions_s4(
+        analysis <- rank_test_q_condition_s4(
           analysis,
           condition_col = condition_col_name,
           q = q_vals,

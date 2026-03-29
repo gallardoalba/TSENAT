@@ -335,3 +335,26 @@
 
     return(res)
 }
+
+#' Extract Results from calculate_lm_interaction Output
+#'
+#' Helper function to extract results data.frame from calculate_lm_interaction output,
+#' which may be either a data.frame (when return_model_data=FALSE) or a list 
+#' (when return_model_data=TRUE). This ensures compatibility with plotting and 
+#' analysis functions regardless of return format.
+#'
+#' @param lm_result Result from .calculate_lm_interaction(), either a data.frame or a list
+#'
+#' @return The results data.frame with columns gene, p_interaction, adj_p_interaction, etc.
+#'
+
+#' @noRd
+.extract_lm_results <- function(lm_result) {
+    if (is.data.frame(lm_result)) {
+        return(lm_result)
+    } else if (is.list(lm_result) && "results" %in% names(lm_result)) {
+        return(lm_result$results)
+    } else {
+        stop("lm_result must be either a data.frame or a list with 'results' component from .calculate_lm_interaction()")
+    }
+}

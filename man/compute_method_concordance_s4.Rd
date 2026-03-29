@@ -22,7 +22,7 @@ compute_method_concordance_s4(analysis, ...)
 \item{...}{Additional arguments for future extensibility.}
 
 \item{gam_method}{\code{character}. Key for GAM/interaction results in \code{@lm_results}.
-Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})}
+Default: "q_interactions" (results from \code{rank_test_q_condition_s4})}
 
 \item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
 Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
@@ -66,6 +66,6 @@ analysis <- TSENAT:::.create_test_analysis(n_genes = 8, n_samples_per_group = 20
 analysis <- calculate_lm_interaction_s4(analysis,
   condition_col = "condition", verbose = FALSE)
 # Note: compute_method_concordance_s4 requires results from both
-# detect_q_gene_interactions_s4 and test_rankbased_assumptions_s4
+# rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 
 }

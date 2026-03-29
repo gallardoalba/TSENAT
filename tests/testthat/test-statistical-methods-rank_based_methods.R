@@ -260,7 +260,7 @@ test_that("rank_correlation_bootstrap_ci CI order is correct", {
 # NEW TESTS FOR GAP 3: INTERACTION DETECTION FUNCTIONS
 # ============================================================================
 
-# Test Suite: .detect_q_gene_interactions()
+# Test Suite: .rank_test_q_condition()
 test_that("detect_q_gene_interactions basic functionality works", {
   # Create synthetic q×gene interaction data
   set.seed(42)
@@ -288,7 +288,7 @@ test_that("detect_q_gene_interactions basic functionality works", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   
   # Check output structure
   expect_is(result, "data.frame")
@@ -321,7 +321,7 @@ test_that("detect_q_gene_interactions correctly identifies robust gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   
   # Robust gene should have high p-value (not significant)
   expect_true(result$p_value[1] > 0.05)
@@ -349,7 +349,7 @@ test_that("detect_q_gene_interactions correctly identifies q-dependent gene", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   
   # Q-dependent gene should have low p-value (significant) and large effect size
   expect_true(result$p_value[1] < 0.05)
@@ -371,7 +371,7 @@ test_that("detect_q_gene_interactions handles missing values gracefully", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   
   # Should complete without error
   expect_is(result, "data.frame")
@@ -389,7 +389,7 @@ test_that("detect_q_gene_interactions requires minimum 2 q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   
   # Should mark as "Insufficient data"
   expect_equal(result$interaction_class[1], "Insufficient data")
@@ -406,7 +406,7 @@ test_that("detect_q_gene_interactions validates column names", {
   
   # Should error on missing entropy column
   expect_error(
-    .detect_q_gene_interactions(model_data),
+    .rank_test_q_condition(model_data),
     "not found"
   )
 })
@@ -428,7 +428,7 @@ test_that("detect_q_gene_interactions kruskal.test method produces results", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   
   # Should complete successfully
   expect_is(result, "data.frame")
@@ -568,7 +568,7 @@ test_that("Full workflow: detect -> classify -> recommend works end-to-end", {
   
   # Step 1: Detect interactions
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  results <- suppressWarnings(.detect_q_gene_interactions(model_data))
+  results <- suppressWarnings(.rank_test_q_condition(model_data))
   expect_equal(nrow(results), 45)
   
   # Step 2: Classify
@@ -597,7 +597,7 @@ test_that("Functions handle edge case: single sample per q-level", {
   
   # Should handle without error (though with limited power)
   # Suppress expected warnings from edge-case variance calculations with N=1 per group
-  result <- suppressWarnings(.detect_q_gene_interactions(model_data))
+  result <- suppressWarnings(.rank_test_q_condition(model_data))
   expect_is(result, "data.frame")
 })
 
@@ -615,7 +615,7 @@ test_that("Functions handle edge case: many q-levels", {
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(model_data)
+  result <- .rank_test_q_condition(model_data)
   expect_equal(nrow(result), 1)
   expect_is(result$p_value[1], "numeric")
 })
@@ -637,7 +637,7 @@ test_that("detect_q_gene_interactions westfall-young parameter is accepted", {
   )
   
   # Should accept westfall-young without error
-  result <- .detect_q_gene_interactions(
+  result <- .rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10  # Small number for speed in tests
@@ -664,7 +664,7 @@ test_that("detect_q_gene_interactions westfall-young produces valid adjusted p-v
     stringsAsFactors = FALSE
   )
   
-  result <- .detect_q_gene_interactions(
+  result <- .rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 15
@@ -688,7 +688,7 @@ test_that("detect_q_gene_interactions westfall-young adjusted p-values are monot
   )
   
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result <- suppressWarnings(.detect_q_gene_interactions(
+  result <- suppressWarnings(.rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -713,13 +713,13 @@ test_that("detect_q_gene_interactions westfall-young wy_randomizations parameter
   
   # Test with different randomization counts
   # Suppress expected chi-squared approximation warning from small cell counts in test data
-  result_small <- suppressWarnings(.detect_q_gene_interactions(
+  result_small <- suppressWarnings(.rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 5
   ))
   
-  result_large <- suppressWarnings(.detect_q_gene_interactions(
+  result_large <- suppressWarnings(.rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 25
@@ -747,7 +747,7 @@ test_that("detect_q_gene_interactions westfall-young verbose mode works", {
   
   # Capture message output
   expect_message(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 10,
@@ -772,7 +772,7 @@ test_that("detect_q_gene_interactions westfall-young produces FWER control", {
   
   # Suppress warnings that may occur due to chi-squared approximations with small sample sizes
   result <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -801,13 +801,13 @@ test_that("detect_q_gene_interactions westfall-young vs hochberg agreement", {
     stringsAsFactors = FALSE
   )
   
-  result_wy <- .detect_q_gene_interactions(
+  result_wy <- .rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 20
   )
   
-  result_hoch <- .detect_q_gene_interactions(
+  result_hoch <- .rank_test_q_condition(
     model_data,
     multicorr = "hochberg"
   )
@@ -835,7 +835,7 @@ test_that("detect_q_gene_interactions westfall-young handles small randomization
   # Should work with very small wy_randomizations (though less accurate)
   # Suppress expected warning about small randomization count
   result <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 5
@@ -863,7 +863,7 @@ test_that("detect_q_gene_interactions westfall-young handles edge cases graceful
   )
   
   # Should handle without crashing
-  result <- .detect_q_gene_interactions(
+  result <- .rank_test_q_condition(
     model_data,
     multicorr = "westfall-young",
     wy_randomizations = 10
@@ -891,7 +891,7 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
   )
   
   result <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = 50
@@ -910,14 +910,14 @@ test_that("detect_q_gene_interactions westfall-young phipson-smyth correction pr
 # ============================================================================
 
 test_that("detect_q_gene_interactions has paired parameter with default FALSE", {
-  sig <- formals(.detect_q_gene_interactions)
+  sig <- formals(.rank_test_q_condition)
   
   expect_true("paired" %in% names(sig))
   expect_false(sig$paired)  # Default should be FALSE
 })
 
 test_that("detect_q_gene_interactions has subject_col parameter", {
-  sig <- formals(.detect_q_gene_interactions)
+  sig <- formals(.rank_test_q_condition)
   
   expect_true("subject_col" %in% names(sig))
   # subject_col can have a default value for paired analyses
@@ -934,7 +934,7 @@ test_that("detect_q_gene_interactions paired=TRUE without subject_col raises err
   )
   
   expect_error(
-    .detect_q_gene_interactions(model_data, paired = TRUE, subject_col = NULL),
+    .rank_test_q_condition(model_data, paired = TRUE, subject_col = NULL),
     "paired=TRUE with subject_col=NULL is invalid"
   )
 })
@@ -951,7 +951,7 @@ test_that("detect_q_gene_interactions paired=FALSE with subject_col gives warnin
   )
   
   expect_warning(
-    .detect_q_gene_interactions(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
+    .rank_test_q_condition(model_data, paired = FALSE, subject_col = "subject", verbose = FALSE),
     "subject_col provided but paired=FALSE"
   )
 })
@@ -967,7 +967,7 @@ test_that("detect_q_gene_interactions detects missing subject_col in data", {
   )
   
   expect_error(
-    .detect_q_gene_interactions(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
+    .rank_test_q_condition(model_data, paired = TRUE, subject_col = "subject", verbose = FALSE),
     "subject_col.*not found"
   )
 })
@@ -1010,7 +1010,7 @@ test_that("detect_q_gene_interactions paired analysis with WY permutation works 
   
   # Run paired analysis (suppress expected warnings about perfect fits in permutations)
   result <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -1086,7 +1086,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   
   # Run both analyses (expect warnings about perfect fits)
   result_unpaired <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       paired = FALSE,
       multicorr = "hochberg",
@@ -1095,7 +1095,7 @@ test_that("detect_q_gene_interactions paired and unpaired give different results
   )
   
   result_paired <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       paired = TRUE,
       subject_col = "subject",
@@ -1164,7 +1164,7 @@ test_that("detect_q_gene_interactions SummarizedExperiment with paired data extr
   model_data <- do.call(rbind, model_data_list)
   
   # This should work with paired design
-  result <- .detect_q_gene_interactions(
+  result <- .rank_test_q_condition(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -1217,7 +1217,7 @@ test_that("detect_q_gene_interactions paired detects unbalanced designs", {
   rownames(model_data) <- NULL
   
   # Should run without error (handles unbalanced designs)
-  result <- .detect_q_gene_interactions(
+  result <- .rank_test_q_condition(
     model_data,
     paired = TRUE,
     subject_col = "subject",
@@ -1409,7 +1409,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   
   # Auto mode should estimate and use calculated value
   result_auto <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = "auto",
@@ -1421,7 +1421,7 @@ test_that("detect_q_gene_interactions with wy_randomizations='auto'", {
   # Explicit mode with estimate_nperm
   nperm_explicit <- .estimate_nperm(model_data, mode = "standard")
   result_explicit <- suppressWarnings(
-    .detect_q_gene_interactions(
+    .rank_test_q_condition(
       model_data,
       multicorr = "westfall-young",
       wy_randomizations = nperm_explicit,

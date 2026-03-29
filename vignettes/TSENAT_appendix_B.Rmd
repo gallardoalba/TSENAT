@@ -213,7 +213,7 @@ knitr::kable(data_characteristics,
 # With condition_col="sample_type", automatically uses:
 #  - Two-way Friedman test (paired=TRUE: q within-subjects, condition between-subjects)
 #  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure
-analysis <- detect_q_gene_interactions_s4(
+analysis <- rank_test_q_condition_s4(
     analysis,
     multicorr = "hochberg",
     verbose = TRUE
@@ -659,7 +659,7 @@ This vignette demonstrates the modern S4-based analysis workflow for method comp
 |----------|---------|-------|--------|
 | `calculate_diversity_s4()` | Compute Tsallis entropy across multiple q-values | TSENATAnalysis + `q`, `norm` params | Updated analysis with diversity results |
 | `test_rankbased_assumptions_s4()` | Validate Friedman test assumptions | TSENATAnalysis | Stores results in metadata via `metadata(analysis, "rankbased_assumptions")` |
-| `detect_q_gene_interactions_s4()` | Run Friedman test for q×group interactions | TSENATAnalysis + design params | Updated analysis with results via `lmResults()` |
+| `rank_test_q_condition_s4()` | Run Friedman test for q×group interactions | TSENATAnalysis + design params | Updated analysis with results via `lmResults()` |
 | `plot_tsallis_q_curve_s4()` | Plot q-curves for significant genes | TSENATAnalysis + `lm_res` | ggplot2 visualization |
 | `compute_method_concordance_s4()` | Compare GAM and Friedman results | TSENATAnalysis with both methods in `lmResults()` | Updated analysis with results via `metadata()` |
 | `plot_method_concordance_s4()` | Visualize method concordance | TSENATAnalysis (after concordance computed) | ggplot2 comparison plot |
@@ -687,7 +687,7 @@ analysis <- calculate_diversity_s4(analysis, q = seq(0.1, 2, by = 0.05), norm = 
 rank_assumptions <- test_rankbased_assumptions_s4(analysis, verbose = TRUE)
 
 # 4. Friedman test (rank-based)
-analysis <- detect_q_gene_interactions_s4(
+analysis <- rank_test_q_condition_s4(
     analysis,
     condition_col = "sample_type",
     paired = TRUE,

@@ -17,7 +17,7 @@
 #' Example workflow:
 #' ```
 #'   1. [For multi-q correlation-adjusted analysis, see .calculate_lm_interaction() with multicorr='westfall-young']
-#'   2. Or: Use .detect_q_gene_interactions() for rank-based multi-q testing with WY control
+#'   2. Or: Use .rank_test_q_condition() for rank-based multi-q testing with WY control
 #'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
 #'   4. Then: qvals <- .compute_storey_qvalues(adjusted_pvalues, pi0 = pi0_obj$pi0)
 #' ```
@@ -337,7 +337,7 @@
 # ════════════════════════════════════════════════════════════════════════════════
 # Consolidates redundant WY permutation logic shared between:
 #   1. .calculate_lm_interaction() - parametric tests (GAM, LMM, GEE)
-#   2. .detect_q_gene_interactions() - rank-based tests (Kruskal-Wallis, conditional rank)
+#   2. .rank_test_q_condition() - rank-based tests (Kruskal-Wallis, conditional rank)
 #
 # DESIGN PATTERN:
 #   - Core permutation loop is identical in both functions (~70% code duplication)

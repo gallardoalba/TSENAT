@@ -16,37 +16,12 @@
   }
 }
 
-#' Internal: Determine number of parallel threads
-
-#' @noRd
-.jackknife_get_nthreads <- function(nthreads) {
-  if (is.null(nthreads)) {
-    n_cores <- max(1, parallel::detectCores() - 1)
-    if (exists(".get_effective_nthreads", mode = "function")) {
-      n_cores <- .get_effective_nthreads(n_cores)
-    } else {
-      core_limit <- Sys.getenv("_R_CHECK_LIMIT_CORES_", NA)
-      if (!is.na(core_limit)) {
-        core_limit <- as.integer(core_limit)
-        if (is.finite(core_limit) && core_limit > 0) {
-          n_cores <- min(n_cores, core_limit)
-        }
-      }
-    }
-  } else if (nthreads > 1) {
-    n_cores <- as.integer(nthreads)
-  } else {
-    n_cores <- 1
-  }
-  n_cores
-}
-
 #' Internal: Process multi-q values with optional parallelization
 
 #' @noRd
 .jackknife_process_multiq <- function(x, se, res, top_n, q, norm, log_base, 
                                       pseudocount, threshold, seed, verbose, nthreads, .cluster) {
-  n_cores <- .jackknife_get_nthreads(nthreads)
+  n_cores <- .get_nthreads_auto_detect(nthreads)
   create_cluster <- is.null(.cluster) && n_cores > 1 && length(q) > 2 && requireNamespace("parallel", quietly = TRUE)
   
   if (create_cluster) {
@@ -68,7 +43,7 @@
       ".jackknife_process_se", ".jackknife_process_matrix", 
       ".jackknife_process_vector_core", ".jackknife_compute_estimates",
       ".jackknife_calculate_influence_and_outliers", ".jackknife_warn_on_q_parameters",
-      ".jackknife_format_verbose_output_matrix", ".jackknife_get_nthreads"
+      ".jackknife_format_verbose_output_matrix"
     )
     parallel::clusterExport(.cluster, helper_funcs, envir = asNamespace("TSENAT"))
   }

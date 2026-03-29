@@ -829,7 +829,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' @param nthreads \code{numeric} or \code{NULL}. Number of parallel threads for computation.
 #'   If NULL, reads from \code{@config$nthreads}.
 #' @param verbose \code{logical}. If TRUE, prints progress messages. Default: FALSE.
-#' @param ... Additional arguments passed to the base \code{.detect_q_gene_interactions()} function.
+#' @param ... Additional arguments passed to the base \code{.rank_test_q_condition()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -855,7 +855,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
-#' analysis <- detect_q_gene_interactions_s4(analysis, condition_col = "condition", 
+#' analysis <- rank_test_q_condition_s4(analysis, condition_col = "condition", 
 #'                                            multicorr = "hochberg")
 #' head(lmResults(analysis)$q_interactions)
 #'
@@ -865,7 +865,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
 # Purpose:
-#   Wrapper around .detect_q_gene_interactions() that manages TSENATAnalysis object.
+#   Wrapper around .rank_test_q_condition() that manages TSENATAnalysis object.
 #   Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns.
 #   Tests whether the effect of q-values DIFFERS between experimental conditions.
 # 
@@ -892,7 +892,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #   - Condition B: Flat entropy profile across q (q-independent)
 #   - Interaction: Condition-specific q-dependence pattern reveals biological process
 # ============================================================================
-detect_q_gene_interactions_s4 <- function(
+rank_test_q_condition_s4 <- function(
     analysis, 
     condition_col,
     q = NULL, 
@@ -929,7 +929,7 @@ detect_q_gene_interactions_s4 <- function(
   # ========================================================================
   # PREREQUISITE CHECK: Diversity must be pre-calculated
   # ========================================================================
-  # .detect_q_gene_interactions() requires a SummarizedExperiment with:
+  # .rank_test_q_condition() requires a SummarizedExperiment with:
   #   - assays: entropy values (genes × samples)
   #   - colData: q-values, condition_col, and optional subject information
   if (length(analysis@diversity_results) == 0) {
@@ -1164,7 +1164,7 @@ detect_q_gene_interactions_s4 <- function(
   # ========================================================================
   # RUN CORE RANK-BASED Q-INTERACTION TESTING
   # ========================================================================
-  # Delegate to .detect_q_gene_interactions() which performs:
+  # Delegate to .rank_test_q_condition() which performs:
   #   1. SummarizedExperiment → long-format data frame conversion
   #   2. Per-gene rank-based test selection (conditional on data characteristics)
   #   3. Westfall-Young permutation procedure (if multicorr="westfall-young")
@@ -1173,7 +1173,7 @@ detect_q_gene_interactions_s4 <- function(
   # 
   # Use merged parameter dictionary: config values + explicit overrides
   result <- tryCatch({
-    do.call(.detect_q_gene_interactions, c(list(data = se_multi_q), dots))
+    do.call(.rank_test_q_condition, c(list(data = se_multi_q), dots))
   }, error = function(e) {
     stop("q-interaction detection failed:\n", e$message,
          call. = FALSE)
@@ -1196,7 +1196,7 @@ detect_q_gene_interactions_s4 <- function(
   if (!is.null(q_vals_for_tracking)) {
     analysis@metadata$function_calls <- c(
       analysis@metadata$function_calls,
-      paste0("detect_q_gene_interactions[q=", paste(q_vals_for_tracking, collapse = ","), "]")
+      paste0("rank_test_q_condition[q=", paste(q_vals_for_tracking, collapse = ","), "]")
     )
   }
 
@@ -1204,7 +1204,7 @@ detect_q_gene_interactions_s4 <- function(
   if (!is.null(output_file)) {
     result_df <- as.data.frame(result)
     save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
-                         func_name = "detect_q_gene_interactions_s4")
+                         func_name = "rank_test_q_condition_s4")
   }
 
   analysis
@@ -1765,7 +1765,7 @@ plot_volcano_ma_grid_s4 <- function(
 #'
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
 #' @param gam_method \code{character}. Key for GAM/interaction results in \code{@lm_results}.
-#'   Default: "q_interactions" (results from \code{detect_q_gene_interactions_s4})
+#'   Default: "q_interactions" (results from \code{rank_test_q_condition_s4})
 #' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
 #'   Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})
 #' @param gam_results \code{data.frame} or \code{NULL}. Optional GAM results data frame to store
@@ -1802,7 +1802,7 @@ plot_volcano_ma_grid_s4 <- function(
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
 #' # Note: compute_method_concordance_s4 requires results from both
-#' # detect_q_gene_interactions_s4 and test_rankbased_assumptions_s4
+#' # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 #'
 #' @aliases compute_method_concordance_s4
 #' @export
@@ -1843,7 +1843,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
   }
   
   if (is.null(analysis@lm_results)) {
-    stop("No LM results found in analysis@lm_results. Run detect_q_gene_interactions_s4() first.",
+    stop("No LM results found in analysis@lm_results. Run rank_test_q_condition_s4() first.",
          call. = FALSE)
   }
   

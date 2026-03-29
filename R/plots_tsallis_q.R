@@ -18,7 +18,7 @@
 #' @param lm_res Data frame (optional); gene interaction test results with `gene` column and
 #'   p-value column. Accepts either:
 #'   - Results from `.calculate_lm_interaction()` (has `adj_p_interaction` or `p_interaction` columns)
-#'   - Results from `.detect_q_gene_interactions()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
+#'   - Results from `.rank_test_q_condition()` (has `adj_p_value` or `p_value` columns from Friedman/Wilcoxon tests)
 #'   If provided (and `gene` is NULL), plots top `n_top` genes ranked by p-value.
 #'   Useful for plotting significant genes from any interaction analysis.
 #' @param n_top Integer or NULL; number of top genes to select from `lm_res` when `gene` is NULL

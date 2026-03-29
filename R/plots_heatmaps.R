@@ -222,7 +222,7 @@
 #'   Supported sources:
 #'   - `.calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
 #'   - `.calculate_lm_interaction(..., return_model_data = FALSE)` returns a data.frame with adj_p_interaction column
-#'   - `.detect_q_gene_interactions()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
+#'   - `.rank_test_q_condition()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
 #' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
 #' @param output_file Optional file path to save the plot. If `NULL`, renders to active graphics device.
