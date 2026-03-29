@@ -1731,132 +1731,26 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
         #   - Extracts pair structure from pair_ids_numeric
         #   - Resamples pairs as units with replacement
         #   - Computes Tsallis divergence for each replicate
-        #   - Avoids repeated R loops and probability normalization
         
-        # Use C++ paired bootstrap wrapper
-        # This is faster than pure R for large nboot or complex pair structures
-        try_cpp <- TRUE
-        bootstrap_divs <- tryCatch(
-            {
-                divergence_bootstrap_paired_cpp_wrapper(
-                    x = as.numeric(x), y = as.numeric(y),
-                    pair_ids = pair_ids_numeric,
-                    nboot = nboot, q = q,
-                    pseudocount = pseudocount,
-                    log_base = log_base
-                )
-            },
-            error = function(e) {
-                warning("C++ paired bootstrap failed: ", e$message, ". Falling back to R implementation.")
-                NULL
-            }
+        # Use C++ paired bootstrap wrapper exclusively
+        bootstrap_divs <- divergence_bootstrap_paired_cpp_wrapper(
+            x = as.numeric(x), y = as.numeric(y),
+            pair_ids = pair_ids_numeric,
+            nboot = nboot, q = q,
+            pseudocount = pseudocount,
+            log_base = log_base
         )
-        
-        # If C++ fails, fall back to pure R implementation
-        if (is.null(bootstrap_divs)) {
-            bootstrap_divs <- numeric(nboot)
-            n_pairs <- length(pairs)
-            
-            # Convert pairs list to matrix form for fast indexing
-            pairs_matrix <- do.call(rbind, pairs)
-            
-            # Extract control and treatment counts once
-            ctrl_counts <- counts_gene[pairs_matrix[, "ctrl"]]
-            treat_counts <- counts_gene[pairs_matrix[, "treat"]]
-            
-            # Bootstrap resample from pairs using vectorized indexing
-            for (i in seq_len(nboot)) {
-                # Resample pair indices with replacement
-                sampled_pair_indices <- sample(seq_len(n_pairs), size = n_pairs, replace = TRUE)
-                
-                # Resample paired counts as VECTORS
-                x_boot <- ctrl_counts[sampled_pair_indices]
-                y_boot <- treat_counts[sampled_pair_indices]
-                
-                # Add pseudocount and normalize to probability distributions
-                x_sum_pseudo <- sum(x_boot + pseudocount)
-                y_sum_pseudo <- sum(y_boot + pseudocount)
-                
-                if (x_sum_pseudo > 0 && y_sum_pseudo > 0) {
-                    p_boot <- (x_boot + pseudocount) / x_sum_pseudo
-                    r_boot <- (y_boot + pseudocount) / y_sum_pseudo
-                } else {
-                    # Edge case: no counts in either group - uniform distribution
-                    p_boot <- rep(1 / length(x_boot), length(x_boot))
-                    r_boot <- rep(1 / length(y_boot), length(y_boot))
-                }
-                
-                # Compute divergence on probability distributions
-                bootstrap_divs[i] <- .compute_tsallis_divergence(
-                    p_boot, r_boot, q, log_base, norm
-                )
-            }
-        }
     } else {
-        # UNPAIRED BOOTSTRAP: Use C++ for performance optimization
+        # UNPAIRED BOOTSTRAP: Use C++ implementation exclusively
         
-        # OPTIMIZATION (March 2026): Use C++ unpaired bootstrap for performance
-        # Speedup: 10-15× via batched multinomial resampling in C++
-        # Strategy: Delegate counting and divergence computation to C++ function, which:
-        #   - Performs multinomial resampling for both groups
-        #   - Computes Tsallis divergence for each replicate
-        #   - Avoids R loop overhead and probability computation
-        
-        # Try C++ implementation first, fall back to pure R if needed
-        bootstrap_divs <- tryCatch(
-            {
-                divergence_bootstrap_compute_cpp_wrapper(
-                    x = as.numeric(x), y = as.numeric(y),
-                    nboot = nboot, q = q,
-                    pseudocount = pseudocount,
-                    log_base = log_base,
-                    paired = FALSE
-                )
-            },
-            error = function(e) {
-                warning("C++ unpaired bootstrap failed: ", e$message, ". Falling back to R implementation.")
-                NULL
-            }
+        # C++ unpaired bootstrap with 10-15× speedup via multinomial resampling
+        bootstrap_divs <- divergence_bootstrap_compute_cpp_wrapper(
+            x = as.numeric(x), y = as.numeric(y),
+            nboot = nboot, q = q,
+            pseudocount = pseudocount,
+            log_base = log_base,
+            paired = FALSE
         )
-        
-        # If C++ fails, fall back to pure R implementation
-        if (is.null(bootstrap_divs)) {
-            bootstrap_divs <- numeric(nboot)
-            
-            # OPTIMIZATION (March 2026): Batch rmultinom calls
-            # Speedup: 10-20% by using single batched call instead of nboot separate calls
-            # Strategy: rmultinom(nboot, ...) returns n×nboot matrix, much faster than loop
-            
-            # Single batched call: returns n_transcripts × nboot matrix
-            p <- x / sum(x)
-            r <- y / sum(y)
-            x_boot_batch <- stats::rmultinom(nboot, size = sum(x), prob = p)
-            y_boot_batch <- stats::rmultinom(nboot, size = sum(y), prob = r)
-            
-            # Vectorized processing: convert columns to proportions and compute divergence
-            for (i in seq_len(nboot)) {
-                x_boot <- x_boot_batch[, i]
-                y_boot <- y_boot_batch[, i]
-                
-                # Per-element pseudocount + division-by-zero guards
-                x_sum_pseudo <- sum(x_boot + pseudocount, na.rm = TRUE)
-                y_sum_pseudo <- sum(y_boot + pseudocount, na.rm = TRUE)
-                
-                if (x_sum_pseudo > 0 && y_sum_pseudo > 0) {
-                    p_boot <- (x_boot + pseudocount) / x_sum_pseudo
-                    r_boot <- (y_boot + pseudocount) / y_sum_pseudo
-                } else {
-                    # Edge case: no counts in either group - uniform distribution
-                    p_boot <- rep(1 / length(x_boot), length(x_boot))
-                    r_boot <- rep(1 / length(y_boot), length(y_boot))
-                }
-                
-                # Compute divergence on probability distributions
-                bootstrap_divs[i] <- .compute_tsallis_divergence(
-                    p_boot, r_boot, q, log_base, norm
-                )
-            }
-        }
     }
     
     # Remove any NaN or Inf values
