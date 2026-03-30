@@ -179,12 +179,12 @@
 #' @noRd
 .bootstrap_process_multiple_q <- function(x, q, norm, nboot, ci, method, log_base,
                                           pseudocount, what, seed, gene_name, verbose,
-                                          include_diagnostics, use_job, paired) {
+                                          include_diagnostics, use_job, paired, effective_length = NULL) {
   results_list <- lapply(q, function(q_val) {
     .calculate_tsallis_entropy_bootstrap(x = x, se = NULL, res = NULL, top_n = 1, q = q_val,
       norm = norm, nboot = nboot, ci = ci, method = method, log_base = log_base,
       pseudocount = pseudocount, what = what, seed = seed, gene_name = NULL, verbose = FALSE,
-      include_diagnostics = include_diagnostics, use_job = use_job, paired = paired)
+      include_diagnostics = include_diagnostics, use_job = use_job, paired = paired, effective_length = effective_length)
   })
   names(results_list) <- paste0("q=", q)
   structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
@@ -559,10 +559,41 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
 #' and paired (block) bootstrap with entropy computation.
 #'
 #' @noRd
-.bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE) {
+.bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE, effective_length = NULL) {
+  # Apply effective_length normalization BEFORE bootstrap resampling if provided
+  x_for_bootstrap <- x
+  if (!is.null(effective_length) && length(effective_length) == length(x)) {
+    # CRITICAL FIX: Normalize counts by effective_length to adjust proportions,
+    # but scale back to preserve total count magnitude for proper multinomial resampling
+    #
+    # Issue: If we just divide by effective_length, sum(x/el) becomes tiny (e.g., 0.4)
+    # Then R::rmultinom resamples into mostly one category, generating invalid bootstrap values.
+    #
+    # Solution: Scale normalized counts to preserve original total count
+    # x_scaled = (x / effective_length) * (sum(x) / sum(x / effective_length))
+    # This applies the proportion adjustment while maintaining resampling validity
+    x_normalized <- x / effective_length
+    # Zero out any NaN/Inf values from zero effective_lengths
+    x_normalized[!is.finite(x_normalized)] <- 0
+    
+    sum_original <- sum(x)
+    sum_normalized <- sum(x_normalized)
+    
+    if (sum_normalized > 0) {
+      x_for_bootstrap <- x_normalized * (sum_original / sum_normalized)
+    } else {
+      # If all effective_length are zero/infinite, fall back to original
+      x_for_bootstrap <- x
+    }
+  } else if (!is.null(effective_length)) {
+    message("[WARN] effective_length provided but length mismatch: length(effective_length)=",
+            if (!is.null(effective_length)) length(effective_length) else "NULL", 
+            " vs length(x)=", length(x))
+  }
+  
   # Dispatch to C++ block bootstrap for paired samples
   if (paired) {
-    if (length(x) %% 2 != 0) {
+    if (length(x_for_bootstrap) %% 2 != 0) {
       stop("For paired=TRUE, data must have even length (n_pairs * 2)")
     }
     
@@ -570,13 +601,13 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
     if (what == "S") {
       # For entropy
       bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
-        x = x, q = q, normalize = norm, nboot = nboot,
+        x = x_for_bootstrap, q = q, normalize = norm, nboot = nboot,
         log_base = log_base, pseudocount = pseudocount
       )
     } else if (what == "D") {
       # For Hill numbers: compute entropy then convert
       bootstrap_dist <- block_bootstrap_compute_cpp_wrapper(
-        x = x, q = q, normalize = FALSE, nboot = nboot,
+        x = x_for_bootstrap, q = q, normalize = FALSE, nboot = nboot,
         log_base = log_base, pseudocount = pseudocount
       )
       # Hill number conversion: D_q = (1 - (q-1) * H_q)^(1/(1-q))
@@ -596,13 +627,13 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   if (what == "S") {
     # For entropy
     bootstrap_dist <- bootstrap_compute_cpp_wrapper(
-      x = x, q = q, normalize = norm, nboot = nboot,
+      x = x_for_bootstrap, q = q, normalize = norm, nboot = nboot,
       log_base = log_base, pseudocount = pseudocount
     )
   } else if (what == "D") {
     # For Hill numbers: compute entropy then convert
     bootstrap_dist <- bootstrap_compute_cpp_wrapper(
-      x = x, q = q, normalize = FALSE, nboot = nboot,
+      x = x_for_bootstrap, q = q, normalize = FALSE, nboot = nboot,
       log_base = log_base, pseudocount = pseudocount
     )
     # Hill number conversion: D_q = (1 - (q-1) * H_q)^(1/(1-q))
@@ -621,13 +652,24 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
 #' Internal: Compute bootstrap CI
 
 #' @noRd
-.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired = FALSE) {
+.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired = FALSE, effective_length = NULL) {
   point_est <- .calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
-    log_base = log_base, pseudocount = pseudocount)
+    log_base = log_base, pseudocount = pseudocount, effective_length = effective_length)
+  
+  # DEBUG
+  if (TRUE) {  # Set to TRUE to enable debug output
+    message("[DEBUG .bootstrap_compute_ci] q=", q, ", norm=", norm)
+    message("[DEBUG] effective_length is.null=", is.null(effective_length), 
+            ", class=", if (is.null(effective_length)) "NULL" else class(effective_length))
+    if (!is.null(effective_length)) {
+      message("[DEBUG] effective_length length=", length(effective_length), ", x length=", length(x))
+    }
+    message("[DEBUG] point_est=", round(point_est, 6))
+  }
   
   # Use optimized bootstrap resampling
   bootstrap_dist <- .bootstrap_resample_optimized(x, q = q, norm = norm, nboot = nboot,
-    log_base = log_base, pseudocount = pseudocount, what = what, paired = paired)
+    log_base = log_base, pseudocount = pseudocount, what = what, paired = paired, effective_length = effective_length)
   
   if (method == "percentile") {
     ci_result <- .ci_percentile(bootstrap_dist, ci = ci)
@@ -903,7 +945,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
 .calculate_tsallis_entropy_bootstrap <- function(x = NULL, se = NULL, res = NULL, top_n = 1,
     q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile", "bca"),
     log_base = exp(1), pseudocount = 0, what = c("S", "D"), seed = NULL, gene_name = NULL,
-    verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE) {
+    verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE,
+    effective_length = NULL) {
 
   method <- match.arg(method)
   what <- match.arg(what)
@@ -938,7 +981,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   # PHASE 5: Handle multiple q values
   if (length(q) > 1) {
     result <- .bootstrap_process_multiple_q(x, q, norm, nboot, ci, method, log_base,
-      pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, paired)
+      pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, paired, effective_length)
     if (verbose && !is.null(gene_name)) {
       message("Bootstrap Confidence Intervals for ", gene_name, " (multiple q values)")
       for (i in seq_along(result)) {
@@ -951,7 +994,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   }
   
   # PHASE 6: Compute single q bootstrap CI
-  ci_data <- .bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired)
+  ci_data <- .bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired, effective_length)
   
   # PHASE 7: Compute diagnostics (if requested)
   diag_list <- .bootstrap_compute_diag(ci_data$point_est, ci_data$bootstrap_dist, use_job,
@@ -2150,6 +2193,16 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     
     if (!bootstrap) return(NULL)
     
+    # DEBUG
+    if (TRUE) {
+        message("[DEBUG .bootstrap_diversity_ci] effective_length:")
+        message("  is.null=", is.null(effective_length))
+        if (!is.null(effective_length)) {
+            message("  class=", class(effective_length))
+            message("  length=", length(effective_length))
+        }
+    }
+    
     if (verbose) message("Computing bootstrap confidence intervals...")
     
     # Validate bootstrap parameters
@@ -2215,20 +2268,22 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
             # Get transcript counts for this gene in this sample
             counts_vec <- se_assay_mat[tx_mask, s]
             
-            # Apply effective_length normalization BEFORE bootstrap to match point estimate scale
-            if (!is.null(el_for_gene_txs)) {
-                counts_normalized <- counts_vec / el_for_gene_txs
-            } else {
-                counts_normalized <- counts_vec
+            # DEBUG
+            if (g_idx == 1 && s == 1 && verbose) {
+                message("[DEBUG BOOTSTRAP CALL] About to call .calculate_tsallis_entropy_bootstrap:")
+                message("  el_for_gene_txs is.null=", is.null(el_for_gene_txs))
+                if (!is.null(el_for_gene_txs)) message("  el_for_gene_txs length=", length(el_for_gene_txs))
             }
             
-            # Compute bootstrap CI for this (gene, sample) pair on normalized counts
+            # Compute bootstrap CI for this (gene, sample) pair
+            # Pass raw counts AND effective_length separately so bootstrap handles both correctly
             tryCatch({
                 boot_result <- .calculate_tsallis_entropy_bootstrap(
-                    x = counts_normalized, q = q, norm = TRUE, nboot = bootstrap_nboot,
+                    x = counts_vec,
+                    q = q, norm = TRUE, nboot = bootstrap_nboot,
                     ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
                     nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
-                    seed = seed)
+                    seed = seed, effective_length = el_for_gene_txs)
                 
                 bootstrap_results_list[[length(bootstrap_results_list) + 1]] <- boot_result
                 pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))

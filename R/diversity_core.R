@@ -163,7 +163,7 @@
         message("  result dimensions: ", nrow(result), " x ", ncol(result))
     }
     
-    list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat)
+    list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat, effective_length = effective_length)
 }
 
 # NOTE (March 2026): .bootstrap_diversity_ci() moved to bootstrap.R for consolidation
@@ -237,6 +237,15 @@
         # Extract bootstrap CIs if available in output
         # NEW STRUCTURE: each bootstrap result is for ONE (gene, sample) pair
         if (is.list(bootstrap_out) && length(bootstrap_out) > 0) {
+            if (verbose) {
+                message("[CI EXTRACT] Processing bootstrap_out: ", length(bootstrap_out), " items")
+                if (length(bootstrap_out) > 0) {
+                    message("[CI EXTRACT] First item structure:")
+                    str(bootstrap_out[[1]], max.level=2)
+                    message("[CI EXTRACT] First item name: ", names(bootstrap_out)[1])
+                }
+            }
+            
             # Get row names from the result_assay to map (gene, sample) pairs to indices
             result_row_names  <- rownames(result_assay)
             result_col_names <- colnames(result_assay)
@@ -292,6 +301,18 @@
                             matching_q_idx <- which(col_q_values == q_val)
                             if (length(matching_q_idx) > 0) {
                                 target_col_indices <- col_indices[matching_q_idx]
+                                
+                                if (verbose && i <= 1) {
+                                    # Get the point estimate from the result matrix to compare
+                                    result_value <- result_assay[gene_row_idx, target_col_indices[1]]
+                                    message("[DEBUG CI POPULATE] gene=", gene_name, " sample=", sample_idx, " q=", q_val)
+                                    message("  result_value (point_est should match this): ", result_value)
+                                    message("  bootstrap point_est:", q_result$estimate)
+                                    message("  ci_lower:   ", q_result$lower_ci)
+                                    message("  ci_upper:   ", q_result$upper_ci)
+                                    message("  target col indices: ", paste(target_col_indices, collapse=", "))
+                                }
+                                
                                 ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
                                 ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
                             }
@@ -588,6 +609,16 @@
     x <- prep$x
     genes <- prep$genes
     se_assay_mat <- prep$se_assay_mat
+    effective_length <- prep$effective_length  # Extract effective_length from prep result
+    
+    if (verbose) {
+        message("[DEBUG .calculate_diversity] effective_length after prep:")
+        message("  is.null=", is.null(effective_length))
+        if (!is.null(effective_length)) {
+            message("  class=", class(effective_length))
+            message("  length=", length(effective_length))
+        }
+    }
     
     if (verbose && nrow(result) == 0) {
         message("[WARN] Result from .prepare_diversity_data() is empty (0 rows)")
