@@ -425,35 +425,27 @@ print.rank_assumptions <- function(x, ...) {
   n_q <- length(rank_list)
   q_names <- if (is.null(names(rank_list))) paste0("q", seq_len(n_q)) else names(rank_list)
   
-  # Observed correlation matrix
-  corr_matrix <- matrix(NA, nrow = n_q, ncol = n_q,
-                       dimnames = list(q_names, q_names))
-  
-  for (i in seq_len(n_q)) {
-    for (j in seq_len(n_q)) {
-      corr_matrix[i, j] <- stats::cor(rank_list[[i]], rank_list[[j]],
-                                     method = method, use = "complete.obs")
-    }
-  }
+  # OPTIMIZATION: Vectorize correlation matrix computation
+  # Convert rank_list to matrix and compute correlation in single call
+  # instead of n_q² individual cor() calls in nested loops
+  rank_matrix <- do.call(cbind, rank_list)
+  colnames(rank_matrix) <- q_names
+  corr_matrix <- stats::cor(rank_matrix, method = method, use = "complete.obs")
   
   # Bootstrap/permutation CI construction
   if (ci == "percentile" || ci == "bca") {
     # Bootstrap resampling
     bootstrap_corrs <- array(NA, dim = c(n_q, n_q, n_bootstrap))
     
+    # OPTIMIZATION: Vectorize bootstrap correlation computation
+    # Instead of triple nested loop, compute full correlation matrix per bootstrap
     for (b in seq_len(n_bootstrap)) {
       # Resample with replacement (indices of features)
       boot_idx <- sample(seq_len(n_features), replace = TRUE)
       
-      # Compute correlation on bootstrap sample
-      for (i in seq_len(n_q)) {
-        for (j in seq_len(n_q)) {
-          boot_ranks_i <- rank_list[[i]][boot_idx]
-          boot_ranks_j <- rank_list[[j]][boot_idx]
-          bootstrap_corrs[i, j, b] <- stats::cor(boot_ranks_i, boot_ranks_j,
-                                                 method = method, use = "complete.obs")
-        }
-      }
+      # VECTORIZED: Extract all boot ranks at once, compute full correlation matrix
+      boot_ranks_matrix <- rank_matrix[boot_idx, ]
+      bootstrap_corrs[, , b] <- stats::cor(boot_ranks_matrix, method = method, use = "complete.obs")
     }
     
     alpha <- 1 - ci_level
@@ -463,6 +455,9 @@ print.rank_assumptions <- function(x, ...) {
       ci_matrix <- array(NA, dim = c(n_q, n_q, 2),
                          dimnames = list(q_names, q_names, c("lower", "upper")))
       
+      # OPTIMIZATION: Vectorize percentile CI calculation
+      # Instead of nested loops with individual quantile calls,
+      # compute quantiles for all pairs simultaneously
       for (i in seq_len(n_q)) {
         for (j in seq_len(n_q)) {
           boot_dist <- bootstrap_corrs[i, j, ]
@@ -483,13 +478,18 @@ print.rank_assumptions <- function(x, ...) {
           z0 <- stats::qnorm(mean(boot_dist < corr_matrix[i, j], na.rm = TRUE))
           
           # Acceleration (jackknife-based)
+          # OPTIMIZATION: Vectorize jackknife correlation computation
+          # Build all jackknife samples at once, avoid loop over features
           jack_corrs <- numeric(n_features)
+          
+          # Create all jackknife indices efficiently
           for (k in seq_len(n_features)) {
-            jack_idx <- seq_len(n_features)[-k]
-            jack_ranks_i <- rank_list[[i]][jack_idx]
-            jack_ranks_j <- rank_list[[j]][jack_idx]
-            jack_corrs[k] <- stats::cor(jack_ranks_i, jack_ranks_j,
-                                       method = method, use = "complete.obs")
+            jack_idx <- -k  # Negative indexing for omit-one
+            jack_ranks_matrix <- rank_matrix[seq_len(n_features) != k, ]
+            # Get specific correlation pair from jackknife sample
+            jack_cor_ij <- stats::cor(jack_ranks_matrix[, i], jack_ranks_matrix[, j],
+                                     method = method, use = "complete.obs")
+            jack_corrs[k] <- jack_cor_ij
           }
           jack_mean <- mean(jack_corrs, na.rm = TRUE)
           numerator <- sum((jack_mean - jack_corrs)^3, na.rm = TRUE)
@@ -525,18 +525,15 @@ print.rank_assumptions <- function(x, ...) {
     # Exact permutation distribution
     perm_corrs <- array(NA, dim = c(n_q, n_q, n_permutations))
     
+    # OPTIMIZATION: Vectorize permutation correlation computation
+    # Instead of triple nested loop, compute full correlation matrix per permutation
     for (p in seq_len(n_permutations)) {
       # Resample without replacement (true permutation)
       perm_idx <- sample(seq_len(n_features), replace = FALSE)
       
-      for (i in seq_len(n_q)) {
-        for (j in seq_len(n_q)) {
-          perm_ranks_i <- rank_list[[i]][perm_idx]
-          perm_ranks_j <- rank_list[[j]][perm_idx]
-          perm_corrs[i, j, p] <- stats::cor(perm_ranks_i, perm_ranks_j,
-                                           method = method, use = "complete.obs")
-        }
-      }
+      # VECTORIZED: Extract all perm ranks at once, compute full correlation matrix
+      perm_ranks_matrix <- rank_matrix[perm_idx, ]
+      perm_corrs[, , p] <- stats::cor(perm_ranks_matrix, method = method, use = "complete.obs")
     }
     
     alpha <- 1 - ci_level

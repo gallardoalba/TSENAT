@@ -219,35 +219,25 @@
   rownames(block_ranks) <- levels(subjects)
   colnames(block_ranks) <- levels(groups)
   
+  # OPTIMIZATION: Vectorized median calculation within blocks
+  # Use tapply to compute all group medians for each block in one operation
   for (b in levels(subjects)) {
     block_idx <- subjects == b
     block_vals <- values[block_idx]
     block_grps <- groups[block_idx]
     
-    # Rank within this block (standard Friedman: ranks 1 to t for ties broken arbitrarily)
-    for (g in levels(groups)) {
-      group_idx <- block_grps == g
-      if (any(group_idx)) {
-        # This is where we use median: take the median value for this group in this block
-        median_val <- median(block_vals[group_idx], na.rm = TRUE)
-        block_ranks[b, g] <- median_val
-      }
-    }
+    # Vectorized: Calculate medians for all groups in this block at once
+    block_ranks[b, ] <- tapply(block_vals, block_grps, median, na.rm = TRUE)
   }
   
   # Count median-based differences (robust approach)
   # Use median test: For each block, is a treatment's value above or below grand median?
   grand_median <- median(values, na.rm = TRUE)
   
-  # Create binary matrix: above (1) or below (0) grand median
-  above_median_matrix <- matrix(0, nrow = n_blocks, ncol = n_treatments)
-  for (b in seq_len(n_blocks)) {
-    for (t in seq_len(n_treatments)) {
-      if (!is.na(block_ranks[b, t])) {
-        above_median_matrix[b, t] <- ifelse(block_ranks[b, t] > grand_median, 1, 0)
-      }
-    }
-  }
+  # OPTIMIZATION: Vectorized binary matrix creation
+  # Instead of nested loops, use vectorized comparison
+  above_median_matrix <- block_ranks > grand_median
+  mode(above_median_matrix) <- "numeric"  # Convert TRUE/FALSE to 1/0
   
   # Compute chi-squared test for independence
   # H0: Probability of being above median is same for all treatments
@@ -321,14 +311,10 @@
   subjects <- as.factor(data[[subject_col]])
   
   # Step 1: Align (remove block/subject effects)
-  # For each subject, subtract the subject's median from their values
-  aligned_values <- numeric(length(values))
-  
-  for (subj in levels(subjects)) {
-    subj_idx <- subjects == subj
-    subj_median <- median(values[subj_idx], na.rm = TRUE)
-    aligned_values[subj_idx] <- values[subj_idx] - subj_median
-  }
+  # OPTIMIZATION: Vectorized median calculation by subject
+  # Use ave() to compute subject medians in one operation instead of loop
+  subject_medians <- ave(values, subjects, FUN = function(x) median(x, na.rm = TRUE))
+  aligned_values <- values - subject_medians
   
   # Step 2: Rank aligned values globally
   ranked_values <- rank(aligned_values, na.last = "keep")

@@ -104,9 +104,10 @@
     colnames(data)[colnames(data) == condition_col] <- "condition"
   }
   
-  data$q <- factor(data$q)
-  data$gene <- factor(data$gene)
-  data$condition <- factor(data$condition)
+  # OPTIMIZATION: Vectorized factor conversion
+  # Convert multiple columns to factors in batch instead of separately
+  factor_cols <- c("q", "gene", "condition")
+  data[factor_cols] <- lapply(data[factor_cols], factor)
   
   if (paired) {
     if (!subject_col %in% colnames(data)) {
@@ -218,11 +219,19 @@
 #' @noRd
 .detect_q_refit_permuted_tests <- function(interaction_results, data, paired, subject_col, has_condition) {
   function(data_perm) {
+    # OPTIMIZATION: Vectorize gene-level test loop using split/lapply
+    # Instead of looping over nrow(interaction_results), split data and apply test to all genes at once
     perm_stats <- perm_pvals <- numeric(nrow(interaction_results))
+    
+    # Split permuted data by gene for batch processing
+    gene_data_list <- split(data_perm, data_perm$gene, drop = FALSE)
+    
     for (i in seq_len(nrow(interaction_results))) {
-      gene_data_perm <- data_perm[data_perm$gene == interaction_results$gene[i], ]
-      if (nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >= 2) {
-         # Always run Q\u00d7Condition interaction test (condition is now REQUIRED)
+      gene_id <- interaction_results$gene[i]
+      gene_data_perm <- gene_data_list[[as.character(gene_id)]]
+      
+      if (!is.null(gene_data_perm) && nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >= 2) {
+        # Always run Q×Condition interaction test (condition is now REQUIRED)
         test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm, "entropy", "q", "condition",
                                                        paired, if (paired) subject_col else NULL), error = function(e) NULL)
         if (!is.null(test_result) && !is.na(test_result$statistic)) {
