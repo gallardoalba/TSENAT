@@ -203,7 +203,9 @@ double hill_number_cpp(NumericVector p, double q = 1.0, double log_base = 2.7182
     return std::pow(sum_pq, exponent);
   }
 }
-//' @keywords internal
+// Internal C++ function (registered but not exported to R NAMESPACE)
+// Leave-one-out jackknife with vectorized Armadillo implementation
+// Callable via .Call("_TSENAT_jackknife_resampling_cpp") but not in user namespace
 // [[Rcpp::export]]
 List jackknife_resampling_cpp(NumericMatrix counts, double q = 1.0, 
                               bool normalize = true, double log_base = 2.718281828,

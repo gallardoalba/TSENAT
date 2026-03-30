@@ -352,7 +352,7 @@
     # Validate that gene g exists in matrix
     if (!(g %in% rownames(mat))) {
         stop(sprintf("Gene '%s' not found in matrix rownames. Available genes: %s",
-                     g, paste(rownames(mat)[1:min(5, nrow(mat))], collapse=", ")))
+                     g, paste(rownames(mat)[seq_len(min(5, nrow(mat)))], collapse=", ")))
     }
     
     # Extract entropy values and build data frame

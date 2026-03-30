@@ -10,9 +10,10 @@
 
 # Handle coverage mode (set by covr::package_coverage)
 # Use portable $(if ...) instead of ifdef/else/endif
-CXXFLAGS = $(if $(R_COVERAGE),-O0 -fprofile-arcs -ftest-coverage,)
+# Note: Use PKG_CXXFLAGS instead of CXXFLAGS to avoid overriding user/site settings
 COVERAGE_LIBS = $(if $(R_COVERAGE),-fprofile-arcs -ftest-coverage,)
+COVERAGE_FLAGS = $(if $(R_COVERAGE),-O0 -fprofile-arcs -ftest-coverage,)
 
 # Release mode: enable OpenMP for parallelization (unless in coverage mode)
-PKG_CXXFLAGS = $(if $(R_COVERAGE),,$(SHLIB_OPENMP_CXXFLAGS))
+PKG_CXXFLAGS = $(COVERAGE_FLAGS) $(if $(R_COVERAGE),,$(SHLIB_OPENMP_CXXFLAGS))
 PKG_LIBS = $(if $(R_COVERAGE),,$(SHLIB_OPENMP_CXXFLAGS)) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(COVERAGE_LIBS)

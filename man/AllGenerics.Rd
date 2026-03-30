@@ -8,3 +8,22 @@ Define generic functions for accessing components of TSENATAnalysis objects.
 These are the recommended way to extract results from analysis objects,
 following Bioconductor best practices.
 }
+\value{
+The specific return value depends on which generic function is called:
+\describe{
+  \item{\code{divResults}, \code{divRes}}{Divergence analysis results}
+  \item{\code{lmRes}}{Linear model results}
+  \item{\code{jkResults}}{Jackknife resampling results}
+  \item{\code{getMeta}}{Metadata table}
+  \item{\code{getConfig}}{Configuration settings}
+  \item{\code{getPlot}}{Plot object(s)}
+  \item{\code{getSE}}{SummarizedExperiment object}
+  \item{\code{addPlot}}{Updated TSENATAnalysis object (invisibly)}
+}
+}
+\details{
+These generic functions follow Bioconductor S4 class conventions and provide
+consistent, type-safe methods for accessing TSENATAnalysis object components.
+Each generic dispatches on the first argument (typically an object of class
+\code{TSENATAnalysis}).
+}

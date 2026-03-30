@@ -60,13 +60,19 @@
 #'
 #' @keywords internal
 #' @noRd
-#' @export
 jackknife_resampling_cpp <- function(counts, q = 1.0, normalize = TRUE, 
                                      log_base = exp(1), pseudocount = 0.0) {
-  # Call the Rcpp-generated function - defaults are handled by C++
-  .Call("_TSENAT_jackknife_resampling_cpp", PACKAGE = "TSENAT",
-        as.matrix(counts), as.numeric(q), as.logical(normalize), 
-        as.numeric(log_base), as.numeric(pseudocount))
+  # Internal wrapper - calls the C++ function directly via .Call()
+  # Not exported to user (internal use only)
+  .Call(
+    "_TSENAT_jackknife_resampling_cpp",
+    as.matrix(counts),
+    as.numeric(q),
+    as.logical(normalize),
+    as.numeric(log_base),
+    as.numeric(pseudocount),
+    PACKAGE = "TSENAT"
+  )
 }
 
 # Hybrid wrapper: Use C++ implementation (no fallback)
@@ -77,7 +83,7 @@ jackknife_resampling_cpp <- function(counts, q = 1.0, normalize = TRUE,
   # Initialize Rcpp check once
   .initialize_rcpp_check()
   
-  # Call Rcpp implementation directly
+  # Call internal C++ function via wrapper
   result_cpp <- jackknife_resampling_cpp(
     counts,
     q = q,

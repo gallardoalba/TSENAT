@@ -9,7 +9,6 @@ hill_number_cpp <- function(p, q = 1.0, log_base = 2.718281828) {
     .Call(`_TSENAT_hill_number_cpp`, p, q, log_base)
 }
 
-#' @keywords internal
 jackknife_resampling_cpp <- function(counts, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0) {
     .Call(`_TSENAT_jackknife_resampling_cpp`, counts, q, normalize, log_base, pseudocount)
 }
