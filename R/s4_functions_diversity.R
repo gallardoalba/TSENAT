@@ -176,6 +176,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   if (nrow(analysis@se) == 0) {
     stop("SummarizedExperiment in @se is empty", call. = FALSE)
   }
+  
+  # Debug: check initial state
+  if (verbose %||% FALSE) {
+    message("[DEBUG] Initial analysis@diversity_results: ", 
+            paste(names(analysis@diversity_results), collapse=", "))
+  }
 
   # Prepare all parameters (resolve from explicit args > @config > defaults)
   params <- .prepare_diversity_params(
@@ -196,10 +202,45 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   
   # Build calculation arguments for .calculate_diversity()
   calc_args <- .build_calc_diversity_args(params, analysis, list(...))
+  
+  if (params$verbose) {
+    message("[DEBUG] calc_args names: ", paste(names(calc_args), collapse=", "))
+    if (!"genes" %in% names(calc_args)) {
+        message("[DEBUG] NOTE: genes is NOT in calc_args - will default to SE rownames")
+    } else {
+        message("[DEBUG] genes provided in calc_args: ", paste(head(calc_args$genes, 5), collapse=", "))
+    }
+    x_param <- calc_args$x
+    if (is(x_param, "SummarizedExperiment")) {
+      md_names <- names(S4Vectors::metadata(x_param))
+      message("[DEBUG] Metadata on x: ", paste(md_names, collapse=", "))
+      if ("analysis" %in% md_names) {
+        message("[DEBUG] WARNING: 'analysis' in x metadata!")
+      }
+    }
+  }
+  
   result_df <- do.call(.calculate_diversity, calc_args)
+  
+  if (params$verbose) {
+    message("[DEBUG] After .calculate_diversity(): analysis@diversity_results keys = ", 
+            paste(names(analysis@diversity_results), collapse=", "))
+    message("[DEBUG] params$q STILL: ", paste(params$q, collapse=", "))
+  }
+  
+  # Store the original result SE for later per-q extraction
+  result_se_original <- result_df
   
   # Extract q-value metadata from result
   col_q_values <- .extract_q_metadata_from_result(result_df, params$q)
+  
+  if (params$verbose) {
+    message("[DEBUG] result_df colnames: ", paste(colnames(result_df), collapse=", "))
+    message("[DEBUG] col_q_values extracted: ", paste(col_q_values, collapse=", "))
+    if (length(names(col_q_values)) > 0) {
+      message("[DEBUG] col_q_values names (indices): ", paste(names(col_q_values), collapse=", "))
+    }
+  }
   
   # Store combined result in cache
   analysis@metadata$diversity_combined <- list(
@@ -220,8 +261,18 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   
   # Store per-q results with post-hoc normalization and audit trail
   q_decimals <- 3
+  if (params$verbose) {
+    message("[DEBUG] params$q values: ", paste(params$q, collapse=", "))
+    message("[DEBUG] Loop will iterate over params$q, expecting ", length(params$q), " iterations")
+    message("[DEBUG] diversity_results BEFORE loop: ", paste(names(analysis@diversity_results), collapse=", "))
+  }
+  
   for (q_val in params$q) {
     tryCatch({
+      if (params$verbose) {
+        message("[DEBUG] Processing q=", q_val, " (formatted: q_", 
+                formatC(q_val, format = "f", digits = q_decimals), ")")
+      }
       # Handle empty results
       if (nrow(result_df) == 0) {
         warning("[calculate_diversity_s4] Result for q=", q_val, " is empty (0 rows)", call. = FALSE)
@@ -235,6 +286,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         if (any(q_mask)) {
           q_cols <- as.numeric(names(col_q_values)[q_mask])
         }
+        if (params$verbose) {
+          message("[DEBUG] q=", q_val, ": col_q_values matching approach found cols: ", 
+                  paste(q_cols, collapse=", "))
+        }
       }
       
       # Fallback: pattern matching (handle different decimal precision)
@@ -242,8 +297,15 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         for (ndigits in c(3, 2)) {
           q_formatted <- formatC(q_val, format = "f", digits = ndigits)
           q_pattern_str <- paste0("_q=", gsub("\\.", "\\\\.", q_formatted), "$")
-          q_cols <- grep(q_pattern_str, colnames(result_df))
-          if (length(q_cols) > 0) break
+          q_cols_temp <- grep(q_pattern_str, colnames(result_df))
+          if (params$verbose) {
+            message("[DEBUG] q=", q_val, ": pattern (", ndigits, " digits) '", q_pattern_str, 
+                    "' found cols: ", paste(q_cols_temp, collapse=", "))
+          }
+          if (length(q_cols_temp) > 0) {
+            q_cols <- q_cols_temp
+            break
+          }
         }
       }
       
@@ -260,15 +322,50 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
              call. = FALSE)
       }
       
-      # Extract and convert to SE
+      # Extract and convert to SE, preserving CI assays if present
       result_subset <- result_df[, q_cols, drop = FALSE]
-      if (is.data.frame(result_subset)) {
+      
+      if (is(result_subset, "SummarizedExperiment")) {
+        # result_subset is already a SummarizedExperiment with CI assays preserved
+        result_se <- result_subset
+        
+        if (params$verbose) {
+          message("[DEBUG] result_subset SE colnames: ", paste(colnames(result_se), collapse=", "))
+          message("[DEBUG] result_subset SE assays: ", paste(SummarizedExperiment::assayNames(result_se), collapse=", "))
+        }
+      } else if (is.data.frame(result_subset)) {
         numeric_cols <- vapply(result_subset, is.numeric, FUN.VALUE = logical(1))
         if (!any(numeric_cols)) {
           result_se <- result_subset
         } else {
+          # Extract main diversity assay
           assay_data <- as.matrix(result_subset[, numeric_cols, drop = FALSE])
-          result_se <- SummarizedExperiment(assays = list(diversity = assay_data))
+          
+          # Build assays list with diversity and CIs
+          assays_list <- list(diversity = assay_data)
+          
+          # Extract CI assays from the original result SE if available
+          # The q_cols indices also apply to the CI assays since they have the same structure
+          if (is(result_se_original, "SummarizedExperiment")) {
+            if ("ci_lower" %in% SummarizedExperiment::assayNames(result_se_original)) {
+              ci_lower_orig <- SummarizedExperiment::assay(result_se_original, "ci_lower")
+              if (!is.null(ci_lower_orig)) {
+                # Subset the same columns from ci_lower
+                ci_lower_subset <- ci_lower_orig[, q_cols, drop = FALSE]
+                assays_list$ci_lower <- ci_lower_subset
+              }
+            }
+            if ("ci_upper" %in% SummarizedExperiment::assayNames(result_se_original)) {
+              ci_upper_orig <- SummarizedExperiment::assay(result_se_original, "ci_upper")
+              if (!is.null(ci_upper_orig)) {
+                # Subset the same columns from ci_upper
+                ci_upper_subset <- ci_upper_orig[, q_cols, drop = FALSE]
+                assays_list$ci_upper <- ci_upper_subset
+              }
+            }
+          }
+          
+          result_se <- SummarizedExperiment(assays = assays_list)
           rownames(result_se) <- rownames(result_subset)
           
           metadata_mask <- !numeric_cols
@@ -313,12 +410,25 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       
       # Store with audit trail metadata
       key <- paste0("q_", formatC(q_val, format = "f", digits = q_decimals))
+      
+      # Debug: verify assays before storing
+      if (params$verbose) {
+        assay_names <- SummarizedExperiment::assayNames(result_se)
+        message("[calculate_diversity_s4] Storing q=", q_val, " with assays: ", 
+                paste(assay_names, collapse=", "))
+      }
+      
       attr(result_se, "computed_with") <- list(
         q = q_val, norm = params$norm, norm_method = params$norm_method,
         verbose = params$verbose, bootstrap = params$bootstrap, pseudocount = params$pseudocount,
         nthreads = params$nthreads, what = params$what, timestamp = Sys.time()
       )
       analysis@diversity_results[[key]] <- result_se
+      
+      if (params$verbose) {
+        message("[DEBUG] After storing ", key, ": diversity_results keys = ", 
+                paste(names(analysis@diversity_results), collapse=", "))
+      }
       
       # Track function call
       analysis@metadata$function_calls <- c(
@@ -398,12 +508,24 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       
       # Extract diversity results from individual SE objects (preferred path with CIs)
       if (length(analysis@diversity_results) > 0) {
-        # Build output data systematically
-        all_genes <- rownames(analysis@diversity_results[[1]])
-        all_samples <- colnames(analysis@diversity_results[[1]])
+        # Build output data systematically - iterate over the q values we REQUESTED, not all stored results
+        q_keys_to_use <- paste0("q_", formatC(params$q, format = "f", digits = 3))
+        n_q <- length(q_keys_to_use)
+        
+        # Get dimensions from first result
+        first_key <- q_keys_to_use[1]
+        if (first_key %in% names(analysis@diversity_results)) {
+          se_first_actual <- analysis@diversity_results[[first_key]]
+          all_genes <- rownames(se_first_actual)
+          all_samples <- colnames(se_first_actual)
+        } else {
+          # Fallback to first available
+          all_genes <- rownames(analysis@diversity_results[[1]])
+          all_samples <- colnames(analysis@diversity_results[[1]])
+        }
+        
         n_genes <- length(all_genes)
         n_samples <- length(all_samples)
-        n_q <- length(analysis@diversity_results)
         
         # Pre-allocate data frame
         total_rows <- n_genes * n_samples * n_q
@@ -416,7 +538,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         )
         
         # Add CI columns if they exist
-        se_first <- analysis@diversity_results[[1]]
+        se_first <- analysis@diversity_results[[first_key]]
         assay_names_first <- SummarizedExperiment::assayNames(se_first)
         has_ci_lower <- "ci_lower" %in% assay_names_first
         has_ci_upper <- "ci_upper" %in% assay_names_first
@@ -424,19 +546,69 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         if (has_ci_lower) output_data$ci_lower <- numeric(total_rows)
         if (has_ci_upper) output_data$ci_upper <- numeric(total_rows)
         
-        # Fill data frame
+        # Fill data frame - use ONLY the requested q-values
         row_idx <- 1
-        for (q_idx in seq_along(analysis@diversity_results)) {
-          se <- analysis@diversity_results[[q_idx]]
-          q_name <- names(analysis@diversity_results)[q_idx]
+        if (params$verbose) {
+          message("[DEBUG] Using q-keys for output: ", paste(q_keys_to_use, collapse=", "))
+        }
+        
+        for (q_idx in seq_along(q_keys_to_use)) {
+          q_key <- q_keys_to_use[q_idx]
+          
+          if (!q_key %in% names(analysis@diversity_results)) {
+            if (params$verbose) {
+              message("[DEBUG] WARNING: q_key '", q_key, "' not found in diversity_results")
+            }
+            next
+          }
+          
+          se <- analysis@diversity_results[[q_key]]
+          q_name <- q_key
           
           if (!is(se, "SummarizedExperiment")) {
             next
           }
           
           diversity_mat <- as.matrix(SummarizedExperiment::assay(se, 1))
-          ci_lower_mat <- if (has_ci_lower) as.matrix(SummarizedExperiment::assay(se, "ci_lower")) else NULL
-          ci_upper_mat <- if (has_ci_upper) as.matrix(SummarizedExperiment::assay(se, "ci_upper")) else NULL
+          
+          # Debug: show assays for this SE
+          assay_names <- SummarizedExperiment::assayNames(se)
+          if (params$verbose && q_idx == 1) {
+            message("[calculate_diversity_s4] First q SE has assays: ", paste(assay_names, collapse=", "))
+          }
+          
+          ci_lower_mat <- if (has_ci_lower) {
+            tryCatch({
+              ci_lower_temp <- as.matrix(SummarizedExperiment::assay(se, "ci_lower"))
+              if (params$verbose && q_idx == 1) {
+                message("[DEBUG] ci_lower[1,1:2]: ", paste(ci_lower_temp[1, 1:min(2, ncol(ci_lower_temp))], collapse=", "))
+              }
+              ci_lower_temp
+            }, error = function(e) {
+              message("[calculate_diversity_s4] ERROR accessing ci_lower for q=", q_name, ": ", conditionMessage(e))
+              message("  Available assays: ", paste(assay_names, collapse=", "))
+              NULL
+            })
+          } else NULL
+          
+          if (params$verbose && q_idx == 1) {
+            message("[DEBUG] diversity[1,1:2]: ", paste(diversity_mat[1, 1:min(2, ncol(diversity_mat))], collapse=", "))
+            message("[DEBUG] ci_upper row 1 first 2 cols will be shown next")
+          }
+          
+          ci_upper_mat <- if (has_ci_upper) {
+            tryCatch({
+              ci_upper_temp <- as.matrix(SummarizedExperiment::assay(se, "ci_upper"))
+              if (params$verbose && q_idx == 1) {
+                message("[DEBUG] ci_upper[1,1:2]: ", paste(ci_upper_temp[1, 1:min(2, ncol(ci_upper_temp))], collapse=", "))
+              }
+              ci_upper_temp
+            }, error = function(e) {
+              message("[calculate_diversity_s4] ERROR accessing ci_upper for q=", q_name, ": ", conditionMessage(e))
+              message("  Available assays: ", paste(assay_names, collapse=", "))
+              NULL
+            })
+          } else NULL
           
           for (gene_idx in seq_len(nrow(diversity_mat))) {
             for (sample_idx in seq_len(ncol(diversity_mat))) {
@@ -642,12 +814,27 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   
   diversity_assay <- SummarizedExperiment::assay(result_se, "diversity")
   
+  # Apply the same normalization to CI assays if they exist
+  ci_lower_assay <- NULL
+  ci_upper_assay <- NULL
+  
+  if ("ci_lower" %in% SummarizedExperiment::assayNames(result_se)) {
+    ci_lower_assay <- SummarizedExperiment::assay(result_se, "ci_lower")
+  }
+  if ("ci_upper" %in% SummarizedExperiment::assayNames(result_se)) {
+    ci_upper_assay <- SummarizedExperiment::assay(result_se, "ci_upper")
+  }
+  
   if (norm_method == "zscore") {
     diversity_assay <- .normalize_zscore(diversity_assay, per_q = TRUE)
+    if (!is.null(ci_lower_assay)) ci_lower_assay <- .normalize_zscore(ci_lower_assay, per_q = TRUE)
+    if (!is.null(ci_upper_assay)) ci_upper_assay <- .normalize_zscore(ci_upper_assay, per_q = TRUE)
     if (verbose) message("[calculate_diversity_s4] Applied z-score normalization for q=", q_val)
   } else if (norm_method == "log_odds_ratio" && !is.null(params$genes)) {
     n_isoforms_vec <- table(params$genes)
     diversity_assay <- .normalize_log_odds_ratio(diversity_assay, n_isoforms = n_isoforms_vec, q = q_val)
+    if (!is.null(ci_lower_assay)) ci_lower_assay <- .normalize_log_odds_ratio(ci_lower_assay, n_isoforms = n_isoforms_vec, q = q_val)
+    if (!is.null(ci_upper_assay)) ci_upper_assay <- .normalize_log_odds_ratio(ci_upper_assay, n_isoforms = n_isoforms_vec, q = q_val)
     if (verbose) message("[calculate_diversity_s4] Applied log-odds ratio normalization for q=", q_val)
   } else if (norm_method == "relative_reference" && !is.null(params$reference_group)) {
     coldata <- SummarizedExperiment::colData(result_se)
@@ -655,11 +842,16 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       group_vector <- coldata[[params$reference_group]]
       diversity_assay <- .normalize_relative_reference(diversity_assay, group_vector = group_vector,
                                                        reference_group = params$reference_group)
+      if (!is.null(ci_lower_assay)) ci_lower_assay <- .normalize_relative_reference(ci_lower_assay, group_vector = group_vector, reference_group = params$reference_group)
+      if (!is.null(ci_upper_assay)) ci_upper_assay <- .normalize_relative_reference(ci_upper_assay, group_vector = group_vector, reference_group = params$reference_group)
       if (verbose) message("[calculate_diversity_s4] Applied relative reference normalization for q=", q_val)
     }
   }
   
   SummarizedExperiment::assay(result_se, "diversity") <- diversity_assay
+  if (!is.null(ci_lower_assay)) SummarizedExperiment::assay(result_se, "ci_lower") <- ci_lower_assay
+  if (!is.null(ci_upper_assay)) SummarizedExperiment::assay(result_se, "ci_upper") <- ci_upper_assay
+  
   result_se
 }
 

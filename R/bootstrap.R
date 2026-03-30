@@ -2144,7 +2144,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 # From diversity_core.R: Compute bootstrap CI for diversity measures
 .bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
     bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
-    bootstrap_include_diagnostics, verbose, seed = NULL) {
+    bootstrap_include_diagnostics, verbose, seed = NULL, effective_length = NULL) {
     
     bootstrap_ci_results <- NULL
     
@@ -2171,36 +2171,101 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     }
     
     # Prepare data and compute bootstrap CIs
+    # For each (gene x sample) pair, we compute one CI from bootstrap resampling of transcripts
+    if (verbose) {
+        message(sprintf("  [DEBUG] result structure: %d rows, %d cols", nrow(result), ncol(result)))
+        message(sprintf("  [DEBUG] result column names: %s", paste(head(colnames(result), 5), collapse=", ")))
+        message(sprintf("  [DEBUG] result first few rows:\n"))
+        print(head(result, 2))
+    }
+    
     filtered_genes <- as.character(result[, 1])
-    gene_indices <- which(genes %in% filtered_genes)
-    counts_for_bootstrap <- se_assay_mat[gene_indices, , drop = FALSE]
-    counts_for_bootstrap <- counts_for_bootstrap[match(filtered_genes, genes[gene_indices]), , drop = FALSE]
-    rownames(counts_for_bootstrap) <- filtered_genes
+    if (verbose) {
+        message(sprintf("  [DEBUG] filtered_genes: %s", paste(filtered_genes, collapse=", ")))
+        message(sprintf("  [DEBUG] length(filtered_genes) = %d", length(filtered_genes)))  
+    }
+    
+    # Create a list where each element is bootstrap results for one (gene, sample) pair
+    bootstrap_results_list <- list()
+    pair_metadata <- data.frame(gene = character(), sample_idx = integer())
+    
+    if (verbose) {
+        message(sprintf("  [DEBUG] Initial pair_metadata: %d rows", nrow(pair_metadata)))
+    }
+    
+    for (g_idx in seq_along(filtered_genes)) {
+        g <- filtered_genes[g_idx]
+        tx_mask <- which(genes == g)
+        
+        if (verbose) {
+             message(sprintf("  [DEBUG LOOP] g_idx=%d, g=%s, tx_mask length=%d", g_idx, g, length(tx_mask)))
+        }
+        
+        if (length(tx_mask) == 0) next
+        
+        # Get effective_length normalization for this gene's transcripts if available
+        el_for_gene_txs <- NULL
+        if (!is.null(effective_length)) {
+            # effective_length is indexed by transcript position
+            el_for_gene_txs <- effective_length[tx_mask]
+        }
+        
+        # For each sample, compute bootstrap CI on this gene's transcripts in that sample
+        for (s in seq_len(ncol(se_assay_mat))) {
+            # Get transcript counts for this gene in this sample
+            counts_vec <- se_assay_mat[tx_mask, s]
+            
+            # Apply effective_length normalization BEFORE bootstrap to match point estimate scale
+            if (!is.null(el_for_gene_txs)) {
+                counts_normalized <- counts_vec / el_for_gene_txs
+            } else {
+                counts_normalized <- counts_vec
+            }
+            
+            # Compute bootstrap CI for this (gene, sample) pair on normalized counts
+            tryCatch({
+                boot_result <- .calculate_tsallis_entropy_bootstrap(
+                    x = counts_normalized, q = q, norm = TRUE, nboot = bootstrap_nboot,
+                    ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
+                    nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
+                    seed = seed)
+                
+                bootstrap_results_list[[length(bootstrap_results_list) + 1]] <- boot_result
+                pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))
+            }, error = function(e) {
+                if (verbose) message("  [WARN] Bootstrap failed for ", g, " sample ", s, ": ", conditionMessage(e))
+            })
+        }
+    }
+    
+    # Convert results list to named list for easier mapping
+    if (nrow(pair_metadata) > 0) {
+        result_names <- paste0(pair_metadata$gene, "_sample_", pair_metadata$sample_idx)
+    } else {
+        result_names <- character(0)
+    }
+    
+    if (verbose) {
+        if (nrow(pair_metadata) == 0) {
+            message("  [INFO] No (gene, sample) pairs were processed - result dataframe may be empty")
+            message(sprintf("    filtered_genes length=%d, se_assay_mat cols=%d", length(filtered_genes), ncol(se_assay_mat)))
+        }
+        message(sprintf("  [DEBUG] About to assign names: length(bootstrap_results_list)=%d, length(result_names)=%d", 
+                        length(bootstrap_results_list), length(result_names)))
+    }
+    
+    if (length(result_names) > 0) {
+        names(bootstrap_results_list) <- result_names
+    }
     
     if (verbose) {
         message("  Bootstrap data prepared:")
         message("    filtered_genes: ", length(filtered_genes))
-        message("    gene_indices length: ", length(gene_indices))
-        message("    counts_for_bootstrap: ", nrow(counts_for_bootstrap), " x ", ncol(counts_for_bootstrap))
+        message("    Pairs analyzed: ", nrow(pair_metadata))
     }
     
-    # Wrap bootstrap in tryCatch to capture detailed errors
-    bootstrap_ci_results <- tryCatch({
-        result <- .calculate_tsallis_entropy_bootstrap(
-            x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
-            ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
-            nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
-            seed = seed)
-        
-        if (verbose) message("  [OK] Bootstrap CIs computed")
-        result
-    }, error = function(e) {
-        if (verbose) {
-            message("  [ERROR] Bootstrap failed: ", conditionMessage(e))
-            message("  Returning NULL for this Q value")
-        }
-        NULL
-    })
+    # Set the bootstrap_ci_results to our pre-computed list
+    bootstrap_ci_results <- bootstrap_results_list
     
     list(bootstrap_ci_results = bootstrap_ci_results, bootstrap_nboot = bootstrap_nboot,
         bootstrap_method = bootstrap_method, bootstrap_ci = bootstrap_ci)

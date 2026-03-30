@@ -147,9 +147,21 @@
         message("Calculating diversity with EFFECTIVE LENGTH NORMALIZATION")
     }
     
+    if (verbose) {
+        message("[DEBUG .prepare_diversity_data] About to call .calculate_method:")
+        message("  x dimensions: ", nrow(x), " x ", ncol(x))
+        message("  genes: ", paste(unique(genes), collapse=", "))
+        message("  q values: ", paste(q, collapse=", "))
+    }
+    
     result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
         nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
         shrinkage = shrinkage, effective_length = effective_length)
+    
+    if (verbose) {
+        message("[DEBUG .prepare_diversity_data] After .calculate_method:")
+        message("  result dimensions: ", nrow(result), " x ", ncol(result))
+    }
     
     list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat)
 }
@@ -223,80 +235,72 @@
         ci_upper <- result_assay * NA_real_
         
         # Extract bootstrap CIs if available in output
+        # NEW STRUCTURE: each bootstrap result is for ONE (gene, sample) pair
         if (is.list(bootstrap_out) && length(bootstrap_out) > 0) {
-            # Process each gene's bootstrap results
+            # Get row names from the result_assay to map (gene, sample) pairs to indices
+            result_row_names  <- rownames(result_assay)
+            result_col_names <- colnames(result_assay)
+            
+            # Process each bootstrap result
+            # Names should be like "gene_name_sample_1", "gene_name_sample_2", etc.
             for (i in seq_along(bootstrap_out)) {
-                if (i > nrow(ci_lower)) break  # Safety check - don't exceed gene count
-                
                 boot_item <- bootstrap_out[[i]]
                 if (is.null(boot_item)) next
                 
-                # Case 1: tsenat_bootstrap_ci_list (multi-q case)
-                # Each element is named "q=value" and contains a tsenat_bootstrap_ci object
-                if (is(boot_item, "tsenat_bootstrap_ci_list") || 
-                    (is.list(boot_item) && !is.null(names(boot_item)) && 
-                     all(grepl("^q=", names(boot_item))))) {
-                    
-                    # Parse column q-value map
-                    col_names <- colnames(result_assay)
-                    col_q_map <- list()  # Map q_value_string -> column indices
-                    
-                    for (col_idx in seq_along(col_names)) {
-                        col_name <- col_names[col_idx]
-                        if (grepl("q=", col_name)) {
-                            # Extract q value from "sample_q=value" format
-                            q_val <- sub(".*q=([0-9.]+).*", "\\1", col_name)
-                            if (!grepl("q=", q_val)) {  # Successfully extracted
-                                if (is.null(col_q_map[[q_val]])) {
-                                    col_q_map[[q_val]] <- c()
-                                }
-                                col_q_map[[q_val]] <- c(col_q_map[[q_val]], col_idx)
+                # Parse bootstrap result name: "gene_name_sample_INDEX"
+                boot_name <- names(bootstrap_out)[i]
+                if (is.null(boot_name) || is.na(boot_name)) next
+                
+                m <- regexec("^(.+)_sample_([0-9]+)$", boot_name)
+                parts <- regmatches(boot_name, m)
+                if (length(parts[[1]]) != 3) next
+                
+                gene_name <- parts[[1]][2]
+                sample_idx_str <- parts[[1]][3]
+                sample_idx <- as.integer(sample_idx_str)
+                
+                # Get actual sample name from original se_assay_mat
+                if (sample_idx < 1 || sample_idx > ncol(se_assay_mat)) next
+                sample_name <- colnames(se_assay_mat)[sample_idx]
+                
+                # Find gene row in result matrix
+                gene_row_idx <- which(result_row_names == gene_name)[1]
+                if (is.na(gene_row_idx)) next
+                
+                # Find columns for this sample in result_assay
+                # Columns should have format "SAMPLE_q=NUMBER"
+                col_pattern <- paste0("^", gsub("([.^$*+?{}\\(\\)\\[\\]|\\\\])", "\\\\\\1", sample_name), "_q=")
+                col_indices <- grep(col_pattern, result_col_names)
+                if (length(col_indices) == 0) next
+                
+                # Extract q values from matching columns
+                col_q_values <- sub(
+                    paste0("^", gsub("([.^$*+?{}\\(\\)\\[\\]|\\\\])", "\\\\\\1", sample_name), "_q="),
+                    "",
+                    result_col_names[col_indices])
+                
+                # Process bootstrap result depending on structure
+                if (is.list(boot_item) && !is.null(names(boot_item)) && all(grepl("^q=", names(boot_item)))) {
+                    # Multi-q case: bootstrap result is a list with names like "q=1.0"
+                    for (j in seq_along(boot_item)) {
+                        q_name <- names(boot_item)[j]  # "q=1.0"
+                        q_val <- sub("^q=", "", q_name)
+                        q_result <- boot_item[[j]]
+                        
+                        if (!is.null(q_result$lower_ci) && !is.null(q_result$upper_ci)) {
+                            # Find which columns match this q value
+                            matching_q_idx <- which(col_q_values == q_val)
+                            if (length(matching_q_idx) > 0) {
+                                target_col_indices <- col_indices[matching_q_idx]
+                                ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
+                                ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
                             }
                         }
                     }
-                    
-                    # Assign CIs for each q
-                    for (q_idx in seq_along(boot_item)) {
-                        q_name <- names(boot_item)[q_idx]  # e.g., "q=0.5"
-                        q_result <- boot_item[[q_idx]]  # tsenat_bootstrap_ci object
-                        
-                        # Extract q value from name
-                        q_val_str <- sub("^q=", "", q_name)  # "0.5"
-                        
-                        if (!is.null(q_result$lower_ci) && !is.null(q_result$upper_ci)) {
-                            tryCatch({
-                                ci_val_lower <- as.numeric(q_result$lower_ci)[1]
-                                ci_val_upper <- as.numeric(q_result$upper_ci)[1]
-                                
-                                # Find columns matching this q value
-                                if (!is.null(col_q_map[[q_val_str]]) && length(col_q_map[[q_val_str]]) > 0) {
-                                    match_cols <- col_q_map[[q_val_str]]
-                                    ci_lower[i, match_cols] <- ci_val_lower
-                                    ci_upper[i, match_cols] <- ci_val_upper
-                                }
-                            }, error = function(e) {
-                                if (verbose) message("    [WARN] Gene ", i, ", q=", q_val_str, ": ", conditionMessage(e))
-                            })
-                        }
-                    }
-                    
                 } else if (!is.null(boot_item$lower_ci) && !is.null(boot_item$upper_ci)) {
-                    # Case 2: Single tsenat_bootstrap_ci object (single q case)
-                    tryCatch({
-                        ci_lower_val <- as.numeric(boot_item$lower_ci)
-                        ci_upper_val <- as.numeric(boot_item$upper_ci)
-                        
-                        # For single value, replicate across all columns
-                        if (length(ci_lower_val) == 1) {
-                            ci_lower[i, ] <- ci_lower_val
-                            ci_upper[i, ] <- ci_upper_val
-                        } else if (length(ci_lower_val) == ncol(ci_lower)) {
-                            ci_lower[i, ] <- ci_lower_val
-                            ci_upper[i, ] <- ci_upper_val
-                        }
-                    }, error = function(e) {
-                        if (verbose) message("    [WARN] Could not assign CIs for gene ", i, ": ", conditionMessage(e))
-                    })
+                    # Single-q case: bootstrap result is a tsenat_bootstrap_ci object
+                    ci_lower[gene_row_idx, col_indices] <- as.numeric(boot_item$lower_ci)[1]
+                    ci_upper[gene_row_idx, col_indices] <- as.numeric(boot_item$upper_ci)[1]
                 }
             }
         }
@@ -585,10 +589,15 @@
     genes <- prep$genes
     se_assay_mat <- prep$se_assay_mat
     
+    if (verbose && nrow(result) == 0) {
+        message("[WARN] Result from .prepare_diversity_data() is empty (0 rows)")
+        message("       This happens when bootstrap=", bootstrap)
+    }
+    
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
-        bootstrap_include_diagnostics, verbose, seed)
+        bootstrap_include_diagnostics, verbose, seed, effective_length)
     
     # Prepare output structure
     gene_names <- .extract_gene_names(original_x, genes, result)
