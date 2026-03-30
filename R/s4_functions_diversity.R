@@ -392,8 +392,104 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   }
   
   # Save output if requested
-  save_analysis_output(analysis, output_file, object = analysis, verbose = params$verbose, 
-                       func_name = "calculate_diversity_s4")
+  if (!is.null(output_file)) {
+    tryCatch({
+      output_data <- NULL
+      
+      # Extract diversity results from individual SE objects (preferred path with CIs)
+      if (length(analysis@diversity_results) > 0) {
+        # Build output data systematically
+        all_genes <- rownames(analysis@diversity_results[[1]])
+        all_samples <- colnames(analysis@diversity_results[[1]])
+        n_genes <- length(all_genes)
+        n_samples <- length(all_samples)
+        n_q <- length(analysis@diversity_results)
+        
+        # Pre-allocate data frame
+        total_rows <- n_genes * n_samples * n_q
+        output_data <- data.frame(
+          gene = character(total_rows),
+          sample = character(total_rows),
+          q_value = character(total_rows),
+          diversity = numeric(total_rows),
+          stringsAsFactors = FALSE
+        )
+        
+        # Add CI columns if they exist
+        se_first <- analysis@diversity_results[[1]]
+        assay_names_first <- SummarizedExperiment::assayNames(se_first)
+        has_ci_lower <- "ci_lower" %in% assay_names_first
+        has_ci_upper <- "ci_upper" %in% assay_names_first
+        
+        if (has_ci_lower) output_data$ci_lower <- numeric(total_rows)
+        if (has_ci_upper) output_data$ci_upper <- numeric(total_rows)
+        
+        # Fill data frame
+        row_idx <- 1
+        for (q_idx in seq_along(analysis@diversity_results)) {
+          se <- analysis@diversity_results[[q_idx]]
+          q_name <- names(analysis@diversity_results)[q_idx]
+          
+          if (!is(se, "SummarizedExperiment")) {
+            next
+          }
+          
+          diversity_mat <- as.matrix(SummarizedExperiment::assay(se, 1))
+          ci_lower_mat <- if (has_ci_lower) as.matrix(SummarizedExperiment::assay(se, "ci_lower")) else NULL
+          ci_upper_mat <- if (has_ci_upper) as.matrix(SummarizedExperiment::assay(se, "ci_upper")) else NULL
+          
+          for (gene_idx in seq_len(nrow(diversity_mat))) {
+            for (sample_idx in seq_len(ncol(diversity_mat))) {
+              output_data$gene[row_idx] <- rownames(diversity_mat)[gene_idx]
+              output_data$sample[row_idx] <- colnames(diversity_mat)[sample_idx]
+              output_data$q_value[row_idx] <- q_name
+              output_data$diversity[row_idx] <- as.numeric(diversity_mat[gene_idx, sample_idx])
+              
+              if (has_ci_lower && !is.null(ci_lower_mat)) {
+                output_data$ci_lower[row_idx] <- as.numeric(ci_lower_mat[gene_idx, sample_idx])
+              }
+              if (has_ci_upper && !is.null(ci_upper_mat)) {
+                output_data$ci_upper[row_idx] <- as.numeric(ci_upper_mat[gene_idx, sample_idx])
+              }
+              
+              row_idx <- row_idx + 1
+            }
+          }
+        }
+        
+        # Trim to actual rows (in case rows < total_rows due to errors)
+        output_data <- output_data[1:(row_idx - 1), ]
+      }
+      
+      # Fallback: if no diversity_results, try combined_result
+      if (is.null(output_data) || nrow(output_data) == 0) {
+        combined <- analysis@metadata$diversity_combined$combined_result
+        if (!is.null(combined) && nrow(combined) > 0) {
+          if (is(combined, "SummarizedExperiment")) {
+            output_data <- as.data.frame(SummarizedExperiment::assay(combined, 1))
+          } else if (is.data.frame(combined)) {
+            output_data <- combined
+          } else if (is.matrix(combined)) {
+            output_data <- as.data.frame(combined)
+          }
+        }
+      }
+      
+      # Save if we have data
+      if (!is.null(output_data) && nrow(output_data) > 0) {
+        save_analysis_output(output_data, output_file, verbose = params$verbose,
+                             func_name = "calculate_diversity_s4")
+        
+        if (params$verbose) {
+          message("[calculate_diversity_s4] Saved diversity results to: ", output_file)
+        }
+      }
+    }, error = function(e) {
+      warning("[calculate_diversity_s4] Could not save diversity results: ",
+              conditionMessage(e), call. = FALSE)
+    })
+  }
+
   
   analysis
 }

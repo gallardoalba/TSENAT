@@ -281,15 +281,16 @@ tsenat_analysis_q1 <- TSENATAnalysis(se_data)
 tsenat_analysis_q2 <- TSENATAnalysis(se_data)
 
 # Set condition column in config for downstream differential analysis
-tsenat_analysis_q1 <- TSENAT:::setConfigValue(tsenat_analysis_q1, "condition_col", "group")
-tsenat_analysis_q2 <- TSENAT:::setConfigValue(tsenat_analysis_q2, "condition_col", "group")
+tsenat_analysis_q1 <- setConfigValue(tsenat_analysis_q1, "condition_col", "group")
+tsenat_analysis_q2 <- setConfigValue(tsenat_analysis_q2, "condition_col", "group")
 
 # TSENAT: Tsallis entropy at q=1 (equals Shannon entropy) - using S4 wrapper
 tsenat_analysis_q1 <- calculate_diversity_s4(
   analysis = tsenat_analysis_q1,
   q = 1,
   norm = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  output_file = file.path("output", "appendix_a_diversity_q1.tsv")
 )
 tsenat_q1_values <- diversity(tsenat_analysis_q1, q = 1)
 
@@ -298,7 +299,8 @@ tsenat_analysis_q2 <- calculate_diversity_s4(
   analysis = tsenat_analysis_q2,
   q = 2,
   norm = TRUE,
-  verbose = FALSE
+  verbose = FALSE,
+  output_file = file.path("output", "appendix_a_diversity_q2.tsv")
 )
 tsenat_q2_values <- diversity(tsenat_analysis_q2, q = 2)
 ```
@@ -331,26 +333,28 @@ simpson_significance <- SplicingFactory::calculate_difference(
 
 # TSENAT: Differential analysis for Tsallis q=1
 # Ensure the grouping column is set in config for the wrapper
-tsenat_analysis_q1 <- TSENAT:::setConfigValue(tsenat_analysis_q1, "condition_col", "group")
+tsenat_analysis_q1 <- setConfigValue(tsenat_analysis_q1, "condition_col", "group")
 tsenat_analysis_q1 <- calculate_difference_s4(
   analysis = tsenat_analysis_q1,
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
-  verbose = FALSE
+  verbose = FALSE,
+  output_file = file.path("output", "appendix_a_difference_q1.tsv")
 )
 # Extract results for downstream functions
 tsenat_shannon_diff <- lmResults(tsenat_analysis_q1, component = "difference")
 
 # TSENAT: Differential analysis for Tsallis q=2
 # Ensure the grouping column is set in config for the wrapper
-tsenat_analysis_q2 <- TSENAT:::setConfigValue(tsenat_analysis_q2, "condition_col", "group")
+tsenat_analysis_q2 <- setConfigValue(tsenat_analysis_q2, "condition_col", "group")
 tsenat_analysis_q2 <- calculate_difference_s4(
   analysis = tsenat_analysis_q2,
   control = "Normal",
   method = "mean",
   test = "wilcoxon",
-  verbose = FALSE
+  verbose = FALSE,
+  output_file = file.path("output", "appendix_a_difference_q2.tsv")
 )
 # Extract results for downstream functions
 tsenat_simpson_diff <- lmResults(tsenat_analysis_q2, component = "difference")

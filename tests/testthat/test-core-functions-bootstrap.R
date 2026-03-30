@@ -3,6 +3,17 @@ context("Bootstrap Helper Functions: Core Unit Tests")
 # Suppress nboot warnings for this test file
 options(TSENAT.suppress_nboot_warning = TRUE)
 
+# Safety check: ensure test factory is loaded
+if (!exists("create_test_se_simple", mode = "function")) {
+  factory_file <- file.path(dirname(getwd()), "testthat", "tests-factory.R")
+  if (!file.exists(factory_file)) {
+    factory_file <- "tests/testthat/tests-factory.R"
+  }
+  if (file.exists(factory_file)) {
+    source(factory_file, local = FALSE)
+  }
+}
+
 # Setup test data
 set.seed(42)
 test_counts <- c(100, 80, 60, 40, 20)
@@ -2701,6 +2712,8 @@ test_that("diagnostics consistent across runs with same seed", {
     # with same seed (within 10% for ESS, 20% for skewness due to bootstrap variability)
     x <- c(100, 50, 30, 20)
     
+    # Reset RNG state before first call to ensure clean start
+    set.seed(666)
     result1 <- .calculate_tsallis_entropy_bootstrap(
         x = x,
         q = 2,
@@ -2709,6 +2722,8 @@ test_that("diagnostics consistent across runs with same seed", {
         verbose = FALSE
     )
     
+    # Reset RNG state again to match first call's conditions
+    set.seed(666)
     result2 <- .calculate_tsallis_entropy_bootstrap(
         x = x,
         q = 2,
@@ -2721,7 +2736,7 @@ test_that("diagnostics consistent across runs with same seed", {
     expect_true(!is.null(result1$diagnostics))
     expect_true(!is.null(result2$diagnostics))
     
-    # ESS should be similar (within 15%)
+    # ESS should be very similar (within 15%) when using same seed and parameters
     ess_ratio <- result1$diagnostics$effective_sample_size / result2$diagnostics$effective_sample_size
     expect_true(ess_ratio > 0.85 & ess_ratio < 1.15,
                info = sprintf("ESS ratio: %.2f (expected ~1.0)", ess_ratio))

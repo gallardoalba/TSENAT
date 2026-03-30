@@ -73,3 +73,4 @@ analysis <- setConfig(analysis, new_config)
 summary(analysis)
 }
 }
+\keyword{internal}

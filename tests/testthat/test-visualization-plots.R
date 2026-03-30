@@ -667,18 +667,13 @@ test_that("make_plot_for_genebuild_plot_from_summary generates ggplot and combin
     if (rlang::is_installed("grid")) {
         skip_if_not_installed("grid")
         # make_plot_for_genecombine_grid returns invisibly NULL when not writing file and should not
-        # create an Rplots.pdf in the working directory
+        # create an Rplots.pdf in the working directory.
+        # The function itself manages temporary graphics device to prevent Rplots.pdf creation.
         rpf <- "Rplots.pdf"
         if (file.exists(rpf)) unlink(rpf)
-        # Open a temporary PDF to suppress graphics output
-        tmp_pdf <- tempfile(fileext = ".pdf")
-        grDevices::pdf(tmp_pdf)
-        on.exit({
-          if (grDevices::dev.cur() > 1) grDevices::dev.off()
-          if (file.exists(tmp_pdf)) unlink(tmp_pdf)
-        }, add = TRUE)
-        res_grid <- .make_plot_for_genecombine_grid(list(p, p), output_file = NULL, agg_label_unique = "Label")
-        grDevices::dev.off()
+        
+        res_grid <- suppressWarnings(.make_plot_for_genecombine_grid(list(p, p), output_file = NULL, agg_label_unique = "Label"))
+        
         expect_null(res_grid)
         # Verify no stray Rplots.pdf was created in working directory
         expect_false(file.exists(rpf))
@@ -2183,36 +2178,34 @@ setup_bootstrap_no_ci_analysis <- function() {
 # TEST: Bootstrap CI detection (Lines 688-694)
 # ==============================================================================
 
-test_that("plot_tsallis_q_curve_s4 bootstrap: CI detection when both assays present (line 694)", {
+test_that("plot_tsallis_q_curve_s4 bootstrap: CI auto-detection when both assays present (line 694)", {
   analysis <- setup_bootstrap_ci_analysis()
   
-  # Function should detect CI assays and set use_ci_mode=TRUE
+  # Function should automatically detect CI assays and use bootstrap mode
   result <- suppressWarnings(tryCatch({
     plot_tsallis_q_curve_s4(
       analysis,
-      bootstrap = TRUE,
       condition_col = "condition"
     )
   }, error = function(e) list(error = conditionMessage(e))))
   
-  # Should work with bootstrap=TRUE and CI assays present
+  # Should work with bootstrap CIs automatically detected
   expect_true(is.null(result$error) || !grepl("found in SE", result$error, ignore.case = TRUE))
 })
 
-test_that("plot_tsallis_q_curve_s4 bootstrap: warning when bootstrap=TRUE but no CIs (lines 697-700)", {
+test_that("plot_tsallis_q_curve_s4 fallback: IQR when no CI data available (lines 697-700)", {
   analysis <- setup_bootstrap_no_ci_analysis()
   
-  # Should warn but not error when bootstrap requested without CI assays
+  # Should fall back to IQR when CI assays not available (no warning)
   result <- suppressWarnings(tryCatch({
     plot_tsallis_q_curve_s4(
       analysis,
-      bootstrap = TRUE,
       condition_col = "condition"
     )
-  }, error = function(e) list(error = conditionMessage(e)), warning = function(w) list(warning = conditionMessage(w))))
+  }, error = function(e) list(error = conditionMessage(e))))
   
-  # Should complete (warning is captured internally)
-  expect_true(is.null(result) || is.null(result$error) || !grepl("must be provided", result$error, ignore.case = TRUE))
+  # Should complete and return plot with IQR fallback
+  expect_true(inherits(result, "ggplot") || is.null(result$error) || !grepl("must be provided", result$error, ignore.case = TRUE))
 })
 
 # ==============================================================================
@@ -2220,13 +2213,12 @@ test_that("plot_tsallis_q_curve_s4 bootstrap: warning when bootstrap=TRUE but no
 # ==============================================================================
 
 test_that("plot_tsallis_q_curve_s4 basic mode: plot creation (lines 725-755)", {
-  analysis <- setup_bootstrap_ci_analysis()
+  analysis <- setup_bootstrap_no_ci_analysis()
   
-  # Basic mode (bootstrap=FALSE) should create plot
+  # Should create IQR-based plot when CI data unavailable
   result <- suppressWarnings(tryCatch({
     plot_tsallis_q_curve_s4(
       analysis,
-      bootstrap = FALSE,  # Use basic mode
       condition_col = "condition"
     )
   }, error = function(e) list(error = conditionMessage(e))))

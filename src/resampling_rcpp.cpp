@@ -366,7 +366,9 @@ NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
   double total = sum(x_adj);
   
   if (total <= 0) {
-    Rcpp::stop("Total count (after pseudocount) must be positive");
+    // Return vector of NAs for zero-count genes (consistent with non-bootstrap behavior)
+    // This allows bootstrap to handle pseudocount=0 with zero-count genes gracefully
+    return NumericVector(nboot, NA_REAL);
   }
   
   // Compute proportions from original data (for resampling)
@@ -502,7 +504,9 @@ NumericVector block_bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
   double total = sum(x_adj);  // Total with pseudocount for computing proportions
   
   if (total <= 0) {
-    Rcpp::stop("Total count (after pseudocount) must be positive");
+    // Return vector of NAs for zero-count genes (consistent with non-bootstrap behavior)
+    // This allows block bootstrap to handle pseudocount=0 with zero-count genes gracefully
+    return NumericVector(nboot, NA_REAL);
   }
   
   // Pre-allocate result vector

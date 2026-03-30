@@ -1248,8 +1248,18 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
         png_height <- 480 * nrow
         png(filename = output_file, width = png_width, height = png_height, res = 150)
         .plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights, to_file = output_file)
+        grDevices::dev.off()
         invisible(NULL)
     } else {
+        # When no output file specified, create a temporary null device to capture graphics
+        # This prevents R from creating Rplots.pdf as a fallback when grid draws
+        tmp_png <- tempfile(fileext = ".png")
+        grDevices::png(tmp_png)
+        on.exit({
+            try(grDevices::dev.off(), silent = TRUE)
+            if (file.exists(tmp_png)) unlink(tmp_png)
+        }, add = TRUE)
+        
         .plot_transcript_grid_draw(grobs, agg_label_unique, legend_grob, ncol, heights)
         invisible(NULL)
     }

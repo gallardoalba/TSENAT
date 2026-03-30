@@ -119,10 +119,12 @@
     # VALIDATE DATA COMPATIBILITY (NEW: Issue #5 validation)
     # =========================================================================
     # Check that SE and LM results have compatible gene sets before processing
+    # Note: stop_on_error = FALSE because we explicitly filter genes below (lines 171-175)
+    # to handle mismatches (e.g., genes that failed during recalculation)
     data_validation <- .validate_plot_data(
         se = se,
         lm_results = lm_res,
-        stop_on_error = TRUE,
+        stop_on_error = FALSE,
         verbose = FALSE  # Suppress verbose; we'll only see output if validation fails
     )
     

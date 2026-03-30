@@ -792,6 +792,7 @@ NULL
   # Extract first SE to get dimensions
   first_se <- NULL
   combined_assays_dict <- list()
+  bootstrap_ci_available <- FALSE
   
   for (q_name in names(div_list)) {
     obj <- div_list[[q_name]]
@@ -800,12 +801,19 @@ NULL
       if (is.null(first_se)) {
         first_se <- obj
       }
+      # Check if bootstrap CIs are available in this SE
+      if ("ci_lower" %in% SummarizedExperiment::assayNames(obj) && 
+          "ci_upper" %in% SummarizedExperiment::assayNames(obj)) {
+        bootstrap_ci_available <- TRUE
+      }
     } else {
       mat <- as.matrix(obj)
     }
     
     q_val <- as.numeric(sub("^q_", "", q_name))
-    combined_assays_dict[[q_name]] <- list(matrix = mat, q_val = q_val)
+    combined_assays_dict[[q_name]] <- list(
+      matrix = mat, q_val = q_val, se_obj = obj
+    )
   }
   
   if (is.null(first_se)) {
@@ -822,12 +830,21 @@ NULL
   combined_assay <- matrix(0, nrow = length(target_genes), ncol = total_cols)
   rownames(combined_assay) <- target_genes
   
+  # Initialize CI assay matrices if available
+  combined_ci_lower <- if (bootstrap_ci_available) {
+    matrix(NA, nrow = length(target_genes), ncol = total_cols)
+  } else NULL
+  combined_ci_upper <- if (bootstrap_ci_available) {
+    matrix(NA, nrow = length(target_genes), ncol = total_cols)
+  } else NULL
+  
   combined_coldata_list <- list()
   col_idx <- 1
   
   for (q_name in names(combined_assays_dict)) {
     mat <- combined_assays_dict[[q_name]]$matrix
     q_val <- combined_assays_dict[[q_name]]$q_val
+    se_obj <- combined_assays_dict[[q_name]]$se_obj
     
     # Handle dimension mismatches
     if (ncol(mat) != target_n_cols) {
@@ -840,6 +857,37 @@ NULL
     
     # Reorder rows to match first_se
     mat <- mat[target_genes, , drop = FALSE]
+    
+    # Extract CI matrices if available
+    if (bootstrap_ci_available && is(se_obj, "SummarizedExperiment")) {
+      if ("ci_lower" %in% SummarizedExperiment::assayNames(se_obj)) {
+        ci_lower_mat <- SummarizedExperiment::assay(se_obj, "ci_lower")
+        if (ncol(ci_lower_mat) != target_n_cols) {
+          if (ncol(ci_lower_mat) > target_n_cols) {
+            ci_lower_mat <- ci_lower_mat[, seq_len(target_n_cols), drop = FALSE]
+          } else {
+            ci_lower_mat <- cbind(ci_lower_mat, matrix(NA, nrow = nrow(ci_lower_mat), ncol = target_n_cols - ncol(ci_lower_mat)))
+          }
+        }
+        ci_lower_mat <- ci_lower_mat[target_genes, , drop = FALSE]
+      } else {
+        ci_lower_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
+      }
+      
+      if ("ci_upper" %in% SummarizedExperiment::assayNames(se_obj)) {
+        ci_upper_mat <- SummarizedExperiment::assay(se_obj, "ci_upper")
+        if (ncol(ci_upper_mat) != target_n_cols) {
+          if (ncol(ci_upper_mat) > target_n_cols) {
+            ci_upper_mat <- ci_upper_mat[, seq_len(target_n_cols), drop = FALSE]
+          } else {
+            ci_upper_mat <- cbind(ci_upper_mat, matrix(NA, nrow = nrow(ci_upper_mat), ncol = target_n_cols - ncol(ci_upper_mat)))
+          }
+        }
+        ci_upper_mat <- ci_upper_mat[target_genes, , drop = FALSE]
+      } else {
+        ci_upper_mat <- matrix(NA, nrow = nrow(mat), ncol = ncol(mat))
+      }
+    }
     
     # Add q-value suffix to column names
     orig_colnames <- colnames(mat)
@@ -862,6 +910,10 @@ NULL
     
     for (i in seq_len(ncol(mat))) {
       combined_assay[, col_idx] <- mat[, i]
+      if (bootstrap_ci_available && !is.null(combined_ci_lower) && exists("ci_lower_mat")) {
+        combined_ci_lower[, col_idx] <- ci_lower_mat[, i]
+        combined_ci_upper[, col_idx] <- ci_upper_mat[, i]
+      }
       col_idx <- col_idx + 1
     }
     
@@ -878,7 +930,14 @@ NULL
   
   # Combine colData
   combined_coldata_df <- do.call(rbind, combined_coldata_list)
-  colnames(combined_assay) <- rownames(combined_coldata_df)
+  combined_colnames <- rownames(combined_coldata_df)
+  
+  # Set column names for all assays (including CI matrices if available)
+  colnames(combined_assay) <- combined_colnames
+  if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
+    colnames(combined_ci_lower) <- combined_colnames
+    colnames(combined_ci_upper) <- combined_colnames
+  }
   
   # Get/create rowData
   rd_combined <- tryCatch({
@@ -897,13 +956,32 @@ NULL
       stringsAsFactors = FALSE
     )
   }
-  
   # Return combined SE
-  SummarizedExperiment::SummarizedExperiment(
-    assays = list(diversity = combined_assay),
+  assays_list <- list(diversity = combined_assay)
+  if (bootstrap_ci_available && !is.null(combined_ci_lower) && !is.null(combined_ci_upper)) {
+    # Verify CI assays are fully populated (not all NAs)
+    ci_lower_valid <- sum(!is.na(combined_ci_lower)) > 0
+    ci_upper_valid <- sum(!is.na(combined_ci_upper)) > 0
+    
+    if (ci_lower_valid && ci_upper_valid) {
+      assays_list$ci_lower <- combined_ci_lower
+      assays_list$ci_upper <- combined_ci_upper
+    }
+  }
+  
+  combined_se <- SummarizedExperiment::SummarizedExperiment(
+    assays = assays_list,
     colData = combined_coldata_df,
     rowData = rd_combined
   )
+  
+  # Store bootstrap metadata for debugging
+  if (bootstrap_ci_available && !is.null(combined_ci_lower)) {
+    metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
+    metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) > 0)
+  }
+  
+  combined_se
 }
 
 #' Compute gene-level statistics (median +/- SD) by group and q-value
@@ -912,15 +990,23 @@ NULL
 #' @return Data frame with central tendency and spread by gene, group, q
 
 #' @noRd
-.compute_gene_group_stats <- function(long_data) {
+.compute_gene_group_stats <- function(long_data, metric = "iqr") {
   require_pkgs("dplyr")
   
+  metric <- match.arg(tolower(metric), c("iqr", "sd"))
   long_data$qnum <- as.numeric(as.character(long_data$q))
+  
+  # Calculate spread based on metric choice
+  if (metric == "iqr") {
+    spread_calc <- quote(stats::IQR(tsallis, na.rm = TRUE) / 2)
+  } else {
+    spread_calc <- quote(sqrt(stats::var(tsallis, na.rm = TRUE)))
+  }
   
   dplyr::summarise(
     dplyr::group_by(long_data, group, qnum),
     central = median(tsallis, na.rm = TRUE),
-    spread = sqrt(stats::var(tsallis, na.rm = TRUE)),
+    spread = !!spread_calc,
     .groups = "drop"
   )
 }
@@ -1105,4 +1191,78 @@ NULL
   
   # Select top n
   sig_genes$gene[seq_len(min(n_top, nrow(sig_genes)))]
+}
+
+#' Prepare gene CI data for plotting
+#'
+#' Converts CI matrices into long-format data for gene-specific bootstrap CI plotting.
+#'
+#' @param long_data Long-format data with Gene, group, q, tsallis columns
+#' @param ci_lower_mat CI lower bounds matrix (genes x samples*q)
+#' @param ci_upper_mat CI upper bounds matrix (genes x samples*q)
+#' @param genes Character vector of gene IDs to extract
+#'
+#' @return Data frame with columns: Gene, group, q, median, ci_lower, ci_upper
+#'
+#' @noRd
+.prepare_gene_ci_data <- function(long_data, ci_lower_mat, ci_upper_mat, genes) {
+  require_pkgs("dplyr")
+  
+  # Aggregate to get median per gene, group, q
+  stats_df <- dplyr::summarise(
+    dplyr::group_by(long_data, Gene, group, q),
+    median = median(tsallis, na.rm = TRUE),
+    .groups = "drop"
+  )
+  
+  # Extract CI values for each gene, group, q combination
+  plot_df <- stats_df
+  plot_df$ci_lower <- NA_real_
+  plot_df$ci_upper <- NA_real_
+  
+  # Map CI assay columns to gene/group/q combinations
+  if (nrow(ci_lower_mat) > 0) {
+    colnames_ci <- colnames(ci_lower_mat)
+    
+    # Parse column names (e.g., "Sample_q=0.01")
+    ci_samples <- sub("_q=.*", "", colnames_ci)
+    ci_q_values <- as.numeric(sub(".*_q=", "", colnames_ci))
+    
+    for (i in seq_len(nrow(plot_df))) {
+      g <- plot_df$Gene[i]
+      gr <- as.character(plot_df$group[i])
+      q_val <- plot_df$q[i]
+      
+      # Find indices in long_data for this gene/group/q
+      matching_rows <- which(
+        as.character(long_data$Gene) == g &
+        as.character(long_data$group) == gr &
+        as.numeric(as.character(long_data$q)) == q_val
+      )
+      
+      if (length(matching_rows) > 0) {
+        # Get samples for this group from long_data
+        samples_for_group <- unique(as.character(long_data$sample[matching_rows]))
+        
+        # Find CI columns for these samples at this q
+        ci_col_mask <- (ci_samples %in% samples_for_group) & (abs(ci_q_values - q_val) < 1e-6)
+        ci_col_indices <- which(ci_col_mask)
+        
+        if (length(ci_col_indices) > 0) {
+          # Get CI bounds for these columns
+          gene_idx <- which(rownames(ci_lower_mat) == g)
+          if (length(gene_idx) > 0) {
+            ci_lower_vals <- ci_lower_mat[gene_idx, ci_col_indices]
+            ci_upper_vals <- ci_upper_mat[gene_idx, ci_col_indices]
+            
+            # Use median of CI values across samples in this group
+            plot_df$ci_lower[i] <- median(ci_lower_vals, na.rm = TRUE)
+            plot_df$ci_upper[i] <- median(ci_upper_vals, na.rm = TRUE)
+          }
+        }
+      }
+    }
+  }
+  
+  plot_df
 }

@@ -846,6 +846,8 @@ setGeneric("setConfig", function(object, value) {
 
 #' @rdname setConfig
 #' @aliases setConfig,TSENATAnalysis-method
+#' @keywords internal
+#'
 #' @examples
 #' \dontrun{
 #' # Load real TSENAT data
@@ -928,6 +930,8 @@ setGeneric("setConfigValue", function(object, key, value) {
 
 #' @rdname setConfigValue
 #' @aliases setConfigValue,TSENATAnalysis-method
+#' @keywords internal
+#'
 #' @examples
 #' \dontrun{
 #' # Load real TSENAT data

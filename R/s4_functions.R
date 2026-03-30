@@ -797,19 +797,99 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
     
     if (grepl("\\.tsv$|\\.csv$|\\.txt$", tolower(output_file))) {
       # Write divergence results as text table
-      # Try to extract writeabledata from SummarizedExperiment or other formats
       tryCatch({
-        if (length(analysis@divergence_results) > 0 && is(analysis@divergence_results[[1]], "SummarizedExperiment")) {
-          # Extract assay data from first SummarizedExperiment
-          write_data <- as.data.frame(assay(analysis@divergence_results[[1]]))
+        if (length(analysis@divergence_results) > 0) {
+          # Extract and combine all divergence results
+          div_list <- analysis@divergence_results
+          
+          # Handle wrapped structure (divergence_se key) or direct SummarizedExperiments
+          if ("divergence_se" %in% names(div_list)) {
+            write_data <- as.data.frame(SummarizedExperiment::assay(div_list$divergence_se))
+          } else if (is(div_list[[1]], "SummarizedExperiment")) {
+            # Combine multiple SE objects if present
+            data_list <- lapply(div_list, function(se) {
+              as.data.frame(SummarizedExperiment::assay(se, 1))
+            })
+            write_data <- do.call(cbind, data_list)
+          } else {
+            write_data <- as.data.frame(div_list)
+          }
+          
+          # Determine separator
+          sep <- if (grepl("\\.csv$", tolower(output_file))) "," else "\t"
+          write.table(write_data, file = output_file, sep = sep, quote = FALSE, row.names = TRUE)
         } else {
-          write_data <- as.data.frame(analysis@divergence_results)
+          warning("[calculate_divergence_s4] No divergence results to save", call. = FALSE)
         }
-        write.table(write_data, file = output_file, sep = "\t", quote = FALSE, row.names = TRUE)
       }, error = function(e) {
         warning("[calculate_divergence_s4] Could not write divergence results to file: ", 
                 conditionMessage(e), call. = FALSE)
       })
+      
+      # If bootstrap was used, also save bootstrap results to separate file
+      if (isTRUE(bootstrap)) {
+        tryCatch({
+          bootstrap_file <- gsub("\\.(tsv|csv|txt)$", "_bootstrap.\\1", tolower(output_file), ignore.case = TRUE)
+          if (basename(bootstrap_file) == basename(output_file)) {
+            # Fallback: if replacement didn't work, append before extension
+            bootstrap_file <- sub("(\\.[^.]+)$", "_bootstrap\\1", output_file)
+          }
+          
+          if (isTRUE(verbose)) {
+            message("[calculate_divergence_s4] Attempting to save bootstrap results to: ", bootstrap_file)
+          }
+          
+          # Extract bootstrap results from rowData
+          if (length(analysis@divergence_results) > 0) {
+            div_list <- analysis@divergence_results
+            
+            # Handle wrapped structure (divergence_se key)
+            se <- if ("divergence_se" %in% names(div_list)) {
+              div_list$divergence_se
+            } else if (is(div_list[[1]], "SummarizedExperiment")) {
+              div_list[[1]]
+            } else {
+              NULL
+            }
+            
+            if (!is.null(se) && is(se, "SummarizedExperiment")) {
+              rd <- SummarizedExperiment::rowData(se)
+              
+              # Extract bootstrap-related columns: gene_name + all CI/estimate/nboot columns
+              bootstrap_cols <- c(
+                "gene_name",
+                grep("^estimate_q|^lower_ci_q|^upper_ci_q|^ci_width_q|^nboot_q|^method_q", 
+                     colnames(rd), value = TRUE)
+              )
+              
+              # Include computation_time_sec and error if present
+              if ("computation_time_sec" %in% colnames(rd)) {
+                bootstrap_cols <- c(bootstrap_cols, "computation_time_sec")
+              }
+              if ("error" %in% colnames(rd)) {
+                bootstrap_cols <- c(bootstrap_cols, "error")
+              }
+              
+              # Filter to only existing columns
+              bootstrap_cols <- bootstrap_cols[bootstrap_cols %in% colnames(rd)]
+              
+              if (length(bootstrap_cols) > 1) {  # More than just gene_name
+                bootstrap_data <- as.data.frame(rd[, bootstrap_cols])
+                sep <- if (grepl("\\.csv$", tolower(bootstrap_file))) "," else "\t"
+                write.table(bootstrap_data, file = bootstrap_file, sep = sep, 
+                           quote = FALSE, row.names = FALSE)
+                
+                if (isTRUE(verbose)) {
+                  message("[calculate_divergence_s4] Saved bootstrap results to: ", bootstrap_file)
+                }
+              }
+            }
+          }
+        }, error = function(e) {
+          warning("[calculate_divergence_s4] Could not write bootstrap results to file: ", 
+                  conditionMessage(e), call. = FALSE)
+        })
+      }
     } else {
       # Default to RDS for S4 object
       saveRDS(analysis, file = output_file)
@@ -1958,6 +2038,48 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' @export
 #' @importFrom methods is
 #' @importFrom utils write.table
+
+# ============================================================================
+# OPTIMIZATION: Consolidated object extraction helper
+# ============================================================================
+# This helper consolidates redundant fallback extraction patterns into a single
+# source of truth, reducing code duplication and improving maintainability.
+#' @noRd
+.extract_object_with_fallbacks <- function(obj, expected_class, key_name = NULL, verbose = FALSE) {
+  # Single source of extraction logic for common pattern:
+  # Try direct class match, then named list access, then list[1]
+  
+  if (is(obj, expected_class)) {
+    if (verbose) {
+      message("[extract_object] Found object via direct class match: ", expected_class)
+    }
+    return(obj)
+  }
+  
+  if (is.list(obj)) {
+    # Try named access first
+    if (!is.null(key_name) && key_name %in% names(obj)) {
+      if (verbose) {
+        message("[extract_object] Found object via key: ", key_name)
+      }
+      return(obj[[key_name]])
+    }
+    
+    # Fall back to first element
+    if (length(obj) > 0) {
+      if (verbose) {
+        message("[extract_object] Using first element of list")
+      }
+      return(obj[[1]])
+    }
+  }
+  
+  if (verbose) {
+    message("[extract_object] Could not extract object of class ", expected_class)
+  }
+  return(NULL)
+}
+
 effect_sizes_divergence_s4 <- function(
     analysis,
     significance_threshold = 0.05,
@@ -1999,18 +2121,15 @@ effect_sizes_divergence_s4 <- function(
   # EXTRACT RESULTS FROM ANALYSIS OBJECT
   # =========================================================================
   
+  # OPTIMIZATION: Use consolidated extraction helper instead of repeated fallback chains
   # Extract divergence SE
   analysis_divres <- divRes(analysis)
-  divergence_se <- if (is(analysis_divres, "SummarizedExperiment")) {
-    analysis_divres
-  } else if (is.list(analysis_divres) && "divergence_se" %in% names(analysis_divres)) {
-    analysis_divres$divergence_se
-  } else if (is.list(analysis_divres) && length(analysis_divres) > 0) {
-    # Fallback: check if first element is SE
-    analysis_divres[[1]]
-  } else {
-    NULL
-  }
+  divergence_se <- .extract_object_with_fallbacks(
+    analysis_divres,
+    "SummarizedExperiment",
+    key_name = "divergence_se",
+    verbose = verbose
+  )
 
   if (is.null(divergence_se) || !is(divergence_se, "SummarizedExperiment")) {
     stop("Could not extract divergence SummarizedExperiment from divergence results",
@@ -2019,15 +2138,12 @@ effect_sizes_divergence_s4 <- function(
 
   # Extract LM results
   analysis_lmres <- lmRes(analysis)
-  lm_res <- if (is.data.frame(analysis_lmres)) {
-    analysis_lmres
-  } else if (is.list(analysis_lmres) && "lm_interaction" %in% names(analysis_lmres)) {
-    analysis_lmres$lm_interaction
-  } else if (is.list(analysis_lmres) && length(analysis_lmres) > 0) {
-    analysis_lmres[[1]]
-  } else {
-    NULL
-  }
+  lm_res <- .extract_object_with_fallbacks(
+    analysis_lmres,
+    "data.frame",
+    key_name = "lm_interaction",
+    verbose = verbose
+  )
 
   if (is.null(lm_res) || !is.data.frame(lm_res)) {
     stop("Could not extract LM results data.frame from LM results",

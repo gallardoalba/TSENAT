@@ -76,3 +76,4 @@ summary(analysis)
 \code{\link{getConfig}} for retrieving configuration,
 \code{\link{tsenat_config}} for creating configuration objects
 }
+\keyword{internal}

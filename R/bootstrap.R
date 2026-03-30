@@ -56,6 +56,12 @@
   gene_names <- rownames(x) %||% paste0("Gene_", seq_len(nrow(x)))
   is_windows <- .Platform$OS.type != "unix"
   
+  # DIAGNOSTIC: Check input matrix
+  if (nrow(x) == 0) {
+      stop("Bootstrap matrix has 0 rows. This typically means all genes were filtered out.",
+           call. = FALSE)
+  }
+  
   if (nthreads > 1 && !is_windows) {
     results_list <- parallel::mclapply(seq_len(nrow(x)), function(i) {
       .calculate_tsallis_entropy_bootstrap(x = x[i, ], se = NULL, res = NULL, top_n = 1,
@@ -75,7 +81,19 @@
     })
   }
   
-  names(results_list) <- gene_names
+  # DIAGNOSTIC: Check output list
+  if (length(results_list) != nrow(x)) {
+      stop("Bootstrap results list length (", length(results_list), ") does not match input matrix rows (", 
+           nrow(x), "). This indicates bootstrap computation failed for some genes.",
+           call. = FALSE)
+  }
+  
+  if (length(results_list) > 0) {
+      names(results_list) <- gene_names
+  } else {
+      stop("Bootstrap results_list is empty. Check that the input matrix has rows.",
+           call. = FALSE)
+  }
   structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
 }
 
@@ -2057,7 +2075,8 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
   }
   
   groups <- unique(sort(long$group))
-  unique_q <- sort(unique(long$q))
+  # BUGFIX: long$q is a factor - must convert to numeric!
+  unique_q <- sort(as.numeric(as.character(unique(long$q))))
   
   plot_df <- data.frame(
     q = numeric(),
@@ -2070,8 +2089,11 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
   
   for (group_val in groups) {
     for (q_val in unique_q) {
+      # Convert q_val to numeric for comparison with long$q
+      matching_q_val <- as.numeric(as.character(q_val))
+      
       group_q_data <- long %>%
-        dplyr::filter(group == group_val, q == q_val)
+        dplyr::filter(group == group_val, as.numeric(as.character(q)) == matching_q_val)
       
       if (nrow(group_q_data) > 0) {
         median_val <- median(group_q_data$tsallis, na.rm = TRUE)
@@ -2081,23 +2103,31 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
         all_ci_upper <- c()
         
         for (samp in group_samples) {
-          samp_idx <- which(sample_names == samp)
+          # Construct the expected column name
+          # Format q-value with 3 decimal places to match colname format
+          q_formatted <- formatC(matching_q_val, format = "f", digits = 3)
+          expected_col_name <- paste0(samp, "_q=", q_formatted)
+          
+          samp_idx <- which(sample_names == expected_col_name)
+          
           if (length(samp_idx) > 0) {
-            all_ci_lower <- c(all_ci_lower, mean(ci_lower_mat[, samp_idx], na.rm = TRUE))
-            all_ci_upper <- c(all_ci_upper, mean(ci_upper_mat[, samp_idx], na.rm = TRUE))
+            all_ci_lower <- c(all_ci_lower, ci_lower_mat[, samp_idx[1]])
+            all_ci_upper <- c(all_ci_upper, ci_upper_mat[, samp_idx[1]])
           }
         }
         
         if (length(all_ci_lower) > 0) {
+          # Average the CIs across samples in this group
           ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
           ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
         } else {
+          # Fallback to global median if sample lookup completely fails
           ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
           ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
         }
         
         plot_df <- rbind(plot_df, data.frame(
-          q = q_val,
+          q = matching_q_val,
           median = median_val,
           ci_lower = ci_lower_final,
           ci_upper = ci_upper_final,
@@ -2147,13 +2177,30 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     counts_for_bootstrap <- counts_for_bootstrap[match(filtered_genes, genes[gene_indices]), , drop = FALSE]
     rownames(counts_for_bootstrap) <- filtered_genes
     
-    bootstrap_ci_results <- .calculate_tsallis_entropy_bootstrap(
-        x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
-        ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
-        nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
-        seed = seed)
+    if (verbose) {
+        message("  Bootstrap data prepared:")
+        message("    filtered_genes: ", length(filtered_genes))
+        message("    gene_indices length: ", length(gene_indices))
+        message("    counts_for_bootstrap: ", nrow(counts_for_bootstrap), " x ", ncol(counts_for_bootstrap))
+    }
     
-    if (verbose) message("  [OK] Bootstrap CIs computed")
+    # Wrap bootstrap in tryCatch to capture detailed errors
+    bootstrap_ci_results <- tryCatch({
+        result <- .calculate_tsallis_entropy_bootstrap(
+            x = counts_for_bootstrap, q = q, norm = TRUE, nboot = bootstrap_nboot,
+            ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
+            nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
+            seed = seed)
+        
+        if (verbose) message("  [OK] Bootstrap CIs computed")
+        result
+    }, error = function(e) {
+        if (verbose) {
+            message("  [ERROR] Bootstrap failed: ", conditionMessage(e))
+            message("  Returning NULL for this Q value")
+        }
+        NULL
+    })
     
     list(bootstrap_ci_results = bootstrap_ci_results, bootstrap_nboot = bootstrap_nboot,
         bootstrap_method = bootstrap_method, bootstrap_ci = bootstrap_ci)

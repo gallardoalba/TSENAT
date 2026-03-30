@@ -288,6 +288,12 @@ extdata_dir <- system.file("extdata", package = "TSENAT")
 if (!dir.exists(extdata_dir)) {
     dir.create(extdata_dir, recursive = TRUE)
 }
+
+# Create output directory for saving analysis results
+output_dir <- "output"
+if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+}
 ```
 
 Now we will load the example dataset and associated metadata:
@@ -342,7 +348,7 @@ analysis <- build_analysis_s4(
 
 ## Configure analysis parameters once (best practice for reproducibility)
 ## This eliminates the need to pass condition_col, subject_col, etc. to each function
-analysis <- TSENAT:::setConfig(analysis, list(
+config <- tsenat_config(
   condition_col = "sample_type",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),
@@ -350,7 +356,8 @@ analysis <- TSENAT:::setConfig(analysis, list(
   paired = TRUE,
   control = "normal",
   metadata = metadata_df
-))
+)
+analysis <- setConfig(analysis, config)
 
 ```
 
@@ -415,10 +422,12 @@ Now we will compute Tsallis entropy.
 # Compute Tsallis entropy for a sequence of q values using S4 wrapper
 
 
-# Compute diversity using S4 wrapper
+# Compute diversity using S4 wrapper with bootstrap confidence intervals
 analysis <- calculate_diversity_s4(
     analysis,
     norm = TRUE,
+    bootstrap = TRUE,
+    nboot = 1000,
     output_file = file.path("output", "diversity_results.tsv")
 )
 ```
@@ -718,7 +727,7 @@ analysis.
 analysis <- jackknife_isoform_switching_s4(
     analysis,
     q = c(0, 0.5, 1, 1.5, 2),
-    n_bootstrap = 100,
+    nboot = 100,
     lm_p_threshold = 0.05,
     threshold = 90,
     output_file = file.path("output", "jackknife_switching_results.tsv")
@@ -856,10 +865,13 @@ treatment groups across all q-dependent scales.
 
 ```{r effect-size-multiq}
 if (exists("analysis")) {
-  # Calculate divergence using q values from config
+  # Calculate divergence using q values from config with bootstrap confidence intervals
   # q_values should be in getConfig(analysis)$q_values (set during build_analysis or before)
+  # Bootstrap CIs will be automatically displayed if nboot > 0
   analysis <- calculate_divergence_s4(
-      analysis, 
+      analysis,
+      bootstrap = TRUE,
+      nboot = 1000,
       output_file = file.path("output", "divergence_results.tsv")
   )
 }

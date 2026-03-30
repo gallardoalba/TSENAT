@@ -10,11 +10,10 @@
 
 if (identical(Sys.getenv("SKIP_PERFORMANCE_TESTS"), "true")) {
   cat("Skipping all performance tests (SKIP_PERFORMANCE_TESTS environment variable set)\n")
-  skip("Performance tests skipped during coverage analysis")
+} else {
+  # UNCOMMENT THE LINE BELOW TO RUN PERFORMANCE TESTS
+  skip("Performance tests skipped by default - resource-intensive")
 }
-
-# UNCOMMENT THE LINE BELOW TO RUN PERFORMANCE TESTS
-skip("Performance tests skipped by default - resource-intensive")
 
 # Setup: Load real TSENAT data like in roxygen documentation
 setup_real_test_analysis <- function(n_genes = NULL, n_samples = NULL) {

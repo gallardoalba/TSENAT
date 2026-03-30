@@ -6,6 +6,17 @@ library(SummarizedExperiment)
 # Suppress nboot < 100 warnings for exploratory tests (acceptable for testing)
 options(TSENAT.suppress_nboot_warning = TRUE)
 
+# Safety check: ensure test factory is loaded
+if (!exists("create_test_se_simple", mode = "function")) {
+  factory_file <- file.path(dirname(getwd()), "testthat", "tests-factory.R")
+  if (!file.exists(factory_file)) {
+    factory_file <- "tests/testthat/tests-factory.R"
+  }
+  if (file.exists(factory_file)) {
+    source(factory_file, local = FALSE)
+  }
+}
+
 test_that("calculate_divergence works with basic SE input", {
     skip_if_not_installed("SummarizedExperiment")
     

@@ -195,6 +195,21 @@
     message("  - use_gene_name_col:", use_gene_name_col)
   }
 
+  # OPTIMIZATION: Pre-compute gene name index map ONCE instead of searching per gene
+  # This reduces from 2×genes searches to 1 vectorized match() operation
+  gene_idx_map <- match(significant_genes, rd$gene_name)
+  missing_idx <- which(is.na(gene_idx_map))
+  if (length(missing_idx) > 0) {
+    rowname_idx <- match(significant_genes[missing_idx], rownames(rd))
+    gene_idx_map[missing_idx] <- rowname_idx
+  }
+  
+  if (verbose) {
+    n_found <- sum(!is.na(gene_idx_map))
+    message("[effect_sizes_divergence] OPTIMIZATION: Pre-computed gene index map")
+    message("  - Genes found: ", n_found, "/", length(significant_genes))
+  }
+
   # OPTIMIZATION: Pre-allocate list to collect results instead of using rbind in loop
   # This avoids O(n²) behavior of repeated rbind operations
   result_list <- vector("list", length(significant_genes))
@@ -216,18 +231,15 @@
         sprintf("  [Gene %d] gene_id='%s' match_name='%s'", i, gene_id, lmm_data$match_name))
     }
 
-    # Extract divergence data for this gene
-    div_idx <- which(rd$gene_name == lmm_data$match_name)
-    if (length(div_idx) == 0) {
-      div_idx <- which(rownames(rd) == lmm_data$match_name)
-    }
+    # OPTIMIZATION: Use pre-computed index instead of searching
+    div_idx <- gene_idx_map[i]
     
-    if (length(div_idx) == 0) {
+    if (is.na(div_idx)) {
       validation_stats$failed_missing_divergence <- validation_stats$failed_missing_divergence + 1
       next
     }
     
-    div_data <- as.data.frame(rd[div_idx[1], , drop = FALSE])
+    div_data <- as.data.frame(rd[div_idx, , drop = FALSE])
 
     if (verbose && i <= min(3, length(significant_genes))) {
       debug_messages[length(debug_messages)] <- paste0(debug_messages[length(debug_messages)], 
@@ -253,13 +265,18 @@
         div_data = div_data
       )
     } else {
+      # OPTIMIZATION: Pre-compute column cache for this gene once
+      # This reduces from q_values × %in% checks to 1 check per gene
+      col_cache <- .buildColumnCache(div_data, q_values)
+      
       # Per-q results
       new_row <- .formatMultiQResult(
         match_name = lmm_data$match_name,
         p_interaction = lmm_data$p_interaction,
         slope_diff = lmm_data$slope_diff,
         div_data = div_data,
-        q_values = q_values
+        q_values = q_values,
+        col_cache = col_cache
       )
       
       if (is.null(new_row)) {
@@ -330,6 +347,26 @@
 # INTERNAL HELPER FUNCTIONS
 # ============================================================================
 
+# OPTIMIZATION: Pre-compute column existence for all q-values
+# This runs ONCE per gene instead of per q-value, reducing column checks from
+# gene_count × q_count to gene_count × 1
+#' @noRd
+.buildColumnCache <- function(div_data, q_values) {
+  # Build a matrix showing which columns exist for which q-values
+  # This is computed ONCE per gene instead of per gene × q-value
+  col_cache <- matrix(FALSE, nrow = length(q_values), ncol = 3)
+  colnames(col_cache) <- c("estimate", "lower", "upper")
+  
+  for (i in seq_along(q_values)) {
+    q_val <- q_values[i]
+    q_str <- as.character(q_val)
+    col_cache[i, "estimate"] <- paste0("estimate_q", q_str) %in% colnames(div_data)
+    col_cache[i, "lower"] <- paste0("lower_ci_q", q_str) %in% colnames(div_data)
+    col_cache[i, "upper"] <- paste0("upper_ci_q", q_str) %in% colnames(div_data)
+  }
+  
+  return(col_cache)
+}
 
 #' @noRd
 .validateEffectSizeInputs <- function(lm_res, divergence_results_se) {
@@ -531,7 +568,13 @@
 
 
 #' @noRd
-.formatMultiQResult <- function(match_name, p_interaction, slope_diff, div_data, q_values) {
+.formatMultiQResult <- function(match_name, p_interaction, slope_diff, div_data, q_values, col_cache = NULL) {
+  # OPTIMIZATION: If cache not provided, build it (for backward compatibility)
+  # Typically called with pre-computed cache from .effect_sizes_divergence()
+  if (is.null(col_cache)) {
+    col_cache <- .buildColumnCache(div_data, q_values)
+  }
+  
   any_valid <- FALSE
   new_row <- data.frame(
     gene = match_name,
@@ -540,7 +583,8 @@
     stringsAsFactors = FALSE
   )
   
-  for (q_val in q_values) {
+  for (q_idx in seq_along(q_values)) {
+    q_val <- q_values[q_idx]
     # Column names in rowData use direct numeric representation
     # (e.g., q=0.5 -> "estimate_q0.5", q=1.0 -> "estimate_q1", q=1.5 -> "estimate_q1.5")
     q_str <- as.character(q_val)
@@ -551,23 +595,23 @@
     # For output columns, convert decimal to underscore (e.g., "1.5" -> "1_5")
     q_label <- gsub("\\.", "_", q_str)
     
-    # Safely check if column exists and extract value
-    if (estimate_col %in% colnames(div_data)) {
-      estimate_val <- div_data[[estimate_col]][1]
+    # OPTIMIZATION: Use pre-computed cache instead of repeated %in% checks
+    estimate_val <- if (col_cache[q_idx, "estimate"]) {
+      div_data[[estimate_col]][1]
     } else {
-      estimate_val <- NA_real_
+      NA_real_
     }
     
-    if (lower_col %in% colnames(div_data)) {
-      lower_val <- div_data[[lower_col]][1]
+    lower_val <- if (col_cache[q_idx, "lower"]) {
+      div_data[[lower_col]][1]
     } else {
-      lower_val <- NA_real_
+      NA_real_
     }
     
-    if (upper_col %in% colnames(div_data)) {
-      upper_val <- div_data[[upper_col]][1]
+    upper_val <- if (col_cache[q_idx, "upper"]) {
+      div_data[[upper_col]][1]
     } else {
-      upper_val <- NA_real_
+      NA_real_
     }
     
     if (!is.na(estimate_val) && is.finite(estimate_val)) {
@@ -678,18 +722,22 @@
       rownames(div_assay)
     }
 
+    # OPTIMIZATION: Pre-compute gene index map ONCE instead of searching per gene
+    # This reduces from genes × genes searches to 1 vectorized match() operation
+    gene_idx_map <- match(interaction_results$gene, div_gene_names)
+    
     # Create per_q_pattern column: classify divergence patterns
     # RARE_DRIVEN = divergence higher at low q (rare isoforms drive changes)
     # ABUNDANT_DRIVEN = divergence higher at high q (abundant isoforms drive changes)  
     # BALANCED = similar divergence across diversity scales
     per_q_patterns <- character(nrow(interaction_results))
     for (i in seq_len(nrow(interaction_results))) {
-      gene_name <- interaction_results$gene[i]
-      gene_idx <- which(div_gene_names == gene_name)
+      # OPTIMIZATION: Use pre-computed index instead of searching
+      gene_idx <- gene_idx_map[i]
 
-      if (length(gene_idx) > 0) {
+      if (!is.na(gene_idx)) {
         # Get divergence values for this gene across q values
-        divs <- div_assay[gene_idx[1], ]
+        divs <- div_assay[gene_idx, ]
         
         # Create named vector for classify_q_pattern
         # Column names in divs should be like "q_0.01", "q_0.5", "q_1.0", etc.

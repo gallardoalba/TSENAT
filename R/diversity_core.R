@@ -223,36 +223,80 @@
         ci_upper <- result_assay * NA_real_
         
         # Extract bootstrap CIs if available in output
-        # Expected structure: bootstrap_out is list or matrix-like with CI information
-        if (is.list(bootstrap_out)) {
-            # If bootstrap output is a list, try to extract CI bounds for each gene
+        if (is.list(bootstrap_out) && length(bootstrap_out) > 0) {
+            # Process each gene's bootstrap results
             for (i in seq_along(bootstrap_out)) {
-                gene_idx <- i
-                boot_item <- bootstrap_out[[i]]
+                if (i > nrow(ci_lower)) break  # Safety check - don't exceed gene count
                 
-                # Try to extract lower and upper CI from bootstrap item
-                if (!is.null(boot_item$lower) && !is.null(boot_item$upper)) {
-                    # Direct access to CI bounds
-                    ci_lower[gene_idx, ] <- boot_item$lower
-                    ci_upper[gene_idx, ] <- boot_item$upper
-                } else if (is.matrix(boot_item)) {
-                    # If boot_item is a matrix with CI information
-                    # Assume first row is lower, last row is upper (or other structure)
-                    # This is a fallback - actual structure depends on bootstrap implementation
-                    ci_lower[gene_idx, ] <- boot_item[1, ]
-                    ci_upper[gene_idx, ] <- boot_item[nrow(boot_item), ]
-                }
-            }
-        } else if (is.matrix(bootstrap_out)) {
-            # If bootstrap output is directly a matrix
-            # Assume rows alternate: gene1_lower, gene1_upper, gene2_lower, gene2_upper, ...
-            n_genes <- nrow(ci_lower)
-            for (i in seq_len(n_genes)) {
-                lower_idx <- 2 * i - 1
-                upper_idx <- 2 * i
-                if (lower_idx <= nrow(bootstrap_out) && upper_idx <= nrow(bootstrap_out)) {
-                    ci_lower[i, ] <- bootstrap_out[lower_idx, ]
-                    ci_upper[i, ] <- bootstrap_out[upper_idx, ]
+                boot_item <- bootstrap_out[[i]]
+                if (is.null(boot_item)) next
+                
+                # Case 1: tsenat_bootstrap_ci_list (multi-q case)
+                # Each element is named "q=value" and contains a tsenat_bootstrap_ci object
+                if (is(boot_item, "tsenat_bootstrap_ci_list") || 
+                    (is.list(boot_item) && !is.null(names(boot_item)) && 
+                     all(grepl("^q=", names(boot_item))))) {
+                    
+                    # Parse column q-value map
+                    col_names <- colnames(result_assay)
+                    col_q_map <- list()  # Map q_value_string -> column indices
+                    
+                    for (col_idx in seq_along(col_names)) {
+                        col_name <- col_names[col_idx]
+                        if (grepl("q=", col_name)) {
+                            # Extract q value from "sample_q=value" format
+                            q_val <- sub(".*q=([0-9.]+).*", "\\1", col_name)
+                            if (!grepl("q=", q_val)) {  # Successfully extracted
+                                if (is.null(col_q_map[[q_val]])) {
+                                    col_q_map[[q_val]] <- c()
+                                }
+                                col_q_map[[q_val]] <- c(col_q_map[[q_val]], col_idx)
+                            }
+                        }
+                    }
+                    
+                    # Assign CIs for each q
+                    for (q_idx in seq_along(boot_item)) {
+                        q_name <- names(boot_item)[q_idx]  # e.g., "q=0.5"
+                        q_result <- boot_item[[q_idx]]  # tsenat_bootstrap_ci object
+                        
+                        # Extract q value from name
+                        q_val_str <- sub("^q=", "", q_name)  # "0.5"
+                        
+                        if (!is.null(q_result$lower_ci) && !is.null(q_result$upper_ci)) {
+                            tryCatch({
+                                ci_val_lower <- as.numeric(q_result$lower_ci)[1]
+                                ci_val_upper <- as.numeric(q_result$upper_ci)[1]
+                                
+                                # Find columns matching this q value
+                                if (!is.null(col_q_map[[q_val_str]]) && length(col_q_map[[q_val_str]]) > 0) {
+                                    match_cols <- col_q_map[[q_val_str]]
+                                    ci_lower[i, match_cols] <- ci_val_lower
+                                    ci_upper[i, match_cols] <- ci_val_upper
+                                }
+                            }, error = function(e) {
+                                if (verbose) message("    [WARN] Gene ", i, ", q=", q_val_str, ": ", conditionMessage(e))
+                            })
+                        }
+                    }
+                    
+                } else if (!is.null(boot_item$lower_ci) && !is.null(boot_item$upper_ci)) {
+                    # Case 2: Single tsenat_bootstrap_ci object (single q case)
+                    tryCatch({
+                        ci_lower_val <- as.numeric(boot_item$lower_ci)
+                        ci_upper_val <- as.numeric(boot_item$upper_ci)
+                        
+                        # For single value, replicate across all columns
+                        if (length(ci_lower_val) == 1) {
+                            ci_lower[i, ] <- ci_lower_val
+                            ci_upper[i, ] <- ci_upper_val
+                        } else if (length(ci_lower_val) == ncol(ci_lower)) {
+                            ci_lower[i, ] <- ci_lower_val
+                            ci_upper[i, ] <- ci_upper_val
+                        }
+                    }, error = function(e) {
+                        if (verbose) message("    [WARN] Could not assign CIs for gene ", i, ": ", conditionMessage(e))
+                    })
                 }
             }
         }
@@ -269,7 +313,7 @@
             assays_list$ci_upper <- ci_upper
             if (verbose) message("  [OK] Added ci_lower and ci_upper assays to output SE")
         } else if (verbose) {
-            message("  [INFO] Bootstrap CIs computed but extraction format not recognized; skipping CI assays")
+            message("  [INFO] Bootstrap CIs extracted but no valid values found; skipping CI assays")
         }
     }
     

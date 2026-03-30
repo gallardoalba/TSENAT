@@ -586,7 +586,7 @@ testthat::test_that(".compute_gene_group_stats calculates correct values", {
     stringsAsFactors = FALSE
   )
   
-  stats <- TSENAT:::.compute_gene_group_stats(long_data)
+  stats <- TSENAT:::.compute_gene_group_stats(long_data, metric = "sd")
   
   # Median should be 2.0
   testthat::expect_equal(stats$central[1], 2.0)

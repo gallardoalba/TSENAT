@@ -93,15 +93,15 @@ analysis <- build_analysis_s4(
 
 ## Configure analysis parameters once (best practice for reproducibility)
 ## This eliminates the need to pass condition_col, subject_col, etc. to each function
-analysis <- TSENAT:::setConfig(analysis, list(
+config <- tsenat_config(
   condition_col = "sample_type",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),
   nthreads = 2,
   paired = TRUE,
-  control = "normal",
-  metadata = metadata_df
-))
+  control = "normal"
+)
+analysis <- setConfig(analysis, config)
 
 # Apply filtering for quality control
 analysis <- filter_analysis_s4(analysis, stringency = "medium")
@@ -112,11 +112,14 @@ analysis <- filter_analysis_s4(analysis, stringency = "medium")
 For robust entropy estimation on sparse count data, we normalize pseudocounts by library size. This approach is principled and recommended in edgeR and DESeq2, as it ensures regularization strength adapts to overall sequencing depth.
 
 ```{r calculate-tsallis, message=FALSE}
-# Compute diversity using S4 wrapper
+# Compute diversity using S4 wrapper with bootstrap confidence intervals
 analysis <- calculate_diversity_s4(
   analysis, 
   norm = TRUE,
-  pseudocount = "auto"
+  pseudocount = "auto",
+  bootstrap = TRUE,
+  nboot = 1000,
+  output_file = file.path("output", "appendix_b_diversity.tsv")
 )
 
 ```
@@ -130,7 +133,8 @@ Before applying rank-based methods, we verify that the entropy data meets the ke
 ```{r rank-assumptions-calculation, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
 analysis <- test_rankbased_assumptions_s4(
-    analysis
+    analysis,
+    output_file = file.path("output", "appendix_b_rank_assumptions.tsv")
 )
 
 # Extract the result object from metadata using accessor function
@@ -216,7 +220,8 @@ knitr::kable(data_characteristics,
 analysis <- rank_test_q_condition_s4(
     analysis,
     multicorr = "hochberg",
-    verbose = TRUE
+    verbose = TRUE,
+    output_file = file.path("output", "appendix_b_rank_test_results.tsv")
 )
 
 # Extract results from S4 object using accessor
