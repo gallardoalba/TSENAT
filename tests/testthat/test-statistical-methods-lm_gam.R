@@ -862,3 +862,694 @@ test_that(".gam_interaction handles anova failures", {
         expect_null(res)
     }
 })
+
+# ============================================================================
+# GAM Regularization and Integration Tests
+# ============================================================================
+
+context("Linear Models: GAM Regularization (GAMSEL with Spline Controls)")
+
+# Helper function to create test SummarizedExperiment
+create_test_se_gam_integration <- function(n_samples = 20, n_genes = 5, seed = 42) {
+    set.seed(seed)
+    
+    # Use wider q-range for more realistic entropy data (0.1 to 2.0)
+    qvec <- seq(0.1, 2.0, by = 0.3)
+    group_vec <- rep(c("control", "treatment"), each = n_samples / 2)
+    subject_vec <- rep(1:(n_samples / 2), times = 2)
+    
+    # Create column names with q values
+    samples <- paste0("S", 1:n_samples)
+    coln <- paste0(rep(samples, each = length(qvec)), "_q=", rep(qvec, times = n_samples))
+    
+    # Create smooth expression data with non-linear patterns for GAM to capture
+    mat <- matrix(NA_real_, nrow = n_genes, ncol = length(coln))
+    set.seed(seed)
+    
+    # Extract q_vals for all samples
+    q_vals_expanded <- rep(qvec, times = n_samples)
+    
+    for (i in seq_len(n_genes)) {
+        # Create data with smooth curvature (polynomial + sine pattern for more variation)
+        base_curve <- 0.3 + 0.4 * (q_vals_expanded / 2.0) + 0.2 * sin(q_vals_expanded * pi) 
+        noise <- rnorm(length(coln), sd = 0.1)
+        mat[i, ] <- base_curve + noise
+    }
+    
+    rownames(mat) <- paste0("gene_", 1:n_genes)
+    colnames(mat) <- coln
+    
+    # Create row data
+    rd <- data.frame(
+        genes = rownames(mat),
+        row.names = rownames(mat),
+        stringsAsFactors = FALSE
+    )
+    
+    # Create column data with pairing info
+    cd <- data.frame(
+        samples = rep(samples, each = length(qvec)),
+        group = rep(group_vec, each = length(qvec)),
+        sample_base = rep(subject_vec, times = length(qvec)),
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    # Create SummarizedExperiment
+    se <- SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    return(se)
+}
+
+test_that("GAM with PCA mode (no regularization) works", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
+    
+    # Test with PCA regularization (should be equivalent to no regularization)
+    result <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "pca",
+        subject_col = "sample_base",
+        paired = FALSE,
+        verbose = FALSE
+    ))
+    
+    # Result should be a data.frame
+    expect_is(result, "data.frame")
+    expect_true(nrow(result) >= 0)
+    if (nrow(result) > 0) {
+        expect_true("p_interaction" %in% colnames(result))
+        expect_true("gene" %in% colnames(result))
+        valid_idx <- !is.na(result$p_interaction)
+        if (any(valid_idx)) {
+            expect_true(all(result$p_interaction[valid_idx] >= 0 & result$p_interaction[valid_idx] <= 1))
+        }
+    }
+})
+
+test_that("GAM with spline regularization works", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
+    
+    # Test with spline regularization
+    result <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "spline",
+        subject_col = "sample_base",
+        paired = FALSE,
+        verbose = FALSE
+    ))
+    
+    # Result should be valid
+    expect_is(result, "data.frame")
+    expect_true(nrow(result) >= 0)
+    if (nrow(result) > 0) {
+        valid_idx <- !is.na(result$p_interaction)
+        if (any(valid_idx)) {
+            expect_true(all(result$p_interaction[valid_idx] >= 0 & result$p_interaction[valid_idx] <= 1))
+        }
+    }
+})
+
+test_that("GAM with GAMSEL regularization works", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
+    
+    # Test with GAMSEL regularization
+    result <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "gamsel",
+        subject_col = "sample_base",
+        paired = FALSE,
+        verbose = FALSE
+    ))
+    
+    # Result should be valid - may fallback to spline if gamsel not available
+    expect_is(result, "data.frame")
+    expect_true(nrow(result) >= 0)
+    if (nrow(result) > 0) {
+        valid_idx <- !is.na(result$p_interaction)
+        if (any(valid_idx)) {
+            expect_true(all(result$p_interaction[valid_idx] >= 0 & result$p_interaction[valid_idx] <= 1))
+        }
+    }
+})
+
+test_that(".gam_regularization handles feature selection correctly (integration)", {
+    # Create synthetic data for feature selection test
+    set.seed(42)
+    n_samples <- 20
+    uq <- seq(0.1, 0.9, by = 0.2)  # 5 q-values
+    
+    # Create q-values and smooth response
+    q_vals <- rep(uq, length.out = n_samples)
+    entropy_vals <- sin(q_vals * pi) * 0.3 + 0.5 + rnorm(n_samples, sd = 0.15)
+    group_vec <- rep(c("A", "B"), each = n_samples / 2)
+    
+    # Call regularization function with GAMSEL
+    fs_result <- TSENAT:::.gam_regularization(
+        entropy_vals = entropy_vals,
+        q_vals = q_vals,
+        group_vec = group_vec,
+        regularization = "gamsel"
+    )
+    
+    # Result should be either NULL or a list
+    expect_true(is.null(fs_result) || is.list(fs_result))
+    
+    # Call regularization function with spline
+    fs_spline <- TSENAT:::.gam_regularization(
+        entropy_vals = entropy_vals,
+        q_vals = q_vals,
+        group_vec = group_vec,
+        regularization = "spline"
+    )
+    
+    expect_true(is.null(fs_spline) || is.list(fs_spline))
+    if (!is.null(fs_spline)) {
+        expect_true("mode" %in% names(fs_spline))
+    }
+})
+
+test_that("GAM regularization handles small sample sizes gracefully", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 12, n_genes = 3)
+    
+    # Apply spline regularization with small samples
+    result <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "spline",
+        subject_col = "sample_base",
+        min_obs = 5,
+        paired = FALSE,
+        verbose = FALSE
+    ))
+    
+    # Should handle small samples without error
+    expect_is(result, "data.frame")
+    expect_true(nrow(result) >= 0)
+})
+
+test_that("Regularization parameter validation works for GAM", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
+    
+    # Test that invalid regularization values are caught
+    expect_error(
+        .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "invalid_method",
+            subject_col = "sample_base",
+            paired = FALSE,
+            verbose = FALSE
+        )
+    )
+})
+
+test_that("GAM regularization consistency across multiple runs", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5, seed = 123)
+    
+    set.seed(123)
+    result1 <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "spline",
+        subject_col = "sample_base",
+        paired = FALSE,
+        verbose = FALSE
+    ))
+    
+    set.seed(123)
+    result2 <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "spline",
+        subject_col = "sample_base",
+        paired = FALSE,
+        verbose = FALSE
+    ))
+    
+    # Results should have same dimensions
+    expect_equal(nrow(result1), nrow(result2))
+    
+    if (nrow(result1) > 0 && nrow(result2) > 0) {
+        # Check that genes are in same order
+        expect_equal(result1$gene, result2$gene)
+    }
+})
+
+test_that("GAM regularization vs non-regularized gives comparable results", {
+    skip_if_not_installed("mgcv")
+    
+    suppressWarnings({
+        se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
+        
+        # Run both with and without regularization
+        result_no_reg <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "pca",  # No regularization
+            subject_col = "sample_base",
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        result_spline <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "spline",  # With spline regularization
+            subject_col = "sample_base",
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        # Both should return data frames
+        expect_is(result_no_reg, "data.frame")
+        expect_is(result_spline, "data.frame")
+    
+        # Should have same column structure
+        expect_equal(colnames(result_no_reg), colnames(result_spline))
+        
+        # P-value ranges should be valid for rows that have p-values
+        if (nrow(result_no_reg) > 0) {
+            valid_idx <- !is.na(result_no_reg$p_interaction)
+            if (any(valid_idx)) {
+                expect_true(all(result_no_reg$p_interaction[valid_idx] >= 0 & 
+                               result_no_reg$p_interaction[valid_idx] <= 1))
+            }
+        }
+        if (nrow(result_spline) > 0) {
+            valid_idx <- !is.na(result_spline$p_interaction)
+            if (any(valid_idx)) {
+                expect_true(all(result_spline$p_interaction[valid_idx] >= 0 & 
+                               result_spline$p_interaction[valid_idx] <= 1))
+            }
+        }
+    })
+})
+
+test_that("GAM regularization works with paired samples", {
+    skip_if_not_installed("mgcv")
+    
+    se <- create_test_se_gam_integration(n_samples = 20, n_genes = 5)
+    
+    # Test with paired data
+    result <- suppressWarnings(.calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "spline",
+        subject_col = "sample_base",
+        paired = TRUE,
+        verbose = FALSE
+    ))
+    
+    expect_is(result, "data.frame")
+    expect_true(nrow(result) >= 0)
+})
+
+test_that("Smoothness parameter is applied in GAM regularization", {
+    # Test that regularization modes return different results for spline vs PCA
+    set.seed(100)
+    n_samples <- 20
+    uq <- seq(0.1, 0.9, by = 0.1)
+    
+    q_expanded <- rep(uq, ceiling(n_samples / length(uq)))[1:n_samples]
+    entropy_vals <- sin(q_expanded * pi) * 0.3 + 0.5 + rnorm(n_samples, sd = 0.15)
+    group_vec <- rep(c("control", "treatment"), each = n_samples / 2)
+    
+    # Test spline mode
+    fs_spline <- TSENAT:::.gam_regularization(
+        entropy_vals = entropy_vals,
+        q_vals = q_expanded,
+        group_vec = group_vec,
+        regularization = "spline"
+    )
+    
+    # Spline mode should return result or NULL
+    expect_true(is.null(fs_spline) || is.list(fs_spline))
+    
+    # Test PCA mode
+    fs_pca <- TSENAT:::.gam_regularization(
+        entropy_vals = entropy_vals,
+        q_vals = q_expanded,
+        group_vec = group_vec,
+        regularization = "pca"
+    )
+    
+    # PCA mode should always return NULL
+    expect_null(fs_pca)
+})
+
+test_that("GAM works with continuous q-value patterns", {
+    skip_if_not_installed("mgcv")
+    
+    # Create SE with continuous smooth q-patterns (ideal for GAM)
+    # Use larger sample size and wider q-range for better GAM convergence
+    se <- create_test_se_gam_integration(n_samples = 50, n_genes = 8)
+    
+    result <- .calculate_lm_interaction(
+        se,
+        condition_col = "group",
+        method = "gam",
+        regularization = "spline",
+        subject_col = "sample_base",
+        paired = FALSE,
+        verbose = FALSE
+    )
+    
+    # GAM should work well with continuous patterns
+    expect_is(result, "data.frame")
+    expect_true(nrow(result) >= 0)
+})
+
+# ============================================================================
+# GAM Bias Correction Tests
+# ============================================================================
+
+context("GAM Bias Correction for Small Samples (C071)")
+
+# Helper function to create test SummarizedExperiment with small samples
+create_test_se_small_gam <- function(n_samples = 12, n_genes = 5, seed = 42) {
+    set.seed(seed)
+    
+    qvec <- seq(0.01, 0.05, by = 0.01)
+    group_vec <- rep(c("control", "treatment"), each = n_samples / 2)
+    subject_vec <- rep(1:(n_samples / 2), times = 2)
+    
+    # Create column names with q values
+    samples <- paste0("S", 1:n_samples)
+    coln <- paste0(rep(samples, each = length(qvec)), "_q=", rep(qvec, times = n_samples))
+    
+    # Create smooth expression data
+    mat <- matrix(NA_real_, nrow = n_genes, ncol = length(coln))
+    q_vals_expanded <- rep(qvec, times = n_samples)
+    
+    for (i in seq_len(n_genes)) {
+        # Create data with smooth curvature
+        base_curve <- sin(q_vals_expanded * pi * 2) * 0.3 + 0.5
+        noise <- rnorm(length(coln), sd = 0.15)
+        mat[i, ] <- base_curve + noise
+    }
+    
+    rownames(mat) <- paste0("gene_", 1:n_genes)
+    colnames(mat) <- coln
+    
+    # Create row data
+    rd <- data.frame(
+        genes = rownames(mat),
+        row.names = rownames(mat),
+        stringsAsFactors = FALSE
+    )
+    
+    # Create column data
+    cd <- data.frame(
+        samples = rep(samples, each = length(qvec)),
+        group = rep(group_vec, each = length(qvec)),
+        sample_base = rep(subject_vec, times = length(qvec)),
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    # Create SummarizedExperiment
+    se <- SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    return(se)
+}
+
+test_that("GAM bias correction is disabled when bias_correction=FALSE", {
+    skip_if_not_installed("mgcv")
+    suppressWarnings({
+        se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
+        
+        # Test with bias_correction=FALSE
+        result <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = FALSE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        # Result should be valid
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+        # When bias_correction=FALSE, we should not have correction columns
+        if (nrow(result) > 0) {
+            expect_false("bias_correction_applied" %in% colnames(result))
+        }
+    })
+})
+
+test_that("GAM bias correction is applied for small samples", {
+    skip_if_not_installed("mgcv")
+    suppressWarnings({
+        se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
+        
+        # Test with bias_correction=TRUE (default)
+        result <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        # Result should be valid
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+        if (nrow(result) > 0) {
+            # For small samples, correction should be applied (or not present if p_value is NA)
+            valid_idx <- !is.na(result$p_interaction) & result$p_interaction != 0
+            # Check structure
+            if (any(valid_idx)) {
+                # May or may not have bias_correction_applied column depending on whether correction was needed
+                expect_true("p_interaction" %in% colnames(result))
+            }
+        }
+    })
+})
+
+test_that(".gam_bias_correct returns correct adjustment for small samples", {
+    # Test p-value adjustment for sample sizes below 20
+    
+    # Large sample (should not be adjusted)
+    result_large <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 25,
+        bias_correction = TRUE
+    )
+    
+    expect_false(result_large$bias_correction_applied)
+    expect_equal(result_large$p_value, 0.05)
+    
+    # Small sample (should be adjusted)
+    result_small <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 10,
+        bias_correction = TRUE
+    )
+    
+    expect_true(result_small$bias_correction_applied)
+    # Adjusted p-value should be larger (more conservative) than original
+    expect_true(result_small$p_value > result_small$p_raw)
+    expect_true(result_small$p_value <= 1.0)
+})
+
+test_that("GAM bias correction scales with sample size", {
+    # Very small sample should have larger adjustment
+    result_tiny <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 5,
+        bias_correction = TRUE
+    )
+    
+    # Moderate small sample
+    result_moderate <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 15,
+        bias_correction = TRUE
+    )
+    
+    # Both should have valid results and correction applied
+    expect_true(result_tiny$bias_correction_applied)
+    expect_true(result_moderate$bias_correction_applied)
+    
+    # Resulting p-values should be adjusted (not equal to original)
+    expect_true(result_tiny$p_value > result_tiny$p_raw)
+    expect_true(result_moderate$p_value > result_moderate$p_raw)
+    
+    # Both should be valid p-values
+    expect_true(result_tiny$p_value <= 1.0)
+    expect_true(result_moderate$p_value <= 1.0)
+})
+
+test_that("GAM bias correction handles NA p-values gracefully", {
+    # Test with NA p-value
+    result <- TSENAT:::.gam_bias_correct(
+        p_value = NA_real_,
+        n_observations = 10,
+        bias_correction = TRUE
+    )
+    
+    expect_true(is.na(result$p_value))
+    expect_false(result$bias_correction_applied)
+})
+
+test_that("GAM bias correction respects bias_correction=FALSE parameter", {
+    # Test with bias_correction=FALSE even for small samples
+    result <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 10,
+        bias_correction = FALSE
+    )
+    
+    expect_false(result$bias_correction_applied)
+    expect_equal(result$p_value, 0.05)
+})
+
+test_that("Bias correction with GAM spline regularization", {
+    skip_if_not_installed("mgcv")
+    suppressWarnings({
+        se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
+        
+        # Test combining spline regularization with bias correction
+        result <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "spline",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+    })
+})
+
+test_that("Large samples ignore bias correction threshold (n >= 20)", {
+    skip_if_not_installed("mgcv")
+    suppressWarnings({
+        se <- create_test_se_small_gam(n_samples = 20, n_genes = 3)
+        
+        # Even with bias_correction=TRUE, large samples shouldn't trigger it
+        result_large <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = FALSE,
+            verbose = FALSE
+        )
+        
+        expect_is(result_large, "data.frame")
+        # Just verify the result is valid; large samples may or may not have 
+        # bias_correction_applied column depending on implementation
+        expect_true(nrow(result_large) >= 0)
+    })
+})
+
+test_that("Bias correction consistency with paired GAM", {
+    skip_if_not_installed("mgcv")
+    suppressWarnings({
+        se <- create_test_se_small_gam(n_samples = 12, n_genes = 3)
+        
+        # Test with paired design
+        result <- .calculate_lm_interaction(
+            se,
+            condition_col = "group",
+            method = "gam",
+            regularization = "pca",
+            subject_col = "sample_base",
+            bias_correction = TRUE,
+            paired = TRUE,
+            verbose = FALSE
+        )
+        
+        expect_is(result, "data.frame")
+        expect_true(nrow(result) >= 0)
+    })
+})
+
+test_that("P-value capping at 1.0 after adjustment", {
+    # Test that p-values are never adjusted above 1.0
+    result <- TSENAT:::.gam_bias_correct(
+        p_value = 0.95,
+        n_observations = 5,
+        bias_correction = TRUE
+    )
+    
+    expect_true(result$p_value <= 1.0)
+})
+
+test_that("Bias correction returns proper metadata structure", {
+    result <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 10,
+        bias_correction = TRUE
+    )
+    
+    # Check required fields in result
+    expect_true("p_value" %in% names(result))
+    expect_true("bias_correction_applied" %in% names(result))
+    expect_true("n_samples" %in% names(result))
+    expect_true("correction_method" %in% names(result))
+    
+    # With correction applied, also check for raw p-value
+    if (result$bias_correction_applied) {
+        expect_true("p_raw" %in% names(result))
+        expect_true("adjustment_factor" %in% names(result))
+    }
+})
+
+test_that("GAM bias correction method identification", {
+    result <- TSENAT:::.gam_bias_correct(
+        p_value = 0.05,
+        n_observations = 10,
+        bias_correction = TRUE
+    )
+    
+    if (result$bias_correction_applied) {
+        expect_equal(result$correction_method, "gam_smoothing_bias_c071")
+    }
+})

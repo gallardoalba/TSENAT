@@ -11,7 +11,9 @@
 # Handle coverage mode (set by covr::package_coverage)
 # Use portable $(if ...) instead of ifdef/else/endif
 # Note: Use PKG_CXXFLAGS instead of CXXFLAGS to avoid overriding user/site settings
-COVERAGE_LIBS = $(if $(R_COVERAGE),-fprofile-arcs -ftest-coverage,)
+# Issue fix: https://github.com/r-lib/covr/issues/624
+# When using coverage flags, must also link gcov library to avoid undefined symbol errors
+COVERAGE_LIBS = $(if $(R_COVERAGE),-fprofile-arcs -ftest-coverage -lgcov,)
 COVERAGE_FLAGS = $(if $(R_COVERAGE),-O0 -fprofile-arcs -ftest-coverage,)
 
 # Release mode: enable OpenMP for parallelization (unless in coverage mode)

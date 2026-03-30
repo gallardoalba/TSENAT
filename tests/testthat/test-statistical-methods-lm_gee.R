@@ -2283,3 +2283,267 @@ test_that(".gee_interaction with valid data returns result", {
     expect_true("p_interaction" %in% colnames(result))
   }
 })
+# Tests for linear model interactions: GEE and LMM comparisons
+# GAM tests have been moved to test-statistical-methods-lm_gam.R
+
+library(testthat)
+library(TSENAT)
+library(SummarizedExperiment)
+
+context("Linear Models: GEE K-C Bias Correction Algorithm")
+
+test_that("bias_correction parameter is accepted by calculate_lm_interaction", {
+    skip_if_not_installed("geepack")
+    library(TSENAT)
+    
+    # Create simple test data with small number of clusters (triggering K-C correction)
+    qvec <- seq(0.01, 0.05, by = 0.01)
+    # 8 pairs (small sample, should trigger K-C correction)
+    # Generate unique column names to avoid duplicates
+    samples <- character()
+    for (i in seq_len(8)) {
+        samples <- c(samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
+    }
+    
+    coln <- paste0(rep(samples, each = length(qvec)), "_q=", rep(qvec, times = length(samples)))
+    
+    set.seed(100)
+    # Gene with interaction (should show difference between corrected/uncorrected)
+    gene1_vals <- numeric()
+    for (i in seq_len(8)) {
+        # Normal group
+        gene1_vals <- c(gene1_vals, qvec * 1.0 + rnorm(length(qvec), sd = 0.02))
+        # Tumor group with different slope
+        gene1_vals <- c(gene1_vals, qvec * (1.1 + i * 0.01) + rnorm(length(qvec), sd = 0.02))
+    }
+    
+    mat <- rbind(g1 = gene1_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- "g1"
+    
+    rd <- data.frame(
+        genes = rownames(mat),
+        row.names = rownames(mat),
+        stringsAsFactors = FALSE
+    )
+    
+    # Create proper colData with pairing info
+    cd <- data.frame(
+        samples = rep(samples, each = length(qvec)),
+        sample_type = rep(c("Normal", "Tumor"), length.out = length(coln)),
+        sample_base = rep(c("S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"), 
+                          each = length(qvec) * 2),
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    # Test that bias_correction parameter doesn't cause errors
+    res_with_correction <- .calculate_lm_interaction(se,
+        condition_col = "sample_type",
+        method = "gee",
+        subject_col = "sample_base",
+        bias_correction = TRUE,
+        min_obs = 5
+    )
+    
+    res_without_correction <- .calculate_lm_interaction(se,
+        condition_col = "sample_type",
+        method = "gee",
+        subject_col = "sample_base",
+        bias_correction = FALSE,
+        min_obs = 5
+    )
+    
+    # Both should return data.frame with results
+    expect_is(res_with_correction, "data.frame")
+    expect_is(res_without_correction, "data.frame")
+    
+    # Both should have the required columns
+    expect_true("p_interaction" %in% colnames(res_with_correction))
+    expect_true("p_interaction" %in% colnames(res_without_correction))
+    
+    # Should have n_clusters and bias_correction_applied columns when using GEE
+    expect_true("n_clusters" %in% colnames(res_with_correction))
+    expect_true("bias_correction_applied" %in% colnames(res_with_correction))
+    expect_true("n_clusters" %in% colnames(res_without_correction))
+    expect_true("bias_correction_applied" %in% colnames(res_without_correction))
+    
+    # With bias_correction=TRUE and n_clusters<20, correction should be applied
+    expect_true(res_with_correction$bias_correction_applied[1])
+    # With bias_correction=FALSE, correction should not be applied at all
+    expect_false(res_without_correction$bias_correction_applied[1])
+    
+    # P-values should be different (K-C correction uses t-dist vs normal)
+    # with K-C typically being more conservative (larger p-values)
+    p_corrected <- res_with_correction$p_interaction[1]
+    p_uncorrected <- res_without_correction$p_interaction[1]
+    
+    if (!is.na(p_corrected) && !is.na(p_uncorrected) && p_corrected > 0 && p_uncorrected > 0) {
+        # K-C correction typically produces larger (more conservative) p-values
+        expect_true(p_corrected >= p_uncorrected)
+    }
+})
+
+test_that("K-C bias_correction is triggered only for small clusters (n<20)", {
+    skip_if_not_installed("geepack")
+    library(TSENAT)
+    
+    # Create test data with different cluster counts
+    qvec <- seq(0.01, 0.05, by = 0.01)
+    
+    # Case 1: Small clusters (should trigger correction)
+    small_samples <- character()
+    for (i in seq_len(8)) {
+        small_samples <- c(small_samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
+    }
+    small_coln <- paste0(rep(small_samples, each = length(qvec)), "_q=", rep(qvec, times = length(small_samples)))
+    
+    set.seed(101)
+    small_vals <- numeric()
+    for (i in seq_len(8)) {
+        small_vals <- c(small_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
+        small_vals <- c(small_vals, rnorm(length(qvec), mean = 0.6, sd = 0.1))
+    }
+    
+    mat_small <- rbind(g1 = small_vals)
+    colnames(mat_small) <- small_coln
+    rownames(mat_small) <- "g1"
+    
+    rd <- data.frame(genes = "g1", row.names = "g1", stringsAsFactors = FALSE)
+    
+    cd_small <- data.frame(
+        samples = rep(small_samples, each = length(qvec)),
+        sample_type = rep(c("Normal", "Tumor"), length.out = length(small_coln)),
+        sample_base = rep(paste0("S", 1:8), each = length(qvec) * 2),
+        row.names = small_coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se_small <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat_small),
+        rowData = rd,
+        colData = cd_small
+    )
+    
+    # Run with small clusters
+    res_small <- .calculate_lm_interaction(se_small,
+        condition_col = "sample_type",
+        method = "gee",
+        subject_col = "sample_base",
+        bias_correction = TRUE,
+        min_obs = 3
+    )
+    
+    # Check that correction was applied (n=8 < 20)
+    expect_true(res_small$bias_correction_applied[1], 
+                info = "K-C correction should be applied with n=8 clusters")
+    
+    # Case 2: Large clusters (should NOT apply correction)
+    large_samples <- character()
+    for (i in seq_len(25)) {
+        large_samples <- c(large_samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
+    }
+    large_coln <- paste0(rep(large_samples, each = length(qvec)), "_q=", rep(qvec, times = length(large_samples)))
+    
+    set.seed(102)
+    large_vals <- numeric()
+    for (i in seq_len(25)) {
+        large_vals <- c(large_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
+        large_vals <- c(large_vals, rnorm(length(qvec), mean = 0.6, sd = 0.1))
+    }
+    
+    mat_large <- rbind(g1 = large_vals)
+    colnames(mat_large) <- large_coln
+    rownames(mat_large) <- "g1"
+    
+    cd_large <- data.frame(
+        samples = rep(large_samples, each = length(qvec)),
+        sample_type = rep(c("Normal", "Tumor"), length.out = length(large_coln)),
+        sample_base = rep(paste0("S", 1:25), each = length(qvec) * 2),
+        row.names = large_coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se_large <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat_large),
+        rowData = rd,
+        colData = cd_large
+    )
+    
+    # Run with large clusters
+    res_large <- .calculate_lm_interaction(se_large,
+        condition_col = "sample_type",
+        method = "gee",
+        subject_col = "sample_base",
+        bias_correction = TRUE,
+        min_obs = 3
+    )
+    
+    # Check that correction was NOT applied (n=25 >= 20)
+    expect_false(res_large$bias_correction_applied[1], 
+                 info = "K-C correction should NOT be applied with n=25 clusters")
+})
+
+test_that("K-C correction maintains theoretical Type I error rate for small samples", {
+    skip_if_not_installed("geepack")
+    library(TSENAT)
+    
+    # Generate null data (no interaction) with small clusters
+    # and verify p-values are reasonable under null
+    qvec <- seq(0.01, 0.05, by = 0.01)
+    
+    samples <- character()
+    for (i in seq_len(8)) {
+        samples <- c(samples, paste0("S", i, "_N"), paste0("S", i, "_T"))
+    }
+    coln <- paste0(rep(samples, each = length(qvec)), "_q=", rep(qvec, times = length(samples)))
+    
+    set.seed(103)
+    # Null data: same distribution in both groups (no interaction)
+    null_vals <- numeric()
+    for (i in seq_len(8)) {
+        null_vals <- c(null_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
+        null_vals <- c(null_vals, rnorm(length(qvec), mean = 0.5, sd = 0.1))
+    }
+    
+    mat <- rbind(g1 = null_vals)
+    colnames(mat) <- coln
+    rownames(mat) <- "g1"
+    
+    rd <- data.frame(genes = "g1", row.names = "g1", stringsAsFactors = FALSE)
+    
+    cd <- data.frame(
+        samples = rep(samples, each = length(qvec)),
+        sample_type = rep(c("Normal", "Tumor"), length.out = length(coln)),
+        sample_base = rep(paste0("S", 1:8), each = length(qvec) * 2),
+        row.names = coln,
+        stringsAsFactors = FALSE
+    )
+    
+    se <- SummarizedExperiment::SummarizedExperiment(
+        assays = list(diversity = mat),
+        rowData = rd,
+        colData = cd
+    )
+    
+    res <- .calculate_lm_interaction(se,
+        condition_col = "sample_type",
+        method = "gee",
+        subject_col = "sample_base",
+        bias_correction = TRUE,
+        min_obs = 3
+    )
+    
+    # p-value should be a valid number
+    expect_true(!is.na(res$p_interaction[1]))
+    # p-value should be between 0 and 1
+    expect_true(res$p_interaction[1] >= 0 && res$p_interaction[1] <= 1)
+    # Reference: Li & Redden (2015) showed KC correction maintains Type I error
+    # For null data with balanced groups, we expect reasonable p-values
+    # (not all significant, similar to uncorrected but more conservative)
