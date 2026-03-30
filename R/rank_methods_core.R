@@ -623,10 +623,23 @@
     boundary_clustered = logical(n_genes), highly_skewed = logical(n_genes),
     stringsAsFactors = FALSE)
   
-  # PHASE 5: PER-GENE ANALYSIS LOOP
+  # PHASE 5: PER-GENE ANALYSIS LOOP (PARALLELIZED)
+  # Process each gene in parallel using mclapply for speedup on multi-core systems
+  analysis_results <- parallel::mclapply(
+    X = seq_len(n_genes),
+    FUN = function(g_idx) {
+      gene_data <- data[data$gene == all_genes[g_idx], ]
+      return(.detect_q_analyze_gene(gene_data, paired, subject_col, has_condition))
+    },
+    mc.cores = min(nthreads, parallel::detectCores()),
+    mc.preschedule = TRUE,
+    mc.set.seed = TRUE,
+    mc.allow.recursive = FALSE
+  )
+  
+  # Collect results from parallel computation
   for (g_idx in seq_len(n_genes)) {
-    gene_data <- data[data$gene == all_genes[g_idx], ]
-    result <- .detect_q_analyze_gene(gene_data, paired, subject_col, has_condition)
+    result <- analysis_results[[g_idx]]
     
     if (result$test_failed) {
       interaction_results[g_idx, c("interaction_class", "p_value", "test_method")] <- 
@@ -644,6 +657,8 @@
                result$characteristics$highly_skewed)
       }
       
+      # Recalculate gene_data nrow for df_residual (needed after mclapply)
+      gene_data <- data[data$gene == all_genes[g_idx], ]
       interaction_results$df_residual[g_idx] <- nrow(gene_data) - result$n_q
     }
   }

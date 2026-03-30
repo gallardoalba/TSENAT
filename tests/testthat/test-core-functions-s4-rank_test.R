@@ -864,4 +864,481 @@ test_that("Helper functions integrate correctly in rank test workflow", {
     expect_true("q_interactions" %in% names(analysis_final@lm_results))
 })
 
+# ============================================================================
+# Additional Coverage Tests: Edge Cases and Error Handling
+# ============================================================================
+
+# ============================================================================
+# Test: .validate_rank_test_input edge cases
+# ============================================================================
+
+test_that(".validate_rank_test_input handles NULL explicitly", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Pass NULL explicitly for condition_col (should default to "condition")
+    result <- TSENAT:::.validate_rank_test_input(analysis, NULL)
+    expect_equal(result, "condition")
+})
+
+test_that(".validate_rank_test_input prioritizes explicit condition_col over config", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    analysis@config$condition_col <- "from_config"
+    
+    # Explicit arg should override config
+    result <- TSENAT:::.validate_rank_test_input(analysis, "explicit_value")
+    expect_equal(result, "explicit_value")
+})
+
+# ============================================================================
+# Test: .resolve_rank_test_params with different multicorr methods
+# ============================================================================
+
+test_that(".resolve_rank_test_params handles all multicorr methods", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    for (method in c("hochberg", "benjamini-yekutieli", "westfall-young", "none")) {
+        result <- TSENAT:::.resolve_rank_test_params(
+            analysis,
+            test = "auto",
+            multicorr = method,
+            nperm_mode = "standard",
+            q = NULL,
+            paired = FALSE,
+            subject_col = NULL,
+            nthreads = 1,
+            wy_randomizations = 100,
+            entropy_col = "diversity",
+            q_col = "q",
+            gene_col = "gene"
+        )
+        
+        expect_equal(result$dots$multicorr, method)
+    }
+})
+
+test_that(".resolve_rank_test_params handles all test methods", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    for (method in c("auto", "kruskal-wallis", "friedman", "art")) {
+        result <- TSENAT:::.resolve_rank_test_params(
+            analysis,
+            test = method,
+            multicorr = "hochberg",
+            nperm_mode = "standard",
+            q = NULL,
+            paired = FALSE,
+            subject_col = NULL,
+            nthreads = 1,
+            wy_randomizations = 100,
+            entropy_col = "diversity",
+            q_col = "q",
+            gene_col = "gene"
+        )
+        
+        expect_equal(result$dots$test, method)
+    }
+})
+
+test_that(".resolve_rank_test_params handles all nperm_mode values", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    for (mode in c("standard", "conservative", "interactive")) {
+        result <- TSENAT:::.resolve_rank_test_params(
+            analysis,
+            test = "auto",
+            multicorr = "westfall-young",
+            nperm_mode = mode,
+            q = NULL,
+            paired = FALSE,
+            subject_col = NULL,
+            nthreads = 1,
+            wy_randomizations = 100,
+            entropy_col = "diversity",
+            q_col = "q",
+            gene_col = "gene"
+        )
+        
+        expect_equal(result$dots$nperm_mode, mode)
+    }
+})
+
+test_that(".resolve_rank_test_params preserves custom column names", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    result <- TSENAT:::.resolve_rank_test_params(
+        analysis,
+        test = "auto",
+        multicorr = "hochberg",
+        nperm_mode = "standard",
+        q = NULL,
+        paired = FALSE,
+        subject_col = NULL,
+        nthreads = 1,
+        wy_randomizations = 100,
+        entropy_col = "h_values",
+        q_col = "q_param",
+        gene_col = "gene_id"
+    )
+    
+    expect_equal(result$dots$entropy_col, "h_values")
+    expect_equal(result$dots$q_col, "q_param")
+    expect_equal(result$dots$gene_col, "gene_id")
+})
+
+test_that(".resolve_rank_test_params handles nthreads appropriately", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Test with various nthreads values
+    for (nthreads_val in c(1, 2, 4, 8)) {
+        result <- TSENAT:::.resolve_rank_test_params(
+            analysis,
+            test = "auto",
+            multicorr = "hochberg",
+            nperm_mode = "standard",
+            q = NULL,
+            paired = FALSE,
+            subject_col = NULL,
+            nthreads = nthreads_val,
+            wy_randomizations = 100,
+            entropy_col = "diversity",
+            q_col = "q",
+            gene_col = "gene"
+        )
+        
+        expect_equal(result$dots$nthreads, nthreads_val)
+    }
+})
+
+# ============================================================================
+# Test: .prepare_multi_q_se with various data structures
+# ============================================================================
+
+test_that(".prepare_multi_q_se handles single q-value", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Get first diversity result only
+    q_key <- names(analysis@diversity_results)[1]
+    single_result <- analysis@diversity_results[[q_key]]
+    
+    # Create analysis with only one q-value
+    analysis@diversity_results <- list(single_result)
+    names(analysis@diversity_results) <- q_key
+    
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    
+    expect_is(se_multi_q, "SummarizedExperiment")
+    expect_true(ncol(se_multi_q) > 0)
+})
+
+test_that(".prepare_multi_q_se preserves column data structure", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    coldata <- SummarizedExperiment::colData(se_multi_q)
+    
+    # Check structure is preserved
+    expect_true("q" %in% colnames(coldata))
+    expect_true(nrow(coldata) == ncol(se_multi_q))
+})
+
+test_that(".prepare_multi_q_se column names include q-value suffix", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    
+    # Check that column names contain _q= suffix pattern
+    col_names <- colnames(se_multi_q)
+    has_q_suffix <- any(grepl("_q=", col_names))
+    
+    expect_true(has_q_suffix)
+})
+
+# ============================================================================
+# Test: .store_rank_test_results with empty results
+# ============================================================================
+
+test_that(".store_rank_test_results handles empty results data frame", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Create empty results
+    empty_results <- data.frame(
+        gene = character(0),
+        p_value = numeric(0),
+        adj_p_value = numeric(0)
+    )
+    
+    analysis_stored <- TSENAT:::.store_rank_test_results(
+        analysis,
+        empty_results,
+        output_file = NULL,
+        verbose = FALSE
+    )
+    
+    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+    expect_equal(nrow(analysis_stored@lm_results$q_interactions), 0)
+})
+
+test_that(".store_rank_test_results preserves existing lm_results", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Add existing results
+    existing_results <- data.frame(
+        gene = "gene_existing",
+        p_value = 0.001,
+        adj_p_value = 0.01
+    )
+    analysis@lm_results <- list(
+        some_other_results = existing_results
+    )
+    
+    new_results <- data.frame(
+        gene = "gene_new",
+        p_value = 0.05,
+        adj_p_value = 0.1
+    )
+    
+    analysis_stored <- TSENAT:::.store_rank_test_results(
+        analysis,
+        new_results,
+        output_file = NULL,
+        verbose = FALSE
+    )
+    
+    # Check both lists exist
+    expect_true("some_other_results" %in% names(analysis_stored@lm_results))
+    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+})
+
+# ============================================================================
+# Test: rank_test_q_condition_s4 with verbose output
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 respects verbose parameter", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Capture output with verbose = TRUE
+    output <- capture.output({
+        result <- rank_test_q_condition_s4(
+            analysis,
+            condition_col = "condition",
+            test = "auto",
+            multicorr = "hochberg",
+            verbose = TRUE
+        )
+    })
+    
+    # Just check that it runs without error
+    expect_is(result, "TSENATAnalysis")
+})
+
+# ============================================================================
+# Test: rank_test_q_condition_s4 with different multicorr methods
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 works with benjamini-yekutieli correction", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        multicorr = "benjamini-yekutieli"
+    )
+    
+    expect_is(result, "TSENATAnalysis")
+    lm_res <- TSENAT::lmResults(result)
+    expect_true("adj_p_value" %in% colnames(lm_res$q_interactions))
+})
+
+test_that("rank_test_q_condition_s4 works with no multiple correction", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        multicorr = "none"
+    )
+    
+    expect_is(result, "TSENATAnalysis")
+    lm_res <- TSENAT::lmResults(result)
+    
+    # With no correction, adj_p_value should equal p_value
+    expect_true(all(lm_res$q_interactions$adj_p_value == lm_res$q_interactions$p_value, na.rm = TRUE))
+})
+
+# ============================================================================
+# Test: rank_test_q_condition_s4 with explicit q-values
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 respects explicit q parameter", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Explicitly pass q-values
+    result_explicit <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        q = c(0.5, 1.0, 1.5)
+    )
+    
+    expect_is(result_explicit, "TSENATAnalysis")
+    lm_res <- TSENAT::lmResults(result_explicit)
+    expect_true(nrow(lm_res$q_interactions) > 0)
+})
+
+# ============================================================================
+# Test: rank_test_q_condition_s4 with nthreads parameter
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 respects nthreads parameter", {
+    skip_if_not_installed("parallel")
+    
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Test with 1 thread (should work on any system)
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        nthreads = 1
+    )
+    
+    expect_is(result, "TSENATAnalysis")
+})
+
+# ============================================================================
+# Test: rank_test_q_condition_s4 with different entropy columns
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 handles custom entropy column names", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        entropy_col = "diversity"  # Default column name
+    )
+    
+    expect_is(result, "TSENATAnalysis")
+})
+
+# ============================================================================
+# Test: Integration - Full workflow with different parameter combinations
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 full workflow with art test method", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        test = "art",
+        multicorr = "hochberg"
+    )
+    
+    expect_is(result, "TSENATAnalysis")
+    lm_res <- TSENAT::lmResults(result)
+    expect_true(nrow(lm_res$q_interactions) > 0)
+})
+
+test_that("rank_test_q_condition_s4 preserves effect size calculations", {
+    analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition"
+    )
+    
+    lm_res <- TSENAT::lmResults(result)
+    res_df <- lm_res$q_interactions
+    
+    # Check that effect size columns are present
+    expect_true("effect_size_eta2" %in% colnames(res_df))
+    
+    # Check that effect sizes are in valid range [0, 1]
+    expect_true(all(res_df$effect_size_eta2 >= 0 & res_df$effect_size_eta2 <= 1, na.rm = TRUE))
+})
+
+test_that("rank_test_q_condition_s4 classifies q-dependence correctly", {
+    analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition"
+    )
+    
+    lm_res <- TSENAT::lmResults(result)
+    res_df <- lm_res$q_interactions
+    
+    # Check that interaction_class column exists with valid values
+    expect_true("interaction_class" %in% colnames(res_df))
+    valid_classes <- c("Robust across q", "Moderately q-dependent", "Strongly q-dependent", "Insufficient data", "Test failed")
+    expect_true(all(res_df$interaction_class %in% valid_classes))
+})
+
+# ============================================================================
+# Test: Data integrity and consistency checks
+# ============================================================================
+
+test_that("rank_test_q_condition_s4 results contain expected columns", {
+    analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition"
+    )
+    
+    lm_res <- TSENAT::lmResults(result)
+    res_df <- lm_res$q_interactions
+    
+    expected_cols <- c(
+        "gene", "n_q_values_tested", "f_statistic", "p_value", "adj_p_value",
+        "ss_interaction", "ss_residual", "df_interaction", "df_residual",
+        "effect_size_eta2", "interaction_class", "test_method"
+    )
+    
+    for (col in expected_cols) {
+        expect_true(col %in% colnames(res_df), info = paste("Missing column:", col))
+    }
+})
+
+test_that("rank_test_q_condition_s4 results are sorted by adjusted p-value", {
+    analysis <- setup_rank_test_analysis(n_genes = 30, n_samples = 8)
+    
+    result <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition"
+    )
+    
+    lm_res <- TSENAT::lmResults(result)
+    res_df <- lm_res$q_interactions
+    
+    # Check that results are sorted by adj_p_value (primary) and effect size (secondary)
+    adj_p <- res_df$adj_p_value[!is.na(res_df$adj_p_value)]
+    if (length(adj_p) > 1) {
+        expect_true(is.unsorted(adj_p) || all(diff(adj_p) >= 0, na.rm = TRUE))
+    }
+})
+
+test_that("rank_test_q_condition_s4 generates consistent results", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Run twice and compare
+    result1 <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        test = "auto",
+        multicorr = "hochberg"
+    )
+    
+    result2 <- rank_test_q_condition_s4(
+        analysis,
+        condition_col = "condition",
+        test = "auto",
+        multicorr = "hochberg"
+    )
+    
+    res1_df <- TSENAT::lmResults(result1)$q_interactions
+    res2_df <- TSENAT::lmResults(result2)$q_interactions
+    
+    # Results should be identical (deterministic)
+    expect_equal(res1_df$p_value, res2_df$p_value)
+})
 

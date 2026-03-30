@@ -434,18 +434,29 @@ print.rank_assumptions <- function(x, ...) {
   
   # Bootstrap/permutation CI construction
   if (ci == "percentile" || ci == "bca") {
-    # Bootstrap resampling
+    # Bootstrap resampling (PARALLELIZED)
     bootstrap_corrs <- array(NA, dim = c(n_q, n_q, n_bootstrap))
     
-    # OPTIMIZATION: Vectorize bootstrap correlation computation
-    # Instead of triple nested loop, compute full correlation matrix per bootstrap
+    # PARALLELIZED: Use mclapply to compute bootstrap correlations in parallel
+    # Each bootstrap sample is independent, perfect for parallelization
+    bootstrap_results <- parallel::mclapply(
+      X = seq_len(n_bootstrap),
+      FUN = function(b) {
+        # Resample with replacement (indices of features)
+        boot_idx <- sample(seq_len(n_features), replace = TRUE)
+        # Extract all boot ranks at once, compute full correlation matrix
+        boot_ranks_matrix <- rank_matrix[boot_idx, ]
+        stats::cor(boot_ranks_matrix, method = method, use = "complete.obs")
+      },
+      mc.cores = min(nthreads, parallel::detectCores()),
+      mc.preschedule = TRUE,
+      mc.set.seed = TRUE,
+      mc.allow.recursive = FALSE
+    )
+    
+    # Collect results from parallel computation
     for (b in seq_len(n_bootstrap)) {
-      # Resample with replacement (indices of features)
-      boot_idx <- sample(seq_len(n_features), replace = TRUE)
-      
-      # VECTORIZED: Extract all boot ranks at once, compute full correlation matrix
-      boot_ranks_matrix <- rank_matrix[boot_idx, ]
-      bootstrap_corrs[, , b] <- stats::cor(boot_ranks_matrix, method = method, use = "complete.obs")
+      bootstrap_corrs[, , b] <- bootstrap_results[[b]]
     }
     
     alpha <- 1 - ci_level
@@ -455,16 +466,13 @@ print.rank_assumptions <- function(x, ...) {
       ci_matrix <- array(NA, dim = c(n_q, n_q, 2),
                          dimnames = list(q_names, q_names, c("lower", "upper")))
       
-      # OPTIMIZATION: Vectorize percentile CI calculation
-      # Instead of nested loops with individual quantile calls,
-      # compute quantiles for all pairs simultaneously
-      for (i in seq_len(n_q)) {
-        for (j in seq_len(n_q)) {
-          boot_dist <- bootstrap_corrs[i, j, ]
-          ci_matrix[i, j, "lower"] <- quantile(boot_dist, alpha / 2, na.rm = TRUE)
-          ci_matrix[i, j, "upper"] <- quantile(boot_dist, 1 - alpha / 2, na.rm = TRUE)
-        }
-      }
+      # VECTORIZED: Use apply() to compute quantiles for all pairs at once
+      # This replaces nested loops with vectorized array operations
+      lower_quantiles <- apply(bootstrap_corrs, c(1, 2), quantile, probs = alpha / 2, na.rm = TRUE)
+      upper_quantiles <- apply(bootstrap_corrs, c(1, 2), quantile, probs = 1 - alpha / 2, na.rm = TRUE)
+      
+      ci_matrix[, , "lower"] <- lower_quantiles
+      ci_matrix[, , "upper"] <- upper_quantiles
       
     } else {  # BCA method
       # Calculate bias-correction and acceleration factors
@@ -478,19 +486,16 @@ print.rank_assumptions <- function(x, ...) {
           z0 <- stats::qnorm(mean(boot_dist < corr_matrix[i, j], na.rm = TRUE))
           
           # Acceleration (jackknife-based)
-          # OPTIMIZATION: Vectorize jackknife correlation computation
-          # Build all jackknife samples at once, avoid loop over features
-          jack_corrs <- numeric(n_features)
+          # VECTORIZED: Use vapply to compute jackknife correlations efficiently
+          # Pre-compute all leave-one-out samples at once using matrix indexing
+          jack_corrs <- vapply(seq_len(n_features), function(k) {
+            # Efficiently create rank matrix without k-th row
+            jack_ranks_matrix <- rank_matrix[-k, , drop = FALSE]
+            # Compute correlation for the specific q-pair (i, j)
+            stats::cor(jack_ranks_matrix[, i], jack_ranks_matrix[, j],
+                       method = method, use = "complete.obs")
+          }, FUN.VALUE = numeric(1))
           
-          # Create all jackknife indices efficiently
-          for (k in seq_len(n_features)) {
-            jack_idx <- -k  # Negative indexing for omit-one
-            jack_ranks_matrix <- rank_matrix[seq_len(n_features) != k, ]
-            # Get specific correlation pair from jackknife sample
-            jack_cor_ij <- stats::cor(jack_ranks_matrix[, i], jack_ranks_matrix[, j],
-                                     method = method, use = "complete.obs")
-            jack_corrs[k] <- jack_cor_ij
-          }
           jack_mean <- mean(jack_corrs, na.rm = TRUE)
           numerator <- sum((jack_mean - jack_corrs)^3, na.rm = TRUE)
           denominator <- 6 * (sum((jack_mean - jack_corrs)^2, na.rm = TRUE))^(3/2)
@@ -522,31 +527,41 @@ print.rank_assumptions <- function(x, ...) {
     bootstrap_dist <- if (return_distribution) bootstrap_corrs else NULL
     
   } else {  # ci == "permutation"
-    # Exact permutation distribution
+    # Exact permutation distribution (PARALLELIZED)
     perm_corrs <- array(NA, dim = c(n_q, n_q, n_permutations))
     
-    # OPTIMIZATION: Vectorize permutation correlation computation
-    # Instead of triple nested loop, compute full correlation matrix per permutation
+    # PARALLELIZED: Use mclapply to compute permutation correlations in parallel
+    # Each permutation sample is independent, perfect for parallelization
+    perm_results <- parallel::mclapply(
+      X = seq_len(n_permutations),
+      FUN = function(p) {
+        # Resample without replacement (true permutation)
+        perm_idx <- sample(seq_len(n_features), replace = FALSE)
+        # Extract all perm ranks at once, compute full correlation matrix
+        perm_ranks_matrix <- rank_matrix[perm_idx, ]
+        stats::cor(perm_ranks_matrix, method = method, use = "complete.obs")
+      },
+      mc.cores = min(nthreads, parallel::detectCores()),
+      mc.preschedule = TRUE,
+      mc.set.seed = TRUE,
+      mc.allow.recursive = FALSE
+    )
+    
+    # Collect results from parallel computation
     for (p in seq_len(n_permutations)) {
-      # Resample without replacement (true permutation)
-      perm_idx <- sample(seq_len(n_features), replace = FALSE)
-      
-      # VECTORIZED: Extract all perm ranks at once, compute full correlation matrix
-      perm_ranks_matrix <- rank_matrix[perm_idx, ]
-      perm_corrs[, , p] <- stats::cor(perm_ranks_matrix, method = method, use = "complete.obs")
+      perm_corrs[, , p] <- perm_results[[p]]
     }
     
     alpha <- 1 - ci_level
     ci_matrix <- array(NA, dim = c(n_q, n_q, 2),
                         dimnames = list(q_names, q_names, c("lower", "upper")))
     
-    for (i in seq_len(n_q)) {
-      for (j in seq_len(n_q)) {
-        perm_dist <- perm_corrs[i, j, ]
-        ci_matrix[i, j, "lower"] <- quantile(perm_dist, alpha / 2, na.rm = TRUE)
-        ci_matrix[i, j, "upper"] <- quantile(perm_dist, 1 - alpha / 2, na.rm = TRUE)
-      }
-    }
+    # VECTORIZED: Use apply() to compute quantiles for all permutation pairs
+    lower_quantiles <- apply(perm_corrs, c(1, 2), quantile, probs = alpha / 2, na.rm = TRUE)
+    upper_quantiles <- apply(perm_corrs, c(1, 2), quantile, probs = 1 - alpha / 2, na.rm = TRUE)
+    
+    ci_matrix[, , "lower"] <- lower_quantiles
+    ci_matrix[, , "upper"] <- upper_quantiles
     
     bootstrap_dist <- if (return_distribution) perm_corrs else NULL
   }
