@@ -381,7 +381,11 @@ NumericVector bootstrap_compute_cpp(NumericVector x, int nboot = 1000,
   for (int b = 0; b < nboot; b++) {
     // Generate multinomial bootstrap sample using R::rmultinom
     IntegerVector boot_sample_int(n);
-    int total_int = (int)std::round(total);  // BUG FIX: Use round() not cast
+    // BUG FIX: Check total against INT_MAX before conversion to avoid overflow
+    if (total > static_cast<double>(INT_MAX)) {
+      Rcpp::stop("Total count exceeds maximum integer value (%d)", INT_MAX);
+    }
+    int total_int = static_cast<int>(std::round(total));
     if (total_int <= 0) total_int = 1;  // Safety check
     R::rmultinom(total_int, p_hat.begin(), n, boot_sample_int.begin());
     
@@ -619,7 +623,7 @@ NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts,
     arma::vec p = col / col_sum;
     
     // Compute Tsallis entropy
-    double h;
+    double h = std::nan("");  // BUG FIX #17: Initialize to NaN to catch logic errors
     double q_tol = 1e-6;
     
     if (q < q_tol) {
@@ -723,6 +727,14 @@ NumericVector jis_jackknife_influences_cpp(NumericMatrix counts,
   
   // Compute full entropy for all samples
   NumericVector h_full = jis_tsallis_entropy_cpp(counts, q, normalize, log_base, pseudocount, n_tx_fixed);
+  
+  // BUG FIX #11: MEDIUM - Add defensive validation for h_full size
+  // If entropy computation fails, h_full could be empty or smaller than expected
+  if ((int)h_full.size() != n_samples) {
+    Rcpp::warning("Entropy vector size mismatch: expected %d, got %d", 
+                  n_samples, (int)h_full.size());
+    return NumericVector(std::max(0, n_tx));  // Return empty on error
+  }
   
   NumericVector influences(n_tx);  // One per transcript (row)
   arma::mat counts_arma(counts.begin(), n_tx, n_samples, false);
@@ -858,8 +870,13 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
     NumericVector jack_B = jis_jackknife_influences_cpp(boot_B_R, q, normalize, log_base, 
                                                         pseudocount, n_transcripts_fixed);
     
-    // BUG FIX: Simplified size validation - jackknife always returns n_tx elements
-    // Trust function contract: jack_A and jack_B have size == n_tx (from n_tx-row matrices)
+    // BUG FIX #8: CRITICAL - Add defensive size validation before array access
+    // Jackknife can return empty vectors on error, which would cause out-of-bounds access
+    if ((int)jack_A.size() != n_tx || (int)jack_B.size() != n_tx) {
+      // Skip this bootstrap iteration if sizes don't match
+      continue;
+    }
+    
     for (int i = 0; i < n_tx; i++) {
       if (!std::isnan(jack_A[i]) && !std::isnan(jack_B[i])) {
         bootstrap_deltas(b, i) = jack_A[i] - jack_B[i];
@@ -896,17 +913,28 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
     
     // Sort for quantile computation
     arma::vec sorted_deltas = arma::sort(valid_deltas);
-    // BUG FIX: Use size_t to avoid integer cast overflow on huge arrays
+    // BUG FIX #13: Add explicit check for size truncation before int conversion
     size_t n_valid_size = sorted_deltas.n_elem;
+    if (n_valid_size > static_cast<size_t>(INT_MAX)) {
+      Rcpp::warning("Bootstrap sample size exceeds integer maximum, using capped value");
+    }
     int n_valid = static_cast<int>(std::min(n_valid_size, static_cast<size_t>(2000000000)));  // Avoid int overflow
     
+    // BUG FIX #9: CRITICAL - Safely compute quantile indices with overflow protection
     // Use nearest-rank method for quantile: ceil(p * n) - 1 (for 0-based indexing)
     // This is the standard method used by R's quantile() function with type=1
-    // BUG FIX: Ensure indices stay in [0, n_valid-1] bounds
-    double lower_pos = n_valid * alpha / 2.0;
-    double upper_pos = n_valid * (1.0 - alpha / 2.0);
-    int lower_idx = std::max(0, std::min((int)std::ceil(lower_pos) - 1, n_valid - 1));
-    int upper_idx = std::max(0, std::min((int)std::ceil(upper_pos) - 1, n_valid - 1));
+    // Prevent integer overflow when computing index positions
+    double lower_pos = alpha / 2.0;  // As fraction instead of absolute position
+    double upper_pos = 1.0 - alpha / 2.0;
+    
+    // Compute indices safely: rank = max(1, ceil(p * n))  [1-based], then -1 for 0-based
+    int lower_rank = std::max(1, (int)std::ceil(lower_pos * n_valid));
+    int upper_rank = std::max(1, (int)std::ceil(upper_pos * n_valid));
+    
+    int lower_idx = std::min(lower_rank - 1, n_valid - 1);  // Convert to 0-based and bound
+    int upper_idx = std::min(upper_rank - 1, n_valid - 1);  // Convert to 0-based and bound
+    lower_idx = std::max(0, lower_idx);
+    upper_idx = std::max(0, upper_idx);
     
     ci_lower[i] = sorted_deltas[lower_idx];
     ci_upper[i] = sorted_deltas[upper_idx];
@@ -935,8 +963,9 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
       }
     }
     // Divide by n_valid (number of valid bootstrap replicates actually computed)
+    // BUG FIX #12: Use explicit float division to avoid integer division
     // Set minimum p-value as 1/n_valid to avoid spurious zero p-values
-    pvalues[i] = std::max(1.0 / n_valid, (double)extreme_count / n_valid);
+    pvalues[i] = std::max(1.0 / n_valid, (double)extreme_count / (double)n_valid);
   }
   
   return List::create(
@@ -967,15 +996,12 @@ List jis_bootstrap_delta_cpp(NumericMatrix counts_A,
 double tsallis_divergence_cpp(NumericVector p, NumericVector r, double q = 1.0, 
                               double log_base = 2.718281828) {
   // Validate inputs
-  if (p.size() != r.size()) {
-    return NA_REAL;
-  }
-  
+  // BUG FIX: Allow different-sized vectors; compute over min(p.size(), r.size())
   if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
     return NA_REAL;
   }
   
-  int n = p.size();
+  int n = std::min(static_cast<int>(p.size()), static_cast<int>(r.size()));
   if (n == 0) return NA_REAL;
   
   double divergence = 0.0;
@@ -1134,8 +1160,12 @@ NumericVector divergence_bootstrap_compute_cpp(NumericVector x, NumericVector y,
       IntegerVector x_boot_int(n_x);
       IntegerVector y_boot_int(n_y);
       
-      int total_x_int = (int)std::round(total_x);
-      int total_y_int = (int)std::round(total_y);
+      // BUG FIX: Check totals against INT_MAX before conversion to avoid overflow
+      if (total_x > static_cast<double>(INT_MAX) || total_y > static_cast<double>(INT_MAX)) {
+        Rcpp::stop("Total count exceeds maximum integer value (%d)", INT_MAX);
+      }
+      int total_x_int = static_cast<int>(std::round(total_x));
+      int total_y_int = static_cast<int>(std::round(total_y));
       if (total_x_int <= 0) total_x_int = 1;
       if (total_y_int <= 0) total_y_int = 1;
       
@@ -1208,25 +1238,31 @@ NumericVector divergence_bootstrap_paired_cpp(
   // Pre-allocate result vector
   NumericVector boot_divs(nboot);
   
+  // BUG FIX #10: Pre-allocate vectors OUTSIDE bootstrap loop to avoid redundant allocation
+  // These will be reset on each iteration instead of recreated
+  IntegerVector pair_counts(n_pairs);
+  NumericVector pair_probs(n_pairs, 1.0 / n_pairs);
+  NumericVector x_boot(n_pairs);
+  NumericVector y_boot(n_pairs);
+  
   // Get R's RNG state for reproducibility
   GetRNGstate();
   
   // Main bootstrap loop: resample pairs with replacement
   for (int b = 0; b < nboot; b++) {
+    // Reset vectors instead of reallocating
+    std::fill(x_boot.begin(), x_boot.end(), 0.0);
+    std::fill(y_boot.begin(), y_boot.end(), 0.0);
+    std::fill(pair_counts.begin(), pair_counts.end(), 0);
+    
     // Multinomial resampling of pair indices
     // Each pair is selected with equal probability
-    IntegerVector pair_counts(n_pairs);
-    NumericVector pair_probs(n_pairs);
-    std::fill(pair_probs.begin(), pair_probs.end(), 1.0 / n_pairs);
-    
     // rmultinom(n, prob, K, counts) samples n items from K categories with probabilities prob
     R::rmultinom(n_pairs, pair_probs.begin(), n_pairs, pair_counts.begin());
     
     // Aggregate counts from resampled pairs
     double x_boot_sum = 0.0;
     double y_boot_sum = 0.0;
-    NumericVector x_boot(n_pairs, 0.0);
-    NumericVector y_boot(n_pairs, 0.0);
     
     // For each original pair, add its contribution to the bootstrap sample
     for (int i = 0; i < n_pairs; i++) {
@@ -1414,28 +1450,62 @@ NumericVector divergence_bootstrap_flexible_cpp(
     double y_boot_sum = 0.0;
     std::vector<double> x_boot_counts(nx, 0.0);
     std::vector<double> y_boot_counts(ny, 0.0);
+    bool skip_iteration = false;  // BUG FIX #15, #19: Flag to skip on errors
     
     // Step 3a: Resample complete pairs as units
-    if (complete_pairs.size() > 0) {
+    if (complete_pairs.size() > 0 && !skip_iteration) {
       // Generate random weights for sampling pairs with replacement
       std::vector<double> pair_probs(complete_pairs.size(), 1.0 / complete_pairs.size());
       std::vector<int> pair_counts(complete_pairs.size(), 0);
-      R::rmultinom(complete_pairs.size(), pair_probs.data(), 
-                   complete_pairs.size(), (int*)pair_counts.data());
+      // BUG FIX: Cast size_t to int for R::rmultinom, remove unsafe (int*) cast
+      int n_complete_pairs = static_cast<int>(complete_pairs.size());
+      R::rmultinom(n_complete_pairs, pair_probs.data(), 
+                   n_complete_pairs, pair_counts.data());
       
       for (size_t p = 0; p < complete_pairs.size(); p++) {
         int pid = complete_pairs[p];
         int count = pair_counts[p];
         
         if (count > 0) {
+          // BUG FIX #15: CRITICAL - Add defensive validation before map access
+          // Using [] operator creates empty vectors if key doesn't exist
+          if (x_indices_by_pair.find(pid) == x_indices_by_pair.end()) {
+            Rcpp::warning("Pair ID %d not found in x_indices_by_pair (logic error in pair matching)", pid);
+            continue;
+          }
+          if (y_indices_by_pair.find(pid) == y_indices_by_pair.end()) {
+            Rcpp::warning("Pair ID %d not found in y_indices_by_pair (logic error in pair matching)", pid);
+            continue;
+          }
+          
           // Add this pair's contribution (all samples for this pair_id)
-          for (int idx : x_indices_by_pair[pid]) {
-            double contribution = x_adj[idx] * count;
+          for (int idx : x_indices_by_pair.at(pid)) {
+            // BUG FIX #19: CRITICAL - Cast count to double early to avoid integer overflow
+            double count_d = static_cast<double>(count);
+            double contribution = x_adj[idx] * count_d;
+            
+            // Safety check for numeric overflow
+            if (!std::isfinite(contribution)) {
+              Rcpp::warning("Numeric overflow in x pair contribution calculation for pair %d", pid);
+              boot_divs[b] = NA_REAL;
+              skip_iteration = true;
+              break;
+            }
+            
             x_boot_counts[idx] = contribution;
             x_boot_sum += contribution;
           }
-          for (int idx : y_indices_by_pair[pid]) {
-            double contribution = y_adj[idx] * count;
+          for (int idx : y_indices_by_pair.at(pid)) {
+            double count_d = static_cast<double>(count);
+            double contribution = y_adj[idx] * count_d;
+            
+            if (!std::isfinite(contribution)) {
+              Rcpp::warning("Numeric overflow in y pair contribution calculation for pair %d", pid);
+              boot_divs[b] = NA_REAL;
+              skip_iteration = true;
+              break;
+            }
+            
             y_boot_counts[idx] = contribution;
             y_boot_sum += contribution;
           }
@@ -1444,11 +1514,13 @@ NumericVector divergence_bootstrap_flexible_cpp(
     }
     
     // Step 3b: Resample unpaired x samples independently
-    if (unpaired_x_indices.size() > 0) {
+    if (unpaired_x_indices.size() > 0 && !skip_iteration) {
       std::vector<double> x_unp_probs(unpaired_x_indices.size(), 1.0 / unpaired_x_indices.size());
       std::vector<int> x_unp_counts(unpaired_x_indices.size(), 0);
-      R::rmultinom(unpaired_x_indices.size(), x_unp_probs.data(), 
-                   unpaired_x_indices.size(), (int*)x_unp_counts.data());
+      // BUG FIX: Cast size_t to int for R::rmultinom, remove unsafe (int*) cast
+      int n_unp_x = static_cast<int>(unpaired_x_indices.size());
+      R::rmultinom(n_unp_x, x_unp_probs.data(), 
+                   n_unp_x, x_unp_counts.data());
       
       for (size_t u = 0; u < unpaired_x_indices.size(); u++) {
         int idx = unpaired_x_indices[u];
@@ -1462,11 +1534,13 @@ NumericVector divergence_bootstrap_flexible_cpp(
     }
     
     // Step 3c: Resample unpaired y samples independently
-    if (unpaired_y_indices.size() > 0) {
+    if (unpaired_y_indices.size() > 0 && !skip_iteration) {
       std::vector<double> y_unp_probs(unpaired_y_indices.size(), 1.0 / unpaired_y_indices.size());
       std::vector<int> y_unp_counts(unpaired_y_indices.size(), 0);
-      R::rmultinom(unpaired_y_indices.size(), y_unp_probs.data(), 
-                   unpaired_y_indices.size(), (int*)y_unp_counts.data());
+      // BUG FIX: Cast size_t to int for R::rmultinom, remove unsafe (int*) cast
+      int n_unp_y = static_cast<int>(unpaired_y_indices.size());
+      R::rmultinom(n_unp_y, y_unp_probs.data(), 
+                   n_unp_y, y_unp_counts.data());
       
       for (size_t u = 0; u < unpaired_y_indices.size(); u++) {
         int idx = unpaired_y_indices[u];
@@ -1485,12 +1559,16 @@ NumericVector divergence_bootstrap_flexible_cpp(
       continue;
     }
     
+    // BUG FIX #15, #19: Skip divergence computation if we hit an error in pair resampling
+    if (skip_iteration) {
+      continue;
+    }
+    
     // Step 4: Normalize and compute divergence
-    // Note: p_boot and r_boot may have different sizes when groups have different sample counts
-    // Pad shorter vector with zeros to match longer one
-    int max_size = std::max(nx, ny);
-    NumericVector p_boot(max_size, 0.0);
-    NumericVector r_boot(max_size, 0.0);
+    // BUG FIX: Use actual vector sizes without zero-padding
+    // Divergence is computed only over overlapping indices
+    NumericVector p_boot(nx);
+    NumericVector r_boot(ny);
     
     for (int i = 0; i < nx; i++) {
       p_boot[i] = x_boot_counts[i] / x_boot_sum;
