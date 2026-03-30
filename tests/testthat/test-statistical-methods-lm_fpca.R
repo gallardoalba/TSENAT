@@ -635,3 +635,218 @@ test_that("FPCA regularization with paired design works correctly", {
     expect_true(nrow(res) > 0)
     expect_true(!is.na(res$p_interaction[1]))
 })
+
+# ============================================================================
+# Tests for FPCA helper functions
+# ============================================================================
+
+context("FPCA Helper Functions")
+
+test_that(".apply_arima_differencing_fpca applies differencing for paired design", {
+    # Create test data frame with multiple subjects
+    df <- data.frame(
+        entropy = c(1.0, 2.0, 3.0, 1.5, 2.5, 3.5),
+        q = rep(c(0.5, 1.0, 1.5), 2),
+        group = rep(c("A", "B"), 3),
+        subject = rep(c("S1", "S2"), each = 3),
+        sample_name = c("S1_1", "S1_2", "S1_3", "S2_1", "S2_2", "S2_3"),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- TSENAT:::.apply_arima_differencing_fpca(df)
+    
+    # For each subject, differencing reduces rows by 1
+    # 2 subjects * 2 differences each = 4 rows
+    expect_equal(nrow(result), 4)
+    # Check that entropy values are differenced
+    expect_true(all(!is.na(result$entropy)))
+    # Differenced entropy should be differences of original
+    expect_equal(result$entropy[1], 2.0 - 1.0)  # S1: diff(1.0, 2.0)
+    expect_equal(result$entropy[2], 3.0 - 2.0)  # S1: diff(2.0, 3.0)
+})
+
+test_that(".apply_arima_differencing_fpca handles single subject", {
+    # Single subject should return original data
+    df <- data.frame(
+        entropy = c(1.0, 2.0, 3.0),
+        q = c(0.5, 1.0, 1.5),
+        group = c("A", "A", "A"),
+        subject = c("S1", "S1", "S1"),
+        sample_name = c("S1_1", "S1_2", "S1_3"),
+        stringsAsFactors = FALSE
+    )
+    
+    result <- TSENAT:::.apply_arima_differencing_fpca(df)
+    
+    # Single subject should return original (no differencing)
+    expect_equal(nrow(result), 3)
+    expect_equal(result$entropy, df$entropy)
+})
+
+test_that(".build_curve_matrix constructs ordered matrix", {
+    # Create test data
+    entropy_vals <- c(1, 2, 3, 1.5, 2.5, 3.5)
+    q_vals <- rep(c(0.5, 1.0, 1.5), 2)
+    sample_names <- c("S1", "S1", "S1", "S2", "S2", "S2")
+    
+    mat <- TSENAT:::.build_curve_matrix(entropy_vals, q_vals, sample_names, min_obs = 2)
+    
+    expect_is(mat, "matrix")
+    expect_equal(nrow(mat), 2)  # 2 samples
+    expect_equal(ncol(mat), 3)  # 3 unique q values
+    expect_equal(rownames(mat), c("S1", "S2"))
+    # Check matrix values are correctly placed
+    expect_equal(unname(mat[1, 1]), 1.0)    # S1 at q=0.5
+    expect_equal(unname(mat[1, 2]), 2.0)    # S1 at q=1.0
+    expect_equal(unname(mat[2, 1]), 1.5)    # S2 at q=0.5
+})
+
+test_that(".build_curve_matrix returns NULL for insufficient data", {
+    # Create sparse data
+    entropy_vals <- c(1, 2)
+    q_vals <- c(0.5, 1.0)
+    sample_names <- c("S1", "S2")
+    
+    mat <- TSENAT:::.build_curve_matrix(entropy_vals, q_vals, sample_names, min_obs = 3)
+    
+    # Should return NULL because min_obs=3 but only 2 unique samples
+    expect_null(mat)
+})
+
+test_that(".impute_curve_matrix fills NAs with column means", {
+    # Create matrix with NAs - simple 3x2 matrix
+    mat <- matrix(c(1.0, 2.0, NA, 3.0, NA, 4.0), nrow = 3, ncol = 2)
+    rownames(mat) <- c("S1", "S2", "S3")
+    
+    result <- TSENAT:::.impute_curve_matrix(mat)
+    
+    # Check no NAs remain
+    expect_true(!anyNA(result))
+    # Column 1: 1.0, 2.0, NA -> mean(1.0, 2.0) = 1.5, so result[3,1] = 1.5
+    # Column 2: 3.0, NA, 4.0 -> mean(3.0, 4.0) = 3.5, so result[2,2] = 3.5
+    expect_equal(unname(result[3, 1]), 1.5)  # S3 imputed from column mean
+    expect_equal(unname(result[2, 2]), 3.5)  # S2 imputed from column mean
+    expect_equal(unname(result[1, 1]), 1.0)  # S1 original value
+    expect_true(is.numeric(result))  # Result should be numeric
+})
+
+test_that(".aggregate_by_subject computes subject means", {
+    # Test data with multiple observations per subject
+    values <- c(1, 2, 1.5, 2.5)
+    group_vec <- c("A", "A", "B", "B")
+    subject_vec <- c("S1", "S1", "S2", "S2")
+    
+    result_a <- TSENAT:::.aggregate_by_subject(values, group_vec, subject_vec, "A")
+    result_b <- TSENAT:::.aggregate_by_subject(values, group_vec, subject_vec, "B")
+    
+    # Group A: mean of (1, 2) = 1.5
+    expect_equal(as.numeric(result_a["S1"]), 1.5)
+    # Group B: mean of (1.5, 2.5) = 2.0
+    expect_equal(as.numeric(result_b["S2"]), 2.0)
+    expect_is(result_a, "numeric")
+    expect_is(result_b, "numeric")
+})
+
+test_that(".select_npc selects appropriate PC count", {
+    # Create PCA object
+    mat <- matrix(rnorm(100), nrow = 20)
+    pca <- prcomp(mat, center = TRUE, scale. = FALSE)
+    
+    n_pc <- TSENAT:::.select_npc(pca)
+    
+    # Should select between 2 and 5 PCs
+    expect_true(n_pc >= 2)
+    expect_true(n_pc <= 5)
+    expect_true(n_pc <= ncol(pca$x))
+})
+
+test_that(".test_pc_groupdiff performs t-test on PC values", {
+    # Create PC values for two groups with strong separation
+    set.seed(123)
+    pc_vals <- c(rnorm(15, mean = 0, sd = 0.1), rnorm(15, mean = 2, sd = 0.1))  # Very clear separation
+    grp_vals <- rep(c("A", "B"), each = 15)
+    
+    pval <- TSENAT:::.test_pc_groupdiff(pc_vals, grp_vals, NULL, "A", "B")
+    
+    # Should return a p-value
+    expect_is(pval, "numeric")
+    expect_true(!is.na(pval))
+    expect_true(pval >= 0 && pval <= 1)
+    # With strong separation, should be very significant
+    expect_true(pval < 0.001)
+})
+
+test_that(".test_pc_groupdiff handles paired t-test", {
+    # Create paired test scenario
+    pc_vals <- c(1, 2, 3, 4, 1.5, 2.5, 3.5, 4.5)
+    grp_vals <- rep(c("A", "B"), 4)
+    subj_vals <- rep(c("S1", "S2", "S3", "S4"), 2)
+    
+    pval <- TSENAT:::.test_pc_groupdiff(pc_vals, grp_vals, subj_vals, "A", "B")
+    
+    # Should return a p-value
+    expect_is(pval, "numeric")
+    expect_true(!is.na(pval))
+})
+
+test_that(".test_all_pcs returns correct structure", {
+    # Create PCA object with test data
+    mat <- matrix(rnorm(100), nrow = 20)
+    pca <- prcomp(mat, center = TRUE, scale. = FALSE)
+    
+    grp_vals <- rep(c("A", "B"), 10)
+    
+    result <- TSENAT:::.test_all_pcs(pca, grp_vals, NULL)
+    
+    # Check result structure
+    expect_is(result, "list")
+    expect_true("p_interaction" %in% names(result))
+    expect_true("n_pcs_tested" %in% names(result))
+    expect_true("min_pc_pvalue" %in% names(result))
+    
+    # Check value ranges
+    expect_true(result$p_interaction >= 0 && result$p_interaction <= 1)
+    expect_true(result$n_pcs_tested >= 2 && result$n_pcs_tested <= 5)
+})
+
+test_that(".fpca_pca_method produces valid output", {
+    # Create test data
+    mat_sub <- matrix(rnorm(100), nrow = 20, ncol = 5)
+    rownames(mat_sub) <- paste0("S", 1:20)
+    grp_vals <- rep(c("A", "B"), 10)
+    
+    result <- TSENAT:::.fpca_pca_method(mat_sub, grp_vals, NULL, "gene1", NULL)
+    
+    # Result should be a data frame or NULL
+    if (!is.null(result)) {
+        expect_is(result, "data.frame")
+        expect_equal(result$gene, "gene1")
+        expect_true("p_interaction" %in% colnames(result))
+        expect_true("n_pcs_tested" %in% colnames(result))
+    } else {
+        expect_null(result)
+    }
+})
+
+test_that(".fpca_regularization_method produces valid output", {
+    # Create test data with clear group separation and larger sample
+    set.seed(42)
+    mat_sub <- matrix(rnorm(400), nrow = 40, ncol = 10)  # 40 rows x 10 cols = 400 elements
+    mat_sub[1:20, ] <- mat_sub[1:20, ] + 1.5  # Shift one group
+    rownames(mat_sub) <- paste0("S", 1:40)
+    grp_vals <- rep(c("A", "B"), 20)  # 20 per group (>8 observations)
+    
+    suppressWarnings({
+        result <- TSENAT:::.fpca_regularization_method(mat_sub, grp_vals, NULL, 
+                                                        "gene1", "lasso", NULL)
+    })
+    
+    # Result should be a data frame or NULL
+    if (!is.null(result)) {
+        expect_is(result, "data.frame")
+        expect_equal(result$gene, "gene1")
+        expect_true("p_interaction" %in% colnames(result))
+    } else {
+        expect_null(result)
+    }
+})

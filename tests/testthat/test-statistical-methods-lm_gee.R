@@ -2547,3 +2547,4 @@ test_that("K-C correction maintains theoretical Type I error rate for small samp
     # Reference: Li & Redden (2015) showed KC correction maintains Type I error
     # For null data with balanced groups, we expect reasonable p-values
     # (not all significant, similar to uncorrected but more conservative)
+})
