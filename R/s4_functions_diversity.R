@@ -328,11 +328,6 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       if (is(result_subset, "SummarizedExperiment")) {
         # result_subset is already a SummarizedExperiment with CI assays preserved
         result_se <- result_subset
-        
-        if (params$verbose) {
-          message("[DEBUG] result_subset SE colnames: ", paste(colnames(result_se), collapse=", "))
-          message("[DEBUG] result_subset SE assays: ", paste(SummarizedExperiment::assayNames(result_se), collapse=", "))
-        }
       } else if (is.data.frame(result_subset)) {
         numeric_cols <- vapply(result_subset, is.numeric, FUN.VALUE = logical(1))
         if (!any(numeric_cols)) {

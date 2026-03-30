@@ -237,26 +237,30 @@
         # Extract bootstrap CIs if available in output
         # NEW STRUCTURE: each bootstrap result is for ONE (gene, sample) pair
         if (is.list(bootstrap_out) && length(bootstrap_out) > 0) {
-            if (verbose) {
-                message("[CI EXTRACT] Processing bootstrap_out: ", length(bootstrap_out), " items")
-                if (length(bootstrap_out) > 0) {
-                    message("[CI EXTRACT] First item structure:")
-                    str(bootstrap_out[[1]], max.level=2)
-                    message("[CI EXTRACT] First item name: ", names(bootstrap_out)[1])
-                }
-            }
             
             # Get row names from the result_assay to map (gene, sample) pairs to indices
             result_row_names  <- rownames(result_assay)
             result_col_names <- colnames(result_assay)
             
+            # Build gene ID to row index mapping using output_structure$rowData
+            # This maps bootstrap gene names (which are gene IDs) to result_assay row indices
+            gene_id_map <- data.frame(
+                gene_id = if (is.null(output_structure$rowData$gene_id)) {
+                    result_row_names
+                } else {
+                    output_structure$rowData$gene_id
+                },
+                row_index = seq_along(result_row_names),
+                row.names = result_row_names
+            )
+            
             # Process each bootstrap result
-            # Names should be like "gene_name_sample_1", "gene_name_sample_2", etc.
+            # Names should be like "gene_id_sample_1", "gene_name_sample_1", etc.
             for (i in seq_along(bootstrap_out)) {
                 boot_item <- bootstrap_out[[i]]
                 if (is.null(boot_item)) next
                 
-                # Parse bootstrap result name: "gene_name_sample_INDEX"
+                # Parse bootstrap result name: "gene_id_sample_INDEX"
                 boot_name <- names(bootstrap_out)[i]
                 if (is.null(boot_name) || is.na(boot_name)) next
                 
@@ -264,7 +268,7 @@
                 parts <- regmatches(boot_name, m)
                 if (length(parts[[1]]) != 3) next
                 
-                gene_name <- parts[[1]][2]
+                gene_name_in_result <- parts[[1]][2]
                 sample_idx_str <- parts[[1]][3]
                 sample_idx <- as.integer(sample_idx_str)
                 
@@ -272,8 +276,19 @@
                 if (sample_idx < 1 || sample_idx > ncol(se_assay_mat)) next
                 sample_name <- colnames(se_assay_mat)[sample_idx]
                 
-                # Find gene row in result matrix
-                gene_row_idx <- which(result_row_names == gene_name)[1]
+                # Find gene row in result matrix - Use gene ID map to match bootstrap gene names to result_row_names
+                gene_row_idx <- NA
+                if (gene_name_in_result %in% gene_id_map$gene_id) {
+                    # Bootstrap gene name matches a gene_id in the mapping
+                    matching_rows <- which(gene_id_map$gene_id == gene_name_in_result)
+                    if (length(matching_rows) > 0) {
+                        gene_row_idx <- gene_id_map$row_index[matching_rows[1]]
+                    }
+                } else if (gene_name_in_result %in% result_row_names) {
+                    # Bootstrap gene name is already a result row name (gene symbol)
+                    gene_row_idx <- which(result_row_names == gene_name_in_result)[1]
+                }
+                
                 if (is.na(gene_row_idx)) next
                 
                 # Find columns for this sample in result_assay
@@ -301,17 +316,6 @@
                             matching_q_idx <- which(col_q_values == q_val)
                             if (length(matching_q_idx) > 0) {
                                 target_col_indices <- col_indices[matching_q_idx]
-                                
-                                if (verbose && i <= 1) {
-                                    # Get the point estimate from the result matrix to compare
-                                    result_value <- result_assay[gene_row_idx, target_col_indices[1]]
-                                    message("[DEBUG CI POPULATE] gene=", gene_name, " sample=", sample_idx, " q=", q_val)
-                                    message("  result_value (point_est should match this): ", result_value)
-                                    message("  bootstrap point_est:", q_result$estimate)
-                                    message("  ci_lower:   ", q_result$lower_ci)
-                                    message("  ci_upper:   ", q_result$upper_ci)
-                                    message("  target col indices: ", paste(target_col_indices, collapse=", "))
-                                }
                                 
                                 ci_lower[gene_row_idx, target_col_indices] <- as.numeric(q_result$lower_ci)[1]
                                 ci_upper[gene_row_idx, target_col_indices] <- as.numeric(q_result$upper_ci)[1]
