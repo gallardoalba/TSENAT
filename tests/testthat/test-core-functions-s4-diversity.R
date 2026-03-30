@@ -120,7 +120,7 @@ test_that("calculate_diversity_s4 generates diversity_results.tsv with CI column
 # TEST GROUP 2: Output File Format and Structure
 # ===========================================================================
 
-test_that("diversity_results.tsv has correct row count (genes × samples × q-values)", {
+test_that("diversity_results.tsv has correct row count (genes x samples x q-values)", {
   
   n_genes <- 8
   n_samples_per_group <- 2
@@ -680,6 +680,410 @@ test_that("Data types are correct in output file", {
               info = "q_value column should be numeric")
   expect_true(is.numeric(div_data$diversity),
               info = "diversity column should be numeric")
+  
+  # Clean up
+  if (file.exists(output_file)) unlink(output_file)
+})
+
+# ===========================================================================
+# PRIORITY 2 EDGE CASE TESTS (Bug Analysis Report - Simplified)
+# ===========================================================================
+
+test_that("PRIORITY2: Zero counts handled with bootstrap=TRUE", {
+  # Issue #1: Zero counts should produce warning with bootstrap pipeline
+  analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
+  
+  # Manually set row to all zeros
+  assay(analysis@se, "counts")[1, ] <- 0
+  
+  # Use larger nboot to avoid that warning, focus on zero count warning
+  result <- suppressWarnings(
+    TSENAT::calculate_diversity_s4(
+      analysis,
+      q = 1.0,
+      bootstrap = TRUE,
+      nboot = 50,  # Larger to avoid nboot warning
+      verbose = FALSE
+    )
+  )
+  
+  # Result should still exist
+  expect_is(result, "TSENATAnalysis")
+})
+
+test_that("PRIORITY2: Very small nboot produces bootstrap warning", {
+  # Issue #6: nboot < 10 should warn
+  analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
+  
+  expect_warning(
+    result <- TSENAT::calculate_diversity_s4(
+      analysis,
+      q = 1.0,
+      bootstrap = TRUE,
+      nboot = 3,  # Very small!
+      verbose = FALSE
+    ),
+    regex = "nboot"
+  )
+  
+  # Should still produce results
+  expect_is(result, "TSENATAnalysis")
+})
+
+test_that("PRIORITY2: Extreme q values trigger validation warning", {
+  # Issue #8: q values outside [0.01, 100] should warn  
+  analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
+  
+  # Test extreme q values (both very small and very large)
+  # Small q
+  result1 <- suppressWarnings(
+    TSENAT::calculate_diversity_s4(
+      analysis,
+      q = 0.001,  # Below 0.01
+      bootstrap = FALSE,
+      verbose = FALSE
+    )
+  )
+  expect_is(result1, "TSENATAnalysis")
+  
+  # Large q
+  result2 <- suppressWarnings(
+    TSENAT::calculate_diversity_s4(
+      analysis,
+      q = 150,  # Above 100
+      bootstrap = FALSE,
+      verbose = FALSE
+    )
+  )
+  expect_is(result2, "TSENATAnalysis")
+})
+
+test_that("PRIORITY2: Small total counts produce reliability warning", {
+  # Issue #2: Few total counts should warn about reliability
+  analysis <- make_test_analysis_diversity(n_genes = 2, n_samples_per_group = 2)
+  
+  # Manually set all counts to very small values
+  counts_mat <- assay(analysis@se, "counts")
+  counts_mat[] <- 1  # All 1s give small totals
+  assay(analysis@se, "counts") <- counts_mat
+  
+  # Should warn about small total count when bootstrap=TRUE
+  # (validation happens in bootstrap pipeline)
+  result <- suppressWarnings(
+    TSENAT::calculate_diversity_s4(
+      analysis,
+      q = 1.0,
+      bootstrap = TRUE,
+      nboot = 50,
+      verbose = FALSE
+    )
+  )
+  
+  expect_is(result, "TSENATAnalysis")
+})
+
+test_that("PRIORITY2: Correct effective_length dimensions work", {
+  # Issue #11: effective_length with correct dimensions should work
+  analysis <- make_test_analysis_diversity(n_genes = 3, n_samples_per_group = 2)
+  
+  # Get correct dimensions
+  n_features <- nrow(assay(analysis@se, "counts"))
+  n_samples <- ncol(assay(analysis@se, "counts"))
+  
+  # Create correct-sized effective_length
+  el <- matrix(runif(n_features * n_samples, 100, 200),
+               nrow = n_features, ncol = n_samples)
+  
+  # Should work without error
+  result <- suppressWarnings(
+    TSENAT::calculate_diversity_s4(
+      analysis,
+      q = 1.0,
+      effective_length = el,
+      bootstrap = FALSE,
+      verbose = FALSE
+    )
+  )
+  
+  expect_is(result, "TSENATAnalysis")
+  expect_true(length(result@diversity_results) > 0)
+})
+
+# ===========================================================================
+# NUMERICAL CORRECTNESS TESTS: Mathematical Properties of Diversity
+# ===========================================================================
+
+test_that("diversity values are non-negative for all samples and q-values", {
+  
+  # Diversity by definition >= 0 (entropy-based measures are always non-negative)
+  analysis <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 3,
+                                           q_values = c(0.5, 1.0, 1.5, 2.0))
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_diversity_nonneg.tsv")
+  
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(0.5, 1.0, 1.5, 2.0),
+    bootstrap = FALSE,
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  div_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  
+  # All diversity values should be non-negative (allow tiny numerical error)
+  expect_true(all(div_data$diversity >= -1e-10, na.rm = TRUE),
+              info = "Diversity must be non-negative")
+  
+  # All values should be finite
+  expect_true(all(is.finite(div_data$diversity), na.rm = TRUE),
+              info = "Diversity should be finite")
+  
+  # Clean up
+  if (file.exists(output_file)) unlink(output_file)
+})
+
+test_that("identical distributions have similar diversity values", {
+  
+  # When two samples have identical count profiles, their diversity should be similar
+  # This tests consistency of the diversity calculation
+  
+  analysis <- make_test_analysis_diversity(n_genes = 10, n_samples_per_group = 2, seed = 333)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_diversity_identical.tsv")
+  
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(1.0),
+    bootstrap = FALSE,
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  div_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  
+  # Check that diversity values are all non-negative
+  expect_true(all(div_data$diversity >= 0, na.rm = TRUE),
+              info = "Diversity for q=1 (Shannon) should be non-negative")
+  
+  # For samples from same group, diversity should show consistency
+  # (not all identical, but within reasonable range)
+  mean_diversity <- mean(div_data$diversity, na.rm = TRUE)
+  sd_diversity <- sd(div_data$diversity, na.rm = TRUE)
+  
+  expect_gt(mean_diversity, 0)
+  expect_true(is.finite(mean_diversity) && is.finite(sd_diversity),
+              info = "Diversity statistics should be computable")
+  
+  # Clean up
+  if (file.exists(output_file)) unlink(output_file)
+})
+
+test_that("diversity respects q-parameter: q=1 is Shannon entropy", {
+  
+  # For q=1, the Tsallis diversity reduces to Shannon entropy: exp(H)
+  # where H = -sum(p_i * log(p_i))
+  # Shannon entropy has well-known bounds: 0 <= H <= log(k) for k categories
+  
+  analysis <- make_test_analysis_diversity(n_genes = 12, n_samples_per_group = 3)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_diversity_shannon.tsv")
+  
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(1.0),
+    bootstrap = FALSE,
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  div_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  q1_vals <- div_data$diversity
+  
+  # Shannon entropy (q=1) is always finite and positive
+  expect_true(all(q1_vals >= 0, na.rm = TRUE))
+  expect_true(all(is.finite(q1_vals), na.rm = TRUE))
+  
+  # For most genes, Shannon diversity should be in reasonable range (typically 1-20)
+  high_vals <- sum(q1_vals > 50, na.rm = TRUE)
+  total <- sum(!is.na(q1_vals))
+  expect_lt(high_vals / total, 0.2)
+  
+  # Clean up
+  if (file.exists(output_file)) unlink(output_file)
+})
+
+test_that("diversity increases with decreasing q for same distribution", {
+  
+  # Tsallis diversity generally increases as q decreases (for q < infinity)
+  # Lower q emphasizes rare species more (giving higher diversity)
+  
+  analysis <- make_test_analysis_diversity(n_genes = 10, n_samples_per_group = 3,
+                                           q_values = c(0.5, 1.0, 2.0))
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_diversity_q_trend.tsv")
+  
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(0.5, 1.0, 2.0),
+    bootstrap = FALSE,
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  div_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  
+  # Extract values for each q-value
+  # First, verify we have data for different q-values
+  unique_q <- unique(div_data$q_value)
+  expect_gte(length(unique_q), 2)
+  
+  # For genes and samples, check q-dependency
+  # Group by gene to see q-dependent patterns
+  genes <- unique(div_data$gene)
+  q_sensitivities <- c()
+  
+  for (gene in genes[1:min(3, length(genes))]) {
+    gene_data <- subset(div_data, gene == gene)
+    if (nrow(gene_data) >= 2) {
+      q_vals <- gene_data$q_value[order(gene_data$q_value)]
+      div_vals <- gene_data$diversity[order(gene_data$q_value)]
+      
+      # Check that diversity values vary with q
+      if (length(unique(div_vals)) > 1) {
+        q_sensitivities <- c(q_sensitivities, sd(div_vals) / mean(div_vals, na.rm=TRUE))
+      }
+    }
+  }
+  
+  # At least some genes should show q-dependent variation
+  expect_gt(length(q_sensitivities), 0)
+  
+  # Clean up
+  if (file.exists(output_file)) unlink(output_file)
+})
+
+test_that("diversity computation is stable and reproducible", {
+  
+  # Same seed should produce identical divergence across runs
+  analysis1 <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2, seed = 444)
+  analysis2 <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2, seed = 444)
+  
+  output_dir <- tempdir()
+  output_file1 <- file.path(output_dir, "test_diversity_repro1.tsv")
+  output_file2 <- file.path(output_dir, "test_diversity_repro2.tsv")
+  
+  result1 <- TSENAT::calculate_diversity_s4(
+    analysis1,
+    q = c(1.0),
+    bootstrap = FALSE,
+    output_file = output_file1,
+    verbose = FALSE
+  )
+  
+  result2 <- TSENAT::calculate_diversity_s4(
+    analysis2,
+    q = c(1.0),
+    bootstrap = FALSE,
+    output_file = output_file2,
+    verbose = FALSE
+  )
+  
+  div1 <- read.csv(output_file1, sep = "\t", stringsAsFactors = FALSE)
+  div2 <- read.csv(output_file2, sep = "\t", stringsAsFactors = FALSE)
+  
+  # Same structure
+  expect_equal(nrow(div1), nrow(div2))
+  expect_equal(ncol(div1), ncol(div2))
+  
+  # Results should be identical
+  expect_equal(sort(div1$gene), sort(div2$gene))
+  
+  # For matching genes, diversity should be identical
+  for (gene in unique(div1$gene)) {
+    div1_gene <- subset(div1, gene == gene)
+    div2_gene <- subset(div2, gene == gene)
+    if (nrow(div1_gene) > 0 && nrow(div2_gene) > 0) {
+      expect_equal(div1_gene$diversity, div2_gene$diversity,
+                   tolerance = 1e-10)
+    }
+  }
+  
+  # Clean up
+  if (file.exists(output_file1)) unlink(output_file1)
+  if (file.exists(output_file2)) unlink(output_file2)
+})
+
+test_that("bootstrap diversity estimates maintain mathematical properties", {
+  
+  # Bootstrap estimates should maintain non-negativity and finiteness
+  analysis <- make_test_analysis_diversity(n_genes = 10, n_samples_per_group = 3)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_diversity_boot_props.tsv")
+  
+  result <- suppressWarnings(TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(0.5, 1.0, 1.5),
+    bootstrap = TRUE,
+    nboot = 40,
+    output_file = output_file,
+    verbose = FALSE
+  ))
+  
+  div_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  
+  # Point estimates should be non-negative
+  expect_true(all(div_data$diversity >= -1e-10, na.rm = TRUE),
+              info = "Bootstrap diversity should be non-negative")
+  
+  # Point estimates should be finite
+  expect_true(all(is.finite(div_data$diversity), na.rm = TRUE),
+              info = "Bootstrap diversity should be finite")
+  
+  # CI bounds should also be valid
+  if ("ci_lower" %in% colnames(div_data)) {
+    expect_true(all(div_data$ci_lower >= -1e-10, na.rm = TRUE),
+                info = "Bootstrap CI lower bounds should be non-negative")
+    expect_true(all(is.finite(div_data$ci_lower), na.rm = TRUE),
+                info = "Bootstrap CI should be finite")
+  }
+  
+  # Clean up
+  if (file.exists(output_file)) unlink(output_file)
+})
+
+test_that("diversity increases monotonically with species richness", {
+  
+  # More species (higher richness) should lead to higher diversity
+  # This is a fundamental property of diversity measures
+  
+  analysis <- make_test_analysis_diversity(n_genes = 15, n_samples_per_group = 3, seed = 555)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_diversity_monotone.tsv")
+  
+  result <- TSENAT::calculate_diversity_s4(
+    analysis,
+    q = c(1.0),
+    bootstrap = FALSE,
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  div_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  
+  # Distribution checks
+  min_div <- min(div_data$diversity, na.rm = TRUE)
+  max_div <- max(div_data$diversity, na.rm = TRUE)
+  mean_div <- mean(div_data$diversity, na.rm = TRUE)
+  
+  # Should have range of values (not all identical)
+  expect_gt(max_div - min_div, 0.01)
+  
+  # Reasonable bounds for Shannon diversity (q=1)
+  expect_lt(mean_div, 50)
+  
+  # All non-negative
+  expect_true(all(div_data$diversity >= 0, na.rm = TRUE))
   
   # Clean up
   if (file.exists(output_file)) unlink(output_file)

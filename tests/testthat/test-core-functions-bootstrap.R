@@ -4617,3 +4617,340 @@ test_that("jackknife multi-q accepts Hill numbers (D)", {
     expect_length(result, 2)
     expect_true(all(sapply(result, function(r) !is.na(r$estimate))))
 })
+
+#!/usr/bin/env Rscript
+#===============================================================================
+# TEST SUITE: Priority 3 Bootstrap Diagnostics
+#===============================================================================
+# Tests for new diagnostic functions:
+# - .estimate_bootstrap_skewness()
+# - .detect_multimodality()
+# - .analyze_ci_width()
+# - .generate_bootstrap_diagnostics_report()
+#
+# These tests verify diagnostic accuracy and integration
+#===============================================================================
+
+library(testthat)
+library(TSENAT)
+
+# ============================================================================
+# SUITE 1: Skewness Estimation
+# ============================================================================
+
+test_that(".estimate_bootstrap_skewness handles symmetric distributions", {
+  # Create symmetric bootstrap distribution (normal)
+  set.seed(123)
+  boot_dist <- rnorm(1000, mean = 2, sd = 0.5)
+  
+  result <- TSENAT:::.estimate_bootstrap_skewness(boot_dist, compute_ci = FALSE)
+  
+  # Symmetric distributions should have skewness close to 0
+  expect_true(abs(result$skewness_mean) < 0.3)
+  expect_true(abs(result$skewness_quartile) < 0.3)
+  expect_match(result$interpretation, "symmetric|low", ignore.case = TRUE)
+})
+
+test_that(".estimate_bootstrap_skewness detects right-skewed distributions", {
+  # Create right-skewed distribution (exponential)
+  set.seed(456)
+  boot_dist <- rexp(1000, rate = 1)
+  
+  result <- TSENAT:::.estimate_bootstrap_skewness(boot_dist, compute_ci = FALSE)
+  
+  # Right-skewed distributions should have positive skewness
+  expect_true(result$skewness_mean > 0)
+  expect_true(result$skewness_quartile > 0)
+})
+
+test_that(".estimate_bootstrap_skewness computes jackknife CI", {
+  # Create sample bootstrap distribution
+  set.seed(789)
+  boot_dist <- rnorm(100, mean = 1, sd = 0.3)
+  
+  result <- TSENAT:::.estimate_bootstrap_skewness(boot_dist, compute_ci = TRUE)
+  
+  # CI bounds should be finite
+  expect_true(is.finite(result$ci_lower))
+  expect_true(is.finite(result$ci_upper))
+  
+  # CI should bracket the point estimate
+  expect_true(result$ci_lower <= result$skewness_mean)
+  expect_true(result$skewness_mean <= result$ci_upper)
+})
+
+test_that(".estimate_bootstrap_skewness handles degenerate cases", {
+  # All same values - zero variance
+  boot_dist <- rep(2, 50)
+  
+  result <- TSENAT:::.estimate_bootstrap_skewness(boot_dist, compute_ci = FALSE)
+  
+  # Degenerate cases should return NA
+  expect_true(is.na(result$skewness_mean) || result$skewness_mean == 0)
+})
+
+test_that(".estimate_bootstrap_skewness handles small samples", {
+  # Small sample (n < 3)
+  boot_dist <- c(1, 2)
+  
+  result <- TSENAT:::.estimate_bootstrap_skewness(boot_dist, compute_ci = FALSE)
+  
+  # Should warn or return NA
+  expect_true(is.na(result$skewness_mean) || 
+              grepl("insufficient", result$interpretation, ignore.case = TRUE))
+})
+
+# ============================================================================
+# SUITE 2: Multimodality Detection
+# ============================================================================
+
+test_that(".detect_multimodality identifies unimodal distributions", {
+  set.seed(111)
+  boot_dist <- rnorm(500, mean = 2, sd = 0.5)
+  
+  result <- TSENAT:::.detect_multimodality(boot_dist, method = "kde")
+  
+  expect_false(result$is_multimodal)
+  expect_equal(result$n_modes, 1L)
+  expect_match(result$interpretation, "unimodal", ignore.case = TRUE)
+})
+
+test_that(".detect_multimodality identifies bimodal distributions", {
+  set.seed(222)
+  # Mixture of two normals
+  boot_dist <- c(rnorm(300, mean = 1, sd = 0.3),
+                 rnorm(300, mean = 4, sd = 0.3))
+  
+  result <- TSENAT:::.detect_multimodality(boot_dist, method = "kde")
+  
+  expect_true(result$is_multimodal)
+  expect_true(result$n_modes >= 2)
+  expect_match(result$interpretation, "modality|mode", ignore.case = TRUE)
+})
+
+test_that(".detect_multimodality histogram method works", {
+  set.seed(333)
+  boot_dist <- rnorm(200, mean = 2, sd = 0.5)
+  
+  result <- TSENAT:::.detect_multimodality(boot_dist, method = "histogram")
+  
+  expect_true(is.logical(result$is_multimodal))
+  expect_true(is.integer(result$n_modes))
+  expect_equal(result$method_used, "histogram")
+})
+
+test_that(".detect_multimodality gaps method works", {
+  set.seed(444)
+  boot_dist <- rnorm(200, mean = 2, sd = 0.5)
+  
+  result <- TSENAT:::.detect_multimodality(boot_dist, method = "gaps")
+  
+  expect_true(is.logical(result$is_multimodal))
+  expect_true(is.integer(result$n_modes))
+  expect_equal(result$method_used, "gaps")
+})
+
+test_that(".detect_multimodality rejects invalid methods", {
+  boot_dist <- rnorm(100, mean = 2, sd = 0.5)
+  
+  expect_error(
+    TSENAT:::.detect_multimodality(boot_dist, method = "invalid"),
+    "must be one of"
+  )
+})
+
+test_that(".detect_multimodality handles small samples", {
+  boot_dist <- c(1, 2, 3, 4, 5)  # n < 10
+  
+  result <- TSENAT:::.detect_multimodality(boot_dist, method = "kde")
+  
+  expect_true(is.na(result$is_multimodal))
+  expect_match(result$method_used, "insufficient", ignore.case = TRUE)
+})
+
+test_that(".detect_multimodality computes separation score", {
+  set.seed(555)
+  boot_dist <- c(rnorm(300, mean = 1, sd = 0.2),
+                 rnorm(300, mean = 5, sd = 0.2))
+  
+  result <- TSENAT:::.detect_multimodality(boot_dist, method = "kde")
+  
+  if (result$is_multimodal) {
+    # Separation score should be between 0 and 1 for multimodal
+    expect_true(result$separation_score >= 0 && result$separation_score <= 1)
+  } else {
+    # For unimodal, should be very high (>0.9)
+    expect_true(result$separation_score > 0.9)
+  }
+})
+
+# ============================================================================
+# SUITE 3: CI Width Analysis
+# ============================================================================
+
+test_that(".analyze_ci_width computes basic characteristics", {
+  ci_lower <- 1.2
+  ci_upper <- 3.5
+  point_est <- 2.3
+  boot_dist <- rnorm(500, mean = 2.3, sd = 0.5)
+  n_bootstrap <- 500
+  
+  result <- TSENAT:::.analyze_ci_width(ci_lower, ci_upper, point_est, boot_dist, n_bootstrap)
+  
+  # Check CI width
+  expect_equal(result$ci_width, ci_upper - ci_lower)
+  
+  # Check ratios are positive
+  expect_true(result$ci_width_to_estimate_ratio > 0)
+  expect_true(result$ci_width_to_sd_ratio > 0)
+})
+
+test_that(".analyze_ci_width detects asymmetric CIs", {
+  # Asymmetric CI: lower at 1, upper at 10, point estimate at 2
+  ci_lower <- 1
+  ci_upper <- 10
+  point_est <- 2
+  boot_dist <- c(rep(1.5, 200), runif(300, 9, 10))
+  n_bootstrap <- 500
+  
+  result <- TSENAT:::.analyze_ci_width(ci_lower, ci_upper, point_est, boot_dist, n_bootstrap)
+  
+  # Should detect asymmetry
+  if (!is.na(result$ci_symmetry_ratio)) {
+    expect_true(result$ci_symmetry_ratio < 0.9)
+  }
+  
+  # Should flag in issues
+  expect_true(any(grepl("asymmetric|recommendation", tolower(result$potential_issues), 
+                         ignore.case = TRUE)))
+})
+
+test_that(".analyze_ci_width assesses precision levels", {
+  boot_dist <- rnorm(500, mean = 2, sd = 0.5)
+  
+  # Excellent precision
+  result_excellent <- TSENAT:::.analyze_ci_width(
+    ci_lower = 1.95, ci_upper = 2.05,
+    point_est = 2.0, boot_dist = boot_dist, n_bootstrap = 500
+  )
+  expect_match(result_excellent$precision_assessment, "excellent|good")
+  
+  # Poor precision
+  result_poor <- TSENAT:::.analyze_ci_width(
+    ci_lower = 0.5, ci_upper = 3.5,
+    point_est = 2.0, boot_dist = boot_dist, n_bootstrap = 500
+  )
+  expect_match(result_poor$precision_assessment, "poor|acceptable")
+})
+
+test_that(".analyze_ci_width handles zero point estimate", {
+  ci_lower <- -0.1
+  ci_upper <- 0.1
+  point_est <- 0
+  boot_dist <- rnorm(500, mean = 0, sd = 0.05)
+  
+  result <- TSENAT:::.analyze_ci_width(ci_lower, ci_upper, point_est, boot_dist, 500)
+  
+  # Should handle zero estimate gracefully
+  expect_true(is.na(result$ci_width_to_estimate_ratio) || 
+              is.finite(result$ci_width_to_estimate_ratio))
+})
+
+# ============================================================================
+# SUITE 4: Integrated Diagnostics Report
+# ============================================================================
+
+test_that(".generate_bootstrap_diagnostics_report works on real bootstrap result", {
+  # Create a bootstrap result object
+  set.seed(666)
+  x <- c(100, 50, 25, 10)
+  
+  result <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+    x = x, q = 1.5, nboot = 500, ci = 0.95,
+    method = "percentile", include_diagnostics = TRUE,
+    verbose = FALSE
+  )
+  
+  # Generate report
+  report <- TSENAT:::.generate_bootstrap_diagnostics_report(result)
+  
+  # Check report structure
+  expect_true(all(c("skewness_analysis", "multimodality_analysis", 
+                     "ci_width_analysis", "overall_reliability", 
+                     "summary_recommendations") %in% names(report)))
+  
+  # Check overall reliability is one of three values
+  expect_true(report$overall_reliability %in% c("Reliable", "Caution", "Unreliable"))
+  
+  # Check recommendations are character vector
+  expect_true(is.character(report$summary_recommendations))
+})
+
+test_that(".generate_bootstrap_diagnostics_report detects unreliable results", {
+  # Create bootstrap result with known issues
+  set.seed(777)
+  x <- c(10, 8, 5, 2, 1)  # Low counts - problematic
+  
+  result <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+    x = x, q = 1, nboot = 100,  # Low nboot - problematic
+    ci = 0.95, method = "percentile", 
+    include_diagnostics = TRUE, verbose = FALSE
+  )
+  
+  report <- TSENAT:::.generate_bootstrap_diagnostics_report(result)
+  
+  # Should suggest caution or flag issues
+  expect_true(report$overall_reliability %in% c("Caution", "Unreliable"))
+  
+  # Should have recommendations
+  expect_true(length(report$summary_recommendations) > 0)
+})
+
+test_that(".generate_bootstrap_diagnostics_report rejects invalid input", {
+  # Invalid input - not a bootstrap CI object
+  invalid_result <- list(estimate = 1, lower_ci = 0.5, upper_ci = 1.5)
+  
+  expect_error(
+    TSENAT:::.generate_bootstrap_diagnostics_report(invalid_result),
+    "must be of class tsenat_bootstrap_ci"
+  )
+})
+
+# ============================================================================
+# SUITE 5: Integration with main bootstrap function
+# ============================================================================
+
+test_that("bootstrap CI includes diagnostics when requested", {
+  x <- c(150, 100, 50, 25, 10)
+  
+  result <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+    x = x, q = 1.5, nboot = 500, ci = 0.95,
+    include_diagnostics = TRUE, verbose = FALSE
+  )
+  
+  # Should have diagnostics field
+  expect_true("diagnostics" %in% names(result))
+  expect_true(!is.null(result$diagnostics))
+})
+
+test_that("bootstrap CI omits diagnostics when not requested", {
+  x <- c(150, 100, 50, 25, 10)
+  
+  result <- TSENAT:::.calculate_tsallis_entropy_bootstrap(
+    x = x, q = 1.5, nboot = 500, ci = 0.95,
+    include_diagnostics = FALSE, verbose = FALSE
+  )
+  
+  # Should not have diagnostics field (or it's NULL)
+  expect_true(!"diagnostics" %in% names(result) || is.null(result$diagnostics))
+})
+
+# ============================================================================
+# RUN TESTS
+# ============================================================================
+
+cat("\n========================================\n")
+cat("PRIORITY 3 BOOTSTRAP DIAGNOSTICS TESTS\n")
+cat("========================================\n\n")
+
+test_dir(".", reporter = "progress")

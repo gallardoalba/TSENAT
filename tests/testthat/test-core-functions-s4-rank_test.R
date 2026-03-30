@@ -1342,3 +1342,292 @@ test_that("rank_test_q_condition_s4 generates consistent results", {
     expect_equal(res1_df$p_value, res2_df$p_value)
 })
 
+# ===========================================================================
+# NUMERICAL CORRECTNESS TESTS: Mathematical Properties of Rank Test Results
+# ===========================================================================
+
+test_that("rank_test output file (TSV format) contains valid p-values", {
+  
+  # P-values must be in [0, 1] range by mathematical definition
+  analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_rank_pvalues.tsv")
+  
+  result <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    multicorr = "hochberg",
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  # Check if file was created
+  if (file.exists(output_file)) {
+    rank_data <- read.csv(output_file, sep = "\t", row.names = 1, stringsAsFactors = FALSE)
+    
+    # P-values should be in [0, 1]
+    expect_true(all(rank_data$p_value >= 0 & rank_data$p_value <= 1, na.rm = TRUE),
+                info = "All p-values must be in [0, 1]")
+    
+    # Adjusted p-values should also be in [0, 1]
+    if ("adj_p_value" %in% colnames(rank_data)) {
+      expect_true(all(rank_data$adj_p_value >= 0 & rank_data$adj_p_value <= 1, na.rm = TRUE),
+                  info = "All adjusted p-values must be in [0, 1]")
+    }
+    
+    # All numeric columns should be finite
+    numeric_cols <- sapply(rank_data, is.numeric)
+    for (col in names(numeric_cols)[numeric_cols]) {
+      expect_true(all(is.finite(rank_data[[col]]), na.rm = TRUE),
+                  info = paste("Column", col, "contains non-finite values"))
+    }
+    
+    # Clean up
+    unlink(output_file)
+  }
+})
+
+test_that("rank_test output file (CSV format) preserves numerical properties across formats", {
+  
+  analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+  output_dir <- tempdir()
+  tsv_file <- file.path(output_dir, "test_rank_format_tsv.tsv")
+  csv_file <- file.path(output_dir, "test_rank_format_csv.csv")
+  
+  # Run test with TSV output
+  result_tsv <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    output_file = tsv_file,
+    verbose = FALSE
+  )
+  
+  # Run test with CSV output
+  result_csv <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    output_file = csv_file,
+    verbose = FALSE
+  )
+  
+  if (file.exists(tsv_file) && file.exists(csv_file)) {
+    data_tsv <- read.csv(tsv_file, sep = "\t", stringsAsFactors = FALSE)
+    data_csv <- read.csv(csv_file, sep = ",", stringsAsFactors = FALSE)
+    
+    # Both should have same dimensions
+    expect_equal(nrow(data_tsv), nrow(data_csv))
+    
+    # Numeric values should match
+    if ("p_value" %in% colnames(data_tsv) && "p_value" %in% colnames(data_csv)) {
+      expect_equal(data_tsv$p_value, data_csv$p_value, tolerance = 1e-10)
+    }
+    
+    # Clean up
+    unlink(tsv_file)
+    unlink(csv_file)
+  }
+})
+
+test_that("rank_test statistics respect monotonicity: adj_p >= p_value", {
+  
+  # After multiple correction, adjusted p-values should always be >= raw p-values
+  analysis <- setup_rank_test_analysis(n_genes = 25, n_samples = 8)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_rank_monotone.tsv")
+  
+  result <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    multicorr = "hochberg",
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  if (file.exists(output_file)) {
+    rank_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+    
+    # For Hochberg and other methods: adj_p >= p_value always
+    if ("adj_p_value" %in% colnames(rank_data) && "p_value" %in% colnames(rank_data)) {
+      differences <- rank_data$adj_p_value - rank_data$p_value
+      expect_true(all(differences >= -1e-10, na.rm = TRUE),
+                  info = "Adjusted p-values should be >= raw p-values")
+    }
+    
+    # Clean up
+    unlink(output_file)
+  }
+})
+
+test_that("rank_test results are consistent across different multicorr methods", {
+  
+  # Different multicorr methods should preserve relative rankings and produce valid p-values
+  analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
+  output_dir <- tempdir()
+  
+  # Test with no correction
+  file_none <- file.path(output_dir, "test_rank_none.tsv")
+  result_none <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    multicorr = "none",
+    output_file = file_none,
+    verbose = FALSE
+  )
+  
+  # Test with Hochberg correction
+  file_bh <- file.path(output_dir, "test_rank_bh.tsv")
+  result_bh <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    multicorr = "hochberg",
+    output_file = file_bh,
+    verbose = FALSE
+  )
+  
+  if (file.exists(file_none) && file.exists(file_bh)) {
+    data_none <- read.csv(file_none, sep = "\t", stringsAsFactors = FALSE)
+    data_bh <- read.csv(file_bh, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Both should have results
+    expect_gt(nrow(data_none), 0)
+    expect_gt(nrow(data_bh), 0)
+    
+    # P-values should be valid in both
+    expect_true(all(data_none$p_value >= 0 & data_none$p_value <= 1, na.rm = TRUE))
+    expect_true(all(data_bh$p_value >= 0 & data_bh$p_value <= 1, na.rm = TRUE))
+    
+    # Raw p-values should be identical (same test was run)
+    if (nrow(data_none) == nrow(data_bh)) {
+      expect_equal(data_none$p_value, data_bh$p_value, tolerance = 1e-10)
+    }
+    
+    # Clean up
+    unlink(file_none)
+    unlink(file_bh)
+  }
+})
+
+test_that("rank_test results with different test methods produce valid statistics", {
+  
+  # Different rank-based test methods should produce valid test statistics
+  analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+  output_dir <- tempdir()
+  file_kw <- file.path(output_dir, "test_rank_kw.tsv")
+  
+  result <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    output_file = file_kw,
+    verbose = FALSE
+  )
+  
+  if (file.exists(file_kw)) {
+    rank_data <- read.csv(file_kw, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Test statistic should be non-negative for KW test
+    if ("f_statistic" %in% colnames(rank_data)) {
+      expect_true(all(rank_data$f_statistic >= 0, na.rm = TRUE),
+                  info = "KW test statistic should be non-negative")
+    }
+    
+    # Degrees of freedom should be positive
+    if ("df" %in% colnames(rank_data)) {
+      expect_true(all(rank_data$df > 0, na.rm = TRUE))
+    }
+    
+    # Effect size (eta^2) should be in [0, 1]
+    if ("effect_size" %in% colnames(rank_data)) {
+      expect_true(all(rank_data$effect_size >= 0 & rank_data$effect_size <= 1, na.rm = TRUE),
+                  info = "Effect size should be in [0, 1]")
+    }
+    
+    # Clean up
+    unlink(file_kw)
+  }
+})
+
+test_that("rank_test paired designs produce mathematically valid results", {
+  
+  # Paired rank tests (Friedman) should produce valid results
+  analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+  output_dir <- tempdir()
+  output_file <- file.path(output_dir, "test_rank_paired.tsv")
+  
+  result <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "friedman",
+    paired = TRUE,
+    subject_col = "paired_samples",
+    output_file = output_file,
+    verbose = FALSE
+  )
+  
+  if (file.exists(output_file)) {
+    rank_data <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+    
+    # P-values should be valid
+    expect_true(all(rank_data$p_value >= 0 & rank_data$p_value <= 1, na.rm = TRUE))
+    
+    # Test statistics should be non-negative
+    if ("f_statistic" %in% colnames(rank_data)) {
+      expect_true(all(rank_data$f_statistic >= 0, na.rm = TRUE))
+    }
+    
+    # Should have results
+    expect_gt(nrow(rank_data), 0)
+    
+    # Clean up
+    unlink(output_file)
+  }
+})
+
+test_that("rank_test results are deterministic and reproducible", {
+  
+  # Same seed/analysis should produce identical results
+  analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+  output_dir <- tempdir()
+  file1 <- file.path(output_dir, "test_rank_repro1.tsv")
+  file2 <- file.path(output_dir, "test_rank_repro2.tsv")
+  
+  result1 <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    output_file = file1,
+    verbose = FALSE
+  )
+  
+  result2 <- rank_test_q_condition_s4(
+    analysis,
+    condition_col = "condition",
+    test = "kruskal-wallis",
+    output_file = file2,
+    verbose = FALSE
+  )
+  
+  if (file.exists(file1) && file.exists(file2)) {
+    data1 <- read.csv(file1, sep = "\t", stringsAsFactors = FALSE)
+    data2 <- read.csv(file2, sep = "\t", stringsAsFactors = FALSE)
+    
+    # Same structure
+    expect_equal(nrow(data1), nrow(data2))
+    expect_equal(ncol(data1), ncol(data2))
+    
+    # Identical results (deterministic)
+    if ("p_value" %in% colnames(data1)) {
+      expect_equal(data1$p_value, data2$p_value, tolerance = 1e-10)
+    }
+    
+    # Clean up
+    unlink(file1)
+    unlink(file2)
+  }
+})
+
