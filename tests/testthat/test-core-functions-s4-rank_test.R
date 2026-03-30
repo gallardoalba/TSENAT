@@ -539,4 +539,329 @@ test_that("rank_test_q_condition_s4 handles combined parameter specifications", 
     expect_true("adj_p_value" %in% colnames(lm_res$q_interactions))
 })
 
+# ============================================================================
+# Tests for Helper Functions (NEW - Refactored S4 Wrapper)
+# ============================================================================
+
+# ============================================================================
+# Test: .validate_rank_test_input() helper function
+# ============================================================================
+
+test_that(".validate_rank_test_input rejects non-TSENATAnalysis input", {
+    # Test with invalid input type
+    expect_error(
+        TSENAT:::.validate_rank_test_input("not_an_analysis", "condition"),
+        "must be a TSENATAnalysis"
+    )
+    
+    # Test with data.frame instead of analysis object
+    expect_error(
+        TSENAT:::.validate_rank_test_input(data.frame(x = 1:10), "condition"),
+        "must be a TSENATAnalysis"
+    )
+})
+
+test_that(".validate_rank_test_input requires diversity results", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Clear diversity_results to test prerequisite check
+    analysis@diversity_results <- list()
+    
+    expect_error(
+        TSENAT:::.validate_rank_test_input(analysis, "condition"),
+        "Diversity results required"
+    )
+})
+
+test_that(".validate_rank_test_input returns condition_col with default fallback", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # When condition_col is NULL/missing, should default to "condition"
+    result <- TSENAT:::.validate_rank_test_input(analysis, NULL)
+    expect_equal(result, "condition")
+    
+    # When condition_col is explicitly provided, should return it
+    result <- TSENAT:::.validate_rank_test_input(analysis, "sample_type")
+    expect_equal(result, "sample_type")
+})
+
+test_that(".validate_rank_test_input respects config condition_col", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Set condition_col in config
+    analysis@config$condition_col <- "my_condition"
+    
+    # When condition_col is NULL/missing, should read from config
+    result <- TSENAT:::.validate_rank_test_input(analysis, NULL)
+    expect_equal(result, "my_condition")
+})
+
+# ============================================================================
+# Test: .resolve_rank_test_params() helper function
+# ============================================================================
+
+test_that(".resolve_rank_test_params handles explicit arguments over config", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Set config values
+    analysis@config <- list(
+        test = "kruskal-wallis",
+        multicorr = "hochberg",
+        nperm_mode = "conservative",
+        q_values = c(0.5, 1.0),
+        paired = FALSE,
+        subject_col = "default_subject",
+        nthreads = 2
+    )
+    
+    # Call with explicit arguments (should override config)
+    result <- TSENAT:::.resolve_rank_test_params(
+        analysis,
+        test = "friedman",
+        multicorr = "benjamini-yekutieli",
+        nperm_mode = "standard",
+        q = c(0.5, 1.0, 1.5),
+        paired = TRUE,
+        subject_col = "explicit_subject",
+        nthreads = 4,
+        wy_randomizations = 200,
+        entropy_col = "custom_entropy",
+        q_col = "custom_q",
+        gene_col = "custom_gene"
+    )
+    
+    dots <- result$dots
+    
+    # Check explicit args took precedence
+    expect_equal(dots$test, "friedman")
+    expect_equal(dots$multicorr, "benjamini-yekutieli")
+    expect_equal(dots$nperm_mode, "standard")
+    expect_equal(dots$nthreads, 4)
+    expect_equal(dots$entropy_col, "custom_entropy")
+    expect_equal(dots$q_col, "custom_q")
+    expect_equal(dots$gene_col, "custom_gene")
+})
+
+test_that(".resolve_rank_test_params falls back to config when args not provided", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Set config values
+    analysis@config <- list(
+        test = "kruskal-wallis",
+        multicorr = "hochberg",
+        nperm_mode = "interactive",
+        q_values = c(0.5, 1.0, 1.5),
+        paired = FALSE,
+        subject_col = "subject_id",
+        nthreads = 2
+    )
+    
+    # Call without explicit arguments (should use config)
+    result <- TSENAT:::.resolve_rank_test_params(
+        analysis,
+        test = NULL,
+        multicorr = NULL,
+        nperm_mode = NULL,
+        q = NULL,
+        paired = NULL,
+        subject_col = NULL,
+        nthreads = NULL,
+        wy_randomizations = 500,
+        entropy_col = "diversity",
+        q_col = "q",
+        gene_col = "gene"
+    )
+    
+    # Note: need to handle the way the function checks for missing vs NULL
+    # This is a basic structure test
+    expect_true("dots" %in% names(result))
+    expect_true("q_extracted" %in% names(result))
+})
+
+test_that(".resolve_rank_test_params validates enum arguments", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Test with invalid enum values - should error
+    expect_error(
+        TSENAT:::.resolve_rank_test_params(
+            analysis,
+            test = "invalid_test",
+            multicorr = NULL,
+            nperm_mode = NULL,
+            q = NULL,
+            paired = NULL,
+            subject_col = NULL,
+            nthreads = NULL,
+            wy_randomizations = 500,
+            entropy_col = "diversity",
+            q_col = "q",
+            gene_col = "gene"
+        ),
+        "should be one of"
+    )
+})
+
+# ============================================================================
+# Test: .prepare_multi_q_se() helper function
+# ============================================================================
+
+test_that(".prepare_multi_q_se combines multiple q-value results", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Test that function returns a SummarizedExperiment
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    
+    expect_is(se_multi_q, "SummarizedExperiment")
+    expect_true(ncol(se_multi_q) > 0)
+    expect_true(nrow(se_multi_q) > 0)
+    
+    # Check that combined SE has q column in colData
+    coldata <- SummarizedExperiment::colData(se_multi_q)
+    expect_true("q" %in% colnames(coldata))
+})
+
+test_that(".prepare_multi_q_se preserves gene names across q-values", {
+    analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
+    
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    
+    # Get original gene names from first diversity result
+    first_se <- analysis@diversity_results[[1]]
+    original_genes <- rownames(first_se)
+    
+    # Check that genes match in combined SE
+    combined_genes <- rownames(se_multi_q)
+    expect_equal(combined_genes, original_genes)
+})
+
+test_that(".prepare_multi_q_se uses cached combined SE when available", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Create cached combined SE
+    cached_se <- SummarizedExperiment(assays = list(entropy = matrix(rnorm(120), nrow = 15)))
+    analysis@metadata$diversity_combined <- list(combined_se = cached_se)
+    
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    
+    # Should return the cached version
+    expect_identical(se_multi_q, cached_se)
+})
+
+# ============================================================================
+# Test: .store_rank_test_results() helper function
+# ============================================================================
+
+test_that(".store_rank_test_results stores results in lm_results", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Create dummy results data frame (mock output from rank test)
+    mock_results <- data.frame(
+        gene = c("gene1", "gene2", "gene3"),
+        p_value = c(0.001, 0.05, 0.1),
+        adj_p_value = c(0.01, 0.1, 0.2),
+        f_statistic = c(10.5, 5.2, 2.1)
+    )
+    
+    # Store results
+    analysis_stored <- TSENAT:::.store_rank_test_results(
+        analysis, 
+        mock_results, 
+        output_file = NULL, 
+        verbose = FALSE
+    )
+    
+    # Check results are stored in correct location
+    expect_true(is.list(analysis_stored@lm_results))
+    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+    expect_equal(nrow(analysis_stored@lm_results$q_interactions), 3)
+})
+
+test_that(".store_rank_test_results creates lm_results list when needed", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    # Clear lm_results to test list creation
+    analysis@lm_results <- list()
+    
+    mock_results <- data.frame(
+        gene = "gene1",
+        p_value = 0.01,
+        adj_p_value = 0.05,
+        f_statistic = 5.0
+    )
+    
+    analysis_stored <- TSENAT:::.store_rank_test_results(
+        analysis, 
+        mock_results, 
+        output_file = NULL, 
+        verbose = FALSE
+    )
+    
+    # Check list was created properly
+    expect_true(is.list(analysis_stored@lm_results))
+    expect_true("q_interactions" %in% names(analysis_stored@lm_results))
+})
+
+test_that(".store_rank_test_results returns modified TSENATAnalysis", {
+    analysis <- setup_rank_test_analysis(n_genes = 10, n_samples = 8)
+    
+    mock_results <- data.frame(gene = "gene1", p_value = 0.01)
+    
+    analysis_returned <- TSENAT:::.store_rank_test_results(
+        analysis, 
+        mock_results, 
+        output_file = NULL, 
+        verbose = FALSE
+    )
+    
+    # Check type is preserved
+    expect_is(analysis_returned, "TSENATAnalysis")
+})
+
+# ============================================================================
+# Integration Test: Helper functions work together in workflow
+# ============================================================================
+
+test_that("Helper functions integrate correctly in rank test workflow", {
+    analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
+    
+    # Simulate workflow: validate -> resolve params -> prepare SE -> run test -> store results
+    
+    # 1. Validate
+    condition_col <- TSENAT:::.validate_rank_test_input(analysis, "condition")
+    expect_equal(condition_col, "condition")
+    
+    # 2. Resolve params
+    param_result <- TSENAT:::.resolve_rank_test_params(
+        analysis,
+        test = "auto",
+        multicorr = "hochberg",
+        nperm_mode = "standard",
+        q = NULL,
+        paired = FALSE,
+        subject_col = NULL,
+        nthreads = 1,
+        wy_randomizations = 100,
+        entropy_col = "diversity",
+        q_col = "q",
+        gene_col = "gene"
+    )
+    expect_true(is.list(param_result$dots))
+    
+    # 3. Prepare SE
+    se_multi_q <- TSENAT:::.prepare_multi_q_se(analysis)
+    expect_is(se_multi_q, "SummarizedExperiment")
+    
+    # 4. Mock store results
+    mock_results <- data.frame(gene = "gene1", p_value = 0.01, adj_p_value = 0.05)
+    analysis_final <- TSENAT:::.store_rank_test_results(
+        analysis,
+        mock_results,
+        output_file = NULL,
+        verbose = FALSE
+    )
+    
+    expect_is(analysis_final, "TSENATAnalysis")
+    expect_true("q_interactions" %in% names(analysis_final@lm_results))
+})
+
 

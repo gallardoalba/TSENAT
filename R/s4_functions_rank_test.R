@@ -2,6 +2,10 @@
 # DETECT Q GENE INTERACTIONS WRAPPER
 # ============================================================================
 
+# ============================================================================
+# DETECT Q GENE INTERACTIONS WRAPPER
+# ============================================================================
+
 #' Detect q-dependent gene interactions
 #'
 #' @param analysis \code{TSENATAnalysis} object.
@@ -123,64 +127,89 @@ rank_test_q_condition_s4 <- function(
     nthreads = NULL,
     verbose = FALSE,
     ...) {
-  # Validate input is TSENATAnalysis S4 class
+  
+  # PHASE 1: Validate input and prerequisites
+  condition_col <- .validate_rank_test_input(analysis, condition_col)
+  
+  # PHASE 2: Resolve parameters from config + explicit args
+  param_result <- .resolve_rank_test_params(analysis, test, multicorr, nperm_mode,
+                                            q, paired, subject_col, nthreads, 
+                                            wy_randomizations, entropy_col, q_col, gene_col)
+  dots <- param_result$dots
+  dots$condition_col <- condition_col
+  dots$verbose <- verbose
+  
+  # PHASE 3: Prepare multi-Q SummarizedExperiment
+  se_multi_q <- .prepare_multi_q_se(analysis)
+  
+  # PHASE 4: Run core rank-based testing
+  result <- tryCatch({
+    do.call(.rank_test_q_condition, c(list(data = se_multi_q), dots))
+  }, error = function(e) {
+    stop("q-interaction detection failed:\n", e$message, call. = FALSE)
+  })
+  
+  # PHASE 5: Store results and save if requested
+  analysis <- .store_rank_test_results(analysis, result, output_file, verbose)
+  
+  analysis
+}
+
+#' Internal: Validate rank test input and prerequisites
+#'
+#' @noRd
+.validate_rank_test_input <- function(analysis, condition_col) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
-
-  # Validate condition_col is provided (Q×Condition interaction is required)
-  # Try to read from config if not explicitly provided
+  
   if (missing(condition_col) || is.null(condition_col)) {
-    # Try to get from config
     if (!is.null(analysis@config) && "condition_col" %in% names(analysis@config)) {
       condition_col <- analysis@config$condition_col
     } else {
-      # Default to "condition" (or "sample_type" for backward compatibility) if still not found
       condition_col <- "condition"
     }
   }
-
-  # ========================================================================
-  # PREREQUISITE CHECK: Diversity must be pre-calculated
-  # ========================================================================
-  # .rank_test_q_condition() requires a SummarizedExperiment with:
-  #   - assays: entropy values (genes × samples)
-  #   - colData: q-values, condition_col, and optional subject information
+  
   if (length(analysis@diversity_results) == 0) {
     stop("Diversity results required. Run calculate_diversity_s4() first.",
          call. = FALSE)
   }
+  
+  condition_col
+}
 
-  # ========================================================================
-  # PARAMETER EXTRACTION FROM @config using centralized helpers
-  # ========================================================================
+#' Internal: Resolve rank test parameters from config
+#'
+#' @noRd
+.resolve_rank_test_params <- function(analysis, test, multicorr, nperm_mode, 
+                                     q, paired, subject_col, nthreads, wy_randomizations,
+                                     entropy_col, q_col, gene_col) {
+  dots <- list()
   
-  # Prepare dots for additional arguments
-  dots <- list(...)
-  
-  # Match test and multicorr enums early
+  # Match enums early
   if (!missing(test)) {
-    test <- match.arg(test)
+    test <- match.arg(test, c("auto", "kruskal-wallis", "friedman", "art"))
     dots$test <- test
   } else if ("test" %in% names(analysis@config)) {
     dots$test <- analysis@config$test
   }
   
   if (!missing(multicorr)) {
-    multicorr <- match.arg(multicorr)
+    multicorr <- match.arg(multicorr, c("hochberg", "benjamini-yekutieli", "westfall-young", "none"))
     dots$multicorr <- multicorr
   } else if ("multicorr" %in% names(analysis@config)) {
     dots$multicorr <- analysis@config$multicorr
   }
   
   if (!missing(nperm_mode)) {
-    nperm_mode <- match.arg(nperm_mode)
+    nperm_mode <- match.arg(nperm_mode, c("standard", "conservative", "interactive"))
     dots$nperm_mode <- nperm_mode
   } else if ("nperm_mode" %in% names(analysis@config)) {
     dots$nperm_mode <- analysis@config$nperm_mode
   }
   
-  # Add column specification parameters
+  # Add column parameters
   dots$entropy_col <- entropy_col
   dots$q_col <- q_col
   dots$gene_col <- gene_col
@@ -191,235 +220,121 @@ rank_test_q_condition_s4 <- function(
   subject_col <- resolve_slot_param(subject_col, analysis@config, "subject_col", NULL)
   nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
   
-  # Add resolved parameters to dots list
   if (!is.null(paired)) dots$paired <- paired
   if (!is.null(subject_col)) dots$subject_col <- subject_col
-  # condition_col is REQUIRED and explicitly passed
-  dots$condition_col <- condition_col
   dots$nthreads <- nthreads
   dots$wy_randomizations <- wy_randomizations
-  dots$verbose <- verbose
-
-  # ========================================================================
-  # OPTIMIZATION: Use Cached Multi-Q SummarizedExperiment
-  # ========================================================================
-  # If calculate_diversity_s4() is called with multiple q-values in a single call,
-  # it caches the combined SE in @metadata$diversity_combined for reuse.
-  # 
-  # This optimization bypasses expensive per-q recombination when available:
-  #   - Per-q SEs are automatically cbind()ed horizontally
-  #   - Column names include _q= suffix to distinguish q-values
-  #   - colData is rbind()ed with preserved q-value information
-  # 
-  # Benefits: ~10-50x faster for multi-q analysis on large datasets
   
-  # Check if we have combined diversity result cached (from lazy evaluation)
+  list(dots = dots, q_extracted = q)
+}
+
+#' Internal: Prepare multi-Q SummarizedExperiment for testing
+#'
+#' @noRd
+.prepare_multi_q_se <- function(analysis) {
+  # Check cache first
   if (!is.null(analysis@metadata$diversity_combined) && 
       is.list(analysis@metadata$diversity_combined) &&
       !is.null(analysis@metadata$diversity_combined$combined_se)) {
     
-    # Use cached combined SE directly - it has correct structure and metadata
     se_multi_q <- analysis@metadata$diversity_combined$combined_se
-    
-    # Verify it's valid
-    if (!is(se_multi_q, "SummarizedExperiment") || ncol(se_multi_q) == 0) {
-      se_multi_q <- NULL
+    if (is(se_multi_q, "SummarizedExperiment") && ncol(se_multi_q) > 0) {
+      return(se_multi_q)
     }
-  } else {
-    se_multi_q <- NULL
   }
   
-  # Fallback: Recombine Per-Q Results
-  # ========================================================================
-  # If cache not available (e.g., diversity calculated with separate calls),
-  # manually combine per-q SummarizedExperiments into single SE:
-  # 
-  # Process:
-  #   1. Extract q-values from diversity_results keys (format: "q_0.500", "q_1.000", etc.)
-  #   2. Validate all SEs have same genes (rownames must match)
-  #   3. cbind() all assay matrices with renamed columns (add _q=X.XXX suffix)
-  #   4. rbind() all colData (with updated rownames matching combined columns)
-  #   5. Combine rowData from first SE (genes are same across all q-values)
-  # 
-  # Result: Single SummarizedExperiment(genes × (samples per q × n_q))
-  if (is.null(se_multi_q)) {
+  # Fallback: combine per-Q results
+  q_keys <- names(analysis@diversity_results)
+  combined_assay_list <- list()
+  combined_coldata_list <- list()
+  common_rownames <- NULL
+  
+  for (key in sort(q_keys)) {
+    se <- analysis@diversity_results[[key]]
+    q_val <- as.numeric(sub("^q_", "", key))
     
-    # Step 1: Extract q-values from diversity_results keys (format: "q_0.5", "q_1.0", etc.)
-    q_keys <- names(analysis@diversity_results)
-    q_values_extracted <- as.numeric(sub("^q_", "", q_keys))
-    q_values_extracted <- sort(q_values_extracted)
-
-    # Step 2-4: Combine list of SEs (one per q-value) into single SE
-    # Each SE has same genes (rows) but different q-value samples (columns)
-    # cbind() the assay matrices, rbind() the colData
-    combined_assay_list <- list()
-    combined_coldata_list <- list()
-    common_rownames <- NULL  # Track genes are same across all q-values
-
-    for (key in sort(q_keys)) {
-      se <- analysis@diversity_results[[key]]
-      
-      # Extract q-value from key
-      q_val <- as.numeric(sub("^q_", "", key))
-      
-      # Ensure SE format
-      if (!is(se, "SummarizedExperiment")) {
-        if (is.matrix(se) || is.data.frame(se)) {
-          se <- SummarizedExperiment(assays = list(entropy = as.matrix(se)))
-        } else {
-          stop("Diversity result for ", key, " is not a SummarizedExperiment or matrix",
-               call. = FALSE)
-        }
-      }
-      
-      # Get assay data
-      if (length(SummarizedExperiment::assays(se)) == 0) {
-        stop("Diversity result for ", key, " has no assays", call. = FALSE)
-      }
-      assay_data <- SummarizedExperiment::assay(se, 1)
-      
-      # Extract and enforce consistent rownames
-      assay_rownames <- rownames(assay_data)
-      if (is.null(assay_rownames)) {
-        assay_rownames <- paste0("gene_", seq_len(nrow(assay_data)))
-      }
-      if (is.null(common_rownames)) {
-        common_rownames <- assay_rownames
-      } else if (!identical(common_rownames, assay_rownames)) {
-        # If rownames differ, use the first one and reorder/match
-        if (length(common_rownames) == length(assay_rownames)) {
-          assay_data <- assay_data[common_rownames, , drop = FALSE]
-        } else {
-          stop("Diversity result for ", key, " has different number of genes",
-               call. = FALSE)
-        }
-      }
-      rownames(assay_data) <- common_rownames
-      
-      # Append q-value to column names: distinguishes samples from different q-values
-      # Format: "sample_01_q=0.500", "sample_02_q=1.000", etc.
-      # This encoding enables downstream functions to parse q and map back to original samples
-      orig_colnames <- colnames(assay_data)
-      if (is.null(orig_colnames)) {
-        orig_colnames <- paste0("sample_", seq_len(ncol(assay_data)))
-      }
-      unique_colnames <- paste0(orig_colnames, "_q=", q_val)
-      colnames(assay_data) <- unique_colnames
-      
-      # Get colData - ensure q column is present
-      cd <- as.data.frame(SummarizedExperiment::colData(se))
-      if (nrow(cd) == 0) {
-        cd <- data.frame(q = rep(q_val, ncol(assay_data)))
-      } else if (!"q" %in% colnames(cd)) {
-        cd$q <- q_val
-      }
-      rownames(cd) <- unique_colnames
-      
-      # Store for combination
-      combined_assay_list[[key]] <- assay_data
-      combined_coldata_list[[key]] <- cd
-    }
-
-    # Step 3: Combine all assays horizontally (cbind columns from different q-values)
-    # This creates a matrix: genes × (sample_1_q_0.5, sample_2_q_0.5, ..., sample_1_q_1.0, ...)
-    combined_assay <- do.call(cbind, combined_assay_list)
-    
-    # Step 4: Combine colData vertically (rbind from each q-value's colData)
-    # Rownames already set to unique_colnames matching in final assay matrix
-    combined_coldata_df <- do.call(rbind, combined_coldata_list)
-    
-    # Ensure colnames of combined_assay match rownames of combined_coldata_df
-    colnames(combined_assay) <- rownames(combined_coldata_df)
-    
-    # Step 5: Get rowData from first diversity result
-    # Genes (rows) are IDENTICAL across all q-values, so only need from first
-    first_se <- analysis@diversity_results[[sort(q_keys)[1]]]
-    
-    # Ensure first_se is a SummarizedExperiment (handle edge cases)
-    if (!is(first_se, "SummarizedExperiment")) {
-      if (is.matrix(first_se) || is.data.frame(first_se)) {
-        first_se <- SummarizedExperiment(assays = list(entropy = as.matrix(first_se)))
+    # Ensure SE format
+    if (!is(se, "SummarizedExperiment")) {
+      if (is.matrix(se) || is.data.frame(se)) {
+        se <- SummarizedExperiment(assays = list(entropy = as.matrix(se)))
+      } else {
+        stop("Diversity result for ", key, " is not a SummarizedExperiment or matrix",
+             call. = FALSE)
       }
     }
     
-    # Extract rowData from first SE if it exists
-    rd <- tryCatch({
-      rd_temp <- SummarizedExperiment::rowData(first_se)
-      if (nrow(rd_temp) > 0) rd_temp else NULL
-    }, error = function(e) NULL)
+    assay_data <- SummarizedExperiment::assay(se, 1)
+    assay_rownames <- rownames(assay_data)
     
-    # Create combined SE
-    se_multi_q <- SummarizedExperiment(
-      assays = list(entropy = combined_assay),
-      colData = combined_coldata_df
-    )
-    
-    # Add rowData if available
-    if (!is.null(rd) && nrow(rd) > 0) {
-      SummarizedExperiment::rowData(se_multi_q) <- rd
+    if (is.null(assay_rownames)) {
+      assay_rownames <- paste0("gene_", seq_len(nrow(assay_data)))
     }
+    if (is.null(common_rownames)) {
+      common_rownames <- assay_rownames
+    } else if (!identical(common_rownames, assay_rownames)) {
+      if (length(common_rownames) == length(assay_rownames)) {
+        assay_data <- assay_data[common_rownames, , drop = FALSE]
+      } else {
+        stop("Diversity result for ", key, " has different number of genes", call. = FALSE)
+      }
+    }
+    rownames(assay_data) <- common_rownames
+    
+    # Rename columns with q-value suffix
+    orig_colnames <- colnames(assay_data)
+    if (is.null(orig_colnames)) orig_colnames <- paste0("sample_", seq_len(ncol(assay_data)))
+    unique_colnames <- paste0(orig_colnames, "_q=", q_val)
+    colnames(assay_data) <- unique_colnames
+    
+    # Get and update colData
+    cd <- as.data.frame(SummarizedExperiment::colData(se))
+    if (nrow(cd) == 0) {
+      cd <- data.frame(q = rep(q_val, ncol(assay_data)))
+    } else if (!"q" %in% colnames(cd)) {
+      cd$q <- q_val
+    }
+    rownames(cd) <- unique_colnames
+    
+    combined_assay_list[[key]] <- assay_data
+    combined_coldata_list[[key]] <- cd
   }
-
-  # Extract q-values for metadata tracking (available in both paths)
-  if (exists("q_values_extracted") && !is.null(q_values_extracted)) {
-    # Already defined in fallback path
-    q_vals_for_tracking <- q_values_extracted
-  } else {
-    # Extract from colData in optimized path
-    coldata_vals <- SummarizedExperiment::colData(se_multi_q)
-    if (!is.null(coldata_vals) && "q" %in% colnames(coldata_vals)) {
-      q_vals_for_tracking <- unique(as.numeric(coldata_vals$q))
-      q_vals_for_tracking <- sort(q_vals_for_tracking)
-    } else {
-      q_vals_for_tracking <- NULL
-    }
+  
+  # Combine horizontally
+  combined_assay <- do.call(cbind, combined_assay_list)
+  combined_coldata_df <- do.call(rbind, combined_coldata_list)
+  colnames(combined_assay) <- rownames(combined_coldata_df)
+  
+  # Get rowData from first SE
+  first_se <- analysis@diversity_results[[sort(q_keys)[1]]]
+  if (!is(first_se, "SummarizedExperiment")) {
+    first_se <- SummarizedExperiment(assays = list(entropy = as.matrix(first_se)))
   }
+  rd <- tryCatch(SummarizedExperiment::rowData(first_se), error = function(e) NULL)
+  
+  se_multi_q <- SummarizedExperiment(assays = list(entropy = combined_assay),
+                                      colData = combined_coldata_df)
+  if (!is.null(rd) && nrow(rd) > 0) {
+    SummarizedExperiment::rowData(se_multi_q) <- rd
+  }
+  
+  se_multi_q
+}
 
-  # ========================================================================
-  # RUN CORE RANK-BASED Q-INTERACTION TESTING
-  # ========================================================================
-  # Delegate to .rank_test_q_condition() which performs:
-  #   1. SummarizedExperiment → long-format data frame conversion
-  #   2. Per-gene rank-based test selection (conditional on data characteristics)
-  #   3. Westfall-Young permutation procedure (if multicorr="westfall-young")
-  #   4. Multiple testing corrections (Hochberg, Benjamini-Yekutieli, none)
-  #   5. Effect size computation (η²) and result classification
-  # 
-  # Use merged parameter dictionary: config values + explicit overrides
-  result <- tryCatch({
-    do.call(.rank_test_q_condition, c(list(data = se_multi_q), dots))
-  }, error = function(e) {
-    stop("q-interaction detection failed:\n", e$message,
-         call. = FALSE)
-  })
-
-  # ========================================================================
-  # STORE RESULTS IN TSENATAnalysis OBJECT
-  # ========================================================================
-  # Store results under @lm_results$q_interactions for accessor compatibility
-  # This location allows other functions to retrieve results via:
-  #   lmResults(analysis, "q_interactions")
+#' Internal: Store rank test results in analysis object
+#'
+#' @noRd
+.store_rank_test_results <- function(analysis, result, output_file, verbose) {
   if (is.list(analysis@lm_results)) {
     analysis@lm_results$q_interactions <- result
   } else {
     analysis@lm_results <- list(q_interactions = result)
   }
-
-  # Track function execution in audit trail
-  # Enables reproducibility: know which function calls were run and in what order
-  if (!is.null(q_vals_for_tracking)) {
-    analysis@metadata$function_calls <- c(
-      analysis@metadata$function_calls,
-      paste0("rank_test_q_condition[q=", paste(q_vals_for_tracking, collapse = ","), "]")
-    )
-  }
-
-  # Save if output_file provided (using centralized output handler)
+  
   if (!is.null(output_file)) {
     result_df <- as.data.frame(result)
     save_analysis_output(result_df, output_file, object = analysis, verbose = verbose,
                          func_name = "rank_test_q_condition_s4")
   }
-
+  
   analysis
 }
