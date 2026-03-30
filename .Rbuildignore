@@ -3,6 +3,7 @@
 ^build/
 ^_pkgdown.yml$
 ^\.codecov.yml$
+^\.covrignore$
 ^\.git$
 ^\.git/
 ^\.Rproj.user$

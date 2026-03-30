@@ -28,6 +28,9 @@ vignette/*html
 vignette/*pdf
 vignettes/ts_debug.R
 .vscode/
+# Coverage analysis files
+*.gcda
+*.gcno
 tools/
 # Generated site
 docs/

@@ -806,26 +806,66 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' Provides type-safe replacement of @config slot. Typically called once
 #' at the start of an analysis via \code{tsenat_config()} rather than directly.
 #'
+#' Replace entire configuration in TSENATAnalysis
+#'
+#' @param object \code{TSENATAnalysis} object.
+#' @param value List or \code{TSENATConfig} object containing configuration settings.
+#'
+#' @return Updated \code{TSENATAnalysis} object with replaced configuration.
+#'
+#' @details
+#' Replaces the entire configuration of a TSENATAnalysis object. This method
+#' is useful when you need to apply a new set of configuration parameters to
+#' an existing analysis object. All previous configuration values are replaced
+#' with those in the new value object.
+#'
 #' @examples
 #' # Load real TSENAT data
 #' data(readcounts)
 #' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
 #'   header = TRUE, sep = "\t")
 #' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' # Build and subset analysis
 #' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
-#' config_list <- list(q_values = c(0.5, 1.0, 1.5))
-#' analysis <- setConfig(analysis, config_list)
+#' 
+#' # Replace configuration with new settings
+#' new_config <- tsenat_config(q_values = c(0.5, 1.0, 1.5), seed = 42)
+#' analysis <- setConfig(analysis, new_config)
+#' 
+#' # Verify the new configuration was applied
+#' current_config <- getConfig(analysis)
+#' print(current_config$q_values)  # Shows c(0.5, 1.0, 1.5)
 #'
-#' @noRd
+#' @export
 setGeneric("setConfig", function(object, value) {
   standardGeneric("setConfig")
 })
 
 #' @rdname setConfig
-
-#' @noRd
+#' @aliases setConfig,TSENATAnalysis-method
+#' @examples
+#' \dontrun{
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' # Build and subset analysis
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' 
+#' # Use setConfig via the method (called by setConfig generic)
+#' new_config <- tsenat_config(q_values = c(0.5, 1.0, 1.5, 2.0), seed = 123)
+#' analysis <- setConfig(analysis, new_config)
+#' 
+#' # Verify and display
+#' summary(analysis)
+#' }
 setMethod("setConfig", "TSENATAnalysis", function(object, value) {
   # Convert TSENATConfig S4 object to list if needed
   if (inherits(value, "TSENATConfig")) {
@@ -850,7 +890,17 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #'
 #' @details
 #' Convenience method for setting a single configuration value without
-#' needing to retrieve, merge, and set the entire config list.
+#' needing to retrieve, merge, and set the entire config list. This preserves
+#' all other configuration values while updating only the specified key.
+#'
+#' Unlike \code{\link{setConfig}}, which replaces the entire configuration,
+#' \code{setConfigValue} performs a targeted update. It retrieves the current
+#' config, updates one key-value pair, and stores the modified config back.
+#'
+#' @seealso
+#' \code{\link{setConfig}} for replacing entire configuration,
+#' \code{\link{getConfig}} for retrieving configuration,
+#' \code{\link{tsenat_config}} for creating configuration objects
 #'
 #' @examples
 #' # Load real TSENAT data
@@ -858,19 +908,47 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
 #'   header = TRUE, sep = "\t")
 #' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' # Build and subset analysis
 #' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' 
+#' # Update a single configuration value while preserving others
 #' analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.0, 1.5))
+#' 
+#' # Verify the update
+#' config <- getConfig(analysis)
+#' print(config$q_values)  # Shows c(0.5, 1.0, 1.5)
 #'
-#' @noRd
+#' @export
 setGeneric("setConfigValue", function(object, key, value) {
   standardGeneric("setConfigValue")
 })
 
 #' @rdname setConfigValue
-
-#' @noRd
+#' @aliases setConfigValue,TSENATAnalysis-method
+#' @examples
+#' \dontrun{
+#' # Load real TSENAT data
+#' data(readcounts)
+#' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t")
+#' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#' 
+#' # Build and subset analysis with initial configuration
+#' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' 
+#' # Use setConfigValue to update single configuration values
+#' # This preserves all other config values
+#' analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.5, 2.0))
+#' analysis <- setConfigValue(analysis, "seed", 456)
+#' 
+#' # Verify the updates
+#' summary(analysis)
+#' }
 setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
   config <- getConfig(object)
   if (is.null(config)) {
