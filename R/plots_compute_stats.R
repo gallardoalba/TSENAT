@@ -977,8 +977,8 @@ NULL
   
   # Store bootstrap metadata for debugging
   if (bootstrap_ci_available && !is.null(combined_ci_lower)) {
-    metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
-    metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) > 0)
+    S4Vectors::metadata(combined_se)$bootstrap_ci_count <- sum(!is.na(combined_ci_lower))
+    S4Vectors::metadata(combined_se)$has_bootstrap_ci <- (sum(!is.na(combined_ci_lower)) > 0)
   }
   
   combined_se
