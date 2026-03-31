@@ -721,7 +721,8 @@ test_that("PRIORITY2: Very small nboot produces bootstrap warning", {
       q = 1.0,
       bootstrap = TRUE,
       nboot = 3,  # Very small!
-      verbose = FALSE
+      verbose = FALSE,
+      show_messages = TRUE
     ),
     regex = "nboot"
   )

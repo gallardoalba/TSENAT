@@ -97,7 +97,7 @@ config <- tsenat_config(
   condition_col = "sample_type",
   subject_col = "paired_samples",
   q_values = seq(0, 2, by = 0.05),
-  nthreads = 2,
+  nthreads = 3,
   paired = TRUE,
   control = "normal"
 )
@@ -118,7 +118,7 @@ analysis <- calculate_diversity_s4(
   norm = TRUE,
   pseudocount = "auto",
   bootstrap = TRUE,
-  nboot = 1000,
+  nboot = 50,
   output_file = file.path("output", "appendix_b_diversity.tsv")
 )
 

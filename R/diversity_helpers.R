@@ -1044,7 +1044,7 @@
 #' 
 
 #' @noRd
-.calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, q = 2, what = c("S",
+.calculate_method <- function(x, genes, norm = TRUE, verbose = FALSE, show_messages = FALSE, q = 2, what = c("S",
     "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75, shrinkage = c("none", 
     "empirical_bayes"), effective_length = NULL) {
     what <- match.arg(what)
@@ -1134,7 +1134,7 @@
     out_df <- out_df[keep_idx, ]
     result_mat <- result_mat[keep_idx, , drop = FALSE]
     n_excluded <- nrow(result_mat) + sum(!keep_idx) - nrow(result_mat)
-    if (n_excluded > 0 && verbose == TRUE) {
+    if (n_excluded > 0 && verbose == TRUE && show_messages) {
         message(sprintf("Note: %d genes excluded (< %.0f%% valid values).", 
             n_excluded, min_valid_frac * 100))
     }
@@ -1148,7 +1148,14 @@
 
 .tsallis_row <- function(x, genes, gene, q, norm, what, pseudocount = 0, effective_length = NULL) {
     idx <- which(genes == gene)
-    out <- unlist(lapply(seq_len(ncol(x)), function(j) {
+    n_q <- length(q)
+    n_samples <- ncol(x)
+    
+    # Pre-allocate output vector to avoid unlist(lapply(...)) overhead
+    out <- setNames(numeric(n_q * n_samples), NULL)
+    
+    # Vectorized loop for each sample
+    for (j in seq_len(n_samples)) {
         # Get counts for this gene and sample
         counts <- x[idx, j]
         
@@ -1173,12 +1180,12 @@
         
         # Calculate entropy on the adjusted counts
         v <- .calculate_tsallis_entropy(counts, q = q, norm = norm, what = what)
-        if (length(v) == length(q) && all(is.finite(v) | is.na(v))) {
-            v
+        out_idx <- (j - 1) * n_q + seq_len(n_q)
+        if (length(v) == n_q && all(is.finite(v) | is.na(v))) {
+            out[out_idx] <- v
         } else {
-            names_vec <- paste0("q=", q)
-            setNames(rep(NA_real_, length(q)), names_vec)
+            out[out_idx] <- NA_real_
         }
-    }))
+    }
     out
 }

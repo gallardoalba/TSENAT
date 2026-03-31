@@ -146,7 +146,7 @@ test_that(".bootstrap_validate_inputs warns on low total count", {
   low_counts <- c(1, 2, 3)
   
   expect_warning(
-    TSENAT:::.bootstrap_validate_inputs(x = low_counts, q = 1, nboot = 100, ci = 0.95, paired = FALSE),
+    TSENAT:::.bootstrap_validate_inputs(x = low_counts, q = 1, nboot = 100, ci = 0.95, paired = FALSE, show_messages = TRUE),
     "Total count"
   )
 })
@@ -158,7 +158,7 @@ test_that(".bootstrap_validate_inputs accepts low nboot with warning", {
   on.exit(options(TSENAT.suppress_nboot_warning = old_opt), add = TRUE)
   
   expect_warning(
-    TSENAT:::.bootstrap_validate_inputs(x = test_counts, q = 1, nboot = 50, ci = 0.95, paired = FALSE),
+    TSENAT:::.bootstrap_validate_inputs(x = test_counts, q = 1, nboot = 50, ci = 0.95, paired = FALSE, show_messages = TRUE),
     "recommended minimum"
   )
 })
@@ -1995,7 +1995,7 @@ test_that("bootstrap input validation works", {
     options(TSENAT.suppress_nboot_warning = FALSE)
     
     expect_warning(
-        .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 50),
+        .calculate_tsallis_entropy_bootstrap(x, q = 2, nboot = 50, show_messages = TRUE),
         "nboot.*below.*recommended"
     )
     
@@ -2180,7 +2180,8 @@ test_that("minimum sample size warning triggers for low counts (total < 10)", {
             q = 2, 
             nboot = 100, 
             seed = 789,
-            verbose = FALSE
+            verbose = FALSE,
+            show_messages = TRUE
         ),
         "Total count.*below recommended minimum"
     )
@@ -2189,19 +2190,18 @@ test_that("minimum sample size warning triggers for low counts (total < 10)", {
 test_that("minimum sample size warning includes paper references (S111, S114)", {
     x_low <- c(3, 2, 1)  # total = 6
     
-    warning_msg <- tryCatch(
+    # Should mention papers S111 and S114
+    expect_warning(
         .calculate_tsallis_entropy_bootstrap(
             x = x_low,
             q = 2,
             nboot = 100,
             seed = 111,
-            verbose = FALSE
+            verbose = FALSE,
+            show_messages = TRUE
         ),
-        warning = function(w) w$message
+        "S111.*S114|S114.*S111"
     )
-    
-    # Should mention papers S111 and S114
-    expect_match(warning_msg, "S111.*S114|S114.*S111")
 })
 
 test_that("minimum sample size warning NOT triggered for sufficient counts (>= 10)", {
@@ -2247,7 +2247,8 @@ test_that("minimum sample size warning with total = 9 (below threshold)", {
             q = 2,
             nboot = 100,
             seed = 444,
-            verbose = FALSE
+            verbose = FALSE,
+            show_messages = TRUE
         ),
         "Total count.*below recommended minimum"
     )
@@ -3856,7 +3857,7 @@ test_that("paired bootstrap with low-count data warns", {
     expect_warning(
         .calculate_tsallis_entropy_bootstrap(
             paired_data, q = 2, nboot = 100, paired = TRUE,
-            seed = 113, verbose = FALSE
+            seed = 113, verbose = FALSE, show_messages = TRUE
         ),
         "below recommended minimum"
     )
@@ -4944,13 +4945,3 @@ test_that("bootstrap CI omits diagnostics when not requested", {
   # Should not have diagnostics field (or it's NULL)
   expect_true(!"diagnostics" %in% names(result) || is.null(result$diagnostics))
 })
-
-# ============================================================================
-# RUN TESTS
-# ============================================================================
-
-cat("\n========================================\n")
-cat("PRIORITY 3 BOOTSTRAP DIAGNOSTICS TESTS\n")
-cat("========================================\n\n")
-
-test_dir(".", reporter = "progress")

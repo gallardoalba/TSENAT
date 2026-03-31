@@ -111,7 +111,7 @@
 #' @noRd
 .prepare_diversity_data <- function(x, genes, original_x, effective_length, 
     norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose, 
-    tpm, assayno) {
+    tpm, assayno, show_messages = FALSE) {
     
     # Prepare input data
     inp <- .prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno,
@@ -137,31 +137,23 @@
         md <- tryCatch(S4Vectors::metadata(original_x), error = function(e) NULL)
         if (!is.null(md) && !is.null(md$salmon_effective_length)) {
             effective_length <- md$salmon_effective_length
-            if (verbose) message("[OK] Found salmon_effective_length in input metadata")
+            if (verbose && show_messages) message("[OK] Found salmon_effective_length in input metadata")
         }
     }
     
     # Calculate diversity
     use_range_norm <- (norm == "range")
-    if (!is.null(effective_length) && verbose) {
+    if (!is.null(effective_length) && verbose && show_messages) {
         message("Calculating diversity with EFFECTIVE LENGTH NORMALIZATION")
     }
     
-    if (verbose) {
-        message("[DEBUG .prepare_diversity_data] About to call .calculate_method:")
-        message("  x dimensions: ", nrow(x), " x ", ncol(x))
-        message("  genes: ", paste(unique(genes), collapse=", "))
-        message("  q values: ", paste(q, collapse=", "))
-    }
+
     
-    result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, q = q, what = what,
+    result <- .calculate_method(x, genes, use_range_norm, verbose = verbose, show_messages = show_messages, q = q, what = what,
         nthreads = nthreads, pseudocount = pseudocount, min_valid_frac = min_valid_frac,
         shrinkage = shrinkage, effective_length = effective_length)
     
-    if (verbose) {
-        message("[DEBUG .prepare_diversity_data] After .calculate_method:")
-        message("  result dimensions: ", nrow(result), " x ", ncol(result))
-    }
+
     
     list(result = result, x = x, genes = genes, se_assay_mat = se_assay_mat, effective_length = effective_length)
 }
@@ -185,29 +177,36 @@
     # The gene_ids are in the first column of result (before we extracted the assay)
     filtered_gene_ids <- as.character(result[, 1])
     
-    # For each filtered gene, aggregate its transcript counts
-    if (length(filtered_gene_ids) > 0) {
-        counts_assay <- do.call(rbind, lapply(filtered_gene_ids, function(gene_id) {
-            # Find transcripts for this gene using the genes vector mapping
-            # The genes vector maps transcripts to gene names
+    # Pre-allocate counts_assay matrix for efficiency (avoid rbind overhead)
+    n_samples <- ncol(se_assay_mat)
+    n_genes <- length(filtered_gene_ids)
+    if (n_genes > 0) {
+        counts_assay <- matrix(0, nrow = n_genes, ncol = n_samples)
+        for (i in seq_len(n_genes)) {
+            gene_id <- filtered_gene_ids[i]
             tx_mask <- which(genes == gene_id)
             if (length(tx_mask) > 0) {
-                colSums(se_assay_mat[tx_mask, , drop = FALSE])
-            } else {
-                rep(0, ncol(se_assay_mat))
+                counts_assay[i, ] <- colSums(se_assay_mat[tx_mask, , drop = FALSE])
             }
-        }))
+        }
     } else {
         # Empty result - no genes passed filtering
-        counts_assay <- matrix(nrow = 0, ncol = ncol(se_assay_mat))
+        counts_assay <- matrix(nrow = 0, ncol = n_samples)
     }
     
     # For multi-q case, replicate counts for each q value
     # Check independently of result_assay rows to handle empty result case
     n_q <- length(output_structure$col_ids) / ncol(counts_assay)
     if (is.finite(n_q) && n_q == as.integer(n_q) && n_q > 1) {
-        # Need to replicate counts_assay for each q value
-        counts_assay <- do.call(cbind, replicate(as.integer(n_q), counts_assay, simplify = FALSE))
+        # Pre-allocate replicated matrix instead of cbind overhead
+        n_q_int <- as.integer(n_q)
+        counts_assay_rep <- matrix(0, nrow = nrow(counts_assay), ncol = ncol(counts_assay) * n_q_int)
+        for (q_idx in seq_len(n_q_int)) {
+            col_start <- (q_idx - 1) * ncol(counts_assay) + 1
+            col_end <- q_idx * ncol(counts_assay)
+            counts_assay_rep[, col_start:col_end] <- counts_assay
+        }
+        counts_assay <- counts_assay_rep
     }
     
     # Set assay dimnames to match rowData/colData rownames
@@ -254,6 +253,27 @@
                 row.names = result_row_names
             )
             
+            # Pre-compute sample column indices for fast lookups (cache all pattern matches)
+            sample_col_cache <- list()
+            # Extract unique sample names from result_col_names by removing q= suffix
+            unique_samples <- unique(sub("_q=.*$", "", result_col_names))
+            
+            for (s_name in unique_samples) {
+                if (is.na(s_name) || s_name == "") next
+                # Escape special regex characters once and cache
+                s_escaped <- gsub("([.^$*+?{}\\(\\)\\[\\]|\\\\])", "\\\\\\1", s_name)
+                col_pattern <- paste0("^", s_escaped, "_q=")
+                col_matches <- grep(col_pattern, result_col_names)
+                
+                if (length(col_matches) > 0) {
+                    sample_col_cache[[s_name]] <- list(
+                        pattern = col_pattern,
+                        indices = col_matches,
+                        q_values = sub(col_pattern, "", result_col_names[col_matches])
+                    )
+                }
+            }
+            
             # Process each bootstrap result
             # Names should be like "gene_id_sample_1", "gene_name_sample_1", etc.
             for (i in seq_along(bootstrap_out)) {
@@ -273,8 +293,10 @@
                 sample_idx <- as.integer(sample_idx_str)
                 
                 # Get actual sample name from original se_assay_mat
+                if (is.null(se_assay_mat) || !is.matrix(se_assay_mat)) next
                 if (sample_idx < 1 || sample_idx > ncol(se_assay_mat)) next
                 sample_name <- colnames(se_assay_mat)[sample_idx]
+                if (is.null(sample_name) || is.na(sample_name) || sample_name == "") next
                 
                 # Find gene row in result matrix - Use gene ID map to match bootstrap gene names to result_row_names
                 gene_row_idx <- NA
@@ -291,17 +313,11 @@
                 
                 if (is.na(gene_row_idx)) next
                 
-                # Find columns for this sample in result_assay
-                # Columns should have format "SAMPLE_q=NUMBER"
-                col_pattern <- paste0("^", gsub("([.^$*+?{}\\(\\)\\[\\]|\\\\])", "\\\\\\1", sample_name), "_q=")
-                col_indices <- grep(col_pattern, result_col_names)
-                if (length(col_indices) == 0) next
-                
-                # Extract q values from matching columns
-                col_q_values <- sub(
-                    paste0("^", gsub("([.^$*+?{}\\(\\)\\[\\]|\\\\])", "\\\\\\1", sample_name), "_q="),
-                    "",
-                    result_col_names[col_indices])
+                # Look up pre-computed column indices from cache (no regex evaluation)
+                if (is.null(sample_name) || is.na(sample_name) || !(sample_name %in% names(sample_col_cache))) next
+                cached_info <- sample_col_cache[[sample_name]]
+                col_indices <- cached_info$indices
+                col_q_values <- cached_info$q_values
                 
                 # Process bootstrap result depending on structure
                 if (is.list(boot_item) && !is.null(names(boot_item)) && all(grepl("^q=", names(boot_item)))) {
@@ -589,7 +605,7 @@
 #' @noRd
 
 .calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-    verbose = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
+    verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
     min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, seed = NULL) {
@@ -608,31 +624,17 @@
     # Prepare input and calculate diversity
     prep <- .prepare_diversity_data(x, genes, original_x, effective_length,
         norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose,
-        tpm, assayno)
+        tpm, assayno, show_messages)
     result <- prep$result
     x <- prep$x
     genes <- prep$genes
     se_assay_mat <- prep$se_assay_mat
     effective_length <- prep$effective_length  # Extract effective_length from prep result
     
-    if (verbose) {
-        message("[DEBUG .calculate_diversity] effective_length after prep:")
-        message("  is.null=", is.null(effective_length))
-        if (!is.null(effective_length)) {
-            message("  class=", class(effective_length))
-            message("  length=", length(effective_length))
-        }
-    }
-    
-    if (verbose && nrow(result) == 0) {
-        message("[WARN] Result from .prepare_diversity_data() is empty (0 rows)")
-        message("       This happens when bootstrap=", bootstrap)
-    }
-    
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
-        bootstrap_include_diagnostics, verbose, seed, effective_length)
+        bootstrap_include_diagnostics, verbose, seed, effective_length, show_messages)
     
     # Prepare output structure
     gene_names <- .extract_gene_names(original_x, genes, result)

@@ -164,7 +164,7 @@
 #' @importFrom utils write.table
 calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method = NULL, 
                                    reference_group = NULL, tpm = FALSE, assayno = NULL,
-                                   verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL,
+                                   verbose = NULL, show_messages = FALSE, what = NULL, nthreads = NULL, pseudocount = NULL,
                                    min_valid_frac = NULL, shrinkage = NULL, genes = NULL,
                                    effective_length = NULL, metadata = NULL, bootstrap = NULL,
                                    nboot = NULL, bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -177,18 +177,14 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     stop("SummarizedExperiment in @se is empty", call. = FALSE)
   }
   
-  # Debug: check initial state
-  if (verbose %||% FALSE) {
-    message("[DEBUG] Initial analysis@diversity_results: ", 
-            paste(names(analysis@diversity_results), collapse=", "))
-  }
+
 
   # Prepare all parameters (resolve from explicit args > @config > defaults)
   params <- .prepare_diversity_params(
     analysis, q, norm, norm_method, reference_group, tpm, assayno, verbose, what, 
     nthreads, pseudocount, min_valid_frac, shrinkage, genes, effective_length, 
     metadata, bootstrap, nboot, bootstrap_method, bootstrap_ci, 
-    bootstrap_include_diagnostics, seed
+    bootstrap_include_diagnostics, seed, show_messages
   )
   
   # Validate norm_method parameter
@@ -203,30 +199,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   # Build calculation arguments for .calculate_diversity()
   calc_args <- .build_calc_diversity_args(params, analysis, list(...))
   
-  if (params$verbose) {
-    message("[DEBUG] calc_args names: ", paste(names(calc_args), collapse=", "))
-    if (!"genes" %in% names(calc_args)) {
-        message("[DEBUG] NOTE: genes is NOT in calc_args - will default to SE rownames")
-    } else {
-        message("[DEBUG] genes provided in calc_args: ", paste(head(calc_args$genes, 5), collapse=", "))
-    }
-    x_param <- calc_args$x
-    if (is(x_param, "SummarizedExperiment")) {
-      md_names <- names(S4Vectors::metadata(x_param))
-      message("[DEBUG] Metadata on x: ", paste(md_names, collapse=", "))
-      if ("analysis" %in% md_names) {
-        message("[DEBUG] WARNING: 'analysis' in x metadata!")
-      }
-    }
-  }
+
   
   result_df <- do.call(.calculate_diversity, calc_args)
   
-  if (params$verbose) {
-    message("[DEBUG] After .calculate_diversity(): analysis@diversity_results keys = ", 
-            paste(names(analysis@diversity_results), collapse=", "))
-    message("[DEBUG] params$q STILL: ", paste(params$q, collapse=", "))
-  }
+
   
   # Store the original result SE for later per-q extraction
   result_se_original <- result_df
@@ -234,13 +211,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   # Extract q-value metadata from result
   col_q_values <- .extract_q_metadata_from_result(result_df, params$q)
   
-  if (params$verbose) {
-    message("[DEBUG] result_df colnames: ", paste(colnames(result_df), collapse=", "))
-    message("[DEBUG] col_q_values extracted: ", paste(col_q_values, collapse=", "))
-    if (length(names(col_q_values)) > 0) {
-      message("[DEBUG] col_q_values names (indices): ", paste(names(col_q_values), collapse=", "))
-    }
-  }
+
   
   # Store combined result in cache
   analysis@metadata$diversity_combined <- list(
@@ -261,49 +232,47 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   
   # Store per-q results with post-hoc normalization and audit trail
   q_decimals <- 3
-  if (params$verbose) {
-    message("[DEBUG] params$q values: ", paste(params$q, collapse=", "))
-    message("[DEBUG] Loop will iterate over params$q, expecting ", length(params$q), " iterations")
-    message("[DEBUG] diversity_results BEFORE loop: ", paste(names(analysis@diversity_results), collapse=", "))
+
+  
+  # Pre-compute q-value formatting and patterns to avoid repeated formatC/gsub calls
+  q_format_cache <- list()
+  for (q_val in params$q) {
+    q_formatted <- formatC(q_val, format = "f", digits = q_decimals)
+    q_pattern <- paste0("_q=", gsub("\\.", "\\\\.", q_formatted), "$")
+    q_format_cache[[as.character(q_val)]] <- list(
+      formatted = q_formatted,
+      pattern = q_pattern,
+      patterns_alt = list(
+        paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 3)), "$"),
+        paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 2)), "$")
+      )
+    )
   }
   
   for (q_val in params$q) {
+
     tryCatch({
-      if (params$verbose) {
-        message("[DEBUG] Processing q=", q_val, " (formatted: q_", 
-                formatC(q_val, format = "f", digits = q_decimals), ")")
-      }
-      # Handle empty results
-      if (nrow(result_df) == 0) {
-        warning("[calculate_diversity_s4] Result for q=", q_val, " is empty (0 rows)", call. = FALSE)
-        next
-      }
       
       # Extract columns for this q-value
       q_cols <- NULL
+      col_match_method <- NA_character_
       if (!is.na(col_q_values[1])) {
         q_mask <- abs(col_q_values - q_val) < 1e-5
         if (any(q_mask)) {
           q_cols <- as.numeric(names(col_q_values)[q_mask])
-        }
-        if (params$verbose) {
-          message("[DEBUG] q=", q_val, ": col_q_values matching approach found cols: ", 
-                  paste(q_cols, collapse=", "))
+          col_match_method <- "col_q_values"
         }
       }
       
-      # Fallback: pattern matching (handle different decimal precision)
+      # Fallback: pattern matching (use pre-computed patterns from cache)
       if (is.null(q_cols) || length(q_cols) == 0) {
-        for (ndigits in c(3, 2)) {
-          q_formatted <- formatC(q_val, format = "f", digits = ndigits)
-          q_pattern_str <- paste0("_q=", gsub("\\.", "\\\\.", q_formatted), "$")
+        q_cache_entry <- q_format_cache[[as.character(q_val)]]
+        for (pattern_idx in seq_along(q_cache_entry$patterns_alt)) {
+          q_pattern_str <- q_cache_entry$patterns_alt[[pattern_idx]]
           q_cols_temp <- grep(q_pattern_str, colnames(result_df))
-          if (params$verbose) {
-            message("[DEBUG] q=", q_val, ": pattern (", ndigits, " digits) '", q_pattern_str, 
-                    "' found cols: ", paste(q_cols_temp, collapse=", "))
-          }
           if (length(q_cols_temp) > 0) {
             q_cols <- q_cols_temp
+            col_match_method <- paste0("pattern_", c(3, 2)[pattern_idx], "digits")
             break
           }
         }
@@ -406,24 +375,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       # Store with audit trail metadata
       key <- paste0("q_", formatC(q_val, format = "f", digits = q_decimals))
       
-      # Debug: verify assays before storing
-      if (params$verbose) {
-        assay_names <- SummarizedExperiment::assayNames(result_se)
-        message("[calculate_diversity_s4] Storing q=", q_val, " with assays: ", 
-                paste(assay_names, collapse=", "))
-      }
-      
       attr(result_se, "computed_with") <- list(
         q = q_val, norm = params$norm, norm_method = params$norm_method,
         verbose = params$verbose, bootstrap = params$bootstrap, pseudocount = params$pseudocount,
         nthreads = params$nthreads, what = params$what, timestamp = Sys.time()
       )
       analysis@diversity_results[[key]] <- result_se
-      
-      if (params$verbose) {
-        message("[DEBUG] After storing ", key, ": diversity_results keys = ", 
-                paste(names(analysis@diversity_results), collapse=", "))
-      }
       
       # Track function call
       analysis@metadata$function_calls <- c(
@@ -543,19 +500,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         
         # Fill data frame - use ONLY the requested q-values
         row_idx <- 1
-        if (params$verbose) {
-          message("[DEBUG] Using q-keys for output: ", paste(q_keys_to_use, collapse=", "))
-        }
+
         
         for (q_idx in seq_along(q_keys_to_use)) {
           q_key <- q_keys_to_use[q_idx]
-          
-          if (!q_key %in% names(analysis@diversity_results)) {
-            if (params$verbose) {
-              message("[DEBUG] WARNING: q_key '", q_key, "' not found in diversity_results")
-            }
-            next
-          }
           
           se <- analysis@diversity_results[[q_key]]
           q_name <- q_key
@@ -566,41 +514,18 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
           
           diversity_mat <- as.matrix(SummarizedExperiment::assay(se, 1))
           
-          # Debug: show assays for this SE
-          assay_names <- SummarizedExperiment::assayNames(se)
-          if (params$verbose && q_idx == 1) {
-            message("[calculate_diversity_s4] First q SE has assays: ", paste(assay_names, collapse=", "))
-          }
-          
           ci_lower_mat <- if (has_ci_lower) {
             tryCatch({
-              ci_lower_temp <- as.matrix(SummarizedExperiment::assay(se, "ci_lower"))
-              if (params$verbose && q_idx == 1) {
-                message("[DEBUG] ci_lower[1,1:2]: ", paste(ci_lower_temp[1, 1:min(2, ncol(ci_lower_temp))], collapse=", "))
-              }
-              ci_lower_temp
+              as.matrix(SummarizedExperiment::assay(se, "ci_lower"))
             }, error = function(e) {
-              message("[calculate_diversity_s4] ERROR accessing ci_lower for q=", q_name, ": ", conditionMessage(e))
-              message("  Available assays: ", paste(assay_names, collapse=", "))
               NULL
             })
           } else NULL
           
-          if (params$verbose && q_idx == 1) {
-            message("[DEBUG] diversity[1,1:2]: ", paste(diversity_mat[1, 1:min(2, ncol(diversity_mat))], collapse=", "))
-            message("[DEBUG] ci_upper row 1 first 2 cols will be shown next")
-          }
-          
           ci_upper_mat <- if (has_ci_upper) {
             tryCatch({
-              ci_upper_temp <- as.matrix(SummarizedExperiment::assay(se, "ci_upper"))
-              if (params$verbose && q_idx == 1) {
-                message("[DEBUG] ci_upper[1,1:2]: ", paste(ci_upper_temp[1, 1:min(2, ncol(ci_upper_temp))], collapse=", "))
-              }
-              ci_upper_temp
+              as.matrix(SummarizedExperiment::assay(se, "ci_upper"))
             }, error = function(e) {
-              message("[calculate_diversity_s4] ERROR accessing ci_upper for q=", q_name, ": ", conditionMessage(e))
-              message("  Available assays: ", paste(assay_names, collapse=", "))
               NULL
             })
           } else NULL
@@ -669,7 +594,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
                                       tpm, assayno, verbose, what, nthreads, pseudocount,
                                       min_valid_frac, shrinkage, genes, effective_length,
                                       metadata, bootstrap, nboot, bootstrap_method,
-                                      bootstrap_ci, bootstrap_include_diagnostics, seed) {
+                                      bootstrap_ci, bootstrap_include_diagnostics, seed, show_messages = FALSE) {
   # Extract q parameter with default range
   if (is.null(q)) {
     q <- if ("q_values" %in% names(analysis@config)) {
@@ -713,6 +638,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     q = q,
     nthreads = nthreads_resolved,
     verbose = resolve_slot_param(verbose, analysis@config, "verbose", TRUE),
+    show_messages = show_messages,
     bootstrap = resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE),
     pseudocount = resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0),
     norm = resolve_slot_param(norm, analysis@config, "norm", TRUE),
@@ -746,6 +672,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     tpm = params$tpm,
     assayno = params$assayno,
     verbose = params$verbose,
+    show_messages = params$show_messages,
     what = params$what,
     nthreads = params$nthreads,
     pseudocount = params$pseudocount,

@@ -427,7 +427,8 @@ analysis <- calculate_diversity_s4(
     analysis,
     norm = TRUE,
     bootstrap = TRUE,
-    nboot = 1000,
+    nboot = 50,
+    pseudocount = "auto",
     output_file = file.path("output", "diversity_results.tsv")
 )
 ```

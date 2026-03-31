@@ -596,7 +596,7 @@ test_that("nboot parameter is validated (must be >= 100)", {
     
     expect_warning(
         .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
-                           bootstrap_nboot = 50, verbose = FALSE),
+                           bootstrap_nboot = 50, verbose = FALSE, show_messages = TRUE),
         "nboot.*below.*recommended"
     )
 })

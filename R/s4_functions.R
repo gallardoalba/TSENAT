@@ -440,7 +440,7 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL,
 #'
 #' @export
 #' @importFrom utils write.table
-jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, nthreads = NULL, output_file = NULL, ...) {
+jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_base = NULL, seed = NULL, top_n = NULL, verbose = FALSE, nthreads = NULL, pseudocount = NULL, output_file = NULL, ...) {
   if (!is(analysis, "TSENATAnalysis")) {
     stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
   }
@@ -453,7 +453,12 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
 
   # PARAMETER EXTRACTION using utility function
   q <- resolve_slot_param(q, analysis@config, "q_values", 1.0)
+  norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
+  log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
+  seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
+  top_n <- resolve_slot_param(top_n, analysis@config, "top_n", 5)
   nthreads <- resolve_slot_param(nthreads, analysis@config, "nthreads", 1)
+  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
   
   # Ensure q is numeric
   if (!is.numeric(q)) {
@@ -478,6 +483,11 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, verbose = FALSE, n
       result <- .jackknife_entropy_outliers(
         x = counts_matrix,
         q = q_val,
+        norm = norm,
+        log_base = log_base,
+        seed = seed,
+        top_n = top_n,
+        pseudocount = pseudocount,
         verbose = verbose,
         nthreads = nthreads,
         ...
@@ -3375,9 +3385,11 @@ jackknife_isoform_switching_s4 <- function(
   gene_col = NULL,
   isoform_col = NULL,
   q = 1,
-  norm = TRUE,
+  norm = NULL,
+  log_base = NULL,
   threshold = 90,
   n_bootstrap = 1000,
+  pseudocount = NULL,
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
@@ -3505,6 +3517,13 @@ jackknife_isoform_switching_s4 <- function(
   }
 
   # =========================================================================
+  # RESOLVE PARAMETERS
+  # =========================================================================
+  norm <- resolve_slot_param(norm, analysis@config, "norm", TRUE)
+  log_base <- resolve_slot_param(log_base, analysis@config, "log_base", exp(1))
+  pseudocount <- resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0)
+  
+  # =========================================================================
   # VALIDATE n_bootstrap PARAMETER
   # =========================================================================
   if (!is.numeric(n_bootstrap) || length(n_bootstrap) != 1 || n_bootstrap < 1) {
@@ -3531,8 +3550,10 @@ jackknife_isoform_switching_s4 <- function(
       isoform_col = isoform_col,
       q = q,
       norm = norm,
+      log_base = log_base,
       threshold = threshold,
       n_bootstrap = n_bootstrap,
+      pseudocount = pseudocount,
       verbose = verbose,
       lm_results = lm_results,
       lm_p_threshold = lm_p_threshold,

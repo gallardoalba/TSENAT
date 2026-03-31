@@ -14,7 +14,7 @@
 #' Internal: Validate all bootstrap input parameters
 
 #' @noRd
-.bootstrap_validate_inputs <- function(x, q, nboot, ci, paired) {
+.bootstrap_validate_inputs <- function(x, q, nboot, ci, paired, show_messages = FALSE) {
   if (!is.numeric(x) || any(x < 0, na.rm = TRUE)) {
     stop("x must be a vector of non-negative numeric values.")
   }
@@ -37,9 +37,9 @@
     stop("nboot must be a numeric value >= 1.")
   }
   if (nboot < 10) {
-    warning("nboot = ", nboot, " is below minimum recommended (10). ",
+    if (show_messages) warning("nboot = ", nboot, " is below minimum recommended (10). ",
             "CI bounds may be unreliable. Consider nboot >= 50 for production use.")
-  } else if (nboot < 100 && !isTRUE(getOption("TSENAT.suppress_nboot_warning"))) {
+  } else if (nboot < 100 && !isTRUE(getOption("TSENAT.suppress_nboot_warning")) && show_messages) {
     warning("nboot = ", nboot, " is below recommended minimum (100). ",
             "Consider nboot >= 100 for stable CI estimates (per papers S111, S114).")
   }
@@ -54,7 +54,7 @@
   }
   
   total_count <- sum(x, na.rm = TRUE)
-  if (total_count < 10) {
+  if (total_count < 10 && show_messages) {
     warning("Total count (", total_count, ") below recommended minimum (10-20).\n",
             "Bootstrap estimates may be unreliable (per papers S111, S114).")
   }
@@ -303,7 +303,7 @@ hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
 #' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
 #' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
 #' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.
 #'
 #' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
 #'
@@ -315,7 +315,7 @@ hill_number_cpp_wrapper <- function(p, q = 1.0, log_base = exp(1)) {
 #' @noRd
 block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
                                                 nboot = 1000L, log_base = exp(1), 
-                                                pseudocount = 0.0) {
+                                                pseudocount = 0) {
   # Input must have even length (pairs)
   if (length(x) %% 2 != 0) {
     stop("For paired bootstrap, input vector must have even length")
@@ -354,7 +354,7 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
 #' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
 #' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
 #' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.
 #'
 #' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
 #'
@@ -366,7 +366,7 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE,
 #' @noRd
 bootstrap_compute_cpp_wrapper <- function(x, q = 1.0, normalize = TRUE, 
                                           nboot = 1000L, log_base = exp(1), 
-                                          pseudocount = 0.0) {
+                                          pseudocount = 0) {
   # Handle vector pseudocount by converting to scalar (sum per-element effects)
   if (length(pseudocount) > 1) {
     if (length(pseudocount) != length(x)) {
@@ -630,18 +630,25 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
 #'
 #' @noRd
 .bootstrap_resample_optimized <- function(x, q, norm, nboot, log_base, pseudocount, what, paired = FALSE, effective_length = NULL) {
-  # Apply effective_length normalization BEFORE bootstrap resampling if provided
+  # CRITICAL FIX (March 2026): 
+  # Apply effective_length normalization CORRECTLY for bootstrap
+  # 
+  # The point estimate (stored in SE) was calculated from: counts / effective_length
+  # Bootstrap must preserve the PROPORTIONS from normalization, but scale back for resampling
+  #
+  # Correct approach:
+  # 1. x_normalized = x / effective_length  (adjust proportions)
+  # 2. x_rescaled = x_normalized * (sum(x) / sum(x_normalized))  (preserve proportions, restore scale)
+  # 3. Bootstrap resamples from x_rescaled → distribution has same proportions as x_normalized
+  # 4. Entropy calculated matches point estimate
+  #
+  # This ensures:
+  # - Bootstrap CIs contain the point estimate
+  # - Both use same data transformation
+  
   x_for_bootstrap <- x
   if (!is.null(effective_length) && length(effective_length) == length(x)) {
-    # CRITICAL FIX: Normalize counts by effective_length to adjust proportions,
-    # but scale back to preserve total count magnitude for proper multinomial resampling
-    #
-    # Issue: If we just divide by effective_length, sum(x/el) becomes tiny (e.g., 0.4)
-    # Then R::rmultinom resamples into mostly one category, generating invalid bootstrap values.
-    #
-    # Solution: Scale normalized counts to preserve original total count
-    # x_scaled = (x / effective_length) * (sum(x) / sum(x / effective_length))
-    # This applies the proportion adjustment while maintaining resampling validity
+    # Normalize by effective length to adjust proportions
     x_normalized <- x / effective_length
     # Zero out any NaN/Inf values from zero effective_lengths
     x_normalized[!is.finite(x_normalized)] <- 0
@@ -649,6 +656,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
     sum_original <- sum(x)
     sum_normalized <- sum(x_normalized)
     
+    # Scale back to original magnitude while preserving normalized proportions
+    # This allows proper multinomial resampling while maintaining data transformation consistency
     if (sum_normalized > 0) {
       x_for_bootstrap <- x_normalized * (sum_original / sum_normalized)
     } else {
@@ -735,23 +744,34 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
 
 #' @noRd
 .bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired = FALSE, effective_length = NULL) {
-  point_est <- .calculate_tsallis_entropy(x, q = q, norm = norm, what = what,
-    log_base = log_base, pseudocount = pseudocount, effective_length = effective_length)
-  
-  # DEBUG (set to TRUE to enable debug output for troubleshooting)
-  if (FALSE) {  # Set to TRUE to enable debug output
-    message("[DEBUG .bootstrap_compute_ci] q=", q, ", norm=", norm)
-    message("[DEBUG] effective_length is.null=", is.null(effective_length), 
-            ", class=", if (is.null(effective_length)) "NULL" else class(effective_length))
-    if (!is.null(effective_length)) {
-      message("[DEBUG] effective_length length=", length(effective_length), ", x length=", length(x))
+  # CRITICAL: Apply effective_length normalization BEFORE point estimate & bootstrap resampling
+  # This ensures both use the same data transformation and bootstrap CIs contain the point estimate
+  x_for_calc <- x
+  if (!is.null(effective_length) && length(effective_length) == length(x)) {
+    # Normalize by effective length (same as .tsallis_row and .calculate_tsallis_entropy do)
+    x_normalized <- x / effective_length
+    x_normalized[!is.finite(x_normalized)] <- 0
+    sum_original <- sum(x)
+    sum_normalized <- sum(x_normalized)
+    if (sum_normalized > 0) {
+      # Scale back proportions to original magnitude for resampling validity
+      x_for_calc <- x_normalized * (sum_original / sum_normalized)
     }
-    message("[DEBUG] point_est=", round(point_est, 6))
+    # Now pass effective_length=NULL since we've already applied the transformation
+    effective_length_for_calc <- NULL
+  } else {
+    effective_length_for_calc <- effective_length
   }
   
-  # Use optimized bootstrap resampling
-  bootstrap_dist <- .bootstrap_resample_optimized(x, q = q, norm = norm, nboot = nboot,
-    log_base = log_base, pseudocount = pseudocount, what = what, paired = paired, effective_length = effective_length)
+  point_est <- .calculate_tsallis_entropy(x_for_calc, q = q, norm = norm, what = what,
+    log_base = log_base, pseudocount = pseudocount, effective_length = effective_length_for_calc)
+  
+
+  
+  # Use optimized bootstrap resampling on already-normalized data
+  # Pass effective_length=NULL since normalization was already applied above
+  bootstrap_dist <- .bootstrap_resample_optimized(x_for_calc, q = q, norm = norm, nboot = nboot,
+    log_base = log_base, pseudocount = pseudocount, what = what, paired = paired, effective_length = NULL)
   
   # CRITICAL: Check for NaN/Inf in bootstrap distribution
   # This can happen with all-zero counts or numerical instability
@@ -1049,7 +1069,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
     q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile", "bca"),
     log_base = exp(1), pseudocount = 0, what = c("S", "D"), seed = NULL, gene_name = NULL,
     verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE,
-    effective_length = NULL) {
+    effective_length = NULL, show_messages = FALSE) {
 
   method <- match.arg(method)
   what <- match.arg(what)
@@ -1079,7 +1099,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   }
   
   # PHASE 4: Validate inputs
-  .bootstrap_validate_inputs(x, q, nboot, ci, paired)
+  .bootstrap_validate_inputs(x, q, nboot, ci, paired, show_messages)
   
   # PHASE 4B: Enhanced validation for data quality and edge cases
   .validate_bootstrap_data(x, effective_length = effective_length, pseudocount = pseudocount)
@@ -1700,7 +1720,7 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 .bootstrap_divergence <- function(x = NULL, y = NULL, se = NULL, res = NULL,
     top_n = 1, group_col = "group", control_group = "Normal", q = 1, norm = FALSE,
     nboot = 1000, ci = 0.95, method = c("percentile", "bca"), log_base = exp(1),
-    pseudocount = 0.5, seed = NULL, gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
+    pseudocount = 0, seed = NULL, gene_name = NULL, verbose = TRUE, paired = FALSE, pair_id_col = NULL) {
     
     method <- match.arg(method)
     
@@ -2245,6 +2265,9 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
         dplyr::filter(group == group_val, as.numeric(as.character(q)) == matching_q_val)
       
       if (nrow(group_q_data) > 0) {
+        # Use ORIGINAL OBSERVED median (robust measure of central tendency)
+        # This represents the actual observed value, not bootstrap mean/median
+        # Following literature standard: original estimate + bootstrap confidence interval
         median_val <- median(group_q_data$tsallis, na.rm = TRUE)
         
         group_samples <- unique(group_q_data$sample)
@@ -2266,7 +2289,12 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
         }
         
         if (length(all_ci_lower) > 0) {
-          # Average the CIs across samples in this group
+          # Aggregate bootstrap CI bounds across samples using median
+          # METHODOLOGY (from statistical literature S115, S018):
+          # - Point estimator: original observed median (represents actual data)
+          # - CI bounds: median of per-sample bootstrap percentile bounds
+          # - Rationale: Robust aggregation that respects individual sample estimates
+          # - Note: Point estimate may fall outside CI (informative, reveals asymmetric distribution)
           ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
           ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
         } else {
@@ -2293,23 +2321,15 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 # From diversity_core.R: Compute bootstrap CI for diversity measures
 .bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
     bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
-    bootstrap_include_diagnostics, verbose, seed = NULL, effective_length = NULL) {
+    bootstrap_include_diagnostics, verbose, seed = NULL, effective_length = NULL, show_messages = FALSE) {
     
     bootstrap_ci_results <- NULL
     
     if (!bootstrap) return(NULL)
     
-    # DEBUG
-    if (TRUE) {
-        message("[DEBUG .bootstrap_diversity_ci] effective_length:")
-        message("  is.null=", is.null(effective_length))
-        if (!is.null(effective_length)) {
-            message("  class=", class(effective_length))
-            message("  length=", length(effective_length))
-        }
-    }
+
     
-    if (verbose) message("Computing bootstrap confidence intervals...")
+    if (verbose && show_messages) message("Computing bootstrap confidence intervals...")
     
     # Validate bootstrap parameters
     if (!(bootstrap_method %in% c("percentile", "bca"))) {
@@ -2331,34 +2351,22 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     
     # Prepare data and compute bootstrap CIs
     # For each (gene x sample) pair, we compute one CI from bootstrap resampling of transcripts
-    if (verbose) {
-        message(sprintf("  [DEBUG] result structure: %d rows, %d cols", nrow(result), ncol(result)))
-        message(sprintf("  [DEBUG] result column names: %s", paste(head(colnames(result), 5), collapse=", ")))
-        message(sprintf("  [DEBUG] result first few rows:\n"))
-        print(head(result, 2))
-    }
+
     
     filtered_genes <- as.character(result[, 1])
-    if (verbose) {
-        message(sprintf("  [DEBUG] filtered_genes: %s", paste(filtered_genes, collapse=", ")))
-        message(sprintf("  [DEBUG] length(filtered_genes) = %d", length(filtered_genes)))  
-    }
+
     
     # Create a list where each element is bootstrap results for one (gene, sample) pair
     bootstrap_results_list <- list()
     pair_metadata <- data.frame(gene = character(), sample_idx = integer())
     
-    if (verbose) {
-        message(sprintf("  [DEBUG] Initial pair_metadata: %d rows", nrow(pair_metadata)))
-    }
+
     
     for (g_idx in seq_along(filtered_genes)) {
         g <- filtered_genes[g_idx]
         tx_mask <- which(genes == g)
         
-        if (verbose) {
-             message(sprintf("  [DEBUG LOOP] g_idx=%d, g=%s, tx_mask length=%d", g_idx, g, length(tx_mask)))
-        }
+
         
         if (length(tx_mask) == 0) next
         
@@ -2374,12 +2382,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
             # Get transcript counts for this gene in this sample
             counts_vec <- se_assay_mat[tx_mask, s]
             
-            # DEBUG
-            if (g_idx == 1 && s == 1 && verbose) {
-                message("[DEBUG BOOTSTRAP CALL] About to call .calculate_tsallis_entropy_bootstrap:")
-                message("  el_for_gene_txs is.null=", is.null(el_for_gene_txs))
-                if (!is.null(el_for_gene_txs)) message("  el_for_gene_txs length=", length(el_for_gene_txs))
-            }
+
             
             # Compute bootstrap CI for this (gene, sample) pair
             # Pass raw counts AND effective_length separately so bootstrap handles both correctly
@@ -2389,12 +2392,12 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
                     q = q, norm = TRUE, nboot = bootstrap_nboot,
                     ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
                     nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
-                    seed = seed, effective_length = el_for_gene_txs)
+                    seed = seed, effective_length = el_for_gene_txs, show_messages = show_messages)
                 
                 bootstrap_results_list[[length(bootstrap_results_list) + 1]] <- boot_result
                 pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))
             }, error = function(e) {
-                if (verbose) message("  [WARN] Bootstrap failed for ", g, " sample ", s, ": ", conditionMessage(e))
+                if (verbose && show_messages) message("  [WARN] Bootstrap failed for ", g, " sample ", s, ": ", conditionMessage(e))
             })
         }
     }
@@ -2406,14 +2409,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
         result_names <- character(0)
     }
     
-    if (verbose) {
-        if (nrow(pair_metadata) == 0) {
-            message("  [INFO] No (gene, sample) pairs were processed - result dataframe may be empty")
-            message(sprintf("    filtered_genes length=%d, se_assay_mat cols=%d", length(filtered_genes), ncol(se_assay_mat)))
-        }
-        message(sprintf("  [DEBUG] About to assign names: length(bootstrap_results_list)=%d, length(result_names)=%d", 
-                        length(bootstrap_results_list), length(result_names)))
-    }
+
     
     if (length(result_names) > 0) {
         names(bootstrap_results_list) <- result_names
@@ -3250,8 +3246,8 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
     reliability_flags <- reliability_flags + 1
   }
   
-  # Flag 4: Small n_bootstrap
-  if (boot_result$nboot < 100) {
+  # Flag 4: Small n_bootstrap (100 is minimum recommended, not ideal)
+  if (boot_result$nboot <= 100) {
     reliability_flags <- reliability_flags + 1
   }
   

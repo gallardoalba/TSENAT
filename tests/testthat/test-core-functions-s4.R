@@ -46,7 +46,7 @@ test_that(".prepare_diversity_params extracts q values from config", {
   )
   
   expect_equal(params$q, c(0.5, 1.0, 1.5))
-  expect_named(params, c("q", "nthreads", "verbose", "bootstrap", "pseudocount", 
+  expect_named(params, c("q", "nthreads", "verbose", "show_messages", "bootstrap", "pseudocount", 
                          "norm", "what", "assayno", "min_valid_frac", "shrinkage",
                          "bootstrap_method", "bootstrap_ci", "seed", "tpm", 
                          "genes", "effective_length", "nboot", 

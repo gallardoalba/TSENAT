@@ -580,7 +580,7 @@ NumericVector jis_tsallis_entropy_cpp(NumericMatrix counts,
                                       double q = 1.0, 
                                       bool normalize = true, 
                                       double log_base = 2.718281828,
-                                      double pseudocount = 1e-8,
+                                      double pseudocount = 0.0,
                                       int n_tx_fixed = -1) {
   // BUG FIX: Validate parameters before computation
   if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {
@@ -700,7 +700,7 @@ NumericVector jis_jackknife_influences_cpp(NumericMatrix counts,
                                            double q = 1.0, 
                                            bool normalize = true, 
                                            double log_base = 2.718281828,
-                                           double pseudocount = 1e-8,
+                                           double pseudocount = 0.0,
                                            int n_tx_fixed = -1) {
   // BUG FIX: Validate parameters before computation
   if (log_base <= 0 || std::abs(log_base - 1.0) < 1e-10) {

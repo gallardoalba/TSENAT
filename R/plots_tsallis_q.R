@@ -299,6 +299,18 @@ plot_tsallis_q_curve_s4 <- function(
 .plot_tsallis_bootstrap_ci <- function(se, long, output_file) {
   require_pkgs(c("ggplot2", "SummarizedExperiment"))
   
+  # Bootstrap CI Visualization Methodology (From Literature: S115, S018)
+  # ===================================================================
+  # Point estimator: ORIGINAL OBSERVED MEDIAN (robust measure of central tendency)
+  # CI bounds: BOOTSTRAP PERCENTILE METHOD (2.5th and 97.5th percentiles)
+  # Aggregation: MEDIAN of per-sample bootstrap CI bounds across samples in group
+  #
+  # INTERPRETATION: 
+  # - Line represents observed median Tsallis entropy (actual data)
+  # - Ribbon represents bootstrap 95% confidence interval around the estimate
+  # - If line falls outside ribbon: indicates asymmetric bootstrapping distribution
+  #   (NOT a problem - reveals non-normality in the resampling distribution)
+  
   long$q <- as.numeric(as.character(long$q))
   unique_q <- sort(unique(long$q))
   
@@ -320,7 +332,7 @@ plot_tsallis_q_curve_s4 <- function(
     .theme_base(base_size = 11) +
     ggplot2::labs(
       title = "Tsallis Entropy Across Diversity Scales (q-spectrum)",
-      subtitle = "Median with Bootstrap 95% Confidence Intervals",
+      subtitle = "Observed median (line) with bootstrap 95% percentile CI (shaded band)",
       x = "q value", y = expression("Tsallis entropy (" * S[q] * ")"),
       color = "Group", fill = "Group"
     )

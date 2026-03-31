@@ -30,11 +30,11 @@ check_rcpp_available <- function() {
     .Call(`_TSENAT_check_rcpp_available`)
 }
 
-jis_tsallis_entropy_cpp <- function(counts, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 1e-8, n_tx_fixed = -1L) {
+jis_tsallis_entropy_cpp <- function(counts, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0, n_tx_fixed = -1L) {
     .Call(`_TSENAT_jis_tsallis_entropy_cpp`, counts, q, normalize, log_base, pseudocount, n_tx_fixed)
 }
 
-jis_jackknife_influences_cpp <- function(counts, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 1e-8, n_tx_fixed = -1L) {
+jis_jackknife_influences_cpp <- function(counts, q = 1.0, normalize = TRUE, log_base = 2.718281828, pseudocount = 0.0, n_tx_fixed = -1L) {
     .Call(`_TSENAT_jis_jackknife_influences_cpp`, counts, q, normalize, log_base, pseudocount, n_tx_fixed)
 }
 
