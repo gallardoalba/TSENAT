@@ -256,9 +256,10 @@
     }
     
     # If no candidate found, throw error
+    candidates_str <- paste(candidates, collapse = ", ")
     stop("Could not auto-detect pair column in colData. ",
          "Please provide pair_col argument explicitly. ",
-         "Tried: ", paste(candidates, collapse = ", "),
+         "Tried: ", candidates_str,
          call. = FALSE)
 }
 
@@ -286,9 +287,10 @@
     params <- .calculate_stringency_thresholds(stringency, n_samples, n_pairs)
     
     if (verbose && !is.null(params)) {
+        pairs_str <- if (!is.null(n_pairs)) paste0(" n_pairs=", n_pairs) else ""
         message("[calc_stringency_params] stringency='", stringency, 
                 "' n_samples=", n_samples,
-                if (!is.null(n_pairs)) paste0(" n_pairs=", n_pairs),
+                pairs_str,
                 " -> min_samples=", params$min_samples,
                 " min_tx_per_gene=", params$min_tx_per_gene)
     }
@@ -543,8 +545,9 @@
             }
             
             if (is.na(pair_col)) {
+                cols_str <- paste(colnames(col_data), collapse = ", ")
                 stop("Could not auto-detect pair column in colData or metadata. Available columns: ",
-                     paste(colnames(col_data), collapse = ", "),
+                     cols_str,
                      ". Please specify 'pair_col' parameter.", call. = FALSE)
             }
             if (verbose) {
@@ -556,8 +559,9 @@
         
         # Verify pair column exists
         if (!(pair_col %in% colnames(col_data))) {
+            cols_str <- paste(colnames(col_data), collapse = ", ")
             stop(sprintf("Pair column '%s' not found. Available columns: %s", 
-                         pair_col, paste(colnames(col_data), collapse = ", ")), 
+                         pair_col, cols_str), 
                  call. = FALSE)
         }
         
@@ -756,8 +760,8 @@
 #' )
 #' analysis <- TSENATAnalysis(se)
 #'
-#' # Subset to 5 genes and 4 samples (top genes by variance)
-#' small_analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
+#' # Subset to top genes (use 200 to ensure adequate data for downstream analysis)
+#' small_analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #'
 #' # Subset to genes with minimum 1 total count across all samples
 #' # This ensures data adequacy filtering (recommended: min_count = 10-20 for robust estimates)
@@ -802,15 +806,17 @@
   if (!is.null(genes)) {
     # Use explicitly provided genes
     if (verbose) {
+      genes_str <- paste(head(genes, 3), collapse = ", ")
       message("[subset_analysis] Using provided genes: ", 
-              paste(head(genes, 3), collapse = ", "), 
+              genes_str, 
               if (length(genes) > 3) "...")
     }
     gene_idx <- match(genes, rownames(se))
     if (any(is.na(gene_idx))) {
       missing_genes <- genes[is.na(gene_idx)]
+      missing_str <- paste(head(missing_genes, 3), collapse = ", ")
       stop("Genes not found in analysis: ", 
-           paste(head(missing_genes, 3), collapse = ", "),
+           missing_str,
            call. = FALSE)
     }
   } else if (!is.null(n_genes)) {
@@ -1028,15 +1034,17 @@
   if (!is.null(samples)) {
     # Use explicitly provided samples
     if (verbose) {
+      samples_str <- paste(head(samples, 3), collapse = ", ")
       message("[subset_analysis] Using provided samples: ", 
-              paste(head(samples, 3), collapse = ", "), 
+              samples_str, 
               if (length(samples) > 3) "...")
     }
     sample_idx <- match(samples, colnames(se))
     if (any(is.na(sample_idx))) {
       missing_samples <- samples[is.na(sample_idx)]
+      missing_str <- paste(head(missing_samples, 3), collapse = ", ")
       stop("Samples not found in analysis: ", 
-           paste(head(missing_samples, 3), collapse = ", "),
+           missing_str,
            call. = FALSE)
     }
   } else if (!is.null(n_samples)) {

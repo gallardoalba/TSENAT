@@ -82,7 +82,7 @@
 #' 
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5), verbose = FALSE)
 #' p <- plot_tsallis_q_curve_s4(analysis)
 #' if (!is.null(p)) print(p)
@@ -414,7 +414,7 @@ plot_tsallis_q_curve_s4 <- function(
   
   # Multiple genes: create grid
   plots <- lapply(genes, make_gene_plot)
-  plots <- plots[!sapply(plots, is.null)]
+  plots <- plots[!vapply(plots, is.null, FUN.VALUE = logical(1))]
   
   if (length(plots) == 0) {
     stop("No valid genes found for plotting")

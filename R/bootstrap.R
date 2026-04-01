@@ -2926,9 +2926,9 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
   grid_x <- seq(min_x, max_x, length.out = 200)
   
   # Compute density at grid points via KDE
-  density_vals <- sapply(grid_x, function(g) {
+  density_vals <- vapply(grid_x, function(g) {
     mean(stats::dnorm(g - x, sd = bw))
-  })
+  }, FUN.VALUE = numeric(1))
   
   if (length(density_vals) == 0 || sum(is.finite(density_vals)) < 3) {
     return(list(
@@ -3123,9 +3123,9 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
   } else {
     segment_starts <- c(1, large_gaps + 1)
     segment_ends <- c(large_gaps, n)
-    modes_locations <- sapply(seq_len(n_modes), function(i) {
+    modes_locations <- vapply(seq_len(n_modes), function(i) {
       stats::median(x_sorted[segment_starts[i]:segment_ends[i]])
-    })
+    }, FUN.VALUE = numeric(1))
   }
   
   # Separation score

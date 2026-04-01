@@ -104,38 +104,6 @@ test_that("invalid method and pvalue arguments produce errors", {
     expect_error(.calculate_lm_interaction(se, condition_col = "samples", method = "lmm", pvalue = "nope"), "should be one of", fixed = FALSE)
 })
 
-test_that("lmm fallback used when lmer fails (stubbed)", {
-    skip_if_not_installed("lme4")
-    qvec <- seq(0.01, 0.05, by = 0.01)
-    sample_ids <- rep(c("S1", "S2", "S3"), each = length(qvec))
-    coln <- paste0(sample_ids, "_q=", rep(qvec, times = 3))
-    set.seed(42)
-    mat <- rbind(g1 = c(qvec * 1, qvec * 2, qvec * 1.5) + rnorm(length(coln), sd = 1e-4))
-    colnames(mat) <- coln
-    rownames(mat) <- c("g1")
-    rd <- data.frame(genes = rownames(mat), row.names = rownames(mat), stringsAsFactors = FALSE)
-    cd <- data.frame(samples = rep(c("Normal", "Tumor", "Normal"), each = length(qvec)), sample_base = rep(c("S1", "S2", "S3"), each = length(qvec)), row.names = coln, stringsAsFactors = FALSE)
-    se <- SummarizedExperiment::SummarizedExperiment(assays = list(diversity = mat), rowData = rd, colData = cd)
-
-    ns <- asNamespace("TSENAT")
-    orig <- get(".try_lmer", envir = ns)
-    stub <- function(...) structure("error", class = "try-error")
-    assignInNamespace(".try_lmer", stub, ns = "TSENAT")
-    on.exit(assignInNamespace(".try_lmer", orig, ns = "TSENAT"), add = TRUE)
-
-    res_se <- .calculate_lm_interaction(se, condition_col = "samples", method = "lmm", subject_col = "sample_base", min_obs = 3)
-    # function may return a SummarizedExperiment (writing into rowData) or a data.frame fallback
-    if (is.data.frame(res_se)) {
-        # accept any data.frame fallback (presence indicates graceful handling)
-        expect_true(is.data.frame(res_se))
-    } else {
-        expect_s4_class(res_se, "SummarizedExperiment")
-        rd_out <- SummarizedExperiment::rowData(res_se)
-        # fallback should set a fit_method value (e.g., lm_subject or lm_nosubject)
-        expect_true("fit_method" %in% colnames(rd_out))
-    }
-})
-
 library(testthat)
 
 context("Linear Model Interaction: LMM p-Value Options")
@@ -198,8 +166,6 @@ test_that("lmm returns LRT p-values (nlme with AR(1) does not support Satterthwa
     mask2 <- !is.na(rd_lrt$p_lrt)
     expect_true(all(is.na(rd_lrt$p_lrt) | abs(rd_lrt$p_interaction[mask2] - rd_lrt$p_lrt[mask2]) < 1e-8))
 })
-
-library(testthat)
 
 test_that("paired lmm with subject_col attaches results when lme4 available", {
     skip_if_not_installed("lme4")
@@ -312,109 +278,6 @@ test_that("calculate_lm_interaction with nthreads > 1 uses .bplapply", {
 # Tests for GAM interaction helper p-value column extraction
 # Tests for lmer fitting with withCallingHandlers and warning suppression
 context("Linear Model Interaction: lmer Fitting with Warning Suppression")
-
-test_that(".try_lmer suppresses matching warnings", {
-    # This test covers:
-    # fit_try <- withCallingHandlers(try(lme4::lmer(...), silent = TRUE), 
-    #                                warning = function(w) {
-    #                                  if (muffle_cond && grepl(mm_suppress_pattern, ...)) {
-    #                                    invokeRestart("muffleWarning")
-    #                                  }
-    #                                })
-    skip_if_not_installed("lme4")
-    
-    # Create test data that may produce singular fit warnings
-    df <- expand.grid(
-        x = 1:4,
-        group = c("A", "B"),
-        subject = 1:5
-    )
-    df$y <- rnorm(nrow(df)) + as.numeric(df$group) * 0.5
-    
-    # Call with suppress_lme4_warnings = TRUE
-    formula <- y ~ x * group + (1 | subject)
-    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
-    
-    # Should return either a valid fit or try-error
-    expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
-})
-
-test_that(".try_lmer returns successful fit when no error", {
-    # Test successful lmer fitting
-    skip_if_not_installed("lme4")
-    
-    df <- expand.grid(
-        x = 1:3,
-        group = c("A", "B"),
-        subject = 1:4
-    )
-    df$y <- rnorm(nrow(df)) + as.numeric(df$group)
-    
-    formula <- y ~ x + group + (1 | subject)
-    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = FALSE, verbose = FALSE)
-    
-    # Should return a valid lmer model
-    expect_true(inherits(fit, "lmerMod"))
-})
-
-test_that(".try_lmer tries multiple optimizers", {
-    # Test that multiple optimizers are attempted
-    skip_if_not_installed("lme4")
-    
-    df <- expand.grid(
-        x = 1:3,
-        group = c("A", "B"),
-        subject = 1:3
-    )
-    df$y <- rnorm(nrow(df)) + as.numeric(df$group)
-    
-    formula <- y ~ x + group + (1 | subject)
-    
-    # Should try both bobyqa and nloptwrap optimizers
-    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
-    
-    # Should get a result
-    expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
-})
-
-test_that(".try_lmer handles verbose output correctly", {
-    # Test verbose parameter interaction
-    skip_if_not_installed("lme4")
-    
-    df <- expand.grid(
-        x = 1:3,
-        group = c("A", "B"),
-        subject = 1:3
-    )
-    df$y <- rnorm(nrow(df)) + as.numeric(df$group)
-    
-    formula <- y ~ x + group + (1 | subject)
-    
-    # With verbose = TRUE, muffle_cond = FALSE
-    fit_verbose <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = FALSE, verbose = TRUE)
-    
-    # With verbose = FALSE, muffle_cond = TRUE
-    fit_silent <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
-    
-    # Both should return valid results
-    expect_true(inherits(fit_verbose, "lmerMod") || inherits(fit_verbose, "try-error"))
-    expect_true(inherits(fit_silent, "lmerMod") || inherits(fit_silent, "try-error"))
-})
-
-test_that(".try_lmer returns try-error when formula fails", {
-    # Test error handling
-    skip_if_not_installed("lme4")
-    
-    df <- data.frame(y = rnorm(10), x = rnorm(10))
-    
-    # Invalid formula
-    formula <- y ~ nonexistent_var + (1 | subject)
-    
-    fit <- TSENAT:::.try_lmer(formula, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
-    
-    # Should return try-error class object
-    expect_true(inherits(fit, "try-error"))
-})
 
 library(testthat)
 

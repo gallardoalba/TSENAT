@@ -77,41 +77,6 @@
     )
 }
 
-# Try lme4::lmer with multiple optimizers and controlled warnings.
-.try_lmer <- function(formula, data, suppress_lme4_warnings = TRUE, verbose = FALSE,
-    mm_suppress_pattern = "boundary \\(singular\\) fit|Computed variance-covariance matrix problem|not a positive definite matrix") {
-    if (!requireNamespace("lme4", quietly = TRUE)) {
-        stop("Package 'lme4' is required for mixed-model fitting")
-    }
-    opts <- list(list(optimizer = "bobyqa", optCtrl = list(maxfun = 2e+05)), list(optimizer = "nloptwrap",
-        optCtrl = list(maxfun = 5e+05)))
-    for (o in opts) {
-        ctrl <- lme4::lmerControl(optimizer = o$optimizer, optCtrl = o$optCtrl)
-        muffle_cond <- suppress_lme4_warnings || (!verbose)
-        fit_try <- withCallingHandlers(try(lme4::lmer(formula, data = data, REML = FALSE,
-            control = ctrl), silent = TRUE), warning = function(w) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(w), ignore.case = TRUE)) {
-                invokeRestart("muffleWarning")
-            }
-        }, message = function(m) {
-            if (muffle_cond && grepl(mm_suppress_pattern, conditionMessage(m), ignore.case = TRUE)) {
-                invokeRestart("muffleMessage")
-            }
-        })
-        if (!inherits(fit_try, "try-error")) {
-            # check singularity if function available
-            is_sing <- FALSE
-            if (exists("isSingular", where = asNamespace("lme4"), inherits = FALSE)) {
-                is_sing <- tryCatch(lme4::isSingular(fit_try, tol = 1e-04), error = function(e) FALSE)
-            }
-            attr(fit_try, "singular") <- is_sing
-            return(fit_try)
-        }
-    }
-    # all attempts failed
-    return(structure("error", class = "try-error"))
-}
-
 ## AR(1) correlation structure helper for ordered q-values (Phase 14 enhancement)
 ## Implements autocorrelated errors for entropy curves respecting q-order
 .try_lmm_ar1 <- function(df, verbose = FALSE) {

@@ -4,6 +4,10 @@
 #' These are the recommended way to extract results from analysis objects,
 #' following Bioconductor best practices.
 #'
+#' @return These generic functions return different types depending on the specific method:
+#'   - Accessor methods return data.frames or lists containing analysis results
+#'   - See individual method documentation for specific return types
+#'
 #' @name AllGenerics
 #' @rdname AllGenerics
 NULL

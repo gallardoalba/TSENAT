@@ -82,7 +82,6 @@
 #'   - gene: Character gene identifier
 #'   - p_interaction: Numeric p-value for q*group interaction test
 #'   - p_lrt: Numeric p-value from Likelihood Ratio Test (LMM only; NA for GAM/FPCA/GEE)
-#'   - p_satterthwaite: Numeric p-value from Satterthwaite approximation (LMM+lmer only; NA for nlme)
 #'   - slope_diff: Numeric interaction coefficient (slope difference between groups)
 #'   - fit_method: Character method used ("nlme::lme", "nlme::lme_arima(1,1,0)", "gam", "fpca", "gee", etc.)
 #'   - singular: Logical TRUE if model fit was singular (lmer only)
@@ -320,7 +319,6 @@
         gene = g, 
         p_interaction = lrt_result$p_value, 
         p_lrt = lrt_result$p_value,
-        p_satterthwaite = NA_real_, 
         slope_diff = slope_diff, 
         fit_method = used_fit_method, 
         singular = used_singular, 

@@ -26,3 +26,7 @@
 ^tools/
 ^database/
 ^output/
+
+# Exclude compiler coverage files from src/
+^src/.*\.gcda$
+^src/.*\.gcno$

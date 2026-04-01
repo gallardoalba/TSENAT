@@ -31,6 +31,9 @@
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #' @param pseudocount \code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
 #'   If NULL, reads from \code{@config$pseudocount} if available.
+#' @param show_messages \code{logical}. Display verbose messages during computation. Default: FALSE.
+#' @param min_valid_frac \code{numeric}. Minimum fraction of valid samples for gene filtering. Default: NULL.
+#'   If NULL, reads from \code{@config$min_valid_frac} if available.
 #' @param shrinkage \code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
 #'   If NULL, reads from \code{@config$shrinkage} if available.
 #' @param genes \code{character} or \code{NULL}. Gene set specification. Default: NULL (use all genes).
@@ -46,20 +49,10 @@
 #'   If NULL, reads from \code{@config$bootstrap_method} if available.
 #' @param bootstrap_ci \code{numeric}. Bootstrap confidence interval level (0-1). Default: 0.95.
 #'   If NULL, reads from \code{@config$bootstrap_ci} if available.
-#' @param bootstrap_include_diagnostics \code{logical}. Include bootstrap diagnostics. Default: TRUE.
-#'   If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.
-#' @param seed \code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
-#'   If NULL, reads from \code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Options:
-#'   \itemize{
-#'     \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
-#'     \item \code{"zscore"} - Z-score normalization per q-value
-#'     \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
-#'     \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
-#'     \item \code{NULL} - No post-hoc normalization (default)
-#'   }
-#'   If NULL, reads from \code{@config$norm_method} if available.
+#' @param bootstrap_include_diagnostics \code{logical}. Include bootstrap diagnostic information. Default: FALSE.
+#'   If NULL, reads from \code{@config$bootstrap_include_diagnostics} if available.
+#' @param seed \code{numeric} or \code{NULL}. Random seed for bootstrap reproducibility. Default: NULL.
+#'   If NULL, reads from \code{@config$seed} if available.
 #' @param reference_group \code{character}. For \code{norm_method = "relative_reference"}, 
 #'   the reference group column name (e.g., from colData). If NULL, uses first group in colData.
 #'   If NULL, reads from \code{@config$reference_group} if available.
@@ -142,17 +135,13 @@
 #' 
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
+#' 
+#' # Filter to manageable size (use 200+ genes to survive diversity filtering)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 #' 
 #' # Compute diversity and access results
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
 #' head(diversity(analysis, q = 1.0))
-#' 
-#' # Apply z-score normalization
-#' # analysis <- calculate_diversity_s4(analysis, norm_method = "zscore")
-#' 
-#' # Apply log-odds ratio normalization (q and isoform-aware)
-#' # analysis <- calculate_diversity_s4(analysis, norm_method = "log_odds_ratio")
 #'
 #' @details
 #' For additional details on diversity spectrum calculations and normalization methods,
@@ -565,7 +554,7 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         }
         
         # Trim to actual rows (in case rows < total_rows due to errors)
-        output_data <- output_data[1:(row_idx - 1), ]
+        output_data <- output_data[seq_len(row_idx - 1), ]
       }
       
       # Fallback: if no diversity_results, try combined_result

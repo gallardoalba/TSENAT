@@ -71,13 +71,24 @@ metadata_df <- read.table(
 )
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 
-# Build analysis from vignette data and create small subset
+# Build analysis from vignette data (matching TSENAT.Rmd workflow)
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
+
+# Configure analysis parameters (best practice for reproducibility)
+config <- tsenat_config(
+  condition_col = "condition",
+  subject_col = "paired_samples",
+  paired = TRUE,
+  control = "normal",
+  metadata = metadata_df
+)
+analysis <- setConfig(analysis, config)
+
+analysis <- filter_analysis_s4(analysis, stringency = "severe")
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis,
-  condition_col = "condition", verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 # Note: compute_method_concordance_s4 requires results from both
 # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 

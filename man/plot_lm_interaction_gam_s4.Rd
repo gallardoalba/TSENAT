@@ -84,13 +84,22 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
-analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis,
-  condition_col = "condition", verbose = FALSE)
 
-p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2,
-  condition_col = "condition", sig_alpha = 0.15)
+# Configure analysis parameters
+config <- tsenat_config(
+  condition_col = "condition",
+  subject_col = "paired_samples",
+  paired = TRUE,
+  control = "normal",
+  metadata = metadata_df
+)
+analysis <- setConfig(analysis, config)
+
+analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+
+p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 print(p_gam)
 
 }

@@ -70,11 +70,21 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 80, subset_n_samples = 10)
+
+# Configure analysis parameters
+config <- tsenat_config(
+  condition_col = "condition",
+  subject_col = "paired_samples",
+  paired = TRUE,
+  control = "normal",
+  metadata = metadata_df
+)
+analysis <- setConfig(analysis, config)
+
+analysis <- filter_analysis_s4(analysis, stringency = "severe")
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis,
-  condition_col = "condition", verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
 analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
 print(p_dist)

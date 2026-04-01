@@ -61,23 +61,6 @@ test_that(".prepare_fpca_matrix (fpca variant) builds sub-matrix or returns NULL
 })
 
 # Test lmer wrapper if available
-test_that(".try_lmer attempts lmer fitting when lme4 is installed", {
-    skip_if_not_installed("lme4")
-    set.seed(5)
-    # Build a small balanced dataset for mixed model
-    nsub <- 10
-    nper <- 4
-    subject <- rep(paste0("s", seq_len(nsub)), each = nper)
-    q <- rep(seq(0.1, 1, length.out = nper), times = nsub)
-    group <- rep(rep(c("A", "B"), length.out = nper), times = nsub)
-    entropy <- rnorm(length(subject), mean = 0.5 + as.numeric(group == "A") * 0.1 + 0.2 * q, sd = 0.05)
-    df <- data.frame(entropy = entropy, q = q, group = group, subject = subject, stringsAsFactors = FALSE)
-    f <- as.formula("entropy ~ q * group + (1 | subject)")
-    fit_try <- .try_lmer(f, df, suppress_lme4_warnings = TRUE, verbose = FALSE)
-    expect_true(inherits(fit_try, "try-error") || inherits(fit_try, "lmerMod"))
-})
-
-
 
 testthat::test_that("FPCA helper and interaction work on simple synthetic data", {
     set.seed(42)
@@ -175,19 +158,6 @@ testthat::test_that("GAM interaction returns a data.frame with p-value when mgcv
     }
 })
 
-testthat::test_that("try_lmer returns an lmer object when lme4 available", {
-    set.seed(5)
-    n <- 48
-    subject <- rep(1:12, each = 4)
-    q <- runif(n)
-    group <- rep(c("A", "B"), length.out = n)
-    entropy <- 0.25 * q + ifelse(group == "B", 0.3, 0) + rnorm(n, 0, 0.1)
-    df <- data.frame(entropy = entropy, q = q, group = factor(group), subject = factor(subject))
-    fmla <- stats::as.formula("entropy ~ q * group + (1|subject)")
-    fit <- .try_lmer(fmla, data = df, suppress_lme4_warnings = TRUE)
-    testthat::expect_true(inherits(fit, "lmerMod") || inherits(fit, "try-error"))
-})
-
 context("Linear Model Helpers: Edge Cases and Validation")
 
 library(testthat)
@@ -218,26 +188,6 @@ test_that(".prepare_fpca_matrix returns NULL when min_obs larger than available"
     res <- .prepare_fpca_matrix(mat = mat, sample_names = sample_names, q_vals = q_vals, min_obs = 10)
     expect_null(res)
 })
-
-# .try_lmer sets 'singular' attribute (when lme4 present and fit succeeded)
-test_that(".try_lmer sets singular attribute when fitting succeeds", {
-    set.seed(7)
-    nsub <- 10
-    nper <- 3
-    subject <- rep(paste0("s", seq_len(nsub)), each = nper)
-    q <- rep(seq(0.1, 1, length.out = nper), times = nsub)
-    group <- rep(rep(c("A", "B"), length.out = nper), times = nsub)
-    entropy <- rnorm(length(subject), mean = 0.5 + as.numeric(group == "A") * 0.1 + 0.2 * q, sd = 0.05)
-    df <- data.frame(entropy = entropy, q = q, group = group, subject = subject, stringsAsFactors = FALSE)
-    fit_try <- .try_lmer(entropy ~ q * group + (1 | subject), df, suppress_lme4_warnings = TRUE, verbose = FALSE)
-    if (inherits(fit_try, "try-error")) {
-        succeed()
-    } else {
-        expect_true(!is.null(attr(fit_try, "singular")))
-        expect_true(is.logical(attr(fit_try, "singular")))
-    }
-})
-
 
 
 

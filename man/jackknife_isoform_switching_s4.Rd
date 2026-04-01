@@ -49,12 +49,16 @@ or vector for multi-q analysis (default: 1).}
 \item{norm}{\code{logical}. Whether to use normalized diversity values 
 (default: TRUE).}
 
+\item{log_base}{\code{numeric}. Logarithm base for entropy calculations. Default: NULL (uses e).}
+
 \item{threshold}{\code{numeric}. Percentile threshold for detecting transcript switching 
 (default: 90). Transcripts with delta_influence >= threshold percentile are classified 
 as "switching".}
 
 \item{n_bootstrap}{\code{integer}. Number of bootstrap resamples for confidence 
 intervals (default: 1000).}
+
+\item{pseudocount}{\code{numeric}. Pseudocount value for count regularization. Default: NULL (uses @config$pseudocount or 0).}
 
 \item{lm_results}{\code{data.frame}. Optional LM interaction results to filter genes.
 If provided, only genes in lm_results are analyzed.}

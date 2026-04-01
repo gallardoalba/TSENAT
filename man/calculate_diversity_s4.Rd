@@ -65,6 +65,8 @@ If NULL, reads from \code{@config$assayno} if available.}
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.
 If not specified, reads from \code{@config$verbose} if available.}
 
+\item{show_messages}{\code{logical}. Display verbose messages during computation. Default: FALSE.}
+
 \item{what}{\code{character}. Output type: "S" (entropy) or "D" (diversity). Default: "S".
 If NULL, reads from \code{@config$what} if available.}
 
@@ -73,6 +75,9 @@ If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 
 \item{pseudocount}{\code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
 If NULL, reads from \code{@config$pseudocount} if available.}
+
+\item{min_valid_frac}{\code{numeric}. Minimum fraction of valid samples for gene filtering. Default: NULL.
+If NULL, reads from \code{@config$min_valid_frac} if available.}
 
 \item{shrinkage}{\code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
 If NULL, reads from \code{@config$shrinkage} if available.}
@@ -97,11 +102,11 @@ If NULL, reads from \code{@config$bootstrap_method} if available.}
 \item{bootstrap_ci}{\code{numeric}. Bootstrap confidence interval level (0-1). Default: 0.95.
 If NULL, reads from \code{@config$bootstrap_ci} if available.}
 
-\item{bootstrap_include_diagnostics}{\code{logical}. Include bootstrap diagnostics. Default: TRUE.
-If not specified, reads from \code{@config$bootstrap_include_diagnostics} if available.}
+\item{bootstrap_include_diagnostics}{\code{logical}. Include bootstrap diagnostic information. Default: FALSE.
+If NULL, reads from \code{@config$bootstrap_include_diagnostics} if available.}
 
-\item{seed}{\code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
-If NULL, reads from \code{@config$seed} if available. If provided, ensures reproducible bootstrap resampling.}
+\item{seed}{\code{numeric} or \code{NULL}. Random seed for bootstrap reproducibility. Default: NULL.
+If NULL, reads from \code{@config$seed} if available.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 When provided, generates TWO files:
@@ -190,16 +195,12 @@ mode(readcounts) <- 'numeric'
 
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
+
+# Filter to manageable size (use 200+ genes to survive diversity filtering)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 
 # Compute diversity and access results
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
 head(diversity(analysis, q = 1.0))
-
-# Apply z-score normalization
-# analysis <- calculate_diversity_s4(analysis, norm_method = "zscore")
-
-# Apply log-odds ratio normalization (q and isoform-aware)
-# analysis <- calculate_diversity_s4(analysis, norm_method = "log_odds_ratio")
 
 }
