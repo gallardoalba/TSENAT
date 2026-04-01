@@ -13,6 +13,7 @@ calculate_diversity_s4(
   tpm = FALSE,
   assayno = NULL,
   verbose = NULL,
+  show_messages = FALSE,
   what = NULL,
   nthreads = NULL,
   pseudocount = NULL,
@@ -72,9 +73,6 @@ If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 
 \item{pseudocount}{\code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
 If NULL, reads from \code{@config$pseudocount} if available.}
-
-\item{min_valid_frac}{\code{numeric}. Minimum valid fraction threshold. Default: 0.75.
-If NULL, reads from \code{@config$min_valid_frac} if available.}
 
 \item{shrinkage}{\code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
 If NULL, reads from \code{@config$shrinkage} if available.}
@@ -192,7 +190,7 @@ mode(readcounts) <- 'numeric'
 
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 
 # Compute diversity and access results
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)

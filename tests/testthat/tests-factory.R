@@ -1018,7 +1018,9 @@ create_diversity_test_matrix_3x2_standard <- function(
     include_genes = TRUE,
     seed = NULL
 ) {
-  x <- matrix(c(10, 5, 8, 12, 15, 3), nrow = 3, ncol = 2)
+  # Updated to use 4x2 matrix with multi-isoform genes (2 isoforms per gene)
+  # This avoids single-isoform warnings in bootstrap tests
+  x <- matrix(c(10, 5, 8, 12, 15, 3, 7, 9), nrow = 4, ncol = 2)
   
   if (set_colnames) {
     colnames(x) <- c("S1", "S2")
@@ -1027,7 +1029,8 @@ create_diversity_test_matrix_3x2_standard <- function(
   result <- list(x = x)
   
   if (include_genes) {
-    result$genes <- c("g1", "g1", "g2")
+    # 4 transcripts: g1 has 2 isoforms, g2 has 2 isoforms
+    result$genes <- c("g1", "g1", "g2", "g2")
   }
   
   result
@@ -1047,7 +1050,9 @@ create_diversity_test_matrix_3x2_simple <- function(
     set_colnames = TRUE,
     include_genes = TRUE
 ) {
-  x <- matrix(c(1, 2, 3, 4, 5, 6), ncol = 2)
+  # Updated to use 4x2 matrix with multi-isoform genes (2 isoforms per gene)
+  # This avoids single-isoform warnings in bootstrap tests
+  x <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8), nrow = 4, ncol = 2)
   
   if (set_colnames) {
     colnames(x) <- c("S1", "S2")
@@ -1056,7 +1061,8 @@ create_diversity_test_matrix_3x2_simple <- function(
   result <- list(x = x)
   
   if (include_genes) {
-    result$genes <- c("g1", "g1", "g2")
+    # 4 transcripts: g1 has 2 isoforms, g2 has 2 isoforms
+    result$genes <- c("g1", "g1", "g2", "g2")
   }
   
   result

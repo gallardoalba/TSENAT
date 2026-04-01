@@ -173,10 +173,37 @@
     top_genes_vec <- top_genes_vec[!unmatched]
   }
   
+  # Check if bootstrap CI assays are available
+  has_ci_assays <- FALSE
+  ci_lower_mat <- NULL
+  ci_upper_mat <- NULL
+  
+  if (!is.null(divergence_results_se) && is(divergence_results_se, "SummarizedExperiment")) {
+    assay_names <- names(SummarizedExperiment::assays(divergence_results_se))
+    if ("ci_lower" %in% assay_names && "ci_upper" %in% assay_names) {
+      has_ci_assays <- TRUE
+      ci_lower_mat <- SummarizedExperiment::assay(divergence_results_se, "ci_lower")[, colnames(div_mat_sorted)]
+      ci_upper_mat <- SummarizedExperiment::assay(divergence_results_se, "ci_upper")[, colnames(div_mat_sorted)]
+    }
+  }
+  
+  # Build data frame with bootstrap CIs if available
   plot_list <- lapply(seq_along(gene_indices), function(i) {
-    data.frame(q = q_vals_sorted, divergence = as.numeric(div_mat_sorted[gene_indices[i], ]),
-               gene = gene_names[gene_indices[i]], p_value = lm_sorted[[p_col]][i],
-               stringsAsFactors = FALSE)
+    df <- data.frame(
+      q = q_vals_sorted,
+      divergence = as.numeric(div_mat_sorted[gene_indices[i], ]),
+      gene = gene_names[gene_indices[i]],
+      p_value = lm_sorted[[p_col]][i],
+      stringsAsFactors = FALSE
+    )
+    
+    # Add bootstrap CI columns if available
+    if (has_ci_assays && !all(is.na(ci_lower_mat)) && !all(is.na(ci_upper_mat))) {
+      df$ci_lower <- as.numeric(ci_lower_mat[gene_indices[i], ])
+      df$ci_upper <- as.numeric(ci_upper_mat[gene_indices[i], ])
+    }
+    
+    df
   })
   
   multi_gene_df <- do.call(rbind, plot_list)
@@ -185,19 +212,40 @@
   gene_order <- gene_order[order(gene_order$p_value), ]$gene
   multi_gene_df$gene <- factor(multi_gene_df$gene, levels = gene_order)
   
-  p <- ggplot2::ggplot(multi_gene_df, ggplot2::aes(x = q, y = divergence)) +
+  # Build plot with optional bootstrap CI ribbon
+  p <- ggplot2::ggplot(multi_gene_df, ggplot2::aes(x = q, y = divergence))
+  
+  # Add confidence ribbon if bootstrap CIs are available and valid
+  if (has_ci_assays && "ci_lower" %in% colnames(multi_gene_df) && 
+      !all(is.na(multi_gene_df$ci_lower)) && !all(is.na(multi_gene_df$ci_upper))) {
+    p <- p + ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = ci_lower, ymax = ci_upper),
+      alpha = 0.15, fill = "#4575B4", color = NA
+    )
+  }
+  
+  p <- p +
     ggplot2::facet_wrap(~ gene, ncol = ncol, scales = "free_y") +
     ggplot2::geom_line(color = "#4575B4", linewidth = 1.2, alpha = 0.8) +
     ggplot2::geom_point(color = "#4575B4", size = 3, alpha = 0.8) +
-    ggplot2::labs(title = "Divergence Spectra: Per-gene Comparisons",
-                  subtitle = paste0("Ranked by interaction significance (", metric, ")"),
-                  x = "q value", y = expression("Divergence D[q]")) +
+    ggplot2::labs(
+      title = "Divergence Spectra: Per-gene Comparisons",
+      subtitle = if (has_ci_assays && "ci_lower" %in% colnames(multi_gene_df)) {
+        paste0("Ranked by interaction significance (", metric, ") | Bootstrap CI (95%)")
+      } else {
+        paste0("Ranked by interaction significance (", metric, ")")
+      },
+      x = "q value",
+      y = expression("Divergence D[q]")
+    ) +
     .theme_base(base_size = 11) + ggplot2::theme(
       plot.title = ggplot2::element_text(size = .font_sizes$title, face = "bold", hjust = 0.5),
       plot.subtitle = ggplot2::element_text(face = "italic", size = .font_sizes$subtitle,
                                            hjust = 0.5),
       panel.spacing = ggplot2::unit(1.5, "lines"),
-      strip.text = ggplot2::element_text(face = "bold", size = .font_sizes$subtitle))
+      strip.text = ggplot2::element_text(face = "bold", size = .font_sizes$subtitle)
+    )
+  
   return(p)
 }
 

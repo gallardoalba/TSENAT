@@ -1,4 +1,6 @@
 library(testthat)
+library(TSENAT)
+library(SummarizedExperiment)
 
 # ============================================================================
 # Tests for rank_test_q_condition_s4() S4 wrapper function
@@ -11,7 +13,8 @@ context("S4 Rank Test: rank_test_q_condition_s4")
 setup_rank_test_analysis <- function(n_genes = 30, n_samples = 8) {
     
     # Load example data (matching roxygen example)
-    data(readcounts)
+    # Use package namespace to ensure data is loaded correctly
+    data(readcounts, package = "TSENAT", envir = environment())
     readcounts <- as.matrix(salmon_dataset)
     mode(readcounts) <- "numeric"
     
@@ -30,7 +33,9 @@ setup_rank_test_analysis <- function(n_genes = 30, n_samples = 8) {
         tpm = salmon_tpm,
         effective_length = salmon_effective_length
     )
-    analysis <- subset_analysis(analysis, n_genes = n_genes, n_samples = n_samples)
+    analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
+    
+    # Calculate diversity first (before metadata reconstruction)
     analysis <- calculate_diversity_s4(analysis, norm = TRUE)
     
     analysis
@@ -1463,7 +1468,8 @@ test_that("rank_test statistics respect monotonicity: adj_p >= p_value", {
 
 test_that("rank_test results are consistent across different multicorr methods", {
   
-  # Different multicorr methods should preserve relative rankings and produce valid p-values
+  # Same test run with different multicorr methods should produce identical raw p-values
+  # but may differ in adjusted p-values. Only multiple correction should change values, not the test itself.
   analysis <- setup_rank_test_analysis(n_genes = 20, n_samples = 8)
   output_dir <- tempdir()
   
@@ -1489,21 +1495,52 @@ test_that("rank_test results are consistent across different multicorr methods",
     verbose = FALSE
   )
   
+  # Check in-memory results
+  data_none <- TSENAT::lmResults(result_none)$q_interactions
+  data_bh <- TSENAT::lmResults(result_bh)$q_interactions
+  
+  # Both should have results
+  expect_gt(nrow(data_none), 0)
+  expect_gt(nrow(data_bh), 0)
+  
+  # P-values should be valid in both
+  expect_true(all(data_none$p_value >= 0 & data_none$p_value <= 1, na.rm = TRUE))
+  expect_true(all(data_bh$p_value >= 0 & data_bh$p_value <= 1, na.rm = TRUE))
+  
+  # Also check in output files
   if (file.exists(file_none) && file.exists(file_bh)) {
-    data_none <- read.csv(file_none, sep = "\t", stringsAsFactors = FALSE)
-    data_bh <- read.csv(file_bh, sep = "\t", stringsAsFactors = FALSE)
+    file_none_data <- read.csv(file_none, sep = "\t", stringsAsFactors = FALSE)
+    file_bh_data <- read.csv(file_bh, sep = "\t", stringsAsFactors = FALSE)
     
-    # Both should have results
-    expect_gt(nrow(data_none), 0)
-    expect_gt(nrow(data_bh), 0)
+    # P-values in files should be valid
+    expect_true(all(file_none_data$p_value >= 0 & file_none_data$p_value <= 1, na.rm = TRUE),
+                info = "File p-values should be in [0, 1]")
+    expect_true(all(file_bh_data$p_value >= 0 & file_bh_data$p_value <= 1, na.rm = TRUE),
+                info = "File p-values should be in [0, 1]")
     
-    # P-values should be valid in both
-    expect_true(all(data_none$p_value >= 0 & data_none$p_value <= 1, na.rm = TRUE))
-    expect_true(all(data_bh$p_value >= 0 & data_bh$p_value <= 1, na.rm = TRUE))
+    # Raw p-values (unadjusted) should be identical across multicorr methods
+    # (same test was run, only correction method differs)
+    if (nrow(file_none_data) == nrow(file_bh_data)) {
+      # Match by gene to handle potential ordering differences
+      merged <- merge(file_none_data[, c("gene", "p_value")], 
+                      file_bh_data[, c("gene", "p_value")],
+                      by = "gene", suffixes = c(".none", ".bh"))
+      
+      expect_equal(merged$p_value.none, merged$p_value.bh, tolerance = 1e-10,
+                   info = "Raw p-values in files should be identical regardless of multicorr method")
+    }
     
-    # Raw p-values should be identical (same test was run)
-    if (nrow(data_none) == nrow(data_bh)) {
-      expect_equal(data_none$p_value, data_bh$p_value, tolerance = 1e-10)
+    # Adjusted p-values SHOULD differ (hochberg corrects while none does not)
+    if ("adj_p_value" %in% colnames(file_bh_data)) {
+      merged_adj <- merge(file_none_data[, c("gene", "adj_p_value")], 
+                          file_bh_data[, c("gene", "adj_p_value")],
+                          by = "gene", suffixes = c(".none", ".bh"))
+      
+      # Note: It's mathematically possible for all adjusted p-values to be equal
+      # (e.g., when p-values are 0 or 1). Just verify both have valid structure.
+      # The important check is that results are valid, not that they differ.
+      expect_equal(nrow(merged_adj), nrow(file_none_data),
+                  info = "Merged adjusted p-values should match original structure")
     }
     
     # Clean up

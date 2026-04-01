@@ -69,7 +69,7 @@
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' 
 #' # Compute diversity first (required for LM interaction analysis)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
@@ -644,7 +644,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' 
 #' # Compute diversity first (required for divergence)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
@@ -993,7 +993,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' result <- calculate_difference_s4(analysis, control = "normal", verbose = FALSE)
 #'
@@ -1171,7 +1171,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 #' # Access results using getMeta S4 accessor
@@ -1397,7 +1397,7 @@ setMethod(
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_difference_s4(analysis, control = "normal", verbose = FALSE)
 #'   
@@ -1551,7 +1551,7 @@ plot_volcano_ma_grid_s4 <- function(
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -1754,7 +1754,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' p_global <- plot_divergence_spectrum_s4(analysis)
@@ -1915,7 +1915,7 @@ plot_divergence_spectrum_s4 <- function(
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' # Note: compute_method_concordance_s4 requires additional LM and Friedman results
 #' # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance
 #'
@@ -2025,7 +2025,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 80, n_samples = 10)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 80, subset_n_samples = 10)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -2412,7 +2412,7 @@ effect_sizes_divergence_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -2614,7 +2614,7 @@ plot_top_transcripts_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 80, n_samples = 10)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 80, subset_n_samples = 10)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -2752,7 +2752,7 @@ plot_divergence_distribution_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -2936,7 +2936,7 @@ prepare_gene_switching_tables_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
@@ -3105,7 +3105,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
@@ -3374,7 +3374,7 @@ plot_lm_interaction_gam_s4 <- function(
 #' gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
 #'                              tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 20, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 20, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
 #' 
 #' @export
@@ -3773,7 +3773,7 @@ jackknife_isoform_switching_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- m_estimate_s4(
 #'   analysis,
@@ -3960,15 +3960,68 @@ m_estimate_s4 <- function(
 #' @param analysis A \code{TSENATAnalysis} S4 object containing the
 #'   \code{SummarizedExperiment} to be filtered.
 #'
-#' @param stringency Character. Filtering stringency level:
-#'   "strict" (most stringent, default for unpaired designs),
-#'   "medium" (moderate, default for paired designs), or
-#'   "lenient" (least stringent).
-#'   Each keeps transcripts present in different percentages of samples with TPM >= median.
-#'   Default is determined by study design (paired vs unpaired).
+#' @param min_tpm Numeric TPM threshold (default 1.0).
+#'   Keeps transcripts with TPM >= \code{min_tpm} in >= \code{min_samples} samples.
+#'   Ignored if \code{stringency} is specified.
+#'
+#' @param tpm_assay_name Character; name of assay containing TPM data (default: NULL).
+#'   If NULL, searches for TPM assay automatically.
 #'
 #' @param min_samples Numeric. Minimum number of samples in which a transcript
-#'   must be present (default: 5). Used as a secondary filter.
+#'   must be present (default: 5). Ignored if \code{stringency} is specified.
+#'
+#' @param stringency Character. Filtering stringency level: "soft" (permissive),
+#'   "medium" (balanced), or "severe" (stringent). When specified, auto-estimates:
+#'   \code{min_samples}, \code{min_tpm}, \code{min_tx_per_gene}, and \code{min_isoform_abundance}
+#'   from data. Requires \code{pair_col} in colData for paired designs.
+#'   User-provided values for any parameter override stringency defaults.
+#'   Default: NULL (use explicit parameters).
+#'
+#' @param pair_col Character; column name in colData containing pair IDs for paired designs.
+#'   Default: NULL (auto-detect if needed).
+#'
+#' @param min_tx_per_gene Integer minimum number of transcripts per gene required
+#'   (default 2L). Single-transcript genes are always kept. Ignored if \code{stringency}
+#'   is specified; when specified, automatically adjusted based on stringency level.
+#'
+#' @param min_isoform_abundance Numeric in [0, 1]; minimum relative abundance threshold
+#'   for isoforms within each gene. Implements Soneson et al. (2016) filtering.
+#'   Default behavior:
+#'   - If \code{stringency} is specified: uses stringency-based default (soft: 0.01, medium: 0.05, severe: 0.15)
+#'   - If \code{stringency} is NULL: uses default 0.05 (5%)
+#'   - If explicitly provided: overrides any stringency default
+#'   Set to 0 or NULL (post-stringency processing) to skip isoform-level filtering.
+#'
+#' @param min_valid_frac Numeric in [0, 1]; minimum fraction of samples where a gene
+#'   must be detected (counts > 0) to be retained (default: NULL, no filtering).
+#'   For example, \code{min_valid_frac = 0.5} requires genes to be non-zero in at least
+#'   50% of samples.
+#'
+#' @param assay_name Character; name or index of the assay to use for filtering
+#'   (default: 'counts'). Deprecated: use \code{tpm_assay_name} instead.
+#'
+#' @param subset_n_genes Integer; optional number of genes to retain after filtering.
+#'   If provided, genes are selected based on \code{subset_select_by}. Default: NULL.
+#'
+#' @param subset_genes Character vector; optional specific genes to retain after filtering.
+#'   Default: NULL.
+#'
+#' @param subset_n_samples Integer; optional number of samples to retain after filtering.
+#'   If provided, samples are selected (balanced by condition if available).
+#'   Default: NULL.
+#'
+#' @param subset_samples Character vector; optional specific samples to retain after filtering.
+#'   Default: NULL.
+#'
+#' @param subset_select_by Character; gene selection method for \code{subset_n_genes}:
+#'   "variance" (highest variance), "mean" (highest mean expression), or "random".
+#'   Default: "variance".
+#'
+#' @param subset_seed Integer; random seed for reproducibility when \code{subset_select_by = "random"}.
+#'   Default: 42.
+#'
+#' @param subset_min_count Numeric; optional minimum count threshold applied during subsetting.
+#'   Default: NULL.
 #'
 #' @param verbose Logical. If TRUE, print filtering progress and summary statistics
 #'   (default: FALSE).
@@ -3980,12 +4033,15 @@ m_estimate_s4 <- function(
 #'
 #' @details
 #' This wrapper applies \code{.filter_se()} to the SummarizedExperiment within
-#' the TSENATAnalysis object. The function:
+#' the TSENATAnalysis object, optionally followed by subsetting parameters.
+#' The filtering and subsetting operations are applied in sequence:
 #'
 #' 1. Extracts the SE from \code{analysis@se}
-#' 2. Filters using \code{.filter_se()} with specified parameters
-#' 3. Stores the filtered SE back in \code{analysis@se}
-#' 4. Returns the modified analysis object invisibly
+#' 2. Filters using \code{.filter_se()} with specified filtering parameters
+#' 3. If any subset parameters are provided, applies gene/sample selection
+#'    to select specific genes and/or samples
+#' 4. Stores the filtered/subsetted SE back in \code{analysis@se}
+#' 5. Returns the modified analysis object invisibly
 #'
 #' **Important:** Filtering should be performed BEFORE computing diversity,
 #' divergence, or LM interaction results. If called after analysis results
@@ -4007,11 +4063,23 @@ m_estimate_s4 <- function(
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- filter_analysis_s4(analysis, stringency = "medium")
 #'
 #' @export
-filter_analysis_s4 <- function(analysis, stringency = NULL, min_samples = 5L, verbose = FALSE) {
+filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
+    min_samples = 5L, stringency = NULL, pair_col = NULL,
+    min_tx_per_gene = 2L, min_isoform_abundance = NULL,
+    assay_name = "counts",
+    # Subsetting parameters (optional, applied after filtering)
+    subset_n_genes = NULL,
+    subset_genes = NULL,
+    subset_n_samples = NULL,
+    subset_samples = NULL,
+    subset_select_by = c("variance", "mean", "random"),
+    subset_seed = 42,
+    subset_min_count = NULL,
+    verbose = FALSE) {
   # Validate input
   if (!inherits(analysis, "TSENATAnalysis")) {
     stop("analysis must be a TSENATAnalysis object", call. = FALSE)
@@ -4020,16 +4088,49 @@ filter_analysis_s4 <- function(analysis, stringency = NULL, min_samples = 5L, ve
   # Extract SE from analysis
   se <- analysis@se
 
-  # Apply filtering via .filter_se(colData is already preserved within filter_se)
+  # Apply filtering via .filter_se() with all parameters
   se_filtered <- .filter_se(
     se = se,
-    stringency = stringency,
+    min_tpm = min_tpm,
+    tpm_assay_name = tpm_assay_name,
     min_samples = min_samples,
+    stringency = stringency,
+    pair_col = pair_col,
+    min_tx_per_gene = min_tx_per_gene,
+    min_isoform_abundance = min_isoform_abundance,
+    assay_name = assay_name,
     verbose = verbose
   )
 
   # Store filtered SE back in analysis object
   analysis@se <- se_filtered
+
+  # Apply optional subsetting after filtering
+  has_subset_params <- !is.null(subset_n_genes) || !is.null(subset_genes) ||
+                       !is.null(subset_n_samples) || !is.null(subset_samples) ||
+                       !is.null(subset_min_count)
+  
+  if (has_subset_params) {
+    if (verbose) {
+      message("Applying subset_analysis to filtered data...")
+    }
+    
+    # Use match.arg to validate subset_select_by
+    subset_select_by <- match.arg(subset_select_by)
+    
+    # Apply subsetting via .subset_analysis
+    analysis <- .subset_analysis(
+      analysis = analysis,
+      n_genes = subset_n_genes,
+      n_samples = subset_n_samples,
+      genes = subset_genes,
+      samples = subset_samples,
+      select_by = subset_select_by,
+      seed = subset_seed,
+      min_count = subset_min_count,
+      verbose = verbose
+    )
+  }
 
   # Return modified analysis object
   analysis

@@ -6,8 +6,21 @@
 \usage{
 filter_analysis_s4(
   analysis,
-  stringency = NULL,
+  min_tpm = 1,
+  tpm_assay_name = NULL,
   min_samples = 5L,
+  stringency = NULL,
+  pair_col = NULL,
+  min_tx_per_gene = 2L,
+  min_isoform_abundance = NULL,
+  assay_name = "counts",
+  subset_n_genes = NULL,
+  subset_genes = NULL,
+  subset_n_samples = NULL,
+  subset_samples = NULL,
+  subset_select_by = c("variance", "mean", "random"),
+  subset_seed = 42,
+  subset_min_count = NULL,
   verbose = FALSE
 )
 }
@@ -15,18 +28,71 @@ filter_analysis_s4(
 \item{analysis}{A \code{TSENATAnalysis} S4 object containing the
 \code{SummarizedExperiment} to be filtered.}
 
-\item{stringency}{Character. Filtering stringency level:
-"strict" (most stringent, default for unpaired designs),
-"medium" (moderate, default for paired designs), or
-"lenient" (least stringent).
-Each keeps transcripts present in different percentages of samples with TPM >= median.
-Default is determined by study design (paired vs unpaired).}
+\item{min_tpm}{Numeric TPM threshold (default 1.0).
+Keeps transcripts with TPM >= \code{min_tpm} in >= \code{min_samples} samples.
+Ignored if \code{stringency} is specified.}
+
+\item{tpm_assay_name}{Character; name of assay containing TPM data (default: NULL).
+If NULL, searches for TPM assay automatically.}
 
 \item{min_samples}{Numeric. Minimum number of samples in which a transcript
-must be present (default: 5). Used as a secondary filter.}
+must be present (default: 5). Ignored if \code{stringency} is specified.}
+
+\item{stringency}{Character. Filtering stringency level: "soft" (permissive),
+"medium" (balanced), or "severe" (stringent). When specified, auto-estimates:
+\code{min_samples}, \code{min_tpm}, \code{min_tx_per_gene}, and \code{min_isoform_abundance}
+from data. Requires \code{pair_col} in colData for paired designs.
+User-provided values for any parameter override stringency defaults.
+Default: NULL (use explicit parameters).}
+
+\item{pair_col}{Character; column name in colData containing pair IDs for paired designs.
+Default: NULL (auto-detect if needed).}
+
+\item{min_tx_per_gene}{Integer minimum number of transcripts per gene required
+(default 2L). Single-transcript genes are always kept. Ignored if \code{stringency}
+is specified; when specified, automatically adjusted based on stringency level.}
+
+\item{min_isoform_abundance}{Numeric in [0, 1]; minimum relative abundance threshold
+for isoforms within each gene. Implements Soneson et al. (2016) filtering.
+Default behavior:
+- If \code{stringency} is specified: uses stringency-based default (soft: 0.01, medium: 0.05, severe: 0.15)
+- If \code{stringency} is NULL: uses default 0.05 (5%)
+- If explicitly provided: overrides any stringency default
+Set to 0 or NULL (post-stringency processing) to skip isoform-level filtering.}
+
+\item{assay_name}{Character; name or index of the assay to use for filtering
+(default: 'counts'). Deprecated: use \code{tpm_assay_name} instead.}
+
+\item{subset_n_genes}{Integer; optional number of genes to retain after filtering.
+If provided, genes are selected based on \code{subset_select_by}. Default: NULL.}
+
+\item{subset_genes}{Character vector; optional specific genes to retain after filtering.
+Default: NULL.}
+
+\item{subset_n_samples}{Integer; optional number of samples to retain after filtering.
+If provided, samples are selected (balanced by condition if available).
+Default: NULL.}
+
+\item{subset_samples}{Character vector; optional specific samples to retain after filtering.
+Default: NULL.}
+
+\item{subset_select_by}{Character; gene selection method for \code{subset_n_genes}:
+"variance" (highest variance), "mean" (highest mean expression), or "random".
+Default: "variance".}
+
+\item{subset_seed}{Integer; random seed for reproducibility when \code{subset_select_by = "random"}.
+Default: 42.}
+
+\item{subset_min_count}{Numeric; optional minimum count threshold applied during subsetting.
+Default: NULL.}
 
 \item{verbose}{Logical. If TRUE, print filtering progress and summary statistics
 (default: FALSE).}
+
+\item{min_valid_frac}{Numeric in [0, 1]; minimum fraction of samples where a gene
+must be detected (counts > 0) to be retained (default: NULL, no filtering).
+For example, \code{min_valid_frac = 0.5} requires genes to be non-zero in at least
+50% of samples.}
 }
 \value{
 Invisibly returns the modified \code{analysis} object with filtered
@@ -41,12 +107,15 @@ S4 workflow pattern where functions accept and return analysis objects.
 }
 \details{
 This wrapper applies \code{.filter_se()} to the SummarizedExperiment within
-the TSENATAnalysis object. The function:
+the TSENATAnalysis object, optionally followed by subsetting parameters.
+The filtering and subsetting operations are applied in sequence:
 
 1. Extracts the SE from \code{analysis@se}
-2. Filters using \code{.filter_se()} with specified parameters
-3. Stores the filtered SE back in \code{analysis@se}
-4. Returns the modified analysis object invisibly
+2. Filters using \code{.filter_se()} with specified filtering parameters
+3. If any subset parameters are provided, applies gene/sample selection
+   to select specific genes and/or samples
+4. Stores the filtered/subsetted SE back in \code{analysis@se}
+5. Returns the modified analysis object invisibly
 
 **Important:** Filtering should be performed BEFORE computing diversity,
 divergence, or LM interaction results. If called after analysis results
@@ -65,7 +134,7 @@ metadata_df <- read.table(
 gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 analysis <- filter_analysis_s4(analysis, stringency = "medium")
 
 }

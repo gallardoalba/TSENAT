@@ -191,3 +191,54 @@ setMethod("summary", "TSENATAnalysis", function(object) {
     
     invisible(object)
 })
+
+#' Retrieve Pseudocount Used in Diversity Calculation
+#'
+#' Extracts the pseudocount value used in the last `calculate_diversity_s4()` call.
+#' When pseudocount="auto", displays the actual computed value.
+#'
+#' @param object TSENATAnalysis object.
+#' @param original logical. If TRUE, returns original parameter (e.g., "auto" string).
+#'   If FALSE (default), returns resolved numeric value.
+#' @return numeric. The pseudocount value used, or NULL if diversity not yet calculated.
+#'
+#' @examples
+#' # analysis <- calculate_diversity_s4(analysis, pseudocount = "auto")
+#' # pc <- get_pseudocount(analysis)
+#' # pc  # e.g., 0.5267
+#'
+#' @export
+get_pseudocount <- function(object, original = FALSE) {
+  if (!is(object, "TSENATAnalysis")) {
+    stop("'object' must be a TSENATAnalysis object", call. = FALSE)
+  }
+  
+  # Check for diversity_combined metadata from last calculate_diversity_s4 call
+  if (!is.null(object@metadata$diversity_combined)) {
+    computation_params <- object@metadata$diversity_combined$computation_params
+    if (!is.null(computation_params)) {
+      if (original) {
+        # Return original parameter (could be "auto" or numeric)
+        return(computation_params$pseudocount_original %||% computation_params$pseudocount)
+      } else {
+        # Return resolved numeric value
+        return(computation_params$pseudocount)
+      }
+    }
+  }
+  
+  # Fallback: check last_diversity_run config
+  if (!is.null(object@config$last_diversity_run)) {
+    params_used <- object@config$last_diversity_run$parameters_used
+    if (!is.null(params_used)) {
+      if (original) {
+        return(params_used$pseudocount_original %||% params_used$pseudocount)
+      } else {
+        return(params_used$pseudocount)
+      }
+    }
+  }
+  
+  # No diversity calculation found
+  NULL
+}

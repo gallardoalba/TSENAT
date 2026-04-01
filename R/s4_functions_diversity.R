@@ -31,8 +31,6 @@
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #' @param pseudocount \code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
 #'   If NULL, reads from \code{@config$pseudocount} if available.
-#' @param min_valid_frac \code{numeric}. Minimum valid fraction threshold. Default: 0.75.
-#'   If NULL, reads from \code{@config$min_valid_frac} if available.
 #' @param shrinkage \code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
 #'   If NULL, reads from \code{@config$shrinkage} if available.
 #' @param genes \code{character} or \code{NULL}. Gene set specification. Default: NULL (use all genes).
@@ -144,7 +142,7 @@
 #' 
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' 
 #' # Compute diversity and access results
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
@@ -205,6 +203,17 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
   
 
   
+  # Resolve pseudocount if "auto" was used to capture actual computed value
+  pseudocount_resolved <- params$pseudocount
+  if (is.character(params$pseudocount) && tolower(params$pseudocount) == "auto") {
+    pseudocount_resolved <- .handle_pseudocount_auto(params$pseudocount, analysis@se, verbose = FALSE)
+    
+    # Show message about resolved pseudocount
+    if (params$verbose) {
+      message(sprintf("[calculate_diversity_s4] Resolved pseudocount (auto) = %.4f", pseudocount_resolved))
+    }
+  }
+  
   # Store the original result SE for later per-q extraction
   result_se_original <- result_df
   
@@ -222,7 +231,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       norm = params$norm,
       verbose = params$verbose,
       bootstrap = params$bootstrap,
-      pseudocount = params$pseudocount,
+      pseudocount = pseudocount_resolved,  # Store resolved value, not "auto" string
+      pseudocount_original = params$pseudocount,  # Store original for reference
       nthreads = params$nthreads,
       what = params$what
     ),
@@ -244,7 +254,9 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       pattern = q_pattern,
       patterns_alt = list(
         paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 3)), "$"),
-        paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 2)), "$")
+        paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 2)), "$"),
+        paste0("_q=", gsub("\\.", "\\\\.", formatC(q_val, format = "f", digits = 1)), "$"),
+        paste0("_q=", gsub("\\.", "\\\\.", as.character(as.integer(q_val))), "$")  # No decimals
       )
     )
   }
@@ -272,7 +284,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
           q_cols_temp <- grep(q_pattern_str, colnames(result_df))
           if (length(q_cols_temp) > 0) {
             q_cols <- q_cols_temp
-            col_match_method <- paste0("pattern_", c(3, 2)[pattern_idx], "digits")
+            digit_labels <- c(3, 2, 1, 0)
+            col_match_method <- paste0("pattern_", digit_labels[pattern_idx], "digits")
             break
           }
         }
@@ -377,8 +390,9 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
       
       attr(result_se, "computed_with") <- list(
         q = q_val, norm = params$norm, norm_method = params$norm_method,
-        verbose = params$verbose, bootstrap = params$bootstrap, pseudocount = params$pseudocount,
-        nthreads = params$nthreads, what = params$what, timestamp = Sys.time()
+        verbose = params$verbose, bootstrap = params$bootstrap, pseudocount = pseudocount_resolved,
+        pseudocount_original = params$pseudocount, nthreads = params$nthreads, 
+        what = params$what, timestamp = Sys.time()
       )
       analysis@diversity_results[[key]] <- result_se
       
@@ -406,7 +420,8 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     num_q_values = length(params$q),
     parameters_used = list(
       norm = params$norm, norm_method = params$norm_method, verbose = params$verbose,
-      bootstrap = params$bootstrap, pseudocount = params$pseudocount, nthreads = params$nthreads,
+      bootstrap = params$bootstrap, pseudocount = pseudocount_resolved, 
+      pseudocount_original = params$pseudocount,  nthreads = params$nthreads,
       what = params$what
     ),
     note = "Actual parameters used (save object and check this, not original @config)"
@@ -590,11 +605,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
 # HELPER: Prepare and resolve all parameters for diversity calculation
 # ============================================================================
 #' @noRd
-.prepare_diversity_params <- function(analysis, q, norm, norm_method, reference_group,
-                                      tpm, assayno, verbose, what, nthreads, pseudocount,
-                                      min_valid_frac, shrinkage, genes, effective_length,
-                                      metadata, bootstrap, nboot, bootstrap_method,
-                                      bootstrap_ci, bootstrap_include_diagnostics, seed, show_messages = FALSE) {
+.prepare_diversity_params <- function(analysis, q = NULL, norm = NULL, norm_method = NULL, reference_group = NULL,
+                                      tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL, nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+                                      shrinkage = NULL, genes = NULL, effective_length = NULL,
+                                      metadata = NULL, bootstrap = NULL, nboot = NULL, bootstrap_method = NULL,
+                                      bootstrap_ci = NULL, bootstrap_include_diagnostics = NULL, seed = NULL, show_messages = FALSE) {
   # Extract q parameter with default range
   if (is.null(q)) {
     q <- if ("q_values" %in% names(analysis@config)) {
@@ -641,10 +656,10 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     show_messages = show_messages,
     bootstrap = resolve_slot_param(bootstrap, analysis@config, "bootstrap", FALSE),
     pseudocount = resolve_slot_param(pseudocount, analysis@config, "pseudocount", 0),
+    min_valid_frac = resolve_slot_param(min_valid_frac, analysis@config, "min_valid_frac", 0.75),
     norm = resolve_slot_param(norm, analysis@config, "norm", TRUE),
     what = resolve_slot_param(what, analysis@config, "what", "S"),
     assayno = resolve_slot_param(assayno, analysis@config, "assayno", 1),
-    min_valid_frac = resolve_slot_param(min_valid_frac, analysis@config, "min_valid_frac", 0.75),
     shrinkage = resolve_slot_param(shrinkage, analysis@config, "shrinkage", "none"),
     bootstrap_method = resolve_slot_param(bootstrap_method, analysis@config, "bootstrap_method", "percentile"),
     bootstrap_ci = resolve_slot_param(bootstrap_ci, analysis@config, "bootstrap_ci", 0.95),

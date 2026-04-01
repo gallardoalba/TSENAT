@@ -82,8 +82,32 @@
   }
   
   # Use tapply for vectorized gene-to-name mapping
+  # CRITICAL FIX: Must verify gene_names_col and genes have matching lengths
   tx_genes <- genes
   gene_names_col <- rd[[gene_name_col]]
+  
+  # Check for length mismatch and handle gracefully
+  if (length(gene_names_col) != length(tx_genes)) {
+    # Length mismatch - try to recover using rownames
+    se_rownames <- rownames(original_x)
+    if (!is.null(se_rownames) && length(se_rownames) == length(gene_names_col)) {
+      # Map rownames to gene names, then use to look up names for each tx_gene
+      names(gene_names_col) <- se_rownames
+      tx_genes_char <- as.character(tx_genes)
+      # Try to match each tx_gene to a rowname
+      matched_idx <- match(tx_genes_char, se_rownames)
+      if (!all(is.na(matched_idx)) && sum(!is.na(matched_idx)) == length(tx_genes)) {
+        # Successfully matched - use the indexed gene names
+        gene_names_col <- gene_names_col[matched_idx]
+      } else {
+        # Could not match - return NULL to skip gene name extraction
+        return(NULL)
+      }
+    } else {
+      # Cannot resolve length mismatch - return NULL
+      return(NULL)
+    }
+  }
   
   gene_to_name <- tapply(gene_names_col, tx_genes, function(x) {
     x_valid <- x[!is.na(x)]
@@ -110,8 +134,8 @@
 
 #' @noRd
 .prepare_diversity_data <- function(x, genes, original_x, effective_length, 
-    norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose, 
-    tpm, assayno, show_messages = FALSE) {
+    norm, q, what, nthreads, shrinkage, pseudocount, verbose, 
+    tpm, assayno, show_messages = FALSE, min_valid_frac = 0.75) {
     
     # Prepare input data
     inp <- .prepare_diversity_input(x = x, genes = genes, tpm = tpm, assayno = assayno,
@@ -211,10 +235,13 @@
     
     # Set assay dimnames to match rowData/colData rownames
     # This ensures compatibility with SummarizedExperiment constructor
+    # IMPORTANT: Only set rownames here; colnames must match result_assay's existing names
+    # The colData rownames are formatted with decimals (e.g., "q=1.000"), 
+    # while result_assay colnames use the original formatting from .calculate_method()
     rownames(result_assay) <- rownames(output_structure$rowData)
-    colnames(result_assay) <- rownames(output_structure$colData)
     rownames(counts_assay) <- rownames(output_structure$rowData)
-    colnames(counts_assay) <- rownames(output_structure$colData)
+    # DO NOT overwrite colnames - keep the original formatting from result matrix
+    # This ensures colnames match what the SummarizedExperiment expects
     
     # Create assays list with appropriate name based on what parameter
     assay_name <- if (what[1] == "D") "hill" else "diversity"
@@ -404,12 +431,12 @@
   
   if (length(q) > 1) {
     col_split <- do.call(rbind, strsplit(colnames(result)[-1], "_q="))
-    col_ids <- paste0(col_split[, 1], "_q=", col_split[, 2])
+    col_ids <- paste0(col_split[, 1], "_q=", col_split[, 2])  # Keep original formatting
     
     result_colData <- data.frame(
       samples = as.character(col_split[, 1]),
       q = as.numeric(col_split[, 2]),
-      row.names = col_ids,
+      row.names = col_ids,  # Use the same format as the assay colnames
       stringsAsFactors = FALSE
     )
     
@@ -432,13 +459,12 @@
       }
     }
   } else {
-    # Single q-value
+    # Single q-value - use raw q value formatting like .calculate_method() does
     base_col_ids <- colnames(x)
     if (is.null(base_col_ids) || any(base_col_ids == "")) {
       base_col_ids <- paste0("Sample", seq_len(ncol(x)))
     }
-    q_formatted <- formatC(q, format = "f", digits = 3)
-    col_ids <- paste0(base_col_ids, "_q=", q_formatted)
+    col_ids <- paste0(base_col_ids, "_q=", q)  # Use raw q, no formatting
     
     result_colData <- data.frame(
       samples = base_col_ids,
@@ -467,8 +493,11 @@
 #' @param x A numeric matrix or data.frame of transcript-level expression
 #' values (rows = transcripts, columns = samples), or a SummarizedExperiment-
 #' like object.
-#' @param tpm Logical. If TRUE and `x` is a tximport-style list, use the
-#' `$abundance` matrix instead of `$counts`.
+#' @param tpm Logical. If TRUE, use TPM/abundance data instead of raw counts.
+#' For tximport-style lists: uses the `$abundance` matrix instead of `$counts`.
+#' For SummarizedExperiment: looks for an assay named "tpm"; if found, uses it;
+#' otherwise falls back to the assay specified by `assayno` parameter and warns
+#' if `tpm=TRUE`.
 #' @param genes Character vector assigning each transcript (row) to a gene.
 #' Must have length equal to nrow(x) or the number of transcripts in `x`.
 #' @param norm Logical or character; normalization/standardization mode (default: TRUE).
@@ -499,14 +528,19 @@
 #' automatically estimated using library size adjustment via `.estimate_pseudocount()`
 #' (recommended for sparse count data where regularization strength should adapt
 #' to sequencing depth).
-#' @param min_valid_frac Numeric scalar in [0, 1]; minimum fraction of valid
-#' (finite) values required per gene to be retained in results (default: 0.75).
-#' Genes with fewer valid values are excluded from output. This is a
-#' **statistical quality requirement**: genes with sparse/incomplete data are
-#' unreliable for hypothesis testing (paired Wilcoxon tests, linear mixed models).
-#' Set to 0 to disable filtering and keep all genes (not recommended for
-#' hypothesis testing). For exploratory/descriptive analysis, lower thresholds
-#' (e.g., 0.5) are acceptable.
+#' @param min_count Numeric scalar or NULL; minimum total transcript count per gene
+#' required to include the gene in results (default: NULL = auto-detect).
+#' Genes with `sum(counts) < min_count` are completely excluded from output
+#' (no diversity value, no bootstrap CI). This prevents artificial pseudocount
+#' inflation for sparse genes and ensures bootstrap resampling operates on real data.
+#' - NULL (default): Auto-detects threshold as the 50th percentile (median) of gene totals
+#'   via `.suggest_min_count()`. Typical values: 10-50 depending on dataset.
+#' - Numeric (e.g., 10): User-specified threshold; keep genes with >= 10 total counts.
+#' - 0: Disable filtering (not recommended for bootstrap analysis).
+#' **Important:** This filtering happens BEFORE diversity calculation and bootstrap.
+#' Genes filtered by `min_count` will not appear in output.
+#' **Bibliography:** Papers S070, S197 (DESeq2, edgeR) recommend filtering low-abundance
+#' genes before hypothesis testing; same principle applies to bootstrap CI validity.
 #' @param shrinkage Character; method for stabilizing entropy estimates, particularly
 #' for genes with few expressed isoforms (default: "none"). Options:
 #' - "none": returns raw entropy estimates with no shrinkage
@@ -576,8 +610,7 @@
 #'   described in papers S004-S006 (Bayesian shrinkage methods), improving stability
 #'   for genes with few expressed isoforms.
 #' [OK] Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
-#'   min_valid_frac >= 0.75 and pseudocount >= 0.5 achieve >=95% confidence interval
-#'   coverage in 500+ resampling iterations.
+#'   pseudocount >= 0.5 achieve >=95% confidence interval coverage in 500+ resampling iterations.
 #' [OK] Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
 #'   that analyzing multiple q values reveals different aspects of isoform diversity,
 #'   with each q capturing distinct biological information (rare vs. abundant isoform shifts).
@@ -605,8 +638,8 @@
 #' @noRd
 
 .calculate_diversity <- function(x, genes = NULL, norm = TRUE, tpm = FALSE, assayno = 1,
-    verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, 
-    min_valid_frac = 0.75, shrinkage = "none", effective_length = NULL, metadata = NULL,
+    verbose = FALSE, show_messages = FALSE, q = 2, what = c("S", "D"), nthreads = 1, pseudocount = 0, min_valid_frac = 0.75,
+    shrinkage = "none", effective_length = NULL, metadata = NULL,
     bootstrap = FALSE, bootstrap_nboot = NULL, bootstrap_method = "percentile",
     bootstrap_ci = 0.95, bootstrap_include_diagnostics = TRUE, seed = NULL) {
     
@@ -623,8 +656,8 @@
     
     # Prepare input and calculate diversity
     prep <- .prepare_diversity_data(x, genes, original_x, effective_length,
-        norm, q, what, nthreads, shrinkage, pseudocount, min_valid_frac, verbose,
-        tpm, assayno, show_messages)
+        norm, q, what, nthreads, shrinkage, pseudocount, verbose,
+        tpm, assayno, show_messages, min_valid_frac)
     result <- prep$result
     x <- prep$x
     genes <- prep$genes
@@ -634,7 +667,7 @@
     # Optional: Compute bootstrap CIs
     bootstrap_ci_results <- .bootstrap_diversity_ci(bootstrap, result, genes, se_assay_mat,
         bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads,
-        bootstrap_include_diagnostics, verbose, seed, effective_length, show_messages)
+        bootstrap_include_diagnostics, verbose, seed, effective_length, show_messages, min_valid_frac)
     
     # Prepare output structure
     gene_names <- .extract_gene_names(original_x, genes, result)

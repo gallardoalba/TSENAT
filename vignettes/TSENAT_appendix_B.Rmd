@@ -104,7 +104,11 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 # Apply filtering for quality control
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(
+    analysis,
+    stringency = "medium",
+    min_isoform_abundance = 0
+)
 ```
 
 ## Library Size Normalization for Pseudocounts
@@ -116,12 +120,12 @@ For robust entropy estimation on sparse count data, we normalize pseudocounts by
 analysis <- calculate_diversity_s4(
   analysis, 
   norm = TRUE,
-  pseudocount = "auto",
-  bootstrap = TRUE,
-  nboot = 50,
-  output_file = file.path("output", "appendix_b_diversity.tsv")
+  pseudocount = "auto"
 )
 
+# Display the pseudocount value that was actually used when "auto" was selected
+pc_used <- get_pseudocount(analysis)
+sprintf("Pseudocount value used for diversity calculation: %.6f", pc_used) |> print()
 ```
 
 # Rank-Based Approach (Friedman)
@@ -133,8 +137,7 @@ Before applying rank-based methods, we verify that the entropy data meets the ke
 ```{r rank-assumptions-calculation, message=FALSE}
 # Validate Friedman test assumptions using S4 wrapper
 analysis <- test_rankbased_assumptions_s4(
-    analysis,
-    output_file = file.path("output", "appendix_b_rank_assumptions.tsv")
+    analysis
 )
 
 # Extract the result object from metadata using accessor function
@@ -219,9 +222,7 @@ knitr::kable(data_characteristics,
 #  - Westfall-Young permutation correction respects AR(1) q-correlation + condition structure
 analysis <- rank_test_q_condition_s4(
     analysis,
-    multicorr = "hochberg",
-    verbose = TRUE,
-    output_file = file.path("output", "appendix_b_rank_test_results.tsv")
+    multicorr = "hochberg"
 )
 
 # Extract results from S4 object using accessor

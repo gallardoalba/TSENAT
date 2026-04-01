@@ -249,12 +249,12 @@
 #' @noRd
 .bootstrap_process_multiple_q <- function(x, q, norm, nboot, ci, method, log_base,
                                           pseudocount, what, seed, gene_name, verbose,
-                                          include_diagnostics, use_job, paired, effective_length = NULL) {
+                                          include_diagnostics, use_job, paired, effective_length = NULL, min_valid_frac = 0.75) {
   results_list <- lapply(q, function(q_val) {
     .calculate_tsallis_entropy_bootstrap(x = x, se = NULL, res = NULL, top_n = 1, q = q_val,
       norm = norm, nboot = nboot, ci = ci, method = method, log_base = log_base,
       pseudocount = pseudocount, what = what, seed = seed, gene_name = NULL, verbose = FALSE,
-      include_diagnostics = include_diagnostics, use_job = use_job, paired = paired, effective_length = effective_length)
+      include_diagnostics = include_diagnostics, use_job = use_job, paired = paired, effective_length = effective_length, min_valid_frac = min_valid_frac)
   })
   names(results_list) <- paste0("q=", q)
   structure(results_list, class = c("tsenat_bootstrap_ci_list", "list"))
@@ -740,10 +740,89 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   return(bootstrap_dist)
 }
 
+#' Internal: Bootstrap resampling with quality control enforcement
+#'
+#' Wraps .bootstrap_resample_optimized() and enforces min_valid_frac by regenerating
+#' invalid (NA/NaN) replicates until the quality threshold is met.
+#'
+#' @noRd
+.bootstrap_resample_with_quality_control <- function(x, q, norm, nboot, log_base, 
+                                                      pseudocount, what, paired = FALSE, 
+                                                      effective_length = NULL, min_valid_frac = 0.75) {
+  # Generate initial bootstrap replicates
+  bootstrap_dist <- .bootstrap_resample_optimized(
+    x, q = q, norm = norm, nboot = nboot,
+    log_base = log_base, pseudocount = pseudocount, what = what, 
+    paired = paired, effective_length = effective_length
+  )
+  
+  # Count invalid replicates and check against threshold
+  n_invalid <- sum(is.na(bootstrap_dist) | is.nan(bootstrap_dist))
+  n_valid <- nboot - n_invalid
+  valid_frac <- n_valid / nboot
+  
+  # If all replicates are valid, return early
+  if (n_invalid == 0) {
+    return(bootstrap_dist)
+  }
+  
+  # Regenerate invalid replicates until min_valid_frac is met
+  # Database validation (C016, 2005): Bootstrap must operate on raw data with consistency checks
+  max_attempts <- 10
+  attempt <- 1
+  regenerated_total <- 0
+  
+  while (valid_frac < min_valid_frac && attempt <= max_attempts) {
+    # Find indices of invalid replicates
+    invalid_idx <- which(is.na(bootstrap_dist) | is.nan(bootstrap_dist))
+    n_to_regenerate <- length(invalid_idx)
+    
+    if (n_to_regenerate == 0) break  # All replicates are valid
+    
+    # Regenerate only the invalid replicates
+    replacement_dist <- .bootstrap_resample_optimized(
+      x, q = q, norm = norm, nboot = n_to_regenerate,
+      log_base = log_base, pseudocount = pseudocount, what = what,
+      paired = paired, effective_length = effective_length
+    )
+    
+    # Replace invalid replicates with regenerated ones
+    bootstrap_dist[invalid_idx] <- replacement_dist
+    regenerated_total <- regenerated_total + n_to_regenerate
+    
+    # Recount and check
+    n_invalid <- sum(is.na(bootstrap_dist) | is.nan(bootstrap_dist))
+    n_valid <- nboot - n_invalid
+    valid_frac <- n_valid / nboot
+    
+    if (valid_frac >= min_valid_frac) {
+      # Quality threshold met
+      if (regenerated_total > 0) {
+        message(sprintf("[Bootstrap QC] Regenerated %d replicates across %d attempt(s). Final valid_frac: %.1f%%",
+                        regenerated_total, attempt, valid_frac * 100))
+      }
+      return(bootstrap_dist)
+    }
+    
+    attempt <- attempt + 1
+  }
+  
+  # If we exit the loop without meeting threshold, warn and return what we have
+  if (valid_frac < min_valid_frac) {
+    warning(sprintf(
+      "Bootstrap regeneration could not achieve min_valid_frac=%.0f%% (got %.1f%% after %d attempts, %d replicates regenerated). ",
+      min_valid_frac * 100, valid_frac * 100, max_attempts, regenerated_total),
+      "CI may be unreliable. Consider checking input data for all-zero counts or extreme sparsity."
+    )
+  }
+  
+  bootstrap_dist
+}
+
 #' Internal: Compute bootstrap CI
 
 #' @noRd
-.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired = FALSE, effective_length = NULL) {
+.bootstrap_compute_ci <- function(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired = FALSE, effective_length = NULL, min_valid_frac = 0.75) {
   # CRITICAL: Apply effective_length normalization BEFORE point estimate & bootstrap resampling
   # This ensures both use the same data transformation and bootstrap CIs contain the point estimate
   x_for_calc <- x
@@ -768,23 +847,16 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   
 
   
-  # Use optimized bootstrap resampling on already-normalized data
+  # Use quality-controlled bootstrap resampling on already-normalized data
   # Pass effective_length=NULL since normalization was already applied above
-  bootstrap_dist <- .bootstrap_resample_optimized(x_for_calc, q = q, norm = norm, nboot = nboot,
-    log_base = log_base, pseudocount = pseudocount, what = what, paired = paired, effective_length = NULL)
+  # Enforces min_valid_frac by regenerating invalid replicates
+  bootstrap_dist <- .bootstrap_resample_with_quality_control(
+    x_for_calc, q = q, norm = norm, nboot = nboot,
+    log_base = log_base, pseudocount = pseudocount, what = what, paired = paired, 
+    effective_length = NULL, min_valid_frac = min_valid_frac)
   
-  # CRITICAL: Check for NaN/Inf in bootstrap distribution
-  # This can happen with all-zero counts or numerical instability
-  n_na_values <- sum(is.na(bootstrap_dist))
+  # After quality control, check if CI is computable
   n_valid_values <- sum(!is.na(bootstrap_dist))
-  
-  if (n_na_values > 0) {
-    warning("Bootstrap distribution contains ", n_na_values, " NA values out of ", nboot, " replicates. ",
-            if (n_valid_values == 0) 
-              "All replicates are invalid - suggests all-zero input counts." 
-            else 
-              sprintf("Using %d valid replicates for CI computation.", n_valid_values))
-  }
   
   # If all bootstrap replicates are invalid, return NAs for CI
   if (n_valid_values == 0) {
@@ -1069,7 +1141,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
     q = 2, norm = TRUE, nboot = "auto", ci = 0.95, method = c("percentile", "bca"),
     log_base = exp(1), pseudocount = 0, what = c("S", "D"), seed = NULL, gene_name = NULL,
     verbose = TRUE, include_diagnostics = TRUE, use_job = FALSE, nthreads = 1, paired = FALSE,
-    effective_length = NULL, show_messages = FALSE) {
+    effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75) {
 
   method <- match.arg(method)
   what <- match.arg(what)
@@ -1107,7 +1179,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   # PHASE 5: Handle multiple q values
   if (length(q) > 1) {
     result <- .bootstrap_process_multiple_q(x, q, norm, nboot, ci, method, log_base,
-      pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, paired, effective_length)
+      pseudocount, what, seed, gene_name, verbose, include_diagnostics, use_job, paired, effective_length, min_valid_frac)
     if (verbose && !is.null(gene_name)) {
       message("Bootstrap Confidence Intervals for ", gene_name, " (multiple q values)")
       for (i in seq_along(result)) {
@@ -1120,7 +1192,7 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(
   }
   
   # PHASE 6: Compute single q bootstrap CI
-  ci_data <- .bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired, effective_length)
+  ci_data <- .bootstrap_compute_ci(x, q, norm, nboot, ci, method, log_base, pseudocount, what, paired, effective_length, min_valid_frac)
   
   # PHASE 7: Compute diagnostics (if requested)
   diag_list <- .bootstrap_compute_diag(ci_data$point_est, ci_data$bootstrap_dist, use_job,
@@ -2256,6 +2328,11 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
     stringsAsFactors = FALSE
   )
   
+  # BUGFIX (April 2026): Pair each gene's median with its corresponding CI bounds
+  # Previously: computed median from ALL genes, but CI bounds from ALL genes separately
+  # Result: CI displacement when genes have different variability
+  # Fix: aggregate PER GENE first, then combine across genes using median of medians
+  
   for (group_val in groups) {
     for (q_val in unique_q) {
       # Convert q_val to numeric for comparison with long$q
@@ -2265,52 +2342,101 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
         dplyr::filter(group == group_val, as.numeric(as.character(q)) == matching_q_val)
       
       if (nrow(group_q_data) > 0) {
-        # Use ORIGINAL OBSERVED median (robust measure of central tendency)
-        # This represents the actual observed value, not bootstrap mean/median
-        # Following literature standard: original estimate + bootstrap confidence interval
-        median_val <- median(group_q_data$tsallis, na.rm = TRUE)
-        
-        group_samples <- unique(group_q_data$sample)
-        all_ci_lower <- c()
-        all_ci_upper <- c()
-        
-        for (samp in group_samples) {
-          # Construct the expected column name
-          # Format q-value with 3 decimal places to match colname format
-          q_formatted <- formatC(matching_q_val, format = "f", digits = 3)
-          expected_col_name <- paste0(samp, "_q=", q_formatted)
+        # CORRECTED: Group by Gene first to keep each gene's median with its CI bounds
+        if ("Gene" %in% colnames(group_q_data)) {
+          genes_in_group <- unique(as.character(group_q_data$Gene))
           
-          samp_idx <- which(sample_names == expected_col_name)
+          all_gene_medians <- c()
+          all_gene_ci_lower <- c()
+          all_gene_ci_upper <- c()
           
-          if (length(samp_idx) > 0) {
-            all_ci_lower <- c(all_ci_lower, ci_lower_mat[, samp_idx[1]])
-            all_ci_upper <- c(all_ci_upper, ci_upper_mat[, samp_idx[1]])
+          # Process each gene separately to maintain pairing
+          for (gene_val in genes_in_group) {
+            gene_data <- group_q_data[as.character(group_q_data$Gene) == gene_val, ]
+            
+            # Get median tsallis for this SPECIFIC gene
+            gene_median <- median(gene_data$tsallis, na.rm = TRUE)
+            all_gene_medians <- c(all_gene_medians, gene_median)
+            
+            # Get samples for this gene
+            gene_samples <- unique(gene_data$sample)
+            gene_ci_lower <- c()
+            gene_ci_upper <- c()
+            
+            for (samp in gene_samples) {
+              # Construct the expected column name
+              # Format q-value with 3 decimal places to match colname format
+              q_formatted <- formatC(matching_q_val, format = "f", digits = 3)
+              expected_col_name <- paste0(samp, "_q=", q_formatted)
+              
+              samp_idx <- which(sample_names == expected_col_name)
+              
+              if (length(samp_idx) > 0) {
+                # Get CI for this SPECIFIC gene
+                gene_idx <- match(gene_val, rownames(se))
+                if (!is.na(gene_idx)) {
+                  gene_ci_lower <- c(gene_ci_lower, ci_lower_mat[gene_idx, samp_idx[1]])
+                  gene_ci_upper <- c(gene_ci_upper, ci_upper_mat[gene_idx, samp_idx[1]])
+                }
+              }
+            }
+            
+            # Aggregate CI for this gene across samples
+            if (length(gene_ci_lower) > 0) {
+              all_gene_ci_lower <- c(all_gene_ci_lower, median(gene_ci_lower, na.rm = TRUE))
+              all_gene_ci_upper <- c(all_gene_ci_upper, median(gene_ci_upper, na.rm = TRUE))
+            }
+          }
+          
+          # Final aggregation: median of per-gene medians and CIs
+          # This ensures alignment: each point estimate has CI bounds from the same gene
+          if (length(all_gene_medians) > 0) {
+            median_val <- median(all_gene_medians, na.rm = TRUE)
+            ci_lower_final <- median(all_gene_ci_lower, na.rm = TRUE)
+            ci_upper_final <- median(all_gene_ci_upper, na.rm = TRUE)
+          } else {
+            median_val <- NA_real_
+            ci_lower_final <- NA_real_
+            ci_upper_final <- NA_real_
+          }
+        } else {
+          # Fallback for data without Gene column (original behavior)
+          median_val <- median(group_q_data$tsallis, na.rm = TRUE)
+          
+          group_samples <- unique(group_q_data$sample)
+          all_ci_lower <- c()
+          all_ci_upper <- c()
+          
+          for (samp in group_samples) {
+            q_formatted <- formatC(matching_q_val, format = "f", digits = 3)
+            expected_col_name <- paste0(samp, "_q=", q_formatted)
+            samp_idx <- which(sample_names == expected_col_name)
+            
+            if (length(samp_idx) > 0) {
+              all_ci_lower <- c(all_ci_lower, ci_lower_mat[, samp_idx[1]])
+              all_ci_upper <- c(all_ci_upper, ci_upper_mat[, samp_idx[1]])
+            }
+          }
+          
+          if (length(all_ci_lower) > 0) {
+            ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
+            ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
+          } else {
+            ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
+            ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
           }
         }
         
-        if (length(all_ci_lower) > 0) {
-          # Aggregate bootstrap CI bounds across samples using median
-          # METHODOLOGY (from statistical literature S115, S018):
-          # - Point estimator: original observed median (represents actual data)
-          # - CI bounds: median of per-sample bootstrap percentile bounds
-          # - Rationale: Robust aggregation that respects individual sample estimates
-          # - Note: Point estimate may fall outside CI (informative, reveals asymmetric distribution)
-          ci_lower_final <- median(all_ci_lower, na.rm = TRUE)
-          ci_upper_final <- median(all_ci_upper, na.rm = TRUE)
-        } else {
-          # Fallback to global median if sample lookup completely fails
-          ci_lower_final <- median(ci_lower_mat, na.rm = TRUE)
-          ci_upper_final <- median(ci_upper_mat, na.rm = TRUE)
+        if (!is.na(median_val)) {
+          plot_df <- rbind(plot_df, data.frame(
+            q = matching_q_val,
+            median = median_val,
+            ci_lower = ci_lower_final,
+            ci_upper = ci_upper_final,
+            group = group_val,
+            stringsAsFactors = FALSE
+          ))
         }
-        
-        plot_df <- rbind(plot_df, data.frame(
-          q = matching_q_val,
-          median = median_val,
-          ci_lower = ci_lower_final,
-          ci_upper = ci_upper_final,
-          group = group_val,
-          stringsAsFactors = FALSE
-        ))
       }
     }
   }
@@ -2321,7 +2447,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
 # From diversity_core.R: Compute bootstrap CI for diversity measures
 .bootstrap_diversity_ci <- function(bootstrap, result, genes, se_assay_mat, 
     bootstrap_method, bootstrap_ci, bootstrap_nboot, q, pseudocount, nthreads, 
-    bootstrap_include_diagnostics, verbose, seed = NULL, effective_length = NULL, show_messages = FALSE) {
+    bootstrap_include_diagnostics, verbose, seed = NULL, effective_length = NULL, show_messages = FALSE, min_valid_frac = 0.75) {
     
     bootstrap_ci_results <- NULL
     
@@ -2392,7 +2518,7 @@ print.tsenat_divergence_bootstrap_ci <- function(x, ...) {
                     q = q, norm = TRUE, nboot = bootstrap_nboot,
                     ci = bootstrap_ci, method = bootstrap_method, pseudocount = pseudocount,
                     nthreads = nthreads, verbose = FALSE, include_diagnostics = bootstrap_include_diagnostics,
-                    seed = seed, effective_length = el_for_gene_txs, show_messages = show_messages)
+                    seed = seed, effective_length = el_for_gene_txs, show_messages = show_messages, min_valid_frac = min_valid_frac)
                 
                 bootstrap_results_list[[length(bootstrap_results_list) + 1]] <- boot_result
                 pair_metadata <- rbind(pair_metadata, data.frame(gene = g, sample_idx = s))

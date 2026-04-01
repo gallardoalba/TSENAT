@@ -69,7 +69,7 @@
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, norm = TRUE)
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)

@@ -39,7 +39,7 @@ for targeted extraction.
 data(readcounts)
 analysis <- build_analysis_s4(salmon_dataset,
   system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT'))
-analysis <- subset_analysis(analysis, n_genes = 15, n_samples = 6)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 15, subset_n_samples = 6)
 res <- lmResults(analysis)
 
 }

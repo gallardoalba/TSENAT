@@ -43,7 +43,7 @@ gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 # Build and subset analysis
 analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 
 # Replace configuration with new settings
 new_config <- tsenat_config(q_values = c(0.5, 1.0, 1.5), seed = 42)
@@ -63,7 +63,7 @@ gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 # Build and subset analysis
 analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 
 # Use setConfig via the method (called by setConfig generic)
 new_config <- tsenat_config(q_values = c(0.5, 1.0, 1.5, 2.0), seed = 123)

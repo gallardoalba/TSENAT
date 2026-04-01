@@ -369,24 +369,6 @@ test_that("calculate_diversity handles matrix input with multiple q values corre
 
 context("Tsallis Entropy: Backward Compatibility (public API)")
 
-test_that("calculate_diversity properly filters genes with insufficient valid values", {
-    # Mimics old calculate_method behavior with min_valid_frac parameter
-    read_count_matrix <- rbind(
-        matrix(rpois(36, 6), ncol = 6),
-        matrix(0, nrow = 2, ncol = 6)
-    )
-    colnames(read_count_matrix) <- paste0("Sample", seq_len(ncol(read_count_matrix)))
-    genes <- c("A", "B", "B", "C", "C", "C", "D", "D")
-    
-    # Calculate with strict filtering (min_valid_frac = 0.75)
-    result <- .calculate_diversity(read_count_matrix, genes = genes, norm = TRUE, 
-                                 q = c(1, 2), min_valid_frac = 0.75, verbose = FALSE)
-    
-    # Gene D has only zero counts, should be filtered
-    result_genes <- rownames(result)
-    expect_false("D" %in% result_genes)
-})
-
 test_that("calculate_diversity with multiple q returns consistent dimensions", {
     # Tests that multi-q output maintains consistent structure
     mat <- matrix(c(
@@ -537,8 +519,11 @@ test_that("bootstrap with BCa method stores method in metadata", {
 })
 
 test_that("bootstrap with multiple q values creates CIs for all q", {
-    td <- create_diversity_test_matrix_3x2_standard()
-    x <- td$x; genes <- td$genes
+    # Create test data with ALL genes having multiple isoforms (minimum 2 transcripts each)
+    # 6 transcripts: g1 has 2 isoforms, g2 has 2, g3 has 2
+    x <- matrix(c(10, 5, 8, 12, 3, 15, 3, 2, 20, 1, 7, 9), nrow = 6, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2", "g3", "g3")
     
     q_vals <- c(0.5, 1, 2)
     result <- .calculate_diversity(x, genes, q = q_vals, bootstrap = TRUE,
@@ -556,8 +541,10 @@ test_that("bootstrap with multiple q values creates CIs for all q", {
 })
 
 test_that("bootstrap CI metadata includes nboot parameter", {
-    td <- create_diversity_test_matrix_3x2_standard()
-    x <- td$x; genes <- td$genes
+    # Use multi-isoform test data to avoid single-isoform warnings
+    x <- matrix(c(10, 5, 8, 12, 3, 15, 3, 2), nrow = 4, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2")
     
     nboot_val <- 150
     result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -570,8 +557,10 @@ test_that("bootstrap CI metadata includes nboot parameter", {
 })
 
 test_that("bootstrap CI metadata includes confidence level", {
-    td <- create_diversity_test_matrix_3x2_standard()
-    x <- td$x; genes <- td$genes
+    # Use multi-isoform test data to avoid single-isoform warnings
+    x <- matrix(c(10, 5, 8, 12, 3, 15, 3, 2), nrow = 4, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2")
     
     ci_level <- 0.99
     result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -615,8 +604,10 @@ test_that("ci parameter is validated (must be in (0,1))", {
 
 test_that("bootstrap results are consistent with counts assay", {
     # Verify that bootstrap CIs use the same data as the main calculation
-    td <- create_diversity_test_matrix_3x2_standard()
-    x <- td$x; genes <- td$genes
+    # Use multi-isoform test data to avoid single-isoform warnings
+    x <- matrix(c(10, 5, 8, 12, 3, 15, 3, 2), nrow = 4, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2")
     
     result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100, verbose = FALSE)
@@ -647,8 +638,10 @@ test_that("bootstrap with simple matrix input works correctly", {
 })
 
 test_that("bootstrap method parameter is stored and retrieved", {
-    td <- create_diversity_test_matrix_3x2_standard()
-    x <- td$x; genes <- td$genes
+    # Use multi-isoform test data to avoid single-isoform warnings
+    x <- matrix(c(10, 5, 8, 12, 3, 15, 3, 2), nrow = 4, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2")
     
     # Test percentile
     result_pct <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -666,8 +659,10 @@ test_that("bootstrap method parameter is stored and retrieved", {
 })
 
 test_that("bootstrap CI values are within [0,1] for normalized entropy", {
-    td <- create_diversity_test_matrix_3x2_standard()
-    x <- td$x; genes <- td$genes
+    # Use multi-isoform test data to avoid single-isoform warnings
+    x <- matrix(c(10, 5, 8, 12, 3, 15, 3, 2), nrow = 4, ncol = 2)
+    colnames(x) <- c("S1", "S2")
+    genes <- c("g1", "g1", "g2", "g2")
     
     result <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
                                  bootstrap_nboot = 100, norm = TRUE,
@@ -857,9 +852,10 @@ test_that("calculate_diversity is scale-invariant", {
 
 test_that("bootstrap CI width depends on nboot (stability)", {
     # More bootstrap replicates generally yield tighter/more stable CIs
-    x <- matrix(c(10, 20, 15, 5, 8, 12), nrow = 3, ncol = 2)
+    # Use multi-isoform data: 4 transcripts, 2 genes with 2 isoforms each
+    x <- matrix(c(10, 20, 15, 5, 8, 12, 7, 9), nrow = 4, ncol = 2)
     colnames(x) <- c("S1", "S2")
-    genes <- c("G1", "G1", "G2")
+    genes <- c("G1", "G1", "G2", "G2")
     
     # Run with different nboot values
     result_100 <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -897,9 +893,10 @@ test_that("bootstrap CI width depends on nboot (stability)", {
 
 test_that("bootstrap point estimate matches non-bootstrap diversity", {
     # Point estimate from bootstrap should match regular calculate_diversity
-    x <- matrix(c(10, 20, 15, 5, 8, 12), nrow = 3, ncol = 2)
+    # Use multi-isoform data: 4 transcripts, 2 genes with 2 isoforms each
+    x <- matrix(c(10, 20, 15, 5, 8, 12, 7, 9), nrow = 4, ncol = 2)
     colnames(x) <- c("S1", "S2")
-    genes <- c("G1", "G1", "G2")
+    genes <- c("G1", "G1", "G2", "G2")
     
     result_no_boot <- .calculate_diversity(x, genes, q = 1, bootstrap = FALSE, verbose = FALSE)
     result_boot <- .calculate_diversity(x, genes, q = 1, bootstrap = TRUE,
@@ -1889,27 +1886,6 @@ test_that("calculate_diversity handles small sample input", {
     
     expect_s4_class(result, "SummarizedExperiment")
     expect_equal(ncol(result), n_samples)
-})
-
-test_that("calculate_diversity respects min_valid_frac filter", {
-    set.seed(123)
-    n_genes <- 5
-    n_samples <- 3
-    n_transcripts <- 15
-    
-    x <- matrix(rpois(n_transcripts * n_samples, lambda = 10), nrow = n_transcripts)
-    genes <- rep(paste0("G", 1:n_genes), length.out = n_transcripts)
-    
-    # Strict filtering
-    result_strict <- .calculate_diversity(x, genes = genes, min_valid_frac = 0.95, 
-                                        q = 2, norm = TRUE, verbose = FALSE)
-    
-    # Relaxed filtering
-    result_relaxed <- .calculate_diversity(x, genes = genes, min_valid_frac = 0.50, 
-                                         q = 2, norm = TRUE, verbose = FALSE)
-    
-    # Relaxed should have at least as many genes as strict
-    expect_gte(nrow(result_relaxed), nrow(result_strict))
 })
 
 test_that("calculate_diversity with bootstrap CI computation", {

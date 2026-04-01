@@ -48,7 +48,7 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 # Build analysis from vignette data and create small subset
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 # Note: compute_method_concordance_s4 requires additional LM and Friedman results
 # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance
 

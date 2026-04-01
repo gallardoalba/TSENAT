@@ -11,9 +11,11 @@ jackknife_isoform_switching_s4(
   gene_col = NULL,
   isoform_col = NULL,
   q = 1,
-  norm = TRUE,
+  norm = NULL,
+  log_base = NULL,
   threshold = 90,
   n_bootstrap = 1000,
+  pseudocount = NULL,
   lm_results = NULL,
   lm_p_threshold = 0.05,
   use_lm_fdr = TRUE,
@@ -113,7 +115,7 @@ metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSEN
 gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
                              tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 20, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 20, subset_n_samples = 8)
 analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
 
 }

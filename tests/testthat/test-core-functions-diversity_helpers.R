@@ -413,3 +413,189 @@ test_that("Reference standardization is scale-invariant", {
     # Same genes should be in both results
     expect_equal(nrow(assay_q1), nrow(assay_q2))
 })
+
+# ============================================================================
+# Tests for .suggest_min_count() and min_count parameter
+# ============================================================================
+
+context("Minimum Count Filtering: Smart Gene Pre-Filtering (Option 1)")
+
+test_that("suggest_min_count works with matrix input", {
+  # Create matrix with mix of abundant and sparse genes
+  counts <- matrix(c(
+    rep(100, 9),   # 3 genes with 100 counts each
+    rep(10, 9),    # 3 genes with 10 counts each  
+    rep(1, 9)      # 3 genes with 1 count each
+  ), nrow = 9, ncol = 3, byrow = TRUE)
+  
+  # Test auto-detection at median
+  min_cnt <- .suggest_min_count(counts, percentile = 0.5, verbose = FALSE)
+  expect_is(min_cnt, "numeric")
+  expect_true(min_cnt > 0)
+  expect_true(is.finite(min_cnt))
+  
+  # Should return median of gene totals: [300, 300, 300, 30, 30, 30, 3, 3, 3]
+  # Median = 30
+  expect_equal(min_cnt, 30)
+})
+
+test_that("suggest_min_count respects percentile parameter", {
+  counts <- matrix(c(
+    rep(100, 9),   # 3 genes: 300 total
+    rep(10, 9),    # 3 genes: 30 total
+    rep(1, 9)      # 3 genes: 3 total
+  ), nrow = 9, ncol = 3, byrow = TRUE)
+  
+  # Test lower percentile (25th)
+  min_25 <- .suggest_min_count(counts, percentile = 0.25, verbose = FALSE)
+  expect_true(min_25 > 0)
+  
+  # Test higher percentile (75th)
+  min_75 <- .suggest_min_count(counts, percentile = 0.75, verbose = FALSE)
+  expect_true(min_75 > min_25)
+  
+  # Higher percentile should give higher threshold
+  expect_true(min_75 > min_25)
+})
+
+test_that("suggest_min_count works with SummarizedExperiment", {
+  skip_if_not_installed("SummarizedExperiment")
+  
+  counts <- matrix(c(
+    rep(100, 9),
+    rep(10, 9)
+  ), nrow = 6, ncol = 3, byrow = TRUE)
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts),
+    rowData = S4Vectors::DataFrame(row.names = paste0("gene_", 1:6))
+  )
+  
+  min_cnt <- .suggest_min_count(se, percentile = 0.5, verbose = FALSE)
+  expect_is(min_cnt, "numeric")
+  expect_true(min_cnt > 0)
+})
+
+test_that("suggest_min_count validates percentile parameter", {
+  counts <- matrix(c(10, 20, 30), nrow = 3)
+  
+  # Invalid percentile (negative)
+  expect_error(
+    .suggest_min_count(counts, percentile = -0.5, verbose = FALSE),
+    "percentile must be numeric in \\[0, 1\\]"
+  )
+  
+  # Invalid percentile (> 1)
+  expect_error(
+    .suggest_min_count(counts, percentile = 1.5, verbose = FALSE),
+    "percentile must be numeric in \\[0, 1\\]"
+  )
+})
+
+test_that("suggest_min_count handles edge cases", {
+  # All genes have same count
+  counts <- matrix(rep(50, 15), nrow = 5, ncol = 3)
+  min_cnt <- .suggest_min_count(counts, percentile = 0.5, verbose = FALSE)
+  expect_equal(min_cnt, 150)  # 50 * 3 samples
+  
+  # Zero-count genes
+  counts_zeros <- matrix(c(
+    rep(100, 9),
+    rep(0, 9)
+  ), nrow = 6, ncol = 3, byrow = TRUE)
+  min_cnt_zeros <- .suggest_min_count(counts_zeros, percentile = 0.5, verbose = FALSE)
+  expect_true(min_cnt_zeros == 150 || min_cnt_zeros == 0)
+})
+
+
+# ============================================================================
+# FILTER INTEGRATION TESTS: Verify that filtering preserves data consistency
+# across colnames/rownames alignment
+# ============================================================================
+
+test_that("filter_analysis_s4 maintains TSENATAnalysis integrity", {
+  skip_if_not_installed("SummarizedExperiment")
+  
+  # Create a minimal TSENATAnalysis object with TPM to avoid warnings
+  counts <- matrix(c(5, 10, 8, 12, 3, 7, 15, 20, 10), nrow = 3, ncol = 3)
+  tpm <- matrix(c(50, 100, 80, 120, 30, 70, 150, 200, 100), nrow = 3, ncol = 3)  # Add TPM
+  rownames(counts) <- rownames(tpm) <- c("TX1", "TX2", "TX3")
+  colnames(counts) <- colnames(tpm) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts, tpm = tpm),
+    rowData = data.frame(
+      gene_id = c("G1", "G1", "G2"),
+      row.names = rownames(counts)
+    ),
+    colData = data.frame(
+      sample_id = c("S1", "S2", "S3"),
+      condition = c("A", "B", "A"),
+      row.names = c("S1", "S2", "S3")
+    )
+  )
+  
+  analysis <- TSENAT::TSENATAnalysis(se)
+  
+  # Filter the analysis (but don't filter out any samples, keep all 3)
+  # Use high min_samples to avoid filtering samples
+  analysis_filt <- TSENAT:::filter_analysis_s4(analysis, min_samples = 1, verbose = FALSE)
+  
+  # Check that TSENATAnalysis is still valid
+  expect_s4_class(analysis_filt, "TSENATAnalysis")
+  expect_s4_class(analysis_filt@se, "SummarizedExperiment")
+  
+  # Check that assays are filtered consistently
+  se_filt <- analysis_filt@se
+  n_assay_rows <- nrow(assays(se_filt)[[1]])
+  n_rowdata_rows <- nrow(SummarizedExperiment::rowData(se_filt))
+  n_assay_cols <- ncol(assays(se_filt)[[1]])
+  n_coldata_rows <- nrow(SummarizedExperiment::colData(se_filt))
+  
+  # All assays should have same rows
+  expect_equal(n_assay_rows, n_rowdata_rows)
+  # All assays should have same columns as colData (since filter doesn't modify samples)
+  expect_equal(n_assay_cols, n_coldata_rows)
+})
+
+test_that("Filtered diversity results maintain colname alignment", {
+  # Test that diversity calculation after filtering maintains colname/colData alignment
+  skip_if_not_installed("SummarizedExperiment")
+  
+  # Create data that will pass filtering
+  counts <- matrix(c(20, 25, 30, 15, 18, 22, 10, 12, 14), nrow = 3, ncol = 3)
+  rownames(counts) <- c("TX1", "TX2", "TX3")
+  colnames(counts) <- c("S1", "S2", "S3")
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts),
+    rowData = data.frame(
+      gene_id = c("G1", "G1", "G2"),
+      row.names = rownames(counts)
+    ),
+    colData = data.frame(
+      sample_id = colnames(counts),
+      row.names = colnames(counts)
+    )
+  )
+  
+  # Calculate diversity WITHOUT specifying q (will use default q=2)
+  genes <- SummarizedExperiment::rowData(se)$gene_id
+  result <- TSENAT:::.calculate_method(counts, genes = genes, q = 2, what = "S")
+  
+  # Prepare metadata
+  prep_output <- TSENAT:::.prepare_diversity_metadata(
+    counts, result, counts, genes, q = 2
+  )
+  
+  # Check colname alignment
+  expect_equal(
+    colnames(prep_output$result_assay),
+    rownames(prep_output$colData),
+    info = "Assay colnames should match colData rownames"
+  )
+  
+  # Check all column names have the format "SampleName_q=value"
+  all_cn_have_q <- all(grepl("_q=", colnames(prep_output$result_assay)))
+  expect_true(all_cn_have_q, info = "All column names should contain _q= separator")
+})

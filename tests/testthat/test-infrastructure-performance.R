@@ -40,9 +40,10 @@ setup_real_test_analysis <- function(n_genes = NULL, n_samples = NULL) {
   
   # Subset to specific size if needed
   if (!is.null(n_genes) || !is.null(n_samples)) {
-    analysis <- subset_analysis(analysis, 
-                                n_genes = n_genes, 
-                                n_samples = n_samples)
+    analysis <- filter_analysis_s4(analysis,
+                                   min_samples = 1,
+                                   subset_n_genes = n_genes,
+                                   subset_n_samples = n_samples)
   }
   
   # Calculate diversity for testing

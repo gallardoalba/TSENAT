@@ -8,26 +8,23 @@ plot_tsallis_q_curve_s4(
   se,
   assay_name = "diversity",
   condition_col = NULL,
-  bootstrap = FALSE,
   gene = NULL,
   lm_res = NULL,
   n_top = NULL,
+  metric = "iqr",
   output_file = NULL
 )
 }
 \arguments{
 \item{se}{A `SummarizedExperiment` returned by `.calculate_diversity()` with diversity assay.
-For CI mode (bootstrap=TRUE), must contain pre-computed bootstrap confidence intervals.}
+If pre-computed bootstrap confidence intervals are available (ci_lower/ci_upper assays),
+they will be displayed automatically. Otherwise, falls back to IQR visualization.}
 
 \item{assay_name}{Character; name of the assay to plot (default: "diversity").}
 
 \item{condition_col}{Character or NULL; column name in colData indicating group/sample type.
 If NULL (default), reads from `@config$condition_col` when input is TSENATAnalysis,
 otherwise defaults to "sample_type". Only used in aggregate and CI modes.}
-
-\item{bootstrap}{Logical; if TRUE, plots bootstrap confidence interval bands for aggregate mode.
-Requires SE to contain pre-computed CI assays (ci_lower/ci_upper).
-Requires 2+ q values and exactly 2 groups (default: FALSE).}
 
 \item{gene}{Character vector (optional); if provided, plot q-curves for specified gene(s).
 Overrides default aggregate behavior. When provided, uses median +/- SD for each gene.}
@@ -43,13 +40,18 @@ Useful for plotting significant genes from any interaction analysis.}
 (default: NULL). When NULL, defaults to showing the single most significant gene (n_top=1),
 providing a conservative view of the strongest effect. Set to a numeric value to show that many top genes.}
 
+\item{metric}{Character; when bootstrap CIs are NOT available, specifies the spread metric to display.
+Options: "iqr" (default, Interquartile Range - more robust) or "sd" (Standard Deviation).
+This parameter is ignored when bootstrap confidence intervals are available.
+Default: "iqr".}
+
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
 Default: NULL (no file output).}
 }
 \value{
 **Aggregate mode (gene=NULL, lm_res=NULL)**:
-- With bootstrap=FALSE: A ggplot object showing median entropy with IQR ribbons.
-- With bootstrap=TRUE: A ggplot object with bootstrap confidence interval bands.
+- If bootstrap CI assays available: A ggplot object showing median entropy with bootstrap confidence interval bands.
+- If no CI assays: A ggplot object showing median entropy with IQR ribbons (automatic fallback).
 
 **Gene-specific mode (gene or lm_res provided)**:
 - Single gene: A ggplot object showing median entropy +/- SD for that gene.
@@ -77,12 +79,13 @@ or bootstrap confidence interval bands.
 - Useful for highlighting specific genes of interest or significant discoveries
 - Bootstrap mode not supported in gene-specific mode
 
-**Bootstrap CI mode (bootstrap=TRUE in aggregate mode)**:
-- Displays bootstrap confidence interval bands for each group across q-values
-- Requires exactly 2 groups for comparison
-- Requires 2+ q values for q-curve visualization
-- Requires pre-computed bootstrap CIs from `.calculate_diversity(..., bootstrap=TRUE)`
-- Produces ci_lower, ci_upper assays that properly propagate through entropy transformation
+**Automatic Bootstrap CI Detection**:
+- When computing divergence or diversity with bootstrap enabled, ci_lower and ci_upper assays
+  are added to the SummarizedExperiment.
+- This function automatically detects these assays and displays bootstrap confidence interval
+  bands instead of IQR. No additional parameter needed.
+- For confidence bands to appear, use `calculate_diversity_s4(..., bootstrap=TRUE, nboot=1000)`
+  or appropriate divergence function with bootstrap enabled.
 }
 \examples{
 # Plot 7: Tsallis entropy q-curve (combined across all sample diversity)
@@ -97,7 +100,7 @@ mode(readcounts) <- 'numeric'
 
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- subset_analysis(analysis, n_genes = 30, n_samples = 8)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 30, subset_n_samples = 8)
 analysis <- calculate_diversity_s4(analysis, q = seq(0.5, 2, by = 0.5), verbose = FALSE)
 p <- plot_tsallis_q_curve_s4(analysis)
 if (!is.null(p)) print(p)

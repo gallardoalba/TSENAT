@@ -38,7 +38,7 @@ test_that(".prepare_diversity_params extracts q values from config", {
     q = NULL,  # Should use config
     norm = NULL, norm_method = NULL, reference_group = NULL,
     tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+    nthreads = NULL, pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -47,7 +47,7 @@ test_that(".prepare_diversity_params extracts q values from config", {
   
   expect_equal(params$q, c(0.5, 1.0, 1.5))
   expect_named(params, c("q", "nthreads", "verbose", "show_messages", "bootstrap", "pseudocount", 
-                         "norm", "what", "assayno", "min_valid_frac", "shrinkage",
+                         "min_valid_frac", "norm", "what", "assayno", "shrinkage",
                          "bootstrap_method", "bootstrap_ci", "seed", "tpm", 
                          "genes", "effective_length", "nboot", 
                          "bootstrap_include_diagnostics", "metadata", "norm_method", 
@@ -63,7 +63,7 @@ test_that(".prepare_diversity_params uses explicit q values over config", {
     q = explicit_q,  # Should override config
     norm = NULL, norm_method = NULL, reference_group = NULL,
     tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+    nthreads = NULL, pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -82,7 +82,7 @@ test_that(".prepare_diversity_params uses default q when not in config", {
     q = NULL,  # Should use default
     norm = NULL, norm_method = NULL, reference_group = NULL,
     tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+    nthreads = NULL, pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -101,7 +101,7 @@ test_that(".prepare_diversity_params validates q is numeric", {
       q = c("a", "b"),  # Non-numeric
       norm = NULL, norm_method = NULL, reference_group = NULL,
       tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-      nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+      nthreads = NULL, pseudocount = NULL,
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -118,7 +118,7 @@ test_that(".prepare_diversity_params resolves default parameters", {
     q = c(1.0),
     norm = NULL, norm_method = NULL, reference_group = NULL,
     tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+    nthreads = NULL, pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -150,7 +150,6 @@ test_that(".prepare_diversity_params prioritizes explicit parameters over config
     what = NULL,
     nthreads = 8,  # Explicit (override config 4)
     pseudocount = 0.5,  # Explicit (override config 1)
-    min_valid_frac = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -177,7 +176,6 @@ test_that(".build_calc_diversity_args constructs valid argument list", {
     norm = TRUE,
     what = "S",
     assayno = 1,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
@@ -213,7 +211,6 @@ test_that(".build_calc_diversity_args includes optional parameters when present"
     norm = TRUE,
     what = "S",
     assayno = 1,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
@@ -247,7 +244,6 @@ test_that(".build_calc_diversity_args includes ... arguments", {
     norm = TRUE,
     what = "S",
     assayno = 1,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
@@ -491,7 +487,7 @@ test_that("Helper functions integrate correctly in workflow", {
     q = c(0.5, 1.0),
     norm = TRUE, norm_method = "zscore", reference_group = NULL,
     tpm = FALSE, assayno = 1, verbose = FALSE, what = "S",
-    nthreads = 2, pseudocount = 0, min_valid_frac = 0.75,
+    nthreads = 2, pseudocount = 0,
     shrinkage = "none", genes = c("gene1", "gene2"), effective_length = NULL,
     metadata = NULL, bootstrap = FALSE, nboot = NULL,
     bootstrap_method = "percentile", bootstrap_ci = 0.95,
@@ -522,7 +518,7 @@ test_that(".prepare_diversity_params rejects infinite q values", {
       q = c(0.5, Inf),
       norm = NULL, norm_method = NULL, reference_group = NULL,
       tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-      nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+      nthreads = NULL, pseudocount = NULL,
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -540,7 +536,7 @@ test_that(".prepare_diversity_params rejects NaN q values", {
       q = c(0.5, NaN),
       norm = NULL, norm_method = NULL, reference_group = NULL,
       tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-      nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+      nthreads = NULL, pseudocount = NULL,
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -557,7 +553,7 @@ test_that(".prepare_diversity_params handles zero q value", {
     q = c(0.0, 1.0),
     norm = NULL, norm_method = NULL, reference_group = NULL,
     tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+    nthreads = NULL, pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -575,7 +571,7 @@ test_that(".prepare_diversity_params handles very large q values", {
     q = c(100.0, 1000.0),
     norm = NULL, norm_method = NULL, reference_group = NULL,
     tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-    nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+    nthreads = NULL, pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -596,7 +592,7 @@ test_that(".prepare_diversity_params validates nthreads is positive", {
       norm = NULL, norm_method = NULL, reference_group = NULL,
       tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
       nthreads = -1,  # Invalid
-      pseudocount = NULL, min_valid_frac = NULL,
+      pseudocount = NULL,
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -619,7 +615,6 @@ test_that(".prepare_diversity_params handles logical parameters correctly", {
     what = NULL,
     nthreads = NULL,
     pseudocount = NULL,
-    min_valid_frac = NULL,
     shrinkage = NULL,
     genes = NULL,
     effective_length = NULL,
@@ -655,7 +650,7 @@ test_that(".prepare_diversity_params merges config with defaults", {
     tpm = FALSE,  # Explicit to avoid config issues
     assayno = NULL, verbose = NULL, what = NULL,
     nthreads = NULL,  # Should get from config
-    pseudocount = NULL, min_valid_frac = NULL,
+    pseudocount = NULL,
     shrinkage = NULL, genes = NULL, effective_length = NULL,
     metadata = NULL, bootstrap = NULL, nboot = NULL,
     bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -682,7 +677,6 @@ test_that(".build_calc_diversity_args handles all NULL optional parameters", {
     norm = TRUE,
     what = "S",
     assayno = 1,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
@@ -715,7 +709,6 @@ test_that(".build_calc_diversity_args combines params and dots without conflict"
     norm = TRUE,
     what = "S",
     assayno = 1,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     bootstrap_method = "percentile",
     bootstrap_ci = 0.95,
@@ -749,7 +742,6 @@ test_that(".build_calc_diversity_args preserves bootstrap parameters when bootst
     norm = TRUE,
     what = "S",
     assayno = 1,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     bootstrap_method = "block",
     bootstrap_ci = 0.90,
@@ -973,7 +965,6 @@ test_that("Full workflow with bootstrap parameters", {
     what = "S",
     nthreads = 1,
     pseudocount = 0,
-    min_valid_frac = 0.75,
     shrinkage = "none",
     genes = NULL,
     effective_length = NULL,
@@ -1022,7 +1013,6 @@ test_that("Parameter resolution priority: explicit > config > default", {
     what = NULL,
     nthreads = 8,  # Explicit overrides config
     pseudocount = NULL,
-    min_valid_frac = NULL,
     shrinkage = NULL,
     genes = NULL,
     effective_length = NULL,
@@ -1054,7 +1044,7 @@ test_that("Helper function error propagation", {
       q = c(NA),  # Invalid
       norm = NULL, norm_method = NULL, reference_group = NULL,
       tpm = FALSE, assayno = NULL, verbose = NULL, what = NULL,
-      nthreads = NULL, pseudocount = NULL, min_valid_frac = NULL,
+      nthreads = NULL, pseudocount = NULL,
       shrinkage = NULL, genes = NULL, effective_length = NULL,
       metadata = NULL, bootstrap = NULL, nboot = NULL,
       bootstrap_method = NULL, bootstrap_ci = NULL,
@@ -1154,13 +1144,11 @@ test_metadata <- data.frame(
     verbose = FALSE
   )
   
-  # Pre-compute diversity with min_valid_frac = 0 to avoid empty results
   if (precompute_diversity) {
     analysis <- TSENAT::calculate_diversity_s4(
       analysis,
       q = q_values,
       verbose = FALSE,
-      min_valid_frac = 0,
       nthreads = 1
     )
   }
@@ -1491,7 +1479,6 @@ test_that("S4 Wrappers: all calculate_diversity_s4 arguments are accepted", {
     list(what = "S"),
     list(bootstrap = FALSE),
     list(pseudocount = 0),
-    list(min_valid_frac = 0.75),
     list(shrinkage = "none"),
     list(nthreads = 1)
   )

@@ -7,8 +7,13 @@
 jackknife_entropy_outliers_s4(
   analysis,
   q = NULL,
+  norm = NULL,
+  log_base = NULL,
+  seed = NULL,
+  top_n = NULL,
   verbose = FALSE,
   nthreads = NULL,
+  pseudocount = NULL,
   output_file = NULL,
   ...
 )
