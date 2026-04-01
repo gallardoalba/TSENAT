@@ -223,15 +223,15 @@
     if (stringency == "soft") {
         min_samples <- max(2L, ceiling(0.25 * n_samples))
         min_tx_per_gene <- 2L
-        min_isoform_abundance <- 0.01  # 1% — permissive
+        min_isoform_abundance <- 0.01  # 1% - permissive
     } else if (stringency == "medium") {
         min_samples <- max(3L, ceiling(0.5 * n_samples))
         min_tx_per_gene <- 2L
-        min_isoform_abundance <- 0.05  # 5% — balanced (default)
+        min_isoform_abundance <- 0.05  # 5% - balanced (default)
     } else if (stringency == "severe") {
         min_samples <- ceiling(0.75 * n_samples)
         min_tx_per_gene <- 3L
-        min_isoform_abundance <- 0.15  # 15% — stringent
+        min_isoform_abundance <- 0.15  # 15% - stringent
     } else {
         return(NULL)
     }
@@ -1091,7 +1091,7 @@
     
     if (verbose) {
       message("[subset_analysis] Filtered tx2gene: ", 
-              nrow(tx2gene_full), " → ", nrow(tx2gene_subset), " transcripts")
+              nrow(tx2gene_full), " -> ", nrow(tx2gene_subset), " transcripts")
     }
   }
   
@@ -1103,7 +1103,7 @@
     
     if (verbose) {
       message("[subset_analysis] Filtered readcounts: ", 
-              nrow(readcounts_full), " → ", nrow(readcounts_subset), " transcripts")
+              nrow(readcounts_full), " -> ", nrow(readcounts_subset), " transcripts")
     }
   }
   
@@ -1115,7 +1115,7 @@
     
     if (verbose) {
       message("[subset_analysis] Filtered salmon_tpm: ", 
-              nrow(tpm_full), " → ", nrow(tpm_subset), " transcripts")
+              nrow(tpm_full), " -> ", nrow(tpm_subset), " transcripts")
     }
   }
   
@@ -1240,7 +1240,7 @@
   
   if (verbose) {
     message("[subset_analysis] Subset complete: ", 
-            nrow(analysis_subset@se), " genes × ", 
+            nrow(analysis_subset@se), " genes x ", 
             ncol(analysis_subset@se), " samples")
   }
   

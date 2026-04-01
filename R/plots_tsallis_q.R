@@ -376,7 +376,7 @@ plot_tsallis_q_curve_s4 <- function(
     plot_df <- .prepare_gene_ci_data(long_subset, ci_lower, ci_upper, genes)
   } else {
     # Fallback: no CIs found
-    return(.plot_tsallis_basic_gene(long_subset, genes, metric = metric, output_file))
+    return(.plot_tsallis_basic_gene(long_subset, genes, output_file = output_file))
   }
   
   # Create plots for each gene

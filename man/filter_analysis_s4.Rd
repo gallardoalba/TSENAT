@@ -88,11 +88,6 @@ Default: NULL.}
 
 \item{verbose}{Logical. If TRUE, print filtering progress and summary statistics
 (default: FALSE).}
-
-\item{min_valid_frac}{Numeric in [0, 1]; minimum fraction of samples where a gene
-must be detected (counts > 0) to be retained (default: NULL, no filtering).
-For example, \code{min_valid_frac = 0.5} requires genes to be non-zero in at least
-50% of samples.}
 }
 \value{
 Invisibly returns the modified \code{analysis} object with filtered

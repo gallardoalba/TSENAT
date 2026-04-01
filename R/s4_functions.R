@@ -1966,6 +1966,47 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
   return(plot_obj)
 })
 
+# ============================================================================
+# OPTIMIZATION: Consolidated object extraction helper
+# ============================================================================
+# This helper consolidates redundant fallback extraction patterns into a single
+# source of truth, reducing code duplication and improving maintainability.
+#' @noRd
+.extract_object_with_fallbacks <- function(obj, expected_class, key_name = NULL, verbose = FALSE) {
+  # Single source of extraction logic for common pattern:
+  # Try direct class match, then named list access, then list[1]
+  
+  if (is(obj, expected_class)) {
+    if (verbose) {
+      message("[extract_object] Found object via direct class match: ", expected_class)
+    }
+    return(obj)
+  }
+  
+  if (is.list(obj)) {
+    # Try named access first
+    if (!is.null(key_name) && key_name %in% names(obj)) {
+      if (verbose) {
+        message("[extract_object] Found object via key: ", key_name)
+      }
+      return(obj[[key_name]])
+    }
+    
+    # Fall back to first element
+    if (length(obj) > 0) {
+      if (verbose) {
+        message("[extract_object] Using first element of list")
+      }
+      return(obj[[1]])
+    }
+  }
+  
+  if (verbose) {
+    message("[extract_object] Could not extract object of class ", expected_class)
+  }
+  return(NULL)
+}
+
 #' Compute Effect Sizes from Divergence Results (S4 Wrapper)
 #'
 #' S4 wrapper for \code{.effect_sizes_divergence()} that extracts divergence and LM
@@ -2020,7 +2061,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' mode(readcounts) <- "numeric"
 #' metadata_df <- read.table(
 #'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
-#'   header = TRUE, sep = "\t"
+#'   header = TRUE, sep = "\\t"
 #' )
 #' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 #' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
@@ -2030,14 +2071,14 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_lm_interaction_s4(analysis,
 #'   condition_col = "condition", verbose = FALSE)
-#'   
+#'
 #' # Compute effect sizes from divergence results
-#' analysis <- effect_sizes_divergence_s4(analysis, 
+#' analysis <- effect_sizes_divergence_s4(analysis,
 #'   significance_threshold = 0.05, verbose = FALSE)
-#' 
+#'
 #' # Access results using metadata accessor
 #' effect_size_results <- getMeta(analysis, "effect_sizes_divergence")
-#' 
+#'
 #' # View structure of results
 #' str(effect_size_results, max.level = 1)
 #'
@@ -2048,48 +2089,6 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' @export
 #' @importFrom methods is
 #' @importFrom utils write.table
-
-# ============================================================================
-# OPTIMIZATION: Consolidated object extraction helper
-# ============================================================================
-# This helper consolidates redundant fallback extraction patterns into a single
-# source of truth, reducing code duplication and improving maintainability.
-#' @noRd
-.extract_object_with_fallbacks <- function(obj, expected_class, key_name = NULL, verbose = FALSE) {
-  # Single source of extraction logic for common pattern:
-  # Try direct class match, then named list access, then list[1]
-  
-  if (is(obj, expected_class)) {
-    if (verbose) {
-      message("[extract_object] Found object via direct class match: ", expected_class)
-    }
-    return(obj)
-  }
-  
-  if (is.list(obj)) {
-    # Try named access first
-    if (!is.null(key_name) && key_name %in% names(obj)) {
-      if (verbose) {
-        message("[extract_object] Found object via key: ", key_name)
-      }
-      return(obj[[key_name]])
-    }
-    
-    # Fall back to first element
-    if (length(obj) > 0) {
-      if (verbose) {
-        message("[extract_object] Using first element of list")
-      }
-      return(obj[[1]])
-    }
-  }
-  
-  if (verbose) {
-    message("[extract_object] Could not extract object of class ", expected_class)
-  }
-  return(NULL)
-}
-
 effect_sizes_divergence_s4 <- function(
     analysis,
     significance_threshold = 0.05,
@@ -3991,11 +3990,6 @@ m_estimate_s4 <- function(
 #'   - If \code{stringency} is NULL: uses default 0.05 (5%)
 #'   - If explicitly provided: overrides any stringency default
 #'   Set to 0 or NULL (post-stringency processing) to skip isoform-level filtering.
-#'
-#' @param min_valid_frac Numeric in [0, 1]; minimum fraction of samples where a gene
-#'   must be detected (counts > 0) to be retained (default: NULL, no filtering).
-#'   For example, \code{min_valid_frac = 0.5} requires genes to be non-zero in at least
-#'   50% of samples.
 #'
 #' @param assay_name Character; name or index of the assay to use for filtering
 #'   (default: 'counts'). Deprecated: use \code{tpm_assay_name} instead.

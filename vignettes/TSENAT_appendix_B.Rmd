@@ -122,10 +122,6 @@ analysis <- calculate_diversity_s4(
   norm = TRUE,
   pseudocount = "auto"
 )
-
-# Display the pseudocount value that was actually used when "auto" was selected
-pc_used <- get_pseudocount(analysis)
-sprintf("Pseudocount value used for diversity calculation: %.6f", pc_used) |> print()
 ```
 
 # Rank-Based Approach (Friedman)
