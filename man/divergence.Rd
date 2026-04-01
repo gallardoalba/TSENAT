@@ -27,7 +27,7 @@ corresponding to different divergence metrics. Use \code{divergence(analysis)}
 to retrieve all components or specify a component for targeted extraction.
 }
 \examples{
-# Load real TSENAT data
+# Load real TSENAT data and calculate divergence
 data(readcounts)
 metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
   header = TRUE, sep = "\t")
@@ -35,6 +35,8 @@ gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
 div_res <- divergence(analysis)
 
 }

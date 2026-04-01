@@ -105,11 +105,13 @@ gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
 analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 
 # Test Q×Condition interaction (condition_col is REQUIRED)
 analysis <- rank_test_q_condition_s4(analysis, condition_col = "condition", 
                                            multicorr = "hochberg")
-head(lmResults(analysis)$q_interactions)
+# View results
+results <- lmResults(analysis)
+if (!is.null(results)) head(results$q_interactions)
 
 }

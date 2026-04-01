@@ -197,13 +197,14 @@ download_salmon_samples_from_zenodo <- function(config) {
     if (length(existing_files) > 0) {
         message("✓ Salmon samples found in: ", salmon_dir)
         message("  Files: ", length(existing_files), " samples")
-        return(salmon_dir)  # Return the salmon directory path
+        return(salmon_dir)
     }
     
     message("Salmon samples not found. Downloading from Zenodo...")
     
-    # Zenodo record URL - point to archive or individual files
-    zenodo_url <- "https://zenodo.org/records/18837691"
+    # Zenodo record ID
+    zenodo_record_id <- "18837691"
+    zenodo_api_url <- paste0("https://zenodo.org/api/records/", zenodo_record_id)
     
     # Create /tmp/salmon directory if it doesn't exist
     if (!dir.exists(salmon_dir)) {
@@ -211,40 +212,85 @@ download_salmon_samples_from_zenodo <- function(config) {
         message("Created directory: ", salmon_dir)
     }
     
-    # Try to download - first check what files are available
-    # Since we don't know the exact filenames, we'll attempt direct download or guide user
-    tryCatch(
-        {
-            message("Attempting to download from: ", zenodo_url)
-            message("Note: Salmon files should be TSV or TSV.GZ format")
+    tryCatch({
+        # Load JSON parsing library
+        if (!require("jsonlite", quietly = TRUE)) {
+            message("Installing jsonlite for API parsing...")
+            install.packages("jsonlite", repos = "https://cloud.r-project.org", quiet = TRUE)
+            library("jsonlite", quietly = TRUE)
+        }
+        
+        # Fetch and parse Zenodo API response
+        message("Fetching file list from Zenodo API...")
+        api_response <- tryCatch(
+            jsonlite::fromJSON(zenodo_api_url),
+            error = function(e) {
+                # Fallback: try with readLines and manual parsing
+                json_text <- paste(readLines(zenodo_api_url, warn = FALSE), collapse = "")
+                jsonlite::fromJSON(json_text)
+            }
+        )
+        
+        # Extract file information
+        if (!is.null(api_response$files) && length(api_response$files) > 0) {
+            files_df <- api_response$files
+            tsv_files <- files_df[grep("\\.(tsv|tsv\\.gz)$", files_df$key, ignore.case = TRUE), ]
             
-            # List files from Zenodo record via API (if possible)
-            # For now, provide user guidance
-            message("\nPlease download salmon sample files from: ", zenodo_url)
-            message("Extract and place in: ", salmon_dir)
-            message("Supported formats: .tsv or .tsv.gz")
-            message("\nOr if files are in an archive, extract with:")
-            message("  unzip archive.zip -d ", salmon_dir)
-            message("  tar -xzf archive.tar.gz -C ", salmon_dir)
+            if (nrow(tsv_files) == 0) {
+                stop("No TSV files found in Zenodo record")
+            }
             
-            # Allow manual fallback - check again after user downloads
-            if (length(list.files(salmon_dir, pattern = "\\.(tsv|tsv\\.gz)$")) > 0) {
-                message("✓ Salmon samples detected after manual download!")
+            message("Found ", nrow(tsv_files), " TSV files to download")
+            
+            # Download each file
+            download_count <- 0
+            for (i in seq_len(nrow(tsv_files))) {
+                filename <- tsv_files$key[i]
+                download_url <- tsv_files$links.self[i]
+                
+                # Fallback URL construction if links.self not available
+                if (is.na(download_url) || is.null(download_url)) {
+                    download_url <- paste0("https://zenodo.org/records/", zenodo_record_id, "/files/", filename)
+                }
+                
+                output_path <- file.path(salmon_dir, basename(filename))
+                
+                message("Downloading: ", filename, " ...")
+                tryCatch({
+                    download.file(download_url, output_path, mode = "wb", quiet = TRUE, timeout = 300)
+                    if (file.exists(output_path) && file.size(output_path) > 0) {
+                        message("  ✓ Downloaded: ", filename, " (", round(file.size(output_path)/1024/1024, 1), " MB)")
+                        download_count <- download_count + 1
+                    }
+                }, error = function(e) {
+                    message("  ✗ Failed to download: ", filename, " - ", e$message)
+                })
+            }
+            
+            # Verify files were downloaded
+            downloaded_files <- list.files(salmon_dir, pattern = "\\.(tsv|tsv\\.gz)$")
+            if (length(downloaded_files) > 0) {
+                message("✓ Downloaded ", length(downloaded_files), " salmon samples successfully")
                 return(salmon_dir)
             } else {
-                message("\n⚠ WARNING: Salmon samples not found in ", salmon_dir)
-                message("Proceeding with default directory: ", config$salmon_dir)
-                return(config$salmon_dir)
+                stop("No files were successfully downloaded from Zenodo")
             }
-        },
-        error = function(e) {
-            message("\n⚠ ERROR: Could not verify salmon samples")
-            message("  Location: ", salmon_dir)
-            message("  Error: ", e$message)
-            message("\nProceeding with default directory: ", config$salmon_dir)
-            return(config$salmon_dir)
+        } else {
+            stop("Invalid Zenodo API response: no files found")
         }
-    )
+        
+    }, error = function(e) {
+        message("\n⚠ WARNING: Could not automatically download from Zenodo")
+        message("  Error: ", e$message)
+        message("\nManual download instructions:")
+        message("  1. Visit: https://zenodo.org/records/18837691")
+        message("  2. Click 'Download all' to get the archive")
+        message("  3. Extract TSV files and place in: /tmp/salmon")
+        message("  4. Re-run this script")
+        message("\nOr download individual files:")
+        message("  wget https://zenodo.org/records/18837691/files/<filename>")
+        return(config$salmon_dir)
+    })
 }
 
 # =============================================================================

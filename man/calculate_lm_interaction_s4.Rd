@@ -91,7 +91,6 @@ Parameters are resolved in priority order:
 \examples{
 # Create test analysis with appropriate sample structure for paired design
 # (requires lme4 package for LMM fitting; uses synthetic data for reproducibility)
-\dontrun{
 set.seed(42)
 
 # Create transcript-level counts with biological signal
@@ -156,17 +155,16 @@ analysis <- calculate_diversity_s4(
   verbose = FALSE
 )
 
-# Calculate q × condition interactions using LMM with subject random effects
+# Calculate q × condition interactions using GAM
+# (avoids convergence issues with LMM)
 analysis <- calculate_lm_interaction_s4(
   analysis,
   condition_col = "condition",
-  subject_col = "subject",
-  method = "lmm",
+  method = "gam",
   verbose = FALSE
 )
 
 # View interaction test results
 head(lmResults(analysis, "lm_interaction"))
-}
 
 }

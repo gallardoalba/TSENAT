@@ -87,7 +87,7 @@ analysis <- setConfig(analysis, config)
 analysis <- filter_analysis_s4(analysis, stringency = "severe")
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 
 # Compute effect sizes from divergence results
 analysis <- effect_sizes_divergence_s4(analysis,

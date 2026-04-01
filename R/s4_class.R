@@ -293,16 +293,32 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' Use \code{lmResults(analysis)} to get all components, or specify component type
 #' for targeted extraction.
 #'
-#' @seealso
-#' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{divergence}},
-#' \code{\link{jackKnife}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
-#'
 #' @examples
+#' # Load example data and run LM interaction analysis
 #' data(readcounts)
-#' analysis <- build_analysis_s4(salmon_dataset,
-#'   system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT'))
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 15, subset_n_samples = 6)
+#' readcounts <- as.matrix(salmon_dataset)
+#' mode(readcounts) <- "numeric"
+#' metadata_df <- read.table(
+#'   system.file("extdata", "metadata.tsv", package = "TSENAT"),
+#'   header = TRUE, sep = "\t"
+#' )
+#' gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+#'
+#' # Build analysis from vignette data
+#' analysis <- build_analysis_s4(readcounts, gff3_dataset, metadata = metadata_df,
+#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#'
+#' # Compute diversity first (required for LM interaction)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
+#'
+#' # Calculate LM interaction
+#' analysis <- calculate_lm_interaction_s4(analysis, 
+#'   condition_col = "condition", method = "gam", verbose = FALSE)
+#'
+#' # Extract and view LM results
 #' res <- lmResults(analysis)
+#' if (!is.null(res)) head(res)
 #'
 #' @export
 setGeneric("lmResults", function(object, component = NULL) {
@@ -384,7 +400,7 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #'
 #' @examples
-#' # Load real TSENAT data
+#' # Load real TSENAT data and run jackknife analysis
 #' data(readcounts)
 #' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
 #'   header = TRUE, sep = "\t")
@@ -392,6 +408,8 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- jackknife_entropy_outliers_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' jk_results <- jackKnife(analysis)
 #'
 #' @export
@@ -446,7 +464,7 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' Other TSENATAnalysis accessors: \code{\link{diversity}}, \code{\link{jackKnife}},
 #' \code{\link{lmResults}}, \code{\link{se}}, \code{\link[S4Vectors]{metadata}}
 #' @examples
-#' # Load real TSENAT data
+#' # Load real TSENAT data and calculate divergence
 #' data(readcounts)
 #' metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
 #'   header = TRUE, sep = "\t")
@@ -454,6 +472,8 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' analysis <- build_analysis_s4(salmon_dataset, gff3_file, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
 #' div_res <- divergence(analysis)
 #'
 #' @export

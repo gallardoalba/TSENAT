@@ -97,7 +97,7 @@ analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = "severe")
 analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 
 p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 print(p_gam)

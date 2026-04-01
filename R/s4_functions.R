@@ -58,7 +58,6 @@
 #' @examples
 #' # Create test analysis with appropriate sample structure for paired design
 #' # (requires lme4 package for LMM fitting; uses synthetic data for reproducibility)
-#' \dontrun{
 #' set.seed(42)
 #' 
 #' # Create transcript-level counts with biological signal
@@ -123,18 +122,17 @@
 #'   verbose = FALSE
 #' )
 #' 
-#' # Calculate q × condition interactions using LMM with subject random effects
+#' # Calculate q × condition interactions using GAM
+#' # (avoids convergence issues with LMM)
 #' analysis <- calculate_lm_interaction_s4(
 #'   analysis,
 #'   condition_col = "condition",
-#'   subject_col = "subject",
-#'   method = "lmm",
+#'   method = "gam",
 #'   verbose = FALSE
 #' )
 #' 
 #' # View interaction test results
 #' head(lmResults(analysis, "lm_interaction"))
-#' }
 #'
 #' @export
 #' @importFrom utils write.table
@@ -2153,7 +2151,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- effect_sizes_divergence_s4(analysis,
@@ -2507,7 +2505,7 @@ effect_sizes_divergence_s4 <- function(
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 #' plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 #'
 #' @seealso
@@ -2720,7 +2718,7 @@ plot_top_transcripts_s4 <- function(
 #' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 #' p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
 #' print(p_dist)
@@ -2867,7 +2865,7 @@ plot_divergence_distribution_s4 <- function(
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 #' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50,
 #'   verbose = FALSE)
 #' tables <- prepare_gene_switching_tables_s4(analysis)
@@ -3062,7 +3060,7 @@ prepare_gene_switching_tables_s4 <- function(
 #' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 #' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 #' analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
 #'   n_bootstrap = 50, verbose = FALSE)
 #' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)
@@ -3240,7 +3238,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = "severe")
 #' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
 #' 
 #' p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 #' print(p_gam)
