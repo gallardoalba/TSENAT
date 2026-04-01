@@ -200,7 +200,7 @@ setMethod("summary", "TSENATAnalysis", function(object) {
 #' @param object TSENATAnalysis object.
 #' @param original logical. If TRUE, returns original parameter (e.g., "auto" string).
 #'   If FALSE (default), returns resolved numeric value.
-#' @return numeric. The pseudocount value used, or NULL if diversity not yet calculated.
+#' @return numeric or character. The pseudocount value used, or NULL if diversity not yet calculated.
 #'
 #' @examples
 #' # analysis <- calculate_diversity_s4(analysis, pseudocount = "auto")
@@ -214,31 +214,53 @@ get_pseudocount <- function(object, original = FALSE) {
   }
   
   # Check for diversity_combined metadata from last calculate_diversity_s4 call
-  if (!is.null(object@metadata$diversity_combined)) {
-    computation_params <- object@metadata$diversity_combined$computation_params
-    if (!is.null(computation_params)) {
-      if (original) {
-        # Return original parameter (could be "auto" or numeric)
-        return(computation_params$pseudocount_original %||% computation_params$pseudocount)
-      } else {
-        # Return resolved numeric value
-        return(computation_params$pseudocount)
+  if (!is.null(object@metadata) && length(object@metadata) > 0) {
+    if ("diversity_combined" %in% names(object@metadata)) {
+      div_combined <- object@metadata$diversity_combined
+      if (!is.null(div_combined) && "computation_params" %in% names(div_combined)) {
+        computation_params <- div_combined$computation_params
+        if (!is.null(computation_params)) {
+          if (original) {
+            # Return original parameter (could be "auto" or numeric)
+            val <- if ("pseudocount_original" %in% names(computation_params)) {
+              computation_params$pseudocount_original
+            } else {
+              computation_params$pseudocount
+            }
+            if (!is.null(val) && length(val) > 0) return(val)
+          } else {
+            # Return resolved numeric value
+            val <- computation_params$pseudocount
+            if (!is.null(val) && length(val) > 0) return(val)
+          }
+        }
       }
     }
   }
   
   # Fallback: check last_diversity_run config
-  if (!is.null(object@config$last_diversity_run)) {
-    params_used <- object@config$last_diversity_run$parameters_used
-    if (!is.null(params_used)) {
-      if (original) {
-        return(params_used$pseudocount_original %||% params_used$pseudocount)
-      } else {
-        return(params_used$pseudocount)
+  if (!is.null(object@config) && length(object@config) > 0) {
+    if ("last_diversity_run" %in% names(object@config)) {
+      last_run <- object@config$last_diversity_run
+      if (!is.null(last_run) && "parameters_used" %in% names(last_run)) {
+        params_used <- last_run$parameters_used
+        if (!is.null(params_used)) {
+          if (original) {
+            val <- if ("pseudocount_original" %in% names(params_used)) {
+              params_used$pseudocount_original
+            } else {
+              params_used$pseudocount
+            }
+            if (!is.null(val) && length(val) > 0) return(val)
+          } else {
+            val <- params_used$pseudocount
+            if (!is.null(val) && length(val) > 0) return(val)
+          }
+        }
       }
     }
   }
   
-  # No diversity calculation found
+  # No diversity calculation found - explicitly return NULL
   NULL
 }
