@@ -61,12 +61,12 @@
 #'   \enumerate{
 #'     \item Primary output: Analysis object (.rds) or table (.tsv/.csv/.txt)
 #'     \item Secondary output: Diversity spectrum statistics (TSV format)
-#'         with suffix \code{_diversity_spectrum.tsv}
+#'         with suffix \code{_spectrum.tsv}
 #'   }
 #'   Example: output_file = "analysis.rds" generates:
 #'   \itemize{
 #'     \item \code{analysis.rds} - TSENATAnalysis object
-#'     \item \code{analysis_diversity_spectrum.tsv} - Spectrum statistics
+#'     \item \code{analysis_spectrum.tsv} - Spectrum statistics
 #'   }
 #'   The spectrum file contains columns: q, central (median diversity), 
 #'   spread (IQR), count, and group (if grouping variable available).
@@ -78,7 +78,7 @@
 #'   When \code{output_file} is provided, also generates:
 #'   \itemize{
 #'     \item Primary file: Analysis object or table export
-#'     \item Spectrum file: \code{*_diversity_spectrum.tsv} containing 
+#'     \item Spectrum file: \code{*_spectrum.tsv} containing 
 #'           aggregated diversity statistics across q-values and groups
 #'   }
 #'
@@ -100,7 +100,7 @@
 #' }
 #' This provides a quick summary of how diversity changes across q-values,
 #' useful for q-curve visualization and statistical comparisons.
-#' Spectrum is saved as: \code{*_diversity_spectrum.tsv}
+#' Spectrum is saved as: \code{*_spectrum.tsv}
 #'
 #' **Parameter Priority Resolution:**
 #' \describe{
@@ -436,9 +436,9 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         )
         
         if (!is.null(diversity_spectrum) && nrow(diversity_spectrum) > 0) {
-          spectrum_file <- sub("\\.[^.]+$", "_diversity_spectrum.tsv", output_file)
+          spectrum_file <- sub("\\.[^.]+$", "_spectrum.tsv", output_file)
           if (spectrum_file == output_file) {
-            spectrum_file <- paste0(output_file, "_diversity_spectrum.tsv")
+            spectrum_file <- paste0(output_file, "_spectrum.tsv")
           }
           
           utils::write.table(
@@ -462,49 +462,38 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
     tryCatch({
       output_data <- NULL
       
+      if (params$verbose) {
+        cat("[DEBUG] Length of diversity_results:", length(analysis@diversity_results), "\n")
+        if (length(analysis@diversity_results) > 0) {
+          cat("[DEBUG] Keys in diversity_results:", paste(names(analysis@diversity_results), collapse=", "), "\n")
+        }
+      }
+      
       # Extract diversity results from individual SE objects (preferred path with CIs)
       if (length(analysis@diversity_results) > 0) {
         # Build output data systematically - iterate over the q values we REQUESTED, not all stored results
         q_keys_to_use <- paste0("q_", formatC(params$q, format = "f", digits = 3))
+        if (params$verbose) {
+          cat("[DEBUG] Looking for q_keys:", paste(q_keys_to_use, collapse=", "), "\n")
+        }
         n_q <- length(q_keys_to_use)
         
         # Get dimensions from first result
         first_key <- q_keys_to_use[1]
         if (first_key %in% names(analysis@diversity_results)) {
           se_first_actual <- analysis@diversity_results[[first_key]]
-          all_genes <- rownames(se_first_actual)
-          all_samples <- colnames(se_first_actual)
+          has_ci_lower <- "ci_lower" %in% SummarizedExperiment::assayNames(se_first_actual)
+          has_ci_upper <- "ci_upper" %in% SummarizedExperiment::assayNames(se_first_actual)
         } else {
           # Fallback to first available
-          all_genes <- rownames(analysis@diversity_results[[1]])
-          all_samples <- colnames(analysis@diversity_results[[1]])
+          se_first_actual <- analysis@diversity_results[[1]]
+          has_ci_lower <- "ci_lower" %in% SummarizedExperiment::assayNames(se_first_actual)
+          has_ci_upper <- "ci_upper" %in% SummarizedExperiment::assayNames(se_first_actual)
         }
         
-        n_genes <- length(all_genes)
-        n_samples <- length(all_samples)
-        
-        # Pre-allocate data frame
-        total_rows <- n_genes * n_samples * n_q
-        output_data <- data.frame(
-          gene = character(total_rows),
-          sample = character(total_rows),
-          q_value = character(total_rows),
-          diversity = numeric(total_rows),
-          stringsAsFactors = FALSE
-        )
-        
-        # Add CI columns if they exist
-        se_first <- analysis@diversity_results[[first_key]]
-        assay_names_first <- SummarizedExperiment::assayNames(se_first)
-        has_ci_lower <- "ci_lower" %in% assay_names_first
-        has_ci_upper <- "ci_upper" %in% assay_names_first
-        
-        if (has_ci_lower) output_data$ci_lower <- numeric(total_rows)
-        if (has_ci_upper) output_data$ci_upper <- numeric(total_rows)
-        
         # Fill data frame - use ONLY the requested q-values
-        row_idx <- 1
-
+        # OPTIMIZATION: Use vectorized expand.grid + matrix flattening instead of nested loops
+        all_data_list <- list()
         
         for (q_idx in seq_along(q_keys_to_use)) {
           q_key <- q_keys_to_use[q_idx]
@@ -534,33 +523,56 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
             })
           } else NULL
           
-          for (gene_idx in seq_len(nrow(diversity_mat))) {
-            for (sample_idx in seq_len(ncol(diversity_mat))) {
-              output_data$gene[row_idx] <- rownames(diversity_mat)[gene_idx]
-              output_data$sample[row_idx] <- colnames(diversity_mat)[sample_idx]
-              output_data$q_value[row_idx] <- q_name
-              output_data$diversity[row_idx] <- as.numeric(diversity_mat[gene_idx, sample_idx])
-              
-              if (has_ci_lower && !is.null(ci_lower_mat)) {
-                output_data$ci_lower[row_idx] <- as.numeric(ci_lower_mat[gene_idx, sample_idx])
-              }
-              if (has_ci_upper && !is.null(ci_upper_mat)) {
-                output_data$ci_upper[row_idx] <- as.numeric(ci_upper_mat[gene_idx, sample_idx])
-              }
-              
-              row_idx <- row_idx + 1
-            }
+          # VECTORIZED: Create all combinations of genes x samples x q using expand.grid
+          gene_names <- rownames(diversity_mat)
+          sample_names <- colnames(diversity_mat)
+          n_genes <- length(gene_names)
+          n_samples <- length(sample_names)
+          
+          # Flatten matrices to vectors (column-major order: genes vary fastest)
+          diversity_vec <- as.vector(diversity_mat)  # flatten by cols
+          
+          # Create expanded data frame
+          current_data <- data.frame(
+            gene = rep(gene_names, times = n_samples),
+            sample = rep(sample_names, each = n_genes),
+            q_value = q_name,
+            diversity = diversity_vec,
+            stringsAsFactors = FALSE
+          )
+          
+          # Add CI columns if they exist
+          if (has_ci_lower && !is.null(ci_lower_mat)) {
+            current_data$ci_lower <- as.vector(ci_lower_mat)
           }
+          if (has_ci_upper && !is.null(ci_upper_mat)) {
+            current_data$ci_upper <- as.vector(ci_upper_mat)
+          }
+          
+          all_data_list[[length(all_data_list) + 1]] <- current_data
         }
         
-        # Trim to actual rows (in case rows < total_rows due to errors)
-        output_data <- output_data[seq_len(row_idx - 1), ]
+        # Combine all q-value data frames at once
+        if (length(all_data_list) > 0) {
+          output_data <- do.call(rbind, all_data_list)
+          rownames(output_data) <- NULL
+        }
+        
+        if (params$verbose) {
+          cat("[DEBUG] After extraction: output_data has", nrow(output_data), "rows x", ncol(output_data), "cols\n")
+        }
       }
       
       # Fallback: if no diversity_results, try combined_result
       if (is.null(output_data) || nrow(output_data) == 0) {
+        if (params$verbose) {
+          cat("[DEBUG] Primary extraction empty, trying fallback from diversity_combined\n")
+        }
         combined <- analysis@metadata$diversity_combined$combined_result
         if (!is.null(combined) && nrow(combined) > 0) {
+          if (params$verbose) {
+            cat("[DEBUG] Found combined_result with", nrow(combined), "rows\n")
+          }
           if (is(combined, "SummarizedExperiment")) {
             output_data <- as.data.frame(SummarizedExperiment::assay(combined, 1))
           } else if (is.data.frame(combined)) {
@@ -568,16 +580,30 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
           } else if (is.matrix(combined)) {
             output_data <- as.data.frame(combined)
           }
+        } else {
+          if (params$verbose) {
+            cat("[DEBUG] combined_result is NULL or empty\n")
+          }
         }
       }
       
       # Save if we have data
       if (!is.null(output_data) && nrow(output_data) > 0) {
+        if (params$verbose) {
+          cat("[DEBUG] Saving output_data with", nrow(output_data), "rows\n")
+        }
         save_analysis_output(output_data, output_file, verbose = params$verbose,
                              func_name = "calculate_diversity_s4")
         
         if (params$verbose) {
           message("[calculate_diversity_s4] Saved diversity results to: ", output_file)
+        }
+      } else {
+        if (params$verbose) {
+          cat("[DEBUG] output_data is NULL or has 0 rows - NOT saving\n")
+          if (!is.null(output_data)) {
+            cat("[DEBUG] output_data dimensions:", nrow(output_data), "rows x", ncol(output_data), "cols\n")
+          }
         }
       }
     }, error = function(e) {

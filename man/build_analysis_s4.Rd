@@ -5,19 +5,28 @@
 \title{Build a Complete TSENATAnalysis Object}
 \usage{
 build_analysis_s4(
-  readcounts,
+  readcounts = NULL,
+  salmon_dir = NULL,
   tx2gene,
   assay_name = "counts",
   metadata = NULL,
   tpm = NULL,
   effective_length = NULL,
-  config = list()
+  config = list(),
+  skip = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
 \item{readcounts}{A matrix or data.frame of transcript-level read counts with
 transcript IDs as row names and sample names as column names. Typically output
-from quantification tools (SALMON, kallisto, etc.).}
+from quantification tools (SALMON, kallisto, etc.). Optional when \code{salmon_dir}
+is provided (in which case readcounts are auto-loaded from quant.sf files).}
+
+\item{salmon_dir}{Optional character path to directory containing Salmon quantification
+output. Expected structure: \code{salmon_dir/sample_name/quant.sf}. When provided,
+automatically discovers and reads all quant.sf files. If both \code{readcounts} and
+\code{salmon_dir} are provided, \code{salmon_dir} takes precedence. Default: \code{NULL}.}
 
 \item{tx2gene}{Either:
 - A path to a GFF3 or GFF3.gz file containing transcript-to-gene mapping
@@ -55,6 +64,17 @@ into a single function call. This creates a complete analysis object ready for
 Tsallis entropy computation and downstream analysis.
 }
 \details{
+When using \code{salmon_dir}, the function automatically:
+\enumerate{
+  \item Discovers all Salmon sample folders and quant.sf files
+  \item Reads transcript counts (NumReads), TPM, and effective_length
+  \item Extracts sample names from directory structure
+  \item Creates count matrix ready for analysis
+}
+
+The \code{salmon_dir} parameter provides a convenient alternative to manually
+constructing the \code{readcounts} matrix, especially useful in Galaxy workflows.
+
 This wrapper combines two steps into one:
 \enumerate{
   \item Call \code{.build_se()} to create a SummarizedExperiment from transcript counts
@@ -90,7 +110,7 @@ metadata <- data.frame(
   condition = rep(c("control", "treatment"), each = 5),
   row.names = colnames(counts))
 
-# Build analysis object
+# Build analysis object (Method 1: Manual count matrix)
 analysis <- build_analysis_s4(
   readcounts = counts,
   tx2gene = tx2gene,
@@ -98,6 +118,20 @@ analysis <- build_analysis_s4(
 
 # Verify the analysis object was created
 analysis
+
+\\dontrun{
+# Build analysis object (Method 2: From Salmon folder)
+# This requires a directory with Salmon output structure:
+#   salmon/
+#     sample1/quant.sf
+#     sample2/quant.sf
+#     ...
+analysis_salmon <- build_analysis_s4(
+  salmon_dir = "/path/to/salmon/output",
+  tx2gene = "annotation.gff3.gz",  # Auto-parsed!
+  metadata = sample_metadata
+)
+}
 
 }
 \seealso{

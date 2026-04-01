@@ -4271,7 +4271,13 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #'
 #' @param readcounts A matrix or data.frame of transcript-level read counts with
 #'   transcript IDs as row names and sample names as column names. Typically output
-#'   from quantification tools (SALMON, kallisto, etc.).
+#'   from quantification tools (SALMON, kallisto, etc.). Optional when \code{salmon_dir}
+#'   is provided (in which case readcounts are auto-loaded from quant.sf files).
+#'
+#' @param salmon_dir Optional character path to directory containing Salmon quantification
+#'   output. Expected structure: \code{salmon_dir/sample_name/quant.sf}. When provided,
+#'   automatically discovers and reads all quant.sf files. If both \code{readcounts} and
+#'   \code{salmon_dir} are provided, \code{salmon_dir} takes precedence. Default: \code{NULL}.
 #'
 #' @param tx2gene Either:
 #'   - A path to a GFF3 or GFF3.gz file containing transcript-to-gene mapping
@@ -4291,6 +4297,18 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #'
 #' @param config Optional list of configuration parameters to store in the
 #'   TSENATAnalysis object. Useful for tracking analysis parameters.
+#'
+#' @details
+#' When using \code{salmon_dir}, the function automatically:
+#' \enumerate{
+#'   \item Discovers all Salmon sample folders and quant.sf files
+#'   \item Reads transcript counts (NumReads), TPM, and effective_length
+#'   \item Extracts sample names from directory structure
+#'   \item Creates count matrix ready for analysis
+#' }
+#'
+#' The \code{salmon_dir} parameter provides a convenient alternative to manually
+#' constructing the \code{readcounts} matrix, especially useful in Galaxy workflows.
 #'
 #' @return A \code{TSENATAnalysis} S4 object with:
 #'   \item{@se}{The SummarizedExperiment containing transcript counts and metadata}
@@ -4342,7 +4360,7 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #'   condition = rep(c("control", "treatment"), each = 5),
 #'   row.names = colnames(counts))
 #'
-#' # Build analysis object
+#' # Build analysis object (Method 1: Manual count matrix)
 #' analysis <- build_analysis_s4(
 #'   readcounts = counts,
 #'   tx2gene = tx2gene,
@@ -4351,10 +4369,95 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1.0, tpm_assay_name = NULL,
 #' # Verify the analysis object was created
 #' analysis
 #'
+#' \\dontrun{
+#' # Build analysis object (Method 2: From Salmon folder)
+#' # This requires a directory with Salmon output structure:
+#' #   salmon/
+#' #     sample1/quant.sf
+#' #     sample2/quant.sf
+#' #     ...
+#' analysis_salmon <- build_analysis_s4(
+#'   salmon_dir = "/path/to/salmon/output",
+#'   tx2gene = "annotation.gff3.gz",  # Auto-parsed!
+#'   metadata = sample_metadata
+#' )
+#' }
+#'
 #' @export
-build_analysis_s4 <- function(readcounts, tx2gene, assay_name = "counts",
+build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, 
+                             assay_name = "counts",
                              metadata = NULL, tpm = NULL, effective_length = NULL,
-                             config = list()) {
+                             config = list(), skip = FALSE, verbose = TRUE) {
+  # Handle salmon_dir parameter - auto-load Salmon quantification data
+  if (!is.null(salmon_dir)) {
+    # Detect Salmon samples
+    salmon_info <- .detect_salmon_samples(salmon_dir)
+    
+    if (verbose) message("[build_analysis_s4] Found ", salmon_info$count, " Salmon samples")
+    
+    # Validate Salmon sample names match metadata (if metadata provided)
+    if (!is.null(metadata)) {
+      metadata_samples <- rownames(metadata)
+      salmon_samples <- salmon_info$sample_names
+      
+      # Check if all Salmon samples have corresponding metadata
+      missing_in_metadata <- setdiff(salmon_samples, metadata_samples)
+      missing_in_salmon <- setdiff(metadata_samples, salmon_samples)
+      
+      if (length(missing_in_metadata) > 0 || length(missing_in_salmon) > 0) {
+        error_msg <- "[build_analysis_s4] Sample name mismatch between Salmon folder and metadata:\n"
+        
+        if (length(missing_in_metadata) > 0) {
+          error_msg <- paste0(
+            error_msg,
+            "  Salmon samples NOT in metadata (", length(missing_in_metadata), "): ",
+            paste(missing_in_metadata, collapse = ", "), "\n"
+          )
+        }
+        
+        if (length(missing_in_salmon) > 0) {
+          error_msg <- paste0(
+            error_msg,
+            "  Metadata samples NOT in Salmon folder (", length(missing_in_salmon), "): ",
+            paste(missing_in_salmon, collapse = ", "), "\n"
+          )
+        }
+        
+        error_msg <- paste0(
+          error_msg,
+          "\n  Suggestion: Ensure sample folder names in Salmon directory exactly match",
+          "\n  the row names of the metadata data.frame (case-sensitive)"
+        )
+        
+        stop(error_msg)
+      }
+      
+      if (verbose) message("[build_analysis_s4] ✓ Sample names match metadata")
+    }
+    
+    # Read Salmon quantification files
+    salmon_data <- .read_salmon_samples(
+      file_paths = salmon_info$file_paths,
+      sample_names = salmon_info$sample_names,
+      include_tpm = is.null(tpm),
+      include_eff_length = is.null(effective_length),
+      verbose = verbose
+    )
+    
+    # Assign extracted data to parameters
+    readcounts <- salmon_data$counts
+    if (is.null(tpm)) tpm <- salmon_data$tpm
+    if (is.null(effective_length)) effective_length <- salmon_data$effective_length
+  }
+  
+  # Validate readcounts is now available
+  if (is.null(readcounts)) {
+    stop(
+      "[build_analysis_s4] Either 'readcounts' or 'salmon_dir' must be provided\n",
+      "  readcounts: matrix/data.frame of transcript counts\n",
+      "  salmon_dir: path to Salmon quantification output directory"
+    )
+  }
   # Build SummarizedExperiment
   se <- .build_se(
     readcounts = readcounts,
@@ -4362,7 +4465,9 @@ build_analysis_s4 <- function(readcounts, tx2gene, assay_name = "counts",
     assay_name = assay_name,
     metadata = metadata,
     tpm = tpm,
-    effective_length = effective_length
+    effective_length = effective_length,
+    skip = skip,
+    verbose = verbose
   )
 
   # Ensure sample_id column exists in colData (required by TSENATAnalysis)

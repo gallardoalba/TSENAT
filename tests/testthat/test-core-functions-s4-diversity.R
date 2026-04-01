@@ -63,20 +63,15 @@ test_that("calculate_diversity_s4 generates both diversity_results.tsv and _dive
     verbose = FALSE
   )
   
-  # Check main file
+  # Check main file exists and has content
   expect_true(file.exists(output_file),
               info = "Main diversity results file not found")
+  expect_gt(file.info(output_file)$size, 100)
   
-  # Check spectrum file (should have _diversity_spectrum.tsv suffix)
-  spectrum_file <- sub("\\.[^.]+$", "_diversity_spectrum.tsv", output_file)
-  if (spectrum_file == output_file) {
-    spectrum_file <- paste0(output_file, "_diversity_spectrum.tsv")
-  }
+  # Check spectrum file (replace .tsv with _spectrum.tsv)
+  spectrum_file <- sub("\\.tsv$", "_spectrum.tsv", output_file)
   expect_true(file.exists(spectrum_file),
               info = sprintf("Spectrum file not found: %s", spectrum_file))
-  
-  # Both files should have content
-  expect_gt(file.info(output_file)$size, 100)
   expect_gt(file.info(spectrum_file)$size, 50)
   
   # Clean up
@@ -85,6 +80,7 @@ test_that("calculate_diversity_s4 generates both diversity_results.tsv and _dive
 })
 
 test_that("calculate_diversity_s4 generates diversity_results.tsv with CI columns when bootstrap=TRUE", {
+  skip_on_cran()
   
   analysis <- make_test_analysis_diversity(n_genes = 8, n_samples_per_group = 2)
   output_dir <- tempdir()
@@ -320,6 +316,7 @@ test_that("CI bounds are valid (ci_lower <= diversity <= ci_upper)", {
 })
 
 test_that("CI width decreases with higher bootstrap replicates (nboot)", {
+  skip_on_cran()
   
   # Use same seed for both analyses so they analyze the same data
   # Only difference is nboot (20 vs 100)
@@ -479,16 +476,15 @@ test_that("Spectrum file aggregates correctly across samples", {
     verbose = FALSE
   )
   
-  spectrum_file <- sub("\\.[^.]+$", "_diversity_spectrum.tsv", output_file)
-  if (spectrum_file == output_file) {
-    spectrum_file <- paste0(output_file, "_diversity_spectrum.tsv")
-  }
-  
   # Read both files
   div_main <- read.csv(output_file, sep = "\t", stringsAsFactors = FALSE)
+  
+  # Spectrum file name (replace .tsv with _spectrum.tsv)
+  spectrum_file <- sub("\\.tsv$", "_spectrum.tsv", output_file)
   div_spectrum <- read.csv(spectrum_file, sep = "\t", stringsAsFactors = FALSE)
   
-  # Spectrum file should exist and not be empty
+  # Verify both files have content
+  expect_gt(nrow(div_main), 0)
   expect_gt(nrow(div_spectrum), 0)
   
   # Spectrum should have fewer rows than main file (aggregated)

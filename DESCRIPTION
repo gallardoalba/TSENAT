@@ -13,7 +13,7 @@ Encoding: UTF-8
 LazyData: false
 RoxygenNote: 7.3.3
 Depends: R (>= 4.5.0)
-Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, matrixStats, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise
+Imports: SummarizedExperiment, methods, stats, ggplot2, withr, BiocParallel, matrixStats, mgcv, geepack, pheatmap, cowplot, dplyr, tidyr, S4Vectors, rlang, Rcpp, memoise, readr, data.table
 LinkingTo: Rcpp, RcppArmadillo
 Suggests: testthat, knitr, rmarkdown, kableExtra, ggrepel, patchwork, covr, fda, nortest, RColorBrewer, gamsel, glmmTMB, glmnet, gridExtra, lmerTest, nlme, fdrtool, MASS, SplicingFactory, devtools, microbenchmark
 VignetteBuilder: knitr

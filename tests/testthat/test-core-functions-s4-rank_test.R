@@ -27,8 +27,8 @@ setup_rank_test_analysis <- function(n_genes = 30, n_samples = 8) {
     # Build analysis from vignette data and create small subset
     # Use both tpm and effective_length like roxygen example
     analysis <- build_analysis_s4(
-        readcounts,
-        gff3_dataset,
+        readcounts = readcounts,
+        tx2gene = gff3_dataset,
         metadata = metadata_df,
         tpm = salmon_tpm,
         effective_length = salmon_effective_length
@@ -313,6 +313,7 @@ test_that("rank_test_q_condition_s4 handles multiple genes with varying signific
 # ============================================================================
 
 test_that("rank_test_q_condition_s4 works with ART (Aligned Rank Transform)", {
+    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- rank_test_q_condition_s4(
@@ -332,6 +333,7 @@ test_that("rank_test_q_condition_s4 works with ART (Aligned Rank Transform)", {
 # ============================================================================
 
 test_that("rank_test_q_condition_s4 works with Westfall-Young correction", {
+    skip_on_cran()
     analysis <- setup_rank_test_analysis(n_genes = 15, n_samples = 8)
     
     result <- rank_test_q_condition_s4(

@@ -113,12 +113,12 @@ When provided, generates TWO files:
 \enumerate{
   \item Primary output: Analysis object (.rds) or table (.tsv/.csv/.txt)
   \item Secondary output: Diversity spectrum statistics (TSV format)
-      with suffix \code{_diversity_spectrum.tsv}
+      with suffix \code{_spectrum.tsv}
 }
 Example: output_file = "analysis.rds" generates:
 \itemize{
   \item \code{analysis.rds} - TSENATAnalysis object
-  \item \code{analysis_diversity_spectrum.tsv} - Spectrum statistics
+  \item \code{analysis_spectrum.tsv} - Spectrum statistics
 }
 The spectrum file contains columns: q, central (median diversity), 
 spread (IQR), count, and group (if grouping variable available).
@@ -132,7 +132,7 @@ Modified TSENATAnalysis object with diversity results stored
   When \code{output_file} is provided, also generates:
   \itemize{
     \item Primary file: Analysis object or table export
-    \item Spectrum file: \code{*_diversity_spectrum.tsv} containing 
+    \item Spectrum file: \code{*_spectrum.tsv} containing 
           aggregated diversity statistics across q-values and groups
   }
 }
@@ -157,7 +157,7 @@ The spectrum contains:
 }
 This provides a quick summary of how diversity changes across q-values,
 useful for q-curve visualization and statistical comparisons.
-Spectrum is saved as: \code{*_diversity_spectrum.tsv}
+Spectrum is saved as: \code{*_spectrum.tsv}
 
 **Parameter Priority Resolution:**
 \describe{
