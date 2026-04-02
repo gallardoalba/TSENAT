@@ -24,16 +24,19 @@ m_estimate_s4(
 \item{analysis}{\code{TSENATAnalysis} object with diversity results
 (typically via \code{\link{calculate_diversity_s4}}).}
 
-\item{condition_col}{\code{character}. Column name in sample metadata indicating
-condition/sample grouping. Auto-detected from \code{@config$condition_col}
-if available.}
+\item{condition_col}{\code{character}.
+Column name in sample metadata indicating
+ condition/sample grouping. Auto-detected from \code{@config$condition_col}
+ if available.}
 
 \item{loss_type}{\code{character}. Type of loss function: 'huber' (default),
 'tukey', or 'lsq'. Determines robustness vs efficiency trade-off.}
 
-\item{scale}{\code{numeric}. Manual scale parameter. If NULL, estimated from data.}
+\item{scale}{\code{numeric}.  Manual scale parameter.  If NULL,
+estimated from data.}
 
-\item{max_iter}{\code{integer}. Maximum iterations for M-estimation. Default: 50.}
+\item{max_iter}{\code{integer}.  Maximum iterations for  M-estimation.
+Default:  50.}
 
 \item{tol}{\code{numeric}. Convergence tolerance. Default: 1e-6.}
 
@@ -41,7 +44,8 @@ if available.}
 designs. Auto-detected from \code{@config$paired} if available.
 Default: FALSE.}
 
-\item{pcorr}{\code{character}. P-value correction method. Default: 'BH' (Benjamini-Hochberg).}
+\item{pcorr}{\code{character}.  P-value correction method.  Default:
+'BH' (Benjamini-Hochberg).}
 
 \item{q_combine_method}{\code{character}. How to collapse multi-q results:
 'mean' (default) or 'median'.}
@@ -49,18 +53,22 @@ Default: FALSE.}
 \item{influence_threshold}{\code{numeric}. Threshold for classifying samples
 as high-influence. Default: 0.75.}
 
-\item{scale_method}{\code{character}. Scale estimation method: 'mad' (default),
-'proposal2', or 's-estimator'.}
+\item{scale_method}{\code{character}.  Scale estimation method:
+'mad' (default),
+ 'proposal2', or 's-estimator'.}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+Default: NULL (no file output).}
 
 \item{verbose}{\code{logical}. Print status messages. Default: TRUE.}
 }
 \value{
 Modified TSENATAnalysis object with M-estimation results stored in
 \code{analysis@metadata$m_estimate_results}. Contains data frame with
-influence scores, robustness weights, entropy statistics, and QC classifications.
+influence scores, robustness weights, entropy statistics, and QC
+classifications.
 Returns visibly to support method chaining and piping.
 }
 \description{
@@ -70,26 +78,31 @@ back into the object.
 }
 \details{
 This wrapper extracts diversity results from \code{analysis@diversity_results},
-performs robust M-estimation on diversity values (entropy), and stores results
+performs robust M-estimation on diversity values (entropy), and stores
+results
 in the analysis object metadata.
 
-**M-Estimation:** Robust regression technique that down-weights outliers based
+**M-Estimation:** Robust regression technique that down-weights outliers
+based
 on their residuals. Useful for detecting low-quality samples that show
 unusual diversity patterns.
 
 **M-Estimation Results include:**
 \itemize{
   \item \code{sample_influence}: How much each sample affects the overall fit
-  \item \code{robustness_weight}: Down-weighting factor (lower = more outlying)
+  \item \code{robustness_weight}:
+ Down-weighting factor (lower = more outlying)
   \item \code{entropy_mean}: Average entropy for the sample
   \item \code{entropy_sd}: Entropy variability within the sample
-  \item \code{Status}: QC Classification ('OK' or 'Flag for QC' based on influence_threshold)
+  \item \code{Status}:  QC Classification ('OK' or  'Flag for 
+QC' based on influence_threshold)
 }
 
 **Parameter resolution priority** (explicit > @config > error):
 \itemize{
   \item \code{samples}: Uses explicit arg, else \code{@config$condition_col},
-    else error. Note: despite parameter name 'samples', maps to condition grouping column
+else error. Note: despite parameter name 'samples', maps to condition
+grouping column
 }
 
 **Data Requirements:**
@@ -108,11 +121,15 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
 analysis <- m_estimate_s4(
   analysis,
   condition_col = 'condition',

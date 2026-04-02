@@ -62,7 +62,8 @@ This wrapper calls \code{.test_rankbased_assumptions()} on diversity data
 extracted from the analysis object. Results include:
 
 \describe{
-  \item{exchangeability}{Permutation test for temporal/spatial ordering effects}
+  \item{exchangeability}{Permutation test for 
+temporal/spatial ordering effects}
   \item{monotonicity}{Spearman correlation stability across rows}
   \item{consistency}{Kendall's W concordance and ICC across samples}
 }
@@ -70,7 +71,8 @@ extracted from the analysis object. Results include:
 **Data Extraction Priority:**
 1. If q specified: uses diversity result for that q-value
 2. If q NULL: uses first available diversity result
-3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
+3.  If no diversity results:
+ extracts from cached combined result (\code{@metadata$diversity_combined})
 }
 \examples{
 # Load example data (matching TSENAT.Rmd workflow)
@@ -81,13 +83,17 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data and create small subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
 analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 # Access results using getMeta S4 accessor
 names(getMeta(analysis, 'rankbased_assumptions'))

@@ -390,16 +390,22 @@
 #'
 #' Auto-detects an appropriate minimum total count threshold to filter out genes
 #' with insufficient counts before bootstrap analysis. This prevents the use of
-#' artificial pseudocount inflation and ensures bootstrap resampling works on real data.
+#' artificial pseudocount inflation and ensures bootstrap resampling works
+#' on real data.
 #'
-#' @param count_matrix Numeric matrix of raw transcript counts (rows = features, cols = samples).
+#' @param count_matrix Numeric matrix of raw transcript counts (rows =
+#' features, cols = samples).
 #'   Can also be a SummarizedExperiment; the default assay will be extracted.
-#' @param percentile Numeric; percentile of gene total counts to use as threshold
-#'   (default: 0.5 = median). Use 0.25 for more permissive filtering, 0.75+ for stringent.
-#' @param verbose Logical; if TRUE, print diagnostic information (default: TRUE).
+#' @param percentile Numeric; percentile of gene total counts to use as
+#' threshold
+#' (default: 0.5 = median). Use 0.25 for more permissive filtering, 0.75+
+#' for stringent.
+#' @param verbose Logical; if TRUE, print diagnostic information (default:
+#' TRUE).
 #'
 #' @return Numeric scalar; suggested minimum count threshold. Genes with
-#'   `sum(counts) < min_count` should be filtered out before diversity calculation.
+#' `sum(counts) < min_count` should be filtered out before diversity
+#' calculation.
 #'
 #' @details
 #' **Algorithm:**
@@ -409,12 +415,15 @@
 #' **Interpretation:**
 #' - percentile=0.5: Keep genes with counts >= median gene total
 #'   (typical: ~10-50 depending on data)
-#' - percentile=0.25: More permissive; keep genes >= 25th percentile (lower threshold)
-#' - percentile=0.75: Stringent; keep genes >= 75th percentile (higher threshold)
+#' - percentile=0.25: More permissive; keep genes >= 25th percentile (lower
+#' threshold)
+#' - percentile=0.75: Stringent; keep genes >= 75th percentile (higher
+#' threshold)
 #'
 #' **Why this matters:**
 #' Bootstrap resampling requires real count data. Genes with zero counts need
-#' artificial pseudocount inflation, violating bootstrap assumptions and producing
+#' artificial pseudocount inflation, violating bootstrap assumptions and
+#' producing
 #' unreliable confidence intervals. Filtering by minimum count prevents this.
 #'
 #' **References:**
@@ -479,30 +488,39 @@
 #'
 #' @param se SummarizedExperiment or Matrix; raw count matrix (genes x samples).
 #'            If SummarizedExperiment, assay(se) is extracted.
-#' @param verbose Logical; if TRUE, print diagnostic information (default: TRUE).
+#' @param verbose Logical; if TRUE, print diagnostic information (default:
+#' TRUE).
 #'
 #' @return List with elements:
-#'   \item{scalar_pseudocount}{Numeric; recommended pseudocount value for use in \code{.calculate_diversity()}}.
+#'   \item{scalar_pseudocount}{Numeric;  recommended pseudocount value for 
+#' use in \code{. calculate_diversity()}}.
 #'   \item{size_factors}{Named numeric vector of library size factors (one per sample)}.
-#'   \item{diagnostics}{List with data quality checks: n_genes, n_samples, total_counts}.
+#'   \item{diagnostics}{List with  data quality checks:  n_genes,  n_samples,
+#'  total_counts}.
 #'
 #' @details
 #' This function computes pseudocounts via size-factor adjustment:
 #'
-#' 1. Computes library size factors: `size_factors = colSums(counts) / mean(colSums(counts))`
+#' 1. Computes library size factors: `size_factors = colSums(counts) /
+#' mean(colSums(counts))`
 #' 2. Calculates mean library size: `mean_lib_size = mean(colSums(counts))`
 #' 3. Returns pseudocount: `log2(mean_lib_size / 1e6 + 1)`
 #'
-#' The pseudocount scales with the overall sequencing depth, ensuring appropriate
-#' regularization regardless of the count magnitude (e.g., RNA-seq vs. ribo-seq data).
+#' The pseudocount scales with the overall sequencing depth, ensuring
+#' appropriate
+#' regularization regardless of the count magnitude (e.g., RNA-seq vs.
+#' ribo-seq data).
 #'
 #' This approach is widely used in differential expression analysis and provides
-#' a heuristic but effective way to normalize pseudocount strength across datasets.
+#' a heuristic but effective way to normalize pseudocount strength across
+#' datasets.
 #'
 #' **References for this approach:**
-#' - Robinson et al. (2010, edgeR): Method of using compositional invariants for normalization
+#' - Robinson et al. (2010, edgeR): Method of using compositional invariants
+#' for normalization
 #' - Love et al. (2014, DESeq2): Size-factor adjustment for count-based analysis
-#' - Chen et al. (2023, edgeR User Guide): Current best practices in library normalization
+#' - Chen et al. (2023, edgeR User Guide): Current best practices in library
+#' normalization
 #'
 #' @examples
 #' # Create example read counts
@@ -520,15 +538,18 @@
 #' pseudocount <- result$scalar_pseudocount
 #' 
 #' # Use with calculate_diversity
-#' se <- .calculate_diversity(counts, genes = genes, q = 1, pseudocount = pseudocount)
+#' se <- .calculate_diversity(counts, genes = genes, q = 1, pseudocount =
+#' pseudocount)
 #'
 #' @references
 #' Robinson, M.D., McCarthy, D.J., Smyth, G.K. (2010).
-#' edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.
+#' edgeR: a Bioconductor package for differential expression analysis of
+#' digital gene expression data.
 #' *Bioinformatics*, 26(1), 139-140.
 #'
 #' Love, M.I., Huber, W., Anders, S. (2014).
-#' Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.
+#' Moderated estimation of fold change and dispersion for RNA-seq data with
+#' DESeq2.
 #' *Genome Biology*, 15(12), 550.
 #'
 
@@ -590,7 +611,8 @@
 #' Block Bootstrap for Paired Samples
 #'
 #' Implements block bootstrap resampling where pairs are resampled together.
-#' For paired data, consecutive samples are treated as pairs: (x[1], x[2]), (x[3], x[4]), etc.
+#' For paired data, consecutive samples are treated as pairs: (x[1], x[2]),
+#' (x[3], x[4]), etc.
 #' Each pair is resampled with replacement to preserve within-pair correlation.
 #'
 #' @param x Numeric vector with even length (2n observations = n pairs)
@@ -687,24 +709,29 @@
 #' Estimate Hyperparameters for Empirical Bayes Shrinkage
 #'
 #' Estimates the global mean and variance of entropy estimates across all genes,
-#' needed for empirical Bayes shrinkage. Also counts the number of expressed isoforms
+#' needed for empirical Bayes shrinkage. Also counts the number of expressed
+#' isoforms
 #' per gene to inform shrinkage weights.
 #'
 #' @param x Raw transcript-level count matrix (genes x samples).
 #' @param genes Vector of gene IDs (must match nrow of x).
-#' @param entropy_matrix Matrix of entropy estimates (genes x assays after calculation).
+#' @param entropy_matrix Matrix of entropy estimates (genes x assays after
+#' calculation).
 #' @param q Tsallis q parameter(s).
 #' @param min_count Minimum count threshold to consider a isoform 'expressed'
 #'   (default: 1).
 #'
 #' @return A list with:
 #'   \describe{
-#'     \item{global_mean}{Named numeric vector of global mean entropy per q-value.}
+#'     \item{global_mean}{Named numeric vector of global mean entropy per q-value.
+#' }
 #'     \item{global_var}{Named numeric vector of variance per q-value.}
 #'     \item{var_trend}{List of loess fits per q-value (Law et al. 2014 voom).}
-#'     \item{outlier_genes}{List of detected outliers per q-value (>2SD from trend).}
+#'     \item{outlier_genes}{List of detected outliers per q-value (>2SD from trend).
+#' }
 #'     \item{n_isoforms}{Vector of number of expressed isoforms per gene.}
-#'     \item{n_samples}{Number of samples (for sample-size weighting; Love et al. 2014).}
+#'     \item{n_samples}{Number of samples (for  sample-size weighting;
+#'  Love et al.  2014). }
 #'   }
 #'
 
@@ -826,13 +853,15 @@
 
 #' Apply Empirical Bayes Shrinkage to Entropy Estimates
 #'
-#' Shrinks individual gene entropy estimates toward the global mean using empirical
+#' Shrinks individual gene entropy estimates toward the global mean using
+#' empirical
 #' Bayes weights. Particularly effective for genes with few expressed isoforms.
 #' Outlier genes with extreme variance are protected (w=1, no shrinkage).
 #'
 #' @param entropy_matrix Matrix of raw entropy estimates (genes x assays).
 #' @param params List from \code{.estimate_shrinkage_params()} with
-#'   global_mean, global_var, n_isoforms, n_samples, var_trend, and outlier_genes.
+#' global_mean, global_var, n_isoforms, n_samples, var_trend, and
+#' outlier_genes.
 #' @param gene_isoform_map Optional vector mapping row names of entropy_matrix
 #'   to n_isoforms (if names don't match indices).
 #'
@@ -846,10 +875,12 @@
 #' \eqn{\lambda}{lambda} is estimated from the signal/noise ratio.
 #'
 #' The shrunk estimate is:
-#' \deqn{S_shrink = w_g \cdot S_g + (1 - w_g) \cdot \bar{S}}{S_shrink = w_g * S_g + (1 - w_g) * mean(S)}
+#' \deqn{S_shrink = w_g \cdot S_g + (1 - w_g) \cdot \bar{S}}{S_shrink = w_g
+#' * S_g + (1 - w_g) * mean(S)}
 #'
 #' **Outlier Protection (Love et al. 2014 DESeq2):**
-#' Genes with variance >2SD from the expression-dependent trend (detected via loess)
+#' Genes with variance >2SD from the expression-dependent trend (detected
+#' via loess)
 #' are treated as outliers and skip shrinkage (w=1), preserving biologically
 #' meaningful extreme variance genes.
 #'
@@ -992,9 +1023,11 @@
 #' @param pseudocount Numeric scalar. Add this value to all transcript counts
 #'   before computing proportions (default: 0). Useful for stability with
 #'   zero-count features.
-#' @param effective_length Numeric vector of effective transcript lengths (length = length(x)).
+#' @param effective_length Numeric vector of effective transcript lengths
+#' (length = length(x)).
 #'   When provided, counts are normalized by length to remove length bias before
-#'   entropy calculation. This implements SALMON's recommended isoform-level approach.
+#' entropy calculation. This implements SALMON's recommended isoform-level
+#' approach.
 
 #' @noRd
 #' @return For `what = 'S'` or `what = 'D'`: a numeric vector
@@ -1003,19 +1036,25 @@
 #' @details
 #' **Tsallis Entropy (S_q):**
 #'
-#' \deqn{S_q = \frac{1 - \sum_{i=1}^k p_i^q}{q - 1}}{S_q = (1 - sum p_i^q) / (q - 1)}
+#' \deqn{S_q = \frac{1 - \sum_{i=1}^k p_i^q}{q - 1}}{S_q = (1 - sum p_i^q) /
+#' (q - 1)}
 #'
-#' where \eqn{p_i}{p_i} are normalized proportions and \eqn{q > 0}{q > 0} is the entropy order.
-#' For \eqn{q = 1}{q=1}, this reduces to Shannon entropy: \deqn{H = -\sum_i p_i \ln p_i}{H = -sum p_i*ln(p_i)}
+#' where \eqn{p_i}{p_i} are normalized proportions and \eqn{q > 0}{q > 0} is
+#' the entropy order.
+#' For \eqn{q = 1}{q=1}, this reduces to Shannon entropy: \deqn{H = -\sum_i
+#' p_i \ln p_i}{H = -sum p_i*ln(p_i)}
 #'
 #' **Hill Numbers (Diversity Index D_q):**
 #'
-#' \deqn{D_q = \left( \sum_{i=1}^k p_i^q \right)^{\frac{1}{1-q}}}{D_q = (sum p_i^q)^(1/(1-q))}
+#' \deqn{D_q = \left( \sum_{i=1}^k p_i^q \right)^{\frac{1}{1-q}}}{D_q = (sum
+#' p_i^q)^(1/(1-q))}
 #'
-#' Hill numbers represent effective number of equally-likely species. D_1 is the exponential of Shannon entropy.
+#' Hill numbers represent effective number of equally-likely species. D_1 is
+#' the exponential of Shannon entropy.
 #'
 #' **Normalization:**
-#' When \code{norm = TRUE}, entropy is divided by its theoretical maximum to scale to [0, 1].
+#' When \code{norm = TRUE},
+#'  entropy is divided by its theoretical maximum to scale to [0,  1].
 #' Natural logarithms are used for q->1 limits and normalization.
 #' @examples
 #' x <- c(10, 5, 0)
@@ -1117,7 +1156,8 @@
 #' 
 #' Core internal function that computes Tsallis entropy values for each gene
 #' across samples. This function is called by \code{\link{calculate_diversity}},
-#' which provides the modern, user-facing interface with SummarizedExperiment support.
+#' which provides the modern, user-facing interface with
+#' SummarizedExperiment support.
 #'
 #' @param x Numeric matrix or data.frame of transcript-level expression
 #' values (rows = transcripts, columns = samples).
@@ -1133,10 +1173,13 @@
 #' @param pseudocount Numeric scalar. Add this value to all transcript counts
 #' before calculating proportions (default: 0). Useful for handling genes with
 #' zero counts in some samples.
-#' @param shrinkage Character; method for shrinking entropy estimates toward global mean:
-#' 'none' (default, no shrinkage) or 'empirical_bayes' (empirical Bayes shrinkage toward
+#' @param shrinkage Character; method for shrinking entropy estimates toward
+#' global mean:
+#' 'none' (default, no shrinkage) or 'empirical_bayes' (empirical Bayes
+#' shrinkage toward
 #' global mean, particularly effective for genes with few expressed isoforms).
-#' @param effective_length Optional effective transcript lengths for normalization.
+#' @param effective_length Optional effective transcript lengths for
+#' normalization.
 #' 
 #' @return A data.frame with genes in the first column and per-sample (and
 #' per-q) Tsallis entropy values in subsequent columns.

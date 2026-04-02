@@ -27,8 +27,10 @@ to display per gene in the output tables (default: 10).}
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during table preparation.}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
 }
@@ -66,8 +68,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
@@ -81,8 +85,10 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50,
   verbose = FALSE)
 tables <- prepare_gene_switching_tables_s4(analysis)

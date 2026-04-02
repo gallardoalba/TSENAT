@@ -131,9 +131,11 @@
     gene_names
 }
 
-#' Prepare column and row data for diversity result#' Prepare and validate diversity input data
+#' Prepare column and row data for diversity result#' Prepare and validate
+#' diversity input data
 #'
-#' Internal helper: Prepares input matrix, validates dimensions, looks up effective_length
+#' Internal helper: Prepares input matrix, validates dimensions, looks up
+#' effective_length
 #' in metadata, and computes initial diversity values via .calculate_method().
 #'
 
@@ -194,7 +196,8 @@
 
 #' Build SummarizedExperiment output for diversity
 #'
-#' Internal helper: Constructs output SE with assays, rowData, colData, and metadata.
+#' Internal helper: Constructs output SE with assays, rowData, colData, and
+#' metadata.
 #'
 
 #' @noRd
@@ -530,7 +533,8 @@
 #' if `tpm=TRUE`.
 #' @param genes Character vector assigning each transcript (row) to a gene.
 #' Must have length equal to nrow(x) or the number of transcripts in `x`.
-#' @param norm Logical or character; normalization/standardization mode (default: TRUE).
+#' @param norm Logical or character; normalization/standardization mode
+#' (default: TRUE).
 #' Backward compatible: TRUE = 'range', FALSE = 'none'.
 #' Options:
 #' - 'none': Raw entropy values, no standardization
@@ -540,7 +544,8 @@
 #' - 'log_odds_ratio': Log-odds ratio relative to random expectation:
 #'   log(S_q / S_q_max) where S_q_max is entropy of uniform distribution
 #'   Interpretation: 0 = uniform, >0 = more structured than random
-#' - 'relative_reference': Ratio to reference group mean (requires colData 'sample_type')
+#' - 'relative_reference': Ratio to reference group mean (requires colData
+#' 'sample_type')
 #'   Interpretation: Reference group mean=1, >1 higher than reference
 #' @param assayno Integer assay index to use when `x` is a SummarizedExperiment.
 #' @param verbose Logical; print diagnostic messages when TRUE (default: TRUE).
@@ -551,99 +556,153 @@
 #' numbers.
 #' @param nthreads Number of threads for parallel processing (default: 1).
 #' Set to > 1 to parallelize per-gene entropy calculations.
-#' @param pseudocount Numeric scalar or 'auto'. Add this value to all transcript counts
+#' @param pseudocount Numeric scalar or 'auto'. Add this value to all
+#' transcript counts
 #' before calculating proportions (default: 0). Useful for handling genes with
 #' zero counts in some samples. Values like 0.5 or 1 are commonly used to avoid
 #' zero-division issues and NaN results. When set to 'auto', pseudocount is
-#' automatically estimated using library size adjustment via `.estimate_pseudocount()`
+#' automatically estimated using library size adjustment via
+#' `.estimate_pseudocount()`
 #' (recommended for sparse count data where regularization strength should adapt
 #' to sequencing depth).
-#' @param min_count Numeric scalar or NULL; minimum total transcript count per gene
+#' @param min_count Numeric scalar or NULL; minimum total transcript count
+#' per gene
 #' required to include the gene in results (default: NULL = auto-detect).
 #' Genes with `sum(counts) < min_count` are completely excluded from output
 #' (no diversity value, no bootstrap CI). This prevents artificial pseudocount
-#' inflation for sparse genes and ensures bootstrap resampling operates on real data.
-#' - NULL (default): Auto-detects threshold as the 50th percentile (median) of gene totals
+#' inflation for sparse genes and ensures bootstrap resampling operates on
+#' real data.
+#' - NULL (default): Auto-detects threshold as the 50th percentile (median)
+#' of gene totals
 #'   via `.suggest_min_count()`. Typical values: 10-50 depending on dataset.
-#' - Numeric (e.g., 10): User-specified threshold; keep genes with >= 10 total counts.
+#' - Numeric (e.g., 10): User-specified threshold; keep genes with >= 10
+#' total counts.
 #' - 0: Disable filtering (not recommended for bootstrap analysis).
-#' **Important:** This filtering happens BEFORE diversity calculation and bootstrap.
+#' **Important:** This filtering happens BEFORE diversity calculation and
+#' bootstrap.
 #' Genes filtered by `min_count` will not appear in output.
-#' **Bibliography:** Papers S070, S197 (DESeq2, edgeR) recommend filtering low-abundance
-#' genes before hypothesis testing; same principle applies to bootstrap CI validity.
-#' @param shrinkage Character; method for stabilizing entropy estimates, particularly
+#' **Bibliography:** Papers S070, S197 (DESeq2, edgeR) recommend filtering
+#' low-abundance
+#' genes before hypothesis testing; same principle applies to bootstrap CI
+#' validity.
+#' @param shrinkage Character; method for stabilizing entropy estimates,
+#' particularly
 #' for genes with few expressed isoforms (default: 'none'). Options:
 #' - 'none': returns raw entropy estimates with no shrinkage
 #' - 'empirical_bayes': applies empirical Bayes shrinkage toward the global mean
-#'   entropy, borrowing strength across genes. Recommended for datasets with many
-#'   genes and variable isoform complexity. Particularly effective for genes with
+#' entropy, borrowing strength across genes. Recommended for datasets with
+#' many
+#' genes and variable isoform complexity. Particularly effective for genes
+#' with
 #'   < 5 expressed isoforms (Bayesian strength borrowing).
-#' @param effective_length Numeric vector or matrix of effective transcript lengths.
+#' @param effective_length Numeric vector or matrix of effective transcript
+#' lengths.
 #' If provided, transcript counts will be normalized by effective length before
 #' calculating proportions. This removes length bias from entropy calculations,
-#' following SALMON's recommendations for isoform-level analysis. If NULL (default),
-#' assumes all transcripts have equal effective length. If a named vector, must have
-#' names matching x rownames. If a matrix (rows=transcripts, cols=samples), can be
-#' sample-specific. Typically obtained from salmon quantification (EffectiveLength column).
-#' Example: load(readcounts.RData'); .calculate_diversity(salmon_dataset, effective_length=salmon_effective_length)
-#' @param bootstrap Logical; if TRUE, compute bootstrap confidence intervals around
-#' Tsallis entropy point estimates using \code{.calculate_tsallis_entropy_bootstrap()}.
-#' Default: FALSE (disabled for backward compatibility). When TRUE, computes CIs for
+#' following SALMON's recommendations for isoform-level analysis. If NULL
+#' (default),
+#' assumes all transcripts have equal effective length. If a named vector,
+#' must have
+#' names matching x rownames. If a matrix (rows=transcripts, cols=samples),
+#' can be
+#' sample-specific. Typically obtained from salmon quantification
+#' (EffectiveLength column).
+#' Example: load(readcounts.RData'); .calculate_diversity(salmon_dataset,
+#' effective_length=salmon_effective_length)
+#' @param bootstrap Logical; if TRUE, compute bootstrap confidence intervals
+#' around
+#' Tsallis entropy point estimates using \code{.
+#' calculate_tsallis_entropy_bootstrap()}.
+#' Default: FALSE (disabled for backward compatibility). When TRUE, computes
+#' CIs for
 #' each gene and adds assays: ci_lower and ci_upper to output.
-#' @param bootstrap_nboot Integer; number of bootstrap replicates (default: NULL).
-#' If NULL, automatically suggests nboot based on number of genes using \code{.suggest_nboot()}.
-#' For detailed inference on few genes (< 5), use 500-1000. For many genes (> 100),
+#' @param bootstrap_nboot Integer; number of bootstrap replicates (default:
+#' NULL).
+#' If NULL,
+#'  automatically suggests nboot based on number of genes using \code{.
+#' suggest_nboot()}.
+#' For detailed inference on few genes (< 5), use 500-1000. For many genes
+#' (> 100),
 #' 250-500 is usually sufficient. Set explicitly to override auto-suggestion.
-#' @param bootstrap_method Character; bootstrap CI method: 'percentile' (default, fast)
-#' or 'bca' (bias-corrected and accelerated, more accurate but slower). BCa adjusts
+#' @param bootstrap_method Character; bootstrap CI method: 'percentile'
+#' (default, fast)
+#' or 'bca' (bias-corrected and accelerated, more accurate but slower). BCa
+#' adjusts
 #' for bias and skewness, improving coverage in small samples.
-#' @param bootstrap_ci Numeric; confidence level for bootstrap CIs (default: 0.95 for 95%).
-#' Must be in (0, 1). Higher values (e.g., 0.99) yield wider CIs; lower values are narrower.
-#' @param bootstrap_include_diagnostics Logical; if TRUE (default), includes diagnostic
-#' fields in bootstrap results: effective_sample_size, skewness, bias, acceleration_factor
-#' (for BCa method). Diagnostics assess CI quality and reliability (papers S111, S114).
+#' @param bootstrap_ci Numeric; confidence level for bootstrap CIs (default:
+#' 0.95 for 95%).
+#' Must be in (0, 1). Higher values (e.g., 0.99) yield wider CIs; lower
+#' values are narrower.
+#' @param bootstrap_include_diagnostics Logical; if TRUE (default), includes
+#' diagnostic
+#' fields in bootstrap results: effective_sample_size, skewness, bias,
+#' acceleration_factor
+#' (for BCa method). Diagnostics assess CI quality and reliability (papers
+#' S111, S114).
 #' Set to FALSE to reduce computation time for large datasets.
-#' @param metadata Optional list or data frame used to enrich the result. If provided,
+#' @param metadata Optional list or data frame used to enrich the result. If
+#' provided,
 #' the function applies metadata mapping to the output SummarizedExperiment via
-#' `.map_metadata_se()`. This allows adding additional context or derived annotations to
-#' the result object. Common use cases: adding phenotype information, batch labels,
+#' `.map_metadata_se()`. This allows adding additional context or derived
+#' annotations to
+#' the result object. Common use cases: adding phenotype information, batch
+#' labels,
 #' or other experimental metadata. Default: NULL (no metadata mapping applied).
 #'
 #' @return A \link[SummarizedExperiment]{SummarizedExperiment} with assays:
 #' - `diversity`: Per-gene Tsallis entropy values (if what='S')
 #' - `hill`: Per-gene Hill numbers (if what='D')
-#' - `counts`: Original raw transcript counts (preserved for downstream analysis)
-#' - `ci_lower`, `ci_upper`: Bootstrap confidence interval bounds (if bootstrap=TRUE)
+#' - `counts`: Original raw transcript counts (preserved for downstream
+#' analysis)
+#' - `ci_lower`, `ci_upper`: Bootstrap confidence interval bounds (if
+#' bootstrap=TRUE)
 #' 
-#' **Important:** The original 'counts' assay is preserved to allow downstream functions
-#' (e.g., `calculate_tsallis_entropy_bootstrap`, `jackknife_tsallis_entropy`) to access
-#' raw count data for valid resampling and diagnostics. These functions **require raw
-#' counts** to perform bootstrap resampling or jackknife leave-one-out analysis and will
+#' **Important:** The original 'counts' assay is preserved to allow
+#' downstream functions
+#' (e.g., `calculate_tsallis_entropy_bootstrap`,
+#' `jackknife_tsallis_entropy`) to access
+#' raw count data for valid resampling and diagnostics. These functions
+#' **require raw
+#' counts** to perform bootstrap resampling or jackknife leave-one-out
+#' analysis and will
 #' fail if only diversity-transformed data is available.
 #' @import methods
 #' @importFrom SummarizedExperiment SummarizedExperiment assays assay rowData
 #' colData
 #' @details
 #' **Database Verification (tsenat_papers.db):**
-#' [OK] Tsallis entropy calculation: Papers I001-I004 provide complete mathematical
-#'   foundations for Tsallis entropy computation: S_q = (1 - Sum p_i^q) / (1 - q).
+#' [OK] Tsallis entropy calculation: Papers I001-I004 provide complete
+#' mathematical
+#' foundations for Tsallis entropy computation: S_q = (1 - Sum p_i^q) / (1 -
+#' q).
 #'   The q-parameter controls emphasis on rare vs. abundant transcripts through
 #'   q_weight = 0.5 + q, affecting information gain linearly (papers S063-S067).
-#' [OK] Entropy normalization methods: Papers I023 (Hill numbers), B002-B007 (entropy
+#' [OK] Entropy normalization methods: Papers I023 (Hill numbers), B002-B007
+#' (entropy
 #'   standardization) validate normalization approaches. 'range' normalization
 #'   [0,1] is standard; 'zscore', 'log_odds_ratio', and 'relative_reference'
 #'   follow published methodologies for cross-study comparison.
-#' [OK] Effective length bias correction: Salmon quantification method (Smith et al., 2017;
-#'   reference dataset S001-S003) recommends normalization by effective length to
-#'   remove transcript-length bias. This is implemented via the effective_length parameter.
-#' [OK] Shrinkage methodology: Empirical Bayes shrinkage uses global-mean borrowing as
-#'   described in papers S004-S006 (Bayesian shrinkage methods), improving stability
+#' [OK] Effective length bias correction: Salmon quantification method
+#' (Smith et al., 2017;
+#' reference dataset S001-S003) recommends normalization by effective length
+#' to
+#' remove transcript-length bias. This is implemented via the
+#' effective_length parameter.
+#' [OK] Shrinkage methodology: Empirical Bayes shrinkage uses global-mean
+#' borrowing as
+#' described in papers S004-S006 (Bayesian shrinkage methods), improving
+#' stability
 #'   for genes with few expressed isoforms.
-#' [OK] Bootstrap properties: Papers C030, S018, S030 show that entropy estimates with
-#'   pseudocount >= 0.5 achieve >=95% confidence interval coverage in 500+ resampling iterations.
-#' [OK] Multi-q analysis: Papers I004 (validation) and S063-S067 (power analysis) establish
-#'   that analyzing multiple q values reveals different aspects of isoform diversity,
-#'   with each q capturing distinct biological information (rare vs. abundant isoform shifts).
+#' [OK] Bootstrap properties: Papers C030, S018, S030 show that entropy
+#' estimates with
+#' pseudocount >= 0.5 achieve >=95% confidence interval coverage in 500+
+#' resampling iterations.
+#' [OK] Multi-q analysis: Papers I004 (validation) and S063-S067 (power
+#' analysis) establish
+#' that analyzing multiple q values reveals different aspects of isoform
+#' diversity,
+#' with each q capturing distinct biological information (rare vs. abundant
+#' isoform shifts).
 #'
 #' Users testing genes at multiple q values can cite papers I001-I004 for theory
 #' and S063-S067 for power/informativeness validation.

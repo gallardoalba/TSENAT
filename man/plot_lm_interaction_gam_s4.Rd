@@ -18,28 +18,33 @@ plot_lm_interaction_gam_s4(
 )
 }
 \arguments{
-\item{analysis}{\code{TSENATAnalysis} object with diversity and LM interaction results.}
+\item{analysis}{\code{TSENATAnalysis} object with  diversity and 
+LM interaction results.}
 
-\item{n_top}{\code{integer}. Number of top genes (by adjusted p-value) to plot 
-(default: 6). Only used if genes = NULL.}
+\item{n_top}{\code{integer}.
+Number of top genes (by adjusted p-value) to plot 
+ (default: 6). Only used if genes = NULL.}
 
 \item{genes}{\code{character} vector. Optional specific gene names to plot. 
 If provided, these genes are plotted directly regardless of significance.
 If NULL (default), top n_top significant genes are selected.}
 
-\item{condition_col}{\code{character}. Column name in colData(se) specifying 
-group assignments for samples. If NULL, attempts to auto-detect from @config
-(looks for 'condition_col' or 'condition'). If still NULL, defaults to 'sample_type'.}
+\item{condition_col}{\code{character}. Column name in colData(se) specifying
+group assignments for samples. If NULL, attempts to auto-detect from
+\code{@config} (looks for 'condition_col' or 'condition'). If still NULL,
+defaults to 'sample_type'.}
 
-\item{sig_alpha}{\code{numeric}. Significance threshold for adjusted p-values 
-(default: 0.05). Only used if genes = NULL; filters lm_res to significant 
-genes before selecting top n.}
+\item{sig_alpha}{\code{numeric}.  Significance threshold for 
+adjusted p-values 
+  (default: 0.05). Only used if genes = NULL; filters lm_res to significant 
+  genes before selecting top n.}
 
 \item{assay_name}{\code{character}. Name of the assay in se to extract 
 (default: 'diversity').}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
-Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save the plot.
+ Default: NULL (no file output).}
 
 \item{width}{\code{numeric}. Width of the plot in inches (default: 12).
 Only used if output_file is not NULL.}
@@ -55,7 +60,8 @@ A single \code{ggplot} object with all selected genes arranged in a
   grid layout. Can be saved with \code{ggplot2::ggsave()}.
 }
 \description{
-S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve plots
+S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve
+plots
 }
 \details{
 This wrapper automatically:
@@ -81,8 +87,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
@@ -96,13 +104,16 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by =
+0.15), verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 
 p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 print(p_gam)
 
 }
 \seealso{
-\code{\link{calculate_lm_interaction_s4}} for running LM analysis on TSENATAnalysis.
+\code{\link{calculate_lm_interaction_s4}} for 
+running LM analysis on TSENATAnalysis.
 }

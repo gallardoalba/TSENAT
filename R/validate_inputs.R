@@ -10,10 +10,12 @@
 #' Checks that input is a valid SummarizedExperiment object with required slots.
 #'
 #' @param se Object to validate.
-#' @param assay_name Character; name of required assay. If NULL, just checks class.
+#' @param assay_name Character; name of required assay. If NULL, just checks
+#' class.
 #' @param min_genes Numeric; minimum number of genes required (default: 1).
 #' @param min_samples Numeric; minimum number of samples required (default: 1).
-#' @param allow_null Logical; if TRUE, NULL input returns silently (default: FALSE).
+#' @param allow_null Logical; if TRUE, NULL input returns silently (default:
+#' FALSE).
 #'
 #' @return Invisibly returns TRUE if valid. Stops with error message if invalid.
 #'
@@ -84,8 +86,10 @@
 #'
 #' @param df Object to validate.
 #' @param required_cols Character vector; column names that must be present.
-#' @param allow_null Logical; if TRUE, NULL input returns silently (default: FALSE).
-#' @param df_name Character; friendly name for error messages (default: 'Input data').
+#' @param allow_null Logical; if TRUE, NULL input returns silently (default:
+#' FALSE).
+#' @param df_name Character; friendly name for error messages (default:
+#' 'Input data').
 #'
 #' @return Invisibly returns TRUE if valid. Stops with error message if invalid.
 #'
@@ -150,7 +154,8 @@
 #' @param allow_null Logical; if TRUE, NULL is accepted (default: FALSE).
 #' @param min Numeric; minimum allowed value (NULL = no minimum).
 #' @param max Numeric; maximum allowed value (NULL = no maximum).
-#' @param integer_only Logical; if TRUE, value must be an integer (default: FALSE).
+#' @param integer_only Logical; if TRUE, value must be an integer (default:
+#' FALSE).
 #'
 #' @return Invisibly returns TRUE if valid. Stops with error message if invalid.
 #'
@@ -207,7 +212,8 @@
 #'
 #' @examples
 #' # Valid
-#' .validate_choice(metric, 'metric', allowed_values = c('median', 'mean', 'sd'))
+#' .validate_choice(metric, 'metric', allowed_values = c('median', 'mean',
+#' 'sd'))
 #'
 #' # Invalid
 #' .validate_choice(metric = 'mode', 'metric', 

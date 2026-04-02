@@ -1,30 +1,45 @@
 #' Plot Divergence Spectrum Heatmaps (Multi-q Transcript Switching)
 #'
-#' Creates combined heatmap panels showing delta influence (transcript switching magnitude)
-#' across multiple q-values (diversity scales) for selected genes. Each heatmap shows
-#' how transcript importance differs between conditions (delta_influence) across the
+#' Creates combined heatmap panels showing delta influence (transcript
+#' switching magnitude)
+#' across multiple q-values (diversity scales) for selected genes. Each
+#' heatmap shows
+#' how transcript importance differs between conditions (delta_influence)
+#' across the
 #' q-spectrum from 0.01 to 2.0.
 #'
 #' @param switching_results A multi-q switching analysis result from
 #'   \code{\link{jackknife_isoform_switching}(q = c(...))}. Must include
 #'   gene_ids, gene_name_map, and per-gene results for each q-value.
 #' @param n_genes Numeric: number of top genes to visualize (default 4).
-#'   When \code{lm_results} is provided, selects the n genes with lowest p-values.
+#'   When \code{lm_results} is provided,  selects the n genes with 
+#' lowest p-values.
 #'   Otherwise, selects the first n genes from results.
-#' @param lm_results Optional data.frame from \code{\link{calculate_lm_interaction}()}
-#'   containing gene interaction statistics. Should have columns for gene identifiers
-#'   ('gene_name' or 'gene_id') and p-values ('p_interaction' or 'adj_p_interaction').
-#'   If provided, genes are ranked by p-value significance for selection of top genes.
-#' @param verbose Logical; if TRUE, print detailed validation report of heatmap data
-#'   including which genes were included and any skipped due to insufficient data.
+#' @param lm_results Optional data.
+#' frame from \code{\link{calculate_lm_interaction}()}
+#' containing gene interaction statistics. Should have columns for gene
+#' identifiers
+#' ('gene_name' or 'gene_id') and p-values ('p_interaction' or
+#' 'adj_p_interaction').
+#' If provided, genes are ranked by p-value significance for selection of
+#' top genes.
+#' @param verbose Logical; if TRUE, print detailed validation report of
+#' heatmap data
+#' including which genes were included and any skipped due to insufficient
+#' data.
 #'   Default: FALSE (no validation output).
 #' @param cellwidth Numeric; width of heatmap cells in pixels (default: 35).
 #'   Following pheatmap best practices for publication-quality heatmaps.
-#'   Larger values (50+) make cells more visible but reduce number of visible transcripts.
-#' @param cellheight Numeric; height of heatmap cells in pixels (default: 10.25).
-#'   Following pheatmap best practices. Smaller values allow more q-values to be visible.
-#' @param fontsize Numeric; font size in points for heatmap labels (default: 11).
-#'   Following pheatmap best practices for publication-quality figures. Applies to
+#' Larger values (50+) make cells more visible but reduce number of visible
+#' transcripts.
+#' @param cellheight Numeric; height of heatmap cells in pixels (default:
+#' 10.25).
+#' Following pheatmap best practices. Smaller values allow more q-values to
+#' be visible.
+#' @param fontsize Numeric; font size in points for heatmap labels (default:
+#' 11).
+#' Following pheatmap best practices for publication-quality figures.
+#' Applies to
 #'   row labels (q-values) and column labels (transcript IDs).
 #'
 #' @return Character path to saved PNG file containing the combined heatmaps.
@@ -34,10 +49,13 @@
 #' @details
 #' **Heatmap interpretation:**
 #'
-#' - \bold{Rows}: Different q-values from 0.01 (rare isoforms) to 2.0 (dominant isoforms)
+#' - \bold{Rows}: Different q-values from 0.01 (rare isoforms) to 2.0
+#' (dominant isoforms)
 #' - \bold{Columns}: Individual transcripts of each gene
-#' - \bold{Color scale}: Blue (negative delta_influence) = transcript more important in second condition;
-#'   Red (positive delta_influence) = transcript more important in first condition;
+#' - \bold{Color scale}: Blue (negative delta_influence) = transcript more
+#' important in second condition;
+#' Red (positive delta_influence) = transcript more important in first
+#' condition;
 #'   White = no switching effect
 #' - \bold{Intensity}: Darker colors indicate stronger switching magnitude
 #'
@@ -195,41 +213,70 @@
 }
 
 #' Plot top transcripts for a gene using pheatmap
-#' @param se A `SummarizedExperiment` with transcript counts as assay and gene information in rowData.
-#'   Must have a 'genes' column in rowData specifying which gene each transcript belongs to.
-#'   If `use_tpm = TRUE`, requires TPM data in metadata (provided to `build_analysis_s4()` or `.build_se()`).
-#' @param gene Character vector; gene symbol(s) to inspect. If NULL and `res` is provided, 
+#' @param se A `SummarizedExperiment` with transcript counts as assay and
+#' gene information in rowData.
+#' Must have a 'genes' column in rowData specifying which gene each
+#' transcript belongs to.
+#' If `use_tpm = TRUE`, requires TPM data in metadata (provided to
+#' `build_analysis_s4()` or `.build_se()`).
+#' @param gene Character vector; gene symbol(s) to inspect. If NULL and
+#' `res` is provided,
 #'   top genes are selected by p-value.
-#' @param condition_col Character; column name in colData(se) to use for sample grouping 
+#' @param condition_col Character; column name in colData(se) to use for
+#' sample grouping
 #'   (default: 'sample_type').
-#' @param res Optional result data.frame from differential/interaction analysis with gene identifiers and p-values.
+#' @param res Optional result data.frame from differential/interaction
+#' analysis with gene identifiers and p-values.
 #'   Supported sources:
-#'   - `.calculate_lm_interaction(..., return_model_data = TRUE)` returns a list with $results and $model_data
-#'   - `.calculate_lm_interaction(..., return_model_data = FALSE)` returns a data.frame with adj_p_interaction column
-#'   - `.rank_test_q_condition()` returns a data.frame with adj_p_value column (for Friedman/Kruskal-Wallis tests)
+#' - `.calculate_lm_interaction(..., return_model_data = TRUE)` returns a
+#' list with $results and $model_data
+#' - `.calculate_lm_interaction(..., return_model_data = FALSE)` returns a
+#' data.frame with adj_p_interaction column
+#' - `.rank_test_q_condition()` returns a data.frame with adj_p_value column
+#' (for Friedman/Kruskal-Wallis tests)
 #'   If provided and `gene` is NULL, top genes are selected by adjusted p-value.
-#' @param top_n Integer number of transcripts to show (default = 3). Use NULL to plot all transcripts for the gene.
-#' @param output_file Optional file path to save the plot. If `NULL`, renders to active graphics device.
-#' @param metric Aggregation metric: 'median', 'mean', 'variance', or 'iqr' (default: 'median').
-#' @param use_tpm Logical; if TRUE, uses TPM (Transcripts Per Million) from metadata instead of raw counts 
-#'   (default: FALSE). TPM is normalized for sequencing depth and is recommended for comparing 
-#'   expression across samples. Requires TPM data in `metadata(se)$salmon_tpm` from `build_analysis_s4()` or `.build_se()` 
-#'   with `tpm` parameter. Raises error if TPM not available and `use_tpm = TRUE`.
-#' @param width Output image width in inches. If NULL, automatically calculated (12 inches).
-#' @param height Output image height in inches. If NULL, automatically calculated based on number of genes.
-#' @param fontsize Base font size for heatmap titles and labels (default: 16pt). Automatically scaled for readability.
-#' @param cellwidth Width of individual heatmap cells in pixels (default: 0 = adaptive). Set > 0 to use fixed sizing.
-#' @param cellheight Height of individual heatmap cells in pixels (default: 0 = adaptive). Set > 0 to use fixed sizing.
-#' @param layout_ncol Number of heatmaps per row in fixed layout (default: 2). If NULL, uses adaptive layout based on transcript counts.
-#' @return Invisibly returns the output file path (if `output_file` provided), or invisible(NULL) if rendering to active device.
-#'   Graphics are rendered to the active grid device for capture during vignette compilation.
+#' @param top_n Integer number of transcripts to show (default = 3). Use
+#' NULL to plot all transcripts for the gene.
+#' @param output_file Optional file path to save the plot. If `NULL`,
+#' renders to active graphics device.
+#' @param metric Aggregation metric: 'median', 'mean', 'variance', or 'iqr'
+#' (default: 'median').
+#' @param use_tpm Logical; if TRUE, uses TPM (Transcripts Per Million) from
+#' metadata instead of raw counts
+#' (default: FALSE). TPM is normalized for sequencing depth and is
+#' recommended for comparing
+#' expression across samples. Requires TPM data in `metadata(se)$salmon_tpm`
+#' from `build_analysis_s4()` or `.build_se()`
+#' with `tpm` parameter. Raises error if TPM not available and `use_tpm =
+#' TRUE`.
+#' @param width Output image width in inches. If NULL, automatically
+#' calculated (12 inches).
+#' @param height Output image height in inches. If NULL, automatically
+#' calculated based on number of genes.
+#' @param fontsize Base font size for heatmap titles and labels (default:
+#' 16pt). Automatically scaled for readability.
+#' @param cellwidth Width of individual heatmap cells in pixels (default: 0
+#' = adaptive). Set > 0 to use fixed sizing.
+#' @param cellheight Height of individual heatmap cells in pixels (default:
+#' 0 = adaptive). Set > 0 to use fixed sizing.
+#' @param layout_ncol Number of heatmaps per row in fixed layout (default:
+#' 2). If NULL, uses adaptive layout based on transcript counts.
+#' @return Invisibly returns the output file path (if `output_file`
+#' provided), or invisible(NULL) if rendering to active device.
+#' Graphics are rendered to the active grid device for capture during
+#' vignette compilation.
 #' @details
-#' Visualizes transcript abundances across conditions as pheatmap heatmaps (one per gene with conditions as columns).
-#' Aggregates expression by condition using the specified metric before log-normalization with pseudocount.
-#' Uses hierarchical clustering of transcripts and condition-based samples. Following pheatmap best practices: 
-#' publication-quality colors, dynamic cell sizing, and no artificial gaps between cells.
+#' Visualizes transcript abundances across conditions as pheatmap heatmaps
+#' (one per gene with conditions as columns).
+#' Aggregates expression by condition using the specified metric before
+#' log-normalization with pseudocount.
+#' Uses hierarchical clustering of transcripts and condition-based samples.
+#' Following pheatmap best practices:
+#' publication-quality colors, dynamic cell sizing, and no artificial gaps
+#' between cells.
 #'
-#' Architecture follows the pattern established by `.plot_multiq_delta_influence_heatmaps()`:
+#' Architecture follows the pattern established by
+#' `.plot_multiq_delta_influence_heatmaps()`:
 #' - Phase 1: Input validation and extraction
 #' - Phase 2: Gene/condition selection
 #' - Phase 3: Layout planning (before creating heatmaps)
@@ -246,7 +293,8 @@
 #' se <- SummarizedExperiment(assays = list(counts = counts), 
 #'                           rowData = rowData_df, colData = colData_df)
 #' # Plot top transcripts
-#' .plot_top_transcripts(se, gene = 'G1', top_n = 2, output_file = '/tmp/heatmap.png')
+#' .plot_top_transcripts(se, gene = 'G1', top_n = 2, output_file =
+#' '/tmp/heatmap.png')
 
 #' @noRd
 
@@ -383,7 +431,8 @@
 #' @param switching_results Object to validate
 #'
 #' @return List with:
-#'   - q_result_keys: character vector of q-value result keys (q_0_01, q_0_50, etc.)
+#' - q_result_keys: character vector of q-value result keys (q_0_01, q_0_50,
+#' etc.)
 #'   - first_result: the results for the first q-value
 #'   - gene_ids: unique gene IDs from first result
 #'   - gene_name_map: gene ID to name mapping
@@ -474,7 +523,8 @@
 #' Ranks genes using LM results (if provided) and selects top N genes
 #' for visualization from multi-q switching analysis results.
 #'
-#' @param switching_results Multi-q result list (from jackknife_isoform_switching)
+#' @param switching_results Multi-q result list (from
+#' jackknife_isoform_switching)
 #' @param n_genes Integer: number of top genes to select
 #' @param lm_results Optional data.frame with LM interaction results
 #'
@@ -694,7 +744,8 @@
 #' and publication best practices.
 #'
 #' @param n_layout_rows Integer: number of rows in grid layout
-#' @param n_data_rows Integer: number of data rows per heatmap (q-values, conditions)
+#' @param n_data_rows Integer: number of data rows per heatmap (q-values,
+#' conditions)
 #' @param width_in Numeric: desired width in inches (default 12)
 #' @param height_in Numeric: optional fixed height in inches
 #'
@@ -736,7 +787,8 @@
 #' half-width (2-per-row) layouts.
 #'
 #' @param n_cols_mat Integer: number of columns in data matrix (transcripts)
-#' @param n_rows_mat Integer: number of rows in data matrix (q-values, conditions)
+#' @param n_rows_mat Integer: number of rows in data matrix (q-values,
+#' conditions)
 #' @param width_frac Numeric: fraction of plot width allocated (1 or 0.5)
 #' @param cellwidth Numeric: override cell width (0 = adaptive)
 #' @param cellheight Numeric: override cell height (0 = adaptive)
@@ -828,7 +880,8 @@
 #' Pushes main viewport for grid layout of heatmaps.
 #'
 #' @param n_layout_rows Integer: number of rows in grid layout
-#' @param output_file Character: path to output PNG file (NULL = use active device)
+#' @param output_file Character: path to output PNG file (NULL = use active
+#' device)
 #' @param png_width Numeric: width in inches for PNG
 #' @param png_height Numeric: height in inches for PNG
 #' @param title Character: main title for figure
@@ -980,7 +1033,8 @@
 #' @param switching_results Multi-q result list from jackknife_isoform_switching
 #' @param gene_id Character: gene ID to extract
 #' @param q_result_keys Character vector: q-value result keys (q_0_01, etc.)
-#' @param cap_outliers_pctl Numeric: percentile at which to cap outliers (default 95)
+#' @param cap_outliers_pctl Numeric: percentile at which to cap outliers
+#' (default 95)
 #'
 #' @return Numeric matrix with q-values as rows and transcripts as columns.
 #'   NAs indicate missing/infinite values. Rownames are q-value labels.
@@ -1070,7 +1124,8 @@
 #' @param pseudocount Numeric: added before log transform (default 1e-6)
 #'
 #' @return Numeric matrix with conditions as rows and transcripts as columns,
-#'   log2-transformed. Rownames are condition labels, colnames are transcript IDs.
+#' log2-transformed. Rownames are condition labels, colnames are transcript
+#' IDs.
 #'
 
 #' @noRd

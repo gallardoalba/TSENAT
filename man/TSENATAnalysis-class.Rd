@@ -9,7 +9,8 @@ An S4 object of class \code{TSENATAnalysis} containing:
   \itemize{
     \item Raw data (SummarizedExperiment)
     \item Analysis configuration
-    \item Results from diversity, linear model, jackknife, and divergence analyses
+    \item Results from diversity,  linear model,  jackknife,  and 
+divergence analyses
     \item Cached visualization objects
     \item Reproducibility metadata and function history
   }
@@ -68,11 +69,12 @@ Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 jackknife result objects containing resamples, CI bounds, and diagnostics.}
 
 \item{\code{divergence_results}}{\code{list}. Divergence metric calculations.
-Typically contains:
-\describe{
-  \item{\code{tsallis_divergence}}{SummarizedExperiment with divergence values}
-  \item{\code{effect_sizes}}{data.frame with Cohen's d, etc.}
-}}
+  Typically contains:
+  \describe{
+    \item{\code{tsallis_divergence}}{SummarizedExperiment with 
+divergence values}
+    \item{\code{effect_sizes}}{data.frame with Cohen's d, etc.}
+  }}
 
 \item{\code{plots}}{\code{list}. Cached visualization objects (ggplot). Names
 identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
@@ -114,11 +116,12 @@ Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 jackknife result objects containing resamples, CI bounds, and diagnostics.}
 
 \item{\code{divergence_results}}{\code{list}. Divergence metric calculations.
-Typically contains:
-\describe{
-  \item{\code{tsallis_divergence}}{SummarizedExperiment with divergence values}
-  \item{\code{effect_sizes}}{data.frame with Cohen's d, etc.}
-}}
+  Typically contains:
+  \describe{
+    \item{\code{tsallis_divergence}}{SummarizedExperiment with 
+divergence values}
+    \item{\code{effect_sizes}}{data.frame with Cohen's d, etc.}
+  }}
 
 \item{\code{plots}}{\code{list}. Cached visualization objects (ggplot). Names
 identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
@@ -137,7 +140,8 @@ Automatically maintained by wrapper functions. Includes:
 \section{Accessor Methods}{
 
   \describe{
-    \item{\code{diversity(object, q=NULL)}}{Extract diversity results for q-value}
+    \item{\code{diversity(object,  q=NULL)}}{Extract diversity results for 
+q-value}
     \item{\code{lmResults(object, component=NULL)}}{Extract LM results}
     \item{\code{jackKnife(object, q=NULL)}}{Extract jackknife results}
     \item{\code{divergence(object)}}{Extract divergence results}
@@ -157,10 +161,13 @@ Automatically maintained by wrapper functions. Includes:
 \examples{
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
+= 'TSENAT'),
   header = TRUE, sep = '\t')
 gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
 }

@@ -5,8 +5,10 @@
 #' rank-based effect sizes, and robust multi-testing procedures.
 #'
 #' **Usage in TSENAT Appendix L:**
-#' The comprehensive rank-based methods test (TSENAT_Appendix_L_RankBased_test.R)
-#' demonstrates all four key rank-based functions working together on real RNA-seq
+#' The comprehensive rank-based methods test
+#' (TSENAT_Appendix_L_RankBased_test.R)
+#' demonstrates all four key rank-based functions working together on real
+#' RNA-seq
 #' entropy data (3514 -> 517 -> 106 genes after filtering):
 #'
 #' 2. **TEST L.2**: `compute_rank_correlation_multiq()` 
@@ -14,14 +16,16 @@
 #'    - Spearman rank correlation matrix showing which genes rank similarly
 #'    - Tells whether entropy signal is stable or q-dependent
 #'
-#' 3. **MULTI-Q FWER CONTROL**: See `.rank_test_q_condition(multicorr='westfall-young')`
+#' 3. **MULTI-Q FWER CONTROL**: See
+#' `.rank_test_q_condition(multicorr='westfall-young')`
 #'    - Built-in Westfall-Young permutation procedure for rank-based tests
 #'    - Permutation-based Family-Wise Error Rate control
 #'    - Accounts for correlations between multi-q tests
 #'    - Very conservative but guarantees Type I error control
 #'
 #' 4. **OTHER METHODS**: Complementary approaches
-#'    - Westfall-Young stepdown: minimum p-value + monotonicity correction (parametric via `calculate_lm_interaction`)
+#' - Westfall-Young stepdown: minimum p-value + monotonicity correction
+#' (parametric via `calculate_lm_interaction`)
 #'    - Storey FDR: pi0-adjusted Benjamini-Hochberg
 #'    - Both handle multi-q correlations better than standard FDR
 #'
@@ -51,7 +55,8 @@
 #' @details
 #' **Why Rank-Based Methods for Multi-q?**
 #'
-#' Multi-q analysis tests same genes across multiple q-values (e.g., q=0.1, 0.5, 1.0).
+#' Multi-q analysis tests same genes across multiple q-values (e.g., q=0.1,
+#' 0.5, 1.0).
 #' Rank-based methods excel here because:
 #'
 #' 1. **Robustness**: Insensitive to count-scale effects, extreme values
@@ -76,7 +81,8 @@
 #' @param data Matrix of expression values
 #' @param checks Character vector of checks to perform
 #'   (default: c('exchangeability', 'monotonicity', 'consistency'))
-#' @param alpha Numeric; significance level for hypothesis tests (default: 0.05).
+#' @param alpha Numeric; significance level for hypothesis tests (default:
+#' 0.05).
 #'   Used in permutation tests to assess exchangeability and other assumptions.
 #'
 #' @return List with diagnostic results
@@ -293,13 +299,19 @@ print.rank_assumptions <- function(x, ...) {
 #' Permutation-Based Confidence Intervals for Rank Correlations
 #'
 #' @description
-#' Construct bootstrap or permutation-based confidence intervals for Spearman/Kendall
-#' rank correlations without parametric assumptions. Provides exact, distribution-free
-#' confidence intervals suitable for multi-q analysis where rank stability is critical.
+#' Construct bootstrap or permutation-based confidence intervals for
+#' Spearman/Kendall
+#' rank correlations without parametric assumptions. Provides exact,
+#' distribution-free
+#' confidence intervals suitable for multi-q analysis where rank stability
+#' is critical.
 #'
-#' **Context:** In multi-q analysis, we want to know: 'How stable is the ranking of genes
-#' across different q-values?' Permutation-based CIs provide a non-parametric answer
-#' without assuming bivariate normality, which rarely holds for rank correlation distributions.
+#' **Context:** In multi-q analysis, we want to know: 'How stable is the
+#' ranking of genes
+#' across different q-values?' Permutation-based CIs provide a
+#' non-parametric answer
+#' without assuming bivariate normality, which rarely holds for rank
+#' correlation distributions.
 #'
 #' @param pvalues_or_ranks List of numeric vectors (p-values or ranks).
 #' @param method Character. Spearman (default) or kendall.
@@ -317,10 +329,17 @@ print.rank_assumptions <- function(x, ...) {
 #'     \item{method}{Correlation and CI method used}
 #'     \item{ci_level}{Requested confidence level}
 #'     \item{interpretation}{Summary table with interpretation}
-#'     \item{bootstrap_distribution}{Full bootstrap distribution (if return_distribution=TRUE)}
+#'     \item{bootstrap_distribution}{Full bootstrap distribution (if 
+#' return_distribution=TRUE)}
 #'   }
 #'
-#' @details Three CI methods available: (1) Bootstrap Percentile (default, fast, straightforward) - suitable for n > 20; (2) Bias-Corrected and Accelerated (BCA, better coverage, slower) - best for small n or non-normal distributions; (3) Permutation-based (exact Type I control, conservative) - for strict hypothesis testing. Bootstrap percentile CI computed as quantiles of bootstrap distribution. Spearman/Kendall correlations tested between pairs of input vectors.
+#' @details Three CI methods available: (1) Bootstrap Percentile (default,
+#' fast, straightforward) - suitable for n > 20; (2) Bias-Corrected and
+#' Accelerated (BCA, better coverage, slower) - best for small n or
+#' non-normal distributions; (3) Permutation-based (exact Type I control,
+#' conservative) - for strict hypothesis testing. Bootstrap percentile CI
+#' computed as quantiles of bootstrap distribution. Spearman/Kendall
+#' correlations tested between pairs of input vectors.
 #'
 #' where r* are bootstrap correlation replicates.
 #'
@@ -331,22 +350,28 @@ print.rank_assumptions <- function(x, ...) {
 #' - Narrow CI: Robust, repeatable ranking (stable across q-values)
 #'
 #' **Literature Support (26 papers on permutation/resampling):**
-#' - S166, S165 (2011-2012): Westfall-Young optimality for permutation procedures
+#' - S166, S165 (2011-2012): Westfall-Young optimality for permutation
+#' procedures
 #' - S019 (2010): Permutation p-values and exact inference
-#' - S006, S026, C099, S111 (2023-2024): Modern permutation and resampling methods
-#' - S051, S126, C009, S044, S045, S028 (2010-2015): Bootstrap and jackknife methods
+#' - S006, S026, C099, S111 (2023-2024): Modern permutation and resampling
+#' methods
+#' - S051, S126, C009, S044, S045, S028 (2010-2015): Bootstrap and jackknife
+#' methods
 #'
 #' @references
 #' Efron, B., & Tibshirani, R. J. (1993). An Introduction to the Bootstrap.
 #' Chapman and Hall/CRC. Reference: S006
 #'
 #' Meinshausen, N., Maathuis, M. H., & Buhlmann, P. (2011).
-#' Asymptotic optimality of the Westfall-Young permutation procedure for multiple testing
+#' Asymptotic optimality of the Westfall-Young permutation procedure for
+#' multiple testing
 #' under dependence. The Annals of Statistics, 39(6), 3369-3391. Reference: S166
 #'
-#' Phipson, B., & Smyth, G. K. (2010). Permutation P-values should never be zero:
+#' Phipson, B., & Smyth, G. K. (2010). Permutation P-values should never be
+#' zero:
 #' Computing exact p-values when permutations are randomly drawn.
-#' Statistical Applications in Genetics and Molecular Biology, 9(1), 39. Reference: S019
+#' Statistical Applications in Genetics and Molecular Biology, 9(1), 39.
+#' Reference: S019
 #'
 
 #' @noRd
@@ -618,9 +643,12 @@ print.rank_correlation_ci <- function(x, ...) {
 #' Stratifies genes based on their sensitivity to q-parameter changes.
 #'
 #' @param interaction_results Data frame output from .rank_test_q_condition()
-#' @param p_threshold Numeric: p-value threshold for significance (default: 0.05)
-#' @param eta2_threshold_moderate Numeric: Effect size threshold for moderate dependency (default 0.01)
-#' @param eta2_threshold_strong Numeric: Effect size threshold for strong dependency (default 0.10)
+#' @param p_threshold Numeric: p-value threshold for significance (default:
+#' 0.05)
+#' @param eta2_threshold_moderate Numeric: Effect size threshold for
+#' moderate dependency (default 0.01)
+#' @param eta2_threshold_strong Numeric: Effect size threshold for strong
+#' dependency (default 0.10)
 #'
 #' @return
 #' A character vector of classifications for each gene. Possible values:
@@ -840,7 +868,8 @@ print.rank_correlation_ci <- function(x, ...) {
 #' is number of permutations (Phipson & Smyth, 2010).
 #'
 #' @param data SummarizedExperiment (from calculate_diversity) or data frame.
-#'   If SummarizedExperiment: must have rownames (genes) and colData with 'q' column.
+#' If SummarizedExperiment: must have rownames (genes) and colData with 'q'
+#' column.
 #'   If data frame: must have 'gene' and 'q' columns.
 #' @param entropy_col Character name of entropy column (default: 'entropy'). 
 #'   Only used if data is data frame.
@@ -855,14 +884,17 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param max_nperm Integer; maximum permutations as computational cutoff
 #'   (default: 10000 for practical efficiency)
 #'
-#' @return Integer number of permutations recommended. Always bounded [min_nperm, max_nperm].
+#' @return Integer number of permutations recommended. Always bounded
+#' [min_nperm, max_nperm].
 #'
 #' @details
 #' **Estimation Formula:**
 #' 
 #' Base = 500 (standard for Westfall-Young from literature)
-#'   + n_genes x 10                    (scale with multiple hypothesis testing burden)
-#'   + n_q_values x 5                  (AR(1) reduces effective multiple tests; smaller than genes)
+#' + n_genes x 10                    (scale with multiple hypothesis testing
+#' burden)
+#' + n_q_values x 5                  (AR(1) reduces effective multiple
+#' tests; smaller than genes)
 #'   + (heterogeneity_factor x 100)    (high variance = need more power)
 #'   x (effective_tests / nominal_tests) (AR(1) correlation reduction factor)
 #'
@@ -1506,14 +1538,16 @@ print.rank_correlation_ci <- function(x, ...) {
 #' @param value_col Column name for values
 #' @param group_col Column name for groups
 #' @param paired Logical: if TRUE, apply Friedman test (requires subject_col)
-#' @param subject_col Column name for subject/block identifiers (required if paired=TRUE)
+#' @param subject_col Column name for subject/block identifiers (required if
+#' paired=TRUE)
 #' @param verbose Logical: print diagnostics
 #'
 #' @return List with:
 #' - statistic: Test statistic
 #' - p_value: P-value
 #' - method: Name of test applied
-#' - test_type: 'friedman', 'art_adjusted', 'quantile_adjusted', 'median_robust', 'kruskal-wallis'
+#' - test_type: 'friedman', 'art_adjusted', 'quantile_adjusted',
+#' 'median_robust', 'kruskal-wallis'
 #' - characteristics: Data characteristics detected
 #'
 #' @noRd
@@ -1567,32 +1601,38 @@ print.rank_correlation_ci <- function(x, ...) {
 
 #' Test q * condition interaction using Two-Way Within-Subject Methods
 #'
-#' Tests interaction between q-values and condition factor in paired/repeated-measures 
+#' Tests interaction between q-values and condition factor in
+#' paired/repeated-measures
 #' settings using rank-based non-parametric methods.
 #'
 #' **Design:** Both q-values and condition are WITHIN-SUBJECT factors
 #'   - Subjects: N individuals (paired)
 #'   - Within each subject: k q-values * m conditions = km observations
-#'   - Example: 8 subjects, 41 q-values, 2 conditions = 8 * 41 * 2 = 656 measurements
+#' - Example: 8 subjects, 41 q-values, 2 conditions = 8 * 41 * 2 = 656
+#' measurements
 #'
 #' **Statistical approach (FIXED - March 2026):**
 #' For true two-way within-subject design, ranks ALL observations within each 
-#' subject TOGETHER (not separately by condition), preserving the dependence structure.
+#' subject TOGETHER (not separately by condition), preserving the dependence
+#' structure.
 #'
 #' **Mathematical basis:**
-#' 1. Rank entropy values within EACH SUBJECT (across all q-levels and conditions)
+#' 1. Rank entropy values within EACH SUBJECT (across all q-levels and
+#' conditions)
 #' 2. Compute mean ranks per (q-level, condition) combination  
 #' 3. Test interaction via two-way ANOVA on rank means
 #' 4. Recovers power and validity of parametric two-way ANOVA
 #'
 #' References: Conover & Iman (1981), Puri & Sen (1985) - Nonparametric Methods
 #'
-#' @param data Data frame with columns: entropy, q, condition, and subject_col (if paired)
+#' @param data Data frame with columns: entropy, q, condition, and
+#' subject_col (if paired)
 #' @param value_col Column name for values (default: 'entropy')
 #' @param q_col Column name for q-values (default: 'q')
 #' @param condition_col Column name for condition (default: 'condition')
 #' @param paired Logical; if TRUE, account for subject blocking
-#' @param subject_col Column name for subject identifiers (required if paired=TRUE)
+#' @param subject_col Column name for subject identifiers (required if
+#' paired=TRUE)
 #'
 #' @return List with:
 #'   - statistic: F-statistic for interaction

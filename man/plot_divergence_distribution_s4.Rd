@@ -67,8 +67,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
@@ -82,9 +84,12 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
 print(p_dist)

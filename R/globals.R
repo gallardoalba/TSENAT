@@ -7,7 +7,11 @@
 #' @name package_imports
 #' @noRd
 #' @importFrom dplyr arrange filter group_by mutate pull select summarise %>%
-#' @importFrom stats IQR aggregate anova aov chisq.test coef cor fitted friedman.test formula kruskal.test lm loess loess.control median model.frame model.matrix na.omit p.adjust pchisq pnorm pt qnorm quantile residuals rmultinom rpois sd setNames t.test var weighted.mean wilcox.test xtabs
+#' @importFrom stats IQR aggregate anova aov chisq.test coef cor fitted
+#' friedman.test formula kruskal.test lm loess loess.control median
+#' model.frame model.matrix na.omit p.adjust pchisq pnorm pt qnorm quantile
+#' residuals rmultinom rpois sd setNames t.test var weighted.mean
+#' wilcox.test xtabs
 #' @importFrom utils capture.output head str write.table
 #' @importFrom rlang .data
 #' @importFrom S4Vectors metadata DataFrame
@@ -65,8 +69,10 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' TSENAT Discrete Color Palette
 #'
-#' Returns a colorblind-safe discrete palette following RColorBrewer best practices.
-#' Uses the 'Dark2' palette which is tested for accessibility across color blindness types.
+#' Returns a colorblind-safe discrete palette following RColorBrewer best
+#' practices.
+#' Uses the 'Dark2' palette which is tested for accessibility across color
+#' blindness types.
 #' Supports up to 8 distinct categories.
 #'
 #' @param n Numeric; number of colors to return (default: 8, max: 8).
@@ -109,8 +115,10 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' TSENAT Blue-Red Harmonized Color Palette
 #'
-#' Returns a discrete palette harmonized with the heatmap's blue-red diverging scheme.
-#' Creates visual continuity across all plot types by using colors from the diverging palette.
+#' Returns a discrete palette harmonized with the heatmap's blue-red
+#' diverging scheme.
+#' Creates visual continuity across all plot types by using colors from the
+#' diverging palette.
 #'
 #' @param n Numeric; number of colors to return (default: 8).
 #'   If n > 8, wraps around by repeating palette.
@@ -123,7 +131,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - **Reds (secondary)**: #D73027 (heatmap red), #F46D43 (light red)
 #' - **Support colors**: Dark blue, dark red, pale blue, pale yellow
 #'
-#' Recommended when you want categorical plots to match the heatmap visual theme.
+#' Recommended when you want categorical plots to match the heatmap visual
+#' theme.
 #' Use when all plots should have cohesive blue-red aesthetic (e.g., comparing
 #' upregulated vs downregulated genes across multiple visualizations).
 #'
@@ -144,7 +153,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' TSENAT Continuous Diverging Color Palette
 #'
-#' Returns a continuous diverging palette (blue-white-red) matching the heatmap scheme.
+#' Returns a continuous diverging palette (blue-white-red) matching the
+#' heatmap scheme.
 #' Generates smooth color gradients for continuous data visualization.
 #'
 #' @param n Numeric; number of color stops to generate (default: 100).
@@ -169,7 +179,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' TSENAT Significance Testing Color Scheme
 #'
-#' Returns a standardized color mapping for significance testing across all plots.
+#' Returns a standardized color mapping for significance testing across all
+#' plots.
 #' Harmonizes with the blue-red heatmap theme.
 #'
 #' @return Named character vector mapping significance to colors:
@@ -184,7 +195,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Apply in ggplot2 with:
 #' \code{ggplot2::scale_color_manual(values = .significance_colors())}
 #'
-#' This replaces ad-hoc color choices like 'black' and 'red' across different plots,
+#' This replaces ad-hoc color choices like 'black' and 'red' across
+#' different plots,
 #' ensuring visual consistency in significance indicator colors.
 #'
 
@@ -195,8 +207,10 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' TSENAT Base Plot Theme
 #'
-#' Returns a publication-ready ggplot2 theme with standardized visual properties.
-#' Applies consistent font sizes, gridlines, borders, and color scales across all plots.
+#' Returns a publication-ready ggplot2 theme with standardized visual
+#' properties.
+#' Applies consistent font sizes, gridlines, borders, and color scales
+#' across all plots.
 #'
 #' @param base_size Numeric; base font size in points (default: 11).
 #'   All other sizes scale proportionally from this.
@@ -281,7 +295,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 
 #' TSENAT Spectrum Theme Variant
 #'
-#' Returns a specialized variant of the base theme optimized for spectrum/profile plots.
+#' Returns a specialized variant of the base theme optimized for
+#' spectrum/profile plots.
 #' Inherits from \code{\link{.theme_base}} and adds spectrum-specific overrides.
 #'
 #' @param base_size Numeric; base font size in points (default: 11).
@@ -295,7 +310,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' - Wider plot margins for axis labels
 #'
 #' Used by: plot_tsallis_q_curve_s4(), .plot_lm_interaction_gam(),
-#'          .plot_tsallis_divergence_profile() and similar spectrum/profile plots.
+#'          . plot_tsallis_divergence_profile() and 
+#' similar spectrum/profile plots.
 #'
 
 #' @noRd
@@ -319,8 +335,10 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' @details
 #' Aspect ratios defined:
 #' - `.aspect_ratio_standard`: 1.67 (16:10) - Default for most plots
-#' - `.aspect_ratio_tall`: 1.20 (6:5) - For plots with many rows (heatmaps, multi-gene panels)
-#' - `.aspect_ratio_wide`: 2.40 (12:5) - For time-series or wide categorical plots
+#' - `.aspect_ratio_tall`: 1.20 (6:5) - For plots with many rows (heatmaps,
+#' multi-gene panels)
+#' - `.aspect_ratio_wide`: 2.40 (12:5) - For time-series or wide categorical
+#' plots
 #'
 #' These constants ensure plots maintain readable font sizes and proportions
 #' regardless of absolute output dimensions.
@@ -334,13 +352,16 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #' Calculate Plot Dimensions from Width and Aspect Ratio
 #'
 #' Helper function to compute height from width and aspect ratio type.
-#' Returns both dimensions and DPI as a list for use with ggsave and grid functions.
+#' Returns both dimensions and DPI as a list for use with ggsave and grid
+#' functions.
 #'
 #' @param width_inches Numeric; plot width in inches (default: 12).
-#' @param aspect_type Character; one of 'standard', 'tall', or 'wide' (default: 'standard').
+#' @param aspect_type Character; one of 'standard', 'tall', or 'wide'
+#' (default: 'standard').
 #' @param dpi_output Numeric; output DPI for PNG/TIFF (default: 100).
 #'
-#' @return List with elements: $width (inches), $height (inches), $dpi (integer).
+#' @return List with elements: $width (inches), $height (inches), $dpi
+#' (integer).
 #'
 #' @details
 #' Example usage in plot functions:
@@ -390,7 +411,8 @@ METHOD_ORDER <- c("diversity", "jackknife", "lm_interaction", "divergence", "q_i
 #'
 #' @param width_inches Numeric; plot width in inches.
 #' @param height_inches Numeric; plot height in inches.
-#' @param reference_area Numeric; reference area in square inches for baseline scaling.
+#' @param reference_area Numeric; reference area in square inches for
+#' baseline scaling.
 #'   Default (96 sq in) represents a 12x8 inch plot.
 #'
 #' @return Numeric scaling factor to multiply with base font sizes.

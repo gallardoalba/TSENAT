@@ -77,14 +77,17 @@ If FALSE (default), warn if plot already exists and do not overwrite.}
 \item{q}{numeric or character. Q-value to extract (e.g., 'q_0.5').
 If NULL, returns all jackknife results.}
 
-\item{component}{character. Component name ('tsallis_divergence', 'effect_sizes', etc.).
-If NULL, returns all divergence results.}
+\item{component}{character. Component name ('tsallis_divergence',
+'effect_sizes', etc.).
+  If NULL, returns all divergence results.}
 
-\item{key}{character. Config key to extract (e.g., 'q_values', 'condition_col').
-If NULL, returns entire config.}
+\item{key}{character. Config key to extract (e.g., 'q_values',
+'condition_col').
+  If NULL, returns entire config.}
 }
 \value{
-data.frame or list depending on accessor method. See Details for specific return types.
+data.frame or list depending on accessor method. See Details for
+specific return types.
 
 list containing linear model interaction test results
 

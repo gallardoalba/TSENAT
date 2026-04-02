@@ -14,10 +14,12 @@
 #'
 #' @param q_values \code{numeric}. Q-values for Tsallis entropy spectrum.
 #'   Default: \code{seq(0.5, 2.0, by = 0.5)}.
-#' @param q_range \code{numeric}. Alternative to q_values: lower and upper bounds.
+#' @param q_range \code{numeric}.  Alternative to q_values:  lower and 
+#' upper bounds.
 #' @param filter_genome \code{logical}. Remove zero rows before analysis.
 #'   Default: TRUE.
-#' @param formula \code{formula}. Model formula for LM interactions (e.g., \code{~ treatment}).
+#' @param formula \code{formula}.  Model formula for  LM interactions (e. g. ,
+#'  \code{~ treatment}).
 #' @param p_threshold \code{numeric}. P-value threshold for significance.
 #'   Default: 0.05.
 #' @param fdr_threshold \code{numeric}. FDR threshold (Benjamini-Hochberg).
@@ -116,7 +118,8 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
 
 #' Run complete TSENAT analysis pipeline
 #'
-#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM interactions ->
+#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
+#' interactions ->
 #' divergence -> gene interactions -> visualizations.
 #'
 #' @param se \code{SummarizedExperiment} containing expression counts.
@@ -155,7 +158,8 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
 #' # Create minimal SummarizedExperiment
 #' se <- SummarizedExperiment(
 #'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(sample_id = paste0('S', 1:10), condition = rep(c('A', 'B'), 5))
+#' colData = data.frame(sample_id = paste0('S', 1:10), condition =
+#' rep(c('A', 'B'), 5))
 #' )
 #' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 #' analysis <- TSENATAnalysis(se, config = cfg)

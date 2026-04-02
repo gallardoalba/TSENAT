@@ -1,22 +1,29 @@
 #' Detect Salmon quantification output files in a directory
 #'
-#' @param salmon_dir \code{character}. Path to directory containing Salmon quantification
-#'   output folders. Expected structure: \code{salmon_dir/sample_name/quant.sf} or
+#' @param salmon_dir \code{character}.
+#'  Path to directory containing Salmon quantification
+#'   output folders.  Expected structure:  \code{salmon_dir/sample_name/quant.
+#' sf} or
 #'   \code{salmon_dir/sample_name/quant.sf.gz}.
-#' @param pattern \code{character}. Regular expression pattern for quantification files.
-#'   Default: \code{'quant\\.sf(\\.gz)?$'} matches \code{quant.sf} or \code{quant.sf.gz}.
-#' @param recursive \code{logical}. Whether to search recursively for nested sample folders.
+#' @param pattern \code{character}.  Regular expression pattern for 
+#' quantification files.
+#'   Default:  \code{'quant\\. sf(\\. gz)?$'} matches \code{quant. sf} or 
+#' \code{quant. sf. gz}.
+#' @param recursive \code{logical}.  Whether to search recursively for 
+#' nested sample folders.
 #'   Default: \code{TRUE}.
 #'
 #' @return \code{list} with elements:
 #'   \itemize{
 #'     \item \code{$sample_names}: Character vector of discovered sample names
-#'     \item \code{$file_paths}: Character vector of full paths to quant.sf files
+#'     \item \code{$file_paths}:  Character vector of full paths to quant.
+#' sf files
 #'     \item \code{$count}: Integer number of samples found
 #'   }
 #'
 #' @details
-#' This function scans \code{salmon_dir} for quant.sf files and extracts sample names
+#' This function scans \code{salmon_dir} for  quant. sf files and 
+#' extracts sample names
 #' from parent directory paths. The standard Salmon output structure is:
 #' \preformatted{
 #'   salmon/
@@ -76,16 +83,20 @@
 
 #' Validate Salmon quant.sf file format and consistency
 #'
-#' @param file_paths \code{character}. Vector of paths to quant.sf files to validate.
-#' @param verbose \code{logical}. Whether to print validation messages. Default: \code{TRUE}.
+#' @param file_paths \code{character}.  Vector of paths to quant.
+#' sf files to validate.
+#' @param verbose \code{logical}.  Whether to print validation messages.
+#'  Default:  \code{TRUE}.
 #'
-#' @return \code{logical} TRUE if all validations pass. Throws \code{stop()} if errors found.
+#' @return \code{logical} TRUE if  all validations pass.
+#'  Throws \code{stop()} if  errors found.
 #'
 #' @details
 #' Validates that:
 #' \itemize{
 #'   \item All files are readable
-#'   \item All files have proper quant.sf header (Name, Length, EffectiveLength, TPM, NumReads)
+#'   \item All files have proper quant. sf header (Name,  Length,
+#'  EffectiveLength,  TPM,  NumReads)
 #'   \item All files have matching transcript IDs (same transcripts in all files)
 #'   \item No missing or corrupted data
 #' }
@@ -192,24 +203,32 @@
 #' Read Salmon quantification files into count matrices
 #'
 #' @param file_paths \code{character}. Vector of paths to quant.sf files.
-#' @param sample_names \code{character}. Vector of sample names (should match length of file_paths).
-#'   If \code{NULL}, sample names are extracted from file paths (parent directory names).
+#' @param sample_names \code{character}.
+#'  Vector of sample names (should match length of file_paths).
+#'   If \code{NULL},
+#'  sample names are extracted from file paths (parent directory names).
 #' @param include_tpm \code{logical}. Whether to extract and return TPM matrix.
 #'   Default: \code{TRUE}.
-#' @param include_eff_length \code{logical}. Whether to extract and return effective length matrix.
+#' @param include_eff_length \code{logical}.  Whether to extract and 
+#' return effective length matrix.
 #'   Default: \code{TRUE}.
-#' @param verbose \code{logical}. Whether to print progress messages. Default: \code{TRUE}.
+#' @param verbose \code{logical}.  Whether to print progress messages.
+#'  Default:  \code{TRUE}.
 #'
 #' @return \code{list} with elements:
 #'   \itemize{
 #'     \item \code{$counts}: Numeric matrix of NumReads (transcripts x samples)
-#'     \item \code{$tpm}: Numeric matrix of TPM values (if \code{include_tpm=TRUE})
-#'     \item \code{$effective_length}: Numeric matrix of EffectiveLength (if \code{include_eff_length=TRUE})
-#'     \item \code{$transcript_ids}: Character vector of transcript IDs (row names)
+#'     \item \code{$tpm}:  Numeric matrix of TPM values (if 
+#' \code{include_tpm=TRUE})
+#'     \item \code{$effective_length}:  Numeric matrix of EffectiveLength (if 
+#' \code{include_eff_length=TRUE})
+#'     \item \code{$transcript_ids}:
+#'  Character vector of transcript IDs (row names)
 #'   }
 #'
 #' @details
-#' This function reads Salmon quant.sf files and aggregates them into matrices suitable
+#' This function reads Salmon quant.sf files and aggregates them into
+#' matrices suitable
 #' for downstream analysis. The quant.sf format (from Salmon) contains:
 #' \preformatted{
 #'   Name              Length  EffectiveLength  TPM      NumReads
@@ -218,8 +237,10 @@
 #'   ...
 #' }
 #'
-#' The \code{NumReads} column represents estimated transcript counts and is used as the
-#' primary count matrix. TPM (Transcripts Per Million) and EffectiveLength are also
+#' The \code{NumReads} column represents estimated transcript counts and 
+#' is used as the
+#' primary count matrix. TPM (Transcripts Per Million) and EffectiveLength
+#' are also
 #' extracted for downstream computations (e.g., filtering, offset calculations).
 #'
 #' @examples

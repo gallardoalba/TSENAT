@@ -24,41 +24,51 @@ calculate_divergence_s4(
 \item{analysis}{\code{TSENATAnalysis} object.}
 
 \item{q}{\code{numeric}. Q-value for divergence.
-If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.}
+If NULL, uses first q_value from @config$q_values if available, else
+defaults to 1.0.}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: TRUE.}
 
-\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
-If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
+\item{nthreads}{\code{numeric} or  \code{NULL}.  Number of CPU threads for 
+parallel processing.
+  If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+Default: NULL (no file output).}
 
-\item{control_group}{\code{character} or \code{NULL}. Control group identifier for divergence comparison.
-If NULL, reads from \code{@config$control_group} if available.}
+\item{control_group}{\code{character} or  \code{NULL}.
+Control group identifier for  divergence comparison.
+ If NULL, reads from \code{@config$control_group} if available.}
 
 \item{paired}{\code{logical}. Whether to use paired design. Default: FALSE.
 If not specified, reads from \code{@config$paired} if available.}
 
-\item{method}{\code{character} or \code{NULL}. Statistical method for divergence calculation.
-If NULL, reads from \code{@config$method} if available.}
+\item{method}{\code{character} or  \code{NULL}.  Statistical method for 
+divergence calculation.
+  If NULL, reads from \code{@config$method} if available.}
 
-\item{bootstrap}{\code{logical}. Whether to compute bootstrap confidence intervals. Default: FALSE.
-If not specified, reads from \code{@config$bootstrap} if available.}
+\item{bootstrap}{\code{logical}.
+Whether to compute bootstrap confidence intervals.  Default:  FALSE.
+ If not specified, reads from \code{@config$bootstrap} if available.}
 
-\item{nboot}{\code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
-If NULL, reads from \code{@config$nboot} if available.}
+\item{nboot}{\code{numeric} or  \code{NULL}.
+Number of bootstrap replicates.  Default:  NULL.
+ If NULL, reads from \code{@config$nboot} if available.}
 
-\item{seed}{\code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
-If NULL, reads from \code{@config$seed} if available.}
+\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
+reproducibility.  Default:  NULL.
+  If NULL, reads from \code{@config$seed} if available.}
 
-\item{progress}{\code{logical}. Show progress bar during computation. Default: FALSE.}
+\item{progress}{\code{logical}.  Show progress bar during computation.
+Default:  FALSE.}
 
 \item{...}{Additional arguments passed to the base divergence function.}
 }
 \value{
-Modified TSENATAnalysis with divergence metrics in @divergence_results
-  (stored as list of data.frames or matrices).
+Modified TSENATAnalysis with divergence metrics in
+  \code{@divergence_results} (stored as list of data.frames or matrices).
 }
 \description{
 Calculate divergence metrics and store in TSENATAnalysis
@@ -80,16 +90,20 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data and create manageable subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 # Use 200+ genes to ensure diversity filtering doesn't remove all genes
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
 
 # Compute diversity first (required for divergence)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
 
 # Calculate divergence across q-values
 analysis <- calculate_divergence_s4(analysis, verbose = FALSE)

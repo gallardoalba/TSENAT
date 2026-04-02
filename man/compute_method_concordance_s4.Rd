@@ -21,21 +21,28 @@ compute_method_concordance_s4(analysis, ...)
 
 \item{...}{Additional arguments for future extensibility.}
 
-\item{gam_method}{\code{character}. Key for GAM/interaction results in \code{@lm_results}.
-Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})}
+\item{gam_method}{\code{character}.  Key for 
+GAM/interaction results in \code{@lm_results}.
+  Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})}
 
-\item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
-Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})}
+\item{friedman_method}{\code{character}.  Key for 
+Friedman/rank-based results in \code{@lm_results}.
+  Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})}
 
-\item{gam_results}{\code{data.frame} or \code{NULL}. Optional GAM results data frame to store
-in the analysis object. If provided, automatically stored in \code{@lm_results} under the
-key specified by \code{gam_method}. Useful for importing external results or results 
-computed outside the S4 wrapper. Default: NULL (use existing results in analysis).}
+\item{gam_results}{\code{data. frame} or  \code{NULL}.
+ Optional GAM results data frame to store
+  in the analysis object.  If provided,
+ automatically stored in \code{@lm_results} under the
+  key specified by \code{gam_method}.  Useful for 
+importing external results or  results 
+computed outside the S4 wrapper. Default: NULL (use existing results in
+analysis).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save results.
+ Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with concordance results stored in:
@@ -54,10 +61,13 @@ Modified TSENATAnalysis object with concordance results stored in:
 Compute concordance between two analysis methods in TSENATAnalysis
 }
 \details{
-Compares results from two different statistical methods (typically GAM for continuous 
-and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifies:
+Compares results from two different statistical methods (typically GAM
+for continuous
+and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
+Identifies:
 - Genes significant in both methods (high confidence)
-- Genes detected by one method only (potential false positives or method-specific signal)
+- Genes detected by one method only (potential false positives or
+method-specific signal)
 - Spearman correlation of p-values (overall agreement trends)
 }
 \examples{
@@ -69,10 +79,12 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data (matching TSENAT.Rmd workflow)
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters (best practice for reproducibility)
@@ -86,9 +98,12 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 # Note: compute_method_concordance_s4 requires results from both
 # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 

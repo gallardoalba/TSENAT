@@ -19,14 +19,20 @@ build_analysis_s4(
 }
 \arguments{
 \item{readcounts}{A matrix or data.frame of transcript-level read counts with
-transcript IDs as row names and sample names as column names. Typically output
-from quantification tools (SALMON, kallisto, etc.). Optional when \code{salmon_dir}
-is provided (in which case readcounts are auto-loaded from quant.sf files).}
+transcript IDs as row names and sample names as column names. Typically
+output
+  from quantification tools (SALMON,  kallisto,  etc. ).  Optional when 
+\code{salmon_dir}
+  is provided (in which case readcounts are auto-loaded from quant.sf files).}
 
-\item{salmon_dir}{Optional character path to directory containing Salmon quantification
-output. Expected structure: \code{salmon_dir/sample_name/quant.sf}. When provided,
-automatically discovers and reads all quant.sf files. If both \code{readcounts} and
-\code{salmon_dir} are provided, \code{salmon_dir} takes precedence. Default: \code{NULL}.}
+\item{salmon_dir}{Optional character path to directory containing Salmon
+quantification
+  output.  Expected structure:  \code{salmon_dir/sample_name/quant. sf}.
+ When provided,
+  automatically discovers and  reads all quant. sf files.
+ If both \code{readcounts} and
+  \code{salmon_dir} are provided,  \code{salmon_dir} takes precedence.
+ Default:  \code{NULL}.}
 
 \item{tx2gene}{Either:
 - A path to a GFF3 or GFF3.gz file containing transcript-to-gene mapping
@@ -36,28 +42,35 @@ automatically discovers and reads all quant.sf files. If both \code{readcounts} 
 \item{assay_name}{Character. Name for the assay (default: 'counts').}
 
 \item{metadata}{Optional data.frame with sample metadata. Should have sample
-names as row names and metadata columns (e.g., sample_type, condition, etc.).}
+names as row names and metadata columns (e.g., sample_type, condition,
+etc.).}
 
-\item{tpm}{Optional matrix of transcript-level TPM values. If provided, will be
-stored in the SummarizedExperiment. Same dimensions as readcounts required.}
+\item{tpm}{Optional matrix of transcript-level TPM values. If provided,
+will be
+  stored in the SummarizedExperiment. Same dimensions as readcounts required.}
 
-\item{effective_length}{Optional numeric vector of transcript effective lengths
-(e.g., from SALMON). Length should match nrow(readcounts).}
+\item{effective_length}{Optional numeric vector of transcript effective
+lengths
+  (e.g., from SALMON). Length should match nrow(readcounts).}
 
 \item{config}{Optional list of configuration parameters to store in the
 TSENATAnalysis object. Useful for tracking analysis parameters.}
 
-\item{skip}{Logical. If TRUE, allow unmapped transcripts (transcripts not found
-in tx2gene mapping) and remove them from analysis. If FALSE (default), stop with
-an error when unmapped transcripts are detected. Useful for handling data with
-transcript IDs that don't match the annotation file provided.}
+\item{skip}{Logical. If TRUE, allow unmapped transcripts (transcripts not
+found
+in tx2gene mapping) and remove them from analysis. If FALSE (default),
+stop with
+an error when unmapped transcripts are detected. Useful for handling data
+with
+  transcript IDs that don't match the annotation file provided.}
 
 \item{verbose}{Logical. If TRUE, print informative messages during execution
 (e.g., Salmon sample discovery, progress on data loading). Default: TRUE.}
 }
 \value{
 A \code{TSENATAnalysis} S4 object with:
-  \item{@se}{The SummarizedExperiment containing transcript counts and metadata}
+  \item{@se}{The SummarizedExperiment containing transcript counts and 
+metadata}
   \item{@config}{Analysis configuration (empty list or user-provided)}
   \item{@diversity_results}{Empty list (populated by calculate_diversity_s4())}
   \item{@divergence_results}{Empty list (populated by calculate_divergence_s4())}
@@ -67,8 +80,10 @@ A \code{TSENATAnalysis} S4 object with:
   \item{@metadata}{Metadata with package version and creation timestamp}
 }
 \description{
-Convenience wrapper that combines \code{.build_se()} and \code{TSENATAnalysis()}
-into a single function call. This creates a complete analysis object ready for
+Convenience wrapper that  combines \code{. build_se()} and 
+\code{TSENATAnalysis()}
+into a single function call. This creates a complete analysis object
+ready for
 Tsallis entropy computation and downstream analysis.
 }
 \details{
@@ -81,18 +96,22 @@ When using \code{salmon_dir}, the function automatically:
 }
 
 The \code{salmon_dir} parameter provides a convenient alternative to manually
-constructing the \code{readcounts} matrix, especially useful in Galaxy workflows.
+constructing the \code{readcounts} matrix,
+ especially useful in Galaxy workflows.
 
 This wrapper combines two steps into one:
 \enumerate{
-  \item Call \code{.build_se()} to create a SummarizedExperiment from transcript counts
+  \item Call \code{.
+build_se()} to create a SummarizedExperiment from transcript counts
   \item Wrap the result in \code{TSENATAnalysis()} to create the analysis object
 }
 
-The returned object is ready for diversity analysis via \code{calculate_diversity_s4()}.
+The returned object is ready for 
+diversity analysis via \code{calculate_diversity_s4()}.
 
 If you need to inspect or filter the SummarizedExperiment before creating the
-TSENATAnalysis object, call \code{.build_se()} and \code{TSENATAnalysis()} separately.
+TSENATAnalysis object,  call \code{. build_se()} and 
+\code{TSENATAnalysis()} separately.
 }
 \examples{
 # Create example transcript count data

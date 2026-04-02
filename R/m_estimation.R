@@ -750,9 +750,11 @@ NULL
 #' @param pcorr P-value correction method. Default: 'BH'
 #' @param q_combine_method Character. For multi-q data: 'mean' (default) or 
 #'   'median' for summarizing across q values
-#' @param influence_threshold Numeric. Quantile threshold (0-1) for flagging high-influence
+#' @param influence_threshold Numeric. Quantile threshold (0-1) for flagging
+#' high-influence
 #'   samples in multi-q analysis. Default: 0.75 (75th percentile)
-#' @param scale_method Character. Scale selection method: 'mad' (default, Median Absolute Deviation),
+#' @param scale_method Character. Scale selection method: 'mad' (default,
+#' Median Absolute Deviation),
 #'   'proposal2' (Huber's Proposal 2 for automatic scale selection), or 
 #'   's-estimator' (S-estimator for high breakdown point). Default: 'mad'
 #'
@@ -772,8 +774,10 @@ NULL
 #' Huber, P. J. (1981). Robust Statistics. John Wiley & Sons.
 #' Maronna, R. A., Martin, R. D., & Yohai, V. J. (2006).
 #' Robust Statistics: Theory and Methods. John Wiley & Sons.
-#' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine equivariant 
-#' estimators of multivariate location and covariance matrices. Annals of Statistics, 19(1), 229-248.
+#' Lopuhaä, H. P., & Rousseeuw, P. J. (1991). Breakdown points of affine
+#' equivariant
+#' estimators of multivariate location and covariance matrices. Annals of
+#' Statistics, 19(1), 229-248.
 #'
 
 #' @noRd

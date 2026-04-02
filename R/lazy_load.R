@@ -10,12 +10,15 @@
 #' Load visualization dependencies on demand
 #'
 #' @description
-#' Deferred loading of visualization packages (ggplot2, cowplot, pheatmap, dplyr, tidyr)
+#' Deferred loading of visualization packages (ggplot2, cowplot, pheatmap,
+#' dplyr, tidyr)
 #' to optimize package startup time. Called automatically by plot functions.
 #'
-#' @param strict \code{logical}. If TRUE (default), raise error if packages cannot be loaded.
+#' @param strict \code{logical}.  If TRUE (default),  raise error if 
+#' packages cannot be loaded.
 #'   If FALSE, issue warning instead.
-#' @param verbose \code{logical}. If TRUE, print loading status message. Default: FALSE.
+#' @param verbose \code{logical}.  If TRUE,  print loading status message.
+#'  Default:  FALSE.
 #'
 #' @return
 #' Invisibly returns logical:
@@ -32,7 +35,8 @@
 #' packages are only loaded once.
 #'
 #' Uses \code{unlockBinding} to manage namespace state as part of lazy-loading
-#' infrastructure. This is necessary to set internal state during package operation.
+#' infrastructure. This is necessary to set internal state during package
+#' operation.
 #'
 #' @keywords internal
 #' @noRd

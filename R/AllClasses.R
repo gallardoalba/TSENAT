@@ -37,7 +37,8 @@
 #' @slot divergence_results \code{list}. Divergence metric calculations.
 #'   Typically contains:
 #'   \describe{
-#'     \item{\code{tsallis_divergence}}{SummarizedExperiment with divergence values}
+#'     \item{\code{tsallis_divergence}}{SummarizedExperiment with 
+#' divergence values}
 #'     \item{\code{effect_sizes}}{data.frame with Cohen's d, etc.}
 #'   }
 #'
@@ -143,13 +144,15 @@ setClass("TSENATAnalysis", slots = list(se = "SummarizedExperiment", config = "l
 #' @details
 #' Subsetting preserves all analysis metadata and results while maintaining
 #' consistency:
-#' - The underlying SummarizedExperiment is subset to the specified genes/samples
+#' - The underlying SummarizedExperiment is subset to the specified
+#' genes/samples
 #' - Diversity and jackknife results are subset to match sample selection
 #' - LM results are recalculated or removed if sample structure changes
 #' - Divergence results are subset accordingly
 #' - Analysis configuration is preserved
 #'
-#' @return A new TSENATAnalysis object containing only the specified genes and samples
+#' @return A new TSENATAnalysis object containing only the specified genes
+#' and samples
 #'
 #' @examples
 #' # Create a minimal TSENATAnalysis object

@@ -26,10 +26,13 @@ plot_top_transcripts_s4(
 \item{analysis}{\code{TSENATAnalysis}. An S4 object containing a processed
 SummarizedExperiment and optional LM interaction results.}
 
-\item{gene}{\code{character} or \code{NULL}. Gene identifier(s) to plot. If a vector 
-of multiple genes is provided, plots all of them. If NULL, automatically selects 
-the top genes from LM results based on \code{top_n} parameter (genes with lowest p-values).
-Default: NULL (auto-extract from lm_results).}
+\item{gene}{\code{character} or  \code{NULL}.  Gene identifier(s) to plot.
+ If a vector 
+of multiple genes is provided, plots all of them. If NULL, automatically
+selects
+  the top genes from LM results based on \code{top_n} parameter (genes with 
+lowest p-values).
+  Default: NULL (auto-extract from lm_results).}
 
 \item{condition_col}{\code{character}. Column name in colData(se) specifying
 group assignments (default: 'sample_type').}
@@ -37,23 +40,30 @@ group assignments (default: 'sample_type').}
 \item{top_n}{\code{numeric}. Number of top transcripts to display for each
 condition (default: 3).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
-Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save the plot.
+ Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).}
 
 \item{metric}{\code{character}. Method for ranking transcripts within genes.
 One of 'median', 'mean', 'variance', or 'iqr' (default: 'median').}
 
-\item{use_tpm}{\code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
-from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
-depth and is recommended for comparing expression across samples. Requires TPM data 
-in metadata from `build_analysis_s4()` or `.build_se()` with `tpm` parameter. 
-Raises error if TPM not available and `use_tpm = TRUE`.}
+\item{use_tpm}{\code{logical}.  If \code{TRUE},
+ uses TPM (Transcripts Per Million) 
+from metadata instead of raw counts (default: FALSE). TPM is normalized
+for sequencing
+depth and is recommended for comparing expression across samples.
+Requires TPM data
+in metadata from `build_analysis_s4()` or `.build_se()` with `tpm`
+parameter.
+  Raises error if TPM not available and `use_tpm = TRUE`.}
 
 \item{width}{\code{numeric} or \code{NULL}. Output image width in inches. 
-If NULL, automatically calculated based on number of genes (default: ~13 inches per column).}
+If NULL, automatically calculated based on number of genes (default: ~13
+inches per column).}
 
 \item{height}{\code{numeric} or \code{NULL}. Output image height in inches.
-If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).}
+If NULL, automatically calculated based on number of genes (default: ~10
+inches per row + headers).}
 
 \item{fontsize}{\code{numeric}. Base font size for heatmap titles and labels 
 (default: 16pt). Automatically scaled for readability.}
@@ -62,9 +72,10 @@ If NULL, automatically calculated based on number of genes (default: ~10 inches 
 If 0 (default), uses adaptive sizing based on data dimensions and layout.
 Set > 0 to override dynamic sizing.}
 
-\item{cellheight}{\code{numeric}. Height of individual heatmap cells in pixels.
-If 0 (default), uses adaptive sizing based on data dimensions and layout.
-Set > 0 to override dynamic sizing.}
+\item{cellheight}{\code{numeric}.
+Height of individual heatmap cells in pixels.
+ If 0 (default), uses adaptive sizing based on data dimensions and layout.
+ Set > 0 to override dynamic sizing.}
 
 \item{layout_ncol}{\code{numeric}. Number of heatmaps per row in fixed layout
 (default: 2). If NULL, uses adaptive layout based on transcript counts.}
@@ -75,12 +86,15 @@ during plotting (default: FALSE).}
 \item{...}{Additional arguments passed to the base plotting function.}
 }
 \value{
-Invisibly returns the output file path (if `output_file` provided), or invisible(NULL) 
-  if rendering to active graphics device. Graphics are rendered to the active grid device 
+Invisibly returns the output file path (if `output_file`
+provided), or invisible(NULL)
+if rendering to active graphics device. Graphics are rendered to the
+active grid device
   for capture during vignette compilation.
 }
 \description{
-S4 wrapper for \code{.plot_top_transcripts()} that extracts data directly from
+S4 wrapper for  \code{. plot_top_transcripts()} that 
+extracts data directly from
 a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
 LM results for visualizing transcript abundance across conditions.
 }
@@ -88,7 +102,8 @@ LM results for visualizing transcript abundance across conditions.
 This wrapper extracts the following from \code{analysis}:
 \describe{
   \item{SummarizedExperiment}{From \code{analysis@se} containing transcript counts}
-  \item{LM results}{From \code{analysis@lm_results$lm_interaction} for gene selection}
+  \item{LM results}{From \code{analysis@lm_results$lm_interaction} for 
+gene selection}
 }
 
 If no gene is specified, the function automatically selects the top gene from
@@ -104,8 +119,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
@@ -119,8 +136,10 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 
 }

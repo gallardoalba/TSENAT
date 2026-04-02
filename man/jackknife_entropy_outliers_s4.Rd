@@ -23,25 +23,34 @@ jackknife_entropy_outliers_s4(
 
 \item{q}{\code{numeric}. Q-value(s) for jackknife. Default: 1.0.}
 
-\item{norm}{\code{logical}. Normalization flag. Default: NULL (uses @config$norm or TRUE).}
+\item{norm}{\code{logical}.  Normalization flag.  Default:
+NULL (uses @config$norm or  TRUE).}
 
-\item{log_base}{\code{numeric}. Logarithm base for entropy normalization. Default: NULL (uses e).}
+\item{log_base}{\code{numeric}.  Logarithm base for  entropy normalization.
+Default:  NULL (uses e).}
 
-\item{seed}{\code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.}
+\item{seed}{\code{numeric} or  \code{NULL}.  Random seed for 
+reproducibility.  Default:  NULL.}
 
-\item{top_n}{\code{numeric}. Number of top outlier samples to report. Default: 5.}
+\item{top_n}{\code{numeric}.  Number of top outlier samples to report.
+Default:  5.}
 
-\item{verbose}{\code{logical}. Print jackknife results summary. Default: FALSE.}
+\item{verbose}{\code{logical}.  Print jackknife results summary.  Default:
+FALSE.}
 
-\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
-If NULL, reads from \code{@config$nthreads} (or defaults to 1).
-If > 1 and multiple q-values provided, uses parallel PSOCK cluster.}
+\item{nthreads}{\code{numeric} or  \code{NULL}.  Number of CPU threads for 
+parallel processing.
+  If NULL, reads from \code{@config$nthreads} (or defaults to 1).
+  If > 1 and multiple q-values provided, uses parallel PSOCK cluster.}
 
-\item{pseudocount}{\code{numeric}. Pseudocount value for count regularization. Default: NULL (uses @config$pseudocount or 0).}
+\item{pseudocount}{\code{numeric}.  Pseudocount value for 
+count regularization.  Default:  NULL (uses @config$pseudocount or  0).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .tsv, .csv, .txt (for jackknife results table with estimates, influence, outliers),
-.rds (for entire S4 object). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+Supported formats: .tsv, .csv, .txt (for jackknife results table with
+estimates, influence, outliers),
+  .rds (for entire S4 object). Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
 }
@@ -69,10 +78,12 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Filter low-abundance genes (required for reliable jackknife estimates)

@@ -42,7 +42,8 @@ setMethod("divResults", "TSENATAnalysis", function(object, q = NULL) {
 
 #' Access linear model results
 #' @param object TSENATAnalysis object
-#' @param component character. Component name ('lm_interaction', 'q_interactions', etc.).
+#' @param component character. Component name ('lm_interaction',
+#' 'q_interactions', etc.).
 #'   If NULL, returns all LM results.
 #' @rdname divResults
 setMethod("lmRes", "TSENATAnalysis", function(object, component = NULL) {
@@ -68,7 +69,8 @@ setMethod("jkResults", "TSENATAnalysis", function(object, q = NULL) {
 
 #' Access divergence results
 #' @param object TSENATAnalysis object
-#' @param component character. Component name ('tsallis_divergence', 'effect_sizes', etc.).
+#' @param component character. Component name ('tsallis_divergence',
+#' 'effect_sizes', etc.).
 #'   If NULL, returns all divergence results.
 #' @rdname divResults
 setMethod("divRes", "TSENATAnalysis", function(object, component = NULL) {
@@ -80,7 +82,8 @@ setMethod("divRes", "TSENATAnalysis", function(object, component = NULL) {
 
 #' Access metadata
 #' @param object TSENATAnalysis object
-#' @param key character. Metadata key to extract (e.g., 'function_calls', 'effect_sizes_divergence').
+#' @param key character. Metadata key to extract (e.g., 'function_calls',
+#' 'effect_sizes_divergence').
 #'   If NULL, returns all metadata.
 #' @rdname divResults
 setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
@@ -92,7 +95,8 @@ setMethod("getMeta", "TSENATAnalysis", function(object, key = NULL) {
 
 #' Access configuration
 #' @param object TSENATAnalysis object
-#' @param key character. Config key to extract (e.g., 'q_values', 'condition_col').
+#' @param key character. Config key to extract (e.g., 'q_values',
+#' 'condition_col').
 #'   If NULL, returns entire config.
 #' @rdname divResults
 setMethod("getConfig", "TSENATAnalysis", function(object, key = NULL) {

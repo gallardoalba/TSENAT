@@ -19,7 +19,8 @@
 #' used throughout S4 wrapper functions.
 #'
 #' @examples
-#' config <- list(nthreads = 4, verbose = TRUE, q_values = seq(0.01, 2, by = 0.05))
+#' config <- list(nthreads = 4, verbose = TRUE, q_values = seq(0.01, 2, by =
+#' 0.05))
 #' 
 #' # User-provided value takes priority
 #' resolve_slot_param(user_value = 8, config_list = config, 
@@ -78,16 +79,21 @@ resolve_slot_param <- function(user_value, config_list, config_key, default_valu
 #' @param available_cols Character vector of available column names
 #' @param config_list Configuration list with optional priority column name
 #' @param config_key Key name in config_list to check first
-#' @param priority_candidates Character vector of candidate column names to try in order
-#' @param default_fallback Character string. Fallback if no matches found. Default: NULL (no fallback).
+#' @param priority_candidates Character vector of candidate column names to
+#' try in order
+#' @param default_fallback Character string. Fallback if no matches found.
+#' Default: NULL (no fallback).
 #' @param verbose Logical. Print auto-detection messages. Default: FALSE.
-#' @param param_name Parameter name for messages (e.g., 'condition_col'). Required for verbose.
+#' @param param_name Parameter name for messages (e.g., 'condition_col').
+#' Required for verbose.
 #'
-#' @return Character string with detected column name, or NULL if not found and no fallback
+#' @return Character string with detected column name, or NULL if not found
+#' and no fallback
 #'
 #' @details
 #' Priority resolution order:
-#' 1. If \code{config_key} exists in \code{config_list}, check if it's in available columns
+#' 1.  If \code{config_key} exists in \code{config_list},  check if 
+#' it's in available columns
 #' 2. Check each \code{priority_candidates} in order against available columns
 #' 3. Return \code{default_fallback} if provided
 #' 4. Return NULL otherwise
@@ -158,14 +164,21 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 #'
 #' Save analysis results to file with automatic format detection and handling.
 #'
-#' @param data Object to save (data.frame, matrix, ggplot, SummarizedExperiment, or TSENATAnalysis)
-#' @param output_file File path. Format auto-detected from extension (.rds, .tsv, .csv, .txt, .pdf, .png, .jpg)
-#' @param object Optional parent object (e.g., TSENATAnalysis) for context-aware saving. Default: NULL.
+#' @param data Object to save (data.frame, matrix, ggplot,
+#' SummarizedExperiment, or TSENATAnalysis)
+#' @param output_file File path. Format auto-detected from extension (.rds,
+#' .tsv, .csv, .txt, .pdf, .png, .jpg)
+#' @param object Optional parent object (e.g., TSENATAnalysis) for
+#' context-aware saving. Default: NULL.
 #' @param verbose Logical. Print saving status. Default: FALSE.
-#' @param create_dir Logical. Create directory if it doesn't exist. Default: TRUE.
-#' @param func_name Function name for error messages (e.g., 'calculate_diversity_s4'). Default: 'wrapper_function'
-#' @param width Numeric or NULL. Plot width in inches (for ggplot/PDF/PNG output). Default: NULL (use ggplot defaults).
-#' @param height Numeric or NULL. Plot height in inches (for ggplot/PDF/PNG output). Default: NULL (use ggplot defaults).
+#' @param create_dir Logical. Create directory if it doesn't exist. Default:
+#' TRUE.
+#' @param func_name Function name for error messages (e.g.,
+#' 'calculate_diversity_s4'). Default: 'wrapper_function'
+#' @param width Numeric or NULL. Plot width in inches (for ggplot/PDF/PNG
+#' output). Default: NULL (use ggplot defaults).
+#' @param height Numeric or NULL. Plot height in inches (for ggplot/PDF/PNG
+#' output). Default: NULL (use ggplot defaults).
 #'
 #' @return Invisibly returns TRUE if successful, FALSE if error suppressed
 #'
@@ -173,7 +186,8 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 #' **Supported formats:**
 #' \itemize{
 #'   \item \code{.rds}: R serialized object (for S4 objects, TSENATAnalysis)
-#'   \item \code{.tsv, .csv, .txt}: Tables (for data.frame, matrix, extracted tables)
+#'   \item \code{. tsv,  . csv,  . txt}:  Tables (for  data. frame,  matrix,
+#'  extracted tables)
 #'   \item \code{.pdf}: PDF (for ggplot objects)
 #'   \item \code{.png, .jpg}: Raster image (for ggplot objects)
 #' }
@@ -187,7 +201,8 @@ auto_detect_column <- function(available_cols, config_list = NULL, config_key = 
 #'   \item Other → attempts default save based on extension
 #' }
 #'
-#' Errors in saving only warn (not stop) to prevent entire analysis failure if output
+#' Errors in saving only warn (not stop) to prevent entire analysis failure
+#' if output
 #' file cannot be written.
 #'
 #' @examples
@@ -309,12 +324,16 @@ save_analysis_output <- function(data, output_file, object = NULL, verbose = FAL
 
 #' Extract Multi-Q Tabular Results with Q-Value Column
 #'
-#' Helper to combine results from multiple q-values into a single data.frame with q_value column.
+#' Helper to combine results from multiple q-values into a single data.frame
+#' with q_value column.
 #'
-#' @param result Result object (may be list with multi-q structure or single result)
-#' @param is_multiq Logical. Whether result has multi-q structure. Default: auto-detect.
+#' @param result Result object (may be list with multi-q structure or single
+#' result)
+#' @param is_multiq Logical. Whether result has multi-q structure. Default:
+#' auto-detect.
 #' @param extract_fn Function to extract table from each result element.
-#'   Signature: \code{function(result_element, q_key)}. Default: extracts 'summary_table'.
+#'   Signature:  \code{function(result_element,  q_key)}.  Default:
+#'  extracts 'summary_table'.
 #' @param q_value_col Name of q-value column to add. Default: 'q_value'
 #'
 #' @return data.frame with combined results and q_value column

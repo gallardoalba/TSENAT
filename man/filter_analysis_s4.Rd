@@ -29,65 +29,87 @@ filter_analysis_s4(
 \code{SummarizedExperiment} to be filtered.}
 
 \item{min_tpm}{Numeric TPM threshold (default 1.0).
-Keeps transcripts with TPM >= \code{min_tpm} in >= \code{min_samples} samples.
-Ignored if \code{stringency} is specified.}
+  Keeps transcripts with 
+TPM >= \code{min_tpm} in >= \code{min_samples} samples.
+  Ignored if \code{stringency} is specified.}
 
-\item{tpm_assay_name}{Character; name of assay containing TPM data (default: NULL).
-If NULL, searches for TPM assay automatically.}
+\item{tpm_assay_name}{Character; name of assay containing TPM data
+(default: NULL).
+  If NULL, searches for TPM assay automatically.}
 
 \item{min_samples}{Numeric. Minimum number of samples in which a transcript
 must be present (default: 5). Ignored if \code{stringency} is specified.}
 
 \item{stringency}{Character. Filtering stringency level: 'soft' (permissive),
-'medium' (balanced), or 'severe' (stringent). When specified, auto-estimates:
-\code{min_samples}, \code{min_tpm}, \code{min_tx_per_gene}, and \code{min_isoform_abundance}
-from data. Requires \code{pair_col} in colData for paired designs.
-User-provided values for any parameter override stringency defaults.
-Default: NULL (use explicit parameters).}
+'medium' (balanced), or 'severe' (stringent). When specified,
+auto-estimates:
+  \code{min_samples},  \code{min_tpm},  \code{min_tx_per_gene},  and 
+\code{min_isoform_abundance}
+  from data. Requires \code{pair_col} in colData for paired designs.
+  User-provided values for any parameter override stringency defaults.
+  Default: NULL (use explicit parameters).}
 
-\item{pair_col}{Character; column name in colData containing pair IDs for paired designs.
-Default: NULL (auto-detect if needed).}
+\item{pair_col}{Character; column name in colData containing pair IDs for
+paired designs.
+  Default: NULL (auto-detect if needed).}
 
-\item{min_tx_per_gene}{Integer minimum number of transcripts per gene required
-(default 2L). Single-transcript genes are always kept. Ignored if \code{stringency}
-is specified; when specified, automatically adjusted based on stringency level.}
+\item{min_tx_per_gene}{Integer minimum number of transcripts per gene
+required
+  (default 2L).  Single-transcript genes are always kept.  Ignored if 
+\code{stringency}
+is specified; when specified, automatically adjusted based on stringency
+level.}
 
-\item{min_isoform_abundance}{Numeric in [0, 1]; minimum relative abundance threshold
-for isoforms within each gene. Implements Soneson et al. (2016) filtering.
-Default behavior:
-- If \code{stringency} is specified: uses stringency-based default (soft: 0.01, medium: 0.05, severe: 0.15)
-- If \code{stringency} is NULL: uses default 0.05 (5%)
-- If explicitly provided: overrides any stringency default
-Set to 0 or NULL (post-stringency processing) to skip isoform-level filtering.}
+\item{min_isoform_abundance}{Numeric in [0, 1]; minimum relative
+abundance threshold
+  for isoforms within each gene. Implements Soneson et al. (2016) filtering.
+  Default behavior:
+  - If \code{stringency} is specified:
+ uses stringency-based default (soft:  0. 01,  medium:  0. 05,  severe:  0.
+15)
+  - If \code{stringency} is NULL: uses default 0.05 (5%)
+  - If explicitly provided: overrides any stringency default
+Set to 0 or NULL (post-stringency processing) to skip isoform-level
+filtering.}
 
 \item{assay_name}{Character; name or index of the assay to use for filtering
 (default: 'counts'). Deprecated: use \code{tpm_assay_name} instead.}
 
-\item{subset_n_genes}{Integer; optional number of genes to retain after filtering.
-If provided, genes are selected based on \code{subset_select_by}. Default: NULL.}
+\item{subset_n_genes}{Integer; optional number of genes to retain after
+filtering.
+  If provided,  genes are selected based on \code{subset_select_by}.
+ Default:  NULL.}
 
-\item{subset_genes}{Character vector; optional specific genes to retain after filtering.
-Default: NULL.}
+\item{subset_genes}{Character vector; optional specific genes to retain
+after filtering.
+  Default: NULL.}
 
-\item{subset_n_samples}{Integer; optional number of samples to retain after filtering.
-If provided, samples are selected (balanced by condition if available).
-Default: NULL.}
+\item{subset_n_samples}{Integer; optional number of samples to retain
+after filtering.
+  If provided, samples are selected (balanced by condition if available).
+  Default: NULL.}
 
-\item{subset_samples}{Character vector; optional specific samples to retain after filtering.
-Default: NULL.}
+\item{subset_samples}{Character vector; optional specific samples to
+retain after filtering.
+  Default: NULL.}
 
-\item{subset_select_by}{Character; gene selection method for \code{subset_n_genes}:
-'variance' (highest variance), 'mean' (highest mean expression), or 'random'.
-Default: 'variance'.}
+\item{subset_select_by}{Character;  gene selection method for 
+\code{subset_n_genes}:
+'variance' (highest variance), 'mean' (highest mean expression), or
+'random'.
+  Default: 'variance'.}
 
-\item{subset_seed}{Integer; random seed for reproducibility when \code{subset_select_by = 'random'}.
-Default: 42.}
+\item{subset_seed}{Integer;  random seed for  reproducibility when 
+\code{subset_select_by = 'random'}.
+  Default: 42.}
 
-\item{subset_min_count}{Numeric; optional minimum count threshold applied during subsetting.
-Default: NULL.}
+\item{subset_min_count}{Numeric; optional minimum count threshold applied
+during subsetting.
+  Default: NULL.}
 
-\item{verbose}{Logical. If TRUE, print filtering progress and summary statistics
-(default: FALSE).}
+\item{verbose}{Logical. If TRUE, print filtering progress and summary
+statistics
+  (default: FALSE).}
 }
 \value{
 Invisibly returns the modified \code{analysis} object with filtered
@@ -126,8 +148,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 

@@ -510,9 +510,12 @@
 #' The tx2gene mapping can be provided as a file path (TSV) or a
 #' data.frame with a `Transcript` column.
 #'
-#' @param readcounts A numeric matrix or data.frame of read counts (rows = transcripts).
-#' @param tx2gene Either a path to a tab-delimited file or a data.frame with at least a `Transcript` column.
-#' @param tx_col Name of the transcript ID column in `tx2gene` (default: 'Transcript').
+#' @param readcounts A numeric matrix or data.frame of read counts (rows =
+#' transcripts).
+#' @param tx2gene Either a path to a tab-delimited file or a data.frame with
+#' at least a `Transcript` column.
+#' @param tx_col Name of the transcript ID column in `tx2gene` (default:
+#' 'Transcript').
 #' @param verbose Logical; print informative messages (default: FALSE).
 #' @return The input `readcounts` with rownames set to the transcript IDs.
 

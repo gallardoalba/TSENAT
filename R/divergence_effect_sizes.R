@@ -1,8 +1,10 @@
 #' Merge LMM Interaction Results with Tsallis Divergence Effect Sizes
 #'
 #' Combines LMM interaction test p-values with pre-computed Tsallis divergence
-#' effect sizes and bootstrap confidence intervals across ALL q values. This is a 
-#' **data merger**, not a model fitter--all statistical computation happens upstream in:
+#' effect sizes and bootstrap confidence intervals across ALL q values. This
+#' is a
+#' **data merger**, not a model fitter--all statistical computation happens
+#' upstream in:
 #' - `.calculate_lm_interaction()` -> LMM p-values
 #' - `.calculate_divergence()` -> Divergence estimates and CIs for multiple q
 #'
@@ -26,34 +28,48 @@
 #'   - effect magnitude for EACH q: D_q, lower_ci_q, upper_ci_q
 #' ```
 #'
-#' @param lm_res A data frame of LMM interaction test results from `.calculate_lm_interaction()`,
-#'   with columns: `gene` (character, gene name), `adj_p_interaction` (numeric, multiple-test adjusted p-value).
+#' @param lm_res A data frame of LMM interaction test results from
+#' `.calculate_lm_interaction()`,
+#' with columns: `gene` (character, gene name), `adj_p_interaction`
+#' (numeric, multiple-test adjusted p-value).
 #'   Genes with adj_p_interaction below `significance_threshold` are included.
 #'
-#' @param divergence_results_se A SummarizedExperiment from `.calculate_divergence()`,
+#' @param divergence_results_se A SummarizedExperiment from
+#' `.calculate_divergence()`,
 #'   containing rowData with columns: `gene_name` and either:
 #'   - Generic: `estimate`, `lower_ci`, `upper_ci` (single q-value results), OR
 #'   - Per-q: `estimate_q*`, `lower_ci_q*`, `upper_ci_q*` (multiple q-values)
 #'   All divergence-related data is self-contained in this object.
 #'
-#' @param significance_threshold Numeric; p-value threshold for filtering significant
-#'   genes (default: 0.05). Only genes with adj_p_interaction < threshold are included.
+#' @param significance_threshold Numeric; p-value threshold for filtering
+#' significant
+#' genes (default: 0.05). Only genes with adj_p_interaction < threshold are
+#' included.
 #'
-#' @param enrich_per_q_pattern Logical; if TRUE (default), adds a 'per_q_pattern' column
-#'   to the output data frame containing comma-separated divergence values across the
-#'   q spectrum for each gene. This column enables visualization and classification
-#'   of whether treatment effects are driven by rare (low-q) or abundant (high-q)
-#'   isoforms. Set to FALSE to reduce output size if this annotation is not needed.
+#' @param enrich_per_q_pattern Logical; if TRUE (default), adds a
+#' 'per_q_pattern' column
+#' to the output data frame containing comma-separated divergence values
+#' across the
+#' q spectrum for each gene. This column enables visualization and
+#' classification
+#' of whether treatment effects are driven by rare (low-q) or abundant
+#' (high-q)
+#' isoforms. Set to FALSE to reduce output size if this annotation is not
+#' needed.
 #'
-#' @param verbose Logical; if TRUE, print detailed validation and merge statistics
-#'   to console (default: TRUE). Shows counts of passed, skipped, and failed genes.
+#' @param verbose Logical; if TRUE, print detailed validation and merge
+#' statistics
+#' to console (default: TRUE). Shows counts of passed, skipped, and failed
+#' genes.
 #'
 #' @return A list with two elements:
 #'   \describe{
-#'     \item{\code{interaction_results}}{Data frame (genes * columns) with merged results:
+#'     \item{\code{interaction_results}}{Data frame (genes * columns) with 
+#' merged results:
 #'       - `gene`: Gene name (character)
 #'       - `p_value_interaction`: LMM adjusted p-value for q:group interaction
-#'       - `slope_diff`: q:group interaction slope coefficient (if present in lm_res)
+#' - `slope_diff`: q:group interaction slope coefficient (if present in
+#' lm_res)
 #'       - For EACH q value found: 
 #'         - `effect_size_D_q*`: Absolute Tsallis divergence at q
 #'         - `D_q*_lower_ci`: Bootstrap lower confidence bound
@@ -83,7 +99,8 @@
 #' - q=2.0: Common (high-abundance) isoforms dominate
 #'
 #' Examining the divergence spectrum across q reveals whether treatment effects
-#' are driven by rare transcripts (high D at low q) or abundant transcripts (high D at high q).
+#' are driven by rare transcripts (high D at low q) or abundant transcripts
+#' (high D at high q).
 #'
 #' For paired designs, divergence is computed separately within each pair,
 #' then averaged to account for pairing structure.

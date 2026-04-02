@@ -1,30 +1,41 @@
 #' Plot GAM q-curves for top genes identified by FPCA/GAM interaction tests
 #'
 #' Visualizes smooth q-curve profiles (GAM fits) for selected genes from
-#' `.calculate_lm_interaction()` results. Useful for understanding which q-ranges (rare
+#' `.calculate_lm_interaction()` results. Useful for understanding which
+#' q-ranges (rare
 #' vs. dominant isoforms) drive significant PC differences between groups.
 #'
 #' @param se A `SummarizedExperiment` with q-sequence diversity values
-#'   (multiple q values per sample). Typically output from `.calculate_diversity()`
+#' (multiple q values per sample). Typically output from
+#' `.calculate_diversity()`
 #'   with multiple q (e.g., q = seq(0.1, 2, by = 0.1)).
 #' @param lm_res A `data.frame` from `.calculate_lm_interaction()` with columns
 #'   `gene`, `p_interaction`, and `adj_p_interaction`. Can be from method='fpca'
 #'   or method='gam'.
 #' @param condition_col Column name in `colData(se)` specifying group
 #'   assignments for samples (e.g., 'sample_type').
-#' @param genes Optional character vector of specific gene names to plot. If provided,
-#'   these genes are plotted directly regardless of significance or n_top. If NULL
+#' @param genes Optional character vector of specific gene names to plot. If
+#' provided,
+#' these genes are plotted directly regardless of significance or n_top. If
+#' NULL
 #'   (default), the top n_top significant genes are selected.
 #' @param n_top Number of top genes (by adjusted p-value) to plot (default: 6).
 #'   Only used if genes = NULL.
-#' @param sig_alpha Significance threshold for adjusted p-values (default: 0.05).
-#'   Only used if genes = NULL; filters lm_res to significant genes before selecting top n.
-#' @param assay_name Name of the assay in `se` to extract (default: 'diversity').
-#' @param model_data Required list from `.calculate_lm_interaction(..., return_model_data = TRUE)$model_data`
-#'   containing metadata (q_values, sample configuration, etc.). This is the preferred way to use
-#'   this function as it ensures all visualizations are based on the exact analysis configuration.
+#' @param sig_alpha Significance threshold for adjusted p-values (default:
+#' 0.05).
+#' Only used if genes = NULL; filters lm_res to significant genes before
+#' selecting top n.
+#' @param assay_name Name of the assay in `se` to extract (default:
+#' 'diversity').
+#' @param model_data Required list from `.calculate_lm_interaction(...,
+#' return_model_data = TRUE)$model_data`
+#' containing metadata (q_values, sample configuration, etc.). This is the
+#' preferred way to use
+#' this function as it ensures all visualizations are based on the exact
+#' analysis configuration.
 #'
-#' @return A single `ggplot` object with all selected genes arranged in a grid layout 
+#' @return A single `ggplot` object with all selected genes arranged in a
+#' grid layout
 #'   (2 columns per row). Can be saved with `ggplot2::ggsave()`.
 #'
 #' @details
@@ -34,8 +45,10 @@
 #' 3. Generates smooth predictions for visualization
 #' 4. Overlays predicted curves for each group with a distinct color
 #'
-#' By providing `model_data` from `.calculate_lm_interaction()`, the function can directly
-#' access the q-values used in the original analysis for more accurate visualization.
+#' By providing `model_data` from `.calculate_lm_interaction()`, the
+#' function can directly
+#' access the q-values used in the original analysis for more accurate
+#' visualization.
 #'
 #' This complements FPCA by providing interpretable visualization of empirical
 #' q-curve shape differences that drive PC-level significance.
@@ -52,7 +65,8 @@
 #' genes <- rep(paste0('gene_', 1:5), each = 3)
 #' 
 #' # Calculate diversity across multiple q values
-#' se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by = 0.5), norm = TRUE)
+#' se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 2, by =
+#' 0.5), norm = TRUE)
 #' 
 #' # Add sample metadata
 #' SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
@@ -61,18 +75,22 @@
 #' )
 #' 
 #' # Run linear model analysis with model_data  
-#' lm_result <- .calculate_lm_interaction(se, condition_col = 'condition', method = 'gam',
+#' lm_result <- .calculate_lm_interaction(se, condition_col = 'condition',
+#' method = 'gam',
 #'                                       return_model_data = TRUE)
 #' 
 #' # Plot GAM curves for top genes
 #' if (nrow(lm_result$results) > 0) {
-#'   grid_plot <- .plot_lm_interaction_gam(se, lm_result$results, condition_col = 'condition',
-#'                                         n_top = 2, model_data = lm_result$model_data)
+#' grid_plot <- .plot_lm_interaction_gam(se, lm_result$results,
+#' condition_col = 'condition',
+#'                                         n_top = 2,
+#'  model_data = lm_result$model_data)
 #' }
 #'
 
 #' @noRd
-#' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal scale_color_brewer
+#' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs
+#' theme_minimal scale_color_brewer
 #' @importFrom cowplot plot_grid
 
 .plot_lm_interaction_gam <- function(se, lm_res, condition_col = "condition", genes = NULL,

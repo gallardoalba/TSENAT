@@ -34,9 +34,10 @@ Default: 'padj' (the standard column name from calculate_difference).}
 Genes with adjusted p-value below this threshold are labeled.
 Default: 0.1.}
 
-\item{sig_alpha}{\code{numeric}. Significance threshold for coloring significant
-differences. Points with adjusted p-value below sig_alpha are highlighted.
-Default: 0.05.}
+\item{sig_alpha}{\code{numeric}.  Significance threshold for 
+coloring significant
+  differences. Points with adjusted p-value below sig_alpha are highlighted.
+  Default: 0.05.}
 
 \item{top_n}{\code{integer}. Number of top genes (by significance) to label
 in volcano plot. Default: 5.}
@@ -49,14 +50,17 @@ Default: 'Tsallis-based MA plot'.}
 
 \item{verbose}{\code{logical}. Print status messages. Default: FALSE.}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
-Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save the plot.
+ Default: NULL (no file output).}
 
-\item{width}{\code{numeric}. Width of the output plot in inches (default: 12).
-Only used if output_file is provided.}
+\item{width}{\code{numeric}.  Width of the output plot in inches (default:
+12).
+ Only used if output_file is provided.}
 
-\item{height}{\code{numeric}. Height of the output plot in inches (default: 7.2).
-Only used if output_file is provided.}
+\item{height}{\code{numeric}.
+Height of the output plot in inches (default:  7. 2).
+ Only used if output_file is provided.}
 
 \item{...}{Additional arguments passed to the base plotting function.}
 }
@@ -83,11 +87,13 @@ This wrapper extracts the difference results data frame from
 **Expected Columns in Difference Results:**
 \itemize{
   \item \code{genes} or \code{gene_id}: Gene identifiers
-  \item \code{Normal_mean}, \code{Tumor_mean}: Group means (or equivalent controls/treatments)
+  \item \code{Normal_mean},  \code{Tumor_mean}:  Group means (or 
+equivalent controls/treatments)
   \item \code{mean_difference}: Calculated difference between groups
   \item \code{log2_fold_change}: Log2 fold-change values
   \item \code{raw_p_values} or \code{pvalue}: Un-adjusted p-values
-  \item \code{adjusted_p_values} or \code{padj}: Adjusted p-values (default column used)
+  \item \code{adjusted_p_values} or  \code{padj}:
+ Adjusted p-values (default column used)
 }
 
 **Volcano Plot Features:**
@@ -115,14 +121,19 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data and create small subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+analysis <- calculate_difference_s4(analysis, control = 'normal', verbose
+= FALSE)
   
 # Plot volcano and MA plots
 p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)

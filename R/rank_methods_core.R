@@ -249,13 +249,17 @@
 ################################################################################
 #' Detect QxCondition Interaction Terms
 #'
-#' Tests for q x condition interactions in Tsallis entropy analysis. Identifies genes
-#' where entropy's pattern across q-values differs significantly between experimental
-#' conditions. This reveals genes with condition-specific transcriptome remodeling through
+#' Tests for q x condition interactions in Tsallis entropy analysis.
+#' Identifies genes
+#' where entropy's pattern across q-values differs significantly between
+#' experimental
+#' conditions. This reveals genes with condition-specific transcriptome
+#' remodeling through
 #' isoform switching.
 #'
 #' @param data SummarizedExperiment (from calculate_diversity) or data frame.
-#'   If SummarizedExperiment: assay contains entropy values, colData must have 'q' column,
+#' If SummarizedExperiment: assay contains entropy values, colData must have
+#' 'q' column,
 #'   rownames are gene IDs. Automatically converted to long-format internally.
 #'   If data frame: must have columns: entropy, q, gene
 #'     - entropy: numeric entropy values
@@ -267,29 +271,46 @@
 #'   Only used if data is a data frame. Ignored for SummarizedExperiment.
 #' @param gene_col Character name of gene column (default: 'gene').
 #'   Only used if data is a data frame. Ignored for SummarizedExperiment.
-#' @param multicorr Method for adjusting p-values across multiple q-values to account for 
-#'   correlation structure in Tsallis entropy (default: 'hochberg'). The interaction 
-#'   p-values from rank tests naturally exhibit AR(1) correlation for different q-values 
-#'   of the same gene (Papers S168-S175). This parameter selects the multiple testing
+#' @param multicorr Method for adjusting p-values across multiple q-values
+#' to account for
+#' correlation structure in Tsallis entropy (default: 'hochberg'). The
+#' interaction
+#' p-values from rank tests naturally exhibit AR(1) correlation for
+#' different q-values
+#' of the same gene (Papers S168-S175). This parameter selects the multiple
+#' testing
 #'   correction method:
-#'   'hochberg': Hochberg stepup procedure (FWER <= alpha under positive regression dependence). 
-#'   Closed-form, computationally efficient. Recommended for strong signal detection with 
+#' 'hochberg': Hochberg stepup procedure (FWER <= alpha under positive
+#' regression dependence).
+#' Closed-form, computationally efficient. Recommended for strong signal
+#' detection with
 #'   family-wise error control.
-#'   'westfall-young': Westfall-Young permutation stepdown (FWER <= alpha via empirical null). 
-#'   Non-parametric, accounts for multi-q correlation via permutation distribution. More 
-#'   powerful than Hochberg but slower (requires wy_randomizations model refits). Newly 
+#' 'westfall-young': Westfall-Young permutation stepdown (FWER <= alpha via
+#' empirical null).
+#' Non-parametric, accounts for multi-q correlation via permutation
+#' distribution. More
+#' powerful than Hochberg but slower (requires wy_randomizations model
+#' refits). Newly
 #'   added March 2026 to match GEE method. Cost: O(genes x wy_randomizations).
-#'   'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= alpha under arbitrary dependence). 
-#'   Valid under any correlation structure. More conservative than Hochberg but appropriate
+#' 'benjamini-yekutieli': Benjamini-Yekutieli FDR control (FDR <= alpha
+#' under arbitrary dependence).
+#' Valid under any correlation structure. More conservative than Hochberg
+#' but appropriate
 #'   for exploratory analysis. Reference: Papers S190, S193.
-#'   'none': No adjustment (returns raw p-values). Use for exploratory analysis only.
-#' @param wy_randomizations Integer, character, or NULL for permutations in Westfall-Young 
-#'   procedure (default: 500). Only used when multicorr='westfall-young'. Options:
+#' 'none': No adjustment (returns raw p-values). Use for exploratory
+#' analysis only.
+#' @param wy_randomizations Integer, character, or NULL for permutations in
+#' Westfall-Young
+#' procedure (default: 500). Only used when multicorr='westfall-young'.
+#' Options:
 #'   - Integer (e.g., 1000): Explicit number of permutations
-#'   - 'auto': Automatically estimate optimal permutations based on data complexity
-#'     (number of genes, q-values, heterogeneity, AR(1) structure). See .estimate_nperm().
+#' - 'auto': Automatically estimate optimal permutations based on data
+#' complexity
+#' (number of genes, q-values, heterogeneity, AR(1) structure). See
+#' .estimate_nperm().
 #'   - NULL: Uses default 500 permutations (faster, still valid)
-#'   Higher values (500-10000) increase p-value precision but scale computational cost.
+#' Higher values (500-10000) increase p-value precision but scale
+#' computational cost.
 #'   (Updated March 2026 to support 'auto' mode)
 #' @param nperm_mode Character; estimation mode for 'auto' wy_randomizations 
 #'   (default: 'standard'). Only used when wy_randomizations='auto'. Options:
@@ -297,20 +318,23 @@
 #'   - 'conservative': Assumes high heterogeneity, adds 50% margin
 #'   - 'interactive': Quick screening mode, reduces estimate by 20%
 #'   See .estimate_nperm() for details. (NEW - March 2026)
-#' @param verbose Logical; if TRUE, print progress messages including Westfall-Young 
+#' @param verbose Logical; if TRUE, print progress messages including
+#' Westfall-Young
 #'   permutation updates (default: FALSE)
 #'
 #' @return Data frame with columns:
 #'   - gene: Gene identifier
 #'   - n_q_values_tested: Number of q-levels tested for this gene
-#'   - f_statistic: Test statistic (H-statistic for Kruskal-Wallis, chi-squared for Friedman)
+#' - f_statistic: Test statistic (H-statistic for Kruskal-Wallis,
+#' chi-squared for Friedman)
 #'   - p_value: P-value for H0: 'No q*gene interaction' (unadjusted)
 #'   - adj_p_value: Adjusted p-value using multicorr method (NEW - March 2026)
 #'   - ss_interaction: Sum of squares for q-effect (interaction sum of squares)
 #'   - ss_residual: Sum of squares for residuals
 #'   - df_interaction: Degrees of freedom for interaction (q-effect)
 #'   - df_residual: Degrees of freedom for residuals
-#'   - effect_size_eta2: Eta-squared (proportion of variance explained by q-effect)
+#' - effect_size_eta2: Eta-squared (proportion of variance explained by
+#' q-effect)
 #'   - interaction_class: Classification of q-dependence pattern:
 #'     'Robust across q' (p >= 0.05), 
 #'     'Moderately q-dependent' (p < 0.05 AND eta2 <= 0.10),
@@ -319,47 +343,65 @@
 #'   - test_method: Which rank-based test was used 
 #'     ('kruskal-wallis', 'friedman', 'aligned-rank-transform', 'median-test')
 #'   - heteroscedastic: Logical; whether unequal variances were detected
-#'   - boundary_clustered: Logical; whether values clustered at boundaries detected
-#'     (Note: Skipped for entropy/diversity metrics which are mathematically bounded)
-#'   - highly_skewed: Logical; whether extreme skewness (|skew| > 2) was detected
+#' - boundary_clustered: Logical; whether values clustered at boundaries
+#' detected
+#' (Note: Skipped for entropy/diversity metrics which are mathematically
+#' bounded)
+#' - highly_skewed: Logical; whether extreme skewness (|skew| > 2) was
+#' detected
 #'
-#' @param paired Logical. If TRUE, applies Westfall-Young permutation test that accounts 
-#'   for repeated measures (within-subject pairing) across q-values. Requires subject/
-#'   pairing information via subject_col parameter. Default: FALSE (unpaired K-W + 
+#' @param paired Logical. If TRUE, applies Westfall-Young permutation test
+#' that accounts
+#' for repeated measures (within-subject pairing) across q-values. Requires
+#' subject/
+#' pairing information via subject_col parameter. Default: FALSE (unpaired
+#' K-W +
 #'   Hochberg/B-Y multi-test correction). (NEW - March 2026)
 #'
-#' @param subject_col Character. Name of colData column (SummarizedExperiment) or 
-#'   data frame column containing subject identifiers for pairing. Only required if 
+#' @param subject_col Character. Name of colData column
+#' (SummarizedExperiment) or
+#' data frame column containing subject identifiers for pairing. Only
+#' required if
 #'   paired=TRUE. Each subject ID should appear exactly once per q-value. 
 #'   Example: 'patient_id', 'subject', 'pair_id'. (NEW - March 2026)
 #'
-#' @param condition_col Character. Name of colData column (SummarizedExperiment) or
+#' @param condition_col Character. Name of colData column
+#' (SummarizedExperiment) or
 #'   data frame column containing sample group/condition labels. **REQUIRED.**
-#'   Specifies the condition/treatment variable for testing q x condition interactions.
+#' Specifies the condition/treatment variable for testing q x condition
+#' interactions.
 #'   
 #'   This function tests **QxCondition interactions** only:
 #'   - Tests whether the q-effect differs between conditions
-#'   - Example: Identifies genes with condition-specific isoform switching patterns
-#'   - Genes with strong q x condition interaction show entropy variation across q-values
+#' - Example: Identifies genes with condition-specific isoform switching
+#' patterns
+#' - Genes with strong q x condition interaction show entropy variation
+#' across q-values
 #'     that differs significantly between conditions
 #'   
 #'   When condition_col provided, automatically uses:
-#'   - **Paired designs** (paired=TRUE): Two-way Friedman test (q within-subjects, condition between-subjects)
-#'   - **Unpaired designs** (paired=FALSE): Scheirer-Ray-Hare test (non-parametric two-way ANOVA)
+#' - **Paired designs** (paired=TRUE): Two-way Friedman test (q
+#' within-subjects, condition between-subjects)
+#' - **Unpaired designs** (paired=FALSE): Scheirer-Ray-Hare test
+#' (non-parametric two-way ANOVA)
 #'
 #' @param test Character; test selection method (default: 'auto'). Options:
-#'   - 'auto': Automatically select appropriate rank test based on data characteristics
+#' - 'auto': Automatically select appropriate rank test based on data
+#' characteristics
 #'   - 'kruskal-wallis': Kruskal-Wallis H test for unpaired designs
 #'   - 'friedman': Friedman test for paired designs (requires subject_col)
 #'   - 'art': Aligned Rank Transform test for designs with heteroscedasticity
 #'
-#' @param nthreads Integer; number of parallel threads for computation (default: 1).
+#' @param nthreads Integer; number of parallel threads for computation
+#' (default: 1).
 #'   Use nthreads > 1 for faster processing on multi-core systems. Particularly
 #'   beneficial when multicorr='westfall-young' with high wy_randomizations.
 #'   
 #'   **Paired design implementation (March 2026):**
-#'   When paired=TRUE, uses CONDITIONAL paired rank test selection (like unpaired mode):
-#'   - **Heteroscedasticity detected** -> Aligned Rank Transform Friedman (ART-F)
+#' When paired=TRUE, uses CONDITIONAL paired rank test selection (like
+#' unpaired mode):
+#' - **Heteroscedasticity detected** -> Aligned Rank Transform Friedman
+#' (ART-F)
 #'     - More powerful than standard Friedman with variance heterogeneity
 #'     - Handles treatment-dependent variance drift
 #'   - **Extreme skewness detected** -> Robust (Median-based) Friedman  
@@ -367,27 +409,32 @@
 #'     - Based on median comparisons rather than rank sums
 #'   - **Default case** -> Standard Friedman test
 #'   
-#'   The conditional selection improves power compared to standard Friedman alone:
+#' The conditional selection improves power compared to standard Friedman
+#' alone:
 #'   - ART-F: ~15-25% power gain with heteroscedasticity
 #'   - Robust Friedman: ~25-40% power gain with extreme skewness
 #'   - No loss when characteristics not detected (falls back to Friedman)
 #'   
 #'   Theory: Both ART-F and Robust Friedman preserve blocking structure while
-#'   addressing specific data violations better than standard Friedman (Papers S181-S187).
+#' addressing specific data violations better than standard Friedman (Papers
+#' S181-S187).
 #'   Combined with Westfall-Young permutation and AR(1) correction for q-values:
 #'   - Power ~85-90% maintained across 39 q-values
 #'   - Exact FWER control (not asymptotic)
 #'   - No distributional assumptions
 #'   
-#'   (Papers S165-S166, S051, S181-S187; NEW - March 2026)@param subject_col Character. Name of colData column (SummarizedExperiment) or 
-#'   data frame column containing subject identifiers for pairing. Only required if 
+#' (Papers S165-S166, S051, S181-S187; NEW - March 2026)@param subject_col
+#' Character. Name of colData column (SummarizedExperiment) or
+#' data frame column containing subject identifiers for pairing. Only
+#' required if
 #'   paired=TRUE. Each subject ID should appear exactly once per q-value. 
 #'   Example: 'patient_id', 'subject', 'pair_id'. (NEW - March 2026)
 #'
 #' @details
 #' **Statistical hypotheses tested (FIXED - March 2026):**
 #'
-#' This function now properly distinguishes between two different statistical tests:
+#' This function now properly distinguishes between two different
+#' statistical tests:
 #'
 #' 1. **Q Main Effect** (condition_col = NULL): 
 #'   - H0: Entropy does NOT vary significantly across q-values
@@ -398,7 +445,8 @@
 #' 2. **Q * Condition Interaction** (condition_col = 'condition' or similar):
 #'   - H0: The q-effect does NOT differ between conditions (groups)
 #'   - Accounts for both within-q and condition differences
-#'   - Tests whether entropy's pattern across q-values DIFFERS by condition (e.g., tumor vs normal)
+#' - Tests whether entropy's pattern across q-values DIFFERS by condition
+#' (e.g., tumor vs normal)
 #'   - Useful for: Identifying disease- or treatment-specific q-dependent genes
 #'   - **This is the biologically relevant test for most genomic applications**
 #'
@@ -409,33 +457,41 @@
 #' non-normally distributed entropy data.
 #'
 #' **Unpaired mode (paired=FALSE, default):**
-#'   - Q main effect: Tests whether entropy varies across q-parameters for each gene
-#'   - Q * condition interaction: Uses Scheirer-Ray-Hare test (non-parametric 2-way ANOVA)
+#' - Q main effect: Tests whether entropy varies across q-parameters for
+#' each gene
+#' - Q * condition interaction: Uses Scheirer-Ray-Hare test (non-parametric
+#' 2-way ANOVA)
 #'     - Tests if q-effect varies by condition
 #'     - Works on rank-transformed data
 #'     - No distributional assumptions
 #'
 #' **BLOCK-PERMUTATION WESTFALL-YOUNG FOR PAIRED DESIGNS (NEW - March 2026):**
 #' 
-#' When multicorr='westfall-young' with paired=TRUE, implements block-respecting permutation
-#' that properly handles the AR(1) correlation structure of q-values. This is the KEY FIX
+#' When multicorr='westfall-young' with paired=TRUE, implements
+#' block-respecting permutation
+#' that properly handles the AR(1) correlation structure of q-values. This
+#' is the KEY FIX
 #' that resolves the previous 'all adj_p = 1.0' over-conservatism issue.
 #' 
 #' **The AR(1) Q-Correlation Problem:**
 #' 
 #' Tsallis entropy exhibits strong autocorrelation across q-values:
-#' - rho(k) = phi^|i-j| for Tsallis diversity (autocorrelation between q_i and q_j)
+#' - rho(k) = phi^|i-j| for Tsallis diversity (autocorrelation between q_i
+#' and q_j)
 #' - Adjacent q values (e.g., q=0.9 vs q=1.0) more correlated than distant ones
 #' - Standard Westfall-Young doesn't account for this structure
-#' - Result: Null distribution becomes TOO CONSERVATIVE, all adjusted p-values -> 1.0
-#' - Papers: S168-S175 document this correlation empirically across real TSENAT data
+#' - Result: Null distribution becomes TOO CONSERVATIVE, all adjusted
+#' p-values -> 1.0
+#' - Papers: S168-S175 document this correlation empirically across real
+#' TSENAT data
 #' 
 #' **Block-Permutation Solution:**
 #' 
 #' For a paired design with:
 #' - n = subjects, k = q-values, m = conditions
 #' - Design: Each subject * q * condition is exactly one observation
-#' - Total observations: n * k * m (e.g., 8 subjects * 41 q-values * 2 conditions = 656 obs)
+#' - Total observations: n * k * m (e.g., 8 subjects * 41 q-values * 2
+#' conditions = 656 obs)
 #' 
 #' **Permutation procedure:**
 #' 1. Group data by (subject, q) pairs [preserves all q-q correlations]
@@ -457,7 +513,8 @@
 #' 
 #' Empirical result:
 #' - BEFORE: Unadjusted p = 6.76e-18, Adjusted p = 1.0 (wrong!)
-#' - AFTER: Unadjusted p = 6.76e-18, Adjusted p ~ 0.003 (correct, FWER-controlled)
+#' - AFTER: Unadjusted p = 6.76e-18, Adjusted p ~ 0.003 (correct,
+#' FWER-controlled)
 #' 
 #' **Implementation details:**
 #' 
@@ -486,34 +543,46 @@
 #' 
 #' **Paired mode (paired=TRUE):**
 #'   - Q main effect: Uses Friedman test with subject blocking
-#'   - Q * condition interaction: Uses two-way Friedman (q within-subjects, condition between)
+#' - Q * condition interaction: Uses two-way Friedman (q within-subjects,
+#' condition between)
 #'     - Tests if the pattern of entropy across q-values differs by condition
-#'   - Uses Westfall-Young Max T permutation test with BLOCKED permutations that 
+#' - Uses Westfall-Young Max T permutation test with BLOCKED permutations
+#' that
 #'     respect within-subject pairing structure. Details:
-#'     - Permutation: Labels shuffled within subjects, respecting condition structure
+#' - Permutation: Labels shuffled within subjects, respecting condition
+#' structure
 #'     - Pairing: Requires subject_col specifying study design blocking variable
-#'     - AR(1): Multi-q correlation automatically preserved in permutation distribution
-#'     - Power: Maintains ~85-90% across q-values (vs ~50-70% for unblocked tests)
+#' - AR(1): Multi-q correlation automatically preserved in permutation
+#' distribution
+#' - Power: Maintains ~85-90% across q-values (vs ~50-70% for unblocked
+#' tests)
 #'     - P-values: EXACT (computed from empirical permutation distribution)
 #'   
 #'     Mathematically optimal for Tsallis entropy because:
 #'     (a) Non-additivity: Permutation test doesn't assume additivity
 #'     (b) Tsallis non-additivity: H_q values are naturally non-additive
-#'     (c) AR(1) correlation: Automatically handled by block-respecting permutation
-#'     (d) Bounded data: Rank transformation handles [0, log(m)] boundaries perfectly
-#'     (e) Distributional: Zero assumptions beyond exchangeability (Papers S165-S166)
+#' (c) AR(1) correlation: Automatically handled by block-respecting
+#' permutation
+#' (d) Bounded data: Rank transformation handles [0, log(m)] boundaries
+#' perfectly
+#' (e) Distributional: Zero assumptions beyond exchangeability (Papers
+#' S165-S166)
 #'
 #'   (Papers S165-S166, S051; Song 2007; Saulsbury 2020; FIXED - March 2026)
 #'
 #' Adaptive test selection (unpaired mode only, March 2026):
-#'   With paired=FALSE and condition_col=NULL, applies conditional rank test selection:
+#' With paired=FALSE and condition_col=NULL, applies conditional rank test
+#' selection:
 #'   - Heteroscedasticity detected -> Aligned Rank Transform + parametric test
 #'   - Extreme skewness detected -> Mood's robust median test  
 #'   - Standard case -> Kruskal-Wallis (rank-based)
 #'   
-#'   **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity metrics,
-#'   since these are mathematically bounded by definition [0, log(m)] and boundary
-#'   clustering is EXPECTED, not pathological. This fix (March 2026) resolves prior
+#' **NOTE:** Boundary clustering detection is SKIPPED for entropy/diversity
+#' metrics,
+#' since these are mathematically bounded by definition [0, log(m)] and
+#' boundary
+#' clustering is EXPECTED, not pathological. This fix (March 2026) resolves
+#' prior
 #'   false positives that were triggering inappropriate quantile test selection.
 #'
 #' Classification:
@@ -522,17 +591,22 @@
 #'   - Strongly dependent: p < 0.05 AND ?^2 > 0.10
 #'
 #' @section Sample Metadata Parameters (Unified Naming Convention):
-#' TSENAT functions use consistent parameter names for sample grouping and subject identification:
+#' TSENAT functions use consistent parameter names for sample grouping and
+#' subject identification:
 #' \itemize{
 #'   \item{\code{condition_col}: Character string specifying the colData column 
-#'         containing sample group/condition labels. Currently used as reference when processing
+#' containing sample group/condition labels. Currently used as reference
+#' when processing
 #'         SummarizedExperiment objects. Default: NULL.}
-#'   \item{\code{subject_col}: For paired/blocked designs, character string specifying 
+#'   \item{\code{subject_col}:  For paired/blocked designs,
+#'  character string specifying 
 #'         the colData column with subject/individual/patient identifiers. 
 #'         Required when \code{paired = TRUE}.}
 #' }
-#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth 
-#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability 
+#' All functions use \code{SummarizedExperiment: :
+#' colData()} as the single source of truth 
+#' for sample metadata. This eliminates parameter fragmentation and improves
+#' API discoverability
 #' across the TSENAT package.
 #'
 #' @references
@@ -551,18 +625,22 @@
 #' genes <- rep(paste0('gene_', 1:4), each = 5)
 #' 
 #' # Calculate diversity across multiple q values
-#' ts_se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by = 0.25))
+#' ts_se <- .calculate_diversity(counts, genes = genes, q = seq(0.5, 1.5, by
+#' = 0.25))
 #' 
 #' # Unpaired analysis (default): K-W + multi-test correction for AR(1) q-values
-#' results <- .rank_test_q_condition(ts_se, multicorr = 'hochberg', test = 'kruskal-wallis')
+#' results <- .rank_test_q_condition(ts_se, multicorr = 'hochberg', test =
+#' 'kruskal-wallis')
 #' head(results)
 #' 
 #' # Paired analysis with metadata
 #' # After diversity calculation with 6 samples and 5 q-values: 30 columns total
 #' # Create colData with patient_id for each sample-q combination
 #' coldata <- S4Vectors::DataFrame(
-#'   patient_id = rep(rep(1:3, each = 2), each = 5),  # 3 patients, 2 samples each, 5 q-levels
-#'   q = rep(seq(0.5, 1.5, by = 0.25), times = 6)     # q values repeated for all samples
+#' patient_id = rep(rep(1:3, each = 2), each = 5),  # 3 patients, 2 samples
+#' each, 5 q-levels
+#' q = rep(seq(0.5, 1.5, by = 0.25), times = 6)     # q values repeated for
+#' all samples
 #' )
 #' rownames(coldata) <- colnames(ts_se)
 #' SummarizedExperiment::colData(ts_se) <- coldata

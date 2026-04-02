@@ -12,24 +12,29 @@ plot_tsallis_violin_density_grid_s4(
 )
 }
 \arguments{
-\item{se}{A `SummarizedExperiment` returned by `calculate_diversity` containing
-entropy values at a single q value.}
+\item{se}{A `SummarizedExperiment` returned by `calculate_diversity`
+containing
+  entropy values at a single q value.}
 
 \item{assay_name}{Name of the assay to use (default: 'diversity').}
 
 \item{title}{Optional base title. If NULL, auto-generated based on q value.}
 
-\item{output_file}{Character or NULL. Optional file path to save the plot as an image.
-If provided, the plot will be saved with appropriate dimensions.
-Default: NULL (no file output, only return object).}
+\item{output_file}{Character or NULL. Optional file path to save the plot
+as an image.
+  If provided, the plot will be saved with appropriate dimensions.
+  Default: NULL (no file output, only return object).}
 }
 \value{
-A `ggplot2` object showing a 1x2 grid with violin plot on the left and
+A `ggplot2` object showing a 1x2 grid with violin plot on the
+left and
   density plot on the right.
 }
 \description{
-Creates a side-by-side grid layout with a violin plot on the left and a density plot
-on the right, both showing Tsallis entropy distribution for the q value in the provided
+Creates a side-by-side grid layout with a violin plot on the left and a
+density plot
+on the right, both showing Tsallis entropy distribution for the q value
+in the provided
 SummarizedExperiment (which should contain a single q value).
 }
 \examples{
@@ -39,13 +44,16 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 readcounts <- as.matrix(salmon_dataset)
 mode(readcounts) <- 'numeric'
 
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
 analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
 p <- plot_tsallis_violin_density_grid_s4(analysis)
 if (!is.null(p)) print(p)

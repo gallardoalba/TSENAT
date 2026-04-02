@@ -4,7 +4,8 @@
 #' These are the recommended way to extract results from analysis objects,
 #' following Bioconductor best practices.
 #'
-#' @return These generic functions return different types depending on the specific method:
+#' @return These generic functions return different types depending on the
+#' specific method:
 #'   - Accessor methods return data.frames or lists containing analysis results
 #'   - See individual method documentation for specific return types
 #'
@@ -17,7 +18,8 @@ NULL
 #' @param object TSENATAnalysis object
 #' @param ... Additional arguments (method-specific)
 #' @details Use these accessor methods instead of direct slot access with '@'
-#' @return data.frame or list depending on accessor method. See Details for specific return types.
+#' @return data.frame or list depending on accessor method. See Details for
+#' specific return types.
 #' @examples
 #' # Create a simple TSENATAnalysis object for demonstration
 #' library(SummarizedExperiment)

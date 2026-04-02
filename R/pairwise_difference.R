@@ -2,17 +2,20 @@
 #' @param x A \code{SummarizedExperiment} with splicing diversity values for
 #' each gene in each sample or a \code{data.frame} with gene names in the  first
 #' column and splicing diversity values for each sample in additional  columns.
-#' @param condition_col A vector of length one, specifying the column name of the
+#' @param condition_col A vector of length one, specifying the column name
+#' of the
 #' \code{colData} annotation column from the \code{SummarizedExperiment}
 #' object, that should be used as the category column or a character vector
 #' with an equal length to the number of columns in the input dataset,
 #' specifying the category of each sample in the case of a \code{data.frame}
 #' input.
 #' @param control Name of the control sample category, defined in the
-#' \code{condition_col} vector, e.g. \code{control = 'Normal'} or \code{control =
+#' \code{condition_col} vector,  e. g.  \code{control = 'Normal'} or 
+#' \code{control =
 #' 'WT'}.
 #' @param method Method to use for calculating the average splicing diversity
-#' value in a condition. Can be \code{'mean'}, \code{'median'}, or \code{'m_estimate'}
+#' value in a condition.  Can be \code{'mean'},  \code{'median'},  or 
+#' \code{'m_estimate'}
 #' (M-estimation for robust location estimation). Default: \code{'mean'}.
 #' @param test Method to use for p-value calculation: use \code{'wilcoxon'} for
 #' Wilcoxon rank sum test or \code{'shuffle'} for a label shuffling test.
@@ -37,15 +40,22 @@
 #'   Set to > 1 to parallelize per-feature statistical tests.
 #' @param seed Integer seed for label shuffling reproducibility (default: NULL).
 #'   When provided, ensures reproducible permutation test results.
-#' @param robust_loss_type Character; loss function for M-estimation when \code{method = 'm_estimate'}.
-#'   Options: \code{'huber'} (default, robust), \code{'tukey'} (more aggressive),
+#' @param robust_loss_type Character;  loss function for  M-estimation when 
+#' \code{method = 'm_estimate'}.
+#'   Options:  \code{'huber'} (default,  robust),
+#'  \code{'tukey'} (more aggressive),
 #'   \code{'lsq'} (least squares). Ignored if method is 'mean' or 'median'.
-#' @param robust_scale_method Character; scale selection method for M-estimation when
+#' @param robust_scale_method Character; scale selection method for
+#' M-estimation when
 #'   \code{method = 'm_estimate'}. Options: \code{'mad'} (default, fast),
-#'   \code{'proposal2'} (Huber's Proposal 2, adaptive), \code{'s-estimator'} (high breakdown).
-#'   Ignored if method is 'mean' or 'median'. **Note: Permutation loop uses ~50-100x more
-#'   computation time with M-estimation; pre-computed scales once before permutations.**
-#' @return A \code{data.frame} with the mean, median, or M-estimate values of splicing
+#'   \code{'proposal2'} (Huber's Proposal 2,  adaptive),
+#'  \code{'s-estimator'} (high breakdown).
+#' Ignored if method is 'mean' or 'median'. **Note: Permutation loop uses
+#' ~50-100x more
+#' computation time with M-estimation; pre-computed scales once before
+#' permutations.**
+#' @return A \code{data. frame} with  the mean,  median,  or 
+#' M-estimate values of splicing
 #' diversity across sample categories and all samples, log2(fold change) of  the
 #' two different conditions, and raw and corrected p-values.
 #' @import methods
@@ -58,8 +68,10 @@
 #' Additionally, it can use a \code{data.frame} as input, where the first column
 #' contains gene names, and all additional columns contain splicing diversity
 #' values for each sample. A vector of sample conditions also serves as input,
-#' used for aggregating the samples by condition.   It calculates the mean, median,
-#' or M-estimate of the splicing diversity data per sample condition, the difference
+#' used for aggregating the samples by condition.   It calculates the mean,
+#' median,
+#' or M-estimate of the splicing diversity data per sample condition, the
+#' difference
 #' of these values and the log2 fold change of the two  conditions. Furthermore,
 #' the user can select a statistical method to  calculate the significance of
 #' the changes. The p-values and adjusted p-values  are calculated using a
@@ -348,7 +360,8 @@
 #' it will be a signed rank test instead of the rank sum test.
 #' @param exact If \code{TRUE}, an exact p-value will be computed.
 #' @param pairs Optional character vector with an equal length to the number of 
-#' columns in the input dataset, specifying the pairing identifier for each sample. 
+#' columns in the input dataset, specifying the pairing identifier for each
+#' sample.
 #' When provided with \code{paired = TRUE}, samples are matched based on this 
 #' pairing information rather than column order. If \code{NULL} (default), 
 #' paired tests assume position-based pairing.
@@ -359,7 +372,8 @@
 #' that does not assume normal distributions and is robust to outliers.
 #' For unpaired designs, the test compares ranks from combined observations
 #' (Wilcoxon Rank-Sum test / Mann-Whitney U test).
-#' For paired designs, it tests the median of differences between paired observations
+#' For paired designs, it tests the median of differences between paired
+#' observations
 #' (Wilcoxon Signed-Rank test).
 #' @references
 #' Le, C. T. (2003). Introductory Biostatistics (1st ed.). Wiley-Interscience.
@@ -510,14 +524,17 @@
 #' @param paired_method Character; method for paired permutations. One of
 #'   \code{'swap'} (randomly swap labels within pairs) or \code{'signflip'}
 #'   (perform sign-flip permutations; can enumerate all 2^n_pairs combinations
-#'   for an exact test when \code{randomizations = 0} or \code{randomizations >= 2^n_pairs}).
+#'   for  an exact test when  \code{randomizations = 0} or 
+#' \code{randomizations >= 2^n_pairs}).
 #' @param pairs Optional character vector with an equal length to the number of 
-#' columns in the input dataset, specifying the pairing identifier for each sample. 
+#' columns in the input dataset, specifying the pairing identifier for each
+#' sample.
 #' When provided with \code{paired = TRUE}, samples are matched based on this 
 #' pairing information.
 #' @param nthreads Number of threads for parallel processing (default: 1).
 #'   Set to > 1 to parallelize per-feature p-value computation.
-#' @param robust_loss_type Character; loss function for M-estimation (Tukey, Huber, or other).
+#' @param robust_loss_type Character; loss function for M-estimation (Tukey,
+#' Huber, or other).
 #'   Used when non-parametric tests switch to robust parametric alternatives.
 #'   Default: 'huber'.
 #' @param robust_scale_method Character; scale selection method for M-estimation
@@ -526,21 +543,28 @@
 #' @details
 #' \strong{S019 Implementation: Phipson & Smyth (2010) Bias Correction}
 #'
-#' This function implements the critical p-value correction from Phipson & Smyth (2010):
+#' This function implements the critical p-value correction from Phipson &
+#' Smyth (2010):
 #' \deqn{p = \frac{b + 1}{m + 1}}{p = (b + 1) / (m + 1)}
 #'
-#' Instead of the traditional formula p = b/m, where \code{b} is the count of permutations
-#' with |test_statistic| >= |observed_statistic| and \code{m} is the total number of
+#' Instead of the traditional formula p = b/m,
+#'  where \code{b} is the count of permutations
+#' with  |test_statistic| >= |observed_statistic| and 
+#' \code{m} is the total number of
 #' permutations.
 #'
 #' \strong{Why This Correction Matters:}
 #' - \strong{Prevents p = 0:} Traditional formula produces p = 0 when observed
-#'   statistic is more extreme than all m permutations. This is statistically incorrect.
-#' - \strong{Proper Calibration:} The pseudocount ensures valid Type I error control
-#'   and proper coverage properties, especially important with small permutation counts.
+#' statistic is more extreme than all m permutations. This is statistically
+#' incorrect.
+#' - \strong{Proper Calibration:} The pseudocount ensures valid Type I error
+#' control
+#' and proper coverage properties, especially important with small
+#' permutation counts.
 #' - \strong{Minimum P-Value:} With m permutations, p_min = 1/(m+1), not 0.
 #'   Example: With m = 1000, p_min ~= 0.000999 (not 0).
-#' - \strong{Standard Practice:} This correction is now implemented in limma, edgeR,
+#' - \strong{Standard Practice:} This correction is now implemented in
+#' limma, edgeR,
 #'   DESeq2, and other standard bioinformatics packages.
 #'
 #' The permutation p-values are computed two-sided as the proportion
@@ -552,9 +576,11 @@
 #' - \code{'signflip'}: Performs sign-flip permutations (Pesarin & Salmaso 2010)
 #' @note The permutation test returns two-sided empirical p-values using the
 #' Phipson & Smyth (2010) pseudocount correction to avoid zero p-values.
-#' This ensures proper statistical calibration regardless of the number of permutations.
+#' This ensures proper statistical calibration regardless of the number of
+#' permutations.
 #' @references
-#' Phipson, B., and Smyth, G. K. (2010). Permutation p-values should never be zero:
+#' Phipson, B., and Smyth, G. K. (2010). Permutation p-values should never
+#' be zero:
 #' calculating exact p-values when permutations are randomly drawn.
 #' Statistical Applications in Genetics and Molecular Biology, 9(1), 39.
 #' DOI: 10.2202/1544-6115.1585
@@ -574,7 +600,8 @@
 #' # Run label shuffling test with S019 correction (100 permutations)
 #' # P-values will follow (b+1)/(m+1) formula with m=100
 #' result <- .label_shuffling(mat, samples, control = 'Normal', 
-#'                           method = 'mean', randomizations = 100, pcorr = 'BH')
+#'                           method = 'mean',  randomizations = 100,
+#'  pcorr = 'BH')
 #' head(result)
 
 .label_shuffling <- function(x, samples, control, method, randomizations = 100, pcorr = "BH",

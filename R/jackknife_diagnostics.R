@@ -345,8 +345,10 @@
 
 #' Jackknife Diagnostics for Tsallis Entropy Stability
 #'
-#' Performs leave-one-out jackknife analysis on Tsallis entropy estimates to assess
-#' the stability and influence of individual transcripts. Identifies which transcripts
+#' Performs leave-one-out jackknife analysis on Tsallis entropy estimates to
+#' assess
+#' the stability and influence of individual transcripts. Identifies which
+#' transcripts
 #' disproportionately affect entropy estimates, useful for quality control and
 #' understanding transcript-level dominance in isoform diversity.
 #'
@@ -357,29 +359,41 @@
 #' - Whether entropy estimates are robust (low standard error)
 #' - Outlier transcripts that disproportionately affect diversity measures
 #'
-#' @param x Optional numeric vector or matrix of transcript abundance counts. If NULL, must provide `se` and `res`.
-#' @param se Optional SummarizedExperiment object containing transcript-level counts with 'counts' assay.
-#' @param res Optional data.frame of results from `.calculate_difference()` to extract top genes.
+#' @param x Optional numeric vector or matrix of transcript abundance
+#' counts. If NULL, must provide `se` and `res`.
+#' @param se Optional SummarizedExperiment object containing
+#' transcript-level counts with 'counts' assay.
+#' @param res Optional data.frame of results from `.calculate_difference()`
+#' to extract top genes.
 #' @param top_n Numeric: Number of top genes to analyze (default 5).
-#' @param q Numeric: Tsallis entropy order (default 1). Can be vector for multiple q values.
+#' @param q Numeric: Tsallis entropy order (default 1). Can be vector for
+#' multiple q values.
 #' @param norm Logical: normalize entropy to [0,1]? (default TRUE)
 #' @param log_base Numeric: logarithm base for entropy calculation (default e).
-#' @param pseudocount Numeric: small value to add before normalizing to avoid zeros (default 0).
-#' @param threshold Numeric: percentile threshold for outlier detection (default 90).
-#' @param verbose Logical: if TRUE, display formatted results for each gene and print diagnostic messages.
-#'   For vector input, display is optional. For matrix input, displays summary of all genes.
-#' @param nthreads Numeric: number of CPU threads for parallel processing (default = 1, sequential).
+#' @param pseudocount Numeric: small value to add before normalizing to
+#' avoid zeros (default 0).
+#' @param threshold Numeric: percentile threshold for outlier detection
+#' (default 90).
+#' @param verbose Logical: if TRUE, display formatted results for each gene
+#' and print diagnostic messages.
+#' For vector input, display is optional. For matrix input, displays summary
+#' of all genes.
+#' @param nthreads Numeric: number of CPU threads for parallel processing
+#' (default = 1, sequential).
 #'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
 #'   If NULL, auto-detects available cores minus 1.
 #'
 #' @return If x is a vector, a list of class `tsenat_jackknife` with:
 #'   \describe{
 #'     \item{estimate}{Numeric entropy of the full dataset}
-#'     \item{jackknife_estimates}{Numeric vector of entropy values with each transcript removed}
+#'     \item{jackknife_estimates}{Numeric vector of entropy values with 
+#' each transcript removed}
 #'     \item{influence}{Numeric vector of transcript influence (absolute change in entropy)}
 #'     \item{jackknife_se}{Numeric standard error estimated from jackknife}
-#'     \item{outlier_indices}{Integer vector of transcript indices with high influence}
-#'     \item{outlier_threshold}{Numeric threshold value used for outlier detection}
+#'     \item{outlier_indices}{Integer vector of transcript indices with 
+#' high influence}
+#'     \item{outlier_threshold}{Numeric threshold value used for 
+#' outlier detection}
 #'     \item{n_transcripts}{Integer total number of transcripts}
 #'     \item{q}{Numeric q value used}
 #'     \item{norm}{Logical indicating whether normalization was used}
@@ -395,52 +409,73 @@
 #' **Implementation Architecture (Refactored for Bioconductor Compliance):**
 #' The main function uses modular helper functions for clarity and performance:
 #' - `.jackknife_validate_params()`: Input parameter validation
-#' - `.jackknife_process_multiq()`: Multi-q value handling with optional parallelization
+#' - `.jackknife_process_multiq()`: Multi-q value handling with optional
+#' parallelization
 #' - `.jackknife_process_se()`: SummarizedExperiment input processing
 #' - `.jackknife_process_matrix()`: Matrix input dispatch
-#' - `.jackknife_process_vector_core()`: Core jackknife computation (leave-one-out)
+#' - `.jackknife_process_vector_core()`: Core jackknife computation
+#' (leave-one-out)
 #' - `.jackknife_compute_estimates()`: Jackknife estimate calculation
-#' - `.jackknife_calculate_influence_and_outliers()`: Influence and outlier detection
+#' - `.jackknife_calculate_influence_and_outliers()`: Influence and outlier
+#' detection
 #' - `.jackknife_warn_on_q_parameters()`: q-parameter guidance messages
 #' - `.jackknife_format_verbose_output_matrix()`: Result formatting for display
 #'
-#' This design reduces main function complexity to ~37 lines (Bioconductor ≤50 line guideline)
-#' while preserving all functionality and optimizations. All helper functions are marked
-#' with `@keywords internal @noRd` to indicate they are internal implementation details.
+#' This design reduces main function complexity to ~37 lines (Bioconductor
+#' ≤50 line guideline)
+#' while preserving all functionality and optimizations. All helper
+#' functions are marked
+#' with `@keywords internal @noRd` to indicate they are internal
+#' implementation details.
 #'
 #' **Jackknife Leave-One-Out Formula:**
 #'
 #' For each transcript \eqn{i}{i}, the influence is computed as:
 #'
-#' \deqn{\text{Influence}_i = |H(x_{-i}) - H(x)|}{Influence_i = |H(x_-i) - H(x)|}
+#' \deqn{\text{Influence}_i = |H(x_{-i}) - H(x)|}{Influence_i = |H(x_-i) -
+#' H(x)|}
 #'
 #' where \eqn{H(x)}{H(x)} is the Tsallis entropy of the full sample and
 #' \eqn{H(x_{-i})}{H(x_-i)} is entropy with transcript \eqn{i}{i} removed.
 #'
 #' The jackknife standard error is estimated as:
 #'
-#' \deqn{SE_{jack} = \sqrt{\frac{n-1}{n} \sum_{i=1}^{n} (H_{(-i)} - \bar{H}_{(.)})^2}}{SE_jack = sqrt((n-1)/n * sum(H_-i - mean(H))^2)}
+#' \deqn{SE_{jack} = \sqrt{\frac{n-1}{n} \sum_{i=1}^{n} (H_{(-i)} -
+#' \bar{H}_{(.)})^2}}{SE_jack = sqrt((n-1)/n * sum(H_-i - mean(H))^2)}
 #'
 #' **Interpretation of Influence:**
-#' - Large influence (>0.1 for normalized): transcript heavily dominates diversity
-#' - Small influence (<0.01 for normalized): transcript is 'neutral', minor contributor
+#' - Large influence (>0.1 for normalized): transcript heavily dominates
+#' diversity
+#' - Small influence (<0.01 for normalized): transcript is 'neutral', minor
+#' contributor
 #' - All similar: balanced isoform usage (diversity is robust)
-#' - One very large outlier: single dominant isoform (entropy driven by one transcript)
+#' - One very large outlier: single dominant isoform (entropy driven by one
+#' transcript)
 #'
 #' **Tsallis entropy q-parameter optimization (papers S111, I004):**
-#' The Tsallis entropy parameter \eqn{q}{q} controls the weight given to rare vs. abundant
-#' isoforms. Different q values have different resampling properties that affect jackknife
+#' The Tsallis entropy parameter \eqn{q}{q} controls the weight given to
+#' rare vs. abundant
+#' isoforms. Different q values have different resampling properties that
+#' affect jackknife
 #' stability and influence patterns:
-#' - \eqn{q < 0.5}{q < 0.5}: Heavily underweights rare isoforms, emphasizes common ones.
-#'   Jackknife results may show large influence from abundant transcripts. Best for
+#' - \eqn{q < 0.5}{q < 0.5}: Heavily underweights rare isoforms, emphasizes
+#' common ones.
+#' Jackknife results may show large influence from abundant transcripts.
+#' Best for
 #'   detecting changes in dominant isoforms only.
-#' - \eqn{q \in [0.5, 2]}{q in [0.5, 2]}: **Recommended range** for balanced sensitivity.
-#'   Jackknife results capture both rare and abundant isoform contributions. Provides
+#' - \eqn{q \in [0.5, 2]}{q in [0.5, 2]}: **Recommended range** for balanced
+#' sensitivity.
+#' Jackknife results capture both rare and abundant isoform contributions.
+#' Provides
 #'   reliable diversity assessment for general use (papers S111, I004).
-#' - \eqn{q > 2}{q > 2}: May be insensitive to rare isoform diversity. Jackknife focuses
-#'   on most abundant transcripts only. May miss important rare transcript signal.
-#' When calling this function, messages are automatically displayed for q < 0.5 or q > 2,
-#' recommending appropriate interpretation. Set \code{verbose=TRUE} for additional guidance
+#' - \eqn{q > 2}{q > 2}: May be insensitive to rare isoform diversity.
+#' Jackknife focuses
+#' on most abundant transcripts only. May miss important rare transcript
+#' signal.
+#' When calling this function, messages are automatically displayed for q <
+#' 0.5 or q > 2,
+#' recommending appropriate interpretation.  Set \code{verbose=TRUE} for 
+#' additional guidance
 #' when q is in the recommended range (per papers S111, I004).
 #'
 #' **Display behavior (verbose parameter):**
@@ -455,20 +490,29 @@
 #' **Use cases:**
 #' - Identify genes with one dominant isoform (suspect for splicing errors)
 #' - Quality control: detect when one transcript has anomalous counts
-#' - Understand which transcripts drive group differences (see calculate_difference)
+#' - Understand which transcripts drive group differences (see
+#' calculate_difference)
 #' - Compare stability across genes or conditions
 #'
 #' **Relationship to other functions:**
-#' - \code{.calculate_tsallis_entropy()}: computes entropy (stability as background)
-#' - \code{\link{calculate_difference}}: tests if differences are significant (jackknife validates stability)
+#' - \code{. calculate_tsallis_entropy()}:
+#'  computes entropy (stability as background)
+#' - \code{\link{calculate_difference}}:  tests if 
+#' differences are significant (jackknife validates stability)
 #'
 #' **IMPORTANT - Raw Count Requirement:**
-#' This function requires a SummarizedExperiment with original raw transcript counts
-#' (the 'counts' assay). Jackknife leave-one-out analysis is mathematically valid only
-#' on raw count data; entropy estimates from pre-computed diversity values cannot be
-#' reliably jackknifed. If you have passed data through `.calculate_diversity()`, the
-#' returned SummarizedExperiment preserves the original 'counts' assay, so you can safely
-#' pass it to this function. Do NOT attempt to use diversity-transformed data as the
+#' This function requires a SummarizedExperiment with original raw
+#' transcript counts
+#' (the 'counts' assay). Jackknife leave-one-out analysis is mathematically
+#' valid only
+#' on raw count data; entropy estimates from pre-computed diversity values
+#' cannot be
+#' reliably jackknifed. If you have passed data through
+#' `.calculate_diversity()`, the
+#' returned SummarizedExperiment preserves the original 'counts' assay, so
+#' you can safely
+#' pass it to this function. Do NOT attempt to use diversity-transformed
+#' data as the
 #' leave-one-out assumptions will be violated.
 #'
 #' **Recommended workflow:**
@@ -480,25 +524,37 @@
 #' ```
 #'
 #' **Database Verification (tsenat_papers.db):**
-#' [OK] Jackknife methodology: Papers C016, C030 (and foundational Efron & Tibshirani 1993)
-#'   validate leave-one-out jackknife for entropy/divergence estimates. Standard error
+#' [OK] Jackknife methodology: Papers C016, C030 (and foundational Efron &
+#' Tibshirani 1993)
+#' validate leave-one-out jackknife for entropy/divergence estimates.
+#' Standard error
 #'   estimation via jackknife is confirmed for these measures.
-#' [OK] q-parameter effects: Papers I001-I004 establish that q-parameter controls weight
-#'   distribution (q_weight = 0.5 + q). Papers S111, I004 specifically validate that
-#'   q in [0.5, 2] is the recommended range for balanced sensitivity (mentioned in
-#'   function documentation above). Lower q emphasizes abundant isoforms; higher q
+#' [OK] q-parameter effects: Papers I001-I004 establish that q-parameter
+#' controls weight
+#' distribution (q_weight = 0.5 + q). Papers S111, I004 specifically
+#' validate that
+#' q in [0.5, 2] is the recommended range for balanced sensitivity
+#' (mentioned in
+#' function documentation above). Lower q emphasizes abundant isoforms;
+#' higher q
 #'   emphasizes rare isoforms.
-#' [OK] Influence patterns: Paper I004 (validation) confirms that jackknife-derived influence
-#'   metrics correctly reflect transcript contribution to entropy across q-values.
-#' [OK] Bootstrap confidence: Papers C030, S018 show that 500-1000 resampling iterations
-#'   (as in jackknife) achieve >=95% CI coverage for entropy estimates, validating the
+#' [OK] Influence patterns: Paper I004 (validation) confirms that
+#' jackknife-derived influence
+#' metrics correctly reflect transcript contribution to entropy across
+#' q-values.
+#' [OK] Bootstrap confidence: Papers C030, S018 show that 500-1000
+#' resampling iterations
+#' (as in jackknife) achieve >=95% CI coverage for entropy estimates,
+#' validating the
 #'   standard error estimates computed here.
 #'
-#' Users can cite papers I001-I004 for q-parameter theoretical grounding and C016/C030
+#' Users can cite papers I001-I004 for q-parameter theoretical grounding and
+#' C016/C030
 #' for jackknife methodology validation.
 #'
 #' @references
-#' Drosg, O. J. (2007). Dealing with uncertainties: A guide to error analysis (2nd ed.).
+#' Drosg, O. J. (2007). Dealing with uncertainties: A guide to error
+#' analysis (2nd ed.).
 #' Springer-Verlag.
 #'
 #' Efron, B., & Tibshirani, R. J. (1993). An introduction to the bootstrap.
@@ -643,26 +699,33 @@ print.tsenat_jackknife_list <- function(x, ...) {
 
 #' Prepare Gene Switching Comparison Tables Across Q-Values
 #'
-#' Generates delta influence comparison tables showing transcript switching patterns
+#' Generates delta influence comparison tables showing transcript switching
+#' patterns
 #' across multiple q-values from multi-q jackknife analysis results.
 #'
 #' @param lm_res Data frame of LM interaction results (from \code{calculate_lm_interaction})
 #' @param multi_q_results List of multi-q jackknife switching results (from \code{jackknife_isoform_switching}).
-#'   Names of list elements must be q-keys in format 'q_X_XX' (e.g., 'q_0_01', 'q_0_50');
+#' Names of list elements must be q-keys in format 'q_X_XX' (e.g., 'q_0_01',
+#' 'q_0_50');
 #'   q-values are automatically extracted to determine the sensitivity scale.
-#' @param n_top_genes Integer or NULL, number of top genes to include. If NULL (default), uses all genes from summary_df.
-#' @param n_transcripts_per_gene Integer, max transcripts to display per gene (default: 10)
+#' @param n_top_genes Integer or NULL, number of top genes to include. If
+#' NULL (default), uses all genes from summary_df.
+#' @param n_transcripts_per_gene Integer, max transcripts to display per
+#' gene (default: 10)
 #' @param verbose Logical, whether to print progress messages (default: FALSE)
 #'
 #' @return List containing:
 #'   \item{summary_df}{Data frame of top genes sorted by adj_p_interaction}
 #'   \item{top_genes_list}{List of top gene IDs and names}
-#'   \item{comparison_tables}{List of data frames (one per gene) with delta influence across q-values}
+#'   \item{comparison_tables}{List of data frames (one per gene) with 
+#' delta influence across q-values}
 #'   \item{gene_headers}{Character vector of formatted gene headers}
-#'   \item{q_metadata}{List (per gene) containing q_values_available and q_key_to_value}
+#'   \item{q_metadata}{List (per gene) containing q_values_available and 
+#' q_key_to_value}
 #'
 #' @details
-#' This function encapsulates the workflow for preparing delta influence comparison tables:
+#' This function encapsulates the workflow for preparing delta influence
+#' comparison tables:
 #' 1. Creates a summary table from lm_res and sorts by adjusted p-value
 #' 2. Extracts gene ID-to-name mappings from multi_q_results
 #' 3. Matches top genes between summary_df and multi_q_results

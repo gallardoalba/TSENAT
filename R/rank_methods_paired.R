@@ -19,12 +19,15 @@
 #' @param data Data frame with entropy values and blocking structure
 #' @param value_col Column name for values to test (default: 'entropy')
 #' @param group_col Column name for treatment/q-parameter (default: 'q')
-#' @param subject_col Column name for blocking variable (default: 'paired_samples')
+#' @param subject_col Column name for blocking variable (default:
+#' 'paired_samples')
 #' @param verbose Logical: print diagnostic information
 #'
 #' @return List with:
-#' - test_selected: Name of selected test ('friedman', 'art_friedman', 'robust_friedman')
-#' - characteristics: List of detected characteristics (heteroscedastic, highly_skewed)
+#' - test_selected: Name of selected test ('friedman', 'art_friedman',
+#' 'robust_friedman')
+#' - characteristics: List of detected characteristics (heteroscedastic,
+#' highly_skewed)
 #' - reasons: Character vector of reasons for selection
 #'
 #' @details
@@ -170,7 +173,8 @@
 #' 1. Compute block-wise medians for each treatment
 #' 2. Compute grand median across all observations
 #' 3. Test: Are median differences significantly non-zero?
-#' 4. Use exact median inference (sign test logic extended to multiple treatments)
+#' 4. Use exact median inference (sign test logic extended to multiple
+#' treatments)
 #'
 #' @param data Data frame with entropy and blocking structure
 #' @param value_col Column name for entropy values

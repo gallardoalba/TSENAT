@@ -45,13 +45,16 @@
 #' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
 #' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
 #' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.0.
+#' @param pseudocount \code{numeric}.  Pseudocount for  abundance inflation.
+#'  Default:  0. 0.
 #'
-#' @return \code{list}. Results including jackknife estimates, confidence intervals,
+#' @return \code{list}.  Results including jackknife estimates,
+#'  confidence intervals,
 #'   and influence diagnostics.
 #'
 #' @details
-#' Performs leave-one-out jackknife resampling with C++ acceleration for efficiency.
+#' Performs leave-one-out jackknife resampling with C++ acceleration for
+#' efficiency.
 #' Estimates confidence intervals and diagnostic influence scores.
 #'
 #' @keywords internal

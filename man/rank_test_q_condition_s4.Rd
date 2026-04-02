@@ -26,47 +26,62 @@ rank_test_q_condition_s4(
 \arguments{
 \item{analysis}{\code{TSENATAnalysis} object.}
 
-\item{condition_col}{\code{character}. Column name for sample grouping/condition (REQUIRED).
-Specifies the condition/treatment variable for testing q×condition interactions.
-Example: 'sample_type', 'treatment', 'disease_status'.}
+\item{condition_col}{\code{character}.  Column name for 
+sample grouping/condition (REQUIRED).
+Specifies the condition/treatment variable for testing q×condition
+interactions.
+  Example: 'sample_type', 'treatment', 'disease_status'.}
 
 \item{q}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
 If NULL, auto-detects from \code{@config$q_values} or diversity results.}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save results.
+ Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 
-\item{paired}{\code{logical} or \code{NULL}. If TRUE, uses paired/blocked design 
-(requires \code{subject_col}). If NULL, reads from \code{@config$paired}.}
+\item{paired}{\code{logical} or  \code{NULL}.  If TRUE,
+uses paired/blocked design 
+ (requires \code{subject_col}). If NULL, reads from \code{@config$paired}.}
 
-\item{subject_col}{\code{character} or \code{NULL}. Column name for subject/block identifiers
-(required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.}
+\item{subject_col}{\code{character} or  \code{NULL}.  Column name for 
+subject/block identifiers
+  (required when  \code{paired=TRUE}).  If NULL,
+ reads from \code{@config$subject_col}.}
 
-\item{test}{\code{character}. Test method: 'auto' (default), 'kruskal-wallis' (unpaired),
-'friedman' (paired), or 'art' (aligned rank transform).}
+\item{test}{\code{character}.  Test method:  'auto' (default),
+'kruskal-wallis' (unpaired),
+ 'friedman' (paired), or 'art' (aligned rank transform).}
 
-\item{multicorr}{\code{character}. Multiple testing correction: 'hochberg' (default),
-'benjamini-yekutieli', 'westfall-young', or 'none'.}
+\item{multicorr}{\code{character}.  Multiple testing correction:
+'hochberg' (default),
+ 'benjamini-yekutieli', 'westfall-young', or 'none'.}
 
-\item{entropy_col}{\code{character}. Column name containing entropy/diversity data.
-Default: 'diversity'.}
+\item{entropy_col}{\code{character}.
+Column name containing entropy/diversity data.
+ Default: 'diversity'.}
 
 \item{q_col}{\code{character}. Column name containing q-values. Default: 'q'.}
 
-\item{gene_col}{\code{character}. Column name containing gene identifiers. Default: 'gene'.}
+\item{gene_col}{\code{character}.  Column name containing gene identifiers.
+Default:  'gene'.}
 
-\item{wy_randomizations}{\code{numeric} or \code{character}. Number of permutations for 
-Westfall-Young correction. Use 'auto' to estimate from data. Default: 500.}
+\item{wy_randomizations}{\code{numeric} or  \code{character}.
+Number of permutations for 
+ Westfall-Young correction. Use 'auto' to estimate from data. Default: 500.}
 
-\item{nperm_mode}{\code{character}. Mode for automatic permutation estimation:
-'standard' (default), 'conservative', or 'interactive'.}
+\item{nperm_mode}{\code{character}.  Mode for 
+automatic permutation estimation:
+  'standard' (default), 'conservative', or 'interactive'.}
 
-\item{nthreads}{\code{numeric} or \code{NULL}. Number of parallel threads for computation.
-If NULL, reads from \code{@config$nthreads}.}
+\item{nthreads}{\code{numeric} or  \code{NULL}.
+Number of parallel threads for  computation.
+ If NULL, reads from \code{@config$nthreads}.}
 
-\item{verbose}{\code{logical}. If TRUE, prints progress messages. Default: FALSE.}
+\item{verbose}{\code{logical}.  If TRUE,  prints progress messages.
+Default:  FALSE.}
 
-\item{...}{Additional arguments passed to the base \code{.rank_test_q_condition()} function.}
+\item{.}{. .  Additional arguments passed to the base \code{.
+rank_test_q_condition()} function.}
 }
 \value{
 Modified TSENATAnalysis with interaction results in @lm_results.
@@ -75,19 +90,24 @@ Modified TSENATAnalysis with interaction results in @lm_results.
 Detect q-dependent gene interactions
 }
 \details{
-Analyzes how gene interactions change across q-value spectrum using rank-based
+Analyzes how gene interactions change across q-value spectrum using
+rank-based
 (Friedman/Kruskal-Wallis) or parametric (GAM) statistical tests.
 
 **Parameter resolution priority** (explicit > @config > default/auto-detect):
 \itemize{
   \item \code{condition_col}: REQUIRED - must be explicitly provided
-  \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
+  \item \code{q}:
+ explicit arg > \code{@config$q_values} > extract from diversity_results keys
   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
-  \item \code{multicorr}: explicit arg > \code{@config$multicorr} > 'hochberg'
+  \item \code{multicorr}:
+ explicit arg > \code{@config$multicorr} > 'hochberg'
   \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
-  \item \code{test}: explicit arg > \code{@config$test} > 'auto' (auto-selection)
-  \item \code{nperm_mode}: explicit arg > \code{@config$nperm_mode} > 'standard'
+  \item \code{test}:
+ explicit arg > \code{@config$test} > 'auto' (auto-selection)
+  \item \code{nperm_mode}:
+ explicit arg > \code{@config$nperm_mode} > 'standard'
 }
 }
 \examples{
@@ -99,13 +119,17 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data and create manageable subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
 
 # Test Q×Condition interaction (condition_col is REQUIRED)
 analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 

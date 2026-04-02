@@ -111,7 +111,8 @@
 
 #' C++ Wrapper: Fast bootstrap delta statistics computation
 #' 
-#' Calls C++ implementation if available (Rcpp compiled) and translates field names,
+#' Calls C++ implementation if available (Rcpp compiled) and translates
+#' field names,
 #' otherwise falls back to pure R
 #' 
 #' @noRd
@@ -259,32 +260,45 @@
 
 #' Jackknife Isoform Switching Detection
 #'
-#' Detects isoform/transcript switches between conditions using condition-stratified
+#' Detects isoform/transcript switches between conditions using
+#' condition-stratified
 #' jackknife analysis on Tsallis entropy. Identifies which transcripts change
 #' importance between conditions (e.g., condition A vs B).
 #'
 #' @param se A SummarizedExperiment object with transcript-level counts.
 #' @param condition_col Character: column name in colData for condition labels.
-#' @param subject_col Character: optional column name for paired design (subject/individual IDs).
+#' @param subject_col Character: optional column name for paired design
+#' (subject/individual IDs).
 #' @param gene_col Character: column name in rowData for gene IDs.
-#' @param isoform_col Character: column name in rowData for transcript/isoform IDs.
-#' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy). Can be a vector
-#'   for multi-q analysis (e.g., q = c(0.5, 1.0, 1.5, 2.0)); results will be nested by q value.
+#' @param isoform_col Character: column name in rowData for
+#' transcript/isoform IDs.
+#' @param q Numeric: Tsallis entropy order (default 1 = Shannon entropy).
+#' Can be a vector
+#' for multi-q analysis (e.g., q = c(0.5, 1.0, 1.5, 2.0)); results will be
+#' nested by q value.
 #' @param norm Logical: normalize entropy to [0,1]? (default TRUE).
 #' @param log_base Numeric: log base for entropy (default e).
 #' @param pseudocount Numeric: pseudocount to add (default 0).
-#' @param threshold Numeric: percentile for outlier detection on influences (default 90).
+#' @param threshold Numeric: percentile for outlier detection on influences
+#' (default 90).
 #' @param n_bootstrap Numeric: number of bootstrap resamples (default 1000).
 #' @param verbose Logical: print results and verbose output? (default TRUE).
-#' @param lm_results Data frame: results from .calculate_lm_interaction() with 'gene' column.
-#'   Can contain either gene names or gene IDs; function automatically maps names to IDs
-#'   using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction' columns for
-#'   filtering genes by significance. When provided, only genes passing lm_p_threshold are
+#' @param lm_results Data frame: results from .calculate_lm_interaction()
+#' with 'gene' column.
+#' Can contain either gene names or gene IDs; function automatically maps
+#' names to IDs
+#' using rowData(se). Include 'p_interaction' and/or 'adj_p_interaction'
+#' columns for
+#' filtering genes by significance. When provided, only genes passing
+#' lm_p_threshold are
 #'   analyzed; all matching genes are included (top_n parameter removed).
-#' @param lm_p_threshold Numeric: p-value threshold for LM gene filtering (default 0.05).
-#' @param use_lm_fdr Logical: use adjusted p-values from LM results if available (default TRUE).
+#' @param lm_p_threshold Numeric: p-value threshold for LM gene filtering
+#' (default 0.05).
+#' @param use_lm_fdr Logical: use adjusted p-values from LM results if
+#' available (default TRUE).
 #'
-#' @return If q is a single value, returns a list of class tsenat_isoform_switching with:
+#' @return If q is a single value, returns a list of class
+#' tsenat_isoform_switching with:
 #'   \describe{
 #'     \item{results_per_gene}{named list of per-gene results}
 #'     \item{summary_table}{data.frame with per-gene summary}
@@ -294,21 +308,30 @@
 #'     \item{metadata}{list with analysis metadata}
 #'   }
 #'   
-#'   If q is a vector, returns a list of class tsenat_isoform_switching_multiq where each
-#'   element is a complete tsenat_isoform_switching result for that q value. Keys are
+#' If q is a vector, returns a list of class tsenat_isoform_switching_multiq
+#' where each
+#' element is a complete tsenat_isoform_switching result for that q value.
+#' Keys are
 #'   formatted as 'q_X_XX' for ease of iteration (e.g., q_0_01, q_1_00, q_2_00).
 #'
 #' @section Sample Metadata Parameters (Unified Naming Convention):
-#' TSENAT functions use consistent parameter names for sample grouping and subject identification:
+#' TSENAT functions use consistent parameter names for sample grouping and
+#' subject identification:
 #' \itemize{
 #'   \item{\code{condition_col}: Character string specifying the colData column 
-#'         containing sample group/condition labels (e.g., 'Normal', 'Tumor', 'control', 'treatment'). 
-#'         Default: 'condition'. Required for identifying the two conditions to compare.}
-#'   \item{\code{subject_col}: For paired/blocked designs, character string specifying 
-#'         the colData column with subject/individual/patient identifiers. Default: NULL.}
+#' containing sample group/condition labels (e.g., 'Normal', 'Tumor',
+#' 'control', 'treatment').
+#' Default: 'condition'. Required for identifying the two conditions to
+#' compare.}
+#'   \item{\code{subject_col}:  For paired/blocked designs,
+#'  character string specifying 
+#' the colData column with subject/individual/patient identifiers. Default:
+#' NULL.}
 #' }
-#' All functions use \code{SummarizedExperiment::colData()} as the single source of truth
-#' for sample metadata. This eliminates parameter fragmentation and improves API discoverability
+#' All functions use \code{SummarizedExperiment: :
+#' colData()} as the single source of truth
+#' for sample metadata. This eliminates parameter fragmentation and improves
+#' API discoverability
 #' across the TSENAT package.
 #'
 
@@ -552,7 +575,8 @@
 #' Bootstrap Helper Function for Delta Statistics
 #'
 #' Internal function to compute bootstrap confidence intervals and p-values
-#' for delta_influence (difference in Tsallis entropy influence between conditions).
+#' for delta_influence (difference in Tsallis entropy influence between
+#' conditions).
 #' Computes per-transcript statistics from bootstrap resamples.
 #'
 

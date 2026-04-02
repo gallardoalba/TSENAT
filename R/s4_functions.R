@@ -11,31 +11,43 @@
 #' @param fdr_threshold \code{numeric}. FDR cutoff for significance.
 #'   Default: 0.05.
 #' @param formula \code{formula} or NULL. Reserved for future use.
-#' @param condition_col \code{character} or \code{NULL}. Column name in colData identifying sample conditions.
-#'   If NULL, reads from \code{@config$condition_col} or auto-detects common column names.
-#' @param method \code{character}. Statistical method (e.g., 'lmm', 'gam', 'gee').
+#' @param condition_col \code{character} or  \code{NULL}.
+#'  Column name in colData identifying sample conditions.
+#'   If NULL,  reads from \code{@config$condition_col} or 
+#' auto-detects common column names.
+#' @param method \code{character}.  Statistical method (e. g. ,  'lmm',
+#'  'gam',  'gee').
 #'   If NULL, uses method from @config$method or defaults to 'lmm'.
 #' @param paired \code{logical}. Whether to use paired design. Default: FALSE.
 #'   If not specified, reads from \code{@config$paired} if available.
-#' @param subject_col \code{character} or \code{NULL}. Column name identifying subject IDs for paired designs.
+#' @param subject_col \code{character} or  \code{NULL}.
+#'  Column name identifying subject IDs for  paired designs.
 #'   If NULL, reads from \code{@config$subject_col} if available.
-#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
-#'   If NULL, reads from \code{@config$nthreads} (or defaults to NULL, letting base function decide).
-#' @param multicorr \code{character} or \code{NULL}. Multiple comparison correction method.
+#' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
+#' parallel processing.
+#'   If NULL,  reads from \code{@config$nthreads} (or  defaults to NULL,
+#'  letting base function decide).
+#' @param multicorr \code{character} or  \code{NULL}.
+#'  Multiple comparison correction method.
 #'   Options: 'hochberg', 'westfall-young', 'benjamini-yekutieli'.
 #'   If NULL, uses method from @config or base function defaults.
-#' @param corstr \code{character} or \code{NULL}. Correlation structure for GEE models.
+#' @param corstr \code{character} or  \code{NULL}.  Correlation structure for 
+#' GEE models.
 #'   Options: 'ar1', 'exchangeable', 'independence'.
 #'   If NULL, uses method from @config or base function defaults.
 #' @param pcorr \code{character} or \code{NULL}. P-value correction method.
 #'   Default: 'BH' (Benjamini-Hochberg).
 #'   If NULL, reads from \code{@config$pcorr} if available.
 #' @param verbose \code{logical}. Print progress messages. Default: FALSE.
-#' @param return_model_data \code{logical}. Return model data for visualization. Default: TRUE.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
+#' @param return_model_data \code{logical}.  Return model data for 
+#' visualization.  Default:  TRUE.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
+#' Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+#' Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base LM function,
-#'   including: pvalue, min_obs, assay_name, bias_correction, regularization, storey, wy_randomizations, adaptive_knots, etc.
+#' including: pvalue, min_obs, assay_name, bias_correction, regularization,
+#' storey, wy_randomizations, adaptive_knots, etc.
 #'
 #' @return Modified TSENATAnalysis with results in @lm_results$lm_interaction.
 #'
@@ -56,7 +68,7 @@
 #'
 #' @examples
 #' # Create test analysis with appropriate sample structure for paired design
-#' # (requires lme4 package for LMM fitting; uses synthetic data for reproducibility)
+#' # Note: requires lme4 package for LMM fitting; uses synthetic data
 #' set.seed(42)
 #' 
 #' # Create transcript-level counts with biological signal
@@ -432,17 +444,26 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value(s) for jackknife. Default: 1.0.
-#' @param norm \code{logical}. Normalization flag. Default: NULL (uses @config$norm or TRUE).
-#' @param log_base \code{numeric}. Logarithm base for entropy normalization. Default: NULL (uses e).
-#' @param seed \code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
-#' @param top_n \code{numeric}. Number of top outlier samples to report. Default: 5.
-#' @param pseudocount \code{numeric}. Pseudocount value for count regularization. Default: NULL (uses @config$pseudocount or 0).
-#' @param verbose \code{logical}. Print jackknife results summary. Default: FALSE.
-#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#' @param norm \code{logical}.  Normalization flag.  Default:
+#'  NULL (uses @config$norm or  TRUE).
+#' @param log_base \code{numeric}.  Logarithm base for  entropy normalization.
+#'  Default:  NULL (uses e).
+#' @param seed \code{numeric} or  \code{NULL}.  Random seed for 
+#' reproducibility.  Default:  NULL.
+#' @param top_n \code{numeric}.  Number of top outlier samples to report.
+#'  Default:  5.
+#' @param pseudocount \code{numeric}.  Pseudocount value for 
+#' count regularization.  Default:  NULL (uses @config$pseudocount or  0).
+#' @param verbose \code{logical}.  Print jackknife results summary.  Default:
+#'  FALSE.
+#' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
+#' parallel processing.
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #'   If > 1 and multiple q-values provided, uses parallel PSOCK cluster.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .tsv, .csv, .txt (for jackknife results table with estimates, influence, outliers),
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
+#' Supported formats: .tsv, .csv, .txt (for jackknife results table with
+#' estimates, influence, outliers),
 #'   .rds (for entire S4 object). Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
 #'
@@ -466,10 +487,12 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #'
 #' # Filter low-abundance genes (required for reliable jackknife estimates)
@@ -627,29 +650,39 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value for divergence.
-#'   If NULL, uses first q_value from @config$q_values if available, else defaults to 1.0.
+#' If NULL, uses first q_value from @config$q_values if available, else
+#' defaults to 1.0.
 #' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
+#' parallel processing.
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
-#' @param control_group \code{character} or \code{NULL}. Control group identifier for divergence comparison.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
+#' Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+#' Default: NULL (no file output).
+#' @param control_group \code{character} or  \code{NULL}.
+#'  Control group identifier for  divergence comparison.
 #'   If NULL, reads from \code{@config$control_group} if available.
 #' @param paired \code{logical}. Whether to use paired design. Default: FALSE.
 #'   If not specified, reads from \code{@config$paired} if available.
-#' @param method \code{character} or \code{NULL}. Statistical method for divergence calculation.
+#' @param method \code{character} or  \code{NULL}.  Statistical method for 
+#' divergence calculation.
 #'   If NULL, reads from \code{@config$method} if available.
-#' @param bootstrap \code{logical}. Whether to compute bootstrap confidence intervals. Default: FALSE.
+#' @param bootstrap \code{logical}.
+#'  Whether to compute bootstrap confidence intervals.  Default:  FALSE.
 #'   If not specified, reads from \code{@config$bootstrap} if available.
-#' @param nboot \code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
+#' @param nboot \code{numeric} or  \code{NULL}.
+#'  Number of bootstrap replicates.  Default:  NULL.
 #'   If NULL, reads from \code{@config$nboot} if available.
-#' @param seed \code{numeric} or \code{NULL}. Random seed for reproducibility. Default: NULL.
+#' @param seed \code{numeric} or  \code{NULL}.  Random seed for 
+#' reproducibility.  Default:  NULL.
 #'   If NULL, reads from \code{@config$seed} if available.
-#' @param progress \code{logical}. Show progress bar during computation. Default: FALSE.
+#' @param progress \code{logical}.  Show progress bar during computation.
+#'  Default:  FALSE.
 #' @param ... Additional arguments passed to the base divergence function.
 #'
-#' @return Modified TSENATAnalysis with divergence metrics in @divergence_results
-#'   (stored as list of data.frames or matrices).
+#' @return Modified TSENATAnalysis with divergence metrics in
+#'   \code{@divergence_results} (stored as list of data.frames or matrices).
 #'
 #' @details
 #' Requires diversity results from calculate_diversity_s4() as prerequisite.
@@ -668,16 +701,20 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create manageable subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' # Use 200+ genes to ensure diversity filtering doesn't remove all genes
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
 #' 
 #' # Compute diversity first (required for divergence)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
 #' 
 #' # Calculate divergence across q-values
 #' analysis <- calculate_divergence_s4(analysis, verbose = FALSE)
@@ -951,16 +988,23 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #' Calculate Difference Between Control and Treatment Groups (S4 Wrapper)
 #'
 #' S4 wrapper that operates on TSENATAnalysis objects to calculate differences
-#' between control and treatment groups. Uses diversity results from \code{@diversity_results} 
-#' slot (from \code{calculate_diversity_s4()}) and stores results in the \code{lm_results} slot.
+#' between control and  treatment groups.
+#'  Uses diversity results from \code{@diversity_results} 
+#' slot (from \code{calculate_diversity_s4()}) and 
+#' stores results in the \code{lm_results} slot.
 #'
-#' @param analysis A \code{TSENATAnalysis} object with diversity results in \code{@diversity_results}.
-#' @param q \code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.
-#' @param control Character string specifying the control group identifier. If \code{NULL},
+#' @param analysis A \code{TSENATAnalysis} object with 
+#' diversity results in \code{@diversity_results}.
+#' @param q \code{numeric}.  Q-value to use.  If NULL,
+#'  uses first diversity result or  q=1. 0.
+#' @param control Character string specifying the control group identifier.
+#'  If \code{NULL},
 #'   attempts to retrieve from \code{analysis@config$control}.
-#' @param condition_col \code{character} or \code{NULL}. Column name in colData identifying sample conditions.
+#' @param condition_col \code{character} or  \code{NULL}.
+#'  Column name in colData identifying sample conditions.
 #'   If NULL, reads from \code{@config$condition_col} or auto-detects.
-#' @param method \code{character}. Difference calculation method. Default: 'mean'.
+#' @param method \code{character}.  Difference calculation method.  Default:
+#'  'mean'.
 #'   If NULL, reads from \code{@config$method} if available.
 #' @param test \code{character}. Statistical test type. Default: 'wilcoxon'.
 #'   If NULL, reads from \code{@config$test} if available.
@@ -978,33 +1022,45 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   If not specified, reads from \code{@config$exact} if available.
 #' @param pseudocount \code{numeric}. Pseudocount for normalization. Default: 0.
 #'   If NULL, reads from \code{@config$pseudocount} if available.
-#' @param nthreads \code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
+#' @param nthreads \code{numeric} or  \code{NULL}.  Number of CPU threads for 
+#' parallel processing.
 #'   If NULL, reads from \code{@config$nthreads} (or defaults to 1).
 #' @param seed \code{numeric} or \code{NULL}. Random seed. Default: NULL.
 #'   If NULL, reads from \code{@config$seed} if available.
-#' @param robust_loss_type \code{character}. Robust regression loss type. Default: 'huber'.
+#' @param robust_loss_type \code{character}.  Robust regression loss type.
+#'  Default:  'huber'.
 #'   If NULL, reads from \code{@config$robust_loss_type} if available.
-#' @param robust_scale_method \code{character}. Robust scaling method. Default: 'mad'.
+#' @param robust_scale_method \code{character}.  Robust scaling method.
+#'  Default:  'mad'.
 #'   If NULL, reads from \code{@config$robust_scale_method} if available.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
+#' Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+#' Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base function.
 #'
-#' @return Returns the modified \code{analysis} object invisibly with results stored in
+#' @return Returns the modified \code{analysis} object invisibly with 
+#' results stored in
 #'   \code{analysis@lm_results$difference}.
 #'
 #' @details
-#' **IMPORTANT:** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
+#' **IMPORTANT:
+#' ** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
 #' This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
-#' not the raw input data in \code{@se}. This ensures you're comparing diversity values
+#' not the raw input data in \code{@se}.
+#'  This ensures you're comparing diversity values
 #' between control and treatment groups, not raw abundance data.
 #'
 #' **Parameter resolution priority** (explicit > @config > auto-detect > error):
 #' \itemize{
-#'   \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
-#'   \item \code{nthreads}: Uses explicit arg, else \code{@config$nthreads}, else 1
-#'   \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
-#'     else auto-detects from colData columns: 'group', 'sample_type', 'condition'
+#'   \item \code{control}:  Uses explicit arg,  else \code{@config$control},
+#'  else error
+#'   \item \code{nthreads}:  Uses explicit arg,  else \code{@config$nthreads},
+#'  else 1
+#'   \item \code{condition_col} (sample grouping):
+#'  Uses \code{@config$condition_col},
+#' else auto-detects from colData columns: 'group', 'sample_type',
+#' 'condition'
 #' }
 #'
 #' @importFrom utils write.table
@@ -1020,14 +1076,19 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' result <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' result <- calculate_difference_s4(analysis, control = 'normal', verbose =
+#' FALSE)
 #'
 #' @export
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
@@ -1163,7 +1224,8 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' extracted from the analysis object. Results include:
 #'
 #' \describe{
-#'   \item{exchangeability}{Permutation test for temporal/spatial ordering effects}
+#'   \item{exchangeability}{Permutation test for 
+#' temporal/spatial ordering effects}
 #'   \item{monotonicity}{Spearman correlation stability across rows}
 #'   \item{consistency}{Kendall's W concordance and ICC across samples}
 #' }
@@ -1171,7 +1233,8 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' **Data Extraction Priority:**
 #' 1. If q specified: uses diversity result for that q-value
 #' 2. If q NULL: uses first available diversity result
-#' 3. If no diversity results: extracts from cached combined result (\code{@metadata$diversity_combined})
+#' 3.  If no diversity results:
+#'  extracts from cached combined result (\code{@metadata$diversity_combined})
 #'
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
@@ -1182,13 +1245,17 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
 #' analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 #' # Access results using getMeta S4 accessor
 #' names(getMeta(analysis, 'rankbased_assumptions'))
@@ -1327,7 +1394,8 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' @param label_thresh \code{numeric}. P-value threshold for labeling top genes.
 #'   Genes with adjusted p-value below this threshold are labeled.
 #'   Default: 0.1.
-#' @param sig_alpha \code{numeric}. Significance threshold for coloring significant
+#' @param sig_alpha \code{numeric}.  Significance threshold for 
+#' coloring significant
 #'   differences. Points with adjusted p-value below sig_alpha are highlighted.
 #'   Default: 0.05.
 #' @param top_n \code{integer}. Number of top genes (by significance) to label
@@ -1337,11 +1405,14 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' @param title_ma \code{character}. Title for MA plot.
 #'   Default: 'Tsallis-based MA plot'.
 #' @param verbose \code{logical}. Print status messages. Default: FALSE.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save the plot.
 #'   Default: NULL (no file output).
-#' @param width \code{numeric}. Width of the output plot in inches (default: 12).
+#' @param width \code{numeric}.  Width of the output plot in inches (default:
+#'  12).
 #'   Only used if output_file is provided.
-#' @param height \code{numeric}. Height of the output plot in inches (default: 7.2).
+#' @param height \code{numeric}.
+#'  Height of the output plot in inches (default:  7. 2).
 #'   Only used if output_file is provided.
 #' @param ... Additional arguments passed to the base plotting function.
 #'
@@ -1363,11 +1434,13 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' **Expected Columns in Difference Results:**
 #' \itemize{
 #'   \item \code{genes} or \code{gene_id}: Gene identifiers
-#'   \item \code{Normal_mean}, \code{Tumor_mean}: Group means (or equivalent controls/treatments)
+#'   \item \code{Normal_mean},  \code{Tumor_mean}:  Group means (or 
+#' equivalent controls/treatments)
 #'   \item \code{mean_difference}: Calculated difference between groups
 #'   \item \code{log2_fold_change}: Log2 fold-change values
 #'   \item \code{raw_p_values} or \code{pvalue}: Un-adjusted p-values
-#'   \item \code{adjusted_p_values} or \code{padj}: Adjusted p-values (default column used)
+#'   \item \code{adjusted_p_values} or  \code{padj}:
+#'  Adjusted p-values (default column used)
 #' }
 #'
 #' **Volcano Plot Features:**
@@ -1395,14 +1468,19 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' analysis <- calculate_difference_s4(analysis, control = 'normal', verbose
+#' = FALSE)
 #'   
 #' # Plot volcano and MA plots
 #' p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
@@ -1482,16 +1560,23 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' Compute concordance between two analysis methods in TSENATAnalysis
 #'
 #' @param analysis \code{TSENATAnalysis} object with LM results (e.g., GAM).
-#' @param gam_method \code{character}. Key for GAM/interaction results in \code{@lm_results}.
+#' @param gam_method \code{character}.  Key for 
+#' GAM/interaction results in \code{@lm_results}.
 #'   Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})
-#' @param friedman_method \code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
+#' @param friedman_method \code{character}.  Key for 
+#' Friedman/rank-based results in \code{@lm_results}.
 #'   Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})
-#' @param gam_results \code{data.frame} or \code{NULL}. Optional GAM results data frame to store
-#'   in the analysis object. If provided, automatically stored in \code{@lm_results} under the
-#'   key specified by \code{gam_method}. Useful for importing external results or results 
-#'   computed outside the S4 wrapper. Default: NULL (use existing results in analysis).
+#' @param gam_results \code{data. frame} or  \code{NULL}.
+#'  Optional GAM results data frame to store
+#'   in the analysis object.  If provided,
+#'  automatically stored in \code{@lm_results} under the
+#'   key specified by \code{gam_method}.  Useful for 
+#' importing external results or  results 
+#' computed outside the S4 wrapper. Default: NULL (use existing results in
+#' analysis).
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #' @param ... Additional arguments for future extensibility.
 #'
@@ -1508,10 +1593,13 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #'   }
 #'
 #' @details
-#' Compares results from two different statistical methods (typically GAM for continuous 
-#' and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifies:
+#' Compares results from two different statistical methods (typically GAM
+#' for continuous
+#' and Friedman/Kruskal-Wallis for rank-based analysis) on the same data.
+#' Identifies:
 #' - Genes significant in both methods (high confidence)
-#' - Genes detected by one method only (potential false positives or method-specific signal)
+#' - Genes detected by one method only (potential false positives or
+#' method-specific signal)
 #' - Spearman correlation of p-values (overall agreement trends)
 #'
 #' @examples
@@ -1523,10 +1611,12 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data (matching TSENAT.Rmd workflow)
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters (best practice for reproducibility)
@@ -1540,9 +1630,12 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #' # Note: compute_method_concordance_s4 requires results from both
 #' # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 #'
@@ -1680,8 +1773,10 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
 #'   'median' (default) or 'mean'. Only used when gene = NULL.
 #' @param variability_metric \code{character}. Error bar type for global curve:
 #'   'iqr' (default) or 'sd'. Only used when gene = NULL.
-#' @param use_pvalue_ranking \code{logical}. If TRUE, uses LM results to rank and
-#'   display top n_genes by p-value significance. If FALSE (default), plots global
+#' @param use_pvalue_ranking \code{logical}.  If TRUE,
+#'  uses LM results to rank and
+#' display top n_genes by p-value significance. If FALSE (default), plots
+#' global
 #'   divergence curve when gene = NULL. Default is FALSE.
 #' @param output_file \code{character}. Optional file path to save the plot.
 #'   If NULL, plot is returned but not saved.
@@ -1725,14 +1820,19 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
 #' p_global <- plot_divergence_spectrum_s4(analysis)
 #' print(p_global)
 #'
@@ -1868,14 +1968,19 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create small subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' # Note: compute_method_concordance_s4 requires additional LM and Friedman results
-#' # For demo, we show that plot_method_concordance_s4 needs pre-computed concordance
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#'
+#' # Note: compute_method_concordance_s4 requires additional LM and Friedman
+#' # results computed. For demo purposes, we show that
+#' # plot_method_concordance_s4 needs pre-computed concordance in @metadata
 #'
 #' @aliases plot_method_concordance_s4
 #' @export
@@ -1965,47 +2070,59 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 
 #' Compute Effect Sizes from Divergence Results (S4 Wrapper)
 #'
-#' S4 wrapper for \code{.effect_sizes_divergence()} that extracts divergence and LM
+#' S4 wrapper for  \code{. effect_sizes_divergence()} that 
+#' extracts divergence and  LM
 #' results directly from a TSENATAnalysis object.
 #'
-#' @param analysis \code{TSENATAnalysis}. An S4 object containing divergence results
+#' @param analysis \code{TSENATAnalysis}.
+#'  An S4 object containing divergence results
 #'   (from \code{calculate_divergence_s4()}) and LM interaction results
 #'   (from \code{calculate_lm_interaction_s4()}).
 #'
 #' @param significance_threshold \code{numeric}. Adjusted p-value threshold for
 #'   filtering significant genes (default: 0.05).
 #'
-#' @param enrich_per_q_pattern \code{logical}. If TRUE, enriches results with per-q
+#' @param enrich_per_q_pattern \code{logical}.  If TRUE,
+#'  enriches results with  per-q
 #'   divergence patterns (default: TRUE).
 #'
-#' @param verbose \code{logical}. If TRUE, print diagnostic messages (default: TRUE).
+#' @param verbose \code{logical}.  If TRUE,
+#'  print diagnostic messages (default:  TRUE).
 #'
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
 #'
 #' @param ... Additional arguments passed to the base function.
 #'
 #' @return Modified TSENATAnalysis with effect size results stored via
-#'   \code{metadata(analysis)$effect_sizes_divergence}. Returns the analysis object visibly
+#'   \code{metadata(analysis)$effect_sizes_divergence}.
+#'  Returns the analysis object visibly
 #'   to support piping and method chaining.
 #'
 #' @details
 #' **Workflow steps:**
 #' \describe{
-#'   \item{Extracting}{Divergence results (via accessors) and LM interaction results}
-#'   \item{Computing}{Effect sizes using standard \code{.effect_sizes_divergence()} function}
-#'   \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
+#'   \item{Extracting}{Divergence results (via accessors) and 
+#' LM interaction results}
+#'   \item{Computing}{Effect sizes using standard \code{.
+#' effect_sizes_divergence()} function}
+#'   \item{Storing}{Results as list with  \code{interaction_results} (data.
+#' frame) and
 #'     \code{validation_stats}}
 #'   \item{Tracking}{Function call in analysis metadata}
 #' }
 #'
 #' **Parameter resolution priority** (explicit > metadata > default):
 #' \itemize{
-#'   \item \code{significance_threshold}: Uses explicit arg, else \code{metadata(analysis)$significance_threshold},
+#'   \item \code{significance_threshold}:  Uses explicit arg,
+#'  else \code{metadata(analysis)$significance_threshold},
 #'     else 0.05
-#'   \item \code{enrich_per_q_pattern}: Uses explicit arg, else \code{metadata(analysis)$enrich_per_q_pattern},
+#'   \item \code{enrich_per_q_pattern}:  Uses explicit arg,
+#'  else \code{metadata(analysis)$enrich_per_q_pattern},
 #'     else TRUE
-#'   \item \code{verbose}: Uses explicit arg, else \code{metadata(analysis)$verbose}, else TRUE
+#'   \item \code{verbose}:  Uses explicit arg,
+#'  else \code{metadata(analysis)$verbose},  else TRUE
 #' }
 #'
 #' Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}
@@ -2019,8 +2136,10 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters (best practice for reproducibility)
@@ -2034,9 +2153,12 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #'
 #' # Compute effect sizes from divergence results
 #' analysis <- effect_sizes_divergence_s4(analysis,
@@ -2275,16 +2397,20 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 
 #' Plot Top Transcripts from TSENATAnalysis Object
 #'
-#' S4 wrapper for \code{.plot_top_transcripts()} that extracts data directly from
+#' S4 wrapper for  \code{. plot_top_transcripts()} that 
+#' extracts data directly from
 #' a TSENATAnalysis object. Automatically retrieves the SummarizedExperiment and
 #' LM results for visualizing transcript abundance across conditions.
 #'
 #' @param analysis \code{TSENATAnalysis}. An S4 object containing a processed
 #'   SummarizedExperiment and optional LM interaction results.
 #'
-#' @param gene \code{character} or \code{NULL}. Gene identifier(s) to plot. If a vector 
-#'   of multiple genes is provided, plots all of them. If NULL, automatically selects 
-#'   the top genes from LM results based on \code{top_n} parameter (genes with lowest p-values).
+#' @param gene \code{character} or  \code{NULL}.  Gene identifier(s) to plot.
+#'  If a vector 
+#' of multiple genes is provided, plots all of them. If NULL, automatically
+#' selects
+#'   the top genes from LM results based on \code{top_n} parameter (genes with 
+#' lowest p-values).
 #'   Default: NULL (auto-extract from lm_results).
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying
@@ -2300,10 +2426,12 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 #'   One of 'median', 'mean', 'variance', or 'iqr' (default: 'median').
 #'
 #' @param width \code{numeric} or \code{NULL}. Output image width in inches. 
-#'   If NULL, automatically calculated based on number of genes (default: ~13 inches per column).
+#' If NULL, automatically calculated based on number of genes (default: ~13
+#' inches per column).
 #'
 #' @param height \code{numeric} or \code{NULL}. Output image height in inches.
-#'   If NULL, automatically calculated based on number of genes (default: ~10 inches per row + headers).
+#' If NULL, automatically calculated based on number of genes (default: ~10
+#' inches per row + headers).
 #'
 #' @param fontsize \code{numeric}. Base font size for heatmap titles and labels 
 #'   (default: 16pt). Automatically scaled for readability.
@@ -2312,35 +2440,44 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 #'   If 0 (default), uses adaptive sizing based on data dimensions and layout.
 #'   Set > 0 to override dynamic sizing.
 #'
-#' @param cellheight \code{numeric}. Height of individual heatmap cells in pixels.
+#' @param cellheight \code{numeric}.
+#'  Height of individual heatmap cells in pixels.
 #'   If 0 (default), uses adaptive sizing based on data dimensions and layout.
 #'   Set > 0 to override dynamic sizing.
 #'
 #' @param layout_ncol \code{numeric}. Number of heatmaps per row in fixed layout
 #'   (default: 2). If NULL, uses adaptive layout based on transcript counts.
 #'
-#' @param use_tpm \code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
-#'   from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
-#'   depth and is recommended for comparing expression across samples. Requires TPM data 
-#'   in metadata from `build_analysis_s4()` or `.build_se()` with `tpm` parameter. 
+#' @param use_tpm \code{logical}.  If \code{TRUE},
+#'  uses TPM (Transcripts Per Million) 
+#' from metadata instead of raw counts (default: FALSE). TPM is normalized
+#' for sequencing
+#' depth and is recommended for comparing expression across samples.
+#' Requires TPM data
+#' in metadata from `build_analysis_s4()` or `.build_se()` with `tpm`
+#' parameter.
 #'   Raises error if TPM not available and `use_tpm = TRUE`.
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plotting (default: FALSE).
 #'
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save the plot.
 #'   Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).
 #' @param ... Additional arguments passed to the base plotting function.
 #'
-#' @return Invisibly returns the output file path (if `output_file` provided), or invisible(NULL) 
-#'   if rendering to active graphics device. Graphics are rendered to the active grid device 
+#' @return Invisibly returns the output file path (if `output_file`
+#' provided), or invisible(NULL)
+#' if rendering to active graphics device. Graphics are rendered to the
+#' active grid device
 #'   for capture during vignette compilation.
 #'
 #' @details
 #' This wrapper extracts the following from \code{analysis}:
 #' \describe{
 #'   \item{SummarizedExperiment}{From \code{analysis@se} containing transcript counts}
-#'   \item{LM results}{From \code{analysis@lm_results$lm_interaction} for gene selection}
+#'   \item{LM results}{From \code{analysis@lm_results$lm_interaction} for 
+#' gene selection}
 #' }
 #'
 #' If no gene is specified, the function automatically selects the top gene from
@@ -2356,8 +2493,10 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
@@ -2371,8 +2510,10 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #' plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 #'
 #' @seealso
@@ -2541,8 +2682,10 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
@@ -2556,9 +2699,12 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #' analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 #' p_dist <- plot_divergence_distribution_s4(analysis, verbose = FALSE)
 #' print(p_dist)
@@ -2678,8 +2824,10 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
@@ -2693,15 +2841,19 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #' analysis <- jackknife_isoform_switching_s4(analysis, n_bootstrap = 50,
 #'   verbose = FALSE)
 #' tables <- prepare_gene_switching_tables_s4(analysis)
 #' head(tables$summary_df)
 #'
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
+#' Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+#' Default: NULL (no file output).
 #'
 #' @export
 #' @importFrom methods is
@@ -2823,8 +2975,10 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 
 #' Plot Multi-Q Delta Influence Heatmaps from TSENATAnalysis Object
 #'
-#' S4 wrapper for \code{.plot_multiq_delta_influence_heatmaps()} that extracts results
-#' directly from a TSENATAnalysis object. Automatically retrieves jackknife switching
+#' S4 wrapper for  \code{. plot_multiq_delta_influence_heatmaps()} that 
+#' extracts results
+#' directly from a TSENATAnalysis object. Automatically retrieves jackknife
+#' switching
 #' results from the analysis object slots.
 #'
 #' @param analysis \code{TSENATAnalysis}. An S4 object containing completed
@@ -2835,13 +2989,15 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #'   by order of appearance in results.
 #'
 #' @param lm_results \code{data.frame} or \code{NULL}. Optional LM interaction
-#'   results for ranking genes (default: NULL). If NULL, attempts to extract from
+#' results for ranking genes (default: NULL). If NULL, attempts to extract
+#' from
 #'   \code{analysis@lm_results$lm_interaction}.
 #'
 #' @param verbose \code{logical}. If \code{TRUE}, print diagnostic messages
 #'   during plot generation (default: FALSE).
 #'
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save the plot.
 #'   Default: NULL (no file output).
 #'
 #' @param ... Additional arguments passed to the base function.
@@ -2851,13 +3007,15 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' @details
 #' This function extracts the following from \code{analysis}:
 #' \describe{
-#'   \item{Jackknife results}{From \code{analysis@jackknife_results}, which should
+#'   \item{Jackknife results}{From \code{analysis@jackknife_results},  which 
+#' should
 #'         contain multi-q switching results keyed by q-value (e.g., 'q_1.00')}
 #'   \item{LM results}{From \code{analysis@lm_results$lm_interaction} if not
 #'         explicitly provided, for ranking genes by significance}
 #' }
 #'
-#' The wrapper automatically handles parameter extraction and provides a simplified
+#' The wrapper automatically handles parameter extraction and provides a
+#' simplified
 #' interface compared to the base function.
 #'
 #' @examples
@@ -2869,8 +3027,10 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
@@ -2884,12 +3044,16 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
+#' analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+#' = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #' analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
 #'   n_bootstrap = 50, verbose = FALSE)
-#' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)
+#' heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes
+#' = 2)
 #'
 #' @seealso
 #' \code{\link{jackknife_isoform_switching_s4}} for computing switching results
@@ -2983,27 +3147,33 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 
 #' Plot GAM q-curves from TSENATAnalysis object
 #'
-#' S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve plots
-#' @param analysis \code{TSENATAnalysis} object with diversity and LM interaction results.
-#' @param n_top \code{integer}. Number of top genes (by adjusted p-value) to plot 
+#' S4 wrapper that accepts a TSENATAnalysis object and generates GAM q-curve
+#' plots
+#' @param analysis \code{TSENATAnalysis} object with  diversity and 
+#' LM interaction results.
+#' @param n_top \code{integer}.
+#'  Number of top genes (by adjusted p-value) to plot 
 #'   (default: 6). Only used if genes = NULL.
 #'
 #' @param genes \code{character} vector. Optional specific gene names to plot. 
 #'   If provided, these genes are plotted directly regardless of significance.
 #'   If NULL (default), top n_top significant genes are selected.
 #'
-#' @param condition_col \code{character}. Column name in colData(se) specifying 
-#'   group assignments for samples. If NULL, attempts to auto-detect from @config
-#'   (looks for 'condition_col' or 'condition'). If still NULL, defaults to 'sample_type'.
+#' @param condition_col \code{character}. Column name in colData(se) specifying
+#'   group assignments for samples. If NULL, attempts to auto-detect from
+#'   \code{@config} (looks for 'condition_col' or 'condition'). If still NULL,
+#'   defaults to 'sample_type'.
 #'
-#' @param sig_alpha \code{numeric}. Significance threshold for adjusted p-values 
+#' @param sig_alpha \code{numeric}.  Significance threshold for 
+#' adjusted p-values 
 #'   (default: 0.05). Only used if genes = NULL; filters lm_res to significant 
 #'   genes before selecting top n.
 #'
 #' @param assay_name \code{character}. Name of the assay in se to extract 
 #'   (default: 'diversity').
 #'
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save the plot.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save the plot.
 #'   Default: NULL (no file output).
 #'
 #' @param width \code{numeric}. Width of the plot in inches (default: 12).
@@ -3034,7 +3204,8 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' }
 #'
 #' @seealso
-#' \code{\link{calculate_lm_interaction_s4}} for running LM analysis on TSENATAnalysis.
+#' \code{\link{calculate_lm_interaction_s4}} for 
+#' running LM analysis on TSENATAnalysis.
 #'
 #' @examples
 #' # Plot 3: GAM q-curves for genes with q-by-condition interactions
@@ -3045,8 +3216,10 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' 
 #' # Configure analysis parameters
@@ -3060,8 +3233,10 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' analysis <- setConfig(analysis, config)
 #' 
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-#' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+#' analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by =
+#' 0.15), verbose = FALSE)
+#' analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+#' = FALSE)
 #' 
 #' p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 #' print(p_gam)
@@ -3214,57 +3389,75 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 #'   }
 #'
 #' @param condition_col \code{character}. Column name in colData(se) specifying 
-#'   group assignments (default: 'sample_type'). If NULL, attempts auto-detection.
+#' group assignments (default: 'sample_type'). If NULL, attempts
+#' auto-detection.
 #'
-#' @param subject_col \code{character}. Optional column for paired/repeated measures design.
+#' @param subject_col \code{character}.  Optional column for 
+#' paired/repeated measures design.
 #'   If provided, enables paired analysis. Default: NULL (unpaired).
 #'
-#' @param gene_col \code{character}. Column name in rowData(se) or metadata identifying genes.
+#' @param gene_col \code{character}.  Column name in rowData(se) or 
+#' metadata identifying genes.
 #'   Default: 'gene'.
 #'
-#' @param isoform_col \code{character}. Column name in rowData(se) or metadata identifying 
+#' @param isoform_col \code{character}.  Column name in rowData(se) or 
+#' metadata identifying 
 #'   isoforms/transcripts. Default: 'transcript' or 'isoform'.
 #'
-#' @param q \code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
+#' @param q \code{numeric}.  Tsallis entropy parameter(s) to analyze.
+#'  Can be single value 
 #'   or vector for multi-q analysis (default: 1).
 #'
 #' @param norm \code{logical}. Whether to use normalized diversity values 
 #'   (default: TRUE).
 #'
-#' @param log_base \code{numeric}. Logarithm base for entropy calculations. Default: NULL (uses e).
+#' @param log_base \code{numeric}.  Logarithm base for  entropy calculations.
+#'  Default:  NULL (uses e).
 #'
-#' @param pseudocount \code{numeric}. Pseudocount value for count regularization. Default: NULL (uses @config$pseudocount or 0).
+#' @param pseudocount \code{numeric}.  Pseudocount value for 
+#' count regularization.  Default:  NULL (uses @config$pseudocount or  0).
 #'
-#' @param threshold \code{numeric}. Percentile threshold for detecting transcript switching 
-#'   (default: 90). Transcripts with delta_influence >= threshold percentile are classified 
+#' @param threshold \code{numeric}.  Percentile threshold for 
+#' detecting transcript switching 
+#' (default: 90). Transcripts with delta_influence >= threshold percentile
+#' are classified
 #'   as 'switching'.
 #'
-#' @param n_bootstrap \code{integer}. Number of bootstrap resamples for confidence 
+#' @param n_bootstrap \code{integer}.  Number of bootstrap resamples for 
+#' confidence 
 #'   intervals (default: 1000).
 #'
-#' @param lm_results \code{data.frame}. Optional LM interaction results to filter genes.
+#' @param lm_results \code{data. frame}.
+#'  Optional LM interaction results to filter genes.
 #'   If provided, only genes in lm_results are analyzed.
 #'
-#' @param lm_p_threshold \code{numeric}. P-value threshold for filtering genes from 
+#' @param lm_p_threshold \code{numeric}.  P-value threshold for 
+#' filtering genes from 
 #'   lm_results (default: 0.05).
 #'
-#' @param use_lm_fdr \code{logical}. If TRUE, uses adjusted p-values from lm_results 
+#' @param use_lm_fdr \code{logical}.  If TRUE,
+#'  uses adjusted p-values from lm_results 
 #'   (default: TRUE).
 #'
 #' @param verbose \code{logical}. Print progress messages (default: FALSE).
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
 #'   Supported formats: .tsv, .csv, .txt (for tables), or .rds (for S4 objects).
 #'   When text format is specified, generates TWO files:
 #'   \itemize{
-#'     \item \code{output_file}: Gene-level summary (one row per gene with switching statistics)
-#'     \item \code{output_file_transcripts.ext}: Transcript-level details (one row per transcript with p-values and FDR)
+#'     \item \code{output_file}:  Gene-level summary (one row per gene with 
+#' switching statistics)
+#'     \item \code{output_file_transcripts. ext}:
+#'  Transcript-level details (one row per transcript with  p-values and  FDR)
 #'   }
 #'   For .rds format, saves only the full analysis object.
 #'   Default: NULL (no file output).
 #' @param ... Additional arguments for future extensibility.
 #'
-#' @return \code{TSENATAnalysis} object with jackknife results stored in \code{@jackknife_results}
-#'   slot. Results are keyed by q-value (e.g., 'q_1.00'). For multi-q analysis, multiple
+#' @return \code{TSENATAnalysis} object with 
+#' jackknife results stored in \code{@jackknife_results}
+#' slot. Results are keyed by q-value (e.g., 'q_1.00'). For multi-q
+#' analysis, multiple
 #'   calls will accumulate results in the slot.
 #'
 #'   The analysis object is returned visibly to support method chaining:
@@ -3276,27 +3469,36 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 #' @details
 #' This wrapper automatically:
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
-#' 2. Detects condition_col, gene_col, isoform_col from colData/rowData or @config
+#' 2. Detects condition_col, gene_col, isoform_col from colData/rowData or
+#' \code{@config}
 #' 3. Calls \code{.jackknife_isoform_switching()} with extracted parameters
 #'
 #' **Parameter Auto-Detection:**
 #' \enumerate{
-#'   \item \code{condition_col}: Uses explicit parameter, then @config, then 'sample_type'
-#'   \item \code{gene_col}: Uses explicit parameter, then looks for 'gene' or 'Gene'
-#'   \item \code{isoform_col}: Uses explicit parameter, then looks for 'transcript', 'isoform', or 'Isoform'
+#'   \item \code{condition_col}:  Uses explicit parameter,  then @config,
+#'  then 'sample_type'
+#'   \item \code{gene_col}:  Uses explicit parameter,  then looks for 
+#' 'gene' or  'Gene'
+#'   \item \code{isoform_col}:  Uses explicit parameter,  then looks for 
+#' 'transcript',  'isoform',  or  'Isoform'
 #' }
 #'
-#' @seealso \code{jackknife_isoform_switching} for the underlying implementation,
+#' @seealso \code{jackknife_isoform_switching} for 
+#' the underlying implementation,
 #' \code{\link{TSENATAnalysis}} for object structure.
 #'
 #' @examples
 #' data(readcounts)
-#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+#' metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
+#' = 'TSENAT'),
 #'                           header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
-#'                              tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 20, subset_n_samples = 8)
+#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' gff3_file, metadata = metadata_df,
+#'                              tpm = salmon_tpm,
+#'  effective_length = salmon_effective_length)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 20, subset_n_samples = 8)
 #' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
 #' 
 #' @export
@@ -3577,56 +3779,69 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'
 #' @param analysis \code{TSENATAnalysis} object with diversity results
 #'   (typically via \code{\link{calculate_diversity_s4}}).
-#' @param condition_col \code{character}. Column name in sample metadata indicating
+#' @param condition_col \code{character}.
+#'  Column name in sample metadata indicating
 #'   condition/sample grouping. Auto-detected from \code{@config$condition_col}
 #'   if available.
 #' @param loss_type \code{character}. Type of loss function: 'huber' (default),
 #'   'tukey', or 'lsq'. Determines robustness vs efficiency trade-off.
-#' @param scale \code{numeric}. Manual scale parameter. If NULL, estimated from data.
-#' @param max_iter \code{integer}. Maximum iterations for M-estimation. Default: 50.
+#' @param scale \code{numeric}.  Manual scale parameter.  If NULL,
+#'  estimated from data.
+#' @param max_iter \code{integer}.  Maximum iterations for  M-estimation.
+#'  Default:  50.
 #' @param tol \code{numeric}. Convergence tolerance. Default: 1e-6.
 #' @param paired \code{logical}. If TRUE, adjusts degrees of freedom for paired
 #'   designs. Auto-detected from \code{@config$paired} if available.
 #'   Default: FALSE.
-#' @param pcorr \code{character}. P-value correction method. Default: 'BH' (Benjamini-Hochberg).
+#' @param pcorr \code{character}.  P-value correction method.  Default:
+#'  'BH' (Benjamini-Hochberg).
 #' @param q_combine_method \code{character}. How to collapse multi-q results:
 #'   'mean' (default) or 'median'.
 #' @param influence_threshold \code{numeric}. Threshold for classifying samples
 #'   as high-influence. Default: 0.75.
-#' @param scale_method \code{character}. Scale estimation method: 'mad' (default),
+#' @param scale_method \code{character}.  Scale estimation method:
+#'  'mad' (default),
 #'   'proposal2', or 's-estimator'.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
-#'   Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
+#' Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+#' Default: NULL (no file output).
 #' @param verbose \code{logical}. Print status messages. Default: TRUE.
 #'
 #' @return
 #' Modified TSENATAnalysis object with M-estimation results stored in
 #' \code{analysis@metadata$m_estimate_results}. Contains data frame with
-#' influence scores, robustness weights, entropy statistics, and QC classifications.
+#' influence scores, robustness weights, entropy statistics, and QC
+#' classifications.
 #' Returns visibly to support method chaining and piping.
 #'
 #' @details
 #' This wrapper extracts diversity results from \code{analysis@diversity_results},
-#' performs robust M-estimation on diversity values (entropy), and stores results
+#' performs robust M-estimation on diversity values (entropy), and stores
+#' results
 #' in the analysis object metadata.
 #'
-#' **M-Estimation:** Robust regression technique that down-weights outliers based
+#' **M-Estimation:** Robust regression technique that down-weights outliers
+#' based
 #' on their residuals. Useful for detecting low-quality samples that show
 #' unusual diversity patterns.
 #'
 #' **M-Estimation Results include:**
 #' \itemize{
 #'   \item \code{sample_influence}: How much each sample affects the overall fit
-#'   \item \code{robustness_weight}: Down-weighting factor (lower = more outlying)
+#'   \item \code{robustness_weight}:
+#'  Down-weighting factor (lower = more outlying)
 #'   \item \code{entropy_mean}: Average entropy for the sample
 #'   \item \code{entropy_sd}: Entropy variability within the sample
-#'   \item \code{Status}: QC Classification ('OK' or 'Flag for QC' based on influence_threshold)
+#'   \item \code{Status}:  QC Classification ('OK' or  'Flag for 
+#' QC' based on influence_threshold)
 #' }
 #'
 #' **Parameter resolution priority** (explicit > @config > error):
 #' \itemize{
 #'   \item \code{samples}: Uses explicit arg, else \code{@config$condition_col},
-#'     else error. Note: despite parameter name 'samples', maps to condition grouping column
+#' else error. Note: despite parameter name 'samples', maps to condition
+#' grouping column
 #' }
 #'
 #' **Data Requirements:**
@@ -3645,11 +3860,15 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
 #' analysis <- m_estimate_s4(
 #'   analysis,
 #'   condition_col = 'condition',
@@ -3811,64 +4030,86 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #'   \code{SummarizedExperiment} to be filtered.
 #'
 #' @param min_tpm Numeric TPM threshold (default 1.0).
-#'   Keeps transcripts with TPM >= \code{min_tpm} in >= \code{min_samples} samples.
+#'   Keeps transcripts with 
+#' TPM >= \code{min_tpm} in >= \code{min_samples} samples.
 #'   Ignored if \code{stringency} is specified.
 #'
-#' @param tpm_assay_name Character; name of assay containing TPM data (default: NULL).
+#' @param tpm_assay_name Character; name of assay containing TPM data
+#' (default: NULL).
 #'   If NULL, searches for TPM assay automatically.
 #'
 #' @param min_samples Numeric. Minimum number of samples in which a transcript
 #'   must be present (default: 5). Ignored if \code{stringency} is specified.
 #'
 #' @param stringency Character. Filtering stringency level: 'soft' (permissive),
-#'   'medium' (balanced), or 'severe' (stringent). When specified, auto-estimates:
-#'   \code{min_samples}, \code{min_tpm}, \code{min_tx_per_gene}, and \code{min_isoform_abundance}
+#' 'medium' (balanced), or 'severe' (stringent). When specified,
+#' auto-estimates:
+#'   \code{min_samples},  \code{min_tpm},  \code{min_tx_per_gene},  and 
+#' \code{min_isoform_abundance}
 #'   from data. Requires \code{pair_col} in colData for paired designs.
 #'   User-provided values for any parameter override stringency defaults.
 #'   Default: NULL (use explicit parameters).
 #'
-#' @param pair_col Character; column name in colData containing pair IDs for paired designs.
+#' @param pair_col Character; column name in colData containing pair IDs for
+#' paired designs.
 #'   Default: NULL (auto-detect if needed).
 #'
-#' @param min_tx_per_gene Integer minimum number of transcripts per gene required
-#'   (default 2L). Single-transcript genes are always kept. Ignored if \code{stringency}
-#'   is specified; when specified, automatically adjusted based on stringency level.
+#' @param min_tx_per_gene Integer minimum number of transcripts per gene
+#' required
+#'   (default 2L).  Single-transcript genes are always kept.  Ignored if 
+#' \code{stringency}
+#' is specified; when specified, automatically adjusted based on stringency
+#' level.
 #'
-#' @param min_isoform_abundance Numeric in [0, 1]; minimum relative abundance threshold
+#' @param min_isoform_abundance Numeric in [0, 1]; minimum relative
+#' abundance threshold
 #'   for isoforms within each gene. Implements Soneson et al. (2016) filtering.
 #'   Default behavior:
-#'   - If \code{stringency} is specified: uses stringency-based default (soft: 0.01, medium: 0.05, severe: 0.15)
+#'   - If \code{stringency} is specified:
+#'  uses stringency-based default (soft:  0. 01,  medium:  0. 05,  severe:  0.
+#' 15)
 #'   - If \code{stringency} is NULL: uses default 0.05 (5%)
 #'   - If explicitly provided: overrides any stringency default
-#'   Set to 0 or NULL (post-stringency processing) to skip isoform-level filtering.
+#' Set to 0 or NULL (post-stringency processing) to skip isoform-level
+#' filtering.
 #'
 #' @param assay_name Character; name or index of the assay to use for filtering
 #'   (default: 'counts'). Deprecated: use \code{tpm_assay_name} instead.
 #'
-#' @param subset_n_genes Integer; optional number of genes to retain after filtering.
-#'   If provided, genes are selected based on \code{subset_select_by}. Default: NULL.
+#' @param subset_n_genes Integer; optional number of genes to retain after
+#' filtering.
+#'   If provided,  genes are selected based on \code{subset_select_by}.
+#'  Default:  NULL.
 #'
-#' @param subset_genes Character vector; optional specific genes to retain after filtering.
+#' @param subset_genes Character vector; optional specific genes to retain
+#' after filtering.
 #'   Default: NULL.
 #'
-#' @param subset_n_samples Integer; optional number of samples to retain after filtering.
+#' @param subset_n_samples Integer; optional number of samples to retain
+#' after filtering.
 #'   If provided, samples are selected (balanced by condition if available).
 #'   Default: NULL.
 #'
-#' @param subset_samples Character vector; optional specific samples to retain after filtering.
+#' @param subset_samples Character vector; optional specific samples to
+#' retain after filtering.
 #'   Default: NULL.
 #'
-#' @param subset_select_by Character; gene selection method for \code{subset_n_genes}:
-#'   'variance' (highest variance), 'mean' (highest mean expression), or 'random'.
+#' @param subset_select_by Character;  gene selection method for 
+#' \code{subset_n_genes}:
+#' 'variance' (highest variance), 'mean' (highest mean expression), or
+#' 'random'.
 #'   Default: 'variance'.
 #'
-#' @param subset_seed Integer; random seed for reproducibility when \code{subset_select_by = 'random'}.
+#' @param subset_seed Integer;  random seed for  reproducibility when 
+#' \code{subset_select_by = 'random'}.
 #'   Default: 42.
 #'
-#' @param subset_min_count Numeric; optional minimum count threshold applied during subsetting.
+#' @param subset_min_count Numeric; optional minimum count threshold applied
+#' during subsetting.
 #'   Default: NULL.
 #'
-#' @param verbose Logical. If TRUE, print filtering progress and summary statistics
+#' @param verbose Logical. If TRUE, print filtering progress and summary
+#' statistics
 #'   (default: FALSE).
 #'
 #' @return Invisibly returns the modified \code{analysis} object with filtered
@@ -3905,8 +4146,10 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
 #' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
@@ -3958,19 +4201,27 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 
 #' Build a Complete TSENATAnalysis Object
 #'
-#' Convenience wrapper that combines \code{.build_se()} and \code{TSENATAnalysis()}
-#' into a single function call. This creates a complete analysis object ready for
+#' Convenience wrapper that  combines \code{. build_se()} and 
+#' \code{TSENATAnalysis()}
+#' into a single function call. This creates a complete analysis object
+#' ready for
 #' Tsallis entropy computation and downstream analysis.
 #'
 #' @param readcounts A matrix or data.frame of transcript-level read counts with
-#'   transcript IDs as row names and sample names as column names. Typically output
-#'   from quantification tools (SALMON, kallisto, etc.). Optional when \code{salmon_dir}
+#' transcript IDs as row names and sample names as column names. Typically
+#' output
+#'   from quantification tools (SALMON,  kallisto,  etc. ).  Optional when 
+#' \code{salmon_dir}
 #'   is provided (in which case readcounts are auto-loaded from quant.sf files).
 #'
-#' @param salmon_dir Optional character path to directory containing Salmon quantification
-#'   output. Expected structure: \code{salmon_dir/sample_name/quant.sf}. When provided,
-#'   automatically discovers and reads all quant.sf files. If both \code{readcounts} and
-#'   \code{salmon_dir} are provided, \code{salmon_dir} takes precedence. Default: \code{NULL}.
+#' @param salmon_dir Optional character path to directory containing Salmon
+#' quantification
+#'   output.  Expected structure:  \code{salmon_dir/sample_name/quant. sf}.
+#'  When provided,
+#'   automatically discovers and  reads all quant. sf files.
+#'  If both \code{readcounts} and
+#'   \code{salmon_dir} are provided,  \code{salmon_dir} takes precedence.
+#'  Default:  \code{NULL}.
 #'
 #' @param tx2gene Either:
 #'   - A path to a GFF3 or GFF3.gz file containing transcript-to-gene mapping
@@ -3980,20 +4231,26 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' @param assay_name Character. Name for the assay (default: 'counts').
 #'
 #' @param metadata Optional data.frame with sample metadata. Should have sample
-#'   names as row names and metadata columns (e.g., sample_type, condition, etc.).
+#' names as row names and metadata columns (e.g., sample_type, condition,
+#' etc.).
 #'
-#' @param tpm Optional matrix of transcript-level TPM values. If provided, will be
+#' @param tpm Optional matrix of transcript-level TPM values. If provided,
+#' will be
 #'   stored in the SummarizedExperiment. Same dimensions as readcounts required.
 #'
-#' @param effective_length Optional numeric vector of transcript effective lengths
+#' @param effective_length Optional numeric vector of transcript effective
+#' lengths
 #'   (e.g., from SALMON). Length should match nrow(readcounts).
 #'
 #' @param config Optional list of configuration parameters to store in the
 #'   TSENATAnalysis object. Useful for tracking analysis parameters.
 #'
-#' @param skip Logical. If TRUE, allow unmapped transcripts (transcripts not found
-#'   in tx2gene mapping) and remove them from analysis. If FALSE (default), stop with
-#'   an error when unmapped transcripts are detected. Useful for handling data with
+#' @param skip Logical. If TRUE, allow unmapped transcripts (transcripts not
+#' found
+#' in tx2gene mapping) and remove them from analysis. If FALSE (default),
+#' stop with
+#' an error when unmapped transcripts are detected. Useful for handling data
+#' with
 #'   transcript IDs that don't match the annotation file provided.
 #'
 #' @param verbose Logical. If TRUE, print informative messages during execution
@@ -4009,10 +4266,12 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' }
 #'
 #' The \code{salmon_dir} parameter provides a convenient alternative to manually
-#' constructing the \code{readcounts} matrix, especially useful in Galaxy workflows.
+#' constructing the \code{readcounts} matrix,
+#'  especially useful in Galaxy workflows.
 #'
 #' @return A \code{TSENATAnalysis} S4 object with:
-#'   \item{@se}{The SummarizedExperiment containing transcript counts and metadata}
+#'   \item{@se}{The SummarizedExperiment containing transcript counts and 
+#' metadata}
 #'   \item{@config}{Analysis configuration (empty list or user-provided)}
 #'   \item{@diversity_results}{Empty list (populated by calculate_diversity_s4())}
 #'   \item{@divergence_results}{Empty list (populated by calculate_divergence_s4())}
@@ -4024,14 +4283,17 @@ filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min
 #' @details
 #' This wrapper combines two steps into one:
 #' \enumerate{
-#'   \item Call \code{.build_se()} to create a SummarizedExperiment from transcript counts
+#'   \item Call \code{.
+#' build_se()} to create a SummarizedExperiment from transcript counts
 #'   \item Wrap the result in \code{TSENATAnalysis()} to create the analysis object
 #' }
 #'
-#' The returned object is ready for diversity analysis via \code{calculate_diversity_s4()}.
+#' The returned object is ready for 
+#' diversity analysis via \code{calculate_diversity_s4()}.
 #'
 #' If you need to inspect or filter the SummarizedExperiment before creating the
-#' TSENATAnalysis object, call \code{.build_se()} and \code{TSENATAnalysis()} separately.
+#' TSENATAnalysis object,  call \code{. build_se()} and 
+#' \code{TSENATAnalysis()} separately.
 #'
 #' @seealso
 #' \code{\link{TSENATAnalysis}} for the S4 class structure

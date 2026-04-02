@@ -32,60 +32,78 @@ jackknife_isoform_switching_s4(
 }}
 
 \item{condition_col}{\code{character}. Column name in colData(se) specifying 
-group assignments (default: 'sample_type'). If NULL, attempts auto-detection.}
+group assignments (default: 'sample_type'). If NULL, attempts
+auto-detection.}
 
-\item{subject_col}{\code{character}. Optional column for paired/repeated measures design.
-If provided, enables paired analysis. Default: NULL (unpaired).}
+\item{subject_col}{\code{character}.  Optional column for 
+paired/repeated measures design.
+  If provided, enables paired analysis. Default: NULL (unpaired).}
 
-\item{gene_col}{\code{character}. Column name in rowData(se) or metadata identifying genes.
-Default: 'gene'.}
+\item{gene_col}{\code{character}.  Column name in rowData(se) or 
+metadata identifying genes.
+  Default: 'gene'.}
 
-\item{isoform_col}{\code{character}. Column name in rowData(se) or metadata identifying 
-isoforms/transcripts. Default: 'transcript' or 'isoform'.}
+\item{isoform_col}{\code{character}.  Column name in rowData(se) or 
+metadata identifying 
+  isoforms/transcripts. Default: 'transcript' or 'isoform'.}
 
-\item{q}{\code{numeric}. Tsallis entropy parameter(s) to analyze. Can be single value 
-or vector for multi-q analysis (default: 1).}
+\item{q}{\code{numeric}.  Tsallis entropy parameter(s) to analyze.
+Can be single value 
+ or vector for multi-q analysis (default: 1).}
 
 \item{norm}{\code{logical}. Whether to use normalized diversity values 
 (default: TRUE).}
 
-\item{log_base}{\code{numeric}. Logarithm base for entropy calculations. Default: NULL (uses e).}
+\item{log_base}{\code{numeric}.  Logarithm base for  entropy calculations.
+Default:  NULL (uses e).}
 
-\item{threshold}{\code{numeric}. Percentile threshold for detecting transcript switching 
-(default: 90). Transcripts with delta_influence >= threshold percentile are classified 
-as 'switching'.}
+\item{threshold}{\code{numeric}.  Percentile threshold for 
+detecting transcript switching 
+(default: 90). Transcripts with delta_influence >= threshold percentile
+are classified
+  as 'switching'.}
 
-\item{n_bootstrap}{\code{integer}. Number of bootstrap resamples for confidence 
-intervals (default: 1000).}
+\item{n_bootstrap}{\code{integer}.  Number of bootstrap resamples for 
+confidence 
+  intervals (default: 1000).}
 
-\item{pseudocount}{\code{numeric}. Pseudocount value for count regularization. Default: NULL (uses @config$pseudocount or 0).}
+\item{pseudocount}{\code{numeric}.  Pseudocount value for 
+count regularization.  Default:  NULL (uses @config$pseudocount or  0).}
 
-\item{lm_results}{\code{data.frame}. Optional LM interaction results to filter genes.
-If provided, only genes in lm_results are analyzed.}
+\item{lm_results}{\code{data. frame}.
+Optional LM interaction results to filter genes.
+ If provided, only genes in lm_results are analyzed.}
 
-\item{lm_p_threshold}{\code{numeric}. P-value threshold for filtering genes from 
-lm_results (default: 0.05).}
+\item{lm_p_threshold}{\code{numeric}.  P-value threshold for 
+filtering genes from 
+  lm_results (default: 0.05).}
 
-\item{use_lm_fdr}{\code{logical}. If TRUE, uses adjusted p-values from lm_results 
-(default: TRUE).}
+\item{use_lm_fdr}{\code{logical}.  If TRUE,
+uses adjusted p-values from lm_results 
+ (default: TRUE).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .tsv, .csv, .txt (for tables), or .rds (for S4 objects).
-When text format is specified, generates TWO files:
-\itemize{
-  \item \code{output_file}: Gene-level summary (one row per gene with switching statistics)
-  \item \code{output_file_transcripts.ext}: Transcript-level details (one row per transcript with p-values and FDR)
-}
-For .rds format, saves only the full analysis object.
-Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+  Supported formats: .tsv, .csv, .txt (for tables), or .rds (for S4 objects).
+  When text format is specified, generates TWO files:
+  \itemize{
+    \item \code{output_file}:  Gene-level summary (one row per gene with 
+switching statistics)
+    \item \code{output_file_transcripts. ext}:
+ Transcript-level details (one row per transcript with  p-values and  FDR)
+  }
+  For .rds format, saves only the full analysis object.
+  Default: NULL (no file output).}
 
 \item{verbose}{\code{logical}. Print progress messages (default: FALSE).}
 
 \item{...}{Additional arguments for future extensibility.}
 }
 \value{
-\code{TSENATAnalysis} object with jackknife results stored in \code{@jackknife_results}
-  slot. Results are keyed by q-value (e.g., 'q_1.00'). For multi-q analysis, multiple
+\code{TSENATAnalysis} object with 
+jackknife results stored in \code{@jackknife_results}
+slot. Results are keyed by q-value (e.g., 'q_1.00'). For multi-q
+analysis, multiple
   calls will accumulate results in the slot.
 
   The analysis object is returned visibly to support method chaining:
@@ -102,28 +120,37 @@ and metadata from object slots.
 \details{
 This wrapper automatically:
 1. Extracts SummarizedExperiment from \code{@se} slot
-2. Detects condition_col, gene_col, isoform_col from colData/rowData or @config
+2. Detects condition_col, gene_col, isoform_col from colData/rowData or
+\code{@config}
 3. Calls \code{.jackknife_isoform_switching()} with extracted parameters
 
 **Parameter Auto-Detection:**
 \enumerate{
-  \item \code{condition_col}: Uses explicit parameter, then @config, then 'sample_type'
-  \item \code{gene_col}: Uses explicit parameter, then looks for 'gene' or 'Gene'
-  \item \code{isoform_col}: Uses explicit parameter, then looks for 'transcript', 'isoform', or 'Isoform'
+  \item \code{condition_col}:  Uses explicit parameter,  then @config,
+ then 'sample_type'
+  \item \code{gene_col}:  Uses explicit parameter,  then looks for 
+'gene' or  'Gene'
+  \item \code{isoform_col}:  Uses explicit parameter,  then looks for 
+'transcript',  'isoform',  or  'Isoform'
 }
 }
 \examples{
 data(readcounts)
-metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package
+= 'TSENAT'),
                           header = TRUE, sep = '\t')
 gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
-                             tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 20, subset_n_samples = 8)
+analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+gff3_file, metadata = metadata_df,
+                             tpm = salmon_tpm,
+ effective_length = salmon_effective_length)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 20, subset_n_samples = 8)
 analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
 
 }
 \seealso{
-\code{jackknife_isoform_switching} for the underlying implementation,
+\code{jackknife_isoform_switching} for 
+the underlying implementation,
 \code{\link{TSENATAnalysis}} for object structure.
 }

@@ -1,7 +1,8 @@
 #' Generate Concordance Comparison Plots for GAM vs Friedman Test Methods
 #'
 #' Creates a two-panel visualization comparing p-value results and distributions
-#' from GAM and Friedman statistical tests, highlighting agreement between methods.
+#' from GAM and Friedman statistical tests, highlighting agreement between
+#' methods.
 #'
 #' @param comparison_df A data.frame with columns:
 #'   \itemize{
@@ -9,7 +10,8 @@
 #'     \item \code{p_gam}: GAM p-values
 #'     \item \code{p_friedman}: Friedman test p-values
 #'     \item \code{agreement}: Categorical variable indicating agreement type
-#'       (e.g., 'Both significant', 'GAM only', 'Friedman only', 'Neither significant')
+#' (e.g., 'Both significant', 'GAM only', 'Friedman only', 'Neither
+#' significant')
 #'   }
 #'
 #' @return A gridExtra grob object containing the combined two-panel plot.
@@ -29,7 +31,8 @@
 #'   gene = paste0('gene_', 1:50),
 #'   p_gam = runif(50, 0, 0.5),
 #'   p_friedman = runif(50, 0, 0.5),
-#'   agreement = sample(c('Both significant', 'GAM only', 'Friedman only', 'Neither significant'),
+#' agreement = sample(c('Both significant', 'GAM only', 'Friedman only',
+#' 'Neither significant'),
 #'                      size = 50, replace = TRUE)
 #' )
 #' 
@@ -103,9 +106,11 @@ print.gtable <- function(x, ...) {
 
 #' Compute Method Concordance between GAM and Kruskal-Wallis Results
 #'
-#' Analyzes agreement between GAM (flexible parametric) and Kruskal-Wallis (rank-based)
+#' Analyzes agreement between GAM (flexible parametric) and Kruskal-Wallis
+#' (rank-based)
 #' statistical test results. Merges results, calculates correlation, categorizes
-#' agreement patterns, and identifies high-confidence genes significant in both methods.
+#' agreement patterns, and identifies high-confidence genes significant in
+#' both methods.
 #'
 #' @param gam_results A data.frame from GAM analysis with columns:
 #'   \itemize{
@@ -125,11 +130,15 @@ print.gtable <- function(x, ...) {
 #'
 #' @return A list with elements:
 #'   \itemize{
-#'     \item \code{comparison_df}: Data frame with merged results and agreement classification
-#'       Contains columns: gene, p_gam, padj_gam, effect_gam, p_friedman, padj_friedman, effect_friedman,
+#'     \item \code{comparison_df}:  Data frame with  merged results and 
+#' agreement classification
+#' Contains columns: gene, p_gam, padj_gam, effect_gam, p_friedman,
+#' padj_friedman, effect_friedman,
 #'       gam_sig, friedman_sig, agreement
-#'     \item \code{spearman_rho}: Spearman correlation between GAM and Friedman p-values
-#'     \item \code{high_conf}: Subset of comparison_df for genes significant in both methods,
+#'     \item \code{spearman_rho}:  Spearman correlation between GAM and 
+#' Friedman p-values
+#'     \item \code{high_conf}:  Subset of comparison_df for 
+#' genes significant in both methods,
 #'       ordered by minimum p-value
 #'     \item \code{agreement_table}: Table of agreement categories with counts
 #'   }
@@ -137,7 +146,8 @@ print.gtable <- function(x, ...) {
 #' @details
 #' Agreement categories are defined based on significance at adj_p < 0.05:
 #' \itemize{
-#'   \item 'Both significant': Significant in both GAM and Friedman (most reliable)
+#'   \item 'Both significant':  Significant in both GAM and 
+#' Friedman (most reliable)
 #'   \item 'GAM only': Significant only in GAM
 #'   \item 'Friedman only': Significant only in Friedman test
 #'   \item 'Neither significant': Not significant in either method

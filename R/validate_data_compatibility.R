@@ -3,11 +3,16 @@
 #' Checks that gene identifiers are consistent between two data objects
 #' (e.g., SummarizedExperiment and lm_results data.frame).
 #'
-#' @param se \code{SummarizedExperiment} or \code{NULL}. Source object with rownames as gene IDs.
-#' @param results \code{data.frame} or \code{NULL}. Results object with rownames as gene IDs.
-#' @param se_name \code{character}. Display name for first object (e.g., 'SummarizedExperiment').
-#' @param results_name \code{character}. Display name for second object (e.g., 'LM results').
-#' @param verbose \code{logical}. If TRUE, print alignment report (default: TRUE).
+#' @param se \code{SummarizedExperiment} or  \code{NULL}.  Source object with 
+#' rownames as gene IDs.
+#' @param results \code{data. frame} or  \code{NULL}.  Results object with 
+#' rownames as gene IDs.
+#' @param se_name \code{character}.  Display name for  first object (e. g. ,
+#'  'SummarizedExperiment').
+#' @param results_name \code{character}.  Display name for  second object (e.
+#' g. ,  'LM results').
+#' @param verbose \code{logical}.  If TRUE,  print alignment report (default:
+#'  TRUE).
 #'
 #' @return List with validation results:
 #' \itemize{
@@ -26,7 +31,8 @@
 #'
 #' @examples
 #' library(SummarizedExperiment)
-#' tx_counts <- matrix(sample(10:100, 400, replace = TRUE), nrow = 40, ncol = 10,
+#' tx_counts <- matrix(sample(10:100, 400, replace = TRUE), nrow = 40, ncol
+#' = 10,
 #'   dimnames = list(paste0('TX', 1:40), paste0('Sample', 1:10)))
 #' se <- SummarizedExperiment(assays = list(counts = tx_counts))
 #' S4Vectors::metadata(se)$tx2gene <- data.frame(
@@ -128,11 +134,14 @@
 #' Checks that assay dimensions and colData align across objects.
 #'
 #' @param se \code{SummarizedExperiment}. Object to validate.
-#' @param expected_n_samples \code{integer} or \code{NULL}. Expected number of samples.
+#' @param expected_n_samples \code{integer} or  \code{NULL}.
+#'  Expected number of samples.
 #'   If NULL, no check performed (default: NULL).
-#' @param expected_assays \code{character} vector or \code{NULL}. Expected assay names
+#' @param expected_assays \code{character} vector or  \code{NULL}.
+#'  Expected assay names
 #'   (e.g., c('diversity', 'entropy')). If NULL, no check performed.
-#' @param verbose \code{logical}. If TRUE, print validation report (default: TRUE).
+#' @param verbose \code{logical}.  If TRUE,  print validation report (default:
+#'  TRUE).
 #'
 #' @return List with validation results:
 #' \itemize{
@@ -213,13 +222,17 @@
 #' Checks that LM results object has expected structure and content.
 #'
 #' @param lm_results \code{data.frame} or \code{list}. LM results to validate.
-#' @param expected_genes \code{character} vector or \code{NULL}. Gene names expected
+#' @param expected_genes \code{character} vector or  \code{NULL}.
+#'  Gene names expected
 #'   in results (default: NULL, no check).
-#' @param required_columns \code{character} vector. Column names that must be present
-#'   (default: c('gene', 'p_interaction', 'effect_size')). For flexibility with different
+#' @param required_columns \code{character} vector.  Column names that 
+#' must be present
+#' (default: c('gene', 'p_interaction', 'effect_size')). For flexibility
+#' with different
 #'   LM implementations, only ONE of the p-value columns needs to be present:
 #'   'p_value', 'p_interaction', 'p_raw', or 'adj_p_interaction'.
-#' @param verbose \code{logical}. If TRUE, print validation report (default: TRUE).
+#' @param verbose \code{logical}.  If TRUE,  print validation report (default:
+#'  TRUE).
 #'
 #' @return List with validation results:
 #' \itemize{
@@ -353,11 +366,13 @@
 #'
 #' @param se \code{SummarizedExperiment}. Input data object.
 #' @param lm_results \code{data.frame} or \code{NULL}. LM interaction results.
-#' @param stop_on_error \code{logical}. If TRUE, stop execution on validation failure.
+#' @param stop_on_error \code{logical}.  If TRUE,
+#'  stop execution on validation failure.
 #'   If FALSE, return issues and continue (default: TRUE).
 #' @param verbose \code{logical}. Print validation report (default: TRUE).
 #'
-#' @return Invisible list with all validation results. Returns NULL if all checks pass.
+#' @return Invisible list with all validation results. Returns NULL if all
+#' checks pass.
 #'   If validation fails and stop_on_error=TRUE, throws error before returning.
 #'
 #' @details

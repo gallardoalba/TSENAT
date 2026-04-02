@@ -1,25 +1,31 @@
 #' Storey's Pi0 Estimation and Q-Value Calculation
 #' 
 #' Implements adaptive false discovery rate (FDR) control using Storey's π₀ 
-#' estimation method. This allows for more powerful inference than Benjamini-Hochberg 
+#' estimation method. This allows for more powerful inference than
+#' Benjamini-Hochberg
 #' when a substantial proportion of null hypotheses are true (large π₀).
 #' 
 #' @details
 #' 
 #' **CRITICAL FOR TSENAT: Must Use Westfall-Young Preprocessing First**
 #' 
-#' These functions assume **independent p-values**. For TSENAT's multi-q Tsallis 
+#' These functions assume **independent p-values**. For TSENAT's multi-q
+#' Tsallis
 #' entropy analysis where q-values exhibit AR(1) correlation (ρ(k) = φ^|k|):
 #' 
-#'   ✓ **CORRECT**: Apply Westfall-Young FIRST → Then Storey to WY-adjusted p-values
+#' ✓ **CORRECT**: Apply Westfall-Young FIRST → Then Storey to WY-adjusted
+#' p-values
 #'   ✗ **INCORRECT**: Apply Storey directly to raw multi-q p-values
 #' 
 #' Example workflow:
 #' ```
-#'   1. [For multi-q correlation-adjusted analysis, see .calculate_lm_interaction() with multicorr='westfall-young']
-#'   2. Or: Use .rank_test_q_condition() for rank-based multi-q testing with WY control
+#' 1. [For multi-q correlation-adjusted analysis, see
+#' .calculate_lm_interaction() with multicorr='westfall-young']
+#' 2. Or: Use .rank_test_q_condition() for rank-based multi-q testing with
+#' WY control
 #'   3. Then: pi0_obj <- .estimate_storey_pi0(adjusted_pvalues)
-#'   4. Then: qvals <- .compute_storey_qvalues(adjusted_pvalues, pi0 = pi0_obj$pi0)
+#' 4. Then: qvals <- .compute_storey_qvalues(adjusted_pvalues, pi0 =
+#' pi0_obj$pi0)
 #' ```
 #' 
 #' **Why Westfall-Young First?**
@@ -53,7 +59,8 @@
 #' @param pvalues Numeric vector of p-values (0 <= p <= 1). 
 #'   **IMPORTANT**: For TSENAT multi-q Tsallis entropy: use 
 #'   Westfall-Young preprocessed p-values only (already correlation-adjusted).
-#'   Direct application to raw multi-q p-values violates the independence assumption.
+#' Direct application to raw multi-q p-values violates the independence
+#' assumption.
 #' @param lambda Optional threshold for π₀ estimation (default: 0.5). 
 #'   Common range: 0.3-0.9. Higher λ uses more conservative p-values.
 #' @param pi0_method Character specifying π₀ estimation method:
@@ -197,7 +204,8 @@
 #' 
 #' @param pvalues Numeric vector of p-values (0 <= p <= 1). 
 #'   **IMPORTANT**: These must be independent or correlation-adjusted. 
-#'   For TSENAT multi-q tests, use Westfall-Young adjusted p-values, not raw p-values.
+#' For TSENAT multi-q tests, use Westfall-Young adjusted p-values, not raw
+#' p-values.
 #' @param pi0 Estimated proportion of true null hypotheses. If NULL, 
 #'   estimated using .estimate_storey_pi0() with default parameters.
 #' @param fdr_level Desired false discovery rate level (default: 0.05)
@@ -211,9 +219,11 @@
 #' **Independence Requirement:**
 #'
 #' Input p-values must satisfy the independence assumption. If your p-values 
-#' come from correlated tests (e.g., TSENAT's multiple q-value entropy comparisons
+#' come from correlated tests (e.g., TSENAT's multiple q-value entropy
+#' comparisons
 #' which exhibit AR(1) correlation), you MUST first apply a correlation-aware 
-#' method like Westfall-Young. Applying Storey to unadjusted correlated p-values 
+#' method like Westfall-Young. Applying Storey to unadjusted correlated
+#' p-values
 #' violates its mathematical assumptions and underestimates π₀.
 #' 
 #' **Q-Value Computation:**
@@ -246,8 +256,10 @@
 #' n_sig_bh <- sum(qvalues_bh < 0.05)
 #' 
 #' @details
-#' This is an internal helper function primarily called by \code{.calculate_lm_interaction()}
-#' when the \code{storey=TRUE} parameter is enabled. It is kept internal as it requires
+#' This is an internal helper function primarily called by \code{.
+#' calculate_lm_interaction()}
+#' when  the \code{storey=TRUE} parameter is enabled.
+#'  It is kept internal as it requires
 #' proper p-value input validation and correlation-aware preprocessing.
 #' 
 

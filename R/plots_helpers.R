@@ -275,7 +275,8 @@ NULL
 #'
 #' Creates a discrete color scale using TSENAT's standard palette.
 #'
-#' @param palette Character: 'blue_red' (default), 'continuous_diverging', or custom.
+#' @param palette Character: 'blue_red' (default), 'continuous_diverging',
+#' or custom.
 #' @param direction Integer: 1 (default) or -1 to reverse colors.
 #' @param name Character: legend title.
 #'

@@ -1,9 +1,12 @@
 #' Fit Statistical Model for Gene-Specific Q-Entropy Interaction
 #'
 #' @description
-#' Dispatcher function that fits a specified statistical model to test for q-dependent
-#' interaction effects in Tsallis entropy across sample groups. Supports multiple
-#' modeling approaches (LMM, GAM, FPCA, GEE) optimized for different data structures.
+#' Dispatcher function that fits a specified statistical model to test for
+#' q-dependent
+#' interaction effects in Tsallis entropy across sample groups. Supports
+#' multiple
+#' modeling approaches (LMM, GAM, FPCA, GEE) optimized for different data
+#' structures.
 #'
 #' @details
 #' CORE PURPOSE:
@@ -17,20 +20,25 @@
 #'    - Uses nlme::lme with AR(1) covariance structure to model correlation
 #'      across ordered q-values within each subject (repeated measures design)
 #'    - ARIMA(1,1,0): Implements first-differencing to enforce stationarity
-#'    - Heteroscedasticity detection: Applies nlme::varPower() for q-dependent variance
-#'    - Hypothesis test: Likelihood Ratio Test (LRT) comparing null (no interaction)
+#' - Heteroscedasticity detection: Applies nlme::varPower() for q-dependent
+#' variance
+#' - Hypothesis test: Likelihood Ratio Test (LRT) comparing null (no
+#' interaction)
 #'      vs alternative (q*group interaction) models
 #'    - Best for: Paired/repeated measures data with multiple subjects
 #'
 #' 2. GAM (Generalized Additive Models):
-#'    - Uses mgcv::gam with smooth spline terms s(q) to capture nonlinear q-effects
-#'    - Regularization: Optional feature selection (PCA, LASSO, elastic net, gamsel)
+#' - Uses mgcv::gam with smooth spline terms s(q) to capture nonlinear
+#' q-effects
+#' - Regularization: Optional feature selection (PCA, LASSO, elastic net,
+#' gamsel)
 #'    - Adaptive knots: Automatically selects optimal number of basis functions
 #'    - Hypothesis test: F-test or ANOVA comparing model fits
 #'    - Best for: Flexible modeling of complex nonlinear relationships
 #'
 #' 3. FPCA (Functional Principal Component Analysis):
-#'    - Treats each subject's entropy curve (q → entropy) as a functional observation
+#' - Treats each subject's entropy curve (q → entropy) as a functional
+#' observation
 #'    - Extracts principal components explaining variance in curve shapes
 #'    - Tests for group differences in functional structure via PCA scores
 #'    - Best for: Small-sample designs; captures curve topology
@@ -39,53 +47,72 @@
 #'    - Semi-parametric method for clustered/correlated observations
 #'    - AR(1), exchangeable, or independence correlation structures
 #'    - Robust to variance misspecification; sandwich standard errors
-#'    - Best for: Large samples with clusters; robustness to distributional assumptions
+#' - Best for: Large samples with clusters; robustness to distributional
+#' assumptions
 #'
 #' SUBJECT IDENTIFICATION:
 #' For methods requiring repeated measures (LMM, GAM with subject, FPCA),
 #' subject IDs are determined by:
 #'   1. If subject_col provided: use that colData column
-#'   2. Else if paired=TRUE: search for 'paired_samples' or 'sample_base' columns
+#' 2. Else if paired=TRUE: search for 'paired_samples' or 'sample_base'
+#' columns
 #'   3. Else: use sample names (each treated as independent unit)
 #'
 #' DATA VALIDATION:
 #'   - Returns NULL if < min_obs observations (insufficient statistical power)
-#'   - Returns NULL if < 2 subjects (required for mixed models with random effects)
+#' - Returns NULL if < 2 subjects (required for mixed models with random
+#' effects)
 #'   - Handles missing values via casewise deletion (na.omit in df construction)
 #'
 #' @param g Character gene identifier (row name in mat)
 #' @param se SummarizedExperiment object containing sample metadata in colData
 #' @param mat Numeric matrix (genes × samples) of entropy values indexed by g
 #' @param q_vals Numeric vector of Tsallis q-parameters (length = ncol(mat))
-#' @param sample_names Character vector of sample identifiers (length = ncol(mat))
-#' @param group_vec Factor/character vector of group assignments (length = ncol(mat))
+#' @param sample_names Character vector of sample identifiers (length =
+#' ncol(mat))
+#' @param group_vec Factor/character vector of group assignments (length =
+#' ncol(mat))
 #' @param method Character: statistical method - 'lmm', 'gam', 'fpca', or 'gee'
-#' @param pvalue Character: p-value extraction method - 'lrt', 'satterthwaite', or 'both'
+#' @param pvalue Character: p-value extraction method - 'lrt',
+#' 'satterthwaite', or 'both'
 #'   (LMM only; ignored for GAM/FPCA/GEE)
-#' @param subject_col Character: colData column name for subject IDs (optional; overrides paired)
-#' @param paired Logical: if TRUE, search for paired_samples or sample_base columns (LMM, GAM)
-#' @param min_obs Integer: minimum observations required (default 2); returns NULL if nrow(df) < min_obs
+#' @param subject_col Character: colData column name for subject IDs
+#' (optional; overrides paired)
+#' @param paired Logical: if TRUE, search for paired_samples or sample_base
+#' columns (LMM, GAM)
+#' @param min_obs Integer: minimum observations required (default 2);
+#' returns NULL if nrow(df) < min_obs
 #' @param verbose Logical: if TRUE, print diagnostic messages during fitting
-#' @param suppress_lme4_warnings Logical: if TRUE, suppress lme4 warnings during fitting
+#' @param suppress_lme4_warnings Logical: if TRUE, suppress lme4 warnings
+#' during fitting
 #' @param progress Logical: if TRUE, show progress messages and timing
-#' @param bias_correction Logical: if TRUE, apply bias corrections in GAM models (default TRUE)
-#' @param regularization Character: regularization method - 'pca', 'lasso', 'elasticnet',
+#' @param bias_correction Logical: if TRUE, apply bias corrections in GAM
+#' models (default TRUE)
+#' @param regularization Character: regularization method - 'pca', 'lasso',
+#' 'elasticnet',
 #'   'gamsel', or 'spline' (affects GAM and FPCA feature selection)
-#' @param corstr Character: correlation structure - 'ar1' (default), 'exchangeable', or
+#' @param corstr Character: correlation structure - 'ar1' (default),
+#' 'exchangeable', or
 #'   'independence' (GEE only)
-#' @param adaptive_knots Logical: if TRUE, automatically select basis dimension in GAM (default TRUE)
-#' @param weights Numeric vector: optional inverse-variance weights for robust estimation
+#' @param adaptive_knots Logical: if TRUE, automatically select basis
+#' dimension in GAM (default TRUE)
+#' @param weights Numeric vector: optional inverse-variance weights for
+#' robust estimation
 #'   (length must equal nrow(df); applied in LMM and GEE)
 #'
 #' @return
 #' Data frame with one row containing:
 #'   - gene: Character gene identifier
 #'   - p_interaction: Numeric p-value for q*group interaction test
-#'   - p_lrt: Numeric p-value from Likelihood Ratio Test (LMM only; NA for GAM/FPCA/GEE)
-#'   - slope_diff: Numeric interaction coefficient (slope difference between groups)
-#'   - fit_method: Character method used ('nlme::lme', 'nlme::lme_arima(1,1,0)', 'gam', 'fpca', 'gee', etc.)
+#' - p_lrt: Numeric p-value from Likelihood Ratio Test (LMM only; NA for
+#' GAM/FPCA/GEE)
+#' - slope_diff: Numeric interaction coefficient (slope difference between
+#' groups)
+#' - fit_method: Character method used ('nlme::lme',
+#' 'nlme::lme_arima(1,1,0)', 'gam', 'fpca', 'gee', etc.)
 #'   - singular: Logical TRUE if model fit was singular (lmer only)
-#'   - arima_transformation: Logical TRUE if ARIMA(1,1,0) first-differencing applied (LMM)
+#' - arima_transformation: Logical TRUE if ARIMA(1,1,0) first-differencing
+#' applied (LMM)
 #'   - ci_weighted: Logical TRUE if inverse-variance weights were applied
 #'   - n_subjects: Integer number of subjects in model
 #'   - small_sample_flag: Logical TRUE if sample size < optimal threshold
@@ -325,10 +352,13 @@
 #' Helper functions for .fit_one_interaction() 
 #' 
 #' These functions extract repeated logic from .fit_one_interaction() to reduce
-#' function complexity and meet Bioconductor guideline of <50 lines per function.
+#' function complexity and meet Bioconductor guideline of <50 lines per
+#' function.
 #' 
-#' @details Bioconductor package guidelines recommend functions be kept under 50 lines
-#' when possible. This file contains extracted helpers to improve maintainability.
+#' @details Bioconductor package guidelines recommend functions be kept
+#' under 50 lines
+#' when possible. This file contains extracted helpers to improve
+#' maintainability.
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # .setup_interaction_data() - Validate inputs and initialize data frame

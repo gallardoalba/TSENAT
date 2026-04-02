@@ -27,18 +27,23 @@ calculate_difference_s4(
 )
 }
 \arguments{
-\item{analysis}{A \code{TSENATAnalysis} object with diversity results in \code{@diversity_results}.}
+\item{analysis}{A \code{TSENATAnalysis} object with 
+diversity results in \code{@diversity_results}.}
 
-\item{control}{Character string specifying the control group identifier. If \code{NULL},
-attempts to retrieve from \code{analysis@config$control}.}
+\item{control}{Character string specifying the control group identifier.
+If \code{NULL},
+ attempts to retrieve from \code{analysis@config$control}.}
 
-\item{q}{\code{numeric}. Q-value to use. If NULL, uses first diversity result or q=1.0.}
+\item{q}{\code{numeric}.  Q-value to use.  If NULL,
+uses first diversity result or  q=1. 0.}
 
-\item{condition_col}{\code{character} or \code{NULL}. Column name in colData identifying sample conditions.
-If NULL, reads from \code{@config$condition_col} or auto-detects.}
+\item{condition_col}{\code{character} or  \code{NULL}.
+Column name in colData identifying sample conditions.
+ If NULL, reads from \code{@config$condition_col} or auto-detects.}
 
-\item{method}{\code{character}. Difference calculation method. Default: 'mean'.
-If NULL, reads from \code{@config$method} if available.}
+\item{method}{\code{character}.  Difference calculation method.  Default:
+'mean'.
+ If NULL, reads from \code{@config$method} if available.}
 
 \item{test}{\code{character}. Statistical test type. Default: 'wilcoxon'.
 If NULL, reads from \code{@config$test} if available.}
@@ -64,44 +69,58 @@ If not specified, reads from \code{@config$exact} if available.}
 \item{pseudocount}{\code{numeric}. Pseudocount for normalization. Default: 0.
 If NULL, reads from \code{@config$pseudocount} if available.}
 
-\item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
-If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
+\item{nthreads}{\code{numeric} or  \code{NULL}.  Number of CPU threads for 
+parallel processing.
+  If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 
 \item{seed}{\code{numeric} or \code{NULL}. Random seed. Default: NULL.
 If NULL, reads from \code{@config$seed} if available.}
 
-\item{robust_loss_type}{\code{character}. Robust regression loss type. Default: 'huber'.
-If NULL, reads from \code{@config$robust_loss_type} if available.}
+\item{robust_loss_type}{\code{character}.  Robust regression loss type.
+Default:  'huber'.
+ If NULL, reads from \code{@config$robust_loss_type} if available.}
 
-\item{robust_scale_method}{\code{character}. Robust scaling method. Default: 'mad'.
-If NULL, reads from \code{@config$robust_scale_method} if available.}
+\item{robust_scale_method}{\code{character}.  Robust scaling method.
+Default:  'mad'.
+ If NULL, reads from \code{@config$robust_scale_method} if available.}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+ Optional file path to save results.
+Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables).
+Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{
-Returns the modified \code{analysis} object invisibly with results stored in
+Returns the modified \code{analysis} object invisibly with 
+results stored in
   \code{analysis@lm_results$difference}.
 }
 \description{
 S4 wrapper that operates on TSENATAnalysis objects to calculate differences
-between control and treatment groups. Uses diversity results from \code{@diversity_results} 
-slot (from \code{calculate_diversity_s4()}) and stores results in the \code{lm_results} slot.
+between control and  treatment groups.
+ Uses diversity results from \code{@diversity_results} 
+slot (from \code{calculate_diversity_s4()}) and 
+stores results in the \code{lm_results} slot.
 }
 \details{
-**IMPORTANT:** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
+**IMPORTANT:
+** Requires diversity results to exist first via \code{calculate_diversity_s4()}.
 This wrapper extracts the diversity SummarizedExperiment from \code{@diversity_results},
-not the raw input data in \code{@se}. This ensures you're comparing diversity values
+not the raw input data in \code{@se}.
+ This ensures you're comparing diversity values
 between control and treatment groups, not raw abundance data.
 
 **Parameter resolution priority** (explicit > @config > auto-detect > error):
 \itemize{
-  \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
-  \item \code{nthreads}: Uses explicit arg, else \code{@config$nthreads}, else 1
-  \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
-    else auto-detects from colData columns: 'group', 'sample_type', 'condition'
+  \item \code{control}:  Uses explicit arg,  else \code{@config$control},
+ else error
+  \item \code{nthreads}:  Uses explicit arg,  else \code{@config$nthreads},
+ else 1
+  \item \code{condition_col} (sample grouping):
+ Uses \code{@config$condition_col},
+else auto-detects from colData columns: 'group', 'sample_type',
+'condition'
 }
 }
 \examples{
@@ -113,14 +132,19 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data and create small subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-result <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+result <- calculate_difference_s4(analysis, control = 'normal', verbose =
+FALSE)
 
 }
 \seealso{

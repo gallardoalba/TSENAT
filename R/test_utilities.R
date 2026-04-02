@@ -8,7 +8,8 @@
 #' @param n_samples_per_group Samples per condition (default: 20)
 #' @param control_lambda Poisson lambda for control condition (default: 40)
 #' @param treatment_lambda Poisson lambda for treatment condition (default: 150)
-#' @param q_values Vector of q-values for diversity calculation (default: c(0.5, 1.0, 1.5))
+#' @param q_values Vector of q-values for diversity calculation (default:
+#' c(0.5, 1.0, 1.5))
 #' @param include_divergence If TRUE, compute divergence results (default: TRUE)
 #' @param include_lm_results If TRUE, add placeholder LM results (default: TRUE)
 #' @param seed Random seed for reproducibility (default: 42)

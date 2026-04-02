@@ -1,7 +1,8 @@
 ################################################################################
 #' Internal: Core Tsallis entropy calculation (consolidated)
 #' 
-#' Centralized entropy calculation used by all functions to eliminate duplication.
+#' Centralized entropy calculation used by all functions to eliminate
+#' duplication.
 #' Supports Shannon (q=1), Tsallis (q≠1), and species richness (q=0).
 #'
 #' @param proportions Numeric vector of species proportions (must sum to ~1)
@@ -81,9 +82,11 @@
 
 #' Internal: Vectorized Tsallis entropy calculation
 #'
-#' Compute entropy for multiple observations (rows = observations, cols = species)
+#' Compute entropy for multiple observations (rows = observations, cols =
+#' species)
 #'
-#' @param counts Matrix/data.frame where rows are observations, columns are species
+#' @param counts Matrix/data.frame where rows are observations, columns are
+#' species
 #' @param q Numeric. Generalization parameter. Default: 1.0
 #' @param norm Logical. Normalize by maximum entropy. Default: FALSE
 #' @param log_base Numeric. Logarithm base. Default: exp(1)
@@ -147,15 +150,18 @@
 
 #' Internal: Entropy calculation for a single vector with pseudocount support
 #'
-#' Compute Tsallis, Shannon, or species richness entropy for a single counts vector,
-#' with optional pseudocount and log base parameters. Used by jackknife and other
+#' Compute Tsallis, Shannon, or species richness entropy for a single counts
+#' vector,
+#' with optional pseudocount and log base parameters. Used by jackknife and
+#' other
 #' internal calculations.
 #'
 #' @param counts Numeric vector of (non-negative) counts
 #' @param q Numeric. Generalization parameter. Default: 1.0 (Shannon entropy)
 #' @param norm Logical. Normalize by maximum entropy [0,1]. Default: TRUE
 #' @param log_base Numeric. Logarithm base. Default: exp(1) (natural log)
-#' @param pseudocount Numeric. Add to each count before normalization. Default: 0
+#' @param pseudocount Numeric. Add to each count before normalization.
+#' Default: 0
 #' @param q_tol Numeric. Tolerance for detecting q=1 case. Default: 1e-6
 #'
 #' @return Numeric scalar: entropy value

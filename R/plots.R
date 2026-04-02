@@ -151,7 +151,8 @@ if (getRversion() >= "2.15.1") {
 #' clearer API separation.
 #'
 #' @param x Data.frame from `.calculate_difference()`.
-#' @param sig_alpha Numeric significance threshold for adjusted p-values (default: 0.05).
+#' @param sig_alpha Numeric significance threshold for adjusted p-values
+#' (default: 0.05).
 #' @param x_label Optional x-axis label passed to `plot_ma`.
 #' @param y_label Optional y-axis label passed to `plot_ma`.
 #' @param title Optional plot title passed to `plot_ma`.
@@ -293,10 +294,12 @@ if (getRversion() >= "2.15.1") {
 
 #' Violin plot of Tsallis entropy for a single q value
 #'
-#' Creates a violin plot showing the distribution of Tsallis entropy for a specific q value,
+#' Creates a violin plot showing the distribution of Tsallis entropy for a
+#' specific q value,
 #' with groups (conditions) displayed side by side.
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` containing
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity`
+#' containing
 #'   entropy values at one or more q values.
 #' @param q_value The specific q value to plot (numeric, e.g., 1, 2, 0.5).
 #' @param assay_name Name of the assay to use (default: 'diversity').
@@ -349,10 +352,12 @@ if (getRversion() >= "2.15.1") {
 
 #' Density plot of Tsallis entropy for a single q value
 #'
-#' Creates a density plot showing the distribution of Tsallis entropy for a specific q value,
+#' Creates a density plot showing the distribution of Tsallis entropy for a
+#' specific q value,
 #' with different groups (conditions) represented by different colors.
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` containing
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity`
+#' containing
 #'   entropy values at one or more q values.
 #' @param q_value The specific q value to plot (numeric, e.g., 1, 2, 0.5).
 #' @param assay_name Name of the assay to use (default: 'diversity').
@@ -405,19 +410,24 @@ if (getRversion() >= "2.15.1") {
 
 #' Combined Violin and Density Plot Grid for Single q Value
 #'
-#' Creates a side-by-side grid layout with a violin plot on the left and a density plot
-#' on the right, both showing Tsallis entropy distribution for the q value in the provided
+#' Creates a side-by-side grid layout with a violin plot on the left and a
+#' density plot
+#' on the right, both showing Tsallis entropy distribution for the q value
+#' in the provided
 #' SummarizedExperiment (which should contain a single q value).
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` containing
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity`
+#' containing
 #'   entropy values at a single q value.
 #' @param assay_name Name of the assay to use (default: 'diversity').
 #' @param title Optional base title. If NULL, auto-generated based on q value.
-#' @param output_file Character or NULL. Optional file path to save the plot as an image.
+#' @param output_file Character or NULL. Optional file path to save the plot
+#' as an image.
 #'   If provided, the plot will be saved with appropriate dimensions.
 #'   Default: NULL (no file output, only return object).
 #'
-#' @return A `ggplot2` object showing a 1x2 grid with violin plot on the left and
+#' @return A `ggplot2` object showing a 1x2 grid with violin plot on the
+#' left and
 #'   density plot on the right.
 #'
 #' @export
@@ -428,13 +438,16 @@ if (getRversion() >= "2.15.1") {
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' readcounts <- as.matrix(salmon_dataset)
 #' mode(readcounts) <- 'numeric'
 #' 
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = 1.0, verbose = FALSE)
 #' p <- plot_tsallis_violin_density_grid_s4(analysis)
 #' if (!is.null(p)) print(p)
@@ -516,7 +529,8 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 #' @param x_col Optional column name for the x-axis. If `NULL`, the function
 #'   will try to auto-detect a suitable numeric column (excluding p-values).
 #' @param padj_col Adjusted p-value column name (default: 'padj').
-#' @param label_thresh Fold-change threshold used to annotate points (default: 0.1).
+#' @param label_thresh Fold-change threshold used to annotate points
+#' (default: 0.1).
 #' @param sig_alpha Adjusted p-value cutoff for significance (default: 0.05).
 #' @param top_n Number of top significant genes to label (default: 5).
 #' @param title Optional plot title; if `NULL` a default title is used.
@@ -553,20 +567,25 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
 
 #' Combine Volcano and MA-Tsallis Plots in a Grid Layout
 #'
-#' Creates a side-by-side grid layout with a volcano plot on the left and an MA-Tsallis plot on the right.
+#' Creates a side-by-side grid layout with a volcano plot on the left and an
+#' MA-Tsallis plot on the right.
 #' Both plots are generated from differential analysis results data.
 #'
-#' @param diff_df Data.frame from differential analysis containing required columns for both volcano and MA plots.
-#' @param x_col Column name for x-axis in volcano plot (e.g., 'mean_difference'). Auto-detected if NULL.
+#' @param diff_df Data.frame from differential analysis containing required
+#' columns for both volcano and MA plots.
+#' @param x_col Column name for x-axis in volcano plot (e.g.,
+#' 'mean_difference'). Auto-detected if NULL.
 #' @param padj_col Column name for adjusted p-values (default: 'padj').
 #' @param label_thresh Threshold for volcano plot labels (default: 0.1).
-#' @param sig_alpha Numeric significance threshold for adjusted p-values (default: 0.05).
+#' @param sig_alpha Numeric significance threshold for adjusted p-values
+#' (default: 0.05).
 #' @param top_n Number of top genes to annotate in volcano plot (default: 5).
 #' @param title_volcano Title for volcano plot. If NULL, auto-generated.
 #' @param title_ma Title for MA plot (default: 'Tsallis-based MA plot').
 #' @param ... Additional arguments passed to plotting functions.
 #'
-#' @return A `ggplot2` object showing a 1x2 grid with volcano plot on the left and MA plot on the right.
+#' @return A `ggplot2` object showing a 1x2 grid with volcano plot on the
+#' left and MA plot on the right.
 #'
 #' @examples
 #' # Simulate differential analysis results
@@ -633,7 +652,8 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     c(min(mins, na.rm = TRUE), max(maxs, na.rm = TRUE))
 }
 
-#' Internal helper to draw grid layout with title, plots, and legend using base grid
+#' Internal helper to draw grid layout with title, plots, and legend using
+#' base grid
 #' @noRd
 .plot_transcript_grid_draw <- function(grobs, title, legend_grob, ncol, heights,
     to_file = NULL) {
@@ -1133,9 +1153,12 @@ plot_tsallis_violin_density_grid_s4 <- function(se, assay_name = "diversity", ti
     }
 }
 
-#' @importFrom ggplot2 ggplot aes geom_col geom_point geom_line scale_y_continuous
-#' @importFrom ggplot2 labs theme_minimal theme element_text geom_hline geom_vline
-#' @importFrom ggplot2 scale_color_manual scale_shape_manual geom_tile scale_fill_gradient2
+#' @importFrom ggplot2 ggplot aes geom_col geom_point geom_line
+#' scale_y_continuous
+#' @importFrom ggplot2 labs theme_minimal theme element_text geom_hline
+#' geom_vline
+#' @importFrom ggplot2 scale_color_manual scale_shape_manual geom_tile
+#' scale_fill_gradient2
 NULL
 
 if (getRversion() >= "2.15.1") {
@@ -1268,26 +1291,36 @@ if (getRversion() >= "2.15.1") {
 
 #' Plot Tsallis Divergence Effect Size Distribution
 #'
-#' Generate a histogram visualization of Tsallis divergence effect sizes across genes,
-#' showing the distribution of information-theoretic measures of isoform switching.
+#' Generate a histogram visualization of Tsallis divergence effect sizes
+#' across genes,
+#' showing the distribution of information-theoretic measures of isoform
+#' switching.
 #'
-#' @param interaction_results A data frame containing LMM results merged with per-q divergence estimates.
-#'   Must contain columns matching the pattern `effect_size_D_q*` (e.g., `effect_size_D_q0_5`, `effect_size_D_q1_0`).
+#' @param interaction_results A data frame containing LMM results merged
+#' with per-q divergence estimates.
+#' Must contain columns matching the pattern `effect_size_D_q*` (e.g.,
+#' `effect_size_D_q0_5`, `effect_size_D_q1_0`).
 #'   Typically the result from [.effect_sizes_divergence()].
 #'
-#' @param threshold Numeric. Effect size threshold for visual marking. Default is 0.1 (information-theoretic significance level).
+#' @param threshold Numeric. Effect size threshold for visual marking.
+#' Default is 0.1 (information-theoretic significance level).
 #'
-#' @return If ggplot2 is available and `interaction_results` contains valid data, returns a ggplot object.
+#' @return If ggplot2 is available and `interaction_results` contains valid
+#' data, returns a ggplot object.
 #'   Otherwise returns NULL invisibly and prints an informative message.
 #'
 #' @details
-#' The function visualizes the distribution of effect sizes using the median q-value's divergence
-#' (typically around q=1.0, close to Shannon entropy). The red dashed line marks the default
+#' The function visualizes the distribution of effect sizes using the median
+#' q-value's divergence
+#' (typically around q=1.0, close to Shannon entropy). The red dashed line
+#' marks the default
 #' information-theoretic significance threshold of D=0.1.
 #'
 #' @references
-#' - Chanda et al. (2020). Information Theory in Computational Biology. *Entropy*, 22(6), 627.
-#' - Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs Statistics. *Journal of Statistical Physics*, 52(1), 479-487.
+#' - Chanda et al. (2020). Information Theory in Computational Biology.
+#' *Entropy*, 22(6), 627.
+#' - Tsallis, C. (1988). Possible Generalization of Boltzmann-Gibbs
+#' Statistics. *Journal of Statistical Physics*, 52(1), 479-487.
 #'
 #' @examples
 #' # Create example interaction results with divergence effect sizes
@@ -1366,33 +1399,41 @@ if (getRversion() >= "2.15.1") {
 #' Plot Q-Spectrum Curves for Multiple Top Genes
 #'
 #' Creates a multi-panel grid comparing per-q divergence profiles across the top
-#' N genes identified by LMM interaction analysis. Each panel shows the full q-spectrum
+#' N genes identified by LMM interaction analysis. Each panel shows the full
+#' q-spectrum
 #' divergence curve with the gene name and adjusted p-value in the title.
 #'
 #' @param eff_res Output from effect size computation OR \code{NULL}.
-#'   If provided, must contain `$interaction_results` with columns: gene, adj_p_interaction, per_q_pattern.
+#' If provided, must contain `$interaction_results` with columns: gene,
+#' adj_p_interaction, per_q_pattern.
 #'   If \code{NULL}, uses fallback with lm_res + divergence_results_se.
 #'
-#' @param lm_res (Optional) Data frame from LMM analysis with columns: gene, adj_p_interaction.
+#' @param lm_res (Optional) Data frame from LMM analysis with columns: gene,
+#' adj_p_interaction.
 #'   Only used if eff_res is NULL. Must be provided for fallback mode.
 #'
-#' @param divergence_results_se (Optional) SummarizedExperiment from divergence calculation.
+#' @param divergence_results_se (Optional) SummarizedExperiment from
+#' divergence calculation.
 #'   Only used if eff_res is NULL. Must be provided for fallback mode.
 #'
-#' @param n_genes Integer; number of top genes to plot (default: 9). Genes are sorted by
+#' @param n_genes Integer; number of top genes to plot (default: 9). Genes
+#' are sorted by
 #'   increasing adjusted p-value (most significant first).
 #'
-#' @param ncol Integer; number of columns in grid layout (default: 3). Number of rows is
+#' @param ncol Integer; number of columns in grid layout (default: 3).
+#' Number of rows is
 #'   automatically calculated as ceiling(n_genes / ncol).
 #'
 #' @param verbose Logical; if TRUE, print diagnostic messages (default: TRUE).
 #'
-#' @param output_file Character or NULL. Optional file path to save the plot as an image.
+#' @param output_file Character or NULL. Optional file path to save the plot
+#' as an image.
 #'   If provided, the plot will be saved with appropriate dimensions.
 #'   Default: NULL (no file output, only return object).
 #'
 #' @return A ggplot2 object created via \code{patchwork} combining all gene panels,
-#'   or NULL if gene data is unavailable. The function automatically handles ggplot2 grid
+#' or NULL if gene data is unavailable. The function automatically handles
+#' ggplot2 grid
 #'   creation and returns a print-ready object.
 #'
 #' @details
@@ -1401,15 +1442,18 @@ if (getRversion() >= "2.15.1") {
 #' - **Mode 2 (Fallback)**: Pass lm_res + divergence_results_se instead
 #'
 #' **Gene Filtering:**
-#' Genes are ranked by decreasing statistical significance (increasing adj_p_interaction).
-#' Only genes with complete per-q divergence data are included. If fewer than n_genes
+#' Genes are ranked by decreasing statistical significance (increasing
+#' adj_p_interaction).
+#' Only genes with complete per-q divergence data are included. If fewer
+#' than n_genes
 #' have valid data, the function returns all available genes.
 #'
 #' **Plot Features:**
 #' - Title shows: gene name and adjusted p-value (q-value format)
 #' - Per-q divergence curve with point estimates and 95% bootstrap CI bands
 #' - Vertical reference line at q=1 (Kullback-Leibler divergence point)
-#' - Region labels: 'Rare Isoforms' (q<1), 'Balanced' (q~=1), 'Abundant Isoforms' (q>1)
+#' - Region labels: 'Rare Isoforms' (q<1), 'Balanced' (q~=1), 'Abundant
+#' Isoforms' (q>1)
 #' - All plots use consistent ggplot2 styling matching plot_q_spectrum
 #'
 #' @examples
@@ -1424,15 +1468,18 @@ if (getRversion() >= "2.15.1") {
 #' 
 #' # Generate control and treatment with very strong separation
 #' # This ensures sufficient statistical power for divergence tests
-#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 100),
+#' control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda =
+#' 100),
 #'   nrow = n_isoforms, ncol = n_samples_per_group)
-#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 300),
+#' treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda
+#' = 300),
 #'   nrow = n_isoforms, ncol = n_samples_per_group)
 #' counts <- cbind(control_counts, treatment_counts)
 #' rownames(counts) <- paste0('TX_', 1:n_isoforms)
 #' colnames(counts) <- paste0('Sample_', 1:n_samples)
 #' 
-#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
+#' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts =
+#' counts))
 #' tx2gene_df <- data.frame(Transcript = rownames(counts),
 #'   Gene = rep(paste0('GENE_', 1:n_genes), each = n_isoforms_per_gene))
 #' S4Vectors::metadata(se)$tx2gene <- tx2gene_df
@@ -1441,7 +1488,8 @@ if (getRversion() >= "2.15.1") {
 #'   condition = rep(c('control', 'treatment'), each = n_samples_per_group),
 #'   row.names = colnames(se))
 #' SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
-#' SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se),
+#' SummarizedExperiment::rowData(se)$gene_id <-
+#' tx2gene_df$Gene[match(rownames(se),
 #'   tx2gene_df$Transcript)]
 #' 
 #' # Run complete analysis pipeline (skipped for speed in documentation)
@@ -1457,7 +1505,8 @@ if (getRversion() >= "2.15.1") {
 #' # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
 #' # if (!is.null(p)) print(p)
 #'
-#' @seealso \code{\link{calculate_divergence_s4}} for computing divergence values.
+#' @seealso \code{\link{calculate_divergence_s4}} for 
+#' computing divergence values.
 #'
 #' @export
 plot_multi_gene_q_spectrum_s4 <- function(eff_res = NULL, lm_res = NULL, divergence_results_se = NULL,

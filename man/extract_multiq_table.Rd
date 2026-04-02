@@ -12,12 +12,15 @@ extract_multiq_table(
 )
 }
 \arguments{
-\item{result}{Result object (may be list with multi-q structure or single result)}
+\item{result}{Result object (may be list with multi-q structure or single
+result)}
 
-\item{is_multiq}{Logical. Whether result has multi-q structure. Default: auto-detect.}
+\item{is_multiq}{Logical. Whether result has multi-q structure. Default:
+auto-detect.}
 
 \item{extract_fn}{Function to extract table from each result element.
-Signature: \code{function(result_element, q_key)}. Default: extracts 'summary_table'.}
+ Signature:  \code{function(result_element,  q_key)}.  Default:
+extracts 'summary_table'.}
 
 \item{q_value_col}{Name of q-value column to add. Default: 'q_value'}
 }
@@ -25,7 +28,8 @@ Signature: \code{function(result_element, q_key)}. Default: extracts 'summary_ta
 data.frame with combined results and q_value column
 }
 \description{
-Helper to combine results from multiple q-values into a single data.frame with q_value column.
+Helper to combine results from multiple q-values into a single data.frame
+with q_value column.
 }
 \examples{
 # Create sample multi-q result structure

@@ -1,30 +1,43 @@
 #' Plot Tsallis Divergence Profiles Across q-Spectrum for Top Genes
 #'
-#' Visualizes how Tsallis divergence D_q varies across the q-spectrum for selected genes.
-#' This reveals which diversity scales (rare vs. abundant isoforms) drive the observed
+#' Visualizes how Tsallis divergence D_q varies across the q-spectrum for
+#' selected genes.
+#' This reveals which diversity scales (rare vs. abundant isoforms) drive
+#' the observed
 #' biological differences between groups.
 #'
-#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with multiple q-values.
-#' @param gene Optional character vector of gene names to plot. Can be a single gene name,
+#' @param se A `SummarizedExperiment` returned by `calculate_diversity` with
+#' multiple q-values.
+#' @param gene Optional character vector of gene names to plot. Can be a
+#' single gene name,
 #'   a vector of names, or NULL. If NULL, uses top genes from lm_res.
 #' @param lm_res Optional data.frame with columns: gene, p_value_interaction, 
-#'   adj_p_lmm (or adj_p_interaction). If provided and gene=NULL, top genes are selected by significance.
-#' @param readcounts Optional matrix of raw read counts (genes * transcripts) for computing
-#'   true Tsallis divergence from isoform distributions. If NULL, uses entropy-based approximation.
-#' @param tx2gene_map Optional data.frame mapping transcripts to genes (columns: 'transcript', 'gene').
-#' @param group_col Character name of the column in colData(se) indicating group assignment.
+#' adj_p_lmm (or adj_p_interaction). If provided and gene=NULL, top genes
+#' are selected by significance.
+#' @param readcounts Optional matrix of raw read counts (genes *
+#' transcripts) for computing
+#' true Tsallis divergence from isoform distributions. If NULL, uses
+#' entropy-based approximation.
+#' @param tx2gene_map Optional data.frame mapping transcripts to genes
+#' (columns: 'transcript', 'gene').
+#' @param group_col Character name of the column in colData(se) indicating
+#' group assignment.
 #'   Default: 'group'.
 #' @param n_top Integer. When using lm_res, plot top n_top genes. Default: 3.
-#' @param assay_name Character name of the assay containing diversity measures. Default: 'diversity'.
-#' @param arrange_type How to arrange multiple plots. Options: 'facet' (faceted grid),
+#' @param assay_name Character name of the assay containing diversity
+#' measures. Default: 'diversity'.
+#' @param arrange_type How to arrange multiple plots. Options: 'facet'
+#' (faceted grid),
 #'   'list' (named list). Default: 'facet'.
 #' @param signed Logical. If TRUE, compute signed divergence (mean2 - mean1); 
 #'   positive = group2 higher, negative = group1 higher. If FALSE (default), 
 #'   absolute divergence. Signed divergence reveals directional differences.
 #'
 #' @return If arrange_type='facet', returns a single ggplot with facets by gene.
-#'   If arrange_type='list', returns a named list of ggplot objects (one per gene).
-#'   When signed=TRUE, negative values indicate group1 preference, positive indicate group2 preference.
+#' If arrange_type='list', returns a named list of ggplot objects (one per
+#' gene).
+#' When signed=TRUE, negative values indicate group1 preference, positive
+#' indicate group2 preference.
 #'
 #' @details
 #' The plot shows:
@@ -35,7 +48,8 @@
 #'   - q~=1: KL divergence region
 #'   - High q (>1): dominant isoform divergence
 #'
-#' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal
+#' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs
+#' theme_minimal
 #'   theme element_text scale_color_manual scale_fill_manual geom_hline
 #' @importFrom dplyr group_by summarise
 #' @importFrom SummarizedExperiment colData assay
@@ -45,7 +59,8 @@
 #' set.seed(42)
 #' # Create sample Tsallis divergence data
 #' ts_se <- SummarizedExperiment(
-#'   assays = list(divergence = matrix(rnorm(100, mean=2, sd=0.5), nrow=10, ncol=10)),
+#' assays = list(divergence = matrix(rnorm(100, mean=2, sd=0.5), nrow=10,
+#' ncol=10)),
 #'   rowData = data.frame(gene = paste0('gene_', 1:10)),
 #'   colData = data.frame(condition = rep(c('A', 'B'), 5))
 #' )

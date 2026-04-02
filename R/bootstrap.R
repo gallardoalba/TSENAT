@@ -304,12 +304,14 @@ hill_number_cpp_wrapper <- function(p, q = 1, log_base = exp(1)) {
 #' C++ wrapper for block bootstrap computation on paired resampling data.
 #' Performs multiple bootstrap iterations for entropy estimation.
 #'
-#' @param x \code{numeric}. Data vector (must have even length for paired design).
+#' @param x \code{numeric}.  Data vector (must have even length for 
+#' paired design).
 #' @param q \code{numeric}. Tsallis q parameter. Default: 1.0.
 #' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
 #' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
 #' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.
+#' @param pseudocount \code{numeric}.  Pseudocount for  abundance inflation.
+#'  Default:  0.
 #'
 #' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
 #'
@@ -359,7 +361,8 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboo
 #' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
 #' @param nboot \code{integer}. Number of bootstrap samples. Default: 1000.
 #' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
-#' @param pseudocount \code{numeric}. Pseudocount for abundance inflation. Default: 0.
+#' @param pseudocount \code{numeric}.  Pseudocount for  abundance inflation.
+#'  Default:  0.
 #'
 #' @return \code{numeric}. Vector of nboot bootstrap entropy estimates.
 #'
@@ -402,10 +405,12 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 10
 #' @param normalize \code{logical}. Normalize entropy? Default: TRUE.
 #' @param log_base \code{numeric}. Logarithm base. Default: e (natural log).
 #'
-#' @return \code{numeric}. Vector of entropy estimates for each bootstrap sample.
+#' @return \code{numeric}.  Vector of entropy estimates for 
+#' each bootstrap sample.
 #'
 #' @details
-#' Efficiently computes entropy for multiple bootstrap samples using C++ acceleration.
+#' Efficiently computes entropy for multiple bootstrap samples using C++
+#' acceleration.
 #' Input must be a matrix of samples (typically from multinomial resampling).
 #'
 #' @keywords internal
@@ -488,7 +493,8 @@ divergence_bootstrap_compute_cpp_wrapper <- function(x, y, q = 1, nboot = 1000L,
 #' Paired Divergence Bootstrap (C++ Optimized)
 #'
 #' @description
-#' C++ wrapper for paired divergence bootstrap with explicit pair structure handling.
+#' C++ wrapper for paired divergence bootstrap with explicit pair structure
+#' handling.
 #' Used for paired/matched study designs where samples are linked across groups.
 #'
 #' @param x numeric. Control group counts.
@@ -729,7 +735,8 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 
 #' Internal: Bootstrap resampling with quality control enforcement
 #'
-#' Wraps .bootstrap_resample_optimized() and enforces min_valid_frac by regenerating
+#' Wraps .bootstrap_resample_optimized() and enforces min_valid_frac by
+#' regenerating
 #' invalid (NA/NaN) replicates until the quality threshold is met.
 #'
 #' @noRd
@@ -932,38 +939,55 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' for a single gene or top genes using resampling. Supports both percentile and
 #' bias-corrected and accelerated (BCa) methods.
 #'
-#' @param x Optional: Vector of (non-negative) transcript-level expression counts or abundances.
-#'          Alternatively, a matrix with genes as rows and samples as columns for vectorized
-#'          processing across multiple genes (uses \code{nthreads} for parallelization).
-#'          If NULL, must provide \code{se} and \code{res} for automatic data extraction.
-#' @param se Optional: A SummarizedExperiment object containing transcript-level counts.
-#'           Required when \code{x} is NULL. The function will extract counts and gene names
+#' @param x Optional: Vector of (non-negative) transcript-level expression
+#' counts or abundances.
+#' Alternatively, a matrix with genes as rows and samples as columns for
+#' vectorized
+#'          processing across multiple genes (uses \code{nthreads} for 
+#' parallelization).
+#'          If NULL,  must provide \code{se} and  \code{res} for 
+#' automatic data extraction.
+#' @param se Optional: A SummarizedExperiment object containing
+#' transcript-level counts.
+#'           Required when  \code{x} is NULL.
+#'  The function will extract counts and  gene names
 #'           from this object using the 'counts' assay.
-#' @param res Optional: A data.frame of results (e.g., from .calculate_difference()).
-#'          When provided with \code{se}, the function extracts the top gene from \code{res}
+#' @param res Optional: A data.frame of results (e.g., from
+#' .calculate_difference()).
+#'          When provided with  \code{se},
+#'  the function extracts the top gene from \code{res}
 #'          and performs bootstrap analysis on its transcript counts.
 #'          If NULL, analysis uses \code{x} directly.
-#' @param top_n Numeric: Which top gene to analyze when \code{se} and \code{res} are provided
-#'             (default 1). For example, top_n=2 analyzes the 2nd most significant gene.
-#' @param nthreads Integer: Number of threads for parallel processing when \code{x} is a matrix
-#'             (default: 1, no parallelization). Set to > 1 to enable parallel bootstrap
+#' @param top_n Numeric:  Which top gene to analyze when  \code{se} and 
+#' \code{res} are provided
+#'             (default 1).  For example,
+#'  top_n=2 analyzes the 2nd most significant gene.
+#' @param nthreads Integer:  Number of threads for  parallel processing when 
+#' \code{x} is a matrix
+#'             (default:  1,  no parallelization).
+#'  Set to > 1 to enable parallel bootstrap
 #'             across genes using \code{parallel::mclapply} (Unix/Mac only).
-#'             Recommended: nthreads = detectCores() - 1 for optimal performance.
-#'             Paper C017 discusses computational optimization for multi-gene analysis.
-#' @param q Tsallis entropy parameter (q > 0). Scalar or vector of values (default: 2).
+#'             Recommended:  nthreads = detectCores() - 1 for 
+#' optimal performance.
+#'             Paper C017 discusses computational optimization for 
+#' multi-gene analysis.
+#' @param q Tsallis entropy parameter (q > 0). Scalar or vector of values
+#' (default: 2).
 #'          If vector, returns list of CI results, one per q value.
 #' @param norm Logical; if TRUE, normalize entropy by its theoretical maximum
 #'   (values in [0,1]).
 #' @param nboot Integer number of bootstrap replicates (default: 1000).
 #' @param ci Numeric; desired confidence level (default: 0.95 for 95\% CI).
-#' @param method Character; bootstrap CI method: \code{'percentile'} (default) or
+#' @param method Character;  bootstrap CI method:
+#'  \code{'percentile'} (default) or
 #'   \code{'bca'} (bias-corrected and accelerated). BCa is more accurate but
 #'   computationally intensive.
 #' @param log_base Base of the logarithm used for entropy calculation
 #'   (default: \code{exp(1)}).
 #' @param pseudocount Numeric scalar; small value added to transcript counts
 #'   before calculating proportions (default: 0).
-#' @param what Which quantity to bootstrap: \code{'S'} (Tsallis entropy, default)
+#' @param what Which quantity to bootstrap:  \code{'S'} (Tsallis entropy,
+#'  default)
 #'   or \code{'D'} (Hill numbers).
 #' @param seed Integer random seed for reproducibility (default: NULL).
 #' @param gene_name Optional character string; name of the gene for display
@@ -971,55 +995,78 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #'   gene name is extracted automatically from rownames(se). Default: NULL.
 #' @param verbose Logical; if TRUE with \code{gene_name} provided,
 #'   prints a formatted summary with interpretation. Default: TRUE.
-#' @param include_diagnostics Logical; if TRUE (default), includes diagnostic fields
-#'   assessing CI quality: effective sample size, skewness, bias, and acceleration factor
-#'   (for BCa method). Set to FALSE for legacy compatibility or to reduce memory usage.
-#'   Diagnostics help assess whether bootstrap CI is reliable (papers S111, S114).
+#' @param include_diagnostics Logical; if TRUE (default), includes
+#' diagnostic fields
+#' assessing CI quality: effective sample size, skewness, bias, and
+#' acceleration factor
+#' (for BCa method). Set to FALSE for legacy compatibility or to reduce
+#' memory usage.
+#' Diagnostics help assess whether bootstrap CI is reliable (papers S111,
+#' S114).
 #'   Default: TRUE.
-#' @param use_job Logical; if TRUE, implements Jackknife-of-Bootstrap (JOB) method
-#'   for more robust CI estimation. Computes bootstrap CI on full dataset, then on each
+#' @param use_job Logical; if TRUE, implements Jackknife-of-Bootstrap (JOB)
+#' method
+#' for more robust CI estimation. Computes bootstrap CI on full dataset,
+#' then on each
 #'   leave-one-out replicate, and assesses CI stability (paper S111).
 #'   JOB is more conservative and computationally intensive. Default: FALSE.
 #'   When enabled, the return list includes a \code{job_stability} field with
 #'   stability metrics across jackknife replicates.
 #' @param paired Logical; if TRUE, applies block bootstrap for paired samples
-#'   (e.g., matched case-control observations). Requires \code{x} to have even length
-#'   (pairs as consecutive elements: sample1_pair1, sample2_pair1, sample1_pair2, ...),
+#'   (e. g. ,  matched case-control observations).
+#'  Requires \code{x} to have even length
+#' (pairs as consecutive elements: sample1_pair1, sample2_pair1,
+#' sample1_pair2, ...),
 #'   or a matrix with 2 rows (treatment and control for each sample pair).
-#'   Block bootstrap resamples entire pairs together, preserving within-pair dependence.
+#' Block bootstrap resamples entire pairs together, preserving within-pair
+#' dependence.
 #'   Default: FALSE (standard bootstrap assumes independence).
 #'   Paper S112 discusses dependent data analysis with paired structures.
-#'   When paired=TRUE, CI is more conservative to account for correlation within pairs.
+#' When paired=TRUE, CI is more conservative to account for correlation
+#' within pairs.
 #'
 #' @return A list with components (for single q):
 #'   \describe{
-#'     \item{estimate}{Point estimate of Tsallis entropy (calculated on original data).}
+#'     \item{estimate}{Point estimate of Tsallis entropy (calculated on original data).
+#' }
 #'     \item{lower_ci}{Lower confidence bound.}
 #'     \item{upper_ci}{Upper confidence bound.}
 #'     \item{ci_level}{Requested confidence level.}
 #'     \item{method}{Bootstrap method used.}
 #'     \item{nboot}{Number of bootstrap replicates computed.}
-#'     \item{bootstrap_dist}{Numeric vector of bootstrap replicates (for inspection).}
-#'     \item{diagnostics}{(if include_diagnostics=TRUE) List with CI quality assessment:
-#'       - \code{effective_sample_size}: Adjusted n accounting for replicate autocorrelation
-#'       - \code{skewness}: Bootstrap distribution skewness; |.| > 2 suggests unreliability
+#'     \item{bootstrap_dist}{Numeric vector of bootstrap replicates (for 
+#' inspection). }
+#'     \item{diagnostics}{(if  include_diagnostics=TRUE) List with 
+#' CI quality assessment:
+#'       - \code{effective_sample_size}:  Adjusted n accounting for 
+#' replicate autocorrelation
+#'       - \code{skewness}:  Bootstrap distribution skewness;  |.
+#' | > 2 suggests unreliability
 #'       - \code{bias}: Difference between point estimate and bootstrap median
-#'       - \code{acceleration_factor}: (BCa only) Second-order correction from jackknife
+#'       - \code{acceleration_factor}:
+#'  (BCa only) Second-order correction from jackknife
 #'     }
-#'     \item{job_stability}{(if use_job=TRUE) List with jackknife-of-bootstrap stability metrics:
-#'       - \code{ci_lower_stable}: Conservative lower bound from jackknife replicates
-#'       - \code{ci_upper_stable}: Conservative upper bound from jackknife replicates
+#'     \item{job_stability}{(if  use_job=TRUE) List with 
+#' jackknife-of-bootstrap stability metrics:
+#'       - \code{ci_lower_stable}:
+#'  Conservative lower bound from jackknife replicates
+#'       - \code{ci_upper_stable}:
+#'  Conservative upper bound from jackknife replicates
 #'       - \code{ci_width_variation}: Coefficient of variation of CI widths
-#'       - \code{bound_variability}: Relative change in bounds across jackknife samples
+#'       - \code{bound_variability}:
+#'  Relative change in bounds across jackknife samples
 #'       - \code{n_outlier_bounds}: Count of outlier CI estimates
 #'     }
 #'   }
 #'
 #'   **Matrix input (vectorized processing):**
 #'   When \code{x} is a matrix (genes * samples), returns a list of class
-#'   \code{tsenat_bootstrap_ci_list} with one result per gene, with names from rownames(x).
-#'   If \code{nthreads > 1}, uses parallel processing (Unix/Mac via \code{parallel::mclapply}).
-#'   Computational speedup: typically 5-10* for multi-gene analysis (paper C017).
+#'   \code{tsenat_bootstrap_ci_list} with  one result per gene,  with 
+#' names from rownames(x).
+#'   If \code{nthreads > 1},
+#'  uses parallel processing (Unix/Mac via \code{parallel: : mclapply}).
+#' Computational speedup: typically 5-10* for multi-gene analysis (paper
+#' C017).
 #'
 #'   For multiple q values, returns a list of above structures, one per q value,
 #'   of class \code{tsenat_bootstrap_ci_list}.
@@ -1029,22 +1076,28 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' Bootstrap resampling works by:
 #' \enumerate{
 #'   \item Treating observed transcript counts as the population proportions.
-#'   \item Repeatedly drawing samples (with replacement) from this multinomial distribution.
+#'   \item Repeatedly drawing samples (with 
+#' replacement) from this multinomial distribution.
 #'   \item Computing Tsallis entropy for each bootstrap sample.
 #'   \item Extracting quantiles to form confidence intervals.
 #' }
 #'
-#' **Percentile method:** For \eqn{B}{B} bootstrap replicates \eqn{S^*_b}{S*_b} where \eqn{b = 1, \ldots, B}{b=1,...,B}:
+#' **Percentile method:** For \eqn{B}{B} bootstrap replicates
+#' \eqn{S^*_b}{S*_b} where \eqn{b = 1, \ldots, B}{b=1,...,B}:
 #'
-#' \deqn{\text{CI}_{\alpha} = [S^*_{(\alpha/2)}, S^*_{(1-\alpha/2)}]}{CI_alpha = [S*_(alpha/2), S*_(1-alpha/2)]}
+#' \deqn{\text{CI}_{\alpha} = [S^*_{(\alpha/2)},
+#' S^*_{(1-\alpha/2)}]}{CI_alpha = [S*_(alpha/2), S*_(1-alpha/2)]}
 #'
 #' where subscripts denote order statistics (quantiles).
 #'
-#' **BCa method:** Adjusts for bias \eqn{z_0}{z_0} and acceleration \eqn{a}{a} computed via jackknife:
+#' **BCa method:** Adjusts for bias \eqn{z_0}{z_0} and acceleration
+#' \eqn{a}{a} computed via jackknife:
 #'
-#' \deqn{\text{CI}_{\text{BCa}} = [S^*_{(p_L)}, S^*_{(p_U)}]}{CI_BCa = [S*_(p_L), S*_(p_U)]}
+#' \deqn{\text{CI}_{\text{BCa}} = [S^*_{(p_L)}, S^*_{(p_U)}]}{CI_BCa =
+#' [S*_(p_L), S*_(p_U)]}
 #'
-#' where adjusted quantiles \eqn{p_L}{p_L} and \eqn{p_U}{p_U} account for bias and skewness,
+#' where adjusted quantiles \eqn{p_L}{p_L} and \eqn{p_U}{p_U} account for
+#' bias and skewness,
 #' improving coverage in small samples (more accurate but slower).
 #'
 #' **Automatic data extraction with se and res:**
@@ -1059,15 +1112,21 @@ divergence_bootstrap_flexible_cpp_wrapper <- function(x, y, x_pair_ids, y_pair_i
 #' The function displays:
 #' - Point estimate and confidence bounds
 #' - CI width (precision indicator)
-#' - Interpretation: 'We are X% confident the true Tsallis entropy for this gene 
+#' - Interpretation: 'We are X% confident the true Tsallis entropy for this
+#' gene
 #'   lies within this range.'
 #'
 #' **IMPORTANT - Raw Count Requirement:**
-#' This function requires a SummarizedExperiment with original raw transcript counts
-#' (the 'counts' assay). Bootstrap resampling is mathematically valid only on raw count data.
-#' If you have passed data through `.calculate_diversity()`, the returned SummarizedExperiment
-#' preserves the original 'counts' assay, so you can safely pass it to this function.
-#' Do NOT attempt to use diversity-transformed data (e.g., a SE with only entropy/Hill assays)
+#' This function requires a SummarizedExperiment with original raw
+#' transcript counts
+#' (the 'counts' assay). Bootstrap resampling is mathematically valid only
+#' on raw count data.
+#' If you have passed data through `.calculate_diversity()`, the returned
+#' SummarizedExperiment
+#' preserves the original 'counts' assay, so you can safely pass it to this
+#' function.
+#' Do NOT attempt to use diversity-transformed data (e.g., a SE with only
+#' entropy/Hill assays)
 #' as the bootstrap assumptions will be violated and results will be unreliable.
 #'
 #' **Workflow:**
@@ -1287,17 +1346,20 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #'     \item{ci_upper_stable}{Upper CI bound (stability-adjusted)}
 #'     \item{ci_width_variation}{Coefficient of variation of CI widths across jackknife samples}
 #'     \item{bound_variability}{Max relative change in bounds across jackknife samples}
-#'     \item{n_outlier_bounds}{Count of jackknife samples with outlier CI bounds}
+#'     \item{n_outlier_bounds}{Count of jackknife samples with 
+#' outlier CI bounds}
 #'   }
 #'
 #' @details
 #' JOB Procedure (paper S111):
 #' 1. Compute bootstrap CI on full dataset
-#' 2. For each observation i, remove it and compute bootstrap CI on remaining data
+#' 2. For each observation i, remove it and compute bootstrap CI on
+#' remaining data
 #' 3. Track CI stability: are bounds consistent across leave-one-out replicates?
 #' 4. Return stability metrics assessing robustness
 #'
-#' Conservative estimate: use maximum of lower bounds and minimum of upper bounds
+#' Conservative estimate: use maximum of lower bounds and minimum of upper
+#' bounds
 #' across all jackknife replicates to get widest CI (most conservative).
 #'
 
@@ -1396,8 +1458,10 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' Bootstrap Confidence Intervals for Q-curve Data
 #'
 #' Helper function to compute bootstrap confidence intervals for Tsallis entropy
-#' across multiple q-values and groups. Resamples genes (not individual transcripts)
-#' with replacement and computes quantile-based confidence intervals for medians.
+#' across multiple q-values and groups. Resamples genes (not individual
+#' transcripts)
+#' with replacement and computes quantile-based confidence intervals for
+#' medians.
 #'
 #' @param long Data frame in long format with columns: Gene, q, tsallis, group.
 #'   Typically output from \code{.prepare_tsallis_long()}.
@@ -1406,7 +1470,8 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' @param ci_level Numeric; confidence level (default: 0.95 for 95% CI).
 #' @param n_bootstrap Integer; number of bootstrap replicates (default: 500).
 #'
-#' @return A nested list structure: \code{[[group]][[q_string]]} where each element
+#' @return A nested list structure:
+#'  \code{[[group]][[q_string]]} where each element
 #'   contains a list with:
 #'   \describe{
 #'   \item{median}{Median entropy from original data.}
@@ -1423,7 +1488,8 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' 3. For each resample, compute the median entropy
 #' 4. Calculate CI bounds from percentiles of bootstrap distribution
 #'
-#' Uses percentile method with quantile type 7 (recommended by Hyndman & Fan, 1996).
+#' Uses percentile method with quantile type 7 (recommended by Hyndman &
+#' Fan, 1996).
 #'
 
 #' @noRd
@@ -1492,14 +1558,17 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 
 #' Suggest Adaptive Bootstrap Sample Size
 #'
-#' Recommends an appropriate number of bootstrap replicates based on the number of genes
-#' being analyzed and the method (percentile vs BCa). This helps balance computational
+#' Recommends an appropriate number of bootstrap replicates based on the
+#' number of genes
+#' being analyzed and the method (percentile vs BCa). This helps balance
+#' computational
 #' efficiency with statistical accuracy.
 #'
 #' @param n_genes Integer: Number of genes to be analyzed simultaneously.
 #'                If analyzing a single gene, use n_genes=1. For multiple genes,
 #'                provide the total count.
-#' @param use_bca Logical: If TRUE (default FALSE), recommends higher sample sizes
+#' @param use_bca Logical: If TRUE (default FALSE), recommends higher sample
+#' sizes
 #'                suitable for the more computationally intensive BCa method.
 #'                If FALSE, recommends for the faster percentile method.
 #'
@@ -1509,7 +1578,8 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' **Rationale (from paper C017 - Bootstrap computational methods):**
 #'
 #' The BCa (bias-corrected and accelerated) method is more accurate but requires
-#' higher computational cost due to jackknife calculations. For datasets with many genes,
+#' higher computational cost due to jackknife calculations. For datasets
+#' with many genes,
 #' the percentile method offers a good accuracy-to-speed trade-off.
 #'
 #' **Recommendations by scenario:**
@@ -1621,31 +1691,44 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' between two distributions using resampling. Supports both percentile and
 #' bias-corrected and accelerated (BCa) methods.
 #'
-#' @param x Optional: Vector of (non-negative) transcript-level expression counts
-#'          for the first distribution (reference). If NULL, must provide \code{se}
+#' @param x Optional: Vector of (non-negative) transcript-level expression
+#' counts
+#'          for  the first distribution (reference).  If NULL,
+#'  must provide \code{se}
 #'          and \code{res} for automatic data extraction.
 #' @param y Vector of (non-negative) transcript-level expression counts for the
 #'        second distribution (comparison). Required unless using \code{se} and
 #'        \code{res} for automatic extraction.
-#' @param se Optional: A SummarizedExperiment object containing transcript-level counts.
-#'           Required when using automatic data extraction (when \code{x} is NULL).
+#' @param se Optional: A SummarizedExperiment object containing
+#' transcript-level counts.
+#'           Required when  using automatic data extraction (when 
+#' \code{x} is NULL).
 #'           Uses the 'counts' assay.
-#' @param res Optional: A data.frame of results (e.g., from .calculate_difference()).
-#'            When provided with \code{se}, extracts the top gene(s) for bootstrap
+#' @param res Optional: A data.frame of results (e.g., from
+#' .calculate_difference()).
+#'            When provided with  \code{se},  extracts the top gene(s) for 
+#' bootstrap
 #'            analysis. Gene names must be in rownames(res).
-#' @param top_n Numeric: Which top gene to analyze when using \code{se} and \code{res}
-#'             (default: 1). For example, top_n = 2 analyzes the 2nd most significant gene.
-#' @param group_col Character: Name of colData column specifying group membership
+#' @param top_n Numeric:  Which top gene to analyze when  using \code{se} and 
+#' \code{res}
+#' (default: 1). For example, top_n = 2 analyzes the 2nd most significant
+#' gene.
+#' @param group_col Character: Name of colData column specifying group
+#' membership
 #'                 (default: 'group'). Required when using \code{se}.
-#' @param control_group Character: Name of the control/reference group in colData.
-#'                     Default: 'Normal'. Determines which group is used as baseline.
+#' @param control_group Character: Name of the control/reference group in
+#' colData.
+#'                     Default:  'Normal'.  Determines which 
+#' group is used as baseline.
 #' @param q Tsallis entropy parameter (q > 0). Scalar or vector of values
-#'          (default: 1 for KL divergence). If vector, returns list of CI results.
+#'          (default:  1 for  KL divergence).  If vector,
+#'  returns list of CI results.
 #' @param norm Logical; if TRUE, normalize divergence by its theoretical maximum
 #'             (values in [0,1]). Default: FALSE.
 #' @param nboot Integer number of bootstrap replicates (default: 1000).
 #' @param ci Numeric; desired confidence level (default: 0.95 for 95\% CI).
-#' @param method Character; bootstrap CI method: \code{'percentile'} (default) or
+#' @param method Character;  bootstrap CI method:
+#'  \code{'percentile'} (default) or
 #'   \code{'bca'} (bias-corrected and accelerated). BCa is more accurate but
 #'   computationally intensive.
 #' @param log_base Base of the logarithm used for divergence calculation
@@ -1657,10 +1740,13 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #'   If NULL and \code{se} + \code{res} provided, extracted automatically.
 #' @param verbose Logical; if TRUE with \code{gene_name} provided,
 #'   prints a formatted summary. Default: TRUE.
-#' @param paired Logical; if TRUE, uses paired sample design where bootstrap resamples
-#'   pairs as units to preserve pairing structure. Requires colData to contain pairing
+#' @param paired Logical; if TRUE, uses paired sample design where bootstrap
+#' resamples
+#' pairs as units to preserve pairing structure. Requires colData to contain
+#' pairing
 #'   information or pair_id_col to be specified. Default: FALSE (unpaired).
-#' @param pair_id_col Optional character; name of the colData column containing pair IDs.
+#' @param pair_id_col Optional character; name of the colData column
+#' containing pair IDs.
 #'   If NULL with paired=TRUE, auto-detects via standard naming patterns
 #'   (pair_id, subject_id, patient_id, etc.). Default: NULL.
 #'
@@ -1684,8 +1770,10 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' Bootstrap resampling works by:
 #' \enumerate{
 #'   \item Treating observed transcript counts as population parameters.
-#'   \item For group 1: Draw bootstrap sample (with replacement) from counts_group1
-#'   \item For group 2: Draw bootstrap sample (with replacement) from counts_group2
+#'   \item For group 1:  Draw bootstrap sample (with 
+#' replacement) from counts_group1
+#'   \item For group 2:  Draw bootstrap sample (with 
+#' replacement) from counts_group2
 #'   \item Computing proportions and Tsallis divergence for each pair
 #'   \item Extracting quantiles to form confidence intervals.
 #' }
@@ -1708,20 +1796,28 @@ print.tsenat_bootstrap_ci_list <- function(x, ...) {
 #' resampling assumptions and yields unreliable CIs.
 #'
 #' **Database Verification (tsenat_papers.db):**
-#' Bootstrap methodology for divergence estimation is validated across 363 papers:
-#' - **I001-I004** (Tsallis divergence theory): Mathematical foundations for Tsallis
-#'   divergence computation and properties across q-parameters. q-parameter effects
+#' Bootstrap methodology for divergence estimation is validated across 363
+#' papers:
+#' - **I001-I004** (Tsallis divergence theory): Mathematical foundations for
+#' Tsallis
+#' divergence computation and properties across q-parameters. q-parameter
+#' effects
 #'   on divergence magnitude are theoretically grounded (q_weight = 0.5 + q).
 #' - **S063-S067** (Power analysis): Empirical validation of divergence-based
-#'   statistical power. Bootstrap methodology confirmed to maintain Type I error control.
-#' - **C016, C030, S018, S030** (Bootstrap methodology): Percentile and BCa bootstrap
-#'   performance validated. Coverage probabilities for entropy/divergence estimates
+#' statistical power. Bootstrap methodology confirmed to maintain Type I
+#' error control.
+#' - **C016, C030, S018, S030** (Bootstrap methodology): Percentile and BCa
+#' bootstrap
+#' performance validated. Coverage probabilities for entropy/divergence
+#' estimates
 #'   confirmed with confidence level >= 0.95 using nboot >= 500.
 #' - **I004** (Validation study): Explicit validation of divergence computation
-#'   showing different q-parameters produce different divergence values reflecting
+#' showing different q-parameters produce different divergence values
+#' reflecting
 #'   different aspects of distribution differences.
 #'
-#' This function's implementation (percentile and BCa methods) aligns with approaches
+#' This function's implementation (percentile and BCa methods) aligns with
+#' approaches
 #' validated in papers C016, S018, S030. Effect sizes from divergence are robust
 #' across q-values and reproducible in bootstrap resampling (papers S063-S067).
 #'
@@ -2634,12 +2730,14 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #' - Asymptotic confidence interval using jackknife
 #'
 #' @param boot_dist Numeric vector; bootstrap distribution
-#' @param compute_ci Logical; if TRUE, computes confidence intervals via jackknife
+#' @param compute_ci Logical; if TRUE, computes confidence intervals via
+#' jackknife
 #'
 #' @return List with components:
 #'   - `skewness_mean`: Mean-based skewness (Fisher-Pearson)
 #'   - `skewness_quartile`: Quartile-based skewness (robust)
-#'   - `skewness_median_absolute_dev`: Skewness using MAD (resistant to outliers)
+#' - `skewness_median_absolute_dev`: Skewness using MAD (resistant to
+#' outliers)
 #'   - `ci_lower`: Lower 95% CI for skewness (if compute_ci=TRUE)
 #'   - `ci_upper`: Upper 95% CI for skewness (if compute_ci=TRUE)
 #'   - `interpretation`: Character description of skewness level
@@ -2659,7 +2757,8 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'
 #' **Confidence bounds:**
 #' Bootstrap distributions with |skewness| > 2 may produce unreliable CIs.
-#' Jackknife confidence intervals (papers S111, S114) quantify skewness uncertainty.
+#' Jackknife confidence intervals (papers S111, S114) quantify skewness
+#' uncertainty.
 #'
 #' @keywords internal
 #' @noRd
@@ -2778,7 +2877,8 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'   - `modes_locations`: Estimated mode locations (numeric vector)
 #'   - `separation_score`: How well-separated modes are (0-1, higher = better)
 #'   - `method_used`: String indicating which method was used
-#'   - `interpretation`: Assessment of what multimodality means for the bootstrap
+#' - `interpretation`: Assessment of what multimodality means for the
+#' bootstrap
 #'
 #' @details
 #' **Methods:**
@@ -2790,12 +2890,14 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'    - Most accurate but requires more computation
 #'
 #' 2. **Histogram-based:**
-#'    - Partition distribution into bins (Sturges rule: k = ceiling(log2(n) + 1))
+#' - Partition distribution into bins (Sturges rule: k = ceiling(log2(n) +
+#' 1))
 #'    - Count modes as bins with more items than median bin count
 #'    - Fast and simple, less sensitive to bandwidth choice
 #'
 #' 3. **Gap-detection:**
-#'    - Identify large gaps between sorted values (>2 SD of inter-point distance)
+#' - Identify large gaps between sorted values (>2 SD of inter-point
+#' distance)
 #'    - Fastest method, good for well-separated modes but misses close modes
 #'
 #' **Interpretation:**
@@ -2803,14 +2905,17 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'   Bootstrap CI is likely reliable.
 #'
 #' - **Bimodal to trimodal (2-3 modes):** Distribution has secondary peaks.
-#'   May indicate: (a) different parameter regimes, (b) boundary effects in data,
+#' May indicate: (a) different parameter regimes, (b) boundary effects in
+#' data,
 #'   (c) inadequate bootstrap sample size. Bootstrap CI may be conservative.
 #'   Recommendation: Check input data, consider BCa method.
 #'
 #' - **Highly multimodal (>3 modes):** Distribution has complex structure.
-#'   May indicate: (a) too many resampling boundaries, (b) specific data patterns,
+#' May indicate: (a) too many resampling boundaries, (b) specific data
+#' patterns,
 #'   (c) mixture distribution in original data. Bootstrap CIs may be unreliable.
-#'   Recommendation: Investigate input data, increase nboot, consider alternative methods.
+#' Recommendation: Investigate input data, increase nboot, consider
+#' alternative methods.
 #'
 #' @keywords internal
 #' @noRd
@@ -3096,7 +3201,8 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'
 #' @details
 #' **Ratios:**
-#' - **CI width / estimate:** High value (>0.5) suggests low precision relative to estimate
+#' - **CI width / estimate:** High value (>0.5) suggests low precision
+#' relative to estimate
 #' - **CI width / SD:** Ratio ~4 is typical for 95% CIs (2.5*SD on each side);
 #'   much higher ratios suggest longer-tailed bootstrap distributions
 #'
@@ -3108,7 +3214,8 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #'
 #' **Issues detected:**
 #' - Asymmetric CI: Large difference between distance to lower and upper bounds
-#' - Negative lower bound: May indicate boundary issues for non-negative quantities
+#' - Negative lower bound: May indicate boundary issues for non-negative
+#' quantities
 #' - Wide relative CI: High relative uncertainty
 #' - Small n_bootstrap: Low effective sample size for CI computation
 #'
@@ -3238,13 +3345,17 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #' validation reports and supplementary materials.
 #'
 #' **Reliability tiers:**
-#' - **Reliable:** Bootstrap distribution is well-behaved (unimodal, low skewness,
+#' - **Reliable:** Bootstrap distribution is well-behaved (unimodal, low
+#' skewness,
 #'   symmetric CI, sufficient n_bootstrap). CI can be used with confidence.
 #' - **Caution:** Some non-ideal characteristics detected (moderate skewness,
-#'   slightly asymmetric CI, or modest sample size). CI is usable but conservative
+#' slightly asymmetric CI, or modest sample size). CI is usable but
+#' conservative
 #'   interpretation recommended.
-#' - **Unreliable:** Major issues detected (strong multimodality, extreme skewness,
-#'   very asymmetric CI). Bootstrap CI may not be valid; consider alternative methods.
+#' - **Unreliable:** Major issues detected (strong multimodality, extreme
+#' skewness,
+#' very asymmetric CI). Bootstrap CI may not be valid; consider alternative
+#' methods.
 #'
 #' @keywords internal
 #' @noRd

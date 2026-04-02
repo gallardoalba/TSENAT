@@ -28,10 +28,13 @@
 #'
 #' @return List with elements:
 #'   \describe{
-#'     \item{group_col}{Name of the colData column used for grouping, or NA_character_ if none detected}
-#'     \item{control_group}{Name of the control/reference group, or NA_character_ if none detected}
+#'     \item{group_col}{Name of the colData column used for  grouping,  or 
+#' NA_character_ if  none detected}
+#'     \item{control_group}{Name of the control/reference group,  or 
+#' NA_character_ if  none detected}
 #'     \item{groups}{Character vector of all unique groups found}
-#'     \item{sample_counts}{Named integer vector of sample counts per group (names: group names)}
+#'     \item{sample_counts}{Named integer vector of sample counts per group (names:
+#'  group names)}
 #'   }
 #'
 
@@ -110,7 +113,8 @@
 #' **Detection Strategy:**
 #' Searches colData in precedence order for common pairing column names:
 #' 1. 'paired_samples' (TSENAT default, matches readcounts metadata)
-#' 2. 'pair_id', 'pair_samples', 'subject_id', 'patient_id' (common alternatives)
+#' 2. 'pair_id', 'pair_samples', 'subject_id', 'patient_id' (common
+#' alternatives)
 #'
 #' Returns a mapping from sample names to pair identifiers, or NULL if no
 #' pairing column is found. A valid pairing column has:
@@ -119,22 +123,29 @@
 #' - Deterministic structure (e.g., all A's paired with another A sample nearby)
 #'
 #' **Database References (Papers validating auto-detection approach):**
-#' - S102: 'Experimental Control and Paired Design' - standardizes paired design annotation
-#' - S107: 'Related Sample Designs and Paired t-test' - validates paired structure detection
+#' - S102: 'Experimental Control and Paired Design' - standardizes paired
+#' design annotation
+#' - S107: 'Related Sample Designs and Paired t-test' - validates paired
+#' structure detection
 #'
 #' @param se SummarizedExperiment object with sample metadata in colData
 #'
 #' @return List with elements:
 #'   \describe{
-#'     \item{pair_ids}{Character vector (names: sample names, values: pair identifiers)
+#'     \item{pair_ids}{Character vector (names:  sample names,  values:
+#'  pair identifiers)
 #'       or NULL if no pairing detected}
-#'     \item{column_name}{Name of the colData column used, or NA_character_ if none}
+#'     \item{column_name}{Name of the colData column used,  or 
+#' NA_character_ if  none}
 #'     \item{num_pairs}{Number of unique pairs (0 if none detected)}
-#'     \item{samples_per_pair}{Vector of samples per pair (names: pair IDs, values: counts)}
+#'     \item{samples_per_pair}{Vector of samples per pair (names:  pair IDs,
+#'  values:  counts)}
 #'   }
 #'
-#' @note Paired samples detected from any of: 'paired_samples', 'pair_id', 'pair_samples',
-#'   'subject_id', 'patient_id'. Returns NULL if none present or validation fails.
+#' @note Paired samples detected from any of: 'paired_samples', 'pair_id',
+#' 'pair_samples',
+#' 'subject_id', 'patient_id'. Returns NULL if none present or validation
+#' fails.
 #'
 
 #' @noRd
@@ -175,7 +186,8 @@
 #' Resample Data Respecting Paired Structure
 #'
 #' When resampling paired data, both members of a pair are selected or discarded
-#' together. This preserves within-pair correlations critical for statistical validity
+#' together. This preserves within-pair correlations critical for
+#' statistical validity
 #' in matched designs (Efron & Tibshirani 1993).
 #'
 #' For k pairs:
@@ -186,11 +198,13 @@
 #' **Statistical Justification (Papers C016, S102-S109):**
 #' - C016: Bootstrap for confidence intervals requires preserving data structure
 #' - S102: 'Paired Design' - paired resampling required for matched samples
-#' - S107: 'Related Sample Designs' - within-pair correlation invalidates independent resampling
+#' - S107: 'Related Sample Designs' - within-pair correlation invalidates
+#' independent resampling
 #'
 #' @param control_samples Vector of counts for control group
 #' @param treatment_samples Vector of counts for treatment group
-#' @param pair_ids Named character vector: names = sample names, values = pair IDs
+#' @param pair_ids Named character vector: names = sample names, values =
+#' pair IDs
 #' @param group_col Character vector: group assignment (one per sample)
 #' @param control_group Character: name of control group
 #'
@@ -529,7 +543,8 @@
 
 #' Vectorized Tsallis Divergence Calculation (OPTIMIZED)
 #'
-#' Computes Tsallis divergence for multiple q-values simultaneously using vectorized operations.
+#' Computes Tsallis divergence for multiple q-values simultaneously using
+#' vectorized operations.
 #' This provides 2-3x speedup compared to sequential q-value loops by:
 #' 1. Computing p^q and r^(1-q) matrices once
 #' 2. Reusing these matrices for all q-values

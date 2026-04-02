@@ -22,14 +22,16 @@ jackknife isoform switching analysis across multiple q-values.}
 by order of appearance in results.}
 
 \item{lm_results}{\code{data.frame} or \code{NULL}. Optional LM interaction
-results for ranking genes (default: NULL). If NULL, attempts to extract from
-\code{analysis@lm_results$lm_interaction}.}
+results for ranking genes (default: NULL). If NULL, attempts to extract
+from
+  \code{analysis@lm_results$lm_interaction}.}
 
 \item{verbose}{\code{logical}. If \code{TRUE}, print diagnostic messages
 during plot generation (default: FALSE).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
-Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save the plot.
+ Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
 }
@@ -37,20 +39,24 @@ Default: NULL (no file output).}
 A file path (character) to the saved heatmap PNG file, invisibly.
 }
 \description{
-S4 wrapper for \code{.plot_multiq_delta_influence_heatmaps()} that extracts results
-directly from a TSENATAnalysis object. Automatically retrieves jackknife switching
+S4 wrapper for  \code{. plot_multiq_delta_influence_heatmaps()} that 
+extracts results
+directly from a TSENATAnalysis object. Automatically retrieves jackknife
+switching
 results from the analysis object slots.
 }
 \details{
 This function extracts the following from \code{analysis}:
 \describe{
-  \item{Jackknife results}{From \code{analysis@jackknife_results}, which should
+  \item{Jackknife results}{From \code{analysis@jackknife_results},  which 
+should
         contain multi-q switching results keyed by q-value (e.g., 'q_1.00')}
   \item{LM results}{From \code{analysis@lm_results$lm_interaction} if not
         explicitly provided, for ranking genes by significance}
 }
 
-The wrapper automatically handles parameter extraction and provides a simplified
+The wrapper automatically handles parameter extraction and provides a
+simplified
 interface compared to the base function.
 }
 \examples{
@@ -62,8 +68,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
@@ -77,12 +85,16 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
   n_bootstrap = 50, verbose = FALSE)
-heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)
+heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes
+= 2)
 
 }
 \seealso{

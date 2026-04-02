@@ -1,23 +1,35 @@
 #' Plot Global Divergence q-Curve Across All Genes
 #'
 #' Visualizes the average (mean/median) Tsallis divergence D_q across all genes
-#' as a function of q-value. This provides a **global view** of which diversity scales
-#' (rare vs. abundant isoforms) drive the most divergence on average across the dataset,
+#' as a function of q-value. This provides a **global view** of which
+#' diversity scales
+#' (rare vs. abundant isoforms) drive the most divergence on average across
+#' the dataset,
 #' complementing gene-specific divergence profiles.
 #'
-#' @param divergence_results_se A `SummarizedExperiment` containing pre-computed divergence values.
-#'   Rows = genes, columns = q-values. Column names should indicate q-values (e.g., 'q_0.5', 'q_1.0').
-#' @param gene Optional character. If provided, plot divergence spectrum for this specific gene.
+#' @param divergence_results_se A `SummarizedExperiment` containing
+#' pre-computed divergence values.
+#' Rows = genes, columns = q-values. Column names should indicate q-values
+#' (e.g., 'q_0.5', 'q_1.0').
+#' @param gene Optional character. If provided, plot divergence spectrum for
+#' this specific gene.
 #'   If NULL, plot global divergence curve (aggregated across all genes).
-#' @param lm_res Optional data.frame with columns for gene identifiers and p-values. Used to select
+#' @param lm_res Optional data.frame with columns for gene identifiers and
+#' p-values. Used to select
 #'   top genes when gene = NULL and lm_res is provided. Default: NULL.
-#' @param n_genes Integer; number of top genes to plot when showing multi-gene spectra (default: 4).
-#'   Must be positive. Genes are sorted by p-value significance (lowest p-values first).
-#' @param ncol Integer; number of columns in grid layout for multi-gene plots (default: 2).
-#'   Must be positive. Number of rows is automatically calculated as ceiling(n_genes / ncol).
-#' @param metric Character. Summary statistic for global curve: 'median' or 'mean'. Default: 'median'.
+#' @param n_genes Integer; number of top genes to plot when showing
+#' multi-gene spectra (default: 4).
+#' Must be positive. Genes are sorted by p-value significance (lowest
+#' p-values first).
+#' @param ncol Integer; number of columns in grid layout for multi-gene
+#' plots (default: 2).
+#' Must be positive. Number of rows is automatically calculated as
+#' ceiling(n_genes / ncol).
+#' @param metric Character. Summary statistic for global curve: 'median' or
+#' 'mean'. Default: 'median'.
 #'   Only used when gene = NULL.
-#' @param variability_metric Character. Error bar type for global curve: 'sd' or 'iqr'. Default: 'iqr'.
+#' @param variability_metric Character. Error bar type for global curve:
+#' 'sd' or 'iqr'. Default: 'iqr'.
 #'   Only used when gene = NULL.
 #'
 #' @return A `ggplot` object. Gene-specific calls return a line plot.
@@ -31,13 +43,17 @@
 #'
 #' **Global mode (gene = NULL)**:
 #' - Aggregates divergence across all genes at each q-value
-#' - Shows which diversity scales (q-values) drive the most divergence on average
-#' - Useful for identifying dominant biological mechanisms (rare vs. abundant isoform driven)
+#' - Shows which diversity scales (q-values) drive the most divergence on
+#' average
+#' - Useful for identifying dominant biological mechanisms (rare vs.
+#' abundant isoform driven)
 #'
-#' **Interpretation**: Compare with `plot_tsallis_q_curve` (entropy) to understand
+#' **Interpretation**: Compare with `plot_tsallis_q_curve` (entropy) to
+#' understand
 #' the relationship between entropy changes and divergence patterns.
 #'
-#' @importFrom ggplot2 ggplot aes geom_line geom_point geom_ribbon labs theme_minimal element_text
+#' @importFrom ggplot2 ggplot aes geom_line geom_point geom_ribbon labs
+#' theme_minimal element_text
 #' @importFrom SummarizedExperiment assay rowData
 #' @importFrom stats IQR var
 #'

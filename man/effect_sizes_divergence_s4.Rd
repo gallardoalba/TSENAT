@@ -14,49 +14,61 @@ effect_sizes_divergence_s4(
 )
 }
 \arguments{
-\item{analysis}{\code{TSENATAnalysis}. An S4 object containing divergence results
-(from \code{calculate_divergence_s4()}) and LM interaction results
-(from \code{calculate_lm_interaction_s4()}).}
+\item{analysis}{\code{TSENATAnalysis}.
+An S4 object containing divergence results
+ (from \code{calculate_divergence_s4()}) and LM interaction results
+ (from \code{calculate_lm_interaction_s4()}).}
 
 \item{significance_threshold}{\code{numeric}. Adjusted p-value threshold for
 filtering significant genes (default: 0.05).}
 
-\item{enrich_per_q_pattern}{\code{logical}. If TRUE, enriches results with per-q
-divergence patterns (default: TRUE).}
+\item{enrich_per_q_pattern}{\code{logical}.  If TRUE,
+enriches results with  per-q
+ divergence patterns (default: TRUE).}
 
-\item{verbose}{\code{logical}. If TRUE, print diagnostic messages (default: TRUE).}
+\item{verbose}{\code{logical}.  If TRUE,
+print diagnostic messages (default:  TRUE).}
 
-\item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
-Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
+\item{output_file}{\code{character} or  \code{NULL}.
+Optional file path to save results.
+ Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 
 \item{...}{Additional arguments passed to the base function.}
 }
 \value{
 Modified TSENATAnalysis with effect size results stored via
-  \code{metadata(analysis)$effect_sizes_divergence}. Returns the analysis object visibly
+  \code{metadata(analysis)$effect_sizes_divergence}.
+ Returns the analysis object visibly
   to support piping and method chaining.
 }
 \description{
-S4 wrapper for \code{.effect_sizes_divergence()} that extracts divergence and LM
+S4 wrapper for  \code{. effect_sizes_divergence()} that 
+extracts divergence and  LM
 results directly from a TSENATAnalysis object.
 }
 \details{
 **Workflow steps:**
 \describe{
-  \item{Extracting}{Divergence results (via accessors) and LM interaction results}
-  \item{Computing}{Effect sizes using standard \code{.effect_sizes_divergence()} function}
-  \item{Storing}{Results as list with \code{interaction_results} (data.frame) and
+  \item{Extracting}{Divergence results (via accessors) and 
+LM interaction results}
+  \item{Computing}{Effect sizes using standard \code{.
+effect_sizes_divergence()} function}
+  \item{Storing}{Results as list with  \code{interaction_results} (data.
+frame) and
     \code{validation_stats}}
   \item{Tracking}{Function call in analysis metadata}
 }
 
 **Parameter resolution priority** (explicit > metadata > default):
 \itemize{
-  \item \code{significance_threshold}: Uses explicit arg, else \code{metadata(analysis)$significance_threshold},
+  \item \code{significance_threshold}:  Uses explicit arg,
+ else \code{metadata(analysis)$significance_threshold},
     else 0.05
-  \item \code{enrich_per_q_pattern}: Uses explicit arg, else \code{metadata(analysis)$enrich_per_q_pattern},
+  \item \code{enrich_per_q_pattern}:  Uses explicit arg,
+ else \code{metadata(analysis)$enrich_per_q_pattern},
     else TRUE
-  \item \code{verbose}: Uses explicit arg, else \code{metadata(analysis)$verbose}, else TRUE
+  \item \code{verbose}:  Uses explicit arg,
+ else \code{metadata(analysis)$verbose},  else TRUE
 }
 
 Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}
@@ -70,8 +82,10 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters (best practice for reproducibility)
@@ -85,9 +99,12 @@ config <- tsenat_config(
 analysis <- setConfig(analysis, config)
 
 analysis <- filter_analysis_s4(analysis, stringency = 'severe')
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5),
+verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose
+= FALSE)
 
 # Compute effect sizes from divergence results
 analysis <- effect_sizes_divergence_s4(analysis,

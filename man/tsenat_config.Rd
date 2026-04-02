@@ -23,12 +23,14 @@ tsenat_config(
 \item{q_values}{\code{numeric}. Q-values for Tsallis entropy spectrum.
 Default: \code{seq(0.5, 2.0, by = 0.5)}.}
 
-\item{q_range}{\code{numeric}. Alternative to q_values: lower and upper bounds.}
+\item{q_range}{\code{numeric}.  Alternative to q_values:  lower and 
+upper bounds.}
 
 \item{filter_genome}{\code{logical}. Remove zero rows before analysis.
 Default: TRUE.}
 
-\item{formula}{\code{formula}. Model formula for LM interactions (e.g., \code{~ treatment}).}
+\item{formula}{\code{formula}.  Model formula for  LM interactions (e. g. ,
+\code{~ treatment}).}
 
 \item{p_threshold}{\code{numeric}. P-value threshold for significance.
 Default: 0.05.}

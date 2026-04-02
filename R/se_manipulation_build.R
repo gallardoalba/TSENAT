@@ -37,16 +37,20 @@
 
 ## Helper: Extract BOTH tx2gene mapping AND gene names in single GFF3 file pass
 #' @title Extract Gene Metadata from GFF3 File (Optimized Single Pass)
-#' @description OPTIMIZED: Extracts both transcript-to-gene mapping and gene names
+#' @description OPTIMIZED: Extracts both transcript-to-gene mapping and gene
+#' names
 #' in a SINGLE file pass instead of parsing twice. This replaces both
-#' extract_tx2gene_from_gff3() and extract_gene_names_from_gff3() for efficiency.
+#' extract_tx2gene_from_gff3() and extract_gene_names_from_gff3() for
+#' efficiency.
 #' 
-#' Performance improvement: 50-100% faster for large GFF3 files vs. dual-parsing approach.
+#' Performance improvement: 50-100% faster for large GFF3 files vs.
+#' dual-parsing approach.
 #' @param gff3_file Path to a GFF3 or GFF3.gz file containing transcript/mRNA
 #'   and gene features with ID, Parent, and gene_name attributes.
 #' @return A list with:
 #'   \item{tx2gene}{data.frame with Transcript and Gene columns}
-#'   \item{gene_names}{data.frame with GeneID and GeneName columns (or NULL if none found)}
+#'   \item{gene_names}{data. frame with  GeneID and  GeneName columns (or 
+#' NULL if  none found)}
 #' @noRd
 
 .extract_gff3_data <- function(gff3_file, verbose = FALSE) {
@@ -187,7 +191,8 @@
 
 #' Helper: Fast attribute extraction from GFF3 attributes string
 #'
-#' @param attributes Character string of GFF3 attributes (e.g., 'ID=ENST000001;Parent=ENSG000001')
+#' @param attributes Character string of GFF3 attributes (e.g.,
+#' 'ID=ENST000001;Parent=ENSG000001')
 #' @param field_pattern Character pattern to search for (e.g., 'ID=', 'Parent=')
 #'
 #' @return Character value of extracted attribute or NA
@@ -237,7 +242,8 @@
 #'
 #' @param tx2gene Transcript-to-gene mapping. Can be one of:
 #'   \describe{
-#'     \item{\strong{TSV File Path}}{A path to a tab-separated file with at least
+#'     \item{\strong{TSV File Path}}{A path to a tab-separated file with 
+#' at least
 #'       two columns: Transcript ID (first column) and Gene ID (second column).
 #'       The file should have a header row with column names.
 #'       File extension should be .tsv, .txt, or similar.
@@ -268,14 +274,21 @@
 #'
 #' @param tpm Numeric matrix or data.frame of SALMON TPM values (optional).
 #'   If provided, stored in metadata as `salmon_tpm` for `.filter_se()` 
-#'   TPM-based filtering. Rows = transcripts, columns = samples (same dimension as readcounts).
-#'   Example: from preprocessing output `salmon_tpm` or loaded via `load('readcounts.RData')`.
+#' TPM-based filtering. Rows = transcripts, columns = samples (same
+#' dimension as readcounts).
+#' Example: from preprocessing output `salmon_tpm` or loaded via
+#' `load('readcounts.RData')`.
 #'   
-#' @param effective_length Numeric vector of effective transcript lengths (optional).
-#'   If provided, stored in metadata as `salmon_effective_length` for `.calculate_diversity()`
-#'   length-normalized entropy calculations. Vector length = number of transcripts.
-#'   Typically obtained from SALMON quantification's EffectiveLength column (median across samples).
-#'   Example: from preprocessing output `salmon_effective_length` or loaded via `load('readcounts.RData')`.
+#' @param effective_length Numeric vector of effective transcript lengths
+#' (optional).
+#' If provided, stored in metadata as `salmon_effective_length` for
+#' `.calculate_diversity()`
+#' length-normalized entropy calculations. Vector length = number of
+#' transcripts.
+#' Typically obtained from SALMON quantification's EffectiveLength column
+#' (median across samples).
+#' Example: from preprocessing output `salmon_effective_length` or loaded
+#' via `load('readcounts.RData')`.
 #'   
 #' @param skip Logical. If TRUE, unmapped transcripts are silently removed. 
 #'   If FALSE (default), an error is raised when unmapped transcripts are found.
@@ -316,7 +329,8 @@
 #' for seamless integration with:
 #' - `.filter_se()`: automatically detects TPM in metadata for 
 #'   normalization-aware filtering
-#' - `.calculate_diversity()`: automatically detects effective_length in metadata
+#' - `.calculate_diversity()`: automatically detects effective_length in
+#' metadata
 #'   for length-normalized entropy calculations
 #'
 #' \strong{Performance:}
@@ -325,8 +339,10 @@
 #' - TSV files are standard tab-separated format for fast parsing
 #' - Data.frame inputs have no I/O overhead
 #'
-#' @param metadata Optional list or named list of metadata to include in \code{metadata(se)}.
-#'   This is useful for storing additional experimental metadata alongside the SE object.
+#' @param metadata Optional list or 
+#' named list of metadata to include in \code{metadata(se)}.
+#' This is useful for storing additional experimental metadata alongside the
+#' SE object.
 #'
 
 #' @noRd
@@ -348,12 +364,15 @@
 #'
 #' # Example 2: With SALMON data (TPM, effective_length)
 #' # Assuming preprocessed SALMON output loaded:
-#' # load('readcounts.RData') # salmon_dataset, salmon_tpm, salmon_effective_length
+#' # load('readcounts.RData') # salmon_dataset, salmon_tpm,
+#' salmon_effective_length
 #' # se <- .build_se(salmon_dataset, tx2gene, tpm = salmon_tpm, 
 #' #               effective_length = salmon_effective_length)
 #' # Now .filter_se() and .calculate_diversity() use SALMON data automatically:
-#' # filtered_se <- .filter_se(se, stringency = 'medium')  # Uses TPM from metadata
-#' # div_se <- .calculate_diversity(salmon_dataset, ...)   # Uses effective_length
+#' # filtered_se <- .filter_se(se, stringency = 'medium')  # Uses TPM from
+#' metadata
+#' # div_se <- .calculate_diversity(salmon_dataset, ...)   # Uses
+#' effective_length
 #'
 #' # Example 3: Using TSV file path
 #' # Assuming you have a file 'tx2gene.tsv' with Transcript and Gene columns

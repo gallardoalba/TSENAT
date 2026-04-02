@@ -38,9 +38,11 @@ plots. Default is 2. Number of rows is automatically calculated.}
 \item{variability_metric}{\code{character}. Error bar type for global curve:
 'iqr' (default) or 'sd'. Only used when gene = NULL.}
 
-\item{use_pvalue_ranking}{\code{logical}. If TRUE, uses LM results to rank and
-display top n_genes by p-value significance. If FALSE (default), plots global
-divergence curve when gene = NULL. Default is FALSE.}
+\item{use_pvalue_ranking}{\code{logical}.  If TRUE,
+ uses LM results to rank and
+display top n_genes by p-value significance. If FALSE (default), plots
+global
+  divergence curve when gene = NULL. Default is FALSE.}
 
 \item{output_file}{\code{character}. Optional file path to save the plot.
 If NULL, plot is returned but not saved.}
@@ -93,14 +95,19 @@ metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
   header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+'TSENAT')
 
 # Build analysis from vignette data and create small subset
-analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
+analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+= 200)
+analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
+analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose
+= FALSE)
 p_global <- plot_divergence_spectrum_s4(analysis)
 print(p_global)
 

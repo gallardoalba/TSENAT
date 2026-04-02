@@ -7,8 +7,10 @@
 #' relevant entries in `metadata()` (for example `readcounts` and `tx2gene`)
 #' so downstream helpers receive a consistent object.
 #'
-#' **Filtering Strategy**: Uses TPM-based filtering for results comparable across
-#' studies (data from SALMON quantification is already TPM-normalized; Soneson et al. 2015, Law et al. 2014).
+#' **Filtering Strategy**: Uses TPM-based filtering for results comparable
+#' across
+#' studies (data from SALMON quantification is already TPM-normalized;
+#' Soneson et al. 2015, Law et al. 2014).
 #'
 #' **TPM Data Source**: Function automatically locates TPM data via:
 #' 1. `tpm_assay_name` parameter (specify assay name containing TPM values)
@@ -23,23 +25,32 @@
 #'   - SALMON raw counts (NumReads) if TPM not available
 #' @param min_tpm Numeric TPM threshold (default 1.0).
 #'   Keeps transcripts with TPM >= `min_tpm` in >= `min_samples` samples.
-#'   TPM >= 1 is recommended for typical sequencing depth (Soneson et al. 2015, Law et al. 2014).
-#'   Ignored if `stringency` is specified; when stringency is provided, `min_tpm` is
-#'   auto-estimated from data using quantile-based approach (Law et al. limma-voom methodology).
-#' @param tpm_assay_name Character; name of assay containing TPM data (default: NULL).
-#'   If NULL, function searches for TPM data in: metadata$salmon_tpm -> metadata$tpm -> assay named 'tpm' -> metadata lookup.
-#'   Set explicitly (e.g., `tpm_assay_name = 'tpm'`) to use a specific assay by name.
-#'   Example from preprocessing: tpm_assay_name = 'abundance' for tximport objects.
+#' TPM >= 1 is recommended for typical sequencing depth (Soneson et al.
+#' 2015, Law et al. 2014).
+#' Ignored if `stringency` is specified; when stringency is provided,
+#' `min_tpm` is
+#' auto-estimated from data using quantile-based approach (Law et al.
+#' limma-voom methodology).
+#' @param tpm_assay_name Character; name of assay containing TPM data
+#' (default: NULL).
+#' If NULL, function searches for TPM data in: metadata$salmon_tpm ->
+#' metadata$tpm -> assay named 'tpm' -> metadata lookup.
+#' Set explicitly (e.g., `tpm_assay_name = 'tpm'`) to use a specific assay
+#' by name.
+#' Example from preprocessing: tpm_assay_name = 'abundance' for tximport
+#' objects.
 #' @param min_samples Integer minimum number of samples exceeding
 #'   the threshold required to keep a transcript (default 5L). Ignored if
 #'   `stringency` is specified.
-#' @param stringency Character; auto-calculate `min_samples` and `min_tpm` based on
+#' @param stringency Character; auto-calculate `min_samples` and `min_tpm`
+#' based on
 #'   paired design stringency. Options:
 #'   - 'soft' (permissive): 25% of samples (min 2), min_tpm = Q1 (25th %ile)
 #'   - 'medium' (balanced): 50% of samples (min 3), min_tpm = Q2 (median)
 #'   - 'severe' (stringent): 75% of samples, min_tpm = Q3 (75th %ile)
 #'   - NULL (default): use explicit `min_samples` and `min_tpm`
-#'   When stringency is specified, all three filtering parameters are auto-estimated
+#' When stringency is specified, all three filtering parameters are
+#' auto-estimated
 #'   from the data distribution (Law et al. limma-voom methodology).
 #'   Requires `pair_col` in colData.
 #' @param pair_col Character; column name in colData containing pair IDs.
@@ -49,23 +60,31 @@
 #'   required to keep a gene (default 2L). Genes with fewer transcripts are
 #'   removed since entropy is always 0 for single-transcript genes.
 #'   Ignored if `stringency` is specified; when stringency is provided, this is
-#'   auto-adjusted (soft=2, medium=2, severe=3) to ensure isoform diversity matches
+#' auto-adjusted (soft=2, medium=2, severe=3) to ensure isoform diversity
+#' matches
 #'   filtering stringency.
-#' @param min_isoform_abundance Numeric in [0, 1]; minimum relative abundance threshold
-#'   for isoforms within each gene (default: 0.05 for 5%). Implements Soneson et al. (2016)
-#'   isoform-level filtering to improve FDR control. Removes isoforms with mean relative
-#'   abundance below threshold within their gene. Single-isoform genes are always kept.
+#' @param min_isoform_abundance Numeric in [0, 1]; minimum relative
+#' abundance threshold
+#' for isoforms within each gene (default: 0.05 for 5%). Implements Soneson
+#' et al. (2016)
+#' isoform-level filtering to improve FDR control. Removes isoforms with
+#' mean relative
+#' abundance below threshold within their gene. Single-isoform genes are
+#' always kept.
 #'   Set to 0 or NULL to skip isoform-level filtering.
 #' @param assay_name Name or index of the assay to use for filtering
 #'   (DEPRECATED: use `tpm_assay_name` instead, default: 'counts'). 
-#'   **WARNING**: If set to 'counts', filtering uses raw counts with TPM thresholds,
+#' **WARNING**: If set to 'counts', filtering uses raw counts with TPM
+#' thresholds,
 #'   which is incorrect. Use `tpm_assay_name` to specify TPM assay.
-#' @param verbose Logical; print before/after counts and filtering parameters when TRUE.
+#' @param verbose Logical; print before/after counts and filtering
+#' parameters when TRUE.
 #' @return A filtered `SummarizedExperiment`.
 
 #' @noRd
 #' @examples
-#' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0('tx', 1:3), paste0('S', 1:2)))
+#' mat <- matrix(c(0, 6, 7, 2, 8, 9), nrow = 3, dimnames = list(paste0('tx',
+#' 1:3), paste0('S', 1:2)))
 #' se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = mat))
 #' filt <- .filter_se(se, min_samples = 1)
 #' class(filt)
@@ -681,12 +700,14 @@
 #' @param analysis TSENATAnalysis object to subset
 #' @param n_genes Positive integer. Number of genes to retain (default: 10).
 #'   Set to NULL to keep all genes.
-#' @param n_samples Positive integer. Number of samples to retain (default: NULL,
+#' @param n_samples Positive integer. Number of samples to retain (default:
+#' NULL,
 #'   keep all samples). If specified, samples are selected to balance
 #'   conditions when possible.
 #' @param genes Character vector of specific gene IDs to retain. If provided,
 #'   overrides n_genes argument (default: NULL).
-#' @param samples Character vector of specific sample IDs to retain. If provided,
+#' @param samples Character vector of specific sample IDs to retain. If
+#' provided,
 #'   overrides n_samples argument (default: NULL).
 #' @param select_by One of 'variance' (select genes with highest variance),
 #'   'mean' (select genes with highest mean expression), or 'random'
@@ -712,7 +733,8 @@
 #'     mean expression, or at random
 #'   \item \strong{By sample count}: Intelligently balances sample selection
 #'     across experimental conditions
-#'   \item \strong{By specific IDs}: Explicitly specify genes and samples to keep
+#'   \item \strong{By specific IDs}:  Explicitly specify genes and 
+#' samples to keep
 #'   \item \strong{By statistic}: Select informative genes (high variance = more
 #'     informative for testing)
 #'   \item \strong{By abundance}: Filter by minimum total count to ensure
@@ -743,12 +765,16 @@
 #' )
 #' analysis <- TSENATAnalysis(se)
 #'
-#' # Subset to top genes (use 200 to ensure adequate data for downstream analysis)
-#' small_analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
+#' # Subset to top genes (use 200 to ensure adequate data for downstream
+#' analysis)
+#' small_analysis <- filter_analysis_s4(analysis, min_samples = 1,
+#' subset_n_genes = 200)
 #'
 #' # Subset to genes with minimum 1 total count across all samples
-#' # This ensures data adequacy filtering (recommended: min_count = 10-20 for robust estimates)
-#' filtered <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 100, subset_min_count = 1)
+#' # This ensures data adequacy filtering (recommended: min_count = 10-20
+#' for robust estimates)
+#' filtered <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 100, subset_min_count = 1)
 #'
 #' # Subset to specific genes only
 #' subset_genes <- filter_analysis_s4(

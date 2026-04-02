@@ -4,7 +4,8 @@
 \alias{AllGenerics}
 \title{Generic Functions for TSENATAnalysis S4 Class}
 \value{
-These generic functions return different types depending on the specific method:
+These generic functions return different types depending on the
+specific method:
   - Accessor methods return data.frames or lists containing analysis results
   - See individual method documentation for specific return types
 }

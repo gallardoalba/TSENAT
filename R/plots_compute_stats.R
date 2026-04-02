@@ -20,10 +20,12 @@ NULL
 #' Calculates median/mean and variability (IQR/SD) for each q-value.
 #'
 #' @param se A \code{SummarizedExperiment} with diversity assays.
-#' @param q_values Numeric vector of q-values to compute (optional, auto-detect if NULL).
+#' @param q_values Numeric vector of q-values to compute (optional,
+#' auto-detect if NULL).
 #' @param metric Character: 'median' (default) or 'mean' for central tendency.
 #' @param variability_metric Character: 'iqr' (default) or 'sd' for spread.
-#' @param condition_col Character: column name for grouping conditions (optional).
+#' @param condition_col Character: column name for grouping conditions
+#' (optional).
 #'
 #' @return Data frame with columns:
 #'   - q: q-value
@@ -393,9 +395,11 @@ NULL
 #' Normalizes and validates counts, samples, and tx2gene mapping.
 #' Creates aggregation function based on chosen metric.
 #'
-#' @param counts Matrix or data.frame with transcripts as rows, samples as columns.
+#' @param counts Matrix or data.frame with transcripts as rows, samples as
+#' columns.
 #'   Can also be a \code{SummarizedExperiment}.
-#' @param readcounts Character: name of assay in SE (if counts is SE). Default: NULL.
+#' @param readcounts Character: name of assay in SE (if counts is SE).
+#' Default: NULL.
 #' @param samples Character vector: sample group assignments (optional).
 #' @param coldata Character/data.frame: sample metadata (optional).
 #' @param condition_col Character: column name for grouping
@@ -971,7 +975,8 @@ NULL
 #' @param gene Gene ID to extract
 #' @param mat Assay matrix (genes x samples*q)
 #' @param sample_to_group Named vector mapping sample names to groups
-#' @return Data frame with columns: sample, group, q, entropy (or NULL if invalid)
+#' @return Data frame with columns: sample, group, q, entropy (or NULL if
+#' invalid)
 
 #' @noRd
 .plot_gam_prepare_gene_data <- function(gene, mat, sample_to_group) {
@@ -1010,7 +1015,8 @@ NULL
 #' Fit GAM models per group and generate predictions
 #'
 #' @param plot_df Long-format data frame with sample, group, q, entropy
-#' @return List with $plot_data and $pred_data data frames (or NULL if fitting fails)
+#' @return List with $plot_data and $pred_data data frames (or NULL if
+#' fitting fails)
 
 #' @noRd
 .plot_gam_fit_group <- function(plot_df) {
@@ -1107,7 +1113,8 @@ NULL
 
 #' Prepare gene CI data for plotting
 #'
-#' Converts CI matrices into long-format data for gene-specific bootstrap CI plotting.
+#' Converts CI matrices into long-format data for gene-specific bootstrap CI
+#' plotting.
 #'
 #' @param long_data Long-format data with Gene, group, q, tsallis columns
 #' @param ci_lower_mat CI lower bounds matrix (genes x samples*q)

@@ -19,7 +19,8 @@ to retain. If missing, all columns are retained.}
 Always returns TSENATAnalysis (never drops to SE or vector).}
 }
 \value{
-A new TSENATAnalysis object containing only the specified genes and samples
+A new TSENATAnalysis object containing only the specified genes
+and samples
 }
 \description{
 Extract a subset of genes and/or samples from a TSENATAnalysis object.
@@ -29,7 +30,8 @@ all computed results (diversity, LM, jackknife, divergence).
 \details{
 Subsetting preserves all analysis metadata and results while maintaining
 consistency:
-- The underlying SummarizedExperiment is subset to the specified genes/samples
+- The underlying SummarizedExperiment is subset to the specified
+genes/samples
 - Diversity and jackknife results are subset to match sample selection
 - LM results are recalculated or removed if sample structure changes
 - Divergence results are subset accordingly

@@ -11,48 +11,68 @@
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric} or \code{NULL}. Q-values to test across spectrum.
 #'   If NULL, auto-detects from \code{@config$q_values} or diversity results.
-#' @param output_file \code{character} or \code{NULL}. Optional file path to save results.
+#' @param output_file \code{character} or  \code{NULL}.
+#'  Optional file path to save results.
 #'   Supported formats: .rds (for S4 objects). Default: NULL (no file output).
-#' @param paired \code{logical} or \code{NULL}. If TRUE, uses paired/blocked design 
+#' @param paired \code{logical} or  \code{NULL}.  If TRUE,
+#'  uses paired/blocked design 
 #'   (requires \code{subject_col}). If NULL, reads from \code{@config$paired}.
-#' @param subject_col \code{character} or \code{NULL}. Column name for subject/block identifiers
-#'   (required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.
-#' @param condition_col \code{character}. Column name for sample grouping/condition (REQUIRED).
-#'   Specifies the condition/treatment variable for testing q×condition interactions.
+#' @param subject_col \code{character} or  \code{NULL}.  Column name for 
+#' subject/block identifiers
+#'   (required when  \code{paired=TRUE}).  If NULL,
+#'  reads from \code{@config$subject_col}.
+#' @param condition_col \code{character}.  Column name for 
+#' sample grouping/condition (REQUIRED).
+#' Specifies the condition/treatment variable for testing q×condition
+#' interactions.
 #'   Example: 'sample_type', 'treatment', 'disease_status'.
-#' @param test \code{character}. Test method: 'auto' (default), 'kruskal-wallis' (unpaired),
+#' @param test \code{character}.  Test method:  'auto' (default),
+#'  'kruskal-wallis' (unpaired),
 #'   'friedman' (paired), or 'art' (aligned rank transform).
-#' @param multicorr \code{character}. Multiple testing correction: 'hochberg' (default),
+#' @param multicorr \code{character}.  Multiple testing correction:
+#'  'hochberg' (default),
 #'   'benjamini-yekutieli', 'westfall-young', or 'none'.
-#' @param entropy_col \code{character}. Column name containing entropy/diversity data.
+#' @param entropy_col \code{character}.
+#'  Column name containing entropy/diversity data.
 #'   Default: 'diversity'.
 #' @param q_col \code{character}. Column name containing q-values. Default: 'q'.
-#' @param gene_col \code{character}. Column name containing gene identifiers. Default: 'gene'.
-#' @param wy_randomizations \code{numeric} or \code{character}. Number of permutations for 
+#' @param gene_col \code{character}.  Column name containing gene identifiers.
+#'  Default:  'gene'.
+#' @param wy_randomizations \code{numeric} or  \code{character}.
+#'  Number of permutations for 
 #'   Westfall-Young correction. Use 'auto' to estimate from data. Default: 500.
-#' @param nperm_mode \code{character}. Mode for automatic permutation estimation:
+#' @param nperm_mode \code{character}.  Mode for 
+#' automatic permutation estimation:
 #'   'standard' (default), 'conservative', or 'interactive'.
-#' @param nthreads \code{numeric} or \code{NULL}. Number of parallel threads for computation.
+#' @param nthreads \code{numeric} or  \code{NULL}.
+#'  Number of parallel threads for  computation.
 #'   If NULL, reads from \code{@config$nthreads}.
-#' @param verbose \code{logical}. If TRUE, prints progress messages. Default: FALSE.
-#' @param ... Additional arguments passed to the base \code{.rank_test_q_condition()} function.
+#' @param verbose \code{logical}.  If TRUE,  prints progress messages.
+#'  Default:  FALSE.
+#' @param . . .  Additional arguments passed to the base \code{.
+#' rank_test_q_condition()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
 #' @details
-#' Analyzes how gene interactions change across q-value spectrum using rank-based
+#' Analyzes how gene interactions change across q-value spectrum using
+#' rank-based
 #' (Friedman/Kruskal-Wallis) or parametric (GAM) statistical tests.
 #'
 #' **Parameter resolution priority** (explicit > @config > default/auto-detect):
 #' \itemize{
 #'   \item \code{condition_col}: REQUIRED - must be explicitly provided
-#'   \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
+#'   \item \code{q}:
+#'  explicit arg > \code{@config$q_values} > extract from diversity_results keys
 #'   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
 #'   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
-#'   \item \code{multicorr}: explicit arg > \code{@config$multicorr} > 'hochberg'
+#'   \item \code{multicorr}:
+#'  explicit arg > \code{@config$multicorr} > 'hochberg'
 #'   \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
-#'   \item \code{test}: explicit arg > \code{@config$test} > 'auto' (auto-selection)
-#'   \item \code{nperm_mode}: explicit arg > \code{@config$nperm_mode} > 'standard'
+#'   \item \code{test}:
+#'  explicit arg > \code{@config$test} > 'auto' (auto-selection)
+#'   \item \code{nperm_mode}:
+#'  explicit arg > \code{@config$nperm_mode} > 'standard'
 #' }
 #'
 #' @examples
@@ -64,13 +84,17 @@
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
 #'   header = TRUE, sep = '\t'
 #' )
-#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
+#' gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
+#' 'TSENAT')
 #' 
 #' # Build analysis from vignette data and create manageable subset
-#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
+#' gff3_dataset, metadata = metadata_df,
 #'   tpm = salmon_tpm, effective_length = salmon_effective_length)
-#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
-#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
+#' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
+#' = 200)
+#' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
+#' verbose = FALSE)
 #' 
 #' # Test Q×Condition interaction (condition_col is REQUIRED)
 #' analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 
