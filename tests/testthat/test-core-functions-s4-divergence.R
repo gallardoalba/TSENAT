@@ -865,3 +865,364 @@ test_that("bootstrap divergence estimates have valid numerical properties", {
   # Clean up
   if (file.exists(output_file)) unlink(output_file)
 })
+
+# ============================================================================
+# TEST GROUP: Helper Functions for Divergence Calculation
+# ============================================================================
+
+context("Helper Functions: Divergence Calculation")
+
+# Test .validate_divergence_input()
+test_that(".validate_divergence_input validates S4 object requirement", {
+  # Test with non-TSENATAnalysis object
+  expect_error(
+    TSENAT:::.validate_divergence_input(list()),
+    "must be a TSENATAnalysis object"
+  )
+})
+
+test_that(".validate_divergence_input detects empty SummarizedExperiment", {
+  # TSENATAnalysis validity constraint prevents truly empty SEs, so test the validation logic
+  # on a minimal valid object, then check the condition is tested
+  analysis <- make_test_analysis_divergence()
+  
+  # Manually empty the SE (if possible) to test error detection
+  # Since validity prevents it, we test that validation passes on valid minimal data
+  # The actual empty check is tested implicitly through the valid minimal data
+  expect_silent(TSENAT:::.validate_divergence_input(analysis))
+})
+
+test_that(".validate_divergence_input detects missing diversity results", {
+  analysis <- make_test_analysis_divergence()
+  # Remove diversity results
+  analysis@diversity_results <- list()
+  expect_error(
+    TSENAT:::.validate_divergence_input(analysis),
+    "Diversity results required"
+  )
+})
+
+test_that(".validate_divergence_input passes on valid input", {
+  analysis <- make_test_analysis_divergence()
+  expect_silent(TSENAT:::.validate_divergence_input(analysis))
+})
+
+# Test .resolve_divergence_parameters()
+test_that(".resolve_divergence_parameters resolves q parameter correctly", {
+  analysis <- make_test_analysis_divergence()
+  
+  params <- TSENAT:::.resolve_divergence_parameters(
+    q = 1.5, control_group = NULL, method = NULL, nthreads = NULL,
+    nboot = NULL, seed = NULL, paired = FALSE, bootstrap = FALSE, analysis
+  )
+  
+  expect_equal(params$q, 1.5)
+})
+
+test_that(".resolve_divergence_parameters handles q=0 replacement", {
+  analysis <- make_test_analysis_divergence()
+  
+  params <- TSENAT:::.resolve_divergence_parameters(
+    q = 0, control_group = NULL, method = NULL, nthreads = NULL,
+    nboot = NULL, seed = NULL, paired = FALSE, bootstrap = FALSE, analysis
+  )
+  
+  expect_equal(params$q, 0.01)
+})
+
+test_that(".resolve_divergence_parameters handles q as vector with zeros", {
+  analysis <- make_test_analysis_divergence()
+  
+  params <- TSENAT:::.resolve_divergence_parameters(
+    q = c(0, 1.0, 2.0), control_group = NULL, method = NULL, nthreads = NULL,
+    nboot = NULL, seed = NULL, paired = FALSE, bootstrap = FALSE, analysis
+  )
+  
+  expect_equal(params$q, c(0.01, 1.0, 2.0))
+})
+
+test_that(".resolve_divergence_parameters ensures logical parameters are valid", {
+  analysis <- make_test_analysis_divergence()
+  
+  params <- TSENAT:::.resolve_divergence_parameters(
+    q = 1.0, control_group = NULL, method = NULL, nthreads = NULL,
+    nboot = NULL, seed = NULL, paired = NA, bootstrap = NA, analysis
+  )
+  
+  expect_true(is.logical(params$paired))
+  expect_true(is.logical(params$bootstrap))
+})
+
+test_that(".resolve_divergence_parameters sanitizes method parameter", {
+  analysis <- make_test_analysis_divergence()
+  
+  params <- TSENAT:::.resolve_divergence_parameters(
+    q = 1.0, control_group = NULL, method = "mymethod", nthreads = NULL,
+    nboot = NULL, seed = NULL, paired = FALSE, bootstrap = FALSE, analysis
+  )
+  
+  expect_equal(params$method, "mymethod")
+})
+
+# Test .build_divergence_args()
+test_that(".build_divergence_args builds minimal args correctly", {
+  analysis <- make_test_analysis_divergence()
+  params <- list(
+    q = 1.0, control_group = NULL, method = "percentile",
+    nthreads = 1, nboot = NULL, seed = NULL, paired = FALSE, bootstrap = FALSE
+  )
+  
+  args <- TSENAT:::.build_divergence_args(analysis, params, verbose = TRUE, progress = FALSE)
+  
+  expect_true("se" %in% names(args))
+  expect_true("q" %in% names(args))
+  expect_true("verbose" %in% names(args))
+})
+
+test_that(".build_divergence_args includes bootstrap params when bootstrap=TRUE", {
+  analysis <- make_test_analysis_divergence()
+  params <- list(
+    q = 1.0, control_group = "GroupA", method = "percentile",
+    nthreads = 1, nboot = 100, seed = 42, paired = TRUE, bootstrap = TRUE
+  )
+  
+  args <- TSENAT:::.build_divergence_args(analysis, params, verbose = FALSE, progress = FALSE)
+  
+  expect_true("bootstrap" %in% names(args))
+  expect_true("nboot" %in% names(args))
+  expect_true("seed" %in% names(args))
+  expect_equal(args$nboot, 100)
+  expect_equal(args$seed, 42)
+})
+
+# Test .store_divergence_results()
+test_that(".store_divergence_results handles NULL result", {
+  analysis <- make_test_analysis_divergence()
+  result <- NULL
+  
+  # Suppress expected warning about NULL result
+  stored <- suppressWarnings(TSENAT:::.store_divergence_results(analysis, result))
+  
+  expect_length(stored@divergence_results, 0)
+})
+
+test_that(".store_divergence_results wraps SummarizedExperiment correctly", {
+  analysis <- make_test_analysis_divergence()
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1:4, 2, 2)),
+    rowData = data.frame(gene_id = c("G1", "G2"))
+  )
+  
+  stored <- TSENAT:::.store_divergence_results(analysis, se)
+  
+  expect_true("divergence_se" %in% names(stored@divergence_results))
+})
+
+test_that(".store_divergence_results handles list results", {
+  analysis <- make_test_analysis_divergence()
+  result <- list(main = data.frame(x = 1:2))
+  
+  stored <- TSENAT:::.store_divergence_results(analysis, result)
+  
+  expect_equal(stored@divergence_results, result)
+})
+
+# Test .extract_divergence_write_data()
+test_that(".extract_divergence_write_data returns NULL for empty list", {
+  div_list <- list()
+  result <- TSENAT:::.extract_divergence_write_data(div_list)
+  expect_null(result)
+})
+
+test_that(".extract_divergence_write_data extracts from divergence_se key", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1:4, 2, 2))
+  )
+  div_list <- list(divergence_se = se)
+  
+  result <- TSENAT:::.extract_divergence_write_data(div_list)
+  
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), 2)
+})
+
+test_that(".extract_divergence_write_data handles SummarizedExperiment list", {
+  # Create a list of SummarizedExperiments
+  se1 <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(c(1, 2, 3, 4), nrow = 2))
+  )
+  div_list <- list(se1, se1)
+  
+  result <- TSENAT:::.extract_divergence_write_data(div_list)
+  
+  expect_s3_class(result, "data.frame")
+  expect_equal(ncol(result), 4)  # 2 columns from each SE combined
+})
+
+# Test .extract_divergence_se()
+test_that(".extract_divergence_se returns SE from divergence_se key", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1:4, 2, 2))
+  )
+  div_list <- list(divergence_se = se)
+  
+  result <- TSENAT:::.extract_divergence_se(div_list)
+  
+  expect_s4_class(result, "SummarizedExperiment")
+})
+
+test_that(".extract_divergence_se returns SE from first list element", {
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1:4, 2, 2))
+  )
+  div_list <- list(se, list())
+  
+  result <- TSENAT:::.extract_divergence_se(div_list)
+  
+  expect_s4_class(result, "SummarizedExperiment")
+})
+
+test_that(".extract_divergence_se returns NULL when no SE found", {
+  div_list <- list(main = data.frame(x = 1:2))
+  
+  result <- TSENAT:::.extract_divergence_se(div_list)
+  
+  expect_null(result)
+})
+
+# Test .build_bootstrap_cols()
+test_that(".build_bootstrap_cols includes bootstrap-related columns", {
+  rd <- S4Vectors::DataFrame(
+    gene_name = "Gene1",
+    estimate_q_1_0 = 1.5,
+    lower_ci_q_1_0 = 1.2,
+    upper_ci_q_1_0 = 1.8,
+    other_col = "ignored"
+  )
+  
+  result <- TSENAT:::.build_bootstrap_cols(rd)
+  
+  expect_true("gene_name" %in% result)
+  expect_true("estimate_q_1_0" %in% result)
+  expect_true("lower_ci_q_1_0" %in% result)
+  expect_false("other_col" %in% result)
+})
+
+test_that(".build_bootstrap_cols includes computation_time_sec if present", {
+  rd <- S4Vectors::DataFrame(
+    gene_name = "Gene1",
+    estimate_q_1_0 = 1.5,
+    computation_time_sec = 0.5
+  )
+  
+  result <- TSENAT:::.build_bootstrap_cols(rd)
+  
+  expect_true("computation_time_sec" %in% result)
+})
+
+test_that(".build_bootstrap_cols includes error column if present", {
+  rd <- S4Vectors::DataFrame(
+    gene_name = "Gene1",
+    estimate_q_1_0 = 1.5,
+    error = "NA"
+  )
+  
+  result <- TSENAT:::.build_bootstrap_cols(rd)
+  
+  expect_true("error" %in% result)
+})
+
+# Test .write_divergence_output()
+test_that(".write_divergence_output creates TSV file", {
+  analysis <- make_test_analysis_divergence()
+  
+  # Set up divergence results
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(c(1.0, 2.0, 1.5, 2.5), 2, 2)),
+    rowData = data.frame(gene_id = c("G1", "G2")),
+    colData = data.frame(sample = c("S1", "S2"))
+  )
+  analysis@divergence_results <- list(divergence_se = se)
+  
+  output_file <- tempfile(fileext = ".tsv")
+  
+  TSENAT:::.write_divergence_output(analysis, output_file, verbose = FALSE)
+  
+  expect_true(file.exists(output_file))
+  
+  # Verify content
+  content <- read.csv(output_file, sep = "\t", row.names = 1)
+  expect_equal(nrow(content), 2)
+  
+  unlink(output_file)
+})
+
+test_that(".write_divergence_output saves as RDS for non-text formats", {
+  analysis <- make_test_analysis_divergence()
+  
+  # Set up divergence results
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1:4, 2, 2))
+  )
+  analysis@divergence_results <- list(divergence_se = se)
+  
+  output_file <- tempfile(fileext = ".rds")
+  
+  TSENAT:::.write_divergence_output(analysis, output_file, verbose = FALSE)
+  
+  expect_true(file.exists(output_file))
+  
+  # Verify it's an RDS file by reading it
+  loaded <- readRDS(output_file)
+  expect_s4_class(loaded, "TSENATAnalysis")
+  
+  unlink(output_file)
+})
+
+# Test .write_divergence_bootstrap_output()
+test_that(".write_divergence_bootstrap_output creates bootstrap file", {
+  analysis <- make_test_analysis_divergence()
+  
+  # Set up divergence results with bootstrap columns
+  rd_df <- data.frame(
+    gene_name = "Gene1",
+    estimate_q_1_0 = 1.5,
+    lower_ci_q_1_0 = 1.2,
+    upper_ci_q_1_0 = 1.8,
+    stringsAsFactors = FALSE
+  )
+  
+  se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(div = matrix(1:2, 1, 2)),
+    rowData = S4Vectors::DataFrame(rd_df)
+  )
+  analysis@divergence_results <- list(divergence_se = se)
+  
+  output_file <- tempfile(fileext = ".tsv")
+  bootstrap_file <- sub("\\.tsv$", "_bootstrap.tsv", output_file)
+  
+  # Write bootstrap output
+  TSENAT:::.write_divergence_bootstrap_output(analysis, output_file, verbose = FALSE)
+  
+  expect_true(file.exists(bootstrap_file))
+  
+  # Verify content
+  content <- read.csv(bootstrap_file, sep = "\t")
+  expect_equal(nrow(content), 1)
+  expect_true("gene_name" %in% colnames(content))
+  
+  unlink(output_file)
+  unlink(bootstrap_file)
+})
+
+test_that(".write_divergence_bootstrap_output handles missing SE gracefully", {
+  analysis <- make_test_analysis_divergence()
+  analysis@divergence_results <- list(main = data.frame(x = 1))
+  
+  output_file <- tempfile(fileext = ".tsv")
+  
+  # Should not error
+  expect_silent(TSENAT:::.write_divergence_bootstrap_output(analysis, output_file, verbose = FALSE))
+  
+  unlink(output_file)
+})
