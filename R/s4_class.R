@@ -89,9 +89,9 @@
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' @name TSENATAnalysis-class
@@ -128,9 +128,9 @@ NULL
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' @export
@@ -190,10 +190,10 @@ TSENATAnalysis <- function(se, config = list()) {
 #'   package = 'TSENAT'), header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz',
 #'   package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file,
-#'   metadata = metadata_df, tpm = salmon_tpm,
-#'   effective_length = salmon_effective_length)
+#'   metadata = metadata_df, tpm = tpm,
+#'   effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = 1, verbose = FALSE)
@@ -296,7 +296,7 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' @examples
 #' # Load example data and run LM interaction analysis
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -308,7 +308,7 @@ setMethod("diversity", "TSENATAnalysis", function(object, q = NULL) {
 #' # Build analysis from vignette data
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #'
@@ -409,9 +409,9 @@ setMethod("lmResults<-", "TSENATAnalysis", function(object, value) {
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -480,9 +480,9 @@ setMethod("jackKnife", "TSENATAnalysis", function(object, q = NULL) {
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -536,9 +536,9 @@ setMethod("divergence", "TSENATAnalysis", function(object, component = NULL) {
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' all_plots <- getPlot(analysis)
@@ -632,9 +632,9 @@ setMethod("addPlot", "TSENATAnalysis", function(object, type, plot, replace = FA
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' show(analysis)
@@ -716,9 +716,9 @@ setMethod("show", "TSENATAnalysis", function(object) {
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' summary(analysis)
@@ -866,9 +866,9 @@ setMethod("getConfig", "TSENATAnalysis", function(object) {
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' 
@@ -898,9 +898,9 @@ setGeneric("setConfig", function(object, value) {
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' 
@@ -955,9 +955,9 @@ setMethod("setConfig", "TSENATAnalysis", function(object, value) {
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' 
@@ -986,9 +986,9 @@ setGeneric("setConfigValue", function(object, key, value) {
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 #' 
 #' # Build and subset analysis with initial configuration
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' 
@@ -1030,9 +1030,9 @@ setMethod("setConfigValue", "TSENATAnalysis", function(object, key, value) {
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' @export
@@ -1078,9 +1078,9 @@ setMethod("se", "TSENATAnalysis", function(object) {
 #' = 'TSENAT'),
 #'   header = TRUE, sep = '\t')
 #' gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
-#' analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene =
+#' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_file, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' @noRd

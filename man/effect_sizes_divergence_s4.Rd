@@ -76,7 +76,7 @@ Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}
 \examples{
 # Setup: Create test analysis with divergence and LM interaction results
 data(readcounts)
-readcounts <- as.matrix(salmon_dataset)
+readcounts <- as.matrix(readcounts)
 mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -86,7 +86,7 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 gff3_dataset, metadata = metadata_df,
-  tpm = salmon_tpm, effective_length = salmon_effective_length)
+  tpm = tpm, effective_length = effective_length)
 
 # Configure analysis parameters (best practice for reproducibility)
 config <- tsenat_config(

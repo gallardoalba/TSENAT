@@ -366,13 +366,13 @@ mkdir -p /tmp/salmon
 ### Reproducibility
 ```r
 # Load the processed dataset
-load("data/readcounts.RData")  # salmon_dataset (SummarizedExperiment)
+load("data/readcounts.RData")  # readcounts (SummarizedExperiment)
 
 # View structure
-salmon_dataset
-assay(salmon_dataset, "counts")[1:5, 1:3]
-rowData(salmon_dataset)      # Transcript metadata
-colData(salmon_dataset)      # Sample metadata
+readcounts
+assay(readcounts, "counts")[1:5, 1:3]
+rowData(readcounts)      # Transcript metadata
+colData(readcounts)      # Sample metadata
 ```
 
 ### Validation

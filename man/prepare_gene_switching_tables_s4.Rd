@@ -62,7 +62,7 @@ providing a simplified interface compared to the base function.
 }
 \examples{
 data(readcounts)
-readcounts <- as.matrix(salmon_dataset)
+readcounts <- as.matrix(readcounts)
 mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -72,7 +72,7 @@ gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package =
 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 gff3_dataset, metadata = metadata_df,
-  tpm = salmon_tpm, effective_length = salmon_effective_length)
+  tpm = tpm, effective_length = effective_length)
 
 # Configure analysis parameters
 config <- tsenat_config(

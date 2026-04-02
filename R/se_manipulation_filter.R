@@ -14,7 +14,7 @@
 #'
 #' **TPM Data Source**: Function automatically locates TPM data via:
 #' 1. `tpm_assay_name` parameter (specify assay name containing TPM values)
-#' 2. Metadata: looks for `salmon_tpm` or `tpm` in SummarizedExperiment metadata
+#' 2. Metadata: looks for `tpm` or `tpm` in SummarizedExperiment metadata
 #' 3. Assay names: searches for assay named 'tpm' or 'abundance'
 #' If TPM data NOT found, filtering parameters are compared against raw counts
 #' but this is NOT recommended (will produce incorrect results).
@@ -33,7 +33,7 @@
 #' limma-voom methodology).
 #' @param tpm_assay_name Character; name of assay containing TPM data
 #' (default: NULL).
-#' If NULL, function searches for TPM data in: metadata$salmon_tpm ->
+#' If NULL, function searches for TPM data in: metadata$tpm ->
 #' metadata$tpm -> assay named 'tpm' -> metadata lookup.
 #' Set explicitly (e.g., `tpm_assay_name = 'tpm'`) to use a specific assay
 #' by name.
@@ -118,8 +118,8 @@
 
     # Priority 2: metadata
     md <- S4Vectors::metadata(se)
-    if (!is.null(md$salmon_tpm) && is.matrix(md$salmon_tpm)) {
-        return(list(mat = as.matrix(md$salmon_tpm), source = "metadata$salmon_tpm (SALMON preprocessed)"))
+    if (!is.null(md$tpm) && is.matrix(md$tpm)) {
+        return(list(mat = as.matrix(md$tpm), source = "metadata$tpm (SALMON preprocessed)"))
     }
     if (!is.null(md$tpm) && is.matrix(md$tpm)) {
         return(list(mat = as.matrix(md$tpm), source = "metadata$tpm"))
@@ -408,19 +408,19 @@
 
 # ============================================================================
 # HELPER: Synchronize metadata after filtering Updates readcounts, tx2gene,
-# salmon_tpm, etc. in metadata Returns updated metadata list @noRd
+# tpm, etc. in metadata Returns updated metadata list @noRd
 .sync_filter_metadata <- function(md, tokeep, assay_mat, rownames_se = NULL) {
     # Get the rows that are being kept If rownames_se not provided, try to
     # extract from metadata
     if (is.null(rownames_se)) {
         if (!is.null(md$readcounts) && !is.null(rownames(md$readcounts))) {
             rownames_se <- rownames(md$readcounts)
-        } else if (!is.null(md$salmon_tpm) && !is.null(rownames(md$salmon_tpm))) {
-            rownames_se <- rownames(md$salmon_tpm)
+        } else if (!is.null(md$tpm) && !is.null(rownames(md$tpm))) {
+            rownames_se <- rownames(md$tpm)
         } else if (!is.null(md$tx2gene) && nrow(md$tx2gene) > 0) {
             rownames_se <- md$tx2gene[[1]]
-        } else if (!is.null(md$salmon_effective_length) && !is.null(names(md$salmon_effective_length))) {
-            rownames_se <- names(md$salmon_effective_length)
+        } else if (!is.null(md$effective_length) && !is.null(names(md$effective_length))) {
+            rownames_se <- names(md$effective_length)
         } else {
             # Fallback: use seq_along(tokeep) if we can't determine rownames
             rownames_se <- seq_along(tokeep)
@@ -442,19 +442,19 @@
     }
 
     # Filter SALMON metadata (TPM and effective_length) to match filtered assay
-    if (!is.null(md$salmon_tpm) && is.matrix(md$salmon_tpm)) {
-        md$salmon_tpm <- as.matrix(md$salmon_tpm)[tokeep, , drop = FALSE]
+    if (!is.null(md$tpm) && is.matrix(md$tpm)) {
+        md$tpm <- as.matrix(md$tpm)[tokeep, , drop = FALSE]
     }
-    if (!is.null(md$salmon_effective_length)) {
-        if (is.vector(md$salmon_effective_length)) {
+    if (!is.null(md$effective_length)) {
+        if (is.vector(md$effective_length)) {
             # If it's a named vector, subset by matching names
-            if (!is.null(names(md$salmon_effective_length))) {
-                md$salmon_effective_length <- md$salmon_effective_length[kept_rownames]
-            } else if (is.numeric(md$salmon_effective_length) && length(md$salmon_effective_length) ==
+            if (!is.null(names(md$effective_length))) {
+                md$effective_length <- md$effective_length[kept_rownames]
+            } else if (is.numeric(md$effective_length) && length(md$effective_length) ==
                 length(rownames_se)) {
                 # If unnamed vector same length as original rows, subset by
                 # index
-                md$salmon_effective_length <- md$salmon_effective_length[tokeep]
+                md$effective_length <- md$effective_length[tokeep]
             }
         }
     }
@@ -512,7 +512,7 @@
     if (!is.null(tpm_result$is_fallback) && tpm_result$is_fallback) {
         warning("No TPM data found in assays or metadata. Falling back to assay '",
             assay_name, "'.", "\nThis may produce INCORRECT results if '", assay_name,
-            "' contains raw counts.", "\nEnsure TPM data is added as an assay or in metadata with salmon_tpm/tpm.",
+            "' contains raw counts.", "\nEnsure TPM data is added as an assay or in metadata with tpm/tpm.",
             call. = FALSE)
     }
 
@@ -1110,21 +1110,21 @@
         }
     }
 
-    # 3. Sync salmon_tpm (TPM matrix stored in metadata)
-    if (!is.null(S4Vectors::metadata(se)$salmon_tpm)) {
-        tpm_full <- S4Vectors::metadata(se)$salmon_tpm
+    # 3. Sync tpm (TPM matrix stored in metadata)
+    if (!is.null(S4Vectors::metadata(se)$tpm)) {
+        tpm_full <- S4Vectors::metadata(se)$tpm
         tpm_subset <- tpm_full[gene_idx, sample_idx, drop = FALSE]
-        S4Vectors::metadata(analysis_se)$salmon_tpm <- tpm_subset
+        S4Vectors::metadata(analysis_se)$tpm <- tpm_subset
 
         if (verbose) {
-            message("[subset_analysis] Filtered salmon_tpm: ", nrow(tpm_full), " -> ",
+            message("[subset_analysis] Filtered tpm: ", nrow(tpm_full), " -> ",
                 nrow(tpm_subset), " transcripts")
         }
     }
 
-    # 4. Sync salmon_effective_length (effective lengths)
-    if (!is.null(S4Vectors::metadata(se)$salmon_effective_length)) {
-        eff_len_full <- S4Vectors::metadata(se)$salmon_effective_length
+    # 4. Sync effective_length (effective lengths)
+    if (!is.null(S4Vectors::metadata(se)$effective_length)) {
+        eff_len_full <- S4Vectors::metadata(se)$effective_length
 
         # Could be vector or matrix, handle both
         if (is.vector(eff_len_full)) {
@@ -1132,12 +1132,12 @@
             tx_names_subset <- rownames(analysis_se)
             eff_len_subset <- eff_len_full[na.omit(match(tx_names_subset, names(eff_len_full)))]
             if (length(eff_len_subset) > 0) {
-                S4Vectors::metadata(analysis_se)$salmon_effective_length <- eff_len_subset
+                S4Vectors::metadata(analysis_se)$effective_length <- eff_len_subset
             }
         } else if (is.matrix(eff_len_full)) {
             # Matrix - subset by rows and columns
             eff_len_subset <- eff_len_full[gene_idx, sample_idx, drop = FALSE]
-            S4Vectors::metadata(analysis_se)$salmon_effective_length <- eff_len_subset
+            S4Vectors::metadata(analysis_se)$effective_length <- eff_len_subset
         }
     }
 

@@ -1204,12 +1204,12 @@ test_that("plot_multiq_delta_influence_heatmaps rejects results without q-values
 
 test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results", {
   skip_on_ci()  # Expensive: runs jackknife_isoform_switching with multi-q
-  # Load test data - salmon_dataset from TSENAT
+  # Load test data - readcounts from TSENAT
   data("readcounts", package = "TSENAT", envir = environment())
   
   # Build minimal SE
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    assays = list(counts = as.matrix(readcounts[1:50, 1:10])),
     rowData = data.frame(
       gene_id = rep(paste0("GENE", 1:10), 5),
       transcript_id = paste0("TRANS", 1:50),
@@ -1217,7 +1217,7 @@ test_that("plot_multiq_delta_influence_heatmaps works with valid multi-q results
       stringsAsFactors = FALSE
     ),
     colData = data.frame(
-      sample_id = colnames(salmon_dataset)[1:10],
+      sample_id = colnames(readcounts)[1:10],
       sample_type = rep(c("A", "B"), 5),
       paired_samples = rep(1:5, 2),
       stringsAsFactors = FALSE
@@ -1259,7 +1259,7 @@ test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
   
   # Build minimal SE with more genes
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = as.matrix(salmon_dataset[1:100, 1:10])),
+    assays = list(counts = as.matrix(readcounts[1:100, 1:10])),
     rowData = data.frame(
       gene_id = rep(paste0("GENE", 1:20), 5),
       transcript_id = paste0("TRANS", 1:100),
@@ -1267,7 +1267,7 @@ test_that("plot_multiq_delta_influence_heatmaps respects n_genes parameter", {
       stringsAsFactors = FALSE
     ),
     colData = data.frame(
-      sample_id = colnames(salmon_dataset)[1:10],
+      sample_id = colnames(readcounts)[1:10],
       sample_type = rep(c("A", "B"), 5),
       paired_samples = rep(1:5, 2),
       stringsAsFactors = FALSE
@@ -1309,7 +1309,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles n_genes > available gene
   
   # Build minimal SE
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    assays = list(counts = as.matrix(readcounts[1:50, 1:10])),
     rowData = data.frame(
       gene_id = rep(paste0("GENE", 1:10), 5),
       transcript_id = paste0("TRANS", 1:50),
@@ -1317,7 +1317,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles n_genes > available gene
       stringsAsFactors = FALSE
     ),
     colData = data.frame(
-      sample_id = colnames(salmon_dataset)[1:10],
+      sample_id = colnames(readcounts)[1:10],
       sample_type = rep(c("A", "B"), 5),
       paired_samples = rep(1:5, 2),
       stringsAsFactors = FALSE
@@ -1357,7 +1357,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
   
   # Build minimal SE
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    assays = list(counts = as.matrix(readcounts[1:50, 1:10])),
     rowData = data.frame(
       gene_id = rep(paste0("GENE", 1:10), 5),
       transcript_id = paste0("TRANS", 1:50),
@@ -1365,7 +1365,7 @@ test_that("plot_multiq_delta_influence_heatmaps handles q-values correctly", {
       stringsAsFactors = FALSE
     ),
     colData = data.frame(
-      sample_id = colnames(salmon_dataset)[1:10],
+      sample_id = colnames(readcounts)[1:10],
       sample_type = rep(c("A", "B"), 5),
       paired_samples = rep(1:5, 2),
       stringsAsFactors = FALSE
@@ -1410,7 +1410,7 @@ test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
   
   # Build minimal SE
   se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = as.matrix(salmon_dataset[1:50, 1:10])),
+    assays = list(counts = as.matrix(readcounts[1:50, 1:10])),
     rowData = data.frame(
       gene_id = rep(paste0("GENE", 1:10), 5),
       transcript_id = paste0("TRANS", 1:50),
@@ -1418,7 +1418,7 @@ test_that("plot_multiq_delta_influence_heatmaps creates valid PNG file", {
       stringsAsFactors = FALSE
     ),
     colData = data.frame(
-      sample_id = colnames(salmon_dataset)[1:10],
+      sample_id = colnames(readcounts)[1:10],
       sample_type = rep(c("A", "B"), 5),
       paired_samples = rep(1:5, 2),
       stringsAsFactors = FALSE

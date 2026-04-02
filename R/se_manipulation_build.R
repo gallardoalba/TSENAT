@@ -56,13 +56,13 @@
 #'   
 #' @param effective_length Numeric vector of effective transcript lengths
 #' (optional).
-#' If provided, stored in metadata as `salmon_effective_length` for
+#' If provided, stored in metadata as `effective_length` for
 #' `.calculate_diversity()`
 #' length-normalized entropy calculations. Vector length = number of
 #' transcripts.
 #' Typically obtained from SALMON quantification's EffectiveLength column
 #' (median across samples).
-#' Example: from preprocessing output `salmon_effective_length` or loaded
+#' Example: from preprocessing output `effective_length` or loaded
 #' via `load('readcounts.RData')`.
 #'   
 #' @param skip Logical. If TRUE, unmapped transcripts are silently removed. 
@@ -73,7 +73,7 @@
 #'   - `metadata$tx2gene`: transcript-to-gene mapping
 #'   - `metadata$readcounts`: raw transcript counts (preserved)
 #'   - `metadata$tpm`: TPM values (if provided)
-#'   - `metadata$salmon_effective_length`: effective lengths (if provided)
+#'   - `metadata$effective_length`: effective lengths (if provided)
 #'   - `rowData$transcript_id`: transcript IDs (matching rownames)
 #'   - `rowData$gene_id`: gene IDs for each transcript
 #'   - `rowData$gene_name`: human-readable gene names (if GFF3 provided)
@@ -136,14 +136,14 @@
 #'
 #' # Example 2: With SALMON data (TPM, effective_length)
 #' # Assuming preprocessed SALMON output loaded:
-#' # load('readcounts.RData') # salmon_dataset, salmon_tpm,
-#' salmon_effective_length
-#' # se <- .build_se(salmon_dataset, tx2gene, tpm = salmon_tpm, 
-#' #               effective_length = salmon_effective_length)
+#' # load('readcounts.RData') # readcounts, tpm,
+#' effective_length
+#' # se <- .build_se(readcounts, tx2gene, tpm = tpm, 
+#' #               effective_length = effective_length)
 #' # Now .filter_se() and .calculate_diversity() use SALMON data automatically:
 #' # filtered_se <- .filter_se(se, stringency = 'medium')  # Uses TPM from
 #' metadata
-#' # div_se <- .calculate_diversity(salmon_dataset, ...)   # Uses
+#' # div_se <- .calculate_diversity(readcounts, ...)   # Uses
 #' effective_length
 #'
 #' # Example 3: Using TSV file path
@@ -547,7 +547,7 @@
                 names(effective_length) <- rownames(readcounts)
             }
         }
-        S4Vectors::metadata(se)$salmon_effective_length <- effective_length
+        S4Vectors::metadata(se)$effective_length <- effective_length
     }
     
     se

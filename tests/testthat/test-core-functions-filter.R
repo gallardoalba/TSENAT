@@ -79,11 +79,11 @@ test_that(".filter_se updates metadata correctly", {
   rownames(counts) <- rownames(tpm) <- c("TX1", "TX2", "TX3", "TX4")
   colnames(counts) <- colnames(tpm) <- c("S1", "S2", "S3")
   
-  # Add metadata with readcounts and salmon_effective_length
+  # Add metadata with readcounts and effective_length
   md <- list(
     readcounts = counts,
-    salmon_effective_length = c(100, 150, 200, 175),
-    salmon_tpm = tpm  # Include TPM in metadata for proper filtering
+    effective_length = c(100, 150, 200, 175),
+    tpm = tpm  # Include TPM in metadata for proper filtering
   )
   
   se <- SummarizedExperiment::SummarizedExperiment(
@@ -102,9 +102,9 @@ test_that(".filter_se updates metadata correctly", {
     expect_equal(ncol(md_filt$readcounts), 3)
   }
   
-  # salmon_effective_length should be filtered
-  if (!is.null(md_filt$salmon_effective_length)) {
-    expect_equal(length(md_filt$salmon_effective_length), nrow(assays(se_filt)[[1]]))
+  # effective_length should be filtered
+  if (!is.null(md_filt$effective_length)) {
+    expect_equal(length(md_filt$effective_length), nrow(assays(se_filt)[[1]]))
   }
 })
 
@@ -1572,21 +1572,21 @@ describe("Helper functions unit tests", {
   
   test_that(".sync_filter_metadata: filters salmon data", {
     md <- list(
-      salmon_tpm = matrix(c(
+      tpm = matrix(c(
         c(10, 20, 30),
         c(5, 10, 15),
         c(2, 4, 6)
       ), nrow = 3, ncol = 3, byrow = TRUE,
       dimnames = list(c("TX1", "TX2", "TX3"), c("S1", "S2", "S3"))),
-      salmon_effective_length = c(100, 150, 200)
+      effective_length = c(100, 150, 200)
     )
     
     tokeep <- c(TRUE, TRUE, FALSE)  # Keep TX1 and TX2
     
     result <- TSENAT:::.sync_filter_metadata(md, tokeep, "tpm")
     
-    expect_equal(nrow(result$salmon_tpm), 2)
-    expect_equal(length(result$salmon_effective_length), 2)
+    expect_equal(nrow(result$tpm), 2)
+    expect_equal(length(result$effective_length), 2)
   })
   
   test_that(".sync_filter_metadata: handles NULL metadata gracefully", {

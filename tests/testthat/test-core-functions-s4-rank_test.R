@@ -15,7 +15,7 @@ setup_rank_test_analysis <- function(n_genes = 30, n_samples = 8) {
     # Load example data (matching roxygen example)
     # Use package namespace to ensure data is loaded correctly
     data(readcounts, package = "TSENAT", envir = environment())
-    readcounts <- as.matrix(salmon_dataset)
+    readcounts <- as.matrix(readcounts)
     mode(readcounts) <- "numeric"
     
     metadata_df <- read.table(
@@ -30,8 +30,8 @@ setup_rank_test_analysis <- function(n_genes = 30, n_samples = 8) {
         readcounts = readcounts,
         tx2gene = gff3_dataset,
         metadata = metadata_df,
-        tpm = salmon_tpm,
-        effective_length = salmon_effective_length
+        tpm = tpm,
+        effective_length = effective_length
     )
     analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
     

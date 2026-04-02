@@ -50,7 +50,7 @@
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -62,7 +62,7 @@
 #' # Build analysis from vignette data
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #'
 #' # Filter low-abundance genes (required for reliable jackknife estimates)
 #' analysis <- filter_analysis_s4(analysis, stringency = 'severe')
@@ -311,7 +311,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -323,7 +323,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -535,7 +535,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -547,7 +547,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -758,7 +758,7 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -770,7 +770,7 @@ setMethod("test_rankbased_assumptions_s4", signature(analysis = "TSENATAnalysis"
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -901,7 +901,7 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -913,7 +913,7 @@ plot_volcano_ma_grid_s4 <- function(analysis, x_col = NULL, padj_col = "padj", l
 #' # Build analysis from vignette data (matching TSENAT.Rmd workflow)
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters (best practice for reproducibility)
 #' config <- tsenat_config(
@@ -1110,7 +1110,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -1122,7 +1122,7 @@ setMethod("compute_method_concordance_s4", "TSENATAnalysis", function(analysis, 
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose
@@ -1258,7 +1258,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -1270,7 +1270,7 @@ plot_divergence_spectrum_s4 <- function(analysis, gene = NULL, n_genes = 4, ncol
 #' # Build analysis from vignette data and create small subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #'
@@ -1426,7 +1426,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' @examples
 #' # Setup: Create test analysis with divergence and LM interaction results
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -1436,7 +1436,7 @@ setMethod("plot_method_concordance_s4", "TSENATAnalysis", function(analysis, ver
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters (best practice for reproducibility)
 #' config <- tsenat_config(
@@ -1783,7 +1783,7 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 #' @examples
 #' # Plot 6: Top transcripts across groups
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -1793,7 +1793,7 @@ effect_sizes_divergence_s4 <- function(analysis, significance_threshold = 0.05, 
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
@@ -1972,7 +1972,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' @examples
 #' # Plot 2: Distribution of effect sizes across genes
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -1982,7 +1982,7 @@ plot_top_transcripts_s4 <- function(analysis, gene = NULL, condition_col = NULL,
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
@@ -2114,7 +2114,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #'
 #' @examples
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -2124,7 +2124,7 @@ plot_divergence_distribution_s4 <- function(analysis, threshold = 0.1, output_fi
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
@@ -2317,7 +2317,7 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' @examples
 #' # Plot 5: Multi-q delta influence (isoform switching) heatmaps
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -2327,7 +2327,7 @@ prepare_gene_switching_tables_s4 <- function(analysis, n_top_genes = NULL, n_tra
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
@@ -2506,7 +2506,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' @examples
 #' # Plot 3: GAM q-curves for genes with q-by-condition interactions
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -2516,7 +2516,7 @@ plot_multiq_delta_influence_heatmaps_s4 <- function(analysis, n_genes = 4, lm_re
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' 
 #' # Configure analysis parameters
 #' config <- tsenat_config(
@@ -2757,7 +2757,7 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 #' @examples
 #' # Create test analysis and compute M-estimation
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -2767,7 +2767,7 @@ plot_lm_interaction_gam_s4 <- function(analysis, n_top = 6, genes = NULL, condit
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),
@@ -3043,7 +3043,7 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #' @examples
 #' # Create test analysis and filter
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -3053,7 +3053,7 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #' 'TSENAT')
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
 #' @export

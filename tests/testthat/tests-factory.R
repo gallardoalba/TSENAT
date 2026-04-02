@@ -137,7 +137,7 @@ create_test_analysis <- function(
   }
   rownames(tpm) <- rownames(counts)
   colnames(tpm) <- colnames(counts)
-  S4Vectors::metadata(se)$salmon_tpm <- tpm
+  S4Vectors::metadata(se)$tpm <- tpm
   
   # Initialize TSENATAnalysis
   analysis <- TSENAT::TSENATAnalysis(se = se, config = list())
@@ -285,7 +285,7 @@ create_test_se <- function(
   )
   
   # Add TPM to metadata
-  S4Vectors::metadata(se)$salmon_tpm <- tpm
+  S4Vectors::metadata(se)$tpm <- tpm
   
   se
 }
@@ -369,7 +369,7 @@ create_test_se_simple <- function(
   )
   
   # Add TPM to metadata
-  S4Vectors::metadata(se)$salmon_tpm <- tpm
+  S4Vectors::metadata(se)$tpm <- tpm
   
   se
 }

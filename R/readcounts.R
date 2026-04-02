@@ -14,19 +14,19 @@
 #'
 #' @return A matrix (data frame) containing transcript-level TPM-normalized read
 #'   counts from salmon quantification. Rows represent transcripts (ENST format
-#'   IDs) and columns represent samples. Aliases include \code{salmon_dataset}
-#'   (main read count matrix), \code{salmon_tpm} (TPM values), and
-#'   \code{salmon_effective_length} (transcript lengths from salmon).
+#'   IDs) and columns represent samples. Aliases include \code{readcounts}
+#'   (main read count matrix), \code{tpm} (TPM values), and
+#'   \code{effective_length} (transcript lengths from salmon).
 #'
 #' @keywords datasets
 #'
 #' @examples
 #' data(readcounts, package = 'TSENAT')
-#' dim(salmon_dataset)
-#' head(salmon_dataset[1:4, 1:3])
+#' dim(readcounts)
+#' head(readcounts[1:4, 1:3])
 #'
 #' @name readcounts
-#' @aliases readcounts salmon_dataset salmon_tpm salmon_effective_length
+#' @aliases readcounts readcounts tpm effective_length
 NULL
 
 

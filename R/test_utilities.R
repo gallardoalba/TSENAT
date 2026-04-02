@@ -119,13 +119,13 @@
     }
     rownames(tpm) <- rownames(counts)
     colnames(tpm) <- colnames(counts)
-    S4Vectors::metadata(se)$salmon_tpm <- tpm
+    S4Vectors::metadata(se)$tpm <- tpm
 
     # Generate synthetic effective_length data for bootstrap normalization
     # Realistic effective lengths typically range from 20 to 5000 bp
     effective_length <- stats::runif(n_transcripts, min = 100, max = 3000)
     names(effective_length) <- rownames(counts)
-    S4Vectors::metadata(se)$salmon_effective_length <- effective_length
+    S4Vectors::metadata(se)$effective_length <- effective_length
 
     # Initialize TSENATAnalysis
     analysis <- TSENATAnalysis(se = se, config = list())

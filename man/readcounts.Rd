@@ -3,7 +3,6 @@
 \docType{data}
 \name{readcounts}
 \alias{readcounts}
-\alias{readcounts}
 \alias{tpm}
 \alias{effective_length}
 \title{Example transcript-level read counts dataset}
@@ -18,9 +17,9 @@ data(readcounts)
 \value{
 A matrix (data frame) containing transcript-level TPM-normalized read
   counts from salmon quantification. Rows represent transcripts (ENST format
-  IDs) and columns represent samples. Aliases include \code{salmon_dataset}
-  (main read count matrix), \code{salmon_tpm} (TPM values), and
-  \code{salmon_effective_length} (transcript lengths from salmon).
+  IDs) and columns represent samples. Aliases include \code{readcounts}
+  (main read count matrix), \code{tpm} (TPM values), and
+  \code{effective_length} (transcript lengths from salmon).
 }
 \description{
 A dataset containing transcript-level transcript-level read count abundances

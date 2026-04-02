@@ -150,7 +150,7 @@ context("Diversity Normalization: Standardized Metrics (Feature #7)")
 
 # Load test data
 load(system.file("data", "readcounts.RData", package = "TSENAT"))
-rc <- as.matrix(salmon_dataset[1:50, , drop = FALSE])
+rc <- as.matrix(readcounts[1:50, , drop = FALSE])
 mode(rc) <- "numeric"
 gs <- rownames(rc)
 

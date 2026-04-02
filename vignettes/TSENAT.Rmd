@@ -105,7 +105,7 @@ library(SummarizedExperiment)
 
 # Load example data
 data("readcounts", package = "TSENAT")
-readcounts <- as.matrix(salmon_dataset)
+readcounts <- as.matrix(readcounts)
 
 # Load sample metadata and annotation
 metadata_df <- read.table(
@@ -301,18 +301,18 @@ Now we will load the example dataset and associated metadata:
 ```{r data}
 # Load example dataset (lazy-loaded as 'readcounts' by default)
 # This includes SALMON preprocessing outputs:
-# - salmon_dataset: transcript-level NumReads (raw fragment counts)
-# - salmon_tpm: TPM matrix (length- and library-normalized estimates)
-# - salmon_effective_length: EffectiveLength vector (read-length corrected)
+# - readcounts: transcript-level NumReads (raw fragment counts)
+# - tpm: TPM matrix (length- and library-normalized estimates)
+# - effective_length: EffectiveLength vector (read-length corrected)
 data(readcounts)
 
 # Ensure numeric format (keep transcript IDs as rownames)
-readcounts <- as.matrix(salmon_dataset)
+readcounts <- as.matrix(readcounts)
 mode(readcounts) <- "numeric"
 
 # Explicitly load TPM and effective length
-salmon_tpm <- salmon_tpm  # TPM-normalized values
-salmon_effective_length <- salmon_effective_length  # Length-corrected values
+tpm <- tpm  # TPM-normalized values
+effective_length <- effective_length  # Length-corrected values
 
 # Load sample metadata
 metadata_df <- read.table(
@@ -342,8 +342,8 @@ analysis <- build_analysis_s4(
   readcounts = readcounts, 
   tx2gene = gff3_dataset, 
   metadata = metadata_df,
-  tpm = salmon_tpm,
-  effective_length = salmon_effective_length
+  tpm = tpm,
+  effective_length = effective_length
 )
 
 ## Configure analysis parameters once (best practice for reproducibility)

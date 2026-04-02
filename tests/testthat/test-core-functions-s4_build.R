@@ -289,8 +289,8 @@ test_that(".store_salmon_metadata stores effective_length correctly", {
 
     se <- TSENAT:::.store_salmon_metadata(se, readcounts, NULL, eff_length)
 
-    expect_false(is.null(metadata(se)$salmon_effective_length))
-    expect_identical(length(metadata(se)$salmon_effective_length), nrow(readcounts))
+    expect_false(is.null(metadata(se)$effective_length))
+    expect_identical(length(metadata(se)$effective_length), nrow(readcounts))
 })
 
 test_that(".store_salmon_metadata validates TPM dimensions", {
@@ -421,8 +421,8 @@ test_that(".build_se handles SALMON data", {
     se <- TSENAT:::.build_se(readcounts, tx2gene, tpm = tpm,
                               effective_length = eff_length)
 
-    expect_false(is.null(metadata(se)$salmon_tpm))
-    expect_false(is.null(metadata(se)$salmon_effective_length))
+    expect_false(is.null(metadata(se)$tpm))
+    expect_false(is.null(metadata(se)$effective_length))
 })
 
 test_that(".build_se populates rowData correctly", {
@@ -596,10 +596,10 @@ test_that(".store_salmon_metadata with both TPM and effective_length", {
     
     se <- TSENAT:::.store_salmon_metadata(se, readcounts, tpm, eff_length)
     
-    expect_false(is.null(metadata(se)$salmon_tpm))
-    expect_false(is.null(metadata(se)$salmon_effective_length))
+    expect_false(is.null(metadata(se)$tpm))
+    expect_false(is.null(metadata(se)$effective_length))
     expect_equal(nrow(metadata(se)$tpm), nrow(readcounts))
-    expect_equal(length(metadata(se)$salmon_effective_length), nrow(readcounts))
+    expect_equal(length(metadata(se)$effective_length), nrow(readcounts))
 })
 
 test_that(".store_salmon_metadata with only TPM (no effective_length)", {
@@ -609,8 +609,8 @@ test_that(".store_salmon_metadata with only TPM (no effective_length)", {
     
     se <- TSENAT:::.store_salmon_metadata(se, readcounts, tpm, NULL)
     
-    expect_false(is.null(metadata(se)$salmon_tpm))
-    expect_true(is.null(metadata(se)$salmon_effective_length))
+    expect_false(is.null(metadata(se)$tpm))
+    expect_true(is.null(metadata(se)$effective_length))
 })
 
 test_that(".store_salmon_metadata with only effective_length (no TPM)", {
@@ -620,8 +620,8 @@ test_that(".store_salmon_metadata with only effective_length (no TPM)", {
     
     se <- TSENAT:::.store_salmon_metadata(se, readcounts, NULL, eff_length)
     
-    expect_true(is.null(metadata(se)$salmon_tpm))
-    expect_false(is.null(metadata(se)$salmon_effective_length))
+    expect_true(is.null(metadata(se)$tpm))
+    expect_false(is.null(metadata(se)$effective_length))
 })
 
 test_that(".store_salmon_metadata with neither TPM nor effective_length", {
@@ -630,8 +630,8 @@ test_that(".store_salmon_metadata with neither TPM nor effective_length", {
     
     se <- TSENAT:::.store_salmon_metadata(se, readcounts, NULL, NULL)
     
-    expect_true(is.null(metadata(se)$salmon_tpm))
-    expect_true(is.null(metadata(se)$salmon_effective_length))
+    expect_true(is.null(metadata(se)$tpm))
+    expect_true(is.null(metadata(se)$effective_length))
 })
 
 # ===========================================================================
@@ -723,8 +723,8 @@ test_that(".build_se with tpm only (no effective_length)", {
     
     se <- TSENAT:::.build_se(readcounts, tx2gene, tpm = tpm, verbose = FALSE)
     
-    expect_false(is.null(metadata(se)$salmon_tpm))
-    expect_true(is.null(metadata(se)$salmon_effective_length))
+    expect_false(is.null(metadata(se)$tpm))
+    expect_true(is.null(metadata(se)$effective_length))
 })
 
 test_that(".build_se with effective_length only (no tpm)", {
@@ -740,8 +740,8 @@ test_that(".build_se with effective_length only (no tpm)", {
     
     se <- TSENAT:::.build_se(readcounts, tx2gene, effective_length = eff_length, verbose = FALSE)
     
-    expect_true(is.null(metadata(se)$salmon_tpm))
-    expect_false(is.null(metadata(se)$salmon_effective_length))
+    expect_true(is.null(metadata(se)$tpm))
+    expect_false(is.null(metadata(se)$effective_length))
 })
 
 test_that(".build_se with both tpm and effective_length", {
@@ -761,8 +761,8 @@ test_that(".build_se with both tpm and effective_length", {
     
     se <- TSENAT:::.build_se(readcounts, tx2gene, tpm = tpm, effective_length = eff_length, verbose = FALSE)
     
-    expect_false(is.null(metadata(se)$salmon_tpm))
-    expect_false(is.null(metadata(se)$salmon_effective_length))
+    expect_false(is.null(metadata(se)$tpm))
+    expect_false(is.null(metadata(se)$effective_length))
 })
 
 test_that(".build_se parameter combinations: skip + custom assay + metadata", {

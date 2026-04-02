@@ -971,7 +971,7 @@ create_gencode_index_cache <- function(config) {
 # STEP 5: FILTER AND OUTPUT DATA
 # =============================================================================
 
-filter_and_output <- function(readcounts, tx2gene, selected_genes, config, salmon_tpm = NULL, salmon_effective_length = NULL) {
+filter_and_output <- function(readcounts, tx2gene, selected_genes, config, tpm = NULL, effective_length = NULL) {
     message("\n[STEP 5] Filtering counts and writing output files...")
     step_start <- Sys.time()
     
@@ -981,16 +981,16 @@ filter_and_output <- function(readcounts, tx2gene, selected_genes, config, salmo
     tx2gene_filtered <- tx2gene[tx2gene$transcript_id %in% selected_tx, ]
     
     # Filter TPM and effective length matrices if provided
-    if (!is.null(salmon_tpm)) {
-        salmon_tpm_filtered <- salmon_tpm[selected_tx, ]
+    if (!is.null(tpm)) {
+        tpm_filtered <- tpm[selected_tx, ]
     } else {
-        salmon_tpm_filtered <- NULL
+        tpm_filtered <- NULL
     }
     
-    if (!is.null(salmon_effective_length)) {
-        salmon_effective_length_filtered <- salmon_effective_length[selected_tx]
+    if (!is.null(effective_length)) {
+        effective_length_filtered <- effective_length[selected_tx]
     } else {
-        salmon_effective_length_filtered <- NULL
+        effective_length_filtered <- NULL
     }
     
     # Extract unique genes
@@ -1041,28 +1041,28 @@ filter_and_output <- function(readcounts, tx2gene, selected_genes, config, salmo
     message("✓ TX2GENE mapping written: ", tx2gene_file, " (", nrow(tx2gene_filtered), " transcripts)")
     
     # Write RData to data folder
-    salmon_dataset <- as.data.frame(readcounts_filtered)
-    rownames(salmon_dataset) <- rownames(readcounts_filtered)
+    readcounts <- as.data.frame(readcounts_filtered)
+    rownames(readcounts) <- rownames(readcounts_filtered)
     
     # Prepare output objects
-    salmon_tpm <- salmon_tpm_filtered
-    salmon_effective_length <- salmon_effective_length_filtered
+    tpm <- tpm_filtered
+    effective_length <- effective_length_filtered
     
     rdata_file <- file.path("./data", "readcounts.RData")
     
     # Save all available objects
-    if (!is.null(salmon_tpm) && !is.null(salmon_effective_length)) {
-        save(salmon_dataset, salmon_tpm, salmon_effective_length, file = rdata_file)
+    if (!is.null(tpm) && !is.null(effective_length)) {
+        save(readcounts, tpm, effective_length, file = rdata_file)
         message("✓ RData file written: ", rdata_file)
-        message("  - Counts (salmon_dataset)")
-        message("  - TPM (salmon_tpm)")
-        message("  - Effective lengths (salmon_effective_length)")
+        message("  - Counts (readcounts)")
+        message("  - TPM (tpm)")
+        message("  - Effective lengths (effective_length)")
     } else {
-        save(salmon_dataset, file = rdata_file)
+        save(readcounts, file = rdata_file)
         message("✓ RData file written: ", rdata_file)
-        message("  - Counts (salmon_dataset)")
-        if (is.null(salmon_tpm)) message("  ⚠ TPM not available")
-        if (is.null(salmon_effective_length)) message("  ⚠ Effective lengths not available")
+        message("  - Counts (readcounts)")
+        if (is.null(tpm)) message("  ⚠ TPM not available")
+        if (is.null(effective_length)) message("  ⚠ Effective lengths not available")
     }
     
     message("  Transcripts: ", nrow(readcounts_filtered), ", Samples: ", ncol(readcounts_filtered))
@@ -1287,8 +1287,8 @@ main <- function() {
     # STEP 1: Read Salmon data
     salmon_data <- read_salmon_samples(salmon_dir, config$metadata_file)
     readcounts <- salmon_data$counts
-    salmon_tpm <- salmon_data$tpm
-    salmon_effective_length <- salmon_data$effective_length
+    tpm <- salmon_data$tpm
+    effective_length <- salmon_data$effective_length
     metadata <- salmon_data$metadata
     
     # STEP 2: Map transcripts to genes
@@ -1311,7 +1311,7 @@ main <- function() {
     gencode_gff_index <- create_gencode_index_cache(config)
     
     # STEP 5: Filter and output
-    filtered_result <- filter_and_output(readcounts, tx2gene, selected_genes, config, salmon_tpm, salmon_effective_length)
+    filtered_result <- filter_and_output(readcounts, tx2gene, selected_genes, config, tpm, effective_length)
     readcounts_filtered <- filtered_result$readcounts
     
     # STEP 6: Generate GFF3 (using cached index)

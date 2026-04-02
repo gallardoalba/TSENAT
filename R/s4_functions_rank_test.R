@@ -118,7 +118,7 @@
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
 #' data(readcounts)
-#' readcounts <- as.matrix(salmon_dataset)
+#' readcounts <- as.matrix(readcounts)
 #' mode(readcounts) <- 'numeric'
 #' metadata_df <- read.table(
 #'   system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
@@ -130,7 +130,7 @@
 #' # Build analysis from vignette data and create manageable subset
 #' analysis <- build_analysis_s4(readcounts = readcounts, tx2gene =
 #' gff3_dataset, metadata = metadata_df,
-#'   tpm = salmon_tpm, effective_length = salmon_effective_length)
+#'   tpm = tpm, effective_length = effective_length)
 #' analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes
 #' = 200)
 #' analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5),

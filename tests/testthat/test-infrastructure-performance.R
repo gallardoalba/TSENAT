@@ -19,7 +19,7 @@ if (identical(Sys.getenv("SKIP_PERFORMANCE_TESTS"), "true")) {
 setup_real_test_analysis <- function(n_genes = NULL, n_samples = NULL) {
   # Load example data matching roxygen documentation pattern
   data(readcounts)
-  readcounts_mat <- as.matrix(salmon_dataset)
+  readcounts_mat <- as.matrix(readcounts)
   mode(readcounts_mat) <- "numeric"
   
   # Load metadata
@@ -34,8 +34,8 @@ setup_real_test_analysis <- function(n_genes = NULL, n_samples = NULL) {
     readcounts_mat,
     gff3_file,
     metadata = metadata_df,
-    tpm = salmon_tpm,
-    effective_length = salmon_effective_length
+    tpm = tpm,
+    effective_length = effective_length
   )
   
   # Subset to specific size if needed

@@ -487,10 +487,10 @@ test_that("build_analysis_s4 with salmon_dir stores TPM and effective_length", {
   se <- getSE(analysis)
   
   # Check metadata storage
-  expect_true(!is.null(metadata(se)$salmon_tpm))
-  expect_true(!is.null(metadata(se)$salmon_effective_length))
-  expect_equal(dim(metadata(se)$salmon_tpm), c(100, 2))
-  expect_equal(length(metadata(se)$salmon_effective_length), 100)
+  expect_true(!is.null(metadata(se)$tpm))
+  expect_true(!is.null(metadata(se)$effective_length))
+  expect_equal(dim(metadata(se)$tpm), c(100, 2))
+  expect_equal(length(metadata(se)$effective_length), 100)
 })
 
 test_that("build_analysis_s4 with salmon direct parameters works", {
@@ -715,9 +715,9 @@ test_that("Full Salmon workflow: detect → read → build_analysis creates corr
   
   # Validate TPM stored in metadata (Salmon data stored there, not as assay)
   obj_meta <- S4Vectors::metadata(se)
-  expect_true("salmon_tpm" %in% names(obj_meta) || "tpm" %in% names(obj_meta))
-  if ("salmon_tpm" %in% names(obj_meta)) {
-    tpm_mat <- obj_meta$salmon_tpm
+  expect_true("tpm" %in% names(obj_meta) || "tpm" %in% names(obj_meta))
+  if ("tpm" %in% names(obj_meta)) {
+    tpm_mat <- obj_meta$tpm
     expect_equal(nrow(tpm_mat), n_transcripts)
     expect_equal(ncol(tpm_mat), 4)
     # TPM values should be numeric and non-negative
@@ -725,9 +725,9 @@ test_that("Full Salmon workflow: detect → read → build_analysis creates corr
   }
   
   # Validate effective_length stored in metadata
-  expect_true("salmon_effective_length" %in% names(obj_meta) || "effective_length" %in% names(obj_meta))
-  if ("salmon_effective_length" %in% names(obj_meta)) {
-    eff_length <- obj_meta$salmon_effective_length
+  expect_true("effective_length" %in% names(obj_meta) || "effective_length" %in% names(obj_meta))
+  if ("effective_length" %in% names(obj_meta)) {
+    eff_length <- obj_meta$effective_length
     expect_equal(length(eff_length), n_transcripts)
     expect_true(all(eff_length > 0, na.rm = TRUE))
   }

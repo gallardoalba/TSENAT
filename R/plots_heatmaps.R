@@ -245,7 +245,7 @@
 #' metadata instead of raw counts
 #' (default: FALSE). TPM is normalized for sequencing depth and is
 #' recommended for comparing
-#' expression across samples. Requires TPM data in `metadata(se)$salmon_tpm`
+#' expression across samples. Requires TPM data in `metadata(se)$tpm`
 #' from `build_analysis_s4()` or `.build_se()`
 #' with `tpm` parameter. Raises error if TPM not available and `use_tpm =
 #' TRUE`.
@@ -316,8 +316,8 @@
     # Handle TPM override if available
     if (use_tpm) {
         md <- S4Vectors::metadata(se)
-        if (!is.null(md$salmon_tpm)) {
-            tpm_data <- as.matrix(md$salmon_tpm)
+        if (!is.null(md$tpm)) {
+            tpm_data <- as.matrix(md$tpm)
             if (nrow(tpm_data) == nrow(counts) && ncol(tpm_data) == ncol(counts)) {
                 counts <- tpm_data
             }
