@@ -8,35 +8,69 @@ library(SummarizedExperiment)
 
 context("S4 Rank Test: rank_test_q_condition_s4")
 
-# Helper function to create realistic test TSENATAnalysis with valid diversity results
-# Matches roxygen documentation workflow
-setup_rank_test_analysis <- function(n_genes = 30, n_samples = 8) {
+# CACHE LEVEL 1: Base analysis (built once from full dataset)
+.test_analysis_cache <- NULL
+
+# CACHE LEVEL 2: Filtered + diversity-calculated analyses (by parameter combination)
+.test_analysis_diversity_cache <- list()
+
+# Get or create cached base analysis (WITHOUT diversity calculation)
+.get_cached_analysis <- function() {
+    if (!is.null(.test_analysis_cache)) {
+        return(.test_analysis_cache)
+    }
     
-    # Load example data (matching roxygen example)
-    # Use package namespace to ensure data is loaded correctly
-    data(readcounts, package = "TSENAT", envir = environment())
+    # Load example data (matching TSENAT.Rmd vignette)
+    data("readcounts", package = "TSENAT", envir = parent.frame())
+    readcounts <- get("readcounts", envir = parent.frame())
     readcounts <- as.matrix(readcounts)
     mode(readcounts) <- "numeric"
+    
+    tpm <- get("tpm", envir = parent.frame())
+    effective_length <- get("effective_length", envir = parent.frame())
     
     metadata_df <- read.table(
         system.file("extdata", "metadata.tsv", package = "TSENAT"),
         header = TRUE, sep = "\t"
     )
-    gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
     
-    # Build analysis from vignette data and create small subset
-    # Use both tpm and effective_length like roxygen example
+    gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+    
+    # Build analysis once (but NOT diversity calculation yet)
     analysis <- build_analysis_s4(
         readcounts = readcounts,
-        tx2gene = gff3_dataset,
+        tx2gene = gff3_file,
         metadata = metadata_df,
         tpm = tpm,
         effective_length = effective_length
     )
+    
+    # Cache it globally (diversity will be calculated after filtering per test)
+    .test_analysis_cache <<- analysis
+    analysis
+}
+
+# Helper function to create test subset (FAST - uses diversity cache when available)
+setup_rank_test_analysis <- function(n_genes = 10, n_samples = 4) {
+    # Create cache key for this filter combination
+    cache_key <- paste0("genes_", n_genes, "_samples_", n_samples)
+    
+    # Return from cache if already computed
+    if (cache_key %in% names(.test_analysis_diversity_cache)) {
+        return(.test_analysis_diversity_cache[[cache_key]])
+    }
+    
+    # Get cached base analysis
+    analysis <- .get_cached_analysis()
+    
+    # Filter to subset for this test (much faster than rebuilding)
     analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = n_genes, subset_n_samples = n_samples)
     
-    # Calculate diversity first (before metadata reconstruction)
+    # Calculate diversity AFTER filtering (this is the correct order)
     analysis <- calculate_diversity_s4(analysis, norm = TRUE)
+    
+    # Cache for next test with same parameters
+    .test_analysis_diversity_cache[[cache_key]] <<- analysis
     
     analysis
 }

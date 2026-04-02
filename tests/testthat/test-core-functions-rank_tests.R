@@ -263,3 +263,8 @@ test_that(".detect_q_analyze_gene: handles condition column", {
   expect_true(is.numeric(result$f_stat))
   expect_true(!is.na(result$p_val))
 })
+
+# ============================================================================
+# Test: Bootstrap CI results in rank_test_q_condition
+# ============================================================================
+

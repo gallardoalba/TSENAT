@@ -704,7 +704,7 @@
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
     nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, 
     eta2_threshold_moderate = 0.01, eta2_threshold_strong = 0.1, min_nperm = 100, 
-    max_nperm = 10000, verbose = FALSE) {
+    max_nperm = 10000, n_permutations = 5000, verbose = FALSE) {
 
     test <- match.arg(test)
     multicorr <- match.arg(multicorr)

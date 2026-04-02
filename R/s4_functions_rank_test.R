@@ -294,7 +294,7 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
         # Ensure SE format
         if (!is(se, "SummarizedExperiment")) {
             if (is.matrix(se) || is.data.frame(se)) {
-                se <- SummarizedExperiment(assays = list(entropy = as.matrix(se)))
+                se <- SummarizedExperiment(assays = list(diversity = as.matrix(se)))
             } else {
                 stop("Diversity result for ", key, " is not a SummarizedExperiment or matrix",
                   call. = FALSE)
@@ -347,11 +347,11 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     # Get rowData from first SE
     first_se <- analysis@diversity_results[[sort(q_keys)[1]]]
     if (!is(first_se, "SummarizedExperiment")) {
-        first_se <- SummarizedExperiment(assays = list(entropy = as.matrix(first_se)))
+        first_se <- SummarizedExperiment(assays = list(diversity = as.matrix(first_se)))
     }
     rd <- tryCatch(SummarizedExperiment::rowData(first_se), error = function(e) NULL)
 
-    se_multi_q <- SummarizedExperiment(assays = list(entropy = combined_assay), colData = combined_coldata_df)
+    se_multi_q <- SummarizedExperiment(assays = list(diversity = combined_assay), colData = combined_coldata_df)
     if (!is.null(rd) && nrow(rd) > 0) {
         SummarizedExperiment::rowData(se_multi_q) <- rd
     }
