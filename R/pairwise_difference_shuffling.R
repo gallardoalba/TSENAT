@@ -101,7 +101,44 @@
     robust_loss_type = "huber", robust_scale_method = "mad") {
     paired_method <- match.arg(paired_method)
 
-    # CRITICAL: Validate control and sample structure
+    # Validate inputs and get observed statistics
+    .validate_label_shuffling_inputs(samples, control, pairs, ncol(x), paired)
+    fc_result <- .calculate_fc(x, samples, control, method)
+    log2_fc <- fc_result[, 4]
+    group_means <- fc_result[, seq_len(2)]
+
+    # Pre-compute pseudocount and group identifiers (computed once, reused)
+    pseudocount_val <- .compute_pseudocount(fc_result)
+    groups <- sort(unique(samples))  # OPTIMIZATION: Compute once, use for both perm and effect sizes
+    case_group <- setdiff(groups, control)
+
+    # Generate permutation null distribution
+    perm_mat <- .generate_permutation_matrix(x, samples, control, method, 
+        randomizations, paired, paired_method, pairs, pseudocount_val, 
+        robust_loss_type, robust_scale_method)
+
+    # Compute p-values from permutation distribution (with S019 correction)
+    raw_p_values <- .compute_pvalues_from_permutations(log2_fc, perm_mat, nthreads)
+    adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
+
+    # Compute effect sizes (independent of permutation distribution)
+    effect_stats <- .compute_all_effect_sizes(x, samples, pairs, groups, nthreads)
+
+    # Format and return results
+    .format_pvalue_output(raw_p_values, adjusted_p_values, log2_fc, 
+        effect_stats, group_means)
+}
+
+#' Validate inputs for .label_shuffling()
+#'
+#' @param samples Character vector of sample group labels
+#' @param control Control group name
+#' @param pairs Optional pairing vector
+#' @param n_samples Number of samples (ncol of data matrix)
+#' @param paired Logical; whether paired design
+#'
+#' @noRd
+.validate_label_shuffling_inputs <- function(samples, control, pairs, n_samples, paired) {
     if (!(control %in% samples)) {
         stop("Control group '", control, "' not found in unique sample types: ",
             paste(unique(samples), collapse = ", "), call. = FALSE)
@@ -109,218 +146,284 @@
 
     unique_groups <- unique(samples)
     if (length(unique_groups) != 2) {
-        stop(".label_shuffling() requires exactly 2 sample groups (control and case); found ",
-            length(unique_groups), ": ", paste(unique_groups, collapse = ", "), call. = FALSE)
+        stop(".label_shuffling() requires exactly 2 sample groups; found ",
+            length(unique_groups), ": ", paste(unique_groups, collapse = ", "), 
+            call. = FALSE)
     }
 
-    # When paired with explicit pairing info, validate structure
-    if (isTRUE(paired) && !is.null(pairs)) {
-        if (length(pairs) != ncol(x)) {
-            stop("`pairs` must have length equal to ncol(x).", call. = FALSE)
-        }
+    # Check for even number of samples when paired design
+    if (isTRUE(paired) && (n_samples %% 2 != 0)) {
+        stop("Paired permutation requires an even number of samples",
+            call. = FALSE)
     }
 
-    # observed log2 fold changes and group-wise means
-    fc_result <- .calculate_fc(x, samples, control, method)
-    log2_fc <- fc_result[, 4]
-    group_means <- fc_result[, seq_len(2)]
+    # Check pairs parameter is provided when paired design
+    if (isTRUE(paired) && is.null(pairs)) {
+        stop("paired=TRUE requires `pairs` parameter to be provided.", call. = FALSE)
+    }
 
-    # ========================================================================
-    # OPTIMIZATION: Pre-compute group indices and pseudocount once Instead of
-    # calling .calculate_fc() repeatedly in the permutation loop, use fast
-    # vectorized computation with pre-computed structure.  This eliminates 49x
-    # overhead of aggregate() and data.frame creation.
-    # ========================================================================
+    if (isTRUE(paired) && !is.null(pairs) && length(pairs) != n_samples) {
+        stop("`pairs` must have length equal to n_samples.", call. = FALSE)
+    }
+}
 
-    # Extract pseudocount from the initial result (calculated based on observed
-    # group summaries)
+#' Compute pseudocount from fold-change results
+#'
+#' @param fc_result Data frame from .calculate_fc()
+#'
+#' @noRd
+.compute_pseudocount <- function(fc_result) {
     pos_vals <- as.matrix(fc_result[, seq_len(2)])
     pos_vals <- pos_vals[!is.na(pos_vals) & pos_vals > 0]
-    if (length(pos_vals) > 0) {
-        pseudocount_val <- min(pos_vals, na.rm = TRUE)/2
-    } else {
-        pseudocount_val <- 1e-06
-    }
+    if (length(pos_vals) > 0) min(pos_vals, na.rm = TRUE) / 2 else 1e-06
+}
 
-    # Pre-compute groups: identify control and case groups
+#' Generate permutation matrix for label shuffling test
+#'
+#' @noRd
+.generate_permutation_matrix <- function(x, samples, control, method, randomizations, 
+    paired, paired_method, pairs, pseudocount_val, robust_loss_type, robust_scale_method) {
+    
+    perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
     unique_groups <- unique(samples)
     case_group <- setdiff(unique_groups, control)
-    if (length(case_group) == 0) {
-        stop("Control group not found in samples", call. = FALSE)
-    }
-    if (length(case_group) > 1) {
-        case_group <- case_group[1]  # Use first non-control group if multiple
-    }
 
-    # build permutation/null distribution of log2 fold changes
-    if (isTRUE(paired)) {
-        if (!is.null(pairs)) {
-            # Use explicit pairing: sign-flip within pairs OPTIMIZATION:
-            # Pre-compute pair indices once outside loop
-            unique_pairs <- unique(pairs)
-            pair_indices <- vector("list", length(unique_pairs))
-            for (p_idx in seq_along(unique_pairs)) {
-                pair_indices[[p_idx]] <- which(pairs == unique_pairs[p_idx])
-            }
-
-            # Pre-allocate matrix for permutation results (avoids repeated
-            # data.frame creation)
-            perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
-
-            for (r in seq_len(randomizations)) {
-                # Generate sign-flips for each pair
-                flip_signs <- sample(c(TRUE, FALSE), size = length(unique_pairs),
-                  replace = TRUE)
-                perm_samples <- samples
-
-                # OPTIMIZATION: Vectorized pair swapping - only loop through
-                # pairs needing flip
-                flip_pairs_idx <- which(flip_signs)
-                if (length(flip_pairs_idx) > 0) {
-                  for (p_idx in flip_pairs_idx) {
-                    pair_idx <- pair_indices[[p_idx]]
-                    if (length(pair_idx) == 2) {
-                      perm_samples[pair_idx] <- perm_samples[rev(pair_idx)]
-                    }
-                  }
-                }
-
-                # Map permuted samples to group indices and compute log2FC
-                # directly
-                perm_case_idx <- which(perm_samples == case_group)
-                perm_ctrl_idx <- which(perm_samples == control)
-
-                # Use fast computation instead of .calculate_fc(avoids
-                # aggregate overhead)
-                perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
-                  method, pseudocount_val, robust_loss_type, robust_scale_method)
-            }
-        } else {
-            # Fall back to position-based paired permutation
-            perm_mat <- .permute_paired(x = x, samples = samples, control = control,
-                method = method, randomizations = randomizations, paired_method = paired_method)
-        }
+    if (isTRUE(paired) && !is.null(pairs)) {
+        perm_mat <- .generate_paired_permutations(x, samples, control, case_group, 
+            method, randomizations, pairs, paired_method, pseudocount_val, 
+            robust_loss_type, robust_scale_method)
     } else {
-        # Generate unpaired permutations with optimized computation
-        # Pre-allocate matrix to store permutation results (avoids repeated
-        # data.frame creation)
-        perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
-
-        for (r in seq_len(randomizations)) {
-            # Shuffle sample labels
-            perm_samples <- sample(samples)
-
-            # Map permuted samples to group indices and compute log2FC directly
-            # This uses vectorized mean/median instead of aggregate()
-            perm_case_idx <- which(perm_samples == case_group)
-            perm_ctrl_idx <- which(perm_samples == control)
-
-            # Use fast computation instead of .calculate_fc(avoids aggregate
-            # overhead)
-            perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
-                method, pseudocount_val, robust_loss_type, robust_scale_method)
-        }
+        perm_mat <- .generate_unpaired_permutations(x, samples, control, case_group, 
+            method, randomizations, pseudocount_val, robust_loss_type, robust_scale_method)
     }
 
-    # Function to compute p-value for a single feature
+    perm_mat
+}
+
+#' Generate paired permutations with pair structure preservation
+#'
+#' @noRd
+.generate_paired_permutations <- function(x, samples, control, case_group, method, 
+    randomizations, pairs, paired_method, pseudocount_val, robust_loss_type, robust_scale_method) {
+    
+    perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
+    unique_pairs <- unique(pairs)
+    pair_indices <- .prepare_pair_indices(pairs, unique_pairs)
+    n_pairs <- length(unique_pairs)
+    
+    # OPTIMIZATION: Pre-generate all random decisions for all randomizations at once
+    # This avoids repeated sample() calls inside the loop
+    if (paired_method == "swap") {
+        # For swap: generate (randomizations × n_pairs) boolean matrix
+        swap_matrix <- matrix(sample(c(TRUE, FALSE), size = randomizations * n_pairs, replace = TRUE), 
+                              nrow = randomizations, ncol = n_pairs)
+    } else if (paired_method == "signflip") {
+        # For signflip: generate (randomizations × n_pairs) boolean matrix
+        swap_matrix <- matrix(sample(c(TRUE, FALSE), size = randomizations * n_pairs, replace = TRUE), 
+                              nrow = randomizations, ncol = n_pairs)
+    }
+
+    for (r in seq_len(randomizations)) {
+        perm_samples <- samples
+        
+        # Apply pre-computed permutations for this randomization
+        for (p_idx in seq_len(n_pairs)) {
+            pair_idx <- pair_indices[[p_idx]]
+            if (length(pair_idx) == 2 && swap_matrix[r, p_idx]) {
+                perm_samples[pair_idx] <- perm_samples[rev(pair_idx)]
+            }
+        }
+
+        perm_case_idx <- which(perm_samples == case_group)
+        perm_ctrl_idx <- which(perm_samples == control)
+        perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
+            method, pseudocount_val, robust_loss_type, robust_scale_method)
+    }
+
+    perm_mat
+}
+
+#' Prepare pair indices for vectorized pair operations
+#'
+#' @noRd
+.prepare_pair_indices <- function(pairs, unique_pairs) {
+    # Vectorized version using split() to avoid repeated which() calls
+    pair_split <- split(seq_along(pairs), pairs)
+    pair_split[match(unique_pairs, names(pair_split))]
+}
+
+#' Generate unpaired permutations
+#'
+#' @noRd
+.generate_unpaired_permutations <- function(x, samples, control, case_group, method, 
+    randomizations, pseudocount_val, robust_loss_type, robust_scale_method) {
+    
+    perm_mat <- matrix(NA_real_, nrow = nrow(x), ncol = randomizations)
+
+    for (r in seq_len(randomizations)) {
+        perm_samples <- sample(samples)
+        perm_case_idx <- which(perm_samples == case_group)
+        perm_ctrl_idx <- which(perm_samples == control)
+        perm_mat[, r] <- .fast_log2fc_permutation(x, perm_case_idx, perm_ctrl_idx,
+            method, pseudocount_val, robust_loss_type, robust_scale_method)
+    }
+
+    perm_mat
+}
+
+#' Compute p-values from permutation distribution (S019 Phipson & Smyth correction)
+#'
+#' @noRd
+.compute_pvalues_from_permutations <- function(log2_fc, perm_mat, nthreads) {
+    # OPTIMIZATION: Pre-compute row counts of non-NA values to avoid repeated filtering
+    # Each element [i] = count of non-NA permutation values for feature i
+    n_non_na_perm <- rowSums(!is.na(perm_mat))
+    
     .compute_pval <- function(i) {
         obs <- log2_fc[i]
+        if (is.na(obs)) return(1)
+        
         nulls <- perm_mat[i, ]
-        if (is.na(obs) || all(is.na(nulls))) {
-            return(1)
-        }
-        nulls_non_na <- nulls[!is.na(nulls)]
-        n_non_na <- length(nulls_non_na)
-        if (n_non_na == 0) {
-            return(1)
-        }
-        cnt <- sum(abs(nulls_non_na) >= abs(obs))
-        # S019: Phipson & Smyth (2010) Bias Correction
-        pval <- (cnt + 1)/(n_non_na + 1)
-        return(pval)
+        n_non_na <- n_non_na_perm[i]
+        if (n_non_na == 0) return(1)
+        
+        # Avoid creating intermediate nulls_non_na vector for memory efficiency
+        cnt <- sum(abs(nulls[!is.na(nulls)]) >= abs(obs))
+        (cnt + 1) / (n_non_na + 1)  # S019: Phipson & Smyth (2010)
     }
 
-    # compute two-sided permutation p-value with pseudocount, in parallel
-    raw_p_values <- unlist(.bplapply(seq_len(nrow(perm_mat)), .compute_pval, nthreads = nthreads))
+    unlist(.bplapply(seq_len(nrow(perm_mat)), .compute_pval, nthreads = nthreads))
+}
 
-    adjusted_p_values <- p.adjust(raw_p_values, method = pcorr)
 
-    # Compute effect size statistics (r and U) from observed data These are
-    # independent of the permutation distribution
-    groups <- unique(sort(samples))
+#' Compute effect sizes (U and r) for all features
+#'
+#' @noRd
+.compute_all_effect_sizes <- function(x, samples, pairs, groups, nthreads) {
+    effect_sizes <- .bplapply(seq_len(nrow(x)), function(i) {
+        .compute_one_effect_size(x, i, samples, pairs, groups)
+    }, nthreads = nthreads)
 
-    # Helper to compute U and r for a single feature
-    .compute_effect_sizes <- function(i) {
-        tryCatch({
-            if (isTRUE(paired) && !is.null(pairs)) {
-                # Paired design: compute signed-rank test from paired
-                # differences
-                unique_pairs <- unique(pairs)
-                all_diffs <- numeric(0)
-                for (p in unique_pairs) {
-                  g1_samples <- which(pairs == p & samples == groups[1])
-                  g2_samples <- which(pairs == p & samples == groups[2])
-                  if (length(g1_samples) == 1 && length(g2_samples) == 1) {
-                    all_diffs <- c(all_diffs, x[i, g1_samples] - x[i, g2_samples])
-                  }
-                }
-                if (is.null(all_diffs) || length(all_diffs) < 2) {
-                  return(c(U = NA_real_, r = NA_real_))
-                }
-                # Signed-rank test on paired differences (exact=FALSE to avoid
-                # tie warnings)
-                wt <- wilcox.test(all_diffs, mu = 0, exact = FALSE)
-                U <- as.numeric(wt$statistic)
-                n <- length(all_diffs)
-                # For paired: r = Z / sqrt(n)
-                expected_U <- n * (n + 1)/4
-                var_U <- (n * (n + 1) * (2 * n + 1))/24
-                sd_U <- sqrt(var_U)
-                Z <- (U - expected_U)/sd_U
-                r <- Z/sqrt(n)
-                c(U = U, r = pmax(-1, pmin(1, r)))  # Clamp r to [-1, 1]
-            } else {
-                # Unpaired design: compute rank-sum test
-                g1_idx <- which(samples == groups[1])
-                g2_idx <- which(samples == groups[2])
+    # Simplified extraction: convert list of named vectors to separate vectors
+    list(
+        U = vapply(effect_sizes, "[", i = "U", FUN.VALUE = numeric(1)),
+        r = vapply(effect_sizes, "[", i = "r", FUN.VALUE = numeric(1))
+    )
+}
 
-                if (length(g1_idx) == 0 || length(g2_idx) == 0) {
-                  return(c(U = NA_real_, r = NA_real_))
-                }
+#' Compute Wilcoxon U and effect size r for a single feature
+#'
+#' @noRd
+.compute_one_effect_size <- function(x, feature_idx, samples, pairs, groups) {
+    tryCatch({
+        if (!is.null(pairs)) {
+            .wilcox_effect_sizes_paired(x, feature_idx, pairs, samples, groups)
+        } else {
+            .wilcox_effect_sizes_unpaired(x, feature_idx, samples, groups)
+        }
+    }, error = function(e) {
+        c(U = NA_real_, r = NA_real_)
+    })
+}
 
-                # Use exact=FALSE to avoid warnings about ties/zeroes on small
-                # samples
-                wt <- wilcox.test(x[i, g1_idx], x[i, g2_idx], paired = FALSE, exact = FALSE)
-                U <- as.numeric(wt$statistic)
-                n1 <- length(g1_idx)
-                n2 <- length(g2_idx)
-                n <- n1 + n2
-                # For unpaired: r = Z / sqrt(n)
-                expected_U <- n1 * n2/2
-                var_U <- (n1 * n2 * (n1 + n2 + 1))/12
-                sd_U <- sqrt(var_U)
-                Z <- (U - expected_U)/sd_U
-                r <- Z/sqrt(n)
-                c(U = U, r = pmax(-1, pmin(1, r)))  # Clamp r to [-1, 1]
-            }
-        }, error = function(e) {
-            c(U = NA_real_, r = NA_real_)
-        })
+#' Wilcoxon effect sizes for paired design
+#'
+#' @noRd
+.wilcox_effect_sizes_paired <- function(x, feature_idx, pairs, samples, groups) {
+    unique_pairs <- unique(pairs)
+    pair_indices <- .prepare_pair_indices(pairs, unique_pairs)
+    
+    # Pre-allocate difference vector (more efficient than growing with c())
+    diffs_list <- vector("list", length(unique_pairs))
+    
+    for (p_idx in seq_along(unique_pairs)) {
+        pair_idx <- pair_indices[[p_idx]]
+        # Use pre-computed indices instead of which() for each pair
+        g1_mask <- samples[pair_idx] == groups[1]
+        g2_mask <- samples[pair_idx] == groups[2]
+        
+        # Extract indices for this pair's groups
+        g1_idx <- pair_idx[g1_mask]
+        g2_idx <- pair_idx[g2_mask]
+        
+        if (length(g1_idx) == 1 && length(g2_idx) == 1) {
+            diffs_list[[p_idx]] <- x[feature_idx, g1_idx] - x[feature_idx, g2_idx]
+        }
+    }
+    
+    all_diffs <- unlist(diffs_list)
+
+    if (length(all_diffs) < 2) return(c(U = NA_real_, r = NA_real_))
+
+    wt <- wilcox.test(all_diffs, mu = 0, exact = FALSE)
+    U <- as.numeric(wt$statistic)
+    n <- length(all_diffs)
+    
+    # r = Z / sqrt(n) for paired test
+    expected_U <- n * (n + 1) / 4
+    var_U <- (n * (n + 1) * (2 * n + 1)) / 24
+    
+    # Guard against zero variance (can occur with very small n)
+    if (var_U <= 0) return(c(U = U, r = NA_real_))
+    
+    Z <- (U - expected_U) / sqrt(var_U)
+    r <- Z / sqrt(n)
+    
+    c(U = U, r = pmax(-1, pmin(1, r)))  # Clamp r to [-1, 1]
+}
+
+#' Wilcoxon effect sizes for unpaired design
+#'
+#' @noRd
+.wilcox_effect_sizes_unpaired <- function(x, feature_idx, samples, groups) {
+    g1_idx <- which(samples == groups[1])
+    g2_idx <- which(samples == groups[2])
+
+    if (length(g1_idx) == 0 || length(g2_idx) == 0) {
+        return(c(U = NA_real_, r = NA_real_))
     }
 
-    # Compute effect sizes in parallel
-    effect_sizes <- .bplapply(seq_len(nrow(x)), .compute_effect_sizes, nthreads = nthreads)
-    u_statistics <- vapply(effect_sizes, function(es) es["U"], FUN.VALUE = numeric(1))
-    r_values <- vapply(effect_sizes, function(es) es["r"], FUN.VALUE = numeric(1))
+    wt <- wilcox.test(x[feature_idx, g1_idx], x[feature_idx, g2_idx], 
+        paired = FALSE, exact = FALSE)
+    U <- as.numeric(wt$statistic)
+    n1 <- length(g1_idx)
+    n2 <- length(g2_idx)
+    n <- n1 + n2
+    
+    # r = Z / sqrt(n) for unpaired test
+    expected_U <- n1 * n2 / 2
+    var_U <- (n1 * n2 * (n1 + n2 + 1)) / 12
+    
+    # Guard against zero variance
+    if (var_U <= 0) return(c(U = U, r = NA_real_))
+    
+    Z <- (U - expected_U) / sqrt(var_U)
+    r <- Z / sqrt(n)
+    
+    c(U = U, r = pmax(-1, pmin(1, r)))  # Clamp r to [-1, 1]
+}
 
-    # Build output data frame with p-values, fold changes, group means, and
-    # effect sizes
-    out <- data.frame(pvalue = raw_p_values, padj = adjusted_p_values, log2FC = log2_fc,
-        U = u_statistics, r = r_values, group_means, check.names = FALSE, stringsAsFactors = FALSE)
+#' Format output as data frame with all statistics
+#'
+#' @noRd
+.format_pvalue_output <- function(raw_p_values, adjusted_p_values, log2_fc, 
+    effect_stats, group_means) {
+    
+    out <- data.frame(
+        pvalue = raw_p_values,
+        padj = adjusted_p_values,
+        log2FC = log2_fc,
+        U = effect_stats$U,
+        r = effect_stats$r,
+        group_means,
+        check.names = FALSE,
+        stringsAsFactors = FALSE
+    )
 
-    # Set column names for group means
-    group_names <- colnames(group_means)
+    # Extract group names by removing method suffix (e.g., "Normal_mean" -> "Normal")
+    group_col_names <- colnames(group_means)
+    group_names <- gsub("_(mean|median|m_estimate)$", "", group_col_names)
     colnames(out) <- c("pvalue", "padj", "log2FC", "U", "r", group_names)
-
-    return(out)
+    
+    out
 }

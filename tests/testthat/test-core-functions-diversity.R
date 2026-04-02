@@ -2768,3 +2768,95 @@ test_that(".build_diversity_se_output creates complete SE with all components", 
     expect_equal(meta$q, 1.0)
     expect_equal(meta$what, "S")
 })
+
+# ============================================================================
+# REDISTRIBUTED TESTS FROM test-infrastructure-statistical_validation.R
+# ============================================================================
+
+context("Tsallis Entropy: Normalized Bounds and Extreme q Values")
+
+test_that("normalized entropy for q < 1 can exceed 1 (mathematically valid)", {
+    # Highly skewed distribution
+    counts <- c(100, 1)
+    
+    # q < 1 emphasizes rare elements
+    result_q05 <- .calculate_tsallis_entropy(counts, q = 0.5, norm = TRUE)
+    
+    # Should be finite (not NaN)
+    expect_true(!is.nan(result_q05))
+    # For this skewed distribution, may exceed 1
+    # Just verify it's reasonable
+    expect_true(result_q05 > 0)
+    expect_true(!is.infinite(result_q05))
+})
+
+test_that("normalized entropy bounds correct for q > 1", {
+    # For uniform distribution with q > 1, should equal 1
+    counts_uniform <- rep(10, 5)
+    
+    result_q15 <- .calculate_tsallis_entropy(counts_uniform, q = 1.5, norm = TRUE)
+    result_q2 <- .calculate_tsallis_entropy(counts_uniform, q = 2, norm = TRUE)
+    
+    expect_equal(result_q15, 1.0, tolerance = 1e-6)
+    expect_equal(result_q2, 1.0, tolerance = 1e-6)
+    
+    # Skewed distribution should give <1
+    counts_skewed <- c(100, 1, 1, 1, 1)
+    result_skew_q15 <- .calculate_tsallis_entropy(counts_skewed, q = 1.5, norm = TRUE)
+    result_skew_q2 <- .calculate_tsallis_entropy(counts_skewed, q = 2, norm = TRUE)
+    
+    expect_true(result_skew_q15 < 1.0)
+    expect_true(result_skew_q2 < 1.0)
+    expect_true(result_skew_q15 > 0.0)
+    expect_true(result_skew_q2 > 0.0)
+})
+
+test_that("tsallis entropy stable at extreme q values", {
+    counts <- c(10, 5, 3, 1)
+    
+    # Very small q
+    result_q001 <- .calculate_tsallis_entropy(counts, q = 0.01, norm = FALSE)
+    expect_true(!is.nan(result_q001))
+    expect_true(is.finite(result_q001))
+    
+    # Very large q
+    result_q10 <- .calculate_tsallis_entropy(counts, q = 10, norm = FALSE)
+    expect_true(!is.nan(result_q10))
+    expect_true(is.finite(result_q10))
+    
+    # Both should be reasonable values
+    expect_true(result_q001 >= 0)
+    expect_true(result_q10 >= 0)
+})
+
+test_that("hill numbers stable at extreme q", {
+    counts <- c(20, 10, 5, 1)
+    
+    # D_q at q = 0.1 and q = 5
+    D_q01 <- .calculate_tsallis_entropy(counts, q = 0.1, what = "D", norm = FALSE)
+    D_q5 <- .calculate_tsallis_entropy(counts, q = 5, what = "D", norm = FALSE)
+    
+    # Should be finite and positive
+    expect_true(!is.nan(D_q01))
+    expect_true(!is.nan(D_q5))
+    expect_true(D_q01 > 0)
+    expect_true(D_q5 > 0)
+    
+    # q=0.1 emphasizes rare elements, so Hill number should be larger
+    # q=5 emphasizes common elements, so Hill number should be smaller
+    # Actually, for skewed distributions, D_0.1 > D_5
+    expect_true(D_q01 > D_q5)
+})
+
+context("Scale Invariance: Entropy")
+
+test_that("entropy is scale invariant", {
+    counts1 <- c(10, 20, 30, 40)
+    counts2 <- counts1 * 100  # Scale by 100x
+    
+    result1 <- .calculate_tsallis_entropy(counts1, q = 2, norm = FALSE)
+    result2 <- .calculate_tsallis_entropy(counts2, q = 2, norm = FALSE)
+    
+    # Entropy depends only on proportions, not absolute counts
+    expect_equal(result1, result2, tolerance = 1e-10)
+})

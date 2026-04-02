@@ -1622,3 +1622,70 @@ test_that("Helper error messages are informative", {
     expect_match(error_msg, "unknown")
     expect_match(error_msg, "not found in matrix rownames")
 })
+
+# ============================================================================
+# REDISTRIBUTED TESTS FROM test-infrastructure-statistical_validation.R
+# ============================================================================
+
+context("Linear Models: Mixed Model Fallback Improvement")
+
+test_that("lm_subject_fixed fallback preserves power vs. lm_nosubject", {
+    skip_if_not_installed("lme4")
+    set.seed(102)
+    
+    # Create data with within-subject correlation
+    n_subjects <- 8
+    n_q_per_subject <- 5
+    subjects <- rep(paste0("S", 1:n_subjects), each = n_q_per_subject)
+    q_vals <- rep(seq(0.1, 0.9, length.out = n_q_per_subject), times = n_subjects)
+    group <- rep(c("A", "B"), each = n_subjects * n_q_per_subject / 2)
+    
+    # True effect: q×group interaction
+    subject_effect <- rep(rnorm(n_subjects, 0, 0.1), each = n_q_per_subject)
+    entropy <- 0.5 + 
+             0.3 * q_vals +
+             0.2 * (group == "B") +
+             0.15 * (group == "B") * q_vals +  # True interaction
+             subject_effect +
+             rnorm(length(subjects), 0, 0.05)
+    
+    df <- data.frame(entropy = entropy, q = q_vals, group = factor(group), 
+                     subject = factor(subjects))
+    
+    # Fit with subject as fixed effect (proper approach)
+    fit_with_subj <- stats::lm(entropy ~ q * group + factor(subject), data = df)
+    p_with_subj <- summary(fit_with_subj)$coefficients["q:groupB", "Pr(>|t|)"]
+    
+    # Fit without subject (loses power)
+    fit_no_subj <- stats::lm(entropy ~ q * group, data = df)
+    p_no_subj <- summary(fit_no_subj)$coefficients["q:groupB", "Pr(>|t|)"]
+    
+    # Model with subject should have lower p-value (more power)
+    expect_true(p_with_subj < p_no_subj)
+})
+
+test_that(".try_lm_fallbacks uses factor(subject), not numeric subject", {
+    set.seed(103)
+    
+    # Create test data
+    df <- data.frame(
+        entropy = rnorm(30),
+        q = rep(seq(0.1, 1, length.out = 10), 3),
+        group = rep(c("A", "B"), length.out = 30),
+        subject = rep(1:10, 3)  # numeric subject IDs
+    )
+    
+    # Run fallback function
+    fb <- .try_lm_fallbacks(df, verbose = FALSE)
+    
+    expect_true(!is.null(fb))
+    expect_true(!is.null(fb$fit1))
+    
+    # Extract coefficients to verify it's treating subject as factor
+    if (fb$method == "lm_subject_fixed") {
+        coef_names <- names(coef(fb$fit1))
+        # Should have factor(subject) terms, not a single "subject" slope
+        subj_terms <- grep("factor\\(subject\\)", coef_names)
+        expect_true(length(subj_terms) > 0)
+    }
+})

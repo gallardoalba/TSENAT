@@ -89,7 +89,7 @@
 .calculate_difference <- function(x, condition_col = NULL, control, method = "mean",
     test = "wilcoxon", randomizations = 100, pcorr = "BH", assayno = 1, verbose = TRUE,
     paired = FALSE, exact = FALSE, pseudocount = 0, nthreads = 1, seed = NULL, robust_loss_type = "huber",
-    robust_scale_method = "mad") {
+    robust_scale_method = "mad", pairs = NULL) {
     # internal small helpers (kept here to avoid adding new files)
     .prepare_df <- function(x, condition_col, assayno) {
         pairs_vec <- NULL
@@ -155,7 +155,10 @@
     pd <- .prepare_df(x, condition_col, assayno)
     df <- pd$df
     samples <- pd$samples
-    pairs <- pd$pairs
+    # Use provided pairs parameter, or extract from data
+    if (is.null(pairs)) {
+        pairs <- pd$pairs
+    }
 
     # Validate: reject multiple q values (they are mathematically dependent via
     # AR(1) structure)
@@ -174,6 +177,14 @@
                 "    - method='gee': Generalized estimating equations\n", "  Or reduce to a single q value (e.g., q=1 for Shannon entropy).",
                 call. = FALSE)
         }
+    }
+
+    # Validate: paired=TRUE requires explicit pairs parameter
+    if (isTRUE(paired) && is.null(pairs)) {
+        stop("paired=TRUE requires `pairs` parameter to be provided. ",
+            "Samples must be explicitly paired to avoid silent bugs from implicit column ordering. ",
+            "Provide a character/numeric vector with pairing information (e.g., c(1,1,2,2,3,3)).",
+            call. = FALSE)
     }
 
     # Partition and validate inputs

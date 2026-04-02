@@ -239,6 +239,7 @@ test_that("M-estimation works with paired samples", {
     mat <- matrix(rnorm(5 * 8), nrow = 5)
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- c("A", "A", "A", "A", "B", "B", "B", "B")
+    pairs <- c(1, 2, 3, 4, 1, 2, 3, 4)
     
     result <- suppressWarnings(.calculate_difference(
         df,
@@ -247,6 +248,7 @@ test_that("M-estimation works with paired samples", {
         method = "m_estimate",
         test = "shuffle",
         paired = TRUE,
+        pairs = pairs,
         randomizations = 20
     ))
     

@@ -279,8 +279,9 @@ test_that("paired signflip permutations enumerate all combos when randomizations
     # build simple matrix with one feature and 4 samples (2 pairs)
     mat <- matrix(c(1, 2, 3, 4), nrow = 1)
     samples <- c("A", "B", "A", "B")
+    pairs <- c(1, 1, 2, 2)  # Pair 1: samples 1-2, Pair 2: samples 3-4
     # call label_shuffling with paired signflip and randomizations=0 to force enumeration
-    res <- .label_shuffling(mat, samples = samples, control = "A", method = "mean", randomizations = 0, pcorr = "none", paired = TRUE, paired_method = "signflip")
+    res <- .label_shuffling(mat, samples = samples, control = "A", method = "mean", randomizations = 0, pcorr = "none", paired = TRUE, paired_method = "signflip", pairs = pairs)
     expect_true(is.data.frame(res))
     # result should be 1 row and 7 columns (pvalue, padj, log2FC, U, r, and 2 group means)
     expect_equal(nrow(res), 1)
@@ -679,6 +680,8 @@ test_that("paired wilcoxon test preserves r and U columns", {
     
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Pre", "Post"), each = n_samples / 2)
+    # Pair samples: Pre sample i with Post sample i (positions 1-5 paired with 6-10)
+    pairs <- c(1, 2, 3, 4, 5, 1, 2, 3, 4, 5)
     
     result <- .calculate_difference(
         df,
@@ -686,7 +689,8 @@ test_that("paired wilcoxon test preserves r and U columns", {
         control = "Pre",
         method = "mean",
         test = "wilcoxon",
-        paired = TRUE
+        paired = TRUE,
+        pairs = pairs
     )
     
     # Should have r and U columns present
@@ -911,6 +915,8 @@ test_that(".calculate_difference(shuffle) with paired design computes effect siz
     
     df <- data.frame(Genes = genes, mat, stringsAsFactors = FALSE)
     samples <- rep(c("Normal", "Tumor"), each = 6)
+    # Pair samples: Normal i with Tumor i (positions 1-6 paired with 7-12)
+    pairs <- c(1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6)
     
     result <- .calculate_difference(
         df,
@@ -920,6 +926,7 @@ test_that(".calculate_difference(shuffle) with paired design computes effect siz
         test = "shuffle",
         randomizations = 100,
         paired = TRUE,
+        pairs = pairs,
         pcorr = "BH"
     )
     
@@ -1662,5 +1669,50 @@ test_that("wilcoxon r-value is bounded and non-NA for valid paired data", {
             expect_true(res$r[i] >= -1 && res$r[i] <= 1)
         }
     }
+})
+
+# ============================================================================
+# REDISTRIBUTED TESTS FROM test-infrastructure-statistical_validation.R
+# ============================================================================
+
+context("Wilcoxon Test Validity")
+
+test_that("wilcoxon test matches R's built-in wilcox.test exactly", {
+    # Create clear difference
+    normal_vals <- c(1, 2, 3, 4, 5)
+    tumor_vals <- c(6, 7, 8, 9, 10)
+    
+    mat <- matrix(c(normal_vals, tumor_vals), nrow = 1)
+    samples <- c(rep("Normal", 5), rep("Tumor", 5))
+    
+    # TSENAT wilcoxon
+    tsenat_result <- .wilcoxon(mat, samples, pcorr = "none")
+    tsenat_p <- tsenat_result[1, "pvalue"]
+    
+    # R's wilcox.test
+    r_result <- wilcox.test(normal_vals, tumor_vals, exact = FALSE)
+    r_p <- r_result$p.value
+    
+    # Should be essentially identical
+    expect_equal(tsenat_p, r_p, tolerance = 1e-10)
+})
+
+test_that("wilcoxon paired matches paired test from R", {
+    # Paired data
+    before <- c(1, 2, 3, 4, 5)
+    after <- c(2, 3, 5, 6, 8)
+    
+    mat <- matrix(c(before, after), nrow = 1)
+    samples <- c(rep("Before", 5), rep("After", 5))
+    
+    # TSENAT with paired = TRUE
+    tsenat_paired <- .wilcoxon(mat, samples, paired = TRUE, pcorr = "none")
+    tsenat_p <- tsenat_paired[1, "pvalue"]
+    
+    # R's paired wilcox.test
+    r_paired <- wilcox.test(before, after, paired = TRUE, exact = FALSE)
+    r_p <- r_paired$p.value
+    
+    expect_equal(tsenat_p, r_p, tolerance = 1e-10)
 })
 
