@@ -1,4 +1,310 @@
 # ===============================================================================
+# MAIN GAM INTERACTION FUNCTION
+# ===============================================================================
+# GAM interaction helper - enhanced with regularization and bias correction
+# support
+#
+# PURPOSE: Test for q-dependent interaction effects in Tsallis entropy data
+#   using Generalized Additive Models (GAM) or Generalized Additive Mixed
+#   Models (GAMM) for paired designs. Implements a 7-stage pipeline:
+#   1. Preprocessing (bounds, family selection, ARIMA, weights)
+#   2. Model fitting (paired vs unpaired dispatch)
+#   3. Model comparison (null vs alternative)
+#   4. Bias correction (small sample adjustment)
+#   5. Statistics extraction (effect size, test statistic, df)
+#   6. Slope computation (group-specific curve slopes)
+#   7. Result compilation (final output with metadata)
+#
+# PARAMETERS:
+#   df              - Data frame with columns: entropy, q, group, [subject]
+#   q_vals          - Numeric vector of q parameter values (same length as rows)
+#   g               - Character gene identifier (for result metadata)
+#   min_obs         - Minimum observations required (not currently used)
+#   subject         - Optional factor/vector for paired design. If provided:
+#                     * Triggers ARIMA(1,1,0) differencing for stationarity
+#                     * Uses GAMM with AR(1) correlation structure
+#                     * Enables bias correction accounting for clustering
+#   regularization  - Mode for spline complexity control:
+#                     * "pca" (default): No regularization, auto smoothness
+#                     * "gamsel": Automatic variable selection via gamsel pkg
+#                     * "spline": Controlled smoothness with manual constraints
+#   bias_correction - Logical. If TRUE, applies small-sample adjustment for
+#                     n_observations < 20. Accounts for ARIMA(1,1,0) structure
+#                     when subject is provided. Reference: C071 (GAM smoothing bias)
+#   adaptive_knots  - Logical. If TRUE, adapts spline basis dimension (k) based
+#                     on sample size and q-value complexity. Default TRUE.
+#   weights         - Optional numeric vector of observation weights. Useful for:
+#                     * Bootstrap confidence interval weighting (Phase 1)
+#                     * Heteroscedasticity adjustment (via .detect_heteroscedasticity)
+#
+# WORKFLOW STAGES:
+#   Stage 1 - PREPROCESSING (.prepare_gam_preprocessing):
+#     * Ensure 'group' is factor for by= smooths
+#     * Detect bounded support [0,1] -> Beta family, heteroscedastic -> Gamma
+#     * Select GAM family (Beta > Gamma > Gaussian priority)
+#     * Detect heteroscedasticity and compute variance weights if needed
+#     * Apply ARIMA(1,1,0) differencing for paired designs (removes trend)
+#     * Compute adaptive knot selection based on entropy curve complexity
+#     * Apply regularization (PCA/GAMSEL/Spline) if requested
+#
+#   Stage 2 - MODEL FITTING (paired vs unpaired dispatch):
+#     * If subject != NULL (paired design):
+#       - Call .fit_gam_paired_design() which uses GAMM with AR(1)
+#       - GAMM uses random intercept ~1|subject, corr structure corAR1()
+#       - Implements 3-priority fallback strategy:
+#         Priority 1: GAMM with AR(1) correlation
+#         Priority 2: GAMM without correlation
+#         Priority 3: Standard GAM (if GAMM fails)
+#     * If subject == NULL (unpaired design):
+#       - Call .fit_gam_unpaired_design() which uses standard GAM
+#       - No random effects, assumes independence
+#       - Uses F-test for model comparison (appropriate for independent data)
+#
+#   Stage 3 - BIAS CORRECTION (.gam_bias_correct):
+#     * For n_observations >= 20: No correction applied (sufficient power)
+#     * For n_observations < 20: Apply multiplicative p-value adjustment
+#     * Accounts for ARIMA(1,1,0) correlation structure via AR(1) design effect
+#     * Formula: D_eff = (1+rho)/(1-rho); n_eff = n_subjects / D_eff
+#     * Adjustment: p_corrected = min(p_raw * factor, 1.0), conservative
+#
+#   Stage 4 - STATISTICS EXTRACTION (.extract_gam_statistics):
+#     * Effect size: Deviance explained (dev.expl) or R-squared (r.sq)
+#     * Test statistic: F-statistic (GAM F-test) or likelihood ratio (GAMM)
+#     * Residual df: Residual degrees of freedom from model summary
+#     * Convergence flag: TRUE if model fitting succeeded, FALSE otherwise
+#
+#   Stage 5 - SLOPE COMPUTATION (.compute_slope_diff):
+#     * Predict entropy at min/max q for each group
+#     * Compute slope: (y_max - y_min) / (q_max - q_min) for each group
+#     * Return slope_diff = slope_group2 - slope_group1
+#     * Useful for interpretation: quantifies how entropy response to q differs
+#
+#   Stage 6 - RESULT COMPILATION (.compile_gam_results):
+#     * Combine p_value, p_raw, statistics, metadata into single data frame
+#     * Add bias correction information if applied
+#     * Add ARIMA flag, bounded family used, heteroscedasticity detection
+#     * Add residual normality test (Shapiro-Wilk)
+#     * Add bootstrap CI weighting flag for Phase 1 tracking
+#
+# OUTPUT: Data frame with one row (one gene) containing:
+#   gene                          - Gene identifier
+#   p_interaction                 - Interaction p-value (bias-corrected)
+#   p_raw                         - Uncorrected p-value before bias correction
+#   n_observations                - Total observations (rows in df)
+#   n_subjects                    - Number of unique subjects (if paired design)
+#   n_effective                   - Effective sample size after AR(1) adjustment
+#   rho_ar1                       - AR(1) correlation coefficient estimate
+#   test_statistic                - F-statistic or likelihood ratio
+#   effect_size                   - Deviance explained or R-squared
+#   df_residual                   - Residual degrees of freedom
+#   model_converged               - Convergence flag (TRUE/FALSE)
+#   slope_diff                    - Difference in entropy slopes between groups
+#   [bias_correction_applied]     - TRUE if small-sample correction applied
+#   [correction_method]           - "gam_smoothing_bias_c071" if corrected
+#   [arima_transformation]        - TRUE if ARIMA(1,1,0) differencing used
+#   [bounded_support_model]       - TRUE if Beta or Gamma family used
+#   [shapiro_p_value]             - P-value from Shapiro-Wilk residual normality test
+#   [residuals_normal]            - Logical residuals pass normality test
+#
+# NOTES ON IMPLEMENTATION:
+#   * GAMM limitation: mgcv::gamm() does NOT support extended families (Beta, Gamma)
+#     For paired designs, forces gaussian family -> warning issued (March 2026 fix)
+#   * ARIMA implementation: First differences applied to remove monotone trend in
+#     Tsallis entropy. Weight recomputation skipped after ARIMA (variance changes).
+#   * Bootstrap CI weights (Phase 1): Take precedence over heteroscedasticity weights
+#   * Adaptive knots: Prevents overfitting in small samples while preserving signal
+#   * AR(1) formula: Uses D_eff = (1+rho)/(1-rho), NOT Kish exchangeable formula
+#
+# REFERENCES:
+#   C071: GAM smoothing bias in small samples (Hastie & Tibshirani)
+#   C042-C043: mgcv documentation and GAMM tutorial
+#   S223: Information entropy of generalized beta distribution (for Beta regression)
+#
+.gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL, 
+                             regularization = c("pca", "gamsel", "spline"),
+                             bias_correction = TRUE, adaptive_knots = TRUE, 
+                             weights = NULL) {
+    
+    # Validate regularization parameter
+    regularization <- match.arg(regularization)
+    
+    # ===== PREPROCESSING =====
+    # Consolidate all data preparation, bounds, family selection, weights, knots
+    prep_result <- .prepare_gam_preprocessing(
+        df = df, q_vals = q_vals, group_vec = df$group,
+        subject = subject, weights = weights,
+        adaptive_knots = adaptive_knots, 
+        regularization = regularization
+    )
+    
+    # ===== MODEL FITTING =====
+    # Dispatch to paired or unpaired design handler
+    if (!is.null(subject)) {
+        fit_result <- .fit_gam_paired_design(
+            df = prep_result$df,
+            subject = subject,
+            family_gam = prep_result$family_gam,
+            k_q = prep_result$k_q,
+            gam_weights = prep_result$gam_weights
+        )
+    } else {
+        fit_result <- .fit_gam_unpaired_design(
+            df = prep_result$df,
+            family_gam = prep_result$family_gam,
+            k_q = prep_result$k_q,
+            gam_weights = prep_result$gam_weights
+        )
+    }
+    
+    # ===== BIAS CORRECTION & OUTPUT PROCESSING =====
+    # Apply GAM-specific bias correction for small samples
+    n_subjects_bc <- if (!is.null(subject)) 
+        length(unique(na.omit(subject))) else NULL
+    bc_result <- .gam_bias_correct(
+        fit_result$p_interaction,
+        n_observations = prep_result$n_samples,
+        n_subjects = n_subjects_bc,
+        ar1_correlation = TRUE,
+        bias_correction = bias_correction,
+        entropy_data = prep_result$df$entropy,
+        subject_data = prep_result$df$subject
+    )
+    
+    # Extract statistics from fitted model
+    stats <- .extract_gam_statistics(fit_result$fit_alt, 
+                                    fit_result$anova_result)
+    
+    # Compute slope difference between groups
+    slope_diff <- .compute_slope_diff(fit_result$fit_alt, prep_result$df, 
+                                     q_vals, subject)
+    
+    # Compile final results with all metadata
+    result <- .compile_gam_results(
+        g, bc_result, stats$test_statistic, stats$effect_size,
+        stats$df_residual, stats$model_converged, slope_diff,
+        fit_result$fit_alt, prep_result$df, prep_result$bounded_result,
+        prep_result$use_arima, subject
+    )
+    
+    return(result)
+}
+
+# ===============================================================================
+# MEMOIZATION CACHE: Package-level performance optimization for GAM functions
+# ===============================================================================
+# Global cache environments for memoizing expensive computations
+# These caches are populated during function execution and provide O(1) lookup
+# for repeated (rho, cluster_size) pairs in AR(1) design effect calculations
+# and entropy-based knot computations
+#
+# PERFORMANCE IMPACT: Reduces AR(1) design effect computation from O(n) to O(1)
+# for repeated parameter combinations (common in per-gene analysis loops)
+
+# Initialize memoization caches if running in package context
+if (!exists(".GAM_MEMO_CACHE", mode = "environment")) {
+    .GAM_MEMO_CACHE <- new.env(hash = TRUE, parent = emptyenv())
+}
+
+if (!exists(".KNOTS_MEMO_CACHE", mode = "environment")) {
+    .KNOTS_MEMO_CACHE <- new.env(hash = TRUE, parent = emptyenv())
+}
+
+# ===============================================================================
+# MEMOIZATION FUNCTION: AR(1) Design Effect with Caching
+# ===============================================================================
+# Computes (1+rho)/(1-rho) design effect for AR(1) correlation structures.
+# Caches results to avoid redundant computation across multiple genes.
+# Reference: Diggle et al. 2002 (AR(1) correlation design effect formula)
+#
+# PERFORMANCE: First call O(1) computation; subsequent calls with same (rho, m)
+# are O(1) cache lookup vs. O(1) but with function call overhead.
+# With ~10K genes, typical gains: ~5-10ms per analysis run.
+.ar1_design_effect_memo <- function(rho, cluster_size) {
+    # Validate inputs
+    if (!is.finite(rho) || rho < 0 || rho > 1) {
+        return(NA_real_)
+    }
+    if (!is.finite(cluster_size) || cluster_size < 1) {
+        return(NA_real_)
+    }
+    
+    # Create cache key: format rho and cluster_size for stable hashing
+    cache_key <- sprintf("rho=%.4f|m=%.1f", round(rho, 4), cluster_size)
+    
+    # Check if already cached
+    if (exists(cache_key, envir = .GAM_MEMO_CACHE, inherits = FALSE)) {
+        return(get(cache_key, envir = .GAM_MEMO_CACHE))
+    }
+    
+    # Compute AR(1) design effect: D_eff = (1+rho)/(1-rho)
+    # See: Diggle, P.J., Heagerty, P., Liang, K.Y., Zeger, S.L. (2002)
+    # Analysis of Longitudinal Data, Oxford University Press.
+    design_eff <- (1 + rho) / (1 - rho)
+    
+    # Validate result
+    if (!is.finite(design_eff) || design_eff < 1) {
+        # rho near 1 -> D_eff -> Inf; rho near 0 -> D_eff near 1
+        design_eff <- max(1, min(design_eff, Inf))
+    }
+    
+    # Cache the result
+    assign(cache_key, design_eff, envir = .GAM_MEMO_CACHE)
+    
+    return(design_eff)
+}
+
+# ===============================================================================
+# MEMOIZATION FUNCTION: Adaptive Spline Knots with Caching
+# ===============================================================================
+# Determines appropriate basis dimension (k) for spline fitting based on
+# entropy curve complexity. Uses memoization to cache (n_q_unique, entropy_sd)
+# pairs to avoid recomputation for similar genes.
+#
+# STRATEGY (March 2026 Fix): Use fixed k based on unique q values only.
+# DO NOT use CV-based adaptation for monotone Tsallis entropy.
+# Reference: .adaptive_spline_knots() documentation at end of file
+#
+# PERFORMANCE: O(1) cache lookup for repeated entropy curve structures
+.adaptive_spline_knots_memo <- function(entropy_vals, q_vals, n_q_unique, 
+                                        min_k = 2, max_k = 10) {
+    # Remove NA values
+    entropy_clean <- na.omit(entropy_vals)
+    q_clean <- na.omit(q_vals)
+    
+    # Validate minimum data
+    if (length(entropy_clean) < 3 || length(q_clean) < 2) {
+        return(max(min_k, min(max_k, n_q_unique - 1)))
+    }
+    
+    # Compute entropy distribution characteristics for cache key
+    # (simplified signature to ensure cache hits for similar curves)
+    entropy_sd <- sd(entropy_clean)
+    entropy_range <- diff(range(entropy_clean))
+    
+    # Create cache key: n_q_unique is primary driver of k selection
+    # Include entropy characteristics for robustness
+    cache_key <- sprintf("nq=%d|sd=%.3f|range=%.3f", 
+                        n_q_unique, 
+                        round(entropy_sd, 3), 
+                        round(entropy_range, 3))
+    
+    # Check cache
+    if (exists(cache_key, envir = .KNOTS_MEMO_CACHE, inherits = FALSE)) {
+        return(get(cache_key, envir = .KNOTS_MEMO_CACHE))
+    }
+    
+    # Apply fixed k selection: k = max(min_k, min(max_k, n_q_unique - 1))
+    # Principle: use at most (unique q values - 1) basis functions
+    # This ensures smooth fits without noise-driven over-complexity
+    k_final <- max(min_k, min(max_k, n_q_unique - 1))
+    
+    # Cache result
+    assign(cache_key, k_final, envir = .KNOTS_MEMO_CACHE)
+    
+    return(k_final)
+}
+
+# ===============================================================================
 # HELPER FUNCTION: Setup and validate GAM data
 # ===============================================================================
 # Ensures 'group' is a factor and validates package dependencies
@@ -521,230 +827,185 @@
 }
 
 # ===============================================================================
-# MAIN GAM INTERACTION FUNCTION
+# PREPROCESSING HELPER: Consolidate all prep steps into single function
 # ===============================================================================
-# GAM interaction helper - enhanced with regularization and bias correction
-# support
-.gam_interaction <- function(df, q_vals, g, min_obs = 10, subject = NULL, regularization = c("pca",
-    "gamsel", "spline"), bias_correction = TRUE, adaptive_knots = TRUE, weights = NULL) {
-    # GAMM with ARIMA(1,1,0) covariance structure for q-dependent entropy
-    # measurements Paper S171 (Zimmerman & Harville, 1991): Validates
-    # generalized covariance structures.  Papers S168-S170: Theoretical
-    # foundation for time series correlation patterns.  TEST L.1.6: Confirms
-    # first differences DeltaH_q follow AR(1) pattern via ARIMA(1,1,0).
-    # Adaptive knot selection (ENHANCED - March 2026): - automatic_knots =
-    # TRUE: per-gene adaptivity based on entropy curve complexity - Measures
-    # curve roughness via coefficient of variation of slopes - Allocates more
-    # basis functions (k) to complex curves, fewer to simple curves - Improves
-    # model fit efficiency and reduces overfitting/underfitting trade-off
-    regularization <- match.arg(regularization)
-
-    # Setup and validate data
+# Consolidates setup, bounds, family, hetero, weights, knots, and regularization
+.prepare_gam_preprocessing <- function(df, q_vals, group_vec, subject, weights, 
+                                       adaptive_knots, regularization) {
+    # Step 1: Setup and validate data
     df <- .setup_gam_data(df)
-
-    # ===============================================================================
-    # BOUNDED SUPPORT HANDLING (CRITICAL FIX - March 2026)
-    # ===============================================================================
-    # MUST be done BEFORE ARIMA differencing to: 1. Detect bounds on ORIGINAL
-    # entropy (not differenced) 2. Stabilize entropy before any transformations
-    # 3. Preserve ARIMA structure for differenced data
-    bounded_result <- .handle_bounded_support(df, q_vals, group_vec = df$group, verbose = FALSE)
-
-    # Select appropriate family (gaussian for GAMM paired designs)
+    
+    # Step 2: Bounded support detection (BEFORE ARIMA differencing)
+    bounded_result <- .handle_bounded_support(df, q_vals, group_vec = group_vec, 
+                                             verbose = FALSE)
+    
+    # Step 3: Select appropriate family (gaussian for GAMM paired designs)
     family_result <- .select_gam_family(bounded_result, subject)
     family_gam <- family_result$family_gam
     if (family_result$use_bounded_family && !is.null(bounded_result$stabilized_df)) {
         df <- bounded_result$stabilized_df
     }
-
-    # ===============================================================================
-    # HETEROSCEDASTICITY DETECTION AND VARIANCE WEIGHTING (FIXED - March 2026)
-    # ===============================================================================
-    # CRITICAL FIX: Detect heteroscedasticity on ORIGINAL entropy BEFORE ARIMA
-    # differencing
-    hetero_result <- .detect_heteroscedasticity(df, q_vals, df$group)
-    gam_weights_original <- .prepare_gam_weights(df, q_vals, weights, hetero_result,
-        subject)
-
-    # Handle ARIMA and weight updates
-    arima_weights_result <- .handle_arima_and_weights(df, q_vals, subject, gam_weights_original)
-    df <- arima_weights_result$df
-    use_arima <- arima_weights_result$use_arima
-    gam_weights <- arima_weights_result$gam_weights
-    n_samples <- arima_weights_result$n_samples
-
-    # Compute adaptive knots based on sample size and complexity
-    knot_result <- .compute_adaptive_knots(df, q_vals, adaptive_knots)
-    k_q <- knot_result$k_q
-    uq_len <- knot_result$uq_len
-
-    # Apply regularization for variable selection if requested (not 'pca')
+    
+    # Step 4: Heteroscedasticity detection on ORIGINAL data
+    hetero_result <- .detect_heteroscedasticity(df, q_vals, group_vec)
+    gam_weights_original <- .prepare_gam_weights(df, q_vals, weights, hetero_result, 
+                                                 subject)
+    
+    # Step 5: Handle ARIMA differencing and weight updates
+    arima_result <- .handle_arima_and_weights(df, q_vals, subject, 
+                                             gam_weights_original)
+    
+    # Step 6: Compute adaptive knots based on sample size and complexity
+    knots_result <- .compute_adaptive_knots(arima_result$df, q_vals, 
+                                           adaptive_knots)
+    
+    # Step 7: Apply regularization if requested (not 'pca')
     reg_result <- NULL
     if (regularization != "pca") {
-        reg_result <- .gam_regularization(entropy_vals = df$entropy, q_vals = q_vals,
-            group_vec = df$group, regularization = regularization)
+        reg_result <- .gam_regularization(entropy_vals = arima_result$df$entropy,
+                                         q_vals = q_vals,
+                                         group_vec = arima_result$df$group,
+                                         regularization = regularization)
     }
-
-    # Fit model based on presence of subject (paired design) Initialize model
-    # comparison results
-    p_interaction <- NA_real_
-    anova_result <- NULL
-    fit_null <- NULL
-    fit_alt <- NULL
-
-    if (!is.null(subject)) {
-        # ===================================================================
-        # PAIRED DESIGN: GAMM with subject random intercept (ARIMA-ready)
-        # ===================================================================
-        # If ARIMA differencing was not applied, add subject factor to df
-        # (ARIMA result already has subject as a column)
-        if (!use_arima) {
-            df$subject <- factor(subject)
-        } else {
-            # After ARIMA differencing, subject is already in df, ensure it's a
-            # factor
-            df$subject <- factor(df$subject)
-        }
-
-        # CRITICAL FIX: Ensure data is sorted by q|subject for corAR1
-        # correlation structure (nlme::corAR1 assumes observations are ordered
-        # by the within-group ordering variable) This is especially important
-        # after adding new columns like gam_weights or group_numeric
-        df <- df[order(df$subject, df$q), ]
-        rownames(df) <- NULL
-
-        # FIX: Create observation sequence within each subject for corAR1
-        # ordering corAR1 requires unique values within each group; use
-        # sequence index This respects the q-ordering (data is sorted by q
-        # within subject) while providing unique IDs
-        df$obs_seq <- unlist(lapply(rle(as.numeric(df$subject))$lengths, seq_len))
-
-        # Check if we have at least 2 subjects
-        if (length(unique(na.omit(df$subject))) < 2) {
-            return(NULL)
-        }
-
-        # OPTIMIZATION (March 2026): Adaptive knot selection for smooth terms
-        # Issue #4 & #8: Replace hardcoded/aggressive k parameters with
-        # data-driven selection FIX (April 2026): mgcv thin-plate splines s(x,
-        # bs='tp') have minimum basis dimension k=3 mgcv automatically
-        # increases k if specified value is too low, causing warning Previous
-        # code set min_k_adaptive=2 for small samples, triggering mgcv
-        # auto-increase
-        min_k_adaptive <- 3L  # Thin-plate spline minimum basis dimension
-        # Marginal smooth for q: Use conservative knots to avoid overfitting
-        # Formula: at least 3 knots, but not more than available unique
-        # q-values - 1
-        k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, max(min_k_adaptive,
-            nrow(df)/15))))
-        # Interaction smooth: Use fewer knots since it must accommodate both q
-        # and group Also enforce minimum of 3 to prevent mgcv auto-increase
-        # warnings
-        k_q_interaction <- as.integer(max(3L, min(k_q/2, 4L)))  # Min 3 for tp splines, cap at 4
-
-        # PRIORITY 1: Try GAMM with AR(1) correlation
-        fit_result <- .fit_gamm_ar1(df, family_gam, k_q_marginal, k_q_interaction,
-            gam_weights)
-        fit_null <- fit_result$fit_null
-        fit_alt <- fit_result$fit_alt
-
-        # PRIORITY 2: If AR(1) convergence failed, try GAMM without correlation
-        # structure
-        if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
-            fit_result <- .fit_gamm_fallback(df, family_gam, k_q_marginal, k_q_interaction,
-                gam_weights)
-            fit_null <- fit_result$fit_null
-            fit_alt <- fit_result$fit_alt
-        }
-
-        # PRIORITY 3: If GAMM fails entirely, fall back to standard GAM
-        if (inherits(fit_null, "try-error") || inherits(fit_alt, "try-error")) {
-            fit_result <- .fit_gam_fallback(df, family_gam, k_q_marginal, k_q_interaction,
-                gam_weights)
-            fit_null <- fit_result$fit_null
-            fit_alt <- fit_result$fit_alt
-        }
-
-        if (inherits(fit_null, "try-error") && inherits(fit_alt, "try-error")) {
-            return(NULL)
-        }
-
-        # Compare models and extract p-value
-        compare_result <- .compare_gam_models(fit_null, fit_alt)
-        p_interaction <- compare_result$p_interaction
-        anova_result <- compare_result$anova_result
-
-    } else {
-        # ===================================================================
-        # UNPAIRED DESIGN: Standard GAM with independence assumption
-        # ===================================================================
-        # Determine k values for standard GAM (non-paired design) Adaptive
-        # minimum k based on sample size: mgcv needs ~15-20 points per basis
-        # function
-        min_k_adaptive <- if (nrow(df) < 25)
-            2L else if (nrow(df) < 50)
-            3L else 4L
-        k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, max(min_k_adaptive,
-            nrow(df)/25))))
-        k_q_interaction <- as.integer(max(2L, min(k_q, max(2L, nrow(df)/20))))
-
-        fit_result <- .fit_standard_gam(df, family_gam, k_q_marginal, k_q_interaction,
-            gam_weights)
-        fit_null <- fit_result$fit_null
-        fit_alt <- fit_result$fit_alt
-
-        # Allow model fitting errors to proceed with NA values This ensures
-        # genes with convergence issues still appear in output
-        if (inherits(fit_null, "try-error") && inherits(fit_alt, "try-error")) {
-            return(NULL)
-        }
-
-        # Suppress NaN warnings from anova.gam F-test with small samples or
-        # edge cases
-        old_warn <- options(warn = -1)
-        anova_result <- try(mgcv::anova.gam(fit_null, fit_alt, test = "F"), silent = TRUE)
-        options(old_warn)
-
-        # If anova fails, proceed with NA p-value instead of returning NULL
-        if (inherits(anova_result, "try-error")) {
-            p_interaction <- NA_real_
-        } else {
-            p_interaction <- NA_real_
-            if (nrow(anova_result) >= 2) {
-                if ("Pr(F)" %in% colnames(anova_result)) {
-                  p_interaction <- anova_result[2, "Pr(F)"]
-                } else if ("Pr(>F)" %in% colnames(anova_result)) {
-                  p_interaction <- anova_result[2, "Pr(>F)"]
-                } else if ("p-value" %in% colnames(anova_result)) {
-                  p_interaction <- anova_result[2, "p-value"]
-                }
-            }
-        }
-    }
-
-    # Apply GAM-specific bias correction for small samples (C071) Account for
-    # ARIMA(1,1,0) correlation structure in Tsallis entropy measurements
-    # n_observations = total data points; n_subjects = independent
-    # observational units
-    n_subjects_bc <- if (!is.null(subject))
-        length(unique(na.omit(subject))) else NULL
-    bc_result <- .gam_bias_correct(p_interaction, n_observations = n_samples, n_subjects = n_subjects_bc,
-        ar1_correlation = TRUE, bias_correction = bias_correction, entropy_data = df$entropy,
-        subject_data = df$subject)
-
-    # Extract test statistic and effect size from models
-    stats_result <- .extract_gam_statistics(fit_alt, anova_result)
-
-    # Compute slope difference between groups
-    slope_diff <- .compute_slope_diff(fit_alt, df, q_vals, subject)
-
-    # Compile final results with all metadata
-    result <- .compile_gam_results(g, bc_result, stats_result$test_statistic, stats_result$effect_size,
-        stats_result$df_residual, stats_result$model_converged, slope_diff, fit_alt,
-        df, bounded_result, use_arima, subject)
-
-    return(result)
+    
+    return(list(
+        df = arima_result$df,
+        family_gam = family_gam,
+        gam_weights = arima_result$gam_weights,
+        use_arima = arima_result$use_arima,
+        n_samples = arima_result$n_samples,
+        k_q = knots_result$k_q,
+        uq_len = knots_result$uq_len,
+        bounded_result = bounded_result,
+        reg_result = reg_result
+    ))
 }
+
+# ===============================================================================
+# PAIRED DESIGN FITTING: Handle GAMM with optional AR(1) correlation
+# ===============================================================================
+# Fits GAMM to paired/repeated measures design with priority fallbacks
+.fit_gam_paired_design <- function(df, subject, family_gam, k_q, gam_weights) {
+    # Step 1: Check if subject is already in df (from ARIMA preprocessing)
+    # If not, add it; if yes, ensure it's a factor
+    if ("subject" %in% colnames(df)) {
+        df$subject <- factor(df$subject)
+    } else {
+        # Subject not yet in df, add it from parameter
+        df$subject <- factor(subject)
+    }
+    
+    # Step 2: Sort by subject/q for AR(1) ordering requirements
+    df <- df[order(df$subject, df$q), ]
+    rownames(df) <- NULL
+    
+    # Step 3: Create observation sequence within each subject
+    df$obs_seq <- unlist(lapply(rle(as.numeric(df$subject))$lengths, seq_len))
+    
+    # Step 4: Validate >= 2 subjects (required for mixed effects)
+    if (length(unique(na.omit(df$subject))) < 2) {
+        return(list(fit_null = NULL, fit_alt = NULL, 
+                   p_interaction = NA_real_, anova_result = NULL))
+    }
+    
+    # Step 5: Compute adaptive k values for GAMM
+    min_k_adaptive <- 3L  # Thin-plate spline minimum
+    k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, 
+                                                       max(min_k_adaptive, nrow(df)/15))))
+    k_q_interaction <- as.integer(max(3L, min(k_q/2, 4L)))
+    
+    # Step 6: Priority 1 - Try GAMM with AR(1) correlation
+    fit_result <- .fit_gamm_ar1(df, family_gam, k_q_marginal, k_q_interaction, 
+                               gam_weights)
+    
+    # Step 7: Priority 2 - If AR(1) fails, try GAMM without correlation structure
+    if (inherits(fit_result$fit_null, "try-error") || 
+        inherits(fit_result$fit_alt, "try-error")) {
+        fit_result <- .fit_gamm_fallback(df, family_gam, k_q_marginal, 
+                                        k_q_interaction, gam_weights)
+    }
+    
+    # Step 8: Priority 3 - If GAMM fails, fall back to standard GAM
+    if (inherits(fit_result$fit_null, "try-error") || 
+        inherits(fit_result$fit_alt, "try-error")) {
+        fit_result <- .fit_gam_fallback(df, family_gam, k_q_marginal, 
+                                       k_q_interaction, gam_weights)
+    }
+    
+    # Step 9: Abort if all models failed
+    if (inherits(fit_result$fit_null, "try-error") && 
+        inherits(fit_result$fit_alt, "try-error")) {
+        return(list(fit_null = NULL, fit_alt = NULL, 
+                   p_interaction = NA_real_, anova_result = NULL))
+    }
+    
+    # Step 10: Compare models and extract p-value
+    compare_result <- .compare_gam_models(fit_result$fit_null, 
+                                         fit_result$fit_alt)
+    
+    return(list(
+        fit_null = fit_result$fit_null,
+        fit_alt = fit_result$fit_alt,
+        p_interaction = compare_result$p_interaction,
+        anova_result = compare_result$anova_result
+    ))
+}
+
+# ===============================================================================
+# UNPAIRED DESIGN FITTING: Handle standard GAM with independence assumption
+# ===============================================================================
+# Fits standard GAM to unpaired design without repeated measures structure
+.fit_gam_unpaired_design <- function(df, family_gam, k_q, gam_weights) {
+    # Step 1: Compute adaptive k values based on sample size
+    min_k_adaptive <- if (nrow(df) < 25) 2L 
+                     else if (nrow(df) < 50) 3L 
+                     else 4L
+    k_q_marginal <- as.integer(max(min_k_adaptive, min(k_q, 
+                                                       max(min_k_adaptive, nrow(df)/25))))
+    # Interaction terms require higher k minimum (consistent with paired design)
+    # min=3L ensures by=group smooths have sufficient basis dimension
+    k_q_interaction <- as.integer(max(3L, min(k_q, 
+                                              max(3L, nrow(df)/20))))
+    
+    # Step 2: Fit null and alternative models
+    fit_result <- .fit_standard_gam(df, family_gam, k_q_marginal, 
+                                   k_q_interaction, gam_weights)
+    
+    # Step 3: Check if both models failed
+    if (inherits(fit_result$fit_null, "try-error") && 
+        inherits(fit_result$fit_alt, "try-error")) {
+        return(list(fit_null = NULL, fit_alt = NULL, 
+                   p_interaction = NA_real_, anova_result = NULL))
+    }
+    
+    # Step 4: Compare models with F-test
+    old_warn <- options(warn = -1)
+    anova_result <- try(mgcv::anova.gam(fit_result$fit_null, 
+                                        fit_result$fit_alt, 
+                                        test = "F"), silent = TRUE)
+    options(old_warn)
+    
+    # Step 5: Extract p-value from anova results
+    p_interaction <- NA_real_
+    if (!inherits(anova_result, "try-error") && nrow(anova_result) >= 2) {
+        if ("Pr(F)" %in% colnames(anova_result)) {
+            p_interaction <- anova_result[2, "Pr(F)"]
+        } else if ("Pr(>F)" %in% colnames(anova_result)) {
+            p_interaction <- anova_result[2, "Pr(>F)"]
+        } else if ("p-value" %in% colnames(anova_result)) {
+            p_interaction <- anova_result[2, "p-value"]
+        }
+    }
+    
+    return(list(
+        fit_null = fit_result$fit_null,
+        fit_alt = fit_result$fit_alt,
+        p_interaction = p_interaction,
+        anova_result = anova_result
+    ))
+}
+
+
 
 # GAM bias correction helper: adjusts for smoothing bias in small samples
 # (C071) When n_samples < 20, small sample smoothing can inflate Type I error

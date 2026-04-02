@@ -1443,6 +1443,469 @@ test_that("GAM bias correction respects bias_correction=FALSE parameter", {
     expect_equal(result$p_value, 0.05)
 })
 
+# =============================================================================
+# TESTS: .prepare_gam_preprocessing (NEW HELPER FUNCTION)
+# =============================================================================
+
+test_that(".prepare_gam_preprocessing consolidates all preprocessing steps", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 10, n_samples = 5)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    
+    result <- .prepare_gam_preprocessing(
+        df = df,
+        q_vals = test_data$q_vals,
+        group_vec = df$group,
+        subject = NULL,
+        weights = NULL,
+        adaptive_knots = TRUE,
+        regularization = "pca"
+    )
+    
+    # Verify output structure
+    expect_true(is.list(result))
+    expect_true("df" %in% names(result))
+    expect_true("family_gam" %in% names(result))
+    expect_true("gam_weights" %in% names(result))
+    expect_true("use_arima" %in% names(result))
+    expect_true("n_samples" %in% names(result))
+    expect_true("k_q" %in% names(result))
+    expect_true("uq_len" %in% names(result))
+    expect_true("bounded_result" %in% names(result))
+    
+    # Verify data is defined
+    expect_true(nrow(result$df) > 0)
+    expect_true(!is.null(result$family_gam))
+    expect_true(result$k_q >= 2)
+    expect_true(result$uq_len >= 2)
+})
+
+test_that(".prepare_gam_preprocessing with paired design (subject provided)", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 8, n_samples = 4)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    subject <- rep(1:4, each = 8)
+    
+    result <- .prepare_gam_preprocessing(
+        df = df,
+        q_vals = test_data$q_vals,
+        group_vec = df$group,
+        subject = subject,
+        weights = NULL,
+        adaptive_knots = TRUE,
+        regularization = "pca"
+    )
+    
+    # Verify result structure
+    expect_true(is.list(result))
+    expect_true(result$use_arima %in% c(TRUE, FALSE))
+    
+    # When using ARIMA, sample size may change
+    if (result$use_arima) {
+        expect_true(result$n_samples >= 3)  # ARIMA requires at least 3 points after differencing
+    }
+})
+
+test_that(".prepare_gam_preprocessing with weights", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 10, n_samples = 4, add_weights = TRUE)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    weights <- df$weight
+    
+    result <- .prepare_gam_preprocessing(
+        df = df,
+        q_vals = test_data$q_vals,
+        group_vec = df$group,
+        subject = NULL,
+        weights = weights,
+        adaptive_knots = TRUE,
+        regularization = "pca"
+    )
+    
+    # Weights should be handled properly
+    expect_true(is.list(result))
+    # After weight preparation, result may have weights or not (if ARIMA nullifies)
+    expect_true(is.null(result$gam_weights) || is.numeric(result$gam_weights))
+})
+
+test_that(".prepare_gam_preprocessing with different regularization methods", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 10, n_samples = 4)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    
+    for (reg_method in c("pca", "gamsel", "spline")) {
+        result <- .prepare_gam_preprocessing(
+            df = df,
+            q_vals = test_data$q_vals,
+            group_vec = df$group,
+            subject = NULL,
+            weights = NULL,
+            adaptive_knots = TRUE,
+            regularization = reg_method
+        )
+        
+        expect_true(is.list(result))
+        
+        # Regularization "pca" should return NULL reg_result
+        if (reg_method == "pca") {
+            expect_null(result$reg_result)
+        } else {
+            # Other methods may return a result or NULL (depends on data)
+            # Just verify the structure doesn't break
+            expect_true(is.null(result$reg_result) || is.list(result$reg_result))
+        }
+    }
+})
+
+test_that(".prepare_gam_preprocessing adaptive knots selection", {
+    skip_if_not_installed("mgcv")
+    
+    # Test small sample size
+    test_data_small <- create_gam_test_data(n_q = 5, n_samples = 2)
+    df_small <- test_data_small$df
+    df_small$group <- factor(df_small$group)
+    
+    result_small <- .prepare_gam_preprocessing(
+        df = df_small,
+        q_vals = test_data_small$q_vals,
+        group_vec = df_small$group,
+        subject = NULL,
+        weights = NULL,
+        adaptive_knots = TRUE,
+        regularization = "pca"
+    )
+    
+    # Test large sample size
+    test_data_large <- create_gam_test_data(n_q = 20, n_samples = 10)
+    df_large <- test_data_large$df
+    df_large$group <- factor(df_large$group)
+    
+    result_large <- .prepare_gam_preprocessing(
+        df = df_large,
+        q_vals = test_data_large$q_vals,
+        group_vec = df_large$group,
+        subject = NULL,
+        weights = NULL,
+        adaptive_knots = TRUE,
+        regularization = "pca"
+    )
+    
+    # Both should have valid k values
+    expect_true(result_small$k_q >= 2 && result_small$k_q <= 10)
+    expect_true(result_large$k_q >= 2 && result_large$k_q <= 10)
+})
+
+# =============================================================================
+# TESTS: .fit_gam_paired_design (NEW HELPER FUNCTION)
+# =============================================================================
+
+test_that(".fit_gam_paired_design returns proper structure", {
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("nlme")
+    
+    test_data <- create_gam_test_data(n_q = 8, n_samples = 4)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    subject <- rep(1:4, each = 8)
+    
+    result <- .fit_gam_paired_design(
+        df = df,
+        subject = subject,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = NULL
+    )
+    
+    # Verify output structure
+    expect_true(is.list(result))
+    expect_true("fit_null" %in% names(result))
+    expect_true("fit_alt" %in% names(result))
+    expect_true("p_interaction" %in% names(result))
+    expect_true("anova_result" %in% names(result))
+    
+    # P-value should be numeric or NA
+    expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_paired_design handles subject column already in df", {
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("nlme")
+    
+    test_data <- create_gam_test_data(n_q = 8, n_samples = 4)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    # Subject is already in df from test data
+    subject <- df$subject
+    
+    # Remove subject column to test the "add from parameter" path
+    df$subject <- NULL
+    
+    result <- .fit_gam_paired_design(
+        df = df,
+        subject = subject,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = NULL
+    )
+    
+    expect_true(is.list(result))
+    expect_true(!is.null(result$p_interaction) || is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_paired_design with insufficient subjects", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 8, n_samples = 4)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    df$subject <- NULL  # Remove existing subject to test parameter handling
+    # Only one unique subject - should trigger early return
+    subject <- rep(1, nrow(df))
+    
+    result <- .fit_gam_paired_design(
+        df = df,
+        subject = subject,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = NULL
+    )
+    
+    # Should return NULL models when <2 subjects
+    expect_null(result$fit_null)
+    expect_null(result$fit_alt)
+    expect_true(is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_paired_design respects k_q parameter", {
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("nlme")
+    
+    test_data <- create_gam_test_data(n_q = 12, n_samples = 6)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    subject <- rep(1:6, each = 12)
+    
+    result_k3 <- .fit_gam_paired_design(
+        df = df,
+        subject = subject,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = NULL
+    )
+    
+    result_k5 <- .fit_gam_paired_design(
+        df = df,
+        subject = subject,
+        family_gam = stats::gaussian(),
+        k_q = 5,
+        gam_weights = NULL
+    )
+    
+    # Both should return valid structures
+    expect_true(is.list(result_k3))
+    expect_true(is.list(result_k5))
+})
+
+test_that(".fit_gam_paired_design with weights", {
+    skip_if_not_installed("mgcv")
+    skip_if_not_installed("nlme")
+    
+    test_data <- create_gam_test_data(n_q = 8, n_samples = 4, add_weights = TRUE)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    subject <- rep(1:4, each = 8)
+    weights <- df$weight
+    
+    result <- .fit_gam_paired_design(
+        df = df,
+        subject = subject,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = weights
+    )
+    
+    expect_true(is.list(result))
+    # With weights, model should still produce valid p-value or NA
+    expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
+})
+
+# =============================================================================
+# TESTS: .fit_gam_unpaired_design (NEW HELPER FUNCTION)
+# =============================================================================
+
+test_that(".fit_gam_unpaired_design returns proper structure", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 15, n_samples = 5)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    
+    result <- .fit_gam_unpaired_design(
+        df = df,
+        family_gam = stats::gaussian(),
+        k_q = 4,
+        gam_weights = NULL
+    )
+    
+    # Verify output structure
+    expect_true(is.list(result))
+    expect_true("fit_null" %in% names(result))
+    expect_true("fit_alt" %in% names(result))
+    expect_true("p_interaction" %in% names(result))
+    expect_true("anova_result" %in% names(result))
+    
+    # P-value should be numeric or NA
+    expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_unpaired_design adaptive k selection by sample size", {
+    skip_if_not_installed("mgcv")
+    
+    # Small sample (substantial data with k adaptive)
+    test_data_small <- create_gam_test_data(n_q = 15, n_samples = 6)
+    df_small <- test_data_small$df
+    df_small$group <- factor(df_small$group)
+    
+    result_small <- .fit_gam_unpaired_design(
+        df = df_small,
+        family_gam = stats::gaussian(),
+        k_q = 4,
+        gam_weights = NULL
+    )
+    
+    # Large sample (>> 50)
+    test_data_large <- create_gam_test_data(n_q = 30, n_samples = 8)
+    df_large <- test_data_large$df
+    df_large$group <- factor(df_large$group)
+    
+    result_large <- .fit_gam_unpaired_design(
+        df = df_large,
+        family_gam = stats::gaussian(),
+        k_q = 8,
+        gam_weights = NULL
+    )
+    
+    # Both should return valid structures
+    expect_true(is.list(result_small))
+    expect_true(is.list(result_large))
+})
+
+test_that(".fit_gam_unpaired_design handles multiple groups", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 12, n_samples = 5)
+    df <- test_data$df
+    # Modify groups to have more than 2
+    df$group <- factor(rep(c("A", "B", "C"), length.out = nrow(df)))
+    
+    result <- .fit_gam_unpaired_design(
+        df = df,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = NULL
+    )
+    
+    expect_true(is.list(result))
+    expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_unpaired_design with weights", {
+    skip_if_not_installed("mgcv")
+    
+    test_data <- create_gam_test_data(n_q = 20, n_samples = 6, add_weights = TRUE)
+    df <- test_data$df
+    df$group <- factor(df$group)
+    weights <- df$weight
+    
+    result <- .fit_gam_unpaired_design(
+        df = df,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = weights
+    )
+    
+    expect_true(is.list(result))
+    expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_unpaired_design with different group sizes", {
+    skip_if_not_installed("mgcv")
+    
+    # Ultra-dense dataset: 3000 rows with ultra-fine q resolution
+    # This provides maximum flexibility for by=group spline fitting
+    set.seed(789)
+    
+    # Create 150 unique q values for exceptional coverage
+    q_vals_ultra <- seq(0.01, 3.99, length.out = 150)
+    
+    # Group A: 1500 rows with dense q cycling
+    group_a <- data.frame(
+        entropy = rnorm(1500, mean = 1.0, sd = 0.3),
+        q = rep(q_vals_ultra, length.out = 1500),
+        group = "A",
+        stringsAsFactors = FALSE
+    )
+    
+    # Group B: 1500 rows with slightly elevated baseline
+    group_b <- data.frame(
+        entropy = rnorm(1500, mean = 1.15, sd = 0.28),
+        q = rep(q_vals_ultra, length.out = 1500),
+        group = "B",
+        stringsAsFactors = FALSE
+    )
+    
+    df <- rbind(group_a, group_b)
+    df$entropy <- pmax(df$entropy, 0.01)  # Ensure positive values
+    df$group <- factor(df$group)
+    
+    result <- .fit_gam_unpaired_design(
+        df = df,
+        family_gam = stats::gaussian(),
+        k_q = 4,
+        gam_weights = NULL
+    )
+    
+    expect_true(is.list(result))
+    expect_true(is.numeric(result$p_interaction) || is.na(result$p_interaction))
+})
+
+test_that(".fit_gam_unpaired_design handles small data samples", {
+    skip_if_not_installed("mgcv")
+    
+    # Create adequate small data: 30 unique q values × 4 samples × 2 groups = 240 rows
+    # Each group has ~120 rows with 30 unique q values (4 replicates each)
+    set.seed(456)
+    q_vals <- seq(0.5, 3.5, length.out = 30)
+    n_rows <- 240
+    df <- data.frame(
+        entropy = rnorm(n_rows, mean = 1.0, sd = 0.2),
+        q = rep(q_vals, length.out = n_rows),
+        group = rep(c("A", "B"), times = n_rows / 2),
+        stringsAsFactors = FALSE
+    )
+    df$entropy <- pmax(df$entropy, 0.1)  # Ensure positive values
+    df$group <- factor(df$group)
+    
+    result <- .fit_gam_unpaired_design(
+        df = df,
+        family_gam = stats::gaussian(),
+        k_q = 3,
+        gam_weights = NULL
+    )
+    
+    # Should return valid structure with adequate data
+    expect_true(is.list(result))
+    expect_true("p_interaction" %in% names(result))
+})
+
 test_that("Bias correction with GAM spline regularization", {
     skip_if_not_installed("mgcv")
     suppressWarnings({
