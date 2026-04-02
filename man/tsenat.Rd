@@ -64,7 +64,7 @@ library(SummarizedExperiment)
 # Create minimal SummarizedExperiment
 se <- SummarizedExperiment(
   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-  colData = data.frame(sample_id = paste0("S", 1:10), condition = rep(c("A", "B"), 5))
+  colData = data.frame(sample_id = paste0('S', 1:10), condition = rep(c('A', 'B'), 5))
 )
 cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 analysis <- TSENATAnalysis(se, config = cfg)

@@ -38,8 +38,8 @@ If NULL, searches for TPM assay automatically.}
 \item{min_samples}{Numeric. Minimum number of samples in which a transcript
 must be present (default: 5). Ignored if \code{stringency} is specified.}
 
-\item{stringency}{Character. Filtering stringency level: "soft" (permissive),
-"medium" (balanced), or "severe" (stringent). When specified, auto-estimates:
+\item{stringency}{Character. Filtering stringency level: 'soft' (permissive),
+'medium' (balanced), or 'severe' (stringent). When specified, auto-estimates:
 \code{min_samples}, \code{min_tpm}, \code{min_tx_per_gene}, and \code{min_isoform_abundance}
 from data. Requires \code{pair_col} in colData for paired designs.
 User-provided values for any parameter override stringency defaults.
@@ -77,10 +77,10 @@ Default: NULL.}
 Default: NULL.}
 
 \item{subset_select_by}{Character; gene selection method for \code{subset_n_genes}:
-"variance" (highest variance), "mean" (highest mean expression), or "random".
-Default: "variance".}
+'variance' (highest variance), 'mean' (highest mean expression), or 'random'.
+Default: 'variance'.}
 
-\item{subset_seed}{Integer; random seed for reproducibility when \code{subset_select_by = "random"}.
+\item{subset_seed}{Integer; random seed for reproducibility when \code{subset_select_by = 'random'}.
 Default: 42.}
 
 \item{subset_min_count}{Numeric; optional minimum count threshold applied during subsetting.
@@ -121,15 +121,15 @@ may not align with the filtered SE dimensions.
 # Create test analysis and filter
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
-analysis <- filter_analysis_s4(analysis, stringency = "medium")
+analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 
 }
 \seealso{

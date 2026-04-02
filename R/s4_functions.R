@@ -65,7 +65,7 @@
 #' n_genes <- 50
 #' n_transcripts_per_gene <- 30
 #' n_transcripts <- n_genes * n_transcripts_per_gene
-#' n_samples <- 16  # 8 subjects \u00D7 2 conditions (paired design)
+#' n_samples <- 16  # 8 subjects x 2 conditions (paired design)
 #' 
 #' # Generate counts with clear biological signal
 #' control_idx <- seq(1, n_samples, by = 2)
@@ -121,7 +121,7 @@
 #'   verbose = FALSE
 #' )
 #' 
-#' # Calculate q \u00D7 condition interactions using GAM
+#' # Calculate q x condition interactions using GAM
 #' # (avoids convergence issues with LMM)
 #' analysis <- calculate_lm_interaction_s4(
 #'   analysis,
@@ -4145,7 +4145,7 @@ build_analysis_s4 <- function(readcounts = NULL, salmon_dir = NULL, tx2gene, ass
             }
 
             if (verbose)
-                message("[build_analysis_s4] ✓ Sample names match metadata")
+                message("[build_analysis_s4] [OK] Sample names match metadata")
         }
 
         # Read Salmon quantification files

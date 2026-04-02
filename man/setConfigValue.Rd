@@ -34,9 +34,9 @@ config, updates one key-value pair, and stores the modified config back.
 \examples{
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build and subset analysis
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -44,7 +44,7 @@ analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, 
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 
 # Update a single configuration value while preserving others
-analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.0, 1.5))
+analysis <- setConfigValue(analysis, 'q_values', c(0.5, 1.0, 1.5))
 
 # Verify the update
 config <- getConfig(analysis)
@@ -52,9 +52,9 @@ print(config$q_values)  # Shows c(0.5, 1.0, 1.5)
 
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build and subset analysis with initial configuration
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -63,8 +63,8 @@ analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 
 # Use setConfigValue to update single configuration values
 # This preserves all other config values
-analysis <- setConfigValue(analysis, "q_values", c(0.5, 1.5, 2.0))
-analysis <- setConfigValue(analysis, "seed", 456)
+analysis <- setConfigValue(analysis, 'q_values', c(0.5, 1.5, 2.0))
+analysis <- setConfigValue(analysis, 'seed', 456)
 
 # Verify the updates
 summary(analysis)

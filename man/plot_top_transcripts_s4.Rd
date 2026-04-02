@@ -32,7 +32,7 @@ the top genes from LM results based on \code{top_n} parameter (genes with lowest
 Default: NULL (auto-extract from lm_results).}
 
 \item{condition_col}{\code{character}. Column name in colData(se) specifying
-group assignments (default: "sample_type").}
+group assignments (default: 'sample_type').}
 
 \item{top_n}{\code{numeric}. Number of top transcripts to display for each
 condition (default: 3).}
@@ -41,7 +41,7 @@ condition (default: 3).}
 Supported formats: .pdf, .png, .jpg. Default: NULL (no file output).}
 
 \item{metric}{\code{character}. Method for ranking transcripts within genes.
-One of "median", "mean", "variance", or "iqr" (default: "median").}
+One of 'median', 'mean', 'variance', or 'iqr' (default: 'median').}
 
 \item{use_tpm}{\code{logical}. If \code{TRUE}, uses TPM (Transcripts Per Million) 
 from metadata instead of raw counts (default: FALSE). TPM is normalized for sequencing 
@@ -99,28 +99,28 @@ significant q x condition interaction effects.
 # Plot 6: Top transcripts across groups
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
 config <- tsenat_config(
-  condition_col = "condition",
-  subject_col = "paired_samples",
+  condition_col = 'condition',
+  subject_col = 'paired_samples',
   paired = TRUE,
-  control = "normal",
+  control = 'normal',
   metadata = metadata_df
 )
 analysis <- setConfig(analysis, config)
 
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 plot_file <- plot_top_transcripts_s4(analysis, top_n = 3)
 
 }

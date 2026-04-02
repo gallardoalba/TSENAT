@@ -20,11 +20,11 @@ plot_tsallis_q_curve_s4(
 If pre-computed bootstrap confidence intervals are available (ci_lower/ci_upper assays),
 they will be displayed automatically. Otherwise, falls back to IQR visualization.}
 
-\item{assay_name}{Character; name of the assay to plot (default: "diversity").}
+\item{assay_name}{Character; name of the assay to plot (default: 'diversity').}
 
 \item{condition_col}{Character or NULL; column name in colData indicating group/sample type.
 If NULL (default), reads from `@config$condition_col` when input is TSENATAnalysis,
-otherwise defaults to "sample_type". Only used in aggregate and CI modes.}
+otherwise defaults to 'sample_type'. Only used in aggregate and CI modes.}
 
 \item{gene}{Character vector (optional); if provided, plot q-curves for specified gene(s).
 Overrides default aggregate behavior. When provided, uses median +/- SD for each gene.}
@@ -41,9 +41,9 @@ Useful for plotting significant genes from any interaction analysis.}
 providing a conservative view of the strongest effect. Set to a numeric value to show that many top genes.}
 
 \item{metric}{Character; when bootstrap CIs are NOT available, specifies the spread metric to display.
-Options: "iqr" (default, Interquartile Range - more robust) or "sd" (Standard Deviation).
+Options: 'iqr' (default, Interquartile Range - more robust) or 'sd' (Standard Deviation).
 This parameter is ignored when bootstrap confidence intervals are available.
-Default: "iqr".}
+Default: 'iqr'.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
 Default: NULL (no file output).}

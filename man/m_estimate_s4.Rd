@@ -28,8 +28,8 @@ m_estimate_s4(
 condition/sample grouping. Auto-detected from \code{@config$condition_col}
 if available.}
 
-\item{loss_type}{\code{character}. Type of loss function: "huber" (default),
-"tukey", or "lsq". Determines robustness vs efficiency trade-off.}
+\item{loss_type}{\code{character}. Type of loss function: 'huber' (default),
+'tukey', or 'lsq'. Determines robustness vs efficiency trade-off.}
 
 \item{scale}{\code{numeric}. Manual scale parameter. If NULL, estimated from data.}
 
@@ -41,16 +41,16 @@ if available.}
 designs. Auto-detected from \code{@config$paired} if available.
 Default: FALSE.}
 
-\item{pcorr}{\code{character}. P-value correction method. Default: "BH" (Benjamini-Hochberg).}
+\item{pcorr}{\code{character}. P-value correction method. Default: 'BH' (Benjamini-Hochberg).}
 
 \item{q_combine_method}{\code{character}. How to collapse multi-q results:
-"mean" (default) or "median".}
+'mean' (default) or 'median'.}
 
 \item{influence_threshold}{\code{numeric}. Threshold for classifying samples
 as high-influence. Default: 0.75.}
 
-\item{scale_method}{\code{character}. Scale estimation method: "mad" (default),
-"proposal2", or "s-estimator".}
+\item{scale_method}{\code{character}. Scale estimation method: 'mad' (default),
+'proposal2', or 's-estimator'.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
 Supported formats: .rds (for S4 objects), .tsv, .csv, .txt (for tables). Default: NULL (no file output).}
@@ -83,7 +83,7 @@ unusual diversity patterns.
   \item \code{robustness_weight}: Down-weighting factor (lower = more outlying)
   \item \code{entropy_mean}: Average entropy for the sample
   \item \code{entropy_sd}: Entropy variability within the sample
-  \item \code{Status}: QC Classification ("OK" or "Flag for QC" based on influence_threshold)
+  \item \code{Status}: QC Classification ('OK' or 'Flag for QC' based on influence_threshold)
 }
 
 **Parameter resolution priority** (explicit > @config > error):
@@ -103,20 +103,20 @@ unusual diversity patterns.
 # Create test analysis and compute M-estimation
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- m_estimate_s4(
   analysis,
-  condition_col = "condition",
-  loss_type = "huber",
+  condition_col = 'condition',
+  loss_type = 'huber',
   verbose = FALSE
 )
 

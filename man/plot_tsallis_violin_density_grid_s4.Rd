@@ -15,7 +15,7 @@ plot_tsallis_violin_density_grid_s4(
 \item{se}{A `SummarizedExperiment` returned by `calculate_diversity` containing
 entropy values at a single q value.}
 
-\item{assay_name}{Name of the assay to use (default: "diversity").}
+\item{assay_name}{Name of the assay to use (default: 'diversity').}
 
 \item{title}{Optional base title. If NULL, auto-generated based on q value.}
 

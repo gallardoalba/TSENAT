@@ -30,10 +30,10 @@ automatically discovers and reads all quant.sf files. If both \code{readcounts} 
 
 \item{tx2gene}{Either:
 - A path to a GFF3 or GFF3.gz file containing transcript-to-gene mapping
-- A path to a TSV file with columns "Transcript" and "Gene"
+- A path to a TSV file with columns 'Transcript' and 'Gene'
 - A data.frame with transcript-to-gene mapping}
 
-\item{assay_name}{Character. Name for the assay (default: "counts").}
+\item{assay_name}{Character. Name for the assay (default: 'counts').}
 
 \item{metadata}{Optional data.frame with sample metadata. Should have sample
 names as row names and metadata columns (e.g., sample_type, condition, etc.).}
@@ -105,17 +105,17 @@ n_samples <- 10
 # Generate count matrix
 counts <- matrix(rpois(n_isoforms * n_samples, lambda = 20),
                  nrow = n_isoforms, ncol = n_samples)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
+rownames(counts) <- paste0('TX_', 1:n_isoforms)
+colnames(counts) <- paste0('Sample_', 1:n_samples)
 
 # Create tx2gene mapping
 tx2gene <- data.frame(
   Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+  Gene = rep(paste0('GENE_', 1:n_genes), each = n_isoforms_per_gene))
 
 # Create sample metadata
 metadata <- data.frame(
-  condition = rep(c("control", "treatment"), each = 5),
+  condition = rep(c('control', 'treatment'), each = 5),
   row.names = colnames(counts))
 
 # Build analysis object - use NAMED parameters to avoid confusion
@@ -137,17 +137,17 @@ print(dim(analysis))
 #     sample2/quant.sf
 #     ...
 # 
-# salmon_dir <- "/path/to/salmon/directory"
+# salmon_dir <- '/path/to/salmon/directory'
 # 
 # First create sample metadata matching Salmon sample names
 # salmon_metadata <- data.frame(
-#   condition = c("control", "control", "treatment", "treatment"),
-#   row.names = c("sample1", "sample2", "sample3", "sample4")
+#   condition = c('control', 'control', 'treatment', 'treatment'),
+#   row.names = c('sample1', 'sample2', 'sample3', 'sample4')
 # )
 # 
 # analysis_salmon <- build_analysis_s4(
 #   salmon_dir = salmon_dir,
-#   tx2gene = "annotation.gff3.gz",  # Auto-parsed from GFF3
+#   tx2gene = 'annotation.gff3.gz',  # Auto-parsed from GFF3
 #   metadata = salmon_metadata
 # )
 #

@@ -61,7 +61,7 @@ have valid data, the function returns all available genes.
 - Title shows: gene name and adjusted p-value (q-value format)
 - Per-q divergence curve with point estimates and 95% bootstrap CI bands
 - Vertical reference line at q=1 (Kullback-Leibler divergence point)
-- Region labels: "Rare Isoforms" (q<1), "Balanced" (q~=1), "Abundant Isoforms" (q>1)
+- Region labels: 'Rare Isoforms' (q<1), 'Balanced' (q~=1), 'Abundant Isoforms' (q>1)
 - All plots use consistent ggplot2 styling matching plot_q_spectrum
 }
 \examples{
@@ -81,16 +81,16 @@ control_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 100),
 treatment_counts <- matrix(rpois(n_isoforms * n_samples_per_group, lambda = 300),
   nrow = n_isoforms, ncol = n_samples_per_group)
 counts <- cbind(control_counts, treatment_counts)
-rownames(counts) <- paste0("TX_", 1:n_isoforms)
-colnames(counts) <- paste0("Sample_", 1:n_samples)
+rownames(counts) <- paste0('TX_', 1:n_isoforms)
+colnames(counts) <- paste0('Sample_', 1:n_samples)
 
 se <- SummarizedExperiment::SummarizedExperiment(assays = list(counts = counts))
 tx2gene_df <- data.frame(Transcript = rownames(counts),
-  Gene = rep(paste0("GENE_", 1:n_genes), each = n_isoforms_per_gene))
+  Gene = rep(paste0('GENE_', 1:n_genes), each = n_isoforms_per_gene))
 S4Vectors::metadata(se)$tx2gene <- tx2gene_df
 SummarizedExperiment::colData(se) <- S4Vectors::DataFrame(
-  sample_id = paste0("Sample_", 1:n_samples),
-  condition = rep(c("control", "treatment"), each = n_samples_per_group),
+  sample_id = paste0('Sample_', 1:n_samples),
+  condition = rep(c('control', 'treatment'), each = n_samples_per_group),
   row.names = colnames(se))
 SummarizedExperiment::rowData(se)$transcript_id <- rownames(se)
 SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se),
@@ -104,7 +104,7 @@ SummarizedExperiment::rowData(se)$gene_id <- tx2gene_df$Gene[match(rownames(se),
 # analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), 
 #   verbose = FALSE, nboot = 50)
 # analysis <- calculate_lm_interaction_s4(analysis,
-#   condition_col = "condition", verbose = FALSE)
+#   condition_col = 'condition', verbose = FALSE)
 # analysis <- effect_sizes_divergence_s4(analysis, verbose = FALSE)
 # p <- plot_multi_gene_q_spectrum_s4(analysis, n_genes = 4, verbose = FALSE)
 # if (!is.null(p)) print(p)

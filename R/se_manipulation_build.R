@@ -96,15 +96,15 @@
         fields_list <- strsplit(valid_lines, "\t", fixed = TRUE)
 
         # Vectorized extraction - check length first
-        has_9_cols <- sapply(fields_list, length) >= 9
+        has_9_cols <- vapply(fields_list, length, integer(1)) >= 9
         valid_lines <- valid_lines[has_9_cols]
         fields_list <- fields_list[has_9_cols]
         if (length(fields_list) == 0)
             next
 
         # Extract feature types and attributes
-        feature_types <- sapply(fields_list, "[", 3)
-        attributes <- sapply(fields_list, "[", 9)
+        feature_types <- vapply(fields_list, "[", character(1), 3)
+        attributes <- vapply(fields_list, "[", character(1), 9)
 
         # ===== TRANSCRIPTS ===== Pre-filter to transcript lines
         tx_mask <- feature_types %in% c("transcript", "mRNA")
@@ -179,7 +179,7 @@
     gene_count <- if (!is.null(gene_names_df))
         nrow(gene_names_df) else 0
     if (verbose)
-        message(sprintf("[.extract_gff3_data] ✓ Complete: %d transcripts, %d genes extracted (%.1f sec)",
+        message(sprintf("[.extract_gff3_data] [OK] Complete: %d transcripts, %d genes extracted (%.1f sec)",
             nrow(tx2gene_df), gene_count, elapsed))
 
     return(list(tx2gene = tx2gene_df, gene_names = gene_names_df))

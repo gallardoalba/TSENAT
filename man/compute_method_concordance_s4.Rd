@@ -22,10 +22,10 @@ compute_method_concordance_s4(analysis, ...)
 \item{...}{Additional arguments for future extensibility.}
 
 \item{gam_method}{\code{character}. Key for GAM/interaction results in \code{@lm_results}.
-Default: "q_interactions" (results from \code{rank_test_q_condition_s4})}
+Default: 'q_interactions' (results from \code{rank_test_q_condition_s4})}
 
 \item{friedman_method}{\code{character}. Key for Friedman/rank-based results in \code{@lm_results}.
-Default: "rankbased" (results from \code{test_rankbased_assumptions_s4})}
+Default: 'rankbased' (results from \code{test_rankbased_assumptions_s4})}
 
 \item{gam_results}{\code{data.frame} or \code{NULL}. Optional GAM results data frame to store
 in the analysis object. If provided, automatically stored in \code{@lm_results} under the
@@ -64,12 +64,12 @@ and Friedman/Kruskal-Wallis for rank-based analysis) on the same data. Identifie
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data (matching TSENAT.Rmd workflow)
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -77,18 +77,18 @@ analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, m
 
 # Configure analysis parameters (best practice for reproducibility)
 config <- tsenat_config(
-  condition_col = "condition",
-  subject_col = "paired_samples",
+  condition_col = 'condition',
+  subject_col = 'paired_samples',
   paired = TRUE,
-  control = "normal",
+  control = 'normal',
   metadata = metadata_df
 )
 analysis <- setConfig(analysis, config)
 
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 # Note: compute_method_concordance_s4 requires results from both
 # rank_test_q_condition_s4 and test_rankbased_assumptions_s4
 

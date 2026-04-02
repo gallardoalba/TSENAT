@@ -45,7 +45,7 @@ results from the analysis object slots.
 This function extracts the following from \code{analysis}:
 \describe{
   \item{Jackknife results}{From \code{analysis@jackknife_results}, which should
-        contain multi-q switching results keyed by q-value (e.g., "q_1.00")}
+        contain multi-q switching results keyed by q-value (e.g., 'q_1.00')}
   \item{LM results}{From \code{analysis@lm_results$lm_interaction} if not
         explicitly provided, for ranking genes by significance}
 }
@@ -57,29 +57,29 @@ interface compared to the base function.
 # Plot 5: Multi-q delta influence (isoform switching) heatmaps
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
 config <- tsenat_config(
-  condition_col = "condition",
-  subject_col = "paired_samples",
+  condition_col = 'condition',
+  subject_col = 'paired_samples',
   paired = TRUE,
-  control = "normal",
+  control = 'normal',
   metadata = metadata_df
 )
 analysis <- setConfig(analysis, config)
 
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 analysis <- jackknife_isoform_switching_s4(analysis, q = c(0.5, 1, 1.5),
   n_bootstrap = 50, verbose = FALSE)
 heatmap_file <- plot_multiq_delta_influence_heatmaps_s4(analysis, n_genes = 2)

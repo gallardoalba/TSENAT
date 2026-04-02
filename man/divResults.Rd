@@ -74,13 +74,13 @@ getConfig(object)
 \item{replace}{logical. If TRUE, replace existing plot of same type.
 If FALSE (default), warn if plot already exists and do not overwrite.}
 
-\item{q}{numeric or character. Q-value to extract (e.g., "q_0.5").
+\item{q}{numeric or character. Q-value to extract (e.g., 'q_0.5').
 If NULL, returns all jackknife results.}
 
-\item{component}{character. Component name ("tsallis_divergence", "effect_sizes", etc.).
+\item{component}{character. Component name ('tsallis_divergence', 'effect_sizes', etc.).
 If NULL, returns all divergence results.}
 
-\item{key}{character. Config key to extract (e.g., "q_values", "condition_col").
+\item{key}{character. Config key to extract (e.g., 'q_values', 'condition_col').
 If NULL, returns entire config.}
 }
 \value{
@@ -131,12 +131,12 @@ Use these accessor methods instead of direct slot access with '@'
 library(SummarizedExperiment)
 set.seed(42)
 counts <- matrix(rpois(100, lambda = 10), nrow = 10, ncol = 10)
-colnames(counts) <- paste0("sample_", 1:10)
-rownames(counts) <- paste0("gene_", 1:10)
+colnames(counts) <- paste0('sample_', 1:10)
+rownames(counts) <- paste0('gene_', 1:10)
 se <- SummarizedExperiment(assays = list(counts = counts))
 
 # Create TSENATAnalysis object
-example_analysis <- new("TSENATAnalysis", se = se)
+example_analysis <- new('TSENATAnalysis', se = se)
 
 # Access SummarizedExperiment
 se_retrieved <- getSE(example_analysis)

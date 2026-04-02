@@ -232,7 +232,7 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
         tryCatch({
             analysis <- calculate_diversity_s4(analysis, q = q_vals, ...)
             if (verbose)
-                message(sprintf("  ✓ Diversity calculated for q = %s", paste(q_vals,
+                message(sprintf("  [OK] Diversity calculated for q = %s", paste(q_vals,
                   collapse = ", ")))
         }, error = function(e) {
             stop("Diversity calculation failed:\n", e$message, call. = FALSE)
@@ -252,7 +252,7 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
                 analysis <- jackknife_entropy_outliers_s4(analysis, q = q_vals, verbose = FALSE,
                   ...)
                 if (verbose)
-                  message("  ✓ Jackknife CIs computed")
+                  message("  [OK] Jackknife CIs computed")
             }, error = function(e) {
                 warning("Jackknife failed:\n", e$message, call. = FALSE)
             })
@@ -268,7 +268,7 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
             analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = analysis@config$fdr_threshold %||%
                 0.05, ...)
             if (verbose)
-                message("  ✓ LM analysis complete")
+                message("  [OK] LM analysis complete")
         }, error = function(e) {
             warning("LM interaction calculation failed:\n", e$message, call. = FALSE)
         })
@@ -286,7 +286,7 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
             tryCatch({
                 analysis <- calculate_divergence_s4(analysis, q = q_vals[1])
                 if (verbose)
-                  message("  ✓ Divergence metrics computed")
+                  message("  [OK] Divergence metrics computed")
             }, error = function(e) {
                 warning("Divergence calculation failed:\n", e$message, call. = FALSE)
             })
@@ -306,7 +306,7 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
                 analysis <- rank_test_q_condition_s4(analysis, condition_col = condition_col_name,
                   q = q_vals, ...)
                 if (verbose)
-                  message("  ✓ Q-interactions detected")
+                  message("  [OK] Q-interactions detected")
             }, error = function(e) {
                 warning("Q-interaction detection failed:\n", e$message, call. = FALSE)
             })
@@ -349,13 +349,13 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
                   }
                 }, error = function(e) {
                   if (verbose) {
-                    message(sprintf("  ⚠ Plot '%s' failed: %s", ptype, e$message))
+                    message(sprintf("  [WARNING] Plot '%s' failed: %s", ptype, e$message))
                   }
                 })
             }
 
             if (verbose) {
-                message(sprintf("  ✓ %d plot(s) generated", length(analysis@plots)))
+                message(sprintf("  [OK] %d plot(s) generated", length(analysis@plots)))
             }
         }, error = function(e) {
             warning("Plot generation failed:\n", e$message, call. = FALSE)
@@ -368,15 +368,15 @@ tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_
         message("=================")
         message("Results summary:")
         if (length(analysis@diversity_results) > 0)
-            message("  ✓ Diversity")
+            message("  [OK] Diversity")
         if (length(analysis@lm_results) > 0)
-            message("  ✓ LM results")
+            message("  [OK] LM results")
         if (length(analysis@jackknife_results) > 0)
-            message("  ✓ Jackknife CIs")
+            message("  [OK] Jackknife CIs")
         if (length(analysis@divergence_results) > 0)
-            message("  ✓ Divergence")
+            message("  [OK] Divergence")
         if (length(analysis@plots) > 0)
-            message(sprintf("  ✓ Plots (%d)", length(analysis@plots)))
+            message(sprintf("  [OK] Plots (%d)", length(analysis@plots)))
         message("\nUse show(analysis) or summary(analysis) for details")
     }
 

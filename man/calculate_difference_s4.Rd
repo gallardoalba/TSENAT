@@ -37,16 +37,16 @@ attempts to retrieve from \code{analysis@config$control}.}
 \item{condition_col}{\code{character} or \code{NULL}. Column name in colData identifying sample conditions.
 If NULL, reads from \code{@config$condition_col} or auto-detects.}
 
-\item{method}{\code{character}. Difference calculation method. Default: "mean".
+\item{method}{\code{character}. Difference calculation method. Default: 'mean'.
 If NULL, reads from \code{@config$method} if available.}
 
-\item{test}{\code{character}. Statistical test type. Default: "wilcoxon".
+\item{test}{\code{character}. Statistical test type. Default: 'wilcoxon'.
 If NULL, reads from \code{@config$test} if available.}
 
 \item{randomizations}{\code{numeric}. Number of randomizations. Default: 100.
 If NULL, reads from \code{@config$randomizations} if available.}
 
-\item{pcorr}{\code{character}. P-value correction method. Default: "BH".
+\item{pcorr}{\code{character}. P-value correction method. Default: 'BH'.
 If NULL, reads from \code{@config$pcorr} if available.}
 
 \item{assayno}{\code{numeric}. Assay number to use. Default: 1.
@@ -70,10 +70,10 @@ If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 \item{seed}{\code{numeric} or \code{NULL}. Random seed. Default: NULL.
 If NULL, reads from \code{@config$seed} if available.}
 
-\item{robust_loss_type}{\code{character}. Robust regression loss type. Default: "huber".
+\item{robust_loss_type}{\code{character}. Robust regression loss type. Default: 'huber'.
 If NULL, reads from \code{@config$robust_loss_type} if available.}
 
-\item{robust_scale_method}{\code{character}. Robust scaling method. Default: "mad".
+\item{robust_scale_method}{\code{character}. Robust scaling method. Default: 'mad'.
 If NULL, reads from \code{@config$robust_scale_method} if available.}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save results.
@@ -101,26 +101,26 @@ between control and treatment groups, not raw abundance data.
   \item \code{control}: Uses explicit arg, else \code{@config$control}, else error
   \item \code{nthreads}: Uses explicit arg, else \code{@config$nthreads}, else 1
   \item \code{condition_col} (sample grouping): Uses \code{@config$condition_col},
-    else auto-detects from colData columns: "group", "sample_type", "condition"
+    else auto-detects from colData columns: 'group', 'sample_type', 'condition'
 }
 }
 \examples{
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data and create small subset
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-result <- calculate_difference_s4(analysis, control = "normal", verbose = FALSE)
+result <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
 
 }
 \seealso{

@@ -39,14 +39,14 @@ consistency:
 # Create a minimal TSENATAnalysis object
 library(SummarizedExperiment)
 counts <- matrix(rpois(200, 10), nrow = 20, ncol = 10)
-rownames(counts) <- paste0("TX_", 1:20)
-colnames(counts) <- paste0("S", 1:10)
+rownames(counts) <- paste0('TX_', 1:20)
+colnames(counts) <- paste0('S', 1:10)
 se <- SummarizedExperiment(
   assays = list(counts = counts),
-  rowData = data.frame(gene_id = rep(paste0("G", 1:2), each = 10),
+  rowData = data.frame(gene_id = rep(paste0('G', 1:2), each = 10),
                        row.names = rownames(counts)),
   colData = data.frame(sample_id = colnames(counts),
-                       condition = rep(c("A", "B"), 5),
+                       condition = rep(c('A', 'B'), 5),
                        row.names = colnames(counts))
 )
 analysis <- TSENATAnalysis(se)
@@ -55,10 +55,10 @@ analysis <- TSENATAnalysis(se)
 analysis_subset <- analysis[1:10, 1:5]
 
 # Subset by gene name
-analysis_subset2 <- analysis[paste0("TX_", 1:5), ]
+analysis_subset2 <- analysis[paste0('TX_', 1:5), ]
 
 # Subset by sample condition (logical indexing)
-keep_samples <- colData(se(analysis))$condition == "A"
+keep_samples <- colData(se(analysis))$condition == 'A'
 analysis_a <- analysis[, keep_samples]
 
 }

@@ -23,17 +23,17 @@ SummarizedExperiment or list of SummarizedExperiment objects
 Extract diversity results
 }
 \details{
-Results stored in @diversity_results with names like "q_0.5", "q_1.0", etc.
+Results stored in @diversity_results with names like 'q_0.5', 'q_1.0', etc.
 Use \code{diversity(analysis)} to get all results as a list, or
 \code{diversity(analysis, q=1.0)} for a specific q-value.
 }
 \examples{
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv",
-  package = "TSENAT"), header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz",
-  package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv',
+  package = 'TSENAT'), header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz',
+  package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file,
   metadata = metadata_df, tpm = salmon_tpm,
   effective_length = salmon_effective_length)

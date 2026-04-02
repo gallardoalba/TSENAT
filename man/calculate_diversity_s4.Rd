@@ -38,21 +38,21 @@ calculate_diversity_s4(
 \item{q}{\code{numeric}. Q-value(s) for Tsallis entropy.
 If NULL, uses q_values from \code{analysis@config$q_values} if available, else defaults to seq(0.01, 2, by = 0.05).}
 
-\item{norm}{\code{logical} or \code{character}. Normalization method: TRUE, FALSE, "none", "range", "zscore", "log_odds_ratio", "relative_reference".
+\item{norm}{\code{logical} or \code{character}. Normalization method: TRUE, FALSE, 'none', 'range', 'zscore', 'log_odds_ratio', 'relative_reference'.
 If NULL, reads from \code{@config$norm} or defaults to TRUE.}
 
 \item{norm_method}{\code{character}. Post-hoc normalization method applied after diversity computation.
 Options:
 \itemize{
-  \item \code{"default"} - Simple normalization by theoretical maximum (current behavior)
-  \item \code{"zscore"} - Z-score normalization per q-value
-  \item \code{"log_odds_ratio"} - Log-odds ratio relative to max entropy (q and isoform-aware)
-  \item \code{"relative_reference"} - Divide by reference group mean (requires reference_group)
+  \item \code{'default'} - Simple normalization by theoretical maximum (current behavior)
+  \item \code{'zscore'} - Z-score normalization per q-value
+  \item \code{'log_odds_ratio'} - Log-odds ratio relative to max entropy (q and isoform-aware)
+  \item \code{'relative_reference'} - Divide by reference group mean (requires reference_group)
   \item \code{NULL} - No post-hoc normalization (default)
 }
 If NULL, reads from \code{@config$norm_method} if available.}
 
-\item{reference_group}{\code{character}. For \code{norm_method = "relative_reference"}, 
+\item{reference_group}{\code{character}. For \code{norm_method = 'relative_reference'}, 
 the reference group column name (e.g., from colData). If NULL, uses first group in colData.
 If NULL, reads from \code{@config$reference_group} if available.}
 
@@ -67,19 +67,19 @@ If not specified, reads from \code{@config$verbose} if available.}
 
 \item{show_messages}{\code{logical}. Display verbose messages during computation. Default: FALSE.}
 
-\item{what}{\code{character}. Output type: "S" (entropy) or "D" (diversity). Default: "S".
+\item{what}{\code{character}. Output type: 'S' (entropy) or 'D' (diversity). Default: 'S'.
 If NULL, reads from \code{@config$what} if available.}
 
 \item{nthreads}{\code{numeric} or \code{NULL}. Number of CPU threads for parallel processing.
 If NULL, reads from \code{@config$nthreads} (or defaults to 1).}
 
-\item{pseudocount}{\code{numeric} or \code{character}. Pseudocount value or "auto". Default: 0.
+\item{pseudocount}{\code{numeric} or \code{character}. Pseudocount value or 'auto'. Default: 0.
 If NULL, reads from \code{@config$pseudocount} if available.}
 
 \item{min_valid_frac}{\code{numeric}. Minimum fraction of valid samples for gene filtering. Default: NULL.
 If NULL, reads from \code{@config$min_valid_frac} if available.}
 
-\item{shrinkage}{\code{character}. Shrinkage method: "none" or "empirical_bayes". Default: "none".
+\item{shrinkage}{\code{character}. Shrinkage method: 'none' or 'empirical_bayes'. Default: 'none'.
 If NULL, reads from \code{@config$shrinkage} if available.}
 
 \item{genes}{\code{character} or \code{NULL}. Gene set specification. Default: NULL (use all genes).
@@ -96,7 +96,7 @@ If not specified, reads from \code{@config$bootstrap} if available.}
 \item{nboot}{\code{numeric} or \code{NULL}. Number of bootstrap replicates. Default: NULL.
 If NULL, reads from \code{@config$nboot} if available.}
 
-\item{bootstrap_method}{\code{character}. Bootstrap method: "percentile" or others. Default: "percentile".
+\item{bootstrap_method}{\code{character}. Bootstrap method: 'percentile' or others. Default: 'percentile'.
 If NULL, reads from \code{@config$bootstrap_method} if available.}
 
 \item{bootstrap_ci}{\code{numeric}. Bootstrap confidence interval level (0-1). Default: 0.95.
@@ -115,7 +115,7 @@ When provided, generates TWO files:
   \item Secondary output: Diversity spectrum statistics (TSV format)
       with suffix \code{_spectrum.tsv}
 }
-Example: output_file = "analysis.rds" generates:
+Example: output_file = 'analysis.rds' generates:
 \itemize{
   \item \code{analysis.rds} - TSENATAnalysis object
   \item \code{analysis_spectrum.tsv} - Spectrum statistics
@@ -128,7 +128,7 @@ Default: NULL (no file output).}
 }
 \value{
 Modified TSENATAnalysis object with diversity results stored
-  in \code{@diversity_results}, keyed by "q_X.XX..." format (e.g., "q_1.000").
+  in \code{@diversity_results}, keyed by 'q_X.XX...' format (e.g., 'q_1.000').
   When \code{output_file} is provided, also generates:
   \itemize{
     \item Primary file: Analysis object or table export
@@ -168,14 +168,14 @@ Spectrum is saved as: \code{*_spectrum.tsv}
   \item{bootstrap}{Priority: explicit > \code{@config$bootstrap} > FALSE}
   \item{pseudocount}{Priority: explicit > \code{@config$pseudocount} > 0}
   \item{norm}{Priority: explicit > \code{@config$norm} > TRUE}
-  \item{what}{Priority: explicit > \code{@config$what} > "S" (Tsallis entropy)}
+  \item{what}{Priority: explicit > \code{@config$what} > 'S' (Tsallis entropy)}
 }
 
 **Audit Trail:** After execution, check:
 \itemize{
   \item \code{analysis@config$last_diversity_run$parameters_used}: Actual parameters 
         (not original \code{@config})
-  \item \code{attr(diversity(analysis, q=X), "computed_with")}: Per-q-value metadata
+  \item \code{attr(diversity(analysis, q=X), 'computed_with')}: Per-q-value metadata
         (timestamp, bootstrap setting, nthreads, etc.)
 }
 

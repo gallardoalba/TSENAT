@@ -37,7 +37,7 @@ in \code{@diversity_results}.}
 If NULL, uses the first available diversity result or q=1.0.}
 
 \item{checks}{\code{character}. Which assumptions to test. Default includes:
-"exchangeability", "monotonicity", "consistency".}
+'exchangeability', 'monotonicity', 'consistency'.}
 
 \item{alpha}{\code{numeric}. Significance level for tests (default: 0.05).}
 
@@ -76,12 +76,12 @@ extracted from the analysis object. Results include:
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data and create small subset
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -90,6 +90,6 @@ analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- test_rankbased_assumptions_s4(analysis, q = 1.0)
 # Access results using getMeta S4 accessor
-names(getMeta(analysis, "rankbased_assumptions"))
+names(getMeta(analysis, 'rankbased_assumptions'))
 
 }

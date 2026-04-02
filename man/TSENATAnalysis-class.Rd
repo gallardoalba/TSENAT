@@ -50,7 +50,7 @@ columns, etc.). Set once via \code{tsenat_config()} and used by all
 downstream wrapper functions.}
 
 \item{\code{diversity_results}}{\code{list}. Named list of diversity calculation
-results. Each name corresponds to a q-value (e.g., "q_0.5", "q_1.0").
+results. Each name corresponds to a q-value (e.g., 'q_0.5', 'q_1.0').
 Values are SummarizedExperiment objects or data.frames containing entropy
 values for each gene at that q-value.}
 
@@ -64,7 +64,7 @@ statistical testing. Top-level names identify analysis type:
 }}
 
 \item{\code{jackknife_results}}{\code{list}. Resampling-based confidence intervals.
-Names correspond to q-values (e.g., "q_0.5", "q_1.0"). Values are
+Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 jackknife result objects containing resamples, CI bounds, and diagnostics.}
 
 \item{\code{divergence_results}}{\code{list}. Divergence metric calculations.
@@ -75,7 +75,7 @@ Typically contains:
 }}
 
 \item{\code{plots}}{\code{list}. Cached visualization objects (ggplot). Names
-identify plot type (e.g., "q_curve", "lm_interaction", "influence").
+identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
 Populated by \code{tsenat()} if \code{generate_plots=TRUE}.}
 
 \item{\code{metadata}}{\code{list}. Reproducibility and tracking metadata.
@@ -96,7 +96,7 @@ columns, etc.). Set once via \code{tsenat_config()} and used by all
 downstream wrapper functions.}
 
 \item{\code{diversity_results}}{\code{list}. Named list of diversity calculation
-results. Each name corresponds to a q-value (e.g., "q_0.5", "q_1.0").
+results. Each name corresponds to a q-value (e.g., 'q_0.5', 'q_1.0').
 Values are SummarizedExperiment objects or data.frames containing entropy
 values for each gene at that q-value.}
 
@@ -110,7 +110,7 @@ statistical testing. Top-level names identify analysis type:
 }}
 
 \item{\code{jackknife_results}}{\code{list}. Resampling-based confidence intervals.
-Names correspond to q-values (e.g., "q_0.5", "q_1.0"). Values are
+Names correspond to q-values (e.g., 'q_0.5', 'q_1.0'). Values are
 jackknife result objects containing resamples, CI bounds, and diagnostics.}
 
 \item{\code{divergence_results}}{\code{list}. Divergence metric calculations.
@@ -121,7 +121,7 @@ Typically contains:
 }}
 
 \item{\code{plots}}{\code{list}. Cached visualization objects (ggplot). Names
-identify plot type (e.g., "q_curve", "lm_interaction", "influence").
+identify plot type (e.g., 'q_curve', 'lm_interaction', 'influence').
 Populated by \code{tsenat()} if \code{generate_plots=TRUE}.}
 
 \item{\code{metadata}}{\code{list}. Reproducibility and tracking metadata.
@@ -157,9 +157,9 @@ Automatically maintained by wrapper functions. Includes:
 \examples{
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)

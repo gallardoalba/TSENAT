@@ -709,7 +709,7 @@
     method_label <- switch(bias_correction_method, hc1 = "HC1 (bias-reduced)", hc3 = "HC3 (leverage-adjusted)",
         kc = "Kauermann-Carroll")
 
-    report <- sprintf("K-C Bias Correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f → %.4f%s",
+    report <- sprintf("K-C Bias Correction (%s):\n  n_clusters=%d, n_parameters=%d\n  n_effective=%.1f (design_effect=%.2f)\n  HC multiplier=%.4f\n  p-value: %.4f -> %.4f%s",
         method_label, n_clusters, n_parameters, n_effective, design_effect, multiplier,
         p_value, p_corrected, if (use_t_distribution)
             sprintf(" (df=%d, t-dist)", max(1, n_clusters - 1)) else " (normal)")
@@ -728,9 +728,9 @@
     if (is.null(kc_result))
         return(invisible(NULL))
 
-    message(paste(rep("─", 70), collapse = ""))
+    message(paste(rep("-", 70), collapse = ""))
     message("Kauermann-Carroll Bias Correction Report")
-    message(paste(rep("─", 70), collapse = ""))
+    message(paste(rep("-", 70), collapse = ""))
 
     if (!is.null(kc_result$report)) {
         message(kc_result$report)
@@ -749,9 +749,9 @@
 
     message(sprintf("  Degrees of freedom (t-dist): %d", max(1, kc_result$n_clusters -
         1)))
-    message(sprintf("  P-value: %.6f → %.6f", kc_result$p_raw, kc_result$p_value))
+    message(sprintf("  P-value: %.6f -> %.6f", kc_result$p_raw, kc_result$p_value))
 
-    message(paste(rep("─", 70), collapse = ""))
+    message(paste(rep("-", 70), collapse = ""))
     message("")
 
     invisible(kc_result)

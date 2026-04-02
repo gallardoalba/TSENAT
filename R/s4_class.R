@@ -632,19 +632,19 @@ setMethod("show", "TSENATAnalysis", function(object) {
     # Show results
     message("\nAnalysis Status:")
     if (length(object@diversity_results) > 0) {
-        message(sprintf("  ✓ Diversity: %d q-value(s)", length(object@diversity_results)))
+        message(sprintf("  [OK] Diversity: %d q-value(s)", length(object@diversity_results)))
     }
     if (length(object@lm_results) > 0) {
-        message(sprintf("  ✓ LM results: %s", paste(names(object@lm_results), collapse = ", ")))
+        message(sprintf("  [OK] LM results: %s", paste(names(object@lm_results), collapse = ", ")))
     }
     if (length(object@jackknife_results) > 0) {
-        message(sprintf("  ✓ Jackknife: %d q-value(s)", length(object@jackknife_results)))
+        message(sprintf("  [OK] Jackknife: %d q-value(s)", length(object@jackknife_results)))
     }
     if (length(object@divergence_results) > 0) {
-        message(sprintf("  ✓ Divergence: %d component(s)", length(object@divergence_results)))
+        message(sprintf("  [OK] Divergence: %d component(s)", length(object@divergence_results)))
     }
     if (length(object@plots) > 0) {
-        message(sprintf("  ✓ Plots: %s", paste(names(object@plots), collapse = ", ")))
+        message(sprintf("  [OK] Plots: %s", paste(names(object@plots), collapse = ", ")))
     }
 
     # Show metadata
@@ -653,7 +653,7 @@ setMethod("show", "TSENATAnalysis", function(object) {
         if (n_calls > 0) {
             message("\nFunction History:")
             message(sprintf("  Calls: %s", paste(object@metadata$function_calls,
-                collapse = " → ")))
+                collapse = " -> ")))
         }
     }
 

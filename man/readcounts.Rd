@@ -28,7 +28,7 @@ from salmon quantification. The dataset includes samples as columns
 (SRR14800475-SRR14800490) and transcript IDs as row names.
 }
 \examples{
-data(readcounts, package = "TSENAT")
+data(readcounts, package = 'TSENAT')
 dim(salmon_dataset)
 head(salmon_dataset[1:4, 1:3])
 

@@ -36,9 +36,9 @@ with those in the new value object.
 \examples{
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build and subset analysis
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
@@ -55,9 +55,9 @@ print(current_config$q_values)  # Shows c(0.5, 1.0, 1.5)
 
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build and subset analysis
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,

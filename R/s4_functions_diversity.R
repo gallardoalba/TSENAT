@@ -440,25 +440,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
         tryCatch({
             output_data <- NULL
 
-            if (params$verbose) {
-                cat("[DEBUG] Length of diversity_results:", length(analysis@diversity_results),
-                  "\n")
-                if (length(analysis@diversity_results) > 0) {
-                  cat("[DEBUG] Keys in diversity_results:", paste(names(analysis@diversity_results),
-                    collapse = ", "), "\n")
-                }
-            }
-
             # Extract diversity results from individual SE objects (preferred
             # path with CIs)
             if (length(analysis@diversity_results) > 0) {
                 # Build output data systematically - iterate over the q values
                 # we REQUESTED, not all stored results
                 q_keys_to_use <- paste0("q_", formatC(params$q, format = "f", digits = 3))
-                if (params$verbose) {
-                  cat("[DEBUG] Looking for q_keys:", paste(q_keys_to_use, collapse = ", "),
-                    "\n")
-                }
                 n_q <- length(q_keys_to_use)
 
                 # Get dimensions from first result
@@ -539,23 +526,12 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
                   output_data <- do.call(rbind, all_data_list)
                   rownames(output_data) <- NULL
                 }
-
-                if (params$verbose) {
-                  cat("[DEBUG] After extraction: output_data has", nrow(output_data),
-                    "rows x", ncol(output_data), "cols\n")
-                }
             }
 
             # Fallback: if no diversity_results, try combined_result
             if (is.null(output_data) || nrow(output_data) == 0) {
-                if (params$verbose) {
-                  cat("[DEBUG] Primary extraction empty, trying fallback from diversity_combined\n")
-                }
                 combined <- analysis@metadata$diversity_combined$combined_result
                 if (!is.null(combined) && nrow(combined) > 0) {
-                  if (params$verbose) {
-                    cat("[DEBUG] Found combined_result with", nrow(combined), "rows\n")
-                  }
                   if (is(combined, "SummarizedExperiment")) {
                     output_data <- as.data.frame(SummarizedExperiment::assay(combined,
                       1))
@@ -565,17 +541,11 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
                     output_data <- as.data.frame(combined)
                   }
                 } else {
-                  if (params$verbose) {
-                    cat("[DEBUG] combined_result is NULL or empty\n")
-                  }
                 }
             }
 
             # Save if we have data
             if (!is.null(output_data) && nrow(output_data) > 0) {
-                if (params$verbose) {
-                  cat("[DEBUG] Saving output_data with", nrow(output_data), "rows\n")
-                }
                 save_analysis_output(output_data, output_file, verbose = params$verbose,
                   func_name = "calculate_diversity_s4")
 
@@ -584,13 +554,6 @@ calculate_diversity_s4 <- function(analysis, q = NULL, norm = NULL, norm_method 
                     output_file)
                 }
             } else {
-                if (params$verbose) {
-                  cat("[DEBUG] output_data is NULL or has 0 rows - NOT saving\n")
-                  if (!is.null(output_data)) {
-                    cat("[DEBUG] output_data dimensions:", nrow(output_data), "rows x",
-                      ncol(output_data), "cols\n")
-                  }
-                }
             }
         }, error = function(e) {
             warning("[calculate_diversity_s4] Could not save diversity results: ",

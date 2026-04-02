@@ -184,7 +184,7 @@
     }
 
     if (verbose)
-        message("[.validate_salmon_files] ✓ All validations passed")
+        message("[.validate_salmon_files] [OK] All validations passed")
     invisible(TRUE)
 }
 
@@ -202,7 +202,7 @@
 #'
 #' @return \code{list} with elements:
 #'   \itemize{
-#'     \item \code{$counts}: Numeric matrix of NumReads (transcripts \u00D7 samples)
+#'     \item \code{$counts}: Numeric matrix of NumReads (transcripts x samples)
 #'     \item \code{$tpm}: Numeric matrix of TPM values (if \code{include_tpm=TRUE})
 #'     \item \code{$effective_length}: Numeric matrix of EffectiveLength (if \code{include_eff_length=TRUE})
 #'     \item \code{$transcript_ids}: Character vector of transcript IDs (row names)
@@ -232,7 +232,7 @@
 #' )
 #'
 #' # Access results
-#' # dim(salmon_data$counts)           # Transcripts \u00D7 Samples
+#' # dim(salmon_data$counts)           # Transcripts x Samples
 #' head(salmon_data$transcript_ids)
 #'
 #' @noRd
@@ -247,7 +247,7 @@
         sample_names <- basename(dirname(file_paths))
         if (verbose) {
             message("[.read_salmon_samples] Using directory names as sample names: ",
-                paste(sample_names[1:min(3, length(sample_names))], collapse = ", "),
+                paste(sample_names[seq_len(min(3, length(sample_names)))], collapse = ", "),
                 "...")
         }
     }
@@ -331,7 +331,7 @@
     }
 
     if (verbose)
-        message("[.read_salmon_samples] ✓ Successfully read all Salmon files")
+        message("[.read_salmon_samples] [OK] Successfully read all Salmon files")
 
     # Build result list
     result <- list(counts = counts_matrix, transcript_ids = transcript_ids)

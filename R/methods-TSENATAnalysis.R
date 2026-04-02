@@ -161,7 +161,7 @@ setMethod("show", "TSENATAnalysis", function(object) {
 
     cat("\nMetadata:\n")
     if (length(object@metadata$function_calls) > 0) {
-        cat("  Function calls:", paste(object@metadata$function_calls, collapse = " → "),
+        cat("  Function calls:", paste(object@metadata$function_calls, collapse = " -> "),
             "\n")
     }
     if (!is.null(object@metadata$created_at)) {

@@ -33,8 +33,8 @@ Default: 0.05.}
 \item{condition_col}{\code{character} or \code{NULL}. Column name in colData identifying sample conditions.
 If NULL, reads from \code{@config$condition_col} or auto-detects common column names.}
 
-\item{method}{\code{character}. Statistical method (e.g., "lmm", "gam", "gee").
-If NULL, uses method from @config$method or defaults to "lmm".}
+\item{method}{\code{character}. Statistical method (e.g., 'lmm', 'gam', 'gee').
+If NULL, uses method from @config$method or defaults to 'lmm'.}
 
 \item{paired}{\code{logical}. Whether to use paired design. Default: FALSE.
 If not specified, reads from \code{@config$paired} if available.}
@@ -46,15 +46,15 @@ If NULL, reads from \code{@config$subject_col} if available.}
 If NULL, reads from \code{@config$nthreads} (or defaults to NULL, letting base function decide).}
 
 \item{multicorr}{\code{character} or \code{NULL}. Multiple comparison correction method.
-Options: "hochberg", "westfall-young", "benjamini-yekutieli".
+Options: 'hochberg', 'westfall-young', 'benjamini-yekutieli'.
 If NULL, uses method from @config or base function defaults.}
 
 \item{corstr}{\code{character} or \code{NULL}. Correlation structure for GEE models.
-Options: "ar1", "exchangeable", "independence".
+Options: 'ar1', 'exchangeable', 'independence'.
 If NULL, uses method from @config or base function defaults.}
 
 \item{pcorr}{\code{character} or \code{NULL}. P-value correction method.
-Default: "BH" (Benjamini-Hochberg).
+Default: 'BH' (Benjamini-Hochberg).
 If NULL, reads from \code{@config$pcorr} if available.}
 
 \item{verbose}{\code{logical}. Print progress messages. Default: FALSE.}
@@ -99,7 +99,7 @@ set.seed(42)
 n_genes <- 50
 n_transcripts_per_gene <- 30
 n_transcripts <- n_genes * n_transcripts_per_gene
-n_samples <- 16  # 8 subjects \u00D7 2 conditions (paired design)
+n_samples <- 16  # 8 subjects x 2 conditions (paired design)
 
 # Generate counts with clear biological signal
 control_idx <- seq(1, n_samples, by = 2)
@@ -112,13 +112,13 @@ for (j in seq_len(n_samples)) {
 }
 counts <- pmax(counts, 50)  # Ensure minimum expression
 
-rownames(counts) <- paste0("TX_", seq_len(n_transcripts))
-colnames(counts) <- paste0("Sample_", seq_len(n_samples))
+rownames(counts) <- paste0('TX_', seq_len(n_transcripts))
+colnames(counts) <- paste0('Sample_', seq_len(n_samples))
 
 # Create rowData with gene mapping (tx2gene structure)
 rowdata <- data.frame(
   transcript_id = rownames(counts),
-  gene_id = rep(paste0("GENE_", 1:n_genes), 
+  gene_id = rep(paste0('GENE_', 1:n_genes), 
                 each = n_transcripts_per_gene),
   row.names = rownames(counts)
 )
@@ -126,9 +126,9 @@ rowdata <- data.frame(
 # Create colData with paired design metadata
 coldata <- data.frame(
   sample_id = colnames(counts),
-  condition = rep(c("control", "treatment"), 
+  condition = rep(c('control', 'treatment'), 
                   length.out = n_samples),
-  subject = rep(paste0("Subject_", 1:8), 
+  subject = rep(paste0('Subject_', 1:8), 
                 length.out = n_samples),
   row.names = colnames(counts)
 )
@@ -155,16 +155,16 @@ analysis <- calculate_diversity_s4(
   verbose = FALSE
 )
 
-# Calculate q \u00D7 condition interactions using GAM
+# Calculate q x condition interactions using GAM
 # (avoids convergence issues with LMM)
 analysis <- calculate_lm_interaction_s4(
   analysis,
-  condition_col = "condition",
-  method = "gam",
+  condition_col = 'condition',
+  method = 'gam',
   verbose = FALSE
 )
 
 # View interaction test results
-head(lmResults(analysis, "lm_interaction"))
+head(lmResults(analysis, 'lm_interaction'))
 
 }

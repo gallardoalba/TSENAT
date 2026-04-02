@@ -65,36 +65,36 @@ Results are accessed via: \code{metadata(analysis)$effect_sizes_divergence}
 # Setup: Create test analysis with divergence and LM interaction results
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters (best practice for reproducibility)
 config <- tsenat_config(
-  condition_col = "condition",
-  subject_col = "paired_samples",
+  condition_col = 'condition',
+  subject_col = 'paired_samples',
   paired = TRUE,
-  control = "normal",
+  control = 'normal',
   metadata = metadata_df
 )
 analysis <- setConfig(analysis, config)
 
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 analysis <- calculate_divergence_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 
 # Compute effect sizes from divergence results
 analysis <- effect_sizes_divergence_s4(analysis,
   significance_threshold = 0.05, verbose = FALSE)
 
 # Access results using metadata accessor
-effect_size_results <- getMeta(analysis, "effect_sizes_divergence")
+effect_size_results <- getMeta(analysis, 'effect_sizes_divergence')
 
 # View structure of results
 str(effect_size_results, max.level = 1)

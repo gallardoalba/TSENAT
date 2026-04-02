@@ -54,7 +54,7 @@
 
         # condition_col is REQUIRED
         if (is.null(condition_col) || !condition_col %in% colnames(ts_coldata)) {
-            stop("condition_col='", condition_col, "' not found in colData. Required for Q×Condition interaction testing.")
+            stop("condition_col='", condition_col, "' not found in colData. Required for QxCondition interaction testing.")
         }
 
         data <- data.frame(entropy = as.numeric(entropy_matrix), gene = rep(rownames(data),
@@ -66,7 +66,7 @@
         }
 
         if (verbose)
-            message("Testing Q × Condition interaction")
+            message("Testing Q x Condition interaction")
 
         entropy_col <- "entropy"
         q_col <- "q"
@@ -90,7 +90,7 @@
             condition_col <- "condition"
         } else {
             stop("'condition_col' must be specified or 'sample_type'/'condition' column must exist in data. ",
-                "This function requires Q×Condition interaction testing.", call. = FALSE)
+                "This function requires QxCondition interaction testing.", call. = FALSE)
         }
     } else if (!condition_col %in% colnames(data)) {
         stop("Column '", condition_col, "' not found in data", call. = FALSE)
@@ -128,7 +128,7 @@
         return(list(test_failed = TRUE, class = "Insufficient data", method = "insufficient"))
     }
 
-    # Always run Q×Condition interaction test (condition is now REQUIRED)
+    # Always run QxCondition interaction test (condition is now REQUIRED)
     test_result <- tryCatch(.test_q_condition_interaction(gene_data, "entropy", "q",
         "condition", paired, if (paired)
             subject_col else NULL), error = function(e) NULL)
@@ -191,7 +191,7 @@
 #' @noRd
 .detect_q_get_permute_function <- function(data, paired, subject_col, has_condition) {
     data_orig <- data
-    # Always test Q\u00d7Condition interaction (condition is now REQUIRED)
+    # Always test QxCondition interaction (condition is now REQUIRED)
     if (paired) {
         function() {
             d <- data_orig
@@ -231,7 +231,7 @@
 
             if (!is.null(gene_data_perm) && nrow(gene_data_perm) > 0 && length(unique(gene_data_perm$q)) >=
                 2) {
-                # Always run Q×Condition interaction test (condition is now
+                # Always run QxCondition interaction test (condition is now
                 # REQUIRED)
                 test_result <- tryCatch(.test_q_condition_interaction(gene_data_perm,
                   "entropy", "q", "condition", paired, if (paired)
@@ -247,9 +247,9 @@
 }
 
 ################################################################################
-#' Detect Q\u00d7Condition Interaction Terms
+#' Detect QxCondition Interaction Terms
 #'
-#' Tests for q\u00d7condition interactions in Tsallis entropy analysis. Identifies genes
+#' Tests for q x condition interactions in Tsallis entropy analysis. Identifies genes
 #' where entropy's pattern across q-values differs significantly between experimental
 #' conditions. This reveals genes with condition-specific transcriptome remodeling through
 #' isoform switching.
@@ -335,12 +335,12 @@
 #'
 #' @param condition_col Character. Name of colData column (SummarizedExperiment) or
 #'   data frame column containing sample group/condition labels. **REQUIRED.**
-#'   Specifies the condition/treatment variable for testing q\u00d7condition interactions.
+#'   Specifies the condition/treatment variable for testing q x condition interactions.
 #'   
-#'   This function tests **Q\u00d7Condition interactions** only:
+#'   This function tests **QxCondition interactions** only:
 #'   - Tests whether the q-effect differs between conditions
 #'   - Example: Identifies genes with condition-specific isoform switching patterns
-#'   - Genes with strong q\u00d7condition interaction show entropy variation across q-values
+#'   - Genes with strong q x condition interaction show entropy variation across q-values
 #'     that differs significantly between conditions
 #'   
 #'   When condition_col provided, automatically uses:

@@ -33,10 +33,10 @@ multi-gene spectra. Default is 4. Genes are sorted by p-value significance.}
 plots. Default is 2. Number of rows is automatically calculated.}
 
 \item{metric}{\code{character}. Summary statistic for global curve:
-"median" (default) or "mean". Only used when gene = NULL.}
+'median' (default) or 'mean'. Only used when gene = NULL.}
 
 \item{variability_metric}{\code{character}. Error bar type for global curve:
-"iqr" (default) or "sd". Only used when gene = NULL.}
+'iqr' (default) or 'sd'. Only used when gene = NULL.}
 
 \item{use_pvalue_ranking}{\code{logical}. If TRUE, uses LM results to rank and
 display top n_genes by p-value significance. If FALSE (default), plots global
@@ -88,12 +88,12 @@ This wrapper extracts the divergence SummarizedExperiment from
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data and create small subset
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,

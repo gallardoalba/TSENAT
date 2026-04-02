@@ -38,7 +38,7 @@ NULL
                     # vector) These are false positives that don't indicate
                     # actual problems
                     msg <- conditionMessage(w)
-                    if (grepl("no finite argument|ningún argumento finito", msg,
+                    if (grepl("no finite argument|ningun argumento finito", msg,
                       ignore.case = TRUE)) {
                       invokeRestart("muffleWarning")
                     }

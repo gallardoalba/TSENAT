@@ -19,8 +19,8 @@ lmResults(object) <- value
 \item{object}{\code{TSENATAnalysis} object.}
 
 \item{component}{\code{character}. Which result component to extract.
-Options: NULL (all), "results", "lm_interaction", "q_interactions",
-"divergence_difference", etc.}
+Options: NULL (all), 'results', 'lm_interaction', 'q_interactions',
+'divergence_difference', etc.}
 
 \item{value}{A list of LM results to assign to the object.}
 }
@@ -39,12 +39,12 @@ for targeted extraction.
 # Load example data and run LM interaction analysis
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -56,7 +56,7 @@ analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0), verbose = FALSE)
 
 # Calculate LM interaction
 analysis <- calculate_lm_interaction_s4(analysis, 
-  condition_col = "condition", method = "gam", verbose = FALSE)
+  condition_col = 'condition', method = 'gam', verbose = FALSE)
 
 # Extract and view LM results
 res <- lmResults(analysis)

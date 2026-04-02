@@ -29,14 +29,14 @@ If NULL (default), top n_top significant genes are selected.}
 
 \item{condition_col}{\code{character}. Column name in colData(se) specifying 
 group assignments for samples. If NULL, attempts to auto-detect from @config
-(looks for "condition_col" or "condition"). If still NULL, defaults to "sample_type".}
+(looks for 'condition_col' or 'condition'). If still NULL, defaults to 'sample_type'.}
 
 \item{sig_alpha}{\code{numeric}. Significance threshold for adjusted p-values 
 (default: 0.05). Only used if genes = NULL; filters lm_res to significant 
 genes before selecting top n.}
 
 \item{assay_name}{\code{character}. Name of the assay in se to extract 
-(default: "diversity").}
+(default: 'diversity').}
 
 \item{output_file}{\code{character} or \code{NULL}. Optional file path to save the plot.
 Default: NULL (no file output).}
@@ -69,35 +69,35 @@ This wrapper automatically:
   \item Explicit \code{condition_col} parameter (highest priority)
   \item \code{@config$condition_col} if available
   \item \code{@config$condition} if available  
-  \item Default: "sample_type"
+  \item Default: 'sample_type'
 }
 }
 \examples{
 # Plot 3: GAM q-curves for genes with q-by-condition interactions
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 
 # Configure analysis parameters
 config <- tsenat_config(
-  condition_col = "condition",
-  subject_col = "paired_samples",
+  condition_col = 'condition',
+  subject_col = 'paired_samples',
   paired = TRUE,
-  control = "normal",
+  control = 'normal',
   metadata = metadata_df
 )
 analysis <- setConfig(analysis, config)
 
-analysis <- filter_analysis_s4(analysis, stringency = "severe")
+analysis <- filter_analysis_s4(analysis, stringency = 'severe')
 analysis <- calculate_diversity_s4(analysis, q = seq(0.2, 2.5, by = 0.15), verbose = FALSE)
-analysis <- calculate_lm_interaction_s4(analysis, method = "gam", verbose = FALSE)
+analysis <- calculate_lm_interaction_s4(analysis, method = 'gam', verbose = FALSE)
 
 p_gam <- plot_lm_interaction_gam_s4(analysis, n_top = 2, sig_alpha = 0.15)
 print(p_gam)

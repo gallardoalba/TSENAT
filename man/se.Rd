@@ -24,9 +24,9 @@ Provides type-safe accessor for the embedded \code{SummarizedExperiment}.
 \examples{
 # Load real TSENAT data
 data(readcounts)
-metadata_df <- read.table(system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t")
-gff3_file <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+metadata_df <- read.table(system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t')
+gff3_file <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 analysis <- build_analysis_s4(readcounts = salmon_dataset, tx2gene = gff3_file, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)

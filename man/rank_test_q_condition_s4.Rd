@@ -28,7 +28,7 @@ rank_test_q_condition_s4(
 
 \item{condition_col}{\code{character}. Column name for sample grouping/condition (REQUIRED).
 Specifies the condition/treatment variable for testing q×condition interactions.
-Example: "sample_type", "treatment", "disease_status".}
+Example: 'sample_type', 'treatment', 'disease_status'.}
 
 \item{q}{\code{numeric} or \code{NULL}. Q-values to test across spectrum.
 If NULL, auto-detects from \code{@config$q_values} or diversity results.}
@@ -42,24 +42,24 @@ Supported formats: .rds (for S4 objects). Default: NULL (no file output).}
 \item{subject_col}{\code{character} or \code{NULL}. Column name for subject/block identifiers
 (required when \code{paired=TRUE}). If NULL, reads from \code{@config$subject_col}.}
 
-\item{test}{\code{character}. Test method: "auto" (default), "kruskal-wallis" (unpaired),
-"friedman" (paired), or "art" (aligned rank transform).}
+\item{test}{\code{character}. Test method: 'auto' (default), 'kruskal-wallis' (unpaired),
+'friedman' (paired), or 'art' (aligned rank transform).}
 
-\item{multicorr}{\code{character}. Multiple testing correction: "hochberg" (default),
-"benjamini-yekutieli", "westfall-young", or "none".}
+\item{multicorr}{\code{character}. Multiple testing correction: 'hochberg' (default),
+'benjamini-yekutieli', 'westfall-young', or 'none'.}
 
 \item{entropy_col}{\code{character}. Column name containing entropy/diversity data.
-Default: "diversity".}
+Default: 'diversity'.}
 
-\item{q_col}{\code{character}. Column name containing q-values. Default: "q".}
+\item{q_col}{\code{character}. Column name containing q-values. Default: 'q'.}
 
-\item{gene_col}{\code{character}. Column name containing gene identifiers. Default: "gene".}
+\item{gene_col}{\code{character}. Column name containing gene identifiers. Default: 'gene'.}
 
 \item{wy_randomizations}{\code{numeric} or \code{character}. Number of permutations for 
-Westfall-Young correction. Use "auto" to estimate from data. Default: 500.}
+Westfall-Young correction. Use 'auto' to estimate from data. Default: 500.}
 
 \item{nperm_mode}{\code{character}. Mode for automatic permutation estimation:
-"standard" (default), "conservative", or "interactive".}
+'standard' (default), 'conservative', or 'interactive'.}
 
 \item{nthreads}{\code{numeric} or \code{NULL}. Number of parallel threads for computation.
 If NULL, reads from \code{@config$nthreads}.}
@@ -84,22 +84,22 @@ Analyzes how gene interactions change across q-value spectrum using rank-based
   \item \code{q}: explicit arg > \code{@config$q_values} > extract from diversity_results keys
   \item \code{paired}: explicit arg > \code{@config$paired} > FALSE (default)
   \item \code{subject_col}: explicit arg > \code{@config$subject_col}
-  \item \code{multicorr}: explicit arg > \code{@config$multicorr} > "hochberg"
+  \item \code{multicorr}: explicit arg > \code{@config$multicorr} > 'hochberg'
   \item \code{nthreads}: explicit arg > \code{@config$nthreads} > 1 (default)
-  \item \code{test}: explicit arg > \code{@config$test} > "auto" (auto-selection)
-  \item \code{nperm_mode}: explicit arg > \code{@config$nperm_mode} > "standard"
+  \item \code{test}: explicit arg > \code{@config$test} > 'auto' (auto-selection)
+  \item \code{nperm_mode}: explicit arg > \code{@config$nperm_mode} > 'standard'
 }
 }
 \examples{
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data and create manageable subset
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
@@ -108,8 +108,8 @@ analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
 
 # Test Q×Condition interaction (condition_col is REQUIRED)
-analysis <- rank_test_q_condition_s4(analysis, condition_col = "condition", 
-                                           multicorr = "hochberg")
+analysis <- rank_test_q_condition_s4(analysis, condition_col = 'condition', 
+                                           multicorr = 'hochberg')
 # View results
 results <- lmResults(analysis)
 if (!is.null(results)) head(results$q_interactions)

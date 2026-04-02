@@ -37,8 +37,8 @@ Default: 0.05.}
 Default: 0.05.}
 
 \item{methods}{\code{character}. Analysis methods to run. Options:
-"diversity", "lm_interaction", "jackknife", "divergence",
-"q_interactions", "difference". Default: all methods.}
+'diversity', 'lm_interaction', 'jackknife', 'divergence',
+'q_interactions', 'difference'. Default: all methods.}
 
 \item{generate_plots}{\code{logical}. Generate visualizations.
 Default: TRUE.}
@@ -49,7 +49,7 @@ Default: all available types.}
 \item{seed}{\code{numeric}. Random seed for reproducibility.}
 
 \item{condition_col}{\code{character}. Name of condition column in colData.
-Default: "condition".}
+Default: 'condition'.}
 
 \item{...}{Additional configuration parameters (stored as-is).}
 }

@@ -17,9 +17,9 @@ extract_multiq_table(
 \item{is_multiq}{Logical. Whether result has multi-q structure. Default: auto-detect.}
 
 \item{extract_fn}{Function to extract table from each result element.
-Signature: \code{function(result_element, q_key)}. Default: extracts "summary_table".}
+Signature: \code{function(result_element, q_key)}. Default: extracts 'summary_table'.}
 
-\item{q_value_col}{Name of q-value column to add. Default: "q_value"}
+\item{q_value_col}{Name of q-value column to add. Default: 'q_value'}
 }
 \value{
 data.frame with combined results and q_value column
@@ -31,12 +31,12 @@ Helper to combine results from multiple q-values into a single data.frame with q
 # Create sample multi-q result structure
 q_result <- list(
   q_0.5 = list(summary_table = data.frame(
-    gene_id = c("GENE1", "GENE2"),
+    gene_id = c('GENE1', 'GENE2'),
     entropy = c(1.2, 1.5),
     psi_mean = c(0.3, 0.7)
   )),
   q_1.0 = list(summary_table = data.frame(
-    gene_id = c("GENE1", "GENE2"),
+    gene_id = c('GENE1', 'GENE2'),
     entropy = c(1.1, 1.4),
     psi_mean = c(0.32, 0.68)
   ))

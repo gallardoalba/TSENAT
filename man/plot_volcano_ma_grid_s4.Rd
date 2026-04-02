@@ -28,7 +28,7 @@ plot_volcano_ma_grid_s4(
 Default: NULL (uses mean_difference if available, else mean fold-change).}
 
 \item{padj_col}{\code{character}. Column name for adjusted p-values.
-Default: "padj" (the standard column name from calculate_difference).}
+Default: 'padj' (the standard column name from calculate_difference).}
 
 \item{label_thresh}{\code{numeric}. P-value threshold for labeling top genes.
 Genes with adjusted p-value below this threshold are labeled.
@@ -45,7 +45,7 @@ in volcano plot. Default: 5.}
 Default: NULL (no title).}
 
 \item{title_ma}{\code{character}. Title for MA plot.
-Default: "Tsallis-based MA plot".}
+Default: 'Tsallis-based MA plot'.}
 
 \item{verbose}{\code{logical}. Print status messages. Default: FALSE.}
 
@@ -110,19 +110,19 @@ This wrapper extracts the difference results data frame from
 # Load example data (matching TSENAT.Rmd workflow)
 data(readcounts)
 readcounts <- as.matrix(salmon_dataset)
-mode(readcounts) <- "numeric"
+mode(readcounts) <- 'numeric'
 metadata_df <- read.table(
-  system.file("extdata", "metadata.tsv", package = "TSENAT"),
-  header = TRUE, sep = "\t"
+  system.file('extdata', 'metadata.tsv', package = 'TSENAT'),
+  header = TRUE, sep = '\t'
 )
-gff3_dataset <- system.file("extdata", "annotation.gff3.gz", package = "TSENAT")
+gff3_dataset <- system.file('extdata', 'annotation.gff3.gz', package = 'TSENAT')
 
 # Build analysis from vignette data and create small subset
 analysis <- build_analysis_s4(readcounts = readcounts, tx2gene = gff3_dataset, metadata = metadata_df,
   tpm = salmon_tpm, effective_length = salmon_effective_length)
 analysis <- filter_analysis_s4(analysis, min_samples = 1, subset_n_genes = 200)
 analysis <- calculate_diversity_s4(analysis, q = c(0.5, 1.0, 1.5), verbose = FALSE)
-analysis <- calculate_difference_s4(analysis, control = "normal", verbose = FALSE)
+analysis <- calculate_difference_s4(analysis, control = 'normal', verbose = FALSE)
   
 # Plot volcano and MA plots
 p <- plot_volcano_ma_grid_s4(analysis, sig_alpha = 0.05, top_n = 3)
