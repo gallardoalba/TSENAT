@@ -3,9 +3,9 @@
 \docType{data}
 \name{readcounts}
 \alias{readcounts}
-\alias{salmon_dataset}
-\alias{salmon_tpm}
-\alias{salmon_effective_length}
+\alias{readcounts}
+\alias{tpm}
+\alias{effective_length}
 \title{Example transcript-level read counts dataset}
 \format{
 A data frame with 3514 transcripts (rows) and 16 samples (columns).
@@ -29,8 +29,8 @@ from salmon quantification. The dataset includes samples as columns
 }
 \examples{
 data(readcounts, package = 'TSENAT')
-dim(salmon_dataset)
-head(salmon_dataset[1:4, 1:3])
+dim(readcounts)
+head(readcounts[1:4, 1:3])
 
 }
 \keyword{datasets}

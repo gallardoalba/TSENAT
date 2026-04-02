@@ -277,8 +277,8 @@ test_that(".store_salmon_metadata stores TPM correctly", {
 
     se <- TSENAT:::.store_salmon_metadata(se, readcounts, tpm, NULL)
 
-    expect_false(is.null(metadata(se)$salmon_tpm))
-    expect_identical(nrow(metadata(se)$salmon_tpm), nrow(readcounts))
+    expect_false(is.null(metadata(se)$tpm))
+    expect_identical(nrow(metadata(se)$tpm), nrow(readcounts))
 })
 
 test_that(".store_salmon_metadata stores effective_length correctly", {
@@ -598,7 +598,7 @@ test_that(".store_salmon_metadata with both TPM and effective_length", {
     
     expect_false(is.null(metadata(se)$salmon_tpm))
     expect_false(is.null(metadata(se)$salmon_effective_length))
-    expect_equal(nrow(metadata(se)$salmon_tpm), nrow(readcounts))
+    expect_equal(nrow(metadata(se)$tpm), nrow(readcounts))
     expect_equal(length(metadata(se)$salmon_effective_length), nrow(readcounts))
 })
 

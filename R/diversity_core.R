@@ -84,8 +84,8 @@
 #' can be
 #' sample-specific. Typically obtained from salmon quantification
 #' (EffectiveLength column).
-#' Example: load(readcounts.RData'); .calculate_diversity(salmon_dataset,
-#' effective_length=salmon_effective_length)
+#' Example: load(readcounts.RData'); .calculate_diversity(readcounts,
+#' effective_length=effective_length)
 #' @param bootstrap Logical; if TRUE, compute bootstrap confidence intervals
 #' around
 #' Tsallis entropy point estimates using \code{.
@@ -411,10 +411,10 @@
     if (is.null(effective_length) && (is(original_x, "SummarizedExperiment") || is(original_x,
         "RangedSummarizedExperiment"))) {
         md <- tryCatch(S4Vectors::metadata(original_x), error = function(e) NULL)
-        if (!is.null(md) && !is.null(md$salmon_effective_length)) {
-            effective_length <- md$salmon_effective_length
+        if (!is.null(md) && !is.null(md$effective_length)) {
+            effective_length <- md$effective_length
             if (verbose && show_messages)
-                message("[OK] Found salmon_effective_length in input metadata")
+                message("[OK] Found effective_length in input metadata")
         }
     }
 

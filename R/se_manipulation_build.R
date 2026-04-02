@@ -48,10 +48,10 @@
 #' @param assay_name Name for the assay to store readcounts (default: 'counts').
 #'
 #' @param tpm Numeric matrix or data.frame of SALMON TPM values (optional).
-#'   If provided, stored in metadata as `salmon_tpm` for `.filter_se()` 
+#'   If provided, stored in metadata as `tpm` for `.filter_se()` 
 #' TPM-based filtering. Rows = transcripts, columns = samples (same
 #' dimension as readcounts).
-#' Example: from preprocessing output `salmon_tpm` or loaded via
+#' Example: from preprocessing output `tpm` or loaded via
 #' `load('readcounts.RData')`.
 #'   
 #' @param effective_length Numeric vector of effective transcript lengths
@@ -72,7 +72,7 @@
 #'   - `assay (counts)`: raw transcript counts
 #'   - `metadata$tx2gene`: transcript-to-gene mapping
 #'   - `metadata$readcounts`: raw transcript counts (preserved)
-#'   - `metadata$salmon_tpm`: TPM values (if provided)
+#'   - `metadata$tpm`: TPM values (if provided)
 #'   - `metadata$salmon_effective_length`: effective lengths (if provided)
 #'   - `rowData$transcript_id`: transcript IDs (matching rownames)
 #'   - `rowData$gene_id`: gene IDs for each transcript
@@ -523,7 +523,7 @@
                          nrow(tpm), ncol(tpm), nrow(readcounts), ncol(readcounts)), call. = FALSE)
         }
         rownames(tpm) <- rownames(readcounts)
-        S4Vectors::metadata(se)$salmon_tpm <- tpm
+        S4Vectors::metadata(se)$tpm <- tpm
     }
     
     if (!is.null(effective_length)) {

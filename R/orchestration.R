@@ -39,7 +39,8 @@
 #' @examples
 #' library(SummarizedExperiment)
 #' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10,
+#'                                  dimnames = list(sprintf('G%d', 1:10), NULL))),
 #'   colData = data.frame(
 #'     condition = rep(c('A', 'B'), 5),
 #'     sample_id = rep(c('S1', 'S2'), 5)

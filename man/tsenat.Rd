@@ -56,8 +56,12 @@ Pipeline execution order (enforced):
 \examples{
 library(SummarizedExperiment)
 se <- SummarizedExperiment(
-  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-  colData = data.frame(condition = rep(c('A', 'B'), 5))
+  assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10,
+                                 dimnames = list(sprintf('G\%d', 1:10), NULL))),
+  colData = data.frame(
+    condition = rep(c('A', 'B'), 5),
+    sample_id = rep(c('S1', 'S2'), 5)
+  )
 )
 cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
 analysis <- tsenat(se, config = cfg)
