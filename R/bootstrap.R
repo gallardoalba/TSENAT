@@ -286,7 +286,7 @@
 #' Hill numbers provide intuitive species diversity metrics at different
 #' sensitivity levels via parameter q. Accelerated with C++ for performance.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 hill_number_cpp_wrapper <- function(p, q = 1, log_base = exp(1)) {
     # p should be proportions (sum to 1)
@@ -319,7 +319,7 @@ hill_number_cpp_wrapper <- function(p, q = 1, log_base = exp(1)) {
 #' Performs block bootstrap for paired samples with C++ acceleration.
 #' Input must have even length (pairs). Accelerated for speed.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 1000L,
     log_base = exp(1), pseudocount = 0) {
@@ -370,7 +370,7 @@ block_bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboo
 #' Performs standard (independent) bootstrap with C++ acceleration.
 #' Handles vector pseudocounts by applying them upfront.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 1000L,
     log_base = exp(1), pseudocount = 0) {
@@ -413,7 +413,7 @@ bootstrap_compute_cpp_wrapper <- function(x, q = 1, normalize = TRUE, nboot = 10
 #' acceleration.
 #' Input must be a matrix of samples (typically from multinomial resampling).
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1, normalize = TRUE,
     log_base = exp(1)) {
@@ -442,7 +442,7 @@ bootstrap_entropy_vec_cpp_wrapper <- function(bootstrap_samples, q = 1, normaliz
 #' For paired=TRUE, resamples pairs as units maintaining correlation structure.
 #' For paired=FALSE (default), resamples x and y independently.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 divergence_bootstrap_compute_cpp_wrapper <- function(x, y, q = 1, nboot = 1000L,
     paired = FALSE, pseudocount = 0, log_base = exp(1)) {
@@ -514,7 +514,7 @@ divergence_bootstrap_compute_cpp_wrapper <- function(x, y, q = 1, nboot = 1000L,
 #' 3. Aggregating counts per resampled pair
 #' 4. Computing divergence between resampled distributions
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 divergence_bootstrap_paired_cpp_wrapper <- function(x, y, pair_ids, nboot = 1000L,
     q = 1, pseudocount = 0, log_base = exp(1)) {
@@ -2318,7 +2318,7 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #' Jackknife confidence intervals (papers S111, S114) quantify skewness
 #' uncertainty.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .estimate_bootstrap_skewness <- function(boot_dist, compute_ci = TRUE) {
 
@@ -2475,7 +2475,7 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #' Recommendation: Investigate input data, increase nboot, consider
 #' alternative methods.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .detect_multimodality <- function(boot_dist, method = "kde") {
 
@@ -2777,7 +2777,7 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #' - Wide relative CI: High relative uncertainty
 #' - Small n_bootstrap: Low effective sample size for CI computation
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .analyze_ci_width <- function(ci_lower, ci_upper, point_est, boot_dist, n_bootstrap) {
 
@@ -2915,7 +2915,7 @@ summary.tsenat_divergence_bootstrap_ci <- function(object, ...) {
 #' very asymmetric CI). Bootstrap CI may not be valid; consider alternative
 #' methods.
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .generate_bootstrap_diagnostics_report <- function(boot_result) {
 

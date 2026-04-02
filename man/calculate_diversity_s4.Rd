@@ -163,9 +163,40 @@ Modified TSENATAnalysis object with diversity results stored
   }
 }
 \description{
-Calculate diversity and store in TSENATAnalysis
+Wrapper around .calculate_diversity() that manages TSENATAnalysis object.
+Calculates Tsallis entropy (diversity) across multiple q-values for each gene
+to quantify isoform complexity and transcript heterogeneity.
 }
 \details{
+Key Features:
+\itemize{
+  \item Multi-q analysis: Entropy computed for q = 0.01 to 2.00 (by default)
+  \item Normalized entropy: Scale to [0, 1] using theoretical maximum log(m)
+  \item Bootstrap confidence intervals: Quantify uncertainty in estimates
+  \item TPM normalization: Optional SALMON TPM-based weighting
+  \item Multiple normalization methods: Range, Z-score, log-odds-ratio, relative
+  \item Spectrum computation: Aggregate diversity statistics across all q-values
+}
+
+
+**Mathematical Background:**
+Tsallis entropy H_q for q-parameter:
+\preformatted{
+  H_q(X) = (1/(q-1)) * (1 - Sum p_i^q)  [for q != 1]
+  H_1(X) = -Sum p_i * log(p_i)  [Shannon entropy, limit q→1]
+}
+where p_i = relative abundance of isoform i for a gene.
+Larger q emphasizes dominant isoforms; smaller q emphasizes rare ones.
+
+**Example Interpretation:**
+\itemize{
+  \item Gene with 1 isoform: H_q = 0 for all q (no diversity)
+  \item Gene with 2 equal isoforms: H_q ~ 0.5-1.0 depending on q
+  \item Gene with m equally abundant isoforms: H_q = 1.0 (maximum diversity)
+}
+
+
+
 This wrapper calls \code{.calculate_diversity()} once per q-value, storing
 results as SummarizedExperiment objects. It extracts key parameters from
 \code{analysis@config} with 
@@ -211,6 +242,8 @@ Spectrum is saved as: \code{*_spectrum.tsv}
  Per-q-value metadata
         (timestamp, bootstrap setting, nthreads, etc.)
 }
+
+
 
 For additional details on diversity spectrum calculations and
 normalization methods,

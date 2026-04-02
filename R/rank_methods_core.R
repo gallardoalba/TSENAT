@@ -423,7 +423,47 @@
 #'   - Exact FWER control (not asymptotic)
 #'   - No distributional assumptions
 #'   
-#' (Papers S165-S166, S051, S181-S187; NEW - March 2026)@param subject_col
+#' (Papers S165-S166, S051, S181-S187; NEW - March 2026)
+#' @param alpha Numeric; significance level for p-value correction methods
+#' (default: 0.05). 
+#'   Used by all multiple testing correction methods (Hochberg, 
+#'   Benjamini-Yekutieli, Westfall-Young) to control family-wise error rate
+#'   or false discovery rate. Defines the threshold for rejecting null 
+#'   hypothesis: adjusted p-value < alpha indicates significant q-dependence.
+#'   (NEW - March 2026)
+#'
+#' @param p_threshold Numeric; p-value threshold for classification of 
+#' interaction significance (default: 0.05).
+#'   Used in interaction classification: genes with adjusted p-value < p_threshold 
+#'   are classified as q-dependent. Genes with p >= p_threshold classified as 
+#'   'Robust across q' (no significant q-effect). (NEW - March 2026)
+#'
+#' @param eta2_threshold_moderate Numeric; effect size boundary for 'moderate'
+#' classification (default: 0.01).
+#'   Genes with p_value < p_threshold AND eta2 <= eta2_threshold_moderate 
+#'   classified as 'Moderately q-dependent'.
+#'   Typically 0.01-0.05. Allows user to adjust sensitivity for detecting
+#'   small-to-medium effect sizes. (NEW - March 2026)
+#'
+#' @param eta2_threshold_strong Numeric; effect size boundary for 'strong'
+#' classification (default: 0.10).
+#'   Genes with p_value < p_threshold AND eta2 > eta2_threshold_strong 
+#'   classified as 'Strongly q-dependent'.
+#'   Typically 0.10-0.25. Must be greater than eta2_threshold_moderate.
+#'   (NEW - March 2026)
+#'
+#' @param min_nperm Integer; minimum permutations for automatic estimation
+#' when wy_randomizations='auto' (default: 100).
+#'   Controls lower bound of permutation range. Used by .estimate_nperm() when
+#'   wy_randomizations is set to 'auto'. Higher values improve p-value precision
+#'   but increase computation time. Recommended: 100-500. (NEW - March 2026)
+#'
+#' @param max_nperm Integer; maximum permutations for automatic estimation  
+#' when wy_randomizations='auto' (default: 10000).
+#'   Controls upper bound of permutation range. Used by .estimate_nperm() when
+#'   wy_randomizations is set to 'auto'. Higher values (5000-10000) provide
+#'   more precise p-values for small-p-value genes. Runtime scales linearly.
+#'   Recommended: 1000-10000. (NEW - March 2026)@param subject_col
 #' Character. Name of colData column (SummarizedExperiment) or
 #' data frame column containing subject identifiers for pairing. Only
 #' required if
@@ -662,7 +702,9 @@
     gene_col = "gene", condition_col = NULL, paired = FALSE, subject_col = "paired_samples",
     test = c("auto", "kruskal-wallis", "friedman", "art"), multicorr = c("hochberg",
         "benjamini-yekutieli", "westfall-young", "none"), wy_randomizations = 500,
-    nperm_mode = "standard", nthreads = 1, verbose = FALSE) {
+    nperm_mode = "standard", nthreads = 1, alpha = 0.05, p_threshold = 0.05, 
+    eta2_threshold_moderate = 0.01, eta2_threshold_strong = 0.1, min_nperm = 100, 
+    max_nperm = 10000, verbose = FALSE) {
 
     test <- match.arg(test)
     multicorr <- match.arg(multicorr)
@@ -681,7 +723,8 @@
 
     # PHASE 3: HANDLE AUTOMATIC PERMUTATION ESTIMATION
     if (identical(wy_randomizations, "auto")) {
-        wy_randomizations <- .estimate_nperm(data, "entropy", "q", "gene", nperm_mode)
+        wy_randomizations <- .estimate_nperm(data, "entropy", "q", "gene", nperm_mode, 
+            min_nperm, max_nperm)
         if (verbose)
             message(sprintf("Estimated %d permutations", wy_randomizations))
     } else if (!is.numeric(wy_randomizations)) {
@@ -736,7 +779,7 @@
 
     # PHASE 6: CLASSIFY RESULTS
     interaction_results$interaction_class <- .classify_q_dependency(interaction_results,
-        0.05, 0.01, 0.1)
+        p_threshold, eta2_threshold_moderate, eta2_threshold_strong)
 
     # PHASE 7: APPLY MULTIPLE TESTING CORRECTION
     interaction_results <- .detect_q_apply_multicorr(interaction_results, multicorr,

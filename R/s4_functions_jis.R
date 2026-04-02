@@ -1,8 +1,18 @@
 #' Jackknife isoform switching analysis on TSENATAnalysis object
 #'
-#' S4 wrapper that accepts a TSENATAnalysis object and performs jackknife-based
-#' isoform switching detection. Automatically extracts the SummarizedExperiment
-#' and metadata from object slots.
+#' Wrapper around .jackknife_isoform_switching() that manages TSENATAnalysis
+#' object. Identifies transcripts with significant isoform switching patterns
+#' using jackknife resampling across samples to detect influential isoforms.
+#'
+#' Key Features:
+#' \itemize{
+#'   \item Jackknife resampling: Robust outlier detection across all samples
+#'   \item Delta-influence metric: Measures how much each isoform drives phenotype
+#'   \item Confidence intervals: Bootstrap-based uncertainty quantification
+#'   \item Multi-q analysis: Tests across full q-spectrum simultaneously
+#'   \item LM filtering: Optional restriction to genes with significant interactions
+#'   \item Paired designs: Supports repeated measures/longitudinal data
+#' }
 #'
 #' @param analysis \code{TSENATAnalysis} object containing:
 #'   \itemize{
@@ -89,6 +99,20 @@
 #'   }
 #'
 #' @details
+#' **Mathematical Background:**
+#' Delta-influence measures how much removing each sample changes entropy:
+#' \preformatted{
+#'   Delta = H_q(leave-one-out) - H_q(original)
+#' }
+#' High |Delta| for specific isoforms indicates those isoforms drive differences.
+#' Identifies 'outlier samples' where isoforms contribute unusually much.
+#'
+#' **Example Use Case:**
+#' Sample shows high Delta for isoform X → X has outsized importance in that sample\cr
+#' Classifying transcripts as 'switching' if top percentile (e.g., 90th) Delta\cr
+#' Reveals condition-specific isoforms crucial for phenotype determination.\cr
+#'
+#' **Automatic Setup:**
 #' This wrapper automatically:
 #' 1. Extracts SummarizedExperiment from \code{@se} slot
 #' 2. Detects condition_col, gene_col, isoform_col from colData/rowData or
@@ -190,7 +214,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'
 #' @return SummarizedExperiment object
 #'
-#' @keywords internal
+#' @noRd
 .validate_jis_input <- function(analysis) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -216,7 +240,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'
 #' @return List with detected columns: condition_col, gene_col, isoform_col
 #'
-#' @keywords internal
+#' @noRd
 .detect_jis_columns <- function(analysis, se, condition_col, gene_col, 
                                  isoform_col, verbose) {
     cd_cols <- colnames(colData(se))
@@ -302,7 +326,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'
 #' @return LM results data frame or NULL
 #'
-#' @keywords internal
+#' @noRd
 .extract_lm_results <- function(analysis, lm_results, verbose) {
     if (is.null(lm_results) && !is.null(analysis@lm_results)) {
         if ("lm_interaction" %in% names(analysis@lm_results)) {
@@ -321,7 +345,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #' @param q Target q-values
 #' @param verbose Logical, print messages
 #'
-#' @keywords internal
+#' @noRd
 .validate_diversity_q_values <- function(analysis, q, verbose) {
     if (is.null(analysis@diversity_results) || 
         length(analysis@diversity_results) == 0) {
@@ -358,7 +382,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'
 #' @return List with resolved parameters and q_vals (numeric vector)
 #'
-#' @keywords internal
+#' @noRd
 .resolve_and_validate_jis_params <- function(q, norm, log_base, pseudocount, 
                                              n_bootstrap, analysis, verbose) {
     # Convert q to numeric vector
@@ -393,7 +417,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #'
 #' @return Modified TSENATAnalysis object
 #'
-#' @keywords internal
+#' @noRd
 .store_jis_results <- function(analysis, result, q_vals, condition_col, verbose) {
     if (inherits(result, "tsenat_isoform_switching_multiq")) {
         # Multi-q result
@@ -444,7 +468,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #' @param analysis TSENATAnalysis object (for RDS output)
 #' @param verbose Logical, print messages
 #'
-#' @keywords internal
+#' @noRd
 .save_jis_output <- function(output_file, result, analysis, verbose) {
     output_dir <- dirname(output_file)
     if (output_dir != "." && !dir.exists(output_dir)) {
@@ -472,7 +496,7 @@ jackknife_isoform_switching_s4 <- function(analysis, condition_col = NULL, subje
 #' @param result Jackknife result object
 #' @param verbose Logical, print messages
 #'
-#' @keywords internal
+#' @noRd
 .write_jis_tables <- function(output_file, result, verbose) {
     tryCatch({
         output_ext <- sub("^.*\\.", ".", tolower(output_file))

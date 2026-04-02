@@ -1,9 +1,23 @@
 #' Plot Q-Spectrum Curves for Multiple Top Genes
 #'
+#' Wrapper around .plot_tsallis_q_curve() that creates multi-gene q-spectrum
+#' visualization from Tsallis divergence results. Shows how divergence changes
+#' across q-values for top genes, revealing q-dependent isoform switching.
+#'
+#' Key Features:
+#' \itemize{
+#'   \item Multi-gene grid: Side-by-side comparison of top N genes (default: 9)
+#'   \item q-spectrum curves: Per-gene divergence across q = 0.01 to 2.00
+#'   \item Bootstrap CI bands: 95% confidence intervals showing uncertainty
+#'   \item Statistical significance: Gene titles include adjusted p-values
+#'   \item Automatic layout: Grid dimensions auto-calculated from n_genes
+#'   \item q=1 reference line: KL divergence (information theory benchmark)
+#'   \item Region labels: Rare (q<1) vs Abundant (q>1) isoform emphasis
+#' }
+#'
 #' Creates a multi-panel grid comparing per-q divergence profiles across the top
 #' N genes identified by LMM interaction analysis. Each panel shows the full
-#' q-spectrum
-#' divergence curve with the gene name and adjusted p-value in the title.
+#' q-spectrum divergence curve with the gene name and adjusted p-value in the title.
 #'
 #' @param eff_res Output from effect size computation OR \code{NULL}.
 #' If provided, must contain `$interaction_results` with columns: gene,
@@ -39,6 +53,22 @@
 #'   creation and returns a print-ready object.
 #'
 #' @details
+#' **Mathematical Background:**
+#' Tsallis divergence as function of q:
+#' \itemize{
+#'   \item q < 1: Emphasizes rare isoforms (sensitive to outliers)
+#'   \item q = 1: Kullback-Leibler divergence (classical information theory)
+#'   \item q > 1: Emphasizes abundant isoforms (robust to rare variants)
+#' }
+#' D_q varies across q-spectrum, showing complexity of isoform differences.
+#'
+#' **Example Interpretation:**
+#' \itemize{
+#'   \item Flat curve: Divergence stable across q (robust isoform difference)
+#'   \item Curved pattern: q-dependent divergence (rare vs abundant isoforms differ)
+#'   \item Peaks at high q: Main isoforms drive the difference, rare ones immaterial
+#' }
+#'
 #' **Input Modes:**
 #' - **Mode 1 (Primary)**: Pass eff_res directly (from effect_sizes_divergence)
 #' - **Mode 2 (Fallback)**: Pass lm_res + divergence_results_se instead

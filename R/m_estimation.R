@@ -56,7 +56,7 @@ NULL
     if (k0 == 0)
         k0 <- 1
 
-    # Step 2: Huber's Proposal 2 iteration Find k such that E[rho(y/k)] ≈ 0.5
+    # Step 2: Huber's Proposal 2 iteration Find k such that E[rho(y/k)] ~ 0.5
     # (Huber's requirement) Using 4-point iteration
     for (iter in seq_len(10)) {
         # Weight using Huber function

@@ -1,11 +1,40 @@
 # ============================================================================
-# DETECT Q GENE INTERACTIONS WRAPPER
+# DETECT Q×CONDITION GENE INTERACTIONS WRAPPER
 # ============================================================================
-
+# Purpose:
+#   Wrapper around .rank_test_q_condition() that manages TSENATAnalysis object.
+#   Tests for genes with CONDITION-SPECIFIC q-dependent entropy patterns by
+#   testing whether the effect of q-values DIFFERS between experimental
+#   conditions.
+#
+# Key Features:
+#   - Q×Condition interaction: Tests if entropy patterns across q-values differ
+#     by condition
+#   - Multi-q analysis: Combines diversity results for multiple q-values into a
+#     single SummarizedExperiment for joint hypothesis testing
+#   - Rank-based statistics: Kruskal-Wallis (unpaired) or Friedman (paired)
+#   - Scheirer-Ray-Hare test: Two-way non-parametric ANOVA on ranks
+#   - Multiple testing correction: Hochberg, Benjamini-Yekutieli, or
+#     Westfall-Young permutation procedure
+#   - AR(1) correlation handling: Westfall-Young preserves q-value correlations
+#   - Effect sizes: Eta-squared (η²) for q×condition interactions
+#
+# Mathematical Background:
+#   Tests null hypothesis: 
+#     H0 = 'Gene entropy q-effect does NOT differ between conditions'
+#   vs Alternative:
+#     H1 = 'Gene entropy q-dependence is CONDITION-SPECIFIC'
+#
+# Example:
+#   Gene shows strong isoform switching (q-dependent entropy) in tumor cells
+#   but NOT in healthy cells → Identified as disease-relevant q-dependent gene.
+#   
+#   For condition-specific q-dependent genes:
+#   - Condition A: Strong entropy variation across q (q-dependent)
+#   - Condition B: Flat entropy profile across q (q-independent)
+#   - Interaction: Condition-specific q-dependence pattern reveals biological
+#     process
 # ============================================================================
-# DETECT Q GENE INTERACTIONS WRAPPER
-# ============================================================================
-
 #' Detect q-dependent gene interactions
 #'
 #' @param analysis \code{TSENATAnalysis} object.
@@ -49,8 +78,19 @@
 #'   If NULL, reads from \code{@config$nthreads}.
 #' @param verbose \code{logical}.  If TRUE,  prints progress messages.
 #'  Default:  FALSE.
-#' @param . . .  Additional arguments passed to the base \code{.
-#' rank_test_q_condition()} function.
+#' @param alpha \code{numeric}. Significance level for p-value correction methods
+#'  (default: 0.05). Used by all multiple testing correction methods.
+#' @param p_threshold \code{numeric}. P-value threshold for classification of 
+#'  interaction significance (default: 0.05).
+#' @param eta2_threshold_moderate \code{numeric}. Effect size boundary for 'moderate'
+#'  classification (default: 0.01).
+#' @param eta2_threshold_strong \code{numeric}. Effect size boundary for 'strong'
+#'  classification (default: 0.10).
+#' @param min_nperm \code{integer}. Minimum permutations for automatic estimation
+#'  when wy_randomizations='auto' (default: 100).
+#' @param max_nperm \code{integer}. Maximum permutations for automatic estimation
+#'  when wy_randomizations='auto' (default: 10000).
+#' @param ... Additional arguments passed to the base \code{.rank_test_q_condition()} function.
 #'
 #' @return Modified TSENATAnalysis with interaction results in @lm_results.
 #'
@@ -108,33 +148,14 @@
 # ============================================================================
 # S4 WRAPPER: Detect Q×Condition Gene Interactions (Rank-Based Testing)
 # ============================================================================
-# Purpose: Wrapper around .rank_test_q_condition() that manages TSENATAnalysis
-# object.  Tests for genes with CONDITION-SPECIFIC q-dependent entropy
-# patterns.  Tests whether the effect of q-values DIFFERS between experimental
-# conditions.  Key Features: - Q×Condition interaction: Tests if entropy
-# patterns across q-values differ by condition - Multi-q analysis: Combines
-# diversity results for multiple q-values into a single SummarizedExperiment
-# for joint hypothesis testing - Rank-based statistics: Kruskal-Wallis
-# (unpaired) or Friedman (paired) - Scheirer-Ray-Hare test: Two-way
-# non-parametric ANOVA on ranks - Multiple testing correction: Hochberg,
-# Benjamini-Yekutieli, or Westfall-Young permutation procedure - AR(1)
-# correlation handling: Westfall-Young preserves q-value correlations - Effect
-# sizes: Eta-squared (η²) for q×condition interactions Mathematical Background:
-# Tests null hypothesis: H0 = 'Gene entropy q-effect does NOT differ between
-# conditions' vs Alternative: H1 = 'Gene entropy q-dependence is
-# CONDITION-SPECIFIC' Example: Gene shows strong isoform switching (q-dependent
-# entropy) in tumor cells but NOT in healthy cells -> Identified as
-# disease-relevant q-dependent gene.  For condition-specific q-dependent genes:
-# - Condition A: Strong entropy variation across q (q-dependent) - Condition B:
-# Flat entropy profile across q (q-independent) - Interaction:
-# Condition-specific q-dependence pattern reveals biological process
-# ============================================================================
 rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_file = NULL,
     paired = NULL, subject_col = NULL, test = c("auto", "kruskal-wallis", "friedman",
         "art"), multicorr = c("hochberg", "benjamini-yekutieli", "westfall-young",
         "none"), entropy_col = "diversity", q_col = "q", gene_col = "gene", wy_randomizations = 500,
-    nperm_mode = c("standard", "conservative", "interactive"), nthreads = NULL, verbose = FALSE,
-    ...) {
+    nperm_mode = c("standard", "conservative", "interactive"), nthreads = NULL, 
+    alpha = 0.05, p_threshold = 0.05, eta2_threshold_moderate = 0.01, 
+    eta2_threshold_strong = 0.1, min_nperm = 100, max_nperm = 10000,
+    verbose = FALSE, ...) {
 
     # PHASE 1: Validate input and prerequisites
     condition_col <- .validate_rank_test_input(analysis, condition_col)
@@ -146,6 +167,14 @@ rank_test_q_condition_s4 <- function(analysis, condition_col, q = NULL, output_f
     dots <- param_result$dots
     dots$condition_col <- condition_col
     dots$verbose <- verbose
+    
+    # Add exposed statistical parameters
+    dots$alpha <- alpha
+    dots$p_threshold <- p_threshold
+    dots$eta2_threshold_moderate <- eta2_threshold_moderate
+    dots$eta2_threshold_strong <- eta2_threshold_strong
+    dots$min_nperm <- min_nperm
+    dots$max_nperm <- max_nperm
 
     # PHASE 3: Prepare multi-Q SummarizedExperiment
     se_multi_q <- .prepare_multi_q_se(analysis)

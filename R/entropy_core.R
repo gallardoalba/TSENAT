@@ -3,7 +3,7 @@
 #' 
 #' Centralized entropy calculation used by all functions to eliminate
 #' duplication.
-#' Supports Shannon (q=1), Tsallis (q≠1), and species richness (q=0).
+#' Supports Shannon (q=1), Tsallis (q!=1), and species richness (q=0).
 #'
 #' @param proportions Numeric vector of species proportions (must sum to ~1)
 #' @param q Numeric. Generalization parameter. Default: 1.0 (Shannon entropy)

@@ -326,6 +326,36 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #' FALSE)
 #'
 #' @export
+# ============================================================================
+# CALCULATE DIFFERENCE WRAPPER
+# ============================================================================
+# Purpose:
+#   Wrapper around .calculate_difference() that tests for significant q-dependent
+#   differences between control and treatment conditions. Detects genes with
+#   condition-specific isoform remodeling patterns.
+#
+# Key Features:
+#   - Multiple test methods: Wilcoxon (unpaired), paired t-test, permutation tests
+#   - Multi-q support: Test across full q-spectrum simultaneously
+#   - Flexible control group: Compare any/all conditions pairwise
+#   - Multiple testing correction: Hochberg, Benjamini-Hochberg, or permutation-based
+#   - Bootstrap confidence intervals: Quantify uncertainty in effect sizes
+#   - Paired designs: Supports repeated measures/longitudinal data
+#
+# Mathematical Background:
+#   Tests null hypothesis:
+#     H0: Entropy distribution is IDENTICAL between control and treatment
+#   vs Alternative:
+#     H1: Entropy distribution differs (control != treatment at some q-value)
+#   
+#   Test statistic: Depends on method chosen (Wilcoxon U, t-statistic, etc.)
+#   Appropriate for non-normal data (rank-based tests preferred for entropy).
+#
+# Example:
+#   Normal samples: H_q ~0.3 (single dominant isoform per gene)
+#   Tumor samples: H_q ~0.7 (multiple isoforms expressed equally)
+#   Result: Significant divergence indicates isoform switching in disease.
+# ============================================================================
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
     verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
@@ -2996,6 +3026,32 @@ m_estimate_s4 <- function(analysis, condition_col = NULL, loss_type = "huber", s
 #' analysis <- filter_analysis_s4(analysis, stringency = 'medium')
 #'
 #' @export
+# ============================================================================
+# FILTER ANALYSIS WRAPPER
+# ============================================================================
+# Purpose:
+#   Wrapper that filters low-abundance transcripts and genes from
+#   TSENATAnalysis object. Removes noise before diversity/divergence analysis
+#   by applying multiple quality control criteria simultaneously.
+#
+# Key Features:
+#   - TPM-based abundance filtering: Remove transcripts with low expression
+#   - Sample coverage: Require genes present in minimum number of samples
+#   - Min transcripts per gene: Filter genes with too few isoforms
+#   - Isoform abundance thresholds: Exclude rare isoforms from analysis
+#   - Subsetting options: Random or variance-based gene/sample selection
+#   - Stringency presets: Easy 'light', 'medium', 'severe' filtering profiles
+#
+# Mathematical Background:
+#   QC filtering removes noise that would artificially inflate entropy/divergence.
+#   Genes with single isoform (H=0) or all absent samples contribute no signal.
+#   Rare transcripts have unreliable expression values -> exclude them.
+#
+# Example:
+#   Raw data: 88 genes × 12 samples (many genes expressed in <50% samples)
+#   After filter: 50 genes × 12 samples (multi-isoform, well-represented genes)
+#   Result: More reliable diversity estimates and smaller multiple-testing burden.
+# ============================================================================
 filter_analysis_s4 <- function(analysis, min_tpm = 1, tpm_assay_name = NULL, min_samples = 5L,
     stringency = NULL, pair_col = NULL, min_tx_per_gene = 2L, min_isoform_abundance = NULL,
     assay_name = "counts", subset_n_genes = NULL, subset_genes = NULL, subset_n_samples = NULL,

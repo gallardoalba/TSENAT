@@ -1,7 +1,18 @@
-# ============================================================================
-
-# ============================================================================
 #' Calculate divergence metrics and store in TSENATAnalysis
+#'
+#' Wrapper around .calculate_divergence() that manages TSENATAnalysis object.
+#' Calculates Tsallis divergence between experimental conditions for transcripts
+#' across multiple q-values to detect condition-specific transcript remodeling.
+#'
+#' Key Features:
+#' \itemize{
+#'   \item Multi-q analysis: Divergence computed across full q-spectrum simultaneously
+#'   \item Bootstrap confidence intervals: Quantify uncertainty in divergence estimates
+#'   \item Multiple testing correction: Hochberg, Benjamini-Yekutieli, or no correction
+#'   \item Paired designs: Supports paired/repeated measures via subject_col parameter
+#'   \item Effect size reporting: Log-fold-change and confidence intervals per gene
+#'   \item Flexible control group: Compare any condition vs. any other condition
+#' }
 #'
 #' @param analysis \code{TSENATAnalysis} object.
 #' @param q \code{numeric}. Q-value for divergence.
@@ -40,12 +51,26 @@
 #'   \code{@divergence_results} (stored as list of data.frames or matrices).
 #'
 #' @details
-#' Requires diversity results from calculate_diversity_s4() as prerequisite.
-#' 
+#' **Mathematical Background:**
+#' Tsallis divergence D_q between two probability distributions:
+#' \preformatted{
+#'   D_q(P||Q) = (log_2(N) - entropy_q(P) + entropy_q(Q)) / (q - 1)
+#' }
+#' Measures how much transcript composition changes from control to condition.
+#' Values near 0: Similar isoform composition; Large positive values: Major change.
+#'
+#' **Example Use Case:**
+#' Control sample: All reads from dominant isoform (low entropy)\cr
+#' Tumor sample: Reads spread across multiple isoforms (high entropy)\cr
+#' Result: Large divergence indicating condition-specific isoform switching.\cr
+#'
+#' **Parameter Resolution:**
 #' Parameters are resolved in priority order:
 #' 1. Explicit arguments passed to function
 #' 2. Values from analysis@config (if present)
 #' 3. Function defaults
+#'
+#' Requires diversity results from calculate_diversity_s4() as prerequisite.
 #'
 #' @examples
 #' # Load example data (matching TSENAT.Rmd workflow)
@@ -125,7 +150,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Validate divergence calculation inputs
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .validate_divergence_input <- function(analysis) {
     if (!is(analysis, "TSENATAnalysis")) {
@@ -145,7 +170,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Resolve and process divergence parameters
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .resolve_divergence_parameters <- function(q, control_group, method, nthreads, nboot, seed,
     paired, bootstrap, analysis) {
@@ -190,7 +215,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Build arguments list for divergence calculation
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .build_divergence_args <- function(analysis, params, verbose, progress, ...) {
     args <- list(se = analysis@se, q = params$q, verbose = verbose, progress = progress)
@@ -227,7 +252,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Store divergence results in analysis object
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .store_divergence_results <- function(analysis, result) {
     if (is.null(result)) {
@@ -251,7 +276,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Extract divergence data for file writing
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .extract_divergence_write_data <- function(div_list) {
     if (length(div_list) == 0) {
@@ -274,7 +299,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Write divergence results to file
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .write_divergence_output <- function(analysis, output_file, verbose) {
     # Create output directory if needed
@@ -305,7 +330,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Extract SummarizedExperiment from divergence results
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .extract_divergence_se <- function(div_list) {
     if ("divergence_se" %in% names(div_list)) {
@@ -321,7 +346,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Build bootstrap column list from rowData
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .build_bootstrap_cols <- function(rd) {
     cols <- c("gene_name", grep("^estimate_q|^lower_ci_q|^upper_ci_q|^ci_width_q|^nboot_q|^method_q",
@@ -339,7 +364,7 @@ calculate_divergence_s4 <- function(analysis, q = NULL, verbose = TRUE, nthreads
 
 #' Write bootstrap divergence results to file
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .write_divergence_bootstrap_output <- function(analysis, output_file, verbose) {
     # Generate bootstrap filename (preserving original case)

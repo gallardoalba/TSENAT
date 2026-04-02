@@ -19,6 +19,12 @@ rank_test_q_condition_s4(
   wy_randomizations = 500,
   nperm_mode = c("standard", "conservative", "interactive"),
   nthreads = NULL,
+  alpha = 0.05,
+  p_threshold = 0.05,
+  eta2_threshold_moderate = 0.01,
+  eta2_threshold_strong = 0.1,
+  min_nperm = 100,
+  max_nperm = 10000,
   verbose = FALSE,
   ...
 )
@@ -77,11 +83,28 @@ automatic permutation estimation:
 Number of parallel threads for  computation.
  If NULL, reads from \code{@config$nthreads}.}
 
+\item{alpha}{\code{numeric}. Significance level for p-value correction methods
+(default: 0.05). Used by all multiple testing correction methods.}
+
+\item{p_threshold}{\code{numeric}. P-value threshold for classification of 
+interaction significance (default: 0.05).}
+
+\item{eta2_threshold_moderate}{\code{numeric}. Effect size boundary for 'moderate'
+classification (default: 0.01).}
+
+\item{eta2_threshold_strong}{\code{numeric}. Effect size boundary for 'strong'
+classification (default: 0.10).}
+
+\item{min_nperm}{\code{integer}. Minimum permutations for automatic estimation
+when wy_randomizations='auto' (default: 100).}
+
+\item{max_nperm}{\code{integer}. Maximum permutations for automatic estimation
+when wy_randomizations='auto' (default: 10000).}
+
 \item{verbose}{\code{logical}.  If TRUE,  prints progress messages.
 Default:  FALSE.}
 
-\item{.}{. .  Additional arguments passed to the base \code{.
-rank_test_q_condition()} function.}
+\item{...}{Additional arguments passed to the base \code{.rank_test_q_condition()} function.}
 }
 \value{
 Modified TSENATAnalysis with interaction results in @lm_results.

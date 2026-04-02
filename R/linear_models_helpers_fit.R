@@ -122,7 +122,7 @@
 #'   - n_subjects < 2 (required for mixed models)
 #'   - Data quality issues prevent model fitting
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .fit_one_interaction <- function(g, se, mat, q_vals, sample_names, group_vec, method,
     pvalue, subject_col, paired, min_obs, verbose, suppress_lme4_warnings, progress,
@@ -176,7 +176,7 @@
 }
 
 #' @noRd
-#' @keywords internal
+#' @noRd
 .lmm_interaction <- function(df, mat, q_vals, sample_names, group_vec, g, se, subject_col,
     paired, min_obs, verbose, suppress_lme4_warnings, progress, regularization, weights) {
     # ═══════════════════════════════════════════════════════════════════════════
@@ -365,7 +365,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #' @noRd
-#' @keywords internal
+#' @noRd
 .setup_interaction_data <- function(g, mat, q_vals, group_vec) {
     # Validate that gene g exists in matrix
     if (!(g %in% rownames(mat))) {
@@ -384,7 +384,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #' @noRd
-#' @keywords internal
+#' @noRd
 .apply_weights_to_df <- function(df, weights, g, verbose = FALSE) {
     if (!is.null(weights) && length(weights) == nrow(df)) {
         df$weight <- weights
@@ -408,7 +408,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #' @noRd
-#' @keywords internal
+#' @noRd
 .get_subject_ids <- function(se = NULL, subject_col = NULL, paired = FALSE, mat = NULL,
     sample_names = NULL) {
     subject <- NULL
@@ -463,7 +463,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 
 #' @noRd
-#' @keywords internal
+#' @noRd
 .check_lmm_sample_sizes <- function(df, min_obs = 3) {
     if (nrow(df) < min_obs) {
         return(NULL)  # Not enough observations

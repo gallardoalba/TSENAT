@@ -55,7 +55,7 @@
 #'   include_lm_results = TRUE
 #' )
 #'
-#' @keywords internal
+#' @noRd
 #' @noRd
 .create_test_analysis <- function(n_genes = 8, n_samples_per_group = 20, control_lambda = 40,
     treatment_lambda = 150, q_values = c(0.5, 1, 1.5), include_divergence = TRUE,

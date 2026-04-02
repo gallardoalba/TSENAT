@@ -235,20 +235,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 # Helper: Extract and resolve LM interaction parameters from config
 #
 # @param analysis TSENATAnalysis object
-#' @param condition_col Character or NULL
-#' @param method Character or NULL
-#' @param subject_col Character or NULL
-#' @param nthreads Numeric or NULL
-#' @param multicorr Character or NULL
-#' @param corstr Character or NULL
-#' @param pcorr Character or NULL
-#' @param paired Logical
-#' @param verbose Logical
-#'
-#' @return List with resolved parameters
-#'
-#' @keywords internal
-#'
 .extract_lm_params <- function(analysis, condition_col = NULL, method = NULL,
     subject_col = NULL, nthreads = NULL, multicorr = NULL, corstr = NULL, pcorr = NULL,
     paired = FALSE, verbose = FALSE) {
@@ -294,12 +280,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 # Helper: Combine per-q diversity results into single SE
 #
-#' @param diversity_results List of SummarizedExperiment objects (per q-value)
-#'
-#' @return Combined SummarizedExperiment
-#'
-#' @keywords internal
-#'
 .combine_diversity_results_for_lm <- function(diversity_results) {
     tryCatch({
         assay_list <- list()
@@ -357,16 +337,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 # Helper: Build argument list for calculate_lm_interaction
 #
-#' @param diversity_se Combined SummarizedExperiment
-#' @param params List of resolved parameters
-#' @param return_model_data Logical
-#' @param verbose Logical
-#' @param ... Additional arguments
-#'
-#' @return List of arguments for .calculate_lm_interaction()
-#'
-#' @keywords internal
-#'
 .build_lm_args <- function(diversity_se, params, return_model_data = TRUE,
     verbose = FALSE, ...) {
     args <- list(se = diversity_se)
@@ -409,12 +379,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 # Helper: Validate and extract LM results from raw output
 #
-#' @param result Output from .calculate_lm_interaction()
-#'
-#' @return List with $results (data.frame) and $model_data (or NULL)
-#'
-#' @keywords internal
-#'
 .validate_and_extract_lm_result <- function(result) {
     lm_results_df <- result
     model_data <- NULL
@@ -455,14 +419,6 @@ calculate_lm_interaction_s4 <- function(analysis, fdr_threshold = NULL, formula 
 
 # Helper: Store LM results in analysis object
 #
-#' @param analysis TSENATAnalysis object
-#' @param lm_results_df Data frame of results
-#' @param model_data Model data or NULL
-#'
-#' @return Modified TSENATAnalysis object
-#'
-#' @keywords internal
-#'
 .store_lm_results_in_analysis <- function(analysis, lm_results_df, model_data = NULL) {
     if (is.list(analysis@lm_results) && "lm_interaction" %in% names(analysis@lm_results)) {
         analysis@lm_results$lm_interaction <- lm_results_df
