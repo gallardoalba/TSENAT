@@ -253,6 +253,12 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #'   If not specified, reads from \code{@config$verbose} if available.
 #' @param paired \code{logical}. Whether data is paired. Default: FALSE.
 #'   If not specified, reads from \code{@config$paired} if available.
+#' @param pairs \code{character} or \code{numeric} vector or \code{NULL}. 
+#' Pairing information for paired designs.
+#'   When \code{paired = TRUE}, specifies which samples are paired 
+#'   (e.g., c(1,1,2,2,3,3) for 3 pairs).
+#'   Default: NULL. When NULL with \code{paired = TRUE}, auto-extracted 
+#'   from colData 'sample_base' column if available.
 #' @param exact \code{logical}. Use exact test. Default: FALSE.
 #'   If not specified, reads from \code{@config$exact} if available.
 #' @param pseudocount \code{numeric}. Pseudocount for normalization. Default: 0.
@@ -342,6 +348,30 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 #   - Bootstrap confidence intervals: Quantify uncertainty in effect sizes
 #   - Paired designs: Supports repeated measures/longitudinal data
 #
+# BASE FUNCTION ARGUMENTS EXPOSED IN S4 WRAPPER:
+#   All arguments from .calculate_difference() are exposed:
+#   - control: Group identifier for control samples
+#   - condition_col: Column name for sample grouping
+#   - method: Difference calculation method ('mean', 'median', 'm_estimate')
+#   - test: Statistical test ('wilcoxon', 'shuffle', 't-test')
+#   - randomizations: Number of permutations (for shuffle/bootstrap)
+#   - pcorr: P-value correction ('BH', 'bonferroni', 'hochberg', 'none')
+#   - assayno: Assay index in SummarizedExperiment (default: 1)
+#   - verbose: Print progress messages (logical)
+#   - paired: Paired/repeated measures design (logical)
+#   - pairs: Pairing structure (character/numeric vector or NULL)
+#   - exact: Exact p-value computation for tests (logical)
+#   - pseudocount: Small constant for zero-offset handling (numeric)
+#   - nthreads: CPU threads for parallel processing (numeric)
+#   - seed: Random seed for reproducibility (numeric or NULL)
+#   - robust_loss_type: Robust regression loss ('huber', 'lad', etc.)
+#   - robust_scale_method: Scale estimation ('mad', 'qn', etc.)
+#
+# S4-SPECIFIC ARGUMENTS:
+#   - analysis: TSENATAnalysis object with @diversity_results
+#   - q: Q-value for diversity analysis (if NULL, uses first available)
+#   - output_file: File path to save results (TSV, CSV, RDS formats)
+#
 # Mathematical Background:
 #   Tests null hypothesis:
 #     H0: Entropy distribution is IDENTICAL between control and treatment
@@ -359,7 +389,7 @@ jackknife_entropy_outliers_s4 <- function(analysis, q = NULL, norm = NULL, log_b
 calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, condition_col = NULL,
     method = NULL, test = NULL, randomizations = NULL, pcorr = NULL, assayno = NULL,
     verbose = NULL, paired = FALSE, exact = FALSE, pseudocount = NULL, nthreads = NULL,
-    seed = NULL, robust_loss_type = NULL, robust_scale_method = NULL, output_file = NULL,
+    seed = NULL, robust_loss_type = NULL, robust_scale_method = NULL, pairs = NULL, output_file = NULL,
     ...) {
     if (!is(analysis, "TSENATAnalysis")) {
         stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
@@ -428,6 +458,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
 
     # Optional parameters (may be NULL)
     seed <- resolve_slot_param(seed, analysis@config, "seed", NULL)
+    pairs <- resolve_slot_param(pairs, analysis@config, "pairs", NULL)
 
     # Run difference calculation on diversity results Note: diversity_se and
     # its colData are already prepared by calculate_diversity_s4
@@ -436,7 +467,7 @@ calculate_difference_s4 <- function(analysis, control = NULL, q = NULL, conditio
             method = method, test = test, randomizations = randomizations, pcorr = pcorr,
             assayno = assayno, verbose = verbose, paired = paired, exact = exact,
             pseudocount = pseudocount, nthreads = nthreads, seed = seed, robust_loss_type = robust_loss_type,
-            robust_scale_method = robust_scale_method, ...)
+            robust_scale_method = robust_scale_method, pairs = pairs, ...)
     }, error = function(e) {
         stop("Difference calculation failed:\n", e$message, call. = FALSE)
     })
