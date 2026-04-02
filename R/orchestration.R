@@ -3,7 +3,175 @@
 # visualizations.
 
 # ============================================================================
-# CONFIG BUILDER
+# MAIN ORCHESTRATION FUNCTION
+# ============================================================================
+
+#' Run complete TSENAT analysis pipeline
+#'
+#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
+#' interactions -> divergence -> gene interactions -> visualizations.
+#'
+#' @param se \code{SummarizedExperiment} containing expression counts.
+#' @param config \code{list} or \code{TSENATConfig}. Configuration from
+#'   \code{\link{tsenat_config}}. If NULL, uses defaults.
+#' @param methods \code{character}. Specific methods to run (overrides config).
+#' @param q_values \code{numeric}. Specific q-values (overrides config).
+#' @param generate_plots \code{logical}. Create visualizations. Default: TRUE.
+#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
+#' @param parallel \code{logical}. Run independent q-values in parallel.
+#'   Default: FALSE.
+#' @param ... Additional arguments passed to individual wrapper functions.
+#'
+#' @return \code{TSENATAnalysis} object containing complete analysis results,
+#'   plots, and metadata.
+#'
+#' @details
+#' Pipeline execution order (enforced):
+#' \enumerate{
+#'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
+#'   \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
+#'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
+#'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
+#'   \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
+#'   \item Plot generation (if enabled)
+#' }
+#'
+#' @examples
+#' library(SummarizedExperiment)
+#' se <- SummarizedExperiment(
+#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
+#'   colData = data.frame(condition = rep(c('A', 'B'), 5))
+#' )
+#' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
+#' analysis <- tsenat(se, config = cfg)
+#'
+#' @export
+tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_plots = TRUE,
+    verbose = TRUE, parallel = FALSE, ...) {
+    # Validate input
+    if (!is(se, "SummarizedExperiment")) {
+        stop("'se' must be a SummarizedExperiment object", call. = FALSE)
+    }
+    if (nrow(se) == 0) {
+        stop("SummarizedExperiment is empty", call. = FALSE)
+    }
+
+    # Initialize and setup parameters
+    analysis <- TSENATAnalysis(se = se, config = config)
+    .validate_analysis_object(analysis)
+    
+    params <- .setup_tsenat_parameters(analysis, methods, q_values, generate_plots, parallel)
+    analysis <- params$analysis
+    methods_to_run <- params$methods_to_run
+    q_vals <- params$q_vals
+    condition_col_name <- params$condition_col_name
+    do_plots <- params$do_plots
+
+    # Validate and execute pipeline
+    .validate_tsenat_methods(methods_to_run)
+    if (verbose) .log_pipeline_start(se, methods_to_run, q_vals)
+
+    analysis <- .execute_diversity_step(analysis, q_vals, methods_to_run, verbose, ...)
+    analysis <- .execute_jackknife_step(analysis, q_vals, methods_to_run, verbose, ...)
+    analysis <- .execute_lm_interaction_step(analysis, methods_to_run, verbose, ...)
+    analysis <- .execute_divergence_step(analysis, q_vals, methods_to_run, verbose, ...)
+    analysis <- .execute_q_interactions_step(analysis, q_vals, condition_col_name, 
+        methods_to_run, verbose, ...)
+    analysis <- .execute_plot_generation(analysis, do_plots, verbose)
+    
+    # Track completion metadata
+    analysis <- .track_analysis_metadata(analysis, methods_to_run, analysis@config)
+    analysis <- .finalize_tsenat_analysis(analysis, verbose)
+
+    analysis
+}
+
+# ============================================================================
+# UTILITY FUNCTION
+# ============================================================================
+
+#' `%||%` operator for default values
+#'
+#' Returns left operand if not NULL, otherwise right operand.
+#'
+
+#' @noRd
+`%||%` <- function(x, y) {
+    if (is.null(x))
+        y else x
+}
+
+# ============================================================================
+# RESULT ACCESSOR FUNCTIONS (EXPORTED)
+# ============================================================================
+
+#' Extract analysis results from TSENATAnalysis object
+#'
+#' Provides flexible access to diversity, divergence, and statistical test results.
+#'
+#' @param analysis \code{TSENATAnalysis} object containing computed results.
+#' @param type \code{character}. Type of results to extract:
+#'   'diversity', 'divergence', 'lm', 'jackknife', or 'q_interactions'.
+#'   Default: 'diversity'.
+#' @param q \code{numeric}. For diversity results, optionally filter by q-value.
+#'   Default: NULL (return all q-values).
+#' @param simplify \code{logical}. If TRUE and q is specified, return as 
+#'   vector instead of matrix. Default: TRUE.
+#'
+#' @return Extracted results as data.frame, matrix, or list depending on type.
+#'   Returns NULL if requested result type not computed.
+#'
+#' @details
+#' This function provides a consistent interface to access all computed results
+#' from the TSENATAnalysis object, abstracting away internal storage details.
+#'
+#' @examples
+#' \dontrun{
+#' # After running tsenat() analysis:
+#' div_results <- getResults(analysis, type = "diversity")
+#' div_q1.0 <- getResults(analysis, type = "diversity", q = 1.0)
+#' lm_results <- getResults(analysis, type = "lm")
+#' }
+#'
+#' @export
+getResults <- function(analysis, type = "diversity", q = NULL, simplify = TRUE) {
+    if (!is(analysis, "TSENATAnalysis")) {
+        stop("'analysis' must be a TSENATAnalysis object", call. = FALSE)
+    }
+
+    result <- switch(type,
+        diversity = if (length(analysis@diversity_results) > 0) 
+            analysis@diversity_results else NULL,
+        divergence = if (length(analysis@divergence_results) > 0) 
+            analysis@divergence_results else NULL,
+        lm = if (length(analysis@lm_results) > 0) 
+            analysis@lm_results else NULL,
+        jackknife = if (length(analysis@jackknife_results) > 0) 
+            analysis@jackknife_results else NULL,
+        q_interactions = if ("q_interactions" %in% names(analysis@lm_results))
+            analysis@lm_results$q_interactions else NULL,
+        stop("Unknown result type: '", type, "'. Must be one of: ", 
+            "diversity, divergence, lm, jackknife, q_interactions", call. = FALSE)
+    )
+
+    if (is.null(result)) {
+        return(NULL)
+    }
+
+    # Filter by q-value if specified and applicable
+    if (!is.null(q) && type == "diversity" && is.matrix(result)) {
+        if (simplify) {
+            result <- result[as.character(q), , drop = TRUE]
+        } else {
+            result <- result[as.character(q), , drop = FALSE]
+        }
+    }
+
+    return(result)
+}
+
+# ============================================================================
+# CONFIG BUILDER: tsenat_config()
 # ============================================================================
 
 #' Create and return TSENAT configuration
@@ -113,59 +281,6 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
 }
 
 # ============================================================================
-# MAIN ORCHESTRATION FUNCTION
-# ============================================================================
-
-#' Run complete TSENAT analysis pipeline
-#'
-#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
-#' interactions ->
-#' divergence -> gene interactions -> visualizations.
-#'
-#' @param se \code{SummarizedExperiment} containing expression counts.
-#' @param config \code{list} or \code{TSENATConfig}. Configuration from
-#'   \code{\link{tsenat_config}}. If NULL, uses defaults.
-#' @param methods \code{character}. Specific methods to run (overrides config).
-#' @param q_values \code{numeric}. Specific q-values (overrides config).
-#' @param generate_plots \code{logical}. Create visualizations. Default: TRUE.
-#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#' @param parallel \code{logical}. Run independent q-values in parallel.
-#'   Default: FALSE.
-#' @param ... Additional arguments passed to individual wrapper functions.
-#'
-#' @return \code{TSENATAnalysis} object containing complete analysis results,
-#'   plots, and metadata.
-#'
-#' @details
-#' Pipeline execution order (enforced):
-#' \enumerate{
-#'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-#'   \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
-#'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
-#'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-#'   \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
-#'   \item Plot generation (if enabled)
-#' }
-#'
-#' Metadata automatically tracks:
-#' - Analysis start/end time
-#' - TSENAT version
-#' - Function execution sequence
-#' - Parameter settings
-#'
-#' @examples
-#' library(SummarizedExperiment)
-#' # Create minimal SummarizedExperiment
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#' colData = data.frame(sample_id = paste0('S', 1:10), condition =
-#' rep(c('A', 'B'), 5))
-#' )
-#' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' analysis <- TSENATAnalysis(se, config = cfg)
-#' show(analysis)
-#'
-# ============================================================================
 # HELPER FUNCTIONS (INTERNAL - NOT EXPORTED)
 # ============================================================================
 
@@ -257,7 +372,7 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
     
     if (verbose) message("Step 3: Testing LM interactions...")
     tryCatch({
-        fdr <- analysis@config$fdr_threshold %||% 0.05
+        fdr <- if (is.null(analysis@config$fdr_threshold)) 0.05 else analysis@config$fdr_threshold
         analysis <- calculate_lm_interaction_s4(analysis, fdr_threshold = fdr, ...)
         if (verbose) message("  [OK] LM analysis complete")
     }, error = function(e) warning("LM failed:\n", e$message, call. = FALSE))
@@ -332,7 +447,8 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
 #' @noRd
 .generate_plot_by_type <- function(ptype, analysis) {
     switch(ptype,
-        q_curve = plot_tsallis_q_curve_s4(analysis@se, analysis@diversity_results),
+        q_curve = if (length(analysis@diversity_results) > 0) {
+            plot_tsallis_q_curve_s4(analysis@se, analysis@diversity_results) } else NULL,
         lm_interaction = if ("lm_interaction" %in% names(analysis@lm_results)) {
             .plot_lm_interaction_gam(analysis@lm_results$lm_interaction) } else NULL,
         divergence_distribution = if (length(analysis@divergence_results) > 0) {
@@ -345,6 +461,39 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
             .plot_volcano_ma_grid(analysis@lm_results$lm_interaction, 
                 analysis@divergence_results) } else NULL,
         NULL)
+}
+
+#' Track analysis metadata
+#' @noRd
+.track_analysis_metadata <- function(analysis, methods_run, config) {
+    analysis@metadata$workflow <- list(
+        steps_completed = methods_run,
+        completion_time = Sys.time(),
+        tsenat_version = utils::packageVersion("TSENAT")
+    )
+    analysis@metadata$methods_parameters <- list(
+        fdr_threshold = config$fdr_threshold,
+        q_values = config$q_values,
+        condition_col = config$condition_col %||% "condition"
+    )
+    analysis
+}
+
+#' Validate analysis object structure
+#' @noRd
+.validate_analysis_object <- function(analysis) {
+    checks <- list(
+        se_valid = !is.null(analysis@se) && nrow(analysis@se) > 0,
+        coldata_valid = all(c("condition") %in% colnames(SummarizedExperiment::colData(analysis@se))),
+        min_samples = ncol(analysis@se) >= 2,
+        min_genes = nrow(analysis@se) >= 10
+    )
+    
+    if (!all(unlist(checks))) {
+        failed <- names(checks)[!unlist(checks)]
+        stop("Analysis validation failed: ", paste(failed, collapse = ", "), 
+            call. = FALSE)
+    }
 }
 
 #' Finalize analysis and print summary
@@ -365,96 +514,3 @@ tsenat_config <- function(q_values = NULL, q_range = NULL, filter_genome = TRUE,
     analysis
 }
 
-# ============================================================================
-# MAIN ORCHESTRATION FUNCTION
-# ============================================================================
-
-#' Run complete TSENAT analysis pipeline
-#'
-#' Coordinates the full TSENAT workflow: diversity -> jackknife -> LM
-#' interactions -> divergence -> gene interactions -> visualizations.
-#'
-#' @param se \code{SummarizedExperiment} containing expression counts.
-#' @param config \code{list} or \code{TSENATConfig}. Configuration from
-#'   \code{\link{tsenat_config}}. If NULL, uses defaults.
-#' @param methods \code{character}. Specific methods to run (overrides config).
-#' @param q_values \code{numeric}. Specific q-values (overrides config).
-#' @param generate_plots \code{logical}. Create visualizations. Default: TRUE.
-#' @param verbose \code{logical}. Print progress messages. Default: TRUE.
-#' @param parallel \code{logical}. Run independent q-values in parallel.
-#'   Default: FALSE.
-#' @param ... Additional arguments passed to individual wrapper functions.
-#'
-#' @return \code{TSENATAnalysis} object containing complete analysis results,
-#'   plots, and metadata.
-#'
-#' @details
-#' Pipeline execution order (enforced):
-#' \enumerate{
-#'   \item \code{calculate_diversity_s4()} - Tsallis entropy per q-value
-#'   \item \code{jackknife_entropy_outliers_s4()} - Confidence intervals
-#'   \item \code{calculate_lm_interaction_s4()} - Statistical tests
-#'   \item \code{calculate_divergence_s4()} - Pairwise divergence metrics
-#'   \item \code{rank_test_q_condition_s4()} - Q-dependent interactions
-#'   \item Plot generation (if enabled)
-#' }
-#'
-#' @examples
-#' library(SummarizedExperiment)
-#' se <- SummarizedExperiment(
-#'   assays = list(counts = matrix(rpois(100, 10), nrow = 10, ncol = 10)),
-#'   colData = data.frame(condition = rep(c('A', 'B'), 5))
-#' )
-#' cfg <- tsenat_config(q_values = c(0.5, 1.0), generate_plots = FALSE)
-#' analysis <- tsenat(se, config = cfg)
-#'
-#' @export
-tsenat <- function(se, config = NULL, methods = NULL, q_values = NULL, generate_plots = TRUE,
-    verbose = TRUE, parallel = FALSE, ...) {
-    # Validate input
-    if (!is(se, "SummarizedExperiment")) {
-        stop("'se' must be a SummarizedExperiment object", call. = FALSE)
-    }
-    if (nrow(se) == 0) {
-        stop("SummarizedExperiment is empty", call. = FALSE)
-    }
-
-    # Initialize and setup parameters
-    analysis <- TSENATAnalysis(se = se, config = config)
-    params <- .setup_tsenat_parameters(analysis, methods, q_values, generate_plots, parallel)
-    analysis <- params$analysis
-    methods_to_run <- params$methods_to_run
-    q_vals <- params$q_vals
-    condition_col_name <- params$condition_col_name
-    do_plots <- params$do_plots
-
-    # Validate and execute pipeline
-    .validate_tsenat_methods(methods_to_run)
-    if (verbose) .log_pipeline_start(se, methods_to_run, q_vals)
-
-    analysis <- .execute_diversity_step(analysis, q_vals, methods_to_run, verbose, ...)
-    analysis <- .execute_jackknife_step(analysis, q_vals, methods_to_run, verbose, ...)
-    analysis <- .execute_lm_interaction_step(analysis, methods_to_run, verbose, ...)
-    analysis <- .execute_divergence_step(analysis, q_vals, methods_to_run, verbose, ...)
-    analysis <- .execute_q_interactions_step(analysis, q_vals, condition_col_name, 
-        methods_to_run, verbose, ...)
-    analysis <- .execute_plot_generation(analysis, do_plots, verbose)
-    analysis <- .finalize_tsenat_analysis(analysis, verbose)
-
-    analysis
-}
-
-# ============================================================================
-# UTILITY FUNCTION
-# ============================================================================
-
-#' `%||%` operator for default values
-#'
-#' Returns left operand if not NULL, otherwise right operand.
-#'
-
-#' @noRd
-`%||%` <- function(x, y) {
-    if (is.null(x))
-        y else x
-}

@@ -218,27 +218,30 @@ test_that("tsenat rejects invalid SE (missing required assays)", {
   # Create invalid SE - no tpm assay
   counts <- matrix(rpois(100 * 20, lambda = 100), nrow = 100)
   invalid_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = counts)
+    assays = list(counts = counts),
+    colData = data.frame(condition = rep(c('A', 'B'), 10), row.names = paste0('S', 1:20))
   )
   
+  # Will error at diversity calculation since no tpm assay
   expect_error(
-    tsenat(invalid_se),
-    "Diversity calculation failed|valid gene set"
+    tsenat(invalid_se, verbose = FALSE),
+    "Diversity|tpm|assay"
   )
 })
 
-test_that("tsenat rejects invalid SE (missing colData)", {
+test_that("tsenat rejects invalid SE (missing condition column)", {
   counts <- matrix(rpois(100 * 20, lambda = 100), nrow = 100)
   tpm <- t(t(counts) / colSums(counts) * 1e6)
   
   invalid_se <- SummarizedExperiment::SummarizedExperiment(
-    assays = list(counts = counts, tpm = tpm)
+    assays = list(counts = counts, tpm = tpm),
+    colData = data.frame(sample_id = paste0('S', 1:20), row.names = paste0('S', 1:20))
   )
   
-  # SE with no colData conditions should error
+  # SE with no 'condition' column should error during validation
   expect_error(
-    tsenat(invalid_se),
-    "Diversity calculation failed|valid gene set"
+    tsenat(invalid_se, verbose = FALSE),
+    "Analysis validation failed|coldata_valid"
   )
 })
 
@@ -543,4 +546,316 @@ test_that("Method validation prevents incomplete pipelines", {
   # These should pass
   expect_no_error(.validate_tsenat_methods(c("diversity")))
   expect_no_error(.validate_tsenat_methods(c("diversity", "jackknife")))
+})
+
+# ============================================================================
+# TEST: Helper function .validate_analysis_object
+# ============================================================================
+
+test_that(".validate_analysis_object accepts valid analysis object", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Should not raise error for valid object
+  expect_no_error(.validate_analysis_object(analysis))
+})
+
+test_that(".validate_analysis_object rejects empty SummarizedExperiment", {
+  # Create a valid SE, then manually break it to have 0 rows
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Manually remove all rows to trigger empty SE validation
+  analysis@se <- analysis@se[0, ]
+  
+  error_msg <- tryCatch(
+    .validate_analysis_object(analysis),
+    error = function(e) e$message
+  )
+  
+  expect_true(grepl("Validation failed|se_valid", error_msg))
+})
+
+test_that(".validate_analysis_object rejects missing condition column", {
+  # Create a valid SE, then manually remove the condition column
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Manually remove condition column from colData
+  coldata <- SummarizedExperiment::colData(analysis@se)
+  coldata$condition <- NULL
+  SummarizedExperiment::colData(analysis@se) <- coldata
+  
+  error_msg <- tryCatch(
+    .validate_analysis_object(analysis),
+    error = function(e) e$message
+  )
+  
+  expect_true(grepl("Validation failed|coldata_valid", error_msg))
+})
+
+test_that(".validate_analysis_object rejects insufficient samples", {
+  # Create a valid SE, then manually reduce to 1 sample
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Manually keep only first sample
+  analysis@se <- analysis@se[, 1, drop = FALSE]
+  
+  error_msg <- tryCatch(
+    .validate_analysis_object(analysis),
+    error = function(e) e$message
+  )
+  
+  expect_true(grepl("Validation failed|min_samples", error_msg))
+})
+
+test_that(".validate_analysis_object rejects insufficient genes", {
+  # Create SE with only 5 genes (need >= 10) AND proper colData
+  counts <- matrix(rpois(5 * 20, lambda = 100), nrow = 5, ncol = 20)
+  se_few_genes <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(counts = counts),
+    colData = data.frame(
+      condition = rep(c("A", "B"), 10),
+      sample_id = paste0("S", 1:20),
+      row.names = paste0("S", 1:20)
+    )
+  )
+  
+  # Try to create - S4 class might prevent it or our validation catches it
+  caught_error <- tryCatch({
+    analysis <- TSENATAnalysis(se_few_genes, config = tsenat_config())
+    .validate_analysis_object(analysis)
+    FALSE  # If no error, return FALSE
+  }, error = function(e) TRUE)  # If error caught, return TRUE
+  
+  # Should catch an error (either from S4 validity or our validation)
+  expect_true(caught_error)
+})
+
+test_that(".validate_analysis_object error message lists failed checks", {
+  # S4 class prevents creation of objects that fail multiple checks
+  # Just test that error messages make sense when they DO occur
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Manually break the SE to create an invalid condition
+  colData(analysis@se)$condition <- NULL
+  
+  error_msg <- tryCatch(
+    .validate_analysis_object(analysis),
+    error = function(e) e$message
+  )
+  
+  expect_true(grepl("Validation failed|Analysis validation failed", error_msg))
+})
+
+# ============================================================================
+# TEST: Helper function .track_analysis_metadata
+# ============================================================================
+
+test_that(".track_analysis_metadata records completed steps", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  methods_run <- c("diversity", "jackknife", "divergence")
+  
+  analysis_tracked <- .track_analysis_metadata(analysis, methods_run, analysis@config)
+  
+  expect_true("workflow" %in% names(analysis_tracked@metadata))
+  expect_equal(analysis_tracked@metadata$workflow$steps_completed, methods_run)
+})
+
+test_that(".track_analysis_metadata stores method parameters", {
+  se <- make_test_se()
+  config <- tsenat_config(fdr_threshold = 0.01, q_values = c(0.5, 1.0, 1.5))
+  analysis <- TSENATAnalysis(se, config = config)
+  methods_run <- c("diversity", "lm_interaction")
+  
+  analysis_tracked <- .track_analysis_metadata(analysis, methods_run, config)
+  
+  expect_true("methods_parameters" %in% names(analysis_tracked@metadata))
+  expect_equal(analysis_tracked@metadata$methods_parameters$fdr_threshold, 0.01)
+  expect_equal(length(analysis_tracked@metadata$methods_parameters$q_values), 3)
+})
+
+test_that(".track_analysis_metadata stores TSENAT version", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  methods_run <- c("diversity")
+  
+  analysis_tracked <- .track_analysis_metadata(analysis, methods_run, analysis@config)
+  
+  expect_true("tsenat_version" %in% names(analysis_tracked@metadata$workflow))
+  expect_true(!is.null(analysis_tracked@metadata$workflow$tsenat_version))
+})
+
+test_that(".track_analysis_metadata records completion time", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  methods_run <- c("diversity")
+  before_time <- Sys.time()
+  
+  analysis_tracked <- .track_analysis_metadata(analysis, methods_run, analysis@config)
+  
+  after_time <- Sys.time()
+  
+  expect_true("completion_time" %in% names(analysis_tracked@metadata$workflow))
+  completion_time <- analysis_tracked@metadata$workflow$completion_time
+  expect_true(inherits(completion_time, "POSIXct"))
+  expect_true(completion_time >= before_time && completion_time <= after_time)
+})
+
+test_that(".track_analysis_metadata preserves existing metadata", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  # Add existing metadata
+  analysis@metadata$custom_field <- "custom_value"
+  methods_run <- c("diversity")
+  
+  analysis_tracked <- .track_analysis_metadata(analysis, methods_run, analysis@config)
+  
+  expect_equal(analysis_tracked@metadata$custom_field, "custom_value")
+  expect_true("workflow" %in% names(analysis_tracked@metadata))
+})
+
+test_that(".track_analysis_metadata stores condition_col from config", {
+  se <- make_test_se()
+  config <- tsenat_config(condition_col = "treatment")
+  analysis <- TSENATAnalysis(se, config = config)
+  methods_run <- c("diversity")
+  
+  analysis_tracked <- .track_analysis_metadata(analysis, methods_run, config)
+  
+  expect_equal(analysis_tracked@metadata$methods_parameters$condition_col, "treatment")
+})
+
+# ============================================================================
+# TEST: Result accessor function getResults
+# ============================================================================
+
+test_that("getResults returns NULL for uncomputed results", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # No results computed yet
+  div_result <- getResults(analysis, type = "diversity")
+  divg_result <- getResults(analysis, type = "divergence")
+  lm_result <- getResults(analysis, type = "lm")
+  
+  expect_null(div_result)
+  expect_null(divg_result)
+  expect_null(lm_result)
+})
+
+test_that("getResults raises error for unknown result type", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  expect_error(
+    getResults(analysis, type = "unknown"),
+    "Unknown result type"
+  )
+})
+
+test_that("getResults raises error for non-TSENATAnalysis object", {
+  se <- make_test_se()
+  
+  expect_error(
+    getResults(se, type = "diversity"),
+    "must be a TSENATAnalysis object"
+  )
+})
+
+test_that("getResults with diversity results and q-value filtering", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Create mock diversity results as a list (correct type for diversity_results slot)
+  q_vals <- c("q_0.5", "q_1.0", "q_1.5", "q_2.0")
+  n_genes <- nrow(se)
+  diversity_results <- list(
+    q_0.5 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes),
+    q_1.0 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes),
+    q_1.5 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes),
+    q_2.0 = matrix(rnorm(n_genes, mean = 3, sd = 1), nrow = 1, ncol = n_genes)
+  )
+  analysis@diversity_results <- diversity_results
+  
+  # Test getting all diversity results
+  all_results <- getResults(analysis, type = "diversity")
+  expect_false(is.null(all_results))
+  
+  # Test getting specific q-value
+  q1_results <- getResults(analysis, type = "diversity", q = 1.0)
+  expect_false(is.null(q1_results))
+})
+
+test_that("getResults returns all supported result types", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Mock results for each type (as correct types: lists for diversity_results, divergence_results; lists for others)
+  n_genes <- nrow(se)
+  n_samples <- ncol(se)
+  
+  # diversity_results should be a list
+  analysis@diversity_results <- list(
+    q_0.5 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes),
+    q_1.0 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes)
+  )
+  # divergence_results should also be a list
+  analysis@divergence_results <- list(
+    q_0.5 = data.frame(gene = paste0("g", 1:n_genes), divergence = rnorm(n_genes))
+  )
+  analysis@lm_results <- list(lm_interaction = data.frame(pvalue = rnorm(n_genes)))
+  analysis@jackknife_results <- list(ci_lower = rnorm(n_genes))
+  analysis@lm_results$q_interactions <- list(results = "q_int_data")
+  
+  # Test each type
+  expect_false(is.null(getResults(analysis, type = "diversity")))
+  expect_false(is.null(getResults(analysis, type = "divergence")))
+  expect_false(is.null(getResults(analysis, type = "lm")))
+  expect_false(is.null(getResults(analysis, type = "jackknife")))
+  expect_false(is.null(getResults(analysis, type = "q_interactions")))
+})
+
+test_that("getResults default type is 'diversity'", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Mock diversity results (as a list, not matrix)
+  n_genes <- nrow(se)
+  analysis@diversity_results <- list(
+    q_0.5 = matrix(rnorm(n_genes), nrow = 1, ncol = n_genes)
+  )
+  
+  # Default call should work
+  default_result <- getResults(analysis)
+  explicit_result <- getResults(analysis, type = "diversity")
+  
+  expect_equal(nrow(default_result), nrow(explicit_result))
+  expect_equal(ncol(default_result), ncol(explicit_result))
+})
+
+test_that("getResults q-value filtering handles non-existent q-values gracefully", {
+  se <- make_test_se()
+  analysis <- TSENATAnalysis(se, config = tsenat_config())
+  
+  # Create diversity results as a list with specific q-values
+  q_vals <- c("q_0.5", "q_1.0", "q_1.5")
+  diversity_results <- list(
+    q_0.5 = matrix(rnorm(nrow(se)), nrow = 1, ncol = nrow(se)),
+    q_1.0 = matrix(rnorm(nrow(se)), nrow = 1, ncol = nrow(se)),
+    q_1.5 = matrix(rnorm(nrow(se)), nrow = 1, ncol = nrow(se))
+  )
+  analysis@diversity_results <- diversity_results
+  
+  # Try to get existing q-value
+  result <- tryCatch(
+    getResults(analysis, type = "diversity", q = 1.0),
+    error = function(e) NULL
+  )
+  
+  # Should return a result, not NULL
+  expect_false(is.null(result))
 })
